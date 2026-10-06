@@ -24,6 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<ul>
 			<li><strong><?php esc_html_e( 'Admin:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Click the "Record" button next to any submission in the Reregistration > Submissions list', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'User Dashboard:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Click "Download Record" on the reregistration banner after submitting', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Validation page:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'The public /valid page also finds a record by its authentication code or its magic link', 'ffcertificate' ); ?></li>
 		</ul>
 	</div>
 
@@ -45,6 +46,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>{{audience_name}}</code></td><td><?php esc_html_e( 'Audience group name', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{submission_status}}</code></td><td><?php esc_html_e( 'Current status (Submitted, Approved, etc.)', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{submitted_at}}</code></td><td><?php esc_html_e( 'Submission date', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>{{email}}</code></td><td><?php esc_html_e( 'Account email', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>{{auth_code}}</code></td><td><?php esc_html_e( 'Authentication code — filled only once the submission is approved', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>{{auth_code_line}}</code></td><td><?php esc_html_e( 'Ready-made "Authentication: …" footer fragment, empty until the submission is approved', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>{{reference_year}}</code></td><td><?php esc_html_e( 'Year the campaign started', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>{{logo_gov}}</code> / <code>{{logo_org}}</code></td><td><?php esc_html_e( 'Branding logo URLs from Settings > General > Branding', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{custom_fields_section}}</code></td><td><?php esc_html_e( 'Auto-generated section with all custom field values', 'ffcertificate' ); ?></td></tr>
 					<tr><td><code>{{termo_ciencia}}</code></td><td><?php esc_html_e( 'Acknowledgment notice ("Termo de Ciência") HTML — editable per-audience in the Reregistration Fields section, with a shipped default fallback.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{site_name}}</code></td><td><?php esc_html_e( 'WordPress site name', 'ffcertificate' ); ?></td></tr>
@@ -70,8 +76,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>{{vinculo}}</code></td><td><?php esc_html_e( 'Employment relationship', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{unidade_lotacao}}</code></td><td><?php esc_html_e( 'Assigned unit', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>{{unidade_exercicio}}</code></td><td><?php esc_html_e( 'Work unit', 'ffcertificate' ); ?></td></tr>
-				<tr><td><code>{{divisao}}</code></td><td><?php esc_html_e( 'Division', 'ffcertificate' ); ?></td></tr>
-				<tr><td><code>{{setor}}</code></td><td><?php esc_html_e( 'Sector', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>{{divisao_setor}}</code></td><td><?php esc_html_e( 'Division / Sector (see the dependent-select note below for each half)', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
 

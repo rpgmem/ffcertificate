@@ -5,8 +5,8 @@
  * The Quick-Navigation TOC and the section cards are both driven by a single
  * ordered, **recursive** registry ($ffc_doc_tree): a tree of nodes mirroring
  * the plugin's functional areas (Certificates / Scheduling / Reregistration /
- * Recruitment / Short URLs / Developer / Troubleshooting) — the reorganization
- * from #697. Each node may carry its own page (`file` + `anchor`) and/or a list
+ * Recruitment / Short URLs / Date Messages / Developer / Troubleshooting) — the
+ * reorganization from #697. Each node may carry its own page (`file` + `anchor`) and/or a list
  * of `children`; the nav renders as a collapsible tree and the page partials
  * are required in tree order. Adding or moving a doc page is a one-line
  * registry edit; the nav and the require order stay in sync automatically.
@@ -144,6 +144,12 @@ $ffc_doc_tree = array(
 						'title'  => __( 'Downloading the certificate', 'ffcertificate' ),
 						'file'   => 'submissions-download.php',
 					),
+					array(
+						'anchor' => 'feature-identity-resolution',
+						'icon'   => 'dashicons-groups',
+						'title'  => __( 'Identity Resolution', 'ffcertificate' ),
+						'file'   => 'feature-identity-resolution.php',
+					),
 				),
 			),
 			array(
@@ -205,10 +211,22 @@ $ffc_doc_tree = array(
 						'file'   => 'config-geolocation.php',
 					),
 					array(
+						'anchor' => 'config-ip-diagnostics',
+						'icon'   => 'dashicons-networking',
+						'title'  => __( 'IP Diagnostics', 'ffcertificate' ),
+						'file'   => 'config-ip-diagnostics.php',
+					),
+					array(
 						'anchor' => 'feature-user-dashboard',
 						'icon'   => 'dashicons-admin-users',
 						'title'  => __( 'User Dashboard & Access', 'ffcertificate' ),
 						'file'   => 'feature-user-dashboard.php',
+					),
+					array(
+						'anchor' => 'config-user-access',
+						'icon'   => 'dashicons-admin-users',
+						'title'  => __( 'User Access', 'ffcertificate' ),
+						'file'   => 'config-user-access.php',
 					),
 					array(
 						'anchor' => 'reference-capabilities',
@@ -233,6 +251,18 @@ $ffc_doc_tree = array(
 						'icon'   => 'dashicons-clipboard',
 						'title'  => __( 'Activity Log', 'ffcertificate' ),
 						'file'   => 'config-activity-log.php',
+					),
+					array(
+						'anchor' => 'config-scheduled-tasks',
+						'icon'   => 'dashicons-clock',
+						'title'  => __( 'Scheduled Tasks', 'ffcertificate' ),
+						'file'   => 'config-scheduled-tasks.php',
+					),
+					array(
+						'anchor' => 'operations-migrations',
+						'icon'   => 'dashicons-database',
+						'title'  => __( 'Data Migrations', 'ffcertificate' ),
+						'file'   => 'operations-migrations.php',
 					),
 					array(
 						'anchor' => 'operations-maintenance',
@@ -303,6 +333,12 @@ $ffc_doc_tree = array(
 		'icon'   => 'dashicons-admin-links',
 		'title'  => __( 'Short URLs & QR Codes', 'ffcertificate' ),
 		'file'   => 'feature-url-shortener.php',
+	),
+	array(
+		'anchor' => 'feature-date-messages',
+		'icon'   => 'dashicons-email-alt',
+		'title'  => __( 'Date Messages', 'ffcertificate' ),
+		'file'   => 'feature-date-messages.php',
 	),
 	array(
 		'icon'     => 'dashicons-editor-code',

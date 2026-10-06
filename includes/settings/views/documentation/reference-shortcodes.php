@@ -75,7 +75,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><code>[ffc_recruitment_queue notice="EDITAL-01"]</code></td>
 				<td>
 					<?php esc_html_e( 'Displays the public candidate queue (classification list) for a recruitment notice.', 'ffcertificate' ); ?><br>
-					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Set "notice" to the notice code. The list shows only the columns marked public in the notice editor, and only while the notice is in a public state (preliminary / definitive); drafts and closed notices are hidden.', 'ffcertificate' ); ?><br>
+					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Set "notice" to the notice code. The list shows only the columns marked public in the notice editor. Draft notices show a "being prepared" message instead of data; preliminary, definitive and closed notices show the list (a closed notice with a "Notice closed" banner).', 'ffcertificate' ); ?><br>
 					<strong><?php esc_html_e( 'Optional attribute:', 'ffcertificate' ); ?></strong> <code>adjutancy="sao-paulo"</code> <?php esc_html_e( '(pre-filter to one adjutancy).', 'ffcertificate' ); ?><br>
 					<strong><?php esc_html_e( 'URL filters:', 'ffcertificate' ); ?></strong> <code>?q=</code> <?php esc_html_e( '(name search),', 'ffcertificate' ); ?> <code>?adjutancy=</code>, <code>?subscription=</code> <?php esc_html_e( '(pcd / geral),', 'ffcertificate' ); ?> <code>?page_top=</code> / <code>?page_bottom=</code> <?php esc_html_e( '(pagination).', 'ffcertificate' ); ?>
 				</td>

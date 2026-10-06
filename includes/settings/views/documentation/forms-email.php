@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="card">
 	<h3 id="forms-email"><span class="dashicons dashicons-email-alt" aria-hidden="true"></span> <?php esc_html_e( 'Email (per-form)', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'Each form has its own Email box controlling the message sent to the participant on submission, plus an optional admin notification.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Each form has its own Email tab ("Email Configuration") in the form editor\'s "Certificate Form Configuration" box, controlling the message sent to the participant on submission, plus an optional admin notification.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Participant email', 'ffcertificate' ); ?></h4>
 	<ul>
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<li><strong><?php esc_html_e( 'Custom:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'reveals the per-form subject/body fields (pre-seeded with the current global text so you edit from real content) so this one form can differ. Switching back to Global clears the per-form copy — behind a confirmation — so the form tracks the global again.', 'ffcertificate' ); ?></li>
 			</ul>
 		</li>
-		<li><strong><?php esc_html_e( 'Subject & body (Custom mode):', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'edited in a visual editor. "Restore Default Text" restores the current global default.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Subject & body (Custom mode):', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'the subject is a plain text field and the body is edited in a visual editor. "Restore Default Text" restores the current global default, and an empty body also falls back to the default when the email is sent.', 'ffcertificate' ); ?></li>
 	</ul>
 	<p><?php esc_html_e( 'Tokens available in the body:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{form_title}}</code>, <code>{{auth_code}}</code>, <code>{{date}}</code>, <?php esc_html_e( 'plus the validation-URL link DSL — e.g.', 'ffcertificate' ); ?> <code>{{validation_url link:m&gt;"Download (PDF)"}}</code> <?php esc_html_e( '(magic download link) and', 'ffcertificate' ); ?> <code>{{validation_url link:v&gt;v}}</code> <?php esc_html_e( '(public validation page). See', 'ffcertificate' ); ?> <a href="#reference-validation-url"><?php esc_html_e( 'Validation URL', 'ffcertificate' ); ?></a>.</p>
 

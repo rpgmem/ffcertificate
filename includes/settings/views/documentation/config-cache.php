@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><strong><?php esc_html_e( 'Object cache (Redis):', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'used automatically when a persistent object cache is present.', 'ffcertificate' ); ?></li>
 	</ul>
 
+	<p><strong><?php esc_html_e( 'Cloudflare:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'when Cloudflare is in front of the site, a Cloudflare Page Cache card reads the edge cache status of the front page. Cloudflare\'s default (static assets only) is safe; with "Cache Everything", APO or a Cache Rule that caches HTML, add a bypass for the form and dashboard URLs or for the wordpress_logged_in cookie.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Form cache', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Caches each form\'s resolved settings to speed up rendering.', 'ffcertificate' ); ?></p>
 	<ul>
@@ -36,4 +38,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'QR-code cache', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Optionally store generated QR codes in the database (roughly 4 KB per submission) so they are not re-rendered on every PDF. A "Clear all QR-code cache" button flushes them. Statistics show how many codes are cached and their total size.', 'ffcertificate' ); ?></p>
+	<p class="description"><?php esc_html_e( 'This cache covers certificate QR codes only. Short URLs cache their own QR codes separately, with no setting and no manual clearing.', 'ffcertificate' ); ?></p>
 </div>

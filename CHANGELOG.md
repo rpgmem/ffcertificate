@@ -20,6 +20,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **The QR code defaults moved from General to the QR Code tab** (#1563). Same settings and values; a designed short-URL PNG is now rasterised by the browser from the SVG so it matches the preview.
+- **`readme.txt` and Settings → Documentation reviewed against the code** (#1573). Wrong shortcodes, table names, menu paths, hook signatures, REST permissions and privacy claims corrected; new pages for Date Messages, Scheduled Tasks, Data Migrations, Identity Resolution, User Access and IP Diagnostics.
 
 ### Fixed
 

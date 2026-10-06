@@ -69,11 +69,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><strong><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Campaign invitation, reminder and confirmation', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'New scheduled activity and activity-cancelled notices', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Recruitment call (convocation)', 'ffcertificate' ); ?></td></tr>
+				<tr><td><strong><?php esc_html_e( 'Date messages', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Birthday message — the default text a new rule starts from', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Account access', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Access-granted notice (sent when a user gains plugin capabilities)', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
 		<p><?php esc_html_e( 'Subjects follow one shape — "Event: {{reference}}" (a short event title, a colon, then the record it refers to). Bodies follow one visual standard — an event-title heading in a semantic colour (green = confirmed, red = cancelled, amber = reminder, purple = waitlist, blue = informational), a greeting, one context line, and a details box.', 'ffcertificate' ); ?> <a href="#email-texts-hub"><?php esc_html_e( 'See the Email texts hub page.', 'ffcertificate' ); ?></a></p>
 		<p><?php esc_html_e( 'Editing here is gated by the dedicated ffc_manage_email_templates capability, so email-copy editing can be delegated — or withheld — independently of the blanket Settings capability. Individual forms can still override the certificate email per-form (see Forms → Email).', 'ffcertificate' ); ?></p>
+	</div>
+
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Date-message e-mails', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'Each Date Messages rule sends its own subject and body to each person on their date, through the same pipeline and chrome. A body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. A rule can also e-mail chosen managers a summary 24 hours after each run; that summary has a fixed body.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'Date-message tokens:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{full_name}}</code>, <code>{{email}}</code>, <code>{{date}}</code>, <code>{{age}}</code>, <code>{{days_until}}</code>, <code>{{site_name}}</code>, <code>{{dashboard_url}}</code>, <code>{{unsubscribe_url}}</code>. <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages', 'ffcertificate' ); ?></a>.</p>
 	</div>
 
 	<div class="ffc-doc-example">

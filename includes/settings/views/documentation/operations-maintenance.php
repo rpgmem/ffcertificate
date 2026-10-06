@@ -41,7 +41,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 			<tr>
 				<td><strong><?php esc_html_e( 'Submission ↔ user link audit', 'ffcertificate' ); ?></strong></td>
-				<td><?php esc_html_e( 'Report-only scan (never changes data) for submissions wrongly linked to WordPress users: a link to a deleted user, one user bound to multiple CPF/RF identities, an unlinked submission whose CPF matches a linked one, and a single CPF shared across users. Detection runs off the stored CPF/RF hashes, so no decryption is involved.', 'ffcertificate' ); ?></td>
+				<td><?php esc_html_e( 'Report-only scan (never changes data) of how people are linked to WordPress users. Over certificate submissions: a link to a deleted user, one user bound to multiple CPF/RF identities, an unlinked submission whose CPF matches a linked one, and a single CPF shared across users. Across submissions, appointments, recruitment candidacies and the identity index: one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not carry yet. It also flags a stored CPF or RF whose own check digit does not match. Findings can be exported as CSV and are worked on the Identity Resolution screen.', 'ffcertificate' ); ?></td>
 			</tr>
 		</tbody>
 	</table>
@@ -49,7 +49,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-note">
 		<p>
 			<strong class="ffc-icon-info"><?php esc_html_e( 'Safe by design:', 'ffcertificate' ); ?></strong>
-			<?php esc_html_e( 'Always run the preview first. Deletions (short URLs) are permanent; disabling Public Operator Access is reversible (re-enable on the form editor); the link audit only reports — fix each finding manually.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Always run the preview first. Deletions (short URLs) are permanent; disabling Public Operator Access is reversible (re-enable on the form editor); the link audit only reports — resolve each finding on the Identity Resolution screen or by hand.', 'ffcertificate' ); ?>
 		</p>
 	</div>
+	<p class="description"><a href="#feature-identity-resolution"><?php esc_html_e( 'See Identity Resolution.', 'ffcertificate' ); ?></a> · <a href="#operations-migrations"><?php esc_html_e( 'See Data Migrations.', 'ffcertificate' ); ?></a></p>
 </div>

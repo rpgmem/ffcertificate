@@ -51,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><?php esc_html_e( 'Container for sections', 'ffcertificate' ); ?></td>
 			</tr>
 			<tr>
-				<td><code>&lt;table&gt;</code> <code>&lt;tr&gt;</code> <code>&lt;td&gt;</code></td>
+				<td><code>&lt;table&gt;</code> <code>&lt;tr&gt;</code> <code>&lt;td&gt;</code> <code>&lt;th&gt;</code></td>
 				<td><?php esc_html_e( 'Tables for layout (logos, signatures)', 'ffcertificate' ); ?></td>
 			</tr>
 			<tr>
@@ -59,15 +59,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><?php esc_html_e( 'Images (logos, signatures, decorations)', 'ffcertificate' ); ?></td>
 			</tr>
 			<tr>
-				<td><code>&lt;h1&gt;</code> <code>&lt;h2&gt;</code> <code>&lt;h3&gt;</code></td>
+				<td><code>&lt;h1&gt;</code> <code>&lt;h2&gt;</code> <code>&lt;h3&gt;</code> <code>&lt;h4&gt;</code></td>
 				<td><?php esc_html_e( 'Headers/titles', 'ffcertificate' ); ?></td>
 			</tr>
 			<tr>
 				<td><code>&lt;ul&gt;</code> <code>&lt;ol&gt;</code> <code>&lt;li&gt;</code></td>
 				<td><?php esc_html_e( 'Lists (bullet or numbered)', 'ffcertificate' ); ?></td>
 			</tr>
+			<tr>
+				<td><code>&lt;span&gt;</code> <code>&lt;hr&gt;</code> <code>&lt;font&gt;</code></td>
+				<td><?php esc_html_e( 'Inline styling, a horizontal rule, and legacy font color/size/face', 'ffcertificate' ); ?></td>
+			</tr>
 		</tbody>
 	</table>
+
+	<div class="ffc-doc-note">
+		<p>
+			<strong class="ffc-icon-info"><?php esc_html_e( 'The template is filtered on save.', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'Only the tags above survive, each with a fixed set of attributes: style works on almost every tag, but class is removed from img, td and th, and style blocks are not allowed — use inline styles. Developers can widen the list with the ffcertificate_allowed_html_tags filter.', 'ffcertificate' ); ?>
+		</p>
+	</div>
 
 	<h4><?php esc_html_e( 'Image Attributes:', 'ffcertificate' ); ?></h4>
 	<table class="widefat striped">
@@ -88,7 +99,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 			<tr>
 				<td><code>&lt;img src="photo.png" width="150" height="150"&gt;</code></td>
-				<td><?php esc_html_e( 'Photo cropped to fit dimensions', 'ffcertificate' ); ?></td>
+				<td><?php esc_html_e( 'Image scaled to exactly these dimensions (it is stretched, not cropped, when the proportions differ)', 'ffcertificate' ); ?></td>
 			</tr>
 		</tbody>
 	</table>
@@ -132,4 +143,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</tbody>
 	</table>
+
+	<h4><?php esc_html_e( 'Helper classes:', 'ffcertificate' ); ?></h4>
+	<p>
+		<?php esc_html_e( 'The PDF stylesheet ships alignment helpers for the certificate body:', 'ffcertificate' ); ?>
+		<code>ffc-txt-center</code>, <code>ffc-txt-left</code>, <code>ffc-txt-right</code>, <code>ffc-txt-justify</code>, <code>ffc-full-width</code>.
+		<?php esc_html_e( 'Use them on a paragraph, div, span, heading, list or table.', 'ffcertificate' ); ?>
+	</p>
+	<p class="description">
+		<?php esc_html_e( 'The stylesheet also defines image helpers', 'ffcertificate' ); ?>
+		<code>ffc-responsive-logo</code> / <code>ffc-full-width-img</code>,
+		<?php esc_html_e( 'but they cannot be used in a form\'s certificate template today: the class attribute is removed from img tags when the template is saved. Size images with width / height or an inline style instead.', 'ffcertificate' ); ?>
+	</p>
 </div>
