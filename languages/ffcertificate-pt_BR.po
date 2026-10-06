@@ -24453,21 +24453,6 @@ msgstr "Identificadores sensíveis — e-mail, CPF e RF — são criptografados 
 msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability. Revealing recruitment PII writes an activity-log entry (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
 msgstr "Na tela, CPF/RF e e-mail são mascarados, a menos que o operador tenha a capacidade de dados pessoais correspondente. Revelar dados pessoais do recrutamento grava uma entrada no registro de atividades (revelações repetidas do mesmo campo dentro de um minuto não são registradas de novo, e uma configuração do recrutamento pode desativar essa auditoria)."
 
-msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one looks up the WordPress account that has the requested e-mail address and works on the records linked to that account:"
-msgstr "Em Ferramentas → Exportar Dados Pessoais e Ferramentas → Apagar Dados Pessoais, o plugin registra seus próprios manipuladores. Cada um localiza a conta do WordPress que tem o e-mail solicitado e atua sobre os registros vinculados a essa conta:"
-
-msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings and FFC user settings."
-msgstr "exportadores reúnem os dados FFC da pessoa: perfil, certificados, agendamentos, grupos de público-alvo, reservas de público-alvo e configurações de usuário FFC."
-
-msgid "an eraser clears the encrypted personal data (e-mail, CPF/RF, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, schedule permissions, stored profile and FFC user settings, and unlinks their activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
-msgstr "um apagador remove os dados pessoais criptografados (e-mail, CPF/RF, …) dos certificados e agendamentos e os desvincula da conta, exclui as participações da pessoa em públicos-alvo, vínculos de reservas, permissões de agenda, perfil armazenado e configurações de usuário FFC, e desvincula suas entradas do registro de atividades. Códigos de autenticação e tokens de verificação podem ser mantidos de forma anonimizada para que certificados já emitidos continuem verificáveis depois que os dados da pessoa forem apagados."
-
-msgid "What the Privacy Tools do not reach."
-msgstr "O que as Ferramentas de Privacidade não alcançam."
-
-msgid "When no WordPress account has the requested e-mail, nothing is exported or erased. Records that were never linked to an account (for example a certificate issued without one) are not found, and reregistration submissions and recruitment candidacies are not covered by these handlers. Handle those parts of a request manually from the plugin's own screens."
-msgstr "Quando nenhuma conta do WordPress tem o e-mail solicitado, nada é exportado nem apagado. Registros que nunca foram vinculados a uma conta (por exemplo, um certificado emitido sem conta) não são encontrados, e envios de recadastramento e candidaturas do recrutamento não são cobertos por esses manipuladores. Trate essas partes da solicitação manualmente nas telas do próprio plugin."
-
 msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
 msgstr "Um logotipo da Biblioteca de Mídia pode ser desenhado no centro (a correção de erros é elevada para H automaticamente), e uma moldura (banner, badge, bubble, pill, speech, circle, brackets ou double) pode trazer uma legenda curta como \"Escaneie para verificar\", opcionalmente com um ícone. Uma moldura deixa a imagem mais alta do que larga; os certificados mantêm a largura pedida pelo placeholder e crescem em altura."
 
@@ -24665,6 +24650,39 @@ msgstr "As entradas do registro de atividades armazenam o endereço IP do client
 
 msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and reregistration bodies); two more cards clear plaintext left on activity log rows that are already encrypted and encrypt the client IP addresses older activity log rows still hold in clear."
 msgstr "a Rotação de Chaves de Criptografia recriptografa os dados pessoais armazenados com a FFC_ENCRYPTION_KEY do wp-config.php, com um segundo cartão para as áreas restantes (candidatos do recrutamento e conteúdo dos recadastramentos); outros dois cartões apagam o texto puro deixado em linhas do registro de atividades que já estão criptografadas e criptografam os endereços IP de clientes que linhas antigas do registro ainda guardam em texto puro."
+
+msgid "%1$s — %2$s (%3$s, score %4$s)"
+msgstr "%1$s — %2$s (%3$s, pontuação %4$s)"
+
+msgid "Classification"
+msgstr "Classificação"
+
+msgid "FFC Recruitment"
+msgstr "Recrutamento FFC"
+
+msgid "FFC Reregistration"
+msgstr "Recadastramento FFC"
+
+msgid "What the eraser keeps."
+msgstr "O que o apagador mantém."
+
+msgid "%d recruitment candidacies retained: classification lists of a public tender are kept by legal obligation. Remove the candidate in Recruitment if the obligation no longer applies."
+msgstr "%d candidaturas de recrutamento mantidas: as listas de classificação de um concurso público são guardadas por obrigação legal. Remova o candidato em Recrutamento se a obrigação não se aplicar mais."
+
+msgid "%d reregistration submissions retained: they are institutional records kept by legal obligation. Remove them from the campaign if the obligation no longer applies."
+msgstr "%d envios de recadastramento mantidos: são registros institucionais guardados por obrigação legal. Remova-os da campanha se a obrigação não se aplicar mais."
+
+msgid "Reregistration submissions and recruitment candidacies are exported but not erased: they are institutional records an organisation is usually required to keep, so the eraser reports them as retained, with a message, and changes nothing. Remove them from the campaign or from Recruitment when the obligation no longer applies. A record linked to a different account is that account's, even when it carries the same e-mail address."
+msgstr "Envios de recadastramento e candidaturas de recrutamento são exportados, mas não apagados: são registros institucionais que uma organização normalmente é obrigada a guardar, então o apagador os informa como mantidos, com uma mensagem, e não altera nada. Remova-os da campanha ou do Recrutamento quando a obrigação não se aplicar mais. Um registro vinculado a outra conta pertence a essa conta, mesmo que tenha o mesmo endereço de e-mail."
+
+msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one works on the records linked to the WordPress account that has the requested e-mail address and, for records linked to no account, on those whose stored e-mail matches it — so a certificate or appointment made without logging in is found too:"
+msgstr "Em Ferramentas → Exportar Dados Pessoais e Ferramentas → Apagar Dados Pessoais, o plugin registra seus próprios manipuladores. Cada um atua sobre os registros vinculados à conta do WordPress que tem o e-mail solicitado e, nos registros sem conta vinculada, sobre aqueles cujo e-mail armazenado corresponde a ele — assim, um certificado ou agendamento feito sem login também é encontrado:"
+
+msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, schedule permissions, stored profile and FFC user settings, and unlinks their activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
+msgstr "um apagador remove os dados pessoais criptografados (e-mail e seu hash de busca, CPF/RF, o IP do cliente, …) dos certificados e agendamentos e os desvincula da conta, exclui as participações da pessoa em públicos-alvo, vínculos de reservas, permissões de agenda, perfil armazenado e configurações de usuário FFC, e desvincula suas entradas do registro de atividades. Códigos de autenticação e tokens de verificação podem ser mantidos de forma anonimizada para que certificados já emitidos continuem verificáveis depois que os dados da pessoa forem apagados."
+
+msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
+msgstr "exportadores reúnem os dados FFC da pessoa: perfil, certificados, agendamentos, grupos de público-alvo, reservas de público-alvo, envios de recadastramento (com as respostas descriptografadas), candidaturas de recrutamento e suas classificações, e configurações de usuário FFC."
 
 msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export."
 msgstr "Um formulário sem data de término nunca libera o arquivo CSV. Os downloads também estão sujeitos a uma cota por formulário (se o campo estiver em branco, aplica-se o Limite de Download Padrão global, definido em Configurações → Avançado). Quando a exigência de CPF abaixo está em qualquer modo diferente de none — ou quando um operador informa voluntariamente um CPF válido — cada tentativa é registrada em um log de auditoria do formulário com as tentativas mais recentes (data/hora, endereço IP armazenado criptografado, modo e resultado), que os administradores podem exportar."

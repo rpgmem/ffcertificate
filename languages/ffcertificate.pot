@@ -24363,21 +24363,6 @@ msgstr ""
 msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability. Revealing recruitment PII writes an activity-log entry (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
 msgstr ""
 
-msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one looks up the WordPress account that has the requested e-mail address and works on the records linked to that account:"
-msgstr ""
-
-msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings and FFC user settings."
-msgstr ""
-
-msgid "an eraser clears the encrypted personal data (e-mail, CPF/RF, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, schedule permissions, stored profile and FFC user settings, and unlinks their activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
-msgstr ""
-
-msgid "What the Privacy Tools do not reach."
-msgstr ""
-
-msgid "When no WordPress account has the requested e-mail, nothing is exported or erased. Records that were never linked to an account (for example a certificate issued without one) are not found, and reregistration submissions and recruitment candidacies are not covered by these handlers. Handle those parts of a request manually from the plugin's own screens."
-msgstr ""
-
 msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
 msgstr ""
 
@@ -24574,6 +24559,39 @@ msgid "Activity-log entries store the client IP address encrypted, and an entry 
 msgstr ""
 
 msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and reregistration bodies); two more cards clear plaintext left on activity log rows that are already encrypted and encrypt the client IP addresses older activity log rows still hold in clear."
+msgstr ""
+
+msgid "%1$s — %2$s (%3$s, score %4$s)"
+msgstr ""
+
+msgid "Classification"
+msgstr ""
+
+msgid "FFC Recruitment"
+msgstr ""
+
+msgid "FFC Reregistration"
+msgstr ""
+
+msgid "What the eraser keeps."
+msgstr ""
+
+msgid "%d recruitment candidacies retained: classification lists of a public tender are kept by legal obligation. Remove the candidate in Recruitment if the obligation no longer applies."
+msgstr ""
+
+msgid "%d reregistration submissions retained: they are institutional records kept by legal obligation. Remove them from the campaign if the obligation no longer applies."
+msgstr ""
+
+msgid "Reregistration submissions and recruitment candidacies are exported but not erased: they are institutional records an organisation is usually required to keep, so the eraser reports them as retained, with a message, and changes nothing. Remove them from the campaign or from Recruitment when the obligation no longer applies. A record linked to a different account is that account's, even when it carries the same e-mail address."
+msgstr ""
+
+msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one works on the records linked to the WordPress account that has the requested e-mail address and, for records linked to no account, on those whose stored e-mail matches it — so a certificate or appointment made without logging in is found too:"
+msgstr ""
+
+msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, schedule permissions, stored profile and FFC user settings, and unlinks their activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
+msgstr ""
+
+msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
 msgstr ""
 
 msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export."

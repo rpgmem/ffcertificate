@@ -133,6 +133,14 @@ class PrivacyHandler {
 			'exporter_friendly_name' => __( 'FFC Audience Bookings', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_audience_bookings' ),
 		);
+		$exporters['ffcertificate-reregistration']    = array(
+			'exporter_friendly_name' => __( 'FFC Reregistration', 'ffcertificate' ),
+			'callback'               => array( PrivacyExporters::class, 'export_reregistration' ),
+		);
+		$exporters['ffcertificate-recruitment']       = array(
+			'exporter_friendly_name' => __( 'FFC Recruitment', 'ffcertificate' ),
+			'callback'               => array( PrivacyExporters::class, 'export_recruitment' ),
+		);
 		$exporters['ffcertificate-usermeta']          = array(
 			'exporter_friendly_name' => __( 'FFC User Settings', 'ffcertificate' ),
 			'callback'               => array( PrivacyExporters::class, 'export_usermeta' ),
