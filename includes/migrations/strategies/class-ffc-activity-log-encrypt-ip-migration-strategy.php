@@ -142,6 +142,11 @@ class ActivityLogEncryptIpMigrationStrategy implements MigrationStrategyInterfac
 			ARRAY_A
 		);
 
+		/**
+		 * Rows as `$wpdb` hands them back, checked against the SELECT above.
+		 *
+		 * @var list<array{id: numeric-string, user_ip: string}>|null $rows
+		 */
 		$changed = 0;
 		$errors  = array();
 		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
