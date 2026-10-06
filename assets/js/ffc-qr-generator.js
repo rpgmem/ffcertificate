@@ -157,7 +157,7 @@
 	}
 
 	/**
-	 * Reflect the server's short URL state: the circular lock, the list of
+	 * Reflect the server's short URL state: the circular and non-web locks, the list of
 	 * short URLs already sending to the address, and the one in the code.
 	 *
 	 * @param {jQuery}      $form Generator form.
@@ -166,8 +166,12 @@
 	function showShortState($form, state) {
 		var $switch = $form.find('#ffc-qr-short');
 		var circular = !!(state && state.circular);
-		$switch.prop('disabled', circular).prop('checked', circular ? false : wantShort);
+		// A non-web address (ftp, ssh...) cannot sit behind an HTTP redirect.
+		var direct = !!(state && state.direct);
+		var locked = circular || direct;
+		$switch.prop('disabled', locked).prop('checked', locked ? false : wantShort);
 		$form.find('#ffc-qr-short-circular').prop('hidden', !circular);
+		$form.find('#ffc-qr-short-direct').prop('hidden', !direct);
 		showShort($form);
 
 		var duplicates = (state && state.example && state.duplicates) || [];

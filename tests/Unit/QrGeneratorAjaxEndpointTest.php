@@ -41,7 +41,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		Functions\when( 'wp_check_invalid_utf8' )->returnArg();
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'esc_url_raw' )->returnArg();
-		Functions\when( 'wp_http_validate_url' )->alias( static fn( $u ) => filter_var( $u, FILTER_VALIDATE_URL ) ? $u : false );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
 		Functions\when( 'check_ajax_referer' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->alias( fn( $cap ) => in_array( $cap, $this->caps, true ) );
@@ -403,6 +403,25 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 
 		$this->assertSame( 'error:400', $kind );
 		$this->assertStringContainsString( 'cannot be shortened again', $data['message'] );
+	}
+
+	public function test_a_non_web_address_is_drawn_as_is_and_cannot_be_shortened(): void {
+		// A short URL is an HTTP redirect; a browser does not reliably follow
+		// it into ssh:// or ftp:// (#1596).
+		$this->service->shouldNotReceive( 'code_from_short_url' );
+		$this->service->shouldNotReceive( 'get_repository' );
+		$this->service->shouldNotReceive( 'create_short_url' );
+
+		$this->short_post( array( 'fields' => array( 'url' => 'ssh://user@server.example.com' ) ) );
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+		$this->assertSame( 'ssh://user@server.example.com', $data['payload'] );
+		$this->assertTrue( $data['short']['direct'] );
+		$this->assertFalse( $data['short']['example'] );
+
+		$this->short_post( array( 'fields' => array( 'url' => 'ftp://files.example.com/a.pdf' ), 'title' => 'File' ) );
+		list( $kind, $data ) = $this->run_handler( 'handle_shorten' );
+		$this->assertSame( 'error:400', $kind );
+		$this->assertStringContainsString( 'Only http and https', $data['message'] );
 	}
 
 	public function test_a_duplicate_needs_the_acknowledgement(): void {

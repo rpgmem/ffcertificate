@@ -22,6 +22,7 @@ function mount() {
 			<div data-ffc-qr-short-for="url social">
 				<input type="checkbox" id="ffc-qr-short" checked>
 				<p id="ffc-qr-short-circular" hidden></p>
+				<p id="ffc-qr-short-direct" hidden></p>
 				<div data-ffc-qr-short-on><input id="ffc-qr-short-title" value=""></div>
 				<div data-ffc-qr-short-on id="ffc-qr-short-duplicates" hidden><ul id="ffc-qr-short-duplicate-list"></ul><input type="checkbox" id="ffc-qr-short-ack"></div>
 				<div id="ffc-qr-short-result-row" hidden><button type="button" id="ffc-qr-short-result"></button><span id="ffc-qr-short-copied"></span></div>
@@ -446,6 +447,24 @@ describe('ffc-qr-generator.js', () => {
 		expect(window.$('#ffc-qr-short-result').text()).toBe('https://site.test/go/old111');
 		expect(window.$('#ffc-qr-short-duplicates').prop('hidden')).toBe(true);
 		expect(spy.mock.calls.some((c) => c[1].action === 'ffc_qr_shorten')).toBe(false);
+	});
+
+	it('a non-web address locks the switch off, says why, and the download creates nothing', async () => {
+		const spy = server({ circular: false, direct: true, code: '', url: '', example: false, duplicates: [] });
+		vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+
+		expect(window.$('#ffc-qr-short').prop('disabled')).toBe(true);
+		expect(window.$('#ffc-qr-short').prop('checked')).toBe(false);
+		expect(window.$('#ffc-qr-short-direct').prop('hidden')).toBe(false);
+		expect(window.$('#ffc-qr-short-circular').prop('hidden')).toBe(true);
+
+		window.$('#ffc-qr-format').val('svg');
+		window.$('#ffc-qr-download').trigger('click');
+		await flush();
+		expect(spy.mock.calls.some((c) => c[1].action === 'ffc_qr_shorten')).toBe(false);
+		expect(window.FFC.QrRaster.download).toHaveBeenCalled();
 	});
 
 	it('a circular address locks the switch off and the download creates nothing', async () => {

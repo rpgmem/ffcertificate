@@ -25,7 +25,7 @@ class QrPayloadTest extends TestCase {
 		Monkey\setUp();
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_url_raw' )->returnArg();
-		Functions\when( 'wp_http_validate_url' )->alias( static fn( $u ) => filter_var( $u, FILTER_VALIDATE_URL ) ? $u : false );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
 		Functions\when( 'sanitize_email' )->alias( static fn( $e ) => trim( $e ) );
 		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
@@ -52,6 +52,37 @@ class QrPayloadTest extends TestCase {
 		$this->assertSame( 'http://example.com', QrPayload::build( 'url', array( 'url' => ' http://example.com ' ) ) );
 		$this->error( 'url', array( 'url' => '' ) );
 		$this->error( 'url', array( 'url' => 'not a url' ) );
+	}
+
+	public function test_url_is_checked_by_shape_never_by_resolving_it(): void {
+		// The server never opens the address: what it resolves to from here
+		// (nothing, a private range, another port) does not make a code invalid (#1596).
+		Functions\expect( 'wp_http_validate_url' )->never();
+
+		foreach ( array(
+			'https://intranet.sme.prefeitura.sp.gov.br/portal',
+			'http://10.20.30.40:8443/app',
+			'https://[2001:db8::1]/',
+			'http://localhost:8080',
+			'https://exemplo.com.br.',
+			'https://educação.sp.gov.br',
+			'https://example.xn--p1ai',
+			'sub.example.co.uk/a?b=1#c',
+		) as $url ) {
+			$this->assertIsString( QrPayload::build( 'url', array( 'url' => $url ) ), $url );
+		}
+
+		foreach ( array( 'https://exempl', 'https://', 'https://.com', 'https://-a.com', 'https://a..com', 'https://example.c0m', 'javascript:alert(1)', 'data:text/html,x', 'file:///etc/passwd', 'gopher://example.com' ) as $url ) {
+			$this->error( 'url', array( 'url' => $url ) );
+		}
+	}
+
+	public function test_no_scheme_means_https_and_other_network_schemes_are_typed_in_full(): void {
+		$this->assertSame( 'https://teste123.com', QrPayload::build( 'url', array( 'url' => 'teste123.com' ) ) );
+		foreach ( array( 'http://example.com/a', 'ftp://files.example.com/pub/a.pdf', 'ftps://files.example.com', 'sftp://user@files.example.com:2222/home', 'ssh://user@server.example.com' ) as $url ) {
+			$this->assertSame( $url, QrPayload::build( 'url', array( 'url' => $url ) ), $url );
+		}
+		$this->assertSame( QrPayload::URL_SCHEMES[0], 'https', 'The assumed scheme leads the list.' );
 	}
 
 	public function test_text_is_kept_as_typed(): void {
@@ -196,7 +227,7 @@ class QrPayloadTest extends TestCase {
 	public function test_a_vcard_needs_a_name_and_valid_contacts(): void {
 		$this->assertSame( 'Enter a name or an organisation.', $this->error( 'vcard', array( 'email' => 'a@b.co' ) ) );
 		$this->assertSame( 'Enter a valid e-mail address.', $this->error( 'vcard', array( 'first_name' => 'A', 'email' => 'nobody@' ) ) );
-		$this->assertSame( 'Enter a valid web address (http or https).', $this->error( 'vcard', array( 'first_name' => 'A', 'website' => 'not a url' ) ) );
+		$this->assertSame( 'Enter a valid address. Without a scheme, https:// is used; http, ftp, ftps, sftp and ssh must be typed in full.', $this->error( 'vcard', array( 'first_name' => 'A', 'website' => 'not a url' ) ) );
 	}
 
 	public function test_social_joins_the_prefix_and_the_user_name(): void {
