@@ -134,6 +134,24 @@ describe('ffc-qr-generator.js', () => {
 		expect(spy.mock.calls[0][1].type).toBe('wifi');
 	});
 
+	it('shows the Enterprise sign-in rows only for an Enterprise network', () => {
+		window.$('[data-ffc-qr-type="wifi"] td').append(
+			'<select data-ffc-qr-field="wifi:security"><option value="WPA" selected>WPA</option><option value="WPA2-EAP">EAP</option></select>'
+			+ '<span data-ffc-qr-wifi-enterprise><input data-ffc-qr-field="wifi:identity" value="maria"></span>'
+		);
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		window.FFC.QrGenerator.init();
+		const $row = window.$('[data-ffc-qr-wifi-enterprise]');
+
+		expect($row.prop('hidden')).toBe(true);
+		window.$('[data-ffc-qr-field="wifi:security"]').val('WPA2-EAP').trigger('change');
+		expect($row.prop('hidden')).toBe(false);
+		window.$('input[value="wifi"]').prop('checked', true);
+		expect(window.FFC.QrGenerator.collect(window.$('#ffc-qr-generator')).fields).toMatchObject({ security: 'WPA2-EAP', identity: 'maria' });
+		window.$('[data-ffc-qr-field="wifi:security"]').val('WPA').trigger('change');
+		expect($row.prop('hidden')).toBe(true);
+	});
+
 	it('downloads in the chosen format, the PNG at the chosen width', async () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
 		const download = vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});

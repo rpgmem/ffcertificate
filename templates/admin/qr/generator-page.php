@@ -116,7 +116,41 @@ $ffc_qr_vcard_fields = array(
 									<option value="WPA"><?php esc_html_e( 'WPA / WPA2 / WPA3', 'ffcertificate' ); ?></option>
 									<option value="WEP">WEP</option>
 									<option value="nopass"><?php esc_html_e( 'Open network (no password)', 'ffcertificate' ); ?></option>
+									<option value="WPA2-EAP"><?php esc_html_e( 'WPA2 / WPA3 Enterprise (user name and password)', 'ffcertificate' ); ?></option>
 								</select>
+							</td>
+						</tr>
+						<tr data-ffc-qr-wifi-enterprise hidden>
+							<th scope="row"><label for="ffc-qr-wifi-identity"><?php esc_html_e( 'User name', 'ffcertificate' ); ?></label></th>
+							<td>
+								<input type="text" id="ffc-qr-wifi-identity" class="regular-text" autocomplete="off" data-ffc-qr-field="wifi:identity">
+								<p class="description"><?php esc_html_e( 'Android 10 or later joins an Enterprise network from the code; the iPhone camera does not, so iPhone users still type the user name and password.', 'ffcertificate' ); ?></p>
+							</td>
+						</tr>
+						<tr data-ffc-qr-wifi-enterprise hidden>
+							<th scope="row"><label for="ffc-qr-wifi-eap"><?php esc_html_e( 'EAP method', 'ffcertificate' ); ?></label></th>
+							<td>
+								<select id="ffc-qr-wifi-eap" data-ffc-qr-field="wifi:eap">
+									<option value="PEAP">PEAP</option>
+									<option value="TTLS">TTLS</option>
+								</select>
+							</td>
+						</tr>
+						<tr data-ffc-qr-wifi-enterprise hidden>
+							<th scope="row"><label for="ffc-qr-wifi-phase2"><?php esc_html_e( 'Phase 2 authentication', 'ffcertificate' ); ?></label></th>
+							<td>
+								<select id="ffc-qr-wifi-phase2" data-ffc-qr-field="wifi:phase2">
+									<option value="MSCHAPV2">MSCHAPv2</option>
+									<option value="GTC">GTC</option>
+									<option value="PAP">PAP</option>
+								</select>
+							</td>
+						</tr>
+						<tr data-ffc-qr-wifi-enterprise hidden>
+							<th scope="row"><label for="ffc-qr-wifi-anonymous"><?php esc_html_e( 'Anonymous identity', 'ffcertificate' ); ?></label></th>
+							<td>
+								<input type="text" id="ffc-qr-wifi-anonymous" class="regular-text" autocomplete="off" data-ffc-qr-field="wifi:anonymous">
+								<p class="description"><?php esc_html_e( 'Optional. Leave blank unless the network administrator gave you one.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
 						<tr>

@@ -47,8 +47,17 @@ final class QrPayload {
 	/** How an event is delivered by the code. */
 	public const EVENT_MODES = array( 'vevent', 'google', 'ics' );
 
-	/** Wi-Fi security types (`nopass` is an open network). */
-	public const WIFI_SECURITY = array( 'WPA', 'WEP', 'nopass' );
+	/**
+	 * Wi-Fi security types (`nopass` is an open network; `WPA2-EAP` is
+	 * WPA2/WPA3 Enterprise, an 802.1X network that asks for a user name).
+	 */
+	public const WIFI_SECURITY = array( 'WPA', 'WEP', 'nopass', 'WPA2-EAP' );
+
+	/** Enterprise outer methods that sign in with a user name and password. */
+	public const WIFI_EAP_METHODS = array( 'PEAP', 'TTLS' );
+
+	/** Enterprise inner (phase 2) authentication methods. */
+	public const WIFI_PHASE2 = array( 'MSCHAPV2', 'GTC', 'PAP' );
 
 	/**
 	 * Byte-mode capacity of a version-40 code, per error-correction level.
@@ -86,7 +95,7 @@ final class QrPayload {
 			case 'text':
 				return '' === $get( 'text' ) ? self::missing( __( 'Enter the text to encode.', 'ffcertificate' ) ) : $get( 'text' );
 			case 'wifi':
-				return self::wifi( $get( 'ssid' ), $get( 'password' ), $get( 'security' ), '' !== $get( 'hidden' ) );
+				return self::wifi( $get, '' !== $get( 'hidden' ) );
 			case 'email':
 				return self::email( $get( 'email' ), $get( 'subject' ), $get( 'body' ) );
 			case 'phone':
@@ -150,17 +159,22 @@ final class QrPayload {
 	/**
 	 * A Wi-Fi network, in the `WIFI:` format phone cameras join.
 	 *
-	 * @param string $ssid     Network name.
-	 * @param string $password Password.
-	 * @param string $security WPA, WEP or nopass.
-	 * @param bool   $hidden   Whether the network hides its name.
+	 * An Enterprise (802.1X) network adds the user name (`I:`), the outer
+	 * method (`E:`), the phase-2 method (`PH2:`) and an optional anonymous
+	 * identity (`A:`) — the fields Android reads; the iPhone camera does not
+	 * join Enterprise networks from a code at all.
+	 *
+	 * @param callable(string): string $get    Field reader.
+	 * @param bool                     $hidden Whether the network hides its name.
 	 * @return string|WP_Error
 	 */
-	private static function wifi( string $ssid, string $password, string $security, bool $hidden ) {
+	private static function wifi( callable $get, bool $hidden ) {
+		$ssid     = $get( 'ssid' );
+		$password = $get( 'password' );
 		if ( '' === $ssid ) {
 			return self::missing( __( 'Enter the network name.', 'ffcertificate' ) );
 		}
-		$security = in_array( $security, self::WIFI_SECURITY, true ) ? $security : 'WPA';
+		$security = in_array( $get( 'security' ), self::WIFI_SECURITY, true ) ? $get( 'security' ) : 'WPA';
 		if ( 'nopass' !== $security && '' === $password ) {
 			return self::missing( __( 'Enter the network password, or choose an open network.', 'ffcertificate' ) );
 		}
@@ -168,6 +182,18 @@ final class QrPayload {
 		$payload = 'WIFI:T:' . $security . ';S:' . self::wifi_escape( $ssid ) . ';';
 		if ( 'nopass' !== $security ) {
 			$payload .= 'P:' . self::wifi_escape( $password ) . ';';
+		}
+		if ( 'WPA2-EAP' === $security ) {
+			$identity = $get( 'identity' );
+			if ( '' === $identity ) {
+				return self::missing( __( 'Enter the user name for the Enterprise network.', 'ffcertificate' ) );
+			}
+			$method   = in_array( $get( 'eap' ), self::WIFI_EAP_METHODS, true ) ? $get( 'eap' ) : 'PEAP';
+			$phase2   = in_array( $get( 'phase2' ), self::WIFI_PHASE2, true ) ? $get( 'phase2' ) : 'MSCHAPV2';
+			$payload .= 'E:' . $method . ';PH2:' . $phase2 . ';I:' . self::wifi_escape( $identity ) . ';';
+			if ( '' !== $get( 'anonymous' ) ) {
+				$payload .= 'A:' . self::wifi_escape( $get( 'anonymous' ) ) . ';';
+			}
 		}
 		if ( $hidden ) {
 			$payload .= 'H:true;';
