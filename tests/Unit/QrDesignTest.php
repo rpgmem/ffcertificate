@@ -43,6 +43,8 @@ class QrDesignTest extends TestCase {
 				'frame'           => 'none',
 				'frame_text'      => '',
 				'frame_color'     => '#1d2327',
+				'frame_icon'      => 'scan',
+				'transparent'     => false,
 			),
 			QrDesign::plain()->to_array()
 		);
@@ -51,7 +53,7 @@ class QrDesignTest extends TestCase {
 	public function test_unknown_shapes_and_malformed_colours_fall_back(): void {
 		$design = new QrDesign(
 			array(
-				'dots'       => 'star',
+				'dots'       => 'hexagon',
 				'eye_frame'  => array( 'circle' ),
 				'eye_ball'   => '<script>',
 				'color'      => 'red',
@@ -114,6 +116,8 @@ class QrDesignTest extends TestCase {
 				'frame'           => 'none',
 				'frame_text'      => '',
 				'frame_color'     => '#1d2327',
+				'frame_icon'      => 'scan',
+				'transparent'     => false,
 			),
 			QrDesign::from_settings()->to_array()
 		);
@@ -149,6 +153,7 @@ class QrDesignTest extends TestCase {
 				'low_contrast' => false,
 				'min_ratio'    => 21.0,
 				'caption_contrast' => true,
+				'transparent'      => false,
 			),
 			QrDesign::plain()->scan_checks()
 		);
@@ -225,5 +230,61 @@ class QrDesignTest extends TestCase {
 		$this->assertTrue( $dark->scan_checks()['caption_contrast'] );
 		// The banner picks a readable caption colour itself.
 		$this->assertTrue( $other->scan_checks()['caption_contrast'] );
+	}
+
+	public function test_the_new_shapes_frames_and_icons_are_accepted(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
+		$design = new QrDesign(
+			array(
+				'dots'       => 'heart',
+				'eye_frame'  => 'dotted',
+				'eye_ball'   => 'flower',
+				'frame'      => 'circle',
+				'frame_icon' => 'globe',
+			)
+		);
+
+		$this->assertSame( array( 'heart', 'dotted', 'flower', 'circle', 'globe' ), array( $design->dots, $design->eye_frame, $design->eye_ball, $design->frame, $design->frame_icon ) );
+		// Every frame icon is one the icon set can draw.
+		foreach ( QrDesign::FRAME_ICONS as $icon ) {
+			$this->assertTrue( \FreeFormCertificate\Generators\QrIcons::has( $icon ), $icon );
+		}
+	}
+
+	public function test_eye_centres_that_failed_the_scan_gate_are_refused(): void {
+		// A 3x3 grid of dots and bars were measured unreadable (#1570).
+		foreach ( array( 'dots', 'bars_v', 'bars_h' ) as $ball ) {
+			$this->assertSame( 'square', ( new QrDesign( array( 'eye_ball' => $ball ) ) )->eye_ball, $ball );
+		}
+		$this->assertSame( 'scan', ( new QrDesign( array( 'frame_icon' => 'rocket' ) ) )->frame_icon );
+	}
+
+	public function test_a_transparent_design_warns_instead_of_measuring(): void {
+		$checks = ( new QrDesign(
+			array(
+				'transparent' => '1',
+				'color'       => '#ffffff',
+				'background'  => '#ffffff',
+			)
+		) )->scan_checks();
+
+		// White on "white" would be an inverted, unreadable code; on a
+		// transparent ground that background is not real, so it is not judged.
+		$this->assertTrue( $checks['transparent'] );
+		$this->assertFalse( $checks['inverted'] );
+		$this->assertFalse( $checks['low_contrast'] );
+	}
+
+	public function test_frames_that_print_on_the_paper_check_the_caption(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
+		foreach ( array( 'badge', 'speech', 'circle', 'brackets' ) as $frame ) {
+			$checks = ( new QrDesign( array( 'frame' => $frame, 'frame_text' => 'Scan', 'frame_color' => '#eeeeee' ) ) )->scan_checks();
+			$this->assertFalse( $checks['caption_contrast'], $frame );
+		}
+		// The pill and the bands pick a readable caption colour themselves.
+		foreach ( array( 'pill', 'double', 'banner' ) as $frame ) {
+			$checks = ( new QrDesign( array( 'frame' => $frame, 'frame_text' => 'Scan', 'frame_color' => '#eeeeee' ) ) )->scan_checks();
+			$this->assertTrue( $checks['caption_contrast'], $frame );
+		}
 	}
 }

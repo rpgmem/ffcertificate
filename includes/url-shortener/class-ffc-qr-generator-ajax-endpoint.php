@@ -173,6 +173,8 @@ class QrGeneratorAjaxEndpoint {
 				'qr_design_frame'           => $design['frame'] ?? '',
 				'qr_design_frame_text'      => $design['frame_text'] ?? '',
 				'qr_design_frame_color'     => $design['frame_color'] ?? '',
+				'qr_design_frame_icon'      => $design['frame_icon'] ?? '',
+				'qr_design_transparent'     => $design['transparent'] ?? '',
 				// A logo the user cannot read is not remembered: the page would
 				// otherwise embed it on the next visit.
 				'qr_design_logo_id'         => $logo_id > 0 && current_user_can( 'read_post', $logo_id ) ? $logo_id : 0,

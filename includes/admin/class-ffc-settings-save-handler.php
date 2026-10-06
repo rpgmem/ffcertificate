@@ -421,6 +421,7 @@ class SettingsSaveHandler {
 					'frame'           => $new['qr_design_frame'] ?? null,
 					'frame_text'      => $new['qr_design_frame_text'] ?? null,
 					'frame_color'     => $new['qr_design_frame_color'] ?? null,
+					'frame_icon'      => $new['qr_design_frame_icon'] ?? null,
 				)
 			);
 
@@ -444,6 +445,8 @@ class SettingsSaveHandler {
 			$clean['qr_design_frame']           = $design->frame;
 			$clean['qr_design_frame_text']      = $design->frame_text;
 			$clean['qr_design_frame_color']     = $design->frame_color;
+			$clean['qr_design_frame_icon']      = $design->frame_icon;
+			$clean['qr_design_transparent']     = isset( $new['qr_design_transparent'] ) ? 1 : 0;
 			$clean['qr_design_on_certificate']  = isset( $new['qr_design_on_certificate'] ) ? 1 : 0;
 			$clean['qr_design_on_short_urls']   = isset( $new['qr_design_on_short_urls'] ) ? 1 : 0;
 		}

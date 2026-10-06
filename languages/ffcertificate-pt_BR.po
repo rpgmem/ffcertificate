@@ -23754,9 +23754,6 @@ msgstr "PNG, JPEG, WebP ou GIF de até 512 KB, desenhado no centro. Um logotipo 
 msgid "Speech bubble above"
 msgstr "Balão de fala acima"
 
-msgid "The badge caption is hard to read on this background; pick a darker frame colour."
-msgstr "A legenda do selo fica difícil de ler neste fundo; escolha uma cor de moldura mais escura."
-
 msgid "Up to 24 characters, e.g. \"Scan to verify\". The caption colour is picked to stay readable on the frame."
 msgstr "Até 24 caracteres, por exemplo \"Escaneie para verificar\". A cor da legenda é escolhida para continuar legível sobre a moldura."
 
@@ -24002,3 +23999,63 @@ msgstr "Baixar"
 
 msgid "The generator remembers your design when you download a code; \"Reset to default\" goes back to the global design from Settings → QR Code."
 msgstr "O gerador lembra o seu design quando você baixa um código; \"Restaurar padrão\" volta ao design global de Configurações → QR Code."
+
+msgid "Bands above and below"
+msgstr "Faixas em cima e embaixo"
+
+msgid "Circle with curved caption"
+msgstr "Círculo com legenda em arco"
+
+msgid "Corner brackets"
+msgstr "Cantoneiras"
+
+msgid "Cross"
+msgstr "Cruz"
+
+msgid "Cut corners"
+msgstr "Cantos chanfrados"
+
+msgid "Dotted"
+msgstr "Pontilhado"
+
+msgid "Draw no background, for placing the code on a coloured surface"
+msgstr "Não desenhar fundo, para aplicar o código sobre uma superfície colorida"
+
+msgid "Flower"
+msgstr "Flor"
+
+msgid "Globe"
+msgstr "Globo"
+
+msgid "Heart"
+msgstr "Coração"
+
+msgid "Icon (pill and outline frames)"
+msgstr "Ícone (molduras pílula e contorno)"
+
+msgid "One rounded corner"
+msgstr "Um canto arredondado"
+
+msgid "Outline with pointer and icon"
+msgstr "Contorno com seta e ícone"
+
+msgid "Pill with icon below"
+msgstr "Pílula com ícone embaixo"
+
+msgid "Scan"
+msgstr "Escanear"
+
+msgid "Star"
+msgstr "Estrela"
+
+msgid "The frame caption is hard to read on this background; pick a darker frame colour."
+msgstr "A legenda da moldura fica difícil de ler neste fundo; escolha uma cor de moldura mais escura."
+
+msgid "Transparent background"
+msgstr "Fundo transparente"
+
+msgid "Transparent background: contrast cannot be checked. Test the code on the surface it will be printed on; a dark one makes it unreadable."
+msgstr "Fundo transparente: não é possível verificar o contraste. Teste o código na superfície onde ele será impresso; uma superfície escura o torna ilegível."
+
+msgid "X"
+msgstr "X"

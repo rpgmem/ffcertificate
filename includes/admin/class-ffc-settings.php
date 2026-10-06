@@ -306,6 +306,8 @@ class Settings {
 			'qr_design_frame'            => 'none',
 			'qr_design_frame_text'       => '',
 			'qr_design_frame_color'      => '#1d2327',
+			'qr_design_frame_icon'       => 'scan',
+			'qr_design_transparent'      => 0,
 			'qr_design_on_certificate'   => 0,
 			'qr_design_on_short_urls'    => 0,
 			// `d/m/Y` default since #244 — Brazilian-locale friendly. Pre-

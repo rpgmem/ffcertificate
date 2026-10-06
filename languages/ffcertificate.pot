@@ -23663,9 +23663,6 @@ msgstr ""
 msgid "Speech bubble above"
 msgstr ""
 
-msgid "The badge caption is hard to read on this background; pick a darker frame colour."
-msgstr ""
-
 msgid "Up to 24 characters, e.g. \"Scan to verify\". The caption colour is picked to stay readable on the frame."
 msgstr ""
 
@@ -23910,4 +23907,64 @@ msgid "Download"
 msgstr ""
 
 msgid "The generator remembers your design when you download a code; \"Reset to default\" goes back to the global design from Settings → QR Code."
+msgstr ""
+
+msgid "Bands above and below"
+msgstr ""
+
+msgid "Circle with curved caption"
+msgstr ""
+
+msgid "Corner brackets"
+msgstr ""
+
+msgid "Cross"
+msgstr ""
+
+msgid "Cut corners"
+msgstr ""
+
+msgid "Dotted"
+msgstr ""
+
+msgid "Draw no background, for placing the code on a coloured surface"
+msgstr ""
+
+msgid "Flower"
+msgstr ""
+
+msgid "Globe"
+msgstr ""
+
+msgid "Heart"
+msgstr ""
+
+msgid "Icon (pill and outline frames)"
+msgstr ""
+
+msgid "One rounded corner"
+msgstr ""
+
+msgid "Outline with pointer and icon"
+msgstr ""
+
+msgid "Pill with icon below"
+msgstr ""
+
+msgid "Scan"
+msgstr ""
+
+msgid "Star"
+msgstr ""
+
+msgid "The frame caption is hard to read on this background; pick a darker frame colour."
+msgstr ""
+
+msgid "Transparent background"
+msgstr ""
+
+msgid "Transparent background: contrast cannot be checked. Test the code on the surface it will be printed on; a dark one makes it unreadable."
+msgstr ""
+
+msgid "X"
 msgstr ""

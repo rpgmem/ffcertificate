@@ -28,30 +28,53 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $ffc_qr_shape_labels = array(
-	'dots'      => array(
+	'dots'       => array(
 		'square'  => __( 'Square', 'ffcertificate' ),
 		'rounded' => __( 'Rounded', 'ffcertificate' ),
 		'dots'    => __( 'Dots', 'ffcertificate' ),
 		'fluid'   => __( 'Fluid', 'ffcertificate' ),
 		'diamond' => __( 'Diamond', 'ffcertificate' ),
+		'star'    => __( 'Star', 'ffcertificate' ),
+		'cross'   => __( 'Cross', 'ffcertificate' ),
+		'heart'   => __( 'Heart', 'ffcertificate' ),
+		'x'       => __( 'X', 'ffcertificate' ),
 	),
-	'eye_frame' => array(
+	'eye_frame'  => array(
 		'square'  => __( 'Square', 'ffcertificate' ),
 		'rounded' => __( 'Rounded', 'ffcertificate' ),
 		'circle'  => __( 'Circle', 'ffcertificate' ),
 		'leaf'    => __( 'Leaf', 'ffcertificate' ),
+		'dotted'  => __( 'Dotted', 'ffcertificate' ),
+		'corner'  => __( 'One rounded corner', 'ffcertificate' ),
+		'cut'     => __( 'Cut corners', 'ffcertificate' ),
 	),
-	'eye_ball'  => array(
+	'eye_ball'   => array(
 		'square'  => __( 'Square', 'ffcertificate' ),
 		'rounded' => __( 'Rounded', 'ffcertificate' ),
 		'circle'  => __( 'Circle', 'ffcertificate' ),
 		'diamond' => __( 'Diamond', 'ffcertificate' ),
+		'star'    => __( 'Star', 'ffcertificate' ),
+		'cross'   => __( 'Cross', 'ffcertificate' ),
+		'flower'  => __( 'Flower', 'ffcertificate' ),
 	),
-	'frame'     => array(
-		'none'   => __( 'None', 'ffcertificate' ),
-		'banner' => __( 'Banner below', 'ffcertificate' ),
-		'badge'  => __( 'Badge with caption above', 'ffcertificate' ),
-		'bubble' => __( 'Speech bubble above', 'ffcertificate' ),
+	'frame'      => array(
+		'none'     => __( 'None', 'ffcertificate' ),
+		'banner'   => __( 'Banner below', 'ffcertificate' ),
+		'badge'    => __( 'Badge with caption above', 'ffcertificate' ),
+		'bubble'   => __( 'Speech bubble above', 'ffcertificate' ),
+		'pill'     => __( 'Pill with icon below', 'ffcertificate' ),
+		'speech'   => __( 'Outline with pointer and icon', 'ffcertificate' ),
+		'circle'   => __( 'Circle with curved caption', 'ffcertificate' ),
+		'brackets' => __( 'Corner brackets', 'ffcertificate' ),
+		'double'   => __( 'Bands above and below', 'ffcertificate' ),
+	),
+	'frame_icon' => array(
+		'scan'  => __( 'Scan', 'ffcertificate' ),
+		'none'  => __( 'None', 'ffcertificate' ),
+		'globe' => __( 'Globe', 'ffcertificate' ),
+		'url'   => __( 'Link', 'ffcertificate' ),
+		'wifi'  => __( 'Wi-Fi', 'ffcertificate' ),
+		'phone' => __( 'Phone', 'ffcertificate' ),
 	),
 );
 
@@ -60,7 +83,7 @@ $ffc_qr_shape_labels = array(
  * renderer's thumbnail of its value.
  *
  * @param string $ffc_key     Settings key, e.g. qr_design_dots.
- * @param string $ffc_kind    Swatch kind (dots, eye_frame, eye_ball, frame).
+ * @param string $ffc_kind    Swatch kind (dots, eye_frame, eye_ball, frame) or frame_icon.
  * @param string $ffc_legend  Visible legend.
  * @param string $ffc_current Selected value.
  */
@@ -72,7 +95,13 @@ $ffc_qr_tiles = static function ( string $ffc_key, string $ffc_kind, string $ffc
 			<label class="ffc-qr-tile" title="<?php echo esc_attr( $ffc_label ); ?>">
 				<input type="radio" class="ffc-qr-tile__input" name="<?php echo esc_attr( $ffc_qr_name( $ffc_key ) ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" <?php checked( $ffc_value, $ffc_current ); ?> data-ffc-qr-design="<?php echo esc_attr( $ffc_key ); ?>">
 				<span class="ffc-qr-tile__face">
-					<?php echo QrSvgRenderer::swatch( $ffc_kind, $ffc_value ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG built by the renderer from allowlisted shape names and constant colours; wp_kses would lowercase viewBox and break it. ?>
+					<?php
+					// A frame icon shows the icon itself: the FRAME_ICONS names are
+					// QrIcons names, 'none' being the empty-set symbol.
+					echo 'frame_icon' === $ffc_kind
+						? QrIcons::svg( $ffc_value, 28 ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup.
+						: QrSvgRenderer::swatch( $ffc_kind, $ffc_value ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG built by the renderer from allowlisted shape names and constant colours; wp_kses would lowercase viewBox and break it.
+					?>
 					<span class="screen-reader-text"><?php echo esc_html( $ffc_label ); ?></span>
 				</span>
 			</label>
@@ -153,6 +182,13 @@ $ffc_qr_tiles( 'qr_design_eye_ball', 'eye_ball', __( 'Corner centre', 'ffcertifi
 				$ffc_qr_color( 'qr_design_color', __( 'Module colour', 'ffcertificate' ), $ffc_qr_design->color );
 				$ffc_qr_color( 'qr_design_background', __( 'Background colour', 'ffcertificate' ), $ffc_qr_design->background );
 				?>
+				<div class="ffc-qr-field">
+					<span class="ffc-qr-field__label"><?php esc_html_e( 'Transparent background', 'ffcertificate' ); ?></span>
+					<label class="ffc-qr-field__check">
+						<input type="checkbox" name="<?php echo esc_attr( $ffc_qr_name( 'qr_design_transparent' ) ); ?>" id="qr_design_transparent" value="1" <?php checked( $ffc_qr_design->transparent ); ?> data-ffc-qr-design="qr_design_transparent">
+						<?php esc_html_e( 'Draw no background, for placing the code on a coloured surface', 'ffcertificate' ); ?>
+					</label>
+				</div>
 			</div>
 			<div class="ffc-qr-fields">
 				<div class="ffc-qr-field">
@@ -184,6 +220,7 @@ $ffc_qr_tiles( 'qr_design_eye_ball', 'eye_ball', __( 'Corner centre', 'ffcertifi
 <?php
 $ffc_qr_section( 'frame', __( 'Frame', 'ffcertificate' ), __( 'A printed frame with a short call to action.', 'ffcertificate' ) );
 $ffc_qr_tiles( 'qr_design_frame', 'frame', __( 'Frame', 'ffcertificate' ), $ffc_qr_design->frame );
+$ffc_qr_tiles( 'qr_design_frame_icon', 'frame_icon', __( 'Icon (pill and outline frames)', 'ffcertificate' ), $ffc_qr_design->frame_icon );
 ?>
 			<div class="ffc-qr-fields">
 				<div class="ffc-qr-field ffc-qr-field--wide">

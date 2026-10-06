@@ -33,16 +33,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class QrDesign {
 
 	/** Module shapes. */
-	public const DOTS = array( 'square', 'rounded', 'dots', 'fluid', 'diamond' );
+	public const DOTS = array( 'square', 'rounded', 'dots', 'fluid', 'diamond', 'star', 'cross', 'heart', 'x' );
 
 	/** Finder-pattern frame shapes. */
-	public const EYE_FRAMES = array( 'square', 'rounded', 'circle', 'leaf' );
+	public const EYE_FRAMES = array( 'square', 'rounded', 'circle', 'leaf', 'dotted', 'corner', 'cut' );
 
-	/** Finder-pattern ball shapes. */
-	public const EYE_BALLS = array( 'square', 'rounded', 'circle', 'diamond' );
+	/**
+	 * Finder-pattern ball shapes.
+	 *
+	 * A ball must keep the solid 3x3 core a reader's finder scan crosses as
+	 * a 1:1:3:1:1 run. A 3x3 grid of dots and vertical or horizontal bars were
+	 * tried for #1570 and left out: zxing could not find the corner markers
+	 * at 300 or 1000 px, with or without a logo.
+	 */
+	public const EYE_BALLS = array( 'square', 'rounded', 'circle', 'diamond', 'star', 'cross', 'flower' );
 
 	/** Frames drawn around the code. */
-	public const FRAMES = array( 'none', 'banner', 'badge', 'bubble' );
+	public const FRAMES = array( 'none', 'banner', 'badge', 'bubble', 'pill', 'speech', 'circle', 'brackets', 'double' );
+
+	/** Icons a frame can put beside its caption (#1570); names of QrIcons. */
+	public const FRAME_ICONS = array( 'scan', 'none', 'globe', 'url', 'wifi', 'phone' );
+
+	/** Frames that print their caption in the frame colour on the paper. */
+	private const CAPTION_ON_PAPER = array( 'badge', 'speech', 'circle', 'brackets' );
 
 	/** Longest frame caption, in characters. */
 	public const FRAME_TEXT_MAX = 24;
@@ -134,6 +147,20 @@ final class QrDesign {
 	public string $frame_text;
 
 	/**
+	 * Icon beside the caption, for the frames that draw one (#1570).
+	 *
+	 * @var string
+	 */
+	public string $frame_icon;
+
+	/**
+	 * Whether the background is left transparent (#1570).
+	 *
+	 * @var bool
+	 */
+	public bool $transparent;
+
+	/**
 	 * Frame colour.
 	 *
 	 * @var string
@@ -146,7 +173,8 @@ final class QrDesign {
 	 * @param array<string, mixed> $input Keys: dots, eye_frame, eye_ball, color,
 	 *                                    gradient, color_end, background,
 	 *                                    eye_frame_color, eye_ball_color, logo,
-	 *                                    frame, frame_text, frame_color.
+	 *                                    frame, frame_text, frame_color,
+	 *                                    frame_icon, transparent.
 	 */
 	public function __construct( array $input = array() ) {
 		$this->dots            = self::pick( $input['dots'] ?? null, self::DOTS );
@@ -161,6 +189,8 @@ final class QrDesign {
 		$this->frame           = self::pick( $input['frame'] ?? null, self::FRAMES );
 		$this->frame_text      = self::caption( $input['frame_text'] ?? null );
 		$this->frame_color     = self::hex( $input['frame_color'] ?? null, '#1d2327' );
+		$this->frame_icon      = self::pick( $input['frame_icon'] ?? null, self::FRAME_ICONS );
+		$this->transparent     = ! empty( $input['transparent'] );
 	}
 
 	/**
@@ -193,6 +223,8 @@ final class QrDesign {
 				'frame'           => SettingsReader::get_string( 'qr_design_frame', 'none' ),
 				'frame_text'      => SettingsReader::get_string( 'qr_design_frame_text', '' ),
 				'frame_color'     => SettingsReader::get_string( 'qr_design_frame_color', '#1d2327' ),
+				'frame_icon'      => SettingsReader::get_string( 'qr_design_frame_icon', 'scan' ),
+				'transparent'     => SettingsReader::get_bool( 'qr_design_transparent' ),
 			)
 		);
 	}
@@ -267,6 +299,8 @@ final class QrDesign {
 			'frame'           => $this->frame,
 			'frame_text'      => $this->frame_text,
 			'frame_color'     => $this->frame_color,
+			'frame_icon'      => $this->frame_icon,
+			'transparent'     => $this->transparent,
 		);
 	}
 
@@ -289,7 +323,7 @@ final class QrDesign {
 	 * foreground colour is checked, because one faint eye is enough to lose
 	 * the finder pattern.
 	 *
-	 * @return array{inverted: bool, low_contrast: bool, min_ratio: float, caption_contrast: bool}
+	 * @return array{inverted: bool, low_contrast: bool, min_ratio: float, caption_contrast: bool, transparent: bool}
 	 */
 	public function scan_checks(): array {
 		$foregrounds = array_filter( array( $this->color, $this->color_end, $this->eye_frame_color, $this->eye_ball_color ) );
@@ -302,17 +336,21 @@ final class QrDesign {
 			$inverted  = $inverted || ContrastColor::is_lighter( $fg, $this->background );
 		}
 
-		// The badge prints its caption in the frame colour on the background;
-		// the banner and the bubble pick a readable caption colour themselves.
-		$caption_ratio = 'badge' === $this->frame && '' !== $this->frame_text
+		// Some frames print their caption in the frame colour on the paper;
+		// the others pick a readable caption colour themselves.
+		$caption_ratio = ! $this->transparent && in_array( $this->frame, self::CAPTION_ON_PAPER, true ) && '' !== $this->frame_text
 			? ( ContrastColor::ratio( $this->frame_color, $this->background ) ?? 1.0 )
 			: 21.0;
 
+		// On a transparent ground the real background is wherever the code is
+		// printed, so no ratio can be measured: the check becomes a standing
+		// warning instead of a number that would mean nothing.
 		return array(
-			'inverted'         => $inverted,
-			'low_contrast'     => $min_ratio < self::MIN_CONTRAST,
+			'inverted'         => ! $this->transparent && $inverted,
+			'low_contrast'     => ! $this->transparent && $min_ratio < self::MIN_CONTRAST,
 			'min_ratio'        => round( $min_ratio, 2 ),
 			'caption_contrast' => $caption_ratio >= 4.5,
+			'transparent'      => $this->transparent,
 		);
 	}
 

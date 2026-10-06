@@ -358,4 +358,99 @@ class QrSvgRendererTest extends TestCase {
 		$this->assertStringContainsString( '<rect', QrSvgRenderer::swatch( 'dots', 'fluid' ) );
 		$this->assertStringNotContainsString( '<rect', QrSvgRenderer::swatch( 'dots', 'dots' ) );
 	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function newFrames(): array {
+		return array(
+			'pill'     => array( 'pill' ),
+			'speech'   => array( 'speech' ),
+			'circle'   => array( 'circle' ),
+			'brackets' => array( 'brackets' ),
+			'double'   => array( 'double' ),
+		);
+	}
+
+	/**
+	 * @dataProvider newFrames
+	 */
+	public function test_each_new_frame_draws_the_code_and_its_caption( string $frame ): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
+		$drawn = QrSvgRenderer::render_sized( self::URL, new QrDesign( array( 'frame' => $frame, 'frame_text' => 'Scan & go' ) ), 'M', 2, 300 );
+
+		$this->assertNotFalse( simplexml_load_string( $drawn['svg'] ), $frame . ' is well-formed XML' );
+		$this->assertStringContainsString( 'Scan &amp; go', $drawn['svg'], 'The caption is escaped, not dropped.' );
+		$this->assertSame( 300, $drawn['width'] );
+		$this->assertGreaterThanOrEqual( 300, $drawn['height'], 'A frame never makes the document shorter than wide.' );
+	}
+
+	public function test_the_pill_and_speech_frames_draw_their_icon_in_the_ink_colour(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
+		$with    = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'pill', 'frame_text' => 'Scan', 'frame_icon' => 'globe', 'frame_color' => '#123456' ) ) );
+		$without = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'pill', 'frame_text' => 'Scan', 'frame_icon' => 'none' ) ) );
+		$speech  = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'speech', 'frame_text' => 'Scan', 'frame_icon' => 'wifi', 'frame_color' => '#654321' ) ) );
+
+		$this->assertStringContainsString( 'color="#123456" fill="none" stroke="currentColor"', $with );
+		$this->assertStringContainsString( \FreeFormCertificate\Generators\QrIcons::paths( 'globe' ), $with );
+		$this->assertStringNotContainsString( 'stroke="currentColor"', $without );
+		$this->assertStringContainsString( 'color="#654321"', $speech );
+	}
+
+	public function test_two_circle_frames_on_one_page_never_share_an_arc_id(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
+		$design = new QrDesign( array( 'frame' => 'circle', 'frame_text' => 'Scan me' ) );
+		$one = QrSvgRenderer::render( self::URL, $design );
+		$two = QrSvgRenderer::render( self::URL, $design );
+		preg_match( '/id="(ffc-qr-arc-\d+)"/', $one, $first );
+		preg_match( '/id="(ffc-qr-arc-\d+)"/', $two, $second );
+
+		$this->assertNotEmpty( $first );
+		$this->assertNotSame( $first[1], $second[1] );
+		// Each caption follows its own document's arc.
+		$this->assertStringContainsString( 'href="#' . $first[1] . '"', $one );
+		$this->assertStringContainsString( 'href="#' . $second[1] . '"', $two );
+	}
+
+	public function test_a_circle_frame_without_caption_writes_no_arc(): void {
+		$svg = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'circle' ) ) );
+
+		$this->assertStringNotContainsString( 'textPath', $svg );
+		$this->assertStringNotContainsString( 'ffc-qr-arc-', $svg );
+	}
+
+	public function test_a_transparent_design_draws_no_ground_anywhere(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
+		$opaque      = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'pill', 'frame_text' => 'Scan' ) ) );
+		$transparent = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'pill', 'frame_text' => 'Scan', 'transparent' => true ) ) );
+
+		// Opaque: the code's ground, and the paper inside the border.
+		$this->assertStringContainsString( 'fill="#ffffff"/><g fill="#000000">', $opaque );
+		$this->assertStringContainsString( 'fill="#ffffff" stroke="#1d2327"', $opaque );
+		// Transparent: neither. White is left only where it is ink on the
+		// pill -- the icon disc and the caption, both in the pill's on-colour.
+		$this->assertStringNotContainsString( 'fill="#ffffff"/><g fill="#000000">', $transparent );
+		$this->assertStringContainsString( 'fill="none" stroke="#1d2327"', $transparent );
+		$this->assertSame( 2, substr_count( $transparent, 'fill="#ffffff"' ) );
+		$this->assertStringContainsString( '<circle cx="', $transparent );
+	}
+
+	public function test_the_new_module_and_eye_shapes_draw_distinct_codes(): void {
+		$drawn = array();
+		foreach ( array( 'star', 'cross', 'heart', 'x' ) as $dots ) {
+			$drawn[] = QrSvgRenderer::render( self::URL, new QrDesign( array( 'dots' => $dots ) ) );
+		}
+		foreach ( array( 'dotted', 'corner', 'cut' ) as $frame ) {
+			$drawn[] = QrSvgRenderer::render( self::URL, new QrDesign( array( 'eye_frame' => $frame ) ) );
+		}
+		foreach ( array( 'star', 'cross', 'flower' ) as $ball ) {
+			$drawn[] = QrSvgRenderer::render( self::URL, new QrDesign( array( 'eye_ball' => $ball ) ) );
+		}
+		$drawn[] = QrSvgRenderer::render( self::URL, QrDesign::plain() );
+
+		$this->assertSame( count( $drawn ), count( array_unique( $drawn ) ) );
+		foreach ( $drawn as $svg ) {
+			$this->assertNotFalse( simplexml_load_string( $svg ) );
+		}
+	}
 }
