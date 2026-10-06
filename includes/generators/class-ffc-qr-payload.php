@@ -103,6 +103,14 @@ final class QrPayload {
 	/**
 	 * A web address.
 	 *
+	 * Checked for its shape only: an http(s) scheme and a host that is a
+	 * domain name, an IP address or `localhost`. Never `wp_http_validate_url()`,
+	 * which guards requests the SERVER makes: it resolves the host from the
+	 * server and refuses an address that does not resolve there, that resolves
+	 * to a private range, or that uses another port. A QR code is opened by the
+	 * phone that scans it, never by this server, so an intranet address or a
+	 * domain the host's DNS cannot see is a valid code (#1596).
+	 *
 	 * @param string $url Candidate.
 	 * @return string|WP_Error
 	 */
@@ -111,10 +119,33 @@ final class QrPayload {
 			$url = 'https://' . $url;
 		}
 		$clean = esc_url_raw( $url, array( 'http', 'https' ) );
-		if ( '' === $clean || false === wp_http_validate_url( $clean ) ) {
+		if ( '' === $clean || ! self::has_web_host( $clean ) ) {
 			return self::missing( __( 'Enter a valid web address (http or https).', 'ffcertificate' ) );
 		}
 		return $clean;
+	}
+
+	/**
+	 * Whether a URL is http(s) and names a host a browser can reach: a dotted
+	 * domain name ending in an alphabetic or punycode label, an IP address, or
+	 * `localhost`. The scheme is checked here too, not left to `esc_url_raw()`.
+	 *
+	 * @param string $url URL.
+	 * @return bool
+	 */
+	private static function has_web_host( string $url ): bool {
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		$host   = wp_parse_url( $url, PHP_URL_HOST );
+		if ( ! in_array( is_string( $scheme ) ? strtolower( $scheme ) : '', array( 'http', 'https' ), true ) || ! is_string( $host ) || '' === $host ) {
+			return false;
+		}
+		$host = trim( $host, '[]' );
+		if ( false !== filter_var( $host, FILTER_VALIDATE_IP ) || 'localhost' === strtolower( $host ) ) {
+			return true;
+		}
+		$label = '[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?';
+		return strlen( $host ) <= 253
+			&& 1 === preg_match( '/^(?:' . $label . '\.)+(?:\p{L}{2,63}|xn--[a-z0-9-]{1,59})\.?$/iu', $host );
 	}
 
 	/**

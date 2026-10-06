@@ -25,7 +25,7 @@ class QrPayloadTest extends TestCase {
 		Monkey\setUp();
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_url_raw' )->returnArg();
-		Functions\when( 'wp_http_validate_url' )->alias( static fn( $u ) => filter_var( $u, FILTER_VALIDATE_URL ) ? $u : false );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
 		Functions\when( 'sanitize_email' )->alias( static fn( $e ) => trim( $e ) );
 		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
@@ -52,6 +52,29 @@ class QrPayloadTest extends TestCase {
 		$this->assertSame( 'http://example.com', QrPayload::build( 'url', array( 'url' => ' http://example.com ' ) ) );
 		$this->error( 'url', array( 'url' => '' ) );
 		$this->error( 'url', array( 'url' => 'not a url' ) );
+	}
+
+	public function test_url_is_checked_by_shape_never_by_resolving_it(): void {
+		// The server never opens the address: what it resolves to from here
+		// (nothing, a private range, another port) does not make a code invalid (#1596).
+		Functions\expect( 'wp_http_validate_url' )->never();
+
+		foreach ( array(
+			'https://intranet.sme.prefeitura.sp.gov.br/portal',
+			'http://10.20.30.40:8443/app',
+			'https://[2001:db8::1]/',
+			'http://localhost:8080',
+			'https://exemplo.com.br.',
+			'https://educação.sp.gov.br',
+			'https://example.xn--p1ai',
+			'sub.example.co.uk/a?b=1#c',
+		) as $url ) {
+			$this->assertIsString( QrPayload::build( 'url', array( 'url' => $url ) ), $url );
+		}
+
+		foreach ( array( 'https://exempl', 'https://', 'https://.com', 'https://-a.com', 'https://a..com', 'https://example.c0m', 'ftp://example.com', 'javascript:alert(1)' ) as $url ) {
+			$this->error( 'url', array( 'url' => $url ) );
+		}
 	}
 
 	public function test_text_is_kept_as_typed(): void {

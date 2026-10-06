@@ -37,6 +37,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The QR Code Generator's usage meter misreported the room left** (#1584). It divided bytes by a fixed byte-mode capacity, so digits read as over 100% and near-full codes read 99% before failing. It now measures with the encoder at the effective level, says how many characters still fit and when the logo forced level H, and says how much to cut when content does not fit.
 - **The QR Code Generator showed a generic error instead of the reason** (#1586). A rejected request (content too long, an invalid address) arrives through the failure path, whose message the screen ignored; it now shows the server's own.
 - **Development installs no longer serve stale plugin assets** (#1594). With `SCRIPT_DEBUG` on, each plugin script and stylesheet is versioned by its file time, so a merge to `develop` reaches the browser without a release bump; production still uses the plugin version.
+- **QR Code Generator: addresses the server cannot resolve are accepted** (#1596). A website was checked with a DNS lookup made by the server, so intranet addresses, domains its DNS cannot see and non-standard ports were refused; the address is now checked for its shape only, since the phone opens it, not the server.
 
 ### Security
 
