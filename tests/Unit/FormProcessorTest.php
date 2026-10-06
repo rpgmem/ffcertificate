@@ -306,6 +306,12 @@ class FormProcessorTest extends TestCase {
 			'generated_codes_list' => "ABC123\nDEF456",
 		);
 
+		// A ticket outside the list is looked up as a possible reprint first
+		// (#1574); no submission carries it here, so it is rejected.
+		global $wpdb;
+		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+
 		$result = AccessRestrictionChecker::check( $config, '', 'ZZZZZ', 42 );
 
 		$this->assertFalse( $result['allowed'] );

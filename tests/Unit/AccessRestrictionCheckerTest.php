@@ -48,12 +48,17 @@ class AccessRestrictionCheckerTest extends TestCase {
 	 *
 	 * @param int $rows_affected Rows the mocked query reports as affected.
 	 */
-	private function mock_wpdb_claim( int $rows_affected ): void {
+	private function mock_wpdb_claim( int $rows_affected, ?object $existing = null ): void {
 		global $wpdb;
 		$wpdb                = Mockery::mock( 'wpdb' );
 		$wpdb->options       = 'wp_options';
+		$wpdb->prefix        = 'wp_';
 		$wpdb->rows_affected = 0;
 		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		// ReprintDetector's lookup (#1574): the submission a spent ticket
+		// issued, or none.
+		$wpdb->shouldReceive( 'get_row' )->andReturn( $existing );
 		$wpdb->shouldReceive( 'query' )->andReturnUsing(
 			function () use ( $wpdb, $rows_affected ) {
 				$wpdb->rows_affected = $rows_affected;
@@ -319,6 +324,38 @@ class AccessRestrictionCheckerTest extends TestCase {
 		$this->assertStringContainsString( 'Invalid or already used', $result['message'] );
 	}
 
+	public function test_a_spent_ticket_that_issued_a_certificate_passes_as_a_reprint(): void {
+		// #1574: the ticket left the list when it issued a certificate; using
+		// it again must reach the reprint, not "already used".
+		$config = array(
+			'restrictions'         => array( 'ticket' => '1' ),
+			'generated_codes_list' => 'TKT-002',
+		);
+		$this->mock_wpdb_claim( 0, (object) array( 'id' => '7', 'data' => '{}', 'submission_date' => '2026-01-01 10:00:00' ) );
+		Functions\expect( 'update_post_meta' )->never();
+
+		$result = AccessRestrictionChecker::check( $config, '', 'tkt-001', 42 );
+
+		$this->assertTrue( $result['allowed'] );
+		$this->assertFalse( $result['is_ticket'], 'A reprint claims and consumes nothing.' );
+	}
+
+	public function test_a_spent_ticket_on_a_quiz_form_is_still_rejected(): void {
+		// On a quiz form a request that passes is a new attempt; a spent
+		// ticket must not buy one.
+		$config = array(
+			'restrictions'         => array( 'ticket' => '1' ),
+			'generated_codes_list' => 'TKT-002',
+			'quiz_enabled'         => '1',
+		);
+		$this->mock_wpdb_claim( 0, (object) array( 'id' => '7', 'data' => '{}', 'submission_date' => '2026-01-01 10:00:00' ) );
+
+		$result = AccessRestrictionChecker::check( $config, '', 'TKT-001', 42 );
+
+		$this->assertFalse( $result['allowed'] );
+		$this->assertStringContainsString( 'Invalid or already used', $result['message'] );
+	}
+
 	public function test_ticket_allowed_when_db_layer_unavailable(): void {
 		// No usable $wpdb (e.g. very early bootstrap): the claim cannot be
 		// made atomic, so fall back to the legacy list check by allowing the
@@ -343,6 +380,8 @@ class AccessRestrictionCheckerTest extends TestCase {
 			'generated_codes_list' => '',
 		);
 
+		$this->mock_wpdb_claim( 0 );
+
 		$result = AccessRestrictionChecker::check( $config, '', 'ANY-TICKET', 1 );
 
 		$this->assertFalse( $result['allowed'] );
@@ -354,6 +393,8 @@ class AccessRestrictionCheckerTest extends TestCase {
 			'restrictions' => array( 'ticket' => '1' ),
 			// 'generated_codes_list' key missing
 		);
+
+		$this->mock_wpdb_claim( 0 );
 
 		$result = AccessRestrictionChecker::check( $config, '', 'ABC-123', 1 );
 
