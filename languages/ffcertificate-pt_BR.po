@@ -24775,3 +24775,12 @@ msgstr "no Gerador de QR Code (URLs curtas → Gerador de QR Code; o botão \"No
 
 msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network (Enterprise networks that sign in with a user name included), an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. For a website or a social profile, \"Create a short URL\" (on by default) puts a short URL in the code instead of the address: the preview shows an example, and the real one is created on the first download or print, then reused until the destination or the title changes. The title is then required; an address that already has a short URL is flagged, with \"Use this\" to reuse it, and creating another needs an explicit confirmation; an address that is already a short URL of this site is never shortened again. With the switch off nothing is stored. It needs ffc_manage_url_shortener."
 msgstr "URLs curtas → Gerador de QR Code cria um QR Code para um site, texto simples, uma rede Wi-Fi (inclusive redes Enterprise, que pedem usuário), um e-mail, uma ligação, um SMS, uma conversa no WhatsApp, um cartão de contato (vCard), um perfil em rede social ou um evento, estilizado a partir do design global e baixado em PNG ou SVG. Para um site ou um perfil em rede social, \"Criar URL curta\" (ligado por padrão) coloca no código uma URL curta em vez do endereço: a prévia mostra um exemplo, e a URL real é criada no primeiro download ou impressão e reaproveitada até que o destino ou o título mude. O título passa a ser obrigatório; um endereço que já tem URL curta é sinalizado, com \"Usar esta\" para reaproveitá-la, e criar outra exige confirmação explícita; um endereço que já é uma URL curta deste site nunca é encurtado de novo. Com o switch desligado, nada é gravado. Requer ffc_manage_url_shortener."
+
+msgid "Open the Short URLs list"
+msgstr "Abrir a lista de URLs curtas"
+
+msgid "\"%s\" is stored and now counts the scans. Copy the link to share it."
+msgstr "\"%s\" foi salva e já conta as leituras. Copie o link para compartilhá-lo."
+
+msgid "Short URL saved"
+msgstr "URL curta salva"

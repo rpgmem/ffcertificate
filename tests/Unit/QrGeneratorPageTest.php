@@ -106,6 +106,7 @@ class QrGeneratorPageTest extends TestCase {
 		Functions\when( 'wp_get_attachment_image_url' )->justReturn( '' );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'get_user_meta' )->justReturn( '' );
+		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://site.test/wp-admin/' . $p );
 
 		ob_start();
 		( new QrGeneratorPage() )->render_page();
@@ -138,6 +139,12 @@ class QrGeneratorPageTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-qr-field="vcard:organization"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-field="event:until"', $html );
 		$this->assertStringContainsString( 'id="ffc-qr-design-reset"', $html );
+		// The saved-record overlay starts hidden; only the script opens it, after the server created the record.
+		$this->assertStringContainsString( 'id="ffc-qr-short-saved" class="ffc-qr-saved" hidden', $html );
+		$this->assertStringContainsString( 'role="dialog" aria-modal="true" aria-labelledby="ffc-qr-short-saved-title"', $html );
+		$this->assertStringContainsString( 'id="ffc-qr-short-saved-url" class="ffc-qr-saved__url" readonly', $html );
+		$this->assertStringContainsString( 'id="ffc-qr-short-saved-copy"', $html );
+		$this->assertStringContainsString( 'href="https://site.test/wp-admin/admin.php?page=ffc-short-urls"', $html );
 		$this->assertStringContainsString( 'name="design[qr_design_dots]" value="square"  checked="checked"', $html, 'Nothing remembered: the global design.' );
 	}
 
@@ -156,6 +163,7 @@ class QrGeneratorPageTest extends TestCase {
 		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'get_user_meta' )->justReturn( array( 'qr_design_dots' => 'diamond', 'error_level' => 'H' ) );
+		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://site.test/wp-admin/' . $p );
 
 		ob_start();
 		( new QrGeneratorPage() )->render_page();

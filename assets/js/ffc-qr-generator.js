@@ -24,6 +24,8 @@
 	// The short URL the code carries: created on a download, or picked with
 	// "Use this"; valid while `key` matches the content it was made for.
 	var shortUrl = { code: '', key: '' };
+	// What had the focus when the saved overlay opened, to give it back.
+	var savedOpener = null;
 	// What the operator asked for, kept while a circular address locks the switch.
 	var wantShort = true;
 	var SHORTENABLE = ['url', 'social'];
@@ -146,6 +148,7 @@
 		if (shortenable($form)) {
 			if (shortUrl.code && shortUrl.key !== contentKey($form)) {
 				shortUrl = { code: '', key: '' };
+				showSaved(null);
 			}
 			request.short = wantShort ? '1' : '';
 			request.short_code = shortUrl.code;
@@ -193,9 +196,11 @@
 	 * Before a download or a print: create the short URL when the switch is
 	 * on and the code still carries the example. Resolves once the preview
 	 * carries the real one; rejects, with the reason shown, when it cannot.
+	 * Resolves with `{ url, title }` only when this call saved a record, so
+	 * the caller can say so; with nothing when no record was written.
 	 *
 	 * @param {jQuery} $form Generator form.
-	 * @returns {Promise}
+	 * @returns {Promise<Object|undefined>}
 	 */
 	function ensureShort($form) {
 		var state = current && current.short;
@@ -223,12 +228,49 @@
 		)
 			.then(function (data) {
 				shortUrl = { code: String(data.short_code || ''), key: contentKey($form) };
-				return refresh($form);
+				var saved = { url: String(data.short_url || ''), title: title };
+				return refresh($form).then(function () { return saved; });
 			})
 			.catch(function (err) {
 				$status.removeClass('is-warning').addClass('is-error').text(errorMessage(err));
 				throw err;
 			});
+	}
+
+	/**
+	 * The overlay confirming that a short URL record was written, with the
+	 * link ready to copy. Opened only after the server answered the create
+	 * call with success; closed as soon as the content moves away from it.
+	 *
+	 * @param {Object|null} saved `{ url, title }` of the record, or null to close.
+	 */
+	function showSaved(saved) {
+		var $saved = $('#ffc-qr-short-saved');
+		if (!saved) {
+			closeSaved();
+			return;
+		}
+		$('#ffc-qr-short-saved-text').text(fill(i18n.saved, [saved.title]));
+		$('#ffc-qr-short-saved-url').val(saved.url);
+		$('#ffc-qr-short-saved-copied').text('');
+		savedOpener = document.activeElement;
+		$saved.prop('hidden', false);
+		$('#ffc-qr-short-saved-copy').trigger('focus');
+	}
+
+	/**
+	 * Close the overlay and give the focus back to what opened it.
+	 */
+	function closeSaved() {
+		var $saved = $('#ffc-qr-short-saved');
+		if ($saved.prop('hidden') !== false) {
+			return;
+		}
+		$saved.prop('hidden', true);
+		if (savedOpener && typeof savedOpener.focus === 'function') {
+			savedOpener.focus();
+		}
+		savedOpener = null;
 	}
 
 	/**
@@ -433,6 +475,7 @@
 		clearTimeout(timer);
 		timer = null;
 		shortUrl = { code: '', key: '' };
+		savedOpener = null;
 		wantShort = !$form.find('#ffc-qr-short').length || $form.find('#ffc-qr-short').is(':checked');
 
 		$form.on('submit', function (e) { e.preventDefault(); });
@@ -463,7 +506,10 @@
 			// the file must be the one asked for, not whatever is selected later.
 			var format = $('#ffc-qr-format').val();
 			var width = Number($('#ffc-qr-png-width').val()) || 1000;
-			ensureShort($form).then(function () {
+			ensureShort($form).then(function (saved) {
+				if (saved) {
+					showSaved(saved);
+				}
 				if (!current || !current.svg) {
 					return;
 				}
@@ -484,7 +530,10 @@
 			if (!current || !current.svg) {
 				return;
 			}
-			ensureShort($form).then(function () {
+			ensureShort($form).then(function (saved) {
+				if (saved) {
+					showSaved(saved);
+				}
 				if (current && current.svg) {
 					print(current.svg);
 				}
@@ -504,6 +553,19 @@
 			shortUrl = { code: String($(this).attr('data-code') || ''), key: contentKey($form) };
 			refresh($form);
 		});
+		$(document).off('.ffcQrSaved')
+			.on('click.ffcQrSaved', '[data-ffc-qr-saved-close]', closeSaved)
+			.on('keydown.ffcQrSaved', function (e) {
+				if (e.key === 'Escape') {
+					closeSaved();
+				}
+			})
+			.on('click.ffcQrSaved', '#ffc-qr-short-saved-copy', function () {
+				var $copied = $('#ffc-qr-short-saved-copied');
+				copy(String($('#ffc-qr-short-saved-url').val() || ''))
+					.then(function () { $copied.text(i18n.copied || ''); })
+					.catch(function () { $copied.text(i18n.copyFailed || ''); });
+			});
 		$form.on('click', '#ffc-qr-short-result', function () {
 			var $copied = $form.find('#ffc-qr-short-copied');
 			copy(String($(this).text() || ''))

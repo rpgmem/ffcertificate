@@ -124,6 +124,8 @@ class QrGeneratorPage {
 					'copied'          => __( 'Copied.', 'ffcertificate' ),
 					'copyFailed'      => __( 'Could not copy; select the address and copy it by hand.', 'ffcertificate' ),
 					'reset'           => __( 'Design reset to the global default.', 'ffcertificate' ),
+					/* translators: %s: title of the short URL */
+					'saved'           => __( '"%s" is stored and now counts the scans. Copy the link to share it.', 'ffcertificate' ),
 				),
 			)
 		);
