@@ -639,6 +639,7 @@ class AdminAssetsManager {
 				// Embed Field.
 				'embedUrl'                => __( 'Media URL:', 'ffcertificate' ),
 				'embedUrlPlaceholder'     => __( 'https://www.youtube.com/watch?v=... or image URL', 'ffcertificate' ),
+				'hiddenValue'             => __( 'Value submitted with every entry:', 'ffcertificate' ),
 				'captionOptional'         => __( 'Caption (optional):', 'ffcertificate' ),
 
 				// Quiz Mode.
