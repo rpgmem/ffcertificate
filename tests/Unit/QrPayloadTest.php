@@ -112,7 +112,10 @@ class QrPayloadTest extends TestCase {
 	}
 
 	public function test_an_enterprise_network_needs_a_user_name(): void {
-		$this->error( 'wifi', array( 'ssid' => 'Net', 'password' => 'x', 'security' => 'WPA2-EAP', 'identity' => '  ' ) );
+		$this->assertSame(
+			'Enter the user name for the Enterprise network.',
+			$this->error( 'wifi', array( 'ssid' => 'Net', 'password' => 'x', 'security' => 'WPA2-EAP', 'identity' => '  ' ) )
+		);
 	}
 
 	public function test_a_personal_network_ignores_the_enterprise_fields(): void {
