@@ -499,6 +499,23 @@ class TabEmailTexts extends SettingsTab {
 				),
 			),
 			array(
+				'cap'   => 'ffc_view_date_messages',
+				'title' => __( 'Date Messages', 'ffcertificate' ),
+				'url'   => admin_url( 'admin.php?page=ffc-date-messages' ),
+				'rows'  => array(
+					array(
+						'label'   => __( 'Date message (such as a birthday)', 'ffcertificate' ),
+						'purpose' => __( 'Sent to each person on a date in their profile — each rule carries its own subject and body; the hub above holds the text a new rule starts from.', 'ffcertificate' ),
+						'type'    => 'editable',
+					),
+					array(
+						'label'   => __( 'Manager digest', 'ffcertificate' ),
+						'purpose' => __( 'Summary of a run sent to the managers a rule names, 24 hours after it starts; fixed body.', 'ffcertificate' ),
+						'type'    => 'system',
+					),
+				),
+			),
+			array(
 				'cap'   => 'ffc_view_settings',
 				'title' => __( 'Account access', 'ffcertificate' ),
 				'url'   => $hub_url,

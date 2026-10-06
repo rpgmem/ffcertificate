@@ -76,7 +76,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-note">
 		<p>
 			<strong class="ffc-icon-info"><?php esc_html_e( 'The template is filtered on save.', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Only the tags above survive, each with a fixed set of attributes: style works on almost every tag, but class is removed from img, td and th, and style blocks are not allowed — use inline styles. Developers can widen the list with the ffcertificate_allowed_html_tags filter.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Only the tags above survive, each with a fixed set of attributes: style and class work on almost every tag, and style blocks are not allowed — use inline styles. Developers can widen the list with the ffcertificate_allowed_html_tags filter.', 'ffcertificate' ); ?>
 		</p>
 	</div>
 
@@ -150,9 +150,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<code>ffc-txt-center</code>, <code>ffc-txt-left</code>, <code>ffc-txt-right</code>, <code>ffc-txt-justify</code>, <code>ffc-full-width</code>.
 		<?php esc_html_e( 'Use them on a paragraph, div, span, heading, list or table.', 'ffcertificate' ); ?>
 	</p>
-	<p class="description">
-		<?php esc_html_e( 'The stylesheet also defines image helpers', 'ffcertificate' ); ?>
-		<code>ffc-responsive-logo</code> / <code>ffc-full-width-img</code>,
-		<?php esc_html_e( 'but they cannot be used in a form\'s certificate template today: the class attribute is removed from img tags when the template is saved. Size images with width / height or an inline style instead.', 'ffcertificate' ); ?>
+	<p>
+		<?php esc_html_e( 'Images take', 'ffcertificate' ); ?>
+		<code>ffc-responsive-logo</code> <?php esc_html_e( '(scales a logo down to fit) and', 'ffcertificate' ); ?> <code>ffc-full-width-img</code> <?php esc_html_e( '(spans the full width).', 'ffcertificate' ); ?>
 	</p>
 </div>

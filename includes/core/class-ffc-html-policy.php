@@ -60,10 +60,14 @@ final class HtmlPolicy {
 				'size'  => array(),
 				'face'  => array(),
 			),
+			// `class` on img/td/th lets a template use the published helper
+			// classes (`ffc-responsive-logo`, `ffc-full-width-img`, the
+			// alignment helpers) that ffc-pdf-core.css documents (#1574).
 			'img'    => array(
 				'src'    => array(),
 				'alt'    => array(),
 				'style'  => array(),
+				'class'  => array(),
 				'width'  => array(),
 				'height' => array(),
 			),
@@ -83,6 +87,7 @@ final class HtmlPolicy {
 			),
 			'td'     => array(
 				'style'   => array(),
+				'class'   => array(),
 				'width'   => array(),
 				'colspan' => array(),
 				'rowspan' => array(),
@@ -91,6 +96,7 @@ final class HtmlPolicy {
 			),
 			'th'     => array(
 				'style'   => array(),
+				'class'   => array(),
 				'width'   => array(),
 				'colspan' => array(),
 				'rowspan' => array(),
