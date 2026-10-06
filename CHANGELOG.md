@@ -23,6 +23,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The QR code defaults moved from General to the QR Code tab** (#1563). Same settings and values; a designed short-URL PNG is now rasterised by the browser from the SVG so it matches the preview.
 - **`readme.txt` and Settings → Documentation reviewed against the code** (#1573). Wrong shortcodes, table names, menu paths, hook signatures, REST permissions and privacy claims corrected; new pages for Date Messages, Scheduled Tasks, Data Migrations, Identity Resolution, User Access and IP Diagnostics.
 - **Manual short URLs are created in the QR Code Generator only** (#1586). The list page's create form is gone (a "New short URL" button opens the generator), and the Website and Social profile types gain a "Create a short URL" switch, on by default: a required title, creation on download or print, "Use this" for an existing short URL, an acknowledgement before a duplicate, and no shortening of a short URL. Off stores nothing.
+- **Compatibility declared against WordPress 7.1.3** (#1588): `Tested up to` moves from 7.1.1, after the fresh-install CI job activated, migrated and uninstalled the plugin cleanly on 7.1.3. The floor stays at 6.4.
 
 ### Fixed
 
