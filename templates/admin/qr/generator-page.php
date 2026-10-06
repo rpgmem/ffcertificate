@@ -124,7 +124,7 @@ $ffc_qr_vcard_fields = array(
 							<th scope="row"><label for="ffc-qr-wifi-identity"><?php esc_html_e( 'User name', 'ffcertificate' ); ?></label></th>
 							<td>
 								<input type="text" id="ffc-qr-wifi-identity" class="regular-text" autocomplete="off" data-ffc-qr-field="wifi:identity">
-								<p class="description"><?php esc_html_e( 'Android 10 or later joins an Enterprise network from the code; the iPhone camera does not, so iPhone users still type the user name and password.', 'ffcertificate' ); ?></p>
+								<p class="description"><?php esc_html_e( 'Android saves the network from the code but leaves the CA certificate unset, so it will not connect yet: open the saved network, set CA certificate to "Trust on first use" (or "Do not validate"), then connect. The iPhone camera does not read Enterprise codes; iPhone users type the details in.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
 						<tr data-ffc-qr-wifi-enterprise hidden>
