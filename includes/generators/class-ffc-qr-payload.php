@@ -60,6 +60,14 @@ final class QrPayload {
 	public const WIFI_PHASE2 = array( 'MSCHAPV2', 'GTC', 'PAP' );
 
 	/**
+	 * Schemes a website address may carry. `https` is assumed when none is
+	 * typed; the others must be typed in full. Network addresses only: a
+	 * scheme that runs code or reads local files (`javascript:`, `data:`,
+	 * `file:`) never qualifies, and e-mail, phone and SMS have their own types.
+	 */
+	public const URL_SCHEMES = array( 'https', 'http', 'ftp', 'ftps', 'sftp', 'ssh' );
+
+	/**
 	 * Build the payload for a type.
 	 *
 	 * @param string               $type   One of self::TYPES.
@@ -103,8 +111,10 @@ final class QrPayload {
 	/**
 	 * A web address.
 	 *
-	 * Checked for its shape only: an http(s) scheme and a host that is a
-	 * domain name, an IP address or `localhost`. Never `wp_http_validate_url()`,
+	 * Without a scheme, `https://` is assumed; any other scheme in
+	 * URL_SCHEMES must be typed in full (#1596). Checked for its shape only:
+	 * an allowed scheme and a host that is a domain name, an IP address or
+	 * `localhost`. Never `wp_http_validate_url()`,
 	 * which guards requests the SERVER makes: it resolves the host from the
 	 * server and refuses an address that does not resolve there, that resolves
 	 * to a private range, or that uses another port. A QR code is opened by the
@@ -118,15 +128,15 @@ final class QrPayload {
 		if ( '' !== $url && ! preg_match( '#^[a-z][a-z0-9+.-]*://#i', $url ) ) {
 			$url = 'https://' . $url;
 		}
-		$clean = esc_url_raw( $url, array( 'http', 'https' ) );
+		$clean = esc_url_raw( $url, self::URL_SCHEMES );
 		if ( '' === $clean || ! self::has_web_host( $clean ) ) {
-			return self::missing( __( 'Enter a valid web address (http or https).', 'ffcertificate' ) );
+			return self::missing( __( 'Enter a valid address. Without a scheme, https:// is used; http, ftp, ftps, sftp and ssh must be typed in full.', 'ffcertificate' ) );
 		}
 		return $clean;
 	}
 
 	/**
-	 * Whether a URL is http(s) and names a host a browser can reach: a dotted
+	 * Whether a URL has an allowed scheme and names a reachable host: a dotted
 	 * domain name ending in an alphabetic or punycode label, an IP address, or
 	 * `localhost`. The scheme is checked here too, not left to `esc_url_raw()`.
 	 *
@@ -136,7 +146,7 @@ final class QrPayload {
 	private static function has_web_host( string $url ): bool {
 		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
 		$host   = wp_parse_url( $url, PHP_URL_HOST );
-		if ( ! in_array( is_string( $scheme ) ? strtolower( $scheme ) : '', array( 'http', 'https' ), true ) || ! is_string( $host ) || '' === $host ) {
+		if ( ! in_array( is_string( $scheme ) ? strtolower( $scheme ) : '', self::URL_SCHEMES, true ) || ! is_string( $host ) || '' === $host ) {
 			return false;
 		}
 		$host = trim( $host, '[]' );

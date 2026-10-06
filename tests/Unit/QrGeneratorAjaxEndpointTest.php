@@ -405,6 +405,25 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertStringContainsString( 'cannot be shortened again', $data['message'] );
 	}
 
+	public function test_a_non_web_address_is_drawn_as_is_and_cannot_be_shortened(): void {
+		// A short URL is an HTTP redirect; a browser does not reliably follow
+		// it into ssh:// or ftp:// (#1596).
+		$this->service->shouldNotReceive( 'code_from_short_url' );
+		$this->service->shouldNotReceive( 'get_repository' );
+		$this->service->shouldNotReceive( 'create_short_url' );
+
+		$this->short_post( array( 'fields' => array( 'url' => 'ssh://user@server.example.com' ) ) );
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+		$this->assertSame( 'ssh://user@server.example.com', $data['payload'] );
+		$this->assertTrue( $data['short']['direct'] );
+		$this->assertFalse( $data['short']['example'] );
+
+		$this->short_post( array( 'fields' => array( 'url' => 'ftp://files.example.com/a.pdf' ), 'title' => 'File' ) );
+		list( $kind, $data ) = $this->run_handler( 'handle_shorten' );
+		$this->assertSame( 'error:400', $kind );
+		$this->assertStringContainsString( 'Only http and https', $data['message'] );
+	}
+
 	public function test_a_duplicate_needs_the_acknowledgement(): void {
 		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
 		$this->repository( array( self::EXISTING ) );

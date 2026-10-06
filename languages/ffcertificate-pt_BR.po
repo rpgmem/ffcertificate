@@ -23459,9 +23459,6 @@ msgstr "Informe um endereço de e-mail válido."
 msgid "Enter a valid phone number."
 msgstr "Informe um número de telefone válido."
 
-msgid "Enter a valid web address (http or https)."
-msgstr "Informe um endereço web válido (http ou https)."
-
 msgid "Enter the network name."
 msgstr "Informe o nome da rede."
 
@@ -24784,3 +24781,15 @@ msgstr "\"%s\" foi salva e já conta as leituras. Copie o link para compartilhá
 
 msgid "Short URL saved"
 msgstr "URL curta salva"
+
+msgid "Enter a valid address. Without a scheme, https:// is used; http, ftp, ftps, sftp and ssh must be typed in full."
+msgstr "Informe um endereço válido. Sem esquema, usa-se https://; http, ftp, ftps, sftp e ssh devem ser digitados por completo."
+
+msgid "Without a scheme, https:// is used (example.com becomes https://example.com). For http, ftp, ftps, sftp or ssh, type the full address."
+msgstr "Sem esquema, usa-se https:// (exemplo.com vira https://exemplo.com). Para http, ftp, ftps, sftp ou ssh, digite o endereço completo."
+
+msgid "Only http and https addresses can have a short URL."
+msgstr "Somente endereços http e https podem ter uma URL curta."
+
+msgid "A short URL redirects web addresses only (http or https), so this address is used as is."
+msgstr "A URL curta só redireciona endereços web (http ou https), por isso este endereço é usado como está."

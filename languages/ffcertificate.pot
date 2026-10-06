@@ -23369,9 +23369,6 @@ msgstr ""
 msgid "Enter a valid phone number."
 msgstr ""
 
-msgid "Enter a valid web address (http or https)."
-msgstr ""
-
 msgid "Enter the network name."
 msgstr ""
 
@@ -24693,4 +24690,16 @@ msgid "\"%s\" is stored and now counts the scans. Copy the link to share it."
 msgstr ""
 
 msgid "Short URL saved"
+msgstr ""
+
+msgid "Enter a valid address. Without a scheme, https:// is used; http, ftp, ftps, sftp and ssh must be typed in full."
+msgstr ""
+
+msgid "Without a scheme, https:// is used (example.com becomes https://example.com). For http, ftp, ftps, sftp or ssh, type the full address."
+msgstr ""
+
+msgid "Only http and https addresses can have a short URL."
+msgstr ""
+
+msgid "A short URL redirects web addresses only (http or https), so this address is used as is."
 msgstr ""

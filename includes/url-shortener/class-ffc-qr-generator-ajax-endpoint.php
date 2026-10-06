@@ -158,6 +158,10 @@ class QrGeneratorAjaxEndpoint {
 			wp_send_json_error( array( 'message' => __( 'Enter a title for the short URL.', 'ffcertificate' ) ), 400 );
 		}
 
+		if ( ! self::redirectable( $destination ) ) {
+			wp_send_json_error( array( 'message' => __( 'Only http and https addresses can have a short URL.', 'ffcertificate' ) ), 400 );
+		}
+
 		if ( '' !== $this->service->code_from_short_url( $destination ) ) {
 			wp_send_json_error( array( 'message' => __( 'This address is already a short URL of this site; it cannot be shortened again.', 'ffcertificate' ) ), 400 );
 		}
@@ -192,6 +196,9 @@ class QrGeneratorAjaxEndpoint {
 	/**
 	 * What the preview draws with the switch on, and what it reports.
 	 *
+	 * - An address that is not http(s) (ftp, sftp, ssh...) is drawn as is
+	 *   and flagged `direct`: a short URL is an HTTP redirect, which a
+	 *   browser does not reliably follow into another scheme (#1596).
 	 * - An address that is already one of this site's short URLs is drawn
 	 *   as is and flagged `circular`: shortening it again would only chain
 	 *   two redirects.
@@ -202,13 +209,26 @@ class QrGeneratorAjaxEndpoint {
 	 *
 	 * @param string $destination Address the short URL sends to.
 	 * @param string $code        Code the browser holds, or ''.
-	 * @return array{drawn: string, circular: bool, code: string, url: string, example: bool, duplicates: array<int, array<string, mixed>>}
+	 * @return array{drawn: string, circular: bool, direct: bool, code: string, url: string, example: bool, duplicates: array<int, array<string, mixed>>}
 	 */
 	private function short_state( string $destination, string $code ): array {
+		if ( ! self::redirectable( $destination ) ) {
+			return array(
+				'drawn'      => $destination,
+				'circular'   => false,
+				'direct'     => true,
+				'code'       => '',
+				'url'        => '',
+				'example'    => false,
+				'duplicates' => array(),
+			);
+		}
+
 		if ( '' !== $this->service->code_from_short_url( $destination ) ) {
 			return array(
 				'drawn'      => $destination,
 				'circular'   => true,
+				'direct'     => false,
 				'code'       => '',
 				'url'        => '',
 				'example'    => false,
@@ -223,6 +243,7 @@ class QrGeneratorAjaxEndpoint {
 			return array(
 				'drawn'      => $url,
 				'circular'   => false,
+				'direct'     => false,
 				'code'       => $code,
 				'url'        => $url,
 				'example'    => false,
@@ -233,11 +254,23 @@ class QrGeneratorAjaxEndpoint {
 		return array(
 			'drawn'      => $this->service->get_example_short_url(),
 			'circular'   => false,
+			'direct'     => false,
 			'code'       => '',
 			'url'        => '',
 			'example'    => true,
 			'duplicates' => $this->duplicates( $destination ),
 		);
+	}
+
+	/**
+	 * Whether a short URL can redirect to the address: http(s) only.
+	 *
+	 * @param string $destination Address.
+	 * @return bool
+	 */
+	private static function redirectable( string $destination ): bool {
+		$scheme = wp_parse_url( $destination, PHP_URL_SCHEME );
+		return is_string( $scheme ) && in_array( strtolower( $scheme ), array( 'http', 'https' ), true );
 	}
 
 	/**

@@ -83,7 +83,8 @@ $ffc_qr_vcard_fields = array(
 						<tr>
 							<th scope="row"><label for="ffc-qr-url"><?php esc_html_e( 'Address', 'ffcertificate' ); ?></label></th>
 							<td>
-								<input type="url" id="ffc-qr-url" class="large-text" data-ffc-qr-field="url:url" placeholder="https://">
+								<input type="text" inputmode="url" id="ffc-qr-url" class="large-text" data-ffc-qr-field="url:url" placeholder="https://" aria-describedby="ffc-qr-url-help">
+								<p class="description" id="ffc-qr-url-help"><?php esc_html_e( 'Without a scheme, https:// is used (example.com becomes https://example.com). For http, ftp, ftps, sftp or ssh, type the full address.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
 					</tbody>
@@ -253,6 +254,7 @@ $ffc_qr_vcard_fields = array(
 									);
 									?>
 									<p class="description"><?php esc_html_e( 'On: the code carries a short URL that counts the scans and whose destination can be changed later, even after printing. It is saved on download or print. Off: the code carries the address itself, nothing is stored in the database, and it keeps working even if this site goes down.', 'ffcertificate' ); ?></p>
+									<p class="ffc-qr-short__notice" id="ffc-qr-short-direct" hidden><?php esc_html_e( 'A short URL redirects web addresses only (http or https), so this address is used as is.', 'ffcertificate' ); ?></p>
 									<p class="ffc-qr-short__notice" id="ffc-qr-short-circular" hidden><?php esc_html_e( 'This address is already a short URL of this site, so it is used as is: shortening it again would only chain two redirects.', 'ffcertificate' ); ?></p>
 								</td>
 							</tr>
