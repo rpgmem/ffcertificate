@@ -55,6 +55,10 @@ final class QrIcons {
 		'download' => '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
 		'print'    => '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
 		'none'     => '<circle cx="12" cy="12" r="8"/><path d="M6.5 17.5l11-11"/>',
+
+		// Frame call-to-action icons (#1570).
+		'scan'     => '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/>',
+		'globe'    => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
 	);
 
 	/**
@@ -74,6 +78,17 @@ final class QrIcons {
 	 */
 	public static function names(): array {
 		return array_keys( self::PATHS );
+	}
+
+	/**
+	 * The inner drawing of an icon, for embedding in a larger SVG (a frame's
+	 * call to action); '' for an unknown name.
+	 *
+	 * @param string $name Icon name.
+	 * @return string
+	 */
+	public static function paths( string $name ): string {
+		return self::PATHS[ $name ] ?? '';
 	}
 
 	/**

@@ -37,6 +37,16 @@ final class QrSvgRenderer {
 	private const GRADIENT_ID = 'ffc-qr-gradient';
 
 	/**
+	 * Numbers the arc a circle frame writes its caption on. Unlike the
+	 * gradient, that path is referenced by id from inline SVG, and a page
+	 * that prints a thumbnail beside the preview must not resolve one
+	 * document's id to the other's path.
+	 *
+	 * @var int
+	 */
+	private static int $sequence = 0;
+
+	/**
 	 * Encode text into a boolean module matrix.
 	 *
 	 * Reads phpqrcode's binarised output, never its raw frame: the raw frame
@@ -215,18 +225,20 @@ final class QrSvgRenderer {
 				$at,
 				$side,
 				$u,
-				$design->background,
+				$design->transparent ? 'none' : $design->background,
 				$design->logo,
 				self::n( $at + $inset ),
 				self::n( $side - 2 * $inset )
 			);
 		}
 
-		$code = sprintf(
-			'%1$s<rect width="%2$d" height="%2$d" fill="%3$s"/><g fill="%4$s">%5$s</g>%6$s%7$s',
+		// A transparent design draws no ground at all, so the code sits on
+		// whatever it is printed on (#1570).
+		$ground = $design->transparent ? '' : sprintf( '<rect width="%1$d" height="%1$d" fill="%2$s"/>', $box, $design->background );
+		$code   = sprintf(
+			'%1$s%2$s<g fill="%3$s">%4$s</g>%5$s%6$s',
 			$defs,
-			$box,
-			$design->background,
+			$ground,
 			$fill,
 			implode( '', $modules ),
 			$eyes,
@@ -358,6 +370,8 @@ final class QrSvgRenderer {
 		$color   = $design->frame_color;
 		$on      = ContrastColor::on( $color );
 		$font    = 'font-family="Helvetica, Arial, sans-serif" font-weight="700" text-anchor="middle" dominant-baseline="central"';
+		// The paper under the code and its caption; none on a transparent design.
+		$paper = $design->transparent ? 'none' : $design->background;
 
 		$fit = static function ( float $width, float $max ) use ( $length ): float {
 			// An average glyph is about 0.62 em wide in a bold sans.
@@ -371,7 +385,167 @@ final class QrSvgRenderer {
 			return sprintf( '<text x="%s" y="%s" font-size="%s" fill="%s" %s>%s</text>', self::n( $x ), self::n( $y ), self::n( $size ), $fill, $font, $caption );
 		};
 
+		/*
+		 * The frame's icon, drawn from the same set as the admin screens and
+		 * coloured through currentColor, so one drawing serves any ink.
+		 */
+		$icon     = static function ( float $x, float $y, float $size, string $ink ) use ( $design ): string {
+			$paths = 'none' === $design->frame_icon ? '' : QrIcons::paths( $design->frame_icon );
+			if ( '' === $paths ) {
+				return '';
+			}
+			return sprintf(
+				'<g transform="translate(%1$s %2$s) scale(%3$s)" color="%4$s" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">%5$s</g>',
+				self::n( $x ),
+				self::n( $y ),
+				self::n( $size / 24 ),
+				$ink,
+				$paths
+			);
+		};
+		$has_icon = 'none' !== $design->frame_icon && '' !== QrIcons::paths( $design->frame_icon );
+
 		switch ( $design->frame ) {
+			case 'pill':
+				// A rounded border around the code, and below it a pill holding
+				// the icon in a disc and the caption (#1570).
+				$stroke = $box * 0.035;
+				$pad    = $box * 0.06;
+				$width  = $box + 2 * ( $pad + $stroke );
+				$gap    = $box * 0.06;
+				$band   = $box * 0.22;
+				$height = $width + $gap + $band;
+				$disc   = $has_icon ? $band : 0.0;
+				$markup = sprintf(
+					'<rect x="%1$s" y="%1$s" width="%2$s" height="%2$s" rx="%3$s" fill="%4$s" stroke="%5$s" stroke-width="%6$s"/>',
+					self::n( $stroke / 2 ),
+					self::n( $width - $stroke ),
+					self::n( $box * 0.1 ),
+					$paper,
+					$color,
+					self::n( $stroke )
+				)
+					. sprintf( '<g transform="translate(%1$s %1$s)">%2$s</g>', self::n( $stroke + $pad ), $code )
+					. sprintf( '<rect y="%1$s" width="%2$s" height="%3$s" rx="%4$s" fill="%5$s"/>', self::n( $width + $gap ), self::n( $width ), self::n( $band ), self::n( $band / 2 ), $color );
+				if ( $has_icon ) {
+					$r       = $band * 0.38;
+					$markup .= sprintf( '<circle cx="%s" cy="%s" r="%s" fill="%s"/>', self::n( $band / 2 ), self::n( $width + $gap + $band / 2 ), self::n( $r ), $on )
+						. $icon( $band / 2 - $r * 0.62, $width + $gap + $band / 2 - $r * 0.62, $r * 1.24, $color );
+				}
+				$markup .= $text( $disc + ( $width - $disc ) / 2, $width + $gap + $band / 2, $fit( $width - $disc, $box * 0.13 ), $on );
+				return array( $markup, $width, $height );
+
+			case 'speech':
+				// A rounded outline with a small pointer below, and the caption
+				// under it beside the icon, in the frame colour on the paper.
+				$stroke  = $box * 0.025;
+				$pad     = $box * 0.07;
+				$width   = $box + 2 * $pad;
+				$tail    = $box * 0.06;
+				$line    = $box * 0.16;
+				$height  = $width + $tail + $line + $box * 0.04;
+				$mid     = $width / 2;
+				$markup  = sprintf(
+					'<rect x="%1$s" y="%1$s" width="%2$s" height="%2$s" rx="%3$s" fill="%4$s" stroke="%5$s" stroke-width="%6$s"/>',
+					self::n( $stroke / 2 ),
+					self::n( $width - $stroke ),
+					self::n( $box * 0.1 ),
+					$paper,
+					$color,
+					self::n( $stroke )
+				)
+					. sprintf( '<g transform="translate(%1$s %1$s)">%2$s</g>', self::n( $pad ), $code )
+					. sprintf(
+						'<path d="M%1$s %2$sL%3$s %4$sL%5$s %2$s" fill="%6$s" stroke="%7$s" stroke-width="%8$s" stroke-linejoin="round"/>',
+						self::n( $mid - $tail * 1.4 ),
+						self::n( $width - $stroke / 2 ),
+						self::n( $mid ),
+						self::n( $width + $tail ),
+						self::n( $mid + $tail * 1.4 ),
+						$paper,
+						$color,
+						self::n( $stroke )
+					);
+				$size    = $fit( $width * 0.8, $box * 0.11 );
+				$cy      = $width + $tail + $box * 0.04 + $line / 2;
+				$shift   = $has_icon ? $size * 0.7 : 0.0;
+				$markup .= $text( $mid + $shift, $cy, $size, $color );
+				if ( $has_icon && '' !== $caption ) {
+					$half_text = min( $width * 0.4, $length * $size * 0.31 );
+					$markup   .= $icon( $mid + $shift - $half_text - $size * 1.4, $cy - $size * 0.55, $size * 1.1, $color );
+				}
+				return array( $markup, $width, $height );
+
+			case 'circle':
+				// The square code inside a ring, with the caption on the arc
+				// below it; the circle's diameter grows to fit the code's corners.
+				$ring   = $box * 0.035;
+				$inner  = $box * M_SQRT2 / 2 + $box * 0.03;
+				$band   = $box * 0.17;
+				$radius = $inner + $band + $ring;
+				$side   = 2 * $radius;
+				$offset = $radius - $box / 2;
+				$id     = 'ffc-qr-arc-' . ( ++self::$sequence );
+				$arc    = $inner + $band / 2;
+				$markup = sprintf( '<circle cx="%1$s" cy="%1$s" r="%2$s" fill="%3$s" stroke="%4$s" stroke-width="%5$s"/>', self::n( $radius ), self::n( $radius - $ring / 2 ), $paper, $color, self::n( $ring ) )
+					. sprintf( '<g transform="translate(%1$s %1$s)">%2$s</g>', self::n( $offset ), $code );
+				if ( '' !== $caption ) {
+					// Left to right along the bottom half, so the text reads upright.
+					$size    = min( $band * 0.68, ( M_PI * $arc * 0.75 ) / ( $length * 0.62 ) );
+					$markup .= sprintf(
+						'<defs><path id="%1$s" d="M%2$s %3$sA%4$s %4$s 0 0 0 %5$s %3$s"/></defs><text font-size="%6$s" fill="%7$s" font-family="Helvetica, Arial, sans-serif" font-weight="700" letter-spacing="%8$s"><textPath href="#%1$s" startOffset="50%%" text-anchor="middle" dominant-baseline="central">%9$s</textPath></text>',
+						$id,
+						self::n( $radius - $arc ),
+						self::n( $radius ),
+						self::n( $arc ),
+						self::n( $radius + $arc ),
+						self::n( $size ),
+						$color,
+						self::n( $size * 0.12 ),
+						$caption
+					);
+				}
+				return array( $markup, $side, $side );
+
+			case 'brackets':
+				// Corner brackets around the code, and the caption below.
+				$stroke = $box * 0.03;
+				$pad    = $box * 0.08;
+				$width  = $box + 2 * $pad;
+				$arm    = $box * 0.18;
+				$line   = '' === $caption ? 0.0 : $box * 0.16;
+				$height = $width + $line;
+				$e      = $stroke / 2;
+				$w      = $width - $e;
+				$markup = sprintf( '<rect width="%1$s" height="%2$s" fill="%3$s"/>', self::n( $width ), self::n( $height ), $paper )
+					. sprintf(
+						'<path d="M%1$s %2$sV%1$sH%2$sM%3$s %1$sH%4$sV%2$sM%4$s %5$sV%4$sH%3$sM%2$s %4$sH%1$sV%5$s" fill="none" stroke="%6$s" stroke-width="%7$s" stroke-linecap="round" stroke-linejoin="round"/>',
+						self::n( $e ),
+						self::n( $e + $arm ),
+						self::n( $w - $arm ),
+						self::n( $w ),
+						self::n( $w - $arm ),
+						$color,
+						self::n( $stroke )
+					)
+					. sprintf( '<g transform="translate(%1$s %1$s)">%2$s</g>', self::n( $pad ), $code )
+					. $text( $width / 2, $width + $line / 2 - $box * 0.02, $fit( $width, $box * 0.11 ), $color );
+				return array( $markup, $width, $height );
+
+			case 'double':
+				// A band above and below, the caption in both.
+				$band   = $box * 0.2;
+				$pad    = $box * 0.05;
+				$width  = $box + 2 * $pad;
+				$height = $box + 2 * $pad + 2 * $band;
+				$size   = $fit( $width, $box * 0.11 );
+				$markup = sprintf( '<rect width="%1$s" height="%2$s" rx="%3$s" fill="%4$s"/>', self::n( $width ), self::n( $height ), self::n( $box * 0.06 ), $color )
+					. sprintf( '<rect x="%1$s" y="%2$s" width="%3$s" height="%3$s" fill="%4$s"/>', self::n( $pad / 2 ), self::n( $band + $pad / 2 ), self::n( $box + $pad ), $paper )
+					. sprintf( '<g transform="translate(%1$s %2$s)">%3$s</g>', self::n( $pad ), self::n( $band + $pad ), $code )
+					. $text( $width / 2, $band / 2, $size, $on )
+					. $text( $width / 2, $height - $band / 2, $size, $on );
+				return array( $markup, $width, $height );
+
 			case 'banner':
 				$pad    = $box * 0.08;
 				$band   = $box * 0.28;
@@ -379,7 +553,7 @@ final class QrSvgRenderer {
 				$height = $box + 2 * $pad + $band;
 				$inner  = $box * 0.03;
 				$markup = sprintf( '<rect width="%1$s" height="%2$s" rx="%3$s" fill="%4$s"/>', self::n( $width ), self::n( $height ), self::n( $box * 0.07 ), $color )
-					. sprintf( '<rect x="%1$s" y="%1$s" width="%2$s" height="%2$s" rx="%3$s" fill="%4$s"/>', self::n( $pad - $inner ), self::n( $box + 2 * $inner ), self::n( $box * 0.05 ), $design->background )
+					. sprintf( '<rect x="%1$s" y="%1$s" width="%2$s" height="%2$s" rx="%3$s" fill="%4$s"/>', self::n( $pad - $inner ), self::n( $box + 2 * $inner ), self::n( $box * 0.05 ), $paper )
 					. sprintf( '<g transform="translate(%1$s %1$s)">%2$s</g>', self::n( $pad ), $code )
 					. $text( $width / 2, $box + 2 * $pad + $band / 2 - $pad / 2, $fit( $width, $box * 0.12 ), $on );
 				return array( $markup, $width, $height );
@@ -396,7 +570,7 @@ final class QrSvgRenderer {
 					self::n( $width - $stroke ),
 					self::n( $height - $stroke ),
 					self::n( $box * 0.12 ),
-					$design->background,
+					$paper,
 					$color,
 					self::n( $stroke )
 				)
@@ -478,6 +652,21 @@ final class QrSvgRenderer {
 				return $out;
 			case 'rounded':
 				return sprintf( '<rect x="%s" y="%s" width="%s" height="%s" rx="%s"/>', self::n( $x + 0.4 ), self::n( $y + 0.4 ), self::n( $u - 0.8 ), self::n( $u - 0.8 ), self::n( $u * 0.3 ) );
+			case 'star':
+				return self::polygon( self::star( $x + $half, $y + $half, $u * 0.56, $u * 0.27 ) );
+			case 'cross':
+				// Arms 0.44 of the cell wide: thin enough to read as a cross,
+				// thick enough to keep most of the module dark.
+				return self::polygon( self::plus( (float) $x, (float) $y, (float) $u, $u * 0.44 ) );
+			case 'heart':
+				// Drawn once in a 10x10 cell and placed; U is 10, so the scale is 1.
+				return sprintf(
+					'<path transform="translate(%d %d)" d="M5 9.6C3.2 8.3 0 6 0 3.3 0 1.5 1.4.2 3 .2c.9 0 1.6.4 2 1.1.4-.7 1.1-1.1 2-1.1 1.6 0 3 1.3 3 3.1C10 6 6.8 8.3 5 9.6z"/>',
+					$x,
+					$y
+				);
+			case 'x':
+				return self::polygon( self::saltire( (float) $x, (float) $y, (float) $u, $u * 0.2 ) );
 			default:
 				return sprintf( '<rect x="%d" y="%d" width="%d" height="%d"/>', $x, $y, $u, $u );
 		}
@@ -500,7 +689,48 @@ final class QrSvgRenderer {
 		$b    = $y + $u / 2;
 		$side = $u * 6;
 
-		if ( 'leaf' === $design->eye_frame ) {
+		if ( 'dotted' === $design->eye_frame ) {
+			// One dot per module of the 7x7 ring: the ring still reads as the
+			// 1:1:3:1:1 run a finder needs, just drawn in dots.
+			$frame = '';
+			for ( $i = 0; $i < 7; $i++ ) {
+				for ( $j = 0; $j < 7; $j++ ) {
+					if ( 0 === $i || 6 === $i || 0 === $j || 6 === $j ) {
+						$frame .= sprintf( '<circle cx="%s" cy="%s" r="%s"/>', self::n( $x + $j * $u + $u / 2 ), self::n( $y + $i * $u + $u / 2 ), self::n( $u * 0.5 ) );
+					}
+				}
+			}
+			$frame = sprintf( '<g fill="%s">%s</g>', $design->eye_frame_color, $frame );
+		} elseif ( 'corner' === $design->eye_frame || 'cut' === $design->eye_frame ) {
+			if ( 'corner' === $design->eye_frame ) {
+				// One rounded corner, the top-left.
+				$r = $u * 2.4;
+				$d = sprintf(
+					'M%1$s %2$sH%3$sV%4$sH%5$sV%6$sQ%5$s %2$s %1$s %2$sZ',
+					self::n( $a + $r ),
+					self::n( $b ),
+					self::n( $a + $side ),
+					self::n( $b + $side ),
+					self::n( $a ),
+					self::n( $b + $r )
+				);
+			} else {
+				// Chamfered corners: an octagon.
+				$c = $u * 1.5;
+				$d = sprintf(
+					'M%1$s %2$sH%3$sL%4$s %5$sV%6$sL%3$s %7$sH%1$sL%8$s %6$sV%5$sZ',
+					self::n( $a + $c ),
+					self::n( $b ),
+					self::n( $a + $side - $c ),
+					self::n( $a + $side ),
+					self::n( $b + $c ),
+					self::n( $b + $side - $c ),
+					self::n( $b + $side ),
+					self::n( $a )
+				);
+			}
+			$frame = sprintf( '<path d="%s" fill="none" stroke="%s" stroke-width="%d" stroke-linejoin="round"/>', $d, $design->eye_frame_color, $u );
+		} elseif ( 'leaf' === $design->eye_frame ) {
 			$r     = $u * 2.4;
 			$frame = sprintf(
 				'<path d="M%1$s %2$sH%3$sV%4$sQ%3$s %5$s %6$s %5$sH%7$sV%8$sQ%7$s %2$s %1$s %2$sZ" fill="none" stroke="%9$s" stroke-width="%10$d"/>',
@@ -554,6 +784,19 @@ final class QrSvgRenderer {
 					$design->eye_ball_color
 				);
 				break;
+			case 'star':
+				$inner = self::polygon( self::star( $bx + $mid, $by + $mid + $u * 0.12, $u * 2.1, $u * 1.3 ), $design->eye_ball_color );
+				break;
+			case 'cross':
+				$inner = self::polygon( self::plus( (float) $bx, (float) $by, (float) $ball, $u * 2.0 ), $design->eye_ball_color );
+				break;
+			case 'flower':
+				$inner = sprintf( '<g fill="%s">', $design->eye_ball_color );
+				foreach ( array( array( -1, -1 ), array( 1, -1 ), array( -1, 1 ), array( 1, 1 ) ) as $petal ) {
+					$inner .= sprintf( '<circle cx="%s" cy="%s" r="%s"/>', self::n( $bx + $mid + $petal[0] * $u * 0.62 ), self::n( $by + $mid + $petal[1] * $u * 0.62 ), self::n( $u * 0.9 ) );
+				}
+				$inner .= sprintf( '<circle cx="%s" cy="%s" r="%s"/></g>', self::n( $bx + $mid ), self::n( $by + $mid ), self::n( $u * 0.9 ) );
+				break;
 			default:
 				$inner = sprintf(
 					'<rect x="%1$d" y="%2$d" width="%3$d" height="%3$d" rx="%4$s" fill="%5$s"/>',
@@ -566,6 +809,96 @@ final class QrSvgRenderer {
 		}
 
 		return $frame . $inner;
+	}
+
+	/**
+	 * A closed polygon path through points.
+	 *
+	 * @param array<int, array{0: float, 1: float}> $points Points.
+	 * @param string                                $fill   Fill attribute, '' to inherit.
+	 * @return string
+	 */
+	private static function polygon( array $points, string $fill = '' ): string {
+		$d = '';
+		foreach ( $points as $i => $point ) {
+			$d .= ( 0 === $i ? 'M' : 'L' ) . self::n( $point[0] ) . ' ' . self::n( $point[1] );
+		}
+		return sprintf( '<path d="%sZ"%s/>', $d, '' === $fill ? '' : ' fill="' . $fill . '"' );
+	}
+
+	/**
+	 * The points of a five-pointed star.
+	 *
+	 * @param float $cx    Centre x.
+	 * @param float $cy    Centre y.
+	 * @param float $outer Tip radius.
+	 * @param float $inner Notch radius.
+	 * @return array<int, array{0: float, 1: float}>
+	 */
+	private static function star( float $cx, float $cy, float $outer, float $inner ): array {
+		$points = array();
+		for ( $i = 0; $i < 10; $i++ ) {
+			$radius   = 0 === $i % 2 ? $outer : $inner;
+			$angle    = -M_PI / 2 + $i * M_PI / 5;
+			$points[] = array( $cx + $radius * cos( $angle ), $cy + $radius * sin( $angle ) );
+		}
+		return $points;
+	}
+
+	/**
+	 * The points of a plus sign filling a square.
+	 *
+	 * @param float $x    Left.
+	 * @param float $y    Top.
+	 * @param float $side Square side.
+	 * @param float $arm  Arm width.
+	 * @return array<int, array{0: float, 1: float}>
+	 */
+	private static function plus( float $x, float $y, float $side, float $arm ): array {
+		$a = ( $side - $arm ) / 2;
+		$b = $a + $arm;
+		return array(
+			array( $x + $a, $y ),
+			array( $x + $b, $y ),
+			array( $x + $b, $y + $a ),
+			array( $x + $side, $y + $a ),
+			array( $x + $side, $y + $b ),
+			array( $x + $b, $y + $b ),
+			array( $x + $b, $y + $side ),
+			array( $x + $a, $y + $side ),
+			array( $x + $a, $y + $b ),
+			array( $x, $y + $b ),
+			array( $x, $y + $a ),
+			array( $x + $a, $y + $a ),
+		);
+	}
+
+	/**
+	 * The points of a diagonal cross (an X) filling a square.
+	 *
+	 * @param float $x    Left.
+	 * @param float $y    Top.
+	 * @param float $side Square side.
+	 * @param float $arm  Distance from each corner the arms start, along an edge.
+	 * @return array<int, array{0: float, 1: float}>
+	 */
+	private static function saltire( float $x, float $y, float $side, float $arm ): array {
+		$m = $side / 2;
+		$k = $m - $arm;
+		return array(
+			array( $x, $y + $arm ),
+			array( $x + $arm, $y ),
+			array( $x + $m, $y + $k ),
+			array( $x + $side - $arm, $y ),
+			array( $x + $side, $y + $arm ),
+			array( $x + $side - $k, $y + $m ),
+			array( $x + $side, $y + $side - $arm ),
+			array( $x + $side - $arm, $y + $side ),
+			array( $x + $m, $y + $side - $k ),
+			array( $x + $arm, $y + $side ),
+			array( $x, $y + $side - $arm ),
+			array( $x + $k, $y + $m ),
+		);
 	}
 
 	/**

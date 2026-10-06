@@ -72,6 +72,8 @@ final class QrGeneratorDesignMemory {
 				'qr_design_frame'           => $design['frame'],
 				'qr_design_frame_text'      => $design['frame_text'],
 				'qr_design_frame_color'     => $design['frame_color'],
+				'qr_design_frame_icon'      => $design['frame_icon'],
+				'qr_design_transparent'     => $design['transparent'],
 				'qr_design_logo_id'         => $form['logo_id'],
 				'margin'                    => $form['margin'],
 				'error_level'               => $form['error_level'],
@@ -124,6 +126,8 @@ final class QrGeneratorDesignMemory {
 				'frame'           => $state['qr_design_frame'],
 				'frame_text'      => $state['qr_design_frame_text'],
 				'frame_color'     => $state['qr_design_frame_color'],
+				'frame_icon'      => $state['qr_design_frame_icon'],
+				'transparent'     => $state['qr_design_transparent'],
 			)
 		);
 	}
@@ -153,6 +157,7 @@ final class QrGeneratorDesignMemory {
 				'frame'           => $get( 'qr_design_frame' ),
 				'frame_text'      => $get( 'qr_design_frame_text' ),
 				'frame_color'     => $get( 'qr_design_frame_color' ),
+				'frame_icon'      => $get( 'qr_design_frame_icon' ),
 			)
 		) )->to_array();
 
@@ -173,6 +178,8 @@ final class QrGeneratorDesignMemory {
 			'qr_design_frame'           => (string) $design['frame'],
 			'qr_design_frame_text'      => (string) $design['frame_text'],
 			'qr_design_frame_color'     => (string) $design['frame_color'],
+			'qr_design_frame_icon'      => (string) $design['frame_icon'],
+			'qr_design_transparent'     => ! empty( $get( 'qr_design_transparent' ) ),
 			'qr_design_logo_id'         => max( 0, $logo ),
 			'margin'                    => max( 0, min( 10, $margin ) ),
 			'error_level'               => in_array( $level, self::LEVELS, true ) ? $level : 'M',

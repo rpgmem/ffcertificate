@@ -129,4 +129,18 @@ class QrGeneratorDesignMemoryTest extends TestCase {
 		$this->assertSame( '', $design->color_end, 'With the gradient off the code is drawn without it.' );
 		$this->assertSame( '', $design->logo );
 	}
+
+	public function test_the_frame_icon_and_transparency_are_remembered(): void {
+		QrGeneratorDesignMemory::remember( 7, array( 'qr_design_frame_icon' => 'wifi', 'qr_design_transparent' => '1', 'qr_design_eye_ball' => 'star' ) );
+		$state = QrGeneratorDesignMemory::state( 7 );
+
+		$this->assertSame( 'wifi', $state['qr_design_frame_icon'] );
+		$this->assertTrue( $state['qr_design_transparent'] );
+		$this->assertTrue( QrGeneratorDesignMemory::design( $state )->transparent );
+		$this->assertSame( 'star', QrGeneratorDesignMemory::design( $state )->eye_ball );
+
+		QrGeneratorDesignMemory::remember( 7, array( 'qr_design_frame_icon' => 'javascript:' ) );
+		$this->assertSame( 'scan', QrGeneratorDesignMemory::state( 7 )['qr_design_frame_icon'] );
+		$this->assertFalse( QrGeneratorDesignMemory::state( 7 )['qr_design_transparent'] );
+	}
 }

@@ -92,6 +92,8 @@
 		$out.removeClass('is-warning is-error');
 		if (checks.inverted) {
 			$out.addClass('is-error').text(i18n.inverted || '');
+		} else if (checks.transparent) {
+			$out.addClass('is-warning').text(i18n.transparent || '');
 		} else if (checks.caption_contrast === false) {
 			$out.addClass('is-warning').text(i18n.captionContrast || '');
 		} else if (checks.low_contrast) {

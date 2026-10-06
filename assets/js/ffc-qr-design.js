@@ -45,7 +45,9 @@
 				color_end: val('qr_design_color_end'),
 				frame: val('qr_design_frame'),
 				frame_text: val('qr_design_frame_text'),
-				frame_color: val('qr_design_frame_color')
+				frame_color: val('qr_design_frame_color'),
+				frame_icon: val('qr_design_frame_icon'),
+				transparent: $root.find('[data-ffc-qr-design="qr_design_transparent"]').is(':checked') ? '1' : ''
 			},
 			logo_id: val('qr_design_logo_id'),
 			margin: String($root.find('#qr_default_margin').val() || '2'),
@@ -63,6 +65,8 @@
 		$out.removeClass('is-warning is-error');
 		if (checks.inverted) {
 			$out.addClass('is-error').text(i18n.inverted || '');
+		} else if (checks.transparent) {
+			$out.addClass('is-warning').text(i18n.transparent || '');
 		} else if (checks.caption_contrast === false) {
 			$out.addClass('is-warning').text(i18n.captionContrast || '');
 		} else if (checks.low_contrast) {

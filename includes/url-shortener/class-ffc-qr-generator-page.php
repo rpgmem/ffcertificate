@@ -109,7 +109,8 @@ class QrGeneratorPage {
 					/* translators: %s: contrast ratio, e.g. 3.2 */
 					'lowContrast'     => __( 'Low contrast (%s:1). Phones may fail to read this code; aim for 4:1 or more.', 'ffcertificate' ),
 					'inverted'        => __( 'The modules are lighter than the background. Most readers cannot scan an inverted code.', 'ffcertificate' ),
-					'captionContrast' => __( 'The badge caption is hard to read on this background; pick a darker frame colour.', 'ffcertificate' ),
+					'captionContrast' => __( 'The frame caption is hard to read on this background; pick a darker frame colour.', 'ffcertificate' ),
+					'transparent'     => __( 'Transparent background: contrast cannot be checked. Test the code on the surface it will be printed on; a dark one makes it unreadable.', 'ffcertificate' ),
 					'ok'              => __( 'Readable: contrast and colours are fine.', 'ffcertificate' ),
 					'error'           => __( 'The QR code could not be drawn.', 'ffcertificate' ),
 					'shortened'       => __( 'Short URL created and placed in the address field.', 'ffcertificate' ),

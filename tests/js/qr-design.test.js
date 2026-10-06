@@ -31,6 +31,9 @@ function mount() {
 			<select data-ffc-qr-design="qr_design_frame"><option value="badge" selected>badge</option></select>
 			<input data-ffc-qr-design="qr_design_frame_text" value="Scan me">
 			<input data-ffc-qr-design="qr_design_frame_color" value="#2271b1">
+			<input type="radio" name="icon" value="scan" data-ffc-qr-design="qr_design_frame_icon">
+			<input type="radio" name="icon" value="globe" data-ffc-qr-design="qr_design_frame_icon" checked>
+			<input type="checkbox" data-ffc-qr-design="qr_design_transparent">
 			<div id="ffc-qr-design-preview"></div>
 			<p id="ffc-qr-design-checks"></p>
 		</form>`;
@@ -41,7 +44,7 @@ beforeAll(() => {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		action: 'ffc_qr_design_preview',
 		nonce: 'qr-nonce',
-		i18n: { lowContrast: 'Low (%s:1)', inverted: 'Inverted', ok: 'Readable', error: 'Failed' },
+		i18n: { lowContrast: 'Low (%s:1)', inverted: 'Inverted', ok: 'Readable', error: 'Failed', transparent: 'Transparent' },
 	};
 	if (!window.FFC || !window.FFC.request) { loadScript('assets/js/ffc-core.js'); }
 	loadScript('assets/js/ffc-qr-design.js');
@@ -73,6 +76,8 @@ describe('ffc-qr-design.js', () => {
 				frame: 'badge',
 				frame_text: 'Scan me',
 				frame_color: '#2271b1',
+				frame_icon: 'globe',
+				transparent: '',
 			},
 			logo_id: '7',
 			margin: '3',
@@ -213,5 +218,16 @@ describe('ffc-qr-design.js', () => {
 		window.$('.hex').val('#010203').trigger('input');
 
 		expect(changes).toEqual([1]);
+	});
+
+	it('posts the transparency switch and shows its standing warning (#1570)', async () => {
+		window.$('[data-ffc-qr-design="qr_design_transparent"]').prop('checked', true);
+		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { svg: '<svg></svg>', checks: { transparent: true, inverted: false, low_contrast: false } } } }));
+
+		await window.FFC.QrDesign.refresh(window.$('form'));
+
+		expect(spy.mock.calls[0][1].design.transparent).toBe('1');
+		expect(window.$('#ffc-qr-design-checks').text()).toBe('Transparent');
+		expect(window.$('#ffc-qr-design-checks').hasClass('is-warning')).toBe(true);
 	});
 });

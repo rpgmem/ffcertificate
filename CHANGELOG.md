@@ -15,6 +15,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **QR Code Generator: contact card, social profile and event** (#1563). A vCard carried whole in the code; a profile on nine networks from the user name alone; a one-day event as the event itself, a pre-filled Google Calendar link, or a signed link to an `.ics` file built by the scheduling module's generator.
 - **QR Code Generator: optional expiry for the event link, and a remembered design** (#1568). An `.ics` link can carry a signed "valid until" date and answers 410 after it; links without one, older links included, never expire. The generator reopens with each user's last downloaded design (design only, never content), and "Reset to default" restores the global one.
 - **QR Code Generator: redesigned interface** (#1570). Content types are icon tiles; the design sits in collapsible sections (pattern, corners, colours, logo, frame, advanced) with shapes picked from thumbnails the renderer draws, and colours with a hex box; a sticky preview panel holds format, size, download and a new Print. Settings → QR Code shares the same sections.
+- **QR code: new shapes, frames and a transparent background** (#1570). Star, cross, heart and X modules; dotted, one-corner and cut corner frames; star, cross and flower corner centres; pill, outline-with-pointer, circle (curved caption), corner-bracket and double-band frames with an optional icon; and a transparent background. Every new option was decoded by zxing at 300, 600 and 1000 px, with and without a logo.
 
 ### Changed
 
