@@ -42,7 +42,7 @@ function mount() {
 		</form>`;
 }
 
-const OK = { svg: '<svg id="drawn"></svg>', payload: 'https://example.com', usage: { bytes: 19, capacity: 2331, percent: 1, version: 2, dense: false }, checks: { inverted: false, low_contrast: false, min_ratio: 21, caption_contrast: true } };
+const OK = { svg: '<svg id="drawn"></svg>', payload: 'https://example.com', usage: { bytes: 19, capacity: 2325, remaining: 2306, over: 0, percent: 1, version: 2, dense: false, level: 'M', forced: false }, checks: { inverted: false, low_contrast: false, min_ratio: 21, caption_contrast: true } };
 
 beforeAll(() => {
 	window.ffcQrGenerator = {
@@ -53,7 +53,7 @@ beforeAll(() => {
 		shortenNonce: 'short-nonce',
 		remember: 'ffc_qr_remember',
 		rememberNonce: 'remember-nonce',
-		i18n: { usage: '%1$d of %2$d bytes (%3$d%%)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', shortened: 'Shortened', reset: 'Reset done' },
+		i18n: { usage: '%1$d%% full, %2$d more at %3$s', usageForced: '%1$d%% full, %2$d more at H (logo)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', shortened: 'Shortened', reset: 'Reset done' },
 	};
 	window.ffcQrDesign = { i18n: {} };
 	if (!window.FFC || !window.FFC.request) { loadScript('assets/js/ffc-core.js'); }
@@ -95,10 +95,19 @@ describe('ffc-qr-generator.js', () => {
 
 		expect(spy.mock.calls[0][1]).toMatchObject({ action: 'ffc_qr_generate', nonce: 'gen-nonce', type: 'url' });
 		expect(document.getElementById('drawn')).not.toBeNull();
-		expect(window.$('#ffc-qr-generator-usage').text()).toBe('19 of 2331 bytes (1%)');
+		expect(window.$('#ffc-qr-generator-usage').text()).toBe('1% full, 2306 more at M');
 		expect(window.$('#ffc-qr-generator-status').text()).toBe('Readable');
 		expect(window.$('#ffc-qr-download').prop('disabled')).toBe(false);
 		expect(window.$('#ffc-qr-print').prop('disabled')).toBe(false);
+	});
+
+	it('names the level the logo forced', async () => {
+		const forced = Object.assign({}, OK, { usage: Object.assign({}, OK.usage, { level: 'H', forced: true, remaining: 1249, percent: 2 }) });
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: forced } }));
+
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+
+		expect(window.$('#ffc-qr-generator-usage').text()).toBe('2% full, 1249 more at H (logo)');
 	});
 
 	it('warns about a dense code', async () => {

@@ -30,6 +30,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Re-entering a used ticket was rejected instead of reprinting** (#1574). The restriction check removes a ticket when it issues a certificate, so the next attempt was refused before the reprint lookup ran; a ticket that already issued a certificate on this form now returns it (quiz forms excepted, where a pass is a new attempt).
 - **Template helper classes were stripped from images and table cells** (#1574). `class` is now allowed on `img`, `td` and `th`, so `ffc-responsive-logo`, `ffc-full-width-img` and the alignment helpers work in a certificate template.
 - **The e-mail directory left out Date Messages** (#1574), and the module's Schedule tab read "Agendar" (a verb) in pt_BR; it reads "Agendamento" now.
+- **The QR Code Generator's usage meter misreported the room left** (#1584). It divided bytes by a fixed byte-mode capacity, so digits read as over 100% and near-full codes read 99% before failing. It now measures with the encoder at the effective level, says how many characters still fit and when the logo forced level H, and says how much to cut when content does not fit.
 
 ### Security
 
