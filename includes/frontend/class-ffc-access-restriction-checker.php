@@ -150,6 +150,9 @@ class AccessRestrictionChecker {
 			);
 
 			if ( ! in_array( $ticket, $tickets, true ) ) {
+				if ( self::is_reprint_of_used_ticket( $form_config, $form_id, $ticket ) ) {
+					return self::reprint_pass();
+				}
 				return array(
 					'allowed'   => false,
 					'message'   => __( 'Invalid or already used ticket.', 'ffcertificate' ),
@@ -165,6 +168,9 @@ class AccessRestrictionChecker {
 			// caller wins the UNIQUE-keyed insert; a loser is rejected as
 			// already-used, closing the TOCTOU race.
 			if ( ! self::try_claim_ticket( $form_id, $ticket ) ) {
+				if ( self::is_reprint_of_used_ticket( $form_config, $form_id, $ticket ) ) {
+					return self::reprint_pass();
+				}
 				return array(
 					'allowed'   => false,
 					'message'   => __( 'Invalid or already used ticket.', 'ffcertificate' ),
@@ -189,6 +195,49 @@ class AccessRestrictionChecker {
 		// ========================================.
 		// NO RESTRICTIONS ACTIVE - ALLOW.
 		// ========================================.
+		return array(
+			'allowed'   => true,
+			'message'   => '',
+			'is_ticket' => false,
+		);
+	}
+
+	/**
+	 * Whether a ticket the list no longer holds belongs to a certificate this
+	 * form already issued, so the request is a reprint (#1574).
+	 *
+	 * The ticket is the credential that issued the certificate, and a reprint
+	 * creates nothing: the submission step finds the same row through
+	 * {@see ReprintDetector} and returns it. That is the reprint the CPF/RF
+	 * path already offers. A quiz form is excluded, because there a request
+	 * that passes this gate is a new attempt, and letting a spent ticket buy
+	 * one would undo its single use.
+	 *
+	 * @param array<string, mixed> $form_config Form configuration.
+	 * @param int                  $form_id     Form ID.
+	 * @param string               $ticket      Normalised ticket code.
+	 * @return bool
+	 */
+	private static function is_reprint_of_used_ticket( array $form_config, int $form_id, string $ticket ): bool {
+		if ( ! empty( $form_config['quiz_enabled'] ) && '1' === (string) $form_config['quiz_enabled'] ) {
+			return false;
+		}
+		// No database layer (very early bootstrap): nothing can be looked up,
+		// so the ticket keeps its plain "already used" answer.
+		global $wpdb;
+		if ( ! is_object( $wpdb ) ) {
+			return false;
+		}
+		$found = ReprintDetector::detect( $form_id, '', $ticket );
+		return ! empty( $found['is_reprint'] );
+	}
+
+	/**
+	 * The result that lets a reprint through without claiming the ticket again.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function reprint_pass(): array {
 		return array(
 			'allowed'   => true,
 			'message'   => '',

@@ -24434,9 +24434,6 @@ msgstr "Defina \"notice\" com o código do edital. A lista mostra apenas as colu
 msgid "Each submitter must present a single-use code from a generated pool. The code is claimed atomically (one use only) and removed from the pool as soon as the restriction check passes, before the submission is saved."
 msgstr "Cada participante deve apresentar um código de uso único de um conjunto gerado. O código é resgatado de forma atômica (apenas uma utilização) e removido do conjunto assim que a verificação de restrições é aprovada, antes de o envio ser salvo."
 
-msgid "If someone submits again with a CPF/RF that already has a certificate, they are returned their existing certificate instead of generating a new one. This is always on — it is what keeps one person from issuing two certificates. On a form with the Ticket restriction, re-entering an already used ticket is currently rejected as \"Invalid or already used ticket\" instead of returning the certificate."
-msgstr "Se alguém enviar novamente com um CPF/RF que já possui certificado, recebe o certificado existente em vez de gerar um novo. Isso está sempre ativo — é o que impede uma pessoa de emitir dois certificados. Em um formulário com a restrição Ingresso, informar de novo um bilhete já utilizado é atualmente recusado com \"Bilhete inválido ou já utilizado.\" em vez de devolver o certificado."
-
 msgid "E-mail, CPF, RF, the client IP and the submission's extra form data are stored encrypted with AES-256-CBC using encrypt-then-HMAC; a salted hash backs lookups. Display is masked unless the viewer holds a PII capability."
 msgstr "E-mail, CPF, RF, o IP do cliente e os dados extras do formulário do envio são armazenados criptografados com AES-256-CBC usando encrypt-then-HMAC; um hash com salt sustenta as buscas. A exibição é mascarada, a menos que o usuário tenha uma capacidade de dados pessoais (PII)."
 
@@ -24679,6 +24676,9 @@ msgstr "Valor enviado em todas as respostas:"
 
 msgid "Hidden field — no visible control; every entry submits the fixed value set on the field's Value input (the server uses that value, never one sent by the browser)."
 msgstr "Campo oculto — sem controle visível; toda resposta envia o valor fixo definido no campo Valor (o servidor usa esse valor, nunca um enviado pelo navegador)."
+
+msgid "If someone submits again with a CPF/RF that already has a certificate, they are returned their existing certificate instead of generating a new one. This is always on — it is what keeps one person from issuing two certificates. On a form with the Ticket restriction, re-entering a ticket that already issued a certificate returns that certificate the same way; on a quiz form a used ticket is rejected, because there a new submission is a new attempt."
+msgstr "Se alguém enviar novamente com um CPF/RF que já possui certificado, recebe o certificado existente em vez de gerar um novo. Isso está sempre ativo — é o que impede uma pessoa de emitir dois certificados. Em um formulário com a restrição Ingresso, informar de novo um bilhete que já emitiu um certificado devolve esse certificado da mesma forma; em um formulário com quiz, um bilhete já utilizado é recusado, porque ali um novo envio é uma nova tentativa."
 
 msgid "(scales a logo down to fit) and"
 msgstr "(reduz um logotipo para caber) e"
