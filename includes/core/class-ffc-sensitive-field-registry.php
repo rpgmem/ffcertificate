@@ -402,11 +402,12 @@ final class SensitiveFieldRegistry {
 	 * Keys that are sensitive in a payload although no table stores them as a
 	 * column of their own.
 	 *
-	 * `ip` is how the activity-log call sites name the client address in a
-	 * context (#1574). The row's own address is encrypted by `ActivityLog`, so
-	 * a context still carrying one in clear would undo it.
+	 * `ip`, `triggered_by_ip` and `bypassed_ip` are how the activity-log call
+	 * sites name a client address in a context (#1574). The row's own address
+	 * is encrypted by `ActivityLog`, so a context still carrying one in clear
+	 * would undo it.
 	 */
-	private const PAYLOAD_ONLY_KEYS = array( 'ip' );
+	private const PAYLOAD_ONLY_KEYS = array( 'ip', 'triggered_by_ip', 'bypassed_ip' );
 
 	/**
 	 * Union of all static sensitive field keys across every context, plus the

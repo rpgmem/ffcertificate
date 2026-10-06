@@ -24066,9 +24066,6 @@ msgstr ""
 msgid "The hash is the only credential — treat the link as a password. Set the base page under Settings → General (\"CSV Download Page URL\") so the editor shows the full link instead of just the query string. The hash is regenerated on demand (\"Regenerate hash on save\") and is deliberately NOT copied when a form is duplicated. A separate option resets the download counter to zero on save."
 msgstr ""
 
-msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP, mode, result) that admins can export."
-msgstr ""
-
 msgid "The CPF gate is checked again when the operator uses Start Form Early or Postpone Close."
 msgstr ""
 
@@ -24598,4 +24595,7 @@ msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash,
 msgstr ""
 
 msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
+msgstr ""
+
+msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export."
 msgstr ""

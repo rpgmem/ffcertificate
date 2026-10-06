@@ -124,6 +124,69 @@ class CsvDownloadAuditLog {
 	}
 
 	/**
+	 * Encrypt a client IP for a ring-buffer entry (#1574).
+	 *
+	 * The address is never stored in clear: when it cannot be encrypted the
+	 * entry carries '' and the address is lost, which is the safe outcome.
+	 *
+	 * @param string $ip Client IP.
+	 * @return string Ciphertext, or '' when there is nothing to store.
+	 */
+	public static function encrypt_ip( string $ip ): string {
+		if ( '' === $ip
+			|| ! class_exists( '\FreeFormCertificate\Core\Encryption' )
+			|| ! \FreeFormCertificate\Core\Encryption::is_configured() ) {
+			return '';
+		}
+		$cipher = \FreeFormCertificate\Core\Encryption::encrypt( $ip );
+		return is_string( $cipher ) ? $cipher : '';
+	}
+
+	/**
+	 * Re-write the entries an older release stored with a plaintext `ip`.
+	 *
+	 * The buffer is rewritten on every new entry, so encrypting what it still
+	 * holds in clear at that moment converts a form's whole history on its
+	 * next download, with no migration card.
+	 *
+	 * @param array<mixed> $entries Ring-buffer entries as stored.
+	 * @return array<int|string, mixed>
+	 */
+	public static function encrypt_legacy_ips( array $entries ): array {
+		foreach ( $entries as $key => $entry ) {
+			if ( ! is_array( $entry ) || ! array_key_exists( 'ip', $entry ) ) {
+				continue;
+			}
+			$entry['ip_encrypted'] = self::encrypt_ip( is_scalar( $entry['ip'] ) ? (string) $entry['ip'] : '' );
+			unset( $entry['ip'] );
+			$entries[ $key ] = $entry;
+		}
+		return $entries;
+	}
+
+	/**
+	 * The client IP of a ring-buffer entry, readable.
+	 *
+	 * Reads the ciphertext; an entry written before #1574 still carries a
+	 * plaintext `ip` until the form's next download rewrites the buffer.
+	 *
+	 * @param array<string, mixed> $entry Ring-buffer entry.
+	 * @return string The address, or '' when there is none or it cannot be read.
+	 */
+	public static function decrypt_log_entry_ip( array $entry ): string {
+		$cipher = isset( $entry['ip_encrypted'] ) && is_string( $entry['ip_encrypted'] ) ? $entry['ip_encrypted'] : '';
+		if ( '' !== $cipher ) {
+			if ( ! class_exists( '\FreeFormCertificate\Core\Encryption' )
+				|| ! \FreeFormCertificate\Core\Encryption::is_configured() ) {
+				return '';
+			}
+			$plain = \FreeFormCertificate\Core\Encryption::decrypt( $cipher );
+			return is_string( $plain ) ? $plain : '';
+		}
+		return isset( $entry['ip'] ) && is_scalar( $entry['ip'] ) ? (string) $entry['ip'] : '';
+	}
+
+	/**
 	 * Decrypt a single log entry's CPF for display in the export.
 	 *
 	 * @param array<string, mixed> $entry Log entry row.
