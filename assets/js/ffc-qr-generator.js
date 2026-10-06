@@ -428,6 +428,10 @@
 		if (!$form.length || !window.FFC || !window.FFC.request || !window.FFC.QrDesign) {
 			return;
 		}
+		// A redraw still pending from an earlier form must not fire against this
+		// one: it would collect the old fields and drop the short URL state.
+		clearTimeout(timer);
+		timer = null;
 		shortUrl = { code: '', key: '' };
 		wantShort = !$form.find('#ffc-qr-short').length || $form.find('#ffc-qr-short').is(':checked');
 

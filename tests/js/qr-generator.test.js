@@ -358,6 +358,18 @@ describe('ffc-qr-generator.js', () => {
 		expect(window.$('#ffc-qr-short-copied').text()).toBe('Copied');
 	});
 
+	it('a redraw still pending from an earlier form does not fire after init', () => {
+		vi.useFakeTimers();
+		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		window.FFC.QrGenerator.init();
+		window.$('#ffc-qr-url').val('example.org').trigger('input');
+
+		window.FFC.QrGenerator.init();
+		vi.advanceTimersByTime(400);
+
+		expect(spy).not.toHaveBeenCalled();
+	});
+
 	it('an error reply shows its own message, whichever path it arrives by', () => {
 		expect(window.FFC.QrGenerator.errorMessage({ data: { message: 'Too long' } })).toBe('Too long');
 		expect(window.FFC.QrGenerator.errorMessage({ fromServer: true, message: 'Nope' })).toBe('Nope');
