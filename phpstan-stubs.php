@@ -8,6 +8,8 @@
  * @package FreeFormCertificate
  */
 
+// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound -- Analysis-only stubs for the bundled phpqrcode library, which declares these classes together; never loaded at runtime.
+
 $ffc_stub_loader = static function (): void {
 	$plugin_file = __DIR__ . '/ffcertificate.php';
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local read at PHPStan analysis time, not at runtime.
