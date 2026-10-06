@@ -148,11 +148,13 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 	public function test_rows_decrypts_cpf_and_skips_non_array(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'is_configured' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog' )
-			->shouldReceive( 'decrypt_log_entry_cpf' )->andReturn( '52998224725' );
+		$audit = Mockery::mock( 'alias:FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog' );
+		$audit->shouldReceive( 'decrypt_log_entry_cpf' )->andReturn( '52998224725' );
+		// The IP is read through the audit log's decryptor, never off the entry (#1574).
+		$audit->shouldReceive( 'decrypt_log_entry_ip' )->once()->andReturn( '1.2.3.4' );
 
 		$log = array(
-			array( 'ts' => 1700000000, 'ip' => '1.2.3.4', 'mode' => 'audit', 'cpf_encrypted' => 'e', 'result' => 'audit_pass' ),
+			array( 'ts' => 1700000000, 'ip_encrypted' => 'v2:x', 'mode' => 'audit', 'cpf_encrypted' => 'e', 'result' => 'audit_pass' ),
 			'not-an-array',
 		);
 		Functions\when( 'get_post_meta' )->justReturn( $log );

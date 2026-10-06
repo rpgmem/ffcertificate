@@ -133,7 +133,7 @@ class CsvDownloadLogExportSource implements SyncSourceInterface {
 				$formatted = wp_date( 'Y-m-d H:i:s', (int) $entry['ts'] );
 				$ts        = false === $formatted ? '' : $formatted;
 			}
-			$ip  = isset( $entry['ip'] ) ? (string) $entry['ip'] : '';
+			$ip  = CsvDownloadAuditLog::decrypt_log_entry_ip( $entry );
 			$mod = isset( $entry['mode'] ) ? (string) $entry['mode'] : '';
 			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
 			$cpf = CsvDownloadAuditLog::decrypt_log_entry_cpf( $entry );
