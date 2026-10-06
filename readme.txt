@@ -12,120 +12,145 @@ Create dynamic forms, generate PDF certificates, and validate authenticity with 
 
 == Description ==
 
-Free Form Certificate is a complete WordPress solution for creating dynamic forms, generating PDF certificates, scheduling appointments, and verifying document authenticity. Built with a fully namespaced, modular architecture using the Repository pattern and Strategy pattern for maximum maintainability.
+Free Form Certificate is a WordPress plugin for issuing PDF certificates from dynamic forms and verifying their authenticity. It also covers appointment scheduling, group bookings, reregistration campaigns, public-tender candidate queues, short URLs, QR codes and date-based e-mails. Each module, certificates included, can be switched on or off under Settings → Modules.
 
-= Core Features =
+The full reference (every token, shortcode, capability and setting) ships inside the plugin, under Settings → Documentation.
 
-* **Drag & Drop Form Builder** - Custom fields: Text, Email, Number, Date, Select, Radio, Textarea, Hidden, Info Block, and Embed (Media).
-* **Client-Side PDF Generation** - A4 landscape certificates using html2canvas and jsPDF, with custom background images.
-* **Magic Links** - One-click certificate access via unique, cryptographically secure URLs sent by email.
-* **Verification System** - Certificate authenticity validation via unique code or magic token.
-* **QR Codes** - Auto-generated QR codes on certificates linking to the verification page.
+= Certificates =
+
+* **Form Builder** - Drag-and-drop fields: Text, Email, Number, Date, Textarea, Select, Radio, Checkbox, Info Block, Embed (Media) and Hidden.
+* **Client-Side PDF Generation** - Certificates rendered in the browser with html2canvas and jsPDF, from reusable Document Templates with background images.
+* **Magic Links** - One-click certificate access through a unique link carrying a random 32-character token, sent by e-mail.
+* **Verification** - Authenticity check by authentication code or magic link, on the `/valid` page created at activation.
+* **Quiz Mode** - Scored forms with `{{score}}`, `{{max_score}}` and `{{score_percent}}` tokens.
+
+= QR Codes =
+
+* **Certificate QR Codes** - The `{{qr_code}}` token links each certificate to its verification page.
+* **QR Code Design** - Settings → QR Code sets dot and eye shapes, colours or a gradient, a centre logo, frames with a call to action, and a transparent background. The design applies to certificates, magic links and short URLs. Every shape offered is checked to scan.
+* **QR Code Generator** - Short URLs → QR Code Generator builds standalone codes for a URL, text, Wi-Fi, e-mail, phone, SMS, WhatsApp, contact card (vCard), social profile or calendar event. Codes download as SVG or PNG, or print directly, and each user's last design is remembered.
 
 = Self-Scheduling (Personal Calendars) =
 
-* **Calendar Management** - Create multiple calendars with configurable time slots, durations, and business hours.
+* **Calendar Management** - Multiple calendars with configurable time slots, durations, business hours and blocked dates.
 * **Appointment Booking** - Frontend booking widget with real-time slot availability.
-* **Email Notifications** - Confirmation, approval, cancellation, and reminder emails.
+* **Email Notifications** - Confirmation, approval, cancellation and reminder e-mails.
 * **PDF Receipts** - Downloadable appointment receipts generated client-side.
-* **Admin Dashboard** - Manage, approve, and export appointments.
+* **Admin Screens** - Manage, approve and export appointments.
 
 = Audience Scheduling (Group Bookings) =
 
-* **Audience Management** - Create audiences (groups) with hierarchical structure and color coding.
-* **Environment Management** - Configure physical spaces with calendars, working hours, and capacity.
-* **Group Bookings** - Schedule activities for entire audiences or individual users.
-* **CSV Import & Export** - Import and export audiences and members from/to CSV files with user creation.
-* **Conflict Detection** - Real-time conflict checking before booking confirmation.
+* **Audience Management** - Hierarchical audiences (groups) with colour coding.
+* **Environment Management** - Physical spaces with calendars, working hours, holidays and capacity.
+* **Group Bookings** - Schedule activities for whole audiences or individual users.
+* **CSV Import & Export** - Import and export audiences and members, with user creation.
+* **Conflict Detection** - Conflicts are checked before a booking is confirmed.
 * **Email Notifications** - Automatic notifications for new bookings and cancellations.
 
 = Reregistration =
 
-* **Campaign Management** - Create reregistration campaigns linked to audiences with configurable periods.
-* **Custom Fields** - Define per-audience custom fields (text, textarea, number, date, select, checkbox) with validation.
-* **Email Notifications** - Invitation, reminder, and confirmation emails with configurable templates.
-* **Approval Workflow** - Manual or auto-approve submissions with admin review interface.
-* **Ficha PDF** - Generate PDF records for submissions with customizable templates.
-* **Dashboard Integration** - Users see reregistration banners and can submit/download ficha from their dashboard.
+* **Campaign Management** - Reregistration campaigns linked to audiences, with configurable periods.
+* **Custom Fields** - Per-audience custom fields (text, textarea, number, date, select, checkbox) with validation, plus a seeded set of standard identity, contact and employment fields.
+* **Email Notifications** - Invitation, reminder and confirmation e-mails with editable templates.
+* **Approval Workflow** - Manual or automatic approval, with an admin review screen.
+* **Record PDF** - PDF records of each submission, from a customisable template.
+* **Dashboard Integration** - Users see reregistration banners and can submit and download their record from the dashboard.
 
 = Recruitment (Public-Tender Candidate Queues) =
 
-* **Notice & Candidate Management** - Create tender notices (editais), register candidates, and manage classification lists with rank and score.
+* **Notice & Candidate Management** - Tender notices (editais), candidates, and classification lists with rank and score.
 * **Atomic CSV Import** - Single-transaction wipe-and-reinsert with rollback on any validation error; semicolon (BR/EU) delimiter auto-detection.
-* **Convocation Workflow** - Single and bulk candidate calls with append-only call history, cancellation, and an "Undo decision" action that returns a candidate to the queue.
-* **State Machines** - Notice (draft → preliminary → active → closed) and classification lifecycles, with the reopen-freeze rule that protects hired / not-shown rows.
-* **Public Queue & Candidate Dashboard** - `[ffc_recruitment_queue]` lists called vs. uncalled candidates per notice; `[ffc_recruitment_my_calls]` gives each candidate a self-service view of their classifications and calls.
-* **Email Dispatch** - Automatic convocation emails with masked PII placeholders.
+* **Convocation Workflow** - Single and bulk calls with an append-only call history, cancellation, and an "Undo decision" action that returns a candidate to the queue.
+* **State Machines** - Notice (draft → preliminary → active → closed) and classification lifecycles, with a reopen-freeze rule that protects hired and not-shown rows.
+* **Public Queue & Candidate Dashboard** - `[ffc_recruitment_queue]` lists called and uncalled candidates per notice; `[ffc_recruitment_my_calls]` gives each candidate a self-service view of their classifications and calls.
+* **Email Dispatch** - Automatic convocation e-mails with masked PII placeholders.
+
+= Date Messages =
+
+* **Birthday E-mails** - Automatic e-mails built from each user's birth date, sent on the day or a set number of days before. The module is off by default.
+* **Rules** - Several independent rules, each with its own offset, optional audience, subject and HTML body.
+* **Preview & Send Now** - See who would receive a rule, and why anyone would be skipped, before anything is sent. Run a date range by hand, or send yourself a test with sample data.
+* **Manager Digest** - An optional summary e-mail to chosen users 24 hours after each run.
+* **Upcoming Dates** - A panel listing the coming birthdays (day and month only), gated by its own capability.
+* **One-Click Opt-Out** - Every message carries a signed unsubscribe link that confirms by POST, and users can also opt out from their dashboard.
 
 = Security & Restrictions =
 
 * **Geofencing** - Restrict form access by GPS coordinates or IP-based areas.
-* **Rate Limiting** - Configurable attempt limits per IP with automatic blocking.
-* **ID-Based Restriction** - Control certificate issuance via CPF/RF document validation.
+* **Rate Limiting** - Configurable attempt limits per IP, with automatic blocking.
+* **ID-Based Restriction** - Control certificate issuance by CPF/RF document validation.
 * **Ticket System** - Import single-use access codes for exclusive form access.
-* **Allowlist / Denylist** - Whitelist or block specific IDs.
-* **Math Captcha & Honeypot** - Built-in bot protection on all forms.
-* **Data Encryption** - Sensitive fields (email, CPF, IP) encrypted at rest.
+* **Allowlist / Denylist** - Allow or block specific IDs.
+* **Captcha & Honeypot** - A honeypot on every public form, plus a math challenge, an ALTCHA proof-of-work challenge, or both (ALTCHA with a math fallback when JavaScript is off).
+* **Data Encryption** - E-mail, CPF/RF, IP address and other sensitive fields are encrypted at rest (AES-256), with salted hashes for lookups.
 
 = Administration =
 
-* **Activity Log** - Full audit trail of admin and user actions.
-* **User Dashboard** - Personalized frontend dashboard for certificates and appointments.
-* **CSV Export** - Export submissions and appointments with date and form filters.
-* **Data Migrations** - Automated migration framework with progress tracking and rollback.
-* **SMTP Configuration** - Built-in SMTP settings for reliable email delivery.
-* **REST API** - Full REST API for external integrations.
-* **Capabilities & Roles** - Granular, delegable permission system with a 3-state model (none / view-only / manage) per domain, dedicated roles, and per-user and per-role editors — delegate the whole plugin without WordPress super-admin.
-* **URL Shortener** - Built-in short-link domain for plugin-generated URLs, exposed as the WordPress shortlink and as an `ffc_shortlink` REST field on the opted-in post types.
+* **Activity Log** - Audit trail of admin and user actions.
+* **User Dashboard** - Personal frontend dashboard for certificates, appointments, bookings, reregistration and profile.
+* **CSV Export** - Batched, timeout-safe exports of submissions, appointments, bookings and other data.
+* **Data Migrations** - Settings → Migrations runs batched migrations with progress tracking.
+* **Scheduled Tasks** - One screen that lists every background task with its next and last run, sets the daily times, and generates the server cron line to install.
+* **Identity Resolution** - An audit of conflicting identity records (shared or invalid CPF/RF and e-mails) across the plugin's stores, with accept and resolve actions.
+* **Email** - Built-in SMTP settings, one configurable e-mail layout shared by every message, and a global switch to disable all e-mails.
+* **REST API** - REST endpoints for external integrations.
+* **Capabilities & Roles** - Granular, delegable permissions with three states per domain (hidden / view only / view and edit), dedicated roles, and per-user and per-role editors, so the plugin can be delegated without granting WordPress administrator.
+* **URL Shortener** - A built-in short-link domain for plugin-generated URLs, exposed as the WordPress shortlink and as an `ffc_shortlink` REST field on the opted-in post types.
+* **Dark Mode** - An admin dark theme (off, on, or following the operating system).
 
 == Installation ==
 
 1. Upload the `ffcertificate` folder to `/wp-content/plugins/`.
 2. Activate the plugin through the "Plugins" menu in WordPress.
-3. Navigate to "Free Form Certificate" to create your first form.
-4. Use the shortcode `[ffc_form id="FORM_ID"]` on any page or post.
+3. Go to Certificate → Add New Form to create your first form.
+4. Place the shortcode `[ffc_form id="FORM_ID"]` on any page or post.
+5. Optional: enable or disable modules in Settings → Modules, and install the server cron line shown in Settings → Scheduled Tasks so background tasks run on time.
 
 == Frequently Asked Questions ==
 
 = How do I create a form? =
 
-1. Go to "Free Form Certificate" > "Add New Form".
-2. Enter a title and use the Form Builder to add fields.
-3. Configure the certificate layout in the "Certificate Layout" section.
-4. Save and copy the generated shortcode.
+1. Go to Certificate → Add New Form.
+2. Enter a title and add fields with the Form Builder.
+3. Choose and adjust the certificate layout.
+4. Save, then copy the generated shortcode.
 
 = What are Magic Links? =
 
-Magic Links are unique, secure URLs sent via email that allow recipients to instantly access and download their certificates with a single click. Each link contains a cryptographically secure 32-character token.
+Magic Links are unique URLs, sent by e-mail, that let recipients open and download their certificate in one click. Each link carries a random 32-character token. Deleting the submission invalidates the link.
 
 = How do I set up the verification page? =
 
-The plugin creates a `/valid` page automatically during activation. You can also create a page manually with `[ffc_verification]`.
+The plugin creates a `/valid` page during activation. You can also place `[ffc_verification]` on any page.
 
 = How do I create a calendar? =
 
-1. Go to "Free Form Certificate" > "Calendars" > "Add New".
-2. Configure business hours, slot duration, and capacity.
-3. Use the shortcode `[ffc_calendar id="CALENDAR_ID"]` on any page.
+1. Go to Scheduling → Personal Calendars → New Personal Calendar.
+2. Configure business hours, slot duration and capacity.
+3. Place the shortcode `[ffc_self_scheduling id="CALENDAR_ID"]` on any page.
 
 = Can I restrict who generates certificates? =
 
-Yes. In each form's "Restriction & Security" section you can enable allowlist mode, use the ticket system, block IDs via denylist, or restrict by geographic area via geofencing.
+Yes. In each form's restriction settings you can enable allowlist mode, use the ticket system, block IDs with a denylist, or restrict by area with geofencing.
+
+= Do background tasks need a server cron? =
+
+They run on WP-Cron, which only fires when the site gets visits. For reliable timing, especially for scheduled e-mails, open Settings → Scheduled Tasks. The screen shows the exact crontab line for your server (WP-CLI, wget or curl), the state of `DISABLE_WP_CRON`, and any task that is overdue.
 
 = Does the plugin work with page cache plugins (WP Rocket, LiteSpeed Cache, W3 Total Cache)? =
 
 Yes. The plugin includes built-in cache compatibility:
 
-* **Forms (captcha & nonces):** A "Dynamic Fragments" system automatically refreshes captcha challenges and security nonces via AJAX after page load, so forms work correctly even when the HTML is served from a full-page cache.
-* **Dashboard pages:** The `[user_dashboard_personal]` shortcode automatically sets the `DONOTCACHEPAGE` constant, sends standard no-cache headers, and triggers LiteSpeed-specific exclusion hooks. This ensures user-specific data is never cached.
-* **AJAX endpoints:** All form submissions and data fetching use `admin-ajax.php`, which is excluded from page cache by default in all major cache plugins.
-* **Diagnostics:** Go to FFC Settings > Cache tab to see the "Page Cache Compatibility" card, which shows the status of all cache-related features and detects your active cache plugin.
+* **Forms (captcha & nonces):** A "Dynamic Fragments" system refreshes captcha challenges and security nonces via AJAX after page load, so forms work even when the HTML is served from a full-page cache.
+* **Dashboard pages:** The `[user_dashboard_personal]` shortcode sets the `DONOTCACHEPAGE` constant, sends standard no-cache headers, and triggers LiteSpeed-specific exclusion hooks, so user-specific data is never cached.
+* **AJAX endpoints:** Form submissions and data fetching use `admin-ajax.php`, which major cache plugins exclude by default.
+* **Diagnostics:** Settings → Cache shows a "Page Cache Compatibility" card with the status of each cache-related feature and the cache plugin detected.
 
-No manual configuration of cache exclusion rules is needed.
+No manual cache exclusion rules are needed.
 
 = Do I need any server configuration on nginx? =
 
-One optional hardening step. Batched CSV exports stage a temporary file (which may contain decrypted PII) under `wp-content/uploads/ffc-tmp/`. On Apache the plugin protects it automatically with a bundled `.htaccess`; **nginx ignores `.htaccess`**, so add a deny rule to your server block:
+One optional hardening step. Batched CSV exports stage a temporary file (which may contain decrypted PII) under `wp-content/uploads/ffc-tmp/`. On Apache the plugin protects it with a bundled `.htaccess`; **nginx ignores `.htaccess`**, so add a deny rule to your server block:
 
 `location ^~ /wp-content/uploads/ffc-tmp/ { deny all; return 404; }`
 
@@ -133,7 +158,7 @@ The temp file is already short-lived (random name, deleted right after download,
 
 = How do I translate the plugin? =
 
-The plugin is fully translation-ready with the `ffcertificate` text domain. Use Loco Translate or Poedit with the `languages/ffcertificate.pot` template file. Portuguese (Brazil) translation is included.
+The plugin is translation-ready with the `ffcertificate` text domain. Use Loco Translate or Poedit with the `languages/ffcertificate.pot` template. A Portuguese (Brazil) translation is included.
 
 == Screenshots ==
 
@@ -156,24 +181,31 @@ Displays a certificate issuance form.
 Example: `[ffc_form id="123"]`
 
 = [ffc_verification] =
-Displays the certificate verification interface. Automatically detects magic links via the `?token=` parameter.
+Displays the certificate verification interface. Detects magic links via the `?token=` parameter.
 
 Example: `[ffc_verification]`
 
-= [ffc_calendar] =
-Displays an appointment calendar with booking widget.
+= [ffc_csv_download] =
+Displays the public operator page, where trusted operators can download a form's submissions CSV, start a form early, or postpone its close. Access requires the Form ID and the access hash generated by "Public Operator Access" in the form editor.
+
+* `title` (optional) - Page heading.
+
+Example: `[ffc_csv_download title="Download attendees"]`
+
+= [ffc_self_scheduling] =
+Displays a personal calendar with its booking widget.
 
 * `id` (required) - Calendar ID.
 
-Example: `[ffc_calendar id="456"]`
+Example: `[ffc_self_scheduling id="456"]`
 
-= [ffc_audience_calendar] =
+= [ffc_audience] =
 Displays the audience scheduling calendar for group bookings.
 
-Example: `[ffc_audience_calendar]`
+Example: `[ffc_audience]`
 
 = [user_dashboard_personal] =
-Displays the user's personal dashboard with certificates, appointments, audience bookings, and profile.
+Displays the user's personal dashboard with certificates, appointments, audience bookings, reregistration and profile.
 
 Example: `[user_dashboard_personal]`
 
@@ -192,14 +224,17 @@ Example: `[ffc_recruitment_my_calls]`
 
 == Layout & Placeholders ==
 
-In the certificate layout editor, use these dynamic tags:
+In a certificate template, use these dynamic tags. The complete list, including the standard identity, contact and employment field keys, is in Settings → Documentation → Template Variables / Tokens.
 
 = System Tags =
-* `{{auth_code}}` - 12-digit authentication code (formatted XXXX-XXXX-XXXX)
-* `{{form_title}}` - Current form title
-* `{{submission_date}}` - Issuance date (formatted per WordPress settings)
+* `{{auth_code}}` - 12-character alphanumeric authentication code (formatted XXXX-XXXX-XXXX)
+* `{{form_title}}` - Form title
+* `{{submission_date}}` - Issuance date, formatted per the plugin's date setting (`{{date}}` and `{{fill_date}}` are aliases)
+* `{{print_date}}` - Date the PDF is generated
 * `{{submission_id}}` - Numeric submission ID
 * `{{validation_url}}` - Verification page URL
+* `{{qr_code}}` - QR code linking to the verification page
+* `{{site_name}}`, `{{main_address}}`, `{{logo_gov}}`, `{{logo_org}}` - Branding from Settings → General
 
 = Form Field Tags =
 * `{{field_name}}` - Any field name defined in the Form Builder
@@ -225,18 +260,25 @@ each change references, see [CHANGELOG.md](CHANGELOG.md).
 == Privacy & Data Handling ==
 
 = Data Collected =
-* User submissions (name, email, custom fields)
-* IP addresses (for rate limiting and audit trail)
-* Appointment bookings (date, time, contact details)
+* Form submissions (name, e-mail, CPF/RF and custom fields)
+* User profile fields (contact, address, employment, birth date) when the dashboard or reregistration collects them
+* IP addresses (for rate limiting, geofencing and the audit trail)
+* Appointment and group bookings (date, time, contact details)
 * Submission and action timestamps
 
 = Data Storage =
-* Submissions stored in `wp_ffc_submissions` table with optional field encryption
-* Appointments stored in `wp_ffc_appointments` table
-* Rate limiting data stored in `wp_ffc_rate_limits` table
-* Activity logs stored in `wp_ffc_activity_log` table
+All data lives in the plugin's own `wp_ffc_*` tables and in `ffc_`-prefixed user meta and options. The main tables:
+
+* Submissions: `wp_ffc_submissions`, with sensitive fields encrypted
+* Appointments: `wp_ffc_self_scheduling_appointments`
+* Rate limiting: `wp_ffc_rate_limits` and `wp_ffc_rate_limit_logs`
+* Activity log: `wp_ffc_activity_log`
+* Profiles: `wp_ffc_user_profiles`
+
+Deleting the plugin removes its tables, options and user meta only when "Delete all plugin data on uninstall" is enabled in Settings → Advanced.
 
 = Data Retention =
 * Configurable automatic cleanup for old submissions
-* Manual deletion available in admin panel
+* Manual deletion in the admin panel
+* WordPress personal-data exporters and erasers are registered
 * Deleting a submission invalidates its magic link and QR code
