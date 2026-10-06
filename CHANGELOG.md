@@ -14,6 +14,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **QR Code Generator** (#1563). Short URLs → QR Code Generator draws a code for a website, text, Wi-Fi, e-mail, phone call, SMS or WhatsApp, styled per code from the global design, with a capacity meter and a density warning, downloaded as PNG or SVG. Stateless: only "Shorten" stores something, a short URL.
 - **QR Code Generator: contact card, social profile and event** (#1563). A vCard carried whole in the code; a profile on nine networks from the user name alone; a one-day event as the event itself, a pre-filled Google Calendar link, or a signed link to an `.ics` file built by the scheduling module's generator.
 - **QR Code Generator: optional expiry for the event link, and a remembered design** (#1568). An `.ics` link can carry a signed "valid until" date and answers 410 after it; links without one, older links included, never expire. The generator reopens with each user's last downloaded design (design only, never content), and "Reset to default" restores the global one.
+- **QR Code Generator: redesigned interface** (#1570). Content types are icon tiles; the design sits in collapsible sections (pattern, corners, colours, logo, frame, advanced) with shapes picked from thumbnails the renderer draws, and colours with a hex box; a sticky preview panel holds format, size, download and a new Print. Settings → QR Code shares the same sections.
 
 ### Changed
 

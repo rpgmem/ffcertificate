@@ -23600,9 +23600,6 @@ msgstr ""
 msgid "Fluid"
 msgstr ""
 
-msgid "Gradient"
-msgstr ""
-
 msgid "Gradient end colour"
 msgstr ""
 
@@ -23690,12 +23687,6 @@ msgstr ""
 msgid "Design"
 msgstr ""
 
-msgid "Download PNG"
-msgstr ""
-
-msgid "Download SVG"
-msgstr ""
-
 msgid "Enter a valid e-mail address."
 msgstr ""
 
@@ -23727,9 +23718,6 @@ msgid "Network name (SSID)"
 msgstr ""
 
 msgid "Open network (no password)"
-msgstr ""
-
-msgid "PNG width"
 msgstr ""
 
 msgid "Phone call"
@@ -23882,8 +23870,44 @@ msgstr ""
 msgid "Reset to default"
 msgstr ""
 
-msgid "The generator remembers your design when you download a code; this goes back to the global design from Settings → QR Code."
+msgid "Design reset to the global default."
 msgstr ""
 
-msgid "Design reset to the global default."
+msgid "Pattern"
+msgstr ""
+
+msgid "The shape of the modules that carry the data."
+msgstr ""
+
+msgid "Corners"
+msgstr ""
+
+msgid "The three corner markers a reader locks onto first."
+msgstr ""
+
+msgid "Colours"
+msgstr ""
+
+msgid "Module and background colours, and an optional gradient."
+msgstr ""
+
+msgid "An image in the centre of the code."
+msgstr ""
+
+msgid "A printed frame with a short call to action."
+msgstr ""
+
+msgid "Quiet zone and error correction."
+msgstr ""
+
+msgid "Format"
+msgstr ""
+
+msgid "Size"
+msgstr ""
+
+msgid "Download"
+msgstr ""
+
+msgid "The generator remembers your design when you download a code; \"Reset to default\" goes back to the global design from Settings → QR Code."
 msgstr ""

@@ -1,8 +1,10 @@
 /**
  * Short URLs → QR Code Generator (#1563).
  *
- * Content and design on the left, the live code and its downloads on the
- * right; one column below the breakpoint.
+ * Content and design on the left, the live code and its downloads in a
+ * panel on the right that stays in view; one column below the breakpoint.
+ * The design sections themselves are styled by ffc-qr-design-fields.css,
+ * which this sheet depends on (#1570).
  */
 
 .ffc-page-qr-generator .ffc-qr-generator {
@@ -23,20 +25,136 @@
 }
 
 .ffc-page-qr-generator .ffc-qr-generator__side {
-    flex: 0 1 300px;
+    flex: 0 1 320px;
     position: sticky;
     top: 40px;
 }
 
+/* Content types: a grid of icon tiles over visually hidden radios. */
 .ffc-page-qr-generator .ffc-qr-generator__types {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10em, 1fr));
+    gap: var(--ffc-spacing-xs);
+    min-width: 0;
+    margin: 0 0 var(--ffc-spacing-lg);
+    padding: 0;
+    border: 0;
+}
+
+.ffc-page-qr-generator .ffc-qr-type {
+    position: relative;
+    display: block;
+    cursor: pointer;
+}
+
+.ffc-page-qr-generator .ffc-qr-type__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.ffc-page-qr-generator .ffc-qr-type__face {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
-    margin-bottom: var(--ffc-spacing-sm);
+    align-items: center;
+    justify-content: center;
+    gap: var(--ffc-spacing-xs);
+    height: 100%;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xs);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-md);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    font-weight: 600;
+    text-align: center;
+    box-sizing: border-box;
+    transition: border-color var(--ffc-transition-fast), box-shadow var(--ffc-transition-fast);
+}
+
+.ffc-page-qr-generator .ffc-qr-type__face .ffc-qr-icon {
+    flex: 0 0 auto;
+}
+
+.ffc-page-qr-generator .ffc-qr-type:hover .ffc-qr-type__face {
+    border-color: var(--ffc-primary);
+}
+
+.ffc-page-qr-generator .ffc-qr-type__input:checked + .ffc-qr-type__face {
+    border-color: var(--ffc-primary);
+    background: var(--ffc-accent-bg);
+    color: var(--ffc-accent-text);
+    box-shadow: 0 0 0 1px var(--ffc-primary);
+}
+
+.ffc-page-qr-generator .ffc-qr-type__input:focus-visible + .ffc-qr-type__face {
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__design-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-md);
+    margin-top: var(--ffc-spacing-xl);
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__design-head h2 {
+    margin: 0;
+}
+
+/* The preview panel. */
+.ffc-page-qr-generator .ffc-qr-generator__panel {
+    padding: var(--ffc-spacing-lg);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-lg);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__panel-title {
+    margin: 0 0 var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-base);
+    text-align: center;
+    color: var(--ffc-text-muted);
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__export {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--ffc-spacing-sm);
+    margin-top: var(--ffc-spacing-md);
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__export select {
+    width: 100%;
+    max-width: none;
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__actions {
+    display: flex;
+    gap: var(--ffc-spacing-xs);
+    margin-top: var(--ffc-spacing-md);
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__download,
+.ffc-page-qr-generator .ffc-qr-generator__print {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__download {
+    flex: 1 1 auto;
 }
 
 .ffc-page-qr-generator .ffc-qr-generator__preview {
     min-height: 240px;
+    overflow: hidden;
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);
 }
@@ -60,11 +178,4 @@
 
 .ffc-page-qr-generator .ffc-qr-generator__status.is-error {
     color: var(--ffc-danger-text);
-}
-
-.ffc-page-qr-generator .ffc-qr-logo-thumb {
-    display: block;
-    max-width: 64px;
-    max-height: 64px;
-    margin-bottom: var(--ffc-spacing-xs);
 }

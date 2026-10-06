@@ -1376,14 +1376,16 @@ html:has(.ffc-settings-back-to-top) {
     align-items: flex-start;
 }
 
-.ffc-qr-design-layout .form-table {
-    flex: 1 1 22em;
-    width: auto;
+.ffc-qr-design-layout .ffc-qr-sections {
+    flex: 1 1 28em;
+    min-width: 0;
 }
 
 .ffc-qr-design-preview {
     flex: 0 0 auto;
     width: 240px;
+    position: sticky;
+    top: 40px;
 }
 
 .ffc-qr-design-preview__image {
@@ -1398,13 +1400,6 @@ html:has(.ffc-settings-back-to-top) {
     display: block;
     width: 100%;
     height: auto;
-}
-
-.ffc-qr-logo-thumb {
-    display: block;
-    max-width: 64px;
-    max-height: 64px;
-    margin-bottom: var(--ffc-spacing-xs);
 }
 
 .ffc-qr-design-preview__checks {

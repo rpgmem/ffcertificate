@@ -296,4 +296,66 @@ class QrSvgRendererTest extends TestCase {
 		preg_match( '/font-size="([\d.]+)"/', $long, $l );
 		$this->assertLessThan( (float) $s[1], (float) $l[1] );
 	}
+
+	/**
+	 * Every allowlisted value of a kind, by swatch kind.
+	 *
+	 * @return array<string, array{0: string, 1: array<int, string>}>
+	 */
+	public function swatchKinds(): array {
+		return array(
+			'dots'      => array( 'dots', QrDesign::DOTS ),
+			'eye_frame' => array( 'eye_frame', QrDesign::EYE_FRAMES ),
+			'eye_ball'  => array( 'eye_ball', QrDesign::EYE_BALLS ),
+			'frame'     => array( 'frame', QrDesign::FRAMES ),
+		);
+	}
+
+	/**
+	 * @dataProvider swatchKinds
+	 * @param array<int, string> $values
+	 */
+	public function test_every_allowlisted_value_has_a_distinct_thumbnail( string $kind, array $values ): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
+		$drawn = array();
+		foreach ( $values as $value ) {
+			$svg = QrSvgRenderer::swatch( $kind, $value );
+			$this->assertStringStartsWith( '<svg class="ffc-qr-swatch"', $svg, $kind . ':' . $value );
+			$this->assertStringContainsString( 'aria-hidden="true"', $svg );
+			$this->assertNotFalse( simplexml_load_string( $svg ), $kind . ':' . $value . ' is well-formed XML' );
+			$drawn[ $value ] = $svg;
+		}
+		// A picker whose tiles look alike is no picker at all.
+		$this->assertSame( count( $values ), count( array_unique( $drawn ) ), $kind );
+	}
+
+	public function test_shape_thumbnails_paint_in_the_tile_text_colour(): void {
+		foreach ( array( 'dots' => 'fluid', 'eye_frame' => 'leaf', 'eye_ball' => 'diamond' ) as $kind => $value ) {
+			$svg = QrSvgRenderer::swatch( $kind, $value );
+			$this->assertStringContainsString( 'currentColor', $svg, $kind );
+			$this->assertStringNotContainsString( '#000000', $svg, $kind . ' follows the theme, not black' );
+		}
+	}
+
+	public function test_a_frame_thumbnail_carries_its_own_paper_and_a_caption(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
+		$svg = QrSvgRenderer::swatch( 'frame', 'banner' );
+
+		$this->assertStringContainsString( 'fill="#ffffff"', $svg );
+		$this->assertStringContainsString( '>SCAN</text>', $svg );
+		// "None" is a symbol, not an empty tile.
+		$this->assertStringContainsString( '<circle', QrSvgRenderer::swatch( 'frame', 'none' ) );
+	}
+
+	public function test_an_unknown_kind_or_value_draws_nothing(): void {
+		$this->assertSame( '', QrSvgRenderer::swatch( 'dots', 'star"><script>' ) );
+		$this->assertSame( '', QrSvgRenderer::swatch( 'logo', 'square' ) );
+		$this->assertSame( '', QrSvgRenderer::swatch( 'eye_ball', '' ) );
+	}
+
+	public function test_the_fluid_thumbnail_shows_its_joins(): void {
+		// Joins are the rectangles bridging neighbours; the plain dots have none.
+		$this->assertStringContainsString( '<rect', QrSvgRenderer::swatch( 'dots', 'fluid' ) );
+		$this->assertStringNotContainsString( '<rect', QrSvgRenderer::swatch( 'dots', 'dots' ) );
+	}
 }

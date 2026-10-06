@@ -78,6 +78,7 @@ class TabQrCodeTest extends TestCase {
 		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/logo-150x150.png' );
 		Functions\when( 'get_post_mime_type' )->justReturn( '' );
 		Functions\when( 'get_attached_file' )->justReturn( '' );
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
 		Functions\when( 'selected' )->alias(
 			static function ( $a, $b ) {
 				echo $a === $b ? ' selected="selected"' : '';
@@ -96,12 +97,16 @@ class TabQrCodeTest extends TestCase {
 		$this->assertStringContainsString( 'name="_ffc_tab" value="qr_code"', $html );
 		$this->assertStringContainsString( 'name="ffc_settings[qr_default_size]" id="qr_default_size" value="250"', $html );
 		$this->assertStringContainsString( 'data-ffc-autosave-key="qr_default_error_level"', $html );
-		$this->assertStringContainsString( 'value="fluid"  selected="selected"', $html );
+		// Shapes are tile pickers now (#1570): a checked radio per value.
+		$this->assertStringContainsString( 'name="ffc_settings[qr_design_dots]" value="fluid"  checked="checked"', $html );
+		$this->assertStringContainsString( '<details class="ffc-qr-section"', $html );
+		$this->assertStringContainsString( 'class="ffc-qr-swatch"', $html );
+		$this->assertStringContainsString( 'data-ffc-qr-hex-for="qr_design_color"', $html );
 		$this->assertStringContainsString( 'id="qr_design_color" value="#123456"', $html );
 		$this->assertStringContainsString( 'id="ffc-qr-design-preview"', $html );
 		$this->assertStringContainsString( 'id="qr_design_logo_id" value="12"', $html );
 		$this->assertStringContainsString( 'src="https://example.com/logo-150x150.png"', $html );
-		$this->assertStringContainsString( 'value="bubble"  selected="selected"', $html );
+		$this->assertStringContainsString( 'name="ffc_settings[qr_design_frame]" value="bubble"  checked="checked"', $html );
 		// Both switches are named fields in the form AND autosave keys.
 		$this->assertStringContainsString( 'name="ffc_settings[qr_design_on_certificate]"', $html );
 		$this->assertStringContainsString( 'data-ffc-autosave-key="qr_design_on_short_urls"', $html );
@@ -132,7 +137,13 @@ class TabQrCodeTest extends TestCase {
 
 		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
 		$utils->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
+		$utils->shouldReceive( 'enqueue_common_style' )->once();
+		$utils->shouldReceive( 'enqueue_dark_mode' )->once();
 
+		$styles = array();
+		Functions\when( 'wp_enqueue_style' )->alias( function ( $h, $src, $deps ) use ( &$styles ) {
+			$styles[ $h ] = $deps;
+		} );
 		$handles   = array();
 		$localized = array();
 		Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) {
@@ -149,6 +160,8 @@ class TabQrCodeTest extends TestCase {
 
 		$this->assertContains( 'ffc-admin-autosave', $handles );
 		$this->assertContains( 'ffc-qr-design', $handles );
+		// The shared design sections have their own sheet, on the palette (#1570).
+		$this->assertSame( array( 'ffc-common' ), $styles['ffc-qr-design-fields'] ?? null );
 		$this->assertSame( 'ffc_qr_design_preview', $localized['ffcQrDesign']['action'] );
 		$this->assertSame( 'nonce-ffc_qr_design_preview', $localized['ffcQrDesign']['nonce'] );
 	}

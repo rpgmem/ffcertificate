@@ -16,10 +16,12 @@ function mount() {
 		<form>
 			<input id="qr_default_margin" value="3">
 			<select id="qr_default_error_level"><option value="Q" selected>Q</option></select>
-			<select data-ffc-qr-design="qr_design_dots"><option value="dots" selected>dots</option></select>
+			<input type="radio" name="dots" value="square" data-ffc-qr-design="qr_design_dots">
+			<input type="radio" name="dots" value="dots" data-ffc-qr-design="qr_design_dots" checked>
 			<select data-ffc-qr-design="qr_design_eye_frame"><option value="leaf" selected>leaf</option></select>
 			<select data-ffc-qr-design="qr_design_eye_ball"><option value="circle" selected>circle</option></select>
-			<input data-ffc-qr-design="qr_design_color" value="#112233">
+			<input id="qr_design_color" data-ffc-qr-design="qr_design_color" value="#112233">
+			<input class="hex" data-ffc-qr-hex-for="qr_design_color" value="#112233">
 			<input data-ffc-qr-design="qr_design_background" value="#ffffff">
 			<input data-ffc-qr-design="qr_design_eye_frame_color" value="#445566">
 			<input data-ffc-qr-design="qr_design_eye_ball_color" value="#778899">
@@ -163,5 +165,53 @@ describe('ffc-qr-design.js', () => {
 		window.FFC.QrDesign.init();
 
 		expect(spy).not.toHaveBeenCalled();
+	});
+
+	it('reads a tile picker as the value of its checked radio (#1570)', () => {
+		expect(window.FFC.QrDesign.collect(window.$('form')).design.dots).toBe('dots');
+		window.$('input[value="square"]').prop('checked', true);
+		expect(window.FFC.QrDesign.collect(window.$('form')).design.dots).toBe('square');
+	});
+
+	it('normalises a typed hex colour', () => {
+		const n = window.FFC.QrDesign.normalizeHex;
+		expect(n('#ABCDEF')).toBe('#abcdef');
+		expect(n('abc')).toBe('#aabbcc');
+		expect(n(' #12345 ')).toBe('');
+		expect(n('red')).toBe('');
+	});
+
+	it('keeps the picker and its hex box in step, both ways (#1570)', () => {
+		window.FFC.QrDesign.bindColorPairs(window.$(document));
+		const $picker = window.$('#qr_design_color');
+		const $hex = window.$('.hex');
+		const changes = [];
+		$picker.on('input', () => changes.push($picker.val()));
+
+		$hex.val('F00').trigger('input');
+		expect($picker.val()).toBe('#ff0000');
+		expect(changes).toEqual(['#ff0000']);
+
+		// An incomplete colour is flagged and never reaches the picker.
+		$hex.val('#12').trigger('input');
+		expect($hex.hasClass('is-invalid')).toBe(true);
+		expect($picker.val()).toBe('#ff0000');
+		$hex.trigger('blur');
+		expect($hex.val()).toBe('#ff0000');
+		expect($hex.hasClass('is-invalid')).toBe(false);
+
+		$picker.val('#00ff00').trigger('input');
+		expect($hex.val()).toBe('#00ff00');
+	});
+
+	it('binds each pair once', () => {
+		window.FFC.QrDesign.bindColorPairs(window.$(document));
+		window.FFC.QrDesign.bindColorPairs(window.$(document));
+		const changes = [];
+		window.$('#qr_design_color').on('input', () => changes.push(1));
+
+		window.$('.hex').val('#010203').trigger('input');
+
+		expect(changes).toEqual([1]);
 	});
 });

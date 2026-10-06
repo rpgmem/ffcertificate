@@ -23691,9 +23691,6 @@ msgstr "Desenhar o placeholder {{qr_code}} com este design"
 msgid "Fluid"
 msgstr "Fluido"
 
-msgid "Gradient"
-msgstr "Degradê"
-
 msgid "Gradient end colour"
 msgstr "Cor final do degradê"
 
@@ -23781,12 +23778,6 @@ msgstr "Código denso (versão %d): imprima com pelo menos 3 cm de largura ou en
 msgid "Design"
 msgstr "Design"
 
-msgid "Download PNG"
-msgstr "Baixar PNG"
-
-msgid "Download SVG"
-msgstr "Baixar SVG"
-
 msgid "Enter a valid e-mail address."
 msgstr "Informe um endereço de e-mail válido."
 
@@ -23819,9 +23810,6 @@ msgstr "Nome da rede (SSID)"
 
 msgid "Open network (no password)"
 msgstr "Rede aberta (sem senha)"
-
-msgid "PNG width"
-msgstr "Largura do PNG"
 
 msgid "Phone call"
 msgstr "Ligação telefônica"
@@ -23973,8 +23961,44 @@ msgstr "Somente para o arquivo de calendário. Deixe vazio para um link que nunc
 msgid "Reset to default"
 msgstr "Restaurar padrão"
 
-msgid "The generator remembers your design when you download a code; this goes back to the global design from Settings → QR Code."
-msgstr "O gerador lembra o seu design quando você baixa um código; este botão volta ao design global de Configurações → QR Code."
-
 msgid "Design reset to the global default."
 msgstr "Design restaurado para o padrão global."
+
+msgid "Pattern"
+msgstr "Padrão"
+
+msgid "The shape of the modules that carry the data."
+msgstr "O formato dos módulos que levam os dados."
+
+msgid "Corners"
+msgstr "Cantos"
+
+msgid "The three corner markers a reader locks onto first."
+msgstr "Os três marcadores de canto que o leitor localiza primeiro."
+
+msgid "Colours"
+msgstr "Cores"
+
+msgid "Module and background colours, and an optional gradient."
+msgstr "Cores dos módulos e do fundo, e um degradê opcional."
+
+msgid "An image in the centre of the code."
+msgstr "Uma imagem no centro do código."
+
+msgid "A printed frame with a short call to action."
+msgstr "Uma moldura para impressão com uma chamada curta."
+
+msgid "Quiet zone and error correction."
+msgstr "Margem e correção de erros."
+
+msgid "Format"
+msgstr "Formato"
+
+msgid "Size"
+msgstr "Tamanho"
+
+msgid "Download"
+msgstr "Baixar"
+
+msgid "The generator remembers your design when you download a code; \"Reset to default\" goes back to the global design from Settings → QR Code."
+msgstr "O gerador lembra o seu design quando você baixa um código; \"Restaurar padrão\" volta ao design global de Configurações → QR Code."

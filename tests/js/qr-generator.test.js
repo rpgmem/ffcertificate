@@ -35,9 +35,10 @@ function mount() {
 			<div id="ffc-qr-generator-preview"></div>
 			<p id="ffc-qr-generator-usage"></p>
 			<p id="ffc-qr-generator-status"></p>
+			<select id="ffc-qr-format"><option value="png" selected>PNG</option><option value="svg">SVG</option></select>
 			<select id="ffc-qr-png-width"><option value="2000" selected>2000</option></select>
-			<button type="button" id="ffc-qr-download-png" disabled>PNG</button>
-			<button type="button" id="ffc-qr-download-svg" disabled>SVG</button>
+			<button type="button" id="ffc-qr-download" disabled>Download</button>
+			<button type="button" id="ffc-qr-print" disabled>Print</button>
 		</form>`;
 }
 
@@ -96,7 +97,8 @@ describe('ffc-qr-generator.js', () => {
 		expect(document.getElementById('drawn')).not.toBeNull();
 		expect(window.$('#ffc-qr-generator-usage').text()).toBe('19 of 2331 bytes (1%)');
 		expect(window.$('#ffc-qr-generator-status').text()).toBe('Readable');
-		expect(window.$('#ffc-qr-download-png').prop('disabled')).toBe(false);
+		expect(window.$('#ffc-qr-download').prop('disabled')).toBe(false);
+		expect(window.$('#ffc-qr-print').prop('disabled')).toBe(false);
 	});
 
 	it('warns about a dense code', async () => {
@@ -115,7 +117,8 @@ describe('ffc-qr-generator.js', () => {
 		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
 
 		expect(window.$('#ffc-qr-generator-status').text()).toBe('Enter a valid web address');
-		expect(window.$('#ffc-qr-download-svg').prop('disabled')).toBe(true);
+		expect(window.$('#ffc-qr-download').prop('disabled')).toBe(true);
+		expect(window.$('#ffc-qr-print').prop('disabled')).toBe(true);
 		expect(window.$('#ffc-qr-generator-preview').html()).toBe('');
 	});
 
@@ -131,15 +134,17 @@ describe('ffc-qr-generator.js', () => {
 		expect(spy.mock.calls[0][1].type).toBe('wifi');
 	});
 
-	it('downloads the SVG and the PNG at the chosen width', async () => {
+	it('downloads in the chosen format, the PNG at the chosen width', async () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
 		const download = vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
 		const toPng = vi.spyOn(window.FFC.QrRaster, 'toPng').mockResolvedValue('UE5H');
 		window.FFC.QrGenerator.init();
 		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
 
-		window.$('#ffc-qr-download-svg').trigger('click');
-		window.$('#ffc-qr-download-png').trigger('click');
+		window.$('#ffc-qr-format').val('svg').trigger('change');
+		window.$('#ffc-qr-download').trigger('click');
+		window.$('#ffc-qr-format').val('png').trigger('change');
+		window.$('#ffc-qr-download').trigger('click');
 		await flush();
 
 		expect(download.mock.calls[0][2]).toBe('image/svg+xml');
@@ -208,8 +213,10 @@ describe('ffc-qr-generator.js', () => {
 		window.FFC.QrGenerator.init();
 		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
 
-		window.$('#ffc-qr-download-svg').trigger('click');
-		window.$('#ffc-qr-download-png').trigger('click');
+		window.$('#ffc-qr-format').val('svg').trigger('change');
+		window.$('#ffc-qr-download').trigger('click');
+		window.$('#ffc-qr-format').val('png').trigger('change');
+		window.$('#ffc-qr-download').trigger('click');
 		await flush();
 
 		const remembered = spy.mock.calls.filter((c) => c[1].action === 'ffc_qr_remember').map((c) => c[1]);
@@ -254,5 +261,58 @@ describe('ffc-qr-generator.js', () => {
 
 		expect(window.$('#ffc-qr-generator-status').text()).toBe('Permission denied.');
 		expect(window.$('[data-ffc-qr-design="qr_design_dots"]').val()).toBe('dots');
+	});
+
+	it('the size only applies to a PNG (#1570)', () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		window.FFC.QrGenerator.init();
+
+		window.$('#ffc-qr-format').val('svg').trigger('change');
+		expect(window.$('#ffc-qr-png-width').prop('disabled')).toBe(true);
+		window.$('#ffc-qr-format').val('png').trigger('change');
+		expect(window.$('#ffc-qr-png-width').prop('disabled')).toBe(false);
+	});
+
+	it('prints the code alone from a hidden frame (#1570)', () => {
+		vi.useFakeTimers();
+		const frame = window.FFC.QrGenerator.print('<svg id="to-print"></svg>');
+		// jsdom has no printer; the frame's window still receives the document.
+		expect(frame.contentWindow.document.getElementById('to-print')).not.toBeNull();
+		expect(frame.getAttribute('aria-hidden')).toBe('true');
+		expect(document.body.contains(frame)).toBe(true);
+		vi.advanceTimersByTime(1000);
+		expect(document.body.contains(frame)).toBe(false);
+	});
+
+	it('the print button sends the current code (#1570)', async () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+		const before = document.querySelectorAll('iframe').length;
+
+		window.$('#ffc-qr-print').trigger('click');
+
+		const frames = document.querySelectorAll('iframe');
+		expect(frames.length).toBe(before + 1);
+		expect(frames[frames.length - 1].contentWindow.document.getElementById('drawn')).not.toBeNull();
+	});
+
+	it('reset checks the tile of the restored value and refreshes the hex box (#1570)', () => {
+		document.body.innerHTML = `
+			<form id="ffc-qr-generator">
+				<input type="radio" name="d" value="square" data-ffc-qr-design="qr_design_dots">
+				<input type="radio" name="d" value="dots" data-ffc-qr-design="qr_design_dots" checked>
+				<input type="color" id="qr_design_color" data-ffc-qr-design="qr_design_color" value="#112233">
+				<input type="text" data-ffc-qr-hex-for="qr_design_color" value="#112233">
+			</form>`;
+		const $form = window.$('#ffc-qr-generator');
+
+		window.FFC.QrGenerator.apply($form, { qr_design_dots: 'square', qr_design_color: '#abcdef' }, '');
+
+		expect($form.find('input[value="square"]').prop('checked')).toBe(true);
+		expect($form.find('input[value="dots"]').prop('checked')).toBe(false);
+		// The radios keep their own values: only the checked one moved.
+		expect($form.find('[data-ffc-qr-design="qr_design_dots"]').map(function () { return this.value; }).get()).toEqual(['square', 'dots']);
+		expect($form.find('[data-ffc-qr-hex-for]').val()).toBe('#abcdef');
 	});
 });
