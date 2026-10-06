@@ -24036,9 +24036,6 @@ msgstr ""
 msgid "Checkbox — fill the Options field. Not scored in quiz mode."
 msgstr ""
 
-msgid "Hidden field — rendered with no visible control."
-msgstr ""
-
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
 msgstr ""
 
@@ -24580,4 +24577,13 @@ msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_EN
 msgstr ""
 
 msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export."
+msgstr ""
+
+msgid "Value submitted with every entry (the visitor cannot change it):"
+msgstr ""
+
+msgid "Value submitted with every entry:"
+msgstr ""
+
+msgid "Hidden field — no visible control; every entry submits the fixed value set on the field's Value input (the server uses that value, never one sent by the browser)."
 msgstr ""

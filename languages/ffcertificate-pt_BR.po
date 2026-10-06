@@ -24126,9 +24126,6 @@ msgstr "Os campos de entrada de um formulário são definidos na aba Campos (\"C
 msgid "Checkbox — fill the Options field. Not scored in quiz mode."
 msgstr "Caixa de seleção múltipla — preencha o campo Opções. Não é pontuada no modo quiz."
 
-msgid "Hidden field — rendered with no visible control."
-msgstr "Campo oculto — renderizado sem nenhum controle visível."
-
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
 msgstr "Campos de nome (chaves como name, nome, nome_completo, full_name ou participante) são normalizados no envio para a capitalização correta, mantendo em minúsculas conectivos como \"da\" e \"de\"."
 
@@ -24671,3 +24668,12 @@ msgstr "a Rotação de Chaves de Criptografia recriptografa os dados pessoais ar
 
 msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export."
 msgstr "Um formulário sem data de término nunca libera o arquivo CSV. Os downloads também estão sujeitos a uma cota por formulário (se o campo estiver em branco, aplica-se o Limite de Download Padrão global, definido em Configurações → Avançado). Quando a exigência de CPF abaixo está em qualquer modo diferente de none — ou quando um operador informa voluntariamente um CPF válido — cada tentativa é registrada em um log de auditoria do formulário com as tentativas mais recentes (data/hora, endereço IP armazenado criptografado, modo e resultado), que os administradores podem exportar."
+
+msgid "Value submitted with every entry (the visitor cannot change it):"
+msgstr "Valor enviado em todas as respostas (o visitante não pode alterá-lo):"
+
+msgid "Value submitted with every entry:"
+msgstr "Valor enviado em todas as respostas:"
+
+msgid "Hidden field — no visible control; every entry submits the fixed value set on the field's Value input (the server uses that value, never one sent by the browser)."
+msgstr "Campo oculto — sem controle visível; toda resposta envia o valor fixo definido no campo Valor (o servidor usa esse valor, nunca um enviado pelo navegador)."
