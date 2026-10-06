@@ -30,6 +30,11 @@ The full reference (every token, shortcode, capability and setting) ships inside
 * **QR Code Design** - Settings → QR Code sets dot and eye shapes, colours or a gradient, a centre logo, frames with a call to action, and a transparent background. The design applies to certificates, magic links and short URLs. Every shape offered is checked to scan.
 * **QR Code Generator** - Short URLs → QR Code Generator builds standalone codes for a URL, text, Wi-Fi, e-mail, phone, SMS, WhatsApp, contact card (vCard), social profile or calendar event. Codes download as SVG or PNG, or print directly, and each user's last design is remembered.
 
+= URL Shortener =
+
+* **Short Links** - A built-in short-link domain for plugin-generated URLs, with a QR code per link and cleanup of links that were never clicked.
+* **WordPress Integration** - Exposed as the WordPress shortlink and as an `ffc_shortlink` REST field on the opted-in post types.
+
 = Self-Scheduling (Personal Calendars) =
 
 * **Calendar Management** - Multiple calendars with configurable time slots, durations, business hours and blocked dates.
@@ -77,7 +82,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 = Security & Restrictions =
 
 * **Geofencing** - Restrict form access by GPS coordinates or IP-based areas.
-* **Rate Limiting** - Configurable attempt limits per IP, with automatic blocking.
+* **Rate Limiting** - Configurable limits per IP, e-mail, CPF/RF and device, with automatic blocking.
 * **ID-Based Restriction** - Control certificate issuance by CPF/RF document validation.
 * **Ticket System** - Import single-use access codes for exclusive form access.
 * **Allowlist / Denylist** - Allow or block specific IDs.
@@ -90,13 +95,20 @@ The full reference (every token, shortcode, capability and setting) ships inside
 * **User Dashboard** - Personal frontend dashboard for certificates, appointments, bookings, reregistration and profile.
 * **CSV Export** - Batched, timeout-safe exports of submissions, appointments, bookings and other data.
 * **Data Migrations** - Settings → Migrations runs batched migrations with progress tracking.
+* **Maintenance Tools** - Clean up obsolete short URLs, switch off Public Operator Access on forms that have ended, and audit how submissions are linked to WordPress users. The audit is report-only.
 * **Scheduled Tasks** - One screen that lists every background task with its next and last run, sets the daily times, and generates the server cron line to install.
 * **Identity Resolution** - An audit of conflicting identity records (shared or invalid CPF/RF and e-mails) across the plugin's stores, with accept and resolve actions.
 * **Email** - Built-in SMTP settings, one configurable e-mail layout shared by every message, and a global switch to disable all e-mails.
 * **REST API** - REST endpoints for external integrations.
 * **Capabilities & Roles** - Granular, delegable permissions with three states per domain (hidden / view only / view and edit), dedicated roles, and per-user and per-role editors, so the plugin can be delegated without granting WordPress administrator.
-* **URL Shortener** - A built-in short-link domain for plugin-generated URLs, exposed as the WordPress shortlink and as an `ffc_shortlink` REST field on the opted-in post types.
 * **Dark Mode** - An admin dark theme (off, on, or following the operating system).
+
+= Integrations =
+
+* **Total Mail Queue** - When the Total Mail Queue plugin is active, every e-mail is queued through it and labelled with the plugin feature that sent it.
+* **Cloudflare** - In the opt-in "secure" client-IP mode (Settings → IP Diagnostics), Cloudflare is detected and its IP ranges are refreshed daily, so limits and geofencing use the real visitor IP.
+* **IP Geolocation** - IP-based geofencing through ip-api.com or ipinfo.io (API key required for ipinfo.io).
+* **Updates from GitHub** - Plugin updates come from the project's GitHub Releases through the native WordPress update screen, and each package's SHA-256 is verified before install.
 
 == Installation ==
 
