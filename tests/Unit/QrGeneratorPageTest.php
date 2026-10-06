@@ -24,6 +24,7 @@ class QrGeneratorPageTest extends TestCase {
 		Monkey\setUp();
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
 	}
 
 	protected function tearDown(): void {
@@ -118,13 +119,22 @@ class QrGeneratorPageTest extends TestCase {
 		// The design rows come from the shared partial, named for this form.
 		$this->assertStringContainsString( 'name="design[qr_design_dots]"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-design="qr_design_frame"', $html );
-		$this->assertStringContainsString( 'id="ffc-qr-download-png"', $html );
+		// One download button whose format is chosen beside it, and print (#1570).
+		$this->assertStringContainsString( 'id="ffc-qr-download"', $html );
+		$this->assertStringContainsString( 'id="ffc-qr-format"', $html );
+		$this->assertStringContainsString( 'id="ffc-qr-print"', $html );
+		// Every content type is a tile with its own icon over a hidden radio.
+		$this->assertSame( count( \FreeFormCertificate\Generators\QrPayload::TYPES ), substr_count( $html, 'class="ffc-qr-type__input"' ) );
+		$this->assertSame( count( \FreeFormCertificate\Generators\QrPayload::TYPES ) + 6 + 2, substr_count( $html, '<svg class="ffc-qr-icon"' ), 'One icon per type, per design section, and for download and print.' );
+		// The advanced section rides the shared section markup.
+		$this->assertStringContainsString( 'id="qr_default_margin"', $html );
+		$this->assertSame( 6, substr_count( $html, '<details class="ffc-qr-section"' ) );
 		$this->assertStringContainsString( 'data-ffc-qr-prefix="https://www.instagram.com/"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-field="event:mode"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-field="vcard:organization"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-field="event:until"', $html );
 		$this->assertStringContainsString( 'id="ffc-qr-design-reset"', $html );
-		$this->assertStringContainsString( '<option value="square"  selected="selected">', $html, 'Nothing remembered: the global design.' );
+		$this->assertStringContainsString( 'name="design[qr_design_dots]" value="square"  checked="checked"', $html, 'Nothing remembered: the global design.' );
 	}
 
 	public function test_render_opens_with_the_users_remembered_design(): void {
@@ -132,7 +142,9 @@ class QrGeneratorPageTest extends TestCase {
 		foreach ( array( 'esc_html', 'esc_attr', 'esc_url', 'esc_html__', 'esc_attr__', 'esc_html_e', 'esc_attr_e' ) as $fn ) {
 			Functions\when( $fn )->returnArg();
 		}
-		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'checked' )->alias( static function ( $a, $b = true ) {
+			echo $a === $b ? ' checked="checked"' : '';
+		} );
 		Functions\when( 'selected' )->alias( static function ( $a, $b ) {
 			echo $a === $b ? ' selected="selected"' : '';
 		} );
@@ -145,7 +157,7 @@ class QrGeneratorPageTest extends TestCase {
 		( new QrGeneratorPage() )->render_page();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( '<option value="diamond"  selected="selected">', $html );
+		$this->assertStringContainsString( 'name="design[qr_design_dots]" value="diamond"  checked="checked"', $html );
 		$this->assertStringContainsString( '<option value="H"  selected="selected">', $html );
 	}
 }

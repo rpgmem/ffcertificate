@@ -4,9 +4,11 @@
  * Shows the fields of the chosen content type, sends them with the design
  * (collected by `FFC.QrDesign.collect`) to `ffc_qr_generate` on every change,
  * and saves what comes back: the SVG as is, the PNG rasterised by
- * `FFC.QrRaster`. "Shorten" writes a short URL, and only on its own click;
- * a download remembers the design for this user (never the content), and
- * "Reset to default" forgets it and puts the global design back (#1568).
+ * `FFC.QrRaster`, in the format chosen beside the preview; "Print" sends
+ * the code alone to the printer (#1570). "Shorten" writes a short URL, and
+ * only on its own click; a download remembers the design for this user
+ * (never the content), and "Reset to default" forgets it and puts the
+ * global design back (#1568).
  * Selector-guarded: a no-op on any other screen.
  */
 (function ($) {
@@ -112,7 +114,7 @@
 		var $preview = $('#ffc-qr-generator-preview');
 		var $usage = $('#ffc-qr-generator-usage');
 		var $status = $('#ffc-qr-generator-status');
-		var $buttons = $('#ffc-qr-download-png, #ffc-qr-download-svg');
+		var $buttons = $('#ffc-qr-download, #ffc-qr-print');
 
 		return window.FFC.request(cfg.generate, collect($form), { nonce: cfg.generateNonce, ajaxUrl: cfg.ajaxUrl })
 			.then(function (data) {
@@ -182,11 +184,45 @@
 			var $field = $form.find('[data-ffc-qr-design="' + key + '"]');
 			if ($field.is(':checkbox')) {
 				$field.prop('checked', !!value);
+			} else if ($field.is(':radio')) {
+				// A tile picker: check the tile of that value.
+				$field.filter(function () { return this.value === String(value); }).prop('checked', true);
 			} else {
 				$field.val(String(value));
+				$form.find('[data-ffc-qr-hex-for="' + key + '"]').val(String(value));
 			}
 		});
 		$form.find('#ffc-qr-logo-thumb').attr('src', thumb || '').prop('hidden', !thumb);
+	}
+
+	/**
+	 * Print just the code: a hidden frame holding the SVG alone, so the page
+	 * around it never reaches the printer and no pop-up is opened.
+	 *
+	 * @param {string} svg SVG markup from the server.
+	 * @returns {HTMLIFrameElement}
+	 */
+	function print(svg) {
+		var frame = document.createElement('iframe');
+		frame.setAttribute('aria-hidden', 'true');
+		frame.setAttribute('tabindex', '-1');
+		frame.style.position = 'fixed';
+		frame.style.width = '0';
+		frame.style.height = '0';
+		frame.style.border = '0';
+		document.body.appendChild(frame);
+
+		var doc = frame.contentWindow.document;
+		doc.open();
+		doc.write('<!doctype html><html><head><title>QR</title><style>@page{margin:15mm}html,body{margin:0}body{display:flex;justify-content:center}svg{width:80mm;height:auto}</style></head><body>' + svg + '</body></html>');
+		doc.close();
+
+		var win = frame.contentWindow;
+		win.focus();
+		win.print();
+		// Removed on the next turn: some browsers print asynchronously.
+		setTimeout(function () { frame.remove(); }, 1000);
+		return frame;
 	}
 
 	function schedule($form) {
@@ -213,14 +249,17 @@
 			$('#ffc-qr-social-prefix').text(String($(this).find('option:selected').attr('data-ffc-qr-prefix') || ''));
 		});
 
-		$('#ffc-qr-download-svg').on('click', function () {
-			if (current && current.svg) {
+		// Size applies to the PNG only: an SVG has no pixels to choose.
+		$('#ffc-qr-format').on('change', function () {
+			$('#ffc-qr-png-width').prop('disabled', $(this).val() === 'svg');
+		});
+		$('#ffc-qr-download').on('click', function () {
+			if (!current || !current.svg) {
+				return;
+			}
+			if ($('#ffc-qr-format').val() === 'svg') {
 				window.FFC.QrRaster.download(window.FFC.QrRaster.encode(current.svg), filename($form, 'svg'), 'image/svg+xml');
 				remember($form);
-			}
-		});
-		$('#ffc-qr-download-png').on('click', function () {
-			if (!current || !current.svg) {
 				return;
 			}
 			var width = Number($('#ffc-qr-png-width').val()) || 1000;
@@ -230,6 +269,11 @@
 					remember($form);
 				})
 				.catch(function () { $('#ffc-qr-generator-status').addClass('is-error').text(i18n.error || ''); });
+		});
+		$('#ffc-qr-print').on('click', function () {
+			if (current && current.svg) {
+				print(current.svg);
+			}
 		});
 
 		$('#ffc-qr-shorten').on('click', function () {
@@ -275,7 +319,7 @@
 	}
 
 	window.FFC = window.FFC || {};
-	window.FFC.QrGenerator = { init: init, collect: collect, refresh: refresh, fill: fill, apply: apply, remember: remember };
+	window.FFC.QrGenerator = { init: init, collect: collect, refresh: refresh, fill: fill, apply: apply, remember: remember, print: print };
 
 	$(init);
 })(jQuery);

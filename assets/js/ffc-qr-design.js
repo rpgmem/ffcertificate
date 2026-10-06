@@ -5,7 +5,9 @@
  * them with the same renderer and normaliser the plugin uses, and shows the
  * SVG plus the scan checks (low contrast, inverted colours). The markup comes
  * from the server built out of allowlisted shapes and `#rrggbb` colours only.
- * Selector-guarded: a no-op on any other screen.
+ * Also keeps each colour picker and its hex box in step, on both screens
+ * that print the shared design fields (#1570). Selector-guarded: a no-op on
+ * any other screen.
  */
 (function ($) {
 	'use strict';
@@ -23,7 +25,12 @@
 	 */
 	function collect($root) {
 		function val(key) {
-			return String($root.find('[data-ffc-qr-design="' + key + '"]').val() || '');
+			var $el = $root.find('[data-ffc-qr-design="' + key + '"]');
+			// A tile picker is a radio group: its value is the checked one.
+			if ($el.is(':radio')) {
+				$el = $el.filter(':checked');
+			}
+			return String($el.val() || '');
 		}
 		return {
 			design: {
@@ -92,7 +99,56 @@
 			});
 	}
 
+	/**
+	 * Keep each colour picker and its hex box in step (#1570). The box
+	 * accepts `#rgb` or `#rrggbb`, with or without the `#`, and only a
+	 * complete colour reaches the picker; the picker then announces the
+	 * change, so the preview follows either one.
+	 *
+	 * @param {jQuery} $scope Where to look.
+	 */
+	function bindColorPairs($scope) {
+		$scope.find('[data-ffc-qr-hex-for]').each(function () {
+			var $hex = $(this);
+			var $picker = $scope.find('#' + $hex.attr('data-ffc-qr-hex-for'));
+			if (!$picker.length || $hex.data('ffcQrHexBound')) {
+				return;
+			}
+			$hex.data('ffcQrHexBound', true);
+
+			$picker.on('input change', function () {
+				$hex.val(String($picker.val() || '')).removeClass('is-invalid');
+			});
+			$hex.on('input', function () {
+				var color = normalizeHex($hex.val());
+				$hex.toggleClass('is-invalid', color === '' && String($hex.val()).trim() !== '');
+				if (color !== '' && color !== String($picker.val()).toLowerCase()) {
+					$picker.val(color).trigger('input');
+				}
+			});
+			$hex.on('blur', function () {
+				$hex.val(String($picker.val() || '')).removeClass('is-invalid');
+			});
+		});
+	}
+
+	/**
+	 * `#rrggbb` in lower case, or '' when the text is not a colour.
+	 *
+	 * @param {string} text Typed text.
+	 * @returns {string}
+	 */
+	function normalizeHex(text) {
+		var hex = String(text || '').trim().replace(/^#/, '').toLowerCase();
+		if (/^[0-9a-f]{3}$/.test(hex)) {
+			hex = hex.charAt(0) + hex.charAt(0) + hex.charAt(1) + hex.charAt(1) + hex.charAt(2) + hex.charAt(2);
+		}
+		return /^[0-9a-f]{6}$/.test(hex) ? '#' + hex : '';
+	}
+
 	function init() {
+		bindColorPairs($(document));
+
 		var $preview = $('#ffc-qr-design-preview');
 		if (!$preview.length || !window.FFC || !window.FFC.request) {
 			return;
@@ -108,7 +164,7 @@
 	}
 
 	window.FFC = window.FFC || {};
-	window.FFC.QrDesign = { init: init, collect: collect, refresh: refresh };
+	window.FFC.QrDesign = { init: init, collect: collect, refresh: refresh, bindColorPairs: bindColorPairs, normalizeHex: normalizeHex };
 
 	$(init);
 })(jQuery);

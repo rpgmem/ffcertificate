@@ -253,6 +253,90 @@ final class QrSvgRenderer {
 	}
 
 	/**
+	 * A thumbnail of one design choice, for the visual pickers (#1570).
+	 *
+	 * Drawn by the same private methods the codes are, so a thumbnail cannot
+	 * show a shape the renderer would draw differently. Shapes are painted in
+	 * `currentColor` and take the tile's text colour; a frame keeps its own
+	 * paper and ink, because it is a printed object on either theme.
+	 *
+	 * @param string $kind  dots, eye_frame, eye_ball or frame.
+	 * @param string $value A value of that kind's allowlist.
+	 * @return string SVG markup, or '' for an unknown kind or value.
+	 */
+	public static function swatch( string $kind, string $value ): string {
+		$allowed = array(
+			'dots'      => QrDesign::DOTS,
+			'eye_frame' => QrDesign::EYE_FRAMES,
+			'eye_ball'  => QrDesign::EYE_BALLS,
+			'frame'     => QrDesign::FRAMES,
+		);
+		if ( ! isset( $allowed[ $kind ] ) || ! in_array( $value, $allowed[ $kind ], true ) ) {
+			return '';
+		}
+
+		$u   = self::U;
+		$svg = static function ( float $width, float $height, string $body ): string {
+			return sprintf(
+				'<svg class="ffc-qr-swatch" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %1$s %2$s" aria-hidden="true" focusable="false">%3$s</svg>',
+				self::n( $width ),
+				self::n( $height ),
+				$body
+			);
+		};
+
+		if ( 'dots' === $kind ) {
+			// A fixed sample with runs in both directions, so "fluid" shows
+			// its joins and the other shapes show their spacing.
+			$sample = array( '11011', '10010', '11110', '00101', '10111' );
+			$on     = static function ( int $r, int $c ) use ( $sample ): bool {
+				return isset( $sample[ $r ][ $c ] ) && '1' === $sample[ $r ][ $c ];
+			};
+			$body   = '';
+			for ( $r = 0; $r < 5; $r++ ) {
+				for ( $c = 0; $c < 5; $c++ ) {
+					if ( $on( $r, $c ) ) {
+						$body .= self::module( $value, $c * $u, $r * $u, $on( $r, $c + 1 ), $on( $r + 1, $c ) );
+					}
+				}
+			}
+			return $svg( 5 * $u, 5 * $u, '<g fill="currentColor">' . $body . '</g>' );
+		}
+
+		if ( 'frame' === $kind ) {
+			if ( 'none' === $value ) {
+				return $svg( 24, 24, '<g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M6.5 17.5l11-11"/></g>' );
+			}
+			$plain = new QrDesign();
+			$code  = sprintf( '<rect width="%1$d" height="%1$d" fill="#ffffff"/>', 7 * $u ) . self::eye( $plain, 0, 0 );
+
+			list( $body, $width, $height ) = self::frame(
+				$code,
+				(float) ( 7 * $u ),
+				new QrDesign(
+					array(
+						'frame'       => $value,
+						'frame_text'  => 'SCAN',
+						// A mid grey: the frame still reads on a dark tile.
+						'frame_color' => '#646970',
+					)
+				)
+			);
+			return $svg( $width, $height, $body );
+		}
+
+		$design = new QrDesign(
+			array(
+				'eye_frame' => 'eye_frame' === $kind ? $value : 'square',
+				'eye_ball'  => 'eye_ball' === $kind ? $value : 'square',
+			)
+		);
+		// The plain design paints in black; the thumbnail paints in the
+		// tile's own text colour instead.
+		return $svg( 7 * $u, 7 * $u, str_replace( '#000000', 'currentColor', self::eye( $design, 0, 0 ) ) );
+	}
+
+	/**
 	 * Wrap the drawn code in its frame.
 	 *
 	 * Every measure is a share of the code's side, so a frame looks the same

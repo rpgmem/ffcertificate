@@ -5,7 +5,8 @@
  * Included from {@see \FreeFormCertificate\UrlShortener\QrGeneratorPage::render_page()}.
  * Every content field carries `data-ffc-qr-field="<type>:<key>"`, which is
  * what `ffc-qr-generator.js` collects for the active type; the design rows
- * come from the shared partial.
+ * come from the shared partial, in collapsible sections, and the preview
+ * panel on the right stays in view while the form scrolls (#1570).
  *
  * @var \FreeFormCertificate\Generators\QrDesign $ffc_qr_design    Starting design (the global one).
  * @var int                                      $ffc_qr_logo_id   Logo attachment id.
@@ -18,6 +19,8 @@
  * @package FreeFormCertificate\UrlShortener
  * @since   6.34.0
  */
+
+use FreeFormCertificate\Generators\QrIcons;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -65,9 +68,12 @@ $ffc_qr_vcard_fields = array(
 				<fieldset class="ffc-qr-generator__types">
 					<legend class="screen-reader-text"><?php esc_html_e( 'Type of content', 'ffcertificate' ); ?></legend>
 					<?php foreach ( $ffc_qr_types as $ffc_type => $ffc_label ) : ?>
-						<label class="ffc-qr-generator__type">
-							<input type="radio" name="type" value="<?php echo esc_attr( $ffc_type ); ?>" <?php checked( 'url', $ffc_type ); ?>>
-							<?php echo esc_html( $ffc_label ); ?>
+						<label class="ffc-qr-type">
+							<input type="radio" class="ffc-qr-type__input" name="type" value="<?php echo esc_attr( $ffc_type ); ?>" <?php checked( 'url', $ffc_type ); ?>>
+							<span class="ffc-qr-type__face">
+								<?php echo QrIcons::svg( $ffc_type, 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
+								<span class="ffc-qr-type__label"><?php echo esc_html( $ffc_label ); ?></span>
+							</span>
 						</label>
 					<?php endforeach; ?>
 				</fieldset>
@@ -246,51 +252,68 @@ $ffc_qr_vcard_fields = array(
 				</table>
 			</div>
 
-			<div class="card">
-				<h2><?php esc_html_e( 'Design', 'ffcertificate' ); ?></h2>
-				<p>
+			<div class="ffc-qr-generator__design">
+				<div class="ffc-qr-generator__design-head">
+					<h2><?php esc_html_e( 'Design', 'ffcertificate' ); ?></h2>
 					<button type="button" class="button" id="ffc-qr-design-reset"><?php esc_html_e( 'Reset to default', 'ffcertificate' ); ?></button>
-					<span class="description"><?php esc_html_e( 'The generator remembers your design when you download a code; this goes back to the global design from Settings → QR Code.', 'ffcertificate' ); ?></span>
-				</p>
-				<table class="form-table" role="presentation">
-					<tbody>
-						<?php require FFC_PLUGIN_DIR . 'templates/admin/qr/design-fields.php'; ?>
-						<tr>
-							<th scope="row"><label for="qr_default_margin"><?php esc_html_e( 'Margin (modules)', 'ffcertificate' ); ?></label></th>
-							<td><input type="number" id="qr_default_margin" value="<?php echo esc_attr( (string) $ffc_qr_margin ); ?>" min="0" max="10" step="1" class="small-text" required></td>
-						</tr>
-						<tr>
-							<th scope="row"><label for="qr_default_error_level"><?php esc_html_e( 'Error correction', 'ffcertificate' ); ?></label></th>
-							<td>
+				</div>
+				<p class="description"><?php esc_html_e( 'The generator remembers your design when you download a code; "Reset to default" goes back to the global design from Settings → QR Code.', 'ffcertificate' ); ?></p>
+				<div class="ffc-qr-sections">
+					<?php require FFC_PLUGIN_DIR . 'templates/admin/qr/design-fields.php'; ?>
+					<?php $ffc_qr_section( 'advanced', __( 'Advanced', 'ffcertificate' ), __( 'Quiet zone and error correction.', 'ffcertificate' ) ); ?>
+						<div class="ffc-qr-fields">
+							<div class="ffc-qr-field">
+								<label class="ffc-qr-field__label" for="qr_default_margin"><?php esc_html_e( 'Margin (modules)', 'ffcertificate' ); ?></label>
+								<input type="number" id="qr_default_margin" value="<?php echo esc_attr( (string) $ffc_qr_margin ); ?>" min="0" max="10" step="1" class="small-text" required>
+							</div>
+							<div class="ffc-qr-field">
+								<label class="ffc-qr-field__label" for="qr_default_error_level"><?php esc_html_e( 'Error correction', 'ffcertificate' ); ?></label>
 								<select id="qr_default_error_level">
 									<?php foreach ( array( 'L', 'M', 'Q', 'H' ) as $ffc_level ) : ?>
 										<option value="<?php echo esc_attr( $ffc_level ); ?>" <?php selected( $ffc_level, $ffc_qr_level ); ?>><?php echo esc_html( $ffc_level ); ?></option>
 									<?php endforeach; ?>
 								</select>
-							</td>
-						</tr>
-					</tbody>
-				</table>
+							</div>
+						</div>
+						</div>
+					</details>
+				</div>
 			</div>
 		</div>
 
 		<div class="ffc-qr-generator__side">
-			<div class="card">
+			<div class="ffc-qr-generator__panel">
+				<h2 class="ffc-qr-generator__panel-title"><?php esc_html_e( 'Preview', 'ffcertificate' ); ?></h2>
 				<div id="ffc-qr-generator-preview" class="ffc-qr-generator__preview" aria-hidden="true"></div>
 				<p id="ffc-qr-generator-usage" class="ffc-qr-generator__usage"></p>
 				<p id="ffc-qr-generator-status" class="ffc-qr-generator__status" role="status" aria-live="polite"></p>
-				<p>
-					<label for="ffc-qr-png-width"><?php esc_html_e( 'PNG width', 'ffcertificate' ); ?></label>
-					<select id="ffc-qr-png-width">
-						<option value="500">500 px</option>
-						<option value="1000" selected>1000 px</option>
-						<option value="2000">2000 px</option>
-					</select>
-				</p>
-				<p class="ffc-qr-generator__downloads">
-					<button type="button" class="button button-primary" id="ffc-qr-download-png" disabled><?php esc_html_e( 'Download PNG', 'ffcertificate' ); ?></button>
-					<button type="button" class="button" id="ffc-qr-download-svg" disabled><?php esc_html_e( 'Download SVG', 'ffcertificate' ); ?></button>
-				</p>
+				<div class="ffc-qr-generator__export">
+					<div class="ffc-qr-field">
+						<label class="ffc-qr-field__label" for="ffc-qr-format"><?php esc_html_e( 'Format', 'ffcertificate' ); ?></label>
+						<select id="ffc-qr-format">
+							<option value="png" selected>PNG</option>
+							<option value="svg">SVG</option>
+						</select>
+					</div>
+					<div class="ffc-qr-field">
+						<label class="ffc-qr-field__label" for="ffc-qr-png-width"><?php esc_html_e( 'Size', 'ffcertificate' ); ?></label>
+						<select id="ffc-qr-png-width">
+							<option value="500">500 px</option>
+							<option value="1000" selected>1000 px</option>
+							<option value="2000">2000 px</option>
+						</select>
+					</div>
+				</div>
+				<div class="ffc-qr-generator__actions">
+					<button type="button" class="button button-primary ffc-qr-generator__download" id="ffc-qr-download" disabled>
+						<?php echo QrIcons::svg( 'download', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
+						<?php esc_html_e( 'Download', 'ffcertificate' ); ?>
+					</button>
+					<button type="button" class="button ffc-qr-generator__print" id="ffc-qr-print" disabled>
+						<?php echo QrIcons::svg( 'print', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
+						<span class="screen-reader-text"><?php esc_html_e( 'Print', 'ffcertificate' ); ?></span>
+					</button>
+				</div>
 			</div>
 		</div>
 	</form>
