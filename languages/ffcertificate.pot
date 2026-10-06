@@ -24620,9 +24620,6 @@ msgstr ""
 msgid "WPA2 / WPA3 Enterprise (user name and password)"
 msgstr ""
 
-msgid "Android 10 or later joins an Enterprise network from the code; the iPhone camera does not, so iPhone users still type the user name and password."
-msgstr ""
-
 msgid "EAP method"
 msgstr ""
 
@@ -24639,4 +24636,7 @@ msgid "Enter the user name for the Enterprise network."
 msgstr ""
 
 msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network (Enterprise networks that sign in with a user name included), an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the \"Shorten\" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener."
+msgstr ""
+
+msgid "Android saves the network from the code but leaves the CA certificate unset, so it will not connect yet: open the saved network, set CA certificate to \"Trust on first use\" (or \"Do not validate\"), then connect. The iPhone camera does not read Enterprise codes; iPhone users type the details in."
 msgstr ""
