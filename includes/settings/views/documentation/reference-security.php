@@ -49,7 +49,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-note">
 		<p>
 			<strong class="ffc-icon-info"><?php esc_html_e( 'Reprints are automatic.', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'If someone submits again with a CPF/RF that already has a certificate, they are returned their existing certificate instead of generating a new one. This is always on — it is what keeps one person from issuing two certificates. On a form with the Ticket restriction, re-entering an already used ticket is currently rejected as "Invalid or already used ticket" instead of returning the certificate.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'If someone submits again with a CPF/RF that already has a certificate, they are returned their existing certificate instead of generating a new one. This is always on — it is what keeps one person from issuing two certificates. On a form with the Ticket restriction, re-entering a ticket that already issued a certificate returns that certificate the same way; on a quiz form a used ticket is rejected, because there a new submission is a new attempt.', 'ffcertificate' ); ?>
 		</p>
 	</div>
 

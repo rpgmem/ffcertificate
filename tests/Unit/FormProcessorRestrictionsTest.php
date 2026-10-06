@@ -194,6 +194,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 			'restrictions'         => array( 'ticket' => '1' ),
 			'generated_codes_list' => "ABC-DEF-123\nGHI-JKL-456",
 		);
+		$this->mock_no_prior_submission();
 
 		$result = AccessRestrictionChecker::check( $config, '12345678901', 'ZZZ-ZZZ-999', 1 );
 
@@ -248,6 +249,20 @@ class FormProcessorRestrictionsTest extends TestCase {
 				return 1;
 			}
 		);
+	}
+
+	/**
+	 * Wire a global $wpdb on which no submission ever used the ticket, so the
+	 * reprint lookup a rejected ticket triggers finds nothing — regardless of
+	 * any $wpdb a prior test in the shard left behind.
+	 */
+	private function mock_no_prior_submission(): void {
+		global $wpdb;
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
 	}
 
 	// ------------------------------------------------------------------
