@@ -61,7 +61,8 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
-		// Thirteen since the name-parts backfill joined (#1552), twelve once the
+		// Fourteen since the activity-log IP encryption joined (#1574),
+		// thirteen once the name-parts backfill did (#1552), twelve once the
 		// birth-date backfill did (#1538), both in 6.33.0. Eleven
 		// from 6.30.0, when the display-name backfill joined the card list
 		// (#1480); it was ten from 6.28.2, when the certificate-capability
@@ -69,7 +70,7 @@ class MigrationRegistryTest extends TestCase {
 		// and as a live number here on purpose -- every key below is named too,
 		// so a card arriving without a test failing is what this guards against;
 		// bump the number and name the new key together.
-		$this->assertCount( 13, $all );
+		$this->assertCount( 14, $all );
 		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 		$this->assertArrayHasKey( 'email_hash_rehash', $all );
 		$this->assertArrayHasKey( 'key_rotation', $all );
@@ -98,6 +99,8 @@ class MigrationRegistryTest extends TestCase {
 		// The split of full names stored whole in `first_name` (#1552).
 		$this->assertArrayHasKey( 'name_parts_backfill', $all );
 		$this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
+		// The encryption of client IPs older rows still hold in clear (#1574).
+		$this->assertArrayHasKey( 'activity_log_encrypt_ip', $all );
 		$this->assertArrayHasKey( 'identity_index_backfill', $all );
 		$this->assertArrayHasKey( 'import_legacy_templates', $all );
 		$this->assertArrayHasKey( 'rewrite_html_image_refs', $all );

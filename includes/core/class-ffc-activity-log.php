@@ -246,6 +246,17 @@ class ActivityLog {
 			}
 		}
 
+		// The client IP is personal data and is never stored in clear (#1574):
+		// it goes into `user_ip_encrypted`, and an IP that cannot be encrypted
+		// is not stored at all rather than written in plaintext. The legacy
+		// `user_ip` column is no longer written; the "Activity Log: Encrypt
+		// Client IPs" migration encrypts and clears what older rows hold.
+		$client_ip    = \FreeFormCertificate\Core\RequestInput::get_user_ip();
+		$ip_encrypted = null;
+		if ( '' !== $client_ip && class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
+			$ip_encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $client_ip );
+		}
+
 		// Prepare log entry for buffer.
 		$log_data = array(
 			'action'            => sanitize_text_field( $action ),
@@ -253,7 +264,7 @@ class ActivityLog {
 			'context'           => $context_for_db,
 			'context_encrypted' => $context_encrypted,
 			'user_id'           => absint( $user_id ),
-			'user_ip'           => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
+			'user_ip_encrypted' => $ip_encrypted,
 			'submission_id'     => absint( $submission_id ),
 			'created_at'        => current_time( 'mysql' ),
 		);
@@ -284,7 +295,7 @@ class ActivityLog {
 				array(
 					'level'         => strtoupper( $level ),
 					'user_id'       => $user_id,
-					'ip'            => $log_data['user_ip'],
+					'ip'            => $client_ip,
 					'submission_id' => $submission_id,
 					'context'       => $context,
 				)
@@ -321,6 +332,7 @@ class ActivityLog {
 		$columns               = self::get_table_columns_cached( $table_name );
 		$has_submission_id     = in_array( 'submission_id', $columns, true );
 		$has_context_encrypted = in_array( 'context_encrypted', $columns, true );
+		$has_ip_encrypted      = in_array( 'user_ip_encrypted', $columns, true );
 
 		$count              = count( self::$write_buffer );
 		$entries            = self::$write_buffer;
@@ -342,10 +354,9 @@ class ActivityLog {
 				'level'      => $entry['level'],
 				'context'    => $entry['context'],
 				'user_id'    => $user_id_for_db,
-				'user_ip'    => $entry['user_ip'],
 				'created_at' => $entry['created_at'],
 			);
-			$row_format = array( '%s', '%s', '%s', '%d', '%s', '%s' );
+			$row_format = array( '%s', '%s', '%s', '%d', '%s' );
 
 			if ( $has_submission_id ) {
 				$row_data['submission_id'] = $entry['submission_id'];
@@ -354,6 +365,14 @@ class ActivityLog {
 
 			if ( $has_context_encrypted ) {
 				$row_data['context_encrypted'] = $entry['context_encrypted'] ?? '';
+				$row_format[]                  = '%s';
+			}
+
+			// Before the schema upgrade has reached this install the column is
+			// absent, and the IP is dropped rather than written in clear.
+			$ip_ciphertext = $entry['user_ip_encrypted'] ?? null;
+			if ( $has_ip_encrypted && is_string( $ip_ciphertext ) && '' !== $ip_ciphertext ) {
+				$row_data['user_ip_encrypted'] = $ip_ciphertext;
 				$row_format[]                  = '%s';
 			}
 
@@ -385,8 +404,13 @@ class ActivityLog {
 	 *
 	 * 2.3.0 (#1458): the three columns nothing writes are dropped where they
 	 * are provably empty. See {@see self::drop_dead_legacy_columns()}.
+	 *
+	 * 2.4.0 (#1574): `user_ip_encrypted` joins the statement. The client IP is
+	 * stored there and nowhere else; `user_ip` stays declared only because
+	 * rows written before it still hold a plaintext address until the
+	 * "Activity Log: Encrypt Client IPs" migration clears it.
 	 */
-	private const DB_VERSION = '2.3.0';
+	private const DB_VERSION = '2.4.0';
 
 	/**
 	 * Create activity log table
@@ -416,6 +440,7 @@ class ActivityLog {
             user_id bigint(20) unsigned DEFAULT NULL,
             submission_id bigint(20) unsigned DEFAULT NULL,
             user_ip varchar(100),
+            user_ip_encrypted text,
             created_at datetime NOT NULL,
             PRIMARY KEY (id),
             KEY action (action),

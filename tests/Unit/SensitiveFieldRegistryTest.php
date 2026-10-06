@@ -70,7 +70,7 @@ class SensitiveFieldRegistryTest extends TestCase {
 		$keys = SensitiveFieldRegistry::universal_sensitive_keys();
 
 		// Every static field declared in either context must appear.
-		$expected = array( 'email', 'cpf', 'rf', 'user_ip', 'data', 'ticket', 'phone', 'custom_data' );
+		$expected = array( 'email', 'cpf', 'rf', 'user_ip', 'data', 'ticket', 'phone', 'custom_data', 'ip' );
 		foreach ( $expected as $key ) {
 			$this->assertArrayHasKey( $key, $keys, "Missing universal key: $key" );
 		}

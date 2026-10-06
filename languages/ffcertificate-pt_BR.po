@@ -23979,9 +23979,6 @@ msgstr "Identificadores e hashes de busca"
 msgid "split the old combined CPF/RF column into separate CPF and RF columns, rewrite stored CPF, RF and e-mail values into one canonical form, rebuild the e-mail lookup hashes, and copy the CPF/RF hashes already linked to a user into the identity index."
 msgstr "separam a antiga coluna combinada CPF/RF em colunas distintas de CPF e RF, reescrevem os valores armazenados de CPF, RF e e-mail em uma forma canônica única, recalculam os hashes de busca de e-mail e copiam para o índice de identidades os hashes de CPF/RF já vinculados a um usuário."
 
-msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and reregistration bodies); another card clears plaintext left on activity log rows that are already encrypted."
-msgstr "a Rotação de Chaves de Criptografia recriptografa os dados pessoais armazenados com a FFC_ENCRYPTION_KEY do wp-config.php, com um segundo cartão para as áreas restantes (candidatos do recrutamento e conteúdo dos recadastramentos); outro cartão apaga o texto puro deixado em linhas do registro de atividades que já estão criptografadas."
-
 msgid "See Advanced → Encryption Key Health."
 msgstr "Veja Avançado → Integridade da Chave de Criptografia."
 
@@ -24462,9 +24459,6 @@ msgstr "Identificadores sensíveis — e-mail, CPF e RF — são criptografados 
 msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability. Revealing recruitment PII writes an activity-log entry (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
 msgstr "Na tela, CPF/RF e e-mail são mascarados, a menos que o operador tenha a capacidade de dados pessoais correspondente. Revelar dados pessoais do recrutamento grava uma entrada no registro de atividades (revelações repetidas do mesmo campo dentro de um minuto não são registradas de novo, e uma configuração do recrutamento pode desativar essa auditoria)."
 
-msgid "Activity-log entries store the client IP address in clear text, so the activity log is personal data; an entry whose details carry a sensitive field (such as CPF) has those details encrypted. Only the debug logs hash IP addresses."
-msgstr "As entradas do registro de atividades armazenam o endereço IP do cliente em texto puro, portanto o registro de atividades é um dado pessoal; uma entrada cujos detalhes contenham um campo sensível (como o CPF) tem esses detalhes criptografados. Apenas os logs de depuração aplicam hash aos endereços IP."
-
 msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one looks up the WordPress account that has the requested e-mail address and works on the records linked to that account:"
 msgstr "Em Ferramentas → Exportar Dados Pessoais e Ferramentas → Apagar Dados Pessoais, o plugin registra seus próprios manipuladores. Cada um localiza a conta do WordPress que tem o e-mail solicitado e atua sobre os registros vinculados a essa conta:"
 
@@ -24659,3 +24653,21 @@ msgstr "Conectado — os dados de recrutamento do próprio candidato atual."
 
 msgid "The plugin's only authenticated write API: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.18.0."
 msgstr "A única API de escrita autenticada do plugin: um aplicativo de operador de campo emite certificados utilizando Senhas de Aplicativo do WordPress (autenticação HTTP Basic, permitindo que as verificações de capacidade funcionem sem *nonce*). Adicionada na versão 6.18.0."
+
+msgid "Activity Log: Encrypt Client IPs"
+msgstr "Registro de atividades: Criptografar IPs dos clientes"
+
+msgid "Encrypt the client IP address of activity log rows written before addresses were stored encrypted, and clear the plaintext copy. An address that cannot be encrypted is cleared all the same."
+msgstr "Criptografa o endereço IP do cliente nas linhas do registro de atividades gravadas antes de os endereços serem armazenados criptografados, e apaga a cópia em texto puro. Um endereço que não puder ser criptografado é apagado do mesmo jeito."
+
+msgid "Encrypted the client IP of %d activity log rows."
+msgstr "IP do cliente criptografado em %d linhas do registro de atividades."
+
+msgid "Encryption keys are not configured, so the addresses cannot be encrypted."
+msgstr "As chaves de criptografia não estão configuradas, então os endereços não podem ser criptografados."
+
+msgid "Activity-log entries store the client IP address encrypted, and an entry whose details carry a sensitive field (such as CPF or an IP address) has those details encrypted too; the log is still personal data. Entries written before 6.34.0 kept the address in clear until the \"Activity Log: Encrypt Client IPs\" migration runs. The debug logs hash IP addresses instead."
+msgstr "As entradas do registro de atividades armazenam o endereço IP do cliente criptografado, e uma entrada cujos detalhes trazem um campo sensível (como CPF ou um endereço IP) também tem esses detalhes criptografados; o registro continua sendo dado pessoal. Entradas gravadas antes da 6.34.0 mantêm o endereço em texto puro até a migração \"Registro de atividades: Criptografar IPs dos clientes\" ser executada. Os logs de depuração guardam um hash dos endereços IP."
+
+msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and reregistration bodies); two more cards clear plaintext left on activity log rows that are already encrypted and encrypt the client IP addresses older activity log rows still hold in clear."
+msgstr "a Rotação de Chaves de Criptografia recriptografa os dados pessoais armazenados com a FFC_ENCRYPTION_KEY do wp-config.php, com um segundo cartão para as áreas restantes (candidatos do recrutamento e conteúdo dos recadastramentos); outros dois cartões apagam o texto puro deixado em linhas do registro de atividades que já estão criptografadas e criptografam os endereços IP de clientes que linhas antigas do registro ainda guardam em texto puro."
