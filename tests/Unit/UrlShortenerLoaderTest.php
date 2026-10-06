@@ -168,6 +168,23 @@ class UrlShortenerLoaderTest extends TestCase {
 		);
 	}
 
+	public function test_init_wires_the_qr_generator_in_admin_only(): void {
+		$this->service->shouldReceive( 'is_enabled' )->andReturn( true );
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+		Functions\when( 'is_admin' )->justReturn( false );
+		$this->loader->init();
+		$this->assertFalse( has_action( 'wp_ajax_ffc_qr_generate', 'FreeFormCertificate\UrlShortener\QrGeneratorAjaxEndpoint->handle_generate()' ) );
+
+		Functions\when( 'is_admin' )->justReturn( true );
+		$this->loader->init();
+		$this->assertNotFalse( has_action( 'wp_ajax_ffc_qr_generate', 'FreeFormCertificate\UrlShortener\QrGeneratorAjaxEndpoint->handle_generate()' ) );
+		$this->assertNotFalse( has_action( 'wp_ajax_ffc_qr_shorten', 'FreeFormCertificate\UrlShortener\QrGeneratorAjaxEndpoint->handle_shorten()' ) );
+		$this->assertNotFalse( has_action( 'admin_menu', 'FreeFormCertificate\UrlShortener\QrGeneratorPage->register_menu()' ) );
+		$this->assertNotFalse( has_action( 'admin_post_nopriv_ffc_qr_ics', 'FreeFormCertificate\UrlShortener\QrEventIcsHandler->handle()' ) );
+	}
+
 	public function test_init_registers_auto_create_outside_admin(): void {
 		// The regression this pins (#1013): the block editor saves over REST,
 		// where is_admin() is false, so a save_post hook registered admin-only

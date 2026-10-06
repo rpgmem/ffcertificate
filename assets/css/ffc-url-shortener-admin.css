@@ -309,9 +309,10 @@
     border-radius: var(--ffc-radius-sm);
 }
 
+/* Height follows the image: a framed QR (#1563) is taller than wide. */
 .ffc-shorturl-qr-preview img {
     width: 180px;
-    height: 180px;
+    height: auto;
     display: block;
     margin: 0 auto;
 }

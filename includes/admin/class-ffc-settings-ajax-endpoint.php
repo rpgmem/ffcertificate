@@ -80,6 +80,9 @@ class SettingsAjaxEndpoint {
 			// URL Shortener tab.
 			'url_shortener_enabled',
 			'url_shortener_auto_create',
+			// QR Code tab -- where the global design applies (#1563).
+			'qr_design_on_certificate',
+			'qr_design_on_short_urls',
 			// Modules tab — per-module on/off toggles. `url_shortener` reuses
 			// the historical `url_shortener_enabled` slot above; these cover the
 			// remaining feature modules (SettingsReader::module_option_key()).
