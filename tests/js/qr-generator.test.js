@@ -44,7 +44,15 @@ function mount() {
 			<select id="ffc-qr-png-width"><option value="2000" selected>2000</option></select>
 			<button type="button" id="ffc-qr-download" disabled>Download</button>
 			<button type="button" id="ffc-qr-print" disabled>Print</button>
-		</form>`;
+		</form>
+		<div id="ffc-qr-short-saved" hidden>
+			<div data-ffc-qr-saved-close id="saved-backdrop"></div>
+			<p id="ffc-qr-short-saved-text"></p>
+			<input id="ffc-qr-short-saved-url" readonly>
+			<button type="button" id="ffc-qr-short-saved-copy">Copy</button>
+			<p id="ffc-qr-short-saved-copied"></p>
+			<button type="button" data-ffc-qr-saved-close id="saved-close">Close</button>
+		</div>`;
 }
 
 const OK = { svg: '<svg id="drawn"></svg>', payload: 'https://example.com', usage: { bytes: 19, capacity: 2325, remaining: 2306, over: 0, percent: 1, version: 2, dense: false, level: 'M', forced: false }, checks: { inverted: false, low_contrast: false, min_ratio: 21, caption_contrast: true } };
@@ -58,7 +66,7 @@ beforeAll(() => {
 		shortenNonce: 'short-nonce',
 		remember: 'ffc_qr_remember',
 		rememberNonce: 'remember-nonce',
-		i18n: { usage: '%1$d%% full, %2$d more at %3$s', usageForced: '%1$d%% full, %2$d more at H (logo)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', reset: 'Reset done', untitled: '(none)', duplicateMeta: 'on %1$s, %2$d clicks', useThis: 'Use this', titleRequired: 'Title needed', acknowledge: 'Tick the box', copied: 'Copied', copyFailed: 'Copy failed' },
+		i18n: { usage: '%1$d%% full, %2$d more at %3$s', usageForced: '%1$d%% full, %2$d more at H (logo)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', reset: 'Reset done', untitled: '(none)', duplicateMeta: 'on %1$s, %2$d clicks', useThis: 'Use this', titleRequired: 'Title needed', acknowledge: 'Tick the box', copied: 'Copied', copyFailed: 'Copy failed', saved: 'Saved %s' },
 	};
 	window.ffcQrDesign = { i18n: {} };
 	if (!window.FFC || !window.FFC.request) { loadScript('assets/js/ffc-core.js'); }
@@ -307,6 +315,122 @@ describe('ffc-qr-generator.js', () => {
 		await flush();
 		await flush();
 		expect(spy.mock.calls.find((c) => c[1].action === 'ffc_qr_shorten')[1].acknowledge).toBe('1');
+	});
+
+	it('says the record was saved only after the server created it, and drops the notice when the content moves on', async () => {
+		server(EXAMPLE, { success: true, data: { short_code: 'abc123', short_url: 'https://site.test/go/abc123' } });
+		vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+		window.FFC.QrGenerator.init();
+		const $form = window.$('#ffc-qr-generator');
+		await window.FFC.QrGenerator.refresh($form);
+		expect(window.$('#ffc-qr-short-saved').prop('hidden')).toBe(true);
+
+		window.$('#ffc-qr-short-title').val('Flyer');
+		window.$('#ffc-qr-format').val('svg');
+		window.$('#ffc-qr-download').trigger('click');
+		await flush();
+		await flush();
+
+		expect(window.$('#ffc-qr-short-saved').prop('hidden')).toBe(false);
+		expect(window.$('#ffc-qr-short-saved-text').text()).toBe('Saved Flyer');
+		expect(window.$('#ffc-qr-short-saved-url').val()).toBe('https://site.test/go/abc123');
+		expect(document.activeElement.id).toBe('ffc-qr-short-saved-copy');
+
+		window.$('#ffc-qr-short-title').val('Flyer B');
+		window.FFC.QrGenerator.collect($form);
+		expect(window.$('#ffc-qr-short-saved').prop('hidden')).toBe(true);
+	});
+
+	it('a print that creates the short URL says so too', async () => {
+		server(EXAMPLE, { success: true, data: { short_code: 'abc123', short_url: 'https://site.test/go/abc123' } });
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+		window.$('#ffc-qr-short-title').val('Poster');
+
+		window.$('#ffc-qr-print').trigger('click');
+		await flush();
+		await flush();
+
+		expect(window.$('#ffc-qr-short-saved-text').text()).toBe('Saved Poster');
+		expect(window.$('#ffc-qr-short-saved').prop('hidden')).toBe(false);
+	});
+
+	it('the overlay copies the link, and closes on the button, the backdrop and Escape', async () => {
+		server(EXAMPLE, { success: true, data: { short_code: 'abc123', short_url: 'https://site.test/go/abc123' } });
+		vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(window.navigator, 'clipboard', { value: { writeText }, configurable: true });
+		Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+		window.$('#ffc-qr-short-title').val('Flyer');
+		window.$('#ffc-qr-format').val('svg');
+		const open = async () => {
+			// A new title is a new record: the preview goes back to the example.
+			window.$('#ffc-qr-short-title').val(window.$('#ffc-qr-short-title').val() + '!');
+			await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+			window.$('#ffc-qr-download').trigger('click');
+			await flush();
+			await flush();
+			expect(window.$('#ffc-qr-short-saved').prop('hidden')).toBe(false);
+		};
+
+		await open();
+		window.$('#ffc-qr-short-saved-copy').trigger('click');
+		await flush();
+		expect(writeText).toHaveBeenCalledWith('https://site.test/go/abc123');
+		expect(window.$('#ffc-qr-short-saved-copied').text()).toBe('Copied');
+
+		window.$('#saved-close').trigger('click');
+		expect(window.$('#ffc-qr-short-saved').prop('hidden')).toBe(true);
+
+		await open();
+		window.$('#saved-backdrop').trigger('click');
+		expect(window.$('#ffc-qr-short-saved').prop('hidden')).toBe(true);
+
+		await open();
+		window.$(document).trigger(window.$.Event('keydown', { key: 'Escape' }));
+		expect(window.$('#ffc-qr-short-saved').prop('hidden')).toBe(true);
+	});
+
+	it('no saved notice when the server refuses to create the short URL', async () => {
+		server(EXAMPLE, { success: false, data: { message: 'Could not create the short URL.' } });
+		const download = vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+		window.$('#ffc-qr-short-title').val('Flyer');
+		window.$('#ffc-qr-format').val('svg');
+
+		window.$('#ffc-qr-download').trigger('click');
+		await flush();
+		await flush();
+
+		expect(download).not.toHaveBeenCalled();
+		expect(window.$('#ffc-qr-short-saved').prop('hidden')).toBe(true);
+		expect(window.$('#ffc-qr-generator-status').text()).toBe('Could not create the short URL.');
+	});
+
+	it('no saved notice when nothing is written: switch off, or an existing short URL in use', async () => {
+		server(Object.assign({}, EXAMPLE, { duplicates: [DUPLICATE] }));
+		const download = vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+		window.$('#ffc-qr-format').val('svg');
+
+		window.$('.ffc-qr-short__use').trigger('click');
+		await flush();
+		window.$('#ffc-qr-download').trigger('click');
+		await flush();
+		await flush();
+		expect(download).toHaveBeenCalledTimes(1);
+		expect(window.$('#ffc-qr-short-saved').prop('hidden')).toBe(true);
+
+		window.$('#ffc-qr-short').prop('checked', false).trigger('change');
+		await flush();
+		window.$('#ffc-qr-download').trigger('click');
+		await flush();
+		expect(download).toHaveBeenCalledTimes(2);
+		expect(window.$('#ffc-qr-short-saved').prop('hidden')).toBe(true);
 	});
 
 	it('"Use this" puts the existing short URL in the code without creating one', async () => {

@@ -24685,3 +24685,12 @@ msgstr ""
 
 msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network (Enterprise networks that sign in with a user name included), an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. For a website or a social profile, \"Create a short URL\" (on by default) puts a short URL in the code instead of the address: the preview shows an example, and the real one is created on the first download or print, then reused until the destination or the title changes. The title is then required; an address that already has a short URL is flagged, with \"Use this\" to reuse it, and creating another needs an explicit confirmation; an address that is already a short URL of this site is never shortened again. With the switch off nothing is stored. It needs ffc_manage_url_shortener."
 msgstr ""
+
+msgid "Open the Short URLs list"
+msgstr ""
+
+msgid "\"%s\" is stored and now counts the scans. Copy the link to share it."
+msgstr ""
+
+msgid "Short URL saved"
+msgstr ""

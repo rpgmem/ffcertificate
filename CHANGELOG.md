@@ -17,6 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **QR Code Generator: redesigned interface** (#1570). Content types are icon tiles; the design sits in collapsible sections (pattern, corners, colours, logo, frame, advanced) with shapes picked from thumbnails the renderer draws, and colours with a hex box; a sticky preview panel holds format, size, download and a new Print. Settings → QR Code shares the same sections.
 - **QR code: new shapes, frames and a transparent background** (#1570). Star, cross, heart and X modules; dotted, one-corner and cut corner frames; star, cross and flower corner centres; pill, outline-with-pointer, circle (curved caption), corner-bracket and double-band frames with an optional icon; and a transparent background. Every new option was decoded by zxing at 300, 600 and 1000 px, with and without a logo.
 - **QR Code Generator: Wi-Fi Enterprise networks** (#1581). A WPA2/WPA3 Enterprise (802.1X) option adds the user name, EAP method, phase-2 authentication and an optional anonymous identity to the `WIFI:` code. Android saves the network from the code, but the CA certificate must then be set by hand ("Trust on first use") before it connects; the iPhone camera does not read it.
+- **QR Code Generator: an overlay confirms the short URL was saved** (#1592). After a download or a print that created the record, it names the title and shows the short link with a Copy button and a link to the Short URLs list; it opens only when the server confirmed the record, never when nothing was written.
 
 ### Changed
 

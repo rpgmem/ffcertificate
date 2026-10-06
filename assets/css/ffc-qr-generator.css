@@ -180,6 +180,103 @@
     color: var(--ffc-danger-text);
 }
 
+/* Overlay confirming that a short URL record was written (#1592). */
+.ffc-page-qr-generator .ffc-qr-saved {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ffc-z-modal); /* Above the wp-admin bar (99999). */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ffc-spacing-lg);
+}
+
+.ffc-page-qr-generator .ffc-qr-saved[hidden] {
+    display: none;
+}
+
+.ffc-page-qr-generator .ffc-qr-saved__backdrop {
+    position: absolute;
+    inset: 0;
+    background: var(--ffc-bg-overlay);
+}
+
+.ffc-page-qr-generator .ffc-qr-saved__dialog {
+    position: relative;
+    z-index: var(--ffc-z-raised);
+    width: 100%;
+    max-width: 460px;
+    padding: var(--ffc-spacing-2xl) var(--ffc-spacing-xl) var(--ffc-spacing-xl);
+    border-radius: var(--ffc-radius-lg);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    box-shadow: var(--ffc-shadow-lg);
+    text-align: center;
+}
+
+.ffc-page-qr-generator .ffc-qr-saved__close {
+    position: absolute;
+    top: var(--ffc-spacing-xs);
+    right: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    border: 0;
+    border-radius: var(--ffc-radius-sm);
+    background: none;
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-2xl);
+    line-height: 1;
+    cursor: pointer;
+}
+
+.ffc-page-qr-generator .ffc-qr-saved__close:hover,
+.ffc-page-qr-generator .ffc-qr-saved__close:focus {
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+}
+
+.ffc-page-qr-generator .ffc-qr-saved__icon {
+    width: auto;
+    height: auto;
+    font-size: var(--ffc-font-size-2xl);
+    color: var(--ffc-success);
+}
+
+.ffc-page-qr-generator .ffc-qr-saved__title {
+    margin: var(--ffc-spacing-sm) 0 var(--ffc-spacing-xs);
+    font-size: var(--ffc-font-size-xl);
+}
+
+.ffc-page-qr-generator .ffc-qr-saved__text {
+    margin: 0 0 var(--ffc-spacing-lg);
+    color: var(--ffc-text-muted);
+}
+
+.ffc-page-qr-generator .ffc-qr-saved__link {
+    display: flex;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-page-qr-generator .ffc-qr-saved__url {
+    flex: 1;
+    min-width: 0;
+    font-family: monospace;
+}
+
+.ffc-page-qr-generator .ffc-qr-saved__copied {
+    min-height: 1.5em;
+    margin: var(--ffc-spacing-xs) 0 0;
+    color: var(--ffc-success-text);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-page-qr-generator .ffc-qr-saved__actions {
+    display: flex;
+    gap: var(--ffc-spacing-xs);
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: var(--ffc-spacing-md) 0 0;
+}
+
 /* Short URL switch on the Website and Social types (#1586). */
 .ffc-page-qr-generator .ffc-qr-short__notice {
     margin: var(--ffc-spacing-xs) 0 0;
