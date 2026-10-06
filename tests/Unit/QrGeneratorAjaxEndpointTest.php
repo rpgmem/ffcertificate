@@ -215,7 +215,12 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertSame( "WIFI:T:WPA;S:Escola;P:p'a<s>s;;", $data['payload'] );
 		$this->assertStringContainsString( '<circle', $data['svg'] );
 		$this->assertSame( 1000, $data['width'] );
-		$this->assertSame( 1663, $data['usage']['capacity'] );
+		$this->assertSame( 'Q', $data['usage']['level'] );
+		$this->assertFalse( $data['usage']['forced'] );
+		$room = $data['usage']['remaining'];
+		$this->assertSame( strlen( $data['payload'] ) + $room, $data['usage']['capacity'] );
+		$this->assertNotSame( array(), \FreeFormCertificate\Generators\QrSvgRenderer::matrix( $data['payload'] . str_repeat( 'a', $room ), 'Q' ), 'The room reported fits the real encoder.' );
+		$this->assertSame( array(), \FreeFormCertificate\Generators\QrSvgRenderer::matrix( $data['payload'] . str_repeat( 'a', $room + 1 ), 'Q' ), 'One more character does not.' );
 		$this->assertFalse( $data['checks']['inverted'] );
 	}
 
@@ -245,6 +250,9 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertSame( 'error:400', $kind );
 		$this->assertSame( 1400, $data['usage']['bytes'] );
 		$this->assertSame( 100, $data['usage']['percent'] );
+		$this->assertSame( 0, $data['usage']['remaining'] );
+		$this->assertSame( 1400 - 1268, $data['usage']['over'], 'H holds 1268 plain characters.' );
+		$this->assertSame( 'This content is about 132 characters too long for error correction H. Shorten it, or lower the level.', $data['message'] );
 	}
 
 	public function test_shorten_creates_a_short_url_for_a_valid_address(): void {

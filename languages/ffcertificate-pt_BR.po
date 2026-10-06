@@ -23456,9 +23456,6 @@ msgstr "Balão de fala acima"
 msgid "Up to 24 characters, e.g. \"Scan to verify\". The caption colour is picked to stay readable on the frame."
 msgstr "Até 24 caracteres, por exemplo \"Escaneie para verificar\". A cor da legenda é escolhida para continuar legível sobre a moldura."
 
-msgid "%1$d of %2$d bytes (%3$d%%)"
-msgstr "%1$d de %2$d bytes (%3$d%%)"
-
 msgid "Could not create the short URL."
 msgstr "Não foi possível criar a URL curta."
 
@@ -23524,9 +23521,6 @@ msgstr "Não foi possível desenhar o QR Code."
 
 msgid "The network does not broadcast its name"
 msgstr "A rede não divulga o próprio nome"
-
-msgid "This content is too long for a QR code at this error correction level. Shorten it, or lower the level."
-msgstr "Este conteúdo é longo demais para um QR Code neste nível de correção de erros. Encurte-o ou reduza o nível."
 
 msgid "Title for the short URL (optional)"
 msgstr "Título da URL curta (opcional)"
@@ -24730,3 +24724,15 @@ msgstr "URLs curtas → Gerador de QR Code cria um QR Code para um site, texto s
 
 msgid "Android saves the network from the code but leaves the CA certificate unset, so it will not connect yet: open the saved network, set CA certificate to \"Trust on first use\" (or \"Do not validate\"), then connect. The iPhone camera does not read Enterprise codes; iPhone users type the details in."
 msgstr "O Android salva a rede pelo código, mas deixa o certificado de CA sem seleção, então ela ainda não conecta: abra a rede salva, em Certificado de CA escolha \"Confiar no primeiro uso\" (ou \"Não validar\") e conecte. A câmera do iPhone não lê códigos de rede Enterprise; no iPhone os dados são digitados."
+
+msgid "%1$d%% full: about %2$d more characters fit at error correction %3$s (an accented letter counts as two)."
+msgstr "%1$d%% ocupado: cabem cerca de %2$d caracteres a mais na correção de erros %3$s (uma letra acentuada conta como duas)."
+
+msgid "%1$d%% full: about %2$d more characters fit at error correction H, which the logo requires (an accented letter counts as two)."
+msgstr "%1$d%% ocupado: cabem cerca de %2$d caracteres a mais na correção de erros H, exigida pelo logotipo (uma letra acentuada conta como duas)."
+
+msgid "This content is about %d characters too long. The logo requires error correction H, which holds the least; remove the logo or shorten the content."
+msgstr "Este conteúdo tem cerca de %d caracteres a mais. O logotipo exige a correção de erros H, a que comporta menos; remova o logotipo ou encurte o conteúdo."
+
+msgid "This content is about %1$d characters too long for error correction %2$s. Shorten it, or lower the level."
+msgstr "Este conteúdo tem cerca de %1$d caracteres a mais para a correção de erros %2$s. Encurte-o ou reduza o nível."

@@ -139,7 +139,9 @@
 				current = data;
 				$preview.html(String(data.svg || ''));
 				var usage = data.usage || {};
-				$usage.text(fill(i18n.usage, [usage.bytes, usage.capacity, usage.percent]));
+				$usage.text(usage.forced
+					? fill(i18n.usageForced, [usage.percent, usage.remaining])
+					: fill(i18n.usage, [usage.percent, usage.remaining, usage.level]));
 				showStatus($status, data);
 				$buttons.prop('disabled', false);
 			})

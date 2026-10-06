@@ -12,6 +12,7 @@ namespace FreeFormCertificate\UrlShortener;
 
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Generators\QrCapacity;
 use FreeFormCertificate\Generators\QrDesign;
 use FreeFormCertificate\Generators\QrLogo;
 use FreeFormCertificate\Generators\QrPayload;
@@ -85,12 +86,18 @@ class QrGeneratorAjaxEndpoint {
 		$ecc    = $design->error_level( in_array( $ecc, array( 'L', 'M', 'Q', 'H' ), true ) ? $ecc : 'M' );
 		$margin = max( 0, min( 10, RequestInput::get_post_int( 'margin', 2 ) ) );
 
+		$logo   = '' !== $input['logo'];
 		$matrix = QrSvgRenderer::matrix( $payload, $ecc );
 		if ( array() === $matrix ) {
+			$usage = QrCapacity::measure( $payload, $ecc, 0 ) + array( 'forced' => $logo );
 			wp_send_json_error(
 				array(
-					'message' => __( 'This content is too long for a QR code at this error correction level. Shorten it, or lower the level.', 'ffcertificate' ),
-					'usage'   => QrPayload::usage( $payload, $ecc, 0 ),
+					'message' => $logo
+						/* translators: %d: approximate number of characters to remove. */
+						? sprintf( __( 'This content is about %d characters too long. The logo requires error correction H, which holds the least; remove the logo or shorten the content.', 'ffcertificate' ), max( 1, $usage['over'] ) )
+						/* translators: 1: approximate number of characters to remove, 2: error correction level (L, M, Q or H). */
+						: sprintf( __( 'This content is about %1$d characters too long for error correction %2$s. Shorten it, or lower the level.', 'ffcertificate' ), max( 1, $usage['over'] ), $usage['level'] ),
+					'usage'   => $usage,
 				),
 				400
 			);
@@ -104,7 +111,7 @@ class QrGeneratorAjaxEndpoint {
 				'width'   => $drawn['width'],
 				'height'  => $drawn['height'],
 				'payload' => $payload,
-				'usage'   => QrPayload::usage( $payload, $ecc, count( $matrix ) ),
+				'usage'   => QrCapacity::measure( $payload, $ecc, count( $matrix ) ) + array( 'forced' => $logo ),
 				'checks'  => $design->scan_checks(),
 			)
 		);

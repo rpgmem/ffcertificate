@@ -149,26 +149,6 @@ class QrPayloadTest extends TestCase {
 		$this->error( 'text', array( 'text' => array( 'x' ) ) );
 	}
 
-	public function test_usage_reports_fill_version_and_density(): void {
-		$this->assertSame(
-			array(
-				'bytes'    => 100,
-				'capacity' => 2331,
-				'percent'  => 5,
-				'version'  => 5,
-				'dense'    => false,
-			),
-			QrPayload::usage( str_repeat( 'x', 100 ), 'M', 37 )
-		);
-
-		$dense = QrPayload::usage( str_repeat( 'x', 1300 ), 'H', 17 + 4 * 30 );
-		$this->assertSame( 30, $dense['version'] );
-		$this->assertTrue( $dense['dense'] );
-		$this->assertSame( 100, $dense['percent'] );
-		$this->assertSame( 0, QrPayload::usage( 'x', 'Z', 0 )['version'] );
-		$this->assertSame( 2331, QrPayload::usage( 'x', 'Z', 0 )['capacity'] );
-	}
-
 	public function test_vcard_carries_every_filled_field_escaped(): void {
 		$this->assertSame(
 			implode(

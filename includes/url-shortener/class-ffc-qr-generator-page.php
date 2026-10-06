@@ -102,8 +102,10 @@ class QrGeneratorPage {
 				'remember'      => QrGeneratorAjaxEndpoint::ACTION_REMEMBER,
 				'rememberNonce' => wp_create_nonce( QrGeneratorAjaxEndpoint::ACTION_REMEMBER ),
 				'i18n'          => array(
-					/* translators: 1: bytes used, 2: capacity in bytes, 3: percentage */
-					'usage'           => __( '%1$d of %2$d bytes (%3$d%%)', 'ffcertificate' ),
+					/* translators: 1: percentage of the code in use, 2: characters that still fit, 3: error correction level (L, M, Q or H) */
+					'usage'           => __( '%1$d%% full: about %2$d more characters fit at error correction %3$s (an accented letter counts as two).', 'ffcertificate' ),
+					/* translators: 1: percentage of the code in use, 2: characters that still fit */
+					'usageForced'     => __( '%1$d%% full: about %2$d more characters fit at error correction H, which the logo requires (an accented letter counts as two).', 'ffcertificate' ),
 					/* translators: %d: QR code version (1-40) */
 					'dense'           => __( 'Dense code (version %d): print it at least 3 cm wide, or shorten the content.', 'ffcertificate' ),
 					/* translators: %s: contrast ratio, e.g. 3.2 */

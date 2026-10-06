@@ -60,23 +60,6 @@ final class QrPayload {
 	public const WIFI_PHASE2 = array( 'MSCHAPV2', 'GTC', 'PAP' );
 
 	/**
-	 * Byte-mode capacity of a version-40 code, per error-correction level.
-	 * Anything longer cannot be encoded at that level at all.
-	 */
-	public const CAPACITY = array(
-		'L' => 2953,
-		'M' => 2331,
-		'Q' => 1663,
-		'H' => 1273,
-	);
-
-	/**
-	 * From this version on the modules get small enough that a code printed
-	 * at a usual size stops scanning reliably: a warning, not a refusal.
-	 */
-	public const DENSE_VERSION = 10;
-
-	/**
 	 * Build the payload for a type.
 	 *
 	 * @param string               $type   One of self::TYPES.
@@ -115,28 +98,6 @@ final class QrPayload {
 			default:
 				return new WP_Error( 'ffc_qr_type', __( 'Unknown QR code type.', 'ffcertificate' ) );
 		}
-	}
-
-	/**
-	 * How full the code is and whether it is getting too dense.
-	 *
-	 * @param string $payload Encoded text.
-	 * @param string $ecc     Error correction level actually used.
-	 * @param int    $side    Modules per side of the encoded matrix (0 if it failed).
-	 * @return array{bytes: int, capacity: int, percent: int, version: int, dense: bool}
-	 */
-	public static function usage( string $payload, string $ecc, int $side ): array {
-		$bytes    = strlen( $payload );
-		$capacity = self::CAPACITY[ $ecc ] ?? self::CAPACITY['M'];
-		$version  = $side >= 21 ? (int) ( ( $side - 17 ) / 4 ) : 0;
-
-		return array(
-			'bytes'    => $bytes,
-			'capacity' => $capacity,
-			'percent'  => (int) min( 100, (int) ceil( $bytes * 100 / $capacity ) ),
-			'version'  => $version,
-			'dense'    => $version >= self::DENSE_VERSION,
-		);
 	}
 
 	/**

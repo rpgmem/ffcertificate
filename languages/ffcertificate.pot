@@ -23366,9 +23366,6 @@ msgstr ""
 msgid "Up to 24 characters, e.g. \"Scan to verify\". The caption colour is picked to stay readable on the frame."
 msgstr ""
 
-msgid "%1$d of %2$d bytes (%3$d%%)"
-msgstr ""
-
 msgid "Could not create the short URL."
 msgstr ""
 
@@ -23433,9 +23430,6 @@ msgid "The QR code could not be drawn."
 msgstr ""
 
 msgid "The network does not broadcast its name"
-msgstr ""
-
-msgid "This content is too long for a QR code at this error correction level. Shorten it, or lower the level."
 msgstr ""
 
 msgid "Title for the short URL (optional)"
@@ -24639,4 +24633,16 @@ msgid "Short URLs → QR Code Generator makes a QR code for a website, plain tex
 msgstr ""
 
 msgid "Android saves the network from the code but leaves the CA certificate unset, so it will not connect yet: open the saved network, set CA certificate to \"Trust on first use\" (or \"Do not validate\"), then connect. The iPhone camera does not read Enterprise codes; iPhone users type the details in."
+msgstr ""
+
+msgid "%1$d%% full: about %2$d more characters fit at error correction %3$s (an accented letter counts as two)."
+msgstr ""
+
+msgid "%1$d%% full: about %2$d more characters fit at error correction H, which the logo requires (an accented letter counts as two)."
+msgstr ""
+
+msgid "This content is about %d characters too long. The logo requires error correction H, which holds the least; remove the logo or shorten the content."
+msgstr ""
+
+msgid "This content is about %1$d characters too long for error correction %2$s. Shorten it, or lower the level."
 msgstr ""
