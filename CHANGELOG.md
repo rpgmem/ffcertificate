@@ -26,6 +26,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **The short URL SVG download was a solid black square** (#1563). It read the encoder's raw frame instead of its modules, painting every module dark; the SVG (download and REST `format=svg`) now draws the real code.
 
+### Security
+
+- **The activity log no longer stores the client IP in clear** (#1574). New rows keep it only in an encrypted column, an `ip` in a log context now encrypts that context, and the "Activity Log: Encrypt Client IPs" card in Settings → Data Migrations encrypts what older rows hold.
+
 ## [6.33.0] (2026-10-04) — `10ba316f`
 
 ### Added

@@ -65,6 +65,8 @@ class LogContextKeyTest extends TestCase {
 	private const CARRIES_THE_VALUE = array(
 		'includes/privacy/class-ffc-privacy-erasers.php:email' =>
 			'The subject\'s real address in the `privacy_data_erased` record, which is the LGPD proof of erasure. It IS the identifier, so classifying the context as sensitive -- and encrypting it -- is the correct outcome rather than an accident of naming.',
+		'includes/core/class-ffc-activity-log-subscriber.php:ip' =>
+			'The address the appointment row stores for the booking request. It IS a client IP, so encrypting the context is the correct outcome (#1574).',
 	);
 
 	private function root(): string {

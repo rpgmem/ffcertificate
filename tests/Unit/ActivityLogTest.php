@@ -428,16 +428,16 @@ class ActivityLogTest extends TestCase {
 		$this->assertNull($buffer[0]['context_encrypted']);
 	}
 
-	public function test_log_captures_user_ip(): void {
+	public function test_log_never_buffers_the_client_ip_in_clear(): void {
 		$this->enableActivityLog();
 
 		// RequestInput::get_user_ip() reads $_SERVER. With no SERVER vars set it returns '0.0.0.0'.
 		ActivityLog::log('test');
 
 		$buffer = $this->getWriteBuffer();
-		$this->assertArrayHasKey('user_ip', $buffer[0]);
-		// The IP should be a string (either a real IP or 0.0.0.0).
-		$this->assertIsString($buffer[0]['user_ip']);
+		$this->assertArrayNotHasKey('user_ip', $buffer[0], 'The plaintext IP column is no longer written (#1574).');
+		$this->assertArrayHasKey('user_ip_encrypted', $buffer[0]);
+		$this->assertNotSame('0.0.0.0', $buffer[0]['user_ip_encrypted'], 'The address must never reach the buffer in clear.');
 	}
 
 	// ==================================================================
@@ -1417,9 +1417,9 @@ class ActivityLogTest extends TestCase {
 			->once()
 			->with(
 				'wp_ffc_activity_log',
-				Mockery::type('array'),
-				// Base format: 6 string/int placeholders.
-				['%s', '%s', '%s', '%d', '%s', '%s']
+				Mockery::on(static fn($row) => is_array($row) && ! array_key_exists('user_ip', $row)),
+				// Base format: 5 string/int placeholders; the plaintext IP is gone (#1574).
+				['%s', '%s', '%s', '%d', '%s']
 			)
 			->andReturn(1);
 
@@ -1436,7 +1436,7 @@ class ActivityLogTest extends TestCase {
 				'context'           => '{}',
 				'context_encrypted' => 'encrypted_blob',
 				'user_id'           => 1,
-				'user_ip'           => '0.0.0.0',
+				'user_ip_encrypted' => 'ip_blob',
 				'submission_id'     => 5,
 				'created_at'        => '2026-03-01 10:00:00',
 			],
@@ -1449,16 +1449,16 @@ class ActivityLogTest extends TestCase {
 		$this->wpdb->shouldReceive('get_col')
 			->andReturn([
 				'id', 'action', 'level', 'context', 'user_id', 'user_ip',
-				'created_at', 'submission_id', 'context_encrypted',
+				'created_at', 'submission_id', 'context_encrypted', 'user_ip_encrypted',
 			]);
 
 		$this->wpdb->shouldReceive('insert')
 			->once()
 			->with(
 				'wp_ffc_activity_log',
-				Mockery::type('array'),
-				// Base 6 + submission_id (%d) + context_encrypted (%s).
-				['%s', '%s', '%s', '%d', '%s', '%s', '%d', '%s']
+				Mockery::on(static fn($row) => is_array($row) && 'ip_blob' === ($row['user_ip_encrypted'] ?? null) && ! array_key_exists('user_ip', $row)),
+				// Base 5 + submission_id (%d) + context_encrypted (%s) + user_ip_encrypted (%s).
+				['%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s']
 			)
 			->andReturn(1);
 

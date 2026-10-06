@@ -23889,9 +23889,6 @@ msgstr ""
 msgid "split the old combined CPF/RF column into separate CPF and RF columns, rewrite stored CPF, RF and e-mail values into one canonical form, rebuild the e-mail lookup hashes, and copy the CPF/RF hashes already linked to a user into the identity index."
 msgstr ""
 
-msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and reregistration bodies); another card clears plaintext left on activity log rows that are already encrypted."
-msgstr ""
-
 msgid "See Advanced → Encryption Key Health."
 msgstr ""
 
@@ -24372,9 +24369,6 @@ msgstr ""
 msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability. Revealing recruitment PII writes an activity-log entry (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
 msgstr ""
 
-msgid "Activity-log entries store the client IP address in clear text, so the activity log is personal data; an entry whose details carry a sensitive field (such as CPF) has those details encrypted. Only the debug logs hash IP addresses."
-msgstr ""
-
 msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one looks up the WordPress account that has the requested e-mail address and works on the records linked to that account:"
 msgstr ""
 
@@ -24568,4 +24562,22 @@ msgid "Logged-in — the current candidate's own recruitment data."
 msgstr ""
 
 msgid "The plugin's only authenticated write API: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.18.0."
+msgstr ""
+
+msgid "Activity Log: Encrypt Client IPs"
+msgstr ""
+
+msgid "Encrypt the client IP address of activity log rows written before addresses were stored encrypted, and clear the plaintext copy. An address that cannot be encrypted is cleared all the same."
+msgstr ""
+
+msgid "Encrypted the client IP of %d activity log rows."
+msgstr ""
+
+msgid "Encryption keys are not configured, so the addresses cannot be encrypted."
+msgstr ""
+
+msgid "Activity-log entries store the client IP address encrypted, and an entry whose details carry a sensitive field (such as CPF or an IP address) has those details encrypted too; the log is still personal data. Entries written before 6.34.0 kept the address in clear until the \"Activity Log: Encrypt Client IPs\" migration runs. The debug logs hash IP addresses instead."
+msgstr ""
+
+msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and reregistration bodies); two more cards clear plaintext left on activity log rows that are already encrypted and encrypt the client IP addresses older activity log rows still hold in clear."
 msgstr ""

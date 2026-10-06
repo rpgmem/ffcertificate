@@ -148,6 +148,24 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['activity_log_clear_plaintext'] );
 					break;
 
+				case 'activity_log_encrypt_ip':
+					$strategy_dir = __DIR__ . '/strategies/';
+					$core_dir     = dirname( __DIR__ ) . '/core/';
+
+					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
+						include $core_dir . 'class-ffc-database-helper-trait.php';
+					}
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\ActivityLogEncryptIpMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-activity-log-encrypt-ip-migration-strategy.php';
+					}
+
+					$this->strategies['activity_log_encrypt_ip'] = new \FreeFormCertificate\Migrations\Strategies\ActivityLogEncryptIpMigrationStrategy();
+					unset( $this->strategy_errors['activity_log_encrypt_ip'] );
+					break;
+
 				case 'key_rotation':
 					$strategy_dir = __DIR__ . '/strategies/';
 					$core_dir     = dirname( __DIR__ ) . '/core/';
