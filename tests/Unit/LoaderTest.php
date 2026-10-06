@@ -140,12 +140,14 @@ class LoaderTest extends TestCase {
 	 */
 	private function build_loader_and_asset_spies(): array {
 		$this->stub_constructor_functions();
-		$loader = new Loader();
 
 		// Mock AssetHelper::asset_suffix() — alias mock works because
-		// @runTestsInSeparateProcesses gives us a fresh process.
+		// @runTestsInSeparateProcesses gives us a fresh process. Created before
+		// the Loader, whose constructor already calls into AssetHelper.
 		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
 		$this->utils_mock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
+		$this->utils_mock->shouldReceive( 'register_dev_cache_busting' );
+		$loader = new Loader();
 
 		$registered_scripts = [];
 		$localized_scripts  = [];
