@@ -48,6 +48,15 @@ class FieldSanitizer {
 			}
 
 			$name = $field['name'];
+
+			// A hidden field carries the value the form defines, never the
+			// one the request carries: it has no visible control, so a
+			// different value can only come from an edited page (#1574).
+			if ( isset( $field['type'] ) && 'hidden' === $field['type'] ) {
+				$submission_data[ $name ] = sanitize_text_field( (string) ( $field['default_value'] ?? '' ) );
+				continue;
+			}
+
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified upstream; value unslashed and sanitized below.
 			if ( isset( $_POST[ $name ] ) ) {
 				$value = \FreeFormCertificate\Core\DataSanitizer::recursive_sanitize( wp_unslash( $_POST[ $name ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via recursive_sanitize().

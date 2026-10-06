@@ -199,6 +199,32 @@ class FormEditorSaveHandlerTest extends TestCase {
 	}
 
 	/**
+	 * #1574 — a hidden field's value was never stored, so it always
+	 * submitted an empty one. It is kept for that type only.
+	 */
+	public function test_save_fields_meta_stores_the_value_of_a_hidden_field_only(): void {
+		$_POST['ffc_fields'] = array(
+			array(
+				'name'          => 'turma',
+				'type'          => 'hidden',
+				'default_value' => '2026-A',
+			),
+			array(
+				'name'          => 'nome',
+				'type'          => 'text',
+				'default_value' => 'ignored',
+			),
+		);
+
+		$out = $this->capture_meta_writes( 'save_fields_meta' );
+		unset( $_POST['ffc_fields'] );
+
+		$fields = $out['written']['_ffc_form_fields'];
+		$this->assertSame( '2026-A', $fields[0]['default_value'] );
+		$this->assertSame( '', $fields[1]['default_value'] );
+	}
+
+	/**
 	 * #1084 — `sanitize_textarea_field( (string) array() )` is the literal
 	 * `Array` plus a PHP warning, and that string was stored as the
 	 * per-form device-limit message. An unusable value now reads as empty,

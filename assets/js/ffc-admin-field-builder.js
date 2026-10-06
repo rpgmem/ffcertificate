@@ -94,6 +94,7 @@
             var isDisplayOnly = isInfo || isEmbed;
             $row.find('.ffc-content-row').toggle(isInfo);
             $row.find('.ffc-embed-row').toggle(isEmbed);
+            $row.find('.ffc-hidden-value-row').toggle(val === 'hidden');
             $row.find('.ffc-standard-row').toggle(!isDisplayOnly);
             $row.find('.ffc-options-field').toggle(val === 'select' || val === 'radio' || val === 'checkbox');
         });
@@ -107,6 +108,7 @@
             var isDisplayOnly = isInfo || isEmbed;
             $row.find('.ffc-content-field').toggleClass('ffc-hidden', !isInfo);
             $row.find('.ffc-embed-field').toggleClass('ffc-hidden', !isEmbed);
+            $row.find('.ffc-hidden-value-field').toggleClass('ffc-hidden', val !== 'hidden');
             $row.find('.ffc-standard-row').toggleClass('ffc-hidden', isDisplayOnly);
             $row.find('.ffc-options-field').toggleClass('ffc-hidden', !(val === 'select' || val === 'radio' || val === 'checkbox'));
         });
@@ -195,6 +197,7 @@
         var embedUrlText = strings.embedUrl || 'Media URL:';
         var embedUrlPlaceholder = strings.embedUrlPlaceholder || 'https://www.youtube.com/watch?v=... or image URL';
         var captionOptionalText = strings.captionOptional || 'Caption (optional):';
+        var hiddenValueText = strings.hiddenValue || 'Value submitted with every entry:';
 
         var isInfo = fieldType === 'info';
         var isEmbed = fieldType === 'embed';
@@ -232,6 +235,12 @@
         fieldHtml += '      <tr class="ffc-embed-row"' + (isEmbed ? '' : ' style="display:none"') + '>';
         fieldHtml += '        <th><label>' + embedUrlText + '</label></th>';
         fieldHtml += '        <td><input type="url" class="ffc-field-embed-url regular-text" name="ffc_fields[' + fieldCounter + '][embed_url]" placeholder="' + embedUrlPlaceholder + '"></td>';
+        fieldHtml += '      </tr>';
+
+        // Fixed value row (hidden only)
+        fieldHtml += '      <tr class="ffc-hidden-value-row"' + (fieldType === 'hidden' ? '' : ' style="display:none"') + '>';
+        fieldHtml += '        <th><label>' + hiddenValueText + '</label></th>';
+        fieldHtml += '        <td><input type="text" class="ffc-field-default-value regular-text" name="ffc_fields[' + fieldCounter + '][default_value]"></td>';
         fieldHtml += '      </tr>';
 
         // Label row (title for info, caption for embed, label for others)
@@ -302,6 +311,7 @@
                 options: $row.find('.ffc-field-options').val(),
                 content: $row.find('.ffc-field-content').val() || '',
                 embed_url: $row.find('.ffc-field-embed-url').val() || '',
+                default_value: $row.find('.ffc-field-default-value').val() || '',
                 points: $row.find('.ffc-field-points').val() || ''
             };
             fields.push(field);

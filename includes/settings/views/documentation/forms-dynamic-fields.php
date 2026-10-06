@@ -41,7 +41,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><code>select</code></td><td><?php esc_html_e( 'Dropdown — fill the Options field (one choice per comma). Can carry quiz points.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>radio</code></td><td><?php esc_html_e( 'Radio buttons — fill the Options field. Can carry quiz points.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>checkbox</code></td><td><?php esc_html_e( 'Checkbox — fill the Options field. Not scored in quiz mode.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>hidden</code></td><td><?php esc_html_e( 'Hidden field — rendered with no visible control.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>hidden</code></td><td><?php esc_html_e( 'Hidden field — no visible control; every entry submits the fixed value set on the field\'s Value input (the server uses that value, never one sent by the browser).', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>info</code></td><td><?php esc_html_e( 'Info block — display-only HTML, collects no value.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>embed</code></td><td><?php esc_html_e( 'Embedded media — display-only, collects no value.', 'ffcertificate' ); ?></td></tr>
 		</tbody>

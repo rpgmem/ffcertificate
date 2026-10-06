@@ -25,6 +25,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **The short URL SVG download was a solid black square** (#1563). It read the encoder's raw frame instead of its modules, painting every module dark; the SVG (download and REST `format=svg`) now draws the real code.
+- **A hidden form field always submitted an empty value** (#1574). The builder had no input for it and the save dropped it; hidden fields now have a Value input, and the submission takes that value from the form, never from the request.
 - **Re-entering a used ticket was rejected instead of reprinting** (#1574). The restriction check removes a ticket when it issues a certificate, so the next attempt was refused before the reprint lookup ran; a ticket that already issued a certificate on this form now returns it (quiz forms excepted, where a pass is a new attempt).
 
 ### Security

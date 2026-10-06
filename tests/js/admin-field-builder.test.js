@@ -77,6 +77,28 @@ describe('FFC.Admin.FieldBuilder.addField', () => {
 		expect(row.querySelector('.ffc-content-row').style.display).toBe('none');
 	});
 
+	it("appends a hidden-style row with its fixed-value input visible (#1574)", () => {
+		FB().addField('hidden');
+		const row = document.querySelector('#ffc-fields-container .ffc-field-row');
+		const valueRow = row.querySelector('.ffc-hidden-value-row');
+		expect(valueRow.style.display).not.toBe('none');
+		expect(valueRow.querySelector('input').getAttribute('name')).toMatch(/\[default_value\]$/);
+	});
+
+	it('hides the fixed-value input for any other type', () => {
+		FB().addField('text');
+		const row = document.querySelector('#ffc-fields-container .ffc-field-row');
+		expect(row.querySelector('.ffc-hidden-value-row').style.display).toBe('none');
+	});
+
+	it('carries the fixed value into the JSON', () => {
+		FB().addField('hidden');
+		document.querySelector('.ffc-field-default-value').value = '2026-A';
+		FB().updateJSON();
+		const parsed = JSON.parse(document.getElementById('ffc-form-fields-json').value);
+		expect(parsed[0].default_value).toBe('2026-A');
+	});
+
 	it('writes the new field into the hidden JSON input', () => {
 		FB().addField('text');
 		const json = document.getElementById('ffc-form-fields-json').value;

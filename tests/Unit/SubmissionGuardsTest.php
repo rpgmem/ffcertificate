@@ -287,6 +287,27 @@ class SubmissionGuardsTest extends TestCase {
 		$this->assertSame( 'ABC', $ctx->val_ticket );
 	}
 
+	public function test_field_sanitizer_takes_a_hidden_field_from_the_form_never_the_request(): void {
+		// #1574: a hidden field has no visible control, so a different value
+		// in the request can only come from an edited page.
+		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
+			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
+			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault();
+		$_POST              = array(
+			'email'  => 'u@ex.co',
+			'turma'  => 'tampered',
+		);
+		$ctx                = $this->ctx();
+		$ctx->fields_config = array(
+			array( 'name' => 'email', 'type' => 'email' ),
+			array( 'name' => 'turma', 'type' => 'hidden', 'default_value' => '2026-A' ),
+			array( 'name' => 'origem', 'type' => 'hidden' ),
+		);
+		( new FieldSanitizer() )->apply( $ctx );
+		$this->assertSame( '2026-A', $ctx->submission_data['turma'] );
+		$this->assertSame( '', $ctx->submission_data['origem'], 'A hidden field with no value configured submits an empty one, not whatever was posted.' );
+	}
+
 	// ===================== DeviceSignalsResolver =====================
 
 	public function test_device_resolver_null_when_globally_disabled(): void {
