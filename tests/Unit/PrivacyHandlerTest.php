@@ -214,10 +214,13 @@ class PrivacyHandlerTest extends TestCase {
 	// register_exporters()
 	// ==================================================================
 
-	public function test_register_exporters_adds_six_entries(): void {
+	public function test_register_exporters_adds_eight_entries(): void {
 		$result = PrivacyHandler::register_exporters(array());
 
-		$this->assertCount(6, $result);
+		$this->assertCount(8, $result);
+		// Reregistration and recruitment joined in #1574.
+		$this->assertArrayHasKey('ffcertificate-reregistration', $result);
+		$this->assertArrayHasKey('ffcertificate-recruitment', $result);
 		$this->assertArrayHasKey('ffcertificate-profile', $result);
 		$this->assertArrayHasKey('ffcertificate-certificates', $result);
 		$this->assertArrayHasKey('ffcertificate-appointments', $result);
@@ -236,7 +239,7 @@ class PrivacyHandlerTest extends TestCase {
 
 		$result = PrivacyHandler::register_exporters($existing);
 
-		$this->assertCount(7, $result);
+		$this->assertCount(9, $result);
 		$this->assertArrayHasKey('other-plugin', $result);
 	}
 
@@ -381,12 +384,30 @@ class PrivacyHandlerTest extends TestCase {
 	// export_certificates()
 	// ==================================================================
 
-	public function test_export_certificates_returns_empty_for_nonexistent_user(): void {
+	public function test_export_certificates_searches_unlinked_records_by_email_hash(): void {
+		// No account: before #1574 this returned at once, so a record made
+		// without logging in was never exported.
 		Functions\when('get_user_by')->justReturn(false);
+		$this->wpdb->shouldReceive('get_var')->andReturn('wp_ffc_self_scheduling_appointments')->byDefault();
+
+		$bound = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () use (&$bound) {
+			$args    = func_get_args();
+			$bound[] = $args;
+			return $args[0];
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array());
 
 		$result = PrivacyExporters::export_certificates('nobody@example.com');
 
-		$this->assertSame(array('data' => array(), 'done' => true), $result);
+		$this->assertSame(array(), $result['data']);
+		$owns = $this->find_owns_row_call($bound);
+		$this->assertNotNull($owns, 'The rows must be filtered by the subject predicate.');
+		$this->assertSame(-1, $owns[1], 'With no account, the account branch must match nothing.');
+		$this->assertSame(
+			\FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier('email', 'nobody@example.com'),
+			$owns[2]
+		);
 	}
 
 	public function test_export_certificates_returns_empty_when_no_submissions(): void {
@@ -577,12 +598,30 @@ class PrivacyHandlerTest extends TestCase {
 	// export_appointments()
 	// ==================================================================
 
-	public function test_export_appointments_returns_empty_for_nonexistent_user(): void {
+	public function test_export_appointments_searches_unlinked_records_by_email_hash(): void {
+		// No account: before #1574 this returned at once, so a record made
+		// without logging in was never exported.
 		Functions\when('get_user_by')->justReturn(false);
+		$this->wpdb->shouldReceive('get_var')->andReturn('wp_ffc_self_scheduling_appointments')->byDefault();
+
+		$bound = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () use (&$bound) {
+			$args    = func_get_args();
+			$bound[] = $args;
+			return $args[0];
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array());
 
 		$result = PrivacyExporters::export_appointments('nobody@example.com');
 
-		$this->assertSame(array('data' => array(), 'done' => true), $result);
+		$this->assertSame(array(), $result['data']);
+		$owns = $this->find_owns_row_call($bound);
+		$this->assertNotNull($owns, 'The rows must be filtered by the subject predicate.');
+		$this->assertSame(-1, $owns[1], 'With no account, the account branch must match nothing.');
+		$this->assertSame(
+			\FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier('email', 'nobody@example.com'),
+			$owns[2]
+		);
 	}
 
 	public function test_export_appointments_returns_empty_when_table_missing(): void {
@@ -1008,15 +1047,52 @@ class PrivacyHandlerTest extends TestCase {
 	// erase_personal_data()
 	// ==================================================================
 
-	public function test_erase_returns_no_action_for_nonexistent_user(): void {
+	public function test_erase_anonymizes_unlinked_records_and_leaves_account_data_alone(): void {
+		// No account: the records found by e-mail hash are anonymised, and
+		// nothing keyed on an account is touched (#1574).
 		Functions\when('get_user_by')->justReturn(false);
+		$this->mock_erase_dependencies();
+		
+		$queries = array();
+		$this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) use (&$queries) {
+			$queries[] = $sql;
+			return 2;
+		});
+		$this->wpdb->shouldReceive('delete')->never();
+		$this->wpdb->shouldReceive('get_var')->andReturnUsing(function ($sql) {
+			return 0 === strpos((string) $sql, 'SHOW TABLES LIKE ') ? substr((string) $sql, 17) : '0';
+		});
 
 		$result = PrivacyErasers::erase_personal_data('nobody@example.com');
 
+		$this->assertTrue($result['items_removed']);
+		$this->assertCount(2, $queries, 'Submissions and appointments, and no user-meta delete.');
+		foreach ($queries as $sql) {
+			$this->assertStringContainsString('email_hash = %s', $sql);
+			$this->assertStringContainsString('t.email_hash = NULL', $sql, 'The hash that found the row is cleared too.');
+		}
+	}
+
+	public function test_erase_reports_reregistration_and_recruitment_as_retained(): void {
+		$user = $this->make_user();
+		Functions\when('get_user_by')->justReturn($user);
+		$this->mock_erase_dependencies();
+				$this->wpdb->shouldReceive('query')->andReturn(0);
+		$this->wpdb->shouldReceive('delete')->andReturn(0);
+		$this->wpdb->shouldReceive('get_var')->andReturnUsing(function ($sql) {
+			if (0 === strpos((string) $sql, 'SHOW TABLES LIKE ')) {
+				return substr((string) $sql, 17);
+			}
+			return '2';
+		});
+
+		$result = PrivacyErasers::erase_personal_data('user@example.com');
+
+		$this->assertTrue($result['items_retained']);
 		$this->assertFalse($result['items_removed']);
-		$this->assertFalse($result['items_retained']);
-		$this->assertSame(array(), $result['messages']);
-		$this->assertTrue($result['done']);
+		$joined = implode(' ', $result['messages']);
+		$this->assertStringContainsString('reregistration submissions retained', $joined);
+		$this->assertStringContainsString('recruitment candidacies retained', $joined);
 	}
 
 	public function test_erase_anonymizes_submissions_no_other_tables(): void {
@@ -1203,6 +1279,10 @@ class PrivacyHandlerTest extends TestCase {
 
 	public function test_export_methods_return_correct_structure(): void {
 		Functions\when('get_user_by')->justReturn(false);
+		$this->mock_erase_dependencies();
+		$this->wpdb->shouldReceive('get_var')->andReturn(null)->byDefault();
+		$this->wpdb->shouldReceive('get_results')->andReturn(array())->byDefault();
+		$this->wpdb->shouldReceive('query')->andReturn(0)->byDefault();
 
 		$export_methods = [
 			'export_profile',
@@ -1210,6 +1290,8 @@ class PrivacyHandlerTest extends TestCase {
 			'export_appointments',
 			'export_audience_groups',
 			'export_audience_bookings',
+			'export_reregistration',
+			'export_recruitment',
 			'export_usermeta',
 		];
 
@@ -1225,6 +1307,10 @@ class PrivacyHandlerTest extends TestCase {
 
 	public function test_erase_returns_correct_structure(): void {
 		Functions\when('get_user_by')->justReturn(false);
+		$this->mock_erase_dependencies();
+		$this->wpdb->shouldReceive('get_var')->andReturn(null)->byDefault();
+		$this->wpdb->shouldReceive('get_results')->andReturn(array())->byDefault();
+		$this->wpdb->shouldReceive('query')->andReturn(0)->byDefault();
 
 		$result = PrivacyErasers::erase_personal_data('nobody@example.com');
 
@@ -1233,5 +1319,20 @@ class PrivacyHandlerTest extends TestCase {
 		$this->assertArrayHasKey('messages', $result);
 		$this->assertArrayHasKey('done', $result);
 		$this->assertIsArray($result['messages']);
+	}
+
+	/**
+	 * The prepare() call that built the subject predicate, if any.
+	 *
+	 * @param array<int, array<int, mixed>> $calls Every prepare() call's arguments.
+	 * @return array<int, mixed>|null
+	 */
+	private function find_owns_row_call(array $calls): ?array {
+		foreach ($calls as $args) {
+			if (is_string($args[0]) && 0 === strpos($args[0], '(t.user_id = %d')) {
+				return $args;
+			}
+		}
+		return null;
 	}
 }
