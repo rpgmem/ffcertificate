@@ -148,14 +148,20 @@ class FormEditorSaveHandler {
 			}
 
 			$clean_fields[] = array(
-				'label'     => sanitize_text_field( ArrayValue::string( $field, 'label' ) ),
-				'name'      => sanitize_key( ArrayValue::string( $field, 'name' ) ),
-				'type'      => sanitize_key( ArrayValue::string( $field, 'type' ) ),
-				'required'  => isset( $field['required'] ) ? '1' : '',
-				'options'   => sanitize_text_field( ArrayValue::string( $field, 'options' ) ),
-				'content'   => wp_kses_post( ArrayValue::string( $field, 'content' ) ),
-				'embed_url' => esc_url_raw( ArrayValue::string( $field, 'embed_url' ) ),
-				'points'    => sanitize_text_field( ArrayValue::string( $field, 'points' ) ),
+				'label'         => sanitize_text_field( ArrayValue::string( $field, 'label' ) ),
+				'name'          => sanitize_key( ArrayValue::string( $field, 'name' ) ),
+				'type'          => sanitize_key( ArrayValue::string( $field, 'type' ) ),
+				'required'      => isset( $field['required'] ) ? '1' : '',
+				'options'       => sanitize_text_field( ArrayValue::string( $field, 'options' ) ),
+				'content'       => wp_kses_post( ArrayValue::string( $field, 'content' ) ),
+				'embed_url'     => esc_url_raw( ArrayValue::string( $field, 'embed_url' ) ),
+				'points'        => sanitize_text_field( ArrayValue::string( $field, 'points' ) ),
+				// The fixed value a hidden field submits (#1574). Stored for
+				// that type only; the submission takes it from here, never
+				// from the request.
+				'default_value' => 'hidden' === ArrayValue::string( $field, 'type' )
+					? sanitize_text_field( ArrayValue::string( $field, 'default_value' ) )
+					: '',
 			);
 		}
 		update_post_meta( $post_id, '_ffc_form_fields', $clean_fields );

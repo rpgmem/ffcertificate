@@ -100,4 +100,20 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 		// Saved fields surface their label in a builder row.
 		$this->assertStringContainsString( 'Full Name', $html );
 	}
+
+	public function test_a_saved_hidden_field_shows_its_fixed_value(): void {
+		$html = $this->render(
+			array(
+				array(
+					'name'          => 'turma',
+					'type'          => 'hidden',
+					'default_value' => '2026-A',
+				),
+			)
+		);
+
+		// #1574: the value a hidden field submits is editable in the row.
+		$this->assertMatchesRegularExpression( '/<div class="ffc-hidden-value-field">/', $html, 'Visible for a hidden field.' );
+		$this->assertStringContainsString( 'name="ffc_fields[0][default_value]" value="2026-A"', $html );
+	}
 }
