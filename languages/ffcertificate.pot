@@ -953,10 +953,6 @@ msgstr ""
 msgid "A calendar uses one of two availability models:"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php:66
-msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-reregistration.php:58
 msgid "A campaign with up to 50 members awaiting a reminder is sent in one go, exactly as before. Above that, the daily sweep sends the first 50 and queues the rest, 50 at a time, about a minute apart. Nobody receives two emails: each send is stamped on the member the moment it goes out, so a batch that is interrupted resumes where it stopped instead of starting over."
 msgstr ""
@@ -1003,10 +999,6 @@ msgstr ""
 msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button. One \"Save email texts\" button persists them all — you do not save per email."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:60
-msgid "A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF). There is no separate \"CPF field type\" — the name is what triggers it. The cpf, cpf_rf and rg tokens are also auto-masked when rendered in a PDF."
-msgstr ""
-
 #: includes/settings/views/documentation/forms-dynamic-fields.php:24
 msgid "A field whose Variable Name (Tag) is"
 msgstr ""
@@ -1015,28 +1007,12 @@ msgstr ""
 msgid "A filter (notice / adjutancy / search) is required to list candidates."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:43
-msgid "A fixed value submitted without being shown."
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:544
 msgid "A forged X-Forwarded-For would fool the Legacy strategy (rate-limit, geofence, activity log). Secure discards it."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-schedule.php:21
-msgid "A form can accept submissions only inside a date/time window. The window is configured in the form editor's Geofence box, \"Time\" tab. Outside the window the form is blocked with a configurable message (or hidden entirely)."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-security.php:57
 msgid "A form can cap how many submissions come from the same device using a browser/device fingerprint. Empty per-form values inherit the global defaults from Settings → Rate Limit → Device Fingerprint, and the per-form toggle stays disabled until that global subsystem is enabled. Automatic reprints are exempt from the device cap."
-msgstr ""
-
-#: includes/settings/views/documentation/forms-public-operator-access.php:48
-msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced), and every download is written to a per-form audit ring buffer (timestamp, IP, mode, result) that admins can export."
-msgstr ""
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:20
-msgid "A form's input fields are defined in the form editor's \"Form Builder (Fields)\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:18
@@ -1097,14 +1073,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:42
 msgid "A privacy-respecting browser/device fingerprint caps submissions from the same device (off by default). It combines a cookie with a set of non-cookie signals (screen, timezone, canvas, WebGL, audio, fonts, …). A device matches when the cookie matches, or when enough signals match — the match threshold — with a minimum number of \"strong\" signals to corroborate."
-msgstr ""
-
-#: includes/settings/views/documentation/document-templates-hub.php:50
-msgid "A read-only \"Current assignments\" overview at the top of the hub shows, at a glance, which pool template each feature is using right now, with a \"Change →\" link into that feature's own settings. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
-msgstr ""
-
-#: includes/settings/views/documentation/email-texts-hub.php:55
-msgid "A read-only index at the bottom of the tab lists every email the plugin can send, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open →\" deep-link to where it is configured. It is discoverability only — it moves no controls."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:166 includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:814
@@ -1181,10 +1149,6 @@ msgstr ""
 
 #: templates/emails/appointment-promoted.php:20
 msgid "A Spot Opened Up: {{calendar_title}}"
-msgstr ""
-
-#: includes/settings/views/documentation/config-activity-log.php:27
-msgid "a summary of event counts for the current view."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-email.php:25
@@ -1428,10 +1392,6 @@ msgstr ""
 
 #: includes/admin/views/ffc-admin-activity-log.php:136
 msgid "Activity Summary (Last 30 Days)"
-msgstr ""
-
-#: includes/settings/views/documentation/reference-privacy.php:30
-msgid "Activity-log entries hash IP addresses and never store raw CPF, so the audit trail cannot leak the identifiers it protects."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:548
@@ -1682,10 +1642,6 @@ msgstr ""
 msgid "Admin Bypass: Geolocation restrictions are disabled for administrators"
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:94
-msgid "Admin capability."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:854
 msgid "Admin Email Addresses"
 msgstr ""
@@ -1742,10 +1698,6 @@ msgstr ""
 msgid "Administrator bypass"
 msgstr ""
 
-#: includes/settings/views/documentation/submissions-list.php:47
-msgid "Administrators (manage_options) hold all of the above. See Capabilities & Roles."
-msgstr ""
-
 #: includes/settings/views/documentation/config-rate-limit.php:47
 msgid "administrators / settings-managers are skipped."
 msgstr ""
@@ -1792,14 +1744,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:356
 msgid "After"
-msgstr ""
-
-#: includes/settings/views/documentation/developer-hooks-api.php:63
-msgid "After a CSV export finishes ( renamed from ffcertificate_csv_export_completed in 6.17.0 )."
-msgstr ""
-
-#: includes/settings/views/documentation/developer-hooks-api.php:59
-msgid "After a submission is edited or deleted."
 msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:58
@@ -2099,10 +2043,6 @@ msgstr ""
 msgid "ALTCHA, with the math challenge as fallback"
 msgstr ""
 
-#: includes/settings/views/documentation/operations-maintenance.php:52
-msgid "Always run the preview first. Deletions (short URLs) are permanent; disabling Public Operator Access is reversible (re-enable on the form editor); the link audit only reports — fix each finding manually."
-msgstr ""
-
 #: includes/settings/views/documentation/operations-troubleshooting.php:61
 msgid "Always use inline styles"
 msgstr ""
@@ -2117,10 +2057,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-captcha.php:37
 msgid "An arithmetic question the visitor answers. Works everywhere — no JavaScript, no HTTPS required."
-msgstr ""
-
-#: includes/settings/views/documentation/scheduling-audiences.php:23
-msgid "An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed). Audiences also carry the custom fields used by reregistration."
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:21
@@ -2673,10 +2609,6 @@ msgstr ""
 msgid "Audience booking confirmation"
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:61
-msgid "Audience booking lifecycle ( booking_id )."
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:487
 msgid "Audience booking lifecycle — default text edited globally in the hub above; a schedule may still set its own."
 msgstr ""
@@ -2859,10 +2791,6 @@ msgstr ""
 msgid "Auto (follow plugin Dark Mode)"
 msgstr ""
 
-#: includes/settings/views/documentation/config-advanced.php:31
-msgid "Auto / Light / Dark for the certificate HTML editor on the form screen."
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:605
 msgid "Auto — detect Cloudflare / known proxy, else use REMOTE_ADDR (recommended)"
 msgstr ""
@@ -2885,10 +2813,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-url-shortener.php:103
 msgid "Auto-create Short URLs"
-msgstr ""
-
-#: includes/settings/views/documentation/config-general.php:31
-msgid "Auto-delete (days)"
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:24
@@ -3127,14 +3051,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:355
 msgid "Before"
-msgstr ""
-
-#: includes/settings/views/documentation/forms-schedule.php:37
-msgid "Before / during / after the window you can independently show a message, show only the title + message, or hide the form."
-msgstr ""
-
-#: includes/settings/views/documentation/developer-hooks-api.php:62
-msgid "Before a short-URL redirect is sent."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:358
@@ -3940,10 +3856,6 @@ msgstr ""
 msgid "Candidates"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-recruitment.php:65
-msgid "Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:270
 msgid "Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the \"Import candidates (CSV)\" section."
 msgstr ""
@@ -4104,10 +4016,6 @@ msgstr ""
 msgid "Certificate Editor"
 msgstr ""
 
-#: includes/settings/views/documentation/config-advanced.php:29
-msgid "Certificate editor preferences"
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:163 includes/settings/tabs/class-ffc-tab-email-texts.php:406
 msgid "Certificate email to the user"
 msgstr ""
@@ -4262,10 +4170,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:122
 msgid "Check the \"Disable all emails\" toggle (SMTP tab), configure Custom SMTP, and see Troubleshooting → \"Emails not arriving\"."
-msgstr ""
-
-#: includes/settings/views/documentation/operations-troubleshooting.php:86
-msgid "Check the Geofence \"Time\" tab — the form may be outside its open/close window"
 msgstr ""
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:78
@@ -4589,10 +4493,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:177
 msgid "Code Editor Theme"
-msgstr ""
-
-#: includes/settings/views/documentation/config-advanced.php:31
-msgid "Code editor theme"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-url-shortener.php:73
@@ -5229,10 +5129,6 @@ msgstr ""
 msgid "CPF / RF"
 msgstr ""
 
-#: includes/settings/views/documentation/reference-security.php:76
-msgid "CPF and RF are stored encrypted with AES-256-CBC using encrypt-then-HMAC; a salted hash backs lookups. Display is masked unless the viewer holds a PII capability."
-msgstr ""
-
 #: includes/security/class-ffc-cpf-limiter.php:56 includes/security/class-ffc-cpf-limiter.php:89 includes/security/class-ffc-rate-limit-checker.php:532
 msgid "CPF blocked."
 msgstr ""
@@ -5453,10 +5349,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:77
 msgid "create, edit, enable/disable and regenerate links."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-reregistration.php:90
-msgid "create/edit campaigns, approve/reject, manage custom fields, generate Records."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:80 includes/self-scheduling/views/appointments-list.php:276
@@ -6118,10 +6010,6 @@ msgstr ""
 
 #: templates/emails/reregistration-invitation.php:46 templates/emails/reregistration-reminder.php:45 templates/public/set-password.php:34
 msgid "Define your password"
-msgstr ""
-
-#: includes/settings/views/documentation/config-advanced.php:57
-msgid "Defining a constant is effectively one-way: new writes use the new key the moment it is defined. On a site that already stores data, adopt the constants and then run the Encryption Key Rotation (Settings → Migrations) to re-encrypt existing records. Removing or blindly changing a constant on a live site makes existing records unreadable until the exact value is restored — it is never a blind edit."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-admin-page.php:72 templates/admin/recruitment/notice-edit/classifications-section.php:45 templates/admin/recruitment/admin-page/settings-tab.php:192
@@ -6881,10 +6769,6 @@ msgstr ""
 msgid "Each area is gated by a capability — grant the matching ffc_view_* capability on the user profile"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:60
-msgid "Each calendar independently enables: user confirmation, admin notification, approval notice, cancellation notice and a reminder (default 24h before). When the waitlist is on, an \"added to waitlist\" notice and a \"spot opened up\" promotion notice are sent too. All of these are token-based and editable once in Settings → Email texts (the confirmation can also be overridden per calendar); every one is wrapped in the shared Email Model chrome."
-msgstr ""
-
 #: includes/settings/views/documentation/forms-public-operator-access.php:29
 msgid "Each capability is an independent per-form toggle:"
 msgstr ""
@@ -6905,16 +6789,8 @@ msgstr ""
 msgid "each form can switch to Custom and carry its own text (Forms → Email); a form left on Global follows the hub."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-email.php:20
-msgid "Each form has its own Email box controlling the message sent to the participant on submission, plus an optional admin notification."
-msgstr ""
-
 #: includes/settings/views/documentation/scheduling-audiences.php:39
 msgid "Each schedule independently notifies affected users on booking and cancellation, and can attach an ICS calendar invite. Two opt-in admin toggles (off by default) also notify a recipient list (comma-separated; blank falls back to the site admin) on new bookings and cancellations."
-msgstr ""
-
-#: includes/settings/views/documentation/reference-security.php:44
-msgid "Each submitter must present a single-use code from a generated pool. The code is claimed atomically (one use only) and consumed after a successful submission."
 msgstr ""
 
 #: includes/settings/views/documentation/document-templates-hub.php:25
@@ -7055,10 +6931,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-submissions-export-source.php:377 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:78
 msgid "Edited By"
-msgstr ""
-
-#: includes/settings/views/documentation/forms-email.php:31
-msgid "edited in a visual editor. \"Restore Default Text\" restores the current global default."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:36
@@ -7465,10 +7337,6 @@ msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:679
 msgid "Enable the proxy (orange cloud) for the site record."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php:64
-msgid "Enable the shortener"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:650
@@ -8199,10 +8067,6 @@ msgstr ""
 msgid "Export short URLs"
 msgstr ""
 
-#: includes/settings/views/documentation/submissions-list.php:29
-msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF) and the magic-link token, so it is gated by its own capability."
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:438
 msgid "Export timed out. Please try again."
 msgstr ""
@@ -8254,10 +8118,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:40
 msgid "Extend the trusted reverse-proxy CIDRs, or the Cloudflare edge ranges, the secure strategy honours when walking X-Forwarded-For / CF-Connecting-IP."
-msgstr ""
-
-#: includes/settings/views/documentation/forms-schedule.php:52
-msgid "extends the closing so submissions keep coming in."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-cache.php:176
@@ -8720,10 +8580,6 @@ msgstr ""
 msgid "Field #%d: label is required."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-audiences.php:71
-msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data."
-msgstr ""
-
 #: includes/audience/class-ffc-audience-ajax-controller.php:681
 msgid "Field deleted successfully."
 msgstr ""
@@ -8825,10 +8681,6 @@ msgstr ""
 msgid "Filter the payload of GET /forms/{id}/schema."
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:33
-msgid "Filter the to / subject / body of scheduling (appointment / audience / reregistration) emails."
-msgstr ""
-
 #: templates/admin/reregistration/transfer-list.php:25
 msgid "Filter..."
 msgstr ""
@@ -8863,10 +8715,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:54
 msgid "Fires"
-msgstr ""
-
-#: includes/settings/views/documentation/developer-hooks-api.php:74
-msgid "fires when an export finishes."
 msgstr ""
 
 #: templates/public/recruitment/pagination.php:28
@@ -8919,10 +8767,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:79
 msgid "For bulk sends, install the total-mail-queue plugin for queueing + automatic retries"
-msgstr ""
-
-#: includes/settings/views/documentation/forms-geolocation.php:30
-msgid "For each method you pick where the allowed area comes from:"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:403
@@ -9326,10 +9170,6 @@ msgstr ""
 msgid "Geofencing can be set to ignore administrators so they can test a form from anywhere (Settings → Geolocation)."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-geolocation.php:20
-msgid "Geofencing restricts where a form may be submitted. It is configured in the form editor's Geofence box, \"Geolocation\" tab, and can validate by GPS position, by IP geolocation, or both."
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:321 includes/frontend/class-ffc-frontend.php:480 includes/settings/views/ffc-tab-documentation.php:108 includes/settings/views/ffc-tab-documentation.php:204 includes/settings/tabs/class-ffc-tab-geolocation.php:36 includes/settings/views/documentation/config-geolocation.php:18
 msgid "Geolocation"
 msgstr ""
@@ -9396,10 +9236,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-settings.php:736
 msgid "Go to"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-audiences.php:62
-msgid "Go to Audiences > Edit an audience > Custom Fields tab"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:799
@@ -9949,10 +9785,6 @@ msgstr ""
 msgid "ID/CPF/RF entered by user"
 msgstr ""
 
-#: includes/settings/views/documentation/reference-security.php:52
-msgid "If someone submits again with a CPF/RF (or ticket) that already has a certificate, they are returned their existing certificate instead of generating a new one. This is always on — it is what keeps one person from issuing two certificates."
-msgstr ""
-
 #: includes/settings/views/documentation/config-geolocation.php:36
 msgid "If the primary provider fails, try the other one."
 msgstr ""
@@ -10098,10 +9930,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:67
 msgid "In the fallback mode, a submission that arrives without a proof of work is recorded in the Activity Log with a hashed, truncated IP — so you can tell whether anyone still needs the fallback before switching it off."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-certificates.php:66
-msgid "In the form editor Geofence metabox, choose the area source for GPS and IP validation:"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:614
@@ -11985,10 +11813,6 @@ msgstr ""
 msgid "name…"
 msgstr ""
 
-#: includes/settings/views/documentation/config-activity-log.php:26
-msgid "narrow the table by category, level, user and date range."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-migrations.php:980
 msgid "Need Help?"
 msgstr ""
@@ -12804,10 +12628,6 @@ msgstr ""
 msgid "On iOS: tap the \"AA\" button in the address bar → Website Settings → Location → Allow."
 msgstr ""
 
-#: includes/settings/views/documentation/reference-privacy.php:29
-msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability, and every reveal of recruitment PII is itself audited."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-rate-limit.php:302
 msgid "On top of the threshold above, at least this many STRONG signals (canvas, WebGL, audio, fonts, plugins, permissions) must match before two visits count as the same device. Strong signals rarely coincide between different physical devices, so requiring them is what stops false blocks across same-model devices in a homogeneous audience."
 msgstr ""
@@ -12838,10 +12658,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/email-texts-hub.php:23
 msgid "One email at a time"
-msgstr ""
-
-#: includes/settings/views/documentation/reference-privacy.php:39
-msgid "one eraser clears the encrypted personal data (e-mail, CPF/RF, …) from those records. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
 msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:107
@@ -13004,10 +12820,6 @@ msgstr ""
 msgid "Opt in (off by default) to log where the legacy and secure IP strategies diverge, to validate a switch before flipping."
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:42
-msgid "Opt in (off by default) to make validate_rf() also require the RF check digit, rejecting a mistyped number at the form instead of storing it."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-shortcodes.php:46 includes/settings/views/documentation/reference-shortcodes.php:79
 msgid "Optional attribute:"
 msgstr ""
@@ -13076,10 +12888,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:54
 msgid "Or inline style:"
-msgstr ""
-
-#: includes/settings/views/documentation/overview.php:63
-msgid "or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Developer)."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:303
@@ -13564,10 +13372,6 @@ msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:248 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:468
 msgid "Phone:"
-msgstr ""
-
-#: includes/settings/views/documentation/reference-html-styling.php:91
-msgid "Photo cropped to fit dimensions"
 msgstr ""
 
 #: includes/admin/class-ffc-certificates-dashboard.php:115
@@ -14220,10 +14024,6 @@ msgstr ""
 msgid "Public Operator Access"
 msgstr ""
 
-#: includes/settings/views/documentation/forms-public-operator-access.php:21
-msgid "Public Operator Access (formerly \"Public CSV Download\") lets a trusted operator who does NOT have a WordPress login interact with a single form through a secret, per-form link. It is enabled in the form editor's \"Public Operator Access\" box."
-msgstr ""
-
 #: includes/frontend/class-ffc-csv-download-validator.php:57 includes/frontend/class-ffc-csv-download-validator.php:124
 msgid "Public Operator Access is not enabled for this form."
 msgstr ""
@@ -14346,10 +14146,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-general.php:41
 msgid "QR Code defaults"
-msgstr ""
-
-#: includes/settings/views/documentation/reference-tokens.php:96
-msgid "QR Code image (see section 3 for options)"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-qr-codes.php:17
@@ -14939,10 +14735,6 @@ msgstr ""
 msgid "Remove shortcodes now"
 msgstr ""
 
-#: includes/settings/views/documentation/config-general.php:31
-msgid "Remove submissions after this many days. 0 disables auto-deletion."
-msgstr ""
-
 #: includes/admin/class-ffc-admin-assets-manager.php:570
 msgid "Remove this field?"
 msgstr ""
@@ -15081,10 +14873,6 @@ msgid "Replicated to %d field across descendants."
 msgid_plural "Replicated to %d fields across descendants."
 msgstr[0] ""
 msgstr[1] ""
-
-#: includes/settings/views/documentation/operations-maintenance.php:44
-msgid "Report-only scan (never changes data) for submissions wrongly linked to WordPress users: a link to a deleted user, one user bound to multiple CPF/RF identities, an unlinked submission whose CPF matches a linked one, and a single CPF shared across users. Detection runs off the stored CPF/RF hashes, so no decryption is involved."
-msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:915
 msgid "Report-only scan for submissions wrongly linked to WordPress users. Nothing is changed — review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved."
@@ -16043,10 +15831,6 @@ msgstr ""
 msgid "seconds"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-record.php:74
-msgid "Sector"
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:598
 msgid "Secure (trusted-proxy model) — real client behind Cloudflare / a configured proxy, unspoofable (recommended)"
 msgstr ""
@@ -16335,10 +16119,6 @@ msgstr ""
 msgid "Self-Scheduling (Personal)"
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:60
-msgid "Self-scheduling appointment lifecycle."
-msgstr ""
-
 #: includes/settings/views/documentation/email-texts-hub.php:32
 msgid "Self-scheduling confirmation:"
 msgstr ""
@@ -16501,10 +16281,6 @@ msgstr ""
 msgid "Sensitive identifiers such as e-mail addresses and CPF/RF numbers are stored encrypted at rest. Where consent is required, the date and time you gave it are recorded. One-way hashes of some identifiers are kept so records can be located without exposing the original values."
 msgstr ""
 
-#: includes/settings/views/documentation/reference-privacy.php:27
-msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-reregistration.php:41
 msgid "sent after a member submits; carries the Record magic link."
 msgstr ""
@@ -16584,10 +16360,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:85
 msgid "Set"
-msgstr ""
-
-#: includes/settings/views/documentation/reference-shortcodes.php:78
-msgid "Set \"notice\" to the notice code. The list shows only the columns marked public in the notice editor, and only while the notice is in a public state (preliminary / definitive); drafts and closed notices are hidden."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:556
@@ -17022,10 +16794,6 @@ msgstr ""
 
 #: includes/core/class-ffc-security-service.php:104
 msgid "six"
-msgstr ""
-
-#: includes/settings/views/documentation/reference-privacy.php:38
-msgid "six exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings and FFC user settings."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:413
@@ -17900,10 +17668,6 @@ msgstr ""
 msgid "That role cannot be assigned from this screen."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-schedule.php:44
-msgid "The \"Class Schedule\" / event times on the same tab are a reference printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. See"
-msgstr ""
-
 #: includes/settings/views/documentation/reference-emails.php:51
 msgid "The \"Email Model\" chrome"
 msgstr ""
@@ -17922,10 +17686,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:32
 msgid "The \"Generate missing short URLs\" button creates short URLs for already-published posts of the shortened types that do not have one yet (it runs in timeout-safe batches). This only creates the short URLs — tick \"Expose\" to publish them as shortlinks."
-msgstr ""
-
-#: includes/settings/views/documentation/submissions-download.php:27
-msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-capabilities.php:25
@@ -18008,10 +17768,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-modulos.php:26
 msgid "The certificate form post type and public form rendering. Disabling hides the certificate admin and stops public submissions."
-msgstr ""
-
-#: includes/settings/views/documentation/document-templates-hub.php:34
-msgid "The certificate PDF a form issues on submission (the default kind)."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-captcha.php:61
@@ -18097,10 +17853,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:39
 msgid "The download quota pre-filled when Public Operator Access is enabled on a new form (each form can override it)."
-msgstr ""
-
-#: includes/settings/views/documentation/submissions-list.php:26
-msgid "The edit screen lets you correct the participant email and the form's custom-field values, and manage the linked WordPress user and the LGPD consent record. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
 msgstr ""
 
 #: templates/admin/recruitment/candidate-edit/general-section.php:53
@@ -18219,10 +17971,6 @@ msgstr ""
 msgid "The global \"Disable all emails\" toggle (SMTP tab) is enforced at the single send chokepoint, so it is bypass-proof — nothing is sent while it is on. Every email-editing screen shows a gentle notice while it is active, so you know settings are saved but not sent."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-public-operator-access.php:26
-msgid "The hash is the only credential — treat the link as a password. Set the base page under Settings → General (\"CSV Download Page URL\") so the editor shows the full link instead of just the query string. The hash is regenerated on demand and is deliberately NOT copied when a form is duplicated."
-msgstr ""
-
 #: includes/admin/class-ffc-admin-assets-manager.php:674
 msgid "The HTML editor is empty. Add a template first."
 msgstr ""
@@ -18237,10 +17985,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:54
 msgid "the identifier (required). See the note below on CPF/RF validation."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-user-dashboard.php:48
-msgid "The identity/contact/address/employment fields shown on the dashboard live on the WordPress user profile and are mapped to the reregistration and audience data, so a user's details stay consistent across a certificate PDF, a record and their profile."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:228
@@ -18404,10 +18148,6 @@ msgstr ""
 msgid "The plugin's developer surface: action/filter hooks to extend behavior, a REST API for integrations, and the authenticated Forms API. For the front-end shortcodes see the Shortcodes reference."
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:115
-msgid "The plugin's only authenticated write API: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.19.0."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-url-shortener.php:31
 msgid "The Post Types setting has two columns per type: \"Shorten\" (show the meta box and allow short URLs for that type) and \"Expose\". When a type is exposed, a published post's short URL becomes the site's canonical shortlink — WordPress emits it as the"
 msgstr ""
@@ -18504,10 +18244,6 @@ msgstr ""
 msgid "The semantic colours are:"
 msgstr ""
 
-#: includes/settings/views/documentation/scheduling-audiences.php:42
-msgid "The Settings tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-emails.php:36
 msgid "the shared chrome (header / body card / footer) that wraps every email, with a live preview and a test-send."
 msgstr ""
@@ -18554,10 +18290,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-cache.php:21
 msgid "The tab detects common external caches and reports whether the plugin stays compatible — nothing to configure here. It recognizes LiteSpeed Cache, WP Rocket, W3 Total Cache and WP Super Cache (page caches) and a Redis/persistent object cache."
-msgstr ""
-
-#: includes/settings/views/documentation/submissions-list.php:23
-msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by form and switch between Published, Trash, and the quiz states (Retry, Failed). Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-model.php:116
@@ -18630,10 +18362,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:30
 msgid "Their own issued certificates, with download / verification links"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-user-dashboard.php:33
-msgid "Their profile fields (identity, contact, address, employment) sourced from the WordPress user profile"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:31
@@ -19443,10 +19171,6 @@ msgstr ""
 msgid "Trash (%d)"
 msgstr ""
 
-#: includes/settings/views/documentation/submissions-list.php:42
-msgid "Trash / restore and bulk actions."
-msgstr ""
-
 #: templates/admin/url-shortener/short-urls-page.php:84
 msgid "Trash emptied."
 msgstr ""
@@ -19583,10 +19307,6 @@ msgstr ""
 msgid "Uncheck a category to stop logging its events. All on by default."
 msgstr ""
 
-#: includes/settings/views/documentation/reference-privacy.php:36
-msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers handlers keyed by e-mail address, so a subject request also covers the data this plugin stores:"
-msgstr ""
-
 #: includes/settings/views/documentation/reference-html-styling.php:39
 msgid "Underline text:"
 msgstr ""
@@ -19597,10 +19317,6 @@ msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:83 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:439 includes/settings/views/documentation/feature-record.php:130
 msgid "Union"
-msgstr ""
-
-#: includes/settings/views/documentation/reference-tokens.php:46
-msgid "Unique authentication code for validation"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:221
@@ -20341,10 +20057,6 @@ msgstr ""
 msgid "View forms"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:64
-msgid "view or configure calendars and appointments."
-msgstr ""
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:141
 msgid "View own appointments"
 msgstr ""
@@ -20699,10 +20411,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:26
 msgid "when auto-create is on, publishing a post/page (of the enabled post types) creates a short URL for its permalink."
-msgstr ""
-
-#: includes/settings/views/documentation/forms-geolocation.php:27
-msgid "When both are enabled you choose whether the visitor must pass GPS AND IP, or either one (OR). Blocked visitors see a configurable message, the title + message, or the form is hidden."
 msgstr ""
 
 #: includes/settings/views/documentation/config-geolocation.php:47
@@ -21930,10 +21638,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:123
 msgid "Re-importing the same file cannot duplicate anybody: there is one record per person per campaign, enforced by the database."
-msgstr ""
-
-#: includes/settings/views/documentation/submissions-list.php:45
-msgid "Reveal the decrypted CPF / RF / email instead of the masked values (audited). Without it the list and the PDF stay masked, whatever else the operator holds."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:103
@@ -23666,9 +23370,6 @@ msgstr ""
 msgid "Up to 24 characters, e.g. \"Scan to verify\". The caption colour is picked to stay readable on the frame."
 msgstr ""
 
-msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame — a banner below, a badge or a speech bubble above — can carry a short caption such as \"Scan to verify\". A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
-msgstr ""
-
 msgid "%1$d of %2$d bytes (%3$d%%)"
 msgstr ""
 
@@ -23967,4 +23668,904 @@ msgid "Transparent background: contrast cannot be checked. Test the code on the 
 msgstr ""
 
 msgid "X"
+msgstr ""
+
+msgid "Design and generate QR codes"
+msgstr ""
+
+msgid "Style the QR codes on certificates and short URLs (shapes, colours, logo, frame), and draw standalone codes for a website, Wi-Fi, contact card, event and more with the QR Code Generator."
+msgstr ""
+
+msgid "Send date-based messages"
+msgstr ""
+
+msgid "E-mail people on a date in their profile, such as a birthday, through the same e-mail pipeline, with one-click unsubscribe."
+msgstr ""
+
+msgid "or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Date Messages, Developer)."
+msgstr ""
+
+msgid "Colours of the certificate HTML editor on the form screen: Auto (follows Dark Mode), Light or Dark. New installs default to Dark."
+msgstr ""
+
+msgid "Off by default. When switched on, the daily cleanup permanently deletes published submissions older than the \"Delete after (days)\" window (default 365)."
+msgstr ""
+
+msgid "Off by default. When on, forms reject an RF whose check digit does not match. Before turning it on, run the identity audit on the Data Migrations tab to see how many stored RFs would fail."
+msgstr ""
+
+msgid "Branding logos"
+msgstr ""
+
+msgid "A government / institution logo and an organization logo, picked from the Media Library. They fill the {{logo_gov}} and {{logo_org}} placeholders in the default Record and appointment-receipt templates; a generic placeholder is used when empty."
+msgstr ""
+
+msgid "Hides the Date Messages menu and stops date-based e-mails such as birthdays. While it is on, nothing is sent until an administrator creates and activates a rule."
+msgstr ""
+
+msgid "See Date Messages."
+msgstr ""
+
+msgid "How many ALTCHA challenges one IP address may request per window is set on the Rate Limit tab, in the IP group (default 60 per 10 minutes; 0 removes the cap, which suits sites where many people share one address)."
+msgstr ""
+
+msgid "See Rate Limit."
+msgstr ""
+
+msgid "Cloudflare:"
+msgstr ""
+
+msgid "when Cloudflare is in front of the site, a Cloudflare Page Cache card reads the edge cache status of the front page. Cloudflare's default (static assets only) is safe; with \"Cache Everything\", APO or a Cache Rule that caches HTML, add a bypass for the form and dashboard URLs or for the wordpress_logged_in cookie."
+msgstr ""
+
+msgid "This cache covers certificate QR codes only. Short URLs cache their own QR codes separately, with no setting and no manual clearing."
+msgstr ""
+
+msgid "narrow the table by level and by action, or search the entries by text."
+msgstr ""
+
+msgid "an activity summary for the last 30 days: the total, the counts by level and the most frequent actions."
+msgstr ""
+
+msgid "The most rows the synchronous (no-JavaScript) public CSV download may return (default 2000). Larger exports must use the JavaScript batched flow, which runs in steps and survives shared-hosting timeouts."
+msgstr ""
+
+msgid "Certificate editor"
+msgstr ""
+
+msgid "The colour theme of the certificate HTML editor is on the General tab, next to Dark Mode."
+msgstr ""
+
+msgid "See General."
+msgstr ""
+
+msgid "Defining a constant is effectively one-way: new writes use the new key the moment it is defined. On a site that already stores data, adopt the constants and then run the Encryption Key Rotation (Settings → Data Migrations) to re-encrypt existing records. Removing or blindly changing a constant on a live site makes existing records unreadable until the exact value is restored — it is never a blind edit."
+msgstr ""
+
+msgid "ALTCHA challenges per IP:"
+msgstr ""
+
+msgid "the IP group also caps how many captcha challenges one address may request per window (default 60 per 600 seconds). 0 removes the cap — the honest choice where many people share one address, since any per-address number would cap the whole building."
+msgstr ""
+
+msgid "See Captcha."
+msgstr ""
+
+msgid "Report-only scan (never changes data) of how people are linked to WordPress users. Over certificate submissions: a link to a deleted user, one user bound to multiple CPF/RF identities, an unlinked submission whose CPF matches a linked one, and a single CPF shared across users. Across submissions, appointments, recruitment candidacies and the identity index: one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not carry yet. It also flags a stored CPF or RF whose own check digit does not match. Findings can be exported as CSV and are worked on the Identity Resolution screen."
+msgstr ""
+
+msgid "Always run the preview first. Deletions (short URLs) are permanent; disabling Public Operator Access is reversible (re-enable on the form editor); the link audit only reports — resolve each finding on the Identity Resolution screen or by hand."
+msgstr ""
+
+msgid "See Identity Resolution."
+msgstr ""
+
+msgid "See Data Migrations."
+msgstr ""
+
+msgid "Check the form's Date & Time Restrictions (the \"Time\" tab of its restrictions) — the form may be outside its open/close window"
+msgstr ""
+
+msgid "Reminders, cleanups or date messages run late or not at all"
+msgstr ""
+
+msgid "Open Settings → Scheduled Tasks and look for tasks marked late"
+msgstr ""
+
+msgid "WP-Cron only runs when the site gets visits — install the server cron line that tab generates"
+msgstr ""
+
+msgid "Upgrade notice."
+msgstr ""
+
+msgid "Dashboard → Updates shows a short summary of the release on offer, taken from the plugin's readme, so you can read what changes before applying it."
+msgstr ""
+
+msgid "Settings → Scheduled Tasks lists the background tasks the plugin runs through WP-Cron — cleanups, reminders, cache warming, date messages and the like — and helps you keep them running on time."
+msgstr ""
+
+msgid "The task table"
+msgstr ""
+
+msgid "Frequency, next run and last run"
+msgstr ""
+
+msgid "WordPress only records when a task is due, so the plugin records the last real run itself; it appears after a task first runs."
+msgstr ""
+
+msgid "a recurring task whose last run is older than its interval allows is marked late, and a warning tops the page. A task whose module is turned off on the Modules tab still fires but does nothing."
+msgstr ""
+
+msgid "each daily task can be given a time, in the site timezone. Leave it empty to keep the task where it is. Saving times needs the settings-management capability."
+msgstr ""
+
+msgid "tasks created per piece of work (one per submission, per reminder batch, per date-messages batch) and removed once they run. A number that keeps growing means WP-Cron is not running."
+msgstr ""
+
+msgid "By default WP-Cron runs only when someone visits the site, so on a quiet site a daily task can run hours late. The tab generates a crontab line — WP-CLI (recommended, needs WP-CLI on the server), or HTTP with wget or curl (works on any host) — at an interval you pick. Add it with \"crontab -e\" as the user that owns the WordPress files, or paste it into your hosting panel."
+msgstr ""
+
+msgid "The line does not decide when tasks run."
+msgstr ""
+
+msgid "WordPress keeps each task's schedule; the server line only makes sure due tasks run promptly, so a short interval is right. Once the line is installed you can add DISABLE_WP_CRON to wp-config.php so visits stop triggering WP-Cron — but with that constant set and no server line, no task runs at all."
+msgstr ""
+
+msgid "Settings → User Access keeps people who only need their own certificates, appointments and profile out of the WordPress admin, sending them to the front-end dashboard instead."
+msgstr ""
+
+msgid "See User Dashboard & Access."
+msgstr ""
+
+msgid "Off by default. When on, users of the blocked roles who open wp-admin are redirected. Front-end AJAX requests are never blocked, so forms and the dashboard keep working."
+msgstr ""
+
+msgid "The roles to keep out; the FFC End User role is selected by default. A user is blocked only when every role they hold is in the list, so someone who is also an editor keeps wp-admin access."
+msgstr ""
+
+msgid "On by default: an administrator is never redirected, even when holding a blocked role."
+msgstr ""
+
+msgid "Where blocked users land — by default the site's /dashboard page."
+msgstr ""
+
+msgid "The notice shown on the dashboard page after a redirect."
+msgstr ""
+
+msgid "Off by default, which hides the WordPress admin bar on the front end for users whose roles are all blocked."
+msgstr ""
+
+msgid "The \"FFC End User\" role is assigned automatically to people who submit forms with a CPF or RF."
+msgstr ""
+
+msgid "Settings → IP Diagnostics decides how the plugin works out a visitor's IP address. That one choice governs every IP read in the plugin: the activity log, IP geolocation, rate limiting, the geofence and the public listing throttle."
+msgstr ""
+
+msgid "Legacy"
+msgstr ""
+
+msgid "the effective default. It trusts client-supplied headers such as X-Forwarded-For, so a forged header can spoof the address."
+msgstr ""
+
+msgid "Secure (recommended)"
+msgstr ""
+
+msgid "a trusted-proxy model: a forwarded header is honoured only when the request really comes from Cloudflare or a proxy you trust, so the real client is found and cannot be forged."
+msgstr ""
+
+msgid "With the secure strategy, the trusted-proxy mode says whom to believe: Auto (detect Cloudflare or a known proxy, else use the direct connection — recommended), Cloudflare, Custom (your own proxy CIDRs, one per line — never Cloudflare's, which are kept up to date automatically) or Direct (ignore every forwarded header)."
+msgstr ""
+
+msgid "What the tab shows"
+msgstr ""
+
+msgid "how your own request would be resolved, the headers received, and what each strategy would do with a forged X-Forwarded-For. IPs are masked unless you are a full administrator."
+msgstr ""
+
+msgid "Cloudflare ranges"
+msgstr ""
+
+msgid "the official Cloudflare IP lists, refreshed daily (a bundled list is used until the first refresh), with a button to refresh them now."
+msgstr ""
+
+msgid "off by default. When on, it logs (with a hashed IP) every request where the two strategies would disagree, so you can measure the impact before switching."
+msgstr ""
+
+msgid "Why Legacy is still the default:"
+msgstr ""
+
+msgid "switching changes which address rate limits and the geofence see, which can matter on shared hosting. The tab recommends Secure, and putting Cloudflare (free plan) in front of the site for an address that cannot be forged."
+msgstr ""
+
+msgid "Settings → Data Migrations brings stored data in line with what newer versions of the plugin expect. Each migration is a card showing how many records are migrated and how many are still pending. Click \"Run Migration\" once: it keeps processing batches until the card reaches 100%, with a live progress bar. Running a migration needs the Danger Zone capability."
+msgstr ""
+
+msgid "What the cards do"
+msgstr ""
+
+msgid "Identifiers and search hashes"
+msgstr ""
+
+msgid "split the old combined CPF/RF column into separate CPF and RF columns, rewrite stored CPF, RF and e-mail values into one canonical form, rebuild the e-mail lookup hashes, and copy the CPF/RF hashes already linked to a user into the identity index."
+msgstr ""
+
+msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and reregistration bodies); another card clears plaintext left on activity log rows that are already encrypted."
+msgstr ""
+
+msgid "See Advanced → Encryption Key Health."
+msgstr ""
+
+msgid "Accounts and profiles"
+msgstr ""
+
+msgid "grant the certificate capabilities to accounts that own a certificate but cannot open it, name accounts created without a name, split full names into WordPress's first and last name, and copy birth dates already given in reregistrations to the profile."
+msgstr ""
+
+msgid "Legacy certificate templates"
+msgstr ""
+
+msgid "import layouts left in the old html/ drop-folder into the template pool and move the images they reference into the Media Library. These cards appear only while that folder exists."
+msgstr ""
+
+msgid "Safe to repeat, not to undo."
+msgstr ""
+
+msgid "A migration can be run again safely, and a finished one simply has nothing left to do. It cannot be undone, so take a database backup first and run the encryption cards during low traffic."
+msgstr ""
+
+msgid "The same tab hosts the maintenance tools and the identity audit."
+msgstr ""
+
+msgid "See Maintenance Tools."
+msgstr ""
+
+msgid "Certificate → Identities lists accounts and stored CPF/RF numbers that do not agree with each other — the findings of the identity audit on the Data Migrations tab — sorted by how much of the answer is already known. Check digits can say a number is wrong, never what the right one is, so confirm corrections with HR. Identifiers are shown as a hash; a stored number is never displayed."
+msgstr ""
+
+msgid "The panels"
+msgstr ""
+
+msgid "a stored CPF or RF that fails its own check digit. Work these first: a number that cannot be anyone's is not evidence that two accounts are one person, so a merge or move that depends on it is refused."
+msgstr ""
+
+msgid "an account holding two values where the check digits show which one is wrong, so no value has to be asked for."
+msgstr ""
+
+msgid "one number stored against more than one account: either a duplicate login to merge, or one login carrying someone else's mistyped number."
+msgstr ""
+
+msgid "numbers that share one address without being variants of each other, such as a shared mailbox or an account submitting for other people."
+msgstr ""
+
+msgid "the check digits do not single one value out, so HR has to say which number is this person's."
+msgstr ""
+
+msgid "records carrying an identifier that belongs to no account, usually recruitment candidacies never promoted or records whose account was deleted."
+msgstr ""
+
+msgid "replace a wrong stored number with the right one."
+msgstr ""
+
+msgid "Move or link"
+msgstr ""
+
+msgid "attach records to the account they belong to. The two sides must already agree on one identifier, and the screen says before you confirm whether the move would be accepted."
+msgstr ""
+
+msgid "give records an account of their own, which creates a WordPress user."
+msgstr ""
+
+msgid "consolidate two logins that are one person. It cannot be undone: afterwards nothing can say which record came from which login."
+msgstr ""
+
+msgid "when the number was never supplied or HR cannot say whose it is, record that decision. The finding moves to \"Accepted — no resolution possible\", where it can be put back in the queue; nothing stored changes, and a merge or move blocked by that number stays blocked."
+msgstr ""
+
+msgid "Every action runs as a single transaction, rolled back whole if any part refuses. The findings can be exported as CSV."
+msgstr ""
+
+msgid "open the screen, correct numbers and move records. It does not reveal a stored identifier."
+msgstr ""
+
+msgid "open a new account from the queue."
+msgstr ""
+
+msgid "merge two accounts."
+msgstr ""
+
+msgid "New wrong RFs keep arriving while the RF check digit setting is off."
+msgstr ""
+
+msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Advanced → Required Certificate Tags. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too."
+msgstr ""
+
+msgid "The {{qr_code}} image follows the design set in Settings → QR Code (module shape, colours, logo, frame) when that design is switched on for certificates; otherwise a plain black-and-white code is drawn."
+msgstr ""
+
+msgid "On the Geolocation tab of the form editor's \"Certificate Form Configuration\" box, choose the area source for GPS and IP validation:"
+msgstr ""
+
+msgid "Turning a form into a quiz"
+msgstr ""
+
+msgid "Enable it on the Quiz tab of the form editor's \"Certificate Form Configuration\" box, then give each scored field its points per option on the Fields tab. Only radio and select fields are scored."
+msgstr ""
+
+msgid "minimum percentage to pass (default 70; 0 means no minimum)."
+msgstr ""
+
+msgid "retries allowed per CPF/RF (0 = unlimited)."
+msgstr ""
+
+msgid "show the score after submission (on by default) and show which answers were correct or incorrect."
+msgstr ""
+
+msgid "An attempt below the passing score is kept as a \"Quiz: Retry\" submission while attempts remain, and as \"Quiz: Failed\" once they run out; no certificate is issued for either."
+msgstr ""
+
+msgid "Validation page:"
+msgstr ""
+
+msgid "The public /valid page also finds a record by its authentication code or its magic link"
+msgstr ""
+
+msgid "Account email"
+msgstr ""
+
+msgid "Authentication code — filled only once the submission is approved"
+msgstr ""
+
+msgid "Ready-made \"Authentication: …\" footer fragment, empty until the submission is approved"
+msgstr ""
+
+msgid "Year the campaign started"
+msgstr ""
+
+msgid "Branding logo URLs from Settings > General > Branding"
+msgstr ""
+
+msgid "Division / Sector (see the dependent-select note below for each half)"
+msgstr ""
+
+msgid "The certificate PDF a form issues on submission (the default kind). Three ready-made certificate models ship."
+msgstr ""
+
+msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change →\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
+msgstr ""
+
+msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails."
+msgstr ""
+
+msgid "Checkbox — fill the Options field. Not scored in quiz mode."
+msgstr ""
+
+msgid "Hidden field — rendered with no visible control."
+msgstr ""
+
+msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
+msgstr ""
+
+msgid "A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF). The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate \"CPF field type\" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked."
+msgstr ""
+
+msgid "Each form has its own Email tab (\"Email Configuration\") in the form editor's \"Certificate Form Configuration\" box, controlling the message sent to the participant on submission, plus an optional admin notification."
+msgstr ""
+
+msgid "the subject is a plain text field and the body is edited in a visual editor. \"Restore Default Text\" restores the current global default, and an empty body also falls back to the default when the email is sent."
+msgstr ""
+
+msgid "Geofencing restricts where a form may be submitted. It is configured on the Geolocation tab of the form editor's \"Certificate Form Configuration\" box, and can validate by GPS position, by IP geolocation, or both."
+msgstr ""
+
+msgid "When both are enabled you choose whether the visitor must pass GPS AND IP, or either one (OR, the default). Blocked visitors see a configurable message, the title + description + message, or the form is hidden. A separate Error Message is shown when the location cannot be determined (e.g. GPS permission denied)."
+msgstr ""
+
+msgid "You pick where the allowed GPS area comes from; IP validation reuses the GPS areas unless \"Use different areas for IP validation\" is checked, in which case IP gets its own source:"
+msgstr ""
+
+msgid "Public Operator Access (formerly \"Public CSV Download\") lets a trusted operator who does NOT have a WordPress login interact with a single form through a secret, per-form link. It is enabled on the Operator tab (\"Public Operator Access\") of the form editor's \"Certificate Form Configuration\" box."
+msgstr ""
+
+msgid "The hash is the only credential — treat the link as a password. Set the base page under Settings → General (\"CSV Download Page URL\") so the editor shows the full link instead of just the query string. The hash is regenerated on demand (\"Regenerate hash on save\") and is deliberately NOT copied when a form is duplicated. A separate option resets the download counter to zero on save."
+msgstr ""
+
+msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP, mode, result) that admins can export."
+msgstr ""
+
+msgid "The CPF gate is checked again when the operator uses Start Form Early or Postpone Close."
+msgstr ""
+
+msgid "With \"Enable Schedule Exception\" switched on in the form's Time tab, the operator page shows an \"Entry/exit exception\" button. It records an individual entry/exit time for one participant, which replaces {{schedule}} on that participant's certificate. The \"Default Modal Mode\" setting chooses whether the dialog opens with the end time pre-filled with the current moment (Now) or lets the operator type both ends (Manual)."
+msgstr ""
+
+msgid "A form can accept submissions only inside a date/time window. The window is configured on the Time tab of the form editor's \"Certificate Form Configuration\" box. Outside the window the form is blocked with a configurable message (or hidden entirely). Administrators can be set to bypass date/time restrictions under Settings → Geolocation."
+msgstr ""
+
+msgid "Before / during / after the window you can independently show a message, show the title + description + message, or hide the form. The \"during\" setting applies only in daily mode, outside that day's hours."
+msgstr ""
+
+msgid "The \"Event Schedule (Reference)\" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. Once they are filled, the certificate layout must contain {{schedule}}. The tokens use a per-participant exception first, then the Event Schedule, then the window's start/end time. See"
+msgstr ""
+
+msgid "moves the close time later on the scheduled close day, after the form has opened; the new time must stay within the same day."
+msgstr ""
+
+msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
+msgstr ""
+
+msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed). The search box matches a submission id, an auth code, or an exact email, CPF or RF. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
+msgstr ""
+
+msgid "The edit screen lets you correct the participant email and the form's custom-field values, and link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
+msgstr ""
+
+msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
+msgstr ""
+
+msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form)."
+msgstr ""
+
+msgid "Reveal the decrypted CPF / RF / email on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
+msgstr ""
+
+msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked without a reveal step. See Capabilities & Roles."
+msgstr ""
+
+msgid "Minimum interval between bookings"
+msgstr ""
+
+msgid "Stops a user from booking again within this many hours of their last booking (default 24; 0 disables it)."
+msgstr ""
+
+msgid "Business-hours restrictions"
+msgstr ""
+
+msgid "Optionally limit viewing the calendar, or only booking on it, to the configured working hours."
+msgstr ""
+
+msgid "Admin bypass"
+msgstr ""
+
+msgid "Per calendar: whether holders of manage_options or ffc_bypass_appointments may book outside the advance window, on blocked dates, outside working hours and past the daily/interval limits. Turn it off to apply every rule to administrators too."
+msgstr ""
+
+msgid "Active, Inactive (no new bookings) or Archived."
+msgstr ""
+
+msgid "Each calendar independently enables: user confirmation, admin notification, approval notice, cancellation notice and a reminder (default 24h before). When the waitlist is on, an \"added to waitlist\" notice and a \"spot opened up\" promotion notice are sent too. The user-facing ones are token-based and editable once in Settings → Email texts (the confirmation can also be overridden per calendar); the admin notification has a fixed body. Every one is wrapped in the shared Email Model chrome. A user who turns off \"Appointment reminder\" in their dashboard notification preferences does not receive the reminder."
+msgstr ""
+
+msgid "view the calendars read-only, or create, edit, publish and delete them (structure, working hours and options)."
+msgstr ""
+
+msgid "view or manage the appointments booked on those calendars."
+msgstr ""
+
+msgid "Go to Scheduling → Audiences, edit an audience, and use its Reregistration Fields section"
+msgstr ""
+
+msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the section is hidden."
+msgstr ""
+
+msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data; fields mapped to a profile key (such as CPF, RF, RG or birth date) are also written, encrypted, to the plugin user profile."
+msgstr ""
+
+msgid "An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed): an audience can let users join or leave its child groups from their dashboard, with a cap on how many child groups one user may join, and its descendants inherit the setting. Audiences also carry the custom fields used by reregistration."
+msgstr ""
+
+msgid "Admin pages"
+msgstr ""
+
+msgid "Besides the calendars, environments and audiences, the Scheduling menu has a Dashboard and an Audience Bookings list of every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
+msgstr ""
+
+msgid "The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
+msgstr ""
+
+msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF. The standard birth-date field reads and writes the single encrypted birth date on the user profile, which Date Messages uses."
+msgstr ""
+
+msgid "create/edit campaigns, approve/reject, generate Records. Editing the field definitions needs ffc_manage_custom_fields."
+msgstr ""
+
+msgid "Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew. Importing a candidate also links or creates their WordPress account (matched by CPF, RF or e-mail), which is what lets them follow their own call-ups."
+msgstr ""
+
+msgid "A capacity meter and density and contrast warnings help keep the code readable, and the preview panel can also print it. An event code can open the event itself, a pre-filled Google Calendar link, or a signed link to an .ics file; that link may carry an optional \"valid until\" date, after which it answers that it has expired, while a link without one never expires. The generator reopens with each user's last downloaded design (design only, never content), and \"Reset to default\" restores the global one."
+msgstr ""
+
+msgid "The global design (module shape, corners, colours and gradient, logo, frame and caption, transparent background) is set on Settings → QR Code. It is off by default and switched on separately for certificates and for short URLs."
+msgstr ""
+
+msgid "Enable the shortener (Settings → Modules)"
+msgstr ""
+
+msgid "Their audience bookings, and the Recruitment tab with their call-ups, when they belong to an audience or are linked to a candidate"
+msgstr ""
+
+msgid "A Profile tab, read from the plugin's own user profile, where they edit their display name, phone, department, organization, notes and birth date (stored encrypted, and the date Date Messages uses)"
+msgstr ""
+
+msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle that opts them out; both are on until turned off"
+msgstr ""
+
+msgid "Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data"
+msgstr ""
+
+msgid "View as user:"
+msgstr ""
+
+msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\")."
+msgstr ""
+
+msgid "The identity/contact/address/employment fields live on the plugin's user profile and are mapped to the reregistration and audience data, so a user's details stay consistent across a certificate PDF, a record and their profile. WordPress's first and last name follow the plugin's full name (first word / the rest), and editing First/Last Name on the user-edit screen updates it back."
+msgstr ""
+
+msgid "A read-only index at the bottom of the tab lists the plugin's emails, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open →\" deep-link to where it is configured. It is discoverability only — it moves no controls."
+msgstr ""
+
+msgid "Date-message e-mails are not in that index: each rule's subject and body are edited on the rule itself, on the Date Messages screen. The hub's \"Birthday message (default for new rules)\" only sets the text a new rule starts from; existing rules keep their own."
+msgstr ""
+
+msgid "See Date Messages"
+msgstr ""
+
+msgid "Birthday message — the default text a new rule starts from"
+msgstr ""
+
+msgid "Date-message e-mails"
+msgstr ""
+
+msgid "Each Date Messages rule sends its own subject and body to each person on their date, through the same pipeline and chrome. A body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. A rule can also e-mail chosen managers a summary 24 hours after each run; that summary has a fixed body."
+msgstr ""
+
+msgid "Date-message tokens:"
+msgstr ""
+
+msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday. It has its own top-level \"Date Messages\" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs."
+msgstr ""
+
+msgid "On, but silent until you create a rule."
+msgstr ""
+
+msgid "The module is enabled by default (Settings → Modules), but no rule ships with the plugin, so nothing is sent until an administrator creates a rule and activates it."
+msgstr ""
+
+msgid "Operator-facing label for the rule."
+msgstr ""
+
+msgid "Which date in the profile the rule follows (the birth date)."
+msgstr ""
+
+msgid "0 sends on the date itself; a negative number sends that many days before it, a positive one after it, up to two months either way."
+msgstr ""
+
+msgid "Everyone, or the members of one audience (members of its sub-audiences included)."
+msgstr ""
+
+msgid "Subject and message"
+msgstr ""
+
+msgid "The e-mail body only; the header and footer come from the Email Model. A new rule starts from the \"Birthday message\" default in Settings → Email texts, and \"Restore default text\" brings it back."
+msgstr ""
+
+msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off and send only the manager summary."
+msgstr ""
+
+msgid "Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below."
+msgstr ""
+
+msgid "Rules can be edited, duplicated, activated or deactivated and deleted from the Rules tab. Deleting a rule keeps what it already sent in the history."
+msgstr ""
+
+msgid "Who receives a message"
+msgstr ""
+
+msgid "For each person whose date falls on the day, the first matching decision wins: outside the audience, opted out, no valid e-mail, already sent, otherwise will receive. Each person gets a rule's message once per occurrence of their date, however often the run repeats. People born on 29 February are reached on 28 February in a common year. The year of birth is never shown; {{age}} is computed from it."
+msgstr ""
+
+msgid "A birth date given before the profile field existed reaches the profile through a migration card in Settings → Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends."
+msgstr ""
+
+msgid "Preview recipients and test send"
+msgstr ""
+
+msgid "\"Preview recipients\" lists, for a range of dates, everyone the rule would reach and the decision for each, using the very selection the send uses, so the preview cannot disagree with what is sent. Long lists show only the first rows, while the totals count everyone. \"Send test to me\" mails the message, filled with fictional values, to your own address. Both use the values on the form, saved or not, and neither sends to anybody else nor records anything."
+msgstr ""
+
+msgid "Sends one rule to everyone whose date falls in a chosen range of up to 31 days, in batches handed to wp_mail(). People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs."
+msgstr ""
+
+msgid "Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue."
+msgstr ""
+
+msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen."
+msgstr ""
+
+msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month, optionally filtered by audience. The tab is shown only to holders of ffc_view_date_messages_pii and administrators."
+msgstr ""
+
+msgid "Daily schedule"
+msgstr ""
+
+msgid "The daily run sends every active rule once a day, at 08:00 in the site timezone by default. The time is chosen on Settings → Scheduled Tasks, which also shows the server line that keeps scheduled tasks running on a quiet site."
+msgstr ""
+
+msgid "Opting out"
+msgstr ""
+
+msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\"."
+msgstr ""
+
+msgid "Every message carries a one-click unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing."
+msgstr ""
+
+msgid "E-mail tokens"
+msgstr ""
+
+msgid "The person's name as stored, its first word, the rest, and the two joined"
+msgstr ""
+
+msgid "The person's e-mail address"
+msgstr ""
+
+msgid "The date of this occurrence and the age reached on it"
+msgstr ""
+
+msgid "Days between the send and the date"
+msgstr ""
+
+msgid "Site name and the link to the user dashboard"
+msgstr ""
+
+msgid "The one-click unsubscribe link"
+msgstr ""
+
+msgid "Messages go through the shared e-mail pipeline and Email Model chrome, and respect the global \"Disable all emails\" switch."
+msgstr ""
+
+msgid "read-only access to the rules, their send history and recipient totals."
+msgstr ""
+
+msgid "create and edit rules, send manually and set the daily send time."
+msgstr ""
+
+msgid "see people by name with their birthday (day and month) in the recipient preview, the upcoming dates and the manager summary."
+msgstr ""
+
+msgid "Unique authentication code for validation, printed with the certificate prefix \"C-\""
+msgstr ""
+
+msgid "QR Code image."
+msgstr ""
+
+msgid "See QR Code Options & Attributes."
+msgstr ""
+
+msgid "The single-use ticket code the participant entered (forms with the Ticket restriction only)."
+msgstr ""
+
+msgid "Quiz forms:"
+msgstr ""
+
+msgid "See Quiz / Evaluation."
+msgstr ""
+
+msgid "{{name}} is filled from a form field whose key is \"name\"; first_name, last_name and full_name are not certificate tokens (they belong to the date-message emails)."
+msgstr ""
+
+msgid "Set \"notice\" to the notice code. The list shows only the columns marked public in the notice editor. Draft notices show a \"being prepared\" message instead of data; preliminary, definitive and closed notices show the list (a closed notice with a \"Notice closed\" banner)."
+msgstr ""
+
+msgid "Each submitter must present a single-use code from a generated pool. The code is claimed atomically (one use only) and removed from the pool as soon as the restriction check passes, before the submission is saved."
+msgstr ""
+
+msgid "If someone submits again with a CPF/RF that already has a certificate, they are returned their existing certificate instead of generating a new one. This is always on — it is what keeps one person from issuing two certificates. On a form with the Ticket restriction, re-entering an already used ticket is currently rejected as \"Invalid or already used ticket\" instead of returning the certificate."
+msgstr ""
+
+msgid "E-mail, CPF, RF, the client IP and the submission's extra form data are stored encrypted with AES-256-CBC using encrypt-then-HMAC; a salted hash backs lookups. Display is masked unless the viewer holds a PII capability."
+msgstr ""
+
+msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
+msgstr ""
+
+msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability. Revealing recruitment PII writes an activity-log entry (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
+msgstr ""
+
+msgid "Activity-log entries store the client IP address in clear text, so the activity log is personal data; an entry whose details carry a sensitive field (such as CPF) has those details encrypted. Only the debug logs hash IP addresses."
+msgstr ""
+
+msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one looks up the WordPress account that has the requested e-mail address and works on the records linked to that account:"
+msgstr ""
+
+msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings and FFC user settings."
+msgstr ""
+
+msgid "an eraser clears the encrypted personal data (e-mail, CPF/RF, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, schedule permissions, stored profile and FFC user settings, and unlinks their activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
+msgstr ""
+
+msgid "What the Privacy Tools do not reach."
+msgstr ""
+
+msgid "When no WordPress account has the requested e-mail, nothing is exported or erased. Records that were never linked to an account (for example a certificate issued without one) are not found, and reregistration submissions and recruitment candidacies are not covered by these handlers. Handle those parts of a request manually from the plugin's own screens."
+msgstr ""
+
+msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
+msgstr ""
+
+msgid "With the design applied to certificates, the {{qr_code}} placeholder is drawn as an SVG and is not cached; without it, a PNG is generated and may be served from the QR Code cache."
+msgstr ""
+
+msgid "When the submission has no magic token, \"m\" falls back to the /valid page. The generated link carries the class ffc-validation-link."
+msgstr ""
+
+msgid "Inline styling, a horizontal rule, and legacy font color/size/face"
+msgstr ""
+
+msgid "The template is filtered on save."
+msgstr ""
+
+msgid "Only the tags above survive, each with a fixed set of attributes: style works on almost every tag, but class is removed from img, td and th, and style blocks are not allowed — use inline styles. Developers can widen the list with the ffcertificate_allowed_html_tags filter."
+msgstr ""
+
+msgid "Image scaled to exactly these dimensions (it is stretched, not cropped, when the proportions differ)"
+msgstr ""
+
+msgid "Helper classes:"
+msgstr ""
+
+msgid "The PDF stylesheet ships alignment helpers for the certificate body:"
+msgstr ""
+
+msgid "Use them on a paragraph, div, span, heading, list or table."
+msgstr ""
+
+msgid "The stylesheet also defines image helpers"
+msgstr ""
+
+msgid "but they cannot be used in a form's certificate template today: the class attribute is removed from img tags when the template is saved. Size images with width / height or an inline style instead."
+msgstr ""
+
+msgid "Filter the to / subject / body of the audience, reregistration and date-message emails. Self-scheduling appointment emails do not pass through it (use ffcertificate_email)."
+msgstr ""
+
+msgid "Whether validate_rf() also requires the RF check digit, rejecting a mistyped number at the form instead of storing it. Off by default; normally set from Settings → General, and the filter overrides that setting — args ( enforce )."
+msgstr ""
+
+msgid "The token map used to build the certificate HTML — args ( data, submission_id, submission_row )."
+msgstr ""
+
+msgid "The certificate PDF filename — args ( filename, form_title, auth_code, submission_id )."
+msgstr ""
+
+msgid "Every plugin PDF filename, before the per-type filters — args ( filename, type, entity_id, auth_code )."
+msgstr ""
+
+msgid "The img tag that replaces a certificate {{qr_code}} placeholder — args ( img_html, url, submission_id )."
+msgstr ""
+
+msgid "The appointment receipt template: return HTML to replace it — args ( html, schedule_type ) — or point to another file inside the plugin or theme — args ( file )."
+msgstr ""
+
+msgid "The receipt PDF filename — args ( filename, calendar_id, validation_code, appointment ) — and its background image URL — args ( url, appointment, calendar )."
+msgstr ""
+
+msgid "The bookable slots of a self-scheduling calendar day — args ( slots, calendar_id, date, calendar )."
+msgstr ""
+
+msgid "When a calendar is deleted: whether its appointments are cancelled — args ( true, calendar_id, post_id ) — and whether each person is notified — args ( true, appointment )."
+msgstr ""
+
+msgid "The certificate confirmation email — args ( subject, form_title, form_config ), ( to, form_title, submission_data ) and ( body, to, form_title, submission_data )."
+msgstr ""
+
+msgid "Who receives the new-submission admin notification — args ( recipients, form_title, data )."
+msgstr ""
+
+msgid "Whether to stamp the mail-queue source headers on an email — args ( emit, source_key )."
+msgstr ""
+
+msgid "Submissions CSV exports (admin and public): the header row — args ( headers, include_edit_columns, form_ids ) — the filename — args ( filename, form_ids, status ) — and each batch of rows — args ( rows, form_ids, status )."
+msgstr ""
+
+msgid "The sanitized ffc_settings array before it is written — args ( clean, current )."
+msgstr ""
+
+msgid "The capabilities that let a user open the Settings page — args ( caps )."
+msgstr ""
+
+msgid "Add a tab to the Scheduling settings screen — args ( tabs )."
+msgstr ""
+
+msgid "Register a migration card and its strategy on Settings → Migrations — args ( migrations ) / ( strategies )."
+msgstr ""
+
+msgid "The page URL used for a form's schedule-exception link — args ( url, form_id )."
+msgstr ""
+
+msgid "Call the IP geolocation API over HTTPS instead of HTTP — args ( false )."
+msgstr ""
+
+msgid "Turn off the GitHub update check — args ( true ) — or point it at another repository — args ( repo )."
+msgstr ""
+
+msgid "After a submission is edited — args ( submission_id, update_data ) — or deleted — args ( submission_id )."
+msgstr ""
+
+msgid "Self-scheduling appointment lifecycle — args ( appointment_id, data, calendar ) on create, ( appointment_id, appointment, reason, cancelled_by ) on cancel."
+msgstr ""
+
+msgid "Audience booking lifecycle — args ( booking_id ) on create, ( booking_id, reason ) on cancel."
+msgstr ""
+
+msgid "Before a short-URL redirect is sent — args ( record, target_url, redirect_type )."
+msgstr ""
+
+msgid "After a submissions CSV export finishes (admin or public) — args ( job_id, file, rows, job ). The other exports do not fire it. Renamed from ffcertificate_csv_export_completed in 6.17.0."
+msgstr ""
+
+msgid "Before a public submission is stored — args ( form_id, submission_data, user_email, form_config )."
+msgstr ""
+
+msgid "Before a submission is edited — args ( submission_id, email, data ) — or permanently deleted — args ( submission_id )."
+msgstr ""
+
+msgid "A submission moved to or restored from the trash — args ( submission_id )."
+msgstr ""
+
+msgid "After a certificate's PDF payload is built — args ( pdf_data, submission_id )."
+msgstr ""
+
+msgid "Before the certificate confirmation email is composed — args ( submission_id, user_email, form_id, form_config )."
+msgstr ""
+
+msgid "Before a self-scheduling appointment is stored — args ( data, calendar )."
+msgstr ""
+
+msgid "Triggers for the self-scheduling emails; the plugin's own email handler listens to them — args ( appointment, calendar )."
+msgstr ""
+
+msgid "Before an audience booking is stored — args ( booking_data )."
+msgstr ""
+
+msgid "After an audience (group) is created — args ( audience_id, data )."
+msgstr ""
+
+msgid "While the Audience module registers its capabilities — no args."
+msgstr ""
+
+msgid "After a form's cached data is purged — args ( form_id, reason )."
+msgstr ""
+
+msgid "After the ffc_settings option is saved — args ( clean )."
+msgstr ""
+
+msgid "Before a Danger Zone data deletion runs — args ( target, reset_counter )."
+msgstr ""
+
+msgid "fires when a submissions export finishes; the other exports do not fire it."
+msgstr ""
+
+msgid "Public — books an appointment."
+msgstr ""
+
+msgid "Read or cancel one appointment — requires access to that appointment."
+msgstr ""
+
+msgid "Logged-in (acts on the current user)."
+msgstr ""
+
+msgid "Public — anonymous callers get bookings of the schedules they may read, without personal details."
+msgstr ""
+
+msgid "Logged-in — creating needs ffc_view_own_audience_bookings (or the scheduling bypass); cancelling needs ownership of the booking or the bypass."
+msgstr ""
+
+msgid "ffc_view_certificates (personal data stays masked without the PII capability)."
+msgstr ""
+
+msgid "Logged-in — the current candidate's own recruitment data."
+msgstr ""
+
+msgid "The plugin's only authenticated write API: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.18.0."
 msgstr ""

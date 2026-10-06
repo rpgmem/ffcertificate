@@ -951,10 +951,6 @@ msgstr "um calendário pode manter seu próprio corpo de mensagem de confirmaç�
 msgid "A calendar uses one of two availability models:"
 msgstr "Um calendário utiliza um de dois modelos de disponibilidade:"
 
-#: includes/settings/views/documentation/feature-reregistration.php:66
-msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF."
-msgstr "Uma campanha exibe a combinação dos campos personalizados de seus públicos vinculados (campos padrão de identidade/contato, além de quaisquer campos personalizados). Cada envio pode ser exportado como uma ficha em PDF."
-
 #: includes/settings/views/documentation/feature-reregistration.php:58
 msgid "A campaign with up to 50 members awaiting a reminder is sent in one go, exactly as before. Above that, the daily sweep sends the first 50 and queues the rest, 50 at a time, about a minute apart. Nobody receives two emails: each send is stamped on the member the moment it goes out, so a batch that is interrupted resumes where it stopped instead of starting over."
 msgstr "Uma campanha com até 50 membros aguardando lembrete é enviada de uma só vez, exatamente como antes. Acima disso, a varredura diária envia os 50 primeiros e enfileira o restante, 50 por vez, com cerca de um minuto de intervalo. Ninguém recebe dois e-mails: cada envio é registrado no membro no momento em que sai, de modo que um lote interrompido continua de onde parou em vez de recomeçar."
@@ -1001,10 +997,6 @@ msgstr "um rascunho foi salvo, mas não enviado."
 msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button. One \"Save email texts\" button persists them all — you do not save per email."
 msgstr "Um seletor organizado por funcionalidades lista todos os e-mails editáveis; ao selecionar um deles, abre-se apenas o editor correspondente (o editor de texto rico é criado sob demanda, mantendo a página leve, mesmo com um grande número de e-mails). Cada editor conta com sua própria ajuda para {{tokens}} e um botão \"Restaurar texto padrão\". Um único botão \"Salvar textos dos e-mails\" salva todas as alterações de uma só vez — não é necessário salvar e-mail por e-mail."
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:60
-msgid "A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF). There is no separate \"CPF field type\" — the name is what triggers it. The cpf, cpf_rf and rg tokens are also auto-masked when rendered in a PDF."
-msgstr "Um campo chamado `cpf_rf` é validado no envio como um documento brasileiro: caracteres não numéricos são removidos e o valor deve ter exatamente 11 dígitos (CPF, com validação do dígito verificador) ou 7 dígitos (RF). Não existe um \"tipo de campo CPF\" específico — é o nome do campo que aciona essa validação. Os tokens `cpf`, `cpf_rf` e `rg` também recebem máscara automaticamente ao serem gerados em PDF."
-
 #: includes/settings/views/documentation/forms-dynamic-fields.php:24
 msgid "A field whose Variable Name (Tag) is"
 msgstr "Um campo cujo Nome da Variável (Tag) é"
@@ -1013,29 +1005,13 @@ msgstr "Um campo cujo Nome da Variável (Tag) é"
 msgid "A filter (notice / adjutancy / search) is required to list candidates."
 msgstr "É necessário um filtro (edital / matéria / pesquisa) para listar os candidatos."
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:43
-msgid "A fixed value submitted without being shown."
-msgstr "Um valor fixo enviado sem ser exibido."
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:544
 msgid "A forged X-Forwarded-For would fool the Legacy strategy (rate-limit, geofence, activity log). Secure discards it."
 msgstr "Um cabeçalho `X-Forwarded-For` falsificado enganaria a estratégia legada (limite de taxa, cerca geográfica, registro de atividades). O modo seguro o descarta."
 
-#: includes/settings/views/documentation/forms-schedule.php:21
-msgid "A form can accept submissions only inside a date/time window. The window is configured in the form editor's Geofence box, \"Time\" tab. Outside the window the form is blocked with a configurable message (or hidden entirely)."
-msgstr "Um formulário pode aceitar envios apenas dentro de um intervalo de data e hora. Esse intervalo é configurado na caixa de Geofence do editor de formulários, na aba \"Time\" (Tempo). Fora desse intervalo, o formulário é bloqueado com uma mensagem configurável (ou ocultado totalmente)."
-
 #: includes/settings/views/documentation/reference-security.php:57
 msgid "A form can cap how many submissions come from the same device using a browser/device fingerprint. Empty per-form values inherit the global defaults from Settings → Rate Limit → Device Fingerprint, and the per-form toggle stays disabled until that global subsystem is enabled. Automatic reprints are exempt from the device cap."
 msgstr "Um formulário pode limitar o número de envios provenientes do mesmo dispositivo utilizando uma *fingerprint* (impressão digital) de navegador/dispositivo. Valores não definidos individualmente no formulário herdam as configurações globais padrão (em Configurações → Limite de Taxa → Fingerprint do Dispositivo), e a opção de ativação específica do formulário permanece desabilitada até que esse subsistema global seja ativado. Reimpressões automáticas estão isentas desse limite por dispositivo."
-
-#: includes/settings/views/documentation/forms-public-operator-access.php:48
-msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced), and every download is written to a per-form audit ring buffer (timestamp, IP, mode, result) that admins can export."
-msgstr "Um formulário sem data de término nunca libera o arquivo CSV. Os downloads também estão sujeitos a uma cota por formulário (se o campo estiver em branco, aplica-se o Limite Padrão de Download global, definido em Configurações → Avançado), e cada download é registrado em um buffer circular de auditoria específico do formulário (contendo carimbo de data/hora, IP, modo e resultado), o qual os administradores podem exportar."
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:20
-msgid "A form's input fields are defined in the form editor's \"Form Builder (Fields)\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails."
-msgstr "Os campos de entrada de um formulário são definidos na caixa \"Form Builder (Fields)\" (Construtor de Formulários/Campos) do editor de formulários — uma lista de campos que permite reordenar os itens. Cada campo possui um Nome de Variável (Tag); essa tag é a chave de sistema que se transforma em um {{token}} no PDF do certificado e nos e-mails."
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:18
 msgid "A front-end panel where each logged-in user sees their own data — issued certificates, appointments and profile — without any admin access."
@@ -1097,14 +1073,6 @@ msgstr "uma configuração predefinida (tolerante / híbrida / rigorosa) ou uma 
 #: includes/settings/views/documentation/config-rate-limit.php:42
 msgid "A privacy-respecting browser/device fingerprint caps submissions from the same device (off by default). It combines a cookie with a set of non-cookie signals (screen, timezone, canvas, WebGL, audio, fonts, …). A device matches when the cookie matches, or when enough signals match — the match threshold — with a minimum number of \"strong\" signals to corroborate."
 msgstr "Um mecanismo de *fingerprinting* de navegador/dispositivo que respeita a privacidade limita o número de envios provenientes de um mesmo dispositivo (recurso desativado por padrão). Ele combina um cookie com um conjunto de sinais que não dependem de cookies (tela, fuso horário, *canvas*, WebGL, áudio, fontes, etc.). A correspondência de um dispositivo é confirmada quando o cookie coincide ou quando há coincidência de sinais suficientes — atingindo o limite de correspondência — incluindo um número mínimo de sinais \"fortes\" para corroborar a identificação."
-
-#: includes/settings/views/documentation/document-templates-hub.php:50
-msgid "A read-only \"Current assignments\" overview at the top of the hub shows, at a glance, which pool template each feature is using right now, with a \"Change →\" link into that feature's own settings. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
-msgstr "Uma visão geral de \"Atribuições atuais\" (somente leitura), localizada na parte superior do hub, mostra rapidamente qual modelo de pool cada recurso está utilizando no momento, com um link \"Alterar →\" que direciona para as configurações específicas desse recurso. Essa visão geral serve apenas para consulta; os controles de seleção (e suas respectivas funcionalidades) permanecem vinculados a cada recurso individualmente."
-
-#: includes/settings/views/documentation/email-texts-hub.php:55
-msgid "A read-only index at the bottom of the tab lists every email the plugin can send, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open →\" deep-link to where it is configured. It is discoverability only — it moves no controls."
-msgstr "Uma lista somente leitura na parte inferior da aba exibe todos os e-mails que o plugin pode enviar, agrupados por funcionalidade; cada item inclui uma breve descrição de sua finalidade, o status de personalização (Texto editável / Apenas ativar/desativar / Padrão do sistema) e um link direto (\"Abrir →\") para o local onde é configurado. Trata-se apenas de um recurso de descoberta — não há movimentação de controles."
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:166 includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:814
 msgid "A reason is required for this preliminary status."
@@ -1181,10 +1149,6 @@ msgstr "Uma vaga foi liberada e sua reserva está confirmada!"
 #: templates/emails/appointment-promoted.php:20
 msgid "A Spot Opened Up: {{calendar_title}}"
 msgstr "Uma vaga foi liberada: {{calendar_title}}"
-
-#: includes/settings/views/documentation/config-activity-log.php:27
-msgid "a summary of event counts for the current view."
-msgstr "um resumo das contagens de eventos para a visualização atual."
 
 #: includes/settings/views/documentation/forms-email.php:25
 msgid "a switch that decides where this form's certificate email text comes from."
@@ -1431,10 +1395,6 @@ msgstr "Os registros de atividades rastreiam ações importantes para auditoria 
 msgid "Activity Summary (Last 30 Days)"
 msgstr "Resumo das Atividades (últimos 30 dias)"
 
-#: includes/settings/views/documentation/reference-privacy.php:30
-msgid "Activity-log entries hash IP addresses and never store raw CPF, so the audit trail cannot leak the identifiers it protects."
-msgstr "As entradas do registro de atividades aplicam hash aos endereços IP e nunca armazenam o CPF em formato bruto; assim, a trilha de auditoria não pode vazar os identificadores que protege."
-
 #: includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:548
 msgid "ActivityLog entries are kept (with sensitive payloads already redacted)."
 msgstr "Os registros do ActivityLog são mantidos (com as informações sensíveis já ocultadas)."
@@ -1679,10 +1639,6 @@ msgstr "Acesso Administrativo: As restrições de data/hora estão desativadas"
 msgid "Admin Bypass: Geolocation restrictions are disabled for administrators"
 msgstr "Acesso Administrativo: As restrições de geolocalização estão desativadas"
 
-#: includes/settings/views/documentation/developer-hooks-api.php:94
-msgid "Admin capability."
-msgstr "Capacidade administrativa."
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:854
 msgid "Admin Email Addresses"
 msgstr "Endereços de E-mail do Administrador"
@@ -1739,10 +1695,6 @@ msgstr "Ignorar Administrador"
 msgid "Administrator bypass"
 msgstr "Burlar do administrador"
 
-#: includes/settings/views/documentation/submissions-list.php:47
-msgid "Administrators (manage_options) hold all of the above. See Capabilities & Roles."
-msgstr "Administradores (manage_options) possuem todas as permissões acima. Consulte Capacidades e Funções."
-
 #: includes/settings/views/documentation/config-rate-limit.php:47
 msgid "administrators / settings-managers are skipped."
 msgstr "administradores / gerentes de configurações são ignorados."
@@ -1790,14 +1742,6 @@ msgstr "Usuários afetados:"
 #: includes/admin/class-ffc-admin-activity-log-page.php:356
 msgid "After"
 msgstr "Depois"
-
-#: includes/settings/views/documentation/developer-hooks-api.php:63
-msgid "After a CSV export finishes ( renamed from ffcertificate_csv_export_completed in 6.17.0 )."
-msgstr "Após a conclusão de uma exportação CSV (renomeado de `ffcertificate_csv_export_completed` na versão 6.17.0)."
-
-#: includes/settings/views/documentation/developer-hooks-api.php:59
-msgid "After a submission is edited or deleted."
-msgstr "Após uma submissão ser editada ou excluída."
 
 #: includes/settings/views/documentation/developer-hooks-api.php:58
 msgid "After a submission is saved — args ( submission_id, form_id, submission_data, user_email )."
@@ -2096,10 +2040,6 @@ msgstr "Opções do widget ALTCHA"
 msgid "ALTCHA, with the math challenge as fallback"
 msgstr "ALTCHA, com o desafio matemático como alternativa de contingência"
 
-#: includes/settings/views/documentation/operations-maintenance.php:52
-msgid "Always run the preview first. Deletions (short URLs) are permanent; disabling Public Operator Access is reversible (re-enable on the form editor); the link audit only reports — fix each finding manually."
-msgstr "Sempre execute a pré-visualização primeiro. Exclusões (URLs curtas) são permanentes; desativar o Acesso Público de Operador é reversível (reative no editor de formulários); a auditoria de links apenas gera relatórios — corrija cada problema manualmente."
-
 #: includes/settings/views/documentation/operations-troubleshooting.php:61
 msgid "Always use inline styles"
 msgstr "Sempre use estilos embutidos"
@@ -2115,10 +2055,6 @@ msgstr "Um administrador não consegue ver o menu de um plugin."
 #: includes/settings/views/ffc-tab-captcha.php:37
 msgid "An arithmetic question the visitor answers. Works everywhere — no JavaScript, no HTTPS required."
 msgstr "Uma questão aritmética que o visitante responde. Funciona em qualquer lugar — não requer JavaScript nem HTTPS."
-
-#: includes/settings/views/documentation/scheduling-audiences.php:23
-msgid "An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed). Audiences also carry the custom fields used by reregistration."
-msgstr "Uma audiência é um grupo de membros identificado por um nome, com uma cor, um status de ativo/inativo e uma hierarquia opcional de três níveis. Os membros são importados ou ingressam por conta própria (quando permitido). As audiências também contêm os campos personalizados utilizados para a renovação do cadastro."
 
 #: includes/settings/views/documentation/config-advanced.php:21
 msgid "An audit trail (useful for LGPD). When it is off, debug logging is also disabled."
@@ -2675,10 +2611,6 @@ msgstr "Agendamento de audiência cancelado"
 msgid "Audience booking confirmation"
 msgstr "Confirmação de agendamento de público-alvo"
 
-#: includes/settings/views/documentation/developer-hooks-api.php:61
-msgid "Audience booking lifecycle ( booking_id )."
-msgstr "Ciclo de vida da reserva de audiência ( booking_id )."
-
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:487
 msgid "Audience booking lifecycle — default text edited globally in the hub above; a schedule may still set its own."
 msgstr "Ciclo de agendamento de público-alvo — texto padrão editado globalmente na caixa acima; um cronograma ainda pode definir o seu próprio."
@@ -2857,10 +2789,6 @@ msgstr "Auto (seguir SO)"
 msgid "Auto (follow plugin Dark Mode)"
 msgstr "Automático (seguir a opção de \"Modo Escuro\")"
 
-#: includes/settings/views/documentation/config-advanced.php:31
-msgid "Auto / Light / Dark for the certificate HTML editor on the form screen."
-msgstr "Automático / Claro / Escuro para o editor de HTML de certificados na tela do formulário."
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:605
 msgid "Auto — detect Cloudflare / known proxy, else use REMOTE_ADDR (recommended)"
 msgstr "Detectar automaticamente Cloudflare / proxy conhecido; caso contrário, usar REMOTE_ADDR (recomendado)"
@@ -2885,10 +2813,6 @@ msgstr "Criar automaticamente ao publicar"
 #: includes/settings/views/ffc-tab-url-shortener.php:103
 msgid "Auto-create Short URLs"
 msgstr "Criar URLs curtas automaticamente"
-
-#: includes/settings/views/documentation/config-general.php:31
-msgid "Auto-delete (days)"
-msgstr "Exclusão automática (dias)"
 
 #: includes/settings/views/documentation/config-advanced.php:24
 msgid "auto-delete entries older than this (default 90; 0 keeps them indefinitely)."
@@ -3127,14 +3051,6 @@ msgstr "tornar-se"
 #: includes/admin/class-ffc-admin-activity-log-page.php:355
 msgid "Before"
 msgstr "Antes"
-
-#: includes/settings/views/documentation/forms-schedule.php:37
-msgid "Before / during / after the window you can independently show a message, show only the title + message, or hide the form."
-msgstr "Antes, durante ou após a exibição da janela, você pode, de forma independente, exibir uma mensagem, exibir apenas o título e a mensagem, ou ocultar o formulário."
-
-#: includes/settings/views/documentation/developer-hooks-api.php:62
-msgid "Before a short-URL redirect is sent."
-msgstr "Antes de um redirecionamento de URL curta ser enviado."
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:358
 msgid "Behind a configured trusted proxy — X-Forwarded-For is honoured."
@@ -3941,10 +3857,6 @@ msgstr "O candidato foi desvinculado do usuário do WordPress. A conta wp_user n
 msgid "Candidates"
 msgstr "Candidatos"
 
-#: includes/settings/views/documentation/feature-recruitment.php:65
-msgid "Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew."
-msgstr "Os candidatos são importados de um arquivo CSV (campos: nome, CPF, RF, e-mail, lotação, cargo/classe, pontuação, PcD, além dos opcionais telefone, pontos_por_tempo e hab_emebs) para a lista preliminar ou definitiva. As convocações são registradas individualmente; convocar fora da ordem de classificação exige justificativa. Os desfechos alteram o status do candidato: convocado → aceitou / não compareceu / contratado / desistiu."
-
 #: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:270
 msgid "Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the \"Import candidates (CSV)\" section."
 msgstr "Os candidatos são importados por editais via CSV — abra o edital desejado (aba Editais → Editar) e use a seção \"Importar candidatos (CSV)\"."
@@ -4105,10 +4017,6 @@ msgstr "Detalhes do Certificado"
 msgid "Certificate Editor"
 msgstr "Editor de Certificado"
 
-#: includes/settings/views/documentation/config-advanced.php:29
-msgid "Certificate editor preferences"
-msgstr "Preferências do editor de certificados"
-
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:163 includes/settings/tabs/class-ffc-tab-email-texts.php:406
 msgid "Certificate email to the user"
 msgstr "E-mail de certificado ao usuário"
@@ -4266,10 +4174,6 @@ msgstr "Verifique se a ortografia corresponde exatamente."
 #| msgid "Check the \"Disable all emails\" toggle, configure Custom SMTP, and see Troubleshooting → \"Emails not arriving\"."
 msgid "Check the \"Disable all emails\" toggle (SMTP tab), configure Custom SMTP, and see Troubleshooting → \"Emails not arriving\"."
 msgstr "Marque a opção \"Desativar todos os e-mails\" (aba SMTP), configure o SMTP personalizado e consulte a seção de solução de problemas → \"E-mails não estão chegando\"."
-
-#: includes/settings/views/documentation/operations-troubleshooting.php:86
-msgid "Check the Geofence \"Time\" tab — the form may be outside its open/close window"
-msgstr "Verifique a aba \"Horário\" da cerca virtual — o formulário pode estar fora da sua janela de abertura/fechamento."
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:78
 msgid "Check the recipient spam folder and sender reputation (SPF / DKIM)"
@@ -4593,10 +4497,6 @@ msgstr "Código"
 #: includes/settings/views/ffc-tab-advanced.php:177
 msgid "Code Editor Theme"
 msgstr "Tema do Editor de Código"
-
-#: includes/settings/views/documentation/config-advanced.php:31
-msgid "Code editor theme"
-msgstr "Tema do editor de código"
 
 #: includes/settings/views/ffc-tab-url-shortener.php:73
 msgid "Code Length"
@@ -5235,10 +5135,6 @@ msgstr "CPF / ID"
 msgid "CPF / RF"
 msgstr "CPF / RF"
 
-#: includes/settings/views/documentation/reference-security.php:76
-msgid "CPF and RF are stored encrypted with AES-256-CBC using encrypt-then-HMAC; a salted hash backs lookups. Display is masked unless the viewer holds a PII capability."
-msgstr "CPF e o RF são armazenados de forma criptografada com AES-256-CBC, utilizando a abordagem *encrypt-then-HMAC*; as consultas são suportadas por um *hash* com *salt*. A exibição é mascarada, a menos que o visualizador possua a permissão de acesso a PII."
-
 #: includes/security/class-ffc-cpf-limiter.php:56 includes/security/class-ffc-cpf-limiter.php:89 includes/security/class-ffc-rate-limit-checker.php:532
 msgid "CPF blocked."
 msgstr "CPF bloqueado."
@@ -5463,10 +5359,6 @@ msgstr "Crie, edite e ative URLs curtas (a opção de excluir está em um campo 
 #: includes/settings/views/documentation/feature-url-shortener.php:77
 msgid "create, edit, enable/disable and regenerate links."
 msgstr "criar, editar, ativar/desativar e regenerar links."
-
-#: includes/settings/views/documentation/feature-reregistration.php:90
-msgid "create/edit campaigns, approve/reject, manage custom fields, generate Records."
-msgstr "criar/editar campanhas, aprovar/rejeitar, gerenciar campos personalizados, gerar fichas."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:80 includes/self-scheduling/views/appointments-list.php:276
 msgid "Created"
@@ -6129,10 +6021,6 @@ msgstr "Defina quais dias e horários os agendamentos podem ser realizados:"
 #: templates/emails/reregistration-invitation.php:46 templates/emails/reregistration-reminder.php:45 templates/public/set-password.php:34
 msgid "Define your password"
 msgstr "Defina sua senha"
-
-#: includes/settings/views/documentation/config-advanced.php:57
-msgid "Defining a constant is effectively one-way: new writes use the new key the moment it is defined. On a site that already stores data, adopt the constants and then run the Encryption Key Rotation (Settings → Migrations) to re-encrypt existing records. Removing or blindly changing a constant on a live site makes existing records unreadable until the exact value is restored — it is never a blind edit."
-msgstr "A definição de uma constante é, na prática, um processo de mão única: novas operações de escrita utilizam a nova chave assim que ela é definida. Em um site que já armazena dados, adote as constantes e, em seguida, execute a Rotação de Chaves de Criptografia (Configurações → Migrações) para re-criptografar os registros existentes. Remover ou alterar indiscriminadamente uma constante em um site em produção torna os registros existentes ilegíveis até que o valor exato seja restaurado — portanto, nunca se deve fazer uma alteração desse tipo sem o devido cuidado."
 
 #: includes/recruitment/class-ffc-recruitment-admin-page.php:72 templates/admin/recruitment/notice-edit/classifications-section.php:45 templates/admin/recruitment/admin-page/settings-tab.php:192
 msgid "Definitive"
@@ -6893,10 +6781,6 @@ msgstr "Cada domínio administrativo expõe um par de visualização/gerenciamen
 msgid "Each area is gated by a capability — grant the matching ffc_view_* capability on the user profile"
 msgstr "Cada área é protegida por uma permissão — conceda a permissão `ffc_view_*` correspondente no perfil do usuário."
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:60
-msgid "Each calendar independently enables: user confirmation, admin notification, approval notice, cancellation notice and a reminder (default 24h before). When the waitlist is on, an \"added to waitlist\" notice and a \"spot opened up\" promotion notice are sent too. All of these are token-based and editable once in Settings → Email texts (the confirmation can also be overridden per calendar); every one is wrapped in the shared Email Model chrome."
-msgstr "Cada calendário permite, de forma independente: confirmação do usuário, notificação do administrador, aviso de aprovação, aviso de cancelamento e lembrete (padrão de 24 horas antes). Quando a lista de espera está ativa, também são enviados um aviso de \"inclusão na lista de espera\" e uma notificação de \"vaga disponível\". Todas essas mensagens utilizam *tokens* e podem ser editadas em Configurações → Textos de e-mail (a confirmação também pode ser personalizada individualmente para cada calendário); todas seguem o modelo de e-mail padrão compartilhado."
-
 #: includes/settings/views/documentation/forms-public-operator-access.php:29
 msgid "Each capability is an independent per-form toggle:"
 msgstr "Cada funcionalidade é uma opção pode ser ativada ou desativada individualmente:"
@@ -6917,17 +6801,9 @@ msgstr "Cada formulário pode ser configurado individualmente com áreas permiti
 msgid "each form can switch to Custom and carry its own text (Forms → Email); a form left on Global follows the hub."
 msgstr "cada formulário pode ser alterado para \"Personalizado\" e utilizar seu próprio texto (Formulários → E-mail); um formulário mantido na configuração \"Global\" segue a configuração do hub."
 
-#: includes/settings/views/documentation/forms-email.php:20
-msgid "Each form has its own Email box controlling the message sent to the participant on submission, plus an optional admin notification."
-msgstr "Cada formulário possui sua própria configuração de e-mail para controlar a mensagem enviada ao participante após o envio, além de uma notificação opcional para o administrador."
-
 #: includes/settings/views/documentation/scheduling-audiences.php:39
 msgid "Each schedule independently notifies affected users on booking and cancellation, and can attach an ICS calendar invite. Two opt-in admin toggles (off by default) also notify a recipient list (comma-separated; blank falls back to the site admin) on new bookings and cancellations."
 msgstr "Cada agenda notifica de forma independente os usuários afetados sobre reservas e cancelamentos, podendo anexar um convite de calendário no formato ICS. Duas opções configuráveis ​​pelo administrador (desativadas por padrão) também notificam uma lista de destinatários (separados por vírgula; se deixada em branco, a notificação é enviada ao administrador do site) sempre que ocorrerem novas reservas ou cancelamentos."
-
-#: includes/settings/views/documentation/reference-security.php:44
-msgid "Each submitter must present a single-use code from a generated pool. The code is claimed atomically (one use only) and consumed after a successful submission."
-msgstr "Cada responsável pelo envio deve apresentar um código de uso único proveniente de um conjunto gerado. O código é resgatado de forma atômica (apenas uma utilização) e consumido após um envio bem-sucedido."
 
 #: includes/settings/views/documentation/document-templates-hub.php:25
 msgid "Each template carries a kind that marks what it is for. A Category column and filter in the hub let you find templates of one kind quickly:"
@@ -7068,10 +6944,6 @@ msgstr "Texto editável (global)"
 #: includes/admin/class-ffc-submissions-export-source.php:377 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:78
 msgid "Edited By"
 msgstr "Editado Por"
-
-#: includes/settings/views/documentation/forms-email.php:31
-msgid "edited in a visual editor. \"Restore Default Text\" restores the current global default."
-msgstr "editado em um editor visual. \"Restaurar Texto Padrão\" restaura o padrão global atual."
 
 #: includes/settings/views/documentation/feature-url-shortener.php:36
 msgid "Editing & the destination."
@@ -7472,10 +7344,6 @@ msgstr "Habilitar exceção de horário"
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:679
 msgid "Enable the proxy (orange cloud) for the site record."
 msgstr "Ative o proxy (nuvem laranja) para o registro do site."
-
-#: includes/settings/views/documentation/feature-url-shortener.php:64
-msgid "Enable the shortener"
-msgstr "Ativar o encurtador"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:650
 msgid "Enable Waitlist"
@@ -8207,10 +8075,6 @@ msgstr "Carregue em massa as respostas de uma campanha a partir de um CSV, crian
 msgid "Export short URLs"
 msgstr "Exportar URLs curtas"
 
-#: includes/settings/views/documentation/submissions-list.php:29
-msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF) and the magic-link token, so it is gated by its own capability."
-msgstr "Exporte as submissões atuais (filtradas) para CSV em segundo plano. A exportação contém dados pessoais descriptografados (e-mail, IP, CPF/RF) e o token de *magic-link*; por isso, o acesso a essa funcionalidade é restrito a uma permissão específica."
-
 #: includes/frontend/class-ffc-frontend.php:438
 msgid "Export timed out. Please try again."
 msgstr "O tempo limite para exportação foi excedido. Tente novamente."
@@ -8263,10 +8127,6 @@ msgstr "Estenda isso"
 #: includes/settings/views/documentation/developer-hooks-api.php:40
 msgid "Extend the trusted reverse-proxy CIDRs, or the Cloudflare edge ranges, the secure strategy honours when walking X-Forwarded-For / CF-Connecting-IP."
 msgstr "Amplie os CIDRs de proxy reverso confiáveis ​​ou as faixas de borda da Cloudflare; essa estratégia segura é respeitada ao processar os cabeçalhos X-Forwarded-For ou CF-Connecting-IP."
-
-#: includes/settings/views/documentation/forms-schedule.php:52
-msgid "extends the closing so submissions keep coming in."
-msgstr "prorroga o prazo de encerramento para que as submissões continuem chegando."
 
 #: includes/settings/views/ffc-tab-cache.php:176
 msgid "External cache active (Redis/Memcached)"
@@ -8723,10 +8583,6 @@ msgstr "Campo"
 msgid "Field #%d: label is required."
 msgstr "Campo #%d: o rótulo é obrigatório."
 
-#: includes/settings/views/documentation/feature-audiences.php:71
-msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data."
-msgstr "As definições de campos são armazenadas na tabela ffc_custom_fields. Os dados do usuário são armazenados como JSON em wp_usermeta sob a chave ffc_custom_fields_data."
-
 #: includes/audience/class-ffc-audience-ajax-controller.php:681
 msgid "Field deleted successfully."
 msgstr "Campo excluído com sucesso."
@@ -8829,10 +8685,6 @@ msgstr "Filtra os tokens do PDF de Registro, o HTML final, o nome do arquivo, o 
 msgid "Filter the payload of GET /forms/{id}/schema."
 msgstr "Filtre o payload de GET /forms/{id}/schema."
 
-#: includes/settings/views/documentation/developer-hooks-api.php:33
-msgid "Filter the to / subject / body of scheduling (appointment / audience / reregistration) emails."
-msgstr "Filtre os campos \"Para\", \"Assunto\" ou o corpo de e-mails de agendamento (consulta / audiência / recadastramento)."
-
 #: templates/admin/reregistration/transfer-list.php:25
 msgid "Filter..."
 msgstr "Filtro..."
@@ -8868,10 +8720,6 @@ msgstr "Concluído; ainda exibido publicamente com uma faixa de \"encerrado\". A
 #: includes/settings/views/documentation/developer-hooks-api.php:54
 msgid "Fires"
 msgstr "Incêndios"
-
-#: includes/settings/views/documentation/developer-hooks-api.php:74
-msgid "fires when an export finishes."
-msgstr "é disparado quando uma exportação é concluída."
 
 #: templates/public/recruitment/pagination.php:28
 msgid "First page"
@@ -8924,10 +8772,6 @@ msgstr "Para obter suporte adicional, consulte a documentação do repositório 
 #: includes/settings/views/documentation/operations-troubleshooting.php:79
 msgid "For bulk sends, install the total-mail-queue plugin for queueing + automatic retries"
 msgstr "Para envios em massa, instale o plugin total-mail-queue para enfileiramento e novas tentativas automáticas."
-
-#: includes/settings/views/documentation/forms-geolocation.php:30
-msgid "For each method you pick where the allowed area comes from:"
-msgstr "Para cada método, você escolhe a origem da área permitida:"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:403
 msgid "For external integrators authenticating with Application Passwords."
@@ -9332,10 +9176,6 @@ msgstr "Geocerca (GPS + IP):"
 msgid "Geofencing can be set to ignore administrators so they can test a form from anywhere (Settings → Geolocation)."
 msgstr "O geofencing pode ser configurado para ignorar administradores, permitindo que testem um formulário de qualquer lugar (Configurações → Geolocalização)."
 
-#: includes/settings/views/documentation/forms-geolocation.php:20
-msgid "Geofencing restricts where a form may be submitted. It is configured in the form editor's Geofence box, \"Geolocation\" tab, and can validate by GPS position, by IP geolocation, or both."
-msgstr "O georreferenciamento restringe os locais onde um formulário pode ser enviado. Ele é configurado na caixa de georreferenciamento do editor de formulários, na aba \"Geolocalização\", e pode realizar a validação com base na posição GPS, na geolocalização por IP ou em ambos."
-
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:321 includes/frontend/class-ffc-frontend.php:480 includes/settings/views/ffc-tab-documentation.php:108 includes/settings/views/ffc-tab-documentation.php:204 includes/settings/tabs/class-ffc-tab-geolocation.php:36 includes/settings/views/documentation/config-geolocation.php:18
 msgid "Geolocation"
 msgstr "Geolocalização"
@@ -9403,10 +9243,6 @@ msgstr "Taxa Limite Global "
 #: includes/admin/class-ffc-settings.php:736
 msgid "Go to"
 msgstr "Ir para"
-
-#: includes/settings/views/documentation/feature-audiences.php:62
-msgid "Go to Audiences > Edit an audience > Custom Fields tab"
-msgstr "Acesse Públicos-alvo > Editar um público-alvo > Guia de Campos Personalizados"
 
 #: includes/settings/views/ffc-tab-advanced.php:799
 msgid "Go to Encryption Key Rotation"
@@ -9969,10 +9805,6 @@ msgstr "ID"
 msgid "ID/CPF/RF entered by user"
 msgstr "ID/CPF/RF inserido pelo usuário"
 
-#: includes/settings/views/documentation/reference-security.php:52
-msgid "If someone submits again with a CPF/RF (or ticket) that already has a certificate, they are returned their existing certificate instead of generating a new one. This is always on — it is what keeps one person from issuing two certificates."
-msgstr "Se alguém fizer uma nova solicitação com um CPF/RF (ou ingresso) que já possua um certificado, o sistema retorna o certificado existente em vez de gerar um novo. Esse mecanismo está sempre ativo — é ele que impede que uma mesma pessoa emita dois certificados."
-
 #: includes/settings/views/documentation/config-geolocation.php:36
 msgid "If the primary provider fails, try the other one."
 msgstr "Se o provedor principal falhar, tente o outro."
@@ -10120,10 +9952,6 @@ msgstr "No modo de intervalo (span), a data e hora de término devem ser posteri
 #: includes/settings/views/documentation/config-captcha.php:67
 msgid "In the fallback mode, a submission that arrives without a proof of work is recorded in the Activity Log with a hashed, truncated IP — so you can tell whether anyone still needs the fallback before switching it off."
 msgstr "No modo de contingência (*fallback*), uma submissão que chega sem prova de trabalho é registrada no Log de Atividades com um IP truncado e convertido em hash — permitindo identificar se alguém ainda precisa desse recurso antes de desativá-lo."
-
-#: includes/settings/views/documentation/feature-certificates.php:66
-msgid "In the form editor Geofence metabox, choose the area source for GPS and IP validation:"
-msgstr "No campo \"Geocerca\" do editor de formulários, selecione a área de origem para validação por GPS e IP:"
 
 #: includes/settings/views/ffc-tab-migrations.php:614
 msgid "In the trash (status = trashed)"
@@ -12010,10 +11838,6 @@ msgstr "Registro de locais nomeados"
 msgid "name…"
 msgstr "nome…"
 
-#: includes/settings/views/documentation/config-activity-log.php:26
-msgid "narrow the table by category, level, user and date range."
-msgstr "filtre a tabela por categoria, nível, usuário e intervalo de datas."
-
 #: includes/settings/views/ffc-tab-migrations.php:980
 msgid "Need Help?"
 msgstr "Precisar de ajuda?"
@@ -12830,10 +12654,6 @@ msgstr "No iOS: Ajustes → Safari → desligue \"Bloquear todos os cookies\"."
 msgid "On iOS: tap the \"AA\" button in the address bar → Website Settings → Location → Allow."
 msgstr "No iOS: toque no botão \"AA\" na barra de endereço → Configurações do Site → Localização → Permitir."
 
-#: includes/settings/views/documentation/reference-privacy.php:29
-msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability, and every reveal of recruitment PII is itself audited."
-msgstr "Na tela, o CPF/RF e o e-mail aparecem mascarados, a menos que o operador possua a permissão específica para visualizar esses dados pessoais (PII), e cada visualização de dados pessoais relacionados ao recrutamento é, por sua vez, auditada."
-
 #: includes/settings/views/ffc-tab-rate-limit.php:302
 msgid "On top of the threshold above, at least this many STRONG signals (canvas, WebGL, audio, fonts, plugins, permissions) must match before two visits count as the same device. Strong signals rarely coincide between different physical devices, so requiring them is what stops false blocks across same-model devices in a homogeneous audience."
 msgstr "Além do limite mencionado, é necessário que pelo menos essa quantidade de sinais FORTES (canvas, WebGL, áudio, fontes, plugins, permissões) coincida para que duas visitas sejam contabilizadas como provenientes do mesmo dispositivo. Sinais fortes raramente coincidem entre dispositivos físicos diferentes; portanto, exigi-los é o que evita bloqueios indevidos de dispositivos do mesmo modelo em um público homogêneo."
@@ -12865,10 +12685,6 @@ msgstr "Um CPF por linha. Usado somente quando o modo acima estiver definido com
 #: includes/settings/views/documentation/email-texts-hub.php:23
 msgid "One email at a time"
 msgstr "Um e-mail de cada vez"
-
-#: includes/settings/views/documentation/reference-privacy.php:39
-msgid "one eraser clears the encrypted personal data (e-mail, CPF/RF, …) from those records. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
-msgstr "uma operação de exclusão remove os dados pessoais criptografados (e-mail, CPF/RF, ...) desses registros. Códigos de autenticação e tokens de verificação podem ser mantidos de forma anonimizada, para que certificados já emitidos continuem passíveis de verificação após a exclusão dos dados da pessoa."
 
 #: includes/settings/views/documentation/developer-hooks-api.php:107
 msgid "one form's metadata."
@@ -13031,10 +12847,6 @@ msgstr "Operador — Senha de Aplicativo + ffc_manage_certificates (o caminho do
 msgid "Opt in (off by default) to log where the legacy and secure IP strategies diverge, to validate a switch before flipping."
 msgstr "Opte por ativar (desativado por padrão) o registro de onde as estratégias de IP legadas e seguras divergem, para validar uma mudança antes de efetivá-la."
 
-#: includes/settings/views/documentation/developer-hooks-api.php:42
-msgid "Opt in (off by default) to make validate_rf() also require the RF check digit, rejecting a mistyped number at the form instead of storing it."
-msgstr "Opte por ativar (desativado por padrão) para que validate_rf() também exija o dígito verificador do RF, rejeitando um número digitado errado no formulário em vez de armazená-lo."
-
 #: includes/settings/views/documentation/reference-shortcodes.php:46 includes/settings/views/documentation/reference-shortcodes.php:79
 msgid "Optional attribute:"
 msgstr "Atributo opcional:"
@@ -13105,10 +12917,6 @@ msgstr "\"OU\" - Permitir se o GPS OU o IP for válido (recomendado)"
 #: includes/settings/views/documentation/operations-troubleshooting.php:54
 msgid "Or inline style:"
 msgstr "Ou estilo embutido:"
-
-#: includes/settings/views/documentation/overview.php:63
-msgid "or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Developer)."
-msgstr "ou vá diretamente para qualquer área (Agendamento, Recadastramento, Recrutamento, URLs Curtas, Desenvolvedor)."
 
 #: includes/frontend/class-ffc-frontend.php:303
 msgid "Or try manual verification"
@@ -13597,10 +13405,6 @@ msgstr "Número de telefone"
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:248 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:468
 msgid "Phone:"
 msgstr "Telefone:"
-
-#: includes/settings/views/documentation/reference-html-styling.php:91
-msgid "Photo cropped to fit dimensions"
-msgstr "Foto recortada para se ajustar às dimensões."
 
 #: includes/admin/class-ffc-certificates-dashboard.php:115
 msgid "Pick a day in the calendar to see the forms scheduled for it."
@@ -14253,10 +14057,6 @@ msgstr "Limite de Exportação de CSV Público"
 msgid "Public Operator Access"
 msgstr "Acesso Público de Operador"
 
-#: includes/settings/views/documentation/forms-public-operator-access.php:21
-msgid "Public Operator Access (formerly \"Public CSV Download\") lets a trusted operator who does NOT have a WordPress login interact with a single form through a secret, per-form link. It is enabled in the form editor's \"Public Operator Access\" box."
-msgstr "O Acesso de Operador Público (anteriormente \"Download de CSV Público\") permite que um operador de confiança, que NÃO possui login no WordPress, interaja com um formulário específico por meio de um link secreto exclusivo para aquele formulário. O recurso é ativado na caixa \"Acesso de Operador Público\" do editor de formulários."
-
 #: includes/frontend/class-ffc-csv-download-validator.php:57 includes/frontend/class-ffc-csv-download-validator.php:124
 msgid "Public Operator Access is not enabled for this form."
 msgstr "O Acesso Público de Operador não está habilitado para este formulário."
@@ -14380,10 +14180,6 @@ msgstr "Configurações Padrão do Código QR"
 #: includes/settings/views/documentation/config-general.php:41
 msgid "QR Code defaults"
 msgstr "Configurações padrão de QR Code"
-
-#: includes/settings/views/documentation/reference-tokens.php:96
-msgid "QR Code image (see section 3 for options)"
-msgstr "Imagem do Código QR (consulte a seção 3 para opções)"
 
 #: includes/settings/views/documentation/reference-qr-codes.php:17
 #| msgid "5. QR Code Options & Attributes"
@@ -14977,10 +14773,6 @@ msgstr "Remover códigos curtos para formulários encerrados há mais de"
 msgid "Remove shortcodes now"
 msgstr "Remova os códigos curtos agora."
 
-#: includes/settings/views/documentation/config-general.php:31
-msgid "Remove submissions after this many days. 0 disables auto-deletion."
-msgstr "Remover envios após este número de dias. 0 desativa a exclusão automática."
-
 #: includes/admin/class-ffc-admin-assets-manager.php:570
 msgid "Remove this field?"
 msgstr "Remover este campo?"
@@ -15120,10 +14912,6 @@ msgid "Replicated to %d field across descendants."
 msgid_plural "Replicated to %d fields across descendants."
 msgstr[0] "Replicado para o campo %d em todos os descendentes."
 msgstr[1] "Replicado para %d campos em todos os descendentes."
-
-#: includes/settings/views/documentation/operations-maintenance.php:44
-msgid "Report-only scan (never changes data) for submissions wrongly linked to WordPress users: a link to a deleted user, one user bound to multiple CPF/RF identities, an unlinked submission whose CPF matches a linked one, and a single CPF shared across users. Detection runs off the stored CPF/RF hashes, so no decryption is involved."
-msgstr "Análise de relatório (sem alterações nos dados) para envios vinculados incorretamente a usuários do WordPress: um link para um usuário excluído, um usuário vinculado a várias identidades CPF/RF, um envio não vinculado cujo CPF corresponde a um vinculado e um único CPF compartilhado entre usuários. A detecção é feita com base nos hashes CPF/RF armazenados, portanto, nenhuma descriptografia é necessária."
 
 #: includes/settings/views/ffc-tab-migrations.php:915
 msgid "Report-only scan for submissions wrongly linked to WordPress users. Nothing is changed — review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved."
@@ -16093,10 +15881,6 @@ msgstr "Pesquisar..."
 msgid "seconds"
 msgstr "segundos"
 
-#: includes/settings/views/documentation/feature-record.php:74
-msgid "Sector"
-msgstr "Setor"
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:598
 msgid "Secure (trusted-proxy model) — real client behind Cloudflare / a configured proxy, unspoofable (recommended)"
 msgstr "Seguro (modelo de proxy confiável) — cliente real atrás da Cloudflare / um proxy configurado, impossível de falsificar (recomendado)"
@@ -16389,10 +16173,6 @@ msgstr "Autoagendamento"
 msgid "Self-Scheduling (Personal)"
 msgstr "Auto-Agendamento (Pessoal)"
 
-#: includes/settings/views/documentation/developer-hooks-api.php:60
-msgid "Self-scheduling appointment lifecycle."
-msgstr "Ciclo de vida do agendamento realizado pelo próprio usuário."
-
 #: includes/settings/views/documentation/email-texts-hub.php:32
 msgid "Self-scheduling confirmation:"
 msgstr "Confirmação de agendamento pelo próprio usuário:"
@@ -16555,10 +16335,6 @@ msgstr "Os campos sensíveis são ocultados por padrão. Clique em \"Revelar\" p
 msgid "Sensitive identifiers such as e-mail addresses and CPF/RF numbers are stored encrypted at rest. Where consent is required, the date and time you gave it are recorded. One-way hashes of some identifiers are kept so records can be located without exposing the original values."
 msgstr "Identificadores sensíveis, como endereços de e-mail e números de CPF, são armazenados de forma criptografada em repouso. Nos casos em que o consentimento é exigido, registram-se a data e a hora em que ele foi concedido. São mantidos *hashes* unidirecionais de alguns identificadores para permitir a localização de registros sem expor os valores originais."
 
-#: includes/settings/views/documentation/reference-privacy.php:27
-msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear."
-msgstr "Identificadores sensíveis — e-mail, CPF e RF — são criptografados (AES-256-CBC com um IV aleatório por registro e uma verificação de integridade do tipo *encrypt-then-HMAC*) e nunca armazenados em texto simples."
-
 #: includes/settings/views/documentation/feature-reregistration.php:41
 msgid "sent after a member submits; carries the Record magic link."
 msgstr "enviado após o envio pelo membro; contém o link de acesso direto (magic link) do formulário."
@@ -16639,10 +16415,6 @@ msgstr "Incompatibilidade de sessão."
 #: includes/settings/views/documentation/reference-emails.php:85
 msgid "Set"
 msgstr "Definir"
-
-#: includes/settings/views/documentation/reference-shortcodes.php:78
-msgid "Set \"notice\" to the notice code. The list shows only the columns marked public in the notice editor, and only while the notice is in a public state (preliminary / definitive); drafts and closed notices are hidden."
-msgstr "Defina um código de edital. A lista mostra apenas as colunas marcadas como públicas no edital e somente enquanto estiver em estado público (preliminar/definitivo); rascunhos e avisos encerrados ficam ocultos."
 
 #: includes/frontend/class-ffc-frontend.php:556
 msgid "Set a different schedule for one participant. The next form submission opened from this modal will record this exception."
@@ -17081,10 +16853,6 @@ msgstr "Situação"
 #: includes/core/class-ffc-security-service.php:104
 msgid "six"
 msgstr "seis"
-
-#: includes/settings/views/documentation/reference-privacy.php:38
-msgid "six exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings and FFC user settings."
-msgstr "seis exportadores coletam os dados FFC da pessoa: perfil, certificados, agendamentos, grupos de público, reservas de público e configurações de usuário FFC."
 
 #: includes/settings/views/ffc-tab-rate-limit.php:413
 msgid "Skip device limit when the submitter is logged in as administrator or has the ffc_manage_settings capability"
@@ -17959,10 +17727,6 @@ msgstr "Área de texto"
 msgid "That role cannot be assigned from this screen."
 msgstr "Essa função não pode ser atribuída a partir desta tela."
 
-#: includes/settings/views/documentation/forms-schedule.php:44
-msgid "The \"Class Schedule\" / event times on the same tab are a reference printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. See"
-msgstr "A \"Programação das Aulas\" / os horários do evento, na mesma aba, são uma referência impressa no certificado por meio dos tokens {{schedule}} e {{schedule_total}} — eles não abrem nem fecham o formulário. Veja"
-
 #: includes/settings/views/documentation/reference-emails.php:51
 msgid "The \"Email Model\" chrome"
 msgstr "A interface do \"Modelo de E-mail\""
@@ -17983,11 +17747,6 @@ msgstr "A função \"FFC Usuário Final\" é atribuída automaticamente aos usu�
 #: includes/settings/views/documentation/feature-url-shortener.php:32
 msgid "The \"Generate missing short URLs\" button creates short URLs for already-published posts of the shortened types that do not have one yet (it runs in timeout-safe batches). This only creates the short URLs — tick \"Expose\" to publish them as shortlinks."
 msgstr "O botão \"Gerar URLs curtas ausentes\" cria URLs curtas para posts já publicados (dos tipos configurados para encurtamento) que ainda não as possuem (o processo é executado em lotes seguros contra *timeout*). Isso apenas cria as URLs curtas; marque a opção \"Expor\" para publicá-las como *shortlinks*."
-
-#: includes/settings/views/documentation/submissions-download.php:27
-#| msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. This path is protected by a nonce, a honeypot + math captcha, and IP rate-limiting."
-msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
-msgstr "A página /valid (o shortcode [ffc_verification]) também oferece uma consulta manual: qualquer pessoa pode inserir o código de autenticação de um certificado para confirmar sua autenticidade e visualizar seu status. Esse recurso é protegido por um *nonce*, um *honeypot*, o CAPTCHA configurado e limitação de taxa de requisições por IP."
 
 #: includes/settings/views/documentation/reference-capabilities.php:25
 msgid "The 3-state permission model"
@@ -18070,10 +17829,6 @@ msgstr "O certificado apareceu em branco — geralmente uma imagem que demora a 
 #: includes/settings/views/ffc-tab-modulos.php:26
 msgid "The certificate form post type and public form rendering. Disabling hides the certificate admin and stops public submissions."
 msgstr "O tipo de postagem de formulário de certificado e a renderização do formulário público. Desativar essa opção oculta a área administrativa do certificado e interrompe os envios públicos."
-
-#: includes/settings/views/documentation/document-templates-hub.php:34
-msgid "The certificate PDF a form issues on submission (the default kind)."
-msgstr "O certificado é um PDF gerado pelo formulário após o envio (o tipo padrão)."
 
 #: includes/settings/views/ffc-tab-captcha.php:61
 msgid "The challenge that guards public forms: certificate submissions, certificate verification, appointment booking and the public CSV download. It applies to all of them at once."
@@ -18159,10 +17914,6 @@ msgstr "O limite de downloads para este formulário foi atingido."
 #: includes/settings/views/documentation/config-advanced.php:39
 msgid "The download quota pre-filled when Public Operator Access is enabled on a new form (each form can override it)."
 msgstr "A cota de download preenchida quando o Acesso do Operador Público é habilitado em um novo formulário (cada formulário pode substituí-la)."
-
-#: includes/settings/views/documentation/submissions-list.php:26
-msgid "The edit screen lets you correct the participant email and the form's custom-field values, and manage the linked WordPress user and the LGPD consent record. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
-msgstr "A tela de edição permite corrigir o e-mail do participante e os valores dos campos personalizados do formulário, bem como gerenciar o usuário do WordPress vinculado e o registro de consentimento da LGPD. Os campos de identidade e integridade são somente leitura: ID da submissão, data, status, token de *magic-link*, IP, CPF/RF e código de autenticação (garantindo que um certificado nunca possa ser redirecionado silenciosamente)."
 
 #: templates/admin/recruitment/candidate-edit/general-section.php:53
 msgid "The email is masked. Editing it requires the recruitment PII capability."
@@ -18280,10 +18031,6 @@ msgstr "A mensagem de erro de geolocalização deve ter pelo menos %d caracteres
 msgid "The global \"Disable all emails\" toggle (SMTP tab) is enforced at the single send chokepoint, so it is bypass-proof — nothing is sent while it is on. Every email-editing screen shows a gentle notice while it is active, so you know settings are saved but not sent."
 msgstr "A chave global \"Desativar todos os e-mails\" (aba SMTP) atua no ponto crítico de envio, tornando-se, assim, infalível: nada é enviado enquanto ela estiver ativada. Todas as telas de edição de e-mail exibem um aviso discreto quando essa opção está ativa, informando que as configurações são salvas, mas os e-mails não são enviados."
 
-#: includes/settings/views/documentation/forms-public-operator-access.php:26
-msgid "The hash is the only credential — treat the link as a password. Set the base page under Settings → General (\"CSV Download Page URL\") so the editor shows the full link instead of just the query string. The hash is regenerated on demand and is deliberately NOT copied when a form is duplicated."
-msgstr "O hash é a única credencial — trate o link como uma senha. Defina a página base em Configurações → Geral (\"URL da página de download de CSV\") para que o editor exiba o link completo, em vez de apenas a query string. O hash é regenerado sob demanda e, deliberadamente, não é copiado quando um formulário é duplicado."
-
 #: includes/admin/class-ffc-admin-assets-manager.php:674
 msgid "The HTML editor is empty. Add a template first."
 msgstr "O editor HTML está vazio. Adicione um template primeiro."
@@ -18299,10 +18046,6 @@ msgstr "O ID deve ter exatamente 7 dígitos (RF) ou 11 dígitos (CPF)."
 #: includes/settings/views/documentation/forms-dynamic-fields.php:54
 msgid "the identifier (required). See the note below on CPF/RF validation."
 msgstr "o identificador (obrigatório). Veja a observação abaixo sobre a validação de CPF/RF."
-
-#: includes/settings/views/documentation/feature-user-dashboard.php:48
-msgid "The identity/contact/address/employment fields shown on the dashboard live on the WordPress user profile and are mapped to the reregistration and audience data, so a user's details stay consistent across a certificate PDF, a record and their profile."
-msgstr "Os campos de identidade, contato, endereço e vínculo profissional exibidos no painel residem no perfil de usuário do WordPress e estão mapeados para os dados de recadastramento e de público; assim, as informações do usuário permanecem consistentes entre o certificado em PDF, a ficha e o perfil."
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:228
 msgid "The imported candidate list becomes visible on the public shortcode."
@@ -18465,10 +18208,6 @@ msgstr "O plugin usa seus próprios formatos de data e hora (configurados abaixo
 msgid "The plugin's developer surface: action/filter hooks to extend behavior, a REST API for integrations, and the authenticated Forms API. For the front-end shortcodes see the Shortcodes reference."
 msgstr "A interface de desenvolvimento do plugin: hooks de ação e filtro para estender o comportamento, uma API REST para integrações e a API de Formulários autenticada. Para os shortcodes de front-end, consulte a referência de Shortcodes."
 
-#: includes/settings/views/documentation/developer-hooks-api.php:115
-msgid "The plugin's only authenticated write API: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.19.0."
-msgstr "A única API de escrita autenticada do plugin: um aplicativo de operador de campo emite certificados utilizando Senhas de Aplicativo do WordPress (autenticação HTTP Basic, permitindo que as verificações de capacidade funcionem sem *nonce*)."
-
 #: includes/settings/views/documentation/feature-url-shortener.php:31
 msgid "The Post Types setting has two columns per type: \"Shorten\" (show the meta box and allow short URLs for that type) and \"Expose\". When a type is exposed, a published post's short URL becomes the site's canonical shortlink — WordPress emits it as the"
 msgstr "A configuração Tipos de Postagem possui duas colunas por tipo: \"Encurtar\" (exibir a caixa de metadados e permitir URLs curtas para esse tipo) e \"Expor\". Quando um tipo é exposto, a URL curta de uma postagem publicada se torna o link curto canônico do site — o WordPress o emite como o link canônico."
@@ -18565,10 +18304,6 @@ msgstr "O comprovante de agendamento próprio. Dois padrões são disponibilizad
 msgid "The semantic colours are:"
 msgstr "As cores semânticas são:"
 
-#: includes/settings/views/documentation/scheduling-audiences.php:42
-msgid "The Settings tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
-msgstr "A aba Configurações importa e exporta públicos (nome, cor, público pai) e membros (e-mail, nome, público) no formato CSV, criando opcionalmente usuários do WordPress para os membros importados."
-
 #: includes/settings/views/documentation/reference-emails.php:36
 msgid "the shared chrome (header / body card / footer) that wraps every email, with a live preview and a test-send."
 msgstr "A estrutura compartilhada (cabeçalho, corpo/card e rodapé) que envolve cada e-mail, com visualização em tempo real e envio de teste."
@@ -18616,10 +18351,6 @@ msgstr "O período de submissão"
 #: includes/settings/views/documentation/config-cache.php:21
 msgid "The tab detects common external caches and reports whether the plugin stays compatible — nothing to configure here. It recognizes LiteSpeed Cache, WP Rocket, W3 Total Cache and WP Super Cache (page caches) and a Redis/persistent object cache."
 msgstr "A aba detecta caches externos comuns e informa se o plugin permanece compatível — não há nada para configurar aqui. Ela reconhece o LiteSpeed ​​Cache, WP Rocket, W3 Total Cache e WP Super Cache (caches de página), bem como o Redis/cache de objetos persistente."
-
-#: includes/settings/views/documentation/submissions-list.php:23
-msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by form and switch between Published, Trash, and the quiz states (Retry, Failed). Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
-msgstr "A tabela exibe o ID, o formulário, o e-mail, uma breve prévia de campos não sensíveis, o status e a data. É possível filtrar por formulário e alternar entre as visualizações \"Publicado\", \"Lixeira\" e os estados do quiz (\"Nova tentativa\", \"Falha\"). Colunas com dados pessoais são descriptografadas apenas para a exibição na linha; a prévia nunca inclui e-mail, CPF/RF ou código de autenticação."
 
 #: includes/settings/tabs/class-ffc-tab-email-model.php:116
 msgid "The test email could not be sent. Check your SMTP settings and try again."
@@ -18692,10 +18423,6 @@ msgstr "o marcador de posição de verificação {{qr_code}}"
 #: includes/settings/views/documentation/feature-user-dashboard.php:30
 msgid "Their own issued certificates, with download / verification links"
 msgstr "Certificados emitidos por eles mesmos, com links para download/verificação"
-
-#: includes/settings/views/documentation/feature-user-dashboard.php:33
-msgid "Their profile fields (identity, contact, address, employment) sourced from the WordPress user profile"
-msgstr "Os campos de perfil deles (identidade, contato, endereço, vínculo empregatício) são provenientes do perfil de usuário do WordPress"
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:31
 msgid "Their self-scheduling appointments (with receipt / cancel actions where allowed)"
@@ -19506,10 +19233,6 @@ msgstr "Lixeira"
 msgid "Trash (%d)"
 msgstr "Lixo (%d)"
 
-#: includes/settings/views/documentation/submissions-list.php:42
-msgid "Trash / restore and bulk actions."
-msgstr "Lixeira / restaurar e ações em massa."
-
 #: templates/admin/url-shortener/short-urls-page.php:84
 msgid "Trash emptied."
 msgstr "Lixo esvaziado."
@@ -19647,10 +19370,6 @@ msgstr "Não é possível revelar este valor."
 msgid "Uncheck a category to stop logging its events. All on by default."
 msgstr "Desmarque uma categoria para interromper o registro de seus eventos. Todas estão ativadas por padrão."
 
-#: includes/settings/views/documentation/reference-privacy.php:36
-msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers handlers keyed by e-mail address, so a subject request also covers the data this plugin stores:"
-msgstr "Em Ferramentas → Exportar Dados Pessoais e Ferramentas → Apagar Dados Pessoais, o plugin registra manipuladores associados a endereços de e-mail, de modo que uma solicitação do titular dos dados também abranja as informações armazenadas por este plugin:"
-
 #: includes/settings/views/documentation/reference-html-styling.php:39
 msgid "Underline text:"
 msgstr "Texto sublinhado:"
@@ -19662,10 +19381,6 @@ msgstr "Desfazer decisão (administrador)"
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:83 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:439 includes/settings/views/documentation/feature-record.php:130
 msgid "Union"
 msgstr "Sindicato"
-
-#: includes/settings/views/documentation/reference-tokens.php:46
-msgid "Unique authentication code for validation"
-msgstr "Código de autenticação único para validação"
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:221
 msgid "Unique submission identifier."
@@ -20405,10 +20120,6 @@ msgstr "Ver detalhes do formulário"
 msgid "View forms"
 msgstr "Ver formulários"
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:64
-msgid "view or configure calendars and appointments."
-msgstr "visualize ou configure calendários e compromissos."
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:141
 msgid "View own appointments"
 msgstr "Ver seus próprios agendamentos"
@@ -20764,10 +20475,6 @@ msgstr "Quando um horário ou bloco está lotado e a lista de espera está ativa
 #: includes/settings/views/documentation/feature-url-shortener.php:26
 msgid "when auto-create is on, publishing a post/page (of the enabled post types) creates a short URL for its permalink."
 msgstr "quando a criação automática está ativada, publicar um post ou página (dos tipos de post habilitados) cria uma URL curta para o seu link permanente."
-
-#: includes/settings/views/documentation/forms-geolocation.php:27
-msgid "When both are enabled you choose whether the visitor must pass GPS AND IP, or either one (OR). Blocked visitors see a configurable message, the title + message, or the form is hidden."
-msgstr "Quando ambos estão habilitados, você escolhe se o visitante deve passar pela verificação de GPS E IP, ou por apenas um deles (OU). Visitantes bloqueados veem uma mensagem configurável (título + mensagem) ou têm o formulário ocultado."
 
 #: includes/settings/views/documentation/config-geolocation.php:47
 msgid "When both fail"
@@ -22022,10 +21729,6 @@ msgstr "Uma importação cobre um público-alvo."
 #: includes/settings/views/documentation/feature-reregistration.php:123
 msgid "Re-importing the same file cannot duplicate anybody: there is one record per person per campaign, enforced by the database."
 msgstr "Reimportar o mesmo arquivo não duplica ninguém: há um registro por pessoa por campanha, garantido pelo banco de dados."
-
-#: includes/settings/views/documentation/submissions-list.php:45
-msgid "Reveal the decrypted CPF / RF / email instead of the masked values (audited). Without it the list and the PDF stay masked, whatever else the operator holds."
-msgstr "Revela o CPF / RF / e-mail decifrado em vez dos valores mascarados (auditado). Sem ela, a lista e o PDF continuam mascarados, independentemente do que mais o operador tenha."
 
 #: includes/settings/views/documentation/feature-reregistration.php:103
 msgid "Rows in the file"
@@ -23757,9 +23460,6 @@ msgstr "Balão de fala acima"
 msgid "Up to 24 characters, e.g. \"Scan to verify\". The caption colour is picked to stay readable on the frame."
 msgstr "Até 24 caracteres, por exemplo \"Escaneie para verificar\". A cor da legenda é escolhida para continuar legível sobre a moldura."
 
-msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame — a banner below, a badge or a speech bubble above — can carry a short caption such as \"Scan to verify\". A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
-msgstr "Um logotipo da Biblioteca de Mídia pode ser desenhado no centro (a correção de erros sobe para H automaticamente), e uma moldura — uma faixa abaixo, um selo ou um balão de fala acima — pode trazer uma legenda curta como \"Escaneie para verificar\". A moldura deixa a imagem mais alta que larga; os certificados mantêm a largura pedida pelo placeholder e crescem em altura."
-
 msgid "%1$d of %2$d bytes (%3$d%%)"
 msgstr "%1$d de %2$d bytes (%3$d%%)"
 
@@ -24059,3 +23759,903 @@ msgstr "Fundo transparente: não é possível verificar o contraste. Teste o có
 
 msgid "X"
 msgstr "X"
+
+msgid "Design and generate QR codes"
+msgstr "Crie e gere códigos QR"
+
+msgid "Style the QR codes on certificates and short URLs (shapes, colours, logo, frame), and draw standalone codes for a website, Wi-Fi, contact card, event and more with the QR Code Generator."
+msgstr "Personalize os códigos QR dos certificados e das URLs curtas (formatos, cores, logotipo, moldura) e crie códigos avulsos para site, Wi-Fi, cartão de contato, evento e mais com o Gerador de Código QR."
+
+msgid "Send date-based messages"
+msgstr "Envie mensagens por data"
+
+msgid "E-mail people on a date in their profile, such as a birthday, through the same e-mail pipeline, with one-click unsubscribe."
+msgstr "Envie e-mails às pessoas em uma data do perfil delas, como o aniversário, pelo mesmo fluxo de e-mail, com cancelamento de inscrição em um clique."
+
+msgid "or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Date Messages, Developer)."
+msgstr "ou vá direto a qualquer área (Agendamento, Recadastramento, Recrutamento, URLs Curtas, Mensagens por Data, Desenvolvedor)."
+
+msgid "Colours of the certificate HTML editor on the form screen: Auto (follows Dark Mode), Light or Dark. New installs default to Dark."
+msgstr "Cores do editor HTML do certificado na tela do formulário: Automático (segue o Modo Escuro), Claro ou Escuro. Instalações novas usam Escuro por padrão."
+
+msgid "Off by default. When switched on, the daily cleanup permanently deletes published submissions older than the \"Delete after (days)\" window (default 365)."
+msgstr "Desativado por padrão. Quando ativado, a limpeza diária exclui permanentemente os envios publicados mais antigos que a janela \"Excluir após (dias)\" (padrão 365)."
+
+msgid "Off by default. When on, forms reject an RF whose check digit does not match. Before turning it on, run the identity audit on the Data Migrations tab to see how many stored RFs would fail."
+msgstr "Desativado por padrão. Quando ativado, os formulários recusam um RF cujo dígito verificador não confere. Antes de ativá-lo, execute a auditoria de identidades na aba Migrações de Dados para ver quantos RFs armazenados seriam recusados."
+
+msgid "Branding logos"
+msgstr "Logotipos de branding"
+
+msgid "A government / institution logo and an organization logo, picked from the Media Library. They fill the {{logo_gov}} and {{logo_org}} placeholders in the default Record and appointment-receipt templates; a generic placeholder is used when empty."
+msgstr "Um logotipo de governo/instituição e um logotipo da organização, escolhidos na Biblioteca de Mídia. Eles preenchem os marcadores {{logo_gov}} e {{logo_org}} nos modelos padrão de Ficha e de comprovante de agendamento; quando vazios, é usado um marcador genérico."
+
+msgid "Hides the Date Messages menu and stops date-based e-mails such as birthdays. While it is on, nothing is sent until an administrator creates and activates a rule."
+msgstr "Oculta o menu Mensagens por Data e interrompe os e-mails por data, como os de aniversário. Enquanto estiver ativado, nada é enviado até que um administrador crie e ative uma regra."
+
+msgid "See Date Messages."
+msgstr "Veja Mensagens por Data."
+
+msgid "How many ALTCHA challenges one IP address may request per window is set on the Rate Limit tab, in the IP group (default 60 per 10 minutes; 0 removes the cap, which suits sites where many people share one address)."
+msgstr "Quantos desafios ALTCHA um endereço IP pode solicitar por janela é definido na aba Taxa Limite, no grupo IP (padrão 60 a cada 10 minutos; 0 remove o limite, o que convém a sites em que muitas pessoas compartilham um mesmo endereço)."
+
+msgid "See Rate Limit."
+msgstr "Veja Taxa Limite."
+
+msgid "Cloudflare:"
+msgstr "Cloudflare:"
+
+msgid "when Cloudflare is in front of the site, a Cloudflare Page Cache card reads the edge cache status of the front page. Cloudflare's default (static assets only) is safe; with \"Cache Everything\", APO or a Cache Rule that caches HTML, add a bypass for the form and dashboard URLs or for the wordpress_logged_in cookie."
+msgstr "quando a Cloudflare está na frente do site, um cartão Cache de páginas da Cloudflare lê o status do cache de borda da página inicial. O padrão da Cloudflare (apenas arquivos estáticos) é seguro; com \"Cache Everything\", APO ou uma Cache Rule que armazene HTML, adicione uma exceção para as URLs dos formulários e do painel ou para o cookie wordpress_logged_in."
+
+msgid "This cache covers certificate QR codes only. Short URLs cache their own QR codes separately, with no setting and no manual clearing."
+msgstr "Este cache cobre apenas os códigos QR dos certificados. As URLs curtas armazenam seus próprios códigos QR separadamente, sem configuração e sem limpeza manual."
+
+msgid "narrow the table by level and by action, or search the entries by text."
+msgstr "filtre a tabela por nível e por ação, ou pesquise os registros por texto."
+
+msgid "an activity summary for the last 30 days: the total, the counts by level and the most frequent actions."
+msgstr "um resumo das atividades dos últimos 30 dias: o total, as contagens por nível e as ações mais frequentes."
+
+msgid "The most rows the synchronous (no-JavaScript) public CSV download may return (default 2000). Larger exports must use the JavaScript batched flow, which runs in steps and survives shared-hosting timeouts."
+msgstr "O número máximo de linhas que o download síncrono (sem JavaScript) do CSV público pode retornar (padrão 2000). Exportações maiores precisam usar o fluxo em lotes com JavaScript, que roda em etapas e resiste aos tempos limite de hospedagens compartilhadas."
+
+msgid "Certificate editor"
+msgstr "Editor de certificado"
+
+msgid "The colour theme of the certificate HTML editor is on the General tab, next to Dark Mode."
+msgstr "O tema de cores do editor HTML do certificado fica na aba Geral, ao lado do Modo Escuro."
+
+msgid "See General."
+msgstr "Veja Geral."
+
+msgid "Defining a constant is effectively one-way: new writes use the new key the moment it is defined. On a site that already stores data, adopt the constants and then run the Encryption Key Rotation (Settings → Data Migrations) to re-encrypt existing records. Removing or blindly changing a constant on a live site makes existing records unreadable until the exact value is restored — it is never a blind edit."
+msgstr "Definir uma constante é, na prática, um caminho sem volta: novas gravações usam a nova chave assim que ela é definida. Em um site que já armazena dados, adote as constantes e então execute a Rotação de Chaves de Criptografia (Configurações → Migrações de Dados) para recriptografar os registros existentes. Remover ou alterar uma constante às cegas em um site em produção torna os registros existentes ilegíveis até que o valor exato seja restaurado — nunca é uma edição às cegas."
+
+msgid "ALTCHA challenges per IP:"
+msgstr "Desafios ALTCHA por IP:"
+
+msgid "the IP group also caps how many captcha challenges one address may request per window (default 60 per 600 seconds). 0 removes the cap — the honest choice where many people share one address, since any per-address number would cap the whole building."
+msgstr "o grupo IP também limita quantos desafios de captcha um endereço pode solicitar por janela (padrão 60 a cada 600 segundos). 0 remove o limite — a escolha honesta quando muitas pessoas compartilham um mesmo endereço, já que qualquer número por endereço limitaria o prédio inteiro."
+
+msgid "See Captcha."
+msgstr "Veja Captcha."
+
+msgid "Report-only scan (never changes data) of how people are linked to WordPress users. Over certificate submissions: a link to a deleted user, one user bound to multiple CPF/RF identities, an unlinked submission whose CPF matches a linked one, and a single CPF shared across users. Across submissions, appointments, recruitment candidacies and the identity index: one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not carry yet. It also flags a stored CPF or RF whose own check digit does not match. Findings can be exported as CSV and are worked on the Identity Resolution screen."
+msgstr "Varredura somente de relatório (nunca altera dados) de como as pessoas estão vinculadas a usuários do WordPress. Nos envios de certificado: vínculo com um usuário excluído, um usuário ligado a várias identidades CPF/RF, um envio sem vínculo cujo CPF coincide com um vinculado e um mesmo CPF compartilhado entre usuários. Entre envios, agendamentos, candidaturas de recrutamento e o índice de identidades: um identificador em duas contas, uma conta com dois identificadores e identificadores que o índice ainda não contém. Também aponta um CPF ou RF armazenado cujo próprio dígito verificador não confere. Os achados podem ser exportados em CSV e são tratados na tela Resolução de identidade."
+
+msgid "Always run the preview first. Deletions (short URLs) are permanent; disabling Public Operator Access is reversible (re-enable on the form editor); the link audit only reports — resolve each finding on the Identity Resolution screen or by hand."
+msgstr "Sempre execute a pré-visualização primeiro. Exclusões (URLs curtas) são permanentes; desativar o Acesso Público do Operador é reversível (reative no editor do formulário); a auditoria de vínculos só relata — resolva cada achado na tela Resolução de identidade ou manualmente."
+
+msgid "See Identity Resolution."
+msgstr "Veja Resolução de identidade."
+
+msgid "See Data Migrations."
+msgstr "Veja Migrações de Dados."
+
+msgid "Check the form's Date & Time Restrictions (the \"Time\" tab of its restrictions) — the form may be outside its open/close window"
+msgstr "Verifique as Restrições de Data e Horário do formulário (a aba \"Horário\" das restrições) — o formulário pode estar fora da sua janela de abertura/encerramento"
+
+msgid "Reminders, cleanups or date messages run late or not at all"
+msgstr "Lembretes, limpezas ou mensagens por data atrasam ou não rodam"
+
+msgid "Open Settings → Scheduled Tasks and look for tasks marked late"
+msgstr "Abra Configurações → Tarefas Agendadas e procure tarefas marcadas como atrasadas"
+
+msgid "WP-Cron only runs when the site gets visits — install the server cron line that tab generates"
+msgstr "O WP-Cron só roda quando o site recebe visitas — instale a linha de cron do servidor que essa aba gera"
+
+msgid "Upgrade notice."
+msgstr "Aviso de atualização."
+
+msgid "Dashboard → Updates shows a short summary of the release on offer, taken from the plugin's readme, so you can read what changes before applying it."
+msgstr "Painel → Atualizações mostra um breve resumo da versão oferecida, tirado do readme do plugin, para que você leia o que muda antes de aplicá-la."
+
+msgid "Settings → Scheduled Tasks lists the background tasks the plugin runs through WP-Cron — cleanups, reminders, cache warming, date messages and the like — and helps you keep them running on time."
+msgstr "Configurações → Tarefas Agendadas lista as tarefas em segundo plano que o plugin executa pelo WP-Cron — limpezas, lembretes, aquecimento de cache, mensagens por data e afins — e ajuda a mantê-las rodando no horário."
+
+msgid "The task table"
+msgstr "A tabela de tarefas"
+
+msgid "Frequency, next run and last run"
+msgstr "Frequência, próxima execução e última execução"
+
+msgid "WordPress only records when a task is due, so the plugin records the last real run itself; it appears after a task first runs."
+msgstr "O WordPress registra apenas quando uma tarefa vence, por isso o próprio plugin registra a última execução real; ela aparece depois que a tarefa roda pela primeira vez."
+
+msgid "a recurring task whose last run is older than its interval allows is marked late, and a warning tops the page. A task whose module is turned off on the Modules tab still fires but does nothing."
+msgstr "uma tarefa recorrente cuja última execução é mais antiga do que seu intervalo permite é marcada como atrasada, e um aviso aparece no topo da página. Uma tarefa cujo módulo está desativado na aba Módulos continua disparando, mas não faz nada."
+
+msgid "each daily task can be given a time, in the site timezone. Leave it empty to keep the task where it is. Saving times needs the settings-management capability."
+msgstr "cada tarefa diária pode receber um horário, no fuso horário do site. Deixe em branco para manter a tarefa onde está. Salvar horários exige a capacidade de gerenciar configurações."
+
+msgid "tasks created per piece of work (one per submission, per reminder batch, per date-messages batch) and removed once they run. A number that keeps growing means WP-Cron is not running."
+msgstr "tarefas criadas por unidade de trabalho (uma por envio, por lote de lembretes, por lote de mensagens por data) e removidas assim que rodam. Um número que só cresce indica que o WP-Cron não está rodando."
+
+msgid "By default WP-Cron runs only when someone visits the site, so on a quiet site a daily task can run hours late. The tab generates a crontab line — WP-CLI (recommended, needs WP-CLI on the server), or HTTP with wget or curl (works on any host) — at an interval you pick. Add it with \"crontab -e\" as the user that owns the WordPress files, or paste it into your hosting panel."
+msgstr "Por padrão, o WP-Cron só roda quando alguém visita o site, então em um site com pouco movimento uma tarefa diária pode atrasar horas. A aba gera uma linha de crontab — WP-CLI (recomendado, exige WP-CLI no servidor) ou HTTP com wget ou curl (funciona em qualquer hospedagem) — no intervalo que você escolher. Adicione-a com \"crontab -e\" como o usuário dono dos arquivos do WordPress, ou cole-a no painel da sua hospedagem."
+
+msgid "The line does not decide when tasks run."
+msgstr "A linha não decide quando as tarefas rodam."
+
+msgid "WordPress keeps each task's schedule; the server line only makes sure due tasks run promptly, so a short interval is right. Once the line is installed you can add DISABLE_WP_CRON to wp-config.php so visits stop triggering WP-Cron — but with that constant set and no server line, no task runs at all."
+msgstr "O WordPress mantém a agenda de cada tarefa; a linha do servidor só garante que as tarefas vencidas rodem prontamente, por isso um intervalo curto é o adequado. Depois de instalar a linha, você pode adicionar DISABLE_WP_CRON ao wp-config.php para que as visitas deixem de acionar o WP-Cron — mas com essa constante definida e sem a linha do servidor, nenhuma tarefa roda."
+
+msgid "Settings → User Access keeps people who only need their own certificates, appointments and profile out of the WordPress admin, sending them to the front-end dashboard instead."
+msgstr "Configurações → Acesso do Usuário mantém fora do painel administrativo do WordPress quem só precisa dos próprios certificados, agendamentos e perfil, levando essas pessoas ao painel do usuário no site."
+
+msgid "See User Dashboard & Access."
+msgstr "Veja Painel do Usuário e Acesso."
+
+msgid "Off by default. When on, users of the blocked roles who open wp-admin are redirected. Front-end AJAX requests are never blocked, so forms and the dashboard keep working."
+msgstr "Desativado por padrão. Quando ativado, usuários das funções bloqueadas que abrirem o wp-admin são redirecionados. Requisições AJAX do site nunca são bloqueadas, então os formulários e o painel continuam funcionando."
+
+msgid "The roles to keep out; the FFC End User role is selected by default. A user is blocked only when every role they hold is in the list, so someone who is also an editor keeps wp-admin access."
+msgstr "As funções a manter fora; a função FFC Usuário Final vem selecionada por padrão. Um usuário só é bloqueado quando todas as funções que ele tem estão na lista, então quem também é editor mantém o acesso ao wp-admin."
+
+msgid "On by default: an administrator is never redirected, even when holding a blocked role."
+msgstr "Ativado por padrão: um administrador nunca é redirecionado, mesmo tendo uma função bloqueada."
+
+msgid "Where blocked users land — by default the site's /dashboard page."
+msgstr "Para onde os usuários bloqueados vão — por padrão, a página /dashboard do site."
+
+msgid "The notice shown on the dashboard page after a redirect."
+msgstr "O aviso exibido na página do painel após um redirecionamento."
+
+msgid "Off by default, which hides the WordPress admin bar on the front end for users whose roles are all blocked."
+msgstr "Desativado por padrão, o que oculta a barra de administração do WordPress no site para usuários cujas funções estão todas bloqueadas."
+
+msgid "The \"FFC End User\" role is assigned automatically to people who submit forms with a CPF or RF."
+msgstr "A função \"FFC Usuário Final\" é atribuída automaticamente a quem envia formulários com CPF ou RF."
+
+msgid "Settings → IP Diagnostics decides how the plugin works out a visitor's IP address. That one choice governs every IP read in the plugin: the activity log, IP geolocation, rate limiting, the geofence and the public listing throttle."
+msgstr "Configurações → Diagnóstico de IP define como o plugin descobre o endereço IP de um visitante. Essa única escolha rege toda leitura de IP no plugin: o registro de atividades, a geolocalização por IP, a limitação de taxa, a cerca geográfica e o controle da listagem pública."
+
+msgid "Legacy"
+msgstr "Legado"
+
+msgid "the effective default. It trusts client-supplied headers such as X-Forwarded-For, so a forged header can spoof the address."
+msgstr "o padrão em vigor. Confia em cabeçalhos enviados pelo cliente, como X-Forwarded-For, então um cabeçalho forjado pode falsificar o endereço."
+
+msgid "Secure (recommended)"
+msgstr "Segura (recomendada)"
+
+msgid "a trusted-proxy model: a forwarded header is honoured only when the request really comes from Cloudflare or a proxy you trust, so the real client is found and cannot be forged."
+msgstr "um modelo de proxy confiável: um cabeçalho encaminhado só é aceito quando a requisição vem de fato da Cloudflare ou de um proxy em que você confia, de modo que o cliente real é encontrado e não pode ser forjado."
+
+msgid "With the secure strategy, the trusted-proxy mode says whom to believe: Auto (detect Cloudflare or a known proxy, else use the direct connection — recommended), Cloudflare, Custom (your own proxy CIDRs, one per line — never Cloudflare's, which are kept up to date automatically) or Direct (ignore every forwarded header)."
+msgstr "Com a estratégia segura, o modo de proxy confiável diz em quem acreditar: Automático (detecta a Cloudflare ou um proxy conhecido, senão usa a conexão direta — recomendado), Cloudflare, Personalizado (os CIDRs do seu próprio proxy, um por linha — nunca os da Cloudflare, que são mantidos atualizados automaticamente) ou Direto (ignora todo cabeçalho encaminhado)."
+
+msgid "What the tab shows"
+msgstr "O que a aba mostra"
+
+msgid "how your own request would be resolved, the headers received, and what each strategy would do with a forged X-Forwarded-For. IPs are masked unless you are a full administrator."
+msgstr "como a sua própria requisição seria resolvida, os cabeçalhos recebidos e o que cada estratégia faria com um X-Forwarded-For forjado. Os IPs ficam mascarados, a menos que você seja administrador completo."
+
+msgid "Cloudflare ranges"
+msgstr "Intervalos da Cloudflare"
+
+msgid "the official Cloudflare IP lists, refreshed daily (a bundled list is used until the first refresh), with a button to refresh them now."
+msgstr "as listas oficiais de IPs da Cloudflare, atualizadas diariamente (uma lista embutida é usada até a primeira atualização), com um botão para atualizá-las agora."
+
+msgid "off by default. When on, it logs (with a hashed IP) every request where the two strategies would disagree, so you can measure the impact before switching."
+msgstr "desativado por padrão. Quando ativado, registra (com IP em hash) cada requisição em que as duas estratégias divergiriam, para que você meça o impacto antes de trocar."
+
+msgid "Why Legacy is still the default:"
+msgstr "Por que Legado ainda é o padrão:"
+
+msgid "switching changes which address rate limits and the geofence see, which can matter on shared hosting. The tab recommends Secure, and putting Cloudflare (free plan) in front of the site for an address that cannot be forged."
+msgstr "trocar muda o endereço que a limitação de taxa e a cerca geográfica enxergam, o que pode pesar em hospedagens compartilhadas. A aba recomenda Segura e colocar a Cloudflare (plano gratuito) na frente do site, para ter um endereço que não pode ser forjado."
+
+msgid "Settings → Data Migrations brings stored data in line with what newer versions of the plugin expect. Each migration is a card showing how many records are migrated and how many are still pending. Click \"Run Migration\" once: it keeps processing batches until the card reaches 100%, with a live progress bar. Running a migration needs the Danger Zone capability."
+msgstr "Configurações → Migrações de Dados adequa os dados armazenados ao que as versões mais novas do plugin esperam. Cada migração é um cartão que mostra quantos registros já foram migrados e quantos ainda estão pendentes. Clique em \"Executar Migração\" uma vez: ela continua processando lotes até o cartão chegar a 100%, com uma barra de progresso ao vivo. Executar uma migração exige a capacidade da Zona de Perigo."
+
+msgid "What the cards do"
+msgstr "O que os cartões fazem"
+
+msgid "Identifiers and search hashes"
+msgstr "Identificadores e hashes de busca"
+
+msgid "split the old combined CPF/RF column into separate CPF and RF columns, rewrite stored CPF, RF and e-mail values into one canonical form, rebuild the e-mail lookup hashes, and copy the CPF/RF hashes already linked to a user into the identity index."
+msgstr "separam a antiga coluna combinada CPF/RF em colunas distintas de CPF e RF, reescrevem os valores armazenados de CPF, RF e e-mail em uma forma canônica única, recalculam os hashes de busca de e-mail e copiam para o índice de identidades os hashes de CPF/RF já vinculados a um usuário."
+
+msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and reregistration bodies); another card clears plaintext left on activity log rows that are already encrypted."
+msgstr "a Rotação de Chaves de Criptografia recriptografa os dados pessoais armazenados com a FFC_ENCRYPTION_KEY do wp-config.php, com um segundo cartão para as áreas restantes (candidatos do recrutamento e conteúdo dos recadastramentos); outro cartão apaga o texto puro deixado em linhas do registro de atividades que já estão criptografadas."
+
+msgid "See Advanced → Encryption Key Health."
+msgstr "Veja Avançado → Integridade da Chave de Criptografia."
+
+msgid "Accounts and profiles"
+msgstr "Contas e perfis"
+
+msgid "grant the certificate capabilities to accounts that own a certificate but cannot open it, name accounts created without a name, split full names into WordPress's first and last name, and copy birth dates already given in reregistrations to the profile."
+msgstr "concedem as capacidades de certificado às contas que possuem um certificado mas não conseguem abri-lo, dão nome às contas criadas sem nome, dividem o nome completo em nome e sobrenome do WordPress e copiam para o perfil as datas de nascimento já informadas em recadastramentos."
+
+msgid "Legacy certificate templates"
+msgstr "Modelos de certificado legados"
+
+msgid "import layouts left in the old html/ drop-folder into the template pool and move the images they reference into the Media Library. These cards appear only while that folder exists."
+msgstr "importam os layouts deixados na antiga pasta html/ para o acervo de modelos e movem as imagens que eles referenciam para a Biblioteca de Mídia. Esses cartões só aparecem enquanto essa pasta existir."
+
+msgid "Safe to repeat, not to undo."
+msgstr "Pode repetir, não pode desfazer."
+
+msgid "A migration can be run again safely, and a finished one simply has nothing left to do. It cannot be undone, so take a database backup first and run the encryption cards during low traffic."
+msgstr "Uma migração pode ser executada de novo com segurança, e uma já concluída simplesmente não tem mais nada a fazer. Ela não pode ser desfeita, então faça antes um backup do banco de dados e execute os cartões de criptografia em horário de pouco movimento."
+
+msgid "The same tab hosts the maintenance tools and the identity audit."
+msgstr "A mesma aba abriga as ferramentas de manutenção e a auditoria de identidades."
+
+msgid "See Maintenance Tools."
+msgstr "Veja Ferramentas de Manutenção."
+
+msgid "Certificate → Identities lists accounts and stored CPF/RF numbers that do not agree with each other — the findings of the identity audit on the Data Migrations tab — sorted by how much of the answer is already known. Check digits can say a number is wrong, never what the right one is, so confirm corrections with HR. Identifiers are shown as a hash; a stored number is never displayed."
+msgstr "Certificado → Identidades lista contas e números de CPF/RF armazenados que não concordam entre si — os achados da auditoria de identidades da aba Migrações de Dados — ordenados por quanto da resposta já se sabe. O dígito verificador pode dizer que um número está errado, nunca qual é o certo, por isso confirme as correções com o RH. Os identificadores aparecem como hash; um número armazenado nunca é exibido."
+
+msgid "The panels"
+msgstr "Os painéis"
+
+msgid "a stored CPF or RF that fails its own check digit. Work these first: a number that cannot be anyone's is not evidence that two accounts are one person, so a merge or move that depends on it is refused."
+msgstr "um CPF ou RF armazenado que não passa no próprio dígito verificador. Trate estes primeiro: um número que não pode ser de ninguém não prova que duas contas são a mesma pessoa, por isso uma mesclagem ou movimentação que dependa dele é recusada."
+
+msgid "an account holding two values where the check digits show which one is wrong, so no value has to be asked for."
+msgstr "uma conta com dois valores em que os dígitos verificadores mostram qual está errado, então não é preciso pedir nenhum valor."
+
+msgid "one number stored against more than one account: either a duplicate login to merge, or one login carrying someone else's mistyped number."
+msgstr "um número armazenado em mais de uma conta: ou um login duplicado a mesclar, ou um login com o número digitado errado de outra pessoa."
+
+msgid "numbers that share one address without being variants of each other, such as a shared mailbox or an account submitting for other people."
+msgstr "números que compartilham um mesmo endereço sem serem variações uns dos outros, como uma caixa de correio compartilhada ou uma conta que envia por outras pessoas."
+
+msgid "the check digits do not single one value out, so HR has to say which number is this person's."
+msgstr "os dígitos verificadores não apontam um único valor, então o RH precisa dizer qual número é o desta pessoa."
+
+msgid "records carrying an identifier that belongs to no account, usually recruitment candidacies never promoted or records whose account was deleted."
+msgstr "registros com um identificador que não pertence a nenhuma conta, geralmente candidaturas de recrutamento nunca promovidas ou registros cuja conta foi excluída."
+
+msgid "replace a wrong stored number with the right one."
+msgstr "substitua um número armazenado errado pelo correto."
+
+msgid "Move or link"
+msgstr "Mover ou vincular"
+
+msgid "attach records to the account they belong to. The two sides must already agree on one identifier, and the screen says before you confirm whether the move would be accepted."
+msgstr "associe registros à conta a que pertencem. Os dois lados já precisam concordar em um identificador, e a tela informa, antes da confirmação, se a movimentação seria aceita."
+
+msgid "give records an account of their own, which creates a WordPress user."
+msgstr "dê aos registros uma conta própria, o que cria um usuário do WordPress."
+
+msgid "consolidate two logins that are one person. It cannot be undone: afterwards nothing can say which record came from which login."
+msgstr "una dois logins que são a mesma pessoa. Não pode ser desfeito: depois, nada consegue dizer de qual login veio cada registro."
+
+msgid "when the number was never supplied or HR cannot say whose it is, record that decision. The finding moves to \"Accepted — no resolution possible\", where it can be put back in the queue; nothing stored changes, and a merge or move blocked by that number stays blocked."
+msgstr "quando o número nunca foi informado ou o RH não sabe dizer de quem é, registre essa decisão. O achado passa para \"Aceitos — sem resolução possível\", de onde pode ser devolvido à fila; nada armazenado muda, e uma mesclagem ou movimentação bloqueada por esse número continua bloqueada."
+
+msgid "Every action runs as a single transaction, rolled back whole if any part refuses. The findings can be exported as CSV."
+msgstr "Cada ação roda como uma única transação, desfeita por inteiro se qualquer parte recusar. Os achados podem ser exportados em CSV."
+
+msgid "open the screen, correct numbers and move records. It does not reveal a stored identifier."
+msgstr "abrir a tela, corrigir números e mover registros. Não revela um identificador armazenado."
+
+msgid "open a new account from the queue."
+msgstr "abrir uma nova conta a partir da fila."
+
+msgid "merge two accounts."
+msgstr "mesclar duas contas."
+
+msgid "New wrong RFs keep arriving while the RF check digit setting is off."
+msgstr "Novos RFs errados continuam chegando enquanto a configuração do dígito verificador do RF estiver desativada."
+
+msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Advanced → Required Certificate Tags. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too."
+msgstr "O editor de formulários não salva um layout de certificado sem uma etiqueta obrigatória — por padrão {{auth_code}}, {{name}} e {{cpf_rf}}, configuráveis em Configurações → Avançado → Etiquetas de Certificado Obrigatórias. Quando um Cronograma do Evento é preenchido na aba Horário, {{schedule}} também passa a ser obrigatório."
+
+msgid "The {{qr_code}} image follows the design set in Settings → QR Code (module shape, colours, logo, frame) when that design is switched on for certificates; otherwise a plain black-and-white code is drawn."
+msgstr "A imagem de {{qr_code}} segue o design definido em Configurações → Código QR (formato dos módulos, cores, logotipo, moldura) quando esse design está ativado para certificados; caso contrário, é gerado um código simples em preto e branco."
+
+msgid "On the Geolocation tab of the form editor's \"Certificate Form Configuration\" box, choose the area source for GPS and IP validation:"
+msgstr "Na aba Geolocalização da caixa \"Configuração do Formulário de Certificado\" do editor de formulários, escolha a origem da área para a validação por GPS e por IP:"
+
+msgid "Turning a form into a quiz"
+msgstr "Transformando um formulário em quiz"
+
+msgid "Enable it on the Quiz tab of the form editor's \"Certificate Form Configuration\" box, then give each scored field its points per option on the Fields tab. Only radio and select fields are scored."
+msgstr "Ative-o na aba Quiz da caixa \"Configuração do Formulário de Certificado\" do editor de formulários e, em seguida, defina os pontos por opção de cada campo pontuado na aba Campos. Apenas campos de botões de seleção única e de caixa de seleção suspensa são pontuados."
+
+msgid "minimum percentage to pass (default 70; 0 means no minimum)."
+msgstr "percentual mínimo para aprovação (padrão 70; 0 significa sem mínimo)."
+
+msgid "retries allowed per CPF/RF (0 = unlimited)."
+msgstr "tentativas permitidas por CPF/RF (0 = ilimitadas)."
+
+msgid "show the score after submission (on by default) and show which answers were correct or incorrect."
+msgstr "mostrar a pontuação após o envio (ativado por padrão) e mostrar quais respostas estavam corretas ou incorretas."
+
+msgid "An attempt below the passing score is kept as a \"Quiz: Retry\" submission while attempts remain, and as \"Quiz: Failed\" once they run out; no certificate is issued for either."
+msgstr "Uma tentativa abaixo da nota de aprovação é mantida como submissão \"Quiz: Tentando\" enquanto restarem tentativas, e como \"Quiz: Reprovado\" quando elas se esgotam; nenhum certificado é emitido em nenhum dos dois casos."
+
+msgid "Validation page:"
+msgstr "Página de validação:"
+
+msgid "The public /valid page also finds a record by its authentication code or its magic link"
+msgstr "A página pública /valid também localiza uma ficha pelo código de autenticação ou pelo link mágico"
+
+msgid "Account email"
+msgstr "E-mail da conta"
+
+msgid "Authentication code — filled only once the submission is approved"
+msgstr "Código de autenticação — preenchido somente depois que a submissão é aprovada"
+
+msgid "Ready-made \"Authentication: …\" footer fragment, empty until the submission is approved"
+msgstr "Trecho de rodapé pronto \"Autenticação: …\", vazio até a submissão ser aprovada"
+
+msgid "Year the campaign started"
+msgstr "Ano de início da campanha"
+
+msgid "Branding logo URLs from Settings > General > Branding"
+msgstr "URLs dos logotipos definidas em Configurações > Geral > Identidade Visual"
+
+msgid "Division / Sector (see the dependent-select note below for each half)"
+msgstr "Divisão / Setor (veja a nota sobre seleção dependente abaixo para cada parte)"
+
+msgid "The certificate PDF a form issues on submission (the default kind). Three ready-made certificate models ship."
+msgstr "O PDF do certificado que um formulário emite no envio (o tipo padrão). Três modelos de certificado prontos acompanham o plugin."
+
+msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change →\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
+msgstr "Uma visão geral somente leitura, \"Atribuições atuais\", na aba Modelos de documento, mostra qual modelo do acervo os comprovantes de agendamento (Regular e Personalizado) e a ficha de recadastramento estão usando no momento, com um link \"Alterar →\" para as configurações do próprio recurso. Cada linha aparece apenas para usuários que podem visualizar aquele recurso, e os certificados não têm linha porque cada formulário escolhe o seu. A visão geral é apenas informativa — os controles de seleção (e suas permissões) continuam em cada recurso."
+
+msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails."
+msgstr "Os campos de entrada de um formulário são definidos na aba Campos (\"Construtor de Formulários (Campos)\") da caixa \"Configuração do Formulário de Certificado\" do editor de formulários — uma lista ordenável de campos. Cada campo tem um Nome da variável (etiqueta); essa etiqueta é a chave interna que se torna um {{token}} no PDF do certificado e nos e-mails."
+
+msgid "Checkbox — fill the Options field. Not scored in quiz mode."
+msgstr "Caixa de seleção múltipla — preencha o campo Opções. Não é pontuada no modo quiz."
+
+msgid "Hidden field — rendered with no visible control."
+msgstr "Campo oculto — renderizado sem nenhum controle visível."
+
+msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
+msgstr "Campos de nome (chaves como name, nome, nome_completo, full_name ou participante) são normalizados no envio para a capitalização correta, mantendo em minúsculas conectivos como \"da\" e \"de\"."
+
+msgid "A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF). The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate \"CPF field type\" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked."
+msgstr "Um campo chamado cpf_rf é validado no envio como um documento brasileiro: caracteres não numéricos são removidos e o valor deve ter exatamente 11 dígitos (CPF, com validação do dígito verificador) ou 7 dígitos (RF). O dígito verificador do RF só é exigido quando Configurações → Geral → Dígito verificador do RF está ativado (desativado por padrão). Não existe um \"tipo de campo CPF\" específico — é o nome do campo que aciona essa validação. No PDF, os tokens cpf, cpf_rf e rg são formatados com pontuação (ex.: 000.000.000-00 para um CPF, 000.000-0 para um RF), sem máscara."
+
+msgid "Each form has its own Email tab (\"Email Configuration\") in the form editor's \"Certificate Form Configuration\" box, controlling the message sent to the participant on submission, plus an optional admin notification."
+msgstr "Cada formulário tem sua própria aba E-mail (\"Configuração de E-mail\") na caixa \"Configuração do Formulário de Certificado\" do editor de formulários, que controla a mensagem enviada ao participante no envio, além de uma notificação opcional ao administrador."
+
+msgid "the subject is a plain text field and the body is edited in a visual editor. \"Restore Default Text\" restores the current global default, and an empty body also falls back to the default when the email is sent."
+msgstr "o assunto é um campo de texto simples e o corpo é editado em um editor visual. \"Restaurar Texto Padrão\" restaura o padrão global atual, e um corpo vazio também volta ao padrão quando o e-mail é enviado."
+
+msgid "Geofencing restricts where a form may be submitted. It is configured on the Geolocation tab of the form editor's \"Certificate Form Configuration\" box, and can validate by GPS position, by IP geolocation, or both."
+msgstr "O georreferenciamento restringe os locais onde um formulário pode ser enviado. Ele é configurado na aba Geolocalização da caixa \"Configuração do Formulário de Certificado\" do editor de formulários e pode validar pela posição GPS, pela geolocalização por IP ou por ambos."
+
+msgid "When both are enabled you choose whether the visitor must pass GPS AND IP, or either one (OR, the default). Blocked visitors see a configurable message, the title + description + message, or the form is hidden. A separate Error Message is shown when the location cannot be determined (e.g. GPS permission denied)."
+msgstr "Quando ambos estão habilitados, você escolhe se o visitante deve passar pela verificação de GPS E IP, ou por apenas um deles (OU, o padrão). Visitantes bloqueados veem uma mensagem configurável, o título + descrição + mensagem, ou têm o formulário ocultado. Uma Mensagem de Erro separada é exibida quando não é possível determinar a localização (ex.: permissão de GPS negada)."
+
+msgid "You pick where the allowed GPS area comes from; IP validation reuses the GPS areas unless \"Use different areas for IP validation\" is checked, in which case IP gets its own source:"
+msgstr "Você escolhe de onde vem a área permitida para o GPS; a validação por IP reutiliza as áreas do GPS, a menos que \"Utilize áreas diferentes para validação por IP.\" esteja marcado, caso em que o IP tem sua própria origem:"
+
+msgid "Public Operator Access (formerly \"Public CSV Download\") lets a trusted operator who does NOT have a WordPress login interact with a single form through a secret, per-form link. It is enabled on the Operator tab (\"Public Operator Access\") of the form editor's \"Certificate Form Configuration\" box."
+msgstr "O Acesso Público de Operador (anteriormente \"Download de CSV Público\") permite que um operador de confiança, que NÃO possui login no WordPress, interaja com um formulário específico por meio de um link secreto exclusivo para aquele formulário. O recurso é ativado na aba Operador (\"Acesso Público de Operador\") da caixa \"Configuração do Formulário de Certificado\" do editor de formulários."
+
+msgid "The hash is the only credential — treat the link as a password. Set the base page under Settings → General (\"CSV Download Page URL\") so the editor shows the full link instead of just the query string. The hash is regenerated on demand (\"Regenerate hash on save\") and is deliberately NOT copied when a form is duplicated. A separate option resets the download counter to zero on save."
+msgstr "O hash é a única credencial — trate o link como uma senha. Defina a página base em Configurações → Geral (\"URL da página de download do arquivo CSV\") para que o editor exiba o link completo, em vez de apenas a query string. O hash é regenerado sob demanda (\"Regenerar hash ao salvar\") e, deliberadamente, não é copiado quando um formulário é duplicado. Uma opção separada zera o contador de downloads ao salvar."
+
+msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP, mode, result) that admins can export."
+msgstr "Um formulário sem data de término nunca libera o arquivo CSV. Os downloads também estão sujeitos a uma cota por formulário (se o campo estiver em branco, aplica-se o Limite de Download Padrão global, definido em Configurações → Avançado). Quando a exigência de CPF abaixo está em qualquer modo diferente de none — ou quando um operador informa voluntariamente um CPF válido — cada tentativa é registrada em um log de auditoria do formulário com as tentativas mais recentes (data/hora, IP, modo e resultado), que os administradores podem exportar."
+
+msgid "The CPF gate is checked again when the operator uses Start Form Early or Postpone Close."
+msgstr "A exigência de CPF é verificada novamente quando o operador usa Início Antecipado ou Adiar Fechamento."
+
+msgid "With \"Enable Schedule Exception\" switched on in the form's Time tab, the operator page shows an \"Entry/exit exception\" button. It records an individual entry/exit time for one participant, which replaces {{schedule}} on that participant's certificate. The \"Default Modal Mode\" setting chooses whether the dialog opens with the end time pre-filled with the current moment (Now) or lets the operator type both ends (Manual)."
+msgstr "Com \"Habilitar exceção de horário\" ativado na aba Horário do formulário, a página do operador exibe o botão \"Entrada/saída diferenciada\". Ele registra um horário de entrada/saída individual para um participante, que substitui {{schedule}} no certificado desse participante. A configuração \"Modo padrão do modal\" define se a janela abre com o horário de término preenchido com o momento atual (Agora) ou deixa o operador digitar os dois horários (Manual)."
+
+msgid "A form can accept submissions only inside a date/time window. The window is configured on the Time tab of the form editor's \"Certificate Form Configuration\" box. Outside the window the form is blocked with a configurable message (or hidden entirely). Administrators can be set to bypass date/time restrictions under Settings → Geolocation."
+msgstr "Um formulário pode aceitar submissões apenas dentro de uma janela de data/horário. A janela é configurada na aba Horário da caixa \"Configuração do Formulário de Certificado\" do editor de formulários. Fora da janela, o formulário é bloqueado com uma mensagem configurável (ou totalmente ocultado). Os administradores podem ser configurados para ignorar as restrições de data/hora em Configurações → Geolocalização."
+
+msgid "Before / during / after the window you can independently show a message, show the title + description + message, or hide the form. The \"during\" setting applies only in daily mode, outside that day's hours."
+msgstr "Antes, durante ou após a janela, você pode, de forma independente, exibir uma mensagem, exibir título + descrição + mensagem, ou ocultar o formulário. A opção \"durante\" só se aplica ao modo diário, fora do horário do dia."
+
+msgid "The \"Event Schedule (Reference)\" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. Once they are filled, the certificate layout must contain {{schedule}}. The tokens use a per-participant exception first, then the Event Schedule, then the window's start/end time. See"
+msgstr "Os horários do \"Cronograma do Evento (Referência)\" na mesma aba são impressos no certificado pelos tokens {{schedule}} e {{schedule_total}} — eles não abrem nem fecham o formulário. Depois de preenchidos, o layout do certificado precisa conter {{schedule}}. Os tokens usam primeiro uma exceção individual do participante, depois o Cronograma do Evento e, por fim, o horário de início/término da janela. Veja"
+
+msgid "moves the close time later on the scheduled close day, after the form has opened; the new time must stay within the same day."
+msgstr "adia o horário de fechamento no dia previsto para o encerramento, depois que o formulário já abriu; o novo horário deve permanecer no mesmo dia."
+
+msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
+msgstr "A página /valid (shortcode [ffc_verification]) também oferece uma consulta manual: qualquer pessoa pode digitar o código de autenticação de um certificado para confirmar que ele é autêntico e ver seu status. A mesma consulta e o link mágico também verificam comprovantes de agendamento e fichas de recadastramento pelos seus próprios códigos e links. Esse caminho é protegido por nonce, honeypot + o captcha configurado e limitação de taxa por IP."
+
+msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed). The search box matches a submission id, an auth code, or an exact email, CPF or RF. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
+msgstr "A tabela exibe o ID, o formulário, o e-mail, uma breve prévia de campos não sensíveis, o status e a data. É possível filtrar por um ou mais formulários e alternar entre Publicado, Lixeira e os estados do quiz (Tentando, Reprovado). A caixa de busca encontra um ID de submissão, um código de autenticação ou um e-mail, CPF ou RF exato. Colunas com dados pessoais são descriptografadas apenas para a exibição na linha; a prévia nunca inclui e-mail, CPF/RF ou código de autenticação."
+
+msgid "The edit screen lets you correct the participant email and the form's custom-field values, and link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
+msgstr "A tela de edição permite corrigir o e-mail do participante e os valores dos campos personalizados do formulário, além de vincular, desvincular ou trocar o usuário do WordPress. O status de consentimento da LGPD é exibido apenas para consulta. Os campos de identidade e integridade são somente leitura: ID da submissão, data, status, token de link mágico, IP, CPF/RF e código de autenticação (garantindo que um certificado nunca possa ser redirecionado silenciosamente)."
+
+msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
+msgstr "Exporte as submissões atuais (filtradas) para CSV em segundo plano. A exportação contém dados pessoais descriptografados (e-mail, IP, CPF/RF), o token de link mágico e o registro de consentimento, por isso é controlada por uma permissão própria."
+
+msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form)."
+msgstr "Enviar para a lixeira / restaurar e ações em massa, incluindo \"Mova para o formulário…\" (oferecida quando a lista está filtrada por um único formulário)."
+
+msgid "Reveal the decrypted CPF / RF / email on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
+msgstr "Revelar sob demanda o CPF / RF / e-mail descriptografados em vez dos valores mascarados; cada revelação é auditada. Sem ela, a lista e a tela de edição permanecem mascaradas, independentemente de outras permissões do operador. O PDF do certificado não é mascarado: ele imprime o CPF/RF formatado com pontuação."
+
+msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked without a reveal step. See Capabilities & Roles."
+msgstr "Administradores (manage_options) possuem todas as permissões acima e, assim como a função de administrador de certificados, veem os dados pessoais sem máscara, sem a etapa de revelação. Veja Capacidades e Funções."
+
+msgid "Minimum interval between bookings"
+msgstr "Intervalo mínimo entre agendamentos"
+
+msgid "Stops a user from booking again within this many hours of their last booking (default 24; 0 disables it)."
+msgstr "Impede que um usuário agende novamente dentro desse número de horas após o seu último agendamento (padrão 24; 0 desativa)."
+
+msgid "Business-hours restrictions"
+msgstr "Restrições ao horário de funcionamento"
+
+msgid "Optionally limit viewing the calendar, or only booking on it, to the configured working hours."
+msgstr "Opcionalmente, limita a visualização do calendário, ou apenas os agendamentos nele, ao horário de funcionamento configurado."
+
+msgid "Admin bypass"
+msgstr "Bypass de administrador"
+
+msgid "Per calendar: whether holders of manage_options or ffc_bypass_appointments may book outside the advance window, on blocked dates, outside working hours and past the daily/interval limits. Turn it off to apply every rule to administrators too."
+msgstr "Por calendário: define se quem possui manage_options ou ffc_bypass_appointments pode agendar fora da janela de antecedência, em datas bloqueadas, fora do horário de funcionamento e além dos limites diário e de intervalo. Desative para aplicar todas as regras também aos administradores."
+
+msgid "Active, Inactive (no new bookings) or Archived."
+msgstr "Ativo, Inativo (sem novos agendamentos) ou Arquivado."
+
+msgid "Each calendar independently enables: user confirmation, admin notification, approval notice, cancellation notice and a reminder (default 24h before). When the waitlist is on, an \"added to waitlist\" notice and a \"spot opened up\" promotion notice are sent too. The user-facing ones are token-based and editable once in Settings → Email texts (the confirmation can also be overridden per calendar); the admin notification has a fixed body. Every one is wrapped in the shared Email Model chrome. A user who turns off \"Appointment reminder\" in their dashboard notification preferences does not receive the reminder."
+msgstr "Cada calendário ativa de forma independente: confirmação ao usuário, notificação ao administrador, aviso de aprovação, aviso de cancelamento e um lembrete (padrão: 24h antes). Com a lista de espera ativa, também são enviados o aviso de \"adicionado à lista de espera\" e o aviso de promoção \"vaga liberada\". Os e-mails destinados ao usuário usam tokens e são editados uma única vez em Configurações → Textos dos e-mails (a confirmação também pode ser personalizada por calendário); a notificação ao administrador tem corpo fixo. Todos são envolvidos pelo layout compartilhado do Modelo de e-mail. Um usuário que desativa \"Lembrete de agendamento\" nas preferências de notificação do seu painel não recebe o lembrete."
+
+msgid "view the calendars read-only, or create, edit, publish and delete them (structure, working hours and options)."
+msgstr "ver os calendários somente para leitura, ou criá-los, editá-los, publicá-los e excluí-los (estrutura, horário de funcionamento e opções)."
+
+msgid "view or manage the appointments booked on those calendars."
+msgstr "ver ou gerenciar os agendamentos feitos nesses calendários."
+
+msgid "Go to Scheduling → Audiences, edit an audience, and use its Reregistration Fields section"
+msgstr "Acesse Agendamento → Públicos-alvo, edite um público-alvo e use a seção Campos de Recadastramento"
+
+msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the section is hidden."
+msgstr "Ver as definições dos campos exige ffc_view_custom_fields e editá-las exige ffc_manage_custom_fields; sem nenhuma das duas, a seção fica oculta."
+
+msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data; fields mapped to a profile key (such as CPF, RF, RG or birth date) are also written, encrypted, to the plugin user profile."
+msgstr "As definições dos campos são armazenadas na tabela ffc_custom_fields. Os dados do usuário são armazenados como JSON em wp_usermeta, na chave ffc_custom_fields_data; os campos mapeados para uma chave de perfil (como CPF, RF, RG ou data de nascimento) também são gravados, criptografados, no perfil de usuário do plugin."
+
+msgid "An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed): an audience can let users join or leave its child groups from their dashboard, with a cap on how many child groups one user may join, and its descendants inherit the setting. Audiences also carry the custom fields used by reregistration."
+msgstr "Um público-alvo é um grupo nomeado de membros, com uma cor, um status ativo/inativo e uma hierarquia opcional de até 3 níveis. Os membros são importados ou entram por conta própria (quando permitido): um público-alvo pode permitir que os usuários entrem ou saiam dos seus grupos filhos pelo painel, com um limite de quantos grupos filhos um mesmo usuário pode integrar, e os seus descendentes herdam essa configuração. Os públicos-alvo também carregam os campos personalizados usados no recadastramento."
+
+msgid "Admin pages"
+msgstr "Páginas administrativas"
+
+msgid "Besides the calendars, environments and audiences, the Scheduling menu has a Dashboard and an Audience Bookings list of every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
+msgstr "Além dos calendários, ambientes e públicos-alvo, o menu Agendamento tem um Painel e a lista Agendamentos de Público-alvo, com todos os agendamentos (exportável em CSV com ffc_export_audiences). Os feriados globais, definidos na aba Agendamento → Configurações → Geral, bloqueiam agendamentos nessas datas."
+
+msgid "The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
+msgstr "A aba Agendamento → Configurações → Importar e Exportar importa e exporta públicos-alvo (nome, cor, pai) e membros (e-mail, nome, público-alvo) em CSV, criando opcionalmente usuários do WordPress para os membros importados."
+
+msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF. The standard birth-date field reads and writes the single encrypted birth date on the user profile, which Date Messages uses."
+msgstr "Uma campanha exibe a união dos campos personalizados dos públicos-alvo vinculados (os campos padrão de identidade/contato e os personalizados). Cada envio pode ser exportado como PDF da Ficha. O campo padrão de data de nascimento lê e grava a data de nascimento única e criptografada do perfil do usuário, usada pelas Mensagens por Data."
+
+msgid "create/edit campaigns, approve/reject, generate Records. Editing the field definitions needs ffc_manage_custom_fields."
+msgstr "criar/editar campanhas, aprovar/rejeitar, gerar Fichas. Editar as definições dos campos exige ffc_manage_custom_fields."
+
+msgid "Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew. Importing a candidate also links or creates their WordPress account (matched by CPF, RF or e-mail), which is what lets them follow their own call-ups."
+msgstr "Os candidatos são importados de CSV (cabeçalhos: name, cpf, rf, email, adjutancy, rank, score, pcd, além dos opcionais phone, time_points, hab_emebs) para a lista preliminar ou para a definitiva. As convocações são registradas por candidato; convocar fora da ordem de classificação exige um motivo. Os resultados levam o candidato por called → accepted / not_shown / hired / withdrew. Importar um candidato também vincula ou cria a sua conta do WordPress (localizada por CPF, RF ou e-mail), o que permite que ele acompanhe as próprias convocações."
+
+msgid "A capacity meter and density and contrast warnings help keep the code readable, and the preview panel can also print it. An event code can open the event itself, a pre-filled Google Calendar link, or a signed link to an .ics file; that link may carry an optional \"valid until\" date, after which it answers that it has expired, while a link without one never expires. The generator reopens with each user's last downloaded design (design only, never content), and \"Reset to default\" restores the global one."
+msgstr "Um medidor de capacidade e avisos de densidade e de contraste ajudam a manter o código legível, e o painel de pré-visualização também permite imprimi-lo. Um código de evento pode abrir o próprio evento, um link pré-preenchido do Google Agenda ou um link assinado para um arquivo .ics; esse link pode ter uma data opcional de \"válido até\", após a qual informa que expirou, enquanto um link sem essa data nunca expira. O gerador reabre com o último design baixado por cada usuário (apenas o design, nunca o conteúdo), e \"Restaurar padrão\" volta ao design global."
+
+msgid "The global design (module shape, corners, colours and gradient, logo, frame and caption, transparent background) is set on Settings → QR Code. It is off by default and switched on separately for certificates and for short URLs."
+msgstr "O design global (formato dos módulos, cantos, cores e degradê, logotipo, moldura e legenda, fundo transparente) é definido em Configurações → Código QR. Ele vem desativado e é ativado separadamente para certificados e para URLs curtas."
+
+msgid "Enable the shortener (Settings → Modules)"
+msgstr "Ativar o encurtador (Configurações → Módulos)"
+
+msgid "Their audience bookings, and the Recruitment tab with their call-ups, when they belong to an audience or are linked to a candidate"
+msgstr "Seus agendamentos de público-alvo e a aba Recrutamento com as suas convocações, quando pertence a um público-alvo ou está vinculado a um candidato"
+
+msgid "A Profile tab, read from the plugin's own user profile, where they edit their display name, phone, department, organization, notes and birth date (stored encrypted, and the date Date Messages uses)"
+msgstr "Uma aba Perfil, lida do perfil de usuário do próprio plugin, onde edita nome de exibição, telefone, departamento, organização, observações e data de nascimento (armazenada criptografada e usada pelas Mensagens por Data)"
+
+msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle that opts them out; both are on until turned off"
+msgstr "Preferências de Notificação: uma chave \"Lembrete de agendamento\" e, quando o módulo Mensagens por Data está ativo, uma chave \"Mensagens por data (como felicitações de aniversário)\" que permite deixar de recebê-las; ambas ficam ativas até serem desligadas"
+
+msgid "Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data"
+msgstr "Alterar a Senha e os botões de Privacidade e Dados (LGPD) para solicitar a exportação ou a exclusão dos seus dados pessoais"
+
+msgid "View as user:"
+msgstr "Ver como usuário:"
+
+msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\")."
+msgstr "quem possui ffc_view_as_user pode abrir o painel como outro usuário, sob um aviso, a partir da lista de usuários ou da tela de edição do usuário (\"Entrar como Usuário\")."
+
+msgid "The identity/contact/address/employment fields live on the plugin's user profile and are mapped to the reregistration and audience data, so a user's details stay consistent across a certificate PDF, a record and their profile. WordPress's first and last name follow the plugin's full name (first word / the rest), and editing First/Last Name on the user-edit screen updates it back."
+msgstr "Os campos de identidade/contato/endereço/vínculo ficam no perfil de usuário do plugin e são mapeados para os dados de recadastramento e de público-alvo, de modo que os dados do usuário permanecem consistentes entre o PDF do certificado, a ficha e o perfil. O nome e o sobrenome do WordPress acompanham o nome completo do plugin (primeira palavra / o restante), e editar Nome/Sobrenome na tela de edição do usuário atualiza o nome completo de volta."
+
+msgid "A read-only index at the bottom of the tab lists the plugin's emails, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open →\" deep-link to where it is configured. It is discoverability only — it moves no controls."
+msgstr "Um índice somente leitura no fim da aba lista os e-mails do plugin, agrupados por recurso, cada um com uma linha de finalidade, um estado de personalização (Texto editável / Apenas ativar/desativar / Padrão do sistema) e um link \"Abrir →\" para onde é configurado. Ele serve apenas para descoberta — não move nenhum controle."
+
+msgid "Date-message e-mails are not in that index: each rule's subject and body are edited on the rule itself, on the Date Messages screen. The hub's \"Birthday message (default for new rules)\" only sets the text a new rule starts from; existing rules keep their own."
+msgstr "Os e-mails das mensagens por data não estão nesse índice: o assunto e o corpo de cada regra são editados na própria regra, na tela Mensagens por Data. A \"Mensagem de aniversário (padrão para novas regras)\" desta central define apenas o texto com que uma nova regra começa; as regras existentes mantêm o seu."
+
+msgid "See Date Messages"
+msgstr "Ver Mensagens por Data"
+
+msgid "Birthday message — the default text a new rule starts from"
+msgstr "Mensagem de aniversário — o texto padrão com que uma nova regra começa"
+
+msgid "Date-message e-mails"
+msgstr "E-mails das mensagens por data"
+
+msgid "Each Date Messages rule sends its own subject and body to each person on their date, through the same pipeline and chrome. A body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. A rule can also e-mail chosen managers a summary 24 hours after each run; that summary has a fixed body."
+msgstr "Cada regra de Mensagens por Data envia o seu próprio assunto e corpo a cada pessoa na sua data, pelo mesmo fluxo e com o mesmo layout. Um corpo que não inclui {{unsubscribe_url}} recebe uma linha de cancelamento de inscrição ao final. Uma regra também pode enviar a gestores escolhidos um resumo 24 horas após cada execução; esse resumo tem corpo fixo."
+
+msgid "Date-message tokens:"
+msgstr "Tokens das mensagens por data:"
+
+msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday. It has its own top-level \"Date Messages\" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs."
+msgstr "Mensagens por Data envia um e-mail em uma data armazenada no perfil de cada pessoa — hoje, o aniversário. O módulo tem o seu próprio menu principal \"Mensagens por Data\", com as abas Regras, Enviar agora, Histórico, Próximas datas e Agendar."
+
+msgid "On, but silent until you create a rule."
+msgstr "Ativo, mas sem enviar nada até que você crie uma regra."
+
+msgid "The module is enabled by default (Settings → Modules), but no rule ships with the plugin, so nothing is sent until an administrator creates a rule and activates it."
+msgstr "O módulo vem ativado por padrão (Configurações → Módulos), mas o plugin não traz nenhuma regra pronta; portanto, nada é enviado até que um administrador crie uma regra e a ative."
+
+msgid "Operator-facing label for the rule."
+msgstr "Rótulo da regra exibido aos operadores."
+
+msgid "Which date in the profile the rule follows (the birth date)."
+msgstr "Qual data do perfil a regra acompanha (a data de nascimento)."
+
+msgid "0 sends on the date itself; a negative number sends that many days before it, a positive one after it, up to two months either way."
+msgstr "0 envia na própria data; um número negativo envia essa quantidade de dias antes dela, e um positivo, depois, até dois meses em qualquer direção."
+
+msgid "Everyone, or the members of one audience (members of its sub-audiences included)."
+msgstr "Todos, ou os membros de um público-alvo (incluindo os membros dos seus sub-públicos)."
+
+msgid "Subject and message"
+msgstr "Assunto e mensagem"
+
+msgid "The e-mail body only; the header and footer come from the Email Model. A new rule starts from the \"Birthday message\" default in Settings → Email texts, and \"Restore default text\" brings it back."
+msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, e \"Restaurar texto padrão\" o traz de volta."
+
+msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off and send only the manager summary."
+msgstr "\"Enviar e-mail a cada pessoa na sua data\" e \"Ativa (o envio diário a envia)\". Uma regra pode ficar ativa com os e-mails pessoais desligados e enviar apenas o resumo para gestores."
+
+msgid "Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below."
+msgstr "Opcionalmente, envia a gestores escolhidos um resumo 24 horas após cada execução, apenas com os totais ou com os totais e os nomes de quem recebeu. Veja abaixo."
+
+msgid "Rules can be edited, duplicated, activated or deactivated and deleted from the Rules tab. Deleting a rule keeps what it already sent in the history."
+msgstr "As regras podem ser editadas, duplicadas, ativadas ou desativadas e excluídas na aba Regras. Excluir uma regra mantém no histórico o que ela já enviou."
+
+msgid "Who receives a message"
+msgstr "Quem recebe uma mensagem"
+
+msgid "For each person whose date falls on the day, the first matching decision wins: outside the audience, opted out, no valid e-mail, already sent, otherwise will receive. Each person gets a rule's message once per occurrence of their date, however often the run repeats. People born on 29 February are reached on 28 February in a common year. The year of birth is never shown; {{age}} is computed from it."
+msgstr "Para cada pessoa cuja data cai no dia, vale a primeira decisão aplicável: fora do público-alvo, cancelou o recebimento, sem e-mail válido, já enviado; caso contrário, receberá. Cada pessoa recebe a mensagem de uma regra uma vez por ocorrência da sua data, por mais que a execução se repita. Quem nasceu em 29 de fevereiro é contemplado em 28 de fevereiro nos anos não bissextos. O ano de nascimento nunca é exibido; {{age}} é calculado a partir dele."
+
+msgid "A birth date given before the profile field existed reaches the profile through a migration card in Settings → Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends."
+msgstr "Uma data de nascimento informada antes de o campo de perfil existir chega ao perfil por um cartão de migração em Configurações → Migrações; enquanto restarem contas, a tela Mensagens por Data exibe um aviso, porque essas pessoas ainda não aparecem nas prévias, nas próximas datas nem nos envios."
+
+msgid "Preview recipients and test send"
+msgstr "Prévia dos destinatários e envio de teste"
+
+msgid "\"Preview recipients\" lists, for a range of dates, everyone the rule would reach and the decision for each, using the very selection the send uses, so the preview cannot disagree with what is sent. Long lists show only the first rows, while the totals count everyone. \"Send test to me\" mails the message, filled with fictional values, to your own address. Both use the values on the form, saved or not, and neither sends to anybody else nor records anything."
+msgstr "\"Prévia dos destinatários\" lista, para um intervalo de datas, todos que a regra alcançaria e a decisão para cada um, usando exatamente a mesma seleção do envio, de modo que a prévia não pode divergir do que é enviado. Listas longas mostram apenas as primeiras linhas, enquanto os totais contam todos. \"Enviar teste para mim\" envia a mensagem, preenchida com valores fictícios, para o seu próprio endereço. Ambos usam os valores do formulário, salvos ou não, e nenhum deles envia a outra pessoa nem registra nada."
+
+msgid "Sends one rule to everyone whose date falls in a chosen range of up to 31 days, in batches handed to wp_mail(). People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs."
+msgstr "Envia uma regra a todos cuja data cai em um intervalo escolhido de até 31 dias, em lotes entregues ao wp_mail(). Quem já recebeu essa regra para aquela data é ignorado, então executar o mesmo intervalo duas vezes não envia nada novo. Sem um plugin de fila de e-mails ativo, um intervalo grande é enviado tão rápido quanto o PHP executa."
+
+msgid "Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue."
+msgstr "Cada execução, diária ou manual, é listada com a sua regra, as datas e os contadores: enviados, cancelaram o recebimento, sem e-mail válido, fora do público-alvo e com falha. \"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de e-mails ativa, a entrega acontece depois, a partir da fila."
+
+msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen."
+msgstr "Quando ativado em uma regra, os gestores escolhidos recebem um resumo 24 horas após o início de cada execução. Os nomes vão apenas para os destinatários autorizados a ver quem recebe mensagens por data (ffc_view_date_messages_pii, ou administradores); os demais recebem os totais. Uma execução que não alcançou ninguém não envia resumo. Só podem ser escolhidos administradores e contas que possuam uma permissão de mensagens por data."
+
+msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month, optionally filtered by audience. The tab is shown only to holders of ffc_view_date_messages_pii and administrators."
+msgstr "Lista os aniversários dos próximos 7 ou 30 dias ou de um mês escolhido, por dia e mês, com filtro opcional por público-alvo. A aba é exibida apenas para quem possui ffc_view_date_messages_pii e para administradores."
+
+msgid "Daily schedule"
+msgstr "Agendamento diário"
+
+msgid "The daily run sends every active rule once a day, at 08:00 in the site timezone by default. The time is chosen on Settings → Scheduled Tasks, which also shows the server line that keeps scheduled tasks running on a quiet site."
+msgstr "A execução diária envia todas as regras ativas uma vez por dia, por padrão às 08:00 no fuso horário do site. O horário é escolhido em Configurações → Tarefas Agendadas, que também mostra a linha do servidor que mantém as tarefas agendadas rodando em um site com pouco tráfego."
+
+msgid "Opting out"
+msgstr "Cancelar o recebimento"
+
+msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\"."
+msgstr "No seu painel, em Preferências de Notificação, a pessoa pode desligar \"Mensagens por data (como felicitações de aniversário)\"."
+
+msgid "Every message carries a one-click unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing."
+msgstr "Toda mensagem traz um link de cancelamento de inscrição com um clique; um corpo que não inclui {{unsubscribe_url}} recebe uma linha de cancelamento ao final. O link é um token assinado que não armazena nada; abri-lo mostra uma página de confirmação, e só a confirmação desliga as mensagens por data, de modo que os verificadores de e-mail que seguem links não alteram nada."
+
+msgid "E-mail tokens"
+msgstr "Tokens de e-mail"
+
+msgid "The person's name as stored, its first word, the rest, and the two joined"
+msgstr "O nome da pessoa como armazenado, a primeira palavra, o restante e os dois unidos"
+
+msgid "The person's e-mail address"
+msgstr "O endereço de e-mail da pessoa"
+
+msgid "The date of this occurrence and the age reached on it"
+msgstr "A data desta ocorrência e a idade completada nela"
+
+msgid "Days between the send and the date"
+msgstr "Dias entre o envio e a data"
+
+msgid "Site name and the link to the user dashboard"
+msgstr "Nome do site e o link para o painel do usuário"
+
+msgid "The one-click unsubscribe link"
+msgstr "O link de cancelamento de inscrição com um clique"
+
+msgid "Messages go through the shared e-mail pipeline and Email Model chrome, and respect the global \"Disable all emails\" switch."
+msgstr "As mensagens passam pelo fluxo de e-mail compartilhado e pelo layout do Modelo de e-mail, e respeitam a chave global \"Desativar todos os e-mails\"."
+
+msgid "read-only access to the rules, their send history and recipient totals."
+msgstr "acesso somente leitura às regras, ao histórico de envios e aos totais de destinatários."
+
+msgid "create and edit rules, send manually and set the daily send time."
+msgstr "criar e editar regras, enviar manualmente e definir o horário do envio diário."
+
+msgid "see people by name with their birthday (day and month) in the recipient preview, the upcoming dates and the manager summary."
+msgstr "ver as pessoas pelo nome, com o aniversário (dia e mês), na prévia dos destinatários, nas próximas datas e no resumo para gestores."
+
+msgid "Unique authentication code for validation, printed with the certificate prefix \"C-\""
+msgstr "Código de autenticação único para validação, impresso com o prefixo de certificado \"C-\""
+
+msgid "QR Code image."
+msgstr "Imagem do QR Code."
+
+msgid "See QR Code Options & Attributes."
+msgstr "Veja Opções e Atributos do QR Code."
+
+msgid "The single-use ticket code the participant entered (forms with the Ticket restriction only)."
+msgstr "O código de bilhete de uso único informado pelo participante (apenas em formulários com a restrição Ingresso)."
+
+msgid "Quiz forms:"
+msgstr "Formulários de questionário:"
+
+msgid "See Quiz / Evaluation."
+msgstr "Veja Questionário / Avaliação."
+
+msgid "{{name}} is filled from a form field whose key is \"name\"; first_name, last_name and full_name are not certificate tokens (they belong to the date-message emails)."
+msgstr "{{name}} é preenchido a partir de um campo do formulário cuja chave é \"name\"; first_name, last_name e full_name não são tokens de certificado (pertencem aos e-mails de mensagens de datas)."
+
+msgid "Set \"notice\" to the notice code. The list shows only the columns marked public in the notice editor. Draft notices show a \"being prepared\" message instead of data; preliminary, definitive and closed notices show the list (a closed notice with a \"Notice closed\" banner)."
+msgstr "Defina \"notice\" com o código do edital. A lista mostra apenas as colunas marcadas como públicas no editor do edital. Editais em rascunho exibem uma mensagem de \"em preparação\" no lugar dos dados; editais preliminares, definitivos e encerrados exibem a lista (um edital encerrado com o aviso \"Edital encerrado\")."
+
+msgid "Each submitter must present a single-use code from a generated pool. The code is claimed atomically (one use only) and removed from the pool as soon as the restriction check passes, before the submission is saved."
+msgstr "Cada participante deve apresentar um código de uso único de um conjunto gerado. O código é resgatado de forma atômica (apenas uma utilização) e removido do conjunto assim que a verificação de restrições é aprovada, antes de o envio ser salvo."
+
+msgid "If someone submits again with a CPF/RF that already has a certificate, they are returned their existing certificate instead of generating a new one. This is always on — it is what keeps one person from issuing two certificates. On a form with the Ticket restriction, re-entering an already used ticket is currently rejected as \"Invalid or already used ticket\" instead of returning the certificate."
+msgstr "Se alguém enviar novamente com um CPF/RF que já possui certificado, recebe o certificado existente em vez de gerar um novo. Isso está sempre ativo — é o que impede uma pessoa de emitir dois certificados. Em um formulário com a restrição Ingresso, informar de novo um bilhete já utilizado é atualmente recusado com \"Bilhete inválido ou já utilizado.\" em vez de devolver o certificado."
+
+msgid "E-mail, CPF, RF, the client IP and the submission's extra form data are stored encrypted with AES-256-CBC using encrypt-then-HMAC; a salted hash backs lookups. Display is masked unless the viewer holds a PII capability."
+msgstr "E-mail, CPF, RF, o IP do cliente e os dados extras do formulário do envio são armazenados criptografados com AES-256-CBC usando encrypt-then-HMAC; um hash com salt sustenta as buscas. A exibição é mascarada, a menos que o usuário tenha uma capacidade de dados pessoais (PII)."
+
+msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
+msgstr "Identificadores sensíveis — e-mail, CPF e RF — são criptografados (AES-256-CBC com um IV aleatório por registro e uma verificação de integridade encrypt-then-HMAC), nunca armazenados em texto puro. Os envios de certificado também criptografam o IP do cliente e os dados extras do formulário."
+
+msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability. Revealing recruitment PII writes an activity-log entry (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
+msgstr "Na tela, CPF/RF e e-mail são mascarados, a menos que o operador tenha a capacidade de dados pessoais correspondente. Revelar dados pessoais do recrutamento grava uma entrada no registro de atividades (revelações repetidas do mesmo campo dentro de um minuto não são registradas de novo, e uma configuração do recrutamento pode desativar essa auditoria)."
+
+msgid "Activity-log entries store the client IP address in clear text, so the activity log is personal data; an entry whose details carry a sensitive field (such as CPF) has those details encrypted. Only the debug logs hash IP addresses."
+msgstr "As entradas do registro de atividades armazenam o endereço IP do cliente em texto puro, portanto o registro de atividades é um dado pessoal; uma entrada cujos detalhes contenham um campo sensível (como o CPF) tem esses detalhes criptografados. Apenas os logs de depuração aplicam hash aos endereços IP."
+
+msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one looks up the WordPress account that has the requested e-mail address and works on the records linked to that account:"
+msgstr "Em Ferramentas → Exportar Dados Pessoais e Ferramentas → Apagar Dados Pessoais, o plugin registra seus próprios manipuladores. Cada um localiza a conta do WordPress que tem o e-mail solicitado e atua sobre os registros vinculados a essa conta:"
+
+msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings and FFC user settings."
+msgstr "exportadores reúnem os dados FFC da pessoa: perfil, certificados, agendamentos, grupos de público-alvo, reservas de público-alvo e configurações de usuário FFC."
+
+msgid "an eraser clears the encrypted personal data (e-mail, CPF/RF, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, schedule permissions, stored profile and FFC user settings, and unlinks their activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
+msgstr "um apagador remove os dados pessoais criptografados (e-mail, CPF/RF, …) dos certificados e agendamentos e os desvincula da conta, exclui as participações da pessoa em públicos-alvo, vínculos de reservas, permissões de agenda, perfil armazenado e configurações de usuário FFC, e desvincula suas entradas do registro de atividades. Códigos de autenticação e tokens de verificação podem ser mantidos de forma anonimizada para que certificados já emitidos continuem verificáveis depois que os dados da pessoa forem apagados."
+
+msgid "What the Privacy Tools do not reach."
+msgstr "O que as Ferramentas de Privacidade não alcançam."
+
+msgid "When no WordPress account has the requested e-mail, nothing is exported or erased. Records that were never linked to an account (for example a certificate issued without one) are not found, and reregistration submissions and recruitment candidacies are not covered by these handlers. Handle those parts of a request manually from the plugin's own screens."
+msgstr "Quando nenhuma conta do WordPress tem o e-mail solicitado, nada é exportado nem apagado. Registros que nunca foram vinculados a uma conta (por exemplo, um certificado emitido sem conta) não são encontrados, e envios de recadastramento e candidaturas do recrutamento não são cobertos por esses manipuladores. Trate essas partes da solicitação manualmente nas telas do próprio plugin."
+
+msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
+msgstr "Um logotipo da Biblioteca de Mídia pode ser desenhado no centro (a correção de erros é elevada para H automaticamente), e uma moldura (banner, badge, bubble, pill, speech, circle, brackets ou double) pode trazer uma legenda curta como \"Escaneie para verificar\", opcionalmente com um ícone. Uma moldura deixa a imagem mais alta do que larga; os certificados mantêm a largura pedida pelo placeholder e crescem em altura."
+
+msgid "With the design applied to certificates, the {{qr_code}} placeholder is drawn as an SVG and is not cached; without it, a PNG is generated and may be served from the QR Code cache."
+msgstr "Com o design aplicado aos certificados, o placeholder {{qr_code}} é desenhado como SVG e não é armazenado em cache; sem ele, é gerado um PNG que pode ser servido pelo cache de QR Code."
+
+msgid "When the submission has no magic token, \"m\" falls back to the /valid page. The generated link carries the class ffc-validation-link."
+msgstr "Quando o envio não tem token mágico, \"m\" volta para a página /valid. O link gerado recebe a classe ffc-validation-link."
+
+msgid "Inline styling, a horizontal rule, and legacy font color/size/face"
+msgstr "Estilo em linha, uma linha horizontal e cor/tamanho/fonte legados de font"
+
+msgid "The template is filtered on save."
+msgstr "O modelo é filtrado ao salvar."
+
+msgid "Only the tags above survive, each with a fixed set of attributes: style works on almost every tag, but class is removed from img, td and th, and style blocks are not allowed — use inline styles. Developers can widen the list with the ffcertificate_allowed_html_tags filter."
+msgstr "Somente as tags acima permanecem, cada uma com um conjunto fixo de atributos: style funciona em quase todas as tags, mas class é removido de img, td e th, e blocos style não são permitidos — use estilos em linha. Desenvolvedores podem ampliar a lista com o filtro ffcertificate_allowed_html_tags."
+
+msgid "Image scaled to exactly these dimensions (it is stretched, not cropped, when the proportions differ)"
+msgstr "Imagem redimensionada exatamente para essas dimensões (é esticada, não recortada, quando as proporções diferem)"
+
+msgid "Helper classes:"
+msgstr "Classes auxiliares:"
+
+msgid "The PDF stylesheet ships alignment helpers for the certificate body:"
+msgstr "A folha de estilos do PDF inclui auxiliares de alinhamento para o corpo do certificado:"
+
+msgid "Use them on a paragraph, div, span, heading, list or table."
+msgstr "Use-as em um parágrafo, div, span, título, lista ou tabela."
+
+msgid "The stylesheet also defines image helpers"
+msgstr "A folha de estilos também define os auxiliares de imagem"
+
+msgid "but they cannot be used in a form's certificate template today: the class attribute is removed from img tags when the template is saved. Size images with width / height or an inline style instead."
+msgstr "mas eles não podem ser usados hoje no modelo de certificado de um formulário: o atributo class é removido das tags img quando o modelo é salvo. Dimensione as imagens com width / height ou com um estilo em linha."
+
+msgid "Filter the to / subject / body of the audience, reregistration and date-message emails. Self-scheduling appointment emails do not pass through it (use ffcertificate_email)."
+msgstr "Filtra os campos para / assunto / corpo dos e-mails de público-alvo, recadastramento e mensagens de datas. Os e-mails de agendamento do autoagendamento não passam por ele (use ffcertificate_email)."
+
+msgid "Whether validate_rf() also requires the RF check digit, rejecting a mistyped number at the form instead of storing it. Off by default; normally set from Settings → General, and the filter overrides that setting — args ( enforce )."
+msgstr "Define se validate_rf() também exige o dígito verificador do RF, recusando no formulário um número digitado errado em vez de armazená-lo. Desativado por padrão; normalmente definido em Configurações → Geral, e o filtro sobrepõe essa configuração — argumentos ( enforce )."
+
+msgid "The token map used to build the certificate HTML — args ( data, submission_id, submission_row )."
+msgstr "O mapa de tokens usado para montar o HTML do certificado — argumentos ( data, submission_id, submission_row )."
+
+msgid "The certificate PDF filename — args ( filename, form_title, auth_code, submission_id )."
+msgstr "O nome do arquivo PDF do certificado — argumentos ( filename, form_title, auth_code, submission_id )."
+
+msgid "Every plugin PDF filename, before the per-type filters — args ( filename, type, entity_id, auth_code )."
+msgstr "Todo nome de arquivo PDF do plugin, antes dos filtros por tipo — argumentos ( filename, type, entity_id, auth_code )."
+
+msgid "The img tag that replaces a certificate {{qr_code}} placeholder — args ( img_html, url, submission_id )."
+msgstr "A tag img que substitui um placeholder {{qr_code}} do certificado — argumentos ( img_html, url, submission_id )."
+
+msgid "The appointment receipt template: return HTML to replace it — args ( html, schedule_type ) — or point to another file inside the plugin or theme — args ( file )."
+msgstr "O modelo do comprovante de agendamento: retorne HTML para substituí-lo — argumentos ( html, schedule_type ) — ou aponte para outro arquivo dentro do plugin ou do tema — argumentos ( file )."
+
+msgid "The receipt PDF filename — args ( filename, calendar_id, validation_code, appointment ) — and its background image URL — args ( url, appointment, calendar )."
+msgstr "O nome do arquivo PDF do comprovante — argumentos ( filename, calendar_id, validation_code, appointment ) — e a URL da imagem de fundo — argumentos ( url, appointment, calendar )."
+
+msgid "The bookable slots of a self-scheduling calendar day — args ( slots, calendar_id, date, calendar )."
+msgstr "Os horários disponíveis de um dia de um calendário de autoagendamento — argumentos ( slots, calendar_id, date, calendar )."
+
+msgid "When a calendar is deleted: whether its appointments are cancelled — args ( true, calendar_id, post_id ) — and whether each person is notified — args ( true, appointment )."
+msgstr "Quando um calendário é excluído: se seus agendamentos são cancelados — argumentos ( true, calendar_id, post_id ) — e se cada pessoa é notificada — argumentos ( true, appointment )."
+
+msgid "The certificate confirmation email — args ( subject, form_title, form_config ), ( to, form_title, submission_data ) and ( body, to, form_title, submission_data )."
+msgstr "O e-mail de confirmação do certificado — argumentos ( subject, form_title, form_config ), ( to, form_title, submission_data ) e ( body, to, form_title, submission_data )."
+
+msgid "Who receives the new-submission admin notification — args ( recipients, form_title, data )."
+msgstr "Quem recebe a notificação de novo envio para o administrador — argumentos ( recipients, form_title, data )."
+
+msgid "Whether to stamp the mail-queue source headers on an email — args ( emit, source_key )."
+msgstr "Define se os cabeçalhos de origem da fila de e-mails são adicionados a um e-mail — argumentos ( emit, source_key )."
+
+msgid "Submissions CSV exports (admin and public): the header row — args ( headers, include_edit_columns, form_ids ) — the filename — args ( filename, form_ids, status ) — and each batch of rows — args ( rows, form_ids, status )."
+msgstr "Exportações CSV de envios (administrativa e pública): a linha de cabeçalho — argumentos ( headers, include_edit_columns, form_ids ) — o nome do arquivo — argumentos ( filename, form_ids, status ) — e cada lote de linhas — argumentos ( rows, form_ids, status )."
+
+msgid "The sanitized ffc_settings array before it is written — args ( clean, current )."
+msgstr "O array ffc_settings sanitizado antes de ser gravado — argumentos ( clean, current )."
+
+msgid "The capabilities that let a user open the Settings page — args ( caps )."
+msgstr "As capacidades que permitem a um usuário abrir a página de Configurações — argumentos ( caps )."
+
+msgid "Add a tab to the Scheduling settings screen — args ( tabs )."
+msgstr "Adiciona uma aba à tela de configurações de Agendamento — argumentos ( tabs )."
+
+msgid "Register a migration card and its strategy on Settings → Migrations — args ( migrations ) / ( strategies )."
+msgstr "Registra um cartão de migração e sua estratégia em Configurações → Migrações — argumentos ( migrations ) / ( strategies )."
+
+msgid "The page URL used for a form's schedule-exception link — args ( url, form_id )."
+msgstr "A URL da página usada no link de exceção de horário de um formulário — argumentos ( url, form_id )."
+
+msgid "Call the IP geolocation API over HTTPS instead of HTTP — args ( false )."
+msgstr "Chama a API de geolocalização por IP via HTTPS em vez de HTTP — argumentos ( false )."
+
+msgid "Turn off the GitHub update check — args ( true ) — or point it at another repository — args ( repo )."
+msgstr "Desativa a verificação de atualizações no GitHub — argumentos ( true ) — ou aponta para outro repositório — argumentos ( repo )."
+
+msgid "After a submission is edited — args ( submission_id, update_data ) — or deleted — args ( submission_id )."
+msgstr "Depois que um envio é editado — argumentos ( submission_id, update_data ) — ou excluído — argumentos ( submission_id )."
+
+msgid "Self-scheduling appointment lifecycle — args ( appointment_id, data, calendar ) on create, ( appointment_id, appointment, reason, cancelled_by ) on cancel."
+msgstr "Ciclo de vida do agendamento do autoagendamento — argumentos ( appointment_id, data, calendar ) na criação, ( appointment_id, appointment, reason, cancelled_by ) no cancelamento."
+
+msgid "Audience booking lifecycle — args ( booking_id ) on create, ( booking_id, reason ) on cancel."
+msgstr "Ciclo de vida da reserva de público-alvo — argumentos ( booking_id ) na criação, ( booking_id, reason ) no cancelamento."
+
+msgid "Before a short-URL redirect is sent — args ( record, target_url, redirect_type )."
+msgstr "Antes de o redirecionamento de uma URL curta ser enviado — argumentos ( record, target_url, redirect_type )."
+
+msgid "After a submissions CSV export finishes (admin or public) — args ( job_id, file, rows, job ). The other exports do not fire it. Renamed from ffcertificate_csv_export_completed in 6.17.0."
+msgstr "Depois que uma exportação CSV de envios termina (administrativa ou pública) — argumentos ( job_id, file, rows, job ). As demais exportações não o disparam. Renomeado de ffcertificate_csv_export_completed na versão 6.17.0."
+
+msgid "Before a public submission is stored — args ( form_id, submission_data, user_email, form_config )."
+msgstr "Antes de um envio público ser armazenado — argumentos ( form_id, submission_data, user_email, form_config )."
+
+msgid "Before a submission is edited — args ( submission_id, email, data ) — or permanently deleted — args ( submission_id )."
+msgstr "Antes de um envio ser editado — argumentos ( submission_id, email, data ) — ou excluído definitivamente — argumentos ( submission_id )."
+
+msgid "A submission moved to or restored from the trash — args ( submission_id )."
+msgstr "Um envio movido para a lixeira ou restaurado dela — argumentos ( submission_id )."
+
+msgid "After a certificate's PDF payload is built — args ( pdf_data, submission_id )."
+msgstr "Depois que os dados do PDF de um certificado são montados — argumentos ( pdf_data, submission_id )."
+
+msgid "Before the certificate confirmation email is composed — args ( submission_id, user_email, form_id, form_config )."
+msgstr "Antes de o e-mail de confirmação do certificado ser composto — argumentos ( submission_id, user_email, form_id, form_config )."
+
+msgid "Before a self-scheduling appointment is stored — args ( data, calendar )."
+msgstr "Antes de um agendamento do autoagendamento ser armazenado — argumentos ( data, calendar )."
+
+msgid "Triggers for the self-scheduling emails; the plugin's own email handler listens to them — args ( appointment, calendar )."
+msgstr "Gatilhos dos e-mails do autoagendamento; o próprio manipulador de e-mails do plugin os escuta — argumentos ( appointment, calendar )."
+
+msgid "Before an audience booking is stored — args ( booking_data )."
+msgstr "Antes de uma reserva de público-alvo ser armazenada — argumentos ( booking_data )."
+
+msgid "After an audience (group) is created — args ( audience_id, data )."
+msgstr "Depois que um público-alvo (grupo) é criado — argumentos ( audience_id, data )."
+
+msgid "While the Audience module registers its capabilities — no args."
+msgstr "Enquanto o módulo de Público-alvo registra suas capacidades — sem argumentos."
+
+msgid "After a form's cached data is purged — args ( form_id, reason )."
+msgstr "Depois que os dados em cache de um formulário são limpos — argumentos ( form_id, reason )."
+
+msgid "After the ffc_settings option is saved — args ( clean )."
+msgstr "Depois que a opção ffc_settings é salva — argumentos ( clean )."
+
+msgid "Before a Danger Zone data deletion runs — args ( target, reset_counter )."
+msgstr "Antes de uma exclusão de dados da Zona de Perigo ser executada — argumentos ( target, reset_counter )."
+
+msgid "fires when a submissions export finishes; the other exports do not fire it."
+msgstr "é disparada quando uma exportação de envios termina; as demais exportações não a disparam."
+
+msgid "Public — books an appointment."
+msgstr "Público — cria um agendamento."
+
+msgid "Read or cancel one appointment — requires access to that appointment."
+msgstr "Lê ou cancela um agendamento — exige acesso a esse agendamento."
+
+msgid "Logged-in (acts on the current user)."
+msgstr "Conectado (atua sobre o usuário atual)."
+
+msgid "Public — anonymous callers get bookings of the schedules they may read, without personal details."
+msgstr "Público — chamadas anônimas recebem as reservas das agendas que podem ler, sem dados pessoais."
+
+msgid "Logged-in — creating needs ffc_view_own_audience_bookings (or the scheduling bypass); cancelling needs ownership of the booking or the bypass."
+msgstr "Conectado — criar exige ffc_view_own_audience_bookings (ou a permissão de ignorar restrições de agendamento); cancelar exige ser dono da reserva ou essa permissão."
+
+msgid "ffc_view_certificates (personal data stays masked without the PII capability)."
+msgstr "ffc_view_certificates (os dados pessoais permanecem mascarados sem a capacidade de dados pessoais)."
+
+msgid "Logged-in — the current candidate's own recruitment data."
+msgstr "Conectado — os dados de recrutamento do próprio candidato atual."
+
+msgid "The plugin's only authenticated write API: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.18.0."
+msgstr "A única API de escrita autenticada do plugin: um aplicativo de operador de campo emite certificados utilizando Senhas de Aplicativo do WordPress (autenticação HTTP Basic, permitindo que as verificações de capacidade funcionem sem *nonce*). Adicionada na versão 6.18.0."

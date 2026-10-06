@@ -83,7 +83,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr>
 				<td><?php esc_html_e( 'Form is hidden or "not available"', 'ffcertificate' ); ?></td>
 				<td>
-					• <?php esc_html_e( 'Check the Geofence "Time" tab — the form may be outside its open/close window', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'Check the form\'s Date & Time Restrictions (the "Time" tab of its restrictions) — the form may be outside its open/close window', 'ffcertificate' ); ?><br>
 					• <?php esc_html_e( 'Check Geolocation (GPS/IP) — the visitor may be outside the allowed area', 'ffcertificate' ); ?><br>
 					• <?php esc_html_e( 'Admins can enable "bypass" for date/time and geolocation to test (Settings → Geolocation)', 'ffcertificate' ); ?>
 				</td>
@@ -107,6 +107,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td>
 					• <?php esc_html_e( 'Each area is gated by a capability — grant the matching ffc_view_* capability on the user profile', 'ffcertificate' ); ?><br>
 					• <?php esc_html_e( 'A full administrator (manage_options) always sees every FFC menu', 'ffcertificate' ); ?>
+				</td>
+			</tr>
+			<tr>
+				<td><?php esc_html_e( 'Reminders, cleanups or date messages run late or not at all', 'ffcertificate' ); ?></td>
+				<td>
+					• <?php esc_html_e( 'Open Settings → Scheduled Tasks and look for tasks marked late', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'WP-Cron only runs when the site gets visits — install the server cron line that tab generates', 'ffcertificate' ); ?>
 				</td>
 			</tr>
 		</tbody>

@@ -27,6 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><strong><?php esc_html_e( 'QR Codes', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the {{qr_code}} verification placeholder', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Validation URL', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'building the certificate verification link', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Advanced → Required Certificate Tags. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The {{qr_code}} image follows the design set in Settings → QR Code (module shape, colours, logo, frame) when that design is switched on for certificates; otherwise a plain black-and-white code is drawn.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-note">
@@ -63,7 +65,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Using in Forms:', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'In the form editor Geofence metabox, choose the area source for GPS and IP validation:', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'On the Geolocation tab of the form editor\'s "Certificate Form Configuration" box, choose the area source for GPS and IP validation:', 'ffcertificate' ); ?></p>
 		<ul>
 			<li><strong><?php esc_html_e( 'Registered Locations:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Select one or more named locations from a dropdown. Coordinates are resolved at runtime from the registry.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Custom Coordinates:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Enter coordinates manually in the textarea (lat,lng,radius format, one per line). This is the legacy behavior.', 'ffcertificate' ); ?></li>

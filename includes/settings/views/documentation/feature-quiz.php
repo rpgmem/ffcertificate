@@ -16,6 +16,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 <!-- 3. Quiz / Evaluation Variables Section -->
 <div class="card">
 	<h3 id="feature-quiz"><span class="dashicons dashicons-chart-bar" aria-hidden="true"></span> <?php esc_html_e( 'Quiz / Evaluation', 'ffcertificate' ); ?></h3>
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Turning a form into a quiz', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'Enable it on the Quiz tab of the form editor\'s "Certificate Form Configuration" box, then give each scored field its points per option on the Fields tab. Only radio and select fields are scored.', 'ffcertificate' ); ?></p>
+		<ul>
+			<li><strong><?php esc_html_e( 'Passing Score (%)', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'minimum percentage to pass (default 70; 0 means no minimum).', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Max Attempts', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'retries allowed per CPF/RF (0 = unlimited).', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Display Options', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'show the score after submission (on by default) and show which answers were correct or incorrect.', 'ffcertificate' ); ?></li>
+		</ul>
+		<p><?php esc_html_e( 'An attempt below the passing score is kept as a "Quiz: Retry" submission while attempts remain, and as "Quiz: Failed" once they run out; no certificate is issued for either.', 'ffcertificate' ); ?></p>
+	</div>
+
 	<p><?php esc_html_e( 'When a form uses quiz/evaluation mode, these additional variables are available in the PDF template:', 'ffcertificate' ); ?></p>
 
 	<table class="widefat striped">

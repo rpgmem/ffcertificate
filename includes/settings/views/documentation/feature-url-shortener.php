@@ -42,6 +42,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'The list shows each link\'s title, short URL, destination, click count and status, with actions to show a QR code, enable/disable, or trash (trashed links can be restored or permanently deleted). Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted.', 'ffcertificate' ); ?> <a href="#reference-qr-codes"><?php esc_html_e( 'See QR Codes', 'ffcertificate' ); ?></a>.</p>
 	<h4><?php esc_html_e( 'QR Code Generator', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network, an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the "Shorten" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A capacity meter and density and contrast warnings help keep the code readable, and the preview panel can also print it. An event code can open the event itself, a pre-filled Google Calendar link, or a signed link to an .ics file; that link may carry an optional "valid until" date, after which it answers that it has expired, while a link without one never expires. The generator reopens with each user\'s last downloaded design (design only, never content), and "Reset to default" restores the global one.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The global design (module shape, corners, colours and gradient, logo, frame and caption, transparent background) is set on Settings → QR Code. It is off by default and switched on separately for certificates and for short URLs.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'QR Codes are also available over REST for external automations:', 'ffcertificate' ); ?> <code>GET /ffc/v1/short-urls/{code}/qr</code> (<?php esc_html_e( 'base64 png/svg, cap-gated by ffc_view_url_shortener via an Application Password).', 'ffcertificate' ); ?> <a href="#developer-hooks-api"><?php esc_html_e( 'See the REST API', 'ffcertificate' ); ?></a>.</p>
 
 	<div class="ffc-doc-note">
@@ -63,7 +65,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</thead>
 		<tbody>
-			<tr><td><?php esc_html_e( 'Enable the shortener', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'on', 'ffcertificate' ); ?></td></tr>
+			<tr><td><?php esc_html_e( 'Enable the shortener (Settings → Modules)', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'on', 'ffcertificate' ); ?></td></tr>
 			<tr><td><?php esc_html_e( 'URL prefix (path segment)', 'ffcertificate' ); ?></td><td><code>go</code></td></tr>
 			<tr><td><?php esc_html_e( 'Code length (4–10)', 'ffcertificate' ); ?></td><td><?php esc_html_e( '6', 'ffcertificate' ); ?></td></tr>
 			<tr><td><?php esc_html_e( 'Redirect type (301 / 302 / 307)', 'ffcertificate' ); ?></td><td><?php esc_html_e( '302', 'ffcertificate' ); ?></td></tr>

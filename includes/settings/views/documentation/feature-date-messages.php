@@ -1,0 +1,103 @@
+<?php
+/**
+ * Documentation partial — Feature: Date Messages.
+ *
+ * E-mails sent on a date in each person's profile (starting with birthdays):
+ * rules, recipient selection, preview and test send, manual sends, history,
+ * manager summary, upcoming dates, the daily schedule, opt-out, capabilities
+ * and tokens (#1538).
+ *
+ * @package FreeFormCertificate\Settings
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+?>
+<!-- Date Messages Section -->
+<div class="card">
+	<h3 id="feature-date-messages"><span class="dashicons dashicons-email-alt" aria-hidden="true"></span> <?php esc_html_e( 'Date Messages', 'ffcertificate' ); ?></h3>
+
+	<p><?php esc_html_e( 'Date Messages sends an e-mail on a date stored in each person\'s profile — today, their birthday. It has its own top-level "Date Messages" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs.', 'ffcertificate' ); ?></p>
+
+	<div class="ffc-doc-note">
+		<p>
+			<strong class="ffc-icon-info"><?php esc_html_e( 'On, but silent until you create a rule.', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'The module is enabled by default (Settings → Modules), but no rule ships with the plugin, so nothing is sent until an administrator creates a rule and activates it.', 'ffcertificate' ); ?>
+		</p>
+	</div>
+
+	<h4><?php esc_html_e( 'Rules', 'ffcertificate' ); ?></h4>
+	<table class="widefat striped">
+		<thead>
+			<tr>
+				<th scope="col"><?php esc_html_e( 'Setting', 'ffcertificate' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'Meaning', 'ffcertificate' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr><td><strong><?php esc_html_e( 'Name', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Operator-facing label for the rule.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Date', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Which date in the profile the rule follows (the birth date).', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Days from the date', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( '0 sends on the date itself; a negative number sends that many days before it, a positive one after it, up to two months either way.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Everyone, or the members of one audience (members of its sub-audiences included).', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Subject and message', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'The e-mail body only; the header and footer come from the Email Model. A new rule starts from the "Birthday message" default in Settings → Email texts, and "Restore default text" brings it back.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Sending', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( '"E-mail each person on their date" and "Active (the daily run sends it)". A rule can stay active with personal e-mails off and send only the manager summary.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below.', 'ffcertificate' ); ?></td></tr>
+		</tbody>
+	</table>
+	<p><?php esc_html_e( 'Rules can be edited, duplicated, activated or deactivated and deleted from the Rules tab. Deleting a rule keeps what it already sent in the history.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'Who receives a message', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'For each person whose date falls on the day, the first matching decision wins: outside the audience, opted out, no valid e-mail, already sent, otherwise will receive. Each person gets a rule\'s message once per occurrence of their date, however often the run repeats. People born on 29 February are reached on 28 February in a common year. The year of birth is never shown; {{age}} is computed from it.', 'ffcertificate' ); ?></p>
+	<p class="description"><?php esc_html_e( 'A birth date given before the profile field existed reaches the profile through a migration card in Settings → Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'Preview recipients and test send', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( '"Preview recipients" lists, for a range of dates, everyone the rule would reach and the decision for each, using the very selection the send uses, so the preview cannot disagree with what is sent. Long lists show only the first rows, while the totals count everyone. "Send test to me" mails the message, filled with fictional values, to your own address. Both use the values on the form, saved or not, and neither sends to anybody else nor records anything.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'Send now', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'Sends one rule to everyone whose date falls in a chosen range of up to 31 days, in batches handed to wp_mail(). People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'History', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. "Sent" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'Upcoming dates', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month, optionally filtered by audience. The tab is shown only to holders of ffc_view_date_messages_pii and administrators.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'Daily schedule', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'The daily run sends every active rule once a day, at 08:00 in the site timezone by default. The time is chosen on Settings → Scheduled Tasks, which also shows the server line that keeps scheduled tasks running on a quiet site.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'Opting out', 'ffcertificate' ); ?></h4>
+	<ul>
+		<li><?php esc_html_e( 'On their dashboard, under Notification Preferences, a person can turn off "Date messages (such as birthday greetings)".', 'ffcertificate' ); ?></li>
+		<li><?php esc_html_e( 'Every message carries a one-click unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing.', 'ffcertificate' ); ?></li>
+	</ul>
+
+	<h4><?php esc_html_e( 'E-mail tokens', 'ffcertificate' ); ?></h4>
+	<table class="widefat striped">
+		<thead>
+			<tr>
+				<th scope="col"><?php esc_html_e( 'Variable', 'ffcertificate' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'Description', 'ffcertificate' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr><td><code>{{name}}</code>, <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{full_name}}</code></td><td><?php esc_html_e( 'The person\'s name as stored, its first word, the rest, and the two joined', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>{{email}}</code></td><td><?php esc_html_e( 'The person\'s e-mail address', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>{{date}}</code>, <code>{{age}}</code></td><td><?php esc_html_e( 'The date of this occurrence and the age reached on it', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>{{days_until}}</code></td><td><?php esc_html_e( 'Days between the send and the date', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>{{site_name}}</code>, <code>{{dashboard_url}}</code></td><td><?php esc_html_e( 'Site name and the link to the user dashboard', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>{{unsubscribe_url}}</code></td><td><?php esc_html_e( 'The one-click unsubscribe link', 'ffcertificate' ); ?></td></tr>
+		</tbody>
+	</table>
+	<p class="description"><?php esc_html_e( 'Messages go through the shared e-mail pipeline and Email Model chrome, and respect the global "Disable all emails" switch.', 'ffcertificate' ); ?> <a href="#reference-emails"><?php esc_html_e( 'See Emails & Delivery', 'ffcertificate' ); ?></a>.</p>
+
+	<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
+	<ul>
+		<li><code>ffc_view_date_messages</code> — <?php esc_html_e( 'read-only access to the rules, their send history and recipient totals.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_manage_date_messages</code> — <?php esc_html_e( 'create and edit rules, send manually and set the daily send time.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_view_date_messages_pii</code> — <?php esc_html_e( 'see people by name with their birthday (day and month) in the recipient preview, the upcoming dates and the manager summary.', 'ffcertificate' ); ?></li>
+	</ul>
+</div>

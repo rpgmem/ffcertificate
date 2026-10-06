@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</tr>
 			</thead>
 			<tbody>
-				<tr><td><strong><?php esc_html_e( 'Certificate', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'The certificate PDF a form issues on submission (the default kind).', 'ffcertificate' ); ?></td></tr>
+				<tr><td><strong><?php esc_html_e( 'Certificate', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'The certificate PDF a form issues on submission (the default kind). Three ready-made certificate models ship.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Appointment receipt', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'The self-scheduling comprovante. Two defaults ship — Regular and Custom.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Record', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'The reregistration record PDF.', 'ffcertificate' ); ?></td></tr>
 			</tbody>
@@ -47,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><strong><?php esc_html_e( 'Appointment receipt:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'chosen globally per scheduling mode on Scheduling → Settings → Receipt.', 'ffcertificate' ); ?> <a href="#feature-self-scheduling"><?php esc_html_e( 'See Personal Calendars.', 'ffcertificate' ); ?></a></li>
 			<li><strong><?php esc_html_e( 'Record:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'chosen globally on the Reregistration settings tab.', 'ffcertificate' ); ?> <a href="#feature-record"><?php esc_html_e( 'See Record PDF.', 'ffcertificate' ); ?></a></li>
 		</ul>
-		<p><?php esc_html_e( 'A read-only "Current assignments" overview at the top of the hub shows, at a glance, which pool template each feature is using right now, with a "Change →" link into that feature\'s own settings. The overview is display-only — the selection controls (and their capabilities) stay per-feature.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'A read-only "Current assignments" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a "Change →" link into that feature\'s own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-note">

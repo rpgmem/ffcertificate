@@ -60,6 +60,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><strong><?php esc_html_e( 'When to verify', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'on activation, on focus, on page load or on submit. Verifying on load spends the work before anyone decides to submit, and a challenge started too early can expire while the form is still being filled in.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Attribution', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'hide the logo and/or the "Protected by ALTCHA" footer.', 'ffcertificate' ); ?></li>
 	</ul>
+	<p class="description"><?php esc_html_e( 'How many ALTCHA challenges one IP address may request per window is set on the Rate Limit tab, in the IP group (default 60 per 10 minutes; 0 removes the cap, which suits sites where many people share one address).', 'ffcertificate' ); ?> <a href="#config-rate-limit"><?php esc_html_e( 'See Rate Limit.', 'ffcertificate' ); ?></a></p>
 	<p class="description"><?php esc_html_e( 'These options only appear when a mode that shows the widget is selected. The widget follows the site\'s colours and its light/dark mode on its own.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'What it does, and does not, send', 'ffcertificate' ); ?></h4>

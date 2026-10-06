@@ -80,7 +80,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Fields & Record', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF.', 'ffcertificate' ); ?> <a href="#feature-audiences"><?php esc_html_e( 'See Audience Custom Fields', 'ffcertificate' ); ?></a> <?php esc_html_e( 'and', 'ffcertificate' ); ?> <a href="#feature-record"><?php esc_html_e( 'Record PDF', 'ffcertificate' ); ?></a>.</p>
+		<p><?php esc_html_e( 'A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF. The standard birth-date field reads and writes the single encrypted birth date on the user profile, which Date Messages uses.', 'ffcertificate' ); ?> <a href="#feature-audiences"><?php esc_html_e( 'See Audience Custom Fields', 'ffcertificate' ); ?></a> <?php esc_html_e( 'and', 'ffcertificate' ); ?> <a href="#feature-record"><?php esc_html_e( 'Record PDF', 'ffcertificate' ); ?></a>.</p>
 	</div>
 
 	<div class="ffc-doc-example">
@@ -145,7 +145,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
 		<ul>
 			<li><code>ffc_view_reregistration</code> — <?php esc_html_e( 'view campaigns and submissions.', 'ffcertificate' ); ?></li>
-			<li><code>ffc_manage_reregistration</code> — <?php esc_html_e( 'create/edit campaigns, approve/reject, manage custom fields, generate Records.', 'ffcertificate' ); ?></li>
+			<li><code>ffc_manage_reregistration</code> — <?php esc_html_e( 'create/edit campaigns, approve/reject, generate Records. Editing the field definitions needs ffc_manage_custom_fields.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_export_reregistration</code> / <code>ffc_delete_reregistration</code> — <?php esc_html_e( 'export CSV / delete a campaign.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_import_reregistration</code> — <?php esc_html_e( 'load answers from a spreadsheet. Separate from manage on purpose: it writes personal data for people who never opened the form.', 'ffcertificate' ); ?></li>
 		</ul>

@@ -43,8 +43,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 			<tr>
 				<td><code>{{auth_code}}</code></td>
-				<td><?php esc_html_e( 'Unique authentication code for validation', 'ffcertificate' ); ?></td>
-				<td><em>A1B2-C3D4-E5F6</em></td>
+				<td><?php esc_html_e( 'Unique authentication code for validation, printed with the certificate prefix "C-"', 'ffcertificate' ); ?></td>
+				<td><em>C-A1B2-C3D4-E5F6</em></td>
 			</tr>
 			<tr>
 				<td><code>{{form_title}}</code></td>
@@ -93,7 +93,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 			<tr>
 				<td><code>{{qr_code}}</code></td>
-				<td><?php esc_html_e( 'QR Code image (see section 3 for options)', 'ffcertificate' ); ?></td>
+				<td><?php esc_html_e( 'QR Code image.', 'ffcertificate' ); ?> <a href="#reference-qr-codes"><?php esc_html_e( 'See QR Code Options & Attributes.', 'ffcertificate' ); ?></a></td>
 				<td><em>QRCode Image to Magic Link</em></td>
 			</tr>
 			<tr>
@@ -121,12 +121,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><?php esc_html_e( 'Total duration of {{schedule}} formatted as a human-readable span (e.g. "9h 30min"). Resolves to empty when {{schedule}} resolves to empty.', 'ffcertificate' ); ?></td>
 				<td><em>9h 30min</em></td>
 			</tr>
+			<tr>
+				<td><code>{{ticket}}</code></td>
+				<td><?php esc_html_e( 'The single-use ticket code the participant entered (forms with the Ticket restriction only).', 'ffcertificate' ); ?></td>
+				<td><em>TK01-AB2C-3D4E</em></td>
+			</tr>
 		</tbody>
 	</table>
 	<p class="description">
 		<strong><?php esc_html_e( 'Participant profile fields:', 'ffcertificate' ); ?></strong>
 		<?php esc_html_e( 'Any identity, contact, address or employment field your form collects can also be used as a placeholder by its field key — e.g. {{rg}}, {{celular}}, {{endereco}}, {{bairro}}, {{cargo_funcao_acumulo}}. The full catalog of these standard keys is listed on the Record PDF page; they resolve in any PDF template when the form captures them.', 'ffcertificate' ); ?>
 	</p>
+	<p class="description">
+		<strong><?php esc_html_e( 'Quiz forms:', 'ffcertificate' ); ?></strong>
+		<code>{{score}}</code>, <code>{{max_score}}</code>, <code>{{score_percent}}</code>
+		<a href="#feature-quiz"><?php esc_html_e( 'See Quiz / Evaluation.', 'ffcertificate' ); ?></a>
+	</p>
+	<p class="description"><?php esc_html_e( '{{name}} is filled from a form field whose key is "name"; first_name, last_name and full_name are not certificate tokens (they belong to the date-message emails).', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Custom fields as variables', 'ffcertificate' ); ?></h4>

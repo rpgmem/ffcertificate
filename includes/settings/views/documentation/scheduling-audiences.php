@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'Audience calendars book shared spaces (rooms, equipment, "ambientes") for named groups of people, rather than fixed one-on-one slots. Everything lives under the Scheduling menu.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Audiences (groups)', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed). Audiences also carry the custom fields used by reregistration.', 'ffcertificate' ); ?> <a href="#feature-audiences"><?php esc_html_e( 'See Audience Custom Fields', 'ffcertificate' ); ?></a>.</p>
+	<p><?php esc_html_e( 'An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed): an audience can let users join or leave its child groups from their dashboard, with a cap on how many child groups one user may join, and its descendants inherit the setting. Audiences also carry the custom fields used by reregistration.', 'ffcertificate' ); ?> <a href="#feature-audiences"><?php esc_html_e( 'See Audience Custom Fields', 'ffcertificate' ); ?></a>.</p>
 
 	<h4><?php esc_html_e( 'Schedules & environments', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A schedule is a bookable calendar; inside it, each environment is a space (room/resource) with its own weekly working hours (default 08:00–18:00, per-day closable) and color. A schedule controls visibility, how far ahead bookings are allowed, per-user booking permissions, and the notification settings below.', 'ffcertificate' ); ?></p>
@@ -38,8 +38,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Each schedule independently notifies affected users on booking and cancellation, and can attach an ICS calendar invite. Two opt-in admin toggles (off by default) also notify a recipient list (comma-separated; blank falls back to the site admin) on new bookings and cancellations.', 'ffcertificate' ); ?></p>
 
+	<h4><?php esc_html_e( 'Admin pages', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'Besides the calendars, environments and audiences, the Scheduling menu has a Dashboard and an Audience Bookings list of every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Import / export', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'The Settings tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
 	<ul>
