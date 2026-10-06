@@ -23,10 +23,15 @@ use PHPUnit\Framework\TestCase;
  * absent from it entirely (#1265).
  *
  * WordPress reads `.l10n.php` only from **6.5**, and this plugin's declared
- * floor is **6.4**, where it falls back to the `.mo`. So on the floor "Union"
- * still collided with the address state -- the exact defect #1209 existed to
- * fix, never delivered there. The `.po` and `.l10n.php` were regenerated; the
- * `.mo` was not; nothing reported it.
+ * floor was then **6.4**, where it falls back to the `.mo`. So on the floor
+ * "Union" still collided with the address state -- the exact defect #1209
+ * existed to fix, never delivered there. The `.po` and `.l10n.php` were
+ * regenerated; the `.mo` was not; nothing reported it.
+ *
+ * The floor is 6.8 since #1590, so every supported WordPress prefers the
+ * `.l10n.php`. The `.mo` is still what WordPress loads when the `.l10n.php`
+ * is missing or a site forces the format through `translation_file_format`,
+ * and what translation tools read, so the comparison stays.
  *
  * WHAT IS COMPARED
  *
@@ -284,8 +289,8 @@ class TranslationCatalogueAgreementTest extends TestCase {
 			$drift,
 			"A compiled catalogue disagrees with the `.po`. Recompile both from it:\n"
 				. "  msgfmt -o languages/ffcertificate-pt_BR.mo languages/ffcertificate-pt_BR.po\n"
-				. "and regenerate the `.l10n.php`. WordPress reads `.l10n.php` from 6.5 and the `.mo`\n"
-				. "on this plugin's 6.4 floor, so a divergence means the string depends on the WP version.\n"
+				. "and regenerate the `.l10n.php`. WordPress prefers the `.l10n.php` but falls back to the\n"
+				. "`.mo` (and tools read it), so a divergence means the string depends on which file loaded.\n"
 				. implode( "\n", $drift )
 		);
 	}
