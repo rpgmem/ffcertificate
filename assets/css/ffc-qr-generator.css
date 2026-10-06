@@ -179,3 +179,38 @@
 .ffc-page-qr-generator .ffc-qr-generator__status.is-error {
     color: var(--ffc-danger-text);
 }
+
+/* Short URL switch on the Website and Social types (#1586). */
+.ffc-page-qr-generator .ffc-qr-short__notice {
+    margin: var(--ffc-spacing-xs) 0 0;
+    color: var(--ffc-warning-text);
+}
+
+.ffc-page-qr-generator .ffc-qr-short__duplicates {
+    padding: var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-page-qr-generator .ffc-qr-short__duplicates ul {
+    margin: var(--ffc-spacing-xs) 0;
+}
+
+.ffc-page-qr-generator .ffc-qr-short__duplicates li {
+    margin-bottom: var(--ffc-spacing-xs);
+}
+
+.ffc-page-qr-generator .ffc-qr-short__result {
+    font-family: monospace;
+    font-size: var(--ffc-font-size-base);
+}
+
+.ffc-page-qr-generator .ffc-qr-short__copied {
+    margin-left: var(--ffc-spacing-sm);
+    color: var(--ffc-success-text);
+}
+
+.ffc-page-qr-generator #ffc-qr-short-title.is-invalid {
+    border-color: var(--ffc-danger);
+}

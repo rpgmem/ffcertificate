@@ -103,6 +103,17 @@ class UrlShortenerRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Short URLs that already send to a destination, newest first.
+	 *
+	 * @param string $target_url Destination as it would be stored.
+	 * @param int    $limit      Most rows returned.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findByTargetUrl( string $target_url, int $limit = 10 ): array {
+		return $this->reader->findByTargetUrl( $target_url, $limit );
+	}
+
+	/**
 	 * Check if a short code already exists.
 	 *
 	 * @param string $code Short code to check.

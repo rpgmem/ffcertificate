@@ -115,7 +115,14 @@ class QrGeneratorPage {
 					'transparent'     => __( 'Transparent background: contrast cannot be checked. Test the code on the surface it will be printed on; a dark one makes it unreadable.', 'ffcertificate' ),
 					'ok'              => __( 'Readable: contrast and colours are fine.', 'ffcertificate' ),
 					'error'           => __( 'The QR code could not be drawn.', 'ffcertificate' ),
-					'shortened'       => __( 'Short URL created and placed in the address field.', 'ffcertificate' ),
+					'untitled'        => __( '(no title)', 'ffcertificate' ),
+					/* translators: 1: creation date, 2: number of clicks */
+					'duplicateMeta'   => __( 'created %1$s, %2$d clicks', 'ffcertificate' ),
+					'useThis'         => __( 'Use this', 'ffcertificate' ),
+					'titleRequired'   => __( 'Enter a title for the short URL before downloading or printing.', 'ffcertificate' ),
+					'acknowledge'     => __( 'A short URL already sends to this address: click "Use this", or tick the box to create another one.', 'ffcertificate' ),
+					'copied'          => __( 'Copied.', 'ffcertificate' ),
+					'copyFailed'      => __( 'Could not copy; select the address and copy it by hand.', 'ffcertificate' ),
 					'reset'           => __( 'Design reset to the global default.', 'ffcertificate' ),
 				),
 			)

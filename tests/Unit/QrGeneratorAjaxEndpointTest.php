@@ -103,7 +103,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 
 		$_POST = array( 'type' => 'text', 'fields' => array( 'text' => 'x' ) );
 		$this->run_handler( 'handle_generate' );
-		$_POST = array( 'url' => 'https://example.com' );
+		$_POST = array( 'type' => 'url', 'fields' => array( 'url' => 'not a url' ) );
 		$this->run_handler( 'handle_shorten' );
 		$this->stub_user_meta();
 		$_POST = array( 'reset' => '1' );
@@ -255,30 +255,192 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertSame( 'This content is about 132 characters too long for error correction H. Shorten it, or lower the level.', $data['message'] );
 	}
 
-	public function test_shorten_creates_a_short_url_for_a_valid_address(): void {
-		$_POST = array(
-			'url'   => 'example.com/page',
-			'title' => 'Flyer',
+	/**
+	 * A repository double answering the duplicate and code lookups.
+	 *
+	 * @param array<int, array<string, mixed>> $by_target Rows sending to the destination.
+	 * @param array<string, mixed>|null        $by_code   Row for the code the browser holds.
+	 * @return Mockery\MockInterface
+	 */
+	private function repository( array $by_target = array(), ?array $by_code = null ) {
+		$repo = Mockery::mock( \FreeFormCertificate\UrlShortener\UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByTargetUrl' )->andReturn( $by_target );
+		$repo->shouldReceive( 'findByShortCode' )->andReturn( $by_code );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_short_url' )->andReturnUsing( static fn( $code ) => 'https://site.test/go/' . $code );
+		Functions\when( 'mysql2date' )->alias( static fn( $format, $date ) => substr( (string) $date, 0, 10 ) );
+		return $repo;
+	}
+
+	/** One stored short URL sending to https://example.com/page. */
+	private const EXISTING = array(
+		'short_code'  => 'old111',
+		'target_url'  => 'https://example.com/page',
+		'title'       => 'Flyer 2025',
+		'created_at'  => '2025-03-01 10:00:00',
+		'click_count' => '42',
+		'status'      => 'active',
+	);
+
+	private function short_post( array $extra = array() ): void {
+		$_POST = $extra + array(
+			'type'   => 'url',
+			'fields' => array( 'url' => 'example.com/page' ),
+			'short'  => '1',
 		);
+	}
+
+	public function test_generate_with_the_switch_on_draws_the_example_and_lists_duplicates(): void {
+		$this->short_post();
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
+		$this->service->shouldReceive( 'get_example_short_url' )->andReturn( 'https://site.test/go/Ab3dEf' );
+		$this->repository( array( self::EXISTING ) );
+
+		list( $kind, $data ) = $this->run_handler( 'handle_generate' );
+
+		$this->assertSame( 'success', $kind );
+		$this->assertSame( 'https://site.test/go/Ab3dEf', $data['payload'], 'The preview carries the example, never the destination.' );
+		$this->assertTrue( $data['short']['example'] );
+		$this->assertFalse( $data['short']['circular'] );
+		$this->assertSame(
+			array(
+				'code'    => 'old111',
+				'url'     => 'https://site.test/go/old111',
+				'title'   => 'Flyer 2025',
+				'created' => '2025-03-01',
+				'clicks'  => 42,
+				'active'  => true,
+			),
+			$data['short']['duplicates'][0]
+		);
+		$this->assertArrayNotHasKey( 'drawn', $data['short'] );
+	}
+
+	public function test_generate_draws_a_held_code_only_while_it_sends_to_this_destination(): void {
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
+		$this->service->shouldReceive( 'get_example_short_url' )->andReturn( 'https://site.test/go/Ab3dEf' );
+		$this->repository( array(), self::EXISTING );
+
+		$this->short_post( array( 'short_code' => 'old111' ) );
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+		$this->assertSame( 'https://site.test/go/old111', $data['payload'], '"Use this" puts the existing short URL in the code.' );
+		$this->assertSame( 'old111', $data['short']['code'] );
+		$this->assertFalse( $data['short']['example'] );
+
+		$this->short_post( array( 'short_code' => 'old111', 'fields' => array( 'url' => 'example.com/other' ) ) );
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+		$this->assertSame( 'https://site.test/go/Ab3dEf', $data['payload'], 'A code made for another destination is dropped.' );
+		$this->assertSame( '', $data['short']['code'] );
+	}
+
+	public function test_generate_draws_a_circular_address_as_is(): void {
+		$this->short_post( array( 'fields' => array( 'url' => 'https://site.test/go/old111' ) ) );
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( 'old111' );
+
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+
+		$this->assertSame( 'https://site.test/go/old111', $data['payload'] );
+		$this->assertTrue( $data['short']['circular'] );
+	}
+
+	public function test_generate_with_the_switch_off_or_another_type_stores_nothing_and_reports_no_short_state(): void {
+		$this->service->shouldNotReceive( 'get_repository' );
+		$this->service->shouldNotReceive( 'create_short_url' );
+
+		$this->short_post( array( 'short' => '' ) );
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+		$this->assertSame( 'https://example.com/page', $data['payload'], 'Off: the code carries the address itself.' );
+		$this->assertNull( $data['short'] );
+
+		$_POST = array( 'type' => 'text', 'fields' => array( 'text' => 'hi' ), 'short' => '1' );
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+		$this->assertNull( $data['short'] );
+	}
+
+	public function test_shorten_creates_a_short_url_for_a_website(): void {
+		$this->short_post( array( 'title' => ' Flyer ' ) );
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
+		$this->repository();
 		$this->service->shouldReceive( 'create_short_url' )->once()->with( 'https://example.com/page', 'Flyer' )
 			->andReturn( array( 'success' => true, 'data' => array( 'short_code' => 'abc123' ) ) );
-		$this->service->shouldReceive( 'get_short_url' )->with( 'abc123' )->andReturn( 'https://site.test/go/abc123' );
 
 		list( $kind, $data ) = $this->run_handler( 'handle_shorten' );
 
 		$this->assertSame( 'success', $kind );
-		$this->assertSame( 'https://site.test/go/abc123', $data['short_url'] );
+		$this->assertSame( array( 'short_code' => 'abc123', 'short_url' => 'https://site.test/go/abc123' ), $data );
 	}
 
-	public function test_shorten_refuses_an_invalid_address_without_writing(): void {
-		$_POST = array( 'url' => 'not a url' );
+	public function test_shorten_sends_a_social_profile_to_its_full_address(): void {
+		$_POST = array(
+			'type'   => 'social',
+			'fields' => array( 'network' => 'instagram', 'username' => '@escola' ),
+			'title'  => 'Instagram',
+		);
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
+		$this->repository();
+		$this->service->shouldReceive( 'create_short_url' )->once()->with( 'https://www.instagram.com/escola', 'Instagram' )
+			->andReturn( array( 'success' => true, 'data' => array( 'short_code' => 'ig0001' ) ) );
+
+		$this->assertSame( 'success', $this->run_handler( 'handle_shorten' )[0] );
+	}
+
+	public function test_shorten_requires_a_title(): void {
+		$this->short_post( array( 'title' => '   ' ) );
 		$this->service->shouldNotReceive( 'create_short_url' );
 
+		list( $kind, $data ) = $this->run_handler( 'handle_shorten' );
+
+		$this->assertSame( 'error:400', $kind );
+		$this->assertSame( 'Enter a title for the short URL.', $data['message'] );
+	}
+
+	public function test_shorten_refuses_an_address_that_is_already_a_short_url(): void {
+		$this->short_post( array( 'fields' => array( 'url' => 'https://site.test/go/old111' ), 'title' => 'Loop' ) );
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( 'old111' );
+		$this->service->shouldNotReceive( 'create_short_url' );
+
+		list( $kind, $data ) = $this->run_handler( 'handle_shorten' );
+
+		$this->assertSame( 'error:400', $kind );
+		$this->assertStringContainsString( 'cannot be shortened again', $data['message'] );
+	}
+
+	public function test_a_duplicate_needs_the_acknowledgement(): void {
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
+		$this->repository( array( self::EXISTING ) );
+
+		$this->short_post( array( 'title' => 'Flyer 2026' ) );
+		$this->service->shouldNotReceive( 'create_short_url' );
+		list( $kind, $data ) = $this->run_handler( 'handle_shorten' );
+		$this->assertSame( 'error:409', $kind );
+		$this->assertSame( 'old111', $data['duplicates'][0]['code'] );
+	}
+
+	public function test_an_acknowledged_duplicate_is_created(): void {
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
+		$this->repository( array( self::EXISTING ) );
+		$this->service->shouldReceive( 'create_short_url' )->once()
+			->andReturn( array( 'success' => true, 'data' => array( 'short_code' => 'new222' ) ) );
+
+		$this->short_post( array( 'title' => 'Flyer 2026', 'acknowledge' => '1' ) );
+
+		$this->assertSame( 'success', $this->run_handler( 'handle_shorten' )[0] );
+	}
+
+	public function test_shorten_refuses_other_types_and_invalid_addresses_without_writing(): void {
+		$this->service->shouldNotReceive( 'create_short_url' );
+
+		$_POST = array( 'type' => 'text', 'fields' => array( 'text' => 'x' ), 'title' => 'T' );
+		$this->assertSame( 'error:400', $this->run_handler( 'handle_shorten' )[0] );
+
+		$this->short_post( array( 'fields' => array( 'url' => 'not a url' ), 'title' => 'T' ) );
 		$this->assertSame( 'error:400', $this->run_handler( 'handle_shorten' )[0] );
 	}
 
 	public function test_shorten_reports_a_failed_write(): void {
-		$_POST = array( 'url' => 'https://example.com' );
+		$this->short_post( array( 'title' => 'T' ) );
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
+		$this->repository();
 		$this->service->shouldReceive( 'create_short_url' )->andReturn( array( 'success' => false, 'error' => 'Database error.' ) );
 
 		list( $kind, $data ) = $this->run_handler( 'handle_shorten' );

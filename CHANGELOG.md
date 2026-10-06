@@ -22,6 +22,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **The QR code defaults moved from General to the QR Code tab** (#1563). Same settings and values; a designed short-URL PNG is now rasterised by the browser from the SVG so it matches the preview.
 - **`readme.txt` and Settings → Documentation reviewed against the code** (#1573). Wrong shortcodes, table names, menu paths, hook signatures, REST permissions and privacy claims corrected; new pages for Date Messages, Scheduled Tasks, Data Migrations, Identity Resolution, User Access and IP Diagnostics.
+- **Manual short URLs are created in the QR Code Generator only** (#1586). The list page's create form is gone (a "New short URL" button opens the generator), and the Website and Social profile types gain a "Create a short URL" switch, on by default: a required title, creation on download or print, "Use this" for an existing short URL, an acknowledgement before a duplicate, and no shortening of a short URL. Off stores nothing.
 
 ### Fixed
 
@@ -31,6 +32,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Template helper classes were stripped from images and table cells** (#1574). `class` is now allowed on `img`, `td` and `th`, so `ffc-responsive-logo`, `ffc-full-width-img` and the alignment helpers work in a certificate template.
 - **The e-mail directory left out Date Messages** (#1574), and the module's Schedule tab read "Agendar" (a verb) in pt_BR; it reads "Agendamento" now.
 - **The QR Code Generator's usage meter misreported the room left** (#1584). It divided bytes by a fixed byte-mode capacity, so digits read as over 100% and near-full codes read 99% before failing. It now measures with the encoder at the effective level, says how many characters still fit and when the logo forced level H, and says how much to cut when content does not fit.
+- **The QR Code Generator showed a generic error instead of the reason** (#1586). A rejected request (content too long, an invalid address) arrives through the failure path, whose message the screen ignored; it now shows the server's own.
 
 ### Security
 

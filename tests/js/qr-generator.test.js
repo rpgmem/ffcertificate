@@ -18,9 +18,14 @@ function mount() {
 			<input type="radio" name="type" value="wifi">
 			<table data-ffc-qr-type="url"><tr><td>
 				<input id="ffc-qr-url" data-ffc-qr-field="url:url" value="example.com">
-				<input id="ffc-qr-url-title" value="Flyer">
-				<button type="button" id="ffc-qr-shorten">Shorten</button>
 			</td></tr></table>
+			<div data-ffc-qr-short-for="url social">
+				<input type="checkbox" id="ffc-qr-short" checked>
+				<p id="ffc-qr-short-circular" hidden></p>
+				<div data-ffc-qr-short-on><input id="ffc-qr-short-title" value=""></div>
+				<div data-ffc-qr-short-on id="ffc-qr-short-duplicates" hidden><ul id="ffc-qr-short-duplicate-list"></ul><input type="checkbox" id="ffc-qr-short-ack"></div>
+				<div id="ffc-qr-short-result-row" hidden><button type="button" id="ffc-qr-short-result"></button><span id="ffc-qr-short-copied"></span></div>
+			</div>
 			<table data-ffc-qr-type="wifi" hidden><tr><td>
 				<input data-ffc-qr-field="wifi:ssid" value="Net">
 				<input type="checkbox" data-ffc-qr-field="wifi:hidden" value="1" checked>
@@ -53,7 +58,7 @@ beforeAll(() => {
 		shortenNonce: 'short-nonce',
 		remember: 'ffc_qr_remember',
 		rememberNonce: 'remember-nonce',
-		i18n: { usage: '%1$d%% full, %2$d more at %3$s', usageForced: '%1$d%% full, %2$d more at H (logo)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', shortened: 'Shortened', reset: 'Reset done' },
+		i18n: { usage: '%1$d%% full, %2$d more at %3$s', usageForced: '%1$d%% full, %2$d more at H (logo)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', reset: 'Reset done', untitled: '(none)', duplicateMeta: 'on %1$s, %2$d clicks', useThis: 'Use this', titleRequired: 'Title needed', acknowledge: 'Tick the box', copied: 'Copied', copyFailed: 'Copy failed' },
 	};
 	window.ffcQrDesign = { i18n: {} };
 	if (!window.FFC || !window.FFC.request) { loadScript('assets/js/ffc-core.js'); }
@@ -180,20 +185,183 @@ describe('ffc-qr-generator.js', () => {
 		expect(download.mock.calls[1]).toEqual(['UE5H', expect.stringMatching(/\.png$/), 'image/png']);
 	});
 
-	it('shorten puts the short URL in the address field and redraws', async () => {
-		const spy = vi.spyOn(window.$, 'post').mockImplementation((url, payload) => postChain({
-			done: payload.action === 'ffc_qr_shorten'
-				? { success: true, data: { short_url: 'https://site.test/go/abc' } }
-				: { success: true, data: OK },
-		}));
-		window.FFC.QrGenerator.init();
+	// ---- Short URL switch (#1586) -------------------------------------------
 
-		window.$('#ffc-qr-shorten').trigger('click');
+	const EXAMPLE = { circular: false, code: '', url: '', example: true, duplicates: [] };
+	const DUPLICATE = { code: 'old111', url: 'https://site.test/go/old111', title: 'Flyer 2025', created: '2025-03-01', clicks: 42, active: true };
+
+	/**
+	 * Answer ffc_qr_generate with `short` (and the drawn svg), ffc_qr_shorten with `created`.
+	 */
+	function server(short, created) {
+		return vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			if (payload.action === 'ffc_qr_shorten') {
+				return postChain({ done: created });
+			}
+			const state = payload.short_code
+				? { circular: false, code: payload.short_code, url: 'https://site.test/go/' + payload.short_code, example: false, duplicates: [] }
+				: short;
+			return postChain({ done: { success: true, data: Object.assign({}, OK, { svg: '<svg id="' + (payload.short_code || 'example') + '"></svg>', short: state }) } });
+		});
+	}
+
+	it('asks for the short URL with the switch on, and for none with it off', () => {
+		const $form = window.$('#ffc-qr-generator');
+		window.FFC.QrGenerator.init();
+		expect(window.FFC.QrGenerator.collect($form)).toMatchObject({ short: '1', short_code: '' });
+
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		window.$('#ffc-qr-short').prop('checked', false).trigger('change');
+		expect(window.FFC.QrGenerator.collect($form).short).toBe('');
+		expect(window.$('[data-ffc-qr-short-on]').first().prop('hidden')).toBe(true);
+	});
+
+	it('the short URL block shows for a website and a social profile only', () => {
+		window.FFC.QrGenerator.init();
+		expect(window.$('[data-ffc-qr-short-for]').prop('hidden')).toBe(false);
+
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		window.$('input[value="wifi"]').prop('checked', true).trigger('change');
+		expect(window.$('[data-ffc-qr-short-for]').prop('hidden')).toBe(true);
+		expect(window.FFC.QrGenerator.collect(window.$('#ffc-qr-generator')).short).toBeUndefined();
+	});
+
+	it('a download without a title creates nothing and says why', async () => {
+		const spy = server(EXAMPLE);
+		const download = vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+
+		window.$('#ffc-qr-format').val('svg');
+		window.$('#ffc-qr-download').trigger('click');
 		await flush();
 
-		expect(spy.mock.calls[0][1]).toMatchObject({ action: 'ffc_qr_shorten', nonce: 'short-nonce', url: 'example.com', title: 'Flyer' });
-		expect(window.$('#ffc-qr-url').val()).toBe('https://site.test/go/abc');
-		expect(spy.mock.calls[1][1].fields.url).toBe('https://site.test/go/abc');
+		expect(spy.mock.calls.some((c) => c[1].action === 'ffc_qr_shorten')).toBe(false);
+		expect(download).not.toHaveBeenCalled();
+		expect(window.$('#ffc-qr-generator-status').text()).toBe('Title needed');
+		expect(window.$('#ffc-qr-short-title').hasClass('is-invalid')).toBe(true);
+	});
+
+	it('the first download creates the short URL, draws it, then saves that code; the next reuses it', async () => {
+		const spy = server(EXAMPLE, { success: true, data: { short_code: 'abc123', short_url: 'https://site.test/go/abc123' } });
+		const download = vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+		window.$('#ffc-qr-short-title').val('Flyer');
+		window.$('#ffc-qr-format').val('svg');
+
+		window.$('#ffc-qr-download').trigger('click');
+		await flush();
+		await flush();
+
+		const shorten = spy.mock.calls.filter((c) => c[1].action === 'ffc_qr_shorten');
+		expect(shorten).toHaveLength(1);
+		expect(shorten[0][1]).toMatchObject({ nonce: 'short-nonce', type: 'url', fields: { url: 'example.com' }, title: 'Flyer', acknowledge: '' });
+		expect(window.FFC.QrRaster.encode).toBeDefined();
+		expect(decodeURIComponent(escape(atob(download.mock.calls[0][0].split(',')[1] || download.mock.calls[0][0])))).toContain('abc123');
+		expect(window.$('#ffc-qr-short-result').text()).toBe('https://site.test/go/abc123');
+		expect(window.$('#ffc-qr-short-result-row').prop('hidden')).toBe(false);
+
+		window.$('#ffc-qr-download').trigger('click');
+		await flush();
+		expect(spy.mock.calls.filter((c) => c[1].action === 'ffc_qr_shorten')).toHaveLength(1);
+	});
+
+	it('changing the title after a download drops the code, so the next one creates another', async () => {
+		server(EXAMPLE, { success: true, data: { short_code: 'abc123' } });
+		vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+		window.FFC.QrGenerator.init();
+		const $form = window.$('#ffc-qr-generator');
+		await window.FFC.QrGenerator.refresh($form);
+		window.$('#ffc-qr-short-title').val('Flyer');
+		window.$('#ffc-qr-format').val('svg');
+		window.$('#ffc-qr-download').trigger('click');
+		await flush();
+		await flush();
+		expect(window.FFC.QrGenerator.collect($form).short_code).toBe('abc123');
+
+		window.$('#ffc-qr-short-title').val('Flyer B');
+		expect(window.FFC.QrGenerator.collect($form).short_code).toBe('');
+	});
+
+	it('a duplicate is listed; creating another needs the box, and "Use this" takes the existing one', async () => {
+		const spy = server(Object.assign({}, EXAMPLE, { duplicates: [DUPLICATE] }), { success: true, data: { short_code: 'new222' } });
+		vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+		window.FFC.QrGenerator.init();
+		const $form = window.$('#ffc-qr-generator');
+		await window.FFC.QrGenerator.refresh($form);
+
+		expect(window.$('#ffc-qr-short-duplicates').prop('hidden')).toBe(false);
+		expect(window.$('#ffc-qr-short-duplicate-list').text()).toContain('Flyer 2025');
+		expect(window.$('#ffc-qr-short-duplicate-list').text()).toContain('on 2025-03-01, 42 clicks');
+
+		window.$('#ffc-qr-short-title').val('Flyer 2026');
+		window.$('#ffc-qr-format').val('svg');
+		window.$('#ffc-qr-download').trigger('click');
+		await flush();
+		expect(window.$('#ffc-qr-generator-status').text()).toBe('Tick the box');
+		expect(spy.mock.calls.some((c) => c[1].action === 'ffc_qr_shorten')).toBe(false);
+
+		window.$('#ffc-qr-short-ack').prop('checked', true);
+		window.$('#ffc-qr-download').trigger('click');
+		await flush();
+		await flush();
+		expect(spy.mock.calls.find((c) => c[1].action === 'ffc_qr_shorten')[1].acknowledge).toBe('1');
+	});
+
+	it('"Use this" puts the existing short URL in the code without creating one', async () => {
+		const spy = server(Object.assign({}, EXAMPLE, { duplicates: [DUPLICATE] }));
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+
+		window.$('.ffc-qr-short__use').trigger('click');
+		await flush();
+
+		const last = spy.mock.calls[spy.mock.calls.length - 1][1];
+		expect(last).toMatchObject({ action: 'ffc_qr_generate', short_code: 'old111' });
+		expect(window.$('#ffc-qr-short-result').text()).toBe('https://site.test/go/old111');
+		expect(window.$('#ffc-qr-short-duplicates').prop('hidden')).toBe(true);
+		expect(spy.mock.calls.some((c) => c[1].action === 'ffc_qr_shorten')).toBe(false);
+	});
+
+	it('a circular address locks the switch off and the download creates nothing', async () => {
+		const spy = server({ circular: true, code: '', url: '', example: false, duplicates: [] });
+		vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+		window.FFC.QrGenerator.init();
+		const $form = window.$('#ffc-qr-generator');
+		await window.FFC.QrGenerator.refresh($form);
+
+		expect(window.$('#ffc-qr-short').prop('disabled')).toBe(true);
+		expect(window.$('#ffc-qr-short').prop('checked')).toBe(false);
+		expect(window.$('#ffc-qr-short-circular').prop('hidden')).toBe(false);
+		expect(window.FFC.QrGenerator.collect($form).short).toBe('1');
+
+		window.$('#ffc-qr-format').val('svg');
+		window.$('#ffc-qr-download').trigger('click');
+		await flush();
+		expect(spy.mock.calls.some((c) => c[1].action === 'ffc_qr_shorten')).toBe(false);
+		expect(window.FFC.QrRaster.download).toHaveBeenCalled();
+	});
+
+	it('clicking the short URL copies it', async () => {
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(window.navigator, 'clipboard', { value: { writeText }, configurable: true });
+		Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+		server(EXAMPLE);
+		window.FFC.QrGenerator.init();
+		window.$('#ffc-qr-short-result').text('https://site.test/go/abc123');
+
+		window.$('#ffc-qr-short-result').trigger('click');
+		await flush();
+
+		expect(writeText).toHaveBeenCalledWith('https://site.test/go/abc123');
+		expect(window.$('#ffc-qr-short-copied').text()).toBe('Copied');
+	});
+
+	it('an error reply shows its own message, whichever path it arrives by', () => {
+		expect(window.FFC.QrGenerator.errorMessage({ data: { message: 'Too long' } })).toBe('Too long');
+		expect(window.FFC.QrGenerator.errorMessage({ fromServer: true, message: 'Nope' })).toBe('Nope');
+		expect(window.FFC.QrGenerator.errorMessage(undefined)).toBe('Failed');
 	});
 
 	it('a typed change redraws after a pause', () => {
@@ -318,6 +486,7 @@ describe('ffc-qr-generator.js', () => {
 		const before = document.querySelectorAll('iframe').length;
 
 		window.$('#ffc-qr-print').trigger('click');
+		await flush();
 
 		const frames = document.querySelectorAll('iframe');
 		expect(frames.length).toBe(before + 1);

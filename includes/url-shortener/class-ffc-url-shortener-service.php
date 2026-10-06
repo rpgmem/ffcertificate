@@ -163,6 +163,55 @@ class UrlShortenerService {
 	}
 
 	/**
+	 * A short URL that looks like a real one, for a preview drawn before the
+	 * real one exists (#1586).
+	 *
+	 * Always the same code, at the configured length, so the preview has the
+	 * length -- and therefore the density -- of the code that will print.
+	 *
+	 * @return string
+	 */
+	public function get_example_short_url(): string {
+		return $this->get_short_url( substr( str_repeat( 'Ab3dEf9h', 8 ), 0, $this->get_code_length() ) );
+	}
+
+	/**
+	 * The code of an address that is one of this site's short URLs, or ''.
+	 *
+	 * The address must sit under the site's short-URL base (host compared
+	 * without case or a leading "www.", scheme ignored) and name a code that
+	 * exists. Any other page of the site is not a short URL and may be
+	 * shortened (#1586).
+	 *
+	 * @param string $url Address.
+	 * @return string
+	 */
+	public function code_from_short_url( string $url ): string {
+		$base   = wp_parse_url( $this->get_short_url( '' ) );
+		$target = wp_parse_url( trim( $url ) );
+		if ( ! is_array( $base ) || ! is_array( $target ) || empty( $target['host'] ) || empty( $base['host'] ) ) {
+			return '';
+		}
+
+		$host = static fn( string $h ): string => (string) preg_replace( '/^www\./', '', strtolower( $h ) );
+		if ( $host( (string) $target['host'] ) !== $host( (string) $base['host'] ) ) {
+			return '';
+		}
+
+		$prefix = rtrim( (string) ( $base['path'] ?? '' ), '/' ) . '/';
+		$path   = (string) ( $target['path'] ?? '' );
+		if ( 0 !== strpos( $path, $prefix ) ) {
+			return '';
+		}
+
+		$code = trim( substr( $path, strlen( $prefix ) ), '/' );
+		if ( '' === $code || false !== strpos( $code, '/' ) ) {
+			return '';
+		}
+		return $this->repository->codeExists( $code ) ? $code : '';
+	}
+
+	/**
 	 * Get the configured URL prefix.
 	 *
 	 * @return string Prefix without slashes (e.g. "go").

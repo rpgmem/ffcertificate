@@ -28,7 +28,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 
 * **Certificate QR Codes** - The `{{qr_code}}` token links each certificate to its verification page.
 * **QR Code Design** - Settings → QR Code sets dot and eye shapes, colours or a gradient, a centre logo, frames with a call to action, and a transparent background. The design applies to certificates, magic links and short URLs. Every shape offered is checked to scan.
-* **QR Code Generator** - Short URLs → QR Code Generator builds standalone codes for a URL, text, Wi-Fi, e-mail, phone, SMS, WhatsApp, contact card (vCard), social profile or calendar event. Codes download as SVG or PNG, or print directly, and each user's last design is remembered.
+* **QR Code Generator** - Short URLs → QR Code Generator builds standalone codes for a URL, text, Wi-Fi, e-mail, phone, SMS, WhatsApp, contact card (vCard), social profile or calendar event. Codes download as SVG or PNG, or print directly, and each user's last design is remembered. Manual short URLs are made here: for a website or a social profile, a switch puts a click-counted short URL in the code, created on download or print.
 
 = URL Shortener =
 

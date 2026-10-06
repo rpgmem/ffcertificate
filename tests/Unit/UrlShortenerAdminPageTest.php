@@ -83,95 +83,6 @@ class UrlShortenerAdminPageTest extends TestCase {
 	}
 
 	// ==================================================================
-	// ajax_create()
-	// ==================================================================
-
-	public function test_ajax_create_success(): void {
-		$_POST['nonce']      = 'valid';
-		$_POST['target_url'] = 'https://example.com/long-page';
-		$_POST['title']      = 'My Link';
-
-		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'current_user_can' )->justReturn( true );
-
-		$this->service->shouldReceive( 'create_short_url' )->once()->andReturn( [
-			'success' => true,
-			'data'    => [
-				'id'         => 1,
-				'short_code' => 'abc123',
-				'target_url' => 'https://example.com/long-page',
-			],
-		] );
-		$this->service->shouldReceive( 'get_short_url' )->with( 'abc123' )->andReturn( 'https://example.com/go/abc123' );
-
-		$sent_data = null;
-		Functions\when( 'wp_send_json_success' )->alias( function ( $data ) use ( &$sent_data ) {
-			$sent_data = $data;
-			throw new \RuntimeException( 'json_success' );
-		} );
-
-		try {
-			$this->page->ajax_create();
-		} catch ( \RuntimeException $e ) {
-			// Expected
-		}
-
-		$this->assertSame( 'abc123', $sent_data['short_code'] );
-		$this->assertSame( 'https://example.com/go/abc123', $sent_data['short_url'] );
-	}
-
-	public function test_ajax_create_empty_url_sends_error(): void {
-		$_POST['nonce']      = 'valid';
-		$_POST['target_url'] = '';
-
-		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'FreeFormCertificate\UrlShortener\esc_url_raw' )->justReturn( '' );
-
-		$error_sent = false;
-		Functions\when( 'wp_send_json_error' )->alias( function () use ( &$error_sent ) {
-			$error_sent = true;
-			throw new \RuntimeException( 'json_error' );
-		} );
-
-		try {
-			$this->page->ajax_create();
-		} catch ( \RuntimeException $e ) {
-			// Expected
-		}
-
-		$this->assertTrue( $error_sent );
-	}
-
-	public function test_ajax_create_service_failure_sends_error(): void {
-		$_POST['nonce']      = 'valid';
-		$_POST['target_url'] = 'https://example.com/page';
-		$_POST['title']      = '';
-
-		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'current_user_can' )->justReturn( true );
-
-		$this->service->shouldReceive( 'create_short_url' )->once()->andReturn( [
-			'success' => false,
-			'error'   => 'Failed to create short URL.',
-		] );
-
-		$error_msg = '';
-		Functions\when( 'wp_send_json_error' )->alias( function ( $data ) use ( &$error_msg ) {
-			$error_msg = $data['message'] ?? '';
-			throw new \RuntimeException( 'json_error' );
-		} );
-
-		try {
-			$this->page->ajax_create();
-		} catch ( \RuntimeException $e ) {
-			// Expected
-		}
-
-		$this->assertSame( 'Failed to create short URL.', $error_msg );
-	}
-
-	// ==================================================================
 	// ajax_edit_short_url()
 	// ==================================================================
 
@@ -542,7 +453,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 		$this->assertContains( 'admin_menu', $actions );
 		$this->assertContains( 'admin_init', $actions );
 		$this->assertContains( 'admin_enqueue_scripts', $actions );
-		$this->assertContains( 'wp_ajax_ffc_create_short_url', $actions );
+		$this->assertNotContains( 'wp_ajax_ffc_create_short_url', $actions, 'Short URLs are created from the QR Code Generator (#1586).' );
 		$this->assertContains( 'wp_ajax_ffc_edit_short_url', $actions );
 	}
 

@@ -552,4 +552,37 @@ class UrlShortenerServiceTest extends TestCase {
 	public function test_get_repository_returns_injected_instance(): void {
 		$this->assertSame( $this->repo, $this->service->get_repository() );
 	}
+
+	// ==================================================================
+	// get_example_short_url() / code_from_short_url() (#1586)
+	// ==================================================================
+
+	public function test_the_example_short_url_is_fixed_and_has_the_configured_length(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'url_shortener_prefix' => 'go', 'url_shortener_code_length' => 7 ) );
+
+		$this->assertSame( 'https://example.com/go/Ab3dEf9', $this->service->get_example_short_url() );
+		$this->assertSame( $this->service->get_example_short_url(), $this->service->get_example_short_url(), 'Always the same.' );
+	}
+
+	public function test_an_own_short_url_yields_its_code(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'url_shortener_prefix' => 'go' ) );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url ) => parse_url( $url ) );
+		$this->repo->shouldReceive( 'codeExists' )->with( 'abc123' )->andReturn( true );
+
+		$this->assertSame( 'abc123', $this->service->code_from_short_url( 'https://example.com/go/abc123' ) );
+		$this->assertSame( 'abc123', $this->service->code_from_short_url( 'http://WWW.Example.com/go/abc123/?utm=x' ), 'Scheme, case, www and a query do not hide it.' );
+	}
+
+	public function test_other_addresses_are_not_short_urls(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'url_shortener_prefix' => 'go' ) );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url ) => parse_url( $url ) );
+		$this->repo->shouldReceive( 'codeExists' )->with( 'gone99' )->andReturn( false );
+
+		$this->assertSame( '', $this->service->code_from_short_url( 'https://example.com/contact' ), 'Another page of the site can be shortened.' );
+		$this->assertSame( '', $this->service->code_from_short_url( 'https://other.test/go/abc123' ), 'Another host is not ours.' );
+		$this->assertSame( '', $this->service->code_from_short_url( 'https://example.com/go/a/b' ), 'A deeper path is not a code.' );
+		$this->assertSame( '', $this->service->code_from_short_url( 'https://example.com/go/' ) );
+		$this->assertSame( '', $this->service->code_from_short_url( 'https://example.com/go/gone99' ), 'A code that does not exist is not a short URL.' );
+		$this->assertSame( '', $this->service->code_from_short_url( 'not a url' ) );
+	}
 }

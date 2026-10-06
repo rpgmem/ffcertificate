@@ -32,6 +32,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 		<div class="wrap ffc-admin-page ffc-page-short-urls">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Short URLs', 'ffcertificate' ); ?></h1>
+			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( \FreeFormCertificate\UrlShortener\QrGeneratorAjaxEndpoint::CAP ) ) : ?>
+				<?php // New short URLs are made in the QR Code Generator, behind its "Create a short URL" switch (#1586). ?>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . \FreeFormCertificate\UrlShortener\QrGeneratorPage::SLUG ) ); ?>" class="page-title-action">
+					<?php esc_html_e( 'New short URL', 'ffcertificate' ); ?>
+				</a>
+			<?php endif; ?>
 			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_settings' ) ) : ?>
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=url_shortener' ) ); ?>" class="page-title-action">
 					<?php esc_html_e( 'Settings', 'ffcertificate' ); ?>
@@ -118,27 +124,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</div>
 			<?php endif; ?>
 
-			<?php if ( 'trashed' !== $status ) : ?>
-			<!-- Create New -->
-			<div class="ffc-shorturl-create">
-				<h3><?php esc_html_e( 'Create Short URL', 'ffcertificate' ); ?></h3>
-				<form id="ffc-create-short-url">
-					<?php wp_nonce_field( 'ffc_short_url_nonce', 'ffc_short_url_nonce' ); ?>
-					<div>
-						<label for="ffc-shorturl-target"><strong><?php esc_html_e( 'Destination URL', 'ffcertificate' ); ?></strong></label><br>
-						<input type="url" id="ffc-shorturl-target" name="target_url" placeholder="https://example.com/long-page" required />
-					</div>
-					<div>
-						<label for="ffc-shorturl-title"><strong><?php esc_html_e( 'Title (optional)', 'ffcertificate' ); ?></strong></label><br>
-						<input type="text" id="ffc-shorturl-title" name="title" placeholder="<?php esc_attr_e( 'My Campaign', 'ffcertificate' ); ?>" />
-					</div>
-					<div>
-						<button type="submit" class="button button-primary"><?php esc_html_e( 'Create', 'ffcertificate' ); ?></button>
-					</div>
-					<div id="ffc-shorturl-result"></div>
-				</form>
-			</div>
-			<?php endif; ?>
 
 			<!-- Search + Filter -->
 			<form method="get" class="ffc-shorturl-filter">

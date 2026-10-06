@@ -5323,10 +5323,6 @@ msgstr ""
 msgid "Create reusable locations shared by every form. Each has a name, latitude, longitude, radius (meters) and optional \"default for GPS\" / \"default for IP\" flags — a new form auto-selects the defaults. Editing a location updates every form that references it."
 msgstr ""
 
-#: templates/admin/url-shortener/short-urls-page.php:124
-msgid "Create Short URL"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-url-shortener.php:176
 msgid "Create short URLs for already-published posts of the shortened post types that do not have one yet. Runs in the background in batches; safe to leave running. This only creates the short URLs — tick \"Expose\" above to publish them as shortlinks."
 msgstr ""
@@ -7477,10 +7473,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:31
 msgid "Ensure field exists in form"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php:25
-msgid "enter a destination URL and an optional title; the short code is generated automatically (there is no custom-slug field)."
 msgstr ""
 
 #: includes/admin/class-ffc-settings-ajax-endpoint.php:572
@@ -11754,10 +11746,6 @@ msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-shortcode.php:229 includes/recruitment/class-ffc-recruitment-dashboard-section.php:140
 msgid "My Calls"
-msgstr ""
-
-#: templates/admin/url-shortener/short-urls-page.php:133
-msgid "My Campaign"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php:647
@@ -23369,9 +23357,6 @@ msgstr ""
 msgid "Could not create the short URL."
 msgstr ""
 
-msgid "Create a QR code for any content and download it. Nothing is stored: the design starts from Settings → QR Code and changes here apply to this code only. Only \"Shorten\" saves something — a short URL, listed with the others."
-msgstr ""
-
 msgid "Dense code (version %d): print it at least 3 cm wide, or shorten the content."
 msgstr ""
 
@@ -23420,19 +23405,10 @@ msgstr ""
 msgid "SMS"
 msgstr ""
 
-msgid "Short URL created and placed in the address field."
-msgstr ""
-
-msgid "Shortening creates a short URL that counts the scans, and puts it in the address field."
-msgstr ""
-
 msgid "The QR code could not be drawn."
 msgstr ""
 
 msgid "The network does not broadcast its name"
-msgstr ""
-
-msgid "Title for the short URL (optional)"
 msgstr ""
 
 msgid "Type of content"
@@ -24629,9 +24605,6 @@ msgstr ""
 msgid "Enter the user name for the Enterprise network."
 msgstr ""
 
-msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network (Enterprise networks that sign in with a user name included), an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the \"Shorten\" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener."
-msgstr ""
-
 msgid "Android saves the network from the code but leaves the CA certificate unset, so it will not connect yet: open the saved network, set CA certificate to \"Trust on first use\" (or \"Do not validate\"), then connect. The iPhone camera does not read Enterprise codes; iPhone users type the details in."
 msgstr ""
 
@@ -24645,4 +24618,70 @@ msgid "This content is about %d characters too long. The logo requires error cor
 msgstr ""
 
 msgid "This content is about %1$d characters too long for error correction %2$s. Shorten it, or lower the level."
+msgstr ""
+
+msgid "(no title)"
+msgstr ""
+
+msgid "A short URL already sends to this address. Use it, or confirm that you want another one."
+msgstr ""
+
+msgid "A short URL already sends to this address: click \"Use this\", or tick the box to create another one."
+msgstr ""
+
+msgid "Already shortened"
+msgstr ""
+
+msgid "Copied."
+msgstr ""
+
+msgid "Could not copy; select the address and copy it by hand."
+msgstr ""
+
+msgid "Create a QR code for any content and download it. The design starts from Settings → QR Code and changes here apply to this code only. Nothing about the content is stored, except a short URL for a website or a social profile when \"Create a short URL\" is on — it is saved on download or print and listed with the others."
+msgstr ""
+
+msgid "Create a short URL"
+msgstr ""
+
+msgid "Enter a title for the short URL before downloading or printing."
+msgstr ""
+
+msgid "Enter a title for the short URL."
+msgstr ""
+
+msgid "I know, and I want to create another short URL for this address."
+msgstr ""
+
+msgid "New short URL"
+msgstr ""
+
+msgid "On: the code carries a short URL that counts the scans and whose destination can be changed later, even after printing. It is saved on download or print. Off: the code carries the address itself, nothing is stored in the database, and it keeps working even if this site goes down."
+msgstr ""
+
+msgid "Required: it names the short URL in the list."
+msgstr ""
+
+msgid "Short URL in the code"
+msgstr ""
+
+msgid "This address is already a short URL of this site, so it is used as is: shortening it again would only chain two redirects."
+msgstr ""
+
+msgid "This address is already a short URL of this site; it cannot be shortened again."
+msgstr ""
+
+msgid "This content type cannot have a short URL."
+msgstr ""
+
+msgid "Use this"
+msgstr ""
+
+msgid "created %1$s, %2$d clicks"
+msgstr ""
+
+msgid "in Short URLs → QR Code Generator (the \"New short URL\" button on the list opens it), on the Website or Social profile type with \"Create a short URL\" on: enter the destination and a title, and the short URL is created when the code is downloaded or printed. The short code is generated automatically (there is no custom-slug field)."
+msgstr ""
+
+msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network (Enterprise networks that sign in with a user name included), an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. For a website or a social profile, \"Create a short URL\" (on by default) puts a short URL in the code instead of the address: the preview shows an example, and the real one is created on the first download or print, then reused until the destination or the title changes. The title is then required; an address that already has a short URL is flagged, with \"Use this\" to reuse it, and creating another needs an explicit confirmation; an address that is already a short URL of this site is never shortened again. With the switch off nothing is stored. It needs ffc_manage_url_shortener."
 msgstr ""
