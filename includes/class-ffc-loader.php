@@ -103,6 +103,9 @@ class Loader {
 		// admin request makes `ffc-core` resolvable as a dep regardless
 		// of post type. Enqueue happens elsewhere; this is register-only.
 		add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_core_assets' ), 1 );
+		// Development installs (SCRIPT_DEBUG) version assets by file time, so
+		// a merge reaches the browser without a release bump.
+		\FreeFormCertificate\Core\AssetHelper::register_dev_cache_busting();
 		$this->define_activation_hooks();
 	}
 

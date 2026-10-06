@@ -35,6 +35,65 @@ class AssetHelperTest extends TestCase {
 		$this->assertSame( '.min', AssetHelper::asset_suffix() );
 	}
 
+	/**
+	 * Record every add_filter() call.
+	 *
+	 * @return \ArrayObject<int, array{0: string, 1: mixed}>
+	 */
+	private function capture_filters(): \ArrayObject {
+		$added = new \ArrayObject();
+		Functions\when( 'add_filter' )->alias(
+			static function ( $hook, $callback ) use ( $added ) {
+				$added[] = array( $hook, $callback );
+			}
+		);
+		return $added;
+	}
+
+	public function test_dev_cache_busting_registers_nothing_in_production(): void {
+		$added = $this->capture_filters();
+
+		AssetHelper::register_dev_cache_busting( false );
+		// SCRIPT_DEBUG is not defined here, so the default reads production too.
+		AssetHelper::register_dev_cache_busting();
+
+		$this->assertSame( array(), $added->getArrayCopy() );
+	}
+
+	public function test_dev_cache_busting_filters_scripts_and_styles_on_a_debug_install(): void {
+		$added = $this->capture_filters();
+
+		AssetHelper::register_dev_cache_busting( true );
+
+		$callback = array( AssetHelper::class, 'version_by_file_time' );
+		$this->assertSame( array( array( 'script_loader_src', $callback ), array( 'style_loader_src', $callback ) ), $added->getArrayCopy() );
+	}
+
+	public function test_a_plugin_asset_is_versioned_by_its_file_time(): void {
+		Functions\when( 'add_query_arg' )->alias(
+			static fn( $key, $value, $url ) => preg_replace( '/([?&])' . $key . '=[^&#]*/', '$1' . $key . '=' . $value, $url )
+		);
+		$file = 'assets/js/ffc-qr-generator.js';
+		$time = filemtime( FFC_PLUGIN_DIR . $file );
+
+		$this->assertSame(
+			FFC_PLUGIN_URL . $file . '?ver=' . FFC_VERSION . '.' . $time,
+			AssetHelper::version_by_file_time( FFC_PLUGIN_URL . $file . '?ver=' . FFC_VERSION )
+		);
+	}
+
+	public function test_anything_else_passes_unchanged(): void {
+		Functions\expect( 'add_query_arg' )->never();
+		$core    = 'https://example.com/wp-includes/js/jquery/jquery.min.js?ver=3.7.1';
+		$missing = FFC_PLUGIN_URL . 'assets/js/no-such-file.js?ver=1';
+		$escape  = FFC_PLUGIN_URL . '../../../wp-config.php?ver=1';
+
+		$this->assertSame( $core, AssetHelper::version_by_file_time( $core ) );
+		$this->assertSame( $missing, AssetHelper::version_by_file_time( $missing ) );
+		$this->assertSame( $escape, AssetHelper::version_by_file_time( $escape ) );
+		$this->assertFalse( AssetHelper::version_by_file_time( false ) );
+	}
+
 	public function test_enqueue_dark_mode_noop_when_off(): void {
 		Functions\when( 'get_option' )->justReturn( array( 'dark_mode' => 'off' ) );
 

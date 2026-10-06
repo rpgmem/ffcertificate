@@ -241,7 +241,7 @@ Reasoning: develop is single-maintainer integration territory, not a shared prod
 
 The rsync uses `--delete`, so anything in the remote path that isn't in the develop working tree is removed on each deploy. The workflow excludes `.git/`, `.github/`, `vendor/`, `node_modules/`, `tests/`, and dev tooling (PHPStan, PHPUnit, PHPCS configs) — those don't belong in a runtime plugin dir.
 
-The testes server should have `SCRIPT_DEBUG=true` in `wp-config.php` so non-minified assets load and `?ver=…` cache aggressiveness stays low while iterating.
+The testes server should have `SCRIPT_DEBUG=true` in `wp-config.php`. It serves the non-minified assets, and it is also what makes `AssetHelper::register_dev_cache_busting()` version every plugin asset by its file time (`ver=FFC_VERSION.<mtime>`), so a merge reaches the browser without a release bump. **`SCRIPT_DEBUG` alone never did that** — it swaps `.min` for the readable file under the same `?ver=`, and this sentence claimed otherwise until #1594, when a browser kept a pre-#1587 script and #1593's overlay never opened.
 
 #### Post-deploy smoke (alarm, not a gate)
 
@@ -278,7 +278,7 @@ When changing the version, update all three in the same commit.
 The trigger has not changed — bundled-asset changes still rotate the cache key. What changed with the develop branch workflow is **where the bump lands**:
 
 - **PRs targeting `main`** (release PR `develop → main`, hotfix PR `hotfix/* → main`): bump `FFC_VERSION` in the same PR. The release PR consolidates every `assets/**/*.min.js`, `assets/**/*.min.css`, `templates/**.php`, and `languages/*.l10n.php` / `.mo` change from the develop batch under one version. Hotfix PRs bump their own patch number.
-- **PRs targeting `develop`**: do **not** bump. Develop sits at the last released version (the cache key on the testes domain stays stable across the batch), and the testes site sidesteps cache aggressiveness via `SCRIPT_DEBUG=true`. Bumping per-PR on develop would consume version numbers that have no production analog.
+- **PRs targeting `develop`**: do **not** bump. Develop sits at the last released version (the cache key on the testes domain stays stable across the batch), and the testes site sidesteps it through the file-time versioning `SCRIPT_DEBUG=true` turns on (see "Deploy to testes"). Bumping per-PR on develop would consume version numbers that have no production analog.
 
 The "Verify minified assets are up to date" CI job catches build freshness on both bases but does NOT enforce the version bump — that's still a human discipline on the release PR.
 
