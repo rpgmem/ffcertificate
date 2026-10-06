@@ -29,6 +29,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Security
 
 - **The activity log no longer stores the client IP in clear** (#1574). New rows keep it only in an encrypted column, an `ip` in a log context now encrypts that context, and the "Activity Log: Encrypt Client IPs" card in Settings → Data Migrations encrypts what older rows hold.
+- **The privacy tools reach records made without an account, and two stores they skipped** (#1574). Export and erasure now also match unlinked submissions and appointments by e-mail hash; reregistration submissions and recruitment candidacies are exported, and the eraser reports them as retained (institutional records) without changing them.
 
 ## [6.33.0] (2026-10-04) — `10ba316f`
 

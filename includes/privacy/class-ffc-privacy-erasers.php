@@ -23,6 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$owns} is PrivacySubject::owns_row(), a fragment already prepared by $wpdb->prepare() with every value bound.
+
 /**
  * Personal data erasers.
  */
@@ -51,9 +53,9 @@ class PrivacyErasers {
 	 */
 	public static function erase_personal_data( string $email_address, int $page = 1 ): array {
 		global $wpdb;
-		$user = get_user_by( 'email', $email_address );
+		$subject = PrivacySubject::from_email( $email_address );
 
-		if ( ! $user ) {
+		if ( $subject->is_empty() ) {
 			return array(
 				'items_removed'  => false,
 				'items_retained' => false,
@@ -62,7 +64,8 @@ class PrivacyErasers {
 			);
 		}
 
-		$user_id        = $user->ID;
+		$user_id        = $subject->user_id;
+		$owns           = $subject->owns_row( 't' );
 		$items_removed  = 0;
 		$items_retained = 0;
 		$messages       = array();
@@ -72,13 +75,12 @@ class PrivacyErasers {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$rows = $wpdb->query(
 			$wpdb->prepare(
-				'UPDATE %i
-             SET user_id = NULL, email_encrypted = NULL,
-                 cpf_encrypted = NULL, rf_encrypted = NULL,
-                 cpf_hash = NULL, rf_hash = NULL
-             WHERE user_id = %d',
-				$submissions_table,
-				$user_id
+				"UPDATE %i t
+             SET t.user_id = NULL, t.email_encrypted = NULL, t.email_hash = NULL,
+                 t.cpf_encrypted = NULL, t.rf_encrypted = NULL,
+                 t.cpf_hash = NULL, t.rf_hash = NULL, t.user_ip_encrypted = NULL
+             WHERE {$owns}",
+				$submissions_table
 			)
 		);
 		if ( $rows > 0 ) {
@@ -97,21 +99,20 @@ class PrivacyErasers {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$rows = $wpdb->query(
 				$wpdb->prepare(
-					'UPDATE %i
-                 SET user_id = NULL, name = NULL, email_encrypted = NULL,
-                     email_hash = NULL, phone_encrypted = NULL,
-                     cpf_encrypted = NULL, cpf_hash = NULL,
-                     rf_encrypted = NULL, rf_hash = NULL,
-                     custom_data_encrypted = NULL,
-                     user_notes = NULL, user_ip_encrypted = NULL,
-                     user_agent = NULL
-                 WHERE user_id = %d',
-					$appointments_table,
-					$user_id
+					"UPDATE %i t
+                 SET t.user_id = NULL, t.name = NULL, t.email_encrypted = NULL,
+                     t.email_hash = NULL, t.phone_encrypted = NULL,
+                     t.cpf_encrypted = NULL, t.cpf_hash = NULL,
+                     t.rf_encrypted = NULL, t.rf_hash = NULL,
+                     t.custom_data_encrypted = NULL,
+                     t.user_notes = NULL, t.user_ip_encrypted = NULL,
+                     t.user_agent = NULL
+                 WHERE {$owns}",
+					$appointments_table
 				)
 			);
 			if ( $rows > 0 ) {
-				$items_removed += $rows;
+				$items_removed += (int) $rows;
 				$messages[]     = sprintf(
 					/* translators: %d: number of appointments */
 					__( '%d appointments anonymized.', 'ffcertificate' ),
@@ -120,13 +121,36 @@ class PrivacyErasers {
 			}
 		}
 
+		// Everything below is keyed on the account, and a subject without
+		// one has nothing there; the retained records are reported either way.
+		if ( $user_id > 0 ) {
+			self::erase_account_data( $user_id, $items_removed, $messages );
+		}
+
+		// 9. Records kept by obligation: reported, never altered (#1574).
+		$items_retained += self::report_retained_records( $subject, $messages );
+
+		return self::finish( $email_address, $items_removed, $items_retained, $messages );
+	}
+
+	/**
+	 * Erase what is keyed on the account: memberships, permissions, profile,
+	 * activity attribution and `ffc_*` user meta.
+	 *
+	 * @param int           $user_id       Account ID.
+	 * @param int           $items_removed Running count, incremented here.
+	 * @param array<string> $messages      Running messages, appended here.
+	 */
+	private static function erase_account_data( int $user_id, int &$items_removed, array &$messages ): void {
+		global $wpdb;
+
 		// 3. Audience members: DELETE.
 		$members_table = $wpdb->prefix . 'ffc_audience_members';
 		if ( self::table_exists( $members_table ) ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$rows = $wpdb->delete( $members_table, array( 'user_id' => $user_id ), array( '%d' ) );
 			if ( $rows > 0 ) {
-				$items_removed += $rows;
+				$items_removed += (int) $rows;
 				$messages[]     = sprintf(
 					/* translators: %d: number of memberships */
 					__( '%d audience memberships removed.', 'ffcertificate' ),
@@ -141,7 +165,7 @@ class PrivacyErasers {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$rows = $wpdb->delete( $booking_users_table, array( 'user_id' => $user_id ), array( '%d' ) );
 			if ( $rows > 0 ) {
-				$items_removed += $rows;
+				$items_removed += (int) $rows;
 			}
 		}
 
@@ -151,7 +175,7 @@ class PrivacyErasers {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$rows = $wpdb->delete( $permissions_table, array( 'user_id' => $user_id ), array( '%d' ) );
 			if ( $rows > 0 ) {
-				$items_removed += $rows;
+				$items_removed += (int) $rows;
 			}
 		}
 
@@ -180,14 +204,80 @@ class PrivacyErasers {
 			)
 		);
 		if ( $meta_deleted > 0 ) {
-			$items_removed += $meta_deleted;
+			$items_removed += (int) $meta_deleted;
 			$messages[]     = sprintf(
 				/* translators: %d: number of settings */
 				__( '%d user settings removed.', 'ffcertificate' ),
 				$meta_deleted
 			);
 		}
+	}
 
+	/**
+	 * Count the records the plugin keeps by obligation, and say so.
+	 *
+	 * A reregistration and a recruitment candidacy are public-administration
+	 * records -- the census answers an institution is required to hold, and
+	 * the classification lists of a public tender. LGPD art. 16 lets a
+	 * controller keep data it must hold by legal obligation, and the WordPress
+	 * eraser API carries exactly that outcome: `items_retained` with a message
+	 * the administrator reads before answering the subject. Nothing is altered;
+	 * removing them stays a decision for whoever owns the obligation.
+	 *
+	 * @param PrivacySubject $subject  Request subject.
+	 * @param array<string>  $messages Running messages, appended here.
+	 * @return int Number of retained records.
+	 */
+	private static function report_retained_records( PrivacySubject $subject, array &$messages ): int {
+		global $wpdb;
+		$retained = 0;
+
+		$rereg_table = $wpdb->prefix . 'ffc_reregistration_submissions';
+		if ( $subject->user_id > 0 && self::table_exists( $rereg_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Count over one of the plugin's own ffc_* tables during an erasure request; it must read the live state.
+			$count = (int) $wpdb->get_var(
+				$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', $rereg_table, $subject->user_id )
+			);
+			if ( $count > 0 ) {
+				$retained  += $count;
+				$messages[] = sprintf(
+					/* translators: %d: number of reregistration submissions */
+					__( '%d reregistration submissions retained: they are institutional records kept by legal obligation. Remove them from the campaign if the obligation no longer applies.', 'ffcertificate' ),
+					$count
+				);
+			}
+		}
+
+		$candidate_table = $wpdb->prefix . 'ffc_recruitment_candidate';
+		if ( self::table_exists( $candidate_table ) ) {
+			$owns = $subject->owns_row( 't' );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Count over one of the plugin's own ffc_* tables during an erasure request; it must read the live state.
+			$count = (int) $wpdb->get_var(
+				$wpdb->prepare( "SELECT COUNT(*) FROM %i t WHERE {$owns}", $candidate_table )
+			);
+			if ( $count > 0 ) {
+				$retained  += $count;
+				$messages[] = sprintf(
+					/* translators: %d: number of recruitment candidacies */
+					__( '%d recruitment candidacies retained: classification lists of a public tender are kept by legal obligation. Remove the candidate in Recruitment if the obligation no longer applies.', 'ffcertificate' ),
+					$count
+				);
+			}
+		}
+
+		return $retained;
+	}
+
+	/**
+	 * Record the erasure and build the response WordPress expects.
+	 *
+	 * @param string        $email_address  Request address.
+	 * @param int           $items_removed  Records removed or anonymised.
+	 * @param int           $items_retained Records retained.
+	 * @param array<string> $messages       Messages for the administrator.
+	 * @return array<string, mixed>
+	 */
+	private static function finish( string $email_address, int $items_removed, int $items_retained, array $messages ): array {
 		// Log the erasure.
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
