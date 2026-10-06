@@ -23,19 +23,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Draws a manual QR code, and shortens its address on request (#1563).
+ * Draws a manual QR code, and creates its short URL when one is wanted
+ * (#1563, #1586).
  *
- * The generator is stateless: drawing writes nothing, so it can follow every
- * keystroke. Shortening is the one write, and it is a separate action fired
- * only by an explicit click -- drawing on each change must never mint a
- * short URL per keystroke. Remembering the design (#1568) is the other: it
- * runs on a download or a reset, and stores the design only, never content.
+ * Drawing writes nothing, so it can follow every keystroke. With the short
+ * URL switch on, the preview carries a fixed example short URL of the real
+ * length and reports the short URLs that already send to the same place;
+ * the short URL itself is created by a separate action the browser fires
+ * only on a download or a print -- drawing on each change must never mint a
+ * short URL per keystroke. Remembering the design (#1568) is the other
+ * write: it runs on a download or a reset, and stores the design only,
+ * never content.
  */
 class QrGeneratorAjaxEndpoint {
 
 	public const ACTION_GENERATE = 'ffc_qr_generate';
 	public const ACTION_SHORTEN  = 'ffc_qr_shorten';
 	public const ACTION_REMEMBER = 'ffc_qr_remember';
+
+	/** Content types whose address can be replaced by a short URL (#1586). */
+	public const SHORTENABLE = array( 'url', 'social' );
 
 	/** Capability for every action: the generator lives in the shortener's menu. */
 	public const CAP = 'ffc_manage_url_shortener';
@@ -77,6 +84,13 @@ class QrGeneratorAjaxEndpoint {
 			wp_send_json_error( array( 'message' => $payload->get_error_message() ), 400 );
 		}
 
+		$short = null;
+		if ( in_array( $type, self::SHORTENABLE, true ) && '1' === RequestInput::get_post_string( 'short' ) ) {
+			$short   = $this->short_state( $payload, RequestInput::get_post_string( 'short_code' ) );
+			$payload = $short['drawn'];
+			unset( $short['drawn'] );
+		}
+
 		$input         = RequestInput::get_post_array( 'design' );
 		$logo_id       = RequestInput::get_post_int( 'logo_id', 0 );
 		$input['logo'] = $logo_id > 0 && current_user_can( 'read_post', $logo_id ) ? QrLogo::data_uri( $logo_id ) : '';
@@ -113,33 +127,144 @@ class QrGeneratorAjaxEndpoint {
 				'payload' => $payload,
 				'usage'   => QrCapacity::measure( $payload, $ecc, count( $matrix ) ) + array( 'forced' => $logo ),
 				'checks'  => $design->scan_checks(),
+				'short'   => $short,
 			)
 		);
 	}
 
 	/**
-	 * Create a short URL for the posted address and return it.
+	 * Create the short URL for the posted content and return it (#1586).
+	 *
+	 * Fired by the browser on a download or a print with the switch on. It
+	 * refuses a missing title, an address that is already one of this site's
+	 * short URLs, and -- unless the operator acknowledged it -- a destination
+	 * that already has one, answering 409 with that list.
 	 */
 	public function handle_shorten(): void {
 		$this->guard( self::ACTION_SHORTEN );
 
-		$url = QrPayload::build( 'url', array( 'url' => RequestInput::get_post_string( 'url' ) ) );
-		if ( is_wp_error( $url ) ) {
-			wp_send_json_error( array( 'message' => $url->get_error_message() ), 400 );
+		$type = sanitize_key( RequestInput::get_post_string( 'type', 'url' ) );
+		if ( ! in_array( $type, self::SHORTENABLE, true ) ) {
+			wp_send_json_error( array( 'message' => __( 'This content type cannot have a short URL.', 'ffcertificate' ) ), 400 );
 		}
 
-		$result = $this->service->create_short_url( $url, RequestInput::get_post_string( 'title' ) );
+		$destination = QrPayload::build( $type, self::fields() );
+		if ( is_wp_error( $destination ) ) {
+			wp_send_json_error( array( 'message' => $destination->get_error_message() ), 400 );
+		}
+
+		$title = trim( sanitize_text_field( RequestInput::get_post_string( 'title' ) ) );
+		if ( '' === $title ) {
+			wp_send_json_error( array( 'message' => __( 'Enter a title for the short URL.', 'ffcertificate' ) ), 400 );
+		}
+
+		if ( '' !== $this->service->code_from_short_url( $destination ) ) {
+			wp_send_json_error( array( 'message' => __( 'This address is already a short URL of this site; it cannot be shortened again.', 'ffcertificate' ) ), 400 );
+		}
+
+		$duplicates = $this->duplicates( $destination );
+		if ( array() !== $duplicates && '1' !== RequestInput::get_post_string( 'acknowledge' ) ) {
+			wp_send_json_error(
+				array(
+					'message'    => __( 'A short URL already sends to this address. Use it, or confirm that you want another one.', 'ffcertificate' ),
+					'duplicates' => $duplicates,
+				),
+				409
+			);
+		}
+
+		$result = $this->service->create_short_url( $destination, $title );
 		$record = $result['data'] ?? null;
 		if ( empty( $result['success'] ) || ! is_array( $record ) || ! isset( $record['short_code'] ) ) {
 			$error = (string) ( $result['error'] ?? '' );
 			wp_send_json_error( array( 'message' => '' !== $error ? $error : __( 'Could not create the short URL.', 'ffcertificate' ) ) );
 		}
 
+		$code = (string) $record['short_code'];
 		wp_send_json_success(
 			array(
-				'short_url' => $this->service->get_short_url( (string) $record['short_code'] ),
+				'short_code' => $code,
+				'short_url'  => $this->service->get_short_url( $code ),
 			)
 		);
+	}
+
+	/**
+	 * What the preview draws with the switch on, and what it reports.
+	 *
+	 * - An address that is already one of this site's short URLs is drawn
+	 *   as is and flagged `circular`: shortening it again would only chain
+	 *   two redirects.
+	 * - A code the browser holds (created on an earlier download, or picked
+	 *   with "Use this") is drawn when it still sends to this destination.
+	 * - Otherwise the fixed example short URL is drawn, with the short URLs
+	 *   that already send to the destination.
+	 *
+	 * @param string $destination Address the short URL sends to.
+	 * @param string $code        Code the browser holds, or ''.
+	 * @return array{drawn: string, circular: bool, code: string, url: string, example: bool, duplicates: array<int, array<string, mixed>>}
+	 */
+	private function short_state( string $destination, string $code ): array {
+		if ( '' !== $this->service->code_from_short_url( $destination ) ) {
+			return array(
+				'drawn'      => $destination,
+				'circular'   => true,
+				'code'       => '',
+				'url'        => '',
+				'example'    => false,
+				'duplicates' => array(),
+			);
+		}
+
+		$code   = sanitize_text_field( $code );
+		$record = '' !== $code ? $this->service->get_repository()->findByShortCode( $code ) : null;
+		if ( is_array( $record ) && 'trashed' !== ( $record['status'] ?? '' ) && esc_url_raw( $destination ) === (string) ( $record['target_url'] ?? '' ) ) {
+			$url = $this->service->get_short_url( $code );
+			return array(
+				'drawn'      => $url,
+				'circular'   => false,
+				'code'       => $code,
+				'url'        => $url,
+				'example'    => false,
+				'duplicates' => array(),
+			);
+		}
+
+		return array(
+			'drawn'      => $this->service->get_example_short_url(),
+			'circular'   => false,
+			'code'       => '',
+			'url'        => '',
+			'example'    => true,
+			'duplicates' => $this->duplicates( $destination ),
+		);
+	}
+
+	/**
+	 * Short URLs that already send to the destination, as the alert lists them.
+	 *
+	 * @param string $destination Address.
+	 * @return array<int, array{code: string, url: string, title: string, created: string, clicks: int, active: bool}>
+	 */
+	private function duplicates( string $destination ): array {
+		$rows   = $this->service->get_repository()->findByTargetUrl( esc_url_raw( $destination ) );
+		$format = get_option( 'date_format' );
+		$format = is_string( $format ) && '' !== $format ? $format : 'Y-m-d';
+		$list   = array();
+		foreach ( $rows as $row ) {
+			$code = (string) ( $row['short_code'] ?? '' );
+			// `created_at` is written with current_time( 'mysql' ): already the
+			// site's wall clock, so it is formatted without a timezone shift.
+			$list[] = array(
+				'code'    => $code,
+				'url'     => $this->service->get_short_url( $code ),
+				'title'   => (string) ( $row['title'] ?? '' ),
+				'created' => (string) mysql2date( $format, (string) ( $row['created_at'] ?? '' ) ),
+				'clicks'  => (int) ( $row['click_count'] ?? 0 ),
+				'active'  => 'active' === ( $row['status'] ?? '' ),
+			);
+		}
+		return $list;
 	}
 
 	/**

@@ -58,7 +58,7 @@ $ffc_qr_vcard_fields = array(
 <div class="wrap ffc-admin-page ffc-page-qr-generator">
 	<h1><?php esc_html_e( 'QR Code Generator', 'ffcertificate' ); ?></h1>
 	<p class="description">
-		<?php esc_html_e( 'Create a QR code for any content and download it. Nothing is stored: the design starts from Settings → QR Code and changes here apply to this code only. Only "Shorten" saves something — a short URL, listed with the others.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'Create a QR code for any content and download it. The design starts from Settings → QR Code and changes here apply to this code only. Nothing about the content is stored, except a short URL for a website or a social profile when "Create a short URL" is on — it is saved on download or print and listed with the others.', 'ffcertificate' ); ?>
 	</p>
 
 	<form id="ffc-qr-generator" class="ffc-qr-generator" autocomplete="off">
@@ -84,11 +84,6 @@ $ffc_qr_vcard_fields = array(
 							<th scope="row"><label for="ffc-qr-url"><?php esc_html_e( 'Address', 'ffcertificate' ); ?></label></th>
 							<td>
 								<input type="url" id="ffc-qr-url" class="large-text" data-ffc-qr-field="url:url" placeholder="https://">
-								<p>
-									<input type="text" id="ffc-qr-url-title" class="regular-text" placeholder="<?php esc_attr_e( 'Title for the short URL (optional)', 'ffcertificate' ); ?>">
-									<button type="button" class="button" id="ffc-qr-shorten"><?php esc_html_e( 'Shorten', 'ffcertificate' ); ?></button>
-								</p>
-								<p class="description"><?php esc_html_e( 'Shortening creates a short URL that counts the scans, and puts it in the address field.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
 					</tbody>
@@ -240,6 +235,54 @@ $ffc_qr_vcard_fields = array(
 						</tr>
 					</tbody>
 				</table>
+
+				<div class="ffc-qr-short" data-ffc-qr-short-for="url social">
+					<table class="form-table" role="presentation">
+						<tbody>
+							<tr>
+								<th scope="row"><?php esc_html_e( 'Short URL', 'ffcertificate' ); ?></th>
+								<td>
+									<?php
+									\FreeFormCertificate\Admin\AdminUI::render_toggle(
+										array(
+											'name'    => 'ffc_qr_short',
+											'id'      => 'ffc-qr-short',
+											'checked' => true,
+											'label'   => __( 'Create a short URL', 'ffcertificate' ),
+										)
+									);
+									?>
+									<p class="description"><?php esc_html_e( 'On: the code carries a short URL that counts the scans and whose destination can be changed later, even after printing. It is saved on download or print. Off: the code carries the address itself, nothing is stored in the database, and it keeps working even if this site goes down.', 'ffcertificate' ); ?></p>
+									<p class="ffc-qr-short__notice" id="ffc-qr-short-circular" hidden><?php esc_html_e( 'This address is already a short URL of this site, so it is used as is: shortening it again would only chain two redirects.', 'ffcertificate' ); ?></p>
+								</td>
+							</tr>
+							<tr data-ffc-qr-short-on>
+								<th scope="row"><label for="ffc-qr-short-title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="required" aria-hidden="true">*</span></label></th>
+								<td>
+									<input type="text" id="ffc-qr-short-title" class="regular-text" maxlength="255" aria-required="true">
+									<p class="description"><?php esc_html_e( 'Required: it names the short URL in the list.', 'ffcertificate' ); ?></p>
+								</td>
+							</tr>
+							<tr data-ffc-qr-short-on id="ffc-qr-short-duplicates" hidden>
+								<th scope="row"><?php esc_html_e( 'Already shortened', 'ffcertificate' ); ?></th>
+								<td>
+									<div class="ffc-qr-short__duplicates">
+										<p><?php esc_html_e( 'A short URL already sends to this address. Use it, or confirm that you want another one.', 'ffcertificate' ); ?></p>
+										<ul id="ffc-qr-short-duplicate-list"></ul>
+										<label><input type="checkbox" id="ffc-qr-short-ack" value="1"> <?php esc_html_e( 'I know, and I want to create another short URL for this address.', 'ffcertificate' ); ?></label>
+									</div>
+								</td>
+							</tr>
+							<tr id="ffc-qr-short-result-row" hidden>
+								<th scope="row"><?php esc_html_e( 'Short URL in the code', 'ffcertificate' ); ?></th>
+								<td>
+									<button type="button" class="button-link ffc-qr-short__result" id="ffc-qr-short-result" title="<?php esc_attr_e( 'Click to copy', 'ffcertificate' ); ?>"></button>
+									<span class="ffc-qr-short__copied" id="ffc-qr-short-copied" role="status" aria-live="polite"></span>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 
 				<table class="form-table" role="presentation" data-ffc-qr-type="event" hidden>
 					<tbody>

@@ -5,10 +5,12 @@
  * (collected by `FFC.QrDesign.collect`) to `ffc_qr_generate` on every change,
  * and saves what comes back: the SVG as is, the PNG rasterised by
  * `FFC.QrRaster`, in the format chosen beside the preview; "Print" sends
- * the code alone to the printer (#1570). "Shorten" writes a short URL, and
- * only on its own click; a download remembers the design for this user
- * (never the content), and "Reset to default" forgets it and puts the
- * global design back (#1568).
+ * the code alone to the printer (#1570). For a website or a social profile,
+ * "Create a short URL" (on by default) draws a fixed example short URL in
+ * the preview and creates the real one on the first download or print,
+ * reusing it until the destination or the title changes (#1586). A
+ * download remembers the design for this user (never the content), and
+ * "Reset to default" forgets it and puts the global design back (#1568).
  * Selector-guarded: a no-op on any other screen.
  */
 (function ($) {
@@ -19,6 +21,12 @@
 	var timer = null;
 	var sequence = 0;
 	var current = null;
+	// The short URL the code carries: created on a download, or picked with
+	// "Use this"; valid while `key` matches the content it was made for.
+	var shortUrl = { code: '', key: '' };
+	// What the operator asked for, kept while a circular address locks the switch.
+	var wantShort = true;
+	var SHORTENABLE = ['url', 'social'];
 
 	/**
 	 * The active content type.
@@ -41,6 +49,66 @@
 			this.hidden = $(this).attr('data-ffc-qr-type') !== type;
 		});
 		showWifiEnterprise($form);
+		showShort($form);
+	}
+
+	/**
+	 * Whether the active type can carry a short URL.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 * @returns {boolean}
+	 */
+	function shortenable($form) {
+		return SHORTENABLE.indexOf(activeType($form)) !== -1;
+	}
+
+	/**
+	 * Show the short URL block for the types that have one, and its title
+	 * row only while the switch is on (the duplicate row follows the server).
+	 *
+	 * @param {jQuery} $form Generator form.
+	 */
+	function showShort($form) {
+		var on = shortenable($form) && $form.find('#ffc-qr-short').is(':checked');
+		$form.find('[data-ffc-qr-short-for]').each(function () {
+			this.hidden = !shortenable($form);
+		});
+		$form.find('[data-ffc-qr-short-on]').each(function () {
+			if (!on) {
+				this.hidden = true;
+			} else if (this.id !== 'ffc-qr-short-duplicates') {
+				this.hidden = false;
+			}
+		});
+	}
+
+	/**
+	 * What the short URL was made for: the type, its fields and the title.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 * @returns {string}
+	 */
+	function contentKey($form) {
+		var type = activeType($form);
+		var fields = {};
+		$form.find('[data-ffc-qr-field^="' + type + ':"]').each(function () {
+			fields[String($(this).attr('data-ffc-qr-field'))] = String($(this).val() || '');
+		});
+		return JSON.stringify([type, fields, String($form.find('#ffc-qr-short-title').val() || '').trim()]);
+	}
+
+	/**
+	 * The message an error carries: a 4xx reply arrives through the request's
+	 * failure path, so its message sits in `data`, not in `message`.
+	 *
+	 * @param {Error} err Rejection from FFC.request.
+	 * @returns {string}
+	 */
+	function errorMessage(err) {
+		if (err && err.data && typeof err.data.message === 'string' && err.data.message) {
+			return err.data.message;
+		}
+		return (err && err.fromServer && err.message) || i18n.error || '';
 	}
 
 	/**
@@ -75,7 +143,115 @@
 		var request = window.FFC.QrDesign.collect($form);
 		request.type = type;
 		request.fields = fields;
+		if (shortenable($form)) {
+			if (shortUrl.code && shortUrl.key !== contentKey($form)) {
+				shortUrl = { code: '', key: '' };
+			}
+			request.short = wantShort ? '1' : '';
+			request.short_code = shortUrl.code;
+		}
 		return request;
+	}
+
+	/**
+	 * Reflect the server's short URL state: the circular lock, the list of
+	 * short URLs already sending to the address, and the one in the code.
+	 *
+	 * @param {jQuery}      $form Generator form.
+	 * @param {Object|null} state `data.short` from ffc_qr_generate.
+	 */
+	function showShortState($form, state) {
+		var $switch = $form.find('#ffc-qr-short');
+		var circular = !!(state && state.circular);
+		$switch.prop('disabled', circular).prop('checked', circular ? false : wantShort);
+		$form.find('#ffc-qr-short-circular').prop('hidden', !circular);
+		showShort($form);
+
+		var duplicates = (state && state.example && state.duplicates) || [];
+		var $list = $form.find('#ffc-qr-short-duplicate-list').empty();
+		duplicates.forEach(function (item) {
+			var $li = $('<li>');
+			$('<strong>').text(item.title || i18n.untitled || '').appendTo($li);
+			$li.append(' ');
+			$('<code>').text(String(item.url || '')).appendTo($li);
+			$li.append(document.createTextNode(' ' + fill(i18n.duplicateMeta, [item.created, item.clicks]) + ' '));
+			$('<button type="button" class="button button-small ffc-qr-short__use">')
+				.attr('data-code', String(item.code || ''))
+				.text(i18n.useThis || '')
+				.appendTo($li);
+			$list.append($li);
+		});
+		$form.find('#ffc-qr-short-duplicates').prop('hidden', !duplicates.length || !$switch.is(':checked'));
+
+		var url = (state && state.code && state.url) || '';
+		$form.find('#ffc-qr-short-result').text(url);
+		$form.find('#ffc-qr-short-result-row').prop('hidden', !url);
+		$form.find('#ffc-qr-short-copied').text('');
+	}
+
+	/**
+	 * Before a download or a print: create the short URL when the switch is
+	 * on and the code still carries the example. Resolves once the preview
+	 * carries the real one; rejects, with the reason shown, when it cannot.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 * @returns {Promise}
+	 */
+	function ensureShort($form) {
+		var state = current && current.short;
+		if (!state || state.circular || !state.example || !wantShort) {
+			return Promise.resolve();
+		}
+		var $status = $('#ffc-qr-generator-status');
+		var $title = $form.find('#ffc-qr-short-title');
+		var title = String($title.val() || '').trim();
+		if (!title) {
+			$title.addClass('is-invalid').trigger('focus');
+			$status.removeClass('is-warning').addClass('is-error').text(i18n.titleRequired || '');
+			return Promise.reject(new Error('title'));
+		}
+		var acknowledged = $form.find('#ffc-qr-short-ack').is(':checked');
+		if ((state.duplicates || []).length && !acknowledged) {
+			$status.removeClass('is-warning').addClass('is-error').text(i18n.acknowledge || '');
+			return Promise.reject(new Error('acknowledge'));
+		}
+		var request = collect($form);
+		return window.FFC.request(
+			cfg.shorten,
+			{ type: request.type, fields: request.fields, title: title, acknowledge: acknowledged ? '1' : '' },
+			{ nonce: cfg.shortenNonce, ajaxUrl: cfg.ajaxUrl }
+		)
+			.then(function (data) {
+				shortUrl = { code: String(data.short_code || ''), key: contentKey($form) };
+				return refresh($form);
+			})
+			.catch(function (err) {
+				$status.removeClass('is-warning').addClass('is-error').text(errorMessage(err));
+				throw err;
+			});
+	}
+
+	/**
+	 * Copy text to the clipboard, with the old selection trick where the
+	 * asynchronous API is unavailable (plain-HTTP sites).
+	 *
+	 * @param {string} text Text.
+	 * @returns {Promise}
+	 */
+	function copy(text) {
+		if (navigator.clipboard && window.isSecureContext) {
+			return navigator.clipboard.writeText(text);
+		}
+		var area = document.createElement('textarea');
+		area.value = text;
+		area.setAttribute('readonly', '');
+		area.style.position = 'fixed';
+		area.style.opacity = '0';
+		document.body.appendChild(area);
+		area.select();
+		var ok = document.execCommand && document.execCommand('copy');
+		area.remove();
+		return ok ? Promise.resolve() : Promise.reject(new Error('copy'));
 	}
 
 	/**
@@ -138,6 +314,7 @@
 				}
 				current = data;
 				$preview.html(String(data.svg || ''));
+				showShortState($form, data.short || null);
 				var usage = data.usage || {};
 				$usage.text(usage.forced
 					? fill(i18n.usageForced, [usage.percent, usage.remaining])
@@ -153,8 +330,7 @@
 				$preview.empty();
 				$usage.text('');
 				$buttons.prop('disabled', true);
-				$status.removeClass('is-warning').addClass('is-error')
-					.text((err && err.fromServer && err.message) || i18n.error || '');
+				$status.removeClass('is-warning').addClass('is-error').text(errorMessage(err));
 			});
 	}
 
@@ -252,6 +428,8 @@
 		if (!$form.length || !window.FFC || !window.FFC.request || !window.FFC.QrDesign) {
 			return;
 		}
+		shortUrl = { code: '', key: '' };
+		wantShort = !$form.find('#ffc-qr-short').length || $form.find('#ffc-qr-short').is(':checked');
 
 		$form.on('submit', function (e) { e.preventDefault(); });
 		$form.on('change', 'input[name="type"]', function () {
@@ -277,44 +455,56 @@
 			if (!current || !current.svg) {
 				return;
 			}
-			if ($('#ffc-qr-format').val() === 'svg') {
-				window.FFC.QrRaster.download(window.FFC.QrRaster.encode(current.svg), filename($form, 'svg'), 'image/svg+xml');
-				remember($form);
-				return;
-			}
+			// Read at the click: the short URL is created asynchronously, and
+			// the file must be the one asked for, not whatever is selected later.
+			var format = $('#ffc-qr-format').val();
 			var width = Number($('#ffc-qr-png-width').val()) || 1000;
-			window.FFC.QrRaster.toPng(window.FFC.QrRaster.encode(current.svg), width)
-				.then(function (png) {
-					window.FFC.QrRaster.download(png, filename($form, 'png'), 'image/png');
+			ensureShort($form).then(function () {
+				if (!current || !current.svg) {
+					return;
+				}
+				if (format === 'svg') {
+					window.FFC.QrRaster.download(window.FFC.QrRaster.encode(current.svg), filename($form, 'svg'), 'image/svg+xml');
 					remember($form);
-				})
-				.catch(function () { $('#ffc-qr-generator-status').addClass('is-error').text(i18n.error || ''); });
+					return;
+				}
+				return window.FFC.QrRaster.toPng(window.FFC.QrRaster.encode(current.svg), width)
+					.then(function (png) {
+						window.FFC.QrRaster.download(png, filename($form, 'png'), 'image/png');
+						remember($form);
+					})
+					.catch(function () { $('#ffc-qr-generator-status').addClass('is-error').text(i18n.error || ''); });
+			}).catch(function () {});
 		});
 		$('#ffc-qr-print').on('click', function () {
-			if (current && current.svg) {
-				print(current.svg);
+			if (!current || !current.svg) {
+				return;
 			}
+			ensureShort($form).then(function () {
+				if (current && current.svg) {
+					print(current.svg);
+				}
+			}).catch(function () {});
 		});
 
-		$('#ffc-qr-shorten').on('click', function () {
-			var $btn = $(this);
-			$btn.prop('disabled', true);
-			window.FFC.request(
-				cfg.shorten,
-				{ url: String($('#ffc-qr-url').val() || ''), title: String($('#ffc-qr-url-title').val() || '') },
-				{ nonce: cfg.shortenNonce, ajaxUrl: cfg.ajaxUrl }
-			)
-				.then(function (data) {
-					$btn.prop('disabled', false);
-					$('#ffc-qr-url').val(String(data.short_url || ''));
-					$('#ffc-qr-generator-status').removeClass('is-warning is-error').text(i18n.shortened || '');
-					return refresh($form);
-				})
-				.catch(function (err) {
-					$btn.prop('disabled', false);
-					$('#ffc-qr-generator-status').addClass('is-error')
-						.text((err && err.fromServer && err.message) || i18n.error || '');
-				});
+		$form.on('change', '#ffc-qr-short', function () {
+			wantShort = this.checked;
+			showShort($form);
+			refresh($form);
+		});
+		$form.on('input', '#ffc-qr-short-title', function () {
+			$(this).removeClass('is-invalid');
+			schedule($form);
+		});
+		$form.on('click', '.ffc-qr-short__use', function () {
+			shortUrl = { code: String($(this).attr('data-code') || ''), key: contentKey($form) };
+			refresh($form);
+		});
+		$form.on('click', '#ffc-qr-short-result', function () {
+			var $copied = $form.find('#ffc-qr-short-copied');
+			copy(String($(this).text() || ''))
+				.then(function () { $copied.text(i18n.copied || ''); })
+				.catch(function () { $copied.text(i18n.copyFailed || ''); });
 		});
 
 		$('#ffc-qr-design-reset').on('click', function () {
@@ -330,8 +520,7 @@
 				})
 				.catch(function (err) {
 					$btn.prop('disabled', false);
-					$('#ffc-qr-generator-status').addClass('is-error')
-						.text((err && err.fromServer && err.message) || i18n.error || '');
+					$('#ffc-qr-generator-status').addClass('is-error').text(errorMessage(err));
 				});
 		});
 
@@ -339,7 +528,7 @@
 	}
 
 	window.FFC = window.FFC || {};
-	window.FFC.QrGenerator = { init: init, collect: collect, refresh: refresh, fill: fill, apply: apply, remember: remember, print: print };
+	window.FFC.QrGenerator = { init: init, collect: collect, refresh: refresh, fill: fill, apply: apply, remember: remember, print: print, ensureShort: ensureShort, errorMessage: errorMessage };
 
 	$(init);
 })(jQuery);

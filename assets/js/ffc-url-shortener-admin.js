@@ -279,52 +279,6 @@
                     $result.empty().append($span).show();
                 });
         });
-
-        // --- Create short URL (admin page form) ---
-        $('#ffc-create-short-url').on('submit', function (e) {
-            e.preventDefault();
-            var $form = $(this);
-            var $btn = $form.find('button[type="submit"]');
-            var $result = $('#ffc-shorturl-result');
-            var targetUrl = $('#ffc-shorturl-target').val();
-            var title = $('#ffc-shorturl-title').val();
-            var nonce = $form.find('#ffc_short_url_nonce').val();
-
-            $btn.prop('disabled', true);
-
-            FFC.request(
-                'ffc_create_short_url',
-                { target_url: targetUrl, title: title },
-                { nonce: nonce, ajaxUrl: settings.ajaxUrl || (window.ajaxurl || '/wp-admin/admin-ajax.php') }
-            )
-                .then(function (data) {
-                    $btn.prop('disabled', false);
-                    var shortUrl = data.short_url;
-                    var i18n = settings.i18n || {};
-                    var copyLabel = i18n.copy || 'Copy';
-                    var $strong = $('<strong>').text(shortUrl);
-                    var $copyBtn = $('<button type="button" class="button button-small ffc-copy-shorturl">')
-                        .attr('data-url', shortUrl)
-                        .text(copyLabel);
-                    $result.empty().append($strong).append(' ').append($copyBtn).show();
-                    // Clear form
-                    $('#ffc-shorturl-target').val('');
-                    $('#ffc-shorturl-title').val('');
-                    // Reload table after a brief delay
-                    setTimeout(function () { window.location.reload(); }, 1500);
-                })
-                .catch(function (err) {
-                    $btn.prop('disabled', false);
-                    var i18n = settings.i18n || {};
-                    var $span = $('<span style="color:#dc3232;">');
-                    if (err && err.fromServer) {
-                        $span.text(err.message || i18n.error || 'Error');
-                    } else {
-                        $span.text(i18n.requestFailed || 'Request failed');
-                    }
-                    $result.empty().append($span).show();
-                });
-        });
     });
 
 })(jQuery);

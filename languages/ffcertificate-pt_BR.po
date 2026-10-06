@@ -5331,10 +5331,6 @@ msgstr "Criar Recadastramento"
 msgid "Create reusable locations shared by every form. Each has a name, latitude, longitude, radius (meters) and optional \"default for GPS\" / \"default for IP\" flags — a new form auto-selects the defaults. Editing a location updates every form that references it."
 msgstr "Crie locais reutilizáveis ​​compartilhados por todos os formulários. Cada um possui nome, latitude, longitude, raio (em metros) e sinalizadores opcionais de \"padrão para GPS\" ou \"padrão para IP\" — um novo formulário seleciona automaticamente os padrões. A edição de um local atualiza todos os formulários que o referenciam."
 
-#: templates/admin/url-shortener/short-urls-page.php:124
-msgid "Create Short URL"
-msgstr "Criar URL Curta"
-
 #: includes/settings/views/ffc-tab-url-shortener.php:176
 msgid "Create short URLs for already-published posts of the shortened post types that do not have one yet. Runs in the background in batches; safe to leave running. This only creates the short URLs — tick \"Expose\" above to publish them as shortlinks."
 msgstr "Crie URLs curtas para posts já publicados (dos tipos de post configurados para encurtamento) que ainda não as possuem. O processo é executado em segundo plano, em lotes; é seguro deixá-lo em execução. Isso apenas cria as URLs curtas — marque a opção \"Expor\" acima para publicá-las como links curtos."
@@ -7484,10 +7480,6 @@ msgstr "Impor limite a este endpoint"
 #: includes/settings/views/documentation/operations-troubleshooting.php:31
 msgid "Ensure field exists in form"
 msgstr "Verifique se o campo existe no formulário."
-
-#: includes/settings/views/documentation/feature-url-shortener.php:25
-msgid "enter a destination URL and an optional title; the short code is generated automatically (there is no custom-slug field)."
-msgstr "insira uma URL de destino e um título opcional; o código curto é gerado automaticamente (não há campo para slug personalizado)."
 
 #: includes/admin/class-ffc-settings-ajax-endpoint.php:572
 msgid "Enter a number — an empty field leaves the setting unchanged."
@@ -11780,10 +11772,6 @@ msgstr "É necessário estar logado:"
 #: includes/shortcodes/class-ffc-dashboard-shortcode.php:229 includes/recruitment/class-ffc-recruitment-dashboard-section.php:140
 msgid "My Calls"
 msgstr "Minhas Convocações"
-
-#: templates/admin/url-shortener/short-urls-page.php:133
-msgid "My Campaign"
-msgstr "Minha Campanha"
 
 #: includes/admin/class-ffc-admin-assets-manager.php:647
 msgid "My template"
@@ -23459,9 +23447,6 @@ msgstr "Até 24 caracteres, por exemplo \"Escaneie para verificar\". A cor da le
 msgid "Could not create the short URL."
 msgstr "Não foi possível criar a URL curta."
 
-msgid "Create a QR code for any content and download it. Nothing is stored: the design starts from Settings → QR Code and changes here apply to this code only. Only \"Shorten\" saves something — a short URL, listed with the others."
-msgstr "Crie um QR Code para qualquer conteúdo e baixe-o. Nada é armazenado: o design parte de Configurações → QR Code e as alterações aqui valem só para este código. Apenas \"Encurtar\" salva algo — uma URL curta, listada com as demais."
-
 msgid "Dense code (version %d): print it at least 3 cm wide, or shorten the content."
 msgstr "Código denso (versão %d): imprima com pelo menos 3 cm de largura ou encurte o conteúdo."
 
@@ -23510,20 +23495,11 @@ msgstr "Gerador de QR Code"
 msgid "SMS"
 msgstr "SMS"
 
-msgid "Short URL created and placed in the address field."
-msgstr "URL curta criada e colocada no campo de endereço."
-
-msgid "Shortening creates a short URL that counts the scans, and puts it in the address field."
-msgstr "Encurtar cria uma URL curta que conta as leituras e a coloca no campo de endereço."
-
 msgid "The QR code could not be drawn."
 msgstr "Não foi possível desenhar o QR Code."
 
 msgid "The network does not broadcast its name"
 msgstr "A rede não divulga o próprio nome"
-
-msgid "Title for the short URL (optional)"
-msgstr "Título da URL curta (opcional)"
 
 msgid "Type of content"
 msgstr "Tipo de conteúdo"
@@ -24719,9 +24695,6 @@ msgstr "Opcional. Deixe em branco, a menos que o administrador da rede tenha inf
 msgid "Enter the user name for the Enterprise network."
 msgstr "Informe o usuário da rede Enterprise."
 
-msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network (Enterprise networks that sign in with a user name included), an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the \"Shorten\" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener."
-msgstr "URLs curtas → Gerador de QR Code cria um QR Code para um site, texto simples, uma rede Wi-Fi (inclusive redes Enterprise, que pedem usuário), um e-mail, uma ligação, um SMS, uma conversa no WhatsApp, um cartão de contato (vCard), um perfil em rede social ou um evento, estilizado a partir do design global e baixado em PNG ou SVG. Não armazena nada: apenas o botão \"Encurtar\" cria uma URL curta, que passa a aparecer na lista. Requer ffc_manage_url_shortener."
-
 msgid "Android saves the network from the code but leaves the CA certificate unset, so it will not connect yet: open the saved network, set CA certificate to \"Trust on first use\" (or \"Do not validate\"), then connect. The iPhone camera does not read Enterprise codes; iPhone users type the details in."
 msgstr "O Android salva a rede pelo código, mas deixa o certificado de CA sem seleção, então ela ainda não conecta: abra a rede salva, em Certificado de CA escolha \"Confiar no primeiro uso\" (ou \"Não validar\") e conecte. A câmera do iPhone não lê códigos de rede Enterprise; no iPhone os dados são digitados."
 
@@ -24736,3 +24709,69 @@ msgstr "Este conteúdo tem cerca de %d caracteres a mais. O logotipo exige a cor
 
 msgid "This content is about %1$d characters too long for error correction %2$s. Shorten it, or lower the level."
 msgstr "Este conteúdo tem cerca de %1$d caracteres a mais para a correção de erros %2$s. Encurte-o ou reduza o nível."
+
+msgid "(no title)"
+msgstr "(sem título)"
+
+msgid "A short URL already sends to this address. Use it, or confirm that you want another one."
+msgstr "Já existe uma URL curta que leva a este endereço. Use-a ou confirme que deseja criar outra."
+
+msgid "A short URL already sends to this address: click \"Use this\", or tick the box to create another one."
+msgstr "Já existe uma URL curta que leva a este endereço: clique em \"Usar esta\" ou marque a caixa para criar outra."
+
+msgid "Already shortened"
+msgstr "Já encurtado"
+
+msgid "Copied."
+msgstr "Copiado."
+
+msgid "Could not copy; select the address and copy it by hand."
+msgstr "Não foi possível copiar; selecione o endereço e copie manualmente."
+
+msgid "Create a QR code for any content and download it. The design starts from Settings → QR Code and changes here apply to this code only. Nothing about the content is stored, except a short URL for a website or a social profile when \"Create a short URL\" is on — it is saved on download or print and listed with the others."
+msgstr "Crie um QR Code para qualquer conteúdo e baixe-o. O design parte de Configurações → QR Code e as alterações feitas aqui valem só para este código. Nada sobre o conteúdo é armazenado, exceto uma URL curta para um site ou perfil de rede social quando \"Criar URL curta\" está ligado — ela é gravada ao baixar ou imprimir e aparece na lista com as demais."
+
+msgid "Create a short URL"
+msgstr "Criar URL curta"
+
+msgid "Enter a title for the short URL before downloading or printing."
+msgstr "Informe um título para a URL curta antes de baixar ou imprimir."
+
+msgid "Enter a title for the short URL."
+msgstr "Informe um título para a URL curta."
+
+msgid "I know, and I want to create another short URL for this address."
+msgstr "Estou ciente e quero criar outra URL curta para este endereço."
+
+msgid "New short URL"
+msgstr "Nova URL curta"
+
+msgid "On: the code carries a short URL that counts the scans and whose destination can be changed later, even after printing. It is saved on download or print. Off: the code carries the address itself, nothing is stored in the database, and it keeps working even if this site goes down."
+msgstr "Ligado: o código leva uma URL curta que conta as leituras e cujo destino pode ser trocado depois, mesmo após a impressão. Ela é gravada ao baixar ou imprimir. Desligado: o código leva o próprio endereço, nada é gravado no banco de dados e ele continua funcionando mesmo se este site sair do ar."
+
+msgid "Required: it names the short URL in the list."
+msgstr "Obrigatório: é o nome da URL curta na lista."
+
+msgid "Short URL in the code"
+msgstr "URL curta no código"
+
+msgid "This address is already a short URL of this site, so it is used as is: shortening it again would only chain two redirects."
+msgstr "Este endereço já é uma URL curta deste site, então é usado como está: encurtá-lo de novo só encadearia dois redirecionamentos."
+
+msgid "This address is already a short URL of this site; it cannot be shortened again."
+msgstr "Este endereço já é uma URL curta deste site; não pode ser encurtado de novo."
+
+msgid "This content type cannot have a short URL."
+msgstr "Este tipo de conteúdo não pode ter URL curta."
+
+msgid "Use this"
+msgstr "Usar esta"
+
+msgid "created %1$s, %2$d clicks"
+msgstr "criada em %1$s, %2$d cliques"
+
+msgid "in Short URLs → QR Code Generator (the \"New short URL\" button on the list opens it), on the Website or Social profile type with \"Create a short URL\" on: enter the destination and a title, and the short URL is created when the code is downloaded or printed. The short code is generated automatically (there is no custom-slug field)."
+msgstr "no Gerador de QR Code (URLs curtas → Gerador de QR Code; o botão \"Nova URL curta\" da lista abre essa tela), nos tipos Site ou Perfil em rede social com \"Criar URL curta\" ligado: informe o destino e um título, e a URL curta é criada quando o código é baixado ou impresso. O código curto é gerado automaticamente (não há campo de slug personalizado)."
+
+msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network (Enterprise networks that sign in with a user name included), an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. For a website or a social profile, \"Create a short URL\" (on by default) puts a short URL in the code instead of the address: the preview shows an example, and the real one is created on the first download or print, then reused until the destination or the title changes. The title is then required; an address that already has a short URL is flagged, with \"Use this\" to reuse it, and creating another needs an explicit confirmation; an address that is already a short URL of this site is never shortened again. With the switch off nothing is stored. It needs ffc_manage_url_shortener."
+msgstr "URLs curtas → Gerador de QR Code cria um QR Code para um site, texto simples, uma rede Wi-Fi (inclusive redes Enterprise, que pedem usuário), um e-mail, uma ligação, um SMS, uma conversa no WhatsApp, um cartão de contato (vCard), um perfil em rede social ou um evento, estilizado a partir do design global e baixado em PNG ou SVG. Para um site ou um perfil em rede social, \"Criar URL curta\" (ligado por padrão) coloca no código uma URL curta em vez do endereço: a prévia mostra um exemplo, e a URL real é criada no primeiro download ou impressão e reaproveitada até que o destino ou o título mude. O título passa a ser obrigatório; um endereço que já tem URL curta é sinalizado, com \"Usar esta\" para reaproveitá-la, e criar outra exige confirmação explícita; um endereço que já é uma URL curta deste site nunca é encurtado de novo. Com o switch desligado, nada é gravado. Requer ffc_manage_url_shortener."
