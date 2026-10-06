@@ -450,6 +450,46 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->assertNotSame( '', $log[0]['cpf_encrypted'] );
 	}
 
+	public function test_record_download_log_entry_never_stores_the_ip_in_clear(): void {
+		$_SERVER['REMOTE_ADDR'] = '203.0.113.77';
+		$this->validator->record_download_log_entry( 10, 'access', '', 'success' );
+		unset( $_SERVER['REMOTE_ADDR'] );
+
+		$entry = $this->meta_store[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ][0];
+		$this->assertArrayNotHasKey( 'ip', $entry, 'The address is stored encrypted only (#1574).' );
+		$this->assertStringNotContainsString( '203.0.113.77', (string) $entry['ip_encrypted'] );
+		$this->assertSame(
+			'203.0.113.77',
+			\FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::decrypt_log_entry_ip( $entry ),
+			'The stored ciphertext decrypts back to the address that was recorded.'
+		);
+	}
+
+	public function test_record_download_log_entry_encrypts_what_an_older_release_stored_in_clear(): void {
+		$this->meta_store[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ] = array(
+			array( 'ts' => 1, 'ip' => '198.51.100.9', 'mode' => 'access', 'cpf_encrypted' => '', 'result' => 'success' ),
+		);
+
+		$this->validator->record_download_log_entry( 10, 'access', '', 'success' );
+
+		$log = $this->meta_store[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ];
+		$this->assertArrayNotHasKey( 'ip', $log[0] );
+		$this->assertSame( '198.51.100.9', \FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::decrypt_log_entry_ip( $log[0] ) );
+	}
+
+	public function test_an_entry_from_an_older_release_still_reads_its_ip(): void {
+		$this->assertSame(
+			'198.51.100.9',
+			\FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::decrypt_log_entry_ip( array( 'ip' => '198.51.100.9' ) )
+		);
+		$this->assertSame( '', \FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::decrypt_log_entry_ip( array() ) );
+		$this->assertSame(
+			'',
+			\FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::decrypt_log_entry_ip( array( 'ip_encrypted' => 'v2:garbage' ) ),
+			'An unreadable ciphertext reads as no address, never as the blob.'
+		);
+	}
+
 	public function test_record_download_log_entry_prunes_to_max(): void {
 		// Pre-seed DOWNLOAD_LOG_MAX rows, then append one more.
 		$rows = array_fill( 0, PublicCsvDownload::DOWNLOAD_LOG_MAX, array( 'result' => 'old' ) );

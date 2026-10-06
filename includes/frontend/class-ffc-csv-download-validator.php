@@ -395,10 +395,10 @@ final class CsvDownloadValidator {
 		}
 
 		$existing   = get_post_meta( $form_id, PublicCsvDownload::META_DOWNLOAD_LOG, true );
-		$existing   = is_array( $existing ) ? $existing : array();
+		$existing   = is_array( $existing ) ? \FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::encrypt_legacy_ips( $existing ) : array();
 		$existing[] = array(
 			'ts'            => time(),
-			'ip'            => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
+			'ip_encrypted'  => \FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::encrypt_ip( \FreeFormCertificate\Core\RequestInput::get_user_ip() ),
 			'mode'          => $mode,
 			'cpf_encrypted' => $cpf_encrypted,
 			'result'        => $result,
