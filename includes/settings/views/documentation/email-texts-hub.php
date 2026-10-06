@@ -53,7 +53,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( '"All plugin emails" directory', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'A read-only index at the bottom of the tab lists the plugin\'s emails, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an "Open →" deep-link to where it is configured. It is discoverability only — it moves no controls.', 'ffcertificate' ); ?></p>
-		<p><?php esc_html_e( 'Date-message e-mails are not in that index: each rule\'s subject and body are edited on the rule itself, on the Date Messages screen. The hub\'s "Birthday message (default for new rules)" only sets the text a new rule starts from; existing rules keep their own.', 'ffcertificate' ); ?> <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages', 'ffcertificate' ); ?></a>.</p>
+		<p><?php esc_html_e( 'Date-message e-mails are listed there too, but each rule\'s subject and body are edited on the rule itself, on the Date Messages screen. The hub\'s "Birthday message (default for new rules)" only sets the text a new rule starts from; existing rules keep their own.', 'ffcertificate' ); ?> <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages', 'ffcertificate' ); ?></a>.</p>
 	</div>
 
 	<div class="ffc-doc-note">

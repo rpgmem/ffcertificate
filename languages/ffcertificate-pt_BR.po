@@ -15658,7 +15658,7 @@ msgstr "Cenário"
 
 #: includes/settings/views/ffc-tab-documentation.php:102
 msgid "Schedule"
-msgstr "Agendar"
+msgstr "Agendamento"
 
 #: includes/settings/views/documentation/forms-schedule.php:19
 msgid "Schedule (open / close window)"
@@ -24288,9 +24288,6 @@ msgstr "Os campos de identidade/contato/endereço/vínculo ficam no perfil de us
 msgid "A read-only index at the bottom of the tab lists the plugin's emails, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open →\" deep-link to where it is configured. It is discoverability only — it moves no controls."
 msgstr "Um índice somente leitura no fim da aba lista os e-mails do plugin, agrupados por recurso, cada um com uma linha de finalidade, um estado de personalização (Texto editável / Apenas ativar/desativar / Padrão do sistema) e um link \"Abrir →\" para onde é configurado. Ele serve apenas para descoberta — não move nenhum controle."
 
-msgid "Date-message e-mails are not in that index: each rule's subject and body are edited on the rule itself, on the Date Messages screen. The hub's \"Birthday message (default for new rules)\" only sets the text a new rule starts from; existing rules keep their own."
-msgstr "Os e-mails das mensagens por data não estão nesse índice: o assunto e o corpo de cada regra são editados na própria regra, na tela Mensagens por Data. A \"Mensagem de aniversário (padrão para novas regras)\" desta central define apenas o texto com que uma nova regra começa; as regras existentes mantêm o seu."
-
 msgid "See Date Messages"
 msgstr "Ver Mensagens por Data"
 
@@ -24471,9 +24468,6 @@ msgstr "Estilo em linha, uma linha horizontal e cor/tamanho/fonte legados de fon
 msgid "The template is filtered on save."
 msgstr "O modelo é filtrado ao salvar."
 
-msgid "Only the tags above survive, each with a fixed set of attributes: style works on almost every tag, but class is removed from img, td and th, and style blocks are not allowed — use inline styles. Developers can widen the list with the ffcertificate_allowed_html_tags filter."
-msgstr "Somente as tags acima permanecem, cada uma com um conjunto fixo de atributos: style funciona em quase todas as tags, mas class é removido de img, td e th, e blocos style não são permitidos — use estilos em linha. Desenvolvedores podem ampliar a lista com o filtro ffcertificate_allowed_html_tags."
-
 msgid "Image scaled to exactly these dimensions (it is stretched, not cropped, when the proportions differ)"
 msgstr "Imagem redimensionada exatamente para essas dimensões (é esticada, não recortada, quando as proporções diferem)"
 
@@ -24485,12 +24479,6 @@ msgstr "A folha de estilos do PDF inclui auxiliares de alinhamento para o corpo 
 
 msgid "Use them on a paragraph, div, span, heading, list or table."
 msgstr "Use-as em um parágrafo, div, span, título, lista ou tabela."
-
-msgid "The stylesheet also defines image helpers"
-msgstr "A folha de estilos também define os auxiliares de imagem"
-
-msgid "but they cannot be used in a form's certificate template today: the class attribute is removed from img tags when the template is saved. Size images with width / height or an inline style instead."
-msgstr "mas eles não podem ser usados hoje no modelo de certificado de um formulário: o atributo class é removido das tags img quando o modelo é salvo. Dimensione as imagens com width / height ou com um estilo em linha."
 
 msgid "Filter the to / subject / body of the audience, reregistration and date-message emails. Self-scheduling appointment emails do not pass through it (use ffcertificate_email)."
 msgstr "Filtra os campos para / assunto / corpo dos e-mails de público-alvo, recadastramento e mensagens de datas. Os e-mails de agendamento do autoagendamento não passam por ele (use ffcertificate_email)."
@@ -24689,3 +24677,30 @@ msgstr "exportadores reúnem os dados FFC da pessoa: perfil, certificados, agend
 
 msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export."
 msgstr "Um formulário sem data de término nunca libera o arquivo CSV. Os downloads também estão sujeitos a uma cota por formulário (se o campo estiver em branco, aplica-se o Limite de Download Padrão global, definido em Configurações → Avançado). Quando a exigência de CPF abaixo está em qualquer modo diferente de none — ou quando um operador informa voluntariamente um CPF válido — cada tentativa é registrada em um log de auditoria do formulário com as tentativas mais recentes (data/hora, endereço IP armazenado criptografado, modo e resultado), que os administradores podem exportar."
+
+msgid "(scales a logo down to fit) and"
+msgstr "(reduz um logotipo para caber) e"
+
+msgid "(spans the full width)."
+msgstr "(ocupa toda a largura)."
+
+msgid "Date message (such as a birthday)"
+msgstr "Mensagem por data (como aniversário)"
+
+msgid "Date-message e-mails are listed there too, but each rule's subject and body are edited on the rule itself, on the Date Messages screen. The hub's \"Birthday message (default for new rules)\" only sets the text a new rule starts from; existing rules keep their own."
+msgstr "Os e-mails de mensagens por data também aparecem ali, mas o assunto e o corpo de cada regra são editados na própria regra, na tela Mensagens por Data. A \"Mensagem de aniversário (padrão para novas regras)\" do hub só define o texto com que uma nova regra começa; as regras existentes mantêm o seu."
+
+msgid "Images take"
+msgstr "Imagens aceitam"
+
+msgid "Manager digest"
+msgstr "Resumo para gestores"
+
+msgid "Only the tags above survive, each with a fixed set of attributes: style and class work on almost every tag, and style blocks are not allowed — use inline styles. Developers can widen the list with the ffcertificate_allowed_html_tags filter."
+msgstr "Só as tags acima são mantidas, cada uma com um conjunto fixo de atributos: style e class funcionam em quase todas as tags, e blocos style não são permitidos — use estilos inline. Desenvolvedores podem ampliar a lista com o filtro ffcertificate_allowed_html_tags."
+
+msgid "Sent to each person on a date in their profile — each rule carries its own subject and body; the hub above holds the text a new rule starts from."
+msgstr "Enviado a cada pessoa em uma data do seu perfil — cada regra tem o próprio assunto e corpo; o hub acima guarda o texto com que uma nova regra começa."
+
+msgid "Summary of a run sent to the managers a rule names, 24 hours after it starts; fixed body."
+msgstr "Resumo de uma execução enviado aos gestores indicados na regra, 24 horas depois do início; corpo fixo."

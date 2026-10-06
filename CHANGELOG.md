@@ -25,6 +25,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **The short URL SVG download was a solid black square** (#1563). It read the encoder's raw frame instead of its modules, painting every module dark; the SVG (download and REST `format=svg`) now draws the real code.
+- **Template helper classes were stripped from images and table cells** (#1574). `class` is now allowed on `img`, `td` and `th`, so `ffc-responsive-logo`, `ffc-full-width-img` and the alignment helpers work in a certificate template.
+- **The e-mail directory left out Date Messages** (#1574), and the module's Schedule tab read "Agendar" (a verb) in pt_BR; it reads "Agendamento" now.
 
 ### Security
 

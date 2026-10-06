@@ -92,6 +92,9 @@ class TabEmailTextsTest extends TestCase {
 		$this->assertStringContainsString( 'Editable text (global)', $out );
 		$this->assertStringContainsString( 'On/off only', $out );
 		$this->assertStringContainsString( 'System default', $out );
+		// Date messages were missing from the directory (#1574).
+		$this->assertStringContainsString( 'page=ffc-date-messages', $out );
+		$this->assertStringContainsString( 'Manager digest', $out );
 	}
 
 	public function test_render_email_index_hidden_without_any_feature_cap(): void {
