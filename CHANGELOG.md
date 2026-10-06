@@ -29,6 +29,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Security
 
 - **The activity log no longer stores the client IP in clear** (#1574). New rows keep it only in an encrypted column, an `ip` in a log context now encrypts that context, and the "Activity Log: Encrypt Client IPs" card in Settings → Data Migrations encrypts what older rows hold.
+- **Operator audit trails no longer store the client IP in clear** (#1574). The Public Operator Access download log keeps the address encrypted (older entries are encrypted on the form's next download), and the early-open, postpone-close and IP-bypass log contexts are now encrypted.
 
 ## [6.33.0] (2026-10-04) — `10ba316f`
 

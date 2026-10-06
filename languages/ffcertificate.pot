@@ -24066,9 +24066,6 @@ msgstr ""
 msgid "The hash is the only credential — treat the link as a password. Set the base page under Settings → General (\"CSV Download Page URL\") so the editor shows the full link instead of just the query string. The hash is regenerated on demand (\"Regenerate hash on save\") and is deliberately NOT copied when a form is duplicated. A separate option resets the download counter to zero on save."
 msgstr ""
 
-msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP, mode, result) that admins can export."
-msgstr ""
-
 msgid "The CPF gate is checked again when the operator uses Start Form Early or Postpone Close."
 msgstr ""
 
@@ -24580,4 +24577,7 @@ msgid "Activity-log entries store the client IP address encrypted, and an entry 
 msgstr ""
 
 msgid "the Encryption Key Rotation re-encrypts stored personal data under FFC_ENCRYPTION_KEY from wp-config.php, with a second card for the remaining areas (recruitment candidates and reregistration bodies); two more cards clear plaintext left on activity log rows that are already encrypted and encrypt the client IP addresses older activity log rows still hold in clear."
+msgstr ""
+
+msgid "A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export."
 msgstr ""
