@@ -85,6 +85,40 @@ class QrPayloadTest extends TestCase {
 		$this->assertStringStartsWith( 'WIFI:T:WPA;', (string) QrPayload::build( 'wifi', array( 'ssid' => 'Net', 'password' => 'x', 'security' => 'WPA9' ) ) );
 	}
 
+	public function test_an_enterprise_network_carries_the_user_name_and_its_methods(): void {
+		$this->assertSame(
+			'WIFI:T:WPA2-EAP;S:Escola;P:s3nha\\;x;E:TTLS;PH2:PAP;I:maria@sme;A:anon;H:true;;',
+			QrPayload::build(
+				'wifi',
+				array(
+					'ssid'      => 'Escola',
+					'password'  => 's3nha;x',
+					'security'  => 'WPA2-EAP',
+					'identity'  => 'maria@sme',
+					'eap'       => 'TTLS',
+					'phase2'    => 'PAP',
+					'anonymous' => 'anon',
+					'hidden'    => '1',
+				)
+			)
+		);
+	}
+
+	public function test_an_enterprise_network_defaults_its_methods_and_omits_a_blank_anonymous_identity(): void {
+		$this->assertSame(
+			'WIFI:T:WPA2-EAP;S:Net;P:x;E:PEAP;PH2:MSCHAPV2;I:joao;;',
+			QrPayload::build( 'wifi', array( 'ssid' => 'Net', 'password' => 'x', 'security' => 'WPA2-EAP', 'identity' => 'joao', 'eap' => 'TLS', 'phase2' => 'CHAP' ) )
+		);
+	}
+
+	public function test_an_enterprise_network_needs_a_user_name(): void {
+		$this->error( 'wifi', array( 'ssid' => 'Net', 'password' => 'x', 'security' => 'WPA2-EAP', 'identity' => '  ' ) );
+	}
+
+	public function test_a_personal_network_ignores_the_enterprise_fields(): void {
+		$this->assertSame( 'WIFI:T:WPA;S:Net;P:x;;', QrPayload::build( 'wifi', array( 'ssid' => 'Net', 'password' => 'x', 'security' => 'WPA', 'identity' => 'maria' ) ) );
+	}
+
 	public function test_email_is_a_canonical_mailto_with_encoded_fields(): void {
 		$this->assertSame(
 			'mailto:fulano@example.com?subject=Ol%C3%A1%20%26%20tal&body=a%20b%0Ac',

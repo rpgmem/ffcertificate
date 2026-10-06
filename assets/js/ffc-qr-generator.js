@@ -40,6 +40,19 @@
 		$form.find('[data-ffc-qr-type]').each(function () {
 			this.hidden = $(this).attr('data-ffc-qr-type') !== type;
 		});
+		showWifiEnterprise($form);
+	}
+
+	/**
+	 * Show the Enterprise sign-in rows only for an Enterprise network.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 */
+	function showWifiEnterprise($form) {
+		var enterprise = String($form.find('[data-ffc-qr-field="wifi:security"]').val() || '') === 'WPA2-EAP';
+		$form.find('[data-ffc-qr-wifi-enterprise]').each(function () {
+			this.hidden = !enterprise;
+		});
 	}
 
 	/**
@@ -249,6 +262,9 @@
 		// Social: show the chosen network's prefix before the user name.
 		$form.on('change', '#ffc-qr-network', function () {
 			$('#ffc-qr-social-prefix').text(String($(this).find('option:selected').attr('data-ffc-qr-prefix') || ''));
+		});
+		$form.on('change', '[data-ffc-qr-field="wifi:security"]', function () {
+			showWifiEnterprise($form);
 		});
 
 		// Size applies to the PNG only: an SVG has no pixels to choose.
