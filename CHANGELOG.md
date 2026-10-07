@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The update screens describe the version being offered, not the one installed** (#1607). "View details" and Dashboard → Updates read "Requires WordPress", "Tested up to", "Requires PHP" and the Upgrade Notice from the installed copy, so 6.34.0 was offered as requiring 6.4 with 6.33.0's notice. They now come from the release's own `readme.txt`, fetched once per release; the installed copy stays the per-field fallback.
+
 ## [6.34.0] (2026-10-07) — `3c424bd`
 
 ### Added

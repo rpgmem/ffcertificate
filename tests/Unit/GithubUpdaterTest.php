@@ -41,6 +41,7 @@ class GithubUpdaterTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( '' );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'wpautop' )->returnArg();
+		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
 		Functions\when( 'is_wp_error' )->alias(
 			static function ( $thing ) {
 				return $thing instanceof \WP_Error;
@@ -348,6 +349,274 @@ class GithubUpdaterTest extends TestCase {
 		$out = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) );
 
 		$this->assertSame( array(), $out->response );
+	}
+
+	// ------------------------------------------------------------------
+	// The offered release's own metadata (#1607)
+	// ------------------------------------------------------------------
+
+	/**
+	 * A readme.txt body for a release, as raw.githubusercontent.com serves it.
+	 *
+	 * @param string $notice Upgrade Notice entry body.
+	 * @return string
+	 */
+	private function release_readme( string $notice = 'Requires WordPress 9.1. See CHANGELOG.md.' ): string {
+		return "=== Free Form Certificate ===\n"
+			. "Requires at least: 9.1\n"
+			. "Tested up to: 9.3.2\n"
+			. "Stable tag: 6.18.0\n"
+			. "Requires PHP: 8.5\n\n"
+			. "== Upgrade Notice ==\n\n"
+			. "= 6.18.0 =\n"
+			. $notice . "\n\n"
+			. "This section carries a short summary.\n\n"
+			. "== Privacy ==\n";
+	}
+
+	/**
+	 * Answer wp_remote_get() per URL: the API call gets the release JSON, the
+	 * raw readme call gets `$readme` (an array response, a WP_Error, or null
+	 * for a 404). Records every URL requested.
+	 *
+	 * @param string                          $version Release version.
+	 * @param array<string, mixed>|\WP_Error|null $readme  Readme response.
+	 * @param array<int, string>              $urls    Requested URLs (by reference).
+	 */
+	private function route_fetches( string $version, $readme, array &$urls ): void {
+		$release = array(
+			'code' => 200,
+			'body' => $this->release_json( $version ),
+		);
+		Functions\when( 'wp_remote_get' )->alias(
+			static function ( $url ) use ( $release, $readme, &$urls ) {
+				$urls[] = $url;
+				if ( false !== strpos( $url, 'raw.githubusercontent.com' ) ) {
+					return null === $readme ? array( 'code' => 404, 'body' => 'Not Found' ) : $readme;
+				}
+				return $release;
+			}
+		);
+		Functions\when( 'wp_remote_retrieve_response_code' )->alias(
+			static function ( $response ) {
+				return is_array( $response ) ? (int) ( $response['code'] ?? 0 ) : 0;
+			}
+		);
+		Functions\when( 'wp_remote_retrieve_body' )->alias(
+			static function ( $response ) {
+				return is_array( $response ) ? (string) ( $response['body'] ?? '' ) : '';
+			}
+		);
+	}
+
+	/**
+	 * The compatibility values of the INSTALLED copy, read from the real files.
+	 *
+	 * @return array{requires: string, tested: string, requires_php: string}
+	 */
+	private function installed_compat(): array {
+		$root   = dirname( __DIR__, 2 );
+		$readme = (string) file_get_contents( $root . '/readme.txt' );
+		$plugin = (string) file_get_contents( $root . '/ffcertificate.php' );
+		preg_match( '/^Tested up to:\s*(.+)$/mi', $readme, $tested );
+		preg_match( '/^\s*\*\s*Requires at least:\s*(.+)$/mi', $plugin, $requires );
+		preg_match( '/^\s*\*\s*Requires PHP:\s*(.+)$/mi', $plugin, $php );
+
+		return array(
+			'requires'     => trim( $requires[1] ),
+			'tested'       => trim( $tested[1] ),
+			'requires_php' => trim( $php[1] ),
+		);
+	}
+
+	public function test_update_object_describes_the_offered_release_not_the_installed_copy(): void {
+		// The #1607 bug: 6.34.0 was offered to 6.33.0 sites as "requires 6.4,
+		// tested up to 7.1.1" -- the installed copy's values -- and with
+		// 6.33.0's Upgrade Notice. The release's own readme must win.
+		$urls = array();
+		$this->route_fetches(
+			'6.18.0',
+			array(
+				'code' => 200,
+				'body' => $this->release_readme(),
+			),
+			$urls
+		);
+
+		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+
+		$this->assertSame( '9.1', $item->requires );
+		$this->assertSame( '9.3.2', $item->tested );
+		$this->assertSame( '8.5', $item->requires_php );
+		$this->assertSame( 'Requires WordPress 9.1. See CHANGELOG.md.', $item->upgrade_notice );
+		$this->assertContains(
+			'https://raw.githubusercontent.com/rpgmem/ffcertificate/v6.18.0/readme.txt',
+			$urls,
+			'The readme must be read at the release tag, not at a branch.'
+		);
+	}
+
+	public function test_release_metadata_is_cached_with_the_release(): void {
+		// One extra request per NEW release: the parsed fields ride in the same
+		// transient, so a cache hit or a 304 never fetches the readme again.
+		$stored = null;
+		Functions\when( 'set_site_transient' )->alias(
+			static function ( $key, $value ) use ( &$stored ) {
+				$stored = $value;
+				return true;
+			}
+		);
+		$urls = array();
+		$this->route_fetches(
+			'6.18.0',
+			array(
+				'code' => 200,
+				'body' => $this->release_readme(),
+			),
+			$urls
+		);
+
+		GithubUpdater::check_for_update( $this->transient( '6.17.0' ) );
+
+		$this->assertIsArray( $stored );
+		$this->assertSame( '9.1', $stored['payload']['requires'] );
+		$this->assertSame( '9.3.2', $stored['payload']['tested'] );
+		$this->assertSame( '8.5', $stored['payload']['requires_php'] );
+		$this->assertSame( 'Requires WordPress 9.1. See CHANGELOG.md.', $stored['payload']['upgrade_notice'] );
+	}
+
+	public function test_cache_hit_does_not_fetch_the_readme(): void {
+		$release = array_merge(
+			$this->release( '6.18.0' ),
+			array(
+				'requires'       => '9.1',
+				'tested'         => '9.3.2',
+				'requires_php'   => '8.5',
+				'upgrade_notice' => 'Cached notice.',
+			)
+		);
+		$this->seed_cache( $release );
+		Functions\expect( 'wp_remote_get' )->never();
+
+		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+
+		$this->assertSame( '9.3.2', $item->tested );
+		$this->assertSame( 'Cached notice.', $item->upgrade_notice );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, mixed>|\WP_Error|null}>
+	 */
+	public static function failed_readme_fetches(): array {
+		return array(
+			'transport error' => array( new \WP_Error( 'http_request_failed', 'timed out' ) ),
+			'not found'       => array( null ),
+			'empty body'      => array(
+				array(
+					'code' => 200,
+					'body' => '',
+				),
+			),
+		);
+	}
+
+	/**
+	 * @dataProvider failed_readme_fetches
+	 *
+	 * @param array<string, mixed>|\WP_Error|null $readme Readme response.
+	 */
+	public function test_failed_readme_fetch_falls_back_to_the_installed_copy_and_still_offers_the_update( $readme ): void {
+		$urls = array();
+		$this->route_fetches( '6.18.0', $readme, $urls );
+
+		$out = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) );
+
+		$this->assertArrayHasKey( self::PLUGIN_FILE, $out->response, 'Metadata must never stop the update from being offered.' );
+		$item = $out->response[ self::PLUGIN_FILE ];
+		$this->assertSame( '6.18.0', $item->new_version );
+		$installed = $this->installed_compat();
+		$this->assertSame( $installed['requires'], $item->requires );
+		$this->assertSame( $installed['tested'], $item->tested );
+		$this->assertSame( $installed['requires_php'], $item->requires_php );
+		$this->assertNotSame( '', $item->upgrade_notice, 'The installed notice is the fallback.' );
+	}
+
+	public function test_payload_cached_before_the_fix_falls_back_to_the_installed_copy(): void {
+		// A transient written by an older version has none of the new keys.
+		$this->seed_cache( $this->release( '6.18.0' ) );
+
+		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+
+		$installed = $this->installed_compat();
+		$this->assertSame( $installed['requires'], $item->requires );
+		$this->assertSame( $installed['tested'], $item->tested );
+		$this->assertSame( $installed['requires_php'], $item->requires_php );
+	}
+
+	public function test_malformed_readme_falls_back_field_by_field(): void {
+		// Missing "Tested up to", a non-version "Requires PHP" and no Upgrade
+		// Notice section: only "Requires at least" is usable, and HTML in a
+		// value never reaches version_compare().
+		$readme = "=== Free Form Certificate ===\n"
+			. "Requires at least: 9.1\n"
+			. "Requires PHP: <b>8.5</b>\n\n"
+			. "== Description ==\n";
+		$urls   = array();
+		$this->route_fetches(
+			'6.18.0',
+			array(
+				'code' => 200,
+				'body' => $readme,
+			),
+			$urls
+		);
+
+		$item      = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+		$installed = $this->installed_compat();
+
+		$this->assertSame( '9.1', $item->requires );
+		$this->assertSame( $installed['tested'], $item->tested );
+		$this->assertSame( $installed['requires_php'], $item->requires_php );
+		$this->assertNotSame( '', $item->upgrade_notice );
+	}
+
+	public function test_release_notice_is_reduced_to_plain_text(): void {
+		$urls = array();
+		$this->route_fetches(
+			'6.18.0',
+			array(
+				'code' => 200,
+				'body' => $this->release_readme( 'Read <a href="https://evil.example/">this</a><script>x()</script> first.' ),
+			),
+			$urls
+		);
+
+		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+
+		$this->assertStringNotContainsString( '<', $item->upgrade_notice );
+		$this->assertStringContainsString( 'Read this', $item->upgrade_notice );
+	}
+
+	public function test_plugin_info_describes_the_offered_release(): void {
+		$this->seed_cache(
+			array_merge(
+				$this->release( '6.18.0' ),
+				array(
+					'requires'       => '9.1',
+					'tested'         => '9.3.2',
+					'requires_php'   => '8.5',
+					'upgrade_notice' => 'Notice.',
+				)
+			)
+		);
+
+		$args       = new \stdClass();
+		$args->slug = 'ffcertificate';
+		$info       = GithubUpdater::plugin_info( false, 'plugin_information', $args );
+
+		$this->assertSame( '9.1', $info->requires );
+		$this->assertSame( '9.3.2', $info->tested );
+		$this->assertSame( '8.5', $info->requires_php );
 	}
 
 	// ------------------------------------------------------------------
