@@ -144,6 +144,71 @@ class AccessControlTest extends TestCase {
 		AccessControl::block_wp_admin();
 	}
 
+	/**
+	 * Drive a redirect of a user whose every role is blocked, with the
+	 * user-manager debug toggle on or off; return what was logged.
+	 *
+	 * @param bool $debug Whether the toggle is on.
+	 * @return array<int, string>
+	 */
+	private function redirect_with_debug( bool $debug ): array {
+		Functions\when( 'get_option' )->alias(
+			static function ( $name ) use ( $debug ) {
+				if ( 'ffc_settings' === $name ) {
+					return $debug ? array( 'debug_user_manager' => 1 ) : array();
+				}
+				return array(
+					'block_wp_admin' => true,
+					'blocked_roles'  => array( 'ffc_end_user', 'subscriber' ),
+				);
+			}
+		);
+		Functions\when( 'wp_doing_ajax' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'add_query_arg' )->justReturn( 'https://example.com?ffc_redirect=access_denied' );
+
+		$user        = \Mockery::mock( 'WP_User' );
+		$user->ID    = 42;
+		$user->roles = array( 'subscriber', 'ffc_end_user' );
+		Functions\when( 'wp_get_current_user' )->justReturn( $user );
+
+		$logged = array();
+		Functions\when( 'error_log' )->alias(
+			static function ( $message ) use ( &$logged ) {
+				$logged[] = (string) $message;
+				return true;
+			}
+		);
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function () {
+				throw new \RuntimeException( 'exit_called' );
+			}
+		);
+
+		try {
+			AccessControl::block_wp_admin();
+			$this->fail( 'Expected the redirect.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'exit_called', $e->getMessage() );
+		}
+		return $logged;
+	}
+
+	public function test_a_redirect_logs_the_roles_it_saw_when_debug_is_on(): void {
+		$logged = $this->redirect_with_debug( true );
+
+		$this->assertCount( 1, $logged );
+		$this->assertStringContainsString( 'every role of the user is blocked', $logged[0] );
+		$this->assertStringContainsString( '42', $logged[0] );
+		$this->assertStringContainsString( 'subscriber', $logged[0] );
+		$this->assertStringContainsString( 'ffc_end_user', $logged[0] );
+	}
+
+	public function test_a_redirect_logs_nothing_when_debug_is_off(): void {
+		$this->assertSame( array(), $this->redirect_with_debug( false ) );
+	}
+
 	public function test_block_wp_admin_does_not_block_user_with_mixed_roles(): void {
 		Functions\when( 'get_option' )->justReturn( array(
 			'block_wp_admin' => true,

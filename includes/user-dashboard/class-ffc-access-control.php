@@ -66,6 +66,20 @@ class AccessControl {
 		// If the user has at least one non-blocked role (e.g. editor + ffc_end_user),.
 		// they should retain wp-admin access.
 		if ( ! empty( $user->roles ) && ! array_diff( $user->roles, $blocked_roles ) ) {
+			// Behind the user-manager debug toggle: what the decision saw, so a
+			// "this user should have got in" report is answered by reading the
+			// log rather than by guessing which role was missing (#1600).
+			if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
+				\FreeFormCertificate\Core\Debug::log_user_manager(
+					'wp-admin access redirected: every role of the user is blocked',
+					array(
+						'user_id'       => (int) $user->ID,
+						'roles'         => array_values( (array) $user->roles ),
+						'blocked_roles' => array_values( (array) $blocked_roles ),
+					)
+				);
+			}
+
 			// Get redirect URL.
 			$redirect_url = isset( $settings['redirect_url'] ) ? $settings['redirect_url'] : home_url();
 

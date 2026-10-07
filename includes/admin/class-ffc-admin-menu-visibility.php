@@ -243,11 +243,13 @@ final class AdminMenuVisibility {
 	/**
 	 * Resolve the policy that applies to the current user, if any.
 	 *
-	 * Site admins (`manage_options`) bypass — return null. Multi-role
-	 * users return the policy of the first matching FFC role found, but
-	 * only if NONE of their other roles is a non-FFC role with admin-like
-	 * capabilities (we just check for `manage_options` here as a proxy —
-	 * the bypass branch above already returned).
+	 * Site admins (`manage_options`) bypass -- return null. The scope applies
+	 * only when EVERY role the user holds is an FFC role (`ffc_` prefix): one
+	 * WordPress role (editor, author...) or another plugin's role means the
+	 * account is also someone's normal wp-admin login, and hiding Posts or
+	 * redirecting `edit.php` would take that away (#1600). It is the same
+	 * "every role" rule `AccessControl::block_wp_admin()` uses. Among FFC roles,
+	 * the first one with a policy wins.
 	 *
 	 * @return array{landing_page: string, allowed_pages: list<string>, hide_core_menus: list<string>, hide_admin_bar_nodes: list<string>}|null
 	 */
@@ -258,6 +260,11 @@ final class AdminMenuVisibility {
 		$user = wp_get_current_user();
 		if ( empty( $user->roles ) ) {
 			return null;
+		}
+		foreach ( (array) $user->roles as $role ) {
+			if ( ! str_starts_with( (string) $role, 'ffc_' ) ) {
+				return null;
+			}
 		}
 		$policy_map = self::policy();
 		foreach ( (array) $user->roles as $role ) {
