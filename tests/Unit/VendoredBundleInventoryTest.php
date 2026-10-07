@@ -63,8 +63,8 @@ final class VendoredBundleInventoryTest extends TestCase {
 	 * @var array<int, string>
 	 */
 	private const REGISTER = array(
-		'altcha-3.2.2.LICENSE.txt',
-		'altcha-3.2.2.umd.js',
+		'altcha-3.3.0.LICENSE.txt',
+		'altcha-3.3.0.umd.js',
 		'html2canvas-1.4.1.min.js',
 		'jspdf-4.2.1.umd.min.js',
 		'thumbmark-1.10.1.umd.js',

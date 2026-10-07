@@ -297,7 +297,7 @@
         //
         // The widget's hidden input IS reachable this way: the element is
         // registered without a shadow root (the `use_shadow_dom` argument of
-        // its `create_custom_element` call is absent in the vendored 3.2.2
+        // its `create_custom_element` call is absent in the vendored 3.3.0
         // bundle), so the input lands in the light DOM inside the form. That is
         // also why the two sibling paths — `ffc_submit_form` here and the
         // booking form in ffc-calendar-frontend.js — were never affected: both
