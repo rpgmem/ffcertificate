@@ -10,6 +10,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **ALTCHA widget updated to 3.3.0** (#1604), from 3.2.2. It brings `rel="noopener"` on the widget's links and fixes an unhandled error when the audio challenge is paused while it starts. The plugin's v1 challenge was solved and verified end to end in Chromium with the new bundle, which accepts the same nine attributes and the same i18n store.
+- **thumbmarkjs updated to 1.12.0** (#1604), from 1.10.1. Device fingerprints are unchanged: no signal probe changed upstream, and all 13 signals hash identically under both bundles, so stored device limits keep matching. Telemetry and the remote payload added in 1.11 stay off through the existing `logging: false`.
 
 ### Fixed
 
