@@ -91,6 +91,63 @@ class AdminMenuVisibilityTest extends TestCase {
 		AdminMenuVisibility::apply_menu_visibility();
 	}
 
+	/**
+	 * A WordPress role beside an FFC operator role keeps the normal wp-admin:
+	 * an Editor who also reads certificates must still reach Posts (#1600).
+	 *
+	 * @return array<string, array{0: array<int, string>}>
+	 */
+	public function mixed_roles(): array {
+		return array(
+			'editor + operator'     => array( array( 'editor', 'ffc_certificates_viewer' ) ),
+			'operator + author'     => array( array( 'ffc_appointments_operator', 'author' ) ),
+			'other plugin + manager' => array( array( 'translator', 'ffc_audiences_manager' ) ),
+		);
+	}
+
+	/**
+	 * @dataProvider mixed_roles
+	 *
+	 * @param array<int, string> $roles Roles.
+	 */
+	public function test_a_non_ffc_role_beside_an_operator_role_lifts_the_scope( array $roles ): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'roles' => $roles ) );
+		Functions\expect( 'remove_menu_page' )->never();
+		// Thrown rather than expect()->never(): a redirect is followed by
+		// `exit`, which would end the test process instead of failing it.
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( string $url ): void {
+				throw new \RuntimeException( 'redirected to ' . $url );
+			}
+		);
+
+		AdminMenuVisibility::apply_menu_visibility();
+
+		global $pagenow;
+		$pagenow                 = 'edit.php';
+		$_SERVER['QUERY_STRING'] = '';
+		AdminMenuVisibility::block_url_access();
+
+		$this->assertSame( 'edit.php', $pagenow, 'Posts stays reachable.' );
+	}
+
+	public function test_only_ffc_roles_keep_the_operator_scope(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'roles' => array( 'ffc_end_user', 'ffc_certificates_viewer' ) ) );
+
+		$removed = array();
+		Functions\when( 'remove_menu_page' )->alias(
+			static function ( string $slug ) use ( &$removed ): void {
+				$removed[] = $slug;
+			}
+		);
+
+		AdminMenuVisibility::apply_menu_visibility();
+
+		$this->assertContains( 'edit.php', $removed, 'ffc_end_user is an FFC role, so the operator scope still applies.' );
+	}
+
 	public function test_block_url_access_redirects_recruitment_role_off_unrelated_admin_url(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
 		$user = (object) array( 'roles' => array( 'ffc_recruitment_viewer' ) );
