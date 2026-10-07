@@ -18,12 +18,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="card">
 	<h3 id="forms-public-operator-access"><span class="dashicons dashicons-share" aria-hidden="true"></span> <?php esc_html_e( 'Public Operator Access', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'Public Operator Access (formerly "Public CSV Download") lets a trusted operator who does NOT have a WordPress login interact with a single form through a secret, per-form link. It is enabled in the form editor\'s "Public Operator Access" box.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Public Operator Access (formerly "Public CSV Download") lets a trusted operator who does NOT have a WordPress login interact with a single form through a secret, per-form link. It is enabled on the Operator tab ("Public Operator Access") of the form editor\'s "Certificate Form Configuration" box.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'The per-form link', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'When enabled, each form gets its own secret hash. The operator opens a page carrying the', 'ffcertificate' ); ?> <code>[ffc_csv_download]</code> <?php esc_html_e( 'shortcode with the form id and hash in the query string:', 'ffcertificate' ); ?></p>
 	<pre><code>https://example.com/operator-page/?form_id=123&amp;hash=&lt;secret&gt;</code></pre>
-	<p><?php esc_html_e( 'The hash is the only credential — treat the link as a password. Set the base page under Settings → General ("CSV Download Page URL") so the editor shows the full link instead of just the query string. The hash is regenerated on demand and is deliberately NOT copied when a form is duplicated.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The hash is the only credential — treat the link as a password. Set the base page under Settings → General ("CSV Download Page URL") so the editor shows the full link instead of just the query string. The hash is regenerated on demand ("Regenerate hash on save") and is deliberately NOT copied when a form is duplicated. A separate option resets the download counter to zero on save.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'What the operator can do', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Each capability is an independent per-form toggle:', 'ffcertificate' ); ?></p>
@@ -45,7 +45,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-note">
 		<p>
 			<strong class="ffc-icon-lock"><?php esc_html_e( 'CSV download unlocks only after the form closes.', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced), and every download is written to a per-form audit ring buffer (timestamp, IP, mode, result) that admins can export.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export.', 'ffcertificate' ); ?>
 		</p>
 	</div>
 
@@ -58,4 +58,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><code>owner</code> — <?php esc_html_e( 'the CPF must match the form author\'s account CPF.', 'ffcertificate' ); ?></li>
 		<li><code>whitelist</code> — <?php esc_html_e( 'the CPF must be on a per-form allowlist.', 'ffcertificate' ); ?></li>
 	</ul>
+	<p><?php esc_html_e( 'The CPF gate is checked again when the operator uses Start Form Early or Postpone Close.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'Per-participant entry/exit exception', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'With "Enable Schedule Exception" switched on in the form\'s Time tab, the operator page shows an "Entry/exit exception" button. It records an individual entry/exit time for one participant, which replaces {{schedule}} on that participant\'s certificate. The "Default Modal Mode" setting chooses whether the dialog opens with the end time pre-filled with the current moment (Now) or lets the operator type both ends (Manual).', 'ffcertificate' ); ?></p>
 </div>

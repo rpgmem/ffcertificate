@@ -82,6 +82,49 @@ final class ContrastColor {
 	}
 
 	/**
+	 * WCAG contrast ratio between two colours, or null when either is not hex.
+	 *
+	 * Order does not matter: the lighter colour is always the numerator. The
+	 * QR design guard reads it to warn when the modules stop standing out from
+	 * the ground, which is what a camera needs (#1563).
+	 *
+	 * @param string $first  Hex colour, `#rgb` or `#rrggbb`.
+	 * @param string $second Hex colour, `#rgb` or `#rrggbb`.
+	 * @return float|null Between 1.0 and 21.0.
+	 */
+	public static function ratio( string $first, string $second ): ?float {
+		$a = self::to_rgb( $first );
+		$b = self::to_rgb( $second );
+
+		if ( null === $a || null === $b ) {
+			return null;
+		}
+
+		$la = self::relative_luminance( $a );
+		$lb = self::relative_luminance( $b );
+
+		return ( max( $la, $lb ) + 0.05 ) / ( min( $la, $lb ) + 0.05 );
+	}
+
+	/**
+	 * Whether the first colour is lighter than the second.
+	 *
+	 * @param string $first  Hex colour.
+	 * @param string $second Hex colour.
+	 * @return bool False when either is not hex.
+	 */
+	public static function is_lighter( string $first, string $second ): bool {
+		$a = self::to_rgb( $first );
+		$b = self::to_rgb( $second );
+
+		if ( null === $a || null === $b ) {
+			return false;
+		}
+
+		return self::relative_luminance( $a ) > self::relative_luminance( $b );
+	}
+
+	/**
 	 * Parse a hex colour.
 	 *
 	 * @param string $hex Colour.

@@ -49,7 +49,6 @@ class UrlShortenerAdminPage {
 		add_action( 'admin_menu', array( $this, 'register_menu' ), 25 );
 		add_action( 'admin_init', array( $this, 'handle_actions' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
-		add_action( 'wp_ajax_ffc_create_short_url', array( $this, 'ajax_create' ) );
 		add_action( 'wp_ajax_ffc_edit_short_url', array( $this, 'ajax_edit_short_url' ) );
 	}
 
@@ -91,6 +90,14 @@ class UrlShortenerAdminPage {
 			array( 'ffc-common' ),
 			FFC_VERSION
 		);
+		// Saving and rasterising QR images, shared with the manual generator (#1563).
+		wp_enqueue_script(
+			'ffc-qr-raster',
+			FFC_PLUGIN_URL . 'assets/js/ffc-qr-raster.js',
+			array(),
+			FFC_VERSION,
+			true
+		);
 		wp_enqueue_script(
 			'ffc-url-shortener-admin',
 			FFC_PLUGIN_URL . 'assets/js/ffc-url-shortener-admin.js',
@@ -102,7 +109,7 @@ class UrlShortenerAdminPage {
 			// fix shape as 6.6.7 (#367) applied to the 4 public-facing
 			// sites; admin sites missed that pass. `ffc-batched-export`
 			// provides the CSV-export driver the button calls.
-			array( 'jquery', 'ffc-core', 'ffc-batched-export' ),
+			array( 'jquery', 'ffc-core', 'ffc-batched-export', 'ffc-qr-raster' ),
 			FFC_VERSION,
 			true
 		);
@@ -232,32 +239,6 @@ class UrlShortenerAdminPage {
 			$this->service->toggle_status( absint( wp_unslash( $_GET['id'] ) ) );
 			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=toggled' ) );
 			exit;
-		}
-	}
-
-	/**
-	 * AJAX: Create a new short URL.
-	 */
-	public function ajax_create(): void {
-		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
-		$url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
-		$title = \FreeFormCertificate\Core\RequestInput::get_post_string( 'title' );
-
-		if ( empty( $url ) ) {
-			wp_send_json_error( array( 'message' => __( 'URL is required.', 'ffcertificate' ) ) );
-		}
-
-		$result = $this->service->create_short_url( $url, $title );
-
-		if ( $result['success'] ) {
-			$data              = $result['data'] ?? array();
-			$data['short_url'] = $this->service->get_short_url( $data['short_code'] );
-			wp_send_json_success( $data );
-		} else {
-			wp_send_json_error( array( 'message' => $result['error'] ?? '' ) );
 		}
 	}
 

@@ -80,6 +80,41 @@ class ActivityLogQueryTest extends TestCase {
 		$this->assertSame( array( 'key' => 'value' ), $result[0]['context'] );
 	}
 
+	public function test_get_activities_decrypts_the_client_ip(): void {
+		$ciphertext = \FreeFormCertificate\Core\Encryption::encrypt( '203.0.113.5' );
+		$this->assertNotNull( $ciphertext, 'The test keys must encrypt, or this test proves nothing.' );
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SELECT ...' );
+		$this->wpdb->shouldReceive( 'get_results' )
+			->andReturn( array(
+				// New row: the address lives only in the ciphertext (#1574).
+				array( 'id' => 1, 'action' => 'a', 'context' => '', 'user_ip' => null, 'user_ip_encrypted' => $ciphertext ),
+				// Row written before the migration ran: plaintext still there.
+				array( 'id' => 2, 'action' => 'a', 'context' => '', 'user_ip' => '198.51.100.7', 'user_ip_encrypted' => null ),
+				// Unreadable ciphertext reads as no address, never as the blob.
+				array( 'id' => 3, 'action' => 'a', 'context' => '', 'user_ip' => null, 'user_ip_encrypted' => 'v2:garbage' ),
+				// No address at all.
+				array( 'id' => 4, 'action' => 'a', 'context' => '' ),
+			) );
+
+		$result = ActivityLogQuery::get_activities();
+
+		$this->assertSame( '203.0.113.5', $result[0]['user_ip'] );
+		$this->assertSame( '198.51.100.7', $result[1]['user_ip'] );
+		$this->assertNull( $result[2]['user_ip'] );
+		$this->assertNull( $result[3]['user_ip'] );
+	}
+
+	public function test_get_activities_no_longer_orders_by_the_ip(): void {
+		$this->wpdb->shouldReceive( 'prepare' )
+			->once()
+			->with( Mockery::on( static fn( $sql ) => is_string( $sql ) && false !== strpos( $sql, 'ORDER BY created_at' ) ), Mockery::any(), Mockery::any(), Mockery::any() )
+			->andReturn( 'SELECT ...' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		ActivityLogQuery::get_activities( array( 'orderby' => 'user_ip' ) );
+	}
+
 	public function test_get_activities_invalid_json_context_becomes_empty_array(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SELECT ...' );
 		$this->wpdb->shouldReceive( 'get_results' )

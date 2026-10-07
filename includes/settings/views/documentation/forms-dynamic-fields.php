@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="card">
 	<h3 id="forms-dynamic-fields"><span class="dashicons dashicons-forms" aria-hidden="true"></span> <?php esc_html_e( 'Dynamic Fields (Form Builder)', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'A form\'s input fields are defined in the form editor\'s "Form Builder (Fields)" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A form\'s input fields are defined on the Fields tab ("Form Builder (Fields)") of the form editor\'s "Certificate Form Configuration" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Every field is a token', 'ffcertificate' ); ?></h4>
@@ -40,7 +40,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><code>textarea</code></td><td><?php esc_html_e( 'Multi-line text.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>select</code></td><td><?php esc_html_e( 'Dropdown — fill the Options field (one choice per comma). Can carry quiz points.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>radio</code></td><td><?php esc_html_e( 'Radio buttons — fill the Options field. Can carry quiz points.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>hidden</code></td><td><?php esc_html_e( 'A fixed value submitted without being shown.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>checkbox</code></td><td><?php esc_html_e( 'Checkbox — fill the Options field. Not scored in quiz mode.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>hidden</code></td><td><?php esc_html_e( 'Hidden field — no visible control; every entry submits the fixed value set on the field\'s Value input (the server uses that value, never one sent by the browser).', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>info</code></td><td><?php esc_html_e( 'Info block — display-only HTML, collects no value.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>embed</code></td><td><?php esc_html_e( 'Embedded media — display-only, collects no value.', 'ffcertificate' ); ?></td></tr>
 		</tbody>
@@ -54,10 +55,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><code>cpf_rf</code> — <?php esc_html_e( 'the identifier (required). See the note below on CPF/RF validation.', 'ffcertificate' ); ?></li>
 	</ul>
 
+	<p><?php esc_html_e( 'Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as "da" and "de" in lowercase.', 'ffcertificate' ); ?></p>
+
 	<div class="ffc-doc-note">
 		<p>
 			<strong class="ffc-icon-info"><?php esc_html_e( 'CPF/RF validation is by field name, not by type.', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF). There is no separate "CPF field type" — the name is what triggers it. The cpf, cpf_rf and rg tokens are also auto-masked when rendered in a PDF.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF). The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate "CPF field type" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked.', 'ffcertificate' ); ?>
 		</p>
 	</div>
 </div>

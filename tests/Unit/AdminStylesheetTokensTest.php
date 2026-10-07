@@ -87,6 +87,8 @@ final class AdminStylesheetTokensTest extends TestCase {
 		'ffc-reregistration-admin.css'  => 0,
 		'ffc-reregistration-frontend.css' => 0,
 		'ffc-url-shortener-admin.css'   => 0,
+		'ffc-qr-generator.css'          => 0,
+		'ffc-qr-design-fields.css'      => 0,
 		'ffc-working-hours.css'         => 0,
 
 		// Deliberate literals, reason inline at each site:

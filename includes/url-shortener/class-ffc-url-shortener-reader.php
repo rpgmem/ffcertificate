@@ -182,6 +182,40 @@ class UrlShortenerReader extends AbstractRepository {
 	}
 
 	/**
+	 * Short URLs that already send to a destination, newest first (#1586).
+	 *
+	 * Compared against the stored `target_url` exactly: the destination is
+	 * cleaned the same way on save, and normalising further (a trailing
+	 * slash, a scheme) could call two different pages one, or miss a real
+	 * duplicate. Trashed rows are left out; a disabled one is still a short
+	 * URL the operator may want to reuse.
+	 *
+	 * @param string $target_url Destination as it would be stored.
+	 * @param int    $limit      Most rows returned.
+	 * @return array<int, ShortUrlRow>
+	 */
+	public function findByTargetUrl( string $target_url, int $limit = 10 ): array {
+		/**
+		 * Same assertion as findByShortCode(): the shape is checked against the
+		 * activator's CREATE TABLE, not inferred.
+		 *
+		 * @var array<int, ShortUrlRow>|null $rows
+		 */
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				'SELECT * FROM %i WHERE target_url = %s AND status <> %s ORDER BY id DESC LIMIT %d',
+				$this->table,
+				$target_url,
+				'trashed',
+				max( 1, $limit )
+			),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * Check if a short code already exists.
 	 *
 	 * @param string $code Short code to check.

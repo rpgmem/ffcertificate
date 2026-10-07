@@ -1367,3 +1367,51 @@ html:has(.ffc-settings-back-to-top) {
     font-style: italic;
     color: var(--ffc-text-muted);
 }
+
+/* #1563 — QR Code tab: design controls beside a live preview. */
+.ffc-qr-design-layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xl);
+    align-items: flex-start;
+}
+
+.ffc-qr-design-layout .ffc-qr-sections {
+    flex: 1 1 28em;
+    min-width: 0;
+}
+
+.ffc-qr-design-preview {
+    flex: 0 0 auto;
+    width: 240px;
+    position: sticky;
+    top: 40px;
+}
+
+.ffc-qr-design-preview__image {
+    width: 240px;
+    min-height: 240px;
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+/* A frame makes the code taller than wide, so only the width is fixed. */
+.ffc-qr-design-preview__image svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.ffc-qr-design-preview__checks {
+    margin: var(--ffc-spacing-sm) 0 0;
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
+
+.ffc-qr-design-preview__checks.is-warning {
+    color: var(--ffc-warning-text);
+}
+
+.ffc-qr-design-preview__checks.is-error {
+    color: var(--ffc-danger-text);
+}

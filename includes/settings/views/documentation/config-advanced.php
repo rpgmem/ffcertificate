@@ -2,8 +2,8 @@
 /**
  * Documentation partial — Configuration: Advanced.
  *
- * The Settings → Advanced tab: activity log, certificate-editor preferences &
- * mandatory tags, debug toggles, the public-CSV default limit and the Danger
+ * The Settings → Advanced tab: activity log, the public-CSV sync limit,
+ * mandatory certificate tags, debug toggles, the public-CSV default limit and the Danger
  * Zone. Part of the functional reorganization (rpgmem/ffcertificate#697).
  *
  * @package FreeFormCertificate\Settings
@@ -26,9 +26,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><strong><?php esc_html_e( 'Categories', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'per-area toggles (submissions, scheduling, public access, users, recruitment, migrations, system).', 'ffcertificate' ); ?></li>
 	</ul>
 
-	<h4><?php esc_html_e( 'Certificate editor preferences', 'ffcertificate' ); ?></h4>
+	<h4><?php esc_html_e( 'Public CSV Sync Export Limit', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'The most rows the synchronous (no-JavaScript) public CSV download may return (default 2000). Larger exports must use the JavaScript batched flow, which runs in steps and survives shared-hosting timeouts.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'Certificate editor', 'ffcertificate' ); ?></h4>
+	<p class="description"><?php esc_html_e( 'The colour theme of the certificate HTML editor is on the General tab, next to Dark Mode.', 'ffcertificate' ); ?> <a href="#config-general"><?php esc_html_e( 'See General.', 'ffcertificate' ); ?></a></p>
 	<ul>
-		<li><strong><?php esc_html_e( 'Code editor theme', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'Auto / Light / Dark for the certificate HTML editor on the form screen.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Required certificate tags', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'one {{tag}} per line; the form editor refuses to save a certificate layout that is missing any of them. {{auth_code}} is always required (and injected if absent) so every certificate stays verifiable.', 'ffcertificate' ); ?></li>
 	</ul>
 
@@ -54,7 +57,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-note">
 		<p>
 			<strong class="ffc-icon-lock"><?php esc_html_e( 'One-way — plan before you edit.', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Defining a constant is effectively one-way: new writes use the new key the moment it is defined. On a site that already stores data, adopt the constants and then run the Encryption Key Rotation (Settings → Migrations) to re-encrypt existing records. Removing or blindly changing a constant on a live site makes existing records unreadable until the exact value is restored — it is never a blind edit.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Defining a constant is effectively one-way: new writes use the new key the moment it is defined. On a site that already stores data, adopt the constants and then run the Encryption Key Rotation (Settings → Data Migrations) to re-encrypt existing records. Removing or blindly changing a constant on a live site makes existing records unreadable until the exact value is restored — it is never a blind edit.', 'ffcertificate' ); ?>
 		</p>
 	</div>
 

@@ -36,7 +36,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     user_id: numeric-string|null,
  *     user_ip: string|null,
  *     created_at: string,
- *     context_encrypted?: string|null
+ *     context_encrypted?: string|null,
+ *     user_ip_encrypted?: string|null
  * }
  */
 class ActivityLogQuery {
@@ -79,7 +80,6 @@ class ActivityLogQuery {
 			'action'    => null,
 			'action_in' => null,
 			'user_id'   => null,
-			'user_ip'   => null,
 			'date_from' => null,
 			'date_to'   => null,
 			'search'    => null,
@@ -116,9 +116,6 @@ class ActivityLogQuery {
 		if ( $args['user_id'] ) {
 			$where[] = $wpdb->prepare( 'user_id = %d', absint( $args['user_id'] ) );
 		}
-		if ( $args['user_ip'] ) {
-			$where[] = $wpdb->prepare( 'user_ip = %s', sanitize_text_field( $args['user_ip'] ) );
-		}
 		if ( $args['date_from'] ) {
 			$where[] = $wpdb->prepare( 'created_at >= %s', sanitize_text_field( $args['date_from'] ) );
 		}
@@ -132,7 +129,7 @@ class ActivityLogQuery {
 
 		$where_clause = implode( ' AND ', $where );
 
-		$allowed_orderby = array( 'id', 'action', 'level', 'user_id', 'user_ip', 'created_at' );
+		$allowed_orderby = array( 'id', 'action', 'level', 'user_id', 'created_at' );
 		$orderby         = in_array( $args['orderby'], $allowed_orderby, true ) ? $args['orderby'] : 'created_at';
 		$order           = strtoupper( $args['order'] ) === 'ASC' ? 'ASC' : 'DESC';
 		$offset          = absint( $args['offset'] );
@@ -150,6 +147,7 @@ class ActivityLogQuery {
 
 		foreach ( $results as &$result ) {
 			$result['context'] = self::resolve_context( $result );
+			$result['user_ip'] = self::resolve_ip( $result );
 		}
 
 		return $results;
@@ -208,6 +206,7 @@ class ActivityLogQuery {
 
 		foreach ( $results as &$result ) {
 			$result['context'] = self::resolve_context( $result );
+			$result['user_ip'] = self::resolve_ip( $result );
 		}
 		unset( $result );
 
@@ -317,6 +316,31 @@ class ActivityLogQuery {
 	}
 
 	/**
+	 * The row's client IP, readable.
+	 *
+	 * The address is stored only in `user_ip_encrypted` (#1574). A row written
+	 * before that still carries it in the legacy `user_ip` column until the
+	 * "Activity Log: Encrypt Client IPs" migration runs, so that value is the
+	 * fallback. An address that cannot be decrypted reads as null rather than
+	 * as the ciphertext.
+	 *
+	 * @param array<string, mixed> $row Activity log row (raw from DB).
+	 * @return string|null
+	 */
+	private static function resolve_ip( array $row ): ?string {
+		$encrypted = $row['user_ip_encrypted'] ?? null;
+		if ( is_string( $encrypted ) && '' !== $encrypted ) {
+			$plain = \FreeFormCertificate\Core\Encryption::is_configured()
+				? \FreeFormCertificate\Core\Encryption::decrypt( $encrypted )
+				: null;
+			return ( null !== $plain && '' !== $plain ) ? $plain : null;
+		}
+
+		$legacy = $row['user_ip'] ?? null;
+		return is_string( $legacy ) && '' !== $legacy ? $legacy : null;
+	}
+
+	/**
 	 * Resolve a row's context into a decoded array.
 	 *
 	 * Sensitive rows have a NULL plaintext column and the JSON in
@@ -361,7 +385,6 @@ class ActivityLogQuery {
 			'level'     => null,
 			'action'    => null,
 			'user_id'   => null,
-			'user_ip'   => null,
 			'date_from' => null,
 			'date_to'   => null,
 			'search'    => null,
@@ -379,9 +402,6 @@ class ActivityLogQuery {
 		}
 		if ( $args['user_id'] ) {
 			$where[] = $wpdb->prepare( 'user_id = %d', absint( $args['user_id'] ) );
-		}
-		if ( $args['user_ip'] ) {
-			$where[] = $wpdb->prepare( 'user_ip = %s', sanitize_text_field( $args['user_ip'] ) );
 		}
 		if ( $args['date_from'] ) {
 			$where[] = $wpdb->prepare( 'created_at >= %s', sanitize_text_field( $args['date_from'] ) );
@@ -519,7 +539,13 @@ class ActivityLogQuery {
 					}
 				}
 			}
+			unset( $log );
 		}
+
+		foreach ( $logs as &$log ) {
+			$log['user_ip'] = self::resolve_ip( $log );
+		}
+		unset( $log );
 
 		return $logs;
 	}

@@ -97,6 +97,7 @@ class AdminLoader {
 		EncryptionKeyHealthNotice::init();
 		HtmlRefsNotice::init();
 		SettingsAjaxEndpoint::init();
+		QrDesignPreviewAjaxEndpoint::init();
 		FormMetaAjaxEndpoint::init();
 		LocationsAjaxEndpoint::init();
 		CacheActionsAjaxEndpoint::init();

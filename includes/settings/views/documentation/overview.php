@@ -43,6 +43,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php esc_html_e( 'Collect updated data with reregistration campaigns (and a Record PDF), or manage classified candidate queues with public rankings and call-ups.', 'ffcertificate' ); ?>
 		</li>
 		<li>
+			<strong><?php esc_html_e( 'Design and generate QR codes', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'Style the QR codes on certificates and short URLs (shapes, colours, logo, frame), and draw standalone codes for a website, Wi-Fi, contact card, event and more with the QR Code Generator.', 'ffcertificate' ); ?>
+		</li>
+		<li>
+			<strong><?php esc_html_e( 'Send date-based messages', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'E-mail people on a date in their profile, such as a birthday, through the same e-mail pipeline, with one-click unsubscribe.', 'ffcertificate' ); ?>
+		</li>
+		<li>
 			<strong><?php esc_html_e( 'Protect personal data (LGPD)', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'CPF, RF and email are encrypted at rest and masked on screen unless a viewer holds a PII capability; a granular capability system gates every admin area.', 'ffcertificate' ); ?>
 		</li>
@@ -60,7 +68,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p>
 			<strong class="ffc-icon-info"><?php esc_html_e( 'Find your way around:', 'ffcertificate' ); ?></strong>
 			<?php esc_html_e( 'Use the Quick Navigation on the left — it mirrors the plugin\'s own menus. Start with', 'ffcertificate' ); ?>
-			<a href="#feature-certificates"><?php esc_html_e( 'Certificates & Forms', 'ffcertificate' ); ?></a>, <?php esc_html_e( 'or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Developer).', 'ffcertificate' ); ?>
+			<a href="#feature-certificates"><?php esc_html_e( 'Certificates & Forms', 'ffcertificate' ); ?></a>, <?php esc_html_e( 'or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Date Messages, Developer).', 'ffcertificate' ); ?>
 		</p>
 	</div>
 </div>

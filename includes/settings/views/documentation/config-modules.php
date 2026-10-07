@@ -35,6 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Removes the reregistration campaign flow and its admin.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><?php esc_html_e( 'URL Shortener', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Disables the built-in short URLs, redirects and QR codes.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Removes recruitment calls, candidates and the public queue.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><?php esc_html_e( 'Date Messages', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Hides the Date Messages menu and stops date-based e-mails such as birthdays. While it is on, nothing is sent until an administrator creates and activates a rule.', 'ffcertificate' ); ?> <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages.', 'ffcertificate' ); ?></a></td></tr>
 			</tbody>
 		</table>
 	</div>

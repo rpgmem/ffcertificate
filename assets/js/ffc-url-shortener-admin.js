@@ -53,25 +53,10 @@
         $temp.remove();
     }
 
-    /**
-     * Trigger a file download from base64 data.
-     */
+    // Saving and rasterising live in ffc-qr-raster.js, shared with the
+    // manual QR generator (#1563).
     function downloadBase64(base64Data, filename, mime) {
-        var byteChars = atob(base64Data);
-        var byteNumbers = new Array(byteChars.length);
-        for (var i = 0; i < byteChars.length; i++) {
-            byteNumbers[i] = byteChars.charCodeAt(i);
-        }
-        var byteArray = new Uint8Array(byteNumbers);
-        var blob = new Blob([byteArray], { type: mime });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        window.FFC.QrRaster.download(base64Data, filename, mime);
     }
 
     $(document).ready(function () {
@@ -145,8 +130,11 @@
 
             FFC.request(action, payload, { nonce: settings.nonce, ajaxUrl: settings.ajaxUrl })
                 .then(function (data) {
-                    $btn.prop('disabled', false);
-                    downloadBase64(data.data, data.filename, data.mime);
+                    var png = data.rasterize ? window.FFC.QrRaster.toPng(data.data, 1000) : Promise.resolve(data.data);
+                    return png.then(function (base64) {
+                        $btn.prop('disabled', false);
+                        downloadBase64(base64, data.filename, data.mime);
+                    });
                 })
                 .catch(function (err) {
                     $btn.prop('disabled', false);
@@ -212,8 +200,9 @@
             )
                 .then(function (data) {
                     $modal.find('.ffc-qr-modal__spinner').hide();
+                    var mime = data.rasterize ? 'image/svg+xml' : 'image/png';
                     $modal.find('.ffc-qr-modal__img')
-                        .attr('src', 'data:image/png;base64,' + data.data)
+                        .attr('src', 'data:' + mime + ';base64,' + data.data)
                         .show();
                 })
                 .catch(function (err) {
@@ -282,52 +271,6 @@
                 .catch(function (err) {
                     $btn.prop('disabled', false);
                     var $span = $('<span class="ffc-shorturl-error">');
-                    if (err && err.fromServer) {
-                        $span.text(err.message || i18n.error || 'Error');
-                    } else {
-                        $span.text(i18n.requestFailed || 'Request failed');
-                    }
-                    $result.empty().append($span).show();
-                });
-        });
-
-        // --- Create short URL (admin page form) ---
-        $('#ffc-create-short-url').on('submit', function (e) {
-            e.preventDefault();
-            var $form = $(this);
-            var $btn = $form.find('button[type="submit"]');
-            var $result = $('#ffc-shorturl-result');
-            var targetUrl = $('#ffc-shorturl-target').val();
-            var title = $('#ffc-shorturl-title').val();
-            var nonce = $form.find('#ffc_short_url_nonce').val();
-
-            $btn.prop('disabled', true);
-
-            FFC.request(
-                'ffc_create_short_url',
-                { target_url: targetUrl, title: title },
-                { nonce: nonce, ajaxUrl: settings.ajaxUrl || (window.ajaxurl || '/wp-admin/admin-ajax.php') }
-            )
-                .then(function (data) {
-                    $btn.prop('disabled', false);
-                    var shortUrl = data.short_url;
-                    var i18n = settings.i18n || {};
-                    var copyLabel = i18n.copy || 'Copy';
-                    var $strong = $('<strong>').text(shortUrl);
-                    var $copyBtn = $('<button type="button" class="button button-small ffc-copy-shorturl">')
-                        .attr('data-url', shortUrl)
-                        .text(copyLabel);
-                    $result.empty().append($strong).append(' ').append($copyBtn).show();
-                    // Clear form
-                    $('#ffc-shorturl-target').val('');
-                    $('#ffc-shorturl-title').val('');
-                    // Reload table after a brief delay
-                    setTimeout(function () { window.location.reload(); }, 1500);
-                })
-                .catch(function (err) {
-                    $btn.prop('disabled', false);
-                    var i18n = settings.i18n || {};
-                    var $span = $('<span style="color:#dc3232;">');
                     if (err && err.fromServer) {
                         $span.text(err.message || i18n.error || 'Error');
                     } else {

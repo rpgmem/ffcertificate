@@ -182,6 +182,7 @@ class Settings {
 			'email_texts'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabEmailTexts',
 			'cache'           => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
 			'url_shortener'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
+			'qr_code'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabQrCode',
 			'captcha'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabCaptcha',
 			'rate_limit'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
 			'geolocation'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
@@ -290,6 +291,25 @@ class Settings {
 			'qr_default_size'            => 200,
 			'qr_default_margin'          => 2,
 			'qr_default_error_level'     => 'M',
+			// Global QR design (#1563). Plain by default and applied to
+			// nothing, so an upgrade changes no QR until an admin opts in.
+			'qr_design_dots'             => 'square',
+			'qr_design_eye_frame'        => 'square',
+			'qr_design_eye_ball'         => 'square',
+			'qr_design_color'            => '#000000',
+			'qr_design_gradient'         => 0,
+			'qr_design_color_end'        => '#2271b1',
+			'qr_design_background'       => '#ffffff',
+			'qr_design_eye_frame_color'  => '#000000',
+			'qr_design_eye_ball_color'   => '#000000',
+			'qr_design_logo_id'          => 0,
+			'qr_design_frame'            => 'none',
+			'qr_design_frame_text'       => '',
+			'qr_design_frame_color'      => '#1d2327',
+			'qr_design_frame_icon'       => 'scan',
+			'qr_design_transparent'      => 0,
+			'qr_design_on_certificate'   => 0,
+			'qr_design_on_short_urls'    => 0,
 			// `d/m/Y` default since #244 — Brazilian-locale friendly. Pre-
 			// #244 default was 'F j, Y'; installs that explicitly saved
 			// 'F j, Y' keep it because get_option() returns the persisted

@@ -32,10 +32,19 @@
             multiple: false,
             library: { type: 'image' }
         });
+        // data-ffc-media-value="id" stores the attachment id instead of its URL
+        // (the QR logo, #1563); data-ffc-media-thumb names an <img> to refresh.
+        var asId = $(this).data('ffc-media-value') === 'id';
+        var thumb = $(this).data('ffc-media-thumb');
         frame.on('select', function () {
             var att = frame.state().get('selection').first().toJSON();
-            if (att && att.url) {
-                $input.val(att.url).trigger('change');
+            if (!att || !att.url) {
+                return;
+            }
+            $input.val(asId ? String(att.id) : att.url).trigger('change');
+            if (thumb) {
+                var src = (att.sizes && att.sizes.thumbnail) ? att.sizes.thumbnail.url : att.url;
+                $(thumb).attr('src', src).prop('hidden', false);
             }
         });
         frame.open();
@@ -45,7 +54,11 @@
         e.preventDefault();
         var $input = targetInput(this);
         if ($input.length) {
-            $input.val('').trigger('change');
+            $input.val($(this).data('ffc-media-value') === 'id' ? '0' : '').trigger('change');
+        }
+        var thumb = $(this).data('ffc-media-thumb');
+        if (thumb) {
+            $(thumb).attr('src', '').prop('hidden', true);
         }
     });
 })(jQuery);

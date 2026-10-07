@@ -40,6 +40,18 @@ class HtmlPolicyTest extends TestCase {
 		$this->assertArrayHasKey( 'ul', $tags );
 	}
 
+	public function test_template_helper_classes_survive_on_images_and_cells(): void {
+		// #1574: `class` was stripped from img/td/th, so the helper classes
+		// ffc-pdf-core.css publishes for templates could not be used there.
+		Functions\when( 'apply_filters' )->alias( static fn( $hook, $value ) => $value );
+		$tags = HtmlPolicy::get_allowed_html_tags();
+
+		foreach ( array( 'img', 'td', 'th' ) as $tag ) {
+			$this->assertArrayHasKey( 'class', $tags[ $tag ], "`class` must be allowed on <{$tag}>." );
+		}
+		$this->assertArrayNotHasKey( 'onerror', $tags['img'], 'Only the attribute the templates need was added.' );
+	}
+
 	public function test_allowed_html_tags_is_filterable(): void {
 		Functions\when( 'apply_filters' )->alias(
 			static function () {

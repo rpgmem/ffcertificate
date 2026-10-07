@@ -8,6 +8,8 @@
  * @package FreeFormCertificate
  */
 
+// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound -- Analysis-only stubs for the bundled phpqrcode library, which declares these classes together; never loaded at runtime.
+
 $ffc_stub_loader = static function (): void {
 	$plugin_file = __DIR__ . '/ffcertificate.php';
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local read at PHPStan analysis time, not at runtime.
@@ -50,6 +52,7 @@ if ( ! defined( 'QR_ECLEVEL_L' ) ) {
 	define( 'QR_ECLEVEL_M', 1 );
 	define( 'QR_ECLEVEL_Q', 2 );
 	define( 'QR_ECLEVEL_H', 3 );
+	define( 'QR_MODE_8', 2 );
 }
 
 /**
@@ -68,14 +71,89 @@ class QRcode {
 	public static function png( $text, $outfile = false, $level = QR_ECLEVEL_L, $size = 3, $margin = 4 ): void {}
 
 	/**
-	 * Return the QR code as a raw matrix.
+	 * Return the QR code as rows of '0'/'1' characters (binarised matrix).
 	 *
 	 * @param string       $text    Text to encode.
-	 * @param string|false $outfile Output file or false to return raw.
+	 * @param string|false $outfile Output file or false to return the rows.
 	 * @param int          $level   Error correction level.
-	 * @return array<int, string>
+	 * @return array<int, string>|null
 	 */
-	public static function raw( $text, $outfile = false, $level = QR_ECLEVEL_L ): array {
+	public static function text( $text, $outfile = false, $level = QR_ECLEVEL_L ): ?array {
 		return array();
+	}
+}
+
+/**
+ * Stub for the phpqrcode QRinput class (the split data of one code).
+ */
+class QRinput {
+	/**
+	 * Constructor.
+	 *
+	 * @param int $version Version, 0 for automatic.
+	 * @param int $level   Error correction level.
+	 */
+	public function __construct( $version = 0, $level = QR_ECLEVEL_L ) {}
+
+	/**
+	 * Set the version.
+	 *
+	 * @param int $version Version.
+	 * @return int
+	 */
+	public function setVersion( $version ): int {
+		return 0;
+	}
+
+	/**
+	 * Encode every entry at the current version.
+	 *
+	 * @return int Bits, or -1.
+	 */
+	public function createBitStream(): int {
+		return 0;
+	}
+
+	/**
+	 * Pick the smallest version the data fits; throws when none does.
+	 *
+	 * @return int 0, or -1.
+	 */
+	public function convertData(): int {
+		return 0;
+	}
+}
+
+/**
+ * Stub for the phpqrcode QRsplit class.
+ */
+class QRsplit {
+	/**
+	 * Split a string into encoding-mode entries.
+	 *
+	 * @param string  $text          Text.
+	 * @param QRinput $input         Input to fill.
+	 * @param int     $mode_hint     Mode hint.
+	 * @param bool    $casesensitive Case sensitivity.
+	 * @return int 0, or -1.
+	 */
+	public static function splitStringToQRinput( $text, QRinput $input, $mode_hint, $casesensitive = true ): int {
+		return 0;
+	}
+}
+
+/**
+ * Stub for the phpqrcode QRspec class.
+ */
+class QRspec {
+	/**
+	 * Data codewords of a version at a level.
+	 *
+	 * @param int $version Version.
+	 * @param int $level   Error correction level.
+	 * @return int
+	 */
+	public static function getDataLength( $version, $level ): int {
+		return 0;
 	}
 }

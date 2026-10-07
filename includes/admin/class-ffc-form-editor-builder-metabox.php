@@ -196,6 +196,7 @@ class FormEditorBuilderMetabox {
 		$content   = isset( $field['content'] ) ? $field['content'] : '';
 		$embed_url = isset( $field['embed_url'] ) ? $field['embed_url'] : '';
 		$points    = isset( $field['points'] ) ? $field['points'] : '';
+		$fixed     = isset( $field['default_value'] ) ? $field['default_value'] : '';
 
 		$is_info               = 'info' === $type;
 		$is_embed              = 'embed' === $type;
@@ -280,6 +281,13 @@ class FormEditorBuilderMetabox {
 					<?php esc_html_e( 'Media URL (YouTube, Vimeo, image, or audio):', 'ffcertificate' ); ?>
 				</p>
 				<input type="url" name="ffc_fields[<?php echo esc_attr( $index ); ?>][embed_url]" value="<?php echo esc_url( $embed_url ); ?>" placeholder="https://www.youtube.com/watch?v=..." class="ffc-w100">
+			</div>
+
+			<div class="ffc-hidden-value-field<?php echo 'hidden' === $type ? '' : ' ffc-hidden'; ?>">
+				<p class="description ffc-options-desc">
+					<?php esc_html_e( 'Value submitted with every entry (the visitor cannot change it):', 'ffcertificate' ); ?>
+				</p>
+				<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][default_value]" value="<?php echo esc_attr( $fixed ); ?>" class="ffc-w100">
 			</div>
 
 			<div class="ffc-options-field <?php echo esc_attr( $options_visible_class ); ?>">

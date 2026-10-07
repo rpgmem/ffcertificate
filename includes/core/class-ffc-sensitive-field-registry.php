@@ -399,7 +399,19 @@ final class SensitiveFieldRegistry {
 	private const DYNAMIC_CACHE_GROUP = 'ffc_sensitive_fields';
 
 	/**
-	 * Union of all static sensitive field keys across every context.
+	 * Keys that are sensitive in a payload although no table stores them as a
+	 * column of their own.
+	 *
+	 * `ip`, `triggered_by_ip` and `bypassed_ip` are how the activity-log call
+	 * sites name a client address in a context (#1574). The row's own address
+	 * is encrypted by `ActivityLog`, so a context still carrying one in clear
+	 * would undo it.
+	 */
+	private const PAYLOAD_ONLY_KEYS = array( 'ip', 'triggered_by_ip', 'bypassed_ip' );
+
+	/**
+	 * Union of all static sensitive field keys across every context, plus the
+	 * payload-only keys.
 	 *
 	 * Unlike fields_for(), this collapses per-context entries into a single
 	 * flat set useful for payload inspection ("does this blob contain any
@@ -412,7 +424,7 @@ final class SensitiveFieldRegistry {
 			return self::$universal_static_cache;
 		}
 
-		$keys = array();
+		$keys = array_fill_keys( self::PAYLOAD_ONLY_KEYS, true );
 		foreach ( self::FIELDS as $fields ) {
 			foreach ( array_keys( $fields ) as $key ) {
 				$keys[ $key ] = true;

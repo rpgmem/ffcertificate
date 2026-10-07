@@ -48,4 +48,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 	<p><?php esc_html_e( 'Available in both the certificate PDF layout and the submitter confirmation email. In the email, "m" (magic link) is the view/download link; pair it with an inline-styled box for a download button.', 'ffcertificate' ); ?></p>
+	<p class="description"><?php esc_html_e( 'When the submission has no magic token, "m" falls back to the /valid page. The generated link carries the class ffc-validation-link.', 'ffcertificate' ); ?></p>
 </div>

@@ -73,7 +73,7 @@ class ActivityLogSchemaTest extends TestCase {
 		'level',
 		'submission_id',
 		'user_id',
-		'user_ip',
+		'user_ip_encrypted',
 	);
 
 	/**

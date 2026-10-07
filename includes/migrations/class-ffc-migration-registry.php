@@ -174,6 +174,16 @@ class MigrationRegistry {
 			'order'       => 3,
 		);
 
+		// #1574: the activity log wrote the client IP in clear until this
+		// release; encrypt what older rows hold and clear the plaintext.
+		$this->migrations['activity_log_encrypt_ip'] = array(
+			'name'        => __( 'Activity Log: Encrypt Client IPs', 'ffcertificate' ),
+			'description' => __( 'Encrypt the client IP address of activity log rows written before addresses were stored encrypted, and clear the plaintext copy. An address that cannot be encrypted is cleared all the same.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-shield',
+			'batch_size'  => 200,
+			'order'       => 4,
+		);
+
 		// v6.18.0 (#865): import certificate layouts left in the legacy `html/`
 		// drop-folder into the database-backed template pool, then retire the glob.
 		$this->migrations['import_legacy_templates'] = array(

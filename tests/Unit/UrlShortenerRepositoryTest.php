@@ -161,6 +161,23 @@ class UrlShortenerRepositoryTest extends TestCase {
 	// incrementClickCount()
 	// ==================================================================
 
+	public function test_find_by_target_url_matches_exactly_and_skips_the_trash(): void {
+		$rows = array( array( 'id' => '3', 'short_code' => 'abc123', 'target_url' => 'https://example.com/a' ) );
+		$this->wpdb->shouldReceive( 'prepare' )->once()
+			->with( Mockery::on( static fn( $sql ) => false !== strpos( $sql, 'target_url = %s' ) && false !== strpos( $sql, 'status <> %s' ) ), Mockery::any(), 'https://example.com/a', 'trashed', 10 )
+			->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( 'QUERY', ARRAY_A )->andReturn( $rows );
+
+		$this->assertSame( $rows, $this->repo->findByTargetUrl( 'https://example.com/a' ) );
+	}
+
+	public function test_find_by_target_url_answers_an_empty_list_on_a_failed_query(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( null );
+
+		$this->assertSame( array(), $this->repo->findByTargetUrl( 'https://example.com/a' ) );
+	}
+
 	public function test_increment_click_count_success(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'UPDATE ...' );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );

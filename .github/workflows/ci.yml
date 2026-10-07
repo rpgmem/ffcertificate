@@ -326,10 +326,22 @@ jobs:
   #
   # No Composer step: the plugin ships its own PSR-4 autoloader and needs no
   # vendor/ at runtime, so this installs exactly what a user would.
+  #
+  # Two legs (#1590): the latest WordPress, and the newest patch release of the
+  # declared floor (`Requires at least` in the plugin header). Without the
+  # second, the floor was a claim nothing ran — code needing a newer core API
+  # passed here and broke on the version the readme promised. The floor leg
+  # reads the header itself, so moving the floor moves the test with it. The
+  # latest leg keeps the job's original name because that name is a required
+  # status check; renaming it would leave branch protection waiting forever.
   fresh-install:
-    name: Fresh install (PHP 8.3)
+    name: ${{ matrix.wordpress == 'latest' && 'Fresh install (PHP 8.3)' || 'Fresh install (PHP 8.3, WordPress floor)' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        wordpress: ['latest', 'floor']
     services:
       # Pinned to MariaDB rather than MySQL, and to the line the testes host
       # actually runs, because the point of the job is to reproduce the
@@ -387,13 +399,44 @@ jobs:
           chmod +x wp-cli.phar
           sudo mv wp-cli.phar /usr/local/bin/wp
           wp --info
+      - name: Resolve the WordPress version
+        id: wpver
+        run: |
+          if [ "${{ matrix.wordpress }}" = latest ]; then
+            echo "version=latest" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          floor=$(sed -n 's/^ \* Requires at least:[[:space:]]*\([0-9.]*\).*/\1/p' ffcertificate.php | head -n1)
+          if [ -z "$floor" ]; then
+            echo "::error::could not read 'Requires at least' from ffcertificate.php"
+            exit 1
+          fi
+          # The newest patch release of the floor branch: a site on the floor
+          # gets security releases, so x.y.0 is not what it runs.
+          for attempt in 1 2 3; do
+            if curl -fsSL --connect-timeout 20 -o "$RUNNER_TEMP/stable-check.json" https://api.wordpress.org/core/stable-check/1.0/; then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::could not read the WordPress release list after 3 attempts"
+              exit 1
+            fi
+            sleep 10
+          done
+          version=$(FLOOR="$floor" LIST="$RUNNER_TEMP/stable-check.json" php -r '$v = array_keys( (array) json_decode( (string) file_get_contents( getenv( "LIST" ) ), true ) ); $f = getenv( "FLOOR" ); $m = array_values( array_filter( $v, static fn( $k ) => $k === $f || 0 === strpos( $k, $f . "." ) ) ); usort( $m, "version_compare" ); echo (string) end( $m );')
+          if [ -z "$version" ]; then
+            echo "::error::no WordPress release found for the floor branch $floor"
+            exit 1
+          fi
+          echo "Floor $floor resolves to WordPress $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Install a throwaway WordPress
         run: |
           for attempt in 1 2 3; do
             # A cut-short tarball leaves a partial tree behind, which the next
             # attempt would refuse to write into — so start each from nothing.
             rm -rf "$HOME/wp"
-            if wp core download --path="$HOME/wp"; then
+            if wp core download --path="$HOME/wp" --version="${{ steps.wpver.outputs.version }}"; then
               break
             fi
             if [ "$attempt" = 3 ]; then

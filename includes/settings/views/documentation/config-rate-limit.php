@@ -37,6 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 	<p class="description"><?php esc_html_e( 'A blocked submitter sees the dimension\'s message; a blocked API read gets HTTP 429 with Retry-After.', 'ffcertificate' ); ?></p>
+	<p><strong><?php esc_html_e( 'ALTCHA challenges per IP:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'the IP group also caps how many captcha challenges one address may request per window (default 60 per 600 seconds). 0 removes the cap — the honest choice where many people share one address, since any per-address number would cap the whole building.', 'ffcertificate' ); ?> <a href="#config-captcha"><?php esc_html_e( 'See Captcha.', 'ffcertificate' ); ?></a></p>
 
 	<h4><?php esc_html_e( 'Device fingerprint', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A privacy-respecting browser/device fingerprint caps submissions from the same device (off by default). It combines a cookie with a set of non-cookie signals (screen, timezone, canvas, WebGL, audio, fonts, …). A device matches when the cookie matches, or when enough signals match — the match threshold — with a minimum number of "strong" signals to corroborate.', 'ffcertificate' ); ?></p>

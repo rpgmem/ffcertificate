@@ -427,6 +427,9 @@ class UrlShortenerMetaBoxTest extends TestCase {
 			Functions\when( $ns . 'wp_nonce_field' )->justReturn( '' );
 		}
 
+		// The QR design switch (#1563) is off, so the preview is the cached PNG.
+		Functions\when( 'get_option' )->justReturn( array() );
+
 		$post = $this->make_post( 6, 'publish', 'post' );
 
 		// Overload the repository so both the meta-box's findByPostId lookup
@@ -462,7 +465,7 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		$this->meta_box->render( $post );
 		$html = ob_get_clean();
 
-		$this->assertStringContainsString( 'CACHEDBASE64', $html );
+		$this->assertStringContainsString( 'src="data:image/png;base64,CACHEDBASE64"', $html );
 		$this->assertStringContainsString( 'data-format="png"', $html );
 		$this->assertStringContainsString( 'data-format="svg"', $html );
 	}

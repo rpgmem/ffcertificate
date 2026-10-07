@@ -7,7 +7,49 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.33.0] (2026-10-04)
+## [6.34.0] (2026-10-07)
+
+### Added
+
+- **QR code design** (#1563). A new Settings → QR Code tab sets the module shape (square, rounded, dots, fluid, diamond), the corner markers, colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. Off by default; switched on separately for certificates and short URLs.
+- **QR code logo and frames** (#1563). The design can carry a Media Library logo in the centre (error correction forced to H) and a banner, badge or speech-bubble frame with a caption of up to 24 characters; certificates and short-URL downloads keep the framed proportions.
+- **QR Code Generator** (#1563). Short URLs → QR Code Generator draws a code for a website, text, Wi-Fi, e-mail, phone call, SMS or WhatsApp, styled per code from the global design, with a capacity meter and a density warning, downloaded as PNG or SVG. Stateless: only "Shorten" stores something, a short URL.
+- **QR Code Generator: contact card, social profile and event** (#1563). A vCard carried whole in the code; a profile on nine networks from the user name alone; a one-day event as the event itself, a pre-filled Google Calendar link, or a signed link to an `.ics` file built by the scheduling module's generator.
+- **QR Code Generator: optional expiry for the event link, and a remembered design** (#1568). An `.ics` link can carry a signed "valid until" date and answers 410 after it; links without one, older links included, never expire. The generator reopens with each user's last downloaded design (design only, never content), and "Reset to default" restores the global one.
+- **QR Code Generator: redesigned interface** (#1570). Content types are icon tiles; the design sits in collapsible sections (pattern, corners, colours, logo, frame, advanced) with shapes picked from thumbnails the renderer draws, and colours with a hex box; a sticky preview panel holds format, size, download and a new Print. Settings → QR Code shares the same sections.
+- **QR code: new shapes, frames and a transparent background** (#1570). Star, cross, heart and X modules; dotted, one-corner and cut corner frames; star, cross and flower corner centres; pill, outline-with-pointer, circle (curved caption), corner-bracket and double-band frames with an optional icon; and a transparent background. Every new option was decoded by zxing at 300, 600 and 1000 px, with and without a logo.
+- **QR Code Generator: Wi-Fi Enterprise networks** (#1581). A WPA2/WPA3 Enterprise (802.1X) option adds the user name, EAP method, phase-2 authentication and an optional anonymous identity to the `WIFI:` code. Android saves the network from the code, but the CA certificate must then be set by hand ("Trust on first use") before it connects; the iPhone camera does not read it.
+- **QR Code Generator: an overlay confirms the short URL was saved** (#1592). After a download or a print that created the record, it names the title and shows the short link with a Copy button and a link to the Short URLs list; it opens only when the server confirmed the record, never when nothing was written.
+
+### Changed
+
+- **The QR code defaults moved from General to the QR Code tab** (#1563). Same settings and values; a designed short-URL PNG is now rasterised by the browser from the SVG so it matches the preview.
+- **`readme.txt` and Settings → Documentation reviewed against the code** (#1573). Wrong shortcodes, table names, menu paths, hook signatures, REST permissions and privacy claims corrected; new pages for Date Messages, Scheduled Tasks, Data Migrations, Identity Resolution, User Access and IP Diagnostics.
+- **Manual short URLs are created in the QR Code Generator only** (#1586). The list page's create form is gone (a "New short URL" button opens the generator), and the Website and Social profile types gain a "Create a short URL" switch, on by default: a required title, creation on download or print, "Use this" for an existing short URL, an acknowledgement before a duplicate, and no shortening of a short URL. Off stores nothing.
+- **Compatibility declared against WordPress 7.1.3** (#1588): `Tested up to` moves from 7.1.1, after the fresh-install CI job activated, migrated and uninstalled the plugin cleanly on 7.1.3.
+- ⚠ **WordPress 6.8 is now the minimum** (#1590), up from 6.4: the first release declared fully compatible with PHP 8.3, which the plugin already requires. A site on 6.4–6.7 cannot activate or update to this release. The fresh-install CI job now also runs on the newest patch release of the floor, read from the plugin header.
+- **Date messages: the daily run covers today only, and an inactive rule never sends** (#1598). The run no longer re-covers yesterday, which reached people a day late after a missed day or a failed send; recover a day with "Send now". "Send now" refuses an inactive rule, and deactivating a rule stops a run in progress.
+
+### Fixed
+
+- **The short URL SVG download was a solid black square** (#1563). It read the encoder's raw frame instead of its modules, painting every module dark; the SVG (download and REST `format=svg`) now draws the real code.
+- **A hidden form field always submitted an empty value** (#1574). The builder had no input for it and the save dropped it; hidden fields now have a Value input, and the submission takes that value from the form, never from the request.
+- **Re-entering a used ticket was rejected instead of reprinting** (#1574). The restriction check removes a ticket when it issues a certificate, so the next attempt was refused before the reprint lookup ran; a ticket that already issued a certificate on this form now returns it (quiz forms excepted, where a pass is a new attempt).
+- **Template helper classes were stripped from images and table cells** (#1574). `class` is now allowed on `img`, `td` and `th`, so `ffc-responsive-logo`, `ffc-full-width-img` and the alignment helpers work in a certificate template.
+- **The e-mail directory left out Date Messages** (#1574), and the module's Schedule tab read "Agendar" (a verb) in pt_BR; it reads "Agendamento" now.
+- **The QR Code Generator's usage meter misreported the room left** (#1584). It divided bytes by a fixed byte-mode capacity, so digits read as over 100% and near-full codes read 99% before failing. It now measures with the encoder at the effective level, says how many characters still fit and when the logo forced level H, and says how much to cut when content does not fit.
+- **The QR Code Generator showed a generic error instead of the reason** (#1586). A rejected request (content too long, an invalid address) arrives through the failure path, whose message the screen ignored; it now shows the server's own.
+- **Development installs no longer serve stale plugin assets** (#1594). With `SCRIPT_DEBUG` on, each plugin script and stylesheet is versioned by its file time, so a merge to `develop` reaches the browser without a release bump; production still uses the plugin version.
+- **QR Code Generator: addresses are checked by their shape, not resolved by the server** (#1596). Intranet hosts, domains the host's DNS cannot see and any port are accepted. Without a scheme `https://` is used; `http`, `ftp`, `ftps`, `sftp` and `ssh` are accepted typed in full, and a non-web address is drawn as is, never behind a short URL.
+- **wp-admin: an FFC operator role no longer takes Posts away from an Editor** (#1600). The operator scope (hidden core menus, redirect to the module page) now applies only when every role is an FFC role. With the user-manager debug toggle on, an access redirect logs the roles it saw.
+
+### Security
+
+- **The activity log no longer stores the client IP in clear** (#1574). New rows keep it only in an encrypted column, an `ip` in a log context now encrypts that context, and the "Activity Log: Encrypt Client IPs" card in Settings → Data Migrations encrypts what older rows hold.
+- **The privacy tools reach records made without an account, and two stores they skipped** (#1574). Export and erasure now also match unlinked submissions and appointments by e-mail hash; reregistration submissions and recruitment candidacies are exported, and the eraser reports them as retained (institutional records) without changing them.
+- **Operator audit trails no longer store the client IP in clear** (#1574). The Public Operator Access download log keeps the address encrypted (older entries are encrypted on the form's next download), and the early-open, postpone-close and IP-bypass log contexts are now encrypted.
+
+## [6.33.0] (2026-10-04) — `10ba316f`
 
 ### Added
 

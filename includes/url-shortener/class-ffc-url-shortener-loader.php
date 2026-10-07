@@ -95,6 +95,15 @@ class UrlShortenerLoader {
 
 			$meta_box->init();
 
+			// Manual QR code generator (#1563): a submenu and its two AJAX
+			// actions, both admin-only. admin-ajax.php runs with is_admin()
+			// true, so the endpoint is reachable from here.
+			( new QrGeneratorPage() )->init();
+			( new QrGeneratorAjaxEndpoint( $this->service ) )->init();
+			// The generator's signed event links. admin-post.php defines
+			// WP_ADMIN, so this gate covers the anonymous scan as well.
+			( new QrEventIcsHandler() )->init();
+
 			$backfill = new UrlShortenerBackfillHandler( $this->service );
 			$backfill->init();
 
