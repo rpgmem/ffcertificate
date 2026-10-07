@@ -603,7 +603,7 @@ $inputs.each(function() {
         /**
          * Put an `<altcha-widget>` back to its unsolved state.
          *
-         * `reset()` is the widget's own public API: the 3.2.2 component returns
+         * `reset()` is the widget's own public API: the 3.3.0 component returns
          * `{configure, getConfiguration, getState, hide, log, reset, setState,
          * show, updateUI, verify}` and the custom element carries it. That was
          * read off the vendored bundle rather than taken from documentation,
