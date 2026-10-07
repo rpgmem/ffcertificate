@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.34.0] (2026-10-07)
+
 ### Added
 
 - **QR code design** (#1563). A new Settings → QR Code tab sets the module shape (square, rounded, dots, fluid, diamond), the corner markers, colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. Off by default; switched on separately for certificates and short URLs.
@@ -24,7 +26,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The QR code defaults moved from General to the QR Code tab** (#1563). Same settings and values; a designed short-URL PNG is now rasterised by the browser from the SVG so it matches the preview.
 - **`readme.txt` and Settings → Documentation reviewed against the code** (#1573). Wrong shortcodes, table names, menu paths, hook signatures, REST permissions and privacy claims corrected; new pages for Date Messages, Scheduled Tasks, Data Migrations, Identity Resolution, User Access and IP Diagnostics.
 - **Manual short URLs are created in the QR Code Generator only** (#1586). The list page's create form is gone (a "New short URL" button opens the generator), and the Website and Social profile types gain a "Create a short URL" switch, on by default: a required title, creation on download or print, "Use this" for an existing short URL, an acknowledgement before a duplicate, and no shortening of a short URL. Off stores nothing.
-- **Compatibility declared against WordPress 7.1.3** (#1588): `Tested up to` moves from 7.1.1, after the fresh-install CI job activated, migrated and uninstalled the plugin cleanly on 7.1.3. The floor stays at 6.4.
+- **Compatibility declared against WordPress 7.1.3** (#1588): `Tested up to` moves from 7.1.1, after the fresh-install CI job activated, migrated and uninstalled the plugin cleanly on 7.1.3.
 - ⚠ **WordPress 6.8 is now the minimum** (#1590), up from 6.4: the first release declared fully compatible with PHP 8.3, which the plugin already requires. A site on 6.4–6.7 cannot activate or update to this release. The fresh-install CI job now also runs on the newest patch release of the floor, read from the plugin header.
 - **Date messages: the daily run covers today only, and an inactive rule never sends** (#1598). The run no longer re-covers yesterday, which reached people a day late after a missed day or a failed send; recover a day with "Send now". "Send now" refuses an inactive rule, and deactivating a rule stops a run in progress.
 
