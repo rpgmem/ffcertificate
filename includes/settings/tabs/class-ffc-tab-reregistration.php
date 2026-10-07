@@ -48,10 +48,10 @@ class TabReregistration extends SettingsTab {
 		$this->tab_id    = 'reregistration';
 		$this->tab_group = 'content';
 		$this->tab_title = __( 'Reregistration', 'ffcertificate' );
-		// Clipboard glyph — one of the emoji that the admin emoji font renders
-		// monochrome (as the Activity-Log tab already does), matching the flat
-		// icon row. The `ffc-icon-id` (🆔) and `ffc-icon-user` (👤) glyphs both
-		// render as a solid colour in that font, so they break the row.
+		// Clipboard, as on the Activity-Log tab. This was chosen when the icons
+		// were emoji and `ffc-icon-id` / `ffc-icon-user` rendered as solid colour
+		// blocks; since #1613 every icon is a monochrome SVG, so that reason is
+		// gone and the choice is now only a matter of meaning.
 		$this->tab_icon  = 'ffc-icon-clipboard';
 		$this->tab_order = 55;
 

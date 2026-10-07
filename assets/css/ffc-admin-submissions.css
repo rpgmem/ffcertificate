@@ -117,34 +117,11 @@
 }
 
 /* ==========================================================================
-   EMOJI ICONS - MODERN STYLE
+   ROW ACTION ICONS
+   The Edit / PDF / Trash / Restore / Delete buttons carry .ffc-icon-* classes
+   from the shared set (#1613); the emoji ::before rules that used to sit here
+   rendered differently on every OS and ignored the dark theme.
    ========================================================================== */
-
-.ffc-page-submissions .button[title*="PDF"]::before {
-    display: inline-block;
-    content: "📄 ";
-    margin-right: var(--ffc-spacing-2xs);
-}
-
-.ffc-page-submissions .button[href*="action=edit"]::before {
-    content: "✏️ ";
-    margin-right: var(--ffc-spacing-2xs);
-}
-
-.ffc-page-submissions .button[href*="action=trash"]::before {
-    content: "🗑️ ";
-    margin-right: var(--ffc-spacing-2xs);
-}
-
-.ffc-delete-btn::before {
-    content: "❌ ";
-    margin-right: var(--ffc-spacing-2xs);
-}
-
-.ffc-page-submissions .button[href*="action=restore"]::before {
-    content: "↩️ ";
-    margin-right: var(--ffc-spacing-2xs);
-}
 
 /* ==========================================================================
    STATUS BADGES

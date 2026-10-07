@@ -20,7 +20,7 @@
  * @since   6.34.0
  */
 
-use FreeFormCertificate\Generators\QrIcons;
+use FreeFormCertificate\Core\Icons;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -71,7 +71,7 @@ $ffc_qr_vcard_fields = array(
 						<label class="ffc-qr-type">
 							<input type="radio" class="ffc-qr-type__input" name="type" value="<?php echo esc_attr( $ffc_type ); ?>" <?php checked( 'url', $ffc_type ); ?>>
 							<span class="ffc-qr-type__face">
-								<?php echo QrIcons::svg( $ffc_type, 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
+								<?php echo Icons::svg( $ffc_type, 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
 								<span class="ffc-qr-type__label"><?php echo esc_html( $ffc_label ); ?></span>
 							</span>
 						</label>
@@ -385,11 +385,11 @@ $ffc_qr_vcard_fields = array(
 				</div>
 				<div class="ffc-qr-generator__actions">
 					<button type="button" class="button button-primary ffc-qr-generator__download" id="ffc-qr-download" disabled>
-						<?php echo QrIcons::svg( 'download', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
+						<?php echo Icons::svg( 'download', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
 						<?php esc_html_e( 'Download', 'ffcertificate' ); ?>
 					</button>
 					<button type="button" class="button ffc-qr-generator__print" id="ffc-qr-print" disabled>
-						<?php echo QrIcons::svg( 'print', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
+						<?php echo Icons::svg( 'print', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
 						<span class="screen-reader-text"><?php esc_html_e( 'Print', 'ffcertificate' ); ?></span>
 					</button>
 				</div>

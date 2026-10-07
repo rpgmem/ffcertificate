@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Core\ActivityLog;
+use FreeFormCertificate\Core\Icons;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -154,21 +155,21 @@ class PreflightStatsService {
 		<ul class="ffc-preflight-stats-badges">
 			<li class="ffc-preflight-badge ffc-preflight-badge-cookies">
 				<a href="<?php echo esc_url( $activity_log_url ); ?>" title="<?php esc_attr_e( 'Open the Activity Log filtered by cookie-wall hits', 'ffcertificate' ); ?>">
-					<span class="ffc-preflight-badge-icon" aria-hidden="true">🍪</span>
+					<span class="ffc-preflight-badge-icon"><?php echo Icons::svg( 'cookie', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?></span>
 					<strong><?php echo esc_html( (string) $stats['cookies'] ); ?></strong>
 					<?php esc_html_e( 'cookie wall', 'ffcertificate' ); ?>
 				</a>
 			</li>
 			<li class="ffc-preflight-badge ffc-preflight-badge-gps-denied">
 				<a href="<?php echo esc_url( $activity_log_url ); ?>" title="<?php esc_attr_e( 'Open the Activity Log filtered by GPS-denied hits', 'ffcertificate' ); ?>">
-					<span class="ffc-preflight-badge-icon" aria-hidden="true">📍</span>
+					<span class="ffc-preflight-badge-icon"><?php echo Icons::svg( 'map-pin', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?></span>
 					<strong><?php echo esc_html( (string) $stats['gps_denied'] ); ?></strong>
 					<?php esc_html_e( 'GPS denied', 'ffcertificate' ); ?>
 				</a>
 			</li>
 			<li class="ffc-preflight-badge ffc-preflight-badge-gps-prompt">
 				<a href="<?php echo esc_url( $activity_log_url ); ?>" title="<?php esc_attr_e( 'Open the Activity Log filtered by GPS-prompt explainer renders', 'ffcertificate' ); ?>">
-					<span class="ffc-preflight-badge-icon" aria-hidden="true">📋</span>
+					<span class="ffc-preflight-badge-icon"><?php echo Icons::svg( 'clipboard', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?></span>
 					<strong><?php echo esc_html( (string) $stats['gps_prompt'] ); ?></strong>
 					<?php esc_html_e( 'GPS prompt', 'ffcertificate' ); ?>
 				</a>
