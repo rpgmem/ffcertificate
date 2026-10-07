@@ -197,7 +197,7 @@ git rebase origin/main
 git push --force-with-lease origin develop
 ```
 
-This rewrites develop's SHAs on top of the new `main` tip. Force-push is permitted on `develop` by design (the branch protection deliberately omits "Require linear history" and the push restriction) — see "Branch protection" below. If a feature PR was open against develop at the moment of the rebase, the PR author rebases their branch on the new develop tip; this is the cost of keeping develop linear.
+This rewrites develop's SHAs on top of the new `main` tip. Force-push is permitted on `develop` by design (neither `develop` ruleset blocks force pushes or requires linear history) — see "Branch protection" below. If a feature PR was open against develop at the moment of the rebase, the PR author rebases their branch on the new develop tip; this is the cost of keeping develop linear.
 
 **Post-release — use `reset`, not `rebase`.** The `rebase` above is the **post-hotfix** recipe, where develop still carries un-released commits to replay on top of the new `main`. After a **release** squash-merge, develop was *fully consumed* by the squash — every develop commit is already inside `main`'s single release commit, so a rebase tries to replay them all and conflicts (typically on `CHANGELOG.md`). In that case skip the rebase and reset develop straight to `main`:
 
@@ -210,22 +210,26 @@ git push --force-with-lease origin develop
 
 Confirm nothing is lost first with `git log --oneline origin/main..develop` — after a release those are only the pre-squash commits, whose content already lives in `main`. (This is the trap that bit the 6.15.0 sync.)
 
-#### Branch protection (`develop`)
+#### Branch protection (rulesets on `develop` and `main`)
 
-Intentionally lighter rules than `main`:
+Both branches are governed by **rulesets** (Settings → Rules → Rulesets), not classic branch protection — converted on 2026-10-07. Each branch carries **two** rulesets, and the split is deliberate, not duplication: rules in different rulesets stack, so each ruleset's **bypass list** applies only to its own rules.
 
-- ✅ Require a pull request before merging (no required reviewers — solo maintainer).
-- ✅ Require status checks to pass before merging — all gating jobs listed under "CI gates".
-- ✅ Require branches to be **up to date** before merging (strict checks). Observed, not read — see the limit below.
-- ❌ Require linear history — left off so the rebase workflow above doesn't need admin bypass.
-- ❌ Restrict who can push to matching branches — leaving force-push permitted is what makes the rebase sync above mechanical.
-- ❌ Require deployments to succeed — `deploy-develop.yml` runs *after* merge, not as a merge gate.
+| Ruleset | Rules | Bypass |
+| --- | --- | --- |
+| `develop-locked` | Restrict deletions | **none** |
+| `develop-ci-gates` | Require a pull request (0 approvals) · Require status checks · branches up to date (strict) | Repository admin |
+| `main-locked` | Restrict deletions · **Block force pushes** | **none** |
+| `main-ci-gates` | Require a pull request (0 approvals) · Require status checks · branches up to date (strict) | Repository admin |
 
-Reasoning: develop is single-maintainer integration territory, not a shared production branch. Stronger protection here would force admin bypass for routine syncs and provide negligible safety benefit. The strict-checks line is the one rule here that is not lighter, and it is the one this list did not carry until #1337 — whether it was chosen or inherited is not recorded anywhere a reader can check. Its cost is concrete either way: every branch update re-runs every gate.
+- **`*-locked` holds what nobody may ever do, the maintainer included**: delete either branch, or rewrite `main`. Merging the pair into one ruleset would put those rules behind the admin bypass, which is why there are two.
+- **`*-ci-gates` holds what an emergency may need to skip.** The admin bypass is what lets the post-release sync land — that force-push is not a PR and does not wait for checks — and it is the bypass the agent's credential reports using (see "Branch naming").
+- **Force push stays allowed on `develop` and nowhere else.** `Block force pushes` is off in both `develop` rulesets because the "Sync `develop` with `main`" recipes above depend on it; on `main` it is on, without bypass. Turning it on for `develop` would break the next release's sync, not just inconvenience it.
+- **The required checks are every gating job in "CI gates", by job name** — including both `Fresh install` legs, `Analyze (javascript)` (CodeQL) and `Row shapes (level 9)` — with GitHub Actions as their source. The `Coverage shard N` jobs are not listed: `Coverage (PHP 8.3)` needs them. The invariant that matters when adding a job: **a required check must run on every PR to that branch** (no `paths:` filter, no job-level `if:` that can skip it), or every PR waits forever on a check that never reports — the reason `assets.yml` dropped its path filters.
+- **Off on purpose**: linear history (the merge-commit and rebase flows above need it off), required deployments (`deploy-develop.yml` runs *after* merge), signed commits, required reviewers (solo maintainer).
 
-**An agent cannot read this configuration, so the list above is a record and not a reading.** The GitHub MCP server exposes no branch-protection or ruleset endpoint — `list_branches` answers `protected: true` for `develop` and for `main`, and nothing further — and there is no `gh`. Each line here is therefore either the maintainer's own record of the UI or, for strict checks, an inference from behaviour that a PR's own history preserves. Treat it the way "Branch naming" treats the push rules: check before relying on it, because a written-down wall that nobody can re-read is exactly how that section came to claim a wall that was not there.
+**When the conversion was read back, "Require a pull request" existed on neither branch**, although this section had listed it for `develop` for months. Each branch then held a pre-existing ruleset beside the converted one, and neither required a PR; a direct push by a non-admin was held back only by the status-check rule's "must first pass on another ref" behaviour — close to a PR requirement, and not the same thing. The same reading found `Analyze (javascript)` and `Row shapes (level 9)` running on every PR and gating nothing, although "CI gates" listed CodeQL as gating. All three were fixed in the UI on that date.
 
-**Which UI page, though, is itself uncertain, and the evidence points away from the obvious one.** This section used to open "Configured in Settings → Branches". But the post-6.25.0 sync force-push reported `Bypassed rule violations for refs/heads/develop` — *rule violations* is **ruleset** wording, not classic branch-protection wording — so at least part of what governs `develop` lives in Settings → Rules → Rulesets. The two mechanisms stack and both can require status checks, so a setting that seems missing from one page may simply be on the other. Check both before concluding a rule is absent.
+**An agent cannot read this configuration, so the table above is a record and not a reading.** The GitHub MCP server exposes no ruleset or branch-protection endpoint — `list_branches` answers `protected: true` and nothing further — and there is no `gh`. The table is the maintainer's record of the UI on the date above, and the paragraph just before it is the measured cost of treating such a record as current: check the UI before relying on any line of it.
 
 #### Deploy to testes
 
@@ -310,9 +314,9 @@ The "Verify minified assets are up to date" CI job catches build freshness on bo
 
 ### CI gates (all gating, enforced on `main` and `develop`)
 
-- PHP: PHPStan (level 8) · WPCS · PHPUnit (8.3/8.4) · Coverage ≥ floor (clover, env `COVERAGE_FLOOR_LINES` in `.github/workflows/ci.yml`).
+- PHP: PHPStan (level 8) · Row shapes (PHPStan level 9, reported for the classes that read `$wpdb` rows) · WPCS · PHPUnit (8.3/8.4) · Coverage ≥ floor (clover, env `COVERAGE_FLOOR_LINES` in `.github/workflows/ci.yml`).
 - JS / CSS: ESLint (zero-error) · Stylelint (zero-error) · Vitest + coverage ≥ floor (env `JS_COVERAGE_FLOOR_LINES` in `.github/workflows/lint.yml`).
-- Misc: CodeQL (javascript) · Composer audit · Review dependency changes · Verify minified assets are up to date · **Fresh install (PHP 8.3)** — see below.
+- Misc: CodeQL (javascript) · Composer audit · Review dependency changes · Verify minified assets are up to date · **Fresh install (PHP 8.3)**, on the latest WordPress and on the declared floor — see below.
 
 The same gates run on PRs to `develop` and on the release PR `develop → main`. Develop must stay deployable to the testes site, so we don't relax gates there — a green develop is the precondition for opening the next release PR.
 
