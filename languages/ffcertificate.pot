@@ -24703,3 +24703,6 @@ msgstr ""
 
 msgid "A short URL redirects web addresses only (http or https), so this address is used as is."
 msgstr ""
+
+msgid "This rule is inactive. Activate it before sending, or use \"Send test to me\" to check it."
+msgstr ""
