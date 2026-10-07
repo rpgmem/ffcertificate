@@ -24793,3 +24793,6 @@ msgstr "Somente endereços http e https podem ter uma URL curta."
 
 msgid "A short URL redirects web addresses only (http or https), so this address is used as is."
 msgstr "A URL curta só redireciona endereços web (http ou https), por isso este endereço é usado como está."
+
+msgid "This rule is inactive. Activate it before sending, or use \"Send test to me\" to check it."
+msgstr "Esta regra está inativa. Ative-a antes de enviar, ou use \"Enviar teste para mim\" para conferi-la."

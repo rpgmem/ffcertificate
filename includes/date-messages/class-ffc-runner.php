@@ -29,10 +29,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * `ReregistrationEmailHandler::send_reminder_batch()` already uses.
  *
  * ONE RUN, MANY DAYS. A run covers `target_from` to `target_to`. The daily job
- * opens one per rule over two days -- today's target and yesterday's -- so a
- * day the cron missed is caught up the next morning; the log's unique key
- * makes the second look at yesterday send nothing it already sent. A manual
- * send covers whatever range the operator picked, up to MAX_RANGE_DAYS.
+ * opens one per active rule over TODAY'S target only. It used to cover
+ * yesterday's too, as a catch-up, and the log's unique key kept that from
+ * sending twice -- but a day the cron missed then reached people a day late
+ * ("happy birthday" the day after), and a refused send was retried the next
+ * day, late again (#1598). A missed day is recovered on purpose, from "Send
+ * now", which covers whatever range the operator picked, up to MAX_RANGE_DAYS.
+ *
+ * AN INACTIVE RULE SENDS NOTHING. The daily job selects active rules, `start()`
+ * refuses an inactive one, and every batch re-reads the rule, so deactivating
+ * it stops a run already in progress (#1598).
  */
 final class Runner {
 
@@ -75,8 +81,7 @@ final class Runner {
 	}
 
 	/**
-	 * The daily job: one run per active rule over today's and yesterday's
-	 * targets.
+	 * The daily job: one run per active rule over today's target.
 	 *
 	 * @return void
 	 */
@@ -93,7 +98,7 @@ final class Runner {
 			// A rule sent N days BEFORE the date has a negative offset, so
 			// the date it is about today is today minus the offset.
 			$target = $today->modify( sprintf( '%+d days', -$rule->offset_days ) );
-			self::start( $rule, $target->modify( '-1 day' ), $target, 'cron', 0 );
+			self::start( $rule, $target, $target, 'cron', 0 );
 		}
 	}
 
@@ -108,6 +113,9 @@ final class Runner {
 	 * @return int|\WP_Error Run id.
 	 */
 	public static function start( Rule $rule, \DateTimeImmutable $from, \DateTimeImmutable $to, string $trigger, int $created_by ) {
+		if ( ! $rule->is_active ) {
+			return new \WP_Error( 'ffc_date_messages_inactive', __( 'This rule is inactive. Activate it before sending, or use "Send test to me" to check it.', 'ffcertificate' ) );
+		}
 		$days = (int) $from->diff( $to )->format( '%r%a' );
 		if ( $days < 0 || $days >= self::MAX_RANGE_DAYS ) {
 			return new \WP_Error(
@@ -149,9 +157,9 @@ final class Runner {
 		if ( null === $run || false === $day ) {
 			return;
 		}
-		if ( null === $rule || SettingsReader::emails_disabled() ) {
-			// A rule deleted mid-run, or every e-mail switched off: stop
-			// cleanly rather than claim deliveries that cannot go out.
+		if ( null === $rule || ! $rule->is_active || SettingsReader::emails_disabled() ) {
+			// A rule deleted or deactivated mid-run, or every e-mail switched
+			// off: stop cleanly rather than claim deliveries that should not go out.
 			DeliveryLog::finish_run( $run_id );
 			return;
 		}
@@ -218,8 +226,9 @@ final class Runner {
 			return;
 		}
 
-		// Refused before it left the plugin: release the claim so the next
-		// run may try again, and count the failure.
+		// Refused before it left the plugin: count the failure and release the
+		// claim, so a "Send now" over that day may try again. The daily job
+		// never does: it only ever looks at today's target.
 		DeliveryLog::release( $rule->id, $row['user_id'], $occurrence );
 		DeliveryLog::bump( $run_id, 'failed' );
 	}

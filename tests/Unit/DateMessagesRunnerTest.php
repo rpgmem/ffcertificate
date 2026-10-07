@@ -253,6 +253,26 @@ class DateMessagesRunnerTest extends TestCase {
 		Runner::process( 7, '2026-10-10', 0 );
 	}
 
+	public function test_a_rule_deactivated_mid_run_finishes_it_without_claiming(): void {
+		$this->rules->shouldReceive( 'get_by_id' )->andReturn( $this->rule( array( 'is_active' => '0' ) ) );
+		$this->resolver->shouldReceive( 'resolve' )->never();
+		$this->log->shouldReceive( 'claim' )->never();
+		$this->log->shouldReceive( 'finish_run' )->once()->with( 7 );
+
+		Runner::process( 7, '2026-10-10', 0 );
+
+		$this->assertSame( array(), $this->scheduled, 'No later batch is queued.' );
+	}
+
+	public function test_start_refuses_an_inactive_rule(): void {
+		$this->log->shouldReceive( 'start_run' )->never();
+
+		$result = Runner::start( $this->rule( array( 'is_active' => '0' ) ), new \DateTimeImmutable( '2026-10-06' ), new \DateTimeImmutable( '2026-10-06' ), 'manual', 1 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_date_messages_inactive', $result->get_error_code() );
+	}
+
 	public function test_disabled_emails_stop_the_run_before_any_claim(): void {
 		$this->rules->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
 		$this->settings->shouldReceive( 'emails_disabled' )->andReturn( true );
@@ -287,7 +307,7 @@ class DateMessagesRunnerTest extends TestCase {
 		);
 	}
 
-	public function test_the_daily_job_targets_the_date_the_offset_points_at_plus_yesterday(): void {
+	public function test_the_daily_job_targets_only_the_date_the_offset_points_at(): void {
 		$week_before = $this->rule( array( 'id' => 3, 'offset_days' => -7 ) );
 		$on_the_day  = $this->rule( array( 'id' => 4 ) );
 		$silent      = $this->rule( array( 'id' => 5, 'send_to_user' => '0' ) );
@@ -306,8 +326,10 @@ class DateMessagesRunnerTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				3 => array( 'cron', gmdate( 'Y-m-d', strtotime( $today . ' +6 days' ) ), gmdate( 'Y-m-d', strtotime( $today . ' +7 days' ) ) ),
-				4 => array( 'cron', gmdate( 'Y-m-d', strtotime( $today . ' -1 day' ) ), $today ),
+				// Today's target only: no catch-up of yesterday, which would reach
+				// people a day late (#1598).
+				3 => array( 'cron', gmdate( 'Y-m-d', strtotime( $today . ' +7 days' ) ), gmdate( 'Y-m-d', strtotime( $today . ' +7 days' ) ) ),
+				4 => array( 'cron', $today, $today ),
 			),
 			$runs,
 			'A rule that does not e-mail the person opens no run.'
