@@ -171,7 +171,7 @@ class GithubUpdater {
 		$info->version       = $release['version'];
 		$info->author        = '<a href="https://github.com/rpgmem">Alex Meusburger</a>';
 		$info->homepage      = $release['url'];
-		$compat              = self::compat();
+		$compat              = self::compat( $release );
 		$info->requires      = $compat['requires'];
 		$info->tested        = $compat['tested'];
 		$info->requires_php  = $compat['requires_php'];
@@ -257,11 +257,11 @@ class GithubUpdater {
 		$obj->new_version    = $new_version;
 		$obj->url            = $release['url'];
 		$obj->package        = $release['package'];
-		$compat              = self::compat();
+		$compat              = self::compat( $release );
 		$obj->requires       = $compat['requires'];
 		$obj->tested         = $compat['tested'];
 		$obj->requires_php   = $compat['requires_php'];
-		$obj->upgrade_notice = self::upgrade_notice();
+		$obj->upgrade_notice = self::upgrade_notice( $release );
 		return $obj;
 	}
 
@@ -292,15 +292,30 @@ class GithubUpdater {
 	 * `ReadmeUpgradeNoticeTest` enforces the shape: one entry, naming the
 	 * version `Stable tag` declares, within the 300-character norm.
 	 *
+	 * WHOSE NOTICE (#1607)
+	 *
+	 * The notice belongs to the release being OFFERED, so it comes from that
+	 * release's own `readme.txt`, fetched with the release by
+	 * `fetch_release_readme()`. The installed copy is only the fallback. It
+	 * describes the version already running, which is exactly the text an
+	 * operator deciding on the update does not need: reading it first is how
+	 * 6.34.0's "requires WordPress 6.8" warning reached nobody before they
+	 * updated.
+	 *
 	 * The parse is deliberately forgiving about WHICH version it finds. It
 	 * returns the single entry's body whatever version heads it, because a
 	 * mismatch between that heading and the release being offered is the
 	 * guard's to fail in CI, not this method's to hide at runtime by
 	 * returning nothing.
 	 *
+	 * @param array<string, string>|null $release Release payload being offered, if any.
 	 * @return string Plain text; empty when the section is absent or malformed.
 	 */
-	private static function upgrade_notice(): string {
+	private static function upgrade_notice( ?array $release = null ): string {
+		if ( null !== $release && '' !== ( $release['upgrade_notice'] ?? '' ) ) {
+			return $release['upgrade_notice'];
+		}
+
 		$readme = FFC_PLUGIN_DIR . 'readme.txt';
 
 		if ( ! is_readable( $readme ) ) {
@@ -309,10 +324,19 @@ class GithubUpdater {
 
 		$contents = file_get_contents( $readme ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a file this plugin ships, not a remote resource; `WP_Filesystem` would need credentials on an update check.
 
-		if ( ! is_string( $contents ) ) {
-			return '';
-		}
+		return is_string( $contents ) ? self::notice_from( $contents ) : '';
+	}
 
+	/**
+	 * Extract the single Upgrade Notice entry from a `readme.txt` body.
+	 *
+	 * Shared by the installed copy and the offered release's readme, so the
+	 * two can never be parsed differently.
+	 *
+	 * @param string $contents Full `readme.txt` text.
+	 * @return string Plain text; empty when the section is absent or malformed.
+	 */
+	private static function notice_from( string $contents ): string {
 		if ( ! preg_match( '/^==\s*Upgrade Notice\s*==\s*$(.*?)(?=^==\s|\z)/ms', $contents, $section ) ) {
 			return '';
 		}
@@ -356,9 +380,23 @@ class GithubUpdater {
 	 * through: a malformed header is WordPress's to interpret, not this
 	 * method's to guess at.
 	 *
+	 * WHOSE FILES (#1607)
+	 *
+	 * #1022 made these derived, but it derived them from the INSTALLED copy.
+	 * After an update that copy is the offered release, so the screens looked
+	 * right. Before it, which is when an operator decides, every field
+	 * described the previous version. 6.34.0 was offered to 6.33.0 sites as
+	 * "requires 6.4, tested up to 7.1.1" when it actually required 6.8 and was
+	 * tested up to 7.1.3. So each field now comes from the offered release's
+	 * own `readme.txt`, which carries all three headers and agrees with the
+	 * plugin header by construction (`GitHubUpdaterCompatTest`). The installed
+	 * files remain the per-field fallback for a readme that could not be
+	 * fetched or did not carry that header.
+	 *
+	 * @param array<string, string>|null $release Release payload being offered, if any.
 	 * @return array{requires: string, tested: string, requires_php: string}
 	 */
-	private static function compat(): array {
+	private static function compat( ?array $release = null ): array {
 		$plugin = get_file_data(
 			FFC_PLUGIN_DIR . 'ffcertificate.php',
 			array(
@@ -372,11 +410,107 @@ class GithubUpdater {
 			array( 'tested' => 'Tested up to' )
 		);
 
-		return array(
+		$installed = array(
 			'requires'     => trim( $plugin['requires'] ),
 			'tested'       => trim( $readme['tested'] ),
 			'requires_php' => trim( $plugin['requires_php'] ),
 		);
+
+		if ( null === $release ) {
+			return $installed;
+		}
+
+		foreach ( array_keys( $installed ) as $field ) {
+			if ( '' !== ( $release[ $field ] ?? '' ) ) {
+				$installed[ $field ] = $release[ $field ];
+			}
+		}
+
+		return $installed;
+	}
+
+	/**
+	 * Read the offered release's compatibility headers and Upgrade Notice
+	 * from its own `readme.txt`, at the release tag.
+	 *
+	 * One extra request per NEW release: this runs only on a full (200) fetch
+	 * of `releases/latest`, never on a 304 or a cache hit, and the result is
+	 * stored in the same transient as the release. `raw.githubusercontent.com`
+	 * is not the API, so it does not spend the unauthenticated rate limit.
+	 *
+	 * Every failure returns empty fields rather than null. The caller then
+	 * falls back to the installed copy field by field: degraded, never broken,
+	 * because the update scan must not stop over metadata.
+	 *
+	 * @param string $repo `owner/repo`.
+	 * @param string $tag  Release tag, e.g. `v6.34.0`.
+	 * @return array{requires: string, tested: string, requires_php: string, upgrade_notice: string}
+	 */
+	private static function fetch_release_readme( string $repo, string $tag ): array {
+		$empty = array(
+			'requires'       => '',
+			'tested'         => '',
+			'requires_php'   => '',
+			'upgrade_notice' => '',
+		);
+
+		$response = wp_remote_get(
+			sprintf( 'https://raw.githubusercontent.com/%s/%s/readme.txt', $repo, rawurlencode( $tag ) ),
+			array(
+				'timeout' => 10,
+				'headers' => array( 'User-Agent' => 'ffcertificate-updater' ),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			self::debug_log( 'Release readme fetch failed', array( 'error' => $response->get_error_message() ) );
+			return $empty;
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$body = (string) wp_remote_retrieve_body( $response );
+		if ( 200 !== $code || '' === $body ) {
+			self::debug_log( 'Release readme fetch non-200 or empty', array( 'code' => $code ) );
+			return $empty;
+		}
+
+		return self::readme_metadata( $body );
+	}
+
+	/**
+	 * Parse the compatibility headers and the Upgrade Notice out of a
+	 * `readme.txt` body.
+	 *
+	 * Headers are read the way `get_file_data()` reads them: the first 8 KB,
+	 * case-insensitive, rest of the line. A value that is not a bare version
+	 * number is dropped rather than passed on. Unlike the installed copy, this
+	 * text came over the network, and WordPress feeds these fields to
+	 * `version_compare()`. The notice is reduced to plain text for the same
+	 * reason.
+	 *
+	 * @param string $contents Full `readme.txt` text.
+	 * @return array{requires: string, tested: string, requires_php: string, upgrade_notice: string}
+	 */
+	private static function readme_metadata( string $contents ): array {
+		$head   = substr( $contents, 0, 8192 );
+		$fields = array(
+			'requires'     => 'Requires at least',
+			'tested'       => 'Tested up to',
+			'requires_php' => 'Requires PHP',
+		);
+
+		$out = array();
+		foreach ( $fields as $key => $label ) {
+			$value = '';
+			if ( 1 === preg_match( '/^[ \t\/*#@]*' . preg_quote( $label, '/' ) . ':(.*)$/mi', $head, $m ) ) {
+				$value = trim( $m[1] );
+			}
+			$out[ $key ] = 1 === preg_match( '/^\d+(\.\d+)*$/', $value ) ? $value : '';
+		}
+
+		$out['upgrade_notice'] = wp_strip_all_tags( self::notice_from( $contents ) );
+
+		return $out;
 	}
 
 	/**
@@ -448,14 +582,20 @@ class GithubUpdater {
 			return null;
 		}
 		return array(
-			'version'      => (string) ( $raw['version'] ?? '' ),
+			'version'        => (string) ( $raw['version'] ?? '' ),
 			// The empty() guard above already proved 'package' exists and is
 			// truthy, so a ?? here would be a redundant null-coalesce (PHPStan).
-			'package'      => (string) $raw['package'],
-			'sha256'       => (string) ( $raw['sha256'] ?? '' ),
-			'url'          => (string) ( $raw['url'] ?? '' ),
-			'changelog'    => (string) ( $raw['changelog'] ?? '' ),
-			'published_at' => (string) ( $raw['published_at'] ?? '' ),
+			'package'        => (string) $raw['package'],
+			'sha256'         => (string) ( $raw['sha256'] ?? '' ),
+			'url'            => (string) ( $raw['url'] ?? '' ),
+			'changelog'      => (string) ( $raw['changelog'] ?? '' ),
+			'published_at'   => (string) ( $raw['published_at'] ?? '' ),
+			// The offered release's own metadata (#1607). Absent from payloads
+			// cached before it existed, which then fall back to the installed copy.
+			'requires'       => (string) ( $raw['requires'] ?? '' ),
+			'tested'         => (string) ( $raw['tested'] ?? '' ),
+			'requires_php'   => (string) ( $raw['requires_php'] ?? '' ),
+			'upgrade_notice' => (string) ( $raw['upgrade_notice'] ?? '' ),
 		);
 	}
 
@@ -507,6 +647,8 @@ class GithubUpdater {
 		if ( null === $payload ) {
 			return null;
 		}
+
+		$payload = array_merge( $payload, self::fetch_release_readme( $repo, (string) $data['tag_name'] ) );
 
 		$new_etag = wp_remote_retrieve_header( $response, 'etag' );
 
