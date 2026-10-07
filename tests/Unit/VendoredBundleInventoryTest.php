@@ -67,7 +67,7 @@ final class VendoredBundleInventoryTest extends TestCase {
 		'altcha-3.3.0.umd.js',
 		'html2canvas-1.4.1.min.js',
 		'jspdf-4.2.1.umd.min.js',
-		'thumbmark-1.10.1.umd.js',
+		'thumbmark-1.12.0.umd.js',
 	);
 
 	/**

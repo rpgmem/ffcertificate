@@ -28,7 +28,7 @@ define( 'FFC_VERSION', '6.34.0' );                 // Plugin version (WordPress 
 // External libraries versions.
 define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );   // html2canvas - https://html2canvas.hertzen.com/.
 define( 'FFC_JSPDF_VERSION', '4.2.1' );         // jsPDF - https://github.com/parallax/jsPDF.
-define( 'FFC_THUMBMARK_VERSION', '1.10.1' );    // thumbmarkjs - https://github.com/thumbmarkjs/thumbmarkjs (MIT, vendored at libs/js/).
+define( 'FFC_THUMBMARK_VERSION', '1.12.0' );    // thumbmarkjs - https://github.com/thumbmarkjs/thumbmarkjs (MIT, vendored at libs/js/).
 define( 'FFC_ALTCHA_VERSION', '3.3.0' );        // ALTCHA widget - https://github.com/altcha-org/altcha (MIT, vendored at libs/js/).
 
 define( 'FFC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
