@@ -308,7 +308,7 @@ describe('FFC.Frontend.UI.refreshCaptcha', () => {
 	/**
 	 * A form holding an `<altcha-widget>` whose `reset()` is recorded.
 	 *
-	 * The vendored 3.2.2 element exposes `reset()` on its public API; that was
+	 * The vendored 3.3.0 element exposes `reset()` on its public API; that was
 	 * read off the bundle and is NOT exercised here. What these tests prove is
 	 * that our dispatch reaches it — the vendor's implementation is its own.
 	 */

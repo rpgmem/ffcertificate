@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **ALTCHA widget updated to 3.3.0** (#1604), from 3.2.2. It brings `rel="noopener"` on the widget's links and fixes an unhandled error when the audio challenge is paused while it starts. The plugin's v1 challenge was solved and verified end to end in Chromium with the new bundle, which accepts the same nine attributes and the same i18n store.
+
 ### Fixed
 
 - **The update screens describe the version being offered, not the one installed** (#1607). "View details" and Dashboard → Updates read "Requires WordPress", "Tested up to", "Requires PHP" and the Upgrade Notice from the installed copy, so 6.34.0 was offered as requiring 6.4 with 6.33.0's notice. They now come from the release's own `readme.txt`, fetched once per release; the installed copy stays the per-field fallback.
