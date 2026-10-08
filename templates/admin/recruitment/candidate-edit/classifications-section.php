@@ -29,9 +29,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="postbox ffc-rec-mt-20">';
-echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications + call history', 'ffcertificate' ) . '</span></h2>';
-echo '<div class="inside">';
+echo '<div class="card">';
+echo '<h2 class="ffc-icon-list">' . esc_html__( 'Classifications + call history', 'ffcertificate' ) . '</h2>';
+echo '<div>';
 
 if ( empty( $classifications ) ) {
 	echo '<p><em>' . esc_html__( '(no classifications)', 'ffcertificate' ) . '</em></p>';

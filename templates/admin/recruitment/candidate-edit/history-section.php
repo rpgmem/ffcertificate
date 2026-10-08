@@ -1,7 +1,7 @@
 <?php
 /**
  * Template: Recruitment candidate edit — History section (per-candidate
- * activity-log feed, issue #331). Rendered above the hard-delete postbox so
+ * activity-log feed, issue #331). Rendered above the hard-delete card so
  * the operator can scan the audit trail before a destructive action.
  *
  * Extracted verbatim from
@@ -23,9 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="postbox ffc-rec-mt-20">';
-echo '<h2 class="hndle"><span>' . esc_html__( 'History', 'ffcertificate' ) . '</span></h2>';
-echo '<div class="inside">';
+echo '<div class="card">';
+echo '<h2 class="ffc-icon-history">' . esc_html__( 'History', 'ffcertificate' ) . '</h2>';
+echo '<div>';
 
 if ( empty( $entries ) ) {
 	echo '<p><em>' . esc_html__( '(no activity recorded for this candidate)', 'ffcertificate' ) . '</em></p>';
