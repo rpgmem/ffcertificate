@@ -104,7 +104,7 @@ $ffc_qr_name      = static fn( string $key ): string => 'ffc_settings[' . $key .
 	</p>
 
 	<div class="ffc-qr-design-layout">
-		<div class="ffc-qr-sections">
+		<div class="ffc-sections">
 			<?php require FFC_PLUGIN_DIR . 'templates/admin/qr/design-fields.php'; ?>
 		</div>
 

@@ -1334,7 +1334,7 @@ html:has(.ffc-settings-back-to-top) {
     align-items: flex-start;
 }
 
-.ffc-qr-design-layout .ffc-qr-sections {
+.ffc-qr-design-layout .ffc-sections {
     flex: 1 1 28em;
     min-width: 0;
 }

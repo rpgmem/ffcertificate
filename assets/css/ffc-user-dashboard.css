@@ -1485,12 +1485,7 @@
     font-size: var(--ffc-font-size-base);
 }
 
-.ffc-empty-state {
-    text-align: center;
-    padding: 56px var(--ffc-spacing-2xl);
-    color: var(--ffc-text-muted);
-}
-
+/* The base .ffc-empty-state rule lives in ffc-common.css (#1614). */
 .ffc-empty-state p {
     font-size: var(--ffc-font-size-lg);
     margin: var(--ffc-spacing-sm) 0;

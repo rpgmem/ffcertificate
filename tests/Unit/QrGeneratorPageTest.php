@@ -133,7 +133,7 @@ class QrGeneratorPageTest extends TestCase {
 		);
 		// The advanced section rides the shared section markup.
 		$this->assertStringContainsString( 'id="qr_default_margin"', $html );
-		$this->assertSame( 6, substr_count( $html, '<details class="ffc-qr-section"' ) );
+		$this->assertSame( 6, substr_count( $html, '<details class="ffc-section"' ) );
 		$this->assertStringContainsString( 'data-ffc-qr-prefix="https://www.instagram.com/"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-field="event:mode"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-field="vcard:organization"', $html );
