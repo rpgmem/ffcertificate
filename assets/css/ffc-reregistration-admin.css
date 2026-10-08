@@ -84,25 +84,6 @@
     background-color: var(--ffc-color, currentColor);
 }
 
-/* ── Stats summary ───────────────────────────── */
-.ffc-rereg-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--ffc-spacing-lg);
-    align-items: center;
-    margin: var(--ffc-spacing-xl) 0;
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
-    background: var(--ffc-bg-card);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-xs);
-}
-
-.ffc-stat-item {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ffc-spacing-xs);
-}
-
 /* ── Filters ─────────────────────────────────── */
 .ffc-rereg-filters {
     display: inline-flex;

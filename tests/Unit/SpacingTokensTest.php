@@ -92,7 +92,7 @@ final class SpacingTokensTest extends TestCase {
 		// (#1193): with no emitter since the list migrated to `.ffc-badge`.
 		'ffc-admin-submissions.css'        => 0,
 		'ffc-admin.css'                    => 2,
-		'ffc-audience-admin.css'           => 8,
+		'ffc-audience-admin.css'           => 6,
 		'ffc-audience.css'                 => 7,
 		'ffc-calendar-frontend.css'        => 4,
 		'ffc-certificates-dashboard.css'   => 1,

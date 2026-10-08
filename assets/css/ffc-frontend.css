@@ -1805,7 +1805,7 @@ details.ffc-consent-description > p {
 
 /* 26px literal: a glyph box, not text — an icon or a `&times;` sized by
    font-size is a box, and the typography scale does not govern it. Same
-   reason as .ffc-stat-icon (#1148 step 1). */
+   reason the glyph-box family gives (#1148 step 1). */
 .ffc-open-early-close {
     background: none;
     border: none;

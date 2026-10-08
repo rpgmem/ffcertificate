@@ -107,20 +107,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php endif; ?>
 
 			<?php if ( 'trashed' !== $status ) : ?>
-			<!-- Stats -->
-			<div class="ffc-shorturl-stats">
-				<div>
-					<strong><?php echo esc_html( number_format_i18n( $stats['total_links'] ) ); ?></strong>
-					<span class="ffc-stat-label"><?php esc_html_e( 'Total Links', 'ffcertificate' ); ?></span>
-				</div>
-				<div>
-					<strong><?php echo esc_html( number_format_i18n( $stats['active_links'] ) ); ?></strong>
-					<span class="ffc-stat-label"><?php esc_html_e( 'Active', 'ffcertificate' ); ?></span>
-				</div>
-				<div>
-					<strong><?php echo esc_html( number_format_i18n( $stats['total_clicks'] ) ); ?></strong>
-					<span class="ffc-stat-label"><?php esc_html_e( 'Total Clicks', 'ffcertificate' ); ?></span>
-				</div>
+				<?php
+				// The shared stat cards (#1631), the component the dashboards draw.
+				// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- get_stat_card() escapes every value.
+				?>
+			<div class="ffc-stats">
+				<?php
+				echo \FreeFormCertificate\Admin\AdminUI::get_stat_card(
+					array(
+						'label' => __( 'Total Links', 'ffcertificate' ),
+						'value' => (int) $stats['total_links'],
+						'icon'  => 'link',
+					)
+				);
+				echo \FreeFormCertificate\Admin\AdminUI::get_stat_card(
+					array(
+						'label' => __( 'Active', 'ffcertificate' ),
+						'value' => (int) $stats['active_links'],
+						'icon'  => 'checkmark',
+						'tone'  => 'success',
+					)
+				);
+				echo \FreeFormCertificate\Admin\AdminUI::get_stat_card(
+					array(
+						'label' => __( 'Total Clicks', 'ffcertificate' ),
+						'value' => (int) $stats['total_clicks'],
+						'icon'  => 'chart',
+					)
+				);
+				// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
 			</div>
 			<?php endif; ?>
 

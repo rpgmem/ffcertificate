@@ -277,8 +277,13 @@ class AdminUI {
 	 * @param array<string, mixed> $args `label` (required), `value` (int or
 	 *                                    string; '—' until known), `icon`
 	 *                                    (`.ffc-icon-*` name without the
-	 *                                    prefix), `id` (on the value, for a
-	 *                                    script that fills it in).
+	 *                                    prefix), `tone` (the badge's tone:
+	 *                                    primary by default, or info, success,
+	 *                                    warning, danger, neutral), `id` (on
+	 *                                    the value, for a script that fills
+	 *                                    it in), `url` with `link` (a link
+	 *                                    under the label to the screen the
+	 *                                    number counts).
 	 * @return string
 	 */
 	public static function get_stat_card( array $args ): string {
@@ -290,10 +295,24 @@ class AdminUI {
 		$value = is_int( $value ) ? number_format_i18n( $value ) : (string) $value;
 		$icon  = (string) ( $args['icon'] ?? '' );
 		$id    = (string) ( $args['id'] ?? '' );
+		$url   = (string) ( $args['url'] ?? '' );
+		$link  = (string) ( $args['link'] ?? '' );
+		$tone  = (string) ( $args['tone'] ?? 'primary' );
 
 		$html = '<div class="ffc-stat-card">';
 		if ( '' !== $icon ) {
-			$html .= '<span class="ffc-stat-card__icon ffc-icon-badge ffc-icon-badge-primary ffc-icon-' . esc_attr( $icon ) . '" aria-hidden="true"></span>';
+			// The plain badge is the neutral one; every other tone is a modifier.
+			// Whole class names, never assembled, so the icon-class scan reads
+			// each one (IconStylesheetTest).
+			$badges = array(
+				'primary' => 'ffc-icon-badge ffc-icon-badge-primary',
+				'info'    => 'ffc-icon-badge ffc-icon-badge-info',
+				'success' => 'ffc-icon-badge ffc-icon-badge-success',
+				'warning' => 'ffc-icon-badge ffc-icon-badge-warning',
+				'danger'  => 'ffc-icon-badge ffc-icon-badge-danger',
+			);
+			$badge  = $badges[ $tone ] ?? 'ffc-icon-badge';
+			$html  .= '<span class="ffc-stat-card__icon ' . esc_attr( $badge ) . ' ffc-icon-' . esc_attr( $icon ) . '" aria-hidden="true"></span>';
 		}
 		$html .= sprintf(
 			'<span class="ffc-stat-card__value"%s>%s</span><span class="ffc-stat-card__label">%s</span>',
@@ -301,6 +320,13 @@ class AdminUI {
 			esc_html( $value ),
 			esc_html( $label )
 		);
+		if ( '' !== $url && '' !== $link ) {
+			$html .= sprintf(
+				'<a class="ffc-stat-card__link" href="%s">%s &rarr;</a>',
+				esc_url( $url ),
+				esc_html( $link )
+			);
+		}
 		return $html . '</div>';
 	}
 }

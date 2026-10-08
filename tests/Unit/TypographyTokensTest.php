@@ -93,7 +93,7 @@ class TypographyTokensTest extends TestCase {
 
 		// Card hero numbers, deliberately above the text scale — plus the phone
 		// step, which would make no sense if it rose to the floor.
-		'ffc-audience-admin.css'           => 2,
+		'ffc-audience-admin.css'           => 0,
 		'ffc-user-dashboard.css'           => 2,
 
 		// A badge that has to fit inside the day cell, with its own responsive step.
