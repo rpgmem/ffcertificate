@@ -256,7 +256,9 @@ final class SettingsReader {
 
 	/**
 	 * Canonical feature-module slugs the Modules settings tab can toggle,
-	 * in display order. Each gates the matching bootstrap in
+	 * in display order — the order of the admin menu, so the tab lists the
+	 * modules as the sidebar does (`MenuIconAgreementTest`, #1640). Each gates
+	 * the matching bootstrap in
 	 * {@see \FreeFormCertificate\Loader::init_plugin()}.
 	 *
 	 * @var array<int, string>
@@ -266,8 +268,8 @@ final class SettingsReader {
 		'audiences',
 		'self_scheduling',
 		'reregistration',
-		'url_shortener',
 		'recruitment',
+		'url_shortener',
 		'date_messages',
 	);
 

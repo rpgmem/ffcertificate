@@ -242,7 +242,7 @@ class Settings {
 			'ffc_view_settings_page',
 			'ffc-settings',
 			array( $this, 'display_settings_page' ),
-			'dashicons-admin-settings'
+			'none' // Drawn from the icon registry by AdminMenuIcons (#1640).
 		);
 
 		if ( $hook ) {

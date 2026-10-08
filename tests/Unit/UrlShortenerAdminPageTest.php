@@ -469,7 +469,8 @@ class UrlShortenerAdminPageTest extends TestCase {
 
 		$this->assertSame( 'ffc_view_url_shortener', $captured['cap'] );
 		$this->assertSame( 'ffc-short-urls', $captured['slug'] );
-		$this->assertSame( 'dashicons-admin-links', $captured['icon'] );
+		// Drawn from the icon registry by AdminMenuIcons (#1640).
+		$this->assertSame( 'none', $captured['icon'] );
 	}
 
 	public function test_enqueue_assets_skips_on_wrong_page(): void {

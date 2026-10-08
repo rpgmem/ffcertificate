@@ -39,6 +39,7 @@ class AdminLoaderTest extends TestCase {
 		'AdminUserCapabilities',
 		'RoleCapabilityEditor',
 		'AdminMenuVisibility',
+		'AdminMenuIcons',
 		'DeviceThresholdUpgradeNotice',
 		'SettingsAjaxEndpoint',
 		'QrDesignPreviewAjaxEndpoint',

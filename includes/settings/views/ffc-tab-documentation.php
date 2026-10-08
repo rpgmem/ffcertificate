@@ -47,7 +47,7 @@ $ffc_doc_tree = array(
 		'file'   => 'overview.php',
 	),
 	array(
-		'icon'     => 'ffc-icon-award',
+		'icon'     => \FreeFormCertificate\Core\Icons::area_class( 'certificates' ),
 		'title'    => __( 'Certificates & Forms', 'ffcertificate' ),
 		'children' => array(
 			array(
@@ -281,7 +281,7 @@ $ffc_doc_tree = array(
 		),
 	),
 	array(
-		'icon'     => 'ffc-icon-calendar',
+		'icon'     => \FreeFormCertificate\Core\Icons::area_class( 'scheduling' ),
 		'title'    => __( 'Scheduling / Appointments', 'ffcertificate' ),
 		'children' => array(
 			array(
@@ -305,7 +305,7 @@ $ffc_doc_tree = array(
 		),
 	),
 	array(
-		'icon'     => 'ffc-icon-user-check',
+		'icon'     => \FreeFormCertificate\Core\Icons::area_class( 'reregistration' ),
 		'title'    => __( 'Reregistration', 'ffcertificate' ),
 		'children' => array(
 			array(
@@ -324,19 +324,19 @@ $ffc_doc_tree = array(
 	),
 	array(
 		'anchor' => 'feature-recruitment',
-		'icon'   => 'ffc-icon-users',
+		'icon'   => \FreeFormCertificate\Core\Icons::area_class( 'recruitment' ),
 		'title'  => __( 'Recruitment', 'ffcertificate' ),
 		'file'   => 'feature-recruitment.php',
 	),
 	array(
 		'anchor' => 'feature-url-shortener',
-		'icon'   => 'ffc-icon-link',
+		'icon'   => \FreeFormCertificate\Core\Icons::area_class( 'url_shortener' ),
 		'title'  => __( 'Short URLs & QR Codes', 'ffcertificate' ),
 		'file'   => 'feature-url-shortener.php',
 	),
 	array(
 		'anchor' => 'feature-date-messages',
-		'icon'   => 'ffc-icon-email',
+		'icon'   => \FreeFormCertificate\Core\Icons::area_class( 'date_messages' ),
 		'title'  => __( 'Date Messages', 'ffcertificate' ),
 		'file'   => 'feature-date-messages.php',
 	),

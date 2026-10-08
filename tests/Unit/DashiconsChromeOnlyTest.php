@@ -8,10 +8,10 @@ use PHPUnit\Framework\TestCase;
 /**
  * Dashicons stay where they are WordPress chrome, and nowhere else (#1613).
  *
- * The plugin draws its own components from `Core\Icons`. A dashicon is right
- * only where WordPress draws the icon itself: the `menu_icon` of a post type
- * and the icon argument of `add_menu_page()`, both shown in the admin menu
- * beside core's. Everything else was replaced, screen by screen, and this
+ * The plugin draws its own components from `Core\Icons`, and since #1640 its
+ * admin-menu icons too (`AdminMenuIcons`). A dashicon is right only where it
+ * is WordPress chrome the registry does not draw: the separator labels the
+ * scheduling menu prints into `#adminmenu`. Everything else was replaced, screen by screen, and this
  * freezes the result: a file that gains a dashicon fails, and so does one on
  * the list that loses its last (drop it from the list to lock the win in).
  *
@@ -28,14 +28,8 @@ class DashiconsChromeOnlyTest extends TestCase {
 	 * @var array<string, array{0: int, 1: string}>
 	 */
 	private const ALLOWED = array(
-		'includes/admin/class-ffc-cpt.php'                            => array( 1, 'the post type menu_icon, drawn by WordPress in the admin menu' ),
-		'includes/admin/class-ffc-settings.php'                       => array( 1, 'the add_menu_page() icon' ),
-		'includes/audience/class-ffc-audience-admin-page.php'         => array( 4, 'the add_menu_page() icon, and the admin-menu separator labels printed into #adminmenu, which is WordPress chrome' ),
-		'includes/core/class-ffc-icons.php'                           => array( 2, 'Icons::tab_class(): a filter-contributed tab that still names a dashicon keeps drawing as one' ),
-		'includes/date-messages/class-ffc-date-messages-admin-page.php' => array( 1, 'the add_menu_page() icon' ),
-		'includes/recruitment/class-ffc-recruitment-admin-page.php'   => array( 1, 'the add_menu_page() icon' ),
-		'includes/reregistration/class-ffc-reregistration-admin.php'  => array( 1, 'the add_menu_page() icon' ),
-		'includes/url-shortener/class-ffc-url-shortener-admin-page.php' => array( 1, 'the add_menu_page() icon' ),
+		'includes/audience/class-ffc-audience-admin-page.php' => array( 3, 'the admin-menu separator labels printed into #adminmenu, which is WordPress chrome' ),
+		'includes/core/class-ffc-icons.php'                   => array( 2, 'Icons::tab_class(): a filter-contributed tab that still names a dashicon keeps drawing as one' ),
 	);
 
 	private static function root(): string {

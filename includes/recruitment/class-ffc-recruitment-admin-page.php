@@ -173,7 +173,7 @@ final class RecruitmentAdminPage {
 			self::VIEW_CAP,
 			self::PAGE_SLUG,
 			array( self::class, 'render_page' ),
-			'dashicons-groups',
+			'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
 			// Float keeps the FFC block (Scheduling 26.1, Reregistration
 			// 26.2, Recruitment 26.3) contiguous in the wp-admin sidebar:
 			// other plugins picking integer 26 / 27 / 28 can no longer

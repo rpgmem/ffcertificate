@@ -27,6 +27,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Recruitment edit screens use the boxed sections** (#1631). Editing a notice, candidate, adjutancy or reason shows the record as the page title and each part in a box with an icon heading, like the audience and campaign editors, instead of bare WordPress postboxes.
 - **Scheduling Dashboard, Short URLs and reregistration submissions use the shared stat cards** (#1631). Each count is an icon card like the Certificates Dashboard's; the scheduling sections carry icon headings, and the submission counts are toned by status.
 - **The last admin screens follow the boxed pattern** (#1631). The date-message rule editor is a card per part with toggle switches; Captcha, User Access, Scheduled Tasks, the QR generator, the Certificates Dashboard and the Activity Log headings carry icons; Import & Export shows both halves without a second row of tabs.
+- **The WordPress menu shows each module's own icon** (#1640). The top-level menus drew dashicons that disagreed with the icons the documentation and Settings → Modules use; one map now feeds all three, drawn in the menu's own colour so it follows every admin colour scheme, hover, the current page and high-contrast mode. Settings → Modules now lists the modules in menu order.
 
 ### Fixed
 
