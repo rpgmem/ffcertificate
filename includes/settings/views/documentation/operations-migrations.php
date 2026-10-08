@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Data Migrations Section -->
 <div class="card">
-	<h3 id="operations-migrations"><span class="dashicons dashicons-database" aria-hidden="true"></span> <?php esc_html_e( 'Data Migrations', 'ffcertificate' ); ?></h3>
+	<h3 id="operations-migrations" class="ffc-icon-database"><?php esc_html_e( 'Data Migrations', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'Settings → Data Migrations brings stored data in line with what newer versions of the plugin expect. Each migration is a card showing how many records are migrated and how many are still pending. Click "Run Migration" once: it keeps processing batches until the card reaches 100%, with a live progress bar. Running a migration needs the Danger Zone capability.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">

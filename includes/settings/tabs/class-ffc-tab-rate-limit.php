@@ -29,7 +29,7 @@ class TabRateLimit extends SettingsTab {
 		$this->tab_id    = 'rate_limit';
 		$this->tab_group = 'security';
 		$this->tab_title = __( 'Rate Limit', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-shield';
+		$this->tab_icon  = 'ffc-icon-gauge';
 		$this->tab_order = 40;
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );

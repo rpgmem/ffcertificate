@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 3. Quiz / Evaluation Variables Section -->
 <div class="card">
-	<h3 id="feature-quiz"><span class="dashicons dashicons-chart-bar" aria-hidden="true"></span> <?php esc_html_e( 'Quiz / Evaluation', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-quiz" class="ffc-icon-chart"><?php esc_html_e( 'Quiz / Evaluation', 'ffcertificate' ); ?></h3>
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Turning a form into a quiz', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'Enable it on the Quiz tab of the form editor\'s "Certificate Form Configuration" box, then give each scored field its points per option on the Fields tab. Only radio and select fields are scored.', 'ffcertificate' ); ?></p>

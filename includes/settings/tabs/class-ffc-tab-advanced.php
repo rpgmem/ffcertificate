@@ -30,7 +30,7 @@ class TabAdvanced extends SettingsTab {
 		$this->tab_id    = 'advanced';
 		$this->tab_group = 'system';
 		$this->tab_title = __( 'Advanced', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-settings';
+		$this->tab_icon  = 'ffc-icon-sliders';
 		$this->tab_order = 70;
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );

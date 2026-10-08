@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Configuration: Scheduled Tasks Section -->
 <div class="card">
-	<h3 id="config-scheduled-tasks"><span class="dashicons dashicons-clock" aria-hidden="true"></span> <?php esc_html_e( 'Scheduled Tasks', 'ffcertificate' ); ?></h3>
+	<h3 id="config-scheduled-tasks" class="ffc-icon-clock"><?php esc_html_e( 'Scheduled Tasks', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'Settings → Scheduled Tasks lists the background tasks the plugin runs through WP-Cron — cleanups, reminders, cache warming, date messages and the like — and helps you keep them running on time.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">

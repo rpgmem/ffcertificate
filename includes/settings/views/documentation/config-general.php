@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Configuration: General Section -->
 <div class="card">
-	<h3 id="config-general"><span class="dashicons dashicons-admin-settings" aria-hidden="true"></span> <?php esc_html_e( 'General', 'ffcertificate' ); ?></h3>
+	<h3 id="config-general" class="ffc-icon-settings"><?php esc_html_e( 'General', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Settings → General holds the plugin-wide basics.', 'ffcertificate' ); ?></p>
 

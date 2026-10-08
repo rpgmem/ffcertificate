@@ -92,7 +92,7 @@ class TabGeolocationTest extends TestCase {
 	}
 
 	public function test_tab_icon_is_globe(): void {
-		$this->assertSame( 'ffc-icon-globe', $this->tab->get_icon() );
+		$this->assertSame( 'ffc-icon-map-pin', $this->tab->get_icon() );
 	}
 
 	public function test_tab_order_is_50(): void {

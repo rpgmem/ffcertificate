@@ -80,7 +80,7 @@ class TabModulosTest extends TestCase {
 	}
 
 	public function test_tab_icon_is_package(): void {
-		$this->assertSame( 'ffc-icon-package', $this->tab->get_icon() );
+		$this->assertSame( 'ffc-icon-grid', $this->tab->get_icon() );
 	}
 
 
@@ -93,7 +93,7 @@ class TabModulosTest extends TestCase {
 		$this->tab->render();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( 'ffc-icon-package', $output );
+		$this->assertStringContainsString( 'ffc-icon-grid', $output );
 		$this->assertStringContainsString( 'Modules', $output );
 		// A per-module toggle is rendered for every canonical module: assert the
 		// Certificates and Recruitment autosave keys are present.

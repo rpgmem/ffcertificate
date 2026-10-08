@@ -70,7 +70,7 @@ class TabSmtpTest extends TestCase {
 	}
 
 	public function test_tab_icon_is_email(): void {
-		$this->assertSame( 'ffc-icon-email', $this->tab->get_icon() );
+		$this->assertSame( 'ffc-icon-send', $this->tab->get_icon() );
 	}
 
 	public function test_tab_order_is_20(): void {

@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Submissions: Admin list Section -->
 <div class="card">
-	<h3 id="submissions-list"><span class="dashicons dashicons-list-view" aria-hidden="true"></span> <?php esc_html_e( 'Submissions — list & editing', 'ffcertificate' ); ?></h3>
+	<h3 id="submissions-list" class="ffc-icon-list"><?php esc_html_e( 'Submissions — list & editing', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Every certificate a form issues is a submission. They are managed under the "Submissions" admin page (inside the plugin menu).', 'ffcertificate' ); ?></p>
 

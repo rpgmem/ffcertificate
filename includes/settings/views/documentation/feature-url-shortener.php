@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Short URLs Section -->
 <div class="card">
-	<h3 id="feature-url-shortener"><span class="dashicons dashicons-admin-links" aria-hidden="true"></span> <?php esc_html_e( 'Short URLs', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-url-shortener" class="ffc-icon-link"><?php esc_html_e( 'Short URLs', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'The URL shortener turns long links into short, click-counted redirects. It has its own top-level "Short URLs" admin menu.', 'ffcertificate' ); ?></p>
 

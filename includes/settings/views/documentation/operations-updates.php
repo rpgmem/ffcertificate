@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Updates Section -->
 <div class="card">
-	<h3 id="operations-updates"><span class="dashicons dashicons-update" aria-hidden="true"></span> <?php esc_html_e( 'Updates', 'ffcertificate' ); ?></h3>
+	<h3 id="operations-updates" class="ffc-icon-sync"><?php esc_html_e( 'Updates', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'This plugin is not distributed through the WordPress.org directory, so it ships its own updater. It teaches WordPress\'s native update check to see the plugin\'s GitHub Releases: when a newer release exists, the update appears in Dashboard → Updates and on the Plugins screen exactly like any other plugin update — "update now", the "View details" changelog modal, and the per-plugin "Enable auto-updates" toggle all work as usual.', 'ffcertificate' ); ?></p>
 

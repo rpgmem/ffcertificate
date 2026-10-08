@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Configuration: User Access Section -->
 <div class="card">
-	<h3 id="config-user-access"><span class="dashicons dashicons-admin-users" aria-hidden="true"></span> <?php esc_html_e( 'User Access', 'ffcertificate' ); ?></h3>
+	<h3 id="config-user-access" class="ffc-icon-key"><?php esc_html_e( 'User Access', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'Settings → User Access keeps people who only need their own certificates, appointments and profile out of the WordPress admin, sending them to the front-end dashboard instead.', 'ffcertificate' ); ?> <a href="#feature-user-dashboard"><?php esc_html_e( 'See User Dashboard & Access.', 'ffcertificate' ); ?></a></p>
 
 	<table class="widefat striped">

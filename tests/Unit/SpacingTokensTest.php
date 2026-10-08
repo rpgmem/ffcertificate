@@ -87,7 +87,7 @@ final class SpacingTokensTest extends TestCase {
 	 */
 	private const BUDGET = array(
 		'ffc-admin-move-submissions.css'   => 1,
-		'ffc-admin-settings.css'           => 7,
+		'ffc-admin-settings.css'           => 6,
 		// This sheet's only literal left with the fossil `.ffc-status-badge` rule
 		// (#1193): with no emitter since the list migrated to `.ffc-badge`.
 		'ffc-admin-submissions.css'        => 0,

@@ -12,6 +12,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **ALTCHA widget updated to 3.3.0** (#1604), from 3.2.2. It brings `rel="noopener"` on the widget's links and fixes an unhandled error when the audio challenge is paused while it starts. The plugin's v1 challenge was solved and verified end to end in Chromium with the new bundle, which accepts the same nine attributes and the same i18n store.
 - **thumbmarkjs updated to 1.12.0** (#1604), from 1.10.1. Device fingerprints are unchanged: no signal probe changed upstream, and all 13 signals hash identically under both bundles, so stored device limits keep matching. Telemetry and the remote payload added in 1.11 stay off through the existing `logging: false`.
 - **One icon set across the plugin** (#1613). The 34 `.ffc-icon-*` classes drew emoji, whose look depended on the operating system and ignored the dark theme; they now draw monochrome SVG icons from a single registry, `Core\Icons`, in the text colour. The submissions row actions and the form editor's friction badges use the same set.
+- **Settings tabs and pages use icons that say what they are** (#1613). Each tab, the documentation index and its headings, and the migration buttons now draw from `Core\Icons` instead of shared or unrelated glyphs and dashicons. Icons stay monochrome in menus and buttons; inside a tab, new tone classes and an icon badge give colour for meaning only.
 
 ### Fixed
 
