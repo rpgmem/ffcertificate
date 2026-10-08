@@ -3,8 +3,9 @@
  *
  * Filters the section cards and the Quick-Navigation links by the text typed
  * into #ffc-doc-search. Progressive enhancement, no dependencies: section
- * cards are the ones carrying an anchored <h3 id> (so the intro card and the
- * Quick-Navigation card itself are never hidden). An empty query restores all.
+ * cards are the ones carrying an anchored <h3 id>, except the Quick-Navigation
+ * card, whose heading is anchored too (#1638); neither it nor the intro card is
+ * ever hidden. An empty query restores all.
  *
  * @since 6.14.0
  */
@@ -18,7 +19,7 @@
 		}
 
 		var cards = Array.prototype.filter.call(
-			document.querySelectorAll( '.card' ),
+			document.querySelectorAll( '.card:not(.ffc-doc-toc)' ),
 			function ( card ) {
 				return !! card.querySelector( 'h3[id]' );
 			}

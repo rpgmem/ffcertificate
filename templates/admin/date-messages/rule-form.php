@@ -80,7 +80,7 @@ $ffc_dm_chosen = array_map( 'intval', is_array( $ffc_dm_chosen ) ? $ffc_dm_chose
 				<input type="number" id="ffc-dm-offset" name="rule[offset_days]" class="small-text" required step="1"
 					min="<?php echo esc_attr( (string) -Rule::MAX_OFFSET_DAYS ); ?>" max="<?php echo esc_attr( (string) Rule::MAX_OFFSET_DAYS ); ?>"
 					value="<?php echo esc_attr( (string) $ffc_dm_offset ); ?>">
-				<p class="description"><?php esc_html_e( '0 sends on the date itself; -7 sends seven days before it.', 'ffcertificate' ); ?></p>
+				<p class="description"><?php esc_html_e( '0 sends on the date itself; -7 sends seven days before it, 7 seven days after it.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
 		<?php if ( array() !== $audiences ) : ?>

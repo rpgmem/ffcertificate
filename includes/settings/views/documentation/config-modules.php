@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="card">
 	<h3 id="config-modules" class="ffc-icon-grid"><?php esc_html_e( 'Modules', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens and stops its runtime (including its scheduled/cron work), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens and stops its runtime (its scheduled tasks still fire on schedule but do nothing), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'The modules you can toggle', 'ffcertificate' ); ?></h4>

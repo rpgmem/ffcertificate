@@ -14,7 +14,7 @@ function buildDom({ withInput = true } = {}) {
 		<div class="ffc-settings-wrap">
 			<div class="card"><h2>Intro card, no anchor</h2></div>
 			<div class="card ffc-doc-toc">
-				<h3>Quick Navigation</h3>
+				<h3 id="ffc-doc-nav" class="ffc-icon-search">Quick Navigation</h3>
 				${input}
 				<ul class="ffc-doc-toc-list">
 					<li class="ffc-doc-toc-section">Reference</li>

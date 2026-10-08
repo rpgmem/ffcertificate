@@ -70,7 +70,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><strong><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'New scheduled activity and activity-cancelled notices', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Recruitment call (convocation)', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Date messages', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Birthday message — the default text a new rule starts from', 'ffcertificate' ); ?></td></tr>
-				<tr><td><strong><?php esc_html_e( 'Account access', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Access-granted notice (sent when a user gains plugin capabilities)', 'ffcertificate' ); ?></td></tr>
+				<tr><td><strong><?php esc_html_e( 'Account access', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Access-granted notice, sent when a user gains plugin capabilities — only while "Access Granted Notification" is on in the SMTP tab, which it is not by default', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
 		<p><?php esc_html_e( 'Subjects follow one shape — "Event: {{reference}}" (a short event title, a colon, then the record it refers to). Bodies follow one visual standard — an event-title heading in a semantic colour (green = confirmed, red = cancelled, amber = reminder, purple = waitlist, blue = informational), a greeting, one context line, and a details box.', 'ffcertificate' ); ?> <a href="#email-texts-hub"><?php esc_html_e( 'See the Email texts hub page.', 'ffcertificate' ); ?></a></p>
@@ -112,6 +112,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Turning emails off', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'The global "Disable all emails" toggle (SMTP tab) is enforced at the single send chokepoint, so it is bypass-proof — nothing is sent while it is on. Every email-editing screen shows a gentle notice while it is active, so you know settings are saved but not sent.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'Below it, the SMTP tab has one switch per optional email: the welcome email when a WordPress user is created by a form submission or an appointment (on by default), by a CSV import or a migration (off by default, to avoid bulk mail), and the "Access Granted Notification" (off by default).', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-example">

@@ -197,7 +197,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 							<option value="auto" <?php selected( $ffcertificate_get_option( 'dark_mode', 'off' ), 'auto' ); ?>><?php esc_html_e( 'Auto (follow OS)', 'ffcertificate' ); ?></option>
 						</select>
 						<p class="description">
-							<?php esc_html_e( 'Controls the dark mode appearance for plugin admin pages.', 'ffcertificate' ); ?><br>
+							<?php esc_html_e( 'Controls the dark mode appearance of the plugin\'s admin screens and of its public pages (forms, user dashboard, shortcodes).', 'ffcertificate' ); ?><br>
 							<span class="ffc-text-info ffc-icon-info"><?php esc_html_e( '"Auto" follows your operating system preference.', 'ffcertificate' ); ?></span>
 						</p>
 					</td>

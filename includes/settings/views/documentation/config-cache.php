@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<ul>
 		<li><strong><?php esc_html_e( 'Enable cache', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'turn form-settings caching on or off.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Expiration', 'ffcertificate' ); ?></strong> — <?php esc_html_e( '15 minutes, 30 minutes, 1 hour (default) or 1 day.', 'ffcertificate' ); ?></li>
-		<li><strong><?php esc_html_e( 'Automatic warming', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'a daily job pre-loads every published form into the cache.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Automatic warming', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'off by default; when "Pre-load cache daily" is on, a daily task pre-loads every published form into the cache. Its time is set on Settings → Scheduled Tasks.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Warm / Clear now', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'buttons to pre-load or flush the form cache immediately.', 'ffcertificate' ); ?></li>
 	</ul>
 

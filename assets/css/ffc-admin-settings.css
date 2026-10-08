@@ -791,6 +791,13 @@
     --ffc-icon-tone: var(--ffc-primary);
 }
 
+/* A link inside a documentation table reads like every other link in the
+   topic: WordPress drops the underline in `.widefat` cells, which left three
+   cross-references looking like plain coloured text (#1638). */
+.ffc-doc-toc ~ .card td a {
+    text-decoration: underline;
+}
+
 /* Responsive */
 @media screen and (max-width: 782px) {
     .ffc-doc-example pre {

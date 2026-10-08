@@ -372,7 +372,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_date_messages'   => array(
 						'label'       => __( 'Manage date messages', 'ffcertificate' ),
-						'description' => __( 'Create and edit rules, send manually and set the daily send time.', 'ffcertificate' ),
+						'description' => __( 'Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
 					),
 					'ffc_view_date_messages_pii' => array(
 						'label'       => __( 'See who receives date messages', 'ffcertificate' ),
