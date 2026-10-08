@@ -113,7 +113,7 @@ final class SpacingTokensTest extends TestCase {
 		'ffc-reregistration-admin.css'     => 5,
 		'ffc-url-shortener-admin.css'      => 1,
 		'ffc-user-dashboard.css'           => 7,
-		'ffc-user-permissions.css'         => 15,
+		'ffc-user-permissions.css'         => 14,
 	);
 
 	/**

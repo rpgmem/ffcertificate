@@ -156,6 +156,11 @@ class RoleCapabilityEditorTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-cap-slug="ffc_view_recruitment_pii"', $output );
 		// A cap the first role grants renders checked.
 		$this->assertMatchesRegularExpression( '/ffc_role_cap_ffc_view_own_certificates[^>]*checked/', $output );
+		// Its own card with an icon heading, like every Settings section (#1631),
+		// and the card closes: one open, one more close than the panel's own.
+		$this->assertStringStartsWith( '<div class="card"><h2 class="ffc-icon-shield">', $output );
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ) );
+		$this->assertStringNotContainsString( '<hr', $output );
 	}
 
 	// ------------------------------------------------------------------

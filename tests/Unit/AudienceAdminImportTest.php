@@ -100,7 +100,13 @@ class AudienceAdminImportTest extends TestCase {
 		$page->render_content();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( 'ffc-import-tab', $output );
+		// Import and export share the screen (#1631): both halves render, with
+		// no second row of tabs to hide one of them.
+		$this->assertStringContainsString( '<h2 class="ffc-icon-upload">Import Members</h2>', $output );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-download">Export Members</h2>', $output );
+		$this->assertSame( 2, substr_count( $output, '<div class="ffc-import-sections">' ) );
+		$this->assertStringNotContainsString( 'nav-tab', $output );
+		$this->assertStringNotContainsString( 'display: none', $output );
 	}
 
 	// ==================================================================

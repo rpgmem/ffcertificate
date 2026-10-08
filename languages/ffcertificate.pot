@@ -24889,3 +24889,9 @@ msgstr ""
 
 msgid "Total"
 msgstr ""
+
+msgid "Recipients"
+msgstr ""
+
+msgid "Summary"
+msgstr ""

@@ -121,10 +121,14 @@ $ffc_dm_icons = array(
 		</ul>
 
 		<div id="ffc-date-messages-tabpanel" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-date-messages-tabnav-<?php echo esc_attr( $ffc_dm_active ); ?>" tabindex="0">
+			<?php
+			// Every tab is one card headed by its icon, except the rule editor,
+			// which draws a card per part of the rule itself (#1631).
+			?>
+			<?php if ( 'edit' !== $tab ) : ?>
 			<div class="card">
-				<?php if ( 'edit' !== $tab ) : ?>
-					<h2 class="<?php echo esc_attr( $ffc_dm_icons[ $tab ] ); ?>"><?php echo esc_html( $ffc_dm_tabs[ $tab ] ); ?></h2>
-				<?php endif; ?>
+				<h2 class="<?php echo esc_attr( $ffc_dm_icons[ $tab ] ); ?>"><?php echo esc_html( $ffc_dm_tabs[ $tab ] ); ?></h2>
+			<?php endif; ?>
 
 	<?php
 	$ffc_dm_partial = array(
@@ -137,7 +141,9 @@ $ffc_dm_icons = array(
 	);
 	require __DIR__ . '/' . $ffc_dm_partial[ $tab ];
 	?>
+			<?php if ( 'edit' !== $tab ) : ?>
 			</div>
+			<?php endif; ?>
 		</div>
 	</div>
 </div>

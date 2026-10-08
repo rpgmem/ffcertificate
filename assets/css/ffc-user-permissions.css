@@ -462,10 +462,6 @@
 }
 
 /* ---- role → capability editor (Settings → User Access) --------------- */
-.ffc-role-editor-sep {
-	margin: 28px 0 var(--ffc-spacing-lg);
-}
-
 .ffc-role-impact {
 	max-width: 860px;
 }

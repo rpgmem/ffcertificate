@@ -24979,3 +24979,9 @@ msgstr "Horários de Funcionamento e Disponibilidade"
 
 msgid "Total"
 msgstr "Total"
+
+msgid "Recipients"
+msgstr "Destinatários"
+
+msgid "Summary"
+msgstr "Resumo"

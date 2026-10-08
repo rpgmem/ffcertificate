@@ -110,7 +110,7 @@ class CertificatesDashboard {
 					<div id="ffc-certificates-calendar"></div>
 				</div>
 				<aside class="ffc-certificates-dashboard-side" aria-live="polite">
-					<h2 class="ffc-certificates-side-title">
+					<h2 class="ffc-certificates-side-title ffc-icon-calendar">
 						<?php esc_html_e( 'Forms on the selected day', 'ffcertificate' ); ?>
 					</h2>
 					<div class="ffc-certificates-side-empty">

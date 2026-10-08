@@ -102,8 +102,10 @@ $ffcertificate_method_labels = array(
 		</p>
 		<p><button type="submit" name="ffc_save_cron_times" value="1" class="button button-primary"><?php esc_html_e( 'Save times', 'ffcertificate' ); ?></button></p>
 		</form>
+	</div>
 
-		<h3><?php esc_html_e( 'Queued one-off tasks', 'ffcertificate' ); ?></h3>
+	<div class="card">
+		<h2 class="ffc-icon-list"><?php esc_html_e( 'Queued one-off tasks', 'ffcertificate' ); ?></h2>
 		<p class="description"><?php esc_html_e( 'Created per piece of work and removed once they run. A number that keeps growing means WP-Cron is not running.', 'ffcertificate' ); ?></p>
 		<ul>
 			<?php foreach ( $ffcertificate_singles as $ffcertificate_hook => $ffcertificate_count ) : ?>

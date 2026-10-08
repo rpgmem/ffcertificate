@@ -231,7 +231,7 @@ $ffc_modes = array(
 </div>
 
 <div class="card">
-	<h2><?php esc_html_e( 'What ALTCHA does, and does not, send', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-shield"><?php esc_html_e( 'What ALTCHA does, and does not, send', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'The widget is served from this site — nothing is loaded from a content delivery network. The challenge is issued by this WordPress installation, the computation happens in the visitor\'s browser, and the answer is checked here. No request reaches any third party, and no behavioural signal is collected: the widget can record pointer and keyboard timings, and that is switched off.', 'ffcertificate' ); ?>
 	</p>
