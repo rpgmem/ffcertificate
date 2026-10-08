@@ -50,5 +50,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Profile custom fields', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'The identity/contact/address/employment fields live on the plugin\'s user profile and are mapped to the reregistration and audience data, so a user\'s details stay consistent across a certificate PDF, a record and their profile. WordPress\'s first and last name follow the plugin\'s full name (first word / the rest), and editing First/Last Name on the user-edit screen updates it back.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'Administrators see and edit the same fields on the user-edit screen, in the "FFC Custom Data" section, grouped by the audiences the user belongs to. They behave as on the reregistration form: CPF, RF, RG and phone fields are masked and validated, dependent selects follow their parent, and a field mapped to the profile is saved there, encrypted when it holds personal data, so the profile, the dashboard and the next reregistration read the same value.', 'ffcertificate' ); ?></p>
 	</div>
 </div>

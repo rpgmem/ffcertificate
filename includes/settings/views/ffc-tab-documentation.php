@@ -443,7 +443,7 @@ $ffc_require_doc_pages = static function ( array $ffc_nodes ) use ( &$ffc_requir
 <!-- Quick Navigation — a sticky card holding the search box and the
 	section tree, grouped as collapsible functional areas (#697). -->
 <div class="card ffc-doc-toc ffc-doc-toc--tree">
-	<h3><?php esc_html_e( 'Quick Navigation', 'ffcertificate' ); ?></h3>
+	<h3 id="ffc-doc-nav" class="ffc-icon-search"><?php esc_html_e( 'Quick Navigation', 'ffcertificate' ); ?></h3>
 	<p>
 		<input type="search" id="ffc-doc-search" class="regular-text" placeholder="<?php esc_attr_e( 'Search documentation…', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search documentation', 'ffcertificate' ); ?>">
 	</p>

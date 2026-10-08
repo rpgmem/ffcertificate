@@ -49,16 +49,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Who receives a message', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'For each person whose date falls on the day, the first matching decision wins: outside the audience, opted out, no valid e-mail, already sent, otherwise will receive. Each person gets a rule\'s message once per occurrence of their date, however often the run repeats. People born on 29 February are reached on 28 February in a common year. The year of birth is never shown; {{age}} is computed from it.', 'ffcertificate' ); ?></p>
-	<p class="description"><?php esc_html_e( 'A birth date given before the profile field existed reaches the profile through a migration card in Settings → Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends.', 'ffcertificate' ); ?></p>
+	<p class="description"><?php esc_html_e( 'A birth date given before the profile field existed reaches the profile through a migration card in Settings → Data Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Preview recipients and test send', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( '"Preview recipients" lists, for a range of dates, everyone the rule would reach and the decision for each, using the very selection the send uses, so the preview cannot disagree with what is sent. Long lists show only the first rows, while the totals count everyone. "Send test to me" mails the message, filled with fictional values, to your own address. Both use the values on the form, saved or not, and neither sends to anybody else nor records anything.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Send now', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Sends one rule to everyone whose date falls in a chosen range of up to 31 days, in batches handed to wp_mail(). People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Send now is also how a missed day is recovered: the daily run covers only the current day, so a day the scheduler did not run is not caught up the next day. Only an active rule can be sent; deactivating a rule stops a run still in progress at its next batch.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'History', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. "Sent" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. "Sent" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen.', 'ffcertificate' ); ?></p>
@@ -67,7 +68,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month, optionally filtered by audience. The tab is shown only to holders of ffc_view_date_messages_pii and administrators.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Daily schedule', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'The daily run sends every active rule once a day, at 08:00 in the site timezone by default. The time is chosen on Settings → Scheduled Tasks, which also shows the server line that keeps scheduled tasks running on a quiet site.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The daily run sends every active rule once a day, for that day\'s dates only, at 08:00 in the site timezone by default. The Schedule tab shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Opting out', 'ffcertificate' ); ?></h4>
 	<ul>
@@ -84,7 +85,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</thead>
 		<tbody>
-			<tr><td><code>{{name}}</code>, <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{full_name}}</code></td><td><?php esc_html_e( 'The person\'s name as stored, its first word, the rest, and the two joined', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>{{name}}</code>, <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{full_name}}</code></td><td><?php esc_html_e( 'The person\'s name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>{{email}}</code></td><td><?php esc_html_e( 'The person\'s e-mail address', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>{{date}}</code>, <code>{{age}}</code></td><td><?php esc_html_e( 'The date of this occurrence and the age reached on it', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>{{days_until}}</code></td><td><?php esc_html_e( 'Days between the send and the date', 'ffcertificate' ); ?></td></tr>
@@ -97,7 +98,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
 	<ul>
 		<li><code>ffc_view_date_messages</code> — <?php esc_html_e( 'read-only access to the rules, their send history and recipient totals.', 'ffcertificate' ); ?></li>
-		<li><code>ffc_manage_date_messages</code> — <?php esc_html_e( 'create and edit rules, send manually and set the daily send time.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_manage_date_messages</code> — <?php esc_html_e( 'create and edit rules and send manually. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_view_date_messages_pii</code> — <?php esc_html_e( 'see people by name with their birthday (day and month) in the recipient preview, the upcoming dates and the manager summary.', 'ffcertificate' ); ?></li>
 	</ul>
 </div>

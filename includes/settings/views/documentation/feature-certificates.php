@@ -29,6 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</ul>
 		<p><?php esc_html_e( 'The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Advanced → Required Certificate Tags. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'The {{qr_code}} image follows the design set in Settings → QR Code (module shape, colours, logo, frame) when that design is switched on for certificates; otherwise a plain black-and-white code is drawn.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-note">
@@ -67,7 +68,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'Using in Forms:', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'On the Geolocation tab of the form editor\'s "Certificate Form Configuration" box, choose the area source for GPS and IP validation:', 'ffcertificate' ); ?></p>
 		<ul>
-			<li><strong><?php esc_html_e( 'Registered Locations:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Select one or more named locations from a dropdown. Coordinates are resolved at runtime from the registry.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Registered Locations:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Tick one or more named locations in the list. Coordinates are resolved at runtime from the registry.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Custom Coordinates:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Enter coordinates manually in the textarea (lat,lng,radius format, one per line). This is the legacy behavior.', 'ffcertificate' ); ?></li>
 		</ul>
 		<p><?php esc_html_e( 'Existing forms that were created before this feature default to "Custom Coordinates" and continue to work without any changes.', 'ffcertificate' ); ?></p>

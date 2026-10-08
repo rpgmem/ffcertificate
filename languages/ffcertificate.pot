@@ -943,10 +943,6 @@ msgstr ""
 msgid "A confirmation email has been sent to your email address."
 msgstr ""
 
-#: includes/settings/views/documentation/config-cache.php:33
-msgid "a daily job pre-loads every published form into the cache."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-privacy.php:49
 msgid "A database foreign-key backstop enforces the same anonymise/remove behaviour even if the application hook is bypassed."
 msgstr ""
@@ -1230,10 +1226,6 @@ msgstr ""
 
 #: templates/emails/access-granted.php:27
 msgid "Access to:"
-msgstr ""
-
-#: includes/settings/views/documentation/reference-emails.php:72
-msgid "Access-granted notice (sent when a user gains plugin capabilities)"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:318 includes/settings/tabs/class-ffc-tab-email-texts.php:495 includes/settings/views/documentation/reference-emails.php:72
@@ -1580,10 +1572,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:444
 msgid "Admin / Operational"
-msgstr ""
-
-#: includes/settings/views/documentation/config-general.php:30
-msgid "Admin appearance: Off, On (always dark), or Auto (follow the operating system)."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-user-access.php:289
@@ -4787,10 +4775,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:161
 msgid "Control when users can access this form based on date range and daily hours."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-general.php:200
-msgid "Controls the dark mode appearance for plugin admin pages."
 msgstr ""
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:59
@@ -15982,10 +15966,6 @@ msgstr ""
 msgid "Select image"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-certificates.php:68
-msgid "Select one or more named locations from a dropdown. Coordinates are resolved at runtime from the registry."
-msgstr ""
-
 #: templates/admin/recruitment/notice-edit/bulk-call-toolbar.php:29
 msgid "Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch. Date and time are remembered from the previous successful call."
 msgstr ""
@@ -16396,10 +16376,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-html-refs-notice.php:108 includes/admin/class-ffc-form-editor-save-handler.php:658
 msgid "Settings → Migrations → Rewrite html/ Image References"
-msgstr ""
-
-#: includes/settings/views/documentation/config-modules.php:20
-msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens and stops its runtime (including its scheduled/cron work), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
 msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:20
@@ -18068,10 +18044,6 @@ msgstr ""
 msgid "The plugin is built to help you meet data-protection obligations (the Brazilian LGPD and equivalents). Sensitive data is encrypted at rest, and the plugin plugs into WordPress's own Privacy Tools so you can answer access and erasure requests with the standard core screens."
 msgstr ""
 
-#: includes/settings/views/documentation/reference-capabilities.php:22
-msgid "The plugin ships fine-grained capabilities you can assign to roles or individual users with any capability-management plugin. WordPress administrators (manage_options) always hold every FFC capability."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-general.php:139
 msgid "The plugin uses its own date and time formats (configured below) for everything it renders — admin lists, frontend pages, emails, REST responses and PDFs. The rest of WordPress (themes, other plugins, posts) keeps using the global formats from Settings → General. This is intentional, but worth knowing when comparing dates across the dashboard."
 msgstr ""
@@ -18202,10 +18174,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:43
 msgid "The SMTP tab controls how mail leaves the server:"
-msgstr ""
-
-#: includes/settings/views/documentation/operations-updates.php:34
-msgid "The source repository is public, so updates need no access token, account or licence — the site just needs to be able to reach github.com over HTTPS. On a locked-down network that blocks outbound HTTPS, the update check cannot see new releases and you would update the plugin manually instead."
 msgstr ""
 
 #: includes/frontend/class-ffc-public-csv-download.php:737
@@ -22751,9 +22719,6 @@ msgstr ""
 msgid "Could not record the run."
 msgstr ""
 
-msgid "Create and edit rules, send manually and set the daily send time."
-msgstr ""
-
 msgid "Date Messages"
 msgstr ""
 
@@ -22842,9 +22807,6 @@ msgid "\"Sent\" counts messages handed to wp_mail(); with a mail queue active, d
 msgstr ""
 
 msgid "(deleted rule)"
-msgstr ""
-
-msgid "0 sends on the date itself; -7 sends seven days before it."
 msgstr ""
 
 msgid "Activate"
@@ -23678,9 +23640,6 @@ msgstr ""
 msgid "Upgrade notice."
 msgstr ""
 
-msgid "Dashboard → Updates shows a short summary of the release on offer, taken from the plugin's readme, so you can read what changes before applying it."
-msgstr ""
-
 msgid "Settings → Scheduled Tasks lists the background tasks the plugin runs through WP-Cron — cleanups, reminders, cache warming, date messages and the like — and helps you keep them running on time."
 msgstr ""
 
@@ -24152,9 +24111,6 @@ msgstr ""
 msgid "For each person whose date falls on the day, the first matching decision wins: outside the audience, opted out, no valid e-mail, already sent, otherwise will receive. Each person gets a rule's message once per occurrence of their date, however often the run repeats. People born on 29 February are reached on 28 February in a common year. The year of birth is never shown; {{age}} is computed from it."
 msgstr ""
 
-msgid "A birth date given before the profile field existed reaches the profile through a migration card in Settings → Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends."
-msgstr ""
-
 msgid "Preview recipients and test send"
 msgstr ""
 
@@ -24164,9 +24120,6 @@ msgstr ""
 msgid "Sends one rule to everyone whose date falls in a chosen range of up to 31 days, in batches handed to wp_mail(). People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs."
 msgstr ""
 
-msgid "Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue."
-msgstr ""
-
 msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen."
 msgstr ""
 
@@ -24174,9 +24127,6 @@ msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day
 msgstr ""
 
 msgid "Daily schedule"
-msgstr ""
-
-msgid "The daily run sends every active rule once a day, at 08:00 in the site timezone by default. The time is chosen on Settings → Scheduled Tasks, which also shows the server line that keeps scheduled tasks running on a quiet site."
 msgstr ""
 
 msgid "Opting out"
@@ -24189,9 +24139,6 @@ msgid "Every message carries a one-click unsubscribe link; a body that does not 
 msgstr ""
 
 msgid "E-mail tokens"
-msgstr ""
-
-msgid "The person's name as stored, its first word, the rest, and the two joined"
 msgstr ""
 
 msgid "The person's e-mail address"
@@ -24213,9 +24160,6 @@ msgid "Messages go through the shared e-mail pipeline and Email Model chrome, an
 msgstr ""
 
 msgid "read-only access to the rules, their send history and recipient totals."
-msgstr ""
-
-msgid "create and edit rules, send manually and set the daily send time."
 msgstr ""
 
 msgid "see people by name with their birthday (day and month) in the recipient preview, the upcoming dates and the manager summary."
@@ -24333,9 +24277,6 @@ msgid "The capabilities that let a user open the Settings page — args ( caps )
 msgstr ""
 
 msgid "Add a tab to the Scheduling settings screen — args ( tabs )."
-msgstr ""
-
-msgid "Register a migration card and its strategy on Settings → Migrations — args ( migrations ) / ( strategies )."
 msgstr ""
 
 msgid "The page URL used for a form's schedule-exception link — args ( url, form_id )."
@@ -24894,4 +24835,94 @@ msgid "Recipients"
 msgstr ""
 
 msgid "Summary"
+msgstr ""
+
+msgid "0 sends on the date itself; -7 sends seven days before it, 7 seven days after it."
+msgstr ""
+
+msgid "A birth date given before the profile field existed reaches the profile through a migration card in Settings → Data Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends."
+msgstr ""
+
+msgid "Access-granted notice, sent when a user gains plugin capabilities — only while \"Access Granted Notification\" is on in the SMTP tab, which it is not by default"
+msgstr ""
+
+msgid "Administrators see and edit the same fields on the user-edit screen, in the \"FFC Custom Data\" section, grouped by the audiences the user belongs to. They behave as on the reregistration form: CPF, RF, RG and phone fields are masked and validated, dependent selects follow their parent, and a field mapped to the profile is saved there, encrypted when it holds personal data, so the profile, the dashboard and the next reregistration read the same value."
+msgstr ""
+
+msgid "An account that also holds a non-FFC role — an Editor who was given an FFC role, for example — keeps the whole of wp-admin, and administrators (manage_options) are never scoped. This is a convenience, not the security boundary: every FFC screen and action still checks its capability."
+msgstr ""
+
+msgid "Below it, the SMTP tab has one switch per optional email: the welcome email when a WordPress user is created by a form submission or an appointment (on by default), by a CSV import or a migration (off by default, to avoid bulk mail), and the \"Access Granted Notification\" (off by default)."
+msgstr ""
+
+msgid "Controls the dark mode appearance of the plugin's admin screens and of its public pages (forms, user dashboard, shortcodes)."
+msgstr ""
+
+msgid "Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks."
+msgstr ""
+
+msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
+msgstr ""
+
+msgid "Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
+msgstr ""
+
+msgid "Independently of the settings above, an account whose roles are all FFC operator roles (a module viewer, operator or manager, or FFC Read-Only) sees a scoped wp-admin: the core menus it has no use for (Posts, Comments, Tools, Plugins and the like) are hidden, the admin bar is pruned, and opening an admin page outside its module redirects to the module's own screen. Its profile, the dashboard home and the AJAX endpoints stay reachable."
+msgstr ""
+
+msgid "Off, On (always dark), or Auto (follow the operating system). Applies to the plugin's admin screens and to what it shows visitors: the public forms, the user dashboard and the scheduling, audience and recruitment shortcodes. Certificates and other PDFs are always light."
+msgstr ""
+
+msgid "Operator roles in wp-admin"
+msgstr ""
+
+msgid "Per role:"
+msgstr ""
+
+msgid "Per user:"
+msgstr ""
+
+msgid "Register a migration card and its strategy on Settings → Data Migrations — args ( migrations ) / ( strategies )."
+msgstr ""
+
+msgid "Send now is also how a missed day is recovered: the daily run covers only the current day, so a day the scheduler did not run is not caught up the next day. Only an active rule can be sent; deactivating a rule stops a run still in progress at its next batch."
+msgstr ""
+
+msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens and stops its runtime (its scheduled tasks still fire on schedule but do nothing), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
+msgstr ""
+
+msgid "Settings → User Access → \"FFC Roles & Capabilities\" edits which capabilities each FFC role carries."
+msgstr ""
+
+msgid "The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form."
+msgstr ""
+
+msgid "The daily run sends every active rule once a day, for that day's dates only, at 08:00 in the site timezone by default. The Schedule tab shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site."
+msgstr ""
+
+msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
+msgstr ""
+
+msgid "The plugin registers one role per module tier — viewer, operator, manager — plus \"FFC Administrator\", \"FFC Read-Only (all modules)\" and \"FFC End User\", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:"
+msgstr ""
+
+msgid "The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. WordPress administrators (manage_options) always hold every FFC capability."
+msgstr ""
+
+msgid "The source repository is public, so updates need no access token, account or licence — the site just needs to reach api.github.com and raw.githubusercontent.com over HTTPS. On a locked-down network that blocks outbound HTTPS, the update check cannot see new releases and you would update the plugin manually instead."
+msgstr ""
+
+msgid "Tick one or more named locations in the list. Coordinates are resolved at runtime from the registry."
+msgstr ""
+
+msgid "Where they are assigned"
+msgstr ""
+
+msgid "create and edit rules and send manually. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
+msgstr ""
+
+msgid "off by default; when \"Pre-load cache daily\" is on, a daily task pre-loads every published form into the cache. Its time is set on Settings → Scheduled Tasks."
+msgstr ""
+
+msgid "the \"FFC Permissions\" section of the user-edit screen adds or removes FFC roles and grants individual capabilities on top of them. Roles are toggled one at a time and kept alongside the user's other WordPress roles."
 msgstr ""

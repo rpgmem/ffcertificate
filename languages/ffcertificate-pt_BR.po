@@ -941,10 +941,6 @@ msgstr "Uma regra da Cloudflare está fazendo o cache de HTML (cf-cache-status: 
 msgid "A confirmation email has been sent to your email address."
 msgstr "Um e-mail de confirmação foi enviado para o seu endereço de e-mail."
 
-#: includes/settings/views/documentation/config-cache.php:33
-msgid "a daily job pre-loads every published form into the cache."
-msgstr "uma tarefa diária pré-carrega todos os formulários publicados no cache."
-
 #: includes/settings/views/documentation/reference-privacy.php:49
 msgid "A database foreign-key backstop enforces the same anonymise/remove behaviour even if the application hook is bypassed."
 msgstr "Um mecanismo de segurança baseado em chaves estrangeiras no banco de dados impõe o mesmo comportamento de anonimização ou remoção, mesmo que o *hook* da aplicação seja contornado."
@@ -1231,10 +1227,6 @@ msgstr "Acesse a página administrativa de recadastramento."
 #: templates/emails/access-granted.php:27
 msgid "Access to:"
 msgstr "Acesso a:"
-
-#: includes/settings/views/documentation/reference-emails.php:72
-msgid "Access-granted notice (sent when a user gains plugin capabilities)"
-msgstr "Notificação de acesso concedido (enviada quando um usuário obtém recursos do plugin)"
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:318 includes/settings/tabs/class-ffc-tab-email-texts.php:495 includes/settings/views/documentation/reference-emails.php:72
 msgid "Account access"
@@ -1578,10 +1570,6 @@ msgstr "admin"
 #: includes/settings/views/ffc-tab-advanced.php:444
 msgid "Admin / Operational"
 msgstr "Admin / Operacional"
-
-#: includes/settings/views/documentation/config-general.php:30
-msgid "Admin appearance: Off, On (always dark), or Auto (follow the operating system)."
-msgstr "Aparência da administração: Desativado, Ativado (sempre escuro) ou Automático (segue o sistema operacional)."
 
 #: includes/settings/views/ffc-tab-user-access.php:289
 msgid "Admin Bar"
@@ -4794,10 +4782,6 @@ msgstr "Controlar"
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:161
 msgid "Control when users can access this form based on date range and daily hours."
 msgstr "Controle quando os usuários podem acessar este formulário com base em um intervalo de datas e horários do dia."
-
-#: includes/settings/views/ffc-tab-general.php:200
-msgid "Controls the dark mode appearance for plugin admin pages."
-msgstr "Controla a aparência do modo escuro para as páginas de administração do plugin."
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:59
 msgid "Controls whether calling a candidate sends the convocation email. The global \"disable all emails\" switch always wins."
@@ -16036,10 +16020,6 @@ msgstr "Selecione a Divisão / Localização"
 msgid "Select image"
 msgstr "Selecionar imagem"
 
-#: includes/settings/views/documentation/feature-certificates.php:68
-msgid "Select one or more named locations from a dropdown. Coordinates are resolved at runtime from the registry."
-msgstr "Selecione um ou mais locais nomeados em um menu suspenso. As coordenadas são resolvidas em tempo de execução a partir do registro."
-
 #: templates/admin/recruitment/notice-edit/bulk-call-toolbar.php:29
 msgid "Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch. Date and time are remembered from the previous successful call."
 msgstr "Selecione as linhas em estado de espera para chamá-las em lote com a mesma data e hora. A operação é atômica — qualquer conflito individual reverte todo o lote. A data e a hora são lembradas da chamada bem-sucedida anterior."
@@ -16453,10 +16433,6 @@ msgstr "Configurações → Geolocalização, são configurados os elementos bá
 #: includes/admin/class-ffc-html-refs-notice.php:108 includes/admin/class-ffc-form-editor-save-handler.php:658
 msgid "Settings → Migrations → Rewrite html/ Image References"
 msgstr "Configurações → Migrações → Reescrever HTML/Referências de imagem"
-
-#: includes/settings/views/documentation/config-modules.php:20
-msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens and stops its runtime (including its scheduled/cron work), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
-msgstr "Em Configurações → Módulos, você pode ativar ou desativar módulos de recursos individuais. Todos os módulos vêm ativados por padrão; desativar um módulo oculta suas telas de administração e interrompe sua execução (incluindo tarefas agendadas ou *cron*), mas nunca exclui seus dados — basta reativá-lo a qualquer momento para que tudo volte ao normal. Cada alteração é salva instantaneamente e entra em vigor no próximo carregamento da página."
 
 #: includes/settings/views/documentation/config-rate-limit.php:20
 msgid "Settings → Rate Limit throttles abusive traffic across several independent dimensions. Every dimension has its own on/off switch, thresholds and block message. Requests are evaluated in this order: blocklist → allowlist → device → global → IP → email → CPF/RF."
@@ -18128,10 +18104,6 @@ msgstr "O plugin fornece um texto de política de privacidade pronto para adapta
 msgid "The plugin is built to help you meet data-protection obligations (the Brazilian LGPD and equivalents). Sensitive data is encrypted at rest, and the plugin plugs into WordPress's own Privacy Tools so you can answer access and erasure requests with the standard core screens."
 msgstr "O plugin foi desenvolvido para ajudar você a cumprir as obrigações de proteção de dados (como a LGPD brasileira e normas equivalentes). Dados sensíveis são criptografados em repouso, e o plugin se integra às ferramentas de privacidade nativas do WordPress, permitindo que você atenda a solicitações de acesso e exclusão utilizando as telas padrão do sistema."
 
-#: includes/settings/views/documentation/reference-capabilities.php:22
-msgid "The plugin ships fine-grained capabilities you can assign to roles or individual users with any capability-management plugin. WordPress administrators (manage_options) always hold every FFC capability."
-msgstr "O plugin disponibiliza capacidades granulares que você pode atribuir a funções ou usuários individuais usando qualquer plugin de gerenciamento de capacidades. Administradores do WordPress (com a permissão `manage_options`) sempre possuem todas as capacidades do FFC."
-
 #: includes/settings/views/ffc-tab-general.php:139
 msgid "The plugin uses its own date and time formats (configured below) for everything it renders — admin lists, frontend pages, emails, REST responses and PDFs. The rest of WordPress (themes, other plugins, posts) keeps using the global formats from Settings → General. This is intentional, but worth knowing when comparing dates across the dashboard."
 msgstr "O plugin usa seus próprios formatos de data e hora (configurados abaixo) para tudo o que renderiza — listas administrativas, páginas do front-end, e-mails, respostas REST e PDFs. O restante do WordPress (temas, outros plugins, posts) continua usando os formatos globais de Configurações → Geral. Isso é intencional, mas é importante saber ao comparar datas no painel de controle."
@@ -18263,10 +18235,6 @@ msgstr "O slug é bloqueado após a criação. URLs (?adjutancy=…) e a coluna 
 #: includes/settings/views/documentation/reference-emails.php:43
 msgid "The SMTP tab controls how mail leaves the server:"
 msgstr "A guia SMTP controla como o e-mail sai do servidor:"
-
-#: includes/settings/views/documentation/operations-updates.php:34
-msgid "The source repository is public, so updates need no access token, account or licence — the site just needs to be able to reach github.com over HTTPS. On a locked-down network that blocks outbound HTTPS, the update check cannot see new releases and you would update the plugin manually instead."
-msgstr "O repositório de origem é público, portanto, as atualizações não exigem token de acesso, conta ou licença — basta que o site consiga acessar o github.com via HTTPS. Em uma rede restrita que bloqueia conexões HTTPS de saída, a verificação de atualizações não conseguirá detectar novas versões; nesse caso, você deverá atualizar o plugin manualmente."
 
 #: includes/frontend/class-ffc-public-csv-download.php:737
 msgid "The start time must be earlier than the end time."
@@ -22841,9 +22809,6 @@ msgstr "Escolha um intervalo de 1 a %d dias, com início igual ou anterior ao fi
 msgid "Could not record the run."
 msgstr "Não foi possível registrar a execução."
 
-msgid "Create and edit rules, send manually and set the daily send time."
-msgstr "Criar e editar regras, enviar manualmente e definir o horário do envio diário."
-
 msgid "Date Messages"
 msgstr "Mensagens por Data"
 
@@ -22933,9 +22898,6 @@ msgstr "\"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de 
 
 msgid "(deleted rule)"
 msgstr "(regra excluída)"
-
-msgid "0 sends on the date itself; -7 sends seven days before it."
-msgstr "0 envia na própria data; -7 envia sete dias antes dela."
 
 msgid "Activate"
 msgstr "Ativar"
@@ -23768,9 +23730,6 @@ msgstr "O WP-Cron só roda quando o site recebe visitas — instale a linha de c
 msgid "Upgrade notice."
 msgstr "Aviso de atualização."
 
-msgid "Dashboard → Updates shows a short summary of the release on offer, taken from the plugin's readme, so you can read what changes before applying it."
-msgstr "Painel → Atualizações mostra um breve resumo da versão oferecida, tirado do readme do plugin, para que você leia o que muda antes de aplicá-la."
-
 msgid "Settings → Scheduled Tasks lists the background tasks the plugin runs through WP-Cron — cleanups, reminders, cache warming, date messages and the like — and helps you keep them running on time."
 msgstr "Configurações → Tarefas Agendadas lista as tarefas em segundo plano que o plugin executa pelo WP-Cron — limpezas, lembretes, aquecimento de cache, mensagens por data e afins — e ajuda a mantê-las rodando no horário."
 
@@ -24242,9 +24201,6 @@ msgstr "Quem recebe uma mensagem"
 msgid "For each person whose date falls on the day, the first matching decision wins: outside the audience, opted out, no valid e-mail, already sent, otherwise will receive. Each person gets a rule's message once per occurrence of their date, however often the run repeats. People born on 29 February are reached on 28 February in a common year. The year of birth is never shown; {{age}} is computed from it."
 msgstr "Para cada pessoa cuja data cai no dia, vale a primeira decisão aplicável: fora do público-alvo, cancelou o recebimento, sem e-mail válido, já enviado; caso contrário, receberá. Cada pessoa recebe a mensagem de uma regra uma vez por ocorrência da sua data, por mais que a execução se repita. Quem nasceu em 29 de fevereiro é contemplado em 28 de fevereiro nos anos não bissextos. O ano de nascimento nunca é exibido; {{age}} é calculado a partir dele."
 
-msgid "A birth date given before the profile field existed reaches the profile through a migration card in Settings → Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends."
-msgstr "Uma data de nascimento informada antes de o campo de perfil existir chega ao perfil por um cartão de migração em Configurações → Migrações; enquanto restarem contas, a tela Mensagens por Data exibe um aviso, porque essas pessoas ainda não aparecem nas prévias, nas próximas datas nem nos envios."
-
 msgid "Preview recipients and test send"
 msgstr "Prévia dos destinatários e envio de teste"
 
@@ -24254,9 +24210,6 @@ msgstr "\"Prévia dos destinatários\" lista, para um intervalo de datas, todos 
 msgid "Sends one rule to everyone whose date falls in a chosen range of up to 31 days, in batches handed to wp_mail(). People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs."
 msgstr "Envia uma regra a todos cuja data cai em um intervalo escolhido de até 31 dias, em lotes entregues ao wp_mail(). Quem já recebeu essa regra para aquela data é ignorado, então executar o mesmo intervalo duas vezes não envia nada novo. Sem um plugin de fila de e-mails ativo, um intervalo grande é enviado tão rápido quanto o PHP executa."
 
-msgid "Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue."
-msgstr "Cada execução, diária ou manual, é listada com a sua regra, as datas e os contadores: enviados, cancelaram o recebimento, sem e-mail válido, fora do público-alvo e com falha. \"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de e-mails ativa, a entrega acontece depois, a partir da fila."
-
 msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen."
 msgstr "Quando ativado em uma regra, os gestores escolhidos recebem um resumo 24 horas após o início de cada execução. Os nomes vão apenas para os destinatários autorizados a ver quem recebe mensagens por data (ffc_view_date_messages_pii, ou administradores); os demais recebem os totais. Uma execução que não alcançou ninguém não envia resumo. Só podem ser escolhidos administradores e contas que possuam uma permissão de mensagens por data."
 
@@ -24265,9 +24218,6 @@ msgstr "Lista os aniversários dos próximos 7 ou 30 dias ou de um mês escolhid
 
 msgid "Daily schedule"
 msgstr "Agendamento diário"
-
-msgid "The daily run sends every active rule once a day, at 08:00 in the site timezone by default. The time is chosen on Settings → Scheduled Tasks, which also shows the server line that keeps scheduled tasks running on a quiet site."
-msgstr "A execução diária envia todas as regras ativas uma vez por dia, por padrão às 08:00 no fuso horário do site. O horário é escolhido em Configurações → Tarefas Agendadas, que também mostra a linha do servidor que mantém as tarefas agendadas rodando em um site com pouco tráfego."
 
 msgid "Opting out"
 msgstr "Cancelar o recebimento"
@@ -24280,9 +24230,6 @@ msgstr "Toda mensagem traz um link de cancelamento de inscrição com um clique;
 
 msgid "E-mail tokens"
 msgstr "Tokens de e-mail"
-
-msgid "The person's name as stored, its first word, the rest, and the two joined"
-msgstr "O nome da pessoa como armazenado, a primeira palavra, o restante e os dois unidos"
 
 msgid "The person's e-mail address"
 msgstr "O endereço de e-mail da pessoa"
@@ -24304,9 +24251,6 @@ msgstr "As mensagens passam pelo fluxo de e-mail compartilhado e pelo layout do 
 
 msgid "read-only access to the rules, their send history and recipient totals."
 msgstr "acesso somente leitura às regras, ao histórico de envios e aos totais de destinatários."
-
-msgid "create and edit rules, send manually and set the daily send time."
-msgstr "criar e editar regras, enviar manualmente e definir o horário do envio diário."
 
 msgid "see people by name with their birthday (day and month) in the recipient preview, the upcoming dates and the manager summary."
 msgstr "ver as pessoas pelo nome, com o aniversário (dia e mês), na prévia dos destinatários, nas próximas datas e no resumo para gestores."
@@ -24424,9 +24368,6 @@ msgstr "As capacidades que permitem a um usuário abrir a página de Configuraç
 
 msgid "Add a tab to the Scheduling settings screen — args ( tabs )."
 msgstr "Adiciona uma aba à tela de configurações de Agendamento — argumentos ( tabs )."
-
-msgid "Register a migration card and its strategy on Settings → Migrations — args ( migrations ) / ( strategies )."
-msgstr "Registra um cartão de migração e sua estratégia em Configurações → Migrações — argumentos ( migrations ) / ( strategies )."
 
 msgid "The page URL used for a form's schedule-exception link — args ( url, form_id )."
 msgstr "A URL da página usada no link de exceção de horário de um formulário — argumentos ( url, form_id )."
@@ -24985,3 +24926,93 @@ msgstr "Destinatários"
 
 msgid "Summary"
 msgstr "Resumo"
+
+msgid "0 sends on the date itself; -7 sends seven days before it, 7 seven days after it."
+msgstr "0 envia na própria data; -7 envia sete dias antes dela, 7, sete dias depois."
+
+msgid "A birth date given before the profile field existed reaches the profile through a migration card in Settings → Data Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends."
+msgstr "Uma data de nascimento informada antes de o campo de perfil existir chega ao perfil por um cartão de migração em Configurações → Migrações de Dados; enquanto restarem contas, a tela Mensagens por Data exibe um aviso, porque essas pessoas ainda não aparecem nas prévias, nas próximas datas nem nos envios."
+
+msgid "Access-granted notice, sent when a user gains plugin capabilities — only while \"Access Granted Notification\" is on in the SMTP tab, which it is not by default"
+msgstr "Aviso de acesso concedido, enviado quando um usuário recebe capacidades do plugin — somente enquanto \"Notificação de Acesso Concedido\" estiver ativada na aba SMTP, o que não é o padrão"
+
+msgid "Administrators see and edit the same fields on the user-edit screen, in the \"FFC Custom Data\" section, grouped by the audiences the user belongs to. They behave as on the reregistration form: CPF, RF, RG and phone fields are masked and validated, dependent selects follow their parent, and a field mapped to the profile is saved there, encrypted when it holds personal data, so the profile, the dashboard and the next reregistration read the same value."
+msgstr "Administradores veem e editam os mesmos campos na tela de edição do usuário, na seção \"Dados Personalizados FFC\", agrupados pelos públicos-alvo a que o usuário pertence. Eles se comportam como no formulário de recadastramento: os campos de CPF, RF, RG e telefone têm máscara e validação, as listas dependentes acompanham a lista-mãe, e um campo mapeado para o perfil é salvo nele, criptografado quando contém dados pessoais, de modo que o perfil, o painel e o próximo recadastramento leem o mesmo valor."
+
+msgid "An account that also holds a non-FFC role — an Editor who was given an FFC role, for example — keeps the whole of wp-admin, and administrators (manage_options) are never scoped. This is a convenience, not the security boundary: every FFC screen and action still checks its capability."
+msgstr "Uma conta que também tem uma função que não é do FFC — um Editor que recebeu uma função FFC, por exemplo — mantém o wp-admin inteiro, e administradores (manage_options) nunca são restringidos. Isso é uma conveniência, não a barreira de segurança: toda tela e toda ação do FFC continuam verificando sua capacidade."
+
+msgid "Below it, the SMTP tab has one switch per optional email: the welcome email when a WordPress user is created by a form submission or an appointment (on by default), by a CSV import or a migration (off by default, to avoid bulk mail), and the \"Access Granted Notification\" (off by default)."
+msgstr "Abaixo dele, a aba SMTP tem um interruptor para cada e-mail opcional: o e-mail de boas-vindas quando um usuário do WordPress é criado por um envio de formulário ou um agendamento (ativado por padrão), por uma importação de CSV ou uma migração (desativado por padrão, para evitar envios em massa), e a \"Notificação de Acesso Concedido\" (desativada por padrão)."
+
+msgid "Controls the dark mode appearance of the plugin's admin screens and of its public pages (forms, user dashboard, shortcodes)."
+msgstr "Controla o modo escuro das telas de administração do plugin e das suas páginas públicas (formulários, painel do usuário, shortcodes)."
+
+msgid "Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks."
+msgstr "Criar e editar regras e enviar manualmente. O horário do envio diário fica em Configurações → Tarefas Agendadas."
+
+msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
+msgstr "Painel → Atualizações mostra um breve resumo da versão oferecida, tirado do readme dessa própria versão, junto com as versões de WordPress e PHP que ela exige e a versão de WordPress com que foi testada, para que você leia o que muda antes de aplicá-la."
+
+msgid "Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
+msgstr "Cada execução, diária ou manual, é listada com a sua regra, as datas e os contadores: enviados, cancelaram o recebimento, sem e-mail válido, fora do público-alvo e com falha. \"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de e-mails ativa, a entrega acontece depois, a partir da fila. Acima da lista, a aba mostra quando será a próxima execução diária, com um link para Configurações → Tarefas Agendadas para quem pode abri-la."
+
+msgid "Independently of the settings above, an account whose roles are all FFC operator roles (a module viewer, operator or manager, or FFC Read-Only) sees a scoped wp-admin: the core menus it has no use for (Posts, Comments, Tools, Plugins and the like) are hidden, the admin bar is pruned, and opening an admin page outside its module redirects to the module's own screen. Its profile, the dashboard home and the AJAX endpoints stay reachable."
+msgstr "Independentemente das configurações acima, uma conta cujas funções são todas funções de operador do FFC (visualizador, operador ou gestor de um módulo, ou FFC Somente Leitura) vê um wp-admin restrito: os menus do núcleo que não usa (Posts, Comentários, Ferramentas, Plugins e afins) ficam ocultos, a barra de administração é reduzida, e abrir uma página de administração fora do seu módulo redireciona para a tela do próprio módulo. O perfil, a página inicial do painel e os endpoints AJAX continuam acessíveis."
+
+msgid "Off, On (always dark), or Auto (follow the operating system). Applies to the plugin's admin screens and to what it shows visitors: the public forms, the user dashboard and the scheduling, audience and recruitment shortcodes. Certificates and other PDFs are always light."
+msgstr "Desativado, Ativado (sempre escuro) ou Automático (segue o sistema operacional). Vale para as telas de administração do plugin e para o que ele mostra aos visitantes: os formulários públicos, o painel do usuário e os shortcodes de agendamento, público-alvo e convocação. Certificados e outros PDFs são sempre claros."
+
+msgid "Operator roles in wp-admin"
+msgstr "Funções de operador no wp-admin"
+
+msgid "Per role:"
+msgstr "Por função:"
+
+msgid "Per user:"
+msgstr "Por usuário:"
+
+msgid "Register a migration card and its strategy on Settings → Data Migrations — args ( migrations ) / ( strategies )."
+msgstr "Registra um cartão de migração e sua estratégia em Configurações → Migrações de Dados — args ( migrations ) / ( strategies )."
+
+msgid "Send now is also how a missed day is recovered: the daily run covers only the current day, so a day the scheduler did not run is not caught up the next day. Only an active rule can be sent; deactivating a rule stops a run still in progress at its next batch."
+msgstr "\"Enviar agora\" também é como se recupera um dia perdido: a execução diária cobre só o dia corrente, então um dia em que o agendador não rodou não é recuperado no dia seguinte. Só uma regra ativa pode ser enviada; desativar uma regra interrompe uma execução ainda em andamento no lote seguinte."
+
+msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens and stops its runtime (its scheduled tasks still fire on schedule but do nothing), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
+msgstr "Em Configurações → Módulos, você pode ativar ou desativar módulos de recursos individuais. Todos os módulos vêm ativados por padrão; desativar um módulo oculta suas telas de administração e interrompe sua execução (suas tarefas agendadas continuam disparando no horário, mas não fazem nada), mas nunca exclui seus dados — basta reativá-lo a qualquer momento para que tudo volte ao normal. Cada alteração é salva instantaneamente e entra em vigor no próximo carregamento da página."
+
+msgid "Settings → User Access → \"FFC Roles & Capabilities\" edits which capabilities each FFC role carries."
+msgstr "Configurações → Acesso do Usuário → \"Funções e Capacidades do FFC\" define quais capacidades cada função FFC tem."
+
+msgid "The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form."
+msgstr "A lista Todos os Formulários tem uma coluna Recursos com três interruptores por formulário — CSV (o download público do operador), Quiz e Limite do dispositivo. Cada um salva assim que é acionado, grava a mesma configuração que o editor do formulário e fica somente leitura para quem não pode editar aquele formulário."
+
+msgid "The daily run sends every active rule once a day, for that day's dates only, at 08:00 in the site timezone by default. The Schedule tab shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site."
+msgstr "A execução diária envia todas as regras ativas uma vez por dia, só para as datas daquele dia, por padrão às 08:00 no fuso horário do site. A aba Agendamento mostra o horário atual e a próxima execução; o horário em si é alterado em Configurações → Tarefas Agendadas, que exige a capacidade de gerenciar configurações (ffc_manage_settings) e também mostra a linha do servidor que mantém as tarefas agendadas rodando em um site com pouco tráfego."
+
+msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
+msgstr "O nome da pessoa como armazenado; o nome e o sobrenome do perfil do WordPress (quando vazios, a primeira palavra do nome e o restante); e os dois unidos"
+
+msgid "The plugin registers one role per module tier — viewer, operator, manager — plus \"FFC Administrator\", \"FFC Read-Only (all modules)\" and \"FFC End User\", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:"
+msgstr "O plugin registra uma função por nível de cada módulo — visualizador, operador, gestor — além de \"FFC Administrador\", \"FFC Somente Leitura (todos os módulos)\" e \"FFC Usuário Final\", atribuída automaticamente a quem envia um formulário com CPF ou RF. As funções que o plugin registra atualmente:"
+
+msgid "The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. WordPress administrators (manage_options) always hold every FFC capability."
+msgstr "O plugin traz capacidades granulares e funções próprias, e gerencia ambas por conta própria — nenhum plugin de gestão de capacidades é necessário. Administradores do WordPress (manage_options) sempre têm todas as capacidades do FFC."
+
+msgid "The source repository is public, so updates need no access token, account or licence — the site just needs to reach api.github.com and raw.githubusercontent.com over HTTPS. On a locked-down network that blocks outbound HTTPS, the update check cannot see new releases and you would update the plugin manually instead."
+msgstr "O repositório de origem é público, portanto, as atualizações não exigem token de acesso, conta ou licença — basta que o site consiga acessar api.github.com e raw.githubusercontent.com via HTTPS. Em uma rede restrita que bloqueia conexões HTTPS de saída, a verificação de atualizações não conseguirá detectar novas versões; nesse caso, você deverá atualizar o plugin manualmente."
+
+msgid "Tick one or more named locations in the list. Coordinates are resolved at runtime from the registry."
+msgstr "Marque um ou mais locais cadastrados na lista. As coordenadas são obtidas do cadastro em tempo de execução."
+
+msgid "Where they are assigned"
+msgstr "Onde são atribuídas"
+
+msgid "create and edit rules and send manually. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
+msgstr "criar e editar regras e enviar manualmente. O horário do envio diário é definido em Configurações → Tarefas Agendadas, com ffc_manage_settings."
+
+msgid "off by default; when \"Pre-load cache daily\" is on, a daily task pre-loads every published form into the cache. Its time is set on Settings → Scheduled Tasks."
+msgstr "desativado por padrão; com \"Pré-carregar cache diariamente\" ativado, uma tarefa diária carrega no cache todos os formulários publicados. O horário dela é definido em Configurações → Tarefas Agendadas."
+
+msgid "the \"FFC Permissions\" section of the user-edit screen adds or removes FFC roles and grants individual capabilities on top of them. Roles are toggled one at a time and kept alongside the user's other WordPress roles."
+msgstr "a seção \"Permissões FFC\" da tela de edição do usuário adiciona ou remove funções FFC e concede capacidades individuais além delas. As funções são alternadas uma de cada vez e mantidas junto com as demais funções do usuário no WordPress."
