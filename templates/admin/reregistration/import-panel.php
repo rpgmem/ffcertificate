@@ -22,8 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<div class="postbox ffc-rereg-import-box">
-	<h2 class="hndle"><span><?php esc_html_e( 'Import answers from a spreadsheet', 'ffcertificate' ); ?></span></h2>
+<div class="card ffc-rereg-import-box">
+	<h2 class="ffc-icon-upload"><?php esc_html_e( 'Import answers from a spreadsheet', 'ffcertificate' ); ?></h2>
 	<div class="inside">
 		<p class="description">
 			<?php esc_html_e( 'Loads this campaign\'s answers for people of one audience. The file is checked in full before anything is written: if any row fails, nothing is imported.', 'ffcertificate' ); ?>

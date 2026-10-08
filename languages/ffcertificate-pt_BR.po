@@ -731,10 +731,6 @@ msgstr "(o ID é o ID da publicação do calendário exibido no editor). O visit
 msgid "(your host's reverse proxy — a private/reserved address)"
 msgstr "(o proxy reverso do seu host — um endereço privado/reservado)"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:543
-msgid "+ Add Block"
-msgstr "+ Adicionar bloco"
-
 #: includes/audience/class-ffc-audience-loader.php:255 includes/audience/class-ffc-audience-admin-audience-renderer.php:628
 msgid "+ Add Department"
 msgstr "+ Adicionar Departamento"
@@ -746,10 +742,6 @@ msgstr "+ Adicionar Divisão"
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:372
 msgid "+ Add Field"
 msgstr "+ Adicionar Campo"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:510
-msgid "+ Add Working Hours"
-msgstr "+ Adicionar Horário de Funcionamento"
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:191
 msgid "+ New certificate template"
@@ -803,10 +795,6 @@ msgstr "1 mês"
 msgid "1 week"
 msgstr "1 semana"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:148
-msgid "1. Calendar Configuration"
-msgstr "1. Configuração do Calendário"
-
 #: includes/settings/views/ffc-tab-cache.php:213
 msgid "15 minutes"
 msgstr "15 minutos"
@@ -815,17 +803,9 @@ msgstr "15 minutos"
 msgid "15 minutes, 30 minutes, 1 hour (default) or 1 day."
 msgstr "15 minutos, 30 minutos, 1 hora (padrão) ou 1 dia."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:158
-msgid "2. Working Hours & Availability"
-msgstr "2. Horários de Funcionamento e Disponibilidade"
-
 #: includes/security/class-ffc-email-limiter.php:64 includes/security/class-ffc-ip-limiter.php:78 includes/settings/views/ffc-tab-cache.php:216
 msgid "24 hours"
 msgstr "24 horas"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:168
-msgid "3. Booking Rules & Restrictions"
-msgstr "3. Regras e Restrições de Agendamento"
 
 #: includes/settings/views/documentation/config-rate-limit.php:33
 msgid "3/day, 10/week, 30/month"
@@ -847,17 +827,9 @@ msgstr "Recomenda-se o redirecionamento 302. Use o redirecionamento 301 somente 
 msgid "4 of January, 2026"
 msgstr "4 de janeiro de 2026"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:178
-msgid "4. Email Notifications"
-msgstr "4. Notificações por E-mail"
-
 #: includes/settings/views/documentation/developer-hooks-api.php:131
 msgid "404 for an unknown code."
 msgstr "404 para um código desconhecido."
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:212
-msgid "5. Occupancy Report"
-msgstr "5. Relatório de ocupação"
 
 #: includes/settings/views/documentation/config-rate-limit.php:32
 msgid "5/hour, 20/day, 60s cooldown"
@@ -24935,3 +24907,72 @@ msgstr "Submissões nos últimos 7 dias"
 
 msgid "GeoFence windows open now"
 msgstr "Janelas de GeoFence abertas agora"
+
+msgid "Add Block"
+msgstr "Adicionar bloco"
+
+msgid "Administrator recipients"
+msgstr "Destinatários administradores"
+
+msgid "Approval and waitlist"
+msgstr "Aprovação e lista de espera"
+
+msgid "Booking Rules & Restrictions"
+msgstr "Regras e Restrições de Agendamento"
+
+msgid "Booking slots"
+msgstr "Horários de atendimento"
+
+msgid "Booking window"
+msgstr "Janela de agendamento"
+
+msgid "Calendar Configuration"
+msgstr "Configuração do Calendário"
+
+msgid "Confirmation message"
+msgstr "Mensagem de confirmação"
+
+msgid "Each message on its own switch, and when the reminder goes out."
+msgstr "Cada mensagem com seu próprio interruptor, e quando o lembrete é enviado."
+
+msgid "How far ahead, and how often, a person may book."
+msgstr "Com quanta antecedência, e com que frequência, uma pessoa pode agendar."
+
+msgid "Manual review of each booking, and a queue for full slots."
+msgstr "Revisão manual de cada agendamento, e uma fila para horários lotados."
+
+msgid "Messages"
+msgstr "Mensagens"
+
+msgid "Occupancy Report"
+msgstr "Relatório de ocupação"
+
+msgid "The subject and text of the email the person receives."
+msgstr "O assunto e o texto do e-mail que a pessoa recebe."
+
+msgid "Visibility of the calendar, and the hours it can be seen or booked in."
+msgstr "Visibilidade do calendário, e os horários em que ele pode ser visto ou agendado."
+
+msgid "Weekly hours or exact blocks, and how each slot is sized."
+msgstr "Horários semanais ou blocos exatos, e o tamanho de cada horário."
+
+msgid "What the calendar is, and whether it takes bookings."
+msgstr "O que é o calendário, e se ele aceita agendamentos."
+
+msgid "Whether administrators are held to the rules above."
+msgstr "Se os administradores seguem as regras acima."
+
+msgid "Whether people can cancel their own bookings, and until when."
+msgstr "Se as pessoas podem cancelar os próprios agendamentos, e até quando."
+
+msgid "Which emails are sent"
+msgstr "Quais e-mails são enviados"
+
+msgid "Who can see and book"
+msgstr "Quem pode ver e agendar"
+
+msgid "Who receives the new-booking notification."
+msgstr "Quem recebe a notificação de novo agendamento."
+
+msgid "Working Hours & Availability"
+msgstr "Horários de Funcionamento e Disponibilidade"

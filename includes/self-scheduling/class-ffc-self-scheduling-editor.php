@@ -109,10 +109,27 @@ class SelfSchedulingEditor {
 			FFC_VERSION
 		);
 
+		// The collapsible `.ffc-section` the rules and email boxes are split
+		// into (#1629), and the script that keeps their chips live and opens
+		// one holding a field the browser rejects.
+		wp_enqueue_style(
+			'ffc-admin-components',
+			FFC_PLUGIN_URL . "assets/css/ffc-admin-components{$s}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+		wp_enqueue_script(
+			'ffc-admin-sections',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-sections{$s}.js",
+			array(),
+			FFC_VERSION,
+			true
+		);
+
 		wp_enqueue_style(
 			'ffc-calendar-editor',
 			FFC_PLUGIN_URL . "assets/css/ffc-calendar-editor{$s}.css",
-			array( 'ffc-common' ),
+			array( 'ffc-common', 'ffc-admin-components' ),
 			FFC_VERSION
 		);
 
@@ -156,7 +173,7 @@ class SelfSchedulingEditor {
 		// Main configuration.
 		add_meta_box(
 			'ffc_self_scheduling_box_config',
-			__( '1. Calendar Configuration', 'ffcertificate' ),
+			__( 'Calendar Configuration', 'ffcertificate' ),
 			array( $this, 'render_box_config' ),
 			'ffc_self_scheduling',
 			'normal',
@@ -166,7 +183,7 @@ class SelfSchedulingEditor {
 		// Working hours.
 		add_meta_box(
 			'ffc_self_scheduling_box_hours',
-			__( '2. Working Hours & Availability', 'ffcertificate' ),
+			__( 'Working Hours & Availability', 'ffcertificate' ),
 			array( $this, 'render_box_hours' ),
 			'ffc_self_scheduling',
 			'normal',
@@ -176,7 +193,7 @@ class SelfSchedulingEditor {
 		// Booking rules.
 		add_meta_box(
 			'ffc_self_scheduling_box_rules',
-			__( '3. Booking Rules & Restrictions', 'ffcertificate' ),
+			__( 'Booking Rules & Restrictions', 'ffcertificate' ),
 			array( $this, 'render_box_rules' ),
 			'ffc_self_scheduling',
 			'normal',
@@ -186,7 +203,7 @@ class SelfSchedulingEditor {
 		// Email notifications.
 		add_meta_box(
 			'ffc_self_scheduling_box_email',
-			__( '4. Email Notifications', 'ffcertificate' ),
+			__( 'Email Notifications', 'ffcertificate' ),
 			array( $this, 'render_box_email' ),
 			'ffc_self_scheduling',
 			'normal',
@@ -220,7 +237,7 @@ class SelfSchedulingEditor {
 			if ( is_array( $occupancy_config ) && 'custom' === ( $occupancy_config['schedule_type'] ?? 'regular' ) ) {
 				add_meta_box(
 					'ffc_self_scheduling_occupancy',
-					__( '5. Occupancy Report', 'ffcertificate' ),
+					__( 'Occupancy Report', 'ffcertificate' ),
 					array( $this, 'render_box_occupancy' ),
 					'ffc_self_scheduling',
 					'normal',
@@ -331,6 +348,17 @@ class SelfSchedulingEditor {
 
 		wp_nonce_field( 'ffc_self_scheduling_config_nonce', 'ffc_self_scheduling_config_nonce' );
 		?>
+		<div class="ffc-sections">
+		<?php
+		AdminUI::render_section_open(
+			array(
+				'title' => __( 'Calendar', 'ffcertificate' ),
+				'hint'  => __( 'What the calendar is, and whether it takes bookings.', 'ffcertificate' ),
+				'icon'  => 'event',
+				'open'  => true,
+			)
+		);
+		?>
 		<table class="form-table">
 			<tr>
 				<th><label for="calendar_description"><?php esc_html_e( 'Description', 'ffcertificate' ); ?></label></th>
@@ -339,6 +367,30 @@ class SelfSchedulingEditor {
 					<p class="description"><?php esc_html_e( 'Brief description of this calendar (optional)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
+			<tr>
+				<th><label for="calendar_status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label></th>
+				<td>
+					<select id="calendar_status" name="ffc_self_scheduling_config[status]">
+						<option value="active" <?php selected( $config['status'], 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
+						<option value="inactive" <?php selected( $config['status'], 'inactive' ); ?>><?php esc_html_e( 'Inactive', 'ffcertificate' ); ?></option>
+						<option value="archived" <?php selected( $config['status'], 'archived' ); ?>><?php esc_html_e( 'Archived', 'ffcertificate' ); ?></option>
+					</select>
+					<p class="description"><?php esc_html_e( 'Calendar status (inactive = no new bookings allowed)', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+		</table>
+		<?php
+		AdminUI::render_section_close();
+		AdminUI::render_section_open(
+			array(
+				'title' => __( 'Booking slots', 'ffcertificate' ),
+				'hint'  => __( 'Weekly hours or exact blocks, and how each slot is sized.', 'ffcertificate' ),
+				'icon'  => 'clock',
+				'open'  => true,
+			)
+		);
+		?>
+		<table class="form-table">
 			<tr>
 				<th><?php esc_html_e( 'Scheduling mode', 'ffcertificate' ); ?></th>
 				<td>
@@ -380,18 +432,9 @@ class SelfSchedulingEditor {
 					<p class="description"><?php esc_html_e( 'Maximum appointments per day (0 = unlimited)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
-			<tr>
-				<th><label for="calendar_status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label></th>
-				<td>
-					<select id="calendar_status" name="ffc_self_scheduling_config[status]">
-						<option value="active" <?php selected( $config['status'], 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
-						<option value="inactive" <?php selected( $config['status'], 'inactive' ); ?>><?php esc_html_e( 'Inactive', 'ffcertificate' ); ?></option>
-						<option value="archived" <?php selected( $config['status'], 'archived' ); ?>><?php esc_html_e( 'Archived', 'ffcertificate' ); ?></option>
-					</select>
-					<p class="description"><?php esc_html_e( 'Calendar status (inactive = no new bookings allowed)', 'ffcertificate' ); ?></p>
-				</td>
-			</tr>
 		</table>
+		<?php AdminUI::render_section_close(); ?>
+		</div>
 		<?php
 	}
 
@@ -518,7 +561,7 @@ class SelfSchedulingEditor {
 			</table>
 
 			<p>
-				<button type="button" class="button" id="ffc-add-working-hour"><?php esc_html_e( '+ Add Working Hours', 'ffcertificate' ); ?></button>
+				<button type="button" class="button ffc-icon-plus" id="ffc-add-working-hour"><?php esc_html_e( 'Add Working Hours', 'ffcertificate' ); ?></button>
 			</p>
 		</div>
 
@@ -551,7 +594,7 @@ class SelfSchedulingEditor {
 			</table>
 
 			<p>
-				<button type="button" class="button" id="ffc-add-custom-slot"><?php esc_html_e( '+ Add Block', 'ffcertificate' ); ?></button>
+				<button type="button" class="button ffc-icon-plus" id="ffc-add-custom-slot"><?php esc_html_e( 'Add Block', 'ffcertificate' ); ?></button>
 			</p>
 			<?php if ( $mode_locked ) : ?>
 				<p class="description ffc-text-danger"><?php esc_html_e( 'This calendar has bookings — blocks with existing bookings cannot be removed or retimed on save; you may still add blocks or raise capacity.', 'ffcertificate' ); ?></p>
@@ -598,6 +641,17 @@ class SelfSchedulingEditor {
 
 		$config = array_merge( $defaults, $config );
 		?>
+		<div class="ffc-sections">
+		<?php
+		AdminUI::render_section_open(
+			array(
+				'title' => __( 'Booking window', 'ffcertificate' ),
+				'hint'  => __( 'How far ahead, and how often, a person may book.', 'ffcertificate' ),
+				'icon'  => 'clock',
+				'open'  => true,
+			)
+		);
+		?>
 		<table class="form-table">
 			<tr>
 				<th><label for="advance_booking_min"><?php esc_html_e( 'Minimum Advance Booking', 'ffcertificate' ); ?></label></th>
@@ -614,6 +668,34 @@ class SelfSchedulingEditor {
 				</td>
 			</tr>
 			<tr>
+				<th><label for="minimum_interval_between_bookings"><?php esc_html_e( 'Minimum Interval Between Bookings', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="number" id="minimum_interval_between_bookings" name="ffc_self_scheduling_config[minimum_interval_between_bookings]" value="<?php echo esc_attr( $config['minimum_interval_between_bookings'] ); ?>" min="0" max="720" required /> <?php esc_html_e( 'hours', 'ffcertificate' ); ?>
+					<p class="description"><?php esc_html_e( 'Prevent users from booking another appointment within X hours of their last booking (0 = disabled, default: 24 hours)', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+			<tr class="ffc-custom-only">
+				<th><label for="max_blocks_per_user"><?php esc_html_e( 'Blocks per User (Custom mode)', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="number" id="max_blocks_per_user" name="ffc_self_scheduling_config[max_blocks_per_user]" value="<?php echo esc_attr( $config['max_blocks_per_user'] ); ?>" min="0" max="9999" required />
+					<p class="description"><?php esc_html_e( 'Maximum number of blocks a single user may book in this custom calendar (0 = no limit). Waitlisted bookings count toward the limit.', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+		</table>
+		<?php
+		AdminUI::render_section_close();
+		AdminUI::render_section_open(
+			array(
+				'title'  => __( 'Cancellation', 'ffcertificate' ),
+				'hint'   => __( 'Whether people can cancel their own bookings, and until when.', 'ffcertificate' ),
+				'icon'   => 'x',
+				'master' => 'allow_cancellation',
+				'on'     => (bool) $config['allow_cancellation'],
+			)
+		);
+		?>
+		<table class="form-table">
+			<tr>
 				<th><label for="allow_cancellation"><?php esc_html_e( 'Allow User Cancellation', 'ffcertificate' ); ?></label></th>
 				<td>
 					<?php
@@ -628,20 +710,25 @@ class SelfSchedulingEditor {
 					?>
 				</td>
 			</tr>
-			<tr class="ffc-cancellation-hours" <?php echo esc_attr( $config['allow_cancellation'] ? '' : 'style="display:none;"' ); ?>>
+			<tr class="ffc-cancellation-hours"<?php echo $config['allow_cancellation'] ? '' : ' style="display:none;"'; ?>>
 				<th><label for="cancellation_min_hours"><?php esc_html_e( 'Cancellation Deadline', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="cancellation_min_hours" name="ffc_self_scheduling_config[cancellation_min_hours]" value="<?php echo esc_attr( $config['cancellation_min_hours'] ); ?>" min="0" max="168" required /> <?php esc_html_e( 'hours before', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Minimum notice required to cancel (e.g., 24 hours)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
-			<tr>
-				<th><label for="minimum_interval_between_bookings"><?php esc_html_e( 'Minimum Interval Between Bookings', 'ffcertificate' ); ?></label></th>
-				<td>
-					<input type="number" id="minimum_interval_between_bookings" name="ffc_self_scheduling_config[minimum_interval_between_bookings]" value="<?php echo esc_attr( $config['minimum_interval_between_bookings'] ); ?>" min="0" max="720" required /> <?php esc_html_e( 'hours', 'ffcertificate' ); ?>
-					<p class="description"><?php esc_html_e( 'Prevent users from booking another appointment within X hours of their last booking (0 = disabled, default: 24 hours)', 'ffcertificate' ); ?></p>
-				</td>
-			</tr>
+		</table>
+		<?php
+		AdminUI::render_section_close();
+		AdminUI::render_section_open(
+			array(
+				'title' => __( 'Approval and waitlist', 'ffcertificate' ),
+				'hint'  => __( 'Manual review of each booking, and a queue for full slots.', 'ffcertificate' ),
+				'icon'  => 'user-check',
+			)
+		);
+		?>
+		<table class="form-table">
 			<tr>
 				<th><label for="requires_approval"><?php esc_html_e( 'Require Manual Approval', 'ffcertificate' ); ?></label></th>
 				<td>
@@ -673,20 +760,25 @@ class SelfSchedulingEditor {
 					<p class="description"><?php esc_html_e( 'Applies to both scheduling modes. When a spot frees up (a cancellation or a rejected approval), the next person in line is promoted automatically.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
-			<tr class="ffc-waitlist-capacity" <?php echo esc_attr( $config['waitlist_enabled'] ? '' : 'style="display:none;"' ); ?>>
+			<tr class="ffc-waitlist-capacity"<?php echo $config['waitlist_enabled'] ? '' : ' style="display:none;"'; ?>>
 				<th><label for="waitlist_capacity"><?php esc_html_e( 'Waitlist Capacity', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="waitlist_capacity" name="ffc_self_scheduling_config[waitlist_capacity]" value="<?php echo esc_attr( $config['waitlist_capacity'] ); ?>" min="0" max="9999" required /> <?php esc_html_e( 'per slot', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Maximum number of people who can wait per slot (0 = unlimited).', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
-			<tr class="ffc-custom-only">
-				<th><label for="max_blocks_per_user"><?php esc_html_e( 'Blocks per User (Custom mode)', 'ffcertificate' ); ?></label></th>
-				<td>
-					<input type="number" id="max_blocks_per_user" name="ffc_self_scheduling_config[max_blocks_per_user]" value="<?php echo esc_attr( $config['max_blocks_per_user'] ); ?>" min="0" max="9999" required />
-					<p class="description"><?php esc_html_e( 'Maximum number of blocks a single user may book in this custom calendar (0 = no limit). Waitlisted bookings count toward the limit.', 'ffcertificate' ); ?></p>
-				</td>
-			</tr>
+		</table>
+		<?php
+		AdminUI::render_section_close();
+		AdminUI::render_section_open(
+			array(
+				'title' => __( 'Who can see and book', 'ffcertificate' ),
+				'hint'  => __( 'Visibility of the calendar, and the hours it can be seen or booked in.', 'ffcertificate' ),
+				'icon'  => 'eye',
+			)
+		);
+		?>
+		<table class="form-table">
 			<tr>
 				<th><label for="ffc_visibility"><?php esc_html_e( 'Visibility', 'ffcertificate' ); ?></label></th>
 				<td>
@@ -748,6 +840,20 @@ class SelfSchedulingEditor {
 					<p class="description"><?php esc_html_e( 'When enabled, users can view the calendar at any time but can only make bookings during the configured working hours.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
+		</table>
+		<?php
+		AdminUI::render_section_close();
+		AdminUI::render_section_open(
+			array(
+				'title'  => __( 'Administrator bypass', 'ffcertificate' ),
+				'hint'   => __( 'Whether administrators are held to the rules above.', 'ffcertificate' ),
+				'icon'   => 'shield',
+				'master' => 'admin_bypass',
+				'on'     => (bool) $config['admin_bypass'],
+			)
+		);
+		?>
+		<table class="form-table">
 			<tr>
 				<th><label for="admin_bypass"><?php esc_html_e( 'Admin Bypass', 'ffcertificate' ); ?></label></th>
 				<td>
@@ -765,6 +871,8 @@ class SelfSchedulingEditor {
 				</td>
 			</tr>
 		</table>
+		<?php AdminUI::render_section_close(); ?>
+		</div>
 
 		<!-- Toggle logic handled by ffc-calendar-editor.js -->
 		<?php
@@ -799,6 +907,17 @@ class SelfSchedulingEditor {
 
 		?>
 		<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
+		<div class="ffc-sections">
+		<?php
+		AdminUI::render_section_open(
+			array(
+				'title' => __( 'Which emails are sent', 'ffcertificate' ),
+				'hint'  => __( 'Each message on its own switch, and when the reminder goes out.', 'ffcertificate' ),
+				'icon'  => 'email',
+				'open'  => true,
+			)
+		);
+		?>
 		<table class="form-table">
 			<tr>
 				<th><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></th>
@@ -861,6 +980,20 @@ class SelfSchedulingEditor {
 					<input type="number" id="reminder_hours_before" name="ffc_self_scheduling_email_config[reminder_hours_before]" value="<?php echo esc_attr( $email_config['reminder_hours_before'] ); ?>" min="1" max="168" required /> <?php esc_html_e( 'hours before appointment', 'ffcertificate' ); ?>
 				</td>
 			</tr>
+		</table>
+		<?php
+		AdminUI::render_section_close();
+		AdminUI::render_section_open(
+			array(
+				'title'  => __( 'Administrator recipients', 'ffcertificate' ),
+				'hint'   => __( 'Who receives the new-booking notification.', 'ffcertificate' ),
+				'icon'   => 'users',
+				'master' => 'ffc_send_admin_notification',
+				'on'     => (bool) $email_config['send_admin_notification'],
+			)
+		);
+		?>
+		<table class="form-table">
 			<tr>
 				<th><label for="admin_emails"><?php esc_html_e( 'Admin Email Addresses', 'ffcertificate' ); ?></label></th>
 				<td>
@@ -868,6 +1001,20 @@ class SelfSchedulingEditor {
 					<p class="description"><?php esc_html_e( 'Comma-separated email addresses for admin notifications (leave empty to use site admin email)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
+		</table>
+		<?php
+		AdminUI::render_section_close();
+		AdminUI::render_section_open(
+			array(
+				'title'  => __( 'Confirmation message', 'ffcertificate' ),
+				'hint'   => __( 'The subject and text of the email the person receives.', 'ffcertificate' ),
+				'icon'   => 'edit',
+				'master' => 'ffc_send_user_confirmation',
+				'on'     => (bool) $email_config['send_user_confirmation'],
+			)
+		);
+		?>
+		<table class="form-table">
 			<tr>
 				<th><label for="user_confirmation_subject"><?php esc_html_e( 'Confirmation Email Subject', 'ffcertificate' ); ?></label></th>
 				<td>
@@ -912,6 +1059,8 @@ class SelfSchedulingEditor {
 				</td>
 			</tr>
 		</table>
+		<?php AdminUI::render_section_close(); ?>
+		</div>
 		<?php
 	}
 
@@ -928,10 +1077,14 @@ class SelfSchedulingEditor {
 			<p><strong><?php esc_html_e( 'Use this shortcode to display the calendar:', 'ffcertificate' ); ?></strong></p>
 
 			<?php if ( 'publish' === $post->post_status ) : ?>
-				<input type="text" readonly value='[ffc_self_scheduling id="<?php echo esc_attr( (string) $post->ID ); ?>"]' onclick="this.select();" class="ffc-shortcode-input" />
+				<?php // A read-only input the shared copy button (`.ffc-copy-link`, in ffc-core.js) reads the .val() of (#1629). ?>
+				<div class="ffc-calendar-shortcode-copy">
+					<input type="text" readonly id="ffc-calendar-shortcode" value="<?php echo esc_attr( '[ffc_self_scheduling id="' . $post->ID . '"]' ); ?>" onclick="this.select();" class="ffc-shortcode-input code" />
+					<button type="button" class="button ffc-copy-link ffc-icon-copy" data-ffc-copy-target="#ffc-calendar-shortcode"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+				</div>
 
 				<p class="ffc-shortcode-preview-label"><strong><?php esc_html_e( 'Preview:', 'ffcertificate' ); ?></strong></p>
-				<p><a href="<?php echo esc_url( add_query_arg( 'calendar_preview', $post->ID, home_url( '/' ) ) ); ?>" target="_blank" class="button button-secondary"><?php esc_html_e( 'Preview Calendar', 'ffcertificate' ); ?></a></p>
+				<p><a href="<?php echo esc_url( add_query_arg( 'calendar_preview', $post->ID, home_url( '/' ) ) ); ?>" target="_blank" class="button button-secondary ffc-icon-eye"><?php esc_html_e( 'Preview Calendar', 'ffcertificate' ); ?></a></p>
 			<?php else : ?>
 				<p class="description"><?php esc_html_e( 'Publish this calendar to generate the shortcode.', 'ffcertificate' ); ?></p>
 			<?php endif; ?>

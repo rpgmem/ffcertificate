@@ -30,9 +30,9 @@ beforeAll(async () => {
 		<table>
 			<tbody id="ffc-working-hours-list">
 				<tr>
-					<td><select name="ffc_calendar_working_hours[0][day]"><option value="1" selected>Mon</option></select></td>
-					<td><input type="time" name="ffc_calendar_working_hours[0][start]" value="09:00" /></td>
-					<td><input type="time" name="ffc_calendar_working_hours[0][end]" value="17:00" /></td>
+					<td><select name="ffc_self_scheduling_working_hours[0][day]"><option value="1" selected>Mon</option></select></td>
+					<td><input type="time" name="ffc_self_scheduling_working_hours[0][start]" value="09:00" /></td>
+					<td><input type="time" name="ffc_self_scheduling_working_hours[0][end]" value="17:00" /></td>
 					<td><button type="button" class="ffc-remove-hour">Remove</button></td>
 				</tr>
 			</tbody>
@@ -55,9 +55,9 @@ beforeEach(() => {
 	// Reset to baseline: one row, cancellation off.
 	document.getElementById('ffc-working-hours-list').innerHTML = `
 		<tr>
-			<td><select name="ffc_calendar_working_hours[0][day]"><option value="1" selected>Mon</option></select></td>
-			<td><input type="time" name="ffc_calendar_working_hours[0][start]" value="09:00" /></td>
-			<td><input type="time" name="ffc_calendar_working_hours[0][end]" value="17:00" /></td>
+			<td><select name="ffc_self_scheduling_working_hours[0][day]"><option value="1" selected>Mon</option></select></td>
+			<td><input type="time" name="ffc_self_scheduling_working_hours[0][start]" value="09:00" /></td>
+			<td><input type="time" name="ffc_self_scheduling_working_hours[0][end]" value="17:00" /></td>
 			<td><button type="button" class="ffc-remove-hour">Remove</button></td>
 		</tr>
 	`;
@@ -73,6 +73,17 @@ describe('add working hour (#ffc-add-working-hour click)', () => {
 		document.getElementById('ffc-add-working-hour').click();
 		const after = document.querySelectorAll('#ffc-working-hours-list tr').length;
 		expect(after).toBe(before + 1);
+	});
+
+	it('names the new row with the key the save handler reads (#1629)', () => {
+		// The rows were once named `ffc_calendar_working_hours[…]`, a key
+		// `SelfSchedulingSaveHandler::save_working_hours()` never reads, so
+		// every row added here was dropped on save.
+		document.getElementById('ffc-add-working-hour').click();
+		const rows = document.querySelectorAll('#ffc-working-hours-list tr');
+		const names = Array.from(rows[rows.length - 1].querySelectorAll('[name]')).map((el) => el.getAttribute('name'));
+		expect(names).toHaveLength(3);
+		names.forEach((name) => expect(name).toMatch(/^ffc_self_scheduling_working_hours\[\d+\]\[(day|start|end)\]$/));
 	});
 
 	it('includes a day select with all 7 weekdays in the new row', () => {

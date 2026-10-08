@@ -206,6 +206,8 @@ final class AudienceAdminAudienceRenderer {
 			<input type="hidden" name="audience_id" value="<?php echo esc_attr( (string) $id ); ?>">
 			<input type="hidden" name="ffc_action" value="save_audience">
 
+			<div class="card">
+			<h2 class="ffc-icon-users"><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
@@ -301,6 +303,7 @@ final class AudienceAdminAudienceRenderer {
 					</td>
 				</tr>
 			</tbody></table>
+			</div>
 
 			<?php submit_button( $id > 0 ? __( 'Update Audience', 'ffcertificate' ) : __( 'Create Audience', 'ffcertificate' ) ); ?>
 		</form>
@@ -353,8 +356,8 @@ final class AudienceAdminAudienceRenderer {
 		$has_children = ! empty( AudienceReader::get_children( $audience_id ) );
 
 		?>
-		<hr>
-		<h2><?php esc_html_e( 'Reregistration Fields', 'ffcertificate' ); ?></h2>
+		<div class="card">
+		<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Reregistration Fields', 'ffcertificate' ); ?></h2>
 		<p class="description"><?php esc_html_e( 'Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use "+ Add Field" to create custom fields.', 'ffcertificate' ); ?></p>
 
 		<div id="ffc-custom-fields-container" data-audience-id="<?php echo esc_attr( (string) $audience_id ); ?>">
@@ -385,6 +388,7 @@ final class AudienceAdminAudienceRenderer {
 			<?php else : ?>
 			<p class="description"><em><?php esc_html_e( 'Read-only — you do not have permission to edit custom field definitions.', 'ffcertificate' ); ?></em></p>
 			<?php endif; ?>
+		</div>
 		</div>
 
 		<!-- Template for new field row (used by JS) -->
@@ -684,8 +688,8 @@ final class AudienceAdminAudienceRenderer {
 
 		<?php settings_errors( 'ffc_audience' ); ?>
 
-		<div class="ffc-members-section">
-			<h2><?php esc_html_e( 'Add Members', 'ffcertificate' ); ?></h2>
+		<div class="card">
+			<h2 class="ffc-icon-plus"><?php esc_html_e( 'Add Members', 'ffcertificate' ); ?></h2>
 			<form method="post" action="">
 				<?php wp_nonce_field( 'add_members', 'ffc_add_members_nonce' ); ?>
 				<input type="hidden" name="audience_id" value="<?php echo esc_attr( (string) $id ); ?>">
@@ -702,8 +706,8 @@ final class AudienceAdminAudienceRenderer {
 			</form>
 		</div>
 
-		<div class="ffc-members-section">
-			<h2><?php esc_html_e( 'Current Members', 'ffcertificate' ); ?> (<?php echo count( $members ); ?>)</h2>
+		<div class="card">
+			<h2 class="ffc-icon-users"><?php esc_html_e( 'Current Members', 'ffcertificate' ); ?> (<?php echo count( $members ); ?>)</h2>
 
 			<?php if ( empty( $members ) ) : ?>
 				<p><?php esc_html_e( 'No members yet.', 'ffcertificate' ); ?></p>
