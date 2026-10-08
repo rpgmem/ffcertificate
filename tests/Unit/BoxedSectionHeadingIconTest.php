@@ -6,79 +6,141 @@ namespace FreeFormCertificate\Tests\Unit;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Every section heading on the boxed admin screens carries an icon (#1627).
+ * Every section heading the plugin draws in wp-admin carries an icon.
  *
  * The pattern (CLAUDE.md "Icons"): a screen opens with a `.card` whose h2
- * carries the tab's icon, and every other section is a `.card` whose h2
- * carries the icon of its subject. These screens drifted from it once, each
- * with a bare `<h2>`; the scan refuses one coming back. It reads the markup
- * as text, so it sees a heading's class, never whether a box surrounds it —
- * the render tests of each screen hold that half.
+ * carries the tab's icon, and every other section names its subject with an
+ * icon. This guard used to read a fixed list of files, and that is how the
+ * recruitment editors, the scheduling dashboard and four settings cards kept
+ * a bare `<h2>` until an audit crawled every screen (#1631). It now reads the
+ * whole of `includes/` and `templates/admin/`, and a file with a bare heading
+ * passes only by being named below with the reason it is not an admin
+ * section. It reads the markup as text, so it sees a heading's class, never
+ * whether a box surrounds it — the render tests of each screen hold that half.
  */
 class BoxedSectionHeadingIconTest extends TestCase {
 
 	/**
-	 * The files that draw the boxed screens' section headings.
+	 * Files whose bare `<h2>` is not an admin section heading, with why.
+	 *
+	 * Each entry must still hold a bare heading: one that gained its icon or
+	 * left the file fails the self-check, so the list only ever shrinks.
 	 */
-	private const FILES = array(
-		'includes/admin/class-ffc-cert-template-receipt-settings.php',
-		'includes/audience/class-ffc-audience-admin-audience-renderer.php',
-		'includes/audience/class-ffc-audience-admin-calendar.php',
-		'includes/audience/class-ffc-audience-admin-environment.php',
-		'includes/audience/class-ffc-audience-admin-import.php',
-		'includes/recruitment/class-ffc-recruitment-admin-page-renderer.php',
-		'templates/admin/audience/audience-tab.php',
-		'templates/admin/audience/general-tab.php',
-		'templates/admin/audience/self-scheduling-tab.php',
-		'templates/admin/recruitment/admin-page/candidates-csv-import-section.php',
-		'templates/admin/recruitment/admin-page/create-adjutancy-form.php',
-		'templates/admin/recruitment/admin-page/create-notice-form.php',
-		'templates/admin/recruitment/admin-page/create-reason-form.php',
-		'templates/admin/recruitment/admin-page/settings-tab.php',
-		'templates/admin/reregistration/form.php',
-		'templates/admin/reregistration/import-panel.php',
+	private const NOT_ADMIN_SECTIONS = array(
+		// WordPress core screens keep WordPress styling (CLAUDE.md "Theme").
+		'includes/admin/class-ffc-admin-user-capabilities.php'          => 'profile / user-edit: a WordPress core screen',
+		'includes/admin/class-ffc-admin-user-columns.php'               => 'users.php: a WordPress core screen',
+		'includes/admin/class-ffc-admin-user-custom-fields.php'         => 'profile / user-edit: a WordPress core screen',
+		'includes/self-scheduling/views/appointments-list.php'          => 'the details dialog borrows the core postbox header',
+		// Not wp-admin at all: the public site, e-mail bodies, the PDF, and
+		// the text WordPress's privacy guide prints.
+		'includes/audience/class-ffc-audience-notification-handler.php' => 'an e-mail body',
+		'includes/audience/class-ffc-audience-shortcode.php'            => 'a public shortcode',
+		'includes/frontend/class-ffc-public-csv-download.php'           => 'a public page',
+		'includes/frontend/class-ffc-shortcodes.php'                    => 'a public shortcode',
+		'includes/generators/class-ffc-pdf-html-renderer.php'           => 'the PDF body',
+		'includes/privacy/class-ffc-privacy-handler.php'                => 'policy text for the WordPress privacy guide',
+		'includes/recruitment/class-ffc-recruitment-dashboard-section.php' => 'the public user dashboard',
+		'includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php' => 'the printable public receipt',
 	);
 
 	/**
-	 * Read a file of the list.
-	 *
-	 * @param string $file Repository-relative path.
-	 * @return string
+	 * Files whose heading carries its icon in a way a class scan cannot read.
 	 */
-	private static function read( string $file ): string {
-		$path = dirname( __DIR__, 2 ) . '/' . $file;
-		self::assertFileExists( $path, 'a listed file moved; re-point the list' );
-		return (string) file_get_contents( $path );
-	}
+	private const ICON_NOT_IN_CLASS = array(
+		'includes/admin/class-ffc-form-editor-metabox-renderer.php' => 'the icon is a child span (`ffc-form-tabs__icon`) of the panel title',
+		'templates/admin/date-messages/page.php'                    => 'the class is the tab\'s icon, read from a static map',
+	);
 
-	public function test_no_section_heading_is_bare(): void {
-		foreach ( self::FILES as $file ) {
-			$src = self::read( $file );
-			// `<h2 class="nav-tab-wrapper">` is WordPress's horizontal tab strip,
-			// not a section heading.
-			preg_match_all( '/<h2(?:\s+class="([^"]*)")?\s*>/', $src, $m, PREG_SET_ORDER );
-			foreach ( $m as $h2 ) {
-				$class = $h2[1] ?? '';
-				// A printf placeholder is the renderer's own helper; the class it
-				// receives comes from its icon map, which the render tests read.
-				if ( 'nav-tab-wrapper' === $class || 1 === preg_match( '/^%\d\$s$/', $class ) ) {
-					continue;
+	/**
+	 * Every PHP file the scan reads.
+	 *
+	 * @return array<int, string> Repository-relative paths.
+	 */
+	private static function files(): array {
+		$root  = dirname( __DIR__, 2 );
+		$files = array();
+		foreach ( array( 'includes', 'templates/admin' ) as $dir ) {
+			$it = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $root . '/' . $dir, \FilesystemIterator::SKIP_DOTS ) );
+			foreach ( $it as $file ) {
+				$path = substr( (string) $file, strlen( $root ) + 1 );
+				if ( str_ends_with( $path, '.php' ) && ! str_starts_with( $path, 'includes/libraries/' ) ) {
+					$files[] = $path;
 				}
-				$this->assertMatchesRegularExpression( '/\bffc-icon-[a-z-]+\b/', $class, $file . ': a section heading without an icon: ' . $h2[0] );
 			}
 		}
+		sort( $files );
+		return $files;
 	}
 
-	public function test_every_listed_file_draws_an_icon_heading(): void {
-		// Self-check: a file that stopped drawing headings (moved, renamed) must
-		// not read as clean.
-		foreach ( self::FILES as $file ) {
-			$src = self::read( $file );
-			$this->assertMatchesRegularExpression(
-				'/<h2 class="(?:ffc-icon-|%1\$s)|open_(?:tab|section)_card\(/',
-				$src,
-				$file . ': no icon heading found'
+	/**
+	 * Bare `<h2>` openings in a file: no icon class, not a tab strip, not a
+	 * screen-reader heading.
+	 *
+	 * @param string $src File contents.
+	 * @return array<int, string>
+	 */
+	private static function bare_headings( string $src ): array {
+		preg_match_all( '/<h2(?:\s+class="([^"]*)")?\s*>/', $src, $m, PREG_SET_ORDER );
+		$bare = array();
+		foreach ( $m as $h2 ) {
+			$class = $h2[1] ?? '';
+			// `ffc-icon-%s` / `%1$s`: a printf placeholder the renderer fills
+			// from its icon map, which that screen's render test reads.
+			if ( 1 === preg_match( '/\bffc-icon-(?:[a-z-]+|%)|\bnav-tab-wrapper\b|\bscreen-reader-text\b|^%\d\$s$/', $class ) ) {
+				continue;
+			}
+			$bare[] = $h2[0];
+		}
+		return $bare;
+	}
+
+	public function test_no_admin_section_heading_is_bare(): void {
+		$exempt = self::NOT_ADMIN_SECTIONS + self::ICON_NOT_IN_CLASS;
+		foreach ( self::files() as $file ) {
+			if ( isset( $exempt[ $file ] ) ) {
+				continue;
+			}
+			$bare = self::bare_headings( (string) file_get_contents( dirname( __DIR__, 2 ) . '/' . $file ) );
+			$this->assertSame( array(), $bare, $file . ': a section heading without an icon — give it an `ffc-icon-*` class, or name the file above with why it is not an admin section' );
+		}
+	}
+
+	public function test_every_exemption_still_holds_a_bare_heading(): void {
+		// A file that gained its icon, or moved, leaves the list — the list is
+		// a register of exceptions, not a place for names to linger.
+		$files = self::files();
+		foreach ( array_keys( self::NOT_ADMIN_SECTIONS + self::ICON_NOT_IN_CLASS ) as $file ) {
+			$this->assertContains( $file, $files, $file . ' moved; re-point or drop the exemption' );
+			$this->assertNotSame(
+				array(),
+				self::bare_headings( (string) file_get_contents( dirname( __DIR__, 2 ) . '/' . $file ) ),
+				$file . ' has no bare heading left; drop the exemption'
 			);
 		}
+	}
+
+	public function test_the_scan_reaches_the_whole_tree(): void {
+		// Self-check against an independent count (CLAUDE.md "The guards"):
+		// glob over the same two roots must find exactly what the scan read.
+		$root  = dirname( __DIR__, 2 );
+		$count = 0;
+		foreach ( array( 'includes', 'templates/admin' ) as $dir ) {
+			$stack = array( $root . '/' . $dir );
+			while ( $stack ) {
+				$current = array_pop( $stack );
+				foreach ( (array) glob( $current . '/*' ) as $entry ) {
+					if ( is_dir( (string) $entry ) ) {
+						if ( $root . '/includes/libraries' !== $entry ) {
+							$stack[] = (string) $entry;
+						}
+					} elseif ( str_ends_with( (string) $entry, '.php' ) ) {
+						++$count;
+					}
+				}
+			}
+		}
+		$this->assertSame( $count, count( self::files() ) );
+		$this->assertContains( 'templates/admin/reregistration/form.php', self::files() );
 	}
 }

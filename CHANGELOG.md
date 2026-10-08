@@ -24,6 +24,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The Certificates Dashboard opens with a summary row** (#1614): forms in the month shown, submissions today and over the last 7 days, and GeoFence windows open now. The side panel uses the shared empty state.
 - **Recruitment and Scheduling screens use the boxed sections** (#1627). The Recruitment tabs, the Scheduling Settings tabs and the audience calendar and environment edit screens put each section in a box whose heading carries an icon, as Settings does. The box styles now load on every FFC admin screen.
 - **The personal calendar, audience and reregistration editors follow the same layout** (#1629). The calendar editor's rules and emails open into collapsible sections with icons and On/Off chips, its box titles lose their step numbers and the shortcode gets a Copy button; the audience, members and campaign edit screens put each part in a box with an icon heading.
+- **The last admin screens follow the boxed pattern** (#1631). The date-message rule editor is a card per part with toggle switches; Captcha, User Access, Scheduled Tasks, the QR generator, the Certificates Dashboard and the Activity Log headings carry icons; Import & Export shows both halves without a second row of tabs.
 
 ### Fixed
 

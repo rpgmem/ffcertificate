@@ -55,6 +55,7 @@ $ffc_dm_chosen = array_map( 'intval', is_array( $ffc_dm_chosen ) ? $ffc_dm_chose
 	<input type="hidden" name="action" value="<?php echo esc_attr( DateMessagesAdminPage::SAVE_ACTION ); ?>">
 	<input type="hidden" name="rule[id]" value="<?php echo esc_attr( (string) (int) $ffc_dm_values['id'] ); ?>">
 
+	<div class="card">
 	<h2 class="ffc-icon-edit"><?php echo esc_html( (int) $ffc_dm_values['id'] > 0 ? __( 'Edit rule', 'ffcertificate' ) : __( 'New rule', 'ffcertificate' ) ); ?></h2>
 
 	<table class="form-table" role="presentation">
@@ -96,6 +97,12 @@ $ffc_dm_chosen = array_map( 'intval', is_array( $ffc_dm_chosen ) ? $ffc_dm_chose
 				</td>
 			</tr>
 		<?php endif; ?>
+	</table>
+	</div>
+
+	<div class="card">
+	<h2 class="ffc-icon-email"><?php esc_html_e( 'Message', 'ffcertificate' ); ?></h2>
+	<table class="form-table" role="presentation">
 		<tr>
 			<th scope="row"><label for="ffc-dm-subject"><?php esc_html_e( 'Subject', 'ffcertificate' ); ?></label></th>
 			<td><input type="text" id="ffc-dm-subject" name="rule[subject]" class="large-text" required value="<?php echo esc_attr( (string) $ffc_dm_values['subject'] ); ?>"></td>
@@ -124,17 +131,63 @@ $ffc_dm_chosen = array_map( 'intval', is_array( $ffc_dm_chosen ) ? $ffc_dm_chose
 				<p class="description"><?php esc_html_e( 'The header and footer come from the Email Model in Settings → SMTP. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
+	</table>
+	</div>
+
+	<div class="card">
+	<h2 class="ffc-icon-send"><?php esc_html_e( 'Sending', 'ffcertificate' ); ?></h2>
+	<table class="form-table" role="presentation">
 		<tr>
-			<th scope="row"><?php esc_html_e( 'Sending', 'ffcertificate' ); ?></th>
+			<th scope="row"><label for="ffc-dm-send-to-user"><?php esc_html_e( 'Recipients', 'ffcertificate' ); ?></label></th>
 			<td>
-				<label><input type="checkbox" name="rule[send_to_user]" value="1" <?php checked( $ffc_dm_flag( $ffc_dm_values['send_to_user'] ) ); ?>> <?php esc_html_e( 'E-mail each person on their date', 'ffcertificate' ); ?></label><br>
-				<label><input type="checkbox" name="rule[is_active]" value="1" <?php checked( $ffc_dm_flag( $ffc_dm_values['is_active'] ) ); ?>> <?php esc_html_e( 'Active (the daily run sends it)', 'ffcertificate' ); ?></label>
+				<?php
+				// The toggle switch every other FFC setting uses; still a
+				// checkbox named as before, so the save handler is unchanged.
+				\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					array(
+						'name'    => 'rule[send_to_user]',
+						'id'      => 'ffc-dm-send-to-user',
+						'checked' => $ffc_dm_flag( $ffc_dm_values['send_to_user'] ),
+						'label'   => __( 'E-mail each person on their date', 'ffcertificate' ),
+					)
+				);
+				?>
 			</td>
 		</tr>
 		<tr>
-			<th scope="row"><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></th>
+			<th scope="row"><label for="ffc-dm-is-active"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label></th>
 			<td>
-				<label><input type="checkbox" name="rule[digest_enabled]" value="1" <?php checked( $ffc_dm_flag( $ffc_dm_values['digest_enabled'] ) ); ?>> <?php esc_html_e( 'E-mail a summary of each run, 24 hours after it starts', 'ffcertificate' ); ?></label>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					array(
+						'name'    => 'rule[is_active]',
+						'id'      => 'ffc-dm-is-active',
+						'checked' => $ffc_dm_flag( $ffc_dm_values['is_active'] ),
+						'label'   => __( 'Active (the daily run sends it)', 'ffcertificate' ),
+					)
+				);
+				?>
+			</td>
+		</tr>
+	</table>
+	</div>
+
+	<div class="card">
+	<h2 class="ffc-icon-users"><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></h2>
+	<table class="form-table" role="presentation">
+		<tr>
+			<th scope="row"><label for="ffc-dm-digest-enabled"><?php esc_html_e( 'Summary', 'ffcertificate' ); ?></label></th>
+			<td>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					array(
+						'name'    => 'rule[digest_enabled]',
+						'id'      => 'ffc-dm-digest-enabled',
+						'checked' => $ffc_dm_flag( $ffc_dm_values['digest_enabled'] ),
+						'label'   => __( 'E-mail a summary of each run, 24 hours after it starts', 'ffcertificate' ),
+					)
+				);
+				?>
 				<p>
 					<label for="ffc-dm-digest-mode"><?php esc_html_e( 'Content', 'ffcertificate' ); ?></label>
 					<select id="ffc-dm-digest-mode" name="rule[digest_mode]">
@@ -156,8 +209,10 @@ $ffc_dm_chosen = array_map( 'intval', is_array( $ffc_dm_chosen ) ? $ffc_dm_chose
 			</td>
 		</tr>
 	</table>
+	</div>
 
-	<h2><?php esc_html_e( 'Check before saving', 'ffcertificate' ); ?></h2>
+	<div class="card">
+	<h2 class="ffc-icon-search"><?php esc_html_e( 'Check before saving', 'ffcertificate' ); ?></h2>
 	<p class="description"><?php esc_html_e( 'Uses the values on this form, saved or not. Nothing is sent and nothing is recorded.', 'ffcertificate' ); ?></p>
 	<div class="ffc-dm-preview" data-ffc-dm-preview="form">
 		<label><?php esc_html_e( 'From', 'ffcertificate' ); ?> <input type="date" class="ffc-dm-from" value="<?php echo esc_attr( $ffc_dm_target ); ?>"></label>
@@ -168,6 +223,7 @@ $ffc_dm_chosen = array_map( 'intval', is_array( $ffc_dm_chosen ) ? $ffc_dm_chose
 		<?php endif; ?>
 		<p class="description"><?php esc_html_e( 'The dates are the dates in the profile (such as birthdays), not the day the message goes out.', 'ffcertificate' ); ?></p>
 		<div class="ffc-dm-preview-result" aria-live="polite"></div>
+	</div>
 	</div>
 
 	<?php if ( $can_manage ) : ?>

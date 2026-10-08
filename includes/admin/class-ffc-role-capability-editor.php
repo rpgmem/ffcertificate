@@ -156,8 +156,10 @@ final class RoleCapabilityEditor {
 	public static function render(): void {
 		$roles = self::editable_roles();
 
-		echo '<hr class="ffc-role-editor-sep">';
-		echo '<h2>' . esc_html__( 'FFC Roles & Capabilities', 'ffcertificate' ) . '</h2>';
+		// Its own card, like every section of a Settings tab (#1631); it sits
+		// after the settings form so it is not part of that form's submit.
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-shield">' . esc_html__( 'FFC Roles & Capabilities', 'ffcertificate' ) . '</h2>';
 		wp_admin_notice(
 			esc_html__( 'Editing a role changes the capabilities for every user holding that role — immediately, and retroactively. Changes save as you toggle and are recorded in the activity log. The role definition is global; to change a single person, use their profile screen instead.', 'ffcertificate' ),
 			array(
@@ -167,7 +169,7 @@ final class RoleCapabilityEditor {
 		);
 
 		if ( empty( $roles ) ) {
-			echo '<p>' . esc_html__( 'No FFC roles are registered.', 'ffcertificate' ) . '</p>';
+			echo '<p>' . esc_html__( 'No FFC roles are registered.', 'ffcertificate' ) . '</p></div>';
 			return;
 		}
 
@@ -205,7 +207,7 @@ final class RoleCapabilityEditor {
 
 		self::render_catalog_grid( $granted );
 
-		echo '</div>';
+		echo '</div></div>';
 	}
 
 	/**

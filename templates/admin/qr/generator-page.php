@@ -64,7 +64,7 @@ $ffc_qr_vcard_fields = array(
 	<form id="ffc-qr-generator" class="ffc-qr-generator" autocomplete="off">
 		<div class="ffc-qr-generator__main">
 			<div class="card">
-				<h2><?php esc_html_e( 'Content', 'ffcertificate' ); ?></h2>
+				<h2 class="ffc-icon-qr"><?php esc_html_e( 'Content', 'ffcertificate' ); ?></h2>
 				<fieldset class="ffc-qr-generator__types">
 					<legend class="screen-reader-text"><?php esc_html_e( 'Type of content', 'ffcertificate' ); ?></legend>
 					<?php foreach ( $ffc_qr_types as $ffc_type => $ffc_label ) : ?>
@@ -333,7 +333,7 @@ $ffc_qr_vcard_fields = array(
 
 			<div class="ffc-qr-generator__design">
 				<div class="ffc-qr-generator__design-head">
-					<h2><?php esc_html_e( 'Design', 'ffcertificate' ); ?></h2>
+					<h2 class="ffc-icon-palette"><?php esc_html_e( 'Design', 'ffcertificate' ); ?></h2>
 					<button type="button" class="button" id="ffc-qr-design-reset"><?php esc_html_e( 'Reset to default', 'ffcertificate' ); ?></button>
 				</div>
 				<p class="description"><?php esc_html_e( 'The generator remembers your design when you download a code; "Reset to default" goes back to the global design from Settings → QR Code.', 'ffcertificate' ); ?></p>
@@ -362,7 +362,7 @@ $ffc_qr_vcard_fields = array(
 
 		<div class="ffc-qr-generator__side">
 			<div class="ffc-qr-generator__panel">
-				<h2 class="ffc-qr-generator__panel-title"><?php esc_html_e( 'Preview', 'ffcertificate' ); ?></h2>
+				<h2 class="ffc-qr-generator__panel-title ffc-icon-eye"><?php esc_html_e( 'Preview', 'ffcertificate' ); ?></h2>
 				<div id="ffc-qr-generator-preview" class="ffc-qr-generator__preview" aria-hidden="true"></div>
 				<p id="ffc-qr-generator-usage" class="ffc-qr-generator__usage"></p>
 				<p id="ffc-qr-generator-status" class="ffc-qr-generator__status" role="status" aria-live="polite"></p>

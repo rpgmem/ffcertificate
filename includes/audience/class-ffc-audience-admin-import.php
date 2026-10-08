@@ -58,12 +58,11 @@ class AudienceAdminImport {
 		?>
 		<?php settings_errors( 'ffc_audience' ); ?>
 
-			<h2 class="nav-tab-wrapper">
-				<a href="#ffc-import-tab" class="nav-tab nav-tab-active" data-tab="ffc-import-tab"><?php esc_html_e( 'Import', 'ffcertificate' ); ?></a>
-				<a href="#ffc-export-tab" class="nav-tab" data-tab="ffc-export-tab"><?php esc_html_e( 'Export', 'ffcertificate' ); ?></a>
-			</h2>
-
-			<div id="ffc-import-tab" class="ffc-tab-content" style="display: block;">
+			<?php
+			// Import and export are both on the screen (#1631): a second row of
+			// tabs inside the vertical tabs hid half of it behind a click, and
+			// it was the only nested tab strip outside a list.
+			?>
 			<div class="ffc-import-sections">
 				<!-- Import Members -->
 				<div class="ffc-import-section">
@@ -182,9 +181,7 @@ class AudienceAdminImport {
 				</div>
 
 			</div><!-- .ffc-import-sections -->
-			</div><!-- #ffc-import-tab -->
 
-			<div id="ffc-export-tab" class="ffc-tab-content" style="display: none;">
 			<div class="ffc-import-sections">
 				<!-- Export Members -->
 				<div class="ffc-import-section">
@@ -244,17 +241,7 @@ class AudienceAdminImport {
 					</form>
 				</div>
 			</div><!-- .ffc-import-sections -->
-			</div><!-- #ffc-export-tab -->
-
 		<?php
-		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-audience-admin-import',
-			FFC_PLUGIN_URL . "assets/js/ffc-audience-admin-import{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
 	}
 
 	/**

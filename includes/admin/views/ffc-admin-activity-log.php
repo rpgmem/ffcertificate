@@ -133,7 +133,7 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 
 	<!-- Stats Summary -->
 	<div class="card ffc-activity-card">
-		<h2><?php esc_html_e( 'Activity Summary (Last 30 Days)', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-icon-chart"><?php esc_html_e( 'Activity Summary (Last 30 Days)', 'ffcertificate' ); ?></h2>
 		<?php
 		$ffcertificate_stats = \FreeFormCertificate\Core\ActivityLogQuery::get_stats( 30 );
 		?>
