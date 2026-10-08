@@ -97,7 +97,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 					// behaviour; the toggle is what makes it reachable.
 					'notify_capability_grant'        => array(
 						'th_label'    => __( 'Access Granted Notification', 'ffcertificate' ),
-						'description' => __( 'Email the user when they are granted access to certificates, appointments or audience groups. Edit the text under Settings → Email Texts → Account access.', 'ffcertificate' ),
+						'description' => __( 'Email the user when they are granted access to certificates, appointments or audience groups. Edit the text under Settings → Email texts → Account access.', 'ffcertificate' ),
 						'default'     => '0',
 					),
 				);

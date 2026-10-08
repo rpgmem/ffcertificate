@@ -84,17 +84,17 @@ final class EmailSource {
 	public static function label( string $key ): string {
 		switch ( $key ) {
 			case self::CERTIFICATE:
-				return __( 'FFCertificate — Certificate', 'ffcertificate' );
+				return __( 'FFCertificate — Certificates', 'ffcertificate' );
 			case self::SCHEDULING:
-				return __( 'FFCertificate — Scheduling', 'ffcertificate' );
+				return __( 'FFCertificate — Personal Calendars', 'ffcertificate' );
 			case self::AUDIENCE:
-				return __( 'FFCertificate — Audience', 'ffcertificate' );
+				return __( 'FFCertificate — Audience Calendars', 'ffcertificate' );
 			case self::REREGISTRATION:
-				return __( 'FFCertificate — Re-registration', 'ffcertificate' );
+				return __( 'FFCertificate — Reregistration', 'ffcertificate' );
 			case self::RECRUITMENT:
 				return __( 'FFCertificate — Recruitment', 'ffcertificate' );
 			case self::DATE_MESSAGES:
-				return __( 'FFCertificate — Date messages', 'ffcertificate' );
+				return __( 'FFCertificate — Date Messages', 'ffcertificate' );
 			case self::ACCOUNT:
 				return __( 'FFCertificate — Account', 'ffcertificate' );
 			case self::ADMIN:

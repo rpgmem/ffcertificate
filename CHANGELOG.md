@@ -28,6 +28,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Scheduling Dashboard, Short URLs and reregistration submissions use the shared stat cards** (#1631). Each count is an icon card like the Certificates Dashboard's; the scheduling sections carry icon headings, and the submission counts are toned by status.
 - **The last admin screens follow the boxed pattern** (#1631). The date-message rule editor is a card per part with toggle switches; Captcha, User Access, Scheduled Tasks, the QR generator, the Certificates Dashboard and the Activity Log headings carry icons; Import & Export shows both halves without a second row of tabs.
 - **The WordPress menu shows each module's own icon** (#1640). The top-level menus drew dashicons that disagreed with the icons the documentation and Settings → Modules use; one map now feeds all three, drawn in the menu's own colour so it follows every admin colour scheme, hover, the current page and high-contrast mode. Settings → Modules now lists the modules in menu order.
+- **Each area has one name everywhere** (#1641). The menu, Settings → Modules, the Settings tabs, the documentation, e-mail texts and mail-queue sources now use one name per area — Short URLs (not URL Shortener), Personal and Audience Calendars (not Self-Scheduling), FFC Settings (not Certificate Settings) — and every "Settings → Tab" path names a tab that exists. pt_BR: "Gestor" for the Manager roles, "Público-alvo" and "QR Code" used one way.
 
 ### Fixed
 

@@ -100,7 +100,7 @@ final class Digest {
 		$to       = is_string( $run['target_to'] ?? null ) ? $run['target_to'] : '';
 		$subject  = sprintf(
 			/* translators: 1: site name, 2: rule name */
-			__( '[%1$s] Date messages summary: %2$s', 'ffcertificate' ),
+			__( '[%1$s] Date Messages summary: %2$s', 'ffcertificate' ),
 			(string) get_bloginfo( 'name' ),
 			$rule->name
 		);

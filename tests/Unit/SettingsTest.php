@@ -1210,7 +1210,7 @@ class SettingsTest extends TestCase {
 		$this->settings->display_settings_page();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Certificate Settings', $html );
+		$this->assertStringContainsString( 'FFC Settings', $html );
 		$this->assertStringContainsString( 'lazy-loaded-body', $html );
 		$this->assertNotEmpty( $ref->getValue( $this->settings ) );
 	}

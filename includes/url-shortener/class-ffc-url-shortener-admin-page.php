@@ -149,8 +149,8 @@ class UrlShortenerAdminPage {
 	 */
 	public function register_menu(): void {
 		add_menu_page(
-			__( 'Short URLs', 'ffcertificate' ),
-			__( 'Short URLs', 'ffcertificate' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'url_shortener' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'url_shortener' ),
 			'ffc_view_url_shortener',
 			'ffc-short-urls',
 			array( $this, 'render_page' ),

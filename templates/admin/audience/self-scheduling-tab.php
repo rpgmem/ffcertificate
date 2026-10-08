@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 		<div class="card">
-			<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Self-Scheduling Settings', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Personal Calendars Settings', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Settings specific to the personal appointment booking system. Calendar-specific settings (slots, working hours, email templates) are configured on each calendar\'s edit page.', 'ffcertificate' ); ?>
 			</p>

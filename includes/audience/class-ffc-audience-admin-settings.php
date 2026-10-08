@@ -71,11 +71,11 @@ class AudienceAdminSettings {
 				'icon'  => 'ffc-icon-settings',
 			),
 			'self-scheduling' => array(
-				'label' => __( 'Self-Scheduling', 'ffcertificate' ),
+				'label' => __( 'Personal Calendars', 'ffcertificate' ),
 				'icon'  => 'ffc-icon-calendar',
 			),
 			'audience'        => array(
-				'label' => __( 'Audience', 'ffcertificate' ),
+				'label' => __( 'Audience Calendars', 'ffcertificate' ),
 				'icon'  => 'ffc-icon-users',
 			),
 			'import'          => array(
@@ -245,7 +245,7 @@ class AudienceAdminSettings {
 			update_option( 'ffc_ss_visibility_message', self::rich_text_post( 'ffc_ss_visibility_message' ) );
 			update_option( 'ffc_ss_scheduling_message', self::rich_text_post( 'ffc_ss_scheduling_message' ) );
 
-			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Self-scheduling visibility settings saved.', 'ffcertificate' ), 'success' );
+			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Personal Calendars visibility settings saved.', 'ffcertificate' ), 'success' );
 		}
 
 		// Save Self-Scheduling business hours restriction messages.

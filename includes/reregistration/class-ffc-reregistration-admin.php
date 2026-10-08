@@ -117,8 +117,8 @@ class ReregistrationAdmin {
 	 */
 	public function add_menu(): void {
 		add_menu_page(
-			__( 'Reregistration', 'ffcertificate' ),
-			__( 'Reregistration', 'ffcertificate' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'reregistration' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'reregistration' ),
 			self::VIEW_CAPABILITY,
 			self::MENU_SLUG,
 			array( $this, 'render_page' ),

@@ -74,7 +74,7 @@ class AudienceAdminDashboard {
 			// heading names its subject with an icon.
 			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- get_stat_card() escapes every value.
 			?>
-			<h2 class="ffc-icon-user"><?php esc_html_e( 'Self-Scheduling (Personal)', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-user"><?php esc_html_e( 'Personal Calendars', 'ffcertificate' ); ?></h2>
 			<div class="ffc-stats">
 				<?php
 				echo AdminUI::get_stat_card(

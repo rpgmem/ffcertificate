@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'What the user sees', 'ffcertificate' ); ?></h4>
 		<ul>
 			<li><?php esc_html_e( 'Their own issued certificates, with download / verification links', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Their self-scheduling appointments (with receipt / cancel actions where allowed)', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Their personal-calendar appointments (with receipt / cancel actions where allowed)', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'The reregistration banner and "Download Record" action when a reregistration applies to them', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Their audience bookings, and the Recruitment tab with their call-ups, when they belong to an audience or are linked to a candidate', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'A Profile tab, read from the plugin\'s own user profile, where they edit their display name, phone, department, organization, notes and birth date (stored encrypted, and the date Date Messages uses)', 'ffcertificate' ); ?></li>

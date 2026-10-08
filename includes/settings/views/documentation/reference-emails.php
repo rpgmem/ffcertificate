@@ -65,9 +65,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</thead>
 			<tbody>
 				<tr><td><strong><?php esc_html_e( 'Certificates', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Certificate delivered to the user', 'ffcertificate' ); ?></td></tr>
-				<tr><td><strong><?php esc_html_e( 'Self-scheduling', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Booking confirmation, approval, cancellation, reminder, waitlist-promotion, added-to-waitlist, and the "calendar deleted → appointment cancelled" notice', 'ffcertificate' ); ?></td></tr>
+				<tr><td><strong><?php esc_html_e( 'Personal Calendars', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Booking confirmation, approval, cancellation, reminder, waitlist-promotion, added-to-waitlist, and the "calendar deleted → appointment cancelled" notice', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Campaign invitation, reminder and confirmation', 'ffcertificate' ); ?></td></tr>
-				<tr><td><strong><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'New scheduled activity and activity-cancelled notices', 'ffcertificate' ); ?></td></tr>
+				<tr><td><strong><?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'New scheduled activity and activity-cancelled notices', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Recruitment call (convocation)', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Date messages', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Birthday message — the default text a new rule starts from', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Account access', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Access-granted notice, sent when a user gains plugin capabilities — only while "Access Granted Notification" is on in the SMTP tab, which it is not by default', 'ffcertificate' ); ?></td></tr>

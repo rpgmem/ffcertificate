@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><?php esc_html_e( 'What you edit here is the GLOBAL default for each email. A subject + body left equal to the shipped default clears the stored override, so the email keeps tracking the built-in default and picks up future improvements automatically. Some emails can additionally be overridden closer to their source:', 'ffcertificate' ); ?></p>
 		<ul>
 			<li><strong><?php esc_html_e( 'Certificate email:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'each form can switch to Custom and carry its own text (Forms → Email); a form left on Global follows the hub.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'Self-scheduling confirmation:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'a calendar can keep its own confirmation body; "Restore Default Text" there restores the effective global.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Personal Calendars confirmation:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'a calendar can keep its own confirmation body; "Restore Default Text" there restores the effective global.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Audience booking / cancellation:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'a schedule\'s own custom body still overrides the global.', 'ffcertificate' ); ?></li>
 		</ul>
 		<div class="ffc-doc-note">

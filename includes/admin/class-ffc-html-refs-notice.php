@@ -5,7 +5,7 @@
  * Phase 0 admin notice (#865): warns admins when any stored certificate content
  * still references the legacy `html/` drop-folder (the plugin-scoped marker
  * `ffcertificate/html/`) — images a plugin update or `rsync --delete` deploy
- * will wipe. Points at the Settings → Migrations "Rewrite html/ Image
+ * will wipe. Points at the Settings → Data Migrations "Rewrite html/ Image
  * References" card that side-loads those images into the Media Library.
  *
  * Detection is one cached `LIKE` existence probe over the three post-meta keys
@@ -133,7 +133,7 @@ class HtmlRefsNotice extends AbstractDismissibleNotice {
 				__( 'Some certificate templates reference images inside the plugin\'s %1$shtml/%2$s folder, which a plugin update or deploy will delete. Run %3$s to move them into the Media Library.', 'ffcertificate' ),
 				'<code>',
 				'</code>',
-				'<a href="' . esc_url( $migrations_url ) . '">' . esc_html__( 'Settings → Migrations → Rewrite html/ Image References', 'ffcertificate' ) . '</a>'
+				'<a href="' . esc_url( $migrations_url ) . '">' . esc_html__( 'Settings → Data Migrations → Rewrite html/ Image References', 'ffcertificate' ) . '</a>'
 			),
 			array(
 				'a'    => array( 'href' => array() ),

@@ -7,25 +7,27 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Admin\AdminMenuIcons;
 use FreeFormCertificate\Core\Icons;
+use FreeFormCertificate\Core\PluginAreas;
 use FreeFormCertificate\Settings\SettingsReader;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 
 /**
- * A plugin area wears one icon everywhere (#1640).
+ * A plugin area wears one icon and one name everywhere (#1640, #1641).
  *
  * The admin menu, the documentation tree and Settings → Modules each named
- * their own icon until #1640: the menu took dashicons, the other two the
- * registry, and seven modules wore two icons each. `Icons::AREAS` is now the
+ * and drew the areas their own way until #1640 / #1641: the menu took
+ * dashicons, and one area had up to fourteen names. `PluginAreas` is now the
  * one map, and this holds every consumer to it: the menus register with
- * `'none'` so the registry draws them, the menu ids match each module's own
- * slug, and the documentation and Modules tab read the map instead of naming
- * a class.
+ * `'none'` so the registry draws them and take their title from the map, the
+ * menu ids match each module's own slug, and the documentation and Modules
+ * tab read the map instead of naming a class or a label of their own.
  *
+ * @covers \FreeFormCertificate\Core\PluginAreas
  * @covers \FreeFormCertificate\Core\Icons
  * @covers \FreeFormCertificate\Admin\AdminMenuIcons
  */
-class MenuIconAgreementTest extends TestCase {
+class PluginAreasAgreementTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
@@ -47,6 +49,7 @@ class MenuIconAgreementTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( '__' )->returnArg();
 	}
 
 	protected function tearDown(): void {
@@ -59,22 +62,24 @@ class MenuIconAgreementTest extends TestCase {
 	}
 
 	public function test_every_area_draws_a_registry_class(): void {
-		$this->assertSame( array_keys( self::REGISTRARS ), array_keys( Icons::areas() ), 'an area was added or removed; name where its menu is registered' );
-		foreach ( Icons::areas() as $area => $entry ) {
-			$this->assertArrayHasKey( $entry[1], Icons::classes(), $area . ' names a class the registry does not draw' );
-			$this->assertSame( 'ffc-icon-' . $entry[1], Icons::area_class( $area ) );
+		$this->assertSame( array_keys( self::REGISTRARS ), array_keys( PluginAreas::all() ), 'an area was added or removed; name where its menu is registered' );
+		foreach ( PluginAreas::all() as $area => $entry ) {
+			$this->assertArrayHasKey( $entry['icon'], Icons::classes(), $area . ' names a class the registry does not draw' );
+			$this->assertSame( 'ffc-icon-' . $entry['icon'], PluginAreas::icon_class( $area ) );
+			$this->assertNotSame( '', PluginAreas::label( $area ), $area . ' has no name' );
 		}
-		$this->assertSame( '', Icons::area_class( 'not_an_area' ) );
+		$this->assertSame( '', PluginAreas::icon_class( 'not_an_area' ) );
+		$this->assertSame( '', PluginAreas::label( 'not_an_area' ) );
 	}
 
 	public function test_menu_ids_match_the_slugs_the_modules_register(): void {
-		foreach ( Icons::areas() as $area => $entry ) {
+		foreach ( PluginAreas::all() as $area => $entry ) {
 			$source = self::read( self::REGISTRARS[ $area ][0] );
 			$this->assertStringContainsString( self::REGISTRARS[ $area ][1], $source, $area . ': the registrar no longer owns that slug' );
 
 			$slug = 'certificates' === $area ? 'ffc_form' : (string) preg_replace( "/^.*'([^']+)',?$/", '$1', self::REGISTRARS[ $area ][1] );
 			$id   = 'certificates' === $area ? 'menu-posts-' . $slug : 'toplevel_page_' . $slug;
-			$this->assertSame( $id, $entry[0], $area . ': the menu item id WordPress prints for that slug' );
+			$this->assertSame( $id, $entry['menu'], $area . ': the menu item id WordPress prints for that slug' );
 		}
 	}
 
@@ -85,21 +90,50 @@ class MenuIconAgreementTest extends TestCase {
 		}
 	}
 
+	public function test_every_menu_takes_its_title_from_the_map(): void {
+		foreach ( self::REGISTRARS as $area => $registrar ) {
+			$this->assertStringContainsString(
+				"PluginAreas::label( '" . $area . "' )",
+				self::read( $registrar[0] ),
+				$area . ' names its menu with a string of its own'
+			);
+		}
+	}
+
+	public function test_documentation_and_modules_tab_name_the_areas_from_the_map(): void {
+		$docs = self::read( 'includes/settings/views/ffc-tab-documentation.php' );
+		$list = self::read( 'includes/settings/views/documentation/config-modules.php' );
+		$tab  = self::read( 'includes/settings/views/ffc-tab-modulos.php' );
+		foreach ( array_keys( PluginAreas::all() ) as $area ) {
+			if ( 'settings' === $area ) {
+				continue;
+			}
+			$this->assertStringContainsString( "'title'", $docs );
+			$this->assertMatchesRegularExpression( "/PluginAreas::icon_class\\( '" . $area . "' \\),\\s*'title'\\s*=> \\\\FreeFormCertificate\\\\Core\\\\PluginAreas::label\\( '" . $area . "' \\)/", $docs, 'the documentation names ' . $area . ' with a title of its own' );
+			if ( 'scheduling' !== $area ) {
+				// Scheduling is two modules, Personal and Audience Calendars, each
+				// named for its own half; every other module is its area.
+				$this->assertStringContainsString( "'label' => PluginAreas::label( '" . $area . "' )", $tab, 'Settings → Modules names ' . $area . ' with a label of its own' );
+				$this->assertStringContainsString( "PluginAreas::label( '" . $area . "' )", $list, 'the Modules documentation names ' . $area . ' with a label of its own' );
+			}
+		}
+	}
+
 	public function test_documentation_and_modules_tab_read_the_map(): void {
 		$docs = self::read( 'includes/settings/views/ffc-tab-documentation.php' );
-		foreach ( array_keys( Icons::areas() ) as $area ) {
+		foreach ( array_keys( PluginAreas::all() ) as $area ) {
 			if ( 'settings' === $area ) {
 				continue; // The documentation has no Settings area: its topics sit under each feature.
 			}
-			$this->assertStringContainsString( "Icons::area_class( '" . $area . "' )", $docs, 'the documentation tree draws ' . $area . ' with a class of its own' );
+			$this->assertStringContainsString( "PluginAreas::icon_class( '" . $area . "' )", $docs, 'the documentation tree draws ' . $area . ' with a class of its own' );
 		}
 
 		$modules = self::read( 'includes/settings/views/ffc-tab-modulos.php' );
-		$this->assertStringContainsString( "Icons::area_class( \$ffc_meta['area'] ?? '' )", $modules );
+		$this->assertStringContainsString( "PluginAreas::icon_class( \$ffc_meta['area'] ?? '' )", $modules );
 		foreach ( SettingsReader::MODULE_SLUGS as $slug ) {
 			$this->assertMatchesRegularExpression( "/'" . $slug . "'\\s*=> array\\(\\s*'area'\\s*=> '([a-z_]+)'/", $modules, $slug . ' has no area on the Modules tab' );
 			preg_match( "/'" . $slug . "'\\s*=> array\\(\\s*'area'\\s*=> '([a-z_]+)'/", $modules, $m );
-			$this->assertNotSame( '', Icons::area_class( $m[1] ), $slug . ' points at an area that does not exist' );
+			$this->assertNotSame( '', PluginAreas::icon_class( $m[1] ), $slug . ' points at an area that does not exist' );
 		}
 	}
 
@@ -115,7 +149,7 @@ class MenuIconAgreementTest extends TestCase {
 		$this->assertCount( 5, $positions, 'the FFC block lost or gained a positioned menu' );
 		$sorted = $positions;
 		asort( $sorted );
-		$this->assertSame( array_keys( $sorted ), array_keys( $positions ), 'Icons::AREAS lists the areas out of menu order' );
+		$this->assertSame( array_keys( $sorted ), array_keys( $positions ), 'PluginAreas lists the areas out of menu order' );
 
 		// The Modules tab lists modules in MODULE_SLUGS order; mapped to their
 		// areas, that must be the menu order too.
@@ -125,14 +159,14 @@ class MenuIconAgreementTest extends TestCase {
 			preg_match( "/'" . $slug . "'\\s*=> array\\(\\s*'area'\\s*=> '([a-z_]+)'/", $modules, $m );
 			$order[ $m[1] ] = true;
 		}
-		$areas = array_values( array_diff( array_keys( Icons::areas() ), array( 'settings' ) ) );
+		$areas = array_values( array_diff( array_keys( PluginAreas::all() ), array( 'settings' ) ) );
 		$this->assertSame( $areas, array_keys( $order ), 'Settings → Modules lists the modules out of menu order' );
 	}
 
 	public function test_menu_stylesheet_paints_every_area_in_the_menu_colour(): void {
 		$css = Icons::menu_stylesheet();
-		foreach ( Icons::areas() as $area ) {
-			$this->assertStringContainsString( '#adminmenu #' . $area[0] . ' div.wp-menu-image::before{-webkit-mask-image:url("data:image/svg+xml,', $css );
+		foreach ( PluginAreas::all() as $area ) {
+			$this->assertStringContainsString( '#adminmenu #' . $area['menu'] . ' div.wp-menu-image::before{-webkit-mask-image:url("data:image/svg+xml,', $css );
 		}
 		// The colour comes from WordPress's own rules for the scheme, hover and
 		// current states; the stylesheet must not name one outside forced colours.

@@ -141,8 +141,8 @@ final class DateMessagesAdminPage {
 		$cap = ! current_user_can( self::VIEW_CAP ) && current_user_can( self::MANAGE_CAP ) ? self::MANAGE_CAP : self::VIEW_CAP;
 
 		add_menu_page(
-			__( 'Date Messages', 'ffcertificate' ),
-			__( 'Date Messages', 'ffcertificate' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'date_messages' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'date_messages' ),
 			$cap,
 			self::MENU_SLUG,
 			array( $this, 'render_page' ),
@@ -336,7 +336,7 @@ final class DateMessagesAdminPage {
 
 		if ( Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			$message .= ' <a href="' . esc_url( admin_url( 'admin.php?page=ffc-settings&tab=migrations' ) ) . '">'
-				. esc_html__( 'Run it in Settings → Migrations.', 'ffcertificate' ) . '</a>';
+				. esc_html__( 'Run it in Settings → Data Migrations.', 'ffcertificate' ) . '</a>';
 		}
 
 		wp_admin_notice(
