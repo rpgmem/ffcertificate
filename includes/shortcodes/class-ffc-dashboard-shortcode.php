@@ -229,7 +229,7 @@ class DashboardShortcode {
 							aria-selected="<?php echo esc_attr( 'recruitment' === $current_tab ? 'true' : 'false' ); ?>"
 							aria-controls="ffc-tabpanel-recruitment"
 							tabindex="<?php echo esc_attr( 'recruitment' === $current_tab ? '0' : '-1' ); ?>">
-						<span aria-hidden="true">📣</span> <?php esc_html_e( 'My Calls', 'ffcertificate' ); ?>
+						<span class="ffc-icon-megaphone" aria-hidden="true"></span><?php esc_html_e( 'My Calls', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
@@ -240,7 +240,7 @@ class DashboardShortcode {
 						aria-selected="<?php echo esc_attr( 'profile' === $current_tab ? 'true' : 'false' ); ?>"
 						aria-controls="ffc-tabpanel-profile"
 						tabindex="<?php echo esc_attr( 'profile' === $current_tab ? '0' : '-1' ); ?>">
-					<span aria-hidden="true">👤</span> <?php esc_html_e( 'Profile', 'ffcertificate' ); ?>
+					<span class="ffc-icon-user" aria-hidden="true"></span><?php esc_html_e( 'Profile', 'ffcertificate' ); ?>
 				</button>
 			</nav>
 

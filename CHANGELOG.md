@@ -13,6 +13,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **thumbmarkjs updated to 1.12.0** (#1604), from 1.10.1. Device fingerprints are unchanged: no signal probe changed upstream, and all 13 signals hash identically under both bundles, so stored device limits keep matching. Telemetry and the remote payload added in 1.11 stay off through the existing `logging: false`.
 - **One icon set across the plugin** (#1613). The 34 `.ffc-icon-*` classes drew emoji, whose look depended on the operating system and ignored the dark theme; they now draw monochrome SVG icons from a single registry, `Core\Icons`, in the text colour. The submissions row actions and the form editor's friction badges use the same set.
 - **Settings tabs and pages use icons that say what they are** (#1613). Each tab, the documentation index and its headings, and the migration buttons now draw from `Core\Icons` instead of shared or unrelated glyphs and dashicons. Icons stay monochrome in menus and buttons; inside a tab, new tone classes and an icon badge give colour for meaning only.
+- **No emoji left in the plugin's markup** (#1613). Tab labels, notices, the geofence bypass message, the rate-limit countdown and the appointment receipt's buttons now draw from `Core\Icons`; a status prefix the surrounding notice already conveyed was dropped. A new guard keeps raw emoji out of PHP and JS (emails excepted).
 
 ### Fixed
 

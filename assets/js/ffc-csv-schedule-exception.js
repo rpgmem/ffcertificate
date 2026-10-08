@@ -45,7 +45,7 @@
 			+   '<div class="ffc-open-early-container">'
 			+     '<div class="ffc-open-early-header">'
 			+       '<h2 id="ffc-schedule-exception-title">'
-			+         '<span aria-hidden="true">⏱️</span> '
+			+         '<span class="ffc-icon-clock" aria-hidden="true"></span>'
 			+         esc(strings.scheduleExceptionTitle || 'Schedule exception')
 			+       '</h2>'
 			+       '<button type="button" class="ffc-open-early-close ffc-schedule-exception-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'
