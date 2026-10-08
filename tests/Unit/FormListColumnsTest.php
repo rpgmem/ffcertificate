@@ -230,7 +230,7 @@ class FormListColumnsTest extends TestCase {
 			$map = array(
 				'_ffc_csv_public_enabled' => '1',
 				'_ffc_form_config'        => array( 'quiz_enabled' => 1 ),
-				'_ffc_device_limit'       => array( 'enabled' => 1 ),
+				'_ffc_device_limit_enabled' => '1',
 			);
 			return $map[ $key ] ?? '';
 		} );
@@ -247,6 +247,28 @@ class FormListColumnsTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-features-badge', $output );
 		// All features on => checkboxes are checked.
 		$this->assertStringContainsString( 'checked', $output );
+	}
+
+	public function test_device_state_reads_the_flat_key_not_the_legacy_array(): void {
+		// #1625: the column read `_ffc_device_limit['enabled']`, the key only the
+		// list's own toggle wrote, so it disagreed with the editor and runtime.
+		$states = new \ReflectionMethod( FormListColumns::class, 'get_feature_states' );
+		$states->setAccessible( true );
+
+		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) {
+			return '_ffc_device_limit' === $key ? array( 'enabled' => '1' ) : '';
+		} );
+		$this->assertFalse( $states->invoke( null, 42 )['device_enabled'], 'the legacy array alone is not "on"' );
+
+		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) {
+			return '_ffc_device_limit_enabled' === $key ? '1' : '';
+		} );
+		$this->assertTrue( $states->invoke( null, 42 )['device_enabled'] );
+
+		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) {
+			return '_ffc_device_limit_enabled' === $key ? '0' : '';
+		} );
+		$this->assertFalse( $states->invoke( null, 42 )['device_enabled'], 'the editor stores "0" for off' );
 	}
 
 	public function test_render_column_features_disabled_when_user_cannot_edit(): void {

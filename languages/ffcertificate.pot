@@ -5946,10 +5946,6 @@ msgstr ""
 msgid "Default template"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-layout-metabox.php:84
-msgid "Default templates"
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:844
 msgid "Default: All notifications disabled"
 msgstr ""
@@ -11748,10 +11744,6 @@ msgstr ""
 msgid "My template"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-layout-metabox.php:91
-msgid "My templates"
-msgstr ""
-
 #: includes/generators/class-ffc-pdf-generator.php:317 includes/generators/class-ffc-pdf-generator.php:325 includes/generators/class-ffc-pdf-generator.php:346 includes/generators/class-ffc-pdf-generator.php:379 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:210 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:218 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:231 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:418 includes/frontend/class-ffc-verification-response-renderer.php:38 includes/frontend/class-ffc-verification-response-renderer.php:176 includes/frontend/class-ffc-verification-response-renderer.php:185 includes/frontend/class-ffc-verification-response-renderer.php:200 includes/frontend/class-ffc-verification-response-renderer.php:316 includes/frontend/class-ffc-verification-response-renderer.php:339
 msgid "N/A"
 msgstr ""
@@ -15980,10 +15972,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php:645
 msgid "Select a Template"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-layout-metabox.php:82
-msgid "Select a template…"
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:671

@@ -35,14 +35,11 @@ class FormEditorLayoutMetabox {
 		$layout   = isset( $config['pdf_layout'] ) ? $config['pdf_layout'] : '';
 		$bg_image = isset( $config['bg_image'] ) ? $config['bg_image'] : '';
 
-		// Populate the layout-editor "Load" dropdown from the DB-backed
-		// template pool (#865): visible templates, defaults first, addressed
-		// by post id. The modal's picker reads the same pool — the legacy
-		// `html/` glob it once fell back to was removed in 6.23.0 (#1087), so
-		// both surfaces are pool-only now (#1309).
-		$templates    = CertTemplateReader::list_for_editor();
-		$default_tpls = array_values( array_filter( $templates, static fn( array $t ): bool => $t['is_default'] ) );
-		$user_tpls    = array_values( array_filter( $templates, static fn( array $t ): bool => ! $t['is_default'] ) );
+		// The Load button opens a modal built from the same DB-backed pool
+		// (#865), localized as `ffc_ajax.templates`; it is drawn only when the
+		// pool has something to offer. A hidden <select> once sat beside it
+		// that no script read (#1625).
+		$templates = CertTemplateReader::list_for_editor();
 
 		wp_nonce_field( 'ffc_save_form_data', 'ffc_form_nonce' );
 		?>
@@ -77,27 +74,10 @@ class FormEditorLayoutMetabox {
 
 						<?php if ( $templates ) : ?>
 						<div class="ffc-template-loader">
-							<select id="ffc_template_select">
-								<option value=""><?php esc_html_e( 'Select a template…', 'ffcertificate' ); ?></option>
-								<?php if ( $default_tpls ) : ?>
-									<optgroup label="<?php esc_attr_e( 'Default templates', 'ffcertificate' ); ?>">
-										<?php foreach ( $default_tpls as $tpl ) : ?>
-											<option value="<?php echo esc_attr( (string) $tpl['id'] ); ?>"><?php echo esc_html( $tpl['label'] ); ?></option>
-										<?php endforeach; ?>
-									</optgroup>
-								<?php endif; ?>
-								<?php if ( $user_tpls ) : ?>
-									<optgroup label="<?php esc_attr_e( 'My templates', 'ffcertificate' ); ?>">
-										<?php foreach ( $user_tpls as $tpl ) : ?>
-											<option value="<?php echo esc_attr( (string) $tpl['id'] ); ?>"><?php echo esc_html( $tpl['label'] ); ?></option>
-										<?php endforeach; ?>
-									</optgroup>
-								<?php endif; ?>
-							</select>
 							<button type="button" id="ffc_load_template_btn" class="button">
-									<span class="ffc-icon-download" aria-hidden="true"></span>
-									<?php esc_html_e( 'Load', 'ffcertificate' ); ?>
-								</button>
+								<span class="ffc-icon-download" aria-hidden="true"></span>
+								<?php esc_html_e( 'Load', 'ffcertificate' ); ?>
+							</button>
 						</div>
 						<?php endif; ?>
 					</div>

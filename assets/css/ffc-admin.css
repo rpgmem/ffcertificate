@@ -351,13 +351,6 @@
    16. TEMPLATE LOADER CUSTOMIZATIONS
    ======================================== */
 
-/* Hide the legacy template <select> in the layout metabox — the "Load" button
-   opens the JS-built template modal (ffc-admin-pdf.js) instead; the dropdown is
-   dead markup kept only for backward compatibility. */
-#ffc_template_select {
-    display: none !important;
-}
-
 /* NOTE: the former per-id overrides here (padding/font-size/inline-block on
    #ffc_btn_import_html / #ffc_btn_media_lib / #ffc_load_template_btn) were
    removed — they over-sized those three buttons and broke icon centering by

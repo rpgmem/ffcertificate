@@ -5956,10 +5956,6 @@ msgstr "Tamanho padrão:"
 msgid "Default template"
 msgstr "Modelo padrão"
 
-#: includes/admin/class-ffc-form-editor-layout-metabox.php:84
-msgid "Default templates"
-msgstr "Modelos padrão"
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:844
 msgid "Default: All notifications disabled"
 msgstr "Padrão: Todas as notificações desabilitadas"
@@ -11773,10 +11769,6 @@ msgstr "Minhas Convocações"
 msgid "My template"
 msgstr "Meu modelo"
 
-#: includes/admin/class-ffc-form-editor-layout-metabox.php:91
-msgid "My templates"
-msgstr "Meus modelos"
-
 #: includes/generators/class-ffc-pdf-generator.php:317 includes/generators/class-ffc-pdf-generator.php:325 includes/generators/class-ffc-pdf-generator.php:346 includes/generators/class-ffc-pdf-generator.php:379 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:210 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:218 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:231 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:418 includes/frontend/class-ffc-verification-response-renderer.php:38 includes/frontend/class-ffc-verification-response-renderer.php:176 includes/frontend/class-ffc-verification-response-renderer.php:185 includes/frontend/class-ffc-verification-response-renderer.php:200 includes/frontend/class-ffc-verification-response-renderer.php:316 includes/frontend/class-ffc-verification-response-renderer.php:339
 msgid "N/A"
 msgstr "N/D"
@@ -16034,10 +16026,6 @@ msgstr "Selecione um público-alvo específico para exportar ou deixe em branco 
 #: includes/admin/class-ffc-admin-assets-manager.php:645
 msgid "Select a Template"
 msgstr "Selecione um Modelo"
-
-#: includes/admin/class-ffc-form-editor-layout-metabox.php:82
-msgid "Select a template…"
-msgstr "Selecione um modelo…"
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:671
 #| msgid "Select all `empty` rows on this page"
