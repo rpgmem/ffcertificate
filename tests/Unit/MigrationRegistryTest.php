@@ -116,7 +116,7 @@ class MigrationRegistryTest extends TestCase {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
 		}
 
-		$this->assertSame( 'ffc-icon-palette', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-image', $migration['icon'] );
 		$this->assertSame( 10, $migration['batch_size'] );
 		$this->assertSame( 6, $migration['order'] );
 	}
@@ -131,7 +131,7 @@ class MigrationRegistryTest extends TestCase {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
 		}
 
-		$this->assertSame( 'ffc-icon-scroll', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-file', $migration['icon'] );
 		$this->assertSame( 20, $migration['batch_size'] );
 		$this->assertSame( 5, $migration['order'] );
 	}
@@ -146,7 +146,7 @@ class MigrationRegistryTest extends TestCase {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
 		}
 
-		$this->assertSame( 'ffc-icon-shield', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-lock', $migration['icon'] );
 		$this->assertSame( 200, $migration['batch_size'] );
 		$this->assertSame( 3, $migration['order'] );
 	}
@@ -179,7 +179,7 @@ class MigrationRegistryTest extends TestCase {
 		}
 
 		$this->assertSame( 'Rehash Email Lookup Hashes', $migration['name'] );
-		$this->assertSame( 'ffc-icon-shield', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-email', $migration['icon'] );
 		$this->assertSame( 100, $migration['batch_size'] );
 		$this->assertSame( 2, $migration['order'] );
 	}

@@ -67,7 +67,7 @@ $ffc_font_options  = array(
 );
 ?>
 <div class="card ffc-email-model-card" id="ffc-email-model">
-	<h2 class="ffc-icon-email"><?php esc_html_e( 'Email Model', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-layout"><?php esc_html_e( 'Email Model', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Configure the single chrome (header, body, footer and outer container) that wraps every plugin email. The message content is injected into the body automatically.', 'ffcertificate' ); ?>
 	</p>

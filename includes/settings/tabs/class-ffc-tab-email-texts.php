@@ -347,7 +347,7 @@ class TabEmailTexts extends SettingsTab {
 
 		$open_label = __( 'Open →', 'ffcertificate' );
 		?>
-		<h2 class="ffc-icon-email"><?php esc_html_e( 'All plugin emails', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-icon-list"><?php esc_html_e( 'All plugin emails', 'ffcertificate' ); ?></h2>
 		<p class="description">
 			<?php esc_html_e( 'Every email the plugin can send, and where each one is configured. They all share the Email Model (its own tab); the ones marked "Editable text (global)" have their wording edited in the box above on this tab, and the rest ship a fixed default body you can only turn on or off.', 'ffcertificate' ); ?>
 		</p>

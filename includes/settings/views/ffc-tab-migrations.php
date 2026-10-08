@@ -39,7 +39,7 @@ try {
 <div class="ffc-migrations-settings-wrap">
 	
 	<div class="card">
-		<h2 class="ffc-icon-settings"><?php esc_html_e( 'Database Migrations', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-icon-database"><?php esc_html_e( 'Database Migrations', 'ffcertificate' ); ?></h2>
 		
 		<p class="description">
 			<?php esc_html_e( 'Manage database structure migrations to improve performance and data organization. These migrations move data from JSON storage to dedicated database columns for faster queries and better reliability.', 'ffcertificate' ); ?>

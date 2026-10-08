@@ -20,7 +20,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 
 <!-- Page Cache Compatibility Card -->
 <div class="card">
-	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Page Cache Compatibility', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-zap"><?php esc_html_e( 'Page Cache Compatibility', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Status of cache-compatibility features that ensure forms work correctly with full-page caching.', 'ffcertificate' ); ?>
 	</p>
@@ -135,7 +135,7 @@ if ( $ffcertificate_cf_behind ) :
 	}
 	?>
 	<div class="card">
-		<h2 class="ffc-icon-shield"><?php esc_html_e( 'Cloudflare Page Cache', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-icon-cloud"><?php esc_html_e( 'Cloudflare Page Cache', 'ffcertificate' ); ?></h2>
 		<p class="description">
 			<?php esc_html_e( 'Cloudflare is in front of this site. Its default (caching static assets only, HTML bypassed) is safe. Do NOT enable "Cache Everything", APO, or a Cache Rule that caches HTML for pages containing FFC forms or the personal dashboard.', 'ffcertificate' ); ?>
 		</p>
@@ -169,7 +169,7 @@ if ( $ffcertificate_cf_behind ) :
 
 <!-- Form Cache Card -->
 <div class="card">
-	<h2 class="ffc-icon-package"><?php esc_html_e( 'Form Cache', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-file"><?php esc_html_e( 'Form Cache', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'The cache stores form settings to improve performance.', 'ffcertificate' ); ?>
 		<?php if ( wp_using_ext_object_cache() ) : ?>
@@ -293,7 +293,7 @@ if ( $ffcertificate_cf_behind ) :
 
 <!-- QR Code Cache Card -->
 <div class="card">
-	<h2 class="ffc-icon-phone"><?php esc_html_e( 'QR Code Cache', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-qr"><?php esc_html_e( 'QR Code Cache', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Store generated certificate QR Codes in database to avoid regenerating them on each request.', 'ffcertificate' ); ?>
 	</p>

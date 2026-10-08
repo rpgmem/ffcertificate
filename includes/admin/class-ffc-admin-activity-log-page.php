@@ -183,7 +183,8 @@ class AdminActivityLogPage {
 	private function render_disabled_notice(): void {
 		?>
 		<div class="ffc-settings-wrap">
-			<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
+		<div class="card">
+			<h2 class="ffc-icon-history"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
 			<?php
 			ob_start();
 			?>
@@ -200,11 +201,15 @@ class AdminActivityLogPage {
 			wp_admin_notice(
 				(string) ob_get_clean(),
 				array(
-					'type'           => 'warning',
-					'paragraph_wrap' => false,
+					'type'               => 'warning',
+					'paragraph_wrap'     => false,
+					// Inline, or WordPress's common.js lifts the notice above
+					// the settings tabs and the card is left empty.
+					'additional_classes' => array( 'inline' ),
 				)
 			);
 			?>
+		</div>
 		</div>
 		<?php
 	}

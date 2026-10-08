@@ -23,7 +23,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 
 <!-- Activity Log Settings Card -->
 <div class="card">
-	<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-history"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Activity Log tracks important actions in your system for audit and compliance purposes (LGPD).', 'ffcertificate' ); ?> <br>
 		<?php esc_html_e( 'This option has a significant impact on website speed and stability, so use it wisely.', 'ffcertificate' ); ?> <br>
@@ -166,7 +166,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 
 <!-- Certificate Editor Card -->
 <div class="card">
-	<h2 class="ffc-icon-settings"><?php esc_html_e( 'Certificate Editor', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-code"><?php esc_html_e( 'Certificate Editor', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Validation rules for the Certificate HTML editor. Its colour theme is on the General tab, next to Dark Mode.', 'ffcertificate' ); ?>
 	</p>
@@ -543,7 +543,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 
 <!-- Public Operator Access Card (formerly Public CSV Download) -->
 <div class="card">
-	<h2 class="ffc-icon-download"><?php esc_html_e( 'Public Operator Access', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-share"><?php esc_html_e( 'Public Operator Access', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Default download limit suggested when enabling Public Operator Access on a form (formerly named "Public CSV Download"). Each form can override this value in its editor.', 'ffcertificate' ); ?>
 	</p>
@@ -585,7 +585,7 @@ $ffc_kh_labels = array(
 $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 ?>
 <div class="card" id="ffc-encryption-health">
-	<h2 class="ffc-icon-warning"><?php esc_html_e( 'Encryption Key Health', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-lock"><?php esc_html_e( 'Encryption Key Health', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'CPF/RF and e-mail are encrypted at rest using your WordPress secret keys (or the FFC decoupling constants). If those secrets are missing, weak, or still the wp-config sample placeholder, the encryption key and the search-hash salt become predictable — this panel reports their real state.', 'ffcertificate' ); ?>
 	</p>

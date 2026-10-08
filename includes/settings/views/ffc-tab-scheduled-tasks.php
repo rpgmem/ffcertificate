@@ -116,7 +116,7 @@ $ffcertificate_method_labels = array(
 	</div>
 
 	<div class="card">
-		<h2 class="ffc-icon-settings"><?php esc_html_e( 'Server cron', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-icon-server"><?php esc_html_e( 'Server cron', 'ffcertificate' ); ?></h2>
 		<p class="description">
 			<?php esc_html_e( 'By default WP-Cron runs only when someone visits the site, so on a quiet site a daily task can run hours late. A server cron line calls WP-Cron on a fixed rhythm. The line does not decide when each task runs — WordPress keeps that schedule — it only makes sure due tasks are run promptly, so a short interval is right.', 'ffcertificate' ); ?>
 		</p>

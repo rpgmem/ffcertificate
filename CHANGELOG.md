@@ -14,9 +14,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **One icon set across the plugin** (#1613). The 34 `.ffc-icon-*` classes drew emoji, whose look depended on the operating system and ignored the dark theme; they now draw monochrome SVG icons from a single registry, `Core\Icons`, in the text colour. The submissions row actions and the form editor's friction badges use the same set.
 - **Settings tabs and pages use icons that say what they are** (#1613). Each tab, the documentation index and its headings, and the migration buttons now draw from `Core\Icons` instead of shared or unrelated glyphs and dashicons. Icons stay monochrome in menus and buttons; inside a tab, new tone classes and an icon badge give colour for meaning only.
 - **No emoji left in the plugin's markup** (#1613). Tab labels, notices, the geofence bypass message, the rate-limit countdown and the appointment receipt's buttons now draw from `Core\Icons`; a status prefix the surrounding notice already conveyed was dropped. A new guard keeps raw emoji out of PHP and JS (emails excepted).
+- **Settings screens made consistent** (#1613). Each tab's main heading now carries the tab's own icon and every section an icon for its subject (the QR Code tab drew a phone); Document Templates, Reregistration and IP Diagnostics now sit in boxes like the other tabs. New `cloud`, `server`, `monitor` and `image` icons.
 
 ### Fixed
 
+- **The disabled Activity Log tab is no longer blank** (#1613). Its notice was lifted by WordPress above the settings tabs, leaving an empty card; it now stays inside the tab.
 - **Icons stay visible in high-contrast mode** (#1613). Forced-colors mode (Windows contrast themes) replaces background colours, which erased every `.ffc-icon-*` icon; they now paint in the system text colour, and icon badges get a contour.
 - **The update screens describe the version being offered, not the one installed** (#1607). "View details" and Dashboard → Updates read "Requires WordPress", "Tested up to", "Requires PHP" and the Upgrade Notice from the installed copy, so 6.34.0 was offered as requiring 6.4 with 6.33.0's notice. They now come from the release's own `readme.txt`, fetched once per release; the installed copy stays the per-field fallback.
 
