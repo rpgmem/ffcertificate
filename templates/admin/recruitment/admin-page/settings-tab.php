@@ -17,18 +17,19 @@
  * @since   6.12.0
  */
 
+use FreeFormCertificate\Recruitment\RecruitmentAdminPageRenderer;
 use FreeFormCertificate\Recruitment\RecruitmentSettings;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<h2>' . esc_html__( 'Settings', 'ffcertificate' ) . '</h2>';
-echo '<p>' . esc_html__( 'Email templates and public shortcode tuning. Saved values populate the convocation email and the public shortcode cache/rate-limit/page-size knobs.', 'ffcertificate' ) . '</p>';
-
+RecruitmentAdminPageRenderer::open_tab_card( 'settings', __( 'Settings', 'ffcertificate' ) );
+echo '<p class="description">' . esc_html__( 'Email templates and public shortcode tuning. Saved values populate the convocation email and the public shortcode cache/rate-limit/page-size knobs.', 'ffcertificate' ) . '</p>';
 if ( ! $can_edit ) {
 	echo '<p class="description"><em>' . esc_html__( 'Read-only — you do not have permission to change recruitment settings.', 'ffcertificate' ) . '</em></p>';
 }
+echo '</div>';
 
 echo '<form method="post" action="' . esc_url( admin_url( 'options.php' ) ) . '">';
 settings_fields( RecruitmentSettings::OPTION_GROUP );

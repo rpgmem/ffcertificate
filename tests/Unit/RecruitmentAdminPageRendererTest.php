@@ -266,6 +266,73 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	}
 
 	/**
+	 * Each tab's renderer and the icon its nav entry carries.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public function tab_screens(): array {
+		return array(
+			'notices'     => array( 'render_notices_tab', 'Notices', 'ffc-icon-megaphone' ),
+			'adjutancies' => array( 'render_adjutancies_tab', 'Adjutancies', 'ffc-icon-building' ),
+			'reasons'     => array( 'render_reasons_tab', 'Reasons', 'ffc-icon-clipboard' ),
+			'candidates'  => array( 'render_candidates_tab', 'Candidates', 'ffc-icon-id' ),
+			'settings'    => array( 'render_settings_tab', 'Settings', 'ffc-icon-settings' ),
+		);
+	}
+
+	/**
+	 * Every tab screen opens with a box whose heading carries the tab's own
+	 * icon, the one its nav entry draws, and closes every box it opens.
+	 *
+	 * @dataProvider tab_screens
+	 */
+	public function test_each_tab_opens_with_a_card_headed_by_its_own_icon( string $method, string $label, string $icon ): void {
+		RecruitmentNoticeReader::$rows = array( (object) array( 'id' => 1, 'code' => 'E1', 'name' => 'N1', 'status' => 'draft' ) );
+
+		$out = trim( $this->capture( static fn() => RecruitmentAdminPageRenderer::$method() ) );
+
+		$this->assertStringStartsWith( '<div class="card"><h2 class="' . $icon . '">' . $label . '</h2>', $out );
+		$this->assertSame( substr_count( $out, '<div' ), substr_count( $out, '</div>' ), 'every box the screen opens is closed' );
+
+		$nav = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_tabs( 'notices' ) );
+		$this->assertMatchesRegularExpression(
+			'/ffc-recruitment-tabnav-' . preg_quote( strtolower( $label ), '/' ) . '"[^>]*>\\s*<span class="ffc-settings-tabs__icon ' . preg_quote( $icon, '/' ) . '"/',
+			$nav,
+			'the nav entry and the screen heading draw the same icon'
+		);
+	}
+
+	public function test_create_forms_and_the_import_sit_in_their_own_cards_after_the_list(): void {
+		RecruitmentNoticeReader::$rows = array( (object) array( 'id' => 1, 'code' => 'E1', 'name' => 'N1', 'status' => 'draft' ) );
+
+		foreach (
+			array(
+				'render_notices_tab'     => array( 'ffc-icon-plus', 'Create new notice' ),
+				'render_adjutancies_tab' => array( 'ffc-icon-plus', 'Create new adjutancy' ),
+				'render_reasons_tab'     => array( 'ffc-icon-plus', 'Create new reason' ),
+				'render_candidates_tab'  => array( 'ffc-icon-upload', 'Import candidates (CSV)' ),
+			) as $method => $section
+		) {
+			$out  = $this->capture( static fn() => RecruitmentAdminPageRenderer::$method() );
+			$card = '<div class="card"><h2 class="' . $section[0] . '">' . $section[1] . '</h2>';
+
+			$this->assertStringContainsString( $card, $out, $method );
+			$this->assertStringContainsString( '</div>' . $card, $out, $method . ': the section box follows the closed list box, not nested in it' );
+		}
+	}
+
+	public function test_no_tab_keeps_the_old_postbox_or_a_loose_heading(): void {
+		RecruitmentNoticeReader::$rows = array( (object) array( 'id' => 1, 'code' => 'E1', 'name' => 'N1', 'status' => 'draft' ) );
+
+		foreach ( $this->tab_screens() as $screen ) {
+			$method = $screen[0];
+			$out    = $this->capture( static fn() => RecruitmentAdminPageRenderer::$method() );
+			$this->assertStringNotContainsString( 'postbox', $out, $method );
+			$this->assertStringNotContainsString( '<h2>', $out, $method . ': every section heading names its icon' );
+		}
+	}
+
+	/**
 	 * Full settings fixture covering every key the settings-tab template reads.
 	 *
 	 * @return array<string,mixed>

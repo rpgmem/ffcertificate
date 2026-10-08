@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 		<div class="card">
-			<h2><?php esc_html_e( 'Self-Scheduling Settings', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Self-Scheduling Settings', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Settings specific to the personal appointment booking system. Calendar-specific settings (slots, working hours, email templates) are configured on each calendar\'s edit page.', 'ffcertificate' ); ?>
 			</p>
@@ -52,7 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<input type="hidden" name="ffc_action" value="save_ss_visibility_settings">
 
 			<div class="card">
-				<h2><?php esc_html_e( 'Visibility Settings', 'ffcertificate' ); ?></h2>
+				<h2 class="ffc-icon-eye"><?php esc_html_e( 'Visibility Settings', 'ffcertificate' ); ?></h2>
 				<p class="description">
 					<?php esc_html_e( 'Configure how private calendars are displayed to non-logged-in visitors.', 'ffcertificate' ); ?>
 				</p>
@@ -111,7 +111,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<input type="hidden" name="ffc_action" value="save_ss_business_hours_settings">
 
 			<div class="card">
-				<h2><?php esc_html_e( 'Business Hours Restriction Messages', 'ffcertificate' ); ?></h2>
+				<h2 class="ffc-icon-clock"><?php esc_html_e( 'Business Hours Restriction Messages', 'ffcertificate' ); ?></h2>
 				<p class="description">
 					<?php esc_html_e( 'Messages shown when a calendar has business hours restrictions enabled (configured per calendar).', 'ffcertificate' ); ?>
 				</p>

@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 		<div class="card">
-			<h2><?php esc_html_e( 'General Settings', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-settings"><?php esc_html_e( 'General Settings', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'General scheduling settings that apply to both Self-Scheduling and Audience systems.', 'ffcertificate' ); ?>
 			</p>
@@ -54,7 +54,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<!-- Global Holidays -->
 		<div class="card">
-			<h2><?php esc_html_e( 'Global Holidays', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-lock"><?php esc_html_e( 'Global Holidays', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Holidays added here will block bookings across all calendars in both scheduling systems. Use per-calendar blocked dates for calendar-specific closures.', 'ffcertificate' ); ?>
 			</p>

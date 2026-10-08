@@ -250,6 +250,11 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 		$this->assertStringContainsString( 'My Room', $output );
 		$this->assertStringContainsString( '#abcdef', $output );
+
+		// #1627: the form sits in one box headed by the calendar's own label.
+		$this->assertStringContainsString( 'ffc-page-scheduling-environments ffc-boxed', $output );
+		$this->assertMatchesRegularExpression( '/<div class="card">\s*<h2 class="ffc-icon-building">Room<\/h2>/', $output );
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
 		unset( $_GET['action'], $_GET['id'] );
 	}
 

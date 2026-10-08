@@ -330,6 +330,12 @@
     margin: 1em 0;
 }
 
+/* The notice sits inside the Notices tab's `.card`, where
+   `.ffc-settings-wrap .card h3` would push its heading down; it opens flush. */
+.ffc-recruitment-admin .ffc-rec-welcome-notice h3 {
+    margin-top: 0;
+}
+
 .ffc-rec-pre-block {
     background: var(--ffc-bg-alt);
     padding: 1em;

@@ -11,18 +11,18 @@
  * @since   6.12.0
  */
 
+use FreeFormCertificate\Recruitment\RecruitmentAdminPageRenderer;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 // phpcs:disable WordPress.WP.GlobalVariablesOverride.Prohibited -- Template variables scoped to this file (the include runs in the including renderer method's function scope, not global).
 
-echo '<div class="postbox ffc-rec-mt-20">';
-echo '<h2 class="hndle"><span>' . esc_html__( 'Import candidates (CSV)', 'ffcertificate' ) . '</span></h2>';
-echo '<div class="inside">';
+RecruitmentAdminPageRenderer::open_section_card( 'ffc-icon-upload', __( 'Import candidates (CSV)', 'ffcertificate' ) );
 
 if ( empty( $eligible ) ) {
 	echo '<p>' . esc_html__( 'No notices in `draft` or `preliminary` status are available for CSV import. Create a notice (Notices tab) or move an existing one back to `preliminary` (allowed only when zero calls have been issued).', 'ffcertificate' ) . '</p>';
-	echo '</div></div>';
+	echo '</div>';
 	return;
 }
 
@@ -35,7 +35,7 @@ $example_url = wp_nonce_url(
 );
 
 echo '<p>' . esc_html__( 'Pick a notice, select the target list, and upload your CSV. The notice picker only lists notices where import is allowed.', 'ffcertificate' ) . '</p>';
-echo '<p><a class="button" href="' . esc_url( $example_url ) . '">&darr; ' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
+echo '<p><a class="button ffc-icon-download" href="' . esc_url( $example_url ) . '">' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
 echo '<span class="description ffc-rec-ml-half">' . esc_html__( 'UTF-8 CSV (BOM optional). Required headers (English): name, cpf, rf, email, adjutancy, rank, score, pcd. Optional: phone, time_points, hab_emebs.', 'ffcertificate' ) . '</span></p>';
 
 echo '<form id="ffc-recruitment-candidates-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportFromCandidates(this);">';
@@ -87,4 +87,4 @@ echo '</form>';
 // ffcRecruitmentImportFromEdit on the Notice Edit page, reusing the
 // same REST endpoints (no new backend) so the importer service and
 // activity logger fire unchanged.
-echo '</div></div>';
+echo '</div>';

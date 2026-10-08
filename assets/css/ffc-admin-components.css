@@ -174,3 +174,53 @@
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
 }
+
+/* Boxed sections: each section of a screen is a `.card` whose h2 carries the
+   icon of its subject. `.ffc-settings-wrap` is the vertical-tab layout and
+   `.ffc-boxed` a screen without tabs (an edit form); both draw the same box.
+   Moved from ffc-admin-settings.css, which loads on the settings screens only
+   (#1627). */
+
+.ffc-settings-wrap .card,
+.ffc-boxed .card {
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    padding: var(--ffc-spacing-2xl);
+    margin-bottom: var(--ffc-spacing-2xl);
+    min-width: 255px;
+    max-width: 1500px;
+    box-shadow: var(--ffc-shadow-sm);
+}
+
+.ffc-settings-wrap .card:last-child,
+.ffc-boxed .card:last-child {
+    margin-bottom: 0;
+}
+
+.ffc-settings-wrap .card h2,
+.ffc-settings-wrap .card > h3[id],
+.ffc-boxed .card h2 {
+    margin-top: 0;
+    margin-bottom: var(--ffc-spacing-xl);
+    padding-bottom: var(--ffc-spacing-md);
+    border-bottom: 1px solid var(--ffc-border-light);
+    font-size: var(--ffc-font-size-xl);
+    font-weight: 600;
+    color: var(--ffc-text);
+}
+
+.ffc-settings-wrap .card h3,
+.ffc-boxed .card h3 {
+    margin-top: var(--ffc-spacing-2xl);
+    margin-bottom: var(--ffc-spacing-xl);
+    font-size: var(--ffc-font-size-lg);
+    font-weight: 600;
+}
+
+.ffc-settings-wrap .card > p.description,
+.ffc-boxed .card > p.description {
+    margin-top: 0;
+    margin-bottom: var(--ffc-spacing-xl);
+    color: var(--ffc-text-muted);
+}

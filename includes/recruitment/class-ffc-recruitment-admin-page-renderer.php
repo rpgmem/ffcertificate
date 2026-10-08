@@ -30,6 +30,48 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class RecruitmentAdminPageRenderer {
 
 	/**
+	 * Each tab's icon, read by the vertical nav and by the heading that opens
+	 * the tab's screen, so the two cannot drift: the menu entry and the screen
+	 * it opens are one place to a reader (CLAUDE.md "Icons").
+	 *
+	 * @var array<string, string>
+	 */
+	private const TAB_ICONS = array(
+		'notices'     => 'ffc-icon-megaphone',
+		'adjutancies' => 'ffc-icon-building',
+		'reasons'     => 'ffc-icon-clipboard',
+		'candidates'  => 'ffc-icon-id',
+		'settings'    => 'ffc-icon-settings',
+	);
+
+	/**
+	 * Open a tab's box: a `.card` whose heading carries the tab's own icon.
+	 *
+	 * @param string $tab   Tab slug, a key of {@see self::TAB_ICONS}.
+	 * @param string $title Heading text.
+	 * @return void
+	 */
+	public static function open_tab_card( string $tab, string $title ): void {
+		printf(
+			'<div class="card"><h2 class="%1$s">%2$s</h2>',
+			esc_attr( self::TAB_ICONS[ $tab ] ?? '' ),
+			esc_html( $title )
+		);
+	}
+
+	/**
+	 * Open a box for a section of a tab: a `.card` whose heading carries the
+	 * icon of its own subject.
+	 *
+	 * @param string $icon  `.ffc-icon-*` class.
+	 * @param string $title Heading text.
+	 * @return void
+	 */
+	public static function open_section_card( string $icon, string $title ): void {
+		printf( '<div class="card"><h2 class="%1$s">%2$s</h2>', esc_attr( $icon ), esc_html( $title ) );
+	}
+
+	/**
 	 * Render the vertical tab navigation (WooCommerce "Product data" style),
 	 * matching the look of `page=ffc-settings` and the certificate form
 	 * editor. Emits only the `<ul>` — the surrounding `.ffc-settings-tabs`
@@ -47,23 +89,23 @@ final class RecruitmentAdminPageRenderer {
 			array(
 				'notices'     => array(
 					'label' => __( 'Notices', 'ffcertificate' ),
-					'icon'  => 'ffc-icon-megaphone',
+					'icon'  => self::TAB_ICONS['notices'],
 				),
 				'adjutancies' => array(
 					'label' => __( 'Adjutancies', 'ffcertificate' ),
-					'icon'  => 'ffc-icon-building',
+					'icon'  => self::TAB_ICONS['adjutancies'],
 				),
 				'reasons'     => array(
 					'label' => __( 'Reasons', 'ffcertificate' ),
-					'icon'  => 'ffc-icon-clipboard',
+					'icon'  => self::TAB_ICONS['reasons'],
 				),
 				'candidates'  => array(
 					'label' => __( 'Candidates', 'ffcertificate' ),
-					'icon'  => 'ffc-icon-id',
+					'icon'  => self::TAB_ICONS['candidates'],
 				),
 				'settings'    => array(
 					'label' => __( 'Settings', 'ffcertificate' ),
-					'icon'  => 'ffc-icon-settings',
+					'icon'  => self::TAB_ICONS['settings'],
 				),
 			),
 			static function ( array $tab ): string {
@@ -91,7 +133,7 @@ final class RecruitmentAdminPageRenderer {
 	 * @return void
 	 */
 	public static function render_notices_tab(): void {
-		echo '<h2>' . esc_html__( 'Notices', 'ffcertificate' ) . '</h2>';
+		self::open_tab_card( 'notices', __( 'Notices', 'ffcertificate' ) );
 
 		// First-run empty-state guidance: when no notices exist at all
 		// (regardless of search/filter state), surface a card walking
@@ -113,9 +155,10 @@ final class RecruitmentAdminPageRenderer {
 		$table->search_box( __( 'Search notices', 'ffcertificate' ), 'ffc-recruitment-notices' );
 		$table->display();
 		echo '</form>';
+		self::render_rest_pointer();
+		echo '</div>';
 
 		self::render_create_notice_form();
-		self::render_rest_pointer();
 	}
 
 	/**
@@ -181,7 +224,7 @@ final class RecruitmentAdminPageRenderer {
 	 * @return void
 	 */
 	public static function render_adjutancies_tab(): void {
-		echo '<h2>' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</h2>';
+		self::open_tab_card( 'adjutancies', __( 'Adjutancies', 'ffcertificate' ) );
 
 		$table = new RecruitmentAdjutanciesListTable();
 		$table->prepare_items();
@@ -192,6 +235,7 @@ final class RecruitmentAdminPageRenderer {
 		$table->search_box( __( 'Search adjutancies', 'ffcertificate' ), 'ffc-recruitment-adjutancies' );
 		$table->display();
 		echo '</form>';
+		echo '</div>';
 
 		self::render_create_adjutancy_form();
 	}
@@ -207,7 +251,7 @@ final class RecruitmentAdminPageRenderer {
 	 * @return void
 	 */
 	public static function render_reasons_tab(): void {
-		echo '<h2>' . esc_html__( 'Reasons', 'ffcertificate' ) . '</h2>';
+		self::open_tab_card( 'reasons', __( 'Reasons', 'ffcertificate' ) );
 		echo '<p class="description">' . esc_html__( 'Global catalog of operator-defined labels attached to a preliminary-list candidate when setting their preliminary status. Reusable across every notice (no need to attach per-edital).', 'ffcertificate' ) . '</p>';
 
 		$table = new RecruitmentReasonsListTable( RecruitmentAdminPage::can_edit_reasons() );
@@ -219,6 +263,7 @@ final class RecruitmentAdminPageRenderer {
 		$table->search_box( __( 'Search reasons', 'ffcertificate' ), 'ffc-recruitment-reasons' );
 		$table->display();
 		echo '</form>';
+		echo '</div>';
 
 		self::render_create_reason_form();
 	}
@@ -255,19 +300,14 @@ final class RecruitmentAdminPageRenderer {
 	 * @return void
 	 */
 	public static function render_candidates_tab(): void {
-		echo '<h2>' . esc_html__( 'Candidates', 'ffcertificate' ) . '</h2>';
+		self::open_tab_card( 'candidates', __( 'Candidates', 'ffcertificate' ) );
 
-		// Standalone CSV import — same backend as the per-notice
-		// importer on the Notice Edit screen, exposed here so the
-		// operator can pick the target notice without navigating
-		// through the Notices tab first. Gated by the same capability
-		// the REST endpoint enforces — the strict `ffc_import_recruitment`
-		// tier (GAP H); the umbrella `ffc_manage_recruitment` no longer grants
-		// it.
-		if ( current_user_can( 'ffc_import_recruitment' ) ) {
-			self::render_candidates_csv_import_section();
-		} else {
-			echo '<p>' . esc_html__( 'Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the "Import candidates (CSV)" section.', 'ffcertificate' ) . '</p>';
+		// Without the strict `ffc_import_recruitment` tier (GAP H; the umbrella
+		// `ffc_manage_recruitment` no longer grants it) the import box below is
+		// not drawn, so the list says where importing happens instead.
+		$can_import = current_user_can( 'ffc_import_recruitment' );
+		if ( ! $can_import ) {
+			echo '<p class="description">' . esc_html__( 'Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the "Import candidates (CSV)" section.', 'ffcertificate' ) . '</p>';
 		}
 
 		$table = new RecruitmentCandidatesListTable();
@@ -279,6 +319,14 @@ final class RecruitmentAdminPageRenderer {
 		$table->search_box( __( 'Search by name', 'ffcertificate' ), 'ffc-recruitment-candidates' );
 		$table->display();
 		echo '</form>';
+		echo '</div>';
+
+		// Standalone CSV import — same backend as the per-notice importer on
+		// the Notice Edit screen, exposed here so the operator can pick the
+		// target notice without going through the Notices tab first.
+		if ( $can_import ) {
+			self::render_candidates_csv_import_section();
+		}
 	}
 
 	/**
