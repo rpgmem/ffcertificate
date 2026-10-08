@@ -46,8 +46,11 @@ class AudienceAdminEnvironment {
 		$action = \FreeFormCertificate\Core\RequestInput::get_get_string( 'action', 'list' );
 		$id     = RequestInput::get_get_int( 'id' );
 
+		// The add/edit form is a boxed screen (`.ffc-boxed`); the list keeps
+		// the plain list-table screen.
+		$boxed = in_array( $action, array( 'new', 'edit' ), true );
 		?>
-		<div class="wrap ffc-admin-page ffc-page-scheduling-environments">
+		<div class="wrap ffc-admin-page ffc-page-scheduling-environments <?php echo $boxed ? 'ffc-boxed' : ''; ?>">
 			<?php
 			switch ( $action ) {
 				case 'new':
@@ -268,6 +271,9 @@ class AudienceAdminEnvironment {
 
 		<?php settings_errors( 'ffc_audience' ); ?>
 
+		<?php // The heading is the calendar's own label for an environment ("Room", "Service"). ?>
+		<div class="card">
+		<h2 class="ffc-icon-building"><?php echo esc_html( $env_label_singular ); ?></h2>
 		<form method="post" action="" class="ffc-form">
 			<?php wp_nonce_field( 'save_environment', 'ffc_environment_nonce' ); ?>
 			<input type="hidden" name="environment_id" value="<?php echo esc_attr( (string) $id ); ?>">
@@ -393,6 +399,7 @@ class AudienceAdminEnvironment {
 			);
 			?>
 		</form>
+		</div>
 
 		<!-- Styles in ffc-audience-admin.css -->
 		<!-- Scripts in ffc-audience-admin.js -->

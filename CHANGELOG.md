@@ -22,6 +22,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The form editor groups each tab into sections and shows what is on** (#1614). Email, Time, Geolocation and Operator now open into collapsible sections whose chip says On/Off or the schedule while closed; each tab shows an on/off dot that follows its toggles. New sidebar box summarises the saved form, the shortcode gets a Copy button, and registered locations are picked with checkboxes instead of a Ctrl/Cmd list.
 - **Edit Submission uses two columns** (#1614). The record (participant data, form answers, system information and the LGPD consent, now a collapsible section) sits beside a side panel with Save, the magic link with Copy and a new Open certificate button, and the linked user. Values nobody can edit read as text instead of disabled inputs.
 - **The Certificates Dashboard opens with a summary row** (#1614): forms in the month shown, submissions today and over the last 7 days, and GeoFence windows open now. The side panel uses the shared empty state.
+- **Recruitment and Scheduling screens use the boxed sections** (#1627). The Recruitment tabs, the Scheduling Settings tabs and the audience calendar and environment edit screens put each section in a box whose heading carries an icon, as Settings does. The box styles now load on every FFC admin screen.
 
 ### Fixed
 

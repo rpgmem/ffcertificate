@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 		<div class="card">
-			<h2><?php esc_html_e( 'Audience Scheduling Settings', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-users"><?php esc_html_e( 'Audience Scheduling Settings', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Settings specific to the audience/group booking system.', 'ffcertificate' ); ?>
 			</p>
@@ -47,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<input type="hidden" name="ffc_action" value="save_aud_visibility_settings">
 
 			<div class="card">
-				<h2><?php esc_html_e( 'Visibility Settings', 'ffcertificate' ); ?></h2>
+				<h2 class="ffc-icon-eye"><?php esc_html_e( 'Visibility Settings', 'ffcertificate' ); ?></h2>
 				<p class="description">
 					<?php esc_html_e( 'Configure how private audience calendars are displayed to non-logged-in visitors. Note: Scheduling is always restricted to authorized members.', 'ffcertificate' ); ?>
 				</p>

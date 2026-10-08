@@ -317,7 +317,10 @@ final class RecruitmentAdminPage {
 			$tab = 'notices';
 		}
 
-		echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin">';
+		// `ffc-settings-wrap` is the layout class of the vertical-tab screens: it
+		// gives each tab's `.card` boxes the same look as Settings and Date
+		// Messages. The edit screens above keep their own chrome.
+		echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin ffc-settings-wrap">';
 		echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 
 		echo '<div class="ffc-settings-tabs">';

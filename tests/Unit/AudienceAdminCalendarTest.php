@@ -136,6 +136,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'wrap', $output );
+		$this->assertStringNotContainsString( 'ffc-boxed', $output, 'the list stays a plain list-table screen' );
 	}
 
 	// ==================================================================
@@ -242,6 +243,14 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringContainsString( 'User7', $output );
 		$this->assertStringContainsString( 'Christmas', $output );
 		$this->assertStringContainsString( '25/12/2026', $output );
+
+		// #1627: a boxed screen, one `.card` per section, each heading with its icon.
+		$this->assertStringContainsString( 'ffc-page-scheduling-calendars ffc-boxed', $output );
+		foreach ( array( 'ffc-icon-calendar">Calendar', 'ffc-icon-users">User Access &amp; Permissions', 'ffc-icon-lock">Holidays / Closed Dates' ) as $heading ) {
+			$this->assertMatchesRegularExpression( '/<div class="card">\s*<h2 class="' . preg_quote( $heading, '/' ) . '/', str_replace( 'User Access & Permissions', 'User Access &amp; Permissions', $output ) );
+		}
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+		$this->assertStringNotContainsString( '<hr>', $output, 'boxes replace the separators' );
 		unset( $_GET['action'], $_GET['id'] );
 	}
 

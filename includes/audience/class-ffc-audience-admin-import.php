@@ -67,7 +67,7 @@ class AudienceAdminImport {
 			<div class="ffc-import-sections">
 				<!-- Import Members -->
 				<div class="ffc-import-section">
-					<h2><?php esc_html_e( 'Import Members', 'ffcertificate' ); ?></h2>
+					<h2 class="ffc-icon-upload"><?php esc_html_e( 'Import Members', 'ffcertificate' ); ?></h2>
 					<p class="description">
 						<?php esc_html_e( 'Import users as members of audience groups. Users will be created if they do not exist.', 'ffcertificate' ); ?>
 					</p>
@@ -146,7 +146,7 @@ class AudienceAdminImport {
 
 				<!-- Import Audiences -->
 				<div class="ffc-import-section">
-					<h2><?php esc_html_e( 'Import Audiences', 'ffcertificate' ); ?></h2>
+					<h2 class="ffc-icon-upload"><?php esc_html_e( 'Import Audiences', 'ffcertificate' ); ?></h2>
 					<p class="description">
 						<?php esc_html_e( 'Import audience groups from a CSV file. Parent groups are created first, then children.', 'ffcertificate' ); ?>
 					</p>
@@ -188,7 +188,7 @@ class AudienceAdminImport {
 			<div class="ffc-import-sections">
 				<!-- Export Members -->
 				<div class="ffc-import-section">
-					<h2><?php esc_html_e( 'Export Members', 'ffcertificate' ); ?></h2>
+					<h2 class="ffc-icon-download"><?php esc_html_e( 'Export Members', 'ffcertificate' ); ?></h2>
 					<p class="description">
 						<?php esc_html_e( 'Export audience members to a CSV file. The file will contain email, name, and audience name columns.', 'ffcertificate' ); ?>
 					</p>
@@ -231,7 +231,7 @@ class AudienceAdminImport {
 
 				<!-- Export Audiences -->
 				<div class="ffc-import-section">
-					<h2><?php esc_html_e( 'Export Audiences', 'ffcertificate' ); ?></h2>
+					<h2 class="ffc-icon-download"><?php esc_html_e( 'Export Audiences', 'ffcertificate' ); ?></h2>
 					<p class="description">
 						<?php esc_html_e( 'Export audience groups to a CSV file. The file will contain name, color, and parent columns.', 'ffcertificate' ); ?>
 					</p>
