@@ -26,9 +26,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="postbox ffc-rec-mt-20">';
-echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications', 'ffcertificate' ) . '</span></h2>';
-echo '<div class="inside">';
+echo '<div class="card">';
+echo '<h2 class="ffc-icon-list">' . esc_html__( 'Classifications', 'ffcertificate' ) . '</h2>';
+echo '<div>';
 
 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-rendered, already-escaped HTML.
 echo $filters_form_html;

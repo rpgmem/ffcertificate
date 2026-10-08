@@ -62,6 +62,7 @@ final class RecruitmentAdjutancyEditPage {
 		$adjutancy    = $adjutancy_id > 0 ? RecruitmentAdjutancyReader::get_by_id( $adjutancy_id ) : null;
 
 		if ( null === $adjutancy ) {
+			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 			wp_admin_notice(
 				esc_html__( 'Adjutancy not found.', 'ffcertificate' ),
 				array( 'type' => 'error' )
@@ -70,12 +71,12 @@ final class RecruitmentAdjutancyEditPage {
 			return;
 		}
 
-		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Adjutancies', 'ffcertificate' ) . '</a></p>';
-		echo '<h2>' . sprintf(
+		echo '<h1>' . sprintf(
 			/* translators: %s — adjutancy name */
 			esc_html__( 'Edit adjutancy — %s', 'ffcertificate' ),
 			esc_html( (string) $adjutancy->name )
-		) . '</h2>';
+		) . '</h1>';
+		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Adjutancies', 'ffcertificate' ) . '</a></p>';
 
 		self::render_general_section( $adjutancy );
 	}
@@ -94,9 +95,9 @@ final class RecruitmentAdjutancyEditPage {
 			? (string) $adjutancy->color
 			: RecruitmentAdjutancyReader::DEFAULT_COLOR;
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-building">' . esc_html__( 'General', 'ffcertificate' ) . '</h2>';
+		echo '<div>';
 
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		echo '<input type="hidden" name="action" value="ffc_recruitment_save_adjutancy">';

@@ -27,9 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="postbox ffc-rec-mt-20">';
-echo '<h2 class="hndle"><span>' . esc_html__( 'Status', 'ffcertificate' ) . '</span></h2>';
-echo '<div class="inside">';
+echo '<div class="card">';
+echo '<h2 class="ffc-icon-tag">' . esc_html__( 'Status', 'ffcertificate' ) . '</h2>';
+echo '<div>';
 
 echo '<p><strong>' . esc_html__( 'Current state:', 'ffcertificate' ) . '</strong> ';
 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
