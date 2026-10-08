@@ -174,7 +174,7 @@ class CPT {
 		);
 		?>
 		<div class="misc-pub-section ffc-duplicate-action">
-			<span class="dashicons dashicons-admin-page" aria-hidden="true"></span>
+			<span class="ffc-icon-copy" aria-hidden="true"></span>
 			<a href="<?php echo esc_url( $url ); ?>" title="<?php esc_attr_e( 'Duplicate this form as a new draft. Copies fields, layout, geofence and CSV/device settings; the access hash, counters and audit log start fresh.', 'ffcertificate' ); ?>">
 				<?php esc_html_e( 'Duplicate this form', 'ffcertificate' ); ?>
 			</a>

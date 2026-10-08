@@ -170,7 +170,7 @@ class FormEditorBuilderMetabox {
 		</div>
 		<div class="ffc-builder-actions ffc-mt-2xl">
 			<button type="button" class="button button-primary ffc-add-field">
-				<span class="dashicons dashicons-plus-alt"></span>
+				<span class="ffc-icon-plus" aria-hidden="true"></span>
 				<?php esc_html_e( 'Add New Field', 'ffcertificate' ); ?>
 			</button>
 		</div>
@@ -206,7 +206,7 @@ class FormEditorBuilderMetabox {
 		<div class="ffc-field-row" data-index="<?php echo esc_attr( $index ); ?>">
 			<div class="ffc-field-row-header">
 				<span class="ffc-sort-handle">
-					<span class="dashicons dashicons-menu"></span>
+					<span class="ffc-icon-grip" aria-hidden="true"></span>
 					<span class="ffc-field-title"><strong>
 					<?php
 					if ( $is_info ) {

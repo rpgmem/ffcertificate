@@ -29,13 +29,13 @@ foreach ( $tabs as $slug => $tab ) {
 		admin_url( 'admin.php' )
 	);
 	printf(
-		'<li class="ffc-settings-tabs__nav-item" role="presentation"><a href="%1$s" id="ffc-recruitment-tabnav-%2$s" class="ffc-settings-tabs__tab%3$s" role="tab" aria-selected="%4$s" aria-controls="ffc-recruitment-tabpanel-%2$s" tabindex="%5$s"><span class="ffc-settings-tabs__icon dashicons dashicons-%6$s" aria-hidden="true"></span><span class="ffc-settings-tabs__label">%7$s</span></a></li>',
+		'<li class="ffc-settings-tabs__nav-item" role="presentation"><a href="%1$s" id="ffc-recruitment-tabnav-%2$s" class="ffc-settings-tabs__tab%3$s" role="tab" aria-selected="%4$s" aria-controls="ffc-recruitment-tabpanel-%2$s" tabindex="%5$s"><span class="ffc-settings-tabs__icon %6$s" aria-hidden="true"></span><span class="ffc-settings-tabs__label">%7$s</span></a></li>',
 		esc_url( $url ),
 		esc_attr( $slug ),
 		$is_active ? ' is-active' : '',
 		$is_active ? 'true' : 'false',
 		$is_active ? '0' : '-1',
-		esc_attr( $tab['icon'] ),
+		esc_attr( \FreeFormCertificate\Core\Icons::tab_class( (string) $tab['icon'] ) ),
 		esc_html( $tab['label'] )
 	);
 }

@@ -741,11 +741,11 @@ class CertTemplateAdminScreen {
 			?>
 			<div class="ffc-action-group">
 				<button type="button" class="button" id="ffc_btn_media_lib">
-					<span class="dashicons dashicons-cover-image" aria-hidden="true"></span>
+					<span class="ffc-icon-image" aria-hidden="true"></span>
 					<?php esc_html_e( 'Background Image', 'ffcertificate' ); ?>
 				</button>
 				<button type="button" class="button" id="ffc_btn_insert_image">
-					<span class="dashicons dashicons-format-image" aria-hidden="true"></span>
+					<span class="ffc-icon-image" aria-hidden="true"></span>
 					<?php esc_html_e( 'Insert Image', 'ffcertificate' ); ?>
 				</button>
 			</div>

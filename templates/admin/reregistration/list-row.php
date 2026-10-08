@@ -52,7 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</a>
 			</td>
 			<td class="column-auto">
-				<?php echo $item->auto_approve ? '<span class="dashicons dashicons-yes-alt ffc-rereg-yes"></span>' : '<span class="dashicons dashicons-minus ffc-rereg-muted"></span>'; ?>
+				<?php echo $item->auto_approve ? '<span class="ffc-icon-success ffc-rereg-yes" aria-hidden="true"></span>' : '<span class="ffc-icon-minus ffc-rereg-muted" aria-hidden="true"></span>'; ?>
 			</td>
 			<td class="column-actions">
 				<?php if ( $can_edit ) : ?>

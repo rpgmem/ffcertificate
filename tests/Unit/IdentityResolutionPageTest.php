@@ -1618,12 +1618,12 @@ class IdentityResolutionPageTest extends TestCase {
 
 		$this->assertSame(
 			2,
-			substr_count( $view, 'dashicons dashicons-search" aria-hidden="true"' ),
+			substr_count( $view, 'ffc-icon-search" aria-hidden="true"' ),
 			'Both search buttons — the decision tier\'s and the orphan tier\'s — carry the glyph, and neither announces it.'
 		);
 		$this->assertSame(
 			substr_count( $view, "esc_html_e( 'Search…', 'ffcertificate' )" ),
-			substr_count( $view, 'dashicons dashicons-search' ),
+			substr_count( $view, 'ffc-icon-search' ),
 			'A glyph without its word is an icon-only control, which this screen does not use.'
 		);
 	}

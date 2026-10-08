@@ -390,7 +390,7 @@ final class AudienceAdminAudienceRenderer {
 		<!-- Template for new field row (used by JS) -->
 		<script type="text/html" id="tmpl-ffc-custom-field-row">
 			<div class="ffc-custom-field-row" data-field-id="new_{{data.index}}" data-field-source="custom">
-				<div class="ffc-field-handle"><span class="dashicons dashicons-menu"></span></div>
+				<div class="ffc-field-handle"><span class="ffc-icon-grip" aria-hidden="true"></span></div>
 				<div class="ffc-field-content">
 					<div class="ffc-field-main-row">
 						<span class="ffc-field-source-badge ffc-field-source-custom"><?php esc_html_e( 'Custom', 'ffcertificate' ); ?></span>
@@ -465,10 +465,10 @@ final class AudienceAdminAudienceRenderer {
 				</div>
 				<div class="ffc-field-actions">
 					<button type="button" class="button button-small ffc-field-toggle-details" title="<?php esc_attr_e( 'Toggle details', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-admin-generic"></span>
+						<span class="ffc-icon-settings" aria-hidden="true"></span>
 					</button>
 					<button type="button" class="button button-small button-link-delete ffc-field-delete" title="<?php esc_attr_e( 'Remove', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-trash"></span>
+						<span class="ffc-icon-delete" aria-hidden="true"></span>
 					</button>
 				</div>
 			</div>
@@ -530,7 +530,7 @@ final class AudienceAdminAudienceRenderer {
 
 		?>
 		<div class="ffc-custom-field-row <?php echo empty( $field->is_active ) ? 'ffc-field-inactive' : ''; ?> ffc-field-source-<?php echo esc_attr( $source ); ?>" data-field-id="<?php echo esc_attr( (string) $field->id ); ?>" data-field-source="<?php echo esc_attr( $source ); ?>">
-			<div class="ffc-field-handle"><span class="dashicons dashicons-menu"></span></div>
+			<div class="ffc-field-handle"><span class="ffc-icon-grip" aria-hidden="true"></span></div>
 			<div class="ffc-field-content">
 				<div class="ffc-field-main-row">
 					<span class="ffc-field-source-badge <?php echo esc_attr( $badge_class ); ?>"><?php echo esc_html( $badge_label ); ?></span>
@@ -650,11 +650,11 @@ final class AudienceAdminAudienceRenderer {
 			</div>
 			<div class="ffc-field-actions">
 				<button type="button" class="button button-small ffc-field-toggle-details" title="<?php esc_attr_e( 'Toggle details', 'ffcertificate' ); ?>">
-					<span class="dashicons dashicons-admin-generic"></span>
+					<span class="ffc-icon-settings" aria-hidden="true"></span>
 				</button>
 				<?php if ( ! $is_standard ) : ?>
 					<button type="button" class="button button-small button-link-delete ffc-field-delete" title="<?php esc_attr_e( 'Remove', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-trash"></span>
+						<span class="ffc-icon-delete" aria-hidden="true"></span>
 					</button>
 				<?php endif; ?>
 			</div>

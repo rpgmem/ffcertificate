@@ -216,7 +216,8 @@ class FormEditorMetaboxRendererTest extends TestCase {
 		$this->assertStringContainsString( 'aria-selected="true"', $output );
 		$this->assertStringContainsString( 'aria-selected="false"', $output );
 
-		// Dashicon glyphs are present in the nav.
-		$this->assertStringContainsString( 'dashicons dashicons-media-document', $output );
+		// Registry icons are present in the nav and in each panel title.
+		$this->assertStringContainsString( 'ffc-form-tabs__icon ffc-icon-file', $output );
+		$this->assertStringNotContainsString( 'dashicons', $output );
 	}
 }

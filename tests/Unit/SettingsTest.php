@@ -1043,7 +1043,7 @@ class SettingsTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-settings-back-to-top', $html );
 		$this->assertStringContainsString( '#ffc-settings-top', $html );
-		$this->assertStringContainsString( 'dashicons-arrow-up-alt2', $html );
+		$this->assertStringContainsString( 'ffc-icon-chevron-up', $html );
 	}
 
 	// ==================================================================

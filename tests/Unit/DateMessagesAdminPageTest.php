@@ -489,7 +489,13 @@ class DateMessagesAdminPageTest extends TestCase {
 		);
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $a ) => 'nonce-' . $a );
 		$scripts   = array();
+		$styles    = array();
 		$localized = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $handle ) use ( &$styles ) {
+				$styles[] = $handle;
+			}
+		);
 		Functions\when( 'wp_enqueue_script' )->alias(
 			static function ( $handle ) use ( &$scripts ) {
 				$scripts[] = $handle;
@@ -504,9 +510,11 @@ class DateMessagesAdminPageTest extends TestCase {
 
 		( new DateMessagesAdminPage() )->enqueue( 'toplevel_page_ffc-settings' );
 		$this->assertSame( array(), $scripts );
+		$this->assertSame( array(), $styles );
 
 		( new DateMessagesAdminPage() )->enqueue( 'ffc_form_page_ffc-date-messages' );
 		$this->assertSame( array( 'ffc-date-messages-admin', 'ffc-email-restore-default' ), $scripts );
+		$this->assertSame( array( 'ffc-admin-settings' ), $styles, 'the vertical tab layout lives in that sheet' );
 		$this->assertSame( 'nonce-ffc_date_messages_preview', $localized['ffcDateMessages']['previewNonce'] );
 		$this->assertSame( 'nonce-ffc_date_messages_test_send', $localized['ffcDateMessages']['testNonce'] );
 		$this->assertSame( 'DEFAULT', $localized['ffcEmailRestoreDefaults']['date_message_body']['body'] );

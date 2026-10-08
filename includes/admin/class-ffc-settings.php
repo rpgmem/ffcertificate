@@ -264,7 +264,7 @@ class Settings {
 	public function render_back_to_top_link(): void {
 		?>
 		<a href="#ffc-settings-top" class="ffc-settings-back-to-top" aria-label="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>" title="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>">
-			<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
+			<span class="ffc-icon-chevron-up" aria-hidden="true"></span>
 		</a>
 		<?php
 	}
@@ -839,7 +839,7 @@ class Settings {
 					title="<?php echo esc_attr( $link['title'] ); ?>">
 					<span class="ffc-settings-tabs__icon <?php echo esc_attr( $link['icon'] ); ?>" aria-hidden="true"></span>
 					<span class="ffc-settings-tabs__label"><?php echo esc_html( $link['label'] ); ?></span>
-					<span class="ffc-settings-tabs__external" aria-hidden="true"></span>
+					<span class="ffc-settings-tabs__external ffc-icon-external" aria-hidden="true"></span>
 					<span class="screen-reader-text"><?php echo esc_html( $link['title'] ); ?></span>
 				</a>
 			</li>

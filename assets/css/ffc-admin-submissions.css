@@ -295,13 +295,8 @@
     border-top: 1px solid var(--ffc-border);
 }
 
-.ffc-filter-btn .dashicons {
-    width: 16px;
-    height: 16px;
-    margin-right: var(--ffc-spacing-3xs);
+.ffc-filter-btn .ffc-icon-filter {
     font-size: var(--ffc-font-size-lg);
-    line-height: 1.4;
-    vertical-align: middle;
 }
 
 /* ==========================================================================

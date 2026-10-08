@@ -166,6 +166,15 @@ final class DateMessagesAdminPage {
 
 		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
+		// The vertical tab layout lives in ffc-admin-settings.css, as it does
+		// for Recruitment; its other rules are scoped and stay dormant here.
+		wp_enqueue_style(
+			'ffc-admin-settings',
+			FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$suffix}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+
 		wp_enqueue_script(
 			'ffc-date-messages-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-date-messages-admin{$suffix}.js",

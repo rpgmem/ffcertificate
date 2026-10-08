@@ -68,19 +68,19 @@ class AudienceAdminSettings {
 		$base_tabs = array(
 			'general'         => array(
 				'label' => __( 'General', 'ffcertificate' ),
-				'icon'  => 'admin-generic',
+				'icon'  => 'ffc-icon-settings',
 			),
 			'self-scheduling' => array(
 				'label' => __( 'Self-Scheduling', 'ffcertificate' ),
-				'icon'  => 'calendar-alt',
+				'icon'  => 'ffc-icon-calendar',
 			),
 			'audience'        => array(
 				'label' => __( 'Audience', 'ffcertificate' ),
-				'icon'  => 'groups',
+				'icon'  => 'ffc-icon-users',
 			),
 			'import'          => array(
 				'label' => __( 'Import & Export', 'ffcertificate' ),
-				'icon'  => 'database-import',
+				'icon'  => 'ffc-icon-upload',
 			),
 		);
 
@@ -120,7 +120,7 @@ class AudienceAdminSettings {
 								aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>"
 								aria-controls="ffc-scheduling-tabpanel-<?php echo esc_attr( $tab_id ); ?>"
 								tabindex="<?php echo $is_active ? '0' : '-1'; ?>">
-								<span class="ffc-settings-tabs__icon dashicons dashicons-<?php echo esc_attr( $tab['icon'] ); ?>" aria-hidden="true"></span>
+								<span class="ffc-settings-tabs__icon <?php echo esc_attr( \FreeFormCertificate\Core\Icons::tab_class( (string) $tab['icon'] ) ); ?>" aria-hidden="true"></span>
 								<span class="ffc-settings-tabs__label"><?php echo esc_html( $tab['label'] ); ?></span>
 							</a>
 						</li>

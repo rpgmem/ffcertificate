@@ -43,17 +43,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php endif; ?>
 				<?php if ( $can_return_to_draft && $can_edit ) : ?>
 					<a href="<?php echo esc_url( $draft_url ); ?>" class="button button-small ffc-return-draft-btn" title="<?php esc_attr_e( 'Return to user for revision', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-edit ffc-rereg-icon"></span>
+						<span class="ffc-icon-edit ffc-rereg-icon" aria-hidden="true"></span>
 						<?php esc_html_e( 'Return to Draft', 'ffcertificate' ); ?>
 					</a>
 				<?php endif; ?>
 				<button type="button" class="button button-small ffc-view-details-btn" data-submission-id="<?php echo esc_attr( $sub->id ); ?>">
-					<span class="dashicons dashicons-visibility ffc-rereg-icon"></span>
+					<span class="ffc-icon-eye ffc-rereg-icon" aria-hidden="true"></span>
 					<?php esc_html_e( 'View Details', 'ffcertificate' ); ?>
 				</button>
 				<?php if ( in_array( $sub->status, array( 'submitted', 'approved' ), true ) ) : ?>
 					<button type="button" class="button button-small ffc-record-btn" data-submission-id="<?php echo esc_attr( $sub->id ); ?>">
-						<span class="dashicons dashicons-media-document ffc-rereg-icon"></span>
+						<span class="ffc-icon-file ffc-rereg-icon" aria-hidden="true"></span>
 						<?php esc_html_e( 'Record', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>

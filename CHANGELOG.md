@@ -15,6 +15,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Settings tabs and pages use icons that say what they are** (#1613). Each tab, the documentation index and its headings, and the migration buttons now draw from `Core\Icons` instead of shared or unrelated glyphs and dashicons. Icons stay monochrome in menus and buttons; inside a tab, new tone classes and an icon badge give colour for meaning only.
 - **No emoji left in the plugin's markup** (#1613). Tab labels, notices, the geofence bypass message, the rate-limit countdown and the appointment receipt's buttons now draw from `Core\Icons`; a status prefix the surrounding notice already conveyed was dropped. A new guard keeps raw emoji out of PHP and JS (emails excepted).
 - **Settings screens made consistent** (#1613). Each tab's main heading now carries the tab's own icon and every section an icon for its subject (the QR Code tab drew a phone); Document Templates, Reregistration and IP Diagnostics now sit in boxes like the other tabs. New `cloud`, `server`, `monitor` and `image` icons.
+- **Date Messages uses the vertical tabs, and the remaining modules use the shared icon set** (#1613). Date Messages now matches Settings, Scheduling and Recruitment, with each tab in a box. Dashicons inside our components (scheduling and recruitment tabs, the form editor, short URLs, reregistration rows, the scheduling dashboard and more) now draw from `Core\Icons`; a new guard keeps dashicons to the admin menu.
 
 ### Fixed
 

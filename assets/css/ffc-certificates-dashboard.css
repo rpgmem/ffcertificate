@@ -120,10 +120,12 @@
     color: var(--ffc-link);
 }
 
-.ffc-certificates-submissions-link .dashicons {
-    font-size: var(--ffc-font-size-xl);
-    width: 18px;
-    height: 18px;
+.ffc-certificates-submissions-link .ffc-icon-list {
+    font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-certificates-submissions-link .ffc-icon-list::before {
+    margin-right: 0;
 }
 
 /* ------------------------------------------------------------------------
