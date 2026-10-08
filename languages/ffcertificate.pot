@@ -24751,6 +24751,9 @@ msgstr ""
 msgid "Trash is empty"
 msgstr ""
 
+msgid "Open Scheduled Tasks"
+msgstr ""
+
 msgid "A notice to the site team for every submission."
 msgstr ""
 

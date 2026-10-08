@@ -24841,6 +24841,9 @@ msgstr "As submissões movidas para a lixeira aparecem aqui até serem restaurad
 msgid "Trash is empty"
 msgstr "A lixeira está vazia"
 
+msgid "Open Scheduled Tasks"
+msgstr "Abrir Tarefas Agendadas"
+
 msgid "A notice to the site team for every submission."
 msgstr "Um aviso à equipe do site a cada submissão."
 
