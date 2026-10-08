@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Forms: Dynamic fields Section -->
 <div class="card">
-	<h3 id="forms-dynamic-fields"><span class="dashicons dashicons-forms" aria-hidden="true"></span> <?php esc_html_e( 'Dynamic Fields (Form Builder)', 'ffcertificate' ); ?></h3>
+	<h3 id="forms-dynamic-fields" class="ffc-icon-layout"><?php esc_html_e( 'Dynamic Fields (Form Builder)', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'A form\'s input fields are defined on the Fields tab ("Form Builder (Fields)") of the form editor\'s "Certificate Form Configuration" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails.', 'ffcertificate' ); ?></p>
 

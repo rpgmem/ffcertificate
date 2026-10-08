@@ -61,7 +61,7 @@ class IconStylesheetTest extends TestCase {
 		$this->assertArrayHasKey( 'search', $used, 'the scan did not reach includes/settings/views' );
 		$this->assertArrayHasKey( 'logout', $used, 'the scan did not reach assets/js' );
 
-		$unknown = array_diff_key( $used, Icons::classes() );
+		$unknown = array_diff_key( $used, Icons::classes(), array_flip( Icons::modifiers() ) );
 		$this->assertSame( array(), $unknown, 'these .ffc-icon-* classes draw nothing; map them in Core\Icons::CLASSES' );
 	}
 

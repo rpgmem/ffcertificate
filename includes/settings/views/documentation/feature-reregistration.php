@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Reregistration: Campaigns Section -->
 <div class="card">
-	<h3 id="feature-reregistration"><span class="dashicons dashicons-update-alt" aria-hidden="true"></span> <?php esc_html_e( 'Reregistration Campaigns', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-reregistration" class="ffc-icon-user-check"><?php esc_html_e( 'Reregistration Campaigns', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'A reregistration campaign collects updated information from the members of one or more audiences over a set period, with optional emails and an approval workflow. Campaigns are managed under the Reregistration admin menu.', 'ffcertificate' ); ?></p>
 

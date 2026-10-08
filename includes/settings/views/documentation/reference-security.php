@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Forms: Security & Restrictions Section -->
 <div class="card">
-	<h3 id="reference-security"><span class="dashicons dashicons-lock" aria-hidden="true"></span> <?php esc_html_e( 'Security & Restrictions', 'ffcertificate' ); ?></h3>
+	<h3 id="reference-security" class="ffc-icon-lock"><?php esc_html_e( 'Security & Restrictions', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'The form editor\'s "Restrictions and Tickets" box gates who may submit. Restrictions can be combined; when none is selected the form is open. They are checked in a fixed order: Password → Denylist → Allowlist → Ticket.', 'ffcertificate' ); ?></p>
 

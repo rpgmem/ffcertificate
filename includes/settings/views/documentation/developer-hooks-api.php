@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Developer: Hooks, REST & Forms API Section -->
 <div class="card">
-	<h3 id="developer-hooks-api"><span class="dashicons dashicons-editor-code" aria-hidden="true"></span> <?php esc_html_e( 'Hooks, REST & Forms API', 'ffcertificate' ); ?></h3>
+	<h3 id="developer-hooks-api" class="ffc-icon-code"><?php esc_html_e( 'Hooks, REST & Forms API', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'The plugin\'s developer surface: action/filter hooks to extend behavior, a REST API for integrations, and the authenticated Forms API. For the front-end shortcodes see the Shortcodes reference.', 'ffcertificate' ); ?> <a href="#reference-shortcodes"><?php esc_html_e( 'Shortcodes', 'ffcertificate' ); ?></a>.</p>
 
 	<div class="ffc-doc-example">

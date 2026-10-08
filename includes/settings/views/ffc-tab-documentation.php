@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Each node is an array with:
  *  - `title`    (string, required)         — display label.
- *  - `icon`     (string, optional)         — dashicon class (e.g. 'dashicons-info').
+ *  - `icon`     (string, optional)         — icon class from Core\Icons (e.g. 'ffc-icon-info').
  *  - `anchor`   (string, optional)         — id="" on the page heading; makes the
  *                                            nav label a link. Required when `file` is set.
  *  - `file`     (string, optional)         — partial under documentation/ to require.
@@ -42,87 +42,87 @@ if ( ! defined( 'ABSPATH' ) ) {
 $ffc_doc_tree = array(
 	array(
 		'anchor' => 'overview',
-		'icon'   => 'dashicons-info',
+		'icon'   => 'ffc-icon-info',
 		'title'  => __( 'Overview & Features', 'ffcertificate' ),
 		'file'   => 'overview.php',
 	),
 	array(
-		'icon'     => 'dashicons-feedback',
+		'icon'     => 'ffc-icon-award',
 		'title'    => __( 'Certificates & Forms', 'ffcertificate' ),
 		'children' => array(
 			array(
 				'title'    => __( 'Forms', 'ffcertificate' ),
-				'icon'     => 'dashicons-feedback',
+				'icon'     => 'ffc-icon-file',
 				'children' => array(
 					array(
 						'anchor' => 'feature-certificates',
-						'icon'   => 'dashicons-feedback',
+						'icon'   => 'ffc-icon-award',
 						'title'  => __( 'Certificates & Forms', 'ffcertificate' ),
 						'file'   => 'feature-certificates.php',
 					),
 					array(
 						'anchor' => 'reference-html-styling',
-						'icon'   => 'dashicons-art',
+						'icon'   => 'ffc-icon-palette',
 						'title'  => __( 'HTML & Styling', 'ffcertificate' ),
 						'file'   => 'reference-html-styling.php',
 					),
 					array(
 						'anchor' => 'reference-tokens',
-						'icon'   => 'dashicons-tag',
+						'icon'   => 'ffc-icon-tag',
 						'title'  => __( 'Template Variables / Tokens', 'ffcertificate' ),
 						'file'   => 'reference-tokens.php',
 					),
 					array(
 						'anchor' => 'forms-dynamic-fields',
-						'icon'   => 'dashicons-forms',
+						'icon'   => 'ffc-icon-layout',
 						'title'  => __( 'Dynamic Fields', 'ffcertificate' ),
 						'file'   => 'forms-dynamic-fields.php',
 					),
 					array(
 						'anchor' => 'reference-validation-url',
-						'icon'   => 'dashicons-yes-alt',
+						'icon'   => 'ffc-icon-success',
 						'title'  => __( 'Validation URL', 'ffcertificate' ),
 						'file'   => 'reference-validation-url.php',
 					),
 					array(
 						'anchor' => 'reference-qr-codes',
-						'icon'   => 'dashicons-camera',
+						'icon'   => 'ffc-icon-qr',
 						'title'  => __( 'QR Codes', 'ffcertificate' ),
 						'file'   => 'reference-qr-codes.php',
 					),
 					array(
 						'anchor' => 'reference-security',
-						'icon'   => 'dashicons-lock',
+						'icon'   => 'ffc-icon-lock',
 						'title'  => __( 'Security & Restrictions', 'ffcertificate' ),
 						'file'   => 'reference-security.php',
 					),
 					array(
 						'anchor' => 'forms-schedule',
-						'icon'   => 'dashicons-clock',
+						'icon'   => 'ffc-icon-clock',
 						'title'  => __( 'Schedule', 'ffcertificate' ),
 						'file'   => 'forms-schedule.php',
 					),
 					array(
 						'anchor' => 'forms-geolocation',
-						'icon'   => 'dashicons-location',
+						'icon'   => 'ffc-icon-map-pin',
 						'title'  => __( 'Geolocation', 'ffcertificate' ),
 						'file'   => 'forms-geolocation.php',
 					),
 					array(
 						'anchor' => 'forms-email',
-						'icon'   => 'dashicons-email-alt',
+						'icon'   => 'ffc-icon-email',
 						'title'  => __( 'Email', 'ffcertificate' ),
 						'file'   => 'forms-email.php',
 					),
 					array(
 						'anchor' => 'feature-quiz',
-						'icon'   => 'dashicons-chart-bar',
+						'icon'   => 'ffc-icon-chart',
 						'title'  => __( 'Quiz / Evaluation', 'ffcertificate' ),
 						'file'   => 'feature-quiz.php',
 					),
 					array(
 						'anchor' => 'forms-public-operator-access',
-						'icon'   => 'dashicons-share',
+						'icon'   => 'ffc-icon-share',
 						'title'  => __( 'Public Operator Access', 'ffcertificate' ),
 						'file'   => 'forms-public-operator-access.php',
 					),
@@ -130,23 +130,23 @@ $ffc_doc_tree = array(
 			),
 			array(
 				'title'    => __( 'Submissions', 'ffcertificate' ),
-				'icon'     => 'dashicons-list-view',
+				'icon'     => 'ffc-icon-list',
 				'children' => array(
 					array(
 						'anchor' => 'submissions-list',
-						'icon'   => 'dashicons-list-view',
+						'icon'   => 'ffc-icon-list',
 						'title'  => __( 'Submissions — list & editing', 'ffcertificate' ),
 						'file'   => 'submissions-list.php',
 					),
 					array(
 						'anchor' => 'submissions-download',
-						'icon'   => 'dashicons-download',
+						'icon'   => 'ffc-icon-download',
 						'title'  => __( 'Downloading the certificate', 'ffcertificate' ),
 						'file'   => 'submissions-download.php',
 					),
 					array(
 						'anchor' => 'feature-identity-resolution',
-						'icon'   => 'dashicons-groups',
+						'icon'   => 'ffc-icon-id',
 						'title'  => __( 'Identity Resolution', 'ffcertificate' ),
 						'file'   => 'feature-identity-resolution.php',
 					),
@@ -154,125 +154,125 @@ $ffc_doc_tree = array(
 			),
 			array(
 				'title'    => __( 'Configuration', 'ffcertificate' ),
-				'icon'     => 'dashicons-admin-generic',
+				'icon'     => 'ffc-icon-settings',
 				'children' => array(
 					array(
 						'anchor' => 'config-general',
-						'icon'   => 'dashicons-admin-settings',
+						'icon'   => 'ffc-icon-settings',
 						'title'  => __( 'General', 'ffcertificate' ),
 						'file'   => 'config-general.php',
 					),
 					array(
 						'anchor' => 'config-modules',
-						'icon'   => 'dashicons-screenoptions',
+						'icon'   => 'ffc-icon-grid',
 						'title'  => __( 'Modules', 'ffcertificate' ),
 						'file'   => 'config-modules.php',
 					),
 					array(
 						'anchor' => 'reference-emails',
-						'icon'   => 'dashicons-email',
+						'icon'   => 'ffc-icon-send',
 						'title'  => __( 'Emails & Delivery', 'ffcertificate' ),
 						'file'   => 'reference-emails.php',
 					),
 					array(
 						'anchor' => 'email-texts-hub',
-						'icon'   => 'dashicons-email-alt2',
+						'icon'   => 'ffc-icon-email',
 						'title'  => __( 'Email texts hub', 'ffcertificate' ),
 						'file'   => 'email-texts-hub.php',
 					),
 					array(
 						'anchor' => 'document-templates-hub',
-						'icon'   => 'dashicons-media-document',
+						'icon'   => 'ffc-icon-file',
 						'title'  => __( 'Document Templates hub', 'ffcertificate' ),
 						'file'   => 'document-templates-hub.php',
 					),
 					array(
 						'anchor' => 'config-cache',
-						'icon'   => 'dashicons-performance',
+						'icon'   => 'ffc-icon-zap',
 						'title'  => __( 'Cache', 'ffcertificate' ),
 						'file'   => 'config-cache.php',
 					),
 					array(
 						'anchor' => 'config-captcha',
-						'icon'   => 'dashicons-shield',
+						'icon'   => 'ffc-icon-robot',
 						'title'  => __( 'Captcha', 'ffcertificate' ),
 						'file'   => 'config-captcha.php',
 					),
 					array(
 						'anchor' => 'config-rate-limit',
-						'icon'   => 'dashicons-shield-alt',
+						'icon'   => 'ffc-icon-gauge',
 						'title'  => __( 'Rate Limit', 'ffcertificate' ),
 						'file'   => 'config-rate-limit.php',
 					),
 					array(
 						'anchor' => 'config-geolocation',
-						'icon'   => 'dashicons-location-alt',
+						'icon'   => 'ffc-icon-map-pin',
 						'title'  => __( 'Geolocation', 'ffcertificate' ),
 						'file'   => 'config-geolocation.php',
 					),
 					array(
 						'anchor' => 'config-ip-diagnostics',
-						'icon'   => 'dashicons-networking',
+						'icon'   => 'ffc-icon-network',
 						'title'  => __( 'IP Diagnostics', 'ffcertificate' ),
 						'file'   => 'config-ip-diagnostics.php',
 					),
 					array(
 						'anchor' => 'feature-user-dashboard',
-						'icon'   => 'dashicons-admin-users',
+						'icon'   => 'ffc-icon-user',
 						'title'  => __( 'User Dashboard & Access', 'ffcertificate' ),
 						'file'   => 'feature-user-dashboard.php',
 					),
 					array(
 						'anchor' => 'config-user-access',
-						'icon'   => 'dashicons-admin-users',
+						'icon'   => 'ffc-icon-key',
 						'title'  => __( 'User Access', 'ffcertificate' ),
 						'file'   => 'config-user-access.php',
 					),
 					array(
 						'anchor' => 'reference-capabilities',
-						'icon'   => 'dashicons-admin-network',
+						'icon'   => 'ffc-icon-users',
 						'title'  => __( 'Capabilities & Roles', 'ffcertificate' ),
 						'file'   => 'reference-capabilities.php',
 					),
 					array(
 						'anchor' => 'reference-privacy',
-						'icon'   => 'dashicons-privacy',
+						'icon'   => 'ffc-icon-shield',
 						'title'  => __( 'Privacy & LGPD', 'ffcertificate' ),
 						'file'   => 'reference-privacy.php',
 					),
 					array(
 						'anchor' => 'config-advanced',
-						'icon'   => 'dashicons-admin-tools',
+						'icon'   => 'ffc-icon-sliders',
 						'title'  => __( 'Advanced', 'ffcertificate' ),
 						'file'   => 'config-advanced.php',
 					),
 					array(
 						'anchor' => 'config-activity-log',
-						'icon'   => 'dashicons-clipboard',
+						'icon'   => 'ffc-icon-history',
 						'title'  => __( 'Activity Log', 'ffcertificate' ),
 						'file'   => 'config-activity-log.php',
 					),
 					array(
 						'anchor' => 'config-scheduled-tasks',
-						'icon'   => 'dashicons-clock',
+						'icon'   => 'ffc-icon-clock',
 						'title'  => __( 'Scheduled Tasks', 'ffcertificate' ),
 						'file'   => 'config-scheduled-tasks.php',
 					),
 					array(
 						'anchor' => 'operations-migrations',
-						'icon'   => 'dashicons-database',
+						'icon'   => 'ffc-icon-database',
 						'title'  => __( 'Data Migrations', 'ffcertificate' ),
 						'file'   => 'operations-migrations.php',
 					),
 					array(
 						'anchor' => 'operations-maintenance',
-						'icon'   => 'dashicons-admin-tools',
+						'icon'   => 'ffc-icon-wrench',
 						'title'  => __( 'Maintenance Tools', 'ffcertificate' ),
 						'file'   => 'operations-maintenance.php',
 					),
 					array(
 						'anchor' => 'operations-updates',
-						'icon'   => 'dashicons-update',
+						'icon'   => 'ffc-icon-sync',
 						'title'  => __( 'Updates', 'ffcertificate' ),
 						'file'   => 'operations-updates.php',
 					),
@@ -281,42 +281,42 @@ $ffc_doc_tree = array(
 		),
 	),
 	array(
-		'icon'     => 'dashicons-calendar',
+		'icon'     => 'ffc-icon-calendar',
 		'title'    => __( 'Scheduling / Appointments', 'ffcertificate' ),
 		'children' => array(
 			array(
 				'anchor' => 'feature-self-scheduling',
-				'icon'   => 'dashicons-calendar',
+				'icon'   => 'ffc-icon-calendar',
 				'title'  => __( 'Personal Calendars', 'ffcertificate' ),
 				'file'   => 'feature-self-scheduling.php',
 			),
 			array(
 				'anchor' => 'scheduling-audiences',
-				'icon'   => 'dashicons-calendar-alt',
+				'icon'   => 'ffc-icon-users',
 				'title'  => __( 'Audience Calendars', 'ffcertificate' ),
 				'file'   => 'scheduling-audiences.php',
 			),
 			array(
 				'anchor' => 'feature-audiences',
-				'icon'   => 'dashicons-id',
+				'icon'   => 'ffc-icon-id',
 				'title'  => __( 'Audience Custom Fields', 'ffcertificate' ),
 				'file'   => 'feature-audiences.php',
 			),
 		),
 	),
 	array(
-		'icon'     => 'dashicons-update-alt',
+		'icon'     => 'ffc-icon-user-check',
 		'title'    => __( 'Reregistration', 'ffcertificate' ),
 		'children' => array(
 			array(
 				'anchor' => 'feature-reregistration',
-				'icon'   => 'dashicons-update-alt',
+				'icon'   => 'ffc-icon-user-check',
 				'title'  => __( 'Campaigns', 'ffcertificate' ),
 				'file'   => 'feature-reregistration.php',
 			),
 			array(
 				'anchor' => 'feature-record',
-				'icon'   => 'dashicons-media-document',
+				'icon'   => 'ffc-icon-file',
 				'title'  => __( 'Record PDF', 'ffcertificate' ),
 				'file'   => 'feature-record.php',
 			),
@@ -324,35 +324,35 @@ $ffc_doc_tree = array(
 	),
 	array(
 		'anchor' => 'feature-recruitment',
-		'icon'   => 'dashicons-groups',
+		'icon'   => 'ffc-icon-users',
 		'title'  => __( 'Recruitment', 'ffcertificate' ),
 		'file'   => 'feature-recruitment.php',
 	),
 	array(
 		'anchor' => 'feature-url-shortener',
-		'icon'   => 'dashicons-admin-links',
+		'icon'   => 'ffc-icon-link',
 		'title'  => __( 'Short URLs & QR Codes', 'ffcertificate' ),
 		'file'   => 'feature-url-shortener.php',
 	),
 	array(
 		'anchor' => 'feature-date-messages',
-		'icon'   => 'dashicons-email-alt',
+		'icon'   => 'ffc-icon-email',
 		'title'  => __( 'Date Messages', 'ffcertificate' ),
 		'file'   => 'feature-date-messages.php',
 	),
 	array(
-		'icon'     => 'dashicons-editor-code',
+		'icon'     => 'ffc-icon-code',
 		'title'    => __( 'Developer', 'ffcertificate' ),
 		'children' => array(
 			array(
 				'anchor' => 'developer-hooks-api',
-				'icon'   => 'dashicons-editor-code',
+				'icon'   => 'ffc-icon-code',
 				'title'  => __( 'Hooks, REST & Forms API', 'ffcertificate' ),
 				'file'   => 'developer-hooks-api.php',
 			),
 			array(
 				'anchor' => 'reference-shortcodes',
-				'icon'   => 'dashicons-shortcode',
+				'icon'   => 'ffc-icon-code',
 				'title'  => __( 'Shortcodes', 'ffcertificate' ),
 				'file'   => 'reference-shortcodes.php',
 			),
@@ -360,7 +360,7 @@ $ffc_doc_tree = array(
 	),
 	array(
 		'anchor' => 'operations-troubleshooting',
-		'icon'   => 'dashicons-sos',
+		'icon'   => 'ffc-icon-help',
 		'title'  => __( 'Troubleshooting', 'ffcertificate' ),
 		'file'   => 'operations-troubleshooting.php',
 	),
@@ -391,7 +391,7 @@ $ffc_render_doc_nav = static function ( array $ffc_nodes, int $ffc_depth ) use (
 		if ( ! empty( $ffc_children ) ) {
 			echo '<li class="ffc-doc-toc-branch"><details><summary>';
 			if ( '' !== $ffc_icon ) {
-				echo '<span class="dashicons ' . esc_attr( $ffc_icon ) . '" aria-hidden="true"></span> ';
+				echo '<span class="ffc-doc-toc-icon ' . esc_attr( $ffc_icon ) . '" aria-hidden="true"></span>';
 			}
 			if ( '' !== $ffc_anchor ) {
 				echo '<a href="#' . esc_attr( $ffc_anchor ) . '">' . esc_html( $ffc_title ) . '</a>';
@@ -406,7 +406,7 @@ $ffc_render_doc_nav = static function ( array $ffc_nodes, int $ffc_depth ) use (
 
 		echo '<li><a href="#' . esc_attr( $ffc_anchor ) . '">';
 		if ( '' !== $ffc_icon ) {
-			echo '<span class="dashicons ' . esc_attr( $ffc_icon ) . '" aria-hidden="true"></span> ';
+			echo '<span class="ffc-doc-toc-icon ' . esc_attr( $ffc_icon ) . '" aria-hidden="true"></span>';
 		}
 		echo esc_html( $ffc_title ) . '</a></li>';
 	}

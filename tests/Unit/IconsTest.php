@@ -71,6 +71,44 @@ class IconsTest extends TestCase {
 		}
 	}
 
+	public function test_a_modifier_never_shadows_a_drawing_class(): void {
+		$this->assertContains( 'badge', Icons::modifiers() );
+		$this->assertContains( 'tone-warning', Icons::modifiers() );
+		$this->assertContains( 'badge-danger', Icons::modifiers() );
+		$this->assertNotContains( 'badge-neutral', Icons::modifiers(), 'the plain badge is the neutral one' );
+		$this->assertSame( array(), array_intersect( Icons::modifiers(), array_keys( Icons::classes() ) ) );
+	}
+
+	public function test_every_tone_reads_palette_tokens_and_has_its_rules(): void {
+		$css = Icons::stylesheet();
+		$this->assertCount( 6, Icons::tones() );
+		foreach ( Icons::tones() as $tone => $tokens ) {
+			foreach ( $tokens as $token ) {
+				$this->assertMatchesRegularExpression( '/^--ffc-[a-z-]+$/', $token, $tone );
+			}
+			$this->assertStringContainsString( '.ffc-icon-tone-' . $tone . " {\n    --ffc-icon-tone: var(" . $tokens[0] . ');', $css, $tone );
+			if ( 'neutral' !== $tone ) {
+				$this->assertStringContainsString( '.ffc-icon-badge.ffc-icon-badge-' . $tone . " {\n    background: var(" . $tokens[1] . ");\n    color: var(" . $tokens[2] . ');', $css, $tone );
+			}
+		}
+		$this->assertSame( '--ffc-warning-text', Icons::tones()['warning'][0], 'the warning signal colour is 3.04:1 on a light card' );
+		$this->assertStringContainsString( 'background-color: var(--ffc-icon-tone, currentColor);', $css, 'the mask reads the tone' );
+		$this->assertStringContainsString( ".ffc-svg-icon {\n    color: var(--ffc-icon-tone, currentColor);", $css, 'the inline SVG reads the tone' );
+		$this->assertStringContainsString( ".ffc-icon-badge {\n    --ffc-icon-tone: currentColor;", $css, 'a badge resets an inherited tone' );
+	}
+
+	public function test_forced_colors_keeps_every_icon_and_badge_visible(): void {
+		$css = Icons::stylesheet();
+		$at  = strpos( $css, '@media (forced-colors: active) {' );
+		$this->assertIsInt( $at, 'forced-colors mode replaces backgrounds, which erases a mask fill' );
+		$block = substr( $css, (int) $at );
+		foreach ( array_keys( Icons::classes() ) as $class ) {
+			$this->assertStringContainsString( '.ffc-icon-' . $class . '::before', $block, $class );
+		}
+		$this->assertStringContainsString( "forced-color-adjust: none;\n        background-color: CanvasText;", $block );
+		$this->assertStringContainsString( ".ffc-icon-badge.ffc-icon-badge-danger {\n        border: 1px solid CanvasText;", $block, 'a badge loses its ground and needs a contour' );
+	}
+
 	public function test_size_and_unknown_names(): void {
 		$this->assertStringContainsString( 'width="18" height="18"', Icons::svg( 'url', 18 ) );
 		$this->assertStringContainsString( 'width="1" height="1"', Icons::svg( 'url', -5 ) );

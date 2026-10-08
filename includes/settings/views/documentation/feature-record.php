@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- 11. Record PDF Section -->
 <div class="card">
-	<h3 id="feature-record"><span class="dashicons dashicons-media-document" aria-hidden="true"></span> <?php esc_html_e( 'Record PDF', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-record" class="ffc-icon-file"><?php esc_html_e( 'Record PDF', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Generate a PDF record (record) for reregistration submissions. Available for submitted and approved submissions.', 'ffcertificate' ); ?></p>
 

@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Scheduling: Audience Calendars Section -->
 <div class="card">
-	<h3 id="scheduling-audiences"><span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span> <?php esc_html_e( 'Audience Calendars (Spaces)', 'ffcertificate' ); ?></h3>
+	<h3 id="scheduling-audiences" class="ffc-icon-users"><?php esc_html_e( 'Audience Calendars (Spaces)', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Audience calendars book shared spaces (rooms, equipment, "ambientes") for named groups of people, rather than fixed one-on-one slots. Everything lives under the Scheduling menu.', 'ffcertificate' ); ?></p>
 

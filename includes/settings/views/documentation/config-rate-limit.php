@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Configuration: Rate Limit Section -->
 <div class="card">
-	<h3 id="config-rate-limit"><span class="dashicons dashicons-shield-alt" aria-hidden="true"></span> <?php esc_html_e( 'Rate Limit', 'ffcertificate' ); ?></h3>
+	<h3 id="config-rate-limit" class="ffc-icon-gauge"><?php esc_html_e( 'Rate Limit', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Settings → Rate Limit throttles abusive traffic across several independent dimensions. Every dimension has its own on/off switch, thresholds and block message. Requests are evaluated in this order: blocklist → allowlist → device → global → IP → email → CPF/RF.', 'ffcertificate' ); ?></p>
 

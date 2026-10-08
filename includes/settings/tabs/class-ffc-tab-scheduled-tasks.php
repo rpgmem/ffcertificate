@@ -40,7 +40,7 @@ class TabScheduledTasks extends SettingsTab {
 		$this->tab_id    = 'scheduled_tasks';
 		$this->tab_group = 'system';
 		$this->tab_title = __( 'Scheduled Tasks', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-calendar';
+		$this->tab_icon  = 'ffc-icon-clock';
 		$this->tab_order = 85;
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );

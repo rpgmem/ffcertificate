@@ -30,7 +30,7 @@ class TabMigrations extends SettingsTab {
 		$this->tab_id    = 'migrations';
 		$this->tab_group = 'system';
 		$this->tab_title = __( 'Data Migrations', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-sync';
+		$this->tab_icon  = 'ffc-icon-database';
 		$this->tab_order = 80;
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );

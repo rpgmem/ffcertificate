@@ -56,7 +56,7 @@ $ffc_module_meta = array(
 <div class="ffc-settings-wrap">
 
 <div class="card">
-	<h2 class="ffc-icon-package"><?php esc_html_e( 'Modules', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-grid"><?php esc_html_e( 'Modules', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Enable or disable individual plugin modules. Changes save instantly and take effect on the next page load. Disabling a module hides its screens and stops its runtime, but never deletes its data — re-enable at any time.', 'ffcertificate' ); ?>
 	</p>
@@ -97,7 +97,7 @@ $ffc_module_meta = array(
 					<?php endif; ?>
 					<?php if ( ! empty( $ffc_meta['note'] ) ) : ?>
 						<p class="description ffc-module-note">
-							<span class="dashicons dashicons-info-outline" aria-hidden="true"></span>
+							<span class="ffc-icon-info ffc-icon-tone-info" aria-hidden="true"></span>
 							<?php echo esc_html( $ffc_meta['note'] ); ?>
 						</p>
 					<?php endif; ?>

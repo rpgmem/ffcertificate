@@ -52,7 +52,7 @@ class TabReregistration extends SettingsTab {
 		// were emoji and `ffc-icon-id` / `ffc-icon-user` rendered as solid colour
 		// blocks; since #1613 every icon is a monochrome SVG, so that reason is
 		// gone and the choice is now only a matter of meaning.
-		$this->tab_icon  = 'ffc-icon-clipboard';
+		$this->tab_icon  = 'ffc-icon-user-check';
 		$this->tab_order = 55;
 
 		add_action( 'admin_post_' . self::SAVE_ACTION, array( $this, 'handle_save' ) );

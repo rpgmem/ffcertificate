@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Privacy & LGPD Section -->
 <div class="card">
-	<h3 id="reference-privacy"><span class="dashicons dashicons-privacy" aria-hidden="true"></span> <?php esc_html_e( 'Privacy & LGPD', 'ffcertificate' ); ?></h3>
+	<h3 id="reference-privacy" class="ffc-icon-shield"><?php esc_html_e( 'Privacy & LGPD', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'The plugin is built to help you meet data-protection obligations (the Brazilian LGPD and equivalents). Sensitive data is encrypted at rest, and the plugin plugs into WordPress\'s own Privacy Tools so you can answer access and erasure requests with the standard core screens.', 'ffcertificate' ); ?></p>
 

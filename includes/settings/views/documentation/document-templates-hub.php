@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Document Templates hub Section -->
 <div class="card">
-	<h3 id="document-templates-hub"><span class="dashicons dashicons-media-document" aria-hidden="true"></span> <?php esc_html_e( 'Document Templates hub', 'ffcertificate' ); ?></h3>
+	<h3 id="document-templates-hub" class="ffc-icon-file"><?php esc_html_e( 'Document Templates hub', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Settings → Document Templates is the single library of PDF layouts. Every document the plugin renders — a certificate, a reregistration record, an appointment receipt — draws from this shared pool instead of a hardcoded or bundled file, so a layout is built or duplicated once and reused wherever it fits.', 'ffcertificate' ); ?></p>
 

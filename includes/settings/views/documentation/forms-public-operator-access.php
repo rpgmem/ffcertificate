@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Forms: Public Operator Access Section -->
 <div class="card">
-	<h3 id="forms-public-operator-access"><span class="dashicons dashicons-share" aria-hidden="true"></span> <?php esc_html_e( 'Public Operator Access', 'ffcertificate' ); ?></h3>
+	<h3 id="forms-public-operator-access" class="ffc-icon-share"><?php esc_html_e( 'Public Operator Access', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Public Operator Access (formerly "Public CSV Download") lets a trusted operator who does NOT have a WordPress login interact with a single form through a secret, per-form link. It is enabled on the Operator tab ("Public Operator Access") of the form editor\'s "Certificate Form Configuration" box.', 'ffcertificate' ); ?></p>
 

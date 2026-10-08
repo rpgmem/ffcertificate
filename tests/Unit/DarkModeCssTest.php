@@ -236,6 +236,13 @@ final class DarkModeCssTest extends TestCase {
 			// other pair instead of depending on inheritance.
 			array( '--ffc-text', '--ffc-gray-100', 4.5, 'inherited text on the calendar header' ),
 			array( '--ffc-text', '--ffc-gray-50', 4.5, 'inherited text on the shallowest surface' ),
+			// Icon tones (#1613). An icon is a graphic, so its floor is 3:1;
+			// the badge pairs not already listed above are measured the same
+			// way. The bare warning tone reads --ffc-warning-text because the
+			// signal colour gave 3.04:1 on a light card, at the floor.
+			array( '--ffc-info', '--ffc-bg-card', 3.0, 'an info-toned icon on a card' ),
+			array( '--ffc-success', '--ffc-bg-card', 3.0, 'a success-toned icon on a card' ),
+			array( '--ffc-primary', '--ffc-primary-light', 3.0, 'a primary icon badge' ),
 			// Non-text: the contour that identifies the component, and the state
 			// colours used as a signal (a badge's coloured dot).
 			array( '--ffc-border', '--ffc-bg', 3.0, 'a contour on the background' ),

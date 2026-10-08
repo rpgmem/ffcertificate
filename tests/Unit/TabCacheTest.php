@@ -82,7 +82,7 @@ class TabCacheTest extends TestCase {
 	}
 
 	public function test_tab_icon_is_package(): void {
-		$this->assertSame( 'ffc-icon-package', $this->tab->get_icon() );
+		$this->assertSame( 'ffc-icon-zap', $this->tab->get_icon() );
 	}
 
 	public function test_tab_order_is_30(): void {

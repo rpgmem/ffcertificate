@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Forms: Schedule Section -->
 <div class="card">
-	<h3 id="forms-schedule"><span class="dashicons dashicons-clock" aria-hidden="true"></span> <?php esc_html_e( 'Schedule (open / close window)', 'ffcertificate' ); ?></h3>
+	<h3 id="forms-schedule" class="ffc-icon-clock"><?php esc_html_e( 'Schedule (open / close window)', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'A form can accept submissions only inside a date/time window. The window is configured on the Time tab of the form editor\'s "Certificate Form Configuration" box. Outside the window the form is blocked with a configurable message (or hidden entirely). Administrators can be set to bypass date/time restrictions under Settings → Geolocation.', 'ffcertificate' ); ?></p>
 

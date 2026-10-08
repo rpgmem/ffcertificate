@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Date Messages Section -->
 <div class="card">
-	<h3 id="feature-date-messages"><span class="dashicons dashicons-email-alt" aria-hidden="true"></span> <?php esc_html_e( 'Date Messages', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-date-messages" class="ffc-icon-email"><?php esc_html_e( 'Date Messages', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Date Messages sends an e-mail on a date stored in each person\'s profile — today, their birthday. It has its own top-level "Date Messages" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs.', 'ffcertificate' ); ?></p>
 

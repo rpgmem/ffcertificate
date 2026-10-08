@@ -35,7 +35,7 @@ class TabModulos extends SettingsTab {
 		$this->tab_id    = 'modulos';
 		$this->tab_group = 'general';
 		$this->tab_title = __( 'Modules', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-package';
+		$this->tab_icon  = 'ffc-icon-grid';
 		$this->tab_order = 10;
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );

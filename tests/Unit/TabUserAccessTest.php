@@ -71,7 +71,7 @@ class TabUserAccessTest extends TestCase {
 	}
 
 	public function test_tab_icon_is_users(): void {
-		$this->assertSame( 'ffc-icon-users', $this->tab->get_icon() );
+		$this->assertSame( 'ffc-icon-key', $this->tab->get_icon() );
 	}
 
 	public function test_tab_order_is_60(): void {

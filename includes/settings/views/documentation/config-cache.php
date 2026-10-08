@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Configuration: Cache Section -->
 <div class="card">
-	<h3 id="config-cache"><span class="dashicons dashicons-performance" aria-hidden="true"></span> <?php esc_html_e( 'Cache', 'ffcertificate' ); ?></h3>
+	<h3 id="config-cache" class="ffc-icon-zap"><?php esc_html_e( 'Cache', 'ffcertificate' ); ?></h3>
 
 	<h4><?php esc_html_e( 'Page-cache compatibility (detection only)', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The tab detects common external caches and reports whether the plugin stays compatible — nothing to configure here. It recognizes LiteSpeed Cache, WP Rocket, W3 Total Cache and WP Super Cache (page caches) and a Redis/persistent object cache.', 'ffcertificate' ); ?></p>

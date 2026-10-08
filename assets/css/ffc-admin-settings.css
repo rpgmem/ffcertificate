@@ -107,13 +107,13 @@
     font-style: italic;
 }
 
-.ffc-settings-wrap .form-table .description.ffc-module-note .dashicons {
+.ffc-settings-wrap .form-table .description.ffc-module-note .ffc-icon-info {
+    display: inline-flex;
     flex: 0 0 auto;
-    margin-top: 1px;
-    width: 16px;
-    height: 16px;
-    font-size: var(--ffc-font-size-lg);
-    color: var(--ffc-text-muted);
+}
+
+.ffc-settings-wrap .form-table .description.ffc-module-note .ffc-icon-info::before {
+    margin-right: 0;
 }
 
 /* ==========================================================================
@@ -632,16 +632,24 @@
 }
 
 .ffc-doc-toc-branch > details > summary:hover::before,
-.ffc-doc-toc-branch > details > summary:hover .dashicons {
+.ffc-doc-toc-branch > details > summary:hover .ffc-doc-toc-icon {
     color: var(--ffc-text-on-primary);
 }
 
-.ffc-doc-toc-branch > details > summary .dashicons {
+/* The registry icon (Core\Icons) that precedes a branch or leaf label: a
+   fixed box, so labels stay left-aligned, spaced by the row's own gap. */
+.ffc-doc-toc-icon {
+    display: inline-flex;
     flex: 0 0 auto;
-    width: 18px;
-    height: 18px;
-    font-size: var(--ffc-font-size-xl);
+    font-size: var(--ffc-font-size-lg);
     line-height: 1;
+}
+
+.ffc-doc-toc-icon::before {
+    margin-right: 0;
+}
+
+.ffc-doc-toc-branch > details > summary .ffc-doc-toc-icon {
     color: var(--ffc-primary);
 }
 
@@ -666,14 +674,8 @@
     border: 1px solid var(--ffc-border);
 }
 
-/* Dashicon glyph that precedes each leaf label. Fixed box so labels stay
-   left-aligned regardless of glyph width. */
-.ffc-doc-toc-list li > a .dashicons {
-    flex: 0 0 auto;
-    width: 18px;
-    height: 18px;
-    font-size: var(--ffc-font-size-xl);
-    line-height: 1;
+/* A leaf's icon is quieter than a branch's. */
+.ffc-doc-toc-list li > a .ffc-doc-toc-icon {
     color: var(--ffc-text-muted);
 }
 
@@ -683,7 +685,7 @@
     border-color: var(--ffc-primary);
 }
 
-.ffc-doc-toc-list li > a:hover .dashicons {
+.ffc-doc-toc-list li > a:hover .ffc-doc-toc-icon {
     color: var(--ffc-text-on-primary);
 }
 
@@ -820,15 +822,10 @@
     scroll-margin-top: 20px;
 }
 
-/* Dashicon glyph that precedes each documentation section heading (#674). */
-.ffc-settings-wrap .card h3[id] .dashicons {
-    width: 22px;
-    height: 22px;
-    font-size: var(--ffc-font-size-2xl);
-    line-height: 1;
-    vertical-align: text-bottom;
-    margin-right: var(--ffc-spacing-xs);
-    color: var(--ffc-primary);
+/* The icon that precedes each documentation section heading (#674) takes
+   the primary tone; the heading's text keeps its own colour. */
+.ffc-settings-wrap .card h3[id] {
+    --ffc-icon-tone: var(--ffc-primary);
 }
 
 /* Responsive */

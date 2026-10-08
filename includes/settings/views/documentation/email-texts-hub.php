@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Email texts hub Section -->
 <div class="card">
-	<h3 id="email-texts-hub"><span class="dashicons dashicons-email" aria-hidden="true"></span> <?php esc_html_e( 'Email texts hub', 'ffcertificate' ); ?></h3>
+	<h3 id="email-texts-hub" class="ffc-icon-email"><?php esc_html_e( 'Email texts hub', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Settings → Email texts is where you edit the wording of every plugin email in one place. It edits the message body and subject only — the shared header/footer chrome is the separate Email Model tab, and the transport is the SMTP tab.', 'ffcertificate' ); ?> <a href="#reference-emails"><?php esc_html_e( 'See Emails & Delivery for the whole pipeline.', 'ffcertificate' ); ?></a></p>
 

@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Emails & Delivery Section -->
 <div class="card">
-	<h3 id="reference-emails"><span class="dashicons dashicons-email" aria-hidden="true"></span> <?php esc_html_e( 'Emails & Delivery', 'ffcertificate' ); ?></h3>
+	<h3 id="reference-emails" class="ffc-icon-send"><?php esc_html_e( 'Emails & Delivery', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'Every email the plugin sends — certificate delivery, admin notifications, recruitment convocations, booking confirmations, reregistration invitations, audience notices — goes through one shared pipeline with one configurable look.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">

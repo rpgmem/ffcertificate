@@ -48,7 +48,7 @@ class TabIpDiagnostics extends SettingsTab {
 		$this->tab_id    = 'ip_diagnostics';
 		$this->tab_group = 'security';
 		$this->tab_title = __( 'IP Diagnostics', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-shield';
+		$this->tab_icon  = 'ffc-icon-network';
 		$this->tab_order = 45;
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );

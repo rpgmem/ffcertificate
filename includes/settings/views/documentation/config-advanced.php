@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Configuration: Advanced Section -->
 <div class="card">
-	<h3 id="config-advanced"><span class="dashicons dashicons-admin-tools" aria-hidden="true"></span> <?php esc_html_e( 'Advanced', 'ffcertificate' ); ?></h3>
+	<h3 id="config-advanced" class="ffc-icon-sliders"><?php esc_html_e( 'Advanced', 'ffcertificate' ); ?></h3>
 
 	<h4><?php esc_html_e( 'Activity log', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'An audit trail (useful for LGPD). When it is off, debug logging is also disabled.', 'ffcertificate' ); ?></p>

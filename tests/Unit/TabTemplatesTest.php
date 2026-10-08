@@ -47,7 +47,7 @@ class TabTemplatesTest extends TestCase {
 	public function test_tab_identity(): void {
 		$this->assertSame( 'templates', $this->tab->get_id() );
 		$this->assertSame( 'Document Templates', $this->tab->get_title() );
-		$this->assertSame( 'ffc-icon-doc', $this->tab->get_icon() );
+		$this->assertSame( 'ffc-icon-file', $this->tab->get_icon() );
 	}
 
 	public function test_gated_by_forms_caps(): void {

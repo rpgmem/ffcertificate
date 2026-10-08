@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Overview Section -->
 <div class="card">
-	<h3 id="overview"><span class="dashicons dashicons-info" aria-hidden="true"></span> <?php esc_html_e( 'Overview', 'ffcertificate' ); ?></h3>
+	<h3 id="overview" class="ffc-icon-info"><?php esc_html_e( 'Overview', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Free Form Certificate turns WordPress into a complete platform for issuing verifiable documents. Build a form, design the certificate once, and let people receive a signed PDF the moment they submit — validated by QR code or a public link, protected against fraud and duplicate issuance, and delivered by email automatically.', 'ffcertificate' ); ?></p>
 

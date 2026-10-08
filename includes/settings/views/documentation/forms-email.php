@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Forms: Email Section -->
 <div class="card">
-	<h3 id="forms-email"><span class="dashicons dashicons-email-alt" aria-hidden="true"></span> <?php esc_html_e( 'Email (per-form)', 'ffcertificate' ); ?></h3>
+	<h3 id="forms-email" class="ffc-icon-email"><?php esc_html_e( 'Email (per-form)', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Each form has its own Email tab ("Email Configuration") in the form editor\'s "Certificate Form Configuration" box, controlling the message sent to the participant on submission, plus an optional admin notification.', 'ffcertificate' ); ?></p>
 

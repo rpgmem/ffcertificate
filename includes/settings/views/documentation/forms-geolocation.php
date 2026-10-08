@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Forms: Geolocation Section -->
 <div class="card">
-	<h3 id="forms-geolocation"><span class="dashicons dashicons-location" aria-hidden="true"></span> <?php esc_html_e( 'Geolocation / Geofence', 'ffcertificate' ); ?></h3>
+	<h3 id="forms-geolocation" class="ffc-icon-map-pin"><?php esc_html_e( 'Geolocation / Geofence', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Geofencing restricts where a form may be submitted. It is configured on the Geolocation tab of the form editor\'s "Certificate Form Configuration" box, and can validate by GPS position, by IP geolocation, or both.', 'ffcertificate' ); ?></p>
 
