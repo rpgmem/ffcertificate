@@ -74,7 +74,7 @@
     transition: border-color var(--ffc-transition-fast), box-shadow var(--ffc-transition-fast);
 }
 
-.ffc-page-qr-generator .ffc-qr-type__face .ffc-qr-icon {
+.ffc-page-qr-generator .ffc-qr-type__face .ffc-svg-icon {
     flex: 0 0 auto;
 }
 

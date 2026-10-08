@@ -392,7 +392,7 @@ class QrSvgRendererTest extends TestCase {
 		$speech  = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'speech', 'frame_text' => 'Scan', 'frame_icon' => 'wifi', 'frame_color' => '#654321' ) ) );
 
 		$this->assertStringContainsString( 'color="#123456" fill="none" stroke="currentColor"', $with );
-		$this->assertStringContainsString( \FreeFormCertificate\Generators\QrIcons::paths( 'globe' ), $with );
+		$this->assertStringContainsString( \FreeFormCertificate\Core\Icons::paths( 'globe' ), $with );
 		$this->assertStringNotContainsString( 'stroke="currentColor"', $without );
 		$this->assertStringContainsString( 'color="#654321"', $speech );
 	}

@@ -186,7 +186,7 @@ class SubmissionsList extends \WP_List_Table {
 				),
 				$base_url
 			);
-			$actions .= '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Edit', 'ffcertificate' ) . '</a> ';
+			$actions .= '<a href="' . esc_url( $edit_url ) . '" class="button button-small ffc-icon-edit">' . esc_html__( 'Edit', 'ffcertificate' ) . '</a> ';
 		}
 		$actions .= $this->render_pdf_button( $item );
 
@@ -205,7 +205,7 @@ class SubmissionsList extends \WP_List_Table {
 				),
 				'ffc_action_' . $item['id']
 			);
-			$actions  .= '<a href="' . esc_url( $trash_url ) . '" class="button button-small">' . esc_html__( 'Trash', 'ffcertificate' ) . '</a>';
+			$actions  .= '<a href="' . esc_url( $trash_url ) . '" class="button button-small ffc-icon-delete">' . esc_html__( 'Trash', 'ffcertificate' ) . '</a>';
 		} else {
 			$restore_url = wp_nonce_url(
 				add_query_arg(
@@ -228,8 +228,8 @@ class SubmissionsList extends \WP_List_Table {
 				'ffc_action_' . $item['id']
 			);
 
-			$actions .= '<a href="' . esc_url( $restore_url ) . '" class="button button-small">' . esc_html__( 'Restore', 'ffcertificate' ) . '</a> ';
-			$actions .= '<a href="' . esc_url( $delete_url ) . '" class="button button-small ffc-delete-btn" data-confirm="' . esc_attr__( 'Permanently delete?', 'ffcertificate' ) . '">' . esc_html__( 'Delete', 'ffcertificate' ) . '</a>';
+			$actions .= '<a href="' . esc_url( $restore_url ) . '" class="button button-small ffc-icon-restore">' . esc_html__( 'Restore', 'ffcertificate' ) . '</a> ';
+			$actions .= '<a href="' . esc_url( $delete_url ) . '" class="button button-small ffc-delete-btn ffc-icon-cross" data-confirm="' . esc_attr__( 'Permanently delete?', 'ffcertificate' ) . '">' . esc_html__( 'Delete', 'ffcertificate' ) . '</a>';
 		}
 
 		return $actions;
@@ -255,7 +255,7 @@ class SubmissionsList extends \WP_List_Table {
 		}
 
 		return sprintf(
-			'<a href="%s" target="_blank" class="button button-small" title="%s">%s</a>',
+			'<a href="%s" target="_blank" class="button button-small ffc-icon-file" title="%s">%s</a>',
 			esc_url( $magic_link ),
 			esc_attr__( 'Opens PDF in new tab', 'ffcertificate' ),
 			__( 'PDF', 'ffcertificate' )

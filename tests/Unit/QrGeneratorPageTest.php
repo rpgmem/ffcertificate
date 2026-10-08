@@ -128,7 +128,7 @@ class QrGeneratorPageTest extends TestCase {
 		$this->assertSame( count( \FreeFormCertificate\Generators\QrPayload::TYPES ), substr_count( $html, 'class="ffc-qr-type__input"' ) );
 		$this->assertSame(
 			count( \FreeFormCertificate\Generators\QrPayload::TYPES ) + 6 + 2 + count( \FreeFormCertificate\Generators\QrDesign::FRAME_ICONS ),
-			substr_count( $html, '<svg class="ffc-qr-icon"' ),
+			substr_count( $html, '<svg class="ffc-svg-icon"' ),
 			'One icon per type, per design section, for download and print, and per frame icon tile.'
 		);
 		// The advanced section rides the shared section markup.

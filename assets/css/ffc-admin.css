@@ -1181,9 +1181,11 @@ p.ffc-datetime-order-error {
     background: var(--ffc-primary-light);
 }
 
+/* An inline SVG from Core\Icons (#1613), drawn in the link's colour. */
 .ffc-preflight-badge-icon {
-    font-size: var(--ffc-font-size-lg);
-    line-height: 1;
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--ffc-primary);
 }
 
 .ffc-preflight-badge strong {
