@@ -97,6 +97,18 @@ class IconsTest extends TestCase {
 		$this->assertStringContainsString( ".ffc-icon-badge {\n    --ffc-icon-tone: currentColor;", $css, 'a badge resets an inherited tone' );
 	}
 
+	public function test_forced_colors_keeps_every_icon_and_badge_visible(): void {
+		$css = Icons::stylesheet();
+		$at  = strpos( $css, '@media (forced-colors: active) {' );
+		$this->assertIsInt( $at, 'forced-colors mode replaces backgrounds, which erases a mask fill' );
+		$block = substr( $css, (int) $at );
+		foreach ( array_keys( Icons::classes() ) as $class ) {
+			$this->assertStringContainsString( '.ffc-icon-' . $class . '::before', $block, $class );
+		}
+		$this->assertStringContainsString( "forced-color-adjust: none;\n        background-color: CanvasText;", $block );
+		$this->assertStringContainsString( ".ffc-icon-badge.ffc-icon-badge-danger {\n        border: 1px solid CanvasText;", $block, 'a badge loses its ground and needs a contour' );
+	}
+
 	public function test_size_and_unknown_names(): void {
 		$this->assertStringContainsString( 'width="18" height="18"', Icons::svg( 'url', 18 ) );
 		$this->assertStringContainsString( 'width="1" height="1"', Icons::svg( 'url', -5 ) );

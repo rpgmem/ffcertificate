@@ -361,7 +361,29 @@ final class Icons {
 			. "    mask-size: contain;\n"
 			. '}';
 
-		return self::CSS_BEGIN . "\n" . $base . "\n\n" . implode( "\n\n", $rules ) . "\n\n" . self::tone_rules() . "\n" . self::CSS_END;
+		// Forced-colors mode replaces every background colour with the system
+		// ground, which erased the mask fill and left each icon blank. Opting
+		// the pseudo-element out of the adjustment and painting it in the system
+		// text colour keeps it visible; a tone is dropped there on purpose, since
+		// the mode owns every colour. The badge loses its ground the same way,
+		// so it and each of its variants take a contour.
+		$badges = array( '.ffc-icon-badge' );
+		foreach ( array_keys( self::TONES ) as $tone ) {
+			if ( 'neutral' !== $tone ) {
+				$badges[] = '.ffc-icon-badge.ffc-icon-badge-' . $tone;
+			}
+		}
+		$forced = "@media (forced-colors: active) {\n"
+			. '    ' . implode( ",\n    ", $selectors ) . " {\n"
+			. "        forced-color-adjust: none;\n"
+			. "        background-color: CanvasText;\n"
+			. "    }\n\n"
+			. '    ' . implode( ",\n    ", $badges ) . " {\n"
+			. "        border: 1px solid CanvasText;\n"
+			. "    }\n"
+			. '}';
+
+		return self::CSS_BEGIN . "\n" . $base . "\n\n" . implode( "\n\n", $rules ) . "\n\n" . self::tone_rules() . "\n\n" . $forced . "\n" . self::CSS_END;
 	}
 
 	/**

@@ -1321,6 +1321,80 @@
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
+
+@media (forced-colors: active) {
+    .ffc-icon-award::before,
+    .ffc-icon-bulb::before,
+    .ffc-icon-calendar::before,
+    .ffc-icon-chart::before,
+    .ffc-icon-checkmark::before,
+    .ffc-icon-clipboard::before,
+    .ffc-icon-clock::before,
+    .ffc-icon-code::before,
+    .ffc-icon-cross::before,
+    .ffc-icon-database::before,
+    .ffc-icon-debug::before,
+    .ffc-icon-delete::before,
+    .ffc-icon-doc::before,
+    .ffc-icon-download::before,
+    .ffc-icon-edit::before,
+    .ffc-icon-email::before,
+    .ffc-icon-error::before,
+    .ffc-icon-eye::before,
+    .ffc-icon-file::before,
+    .ffc-icon-gauge::before,
+    .ffc-icon-globe::before,
+    .ffc-icon-grid::before,
+    .ffc-icon-help::before,
+    .ffc-icon-history::before,
+    .ffc-icon-id::before,
+    .ffc-icon-inbox::before,
+    .ffc-icon-info::before,
+    .ffc-icon-key::before,
+    .ffc-icon-layout::before,
+    .ffc-icon-link::before,
+    .ffc-icon-list::before,
+    .ffc-icon-lock::before,
+    .ffc-icon-logout::before,
+    .ffc-icon-map-pin::before,
+    .ffc-icon-network::before,
+    .ffc-icon-package::before,
+    .ffc-icon-palette::before,
+    .ffc-icon-phone::before,
+    .ffc-icon-print::before,
+    .ffc-icon-qr::before,
+    .ffc-icon-restore::before,
+    .ffc-icon-robot::before,
+    .ffc-icon-scroll::before,
+    .ffc-icon-search::before,
+    .ffc-icon-send::before,
+    .ffc-icon-settings::before,
+    .ffc-icon-share::before,
+    .ffc-icon-shield::before,
+    .ffc-icon-skip::before,
+    .ffc-icon-sliders::before,
+    .ffc-icon-success::before,
+    .ffc-icon-sync::before,
+    .ffc-icon-tag::before,
+    .ffc-icon-user::before,
+    .ffc-icon-user-check::before,
+    .ffc-icon-users::before,
+    .ffc-icon-warning::before,
+    .ffc-icon-wrench::before,
+    .ffc-icon-zap::before {
+        forced-color-adjust: none;
+        background-color: CanvasText;
+    }
+
+    .ffc-icon-badge,
+    .ffc-icon-badge.ffc-icon-badge-primary,
+    .ffc-icon-badge.ffc-icon-badge-info,
+    .ffc-icon-badge.ffc-icon-badge-success,
+    .ffc-icon-badge.ffc-icon-badge-warning,
+    .ffc-icon-badge.ffc-icon-badge-danger {
+        border: 1px solid CanvasText;
+    }
+}
 /* ffc-icons:end */
 
 /* ==========================================================================
