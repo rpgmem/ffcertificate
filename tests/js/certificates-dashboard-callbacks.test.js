@@ -298,7 +298,7 @@ describe('certificates-dashboard — renderSideList', () => {
 			'/wp-admin/edit.php?post_type=ffc_form&page=ffc-submissions&filter_form_id[0]=6195'
 		);
 		expect($link.attr('aria-label')).toBe('View submissions');
-		expect($link.find('.dashicons').length).toBe(1);
+		expect($link.find('.ffc-icon-list').length).toBe(1);
 	});
 
 	it('omits the submissions link when submissionsUrlBase is not provided', async () => {

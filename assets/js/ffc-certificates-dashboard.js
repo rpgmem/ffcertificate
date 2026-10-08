@@ -183,7 +183,7 @@
                             .attr('title', i18n.viewSubmissions || 'View submissions for this form')
                             .attr('aria-label', i18n.viewSubmissions || 'View submissions for this form')
                             .append(
-                                $('<span class="dashicons dashicons-list-view" aria-hidden="true"></span>')
+                                $('<span class="ffc-icon-list" aria-hidden="true"></span>')
                             )
                     );
                 }

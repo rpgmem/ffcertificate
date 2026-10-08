@@ -599,7 +599,7 @@ class SubmissionsList extends \WP_List_Table {
 		?>
 		<div class="alignleft actions ffc-filter-actions">
 			<button type="button" class="button ffc-filter-btn" id="ffc-open-filter-overlay">
-				<span class="dashicons dashicons-filter"></span>
+				<span class="ffc-icon-filter" aria-hidden="true"></span>
 				<?php echo esc_html( $btn_label ); ?>
 			</button>
 			<?php if ( $filter_count > 0 ) : ?>

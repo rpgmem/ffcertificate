@@ -358,7 +358,7 @@
    removed — they over-sized those three buttons and broke icon centering by
    overriding the unified `.ffc-action-group .button` toolbar (inline-flex).
    All layout-action buttons now share that single rule for consistent
-   sizing, borders, and dashicon alignment. */
+   sizing, borders, and icon alignment. */
 
 /* ==========================================================================
    17. DATA MIGRATIONS TAB STYLES
@@ -386,8 +386,8 @@
 
 
 /* Certificate layout actions: a consistent, wrapping toolbar of icon buttons.
-   Every button carries a leading dashicon; align and space them uniformly
-   instead of per-button inline styles. */
+   Every button carries a leading registry icon; align and space them
+   uniformly instead of per-button inline styles. */
 .ffc-action-group {
     display: flex;
     flex-wrap: wrap;
@@ -410,17 +410,6 @@
     align-items: center;
 }
 
-.ffc-action-group .button .dashicons,
-/* 17px literal: a glyph box, not text — an icon or a `&times;` sized by
-   font-size is a box, and the typography scale does not govern it. Same
-   reason as .ffc-stat-icon (#1148 step 1). */
-.ffc-template-loader .button .dashicons {
-    margin-right: var(--ffc-spacing-2xs);
-    font-size: 17px;
-    width: 17px;
-    height: 17px;
-    line-height: 1;
-}
 
 /* Inline autosave feedback for the template visibility toggle (edit screen). */
 .ffc-autosave-status {
@@ -890,7 +879,7 @@ td .ffc-restriction-label {
     cursor: pointer; padding: var(--ffc-spacing-3xs) var(--ffc-spacing-2xs); line-height: 1; color: var(--ffc-text-muted);
 }
 .ffc-copy-shortcode:hover { color: var(--ffc-primary); border-color: var(--ffc-primary); }
-.ffc-copy-shortcode .dashicons { font-size: var(--ffc-font-size-base); width: 14px; height: 14px; }
+.ffc-copy-shortcode .ffc-icon-copy::before { margin-right: 0; }
 .ffc-copy-shortcode.is-copied { color: var(--ffc-success-text); border-color: var(--ffc-success); }
 
 /* =========================================================================
@@ -984,12 +973,14 @@ p.ffc-datetime-order-error {
 	outline-offset: -2px;
 }
 
-.ffc-form-tabs__tab .dashicons {
+.ffc-form-tabs__tab .ffc-form-tabs__icon {
 	flex: 0 0 auto;
-	width: 18px;
-	height: 18px;
-	font-size: var(--ffc-font-size-xl);
+	font-size: var(--ffc-font-size-lg);
 	color: var(--ffc-text-muted);
+}
+
+.ffc-form-tabs__icon::before {
+	margin-right: 0;
 }
 
 .ffc-form-tabs__tab.is-active {
@@ -998,7 +989,7 @@ p.ffc-datetime-order-error {
 	border-left-color: var(--ffc-primary);
 }
 
-.ffc-form-tabs__tab.is-active .dashicons {
+.ffc-form-tabs__tab.is-active .ffc-form-tabs__icon {
 	color: var(--ffc-primary);
 }
 
@@ -1007,7 +998,7 @@ p.ffc-datetime-order-error {
 	color: var(--ffc-danger);
 }
 
-.ffc-form-tabs__tab.has-error .dashicons {
+.ffc-form-tabs__tab.has-error .ffc-form-tabs__icon {
 	color: var(--ffc-danger);
 }
 
@@ -1037,15 +1028,9 @@ p.ffc-datetime-order-error {
 	border-bottom: 2px solid var(--ffc-primary);
 }
 
-/* 20px literal: a glyph box, not text — an icon or a `&times;` sized by
-   font-size is a box, and the typography scale does not govern it. Same
-   reason as .ffc-stat-icon (#1148 step 1). */
-.ffc-form-tabs__panel-title .dashicons {
+.ffc-form-tabs__panel-title .ffc-form-tabs__icon {
 	flex: 0 0 auto;
 	color: var(--ffc-primary);
-	font-size: 20px;
-	width: 20px;
-	height: 20px;
 }
 
 /* Client-side required-tag save-guard banner (prepended to the Layout panel). */
@@ -1058,10 +1043,8 @@ p.ffc-datetime-order-error {
 }
 
 /* "Duplicate this form" link inside the Publish (Submit) box. */
-.misc-pub-section.ffc-duplicate-action .dashicons {
+.misc-pub-section.ffc-duplicate-action .ffc-icon-copy {
 	color: var(--ffc-text-muted);
-	margin-right: var(--ffc-spacing-2xs);
-	vertical-align: text-bottom;
 }
 
 /* Panel hiding only kicks in once JS marks the container ready. */
@@ -1498,11 +1481,13 @@ p.ffc-datetime-order-error {
     padding: 0;
 }
 
-.ffc-page-identities .ffc-identity-panel-step .dashicons {
-    width: auto;
-    height: auto;
-    font-size: var(--ffc-font-size-xl);
+.ffc-page-identities .ffc-identity-panel-step [class*="ffc-icon-chevron"] {
+    font-size: var(--ffc-font-size-lg);
     line-height: 1;
+}
+
+.ffc-page-identities .ffc-identity-panel-step [class*="ffc-icon-chevron"]::before {
+    margin-right: 0;
 }
 
 /* `aria-disabled` rather than `disabled`, because these are links and a link
@@ -1985,8 +1970,8 @@ p.ffc-datetime-order-error {
 }
 
 /* The search button carries a glyph before its word, so it stops being a
-   text box: `inline-flex` is what puts the two on one baseline, since a
-   dashicon is a 20px square that a button's own line-height cannot centre.
+   text box: `inline-flex` is what puts the two on one baseline, since an
+   icon box is a square that a button's own line-height cannot centre.
    Sized to the label rather than to its own default, or the glyph reads as
    the control and the word as its caption. */
 .ffc-page-identities .ffc-identity-find {
@@ -1995,11 +1980,8 @@ p.ffc-datetime-order-error {
     gap: var(--ffc-spacing-3xs);
 }
 
-.ffc-page-identities .ffc-identity-find .dashicons {
-    width: auto;
-    height: auto;
-    font-size: var(--ffc-font-size-lg);
-    line-height: 1;
+.ffc-page-identities .ffc-identity-find .ffc-icon-search::before {
+    margin-right: 0;
 }
 
 @media screen and (max-width: 782px) {

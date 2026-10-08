@@ -47,23 +47,23 @@ final class RecruitmentAdminPageRenderer {
 			array(
 				'notices'     => array(
 					'label' => __( 'Notices', 'ffcertificate' ),
-					'icon'  => 'megaphone',
+					'icon'  => 'ffc-icon-megaphone',
 				),
 				'adjutancies' => array(
 					'label' => __( 'Adjutancies', 'ffcertificate' ),
-					'icon'  => 'building',
+					'icon'  => 'ffc-icon-building',
 				),
 				'reasons'     => array(
 					'label' => __( 'Reasons', 'ffcertificate' ),
-					'icon'  => 'format-status',
+					'icon'  => 'ffc-icon-clipboard',
 				),
 				'candidates'  => array(
 					'label' => __( 'Candidates', 'ffcertificate' ),
-					'icon'  => 'id',
+					'icon'  => 'ffc-icon-id',
 				),
 				'settings'    => array(
 					'label' => __( 'Settings', 'ffcertificate' ),
-					'icon'  => 'admin-generic',
+					'icon'  => 'ffc-icon-settings',
 				),
 			),
 			static function ( array $tab ): string {

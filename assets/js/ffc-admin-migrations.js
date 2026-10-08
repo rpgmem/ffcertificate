@@ -76,7 +76,7 @@
         var originalBtnHtml = $btn.html();
         var totalProcessed  = 0;
         $btn.prop('disabled', true).addClass('disabled')
-            .html('<span class="dashicons dashicons-update dashicons-spin"></span> ' + (initialStrings.processing || 'Processing...'));
+            .html('<span class="ffc-icon-sync ffc-icon-spin" aria-hidden="true"></span>' + (initialStrings.processing || 'Processing...'));
 
         function runBatch() {
             window.FFC.request('ffc_migration_run_batch', {
@@ -98,7 +98,7 @@
                     );
 
                     if (data.is_complete) {
-                        $btn.html('<span class="dashicons dashicons-yes-alt"></span> ' + (strings.migrationComplete || 'Migration Complete'));
+                        $btn.html('<span class="ffc-icon-success" aria-hidden="true"></span>' + (strings.migrationComplete || 'Migration Complete'));
                         $description.html('✓ ' + (strings.allRecordsMigrated || 'All records have been successfully migrated.'));
                         setTimeout(function () { window.location.reload(); }, 1500);
                     } else {

@@ -45,8 +45,17 @@ if ( ! DateMessagesAdminPage::can_view_pii() ) {
 	unset( $ffc_dm_tabs['upcoming'] );
 }
 $ffc_dm_active = 'edit' === $tab ? 'rules' : $tab;
+// The same vertical tab layout as Settings, Scheduling and Recruitment; each
+// tab names its icon from Core\Icons.
+$ffc_dm_icons = array(
+	'rules'    => 'ffc-icon-list',
+	'send'     => 'ffc-icon-send',
+	'history'  => 'ffc-icon-history',
+	'upcoming' => 'ffc-icon-calendar',
+	'settings' => 'ffc-icon-clock',
+);
 ?>
-<div class="wrap ffc-admin-page ffc-page-date-messages">
+<div class="wrap ffc-admin-page ffc-page-date-messages ffc-settings-wrap">
 	<h1 class="wp-heading-inline"><?php esc_html_e( 'Date Messages', 'ffcertificate' ); ?></h1>
 	<?php if ( $can_manage && 'rules' === $tab ) : ?>
 		<a href="
@@ -80,24 +89,42 @@ $ffc_dm_active = 'edit' === $tab ? 'rules' : $tab;
 		?>
 	<?php endif; ?>
 
-	<nav class="nav-tab-wrapper">
-		<?php foreach ( $ffc_dm_tabs as $ffc_dm_key => $ffc_dm_label ) : ?>
-			<a href="
-			<?php
-			echo esc_url(
-				add_query_arg(
-					array(
-						'page' => DateMessagesAdminPage::MENU_SLUG,
-						'tab'  => $ffc_dm_key,
-					),
-					admin_url( 'admin.php' )
-				)
-			);
-			?>
-						"
-				class="nav-tab<?php echo $ffc_dm_key === $ffc_dm_active ? ' nav-tab-active' : ''; ?>"><?php echo esc_html( $ffc_dm_label ); ?></a>
-		<?php endforeach; ?>
-	</nav>
+	<div class="ffc-settings-tabs">
+		<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
+			<?php foreach ( $ffc_dm_tabs as $ffc_dm_key => $ffc_dm_label ) : ?>
+				<?php $ffc_dm_is_active = $ffc_dm_key === $ffc_dm_active; ?>
+				<li class="ffc-settings-tabs__nav-item" role="presentation">
+					<a href="
+					<?php
+					echo esc_url(
+						add_query_arg(
+							array(
+								'page' => DateMessagesAdminPage::MENU_SLUG,
+								'tab'  => $ffc_dm_key,
+							),
+							admin_url( 'admin.php' )
+						)
+					);
+					?>
+								"
+						id="ffc-date-messages-tabnav-<?php echo esc_attr( $ffc_dm_key ); ?>"
+						class="ffc-settings-tabs__tab<?php echo $ffc_dm_is_active ? ' is-active' : ''; ?>"
+						role="tab"
+						aria-selected="<?php echo $ffc_dm_is_active ? 'true' : 'false'; ?>"
+						aria-controls="ffc-date-messages-tabpanel"
+						tabindex="<?php echo $ffc_dm_is_active ? '0' : '-1'; ?>">
+						<span class="ffc-settings-tabs__icon <?php echo esc_attr( $ffc_dm_icons[ $ffc_dm_key ] ); ?>" aria-hidden="true"></span>
+						<span class="ffc-settings-tabs__label"><?php echo esc_html( $ffc_dm_label ); ?></span>
+					</a>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+
+		<div id="ffc-date-messages-tabpanel" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-date-messages-tabnav-<?php echo esc_attr( $ffc_dm_active ); ?>" tabindex="0">
+			<div class="card">
+				<?php if ( 'edit' !== $tab ) : ?>
+					<h2 class="<?php echo esc_attr( $ffc_dm_icons[ $tab ] ); ?>"><?php echo esc_html( $ffc_dm_tabs[ $tab ] ); ?></h2>
+				<?php endif; ?>
 
 	<?php
 	$ffc_dm_partial = array(
@@ -110,4 +137,7 @@ $ffc_dm_active = 'edit' === $tab ? 'rules' : $tab;
 	);
 	require __DIR__ . '/' . $ffc_dm_partial[ $tab ];
 	?>
+			</div>
+		</div>
+	</div>
 </div>

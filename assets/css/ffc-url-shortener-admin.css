@@ -25,10 +25,8 @@
     text-align: center;
 }
 
-.ffc-copy-shorturl .dashicons {
-    width: 16px;
-    height: 16px;
-    font-size: var(--ffc-font-size-lg);
+.ffc-copy-shorturl .ffc-icon-copy::before {
+    margin-right: 0;
 }
 
 /* Download buttons */
@@ -227,15 +225,8 @@
     gap: var(--ffc-spacing-2xs);
 }
 
-.ffc-qr-modal__actions .dashicons {
-    font-size: var(--ffc-font-size-lg);
-    width: 16px;
-    height: 16px;
-    /* The buttons are flex with `align-items: center`, which already centres
-       the glyph — so neutralise the baseline-oriented `.ffc-dashicon-valign`
-       margin (it otherwise pushes the icon ~3px below the label). */
-    margin-top: 0;
-    line-height: 1;
+.ffc-qr-modal__actions [class*="ffc-icon-"]::before {
+    margin-right: 0;
 }
 
 /* Meta box: shorturl label */
@@ -287,17 +278,6 @@
     margin-bottom: var(--ffc-spacing-sm);
 }
 
-/* Meta box: dashicon alignment inside buttons */
-.ffc-shorturl-metabox .dashicons.ffc-dashicon-valign {
-    margin-top: 3px;
-}
-
-/* Meta box: small dashicon */
-.ffc-shorturl-metabox .dashicons.ffc-dashicon-sm {
-    margin-top: 3px;
-    font-size: var(--ffc-font-size-base);
-}
-
 /* Meta box: regenerate row */
 .ffc-shorturl-regenerate {
     text-align: center;
@@ -326,11 +306,6 @@
     margin-bottom: var(--ffc-spacing-md);
 }
 
-/* Admin page: dashicon vertical align in buttons */
-.ffc-dashicon-valign {
-    margin-top: 3px;
-}
-
 /* Admin page: inline error text (edit modal / AJAX failures) */
 .ffc-shorturl-error {
     color: var(--ffc-danger-text);
@@ -340,14 +315,6 @@
 .ffc-shorturl-dest-note {
     color: var(--ffc-text-muted);
     font-style: italic;
-}
-
-/* Admin page: small dashicon (QR button in table) */
-.ffc-dashicon-sm-inline {
-    margin-top: 3px;
-    font-size: var(--ffc-font-size-base);
-    width: 14px;
-    height: 14px;
 }
 
 /* Responsive */

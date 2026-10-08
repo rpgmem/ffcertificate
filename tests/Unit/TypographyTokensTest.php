@@ -87,7 +87,7 @@ class TypographyTokensTest extends TestCase {
 		'ffc-admin-settings.css'           => 1,
 		'ffc-calendar-frontend.css'        => 1,
 		'ffc-reregistration-admin.css'     => 1,
-		'ffc-admin.css'                    => 3,
+		'ffc-admin.css'                    => 1,
 		'ffc-frontend.css'                 => 2,
 
 		// Card hero numbers, deliberately above the text scale — plus the phone

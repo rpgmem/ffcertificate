@@ -610,18 +610,19 @@
     display: none;
 }
 
-/* Custom disclosure triangle that rotates when the branch is open. */
-.ffc-doc-toc-branch > details > summary::before {
-    content: "\f345"; /* dashicons-arrow-right-alt2 */
-    font-family: dashicons;
-    font-size: var(--ffc-font-size-lg);
-    line-height: 1;
+/* Custom disclosure chevron that rotates when the branch is open. */
+.ffc-doc-toc-chevron {
+    display: inline-flex;
     flex: 0 0 auto;
     color: var(--ffc-text-muted);
+}
+
+.ffc-doc-toc-chevron::before {
+    margin-right: 0;
     transition: transform 0.15s ease;
 }
 
-.ffc-doc-toc-branch > details[open] > summary::before {
+.ffc-doc-toc-branch > details[open] > summary .ffc-doc-toc-chevron::before {
     transform: rotate(90deg);
 }
 
@@ -631,7 +632,7 @@
     border-color: var(--ffc-primary);
 }
 
-.ffc-doc-toc-branch > details > summary:hover::before,
+.ffc-doc-toc-branch > details > summary:hover .ffc-doc-toc-chevron,
 .ffc-doc-toc-branch > details > summary:hover .ffc-doc-toc-icon {
     color: var(--ffc-text-on-primary);
 }
@@ -1025,68 +1026,26 @@
 }
 
 /* ==========================================================================
-   Normalize tab icons to Dashicons inside the settings vertical nav.
-
-   The global .ffc-icon-* helpers render emojis via ::before content (see
-   ffc-common.css) for use anywhere in the plugin. Inside the settings
-   nav we want the form-editor look (which uses native Dashicons), so we
-   swap the ::before font + glyph here without touching the global rules
-   — emojis stay intact for every other surface that uses .ffc-icon-*.
-
-   The dashicons font is loaded by wp-admin on every screen, so no
-   enqueue change is required.
-
-   Mapping table (tab class → dashicon):
-     ffc-icon-settings → admin-generic (\f111)   — General + Advanced
-     ffc-icon-email    → email         (\f465)   — SMTP
-     ffc-icon-package  → archive       (\f480)   — Cache
-     ffc-icon-link     → admin-links   (\f103)   — URL Shortener
-     ffc-icon-shield   → shield        (\f332)   — Rate Limit
-     ffc-icon-globe    → admin-site    (\f319)   — Geolocation
-     ffc-icon-users    → groups        (\f307)   — User Access
-     ffc-icon-sync     → update        (\f463)   — Migrations
-     ffc-icon-doc      → book-alt      (\f331)   — Documentation
-     ffc-icon-clipboard→ list-view     (\f163)   — Activity Log
-     ffc-icon-calendar → calendar-alt  (\f508)   — Scheduling module link
-     (module links also carry an external marker → external \f504)
+   Tab icons in the vertical nav (Settings, Scheduling, Recruitment, Date
+   Messages). Each is a Core\Icons class, drawn by the generated block in
+   ffc-common.css; a tab a filter adds may still name a dashicon, which the
+   `dashicons` class draws on its own (Icons::tab_class()).
    ========================================================================== */
 
-/* 20px literal: icon glyphs (dashicons), not text — an icon sized by
-   font-size is a glyph box, and the typographic scale does not govern it.
-   Same reason as .ffc-stat-icon. */
-.ffc-settings-tabs__nav .ffc-settings-tabs__icon,
-.ffc-settings-tabs__nav .ffc-settings-tabs__external {
-    font-family: dashicons;
+/* 20px literal: an icon box, not text — the typographic scale does not
+   govern it. Same reason as .ffc-stat-icon. */
+.ffc-settings-tabs__nav .ffc-settings-tabs__icon {
     font-size: 20px;
     line-height: 1;
-    font-style: normal;
-    font-weight: 400;
-    font-variant: normal;
-    text-decoration: inherit;
-    text-rendering: auto;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
 }
 
-.ffc-settings-tabs__nav .ffc-icon-settings::before { content: "\f111"; }
-.ffc-settings-tabs__nav .ffc-icon-email::before    { content: "\f465"; }
-.ffc-settings-tabs__nav .ffc-icon-package::before  { content: "\f480"; }
-.ffc-settings-tabs__nav .ffc-icon-link::before     { content: "\f103"; }
-.ffc-settings-tabs__nav .ffc-icon-shield::before   { content: "\f332"; }
-.ffc-settings-tabs__nav .ffc-icon-globe::before    { content: "\f319"; }
-.ffc-settings-tabs__nav .ffc-icon-users::before    { content: "\f307"; }
-.ffc-settings-tabs__nav .ffc-icon-sync::before     { content: "\f463"; }
-.ffc-settings-tabs__nav .ffc-icon-doc::before      { content: "\f331"; }
-.ffc-settings-tabs__nav .ffc-icon-clipboard::before { content: "\f163"; }
-.ffc-settings-tabs__nav .ffc-icon-calendar::before { content: "\f508"; }
+.ffc-settings-tabs__nav .ffc-settings-tabs__icon::before,
+.ffc-settings-tabs__nav .ffc-settings-tabs__external::before {
+    margin-right: 0;
+}
 
 .ffc-settings-tabs__nav .ffc-settings-tabs__external {
-    font-size: var(--ffc-font-size-base);
-}
-
-.ffc-settings-tabs__nav .ffc-settings-tabs__external::before {
-    content: "\f504";
-    margin-right: 0;
+    font-size: var(--ffc-font-size-sm);
 }
 
 /* ==========================================================================
@@ -1142,11 +1101,13 @@
     outline-offset: 2px;
 }
 
-.ffc-settings-back-to-top .dashicons {
-    width: 24px;
-    height: 24px;
-    font-size: var(--ffc-font-size-2xl);
+.ffc-settings-back-to-top .ffc-icon-chevron-up {
+    font-size: var(--ffc-font-size-xl);
     line-height: 1;
+}
+
+.ffc-settings-back-to-top .ffc-icon-chevron-up::before {
+    margin-right: 0;
 }
 
 /* Smooth-scroll only on pages that render the back-to-top link — `:has()`

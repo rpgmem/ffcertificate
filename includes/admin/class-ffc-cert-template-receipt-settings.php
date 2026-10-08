@@ -89,7 +89,7 @@ class CertTemplateReceiptSettings {
 	public function add_tab( array $tabs ): array {
 		$tabs[ self::TAB ] = array(
 			'label' => __( 'Receipt', 'ffcertificate' ),
-			'icon'  => 'media-document',
+			'icon'  => 'ffc-icon-file',
 		);
 		return $tabs;
 	}

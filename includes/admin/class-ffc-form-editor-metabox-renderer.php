@@ -242,12 +242,12 @@ class FormEditorMetaboxRenderer {
 		$first = true;
 		foreach ( $tabs as $tab ) {
 			printf(
-				'<li class="ffc-form-tabs__nav-item" role="presentation"><a href="#ffc-tab-%1$s" id="ffc-tabnav-%1$s" class="ffc-form-tabs__tab%2$s" role="tab" aria-controls="ffc-tabpanel-%1$s" aria-selected="%3$s" tabindex="%4$s"><span class="dashicons dashicons-%5$s" aria-hidden="true"></span><span class="ffc-form-tabs__label">%6$s</span></a></li>',
+				'<li class="ffc-form-tabs__nav-item" role="presentation"><a href="#ffc-tab-%1$s" id="ffc-tabnav-%1$s" class="ffc-form-tabs__tab%2$s" role="tab" aria-controls="ffc-tabpanel-%1$s" aria-selected="%3$s" tabindex="%4$s"><span class="ffc-form-tabs__icon %5$s" aria-hidden="true"></span><span class="ffc-form-tabs__label">%6$s</span></a></li>',
 				esc_attr( $tab['key'] ),
 				$first ? ' is-active' : '',
 				$first ? 'true' : 'false',
 				$first ? '0' : '-1',
-				esc_attr( $tab['icon'] ),
+				esc_attr( \FreeFormCertificate\Core\Icons::tab_class( $tab['icon'] ) ),
 				esc_html( $tab['label'] )
 			);
 			$first = false;
@@ -263,8 +263,8 @@ class FormEditorMetaboxRenderer {
 				$first ? ' is-active' : ''
 			);
 			printf(
-				'<h2 class="ffc-form-tabs__panel-title"><span class="dashicons dashicons-%1$s" aria-hidden="true"></span>%2$s</h2>',
-				esc_attr( $tab['icon'] ),
+				'<h2 class="ffc-form-tabs__panel-title"><span class="ffc-form-tabs__icon %1$s" aria-hidden="true"></span>%2$s</h2>',
+				esc_attr( \FreeFormCertificate\Core\Icons::tab_class( $tab['icon'] ) ),
 				esc_html( $tab['title'] )
 			);
 			$this->render_panel_body( $tab['key'], $post );
@@ -287,49 +287,49 @@ class FormEditorMetaboxRenderer {
 		return array(
 			array(
 				'key'   => 'layout',
-				'icon'  => 'media-document',
+				'icon'  => 'ffc-icon-file',
 				'label' => __( 'Layout', 'ffcertificate' ),
 				'title' => __( 'Certificate Layout', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'builder',
-				'icon'  => 'forms',
+				'icon'  => 'ffc-icon-layout',
 				'label' => __( 'Fields', 'ffcertificate' ),
 				'title' => __( 'Form Builder (Fields)', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'restriction',
-				'icon'  => 'shield',
+				'icon'  => 'ffc-icon-shield',
 				'label' => __( 'Security', 'ffcertificate' ),
 				'title' => __( 'Restriction & Security', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'email',
-				'icon'  => 'email',
+				'icon'  => 'ffc-icon-email',
 				'label' => __( 'Email', 'ffcertificate' ),
 				'title' => __( 'Email Configuration', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'time',
-				'icon'  => 'clock',
+				'icon'  => 'ffc-icon-clock',
 				'label' => __( 'Time', 'ffcertificate' ),
 				'title' => __( 'Date & Time Restrictions', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'geolocation',
-				'icon'  => 'location-alt',
+				'icon'  => 'ffc-icon-map-pin',
 				'label' => __( 'Geolocation', 'ffcertificate' ),
 				'title' => __( 'Geolocation Restrictions', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'quiz',
-				'icon'  => 'welcome-learn-more',
+				'icon'  => 'ffc-icon-chart',
 				'label' => __( 'Quiz', 'ffcertificate' ),
 				'title' => __( 'Quiz / Evaluation Mode', 'ffcertificate' ),
 			),
 			array(
 				'key'   => 'operator',
-				'icon'  => 'groups',
+				'icon'  => 'ffc-icon-users',
 				'label' => __( 'Operator', 'ffcertificate' ),
 				'title' => __( 'Public Operator Access', 'ffcertificate' ),
 			),

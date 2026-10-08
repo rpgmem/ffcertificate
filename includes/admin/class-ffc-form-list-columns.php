@@ -234,7 +234,7 @@ class FormListColumns {
 					'<span class="ffc-shortcode-cell">'
 					. '<code class="ffc-shortcode-code">%s</code>'
 					. '<button type="button" class="ffc-copy-shortcode" data-shortcode="%s" title="%s">'
-					. '<span class="dashicons dashicons-clipboard"></span>'
+					. '<span class="ffc-icon-copy" aria-hidden="true"></span>'
 					. '</button>'
 					. '</span>',
 					esc_html( $shortcode ),

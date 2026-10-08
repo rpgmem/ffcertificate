@@ -30,7 +30,7 @@
 
         $('.ffc-admin-notification').remove();
 
-        var icons = {success: 'yes-alt', error: 'dismiss', warning: 'warning', info: 'info'};
+        var icons = {success: 'success', error: 'error', warning: 'warning', info: 'info'};
         var colors = {success: 'notice-success', error: 'notice-error', warning: 'notice-warning', info: 'notice-info'};
 
         // Get localized strings with fallbacks
@@ -38,7 +38,7 @@
         var dismissText = strings.dismiss || 'Dismiss';
 
         var $notif = $('<div class="ffc-admin-notification notice ' + colors[type] + ' is-dismissible">' +
-            '<p><span class="dashicons dashicons-' + icons[type] + '"></span> ' + message + '</p>' +
+            '<p><span class="ffc-icon-' + icons[type] + '" aria-hidden="true"></span>' + message + '</p>' +
             '<button type="button" class="notice-dismiss"><span class="screen-reader-text">' + dismissText + '</span></button>' +
             '</div>');
 

@@ -11,9 +11,9 @@ beforeAll(() => {
 });
 
 const TABS = [
-	{ key: 'layout', icon: 'media-document', label: 'Layout' },
+	{ key: 'layout', icon: 'file', label: 'Layout' },
 	{ key: 'email', icon: 'email', label: 'Email' },
-	{ key: 'geolocation', icon: 'location-alt', label: 'Geolocation' },
+	{ key: 'geolocation', icon: 'map-pin', label: 'Geolocation' },
 ];
 
 // Build the markup FormEditorMetaboxRenderer::render_tabbed_container() emits.
@@ -27,7 +27,7 @@ function buildTabs(tabs = TABS) {
 				`class="ffc-form-tabs__tab${active ? ' is-active' : ''}" role="tab" ` +
 				`aria-controls="ffc-tabpanel-${t.key}" aria-selected="${active ? 'true' : 'false'}" ` +
 				`tabindex="${active ? '0' : '-1'}">` +
-				`<span class="dashicons dashicons-${t.icon}"></span>` +
+				`<span class="ffc-form-tabs__icon ffc-icon-${t.icon}" aria-hidden="true"></span>` +
 				`<span class="ffc-form-tabs__label">${t.label}</span></a></li>`
 			);
 		})

@@ -162,7 +162,7 @@
 
             function restoreBtn() {
                 $btn.prop('disabled', false).html(
-                    '<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span> ' + (S.record || 'Record')
+                    '<span class="ffc-icon-file" aria-hidden="true"></span>' + (S.record || 'Record')
                 );
             }
 

@@ -267,7 +267,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 													data-id="<?php echo esc_attr( (string) $item['id'] ); ?>"
 													data-target="<?php echo esc_attr( $item['target_url'] ); ?>"
 													data-title="<?php echo esc_attr( (string) $item['title'] ); ?>">
-												<span class="dashicons dashicons-edit ffc-dashicon-sm-inline"></span>
+												<span class="ffc-icon-edit" aria-hidden="true"></span>
 												<?php esc_html_e( 'Edit', 'ffcertificate' ); ?>
 											</button>
 										<?php endif; ?>
@@ -275,7 +275,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 												data-code="<?php echo esc_attr( $item['short_code'] ); ?>"
 												data-url="<?php echo esc_attr( $short_url ); ?>"
 												data-title="<?php echo esc_attr( $item['title'] ? $item['title'] : $item['short_code'] ); ?>">
-											<span class="dashicons dashicons-screenoptions ffc-dashicon-sm-inline"></span>
+											<span class="ffc-icon-qr" aria-hidden="true"></span>
 											QR
 										</button>
 										<a href="<?php echo esc_url( $toggle_url ); ?>" class="button button-small">
@@ -327,15 +327,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</div>
 					<div class="ffc-qr-modal__actions">
 						<button type="button" class="button ffc-copy-shorturl" data-url="">
-							<span class="dashicons dashicons-clipboard ffc-dashicon-valign"></span>
+							<span class="ffc-icon-copy" aria-hidden="true"></span>
 							<?php esc_html_e( 'Copy URL', 'ffcertificate' ); ?>
 						</button>
 						<button type="button" class="button ffc-download-qr" data-format="png" data-code="">
-							<span class="dashicons dashicons-download ffc-dashicon-valign"></span>
+							<span class="ffc-icon-download" aria-hidden="true"></span>
 							PNG
 						</button>
 						<button type="button" class="button ffc-download-qr" data-format="svg" data-code="">
-							<span class="dashicons dashicons-download ffc-dashicon-valign"></span>
+							<span class="ffc-icon-download" aria-hidden="true"></span>
 							SVG
 						</button>
 					</div>
