@@ -101,8 +101,10 @@ final class SpacingTokensTest extends TestCase {
 		// same height on purpose. The second is not a new literal in the
 		// repository -- it is what was hidden inside a PHP literal until #1193,
 		// and the PR's net is zero because `ffc-admin-submissions.css` gave its
-		// own back in the same pass.
-		'ffc-common.css'                   => 2,
+		// own back in the same pass. Three since #1614: the empty state's
+		// 56px, a breathing distance above the ladder, moved here from
+		// ffc-user-dashboard.css with the component, so the net is zero.
+		'ffc-common.css'                   => 3,
 		'ffc-custom-fields-admin.css'      => 3,
 		'ffc-frontend.css'                 => 19,
 		'ffc-pdf-core.css'                 => 1,
@@ -110,7 +112,7 @@ final class SpacingTokensTest extends TestCase {
 		'ffc-recruitment-admin.css'        => 2,
 		'ffc-reregistration-admin.css'     => 5,
 		'ffc-url-shortener-admin.css'      => 1,
-		'ffc-user-dashboard.css'           => 8,
+		'ffc-user-dashboard.css'           => 7,
 		'ffc-user-permissions.css'         => 15,
 	);
 

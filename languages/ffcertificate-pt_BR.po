@@ -24797,5 +24797,53 @@ msgstr "A URL curta só redireciona endereços web (http ou https), por isso est
 msgid "This rule is inactive. Activate it before sending, or use \"Send test to me\" to check it."
 msgstr "Esta regra está inativa. Ative-a antes de enviar, ou use \"Enviar teste para mim\" para conferi-la."
 
+msgid "A form collects the answers a certificate is issued from. Create one, then place its shortcode on a page."
+msgstr "Um formulário coleta as respostas a partir das quais o certificado é emitido. Crie um e depois coloque o shortcode dele em uma página."
+
+msgid "Forms moved to the trash appear here until they are restored or deleted permanently."
+msgstr "Os formulários movidos para a lixeira aparecem aqui até serem restaurados ou excluídos permanentemente."
+
+msgid "No failed quiz attempts"
+msgstr "Nenhuma reprovação no quiz"
+
+msgid "No form matches the current search or date filter. A number searches by form ID."
+msgstr "Nenhum formulário corresponde à busca ou ao filtro de data atual. Um número busca pelo ID do formulário."
+
+msgid "No forms in \"%s\""
+msgstr "Nenhum formulário em \"%s\""
+
+msgid "No forms match"
+msgstr "Nenhum formulário encontrado"
+
+msgid "No forms yet"
+msgstr "Ainda não há formulários"
+
+msgid "No quiz retries"
+msgstr "Nenhuma nova tentativa de quiz"
+
+msgid "No submissions match"
+msgstr "Nenhuma submissão encontrada"
+
+msgid "No submissions yet"
+msgstr "Ainda não há submissões"
+
+msgid "Nothing in \"%s\" matches the current search or form filter."
+msgstr "Nada em \"%s\" corresponde à busca ou ao filtro de formulário atual."
+
+msgid "Participants who failed a quiz and may still try again appear here."
+msgstr "Os participantes que foram reprovados no quiz e ainda podem tentar de novo aparecem aqui."
+
+msgid "Participants who used every quiz attempt without passing appear here."
+msgstr "Os participantes que usaram todas as tentativas do quiz sem aprovação aparecem aqui."
+
+msgid "Submissions appear here once someone fills in one of your forms."
+msgstr "As submissões aparecem aqui assim que alguém preencher um dos seus formulários."
+
+msgid "Submissions moved to the trash appear here until they are restored or deleted permanently."
+msgstr "As submissões movidas para a lixeira aparecem aqui até serem restauradas ou excluídas permanentemente."
+
+msgid "Trash is empty"
+msgstr "A lixeira está vazia"
+
 msgid "Open Scheduled Tasks"
 msgstr "Abrir Tarefas Agendadas"

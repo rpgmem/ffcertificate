@@ -372,6 +372,7 @@ class AdminAssetsManager {
 	 * 1. ffc-pdf-core (base)
 	 * 2. ffc-common (shared utilities)
 	 * 3. ffc-admin-utilities (admin utilities, depends on common)
+	 * 3b. ffc-admin-components (shared admin components, depends on common)
 	 * 4. ffc-admin-css (general admin, depends on pdf-core, common, utilities)
 	 * 5. ffc-admin-submissions-css (submissions page, depends on admin)
 	 * 6. Conditional: ffc-admin-settings (only on settings page)
@@ -430,6 +431,15 @@ class AdminAssetsManager {
 		wp_enqueue_style(
 			'ffc-admin-utilities',
 			FFC_PLUGIN_URL . "assets/css/ffc-admin-utilities{$s}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+
+		// 3b. Admin components shared across screens (#1614): the collapsible
+		// section the QR and certificate screens draw.
+		wp_enqueue_style(
+			'ffc-admin-components',
+			FFC_PLUGIN_URL . "assets/css/ffc-admin-components{$s}.css",
 			array( 'ffc-common' ),
 			FFC_VERSION
 		);

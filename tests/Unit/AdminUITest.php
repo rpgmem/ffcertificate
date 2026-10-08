@@ -144,4 +144,75 @@ class AdminUITest extends TestCase {
 			$this->assertNotSame( '', $value, "The '{$key}' badge string must not be empty." );
 		}
 	}
+
+	// ------------------------------------------------------------------
+	// get_empty_state()
+	// ------------------------------------------------------------------
+
+	public function test_empty_state_without_a_title_renders_nothing(): void {
+		$this->assertSame( '', AdminUI::get_empty_state( array( 'text' => 'Orphan sentence' ) ) );
+	}
+
+	public function test_empty_state_draws_icon_title_and_text(): void {
+		$html = AdminUI::get_empty_state(
+			array(
+				'icon'  => 'filter',
+				'title' => 'Nothing here',
+				'text'  => 'Because of the filter.',
+			)
+		);
+
+		$this->assertStringStartsWith( '<div class="ffc-empty-state">', $html );
+		$this->assertStringContainsString( 'class="ffc-empty-state__icon ffc-icon-badge ffc-icon-badge-primary ffc-icon-filter" aria-hidden="true"', $html );
+		$this->assertStringContainsString( '<p class="ffc-empty-state__title">Nothing here</p>', $html );
+		$this->assertStringContainsString( '<p class="ffc-empty-state__text">Because of the filter.</p>', $html );
+		$this->assertStringNotContainsString( 'ffc-empty-state__actions', $html, 'no actions, no empty actions row' );
+	}
+
+	public function test_empty_state_defaults_to_the_inbox_icon_and_omits_an_empty_text(): void {
+		$html = AdminUI::get_empty_state( array( 'title' => 'Nothing here' ) );
+
+		$this->assertStringContainsString( 'ffc-icon-inbox', $html );
+		$this->assertStringNotContainsString( 'ffc-empty-state__text', $html );
+	}
+
+	public function test_empty_state_renders_actions_and_skips_incomplete_ones(): void {
+		Functions\when( 'esc_url' )->returnArg();
+
+		$html = AdminUI::get_empty_state(
+			array(
+				'title'   => 'Nothing here',
+				'actions' => array(
+					array( 'label' => 'Clear', 'url' => '/clear' ),
+					array( 'label' => 'Create', 'url' => '/new', 'primary' => true ),
+					array( 'label' => 'No URL' ),
+					'not an array',
+				),
+			)
+		);
+
+		$this->assertStringContainsString( '<div class="ffc-empty-state__actions"><a href="/clear" class="button">Clear</a><a href="/new" class="button button-primary">Create</a></div>', $html );
+		$this->assertStringNotContainsString( 'No URL', $html );
+	}
+
+	public function test_empty_state_escapes_every_value(): void {
+		Functions\when( 'esc_attr' )->alias( 'htmlspecialchars' );
+		Functions\when( 'esc_html' )->alias( 'htmlspecialchars' );
+		Functions\when( 'esc_url' )->alias( static fn( $u ) => 'escaped:' . $u );
+
+		$html = AdminUI::get_empty_state(
+			array(
+				'icon'    => '"><script>',
+				'title'   => '<b>t</b>',
+				'text'    => '<i>x</i>',
+				'actions' => array( array( 'label' => '<u>a</u>', 'url' => 'javascript:alert(1)' ) ),
+			)
+		);
+
+		$this->assertStringNotContainsString( '<script>', $html );
+		$this->assertStringNotContainsString( '<b>', $html );
+		$this->assertStringNotContainsString( '<i>', $html );
+		$this->assertStringNotContainsString( '<u>', $html );
+		$this->assertStringContainsString( 'href="escaped:javascript:alert(1)"', $html );
+	}
 }

@@ -337,7 +337,7 @@ $ffc_qr_vcard_fields = array(
 					<button type="button" class="button" id="ffc-qr-design-reset"><?php esc_html_e( 'Reset to default', 'ffcertificate' ); ?></button>
 				</div>
 				<p class="description"><?php esc_html_e( 'The generator remembers your design when you download a code; "Reset to default" goes back to the global design from Settings → QR Code.', 'ffcertificate' ); ?></p>
-				<div class="ffc-qr-sections">
+				<div class="ffc-sections">
 					<?php require FFC_PLUGIN_DIR . 'templates/admin/qr/design-fields.php'; ?>
 					<?php $ffc_qr_section( 'advanced', __( 'Advanced', 'ffcertificate' ), __( 'Quiet zone and error correction.', 'ffcertificate' ) ); ?>
 						<div class="ffc-qr-fields">

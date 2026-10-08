@@ -4,7 +4,7 @@
  * the manual generator so the two cannot drift.
  *
  * Emits collapsible `<details>` sections (#1570); the caller wraps them in a
- * `.ffc-qr-sections` container. Every control carries
+ * `.ffc-sections` container. Every control carries
  * `data-ffc-qr-design="<key>"`, which is what `ffc-qr-design.js` collects;
  * only the `name` differs between the two screens. Shapes are picked from
  * tiles: a radio group whose thumbnails `QrSvgRenderer::swatch()` draws, so a
@@ -141,15 +141,15 @@ $ffc_qr_color = static function ( string $ffc_key, string $ffc_label, string $ff
  */
 $ffc_qr_section = static function ( string $ffc_icon, string $ffc_title, string $ffc_hint, bool $ffc_open = false ): void {
 	?>
-	<details class="ffc-qr-section" <?php echo $ffc_open ? 'open' : ''; ?>>
-		<summary class="ffc-qr-section__summary">
-			<span class="ffc-qr-section__icon"><?php echo Icons::svg( $ffc_icon, 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?></span>
-			<span class="ffc-qr-section__text">
-				<span class="ffc-qr-section__title"><?php echo esc_html( $ffc_title ); ?></span>
-				<span class="ffc-qr-section__hint"><?php echo esc_html( $ffc_hint ); ?></span>
+	<details class="ffc-section" <?php echo $ffc_open ? 'open' : ''; ?>>
+		<summary class="ffc-section__summary">
+			<span class="ffc-section__icon"><?php echo Icons::svg( $ffc_icon, 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?></span>
+			<span class="ffc-section__text">
+				<span class="ffc-section__title"><?php echo esc_html( $ffc_title ); ?></span>
+				<span class="ffc-section__hint"><?php echo esc_html( $ffc_hint ); ?></span>
 			</span>
 		</summary>
-		<div class="ffc-qr-section__body">
+		<div class="ffc-section__body">
 	<?php
 };
 
