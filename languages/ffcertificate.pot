@@ -24706,3 +24706,6 @@ msgstr ""
 
 msgid "This rule is inactive. Activate it before sending, or use \"Send test to me\" to check it."
 msgstr ""
+
+msgid "Open Scheduled Tasks"
+msgstr ""
