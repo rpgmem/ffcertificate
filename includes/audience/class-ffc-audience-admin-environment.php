@@ -50,7 +50,7 @@ class AudienceAdminEnvironment {
 		// the plain list-table screen.
 		$boxed = in_array( $action, array( 'new', 'edit' ), true );
 		?>
-		<div class="wrap ffc-admin-page ffc-page-scheduling-environments<?php echo $boxed ? ' ffc-boxed' : ''; ?>">
+		<div class="wrap ffc-admin-page ffc-page-scheduling-environments <?php echo $boxed ? 'ffc-boxed' : ''; ?>">
 			<?php
 			switch ( $action ) {
 				case 'new':
