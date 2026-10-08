@@ -71,7 +71,7 @@ class AudienceAdminDashboard {
 				<!-- Self-Scheduling Section -->
 				<h2><?php esc_html_e( 'Self-Scheduling (Personal)', 'ffcertificate' ); ?></h2>
 				<div class="ffc-stats-grid">
-					<div class="ffc-stat-card">
+					<div class="ffc-audience-stat-card">
 						<span class="ffc-stat-label"><?php esc_html_e( 'Active Calendars', 'ffcertificate' ); ?></span>
 						<div class="ffc-stat-number">
 							<span class="ffc-stat-icon ffc-icon-calendar" aria-hidden="true"></span>
@@ -82,7 +82,7 @@ class AudienceAdminDashboard {
 						</a>
 					</div>
 
-					<div class="ffc-stat-card">
+					<div class="ffc-audience-stat-card">
 						<span class="ffc-stat-label"><?php esc_html_e( 'Upcoming Appointments', 'ffcertificate' ); ?></span>
 						<div class="ffc-stat-number">
 							<span class="ffc-stat-icon ffc-icon-clock" aria-hidden="true"></span>
@@ -97,7 +97,7 @@ class AudienceAdminDashboard {
 				<!-- Audience Section -->
 				<h2><?php esc_html_e( 'Audience Scheduling', 'ffcertificate' ); ?></h2>
 				<div class="ffc-stats-grid">
-					<div class="ffc-stat-card">
+					<div class="ffc-audience-stat-card">
 						<span class="ffc-stat-label"><?php esc_html_e( 'Active Calendars', 'ffcertificate' ); ?></span>
 						<div class="ffc-stat-number">
 							<span class="ffc-stat-icon ffc-icon-calendar" aria-hidden="true"></span>
@@ -108,7 +108,7 @@ class AudienceAdminDashboard {
 						</a>
 					</div>
 
-					<div class="ffc-stat-card">
+					<div class="ffc-audience-stat-card">
 						<span class="ffc-stat-label">
 							<?php
 							/* translators: %s: environment label (plural) */
@@ -124,7 +124,7 @@ class AudienceAdminDashboard {
 						</a>
 					</div>
 
-					<div class="ffc-stat-card">
+					<div class="ffc-audience-stat-card">
 						<span class="ffc-stat-label"><?php esc_html_e( 'Active Audiences', 'ffcertificate' ); ?></span>
 						<div class="ffc-stat-number">
 							<span class="ffc-stat-icon ffc-icon-users" aria-hidden="true"></span>
@@ -135,7 +135,7 @@ class AudienceAdminDashboard {
 						</a>
 					</div>
 
-					<div class="ffc-stat-card">
+					<div class="ffc-audience-stat-card">
 						<span class="ffc-stat-label"><?php esc_html_e( 'Upcoming Bookings', 'ffcertificate' ); ?></span>
 						<div class="ffc-stat-number">
 							<span class="ffc-stat-icon ffc-icon-clock" aria-hidden="true"></span>

@@ -778,6 +778,22 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * Count published submissions made at or after a moment.
+	 *
+	 * `submission_date` is a unix UTC int (Category A), so the bound compares
+	 * directly; the caller decides where "today" starts in the site timezone.
+	 *
+	 * @since 6.35.0
+	 * @param int $since Unix UTC timestamp, inclusive.
+	 * @return int
+	 */
+	public function countPublishedSince( int $since ): int {
+		return (int) $this->wpdb->get_var(
+			$this->wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'publish' AND submission_date >= %d", $this->table, $since )
+		);
+	}
+
+	/**
 	 * Count by status
 	 *
 	 * @return array<string, int>

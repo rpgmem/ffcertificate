@@ -13,7 +13,8 @@
     margin-bottom: 30px;
 }
 
-.ffc-stat-card {
+/* Its own name since #1614: `.ffc-stat-card` is the shared admin component. */
+.ffc-audience-stat-card {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);

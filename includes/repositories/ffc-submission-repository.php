@@ -255,6 +255,17 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Count published submissions made at or after a moment.
+	 *
+	 * @since 6.35.0
+	 * @param int $since Unix UTC timestamp, inclusive.
+	 * @return int
+	 */
+	public function countPublishedSince( int $since ): int {
+		return $this->reader->countPublishedSince( $since );
+	}
+
+	/**
 	 * Check if any submission has edit information.
 	 *
 	 * @return bool True if edited_at column exists and has data

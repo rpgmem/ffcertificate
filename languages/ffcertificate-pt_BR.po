@@ -24935,3 +24935,15 @@ msgstr "Abrir certificado"
 
 msgid "This submission has no form answers."
 msgstr "Esta submissão não tem respostas de formulário."
+
+msgid "Forms in the month shown"
+msgstr "Formulários no mês exibido"
+
+msgid "Submissions today"
+msgstr "Submissões hoje"
+
+msgid "Submissions in the last 7 days"
+msgstr "Submissões nos últimos 7 dias"
+
+msgid "GeoFence windows open now"
+msgstr "Janelas de GeoFence abertas agora"

@@ -28,8 +28,9 @@ function mountFixture() {
 	document.body.innerHTML = `
 		<div id="ffc-certificates-calendar"></div>
 		<ul id="ffc-certificates-day-list"></ul>
-		<p class="ffc-certificates-side-empty" style="display:none">Empty</p>
+		<div class="ffc-certificates-side-empty"><div class="ffc-empty-state"><p class="ffc-empty-state__title">Pick a day</p></div></div>
 		<h3 class="ffc-certificates-side-title">Forms</h3>
+		<span id="ffc-cert-stat-month">—</span>
 	`;
 }
 
@@ -112,6 +113,30 @@ describe('certificates-dashboard — fetchMonth', () => {
 		const xhr = { setRequestHeader: vi.fn() };
 		opts.beforeSend(xhr);
 		expect(xhr.setRequestHeader).toHaveBeenCalledWith('X-WP-Nonce', 'cert-nonce');
+	});
+
+	it('continues the query with & when restUrl already has one (plain permalinks)', async () => {
+		window.ffcCertificatesDashboard.restUrl = '/index.php?rest_route=/ffc/v1/';
+		const postSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		capturedOpts.onMonthChange(2026, 6);
+
+		expect(postSpy.mock.calls[0][0].url).toBe('/index.php?rest_route=/ffc/v1/certificates/calendar&year=2026&month=6');
+	});
+
+	it('fills the month card with the number of forms the month holds', async () => {
+		let doneCb;
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => { doneCb = opts.success; return {}; });
+
+		capturedOpts.onMonthChange(2026, 6);
+		doneCb([ { date: '2026-06-05', id: 1 }, { date: '2026-06-12', id: 2 } ]);
+		await flush();
+		expect(window.$('#ffc-cert-stat-month').text()).toBe('2');
+
+		capturedOpts.onMonthChange(2026, 7);
+		doneCb('not an array');
+		await flush();
+		expect(window.$('#ffc-cert-stat-month').text()).toBe('0');
 	});
 
 	it('on success: stores entries keyed by date and refreshes the calendar', async () => {
@@ -249,8 +274,16 @@ describe('certificates-dashboard — renderSideList', () => {
 	it('shows the empty-state message when the day has no entries', async () => {
 		capturedOpts.onDayClick('2026-06-20');
 		expect(window.$('#ffc-certificates-day-list').attr('hidden')).toBe('hidden');
-		expect(window.$('.ffc-certificates-side-empty').text()).toBe('No forms today.');
-		expect(window.$('.ffc-certificates-side-empty').css('display')).not.toBe('none');
+		// The shared empty state keeps its markup; only the title changes.
+		expect(window.$('.ffc-certificates-side-empty .ffc-empty-state__title').text()).toBe('No forms today.');
+		expect(window.$('.ffc-certificates-side-empty').attr('hidden')).toBeUndefined();
+	});
+
+	it('hides the empty state when the day has entries', async () => {
+		await seed([ { date: '2026-06-05', source: 'geofence', title: 'Form A', id: 1, status: 'publish' } ]);
+		capturedOpts.onDayClick('2026-06-05');
+		expect(window.$('.ffc-certificates-side-empty').attr('hidden')).toBe('hidden');
+		expect(window.$('.ffc-certificates-side-empty .ffc-empty-state').length).toBe(1, 'the markup stays for the next empty day');
 	});
 
 	it('renders one <li> per entry, sorted by title', async () => {

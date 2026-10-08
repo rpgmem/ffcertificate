@@ -462,6 +462,16 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		$this->assertSame( 0, $this->repo()->countForExport( null, null ) );
 	}
 
+	public function test_count_published_since_binds_the_bound_and_counts_published_only(): void {
+		$this->wpdb->shouldReceive( 'prepare' )
+			->once()
+			->with( "SELECT COUNT(*) FROM %i WHERE status = 'publish' AND submission_date >= %d", Mockery::type( 'string' ), 1791428400 )
+			->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->with( 'SQL' )->andReturn( '9' );
+
+		$this->assertSame( 9, $this->repo()->countPublishedSince( 1791428400 ) );
+	}
+
 	// ==================================================================
 	// READER — hasEditInfo (column missing + column present w/ + w/o data)
 	// ==================================================================

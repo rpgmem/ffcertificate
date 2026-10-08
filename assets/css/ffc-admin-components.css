@@ -138,3 +138,39 @@
 .ffc-facts__value.is-on {
     font-weight: 600;
 }
+
+/* Stat cards: a number and what it counts, laid out in a .ffc-stats row. */
+.ffc-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12em, 1fr));
+    gap: var(--ffc-spacing-lg);
+    margin: var(--ffc-spacing-lg) 0;
+}
+
+.ffc-stat-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: var(--ffc-spacing-md);
+    align-items: center;
+    padding: var(--ffc-spacing-lg);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-lg);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+}
+
+.ffc-stat-card__icon {
+    grid-row: 1 / span 2;
+    font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-stat-card__value {
+    font-size: var(--ffc-font-size-2xl);
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.ffc-stat-card__label {
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}

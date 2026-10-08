@@ -269,4 +269,38 @@ class AdminUI {
 	public static function render_section_close(): void {
 		echo self::section_close(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static closing markup.
 	}
+
+	/**
+	 * Markup for a stat card (`.ffc-stat-card`): an icon badge, a number and
+	 * what it counts. Lay several out in a `.ffc-stats` row.
+	 *
+	 * @param array<string, mixed> $args `label` (required), `value` (int or
+	 *                                    string; '—' until known), `icon`
+	 *                                    (`.ffc-icon-*` name without the
+	 *                                    prefix), `id` (on the value, for a
+	 *                                    script that fills it in).
+	 * @return string
+	 */
+	public static function get_stat_card( array $args ): string {
+		$label = (string) ( $args['label'] ?? '' );
+		if ( '' === $label ) {
+			return '';
+		}
+		$value = $args['value'] ?? '—';
+		$value = is_int( $value ) ? number_format_i18n( $value ) : (string) $value;
+		$icon  = (string) ( $args['icon'] ?? '' );
+		$id    = (string) ( $args['id'] ?? '' );
+
+		$html = '<div class="ffc-stat-card">';
+		if ( '' !== $icon ) {
+			$html .= '<span class="ffc-stat-card__icon ffc-icon-badge ffc-icon-badge-primary ffc-icon-' . esc_attr( $icon ) . '" aria-hidden="true"></span>';
+		}
+		$html .= sprintf(
+			'<span class="ffc-stat-card__value"%s>%s</span><span class="ffc-stat-card__label">%s</span>',
+			'' !== $id ? ' id="' . esc_attr( $id ) . '"' : '',
+			esc_html( $value ),
+			esc_html( $label )
+		);
+		return $html . '</div>';
+	}
 }
