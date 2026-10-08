@@ -20,7 +20,13 @@ jQuery(function ($) {
 	function syncDuringRow() {
 		var multi   = $('#ffc_geofence_multi_day').is(':checked');
 		var isDaily = $('input[name="ffc_geofence[time_mode]"]:checked').val() === 'daily';
-		$('#ffc-datetime-hide-mode-during-row').toggle( multi && isDaily );
+		var $row    = $('#ffc-datetime-hide-mode-during-row');
+		var visible = multi && isDaily;
+		// The shared `.ffc-hidden` class, with `required` travelling along.
+		$row.toggleClass('ffc-hidden', ! visible);
+		if ( window.FFC && typeof window.FFC.setRequiredWithin === 'function' ) {
+			window.FFC.setRequiredWithin($row, visible);
+		}
 	}
 	$('#ffc_geofence_multi_day, input[name="ffc_geofence[time_mode]"]').on('change', syncDuringRow);
 	syncDuringRow();
@@ -58,8 +64,8 @@ jQuery(function ($) {
 	function toggleGeoSource(prefix) {
 		var source = $('input[name="ffc_geofence[' + prefix + '_source]"]:checked').val();
 		var container = $('input[name="ffc_geofence[' + prefix + '_source]"]').closest('td');
-		container.find('.ffc-geo-source-locations')[source === 'locations' ? 'show' : 'hide']();
-		container.find('.ffc-geo-source-custom')[source === 'custom' ? 'show' : 'hide']();
+		container.find('.ffc-geo-source-locations').toggleClass('ffc-hidden', source !== 'locations');
+		container.find('.ffc-geo-source-custom').toggleClass('ffc-hidden', source !== 'custom');
 	}
 	$('input[name="ffc_geofence[geo_area_source]"]').on('change', function () { toggleGeoSource('geo_area'); });
 	$('input[name="ffc_geofence[geo_ip_area_source]"]').on('change', function () { toggleGeoSource('geo_ip_area'); });

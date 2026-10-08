@@ -37,13 +37,13 @@ describe('ffc-form-editor-geofence-metabox — during-row dual gate', () => {
 	it('hides the during-row unless multi-day AND daily on init', async () => {
 		installDateTime({ multi: true, daily: false });
 		await loadOnReady();
-		expect(window.$('#ffc-datetime-hide-mode-during-row').css('display')).toBe('none');
+		expect(window.$('#ffc-datetime-hide-mode-during-row').hasClass('ffc-hidden')).toBe(true);
 	});
 
 	it('shows the during-row when both multi-day and daily are set', async () => {
 		installDateTime({ multi: true, daily: true });
 		await loadOnReady();
-		expect(window.$('#ffc-datetime-hide-mode-during-row').css('display')).not.toBe('none');
+		expect(window.$('#ffc-datetime-hide-mode-during-row').hasClass('ffc-hidden')).toBe(false);
 	});
 
 	it('re-syncs the during-row when time_mode changes at runtime', async () => {
@@ -54,7 +54,7 @@ describe('ffc-form-editor-geofence-metabox — during-row dual gate', () => {
 		window.$('input[name="ffc_geofence[time_mode]"][value="daily"]')
 			.prop('checked', true)
 			.trigger('change');
-		expect(window.$('#ffc-datetime-hide-mode-during-row').css('display')).not.toBe('none');
+		expect(window.$('#ffc-datetime-hide-mode-during-row').hasClass('ffc-hidden')).toBe(false);
 	});
 });
 
@@ -118,8 +118,8 @@ describe('ffc-form-editor-geofence-metabox — geo area-source toggle', () => {
 	it('shows the custom editor and hides the locations list when source=custom', async () => {
 		installGeo('custom');
 		await loadOnReady();
-		expect(window.$('.ffc-geo-source-custom').css('display')).not.toBe('none');
-		expect(window.$('.ffc-geo-source-locations').css('display')).toBe('none');
+		expect(window.$('.ffc-geo-source-custom').hasClass('ffc-hidden')).toBe(false);
+		expect(window.$('.ffc-geo-source-locations').hasClass('ffc-hidden')).toBe(true);
 	});
 
 	it('flips panels when the source radio changes', async () => {
@@ -129,7 +129,7 @@ describe('ffc-form-editor-geofence-metabox — geo area-source toggle', () => {
 		window.$('input[name="ffc_geofence[geo_area_source]"][value="locations"]')
 			.prop('checked', true)
 			.trigger('change');
-		expect(window.$('.ffc-geo-source-locations').css('display')).not.toBe('none');
-		expect(window.$('.ffc-geo-source-custom').css('display')).toBe('none');
+		expect(window.$('.ffc-geo-source-locations').hasClass('ffc-hidden')).toBe(false);
+		expect(window.$('.ffc-geo-source-custom').hasClass('ffc-hidden')).toBe(true);
 	});
 });

@@ -291,6 +291,12 @@
             $target.toggleClass('ffc-collapsed', !on);
             $target.attr('aria-hidden', on ? 'false' : 'true');
             $master.attr('aria-expanded', on ? 'true' : 'false');
+            // A collapsed block is `display: none`, and a `required` control
+            // inside it would block the submit against something nobody can
+            // see (#1117). Carry the attribute with the visibility.
+            if (window.FFC && typeof window.FFC.setRequiredWithin === 'function') {
+                window.FFC.setRequiredWithin($target, on);
+            }
         }
 
         $master.on('change', sync);

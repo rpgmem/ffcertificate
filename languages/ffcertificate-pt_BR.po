@@ -9562,10 +9562,6 @@ msgstr "As classificações \"contratado\" e \"não exibido\" permanecem congela
 msgid "History"
 msgstr "Histórico"
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:460 includes/admin/class-ffc-form-editor-geofence-metabox.php:511
-msgid "Hold Ctrl/Cmd to select multiple locations."
-msgstr "Mantenha pressionada a tecla Ctrl/Cmd para selecionar vários locais."
-
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:198 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:371 includes/audience/class-ffc-audience-rest-controller.php:443 includes/audience/class-ffc-audience-shortcode.php:303 includes/audience/class-ffc-audience-shortcode.php:818
 msgid "Holiday"
 msgstr "Feriado"
@@ -24847,3 +24843,96 @@ msgstr "A lixeira está vazia"
 
 msgid "Open Scheduled Tasks"
 msgstr "Abrir Tarefas Agendadas"
+
+msgid "A notice to the site team for every submission."
+msgstr "Um aviso à equipe do site a cada submissão."
+
+msgid "Administrator"
+msgstr "Administrador"
+
+msgid "Allowed areas"
+msgstr "Áreas permitidas"
+
+msgid "As last saved. Unsaved changes show on the tab dots."
+msgstr "Conforme o último salvamento. As alterações não salvas aparecem nos pontos das abas."
+
+msgid "Date/time window"
+msgstr "Janela de data/hora"
+
+msgid "Download submissions (CSV)"
+msgstr "Baixar submissões (CSV)"
+
+msgid "Email to the participant"
+msgstr "E-mail ao participante"
+
+msgid "Form summary"
+msgstr "Resumo do formulário"
+
+msgid "How a visitor's location is checked: GPS in the browser, the IP address, or both."
+msgstr "Como a localização do visitante é verificada: GPS no navegador, endereço IP ou ambos."
+
+msgid "Lets an operator change the schedule for one submission."
+msgstr "Permite que um operador altere o horário de uma submissão."
+
+msgid "Limit, access link, CPF check and the audit of every attempt."
+msgstr "Limite, link de acesso, verificação de CPF e auditoria de cada tentativa."
+
+msgid "No locations are registered yet."
+msgstr "Ainda não há locais cadastrados."
+
+msgid "Not set"
+msgstr "Não definido"
+
+msgid "Notify the administrator"
+msgstr "Notificar o administrador"
+
+msgid "On"
+msgstr "Ligado"
+
+msgid "Open to everyone"
+msgstr "Aberto a todos"
+
+msgid "Opening early and closing late"
+msgstr "Abertura antecipada e fechamento adiado"
+
+msgid "Operator access"
+msgstr "Acesso do operador"
+
+msgid "Participant"
+msgstr "Participante"
+
+msgid "Register them in Settings → Geolocation"
+msgstr "Cadastre-os em Configurações → Geolocalização"
+
+msgid "Restrictions"
+msgstr "Restrições"
+
+msgid "The actions the access link exposes."
+msgstr "As ações que o link de acesso oferece."
+
+msgid "The message the submitter receives after a successful submission."
+msgstr "A mensagem que quem enviou recebe após uma submissão bem-sucedida."
+
+msgid "Ticket"
+msgstr "Ticket"
+
+msgid "Validation methods"
+msgstr "Métodos de validação"
+
+msgid "Visitors outside the area"
+msgstr "Visitantes fora da área"
+
+msgid "What a visitor sees when the location check fails."
+msgstr "O que o visitante vê quando a verificação de localização falha."
+
+msgid "When the event takes place, printed as {{schedule}} on the certificate."
+msgstr "Quando o evento acontece, impresso como {{schedule}} no certificado."
+
+msgid "When the form accepts submissions, and what visitors see outside that window."
+msgstr "Quando o formulário aceita submissões e o que os visitantes veem fora dessa janela."
+
+msgid "Where submissions are accepted, from registered locations or custom coordinates."
+msgstr "Onde as submissões são aceitas, a partir de locais cadastrados ou coordenadas personalizadas."
+
+msgid "Whether the operator can use Start Form Early or Postpone Close right now."
+msgstr "Se o operador pode usar Início Antecipado ou Adiar Fechamento agora."

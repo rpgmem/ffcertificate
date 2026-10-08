@@ -190,4 +190,83 @@ class AdminUI {
 
 		return $html . '</div>';
 	}
+
+	/**
+	 * Opening markup of a collapsible section (`.ffc-section`): a `<details>`
+	 * whose summary carries an icon, a title, a hint and, optionally, a chip.
+	 *
+	 * The chip says what the section is set to without opening it. With
+	 * `master` it follows a toggle live (`ffc-admin-sections.js` keeps it in
+	 * step); with `chip` it is fixed text the caller computed. Close the
+	 * section with {@see self::section_close()}.
+	 *
+	 * @param array<string, mixed> $args `title` (required), `icon` (a `Core\Icons`
+	 *                                    drawing name), `hint`, `open` (bool),
+	 *                                    `id`, `master` (id of the toggle the
+	 *                                    chip follows) with `on` (its state at
+	 *                                    render), `chip` (fixed chip text).
+	 * @return string
+	 */
+	public static function section_open( array $args ): string {
+		$title  = (string) ( $args['title'] ?? '' );
+		$icon   = (string) ( $args['icon'] ?? '' );
+		$hint   = (string) ( $args['hint'] ?? '' );
+		$id     = (string) ( $args['id'] ?? '' );
+		$master = (string) ( $args['master'] ?? '' );
+		$chip   = (string) ( $args['chip'] ?? '' );
+
+		$html  = sprintf(
+			'<details class="ffc-section"%s%s data-ffc-section>',
+			'' !== $id ? ' id="' . esc_attr( $id ) . '"' : '',
+			empty( $args['open'] ) ? '' : ' open'
+		);
+		$html .= '<summary class="ffc-section__summary">';
+		if ( '' !== $icon ) {
+			$html .= '<span class="ffc-section__icon">' . \FreeFormCertificate\Core\Icons::svg( $icon, 22 ) . '</span>';
+		}
+		$html .= '<span class="ffc-section__text"><span class="ffc-section__title">' . esc_html( $title ) . '</span>';
+		if ( '' !== $hint ) {
+			$html .= '<span class="ffc-section__hint">' . esc_html( $hint ) . '</span>';
+		}
+		$html .= '</span>';
+		if ( '' !== $master ) {
+			$on    = ! empty( $args['on'] );
+			$html .= sprintf(
+				'<span class="ffc-section__chip %s" data-ffc-section-master="%s" data-on="%s" data-off="%s">%s</span>',
+				$on ? 'is-on' : 'is-off',
+				esc_attr( $master ),
+				esc_attr__( 'On', 'ffcertificate' ),
+				esc_attr__( 'Off', 'ffcertificate' ),
+				$on ? esc_html__( 'On', 'ffcertificate' ) : esc_html__( 'Off', 'ffcertificate' )
+			);
+		} elseif ( '' !== $chip ) {
+			$html .= '<span class="ffc-section__chip">' . esc_html( $chip ) . '</span>';
+		}
+		return $html . '</summary><div class="ffc-section__body">';
+	}
+
+	/**
+	 * Closing markup of a section opened with {@see self::section_open()}.
+	 *
+	 * @return string
+	 */
+	public static function section_close(): string {
+		return '</div></details>';
+	}
+
+	/**
+	 * Print {@see self::section_open()}.
+	 *
+	 * @param array<string, mixed> $args See {@see self::section_open()}.
+	 */
+	public static function render_section_open( array $args ): void {
+		echo self::section_open( $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- section_open() escapes every value.
+	}
+
+	/**
+	 * Print {@see self::section_close()}.
+	 */
+	public static function render_section_close(): void {
+		echo self::section_close(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static closing markup.
+	}
 }

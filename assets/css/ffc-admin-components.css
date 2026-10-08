@@ -75,8 +75,10 @@
 
 .ffc-section__text {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
     gap: var(--ffc-spacing-3xs);
+    min-width: 0;
 }
 
 .ffc-section__title {
@@ -92,4 +94,25 @@
 .ffc-section__body {
     padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) var(--ffc-spacing-lg);
     border-top: 1px solid var(--ffc-border-light);
+}
+
+/* The chip: what the section is set to, readable while it is closed. */
+.ffc-section__chip {
+    flex: 0 0 auto;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-section__chip.is-on {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+/* A form-table inside a section body sits flush with the body's padding. */
+.ffc-section__body > .form-table:first-child {
+    margin-top: 0;
 }

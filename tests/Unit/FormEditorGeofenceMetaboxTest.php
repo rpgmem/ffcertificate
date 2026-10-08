@@ -259,4 +259,54 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'value="08:00"', $html );
 		$this->assertStringContainsString( 'value="17:30"', $html );
 	}
+
+	public function test_registered_locations_are_checkboxes_keeping_the_post_shape(): void {
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_geofence_locations' === $key
+				? array(
+					array( 'id' => 'loc_a', 'name' => 'City Hall', 'lat' => '-23.55', 'lng' => '-46.63', 'radius' => '500' ),
+					array( 'id' => 'loc_b', 'name' => 'School', 'lat' => '-23.56', 'lng' => '-46.65', 'radius' => '300' ),
+				)
+				: array()
+		);
+
+		$html = $this->render(
+			array(
+				'geo_area_source'       => 'locations',
+				'geo_area_location_ids' => array( 'loc_b' ),
+			)
+		);
+
+		$this->assertStringNotContainsString( '<select multiple', $html );
+		$this->assertStringNotContainsString( 'Ctrl/Cmd', $html );
+		$this->assertStringContainsString( '<input type="checkbox" name="ffc_geofence[geo_area_location_ids][]" value="loc_a">', $html );
+		$this->assertStringContainsString( '<input type="checkbox" name="ffc_geofence[geo_area_location_ids][]" value="loc_b" checked>', $html );
+		$this->assertStringContainsString( 'name="ffc_geofence[geo_ip_area_location_ids][]" value="loc_a"', $html, 'the IP picker uses the same control' );
+	}
+
+	public function test_without_registered_locations_the_picker_points_to_settings(): void {
+		$html = $this->render( array() );
+
+		$this->assertStringContainsString( 'No locations are registered yet.', $html );
+		$this->assertStringContainsString( 'admin.php?page=ffc-settings&tab=geolocation', $html );
+	}
+
+	public function test_tabs_group_their_rows_into_sections_without_inline_display(): void {
+		$html = $this->render(
+			array(
+				'datetime_enabled' => '1',
+				'class_time_start' => '09:00',
+				'class_time_end'   => '12:00',
+			)
+		);
+
+		$this->assertSame( 6, substr_count( $html, '<details class="ffc-section"' ), 'three on Time, three inside Geolocation' );
+		$this->assertStringContainsString( '<span class="ffc-section__chip">09:00 – 12:00</span>', $html );
+		$this->assertStringContainsString( 'data-ffc-section-master="ffc_geofence_datetime_enabled"', $html );
+		$this->assertStringContainsString( 'class="ffc-section__chip is-on" data-ffc-section-master="ffc_geofence_datetime_enabled"', $html );
+		$this->assertStringContainsString( 'class="ffc-section__chip is-off" data-ffc-section-master="ffc_geofence_schedule_exception_enabled"', $html );
+		$this->assertStringNotContainsString( 'display:none', $html, 'visibility is the shared class (#1614)' );
+		$this->assertStringNotContainsString( 'ffc-initially-hidden', $html );
+		$this->assertStringContainsString( 'class="description ffc-datetime-order-error ffc-hidden"', $html );
+	}
 }

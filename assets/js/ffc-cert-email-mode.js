@@ -62,9 +62,19 @@
 		var $note = $( '.ffc-cert-email-global-note' );
 		var $subject = $( 'input[name="ffc_config[email_subject]"]' );
 
+		// Visibility is the shared `.ffc-hidden` class, and the `required`
+		// attribute travels with it: a required control in a hidden block
+		// would block the submit against something nobody can see.
+		function setVisible( $el, visible ) {
+			$el.toggleClass( 'ffc-hidden', ! visible );
+			if ( window.FFC && typeof window.FFC.setRequiredWithin === 'function' ) {
+				window.FFC.setRequiredWithin( $el, visible );
+			}
+		}
+
 		function showCustom() {
-			$fields.show();
-			$note.hide();
+			setVisible( $fields, true );
+			setVisible( $note, false );
 			if ( isBlank( $subject.val() ) ) {
 				$subject.val( globals.subject || '' );
 			}
@@ -76,8 +86,8 @@
 		function showGlobal() {
 			$subject.val( '' );
 			setBodyValue( '' );
-			$fields.hide();
-			$note.show();
+			setVisible( $fields, false );
+			setVisible( $note, true );
 		}
 
 		$toggle.on( 'change', function () {

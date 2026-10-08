@@ -238,17 +238,22 @@ class FormEditorMetaboxRenderer {
 
 		echo '<div class="ffc-form-tabs" data-ffc-form-tabs>';
 
-		echo '<ul class="ffc-form-tabs__nav" role="tablist" aria-orientation="vertical">';
+		printf(
+			'<ul class="ffc-form-tabs__nav" role="tablist" aria-orientation="vertical" data-ffc-state-on="%s" data-ffc-state-off="%s">',
+			esc_attr__( 'On', 'ffcertificate' ),
+			esc_attr__( 'Off', 'ffcertificate' )
+		);
 		$first = true;
 		foreach ( $tabs as $tab ) {
 			printf(
-				'<li class="ffc-form-tabs__nav-item" role="presentation"><a href="#ffc-tab-%1$s" id="ffc-tabnav-%1$s" class="ffc-form-tabs__tab%2$s" role="tab" aria-controls="ffc-tabpanel-%1$s" aria-selected="%3$s" tabindex="%4$s"><span class="ffc-form-tabs__icon %5$s" aria-hidden="true"></span><span class="ffc-form-tabs__label">%6$s</span></a></li>',
+				'<li class="ffc-form-tabs__nav-item" role="presentation"><a href="#ffc-tab-%1$s" id="ffc-tabnav-%1$s" class="ffc-form-tabs__tab%2$s" role="tab" aria-controls="ffc-tabpanel-%1$s" aria-selected="%3$s" tabindex="%4$s"%7$s><span class="ffc-form-tabs__icon %5$s" aria-hidden="true"></span><span class="ffc-form-tabs__label">%6$s</span></a></li>',
 				esc_attr( $tab['key'] ),
 				$first ? ' is-active' : '',
 				$first ? 'true' : 'false',
 				$first ? '0' : '-1',
 				esc_attr( \FreeFormCertificate\Core\Icons::tab_class( $tab['icon'] ) ),
-				esc_html( $tab['label'] )
+				esc_html( $tab['label'] ),
+				array() === $tab['masters'] ? '' : ' data-ffc-tab-masters="' . esc_attr( implode( ' ', $tab['masters'] ) ) . '"'
 			);
 			$first = false;
 		}
@@ -278,60 +283,73 @@ class FormEditorMetaboxRenderer {
 
 	/**
 	 * Definitions for the content tabs, in display order. Labels are
-	 * intentionally terse (paired with a dashicon in the nav); the longer
+	 * intentionally terse (paired with an icon in the nav); the longer
 	 * descriptive heading is rendered inside each panel as its title.
 	 *
-	 * @return array<int, array{key: string, icon: string, label: string, title: string}>
+	 * `masters` lists the ids of the toggles that switch the tab's feature
+	 * on: the nav draws an on/off dot that follows them, so whether a form
+	 * uses quiz mode or a time window reads off the nav without opening each
+	 * tab. Layout and Fields have no master — every form has both.
+	 *
+	 * @return array<int, array{key: string, icon: string, label: string, title: string, masters: array<int, string>}>
 	 */
 	private static function tab_definitions(): array {
 		return array(
 			array(
-				'key'   => 'layout',
-				'icon'  => 'ffc-icon-file',
-				'label' => __( 'Layout', 'ffcertificate' ),
-				'title' => __( 'Certificate Layout', 'ffcertificate' ),
+				'key'     => 'layout',
+				'icon'    => 'ffc-icon-file',
+				'label'   => __( 'Layout', 'ffcertificate' ),
+				'title'   => __( 'Certificate Layout', 'ffcertificate' ),
+				'masters' => array(),
 			),
 			array(
-				'key'   => 'builder',
-				'icon'  => 'ffc-icon-layout',
-				'label' => __( 'Fields', 'ffcertificate' ),
-				'title' => __( 'Form Builder (Fields)', 'ffcertificate' ),
+				'key'     => 'builder',
+				'icon'    => 'ffc-icon-layout',
+				'label'   => __( 'Fields', 'ffcertificate' ),
+				'title'   => __( 'Form Builder (Fields)', 'ffcertificate' ),
+				'masters' => array(),
 			),
 			array(
-				'key'   => 'restriction',
-				'icon'  => 'ffc-icon-shield',
-				'label' => __( 'Security', 'ffcertificate' ),
-				'title' => __( 'Restriction & Security', 'ffcertificate' ),
+				'key'     => 'restriction',
+				'icon'    => 'ffc-icon-shield',
+				'label'   => __( 'Security', 'ffcertificate' ),
+				'title'   => __( 'Restriction & Security', 'ffcertificate' ),
+				'masters' => array( 'ffc_restriction_password', 'ffc_restriction_allowlist', 'ffc_restriction_denylist', 'ffc_restriction_ticket', 'ffc_device_limit_enabled' ),
 			),
 			array(
-				'key'   => 'email',
-				'icon'  => 'ffc-icon-email',
-				'label' => __( 'Email', 'ffcertificate' ),
-				'title' => __( 'Email Configuration', 'ffcertificate' ),
+				'key'     => 'email',
+				'icon'    => 'ffc-icon-email',
+				'label'   => __( 'Email', 'ffcertificate' ),
+				'title'   => __( 'Email Configuration', 'ffcertificate' ),
+				'masters' => array( 'ffc_config_send_user_email', 'ffc_config_send_admin_email' ),
 			),
 			array(
-				'key'   => 'time',
-				'icon'  => 'ffc-icon-clock',
-				'label' => __( 'Time', 'ffcertificate' ),
-				'title' => __( 'Date & Time Restrictions', 'ffcertificate' ),
+				'key'     => 'time',
+				'icon'    => 'ffc-icon-clock',
+				'label'   => __( 'Time', 'ffcertificate' ),
+				'title'   => __( 'Date & Time Restrictions', 'ffcertificate' ),
+				'masters' => array( 'ffc_geofence_datetime_enabled', 'ffc_geofence_schedule_exception_enabled' ),
 			),
 			array(
-				'key'   => 'geolocation',
-				'icon'  => 'ffc-icon-map-pin',
-				'label' => __( 'Geolocation', 'ffcertificate' ),
-				'title' => __( 'Geolocation Restrictions', 'ffcertificate' ),
+				'key'     => 'geolocation',
+				'icon'    => 'ffc-icon-map-pin',
+				'label'   => __( 'Geolocation', 'ffcertificate' ),
+				'title'   => __( 'Geolocation Restrictions', 'ffcertificate' ),
+				'masters' => array( 'ffc_geofence_geo_enabled' ),
 			),
 			array(
-				'key'   => 'quiz',
-				'icon'  => 'ffc-icon-chart',
-				'label' => __( 'Quiz', 'ffcertificate' ),
-				'title' => __( 'Quiz / Evaluation Mode', 'ffcertificate' ),
+				'key'     => 'quiz',
+				'icon'    => 'ffc-icon-chart',
+				'label'   => __( 'Quiz', 'ffcertificate' ),
+				'title'   => __( 'Quiz / Evaluation Mode', 'ffcertificate' ),
+				'masters' => array( 'ffc_quiz_enabled' ),
 			),
 			array(
-				'key'   => 'operator',
-				'icon'  => 'ffc-icon-users',
-				'label' => __( 'Operator', 'ffcertificate' ),
-				'title' => __( 'Public Operator Access', 'ffcertificate' ),
+				'key'     => 'operator',
+				'icon'    => 'ffc-icon-users',
+				'label'   => __( 'Operator', 'ffcertificate' ),
+				'title'   => __( 'Public Operator Access', 'ffcertificate' ),
+				'masters' => array( 'ffc_csv_public_enabled' ),
 			),
 		);
 	}

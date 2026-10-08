@@ -405,3 +405,59 @@ describe('FFC.FormEditorTabs — required-tag save guard', () => {
 		expect(window.$('.ffc-form-tabs__required-warning').length).toBe(0);
 	});
 });
+
+describe('FFC.FormEditorTabs — feature state dots (#1614)', () => {
+	function withMasters() {
+		buildTabs();
+		const nav = document.querySelector('.ffc-form-tabs__nav');
+		nav.setAttribute('data-ffc-state-on', 'Ligado');
+		nav.setAttribute('data-ffc-state-off', 'Desligado');
+		document.getElementById('ffc-tabnav-email').setAttribute('data-ffc-tab-masters', 'm-user m-admin');
+		document.getElementById('ffc-tabnav-geolocation').setAttribute('data-ffc-tab-masters', 'm-geo m-missing');
+		panel('email').append(
+			Object.assign(document.createElement('input'), { type: 'checkbox', id: 'm-user' }),
+			Object.assign(document.createElement('input'), { type: 'checkbox', id: 'm-admin', checked: true })
+		);
+		panel('geolocation').append(Object.assign(document.createElement('input'), { type: 'checkbox', id: 'm-geo' }));
+		window.FFC.FormEditorTabs.init();
+	}
+
+	it('draws a dot only on tabs that name a master, on when any master is checked', () => {
+		withMasters();
+		expect(tab('layout').find('.ffc-form-tabs__state').length).toBe(0);
+		expect(tab('email').hasClass('is-on')).toBe(true);
+		expect(tab('email').find('.screen-reader-text').text()).toBe(' (Ligado)');
+		expect(tab('geolocation').hasClass('is-off')).toBe(true);
+		expect(tab('geolocation').find('.screen-reader-text').text()).toBe(' (Desligado)');
+	});
+
+	it('follows the masters live', () => {
+		withMasters();
+		window.$('#m-admin').prop('checked', false).trigger('change');
+		expect(tab('email').hasClass('is-off')).toBe(true);
+		window.$('#m-geo').prop('checked', true).trigger('change');
+		expect(tab('geolocation').hasClass('is-on')).toBe(true);
+		expect(tab('geolocation').find('.screen-reader-text').text()).toBe(' (Ligado)');
+	});
+
+	it('does not draw a second dot when init runs again', () => {
+		withMasters();
+		window.FFC.FormEditorTabs.init();
+		expect(tab('email').find('.ffc-form-tabs__state').length).toBe(1);
+	});
+});
+
+describe('FFC.FormEditorTabs — a rejected control opens its tab (#1614)', () => {
+	it('activates the inactive tab that holds an invalid control', () => {
+		buildTabs();
+		const input = Object.assign(document.createElement('input'), { required: true, id: 'needs-value' });
+		panel('geolocation').append(input);
+		window.FFC.FormEditorTabs.init();
+		expect(tab('layout').hasClass('is-active')).toBe(true);
+
+		input.checkValidity();
+
+		expect(tab('geolocation').hasClass('is-active')).toBe(true);
+		expect(panel('geolocation').hasClass('is-active')).toBe(true);
+	});
+});

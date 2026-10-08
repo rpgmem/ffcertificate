@@ -19,12 +19,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Empty lists say why they are empty** (#1614). The Submissions and All Forms lists now name the view, search or filter that produced nothing and offer Clear Filter or Add New Form, instead of one plain line. The QR screens' collapsible section became the shared `.ffc-section` component, so the certificate screens can reuse it.
 - **IP Geolocation API has its own icon** (#1613): a cloud with a gear, added to `Core\Icons` as `api`, replacing the generic globe.
 - **Date Messages History links to the daily schedule** (#1538). The tab now shows the next daily run and, for whoever can open Settings, an Open Scheduled Tasks button, so a missing run can be checked where it is noticed.
+- **The form editor groups each tab into sections and shows what is on** (#1614). Email, Time, Geolocation and Operator now open into collapsible sections whose chip says On/Off or the schedule while closed; each tab shows an on/off dot that follows its toggles. New sidebar box summarises the saved form, the shortcode gets a Copy button, and registered locations are picked with checkboxes instead of a Ctrl/Cmd list.
 
 ### Fixed
 
 - **The disabled Activity Log tab is no longer blank** (#1613). Its notice was lifted by WordPress above the settings tabs, leaving an empty card; it now stays inside the tab.
 - **Icons stay visible in high-contrast mode** (#1613). Forced-colors mode (Windows contrast themes) replaces background colours, which erased every `.ffc-icon-*` icon; they now paint in the system text colour, and icon badges get a contour.
 - **The update screens describe the version being offered, not the one installed** (#1607). "View details" and Dashboard → Updates read "Requires WordPress", "Tested up to", "Requires PHP" and the Upgrade Notice from the installed copy, so 6.34.0 was offered as requiring 6.4 with 6.33.0's notice. They now come from the release's own `readme.txt`, fetched once per release; the installed copy stays the per-field fallback.
+- **The form editor no longer refuses to save over a hidden field** (#1614). A required control inside a collapsed block, a closed section or an inactive tab is now revealed or set aside instead of blocking the submit with nothing on screen, and the "Display during" row on the Time tab follows one rule again instead of two scripts disagreeing.
 
 ### Security
 
