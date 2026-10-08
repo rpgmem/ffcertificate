@@ -26,7 +26,9 @@ class BoxedSectionHeadingIconTest extends TestCase {
 		'includes/audience/class-ffc-audience-admin-calendar.php',
 		'includes/audience/class-ffc-audience-admin-environment.php',
 		'includes/audience/class-ffc-audience-admin-import.php',
+		'includes/recruitment/class-ffc-recruitment-adjutancy-edit-page.php',
 		'includes/recruitment/class-ffc-recruitment-admin-page-renderer.php',
+		'includes/recruitment/class-ffc-recruitment-reason-edit-page.php',
 		'templates/admin/audience/audience-tab.php',
 		'templates/admin/audience/general-tab.php',
 		'templates/admin/audience/self-scheduling-tab.php',
@@ -35,6 +37,16 @@ class BoxedSectionHeadingIconTest extends TestCase {
 		'templates/admin/recruitment/admin-page/create-notice-form.php',
 		'templates/admin/recruitment/admin-page/create-reason-form.php',
 		'templates/admin/recruitment/admin-page/settings-tab.php',
+		'templates/admin/recruitment/candidate-edit/classifications-section.php',
+		'templates/admin/recruitment/candidate-edit/delete-section.php',
+		'templates/admin/recruitment/candidate-edit/general-section.php',
+		'templates/admin/recruitment/candidate-edit/history-section.php',
+		'templates/admin/recruitment/candidate-edit/sensitive-section.php',
+		'templates/admin/recruitment/notice-edit/adjutancies-section.php',
+		'templates/admin/recruitment/notice-edit/classifications-section.php',
+		'templates/admin/recruitment/notice-edit/csv-import-section.php',
+		'templates/admin/recruitment/notice-edit/general-section.php',
+		'templates/admin/recruitment/notice-edit/status-section.php',
 		'templates/admin/reregistration/form.php',
 		'templates/admin/reregistration/import-panel.php',
 	);
@@ -61,7 +73,7 @@ class BoxedSectionHeadingIconTest extends TestCase {
 				$class = $h2[1] ?? '';
 				// A printf placeholder is the renderer's own helper; the class it
 				// receives comes from its icon map, which the render tests read.
-				if ( 'nav-tab-wrapper' === $class || 1 === preg_match( '/^%\d\$s$/', $class ) ) {
+				if ( 1 === preg_match( '/\bnav-tab-wrapper\b/', $class ) || 1 === preg_match( '/^%\d\$s$/', $class ) ) {
 					continue;
 				}
 				$this->assertMatchesRegularExpression( '/\bffc-icon-[a-z-]+\b/', $class, $file . ': a section heading without an icon: ' . $h2[0] );

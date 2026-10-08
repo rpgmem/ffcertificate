@@ -274,13 +274,15 @@ final class RecruitmentAdminPage {
 		$action = RequestInput::get_get_key( 'action' );
 
 		// Edit screens hijack the whole render — they have their own
-		// chrome (h1 + back link) and don't share the tab strip.
+		// chrome and don't share the tab strip. Each prints its own h1 (the
+		// record being edited) and back link, then its sections as boxed
+		// cards (`.ffc-boxed`, #1631), the shape the audience and campaign
+		// editors already use.
 		if ( 'edit-notice' === $action || 'edit-candidate' === $action || 'edit-reason' === $action || 'edit-adjutancy' === $action ) {
 			if ( ! $can_edit ) {
 				wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 			}
-			echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin">';
-			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
+			echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin ffc-boxed">';
 			$msg = RequestInput::get_get_key( 'ffc_msg' );
 			if ( '' !== $msg ) {
 				RecruitmentAdminPageRenderer::render_flash_notice( $msg );
