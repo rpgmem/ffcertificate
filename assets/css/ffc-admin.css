@@ -241,25 +241,9 @@
     word-break: break-all;
 }
 
-/* Form summary sidebar metabox (#1614): label on the left, value on the right. */
-.ffc-form-summary {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
-    margin: 0 0 var(--ffc-spacing-sm);
-}
-
-.ffc-form-summary__label {
-    color: var(--ffc-text-muted);
-}
-
-.ffc-form-summary__value {
-    margin: 0;
+/* Form summary sidebar metabox (#1614): the shared .ffc-facts list, values to the right. */
+#ffc_form_summary .ffc-facts__value {
     text-align: right;
-}
-
-.ffc-form-summary__value.is-on {
-    font-weight: 600;
 }
 
 .ffc-tips-list {
@@ -337,18 +321,7 @@
    15. SUBMISSION EDIT PAGE
    ========================================================================== */
 
-/* Seções de cabeçalho */
-.ffc-edit-submission-form h2 {
-    font-size: var(--ffc-font-size-base);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Botão de copiar magic link */
-.ffc-copy-magic-link {
-    margin-left: var(--ffc-spacing-md);
-    vertical-align: middle;
-}
+/* Magic-link copy button, in the side panel's action row (#1614). */
 
 .ffc-copy-magic-link:hover {
     background: var(--ffc-primary-hover);

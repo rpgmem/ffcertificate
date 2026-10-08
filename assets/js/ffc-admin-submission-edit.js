@@ -5,6 +5,7 @@
  *
  * @since 3.1.0
  * @since 4.3.0 Added user search, unlink confirmation, collapsible consent
+ * @since 6.35.0 Visibility through the shared `.ffc-hidden` class; consent is a <details>
  */
 
 jQuery(document).ready(function($) {
@@ -54,7 +55,7 @@ jQuery(document).ready(function($) {
     // ========================================
     $('.ffc-relink-user-btn').on('click', function(e) {
         e.preventDefault();
-        $('.ffc-user-search-container').show();
+        $('.ffc-user-search-container').removeClass('ffc-hidden');
         $(this).prop('disabled', true);
         $('#ffc-user-search-input').trigger('focus');
     });
@@ -91,8 +92,8 @@ jQuery(document).ready(function($) {
         }
 
         $spinner.addClass('is-active');
-        $resultsContainer.hide();
-        $selectedPreview.hide();
+        $resultsContainer.addClass('ffc-hidden');
+        $selectedPreview.addClass('ffc-hidden');
 
         FFC.request('ffc_search_user', { search: searchTerm }, { nonce: $searchBtn.data('nonce') })
             .then(function (data) {
@@ -127,11 +128,11 @@ jQuery(document).ready(function($) {
             html += '</div>';
         });
 
-        $resultsContainer.html(html).show();
+        $resultsContainer.html(html).removeClass('ffc-hidden');
     }
 
     function displayNoResults(message) {
-        $resultsContainer.html('<div class="ffc-no-results">' + escapeHtml(message) + '</div>').show();
+        $resultsContainer.html('<div class="ffc-no-results">' + escapeHtml(message) + '</div>').removeClass('ffc-hidden');
     }
 
     // Select user from results
@@ -153,8 +154,8 @@ jQuery(document).ready(function($) {
         previewHtml += '</div>';
         previewHtml += '<span class="ffc-clear-selection">' + (ffc_submission_edit.clear_selection || 'Clear') + '</span>';
 
-        $selectedPreview.html(previewHtml).show();
-        $resultsContainer.hide();
+        $selectedPreview.html(previewHtml).removeClass('ffc-hidden');
+        $resultsContainer.addClass('ffc-hidden');
         $searchInput.val('');
     });
 
@@ -164,33 +165,11 @@ jQuery(document).ready(function($) {
         // while '' is the unlink instruction. One field carries both, so the
         // wrong one here would unlink on the next save.
         $selectedUserId.val('__keep__');
-        $selectedPreview.hide();
+        $selectedPreview.addClass('ffc-hidden');
     });
 
-    // ========================================
-    // Collapsible Consent Section
-    // ========================================
-    $('.ffc-consent-header').on('click keypress', function(e) {
-        // Handle click or Enter/Space key
-        if (e.type === 'keypress' && e.which !== 13 && e.which !== 32) {
-            return;
-        }
-
-        e.preventDefault();
-        var $box = $(this).closest('.ffc-consent-box');
-        var $details = $box.find('.ffc-consent-details');
-        var isOpen = $box.hasClass('is-open');
-
-        if (isOpen) {
-            $details.slideUp(200);
-            $box.removeClass('is-open');
-            $(this).attr('aria-expanded', 'false');
-        } else {
-            $details.slideDown(200);
-            $box.addClass('is-open');
-            $(this).attr('aria-expanded', 'true');
-        }
-    });
+    // The LGPD consent block is a native <details> (the shared .ffc-section,
+    // #1614), which opens and closes without script.
 
     // ========================================
     // Helper Functions

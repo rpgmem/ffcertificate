@@ -12922,10 +12922,6 @@ msgstr "Organização:"
 msgid "Original schedule:"
 msgstr "Horário original:"
 
-#: includes/admin/class-ffc-admin-submission-edit-page.php:229
-msgid "Original submission timestamp (read-only)."
-msgstr "Data e hora da submissão original (somente leitura)."
-
 #: includes/settings/views/ffc-tab-migrations.php:664
 msgid "Orphaned"
 msgstr "Órfão"
@@ -17245,10 +17241,6 @@ msgstr "Submissão Restaurada"
 msgid "Submission returned to draft for revision."
 msgstr "A submissão foi devolvida à fase de rascunho para revisão."
 
-#: includes/admin/class-ffc-admin-submission-edit-page.php:237
-msgid "Submission status (publish, trash, etc)."
-msgstr "Status da submissão (publicado, lixo, etc.)."
-
 #: includes/admin/class-ffc-admin-activity-log-page.php:250
 msgid "Submission Trashed"
 msgstr "Submissão Movida Para a Lixeira"
@@ -19361,14 +19353,6 @@ msgstr "Desfazer decisão (administrador)"
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:83 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:439 includes/settings/views/documentation/feature-record.php:130
 msgid "Union"
 msgstr "Sindicato"
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php:221
-msgid "Unique submission identifier."
-msgstr "Identificador único de submissão."
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php:247
-msgid "Unique token for certificate access (read-only)."
-msgstr "Token único para acesso ao certificado (somente leitura)."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:87
 msgid "Unique validation code for the appointment"
@@ -24936,3 +24920,18 @@ msgstr "Onde as submissões são aceitas, a partir de locais cadastrados ou coor
 
 msgid "Whether the operator can use Start Form Early or Postpone Close right now."
 msgstr "Se o operador pode usar Início Antecipado ou Adiar Fechamento agora."
+
+msgid "Anyone with this link can download the certificate."
+msgstr "Qualquer pessoa com este link pode baixar o certificado."
+
+msgid "Form answers"
+msgstr "Respostas do formulário"
+
+msgid "Magic Link"
+msgstr "Link Mágico"
+
+msgid "Open certificate"
+msgstr "Abrir certificado"
+
+msgid "This submission has no form answers."
+msgstr "Esta submissão não tem respostas de formulário."

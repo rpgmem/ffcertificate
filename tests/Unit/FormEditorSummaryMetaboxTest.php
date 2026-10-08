@@ -119,8 +119,8 @@ class FormEditorSummaryMetaboxTest extends TestCase {
 		( new FormEditorSummaryMetabox() )->render( $this->post() );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringStartsWith( '<dl class="ffc-form-summary">', $html );
-		$this->assertSame( 8, substr_count( $html, '<dt class="ffc-form-summary__label">' ) );
+		$this->assertStringStartsWith( '<dl class="ffc-facts ffc-form-summary">', $html );
+		$this->assertSame( 8, substr_count( $html, '<dt class="ffc-facts__label">' ) );
 		$this->assertStringContainsString( 'As last saved.', $html );
 	}
 }

@@ -33,10 +33,10 @@ class FormEditorSummaryMetabox {
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render( WP_Post $post ): void {
-		echo '<dl class="ffc-form-summary">';
+		echo '<dl class="ffc-facts ffc-form-summary">';
 		foreach ( $this->rows( $post ) as $row ) {
 			printf(
-				'<dt class="ffc-form-summary__label">%s</dt><dd class="ffc-form-summary__value%s">%s</dd>',
+				'<dt class="ffc-facts__label">%s</dt><dd class="ffc-facts__value%s">%s</dd>',
 				esc_html( $row['label'] ),
 				$row['on'] ? ' is-on' : '',
 				$row['html'] // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each value is escaped where rows() builds it.

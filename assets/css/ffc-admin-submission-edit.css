@@ -6,56 +6,121 @@
  * @since 3.1.0
  */
 
-/* Section headers */
-.ffc-section-header {
-    margin: var(--ffc-spacing-2xl) 0 var(--ffc-spacing-md) 0;
-    padding: var(--ffc-spacing-md);
-    background: var(--ffc-bg-alt);
-    border-left: 4px solid var(--ffc-primary);
+/*
+ * Two-column layout (#1614): the record on the left, the actions that act on
+ * it on the right. The side column stacks under the main one on narrow
+ * screens.
+ */
+.ffc-edit-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: var(--ffc-spacing-xl);
+    align-items: start;
+    margin-top: var(--ffc-spacing-lg);
 }
 
-/* LGPD consent box */
-.ffc-consent-box {
-    margin: var(--ffc-spacing-2xl) 0;
-    padding: var(--ffc-spacing-xl);
-    border-left: 4px solid;
-    border-radius: var(--ffc-radius-sm);
+.ffc-edit-main,
+.ffc-edit-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-lg);
+    min-width: 0;
 }
 
-.ffc-consent-box.ffc-consent-given {
-    background: var(--ffc-success-bg);
-    border-color: var(--ffc-success-border);
+.ffc-edit-card {
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-lg);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
 }
 
-.ffc-consent-box.ffc-consent-not-given {
-    background: var(--ffc-warning-bg);
-    border-color: var(--ffc-warning-border);
+.ffc-edit-card .ffc-edit-card__title {
+    margin: 0 0 var(--ffc-spacing-md);
+    padding-bottom: var(--ffc-spacing-sm);
+    border-bottom: 1px solid var(--ffc-border-light);
+    font-size: var(--ffc-font-size-lg);
 }
 
-.ffc-consent-box h3 {
-    margin: 0 0 var(--ffc-spacing-md) 0;
+/* An editable field: the label above its input. */
+.ffc-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-2xs);
+    margin: 0 0 var(--ffc-spacing-md);
 }
 
-.ffc-consent-box p {
+.ffc-edit-field label {
+    font-weight: 600;
+}
+
+.ffc-edit-note {
+    display: block;
+    margin-top: var(--ffc-spacing-3xs);
+}
+
+/* A read-only value the reveal script still writes into, drawn as text. */
+/* Specific enough to beat core's and the dark theme's input rules. */
+.ffc-edit-card .ffc-facts__value input.ffc-edit-plain {
+    width: auto;
+    min-width: 12em;
+    min-height: 0;
     margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ffc-text);
+    font: inherit;
+    line-height: inherit;
 }
 
-.ffc-consent-box.ffc-consent-given p {
+.ffc-edit-protected {
+    margin-top: var(--ffc-spacing-md);
+    padding-top: var(--ffc-spacing-md);
+    border-top: 1px solid var(--ffc-border-light);
+}
+
+.ffc-edit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+/* The narrow side panel lets the linked user's details wrap. */
+.ffc-edit-side .ffc-current-user,
+.ffc-edit-side .ffc-user-info {
+    flex-wrap: wrap;
+}
+
+.ffc-edit-magic-link {
+    margin: 0 0 var(--ffc-spacing-sm);
+    overflow-wrap: anywhere;
+}
+
+/* LGPD consent, inside the shared collapsible section. */
+.ffc-consent-details p {
+    margin: 0 0 var(--ffc-spacing-xs);
+}
+
+.ffc-consent-details.ffc-consent-given strong {
     color: var(--ffc-success-text);
 }
 
-.ffc-consent-box.ffc-consent-not-given p {
+.ffc-consent-details.ffc-consent-not-given strong {
     color: var(--ffc-warning-text);
 }
 
-/* Table spacing fix */
-.ffc-edit-table td[colspan="2"] {
-    padding: 0;
+@media (max-width: 960px) {
+    .ffc-edit-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 /* User link section */
 .ffc-user-link-container {
-    padding: var(--ffc-spacing-md) 0;
+    padding: 0;
 }
 
 .ffc-current-user {
@@ -213,61 +278,12 @@
     text-decoration: underline;
 }
 
-/* Collapsible consent section */
-.ffc-consent-box.ffc-collapsible {
-    cursor: default;
-}
-
-.ffc-consent-header {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: var(--ffc-spacing-sm);
-    margin: 0;
-    user-select: none;
-}
-
-.ffc-consent-header:hover {
-    opacity: 0.8;
-}
-
-.ffc-consent-header:focus {
-    outline: 2px solid var(--ffc-primary);
-    outline-offset: 2px;
-}
-
-.ffc-consent-toggle-icon {
-    display: inline-block;
-    transition: transform 0.2s;
-    font-size: var(--ffc-font-size-2xs);
-}
-
-.ffc-consent-box.ffc-collapsible.is-open .ffc-consent-toggle-icon {
-    transform: rotate(90deg);
-}
-
-.ffc-consent-summary {
-    font-weight: 400;
-    font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-text-muted);
-}
-
-.ffc-consent-details {
-    margin-top: var(--ffc-spacing-xl);
-    padding-top: var(--ffc-spacing-xl);
-    border-top: 1px solid var(--ffc-border-light);
-}
-
 /* ==========================================================================
    REDUCED MOTION
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
     .ffc-user-search-results .ffc-search-result-item {
-        transition: none;
-    }
-
-    .ffc-consent-toggle-icon {
         transition: none;
     }
 }

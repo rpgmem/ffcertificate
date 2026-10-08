@@ -12894,10 +12894,6 @@ msgstr ""
 msgid "Original schedule:"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-submission-edit-page.php:229
-msgid "Original submission timestamp (read-only)."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-migrations.php:664
 msgid "Orphaned"
 msgstr ""
@@ -17187,10 +17183,6 @@ msgstr ""
 msgid "Submission returned to draft for revision."
 msgstr ""
 
-#: includes/admin/class-ffc-admin-submission-edit-page.php:237
-msgid "Submission status (publish, trash, etc)."
-msgstr ""
-
 #: includes/admin/class-ffc-admin-activity-log-page.php:250
 msgid "Submission Trashed"
 msgstr ""
@@ -19297,14 +19289,6 @@ msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:83 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:439 includes/settings/views/documentation/feature-record.php:130
 msgid "Union"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php:221
-msgid "Unique submission identifier."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php:247
-msgid "Unique token for certificate access (read-only)."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:87
@@ -24845,4 +24829,19 @@ msgid "Where submissions are accepted, from registered locations or custom coord
 msgstr ""
 
 msgid "Whether the operator can use Start Form Early or Postpone Close right now."
+msgstr ""
+
+msgid "Anyone with this link can download the certificate."
+msgstr ""
+
+msgid "Form answers"
+msgstr ""
+
+msgid "Magic Link"
+msgstr ""
+
+msgid "Open certificate"
+msgstr ""
+
+msgid "This submission has no form answers."
 msgstr ""

@@ -114,7 +114,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 		// static helpers, no WP deps) — use it as-is rather than alias-mocking.
 
 		$mlh = Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' );
-		$mlh->shouldReceive( 'get_magic_link_html' )->andReturn( '<a>link</a>' )->byDefault();
+		$mlh->shouldReceive( 'generate_magic_link' )->andReturnUsing( static fn( $t ) => 'https://example.org/valid/?token=' . $t )->byDefault();
 
 		$html = Mockery::mock( 'alias:FreeFormCertificate\Core\HtmlPolicy' );
 		$html->shouldReceive( 'get_allowed_html_tags' )->andReturn( array() )->byDefault();
@@ -257,7 +257,11 @@ class AdminSubmissionEditPageTest extends TestCase {
 		// System info section.
 		$this->assertStringContainsString( 'System Information', $html );
 		$this->assertStringContainsString( 'Magic Link Token', $html );
-		$this->assertStringContainsString( '<a>link</a>', $html );
+		// Magic link card in the side panel: the link, Copy and Open certificate (#1614).
+		$this->assertStringContainsString( 'class="ffc-edit-layout"', $html );
+		$this->assertStringContainsString( 'data-url="https://example.org/valid/?token=', $html );
+		$this->assertMatchesRegularExpression( '#<a href="https://example.org/valid/\?token=[^"]+" target="_blank" rel="noopener" class="button ffc-icon-external">Open certificate</a>#', $html );
+		$this->assertStringNotContainsString( 'style="display', $html, 'visibility is the shared class, never an inline style' );
 		// Encrypted IP notice.
 		$this->assertStringContainsString( 'User IP', $html );
 		// Edited warning (edited_at set, edited_by resolves to "ID: 7" because get_userdata=false).
@@ -573,6 +577,19 @@ class AdminSubmissionEditPageTest extends TestCase {
 
 		$msg = $this->capture( fn () => $this->page()->handle_save() );
 		$this->assertStringStartsWith( 'REDIRECT:', $msg );
+	}
+	public function test_render_reads_protected_fields_as_text_and_still_posts_them(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		// The save handler rebuilds the data from the POST, so a protected
+		// field must still be posted, or saving would delete it.
+		$this->assertMatchesRegularExpression( '#<dd class="ffc-facts__value">[^<]*<input type="hidden" name="data\[auth_code\]" value="[^"]*"><span class="description ffc-edit-note">Protected internal field.</span></dd>#', $html );
+		$this->assertStringNotContainsString( 'readonly>', preg_replace( '/data-ffc-pii-field="[a-z]+" readonly/', '', $html ), 'only the PII value, which the reveal script writes into, stays an input' );
+		$this->assertStringContainsString( '<details class="ffc-section" data-ffc-section>', $html, 'consent is the shared section, closed' );
 	}
 }
 
