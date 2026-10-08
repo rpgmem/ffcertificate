@@ -160,7 +160,7 @@
 }
 
 .ffc-stat-card__icon {
-    grid-row: 1 / span 2;
+    grid-row: 1 / span 3;
     font-size: var(--ffc-font-size-lg);
 }
 
@@ -173,6 +173,12 @@
 .ffc-stat-card__label {
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
+}
+
+.ffc-stat-card__link {
+    margin-top: var(--ffc-spacing-xs);
+    font-size: var(--ffc-font-size-sm);
+    text-decoration: none;
 }
 
 /* Boxed sections: each section of a screen is a `.card` whose h2 carries the

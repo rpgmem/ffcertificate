@@ -24977,6 +24977,9 @@ msgstr "Quem recebe a notificação de novo agendamento."
 msgid "Working Hours & Availability"
 msgstr "Horários de Funcionamento e Disponibilidade"
 
+msgid "Total"
+msgstr "Total"
+
 msgid "Recipients"
 msgstr "Destinatários"
 

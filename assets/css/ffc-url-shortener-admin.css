@@ -72,30 +72,6 @@
     background: var(--ffc-bg-alt);
 }
 
-/* Stats cards */
-.ffc-shorturl-stats {
-    display: flex;
-    gap: var(--ffc-spacing-2xl);
-    margin: var(--ffc-spacing-xl) 0;
-}
-
-.ffc-shorturl-stats > div {
-    background: var(--ffc-bg-card);
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    transition: box-shadow 0.2s;
-}
-
-.ffc-shorturl-stats > div:hover {
-    box-shadow: var(--ffc-shadow-sm);
-}
-
-.ffc-shorturl-stats .ffc-stat-label {
-    color: var(--ffc-text-muted);
-    margin-left: var(--ffc-spacing-2xs);
-}
-
 /* Search & Filter */
 .ffc-shorturl-filter {
     margin-bottom: var(--ffc-spacing-md);
@@ -315,11 +291,4 @@
 .ffc-shorturl-dest-note {
     color: var(--ffc-text-muted);
     font-style: italic;
-}
-
-/* Responsive */
-@media screen and (max-width: 782px) {
-    .ffc-shorturl-stats {
-        flex-direction: column;
-    }
 }

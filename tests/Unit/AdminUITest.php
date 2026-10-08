@@ -310,4 +310,25 @@ class AdminUITest extends TestCase {
 		$this->assertStringContainsString( '<span class="ffc-stat-card__value">—</span>', $html, 'a value not known yet reads as a dash' );
 		$this->assertStringNotContainsString( 'ffc-stat-card__icon', $html );
 	}
+
+	public function test_stat_card_tone_picks_the_badge_and_neutral_is_the_plain_one(): void {
+		$html = AdminUI::get_stat_card( array( 'label' => 'Approved', 'value' => '2', 'icon' => 'checkmark', 'tone' => 'success' ) );
+		$this->assertStringContainsString( 'class="ffc-stat-card__icon ffc-icon-badge ffc-icon-badge-success ffc-icon-checkmark"', $html );
+
+		// The plain badge is the neutral tone; an unknown tone falls back to it
+		// rather than printing a class nothing styles.
+		foreach ( array( 'neutral', 'bogus' ) as $tone ) {
+			$html = AdminUI::get_stat_card( array( 'label' => 'Expired', 'value' => '0', 'icon' => 'history', 'tone' => $tone ) );
+			$this->assertStringContainsString( 'class="ffc-stat-card__icon ffc-icon-badge ffc-icon-history"', $html, $tone );
+		}
+	}
+
+	public function test_stat_card_link_needs_both_url_and_label(): void {
+		Functions\when( 'esc_url' )->returnArg();
+		$html = AdminUI::get_stat_card( array( 'label' => 'Calendars', 'value' => '1', 'url' => '/x', 'link' => 'Manage' ) );
+		$this->assertStringContainsString( '<a class="ffc-stat-card__link" href="/x">Manage &rarr;</a>', $html );
+
+		$this->assertStringNotContainsString( '<a ', AdminUI::get_stat_card( array( 'label' => 'Calendars', 'url' => '/x' ) ) );
+		$this->assertStringNotContainsString( '<a ', AdminUI::get_stat_card( array( 'label' => 'Calendars', 'link' => 'Manage' ) ) );
+	}
 }
