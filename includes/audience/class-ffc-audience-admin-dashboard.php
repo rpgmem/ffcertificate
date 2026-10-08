@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Admin\AdminUI;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -66,107 +68,97 @@ class AudienceAdminDashboard {
 		<div class="wrap ffc-admin-page ffc-page-scheduling-dashboard">
 			<h1><?php esc_html_e( 'Scheduling Dashboard', 'ffcertificate' ); ?></h1>
 
-			<div class="ffc-scheduling-dashboard">
+			<?php
+			// The shared stat cards (`AdminUI::get_stat_card()`, #1631), the
+			// component the Certificates Dashboard already draws; each section
+			// heading names its subject with an icon.
+			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- get_stat_card() escapes every value.
+			?>
+			<h2 class="ffc-icon-user"><?php esc_html_e( 'Self-Scheduling (Personal)', 'ffcertificate' ); ?></h2>
+			<div class="ffc-stats">
+				<?php
+				echo AdminUI::get_stat_card(
+					array(
+						'label' => __( 'Active Calendars', 'ffcertificate' ),
+						'value' => (int) $self_stats['calendars'],
+						'icon'  => 'calendar',
+						'url'   => admin_url( 'edit.php?post_type=ffc_self_scheduling' ),
+						'link'  => __( 'Manage', 'ffcertificate' ),
+					)
+				);
+				echo AdminUI::get_stat_card(
+					array(
+						'label' => __( 'Upcoming Appointments', 'ffcertificate' ),
+						'value' => (int) $self_stats['upcoming_appointments'],
+						'icon'  => 'clock',
+						'url'   => admin_url( 'admin.php?page=ffc-appointments' ),
+						'link'  => __( 'View All', 'ffcertificate' ),
+					)
+				);
+				?>
+			</div>
 
-				<!-- Self-Scheduling Section -->
-				<h2><?php esc_html_e( 'Self-Scheduling (Personal)', 'ffcertificate' ); ?></h2>
-				<div class="ffc-stats-grid">
-					<div class="ffc-audience-stat-card">
-						<span class="ffc-stat-label"><?php esc_html_e( 'Active Calendars', 'ffcertificate' ); ?></span>
-						<div class="ffc-stat-number">
-							<span class="ffc-stat-icon ffc-icon-calendar" aria-hidden="true"></span>
-							<span class="ffc-stat-value"><?php echo esc_html( (string) $self_stats['calendars'] ); ?></span>
-						</div>
-						<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_self_scheduling' ) ); ?>" class="ffc-stat-link">
-							<?php esc_html_e( 'Manage', 'ffcertificate' ); ?> &rarr;
-						</a>
-					</div>
+			<h2 class="ffc-icon-users"><?php esc_html_e( 'Audience Scheduling', 'ffcertificate' ); ?></h2>
+			<div class="ffc-stats">
+				<?php
+				echo AdminUI::get_stat_card(
+					array(
+						'label' => __( 'Active Calendars', 'ffcertificate' ),
+						'value' => (int) $audience_stats['schedules'],
+						'icon'  => 'calendar',
+						'url'   => admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars' ),
+						'link'  => __( 'Manage', 'ffcertificate' ),
+					)
+				);
+				echo AdminUI::get_stat_card(
+					array(
+						/* translators: %s: environment label (plural) */
+						'label' => sprintf( __( 'Active %s', 'ffcertificate' ), AudienceScheduleRepository::get_environment_label() ),
+						'value' => (int) $audience_stats['environments'],
+						'icon'  => 'building',
+						'url'   => admin_url( 'admin.php?page=' . $this->menu_slug . '-environments' ),
+						'link'  => __( 'Manage', 'ffcertificate' ),
+					)
+				);
+				echo AdminUI::get_stat_card(
+					array(
+						'label' => __( 'Active Audiences', 'ffcertificate' ),
+						'value' => (int) $audience_stats['audiences'],
+						'icon'  => 'users',
+						'url'   => admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences' ),
+						'link'  => __( 'Manage', 'ffcertificate' ),
+					)
+				);
+				echo AdminUI::get_stat_card(
+					array(
+						'label' => __( 'Upcoming Bookings', 'ffcertificate' ),
+						'value' => (int) $audience_stats['upcoming_bookings'],
+						'icon'  => 'clock',
+						'url'   => admin_url( 'admin.php?page=' . $this->menu_slug . '-bookings' ),
+						'link'  => __( 'View All', 'ffcertificate' ),
+					)
+				);
+				// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
+			</div>
 
-					<div class="ffc-audience-stat-card">
-						<span class="ffc-stat-label"><?php esc_html_e( 'Upcoming Appointments', 'ffcertificate' ); ?></span>
-						<div class="ffc-stat-number">
-							<span class="ffc-stat-icon ffc-icon-clock" aria-hidden="true"></span>
-							<span class="ffc-stat-value"><?php echo esc_html( (string) $self_stats['upcoming_appointments'] ); ?></span>
-						</div>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-appointments' ) ); ?>" class="ffc-stat-link">
-							<?php esc_html_e( 'View All', 'ffcertificate' ); ?> &rarr;
-						</a>
-					</div>
-				</div>
-
-				<!-- Audience Section -->
-				<h2><?php esc_html_e( 'Audience Scheduling', 'ffcertificate' ); ?></h2>
-				<div class="ffc-stats-grid">
-					<div class="ffc-audience-stat-card">
-						<span class="ffc-stat-label"><?php esc_html_e( 'Active Calendars', 'ffcertificate' ); ?></span>
-						<div class="ffc-stat-number">
-							<span class="ffc-stat-icon ffc-icon-calendar" aria-hidden="true"></span>
-							<span class="ffc-stat-value"><?php echo esc_html( (string) $audience_stats['schedules'] ); ?></span>
-						</div>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars' ) ); ?>" class="ffc-stat-link">
-							<?php esc_html_e( 'Manage', 'ffcertificate' ); ?> &rarr;
-						</a>
-					</div>
-
-					<div class="ffc-audience-stat-card">
-						<span class="ffc-stat-label">
-							<?php
-							/* translators: %s: environment label (plural) */
-							printf( esc_html__( 'Active %s', 'ffcertificate' ), esc_html( AudienceScheduleRepository::get_environment_label() ) );
-							?>
-						</span>
-						<div class="ffc-stat-number">
-							<span class="ffc-stat-icon ffc-icon-building" aria-hidden="true"></span>
-							<span class="ffc-stat-value"><?php echo esc_html( (string) $audience_stats['environments'] ); ?></span>
-						</div>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-environments' ) ); ?>" class="ffc-stat-link">
-							<?php esc_html_e( 'Manage', 'ffcertificate' ); ?> &rarr;
-						</a>
-					</div>
-
-					<div class="ffc-audience-stat-card">
-						<span class="ffc-stat-label"><?php esc_html_e( 'Active Audiences', 'ffcertificate' ); ?></span>
-						<div class="ffc-stat-number">
-							<span class="ffc-stat-icon ffc-icon-users" aria-hidden="true"></span>
-							<span class="ffc-stat-value"><?php echo esc_html( (string) $audience_stats['audiences'] ); ?></span>
-						</div>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences' ) ); ?>" class="ffc-stat-link">
-							<?php esc_html_e( 'Manage', 'ffcertificate' ); ?> &rarr;
-						</a>
-					</div>
-
-					<div class="ffc-audience-stat-card">
-						<span class="ffc-stat-label"><?php esc_html_e( 'Upcoming Bookings', 'ffcertificate' ); ?></span>
-						<div class="ffc-stat-number">
-							<span class="ffc-stat-icon ffc-icon-clock" aria-hidden="true"></span>
-							<span class="ffc-stat-value"><?php echo esc_html( (string) $audience_stats['upcoming_bookings'] ); ?></span>
-						</div>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-bookings' ) ); ?>" class="ffc-stat-link">
-							<?php esc_html_e( 'View All', 'ffcertificate' ); ?> &rarr;
-						</a>
-					</div>
-				</div>
-
-				<div class="ffc-quick-actions">
-					<h2><?php esc_html_e( 'Quick Actions', 'ffcertificate' ); ?></h2>
-					<div class="ffc-action-buttons">
-						<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=ffc_self_scheduling' ) ); ?>" class="button button-primary">
-							<?php esc_html_e( 'New Personal Calendar', 'ffcertificate' ); ?>
-						</a>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&action=new' ) ); ?>" class="button button-primary">
-							<?php esc_html_e( 'New Audience Calendar', 'ffcertificate' ); ?>
-						</a>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&action=new' ) ); ?>" class="button">
-							<?php
-							/* translators: %s: environment label (singular) */
-							printf( esc_html__( 'Add %s', 'ffcertificate' ), esc_html( AudienceScheduleRepository::get_environment_label( null, true ) ) );
-							?>
-						</a>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=new' ) ); ?>" class="button">
-							<?php esc_html_e( 'Create Audience', 'ffcertificate' ); ?>
-						</a>
-					</div>
-				</div>
+			<h2 class="ffc-icon-zap"><?php esc_html_e( 'Quick Actions', 'ffcertificate' ); ?></h2>
+			<div class="ffc-scheduling-quick-actions">
+				<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=ffc_self_scheduling' ) ); ?>" class="button button-primary ffc-icon-plus">
+					<?php esc_html_e( 'New Personal Calendar', 'ffcertificate' ); ?>
+				</a>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&action=new' ) ); ?>" class="button button-primary ffc-icon-plus">
+					<?php esc_html_e( 'New Audience Calendar', 'ffcertificate' ); ?>
+				</a>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&action=new' ) ); ?>" class="button ffc-icon-plus">
+					<?php
+					/* translators: %s: environment label (singular) */
+					printf( esc_html__( 'Add %s', 'ffcertificate' ), esc_html( AudienceScheduleRepository::get_environment_label( null, true ) ) );
+					?>
+				</a>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=new' ) ); ?>" class="button ffc-icon-plus">
+					<?php esc_html_e( 'Create Audience', 'ffcertificate' ); ?>
+				</a>
 			</div>
 		</div>
 

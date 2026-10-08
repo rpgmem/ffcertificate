@@ -995,7 +995,7 @@
    ========================================================================== */
 
 /* 20px literal: an icon box, not text — the typographic scale does not
-   govern it. Same reason as .ffc-stat-icon. */
+   govern it (the glyph-box family, #1148). */
 .ffc-settings-tabs__nav .ffc-settings-tabs__icon {
     font-size: 20px;
     line-height: 1;

@@ -24886,3 +24886,6 @@ msgstr ""
 
 msgid "Working Hours & Availability"
 msgstr ""
+
+msgid "Total"
+msgstr ""
