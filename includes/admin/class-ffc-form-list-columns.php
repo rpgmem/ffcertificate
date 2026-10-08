@@ -252,14 +252,13 @@ class FormListColumns {
 	 * @return array<string, bool>
 	 */
 	private static function get_feature_states( int $post_id ): array {
-		$config      = get_post_meta( $post_id, '_ffc_form_config', true );
-		$device_meta = get_post_meta( $post_id, '_ffc_device_limit', true );
-		$csv_enabled = self::meta_string( $post_id, '_ffc_csv_public_enabled' );
+		$config = get_post_meta( $post_id, '_ffc_form_config', true );
 
 		return array(
-			'csv_public_enabled' => '1' === $csv_enabled,
+			'csv_public_enabled' => '1' === self::meta_string( $post_id, '_ffc_csv_public_enabled' ),
 			'quiz_enabled'       => is_array( $config ) && ! empty( $config['quiz_enabled'] ),
-			'device_enabled'     => is_array( $device_meta ) && ! empty( $device_meta['enabled'] ),
+			// The flat key the editor and the runtime read (#1625).
+			'device_enabled'     => '1' === self::meta_string( $post_id, '_ffc_device_limit_enabled' ),
 		);
 	}
 

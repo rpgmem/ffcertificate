@@ -7,7 +7,8 @@
  *
  *   - csv_public_enabled → flat meta `_ffc_csv_public_enabled` ('1'/'').
  *   - quiz_enabled       → nested under array meta `_ffc_form_config`.
- *   - device_enabled     → nested under array meta `_ffc_device_limit`.
+ *   - device_enabled     → flat meta `_ffc_device_limit_enabled` ('1'/''),
+ *                          the key the editor and the runtime read (#1625).
  *
  * Security:
  *   - nonce verified against the action name (FFC.request supplies it).
@@ -65,8 +66,7 @@ class FormFeaturesAjaxEndpoint {
 				'path' => 'quiz_enabled',
 			),
 			'device_enabled'     => array(
-				'meta' => '_ffc_device_limit',
-				'path' => 'enabled',
+				'meta' => '_ffc_device_limit_enabled',
 			),
 		);
 	}

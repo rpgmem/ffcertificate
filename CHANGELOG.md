@@ -30,6 +30,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The update screens describe the version being offered, not the one installed** (#1607). "View details" and Dashboard → Updates read "Requires WordPress", "Tested up to", "Requires PHP" and the Upgrade Notice from the installed copy, so 6.34.0 was offered as requiring 6.4 with 6.33.0's notice. They now come from the release's own `readme.txt`, fetched once per release; the installed copy stays the per-field fallback.
 - **The form editor no longer refuses to save over a hidden field** (#1614). A required control inside a collapsed block, a closed section or an inactive tab is now revealed or set aside instead of blocking the submit with nothing on screen, and the "Display during" row on the Time tab follows one rule again instead of two scripts disagreeing.
 - **The Certificates Dashboard calendar stayed empty on sites without pretty permalinks** (#1614). Its request added a second `?` to a REST URL that already had one (`?rest_route=…`), so the route answered 404; the query now continues with `&`.
+- **The "Device limit" toggle on the All Forms list works** (#1625). It wrote a meta key nothing else read, so flipping it never reached the runtime and the column could disagree with the editor; it now reads and writes the same key as the editor. The Layout tab also loses a hidden template dropdown no script used.
 
 ### Security
 
