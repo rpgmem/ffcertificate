@@ -99,7 +99,7 @@ final class Unsubscribe {
 		$is_post = RequestInput::has_post( 't' );
 		$user_id = $is_post ? RequestInput::get_post_int( 'u' ) : RequestInput::get_get_int( 'u' );
 		$token   = $is_post ? RequestInput::get_post_string( 't' ) : RequestInput::get_get_string( 't' );
-		$title   = __( 'Date messages', 'ffcertificate' );
+		$title   = __( 'Date Messages', 'ffcertificate' );
 
 		if ( ! self::verify( $user_id, $token ) || false === get_userdata( $user_id ) ) {
 			wp_die( esc_html__( 'This unsubscribe link is not valid.', 'ffcertificate' ), esc_html( $title ), array( 'response' => 403 ) );

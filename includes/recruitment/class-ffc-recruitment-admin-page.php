@@ -168,8 +168,8 @@ final class RecruitmentAdminPage {
 	 */
 	public static function register_menu(): void {
 		add_menu_page(
-			__( 'Recruitment', 'ffcertificate' ),
-			__( 'Recruitment', 'ffcertificate' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'recruitment' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'recruitment' ),
 			self::VIEW_CAP,
 			self::PAGE_SLUG,
 			array( self::class, 'render_page' ),

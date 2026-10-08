@@ -803,7 +803,7 @@ class CertTemplateAdminScreen {
 		$kind = CertTemplateReader::get_kind( (int) $post->ID );
 		if ( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === $kind ) {
 			$toggle_label = __( 'Show in the appointment-receipt selection', 'ffcertificate' );
-			$toggle_help  = __( 'When on, this template can be chosen as the appointment receipt in Self-scheduling settings.', 'ffcertificate' );
+			$toggle_help  = __( 'When on, this template can be chosen as the appointment receipt in the Personal Calendars settings.', 'ffcertificate' );
 		} elseif ( CertTemplateCpt::KIND_RECORD === $kind ) {
 			$toggle_label = __( 'Show in the record selection', 'ffcertificate' );
 			$toggle_help  = __( 'When on, this template can be chosen as the record in Reregistration settings.', 'ffcertificate' );

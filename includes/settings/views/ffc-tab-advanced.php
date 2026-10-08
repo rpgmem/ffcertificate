@@ -454,7 +454,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 				</tr>
 				<tr>
 					<th scope="row">
-						<label for="debug_self_scheduling"><?php esc_html_e( 'Self-Scheduling', 'ffcertificate' ); ?></label>
+						<label for="debug_self_scheduling"><?php esc_html_e( 'Personal Calendars', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<?php
@@ -463,7 +463,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 								'name'    => 'ffc_settings[debug_self_scheduling]',
 								'id'      => 'debug_self_scheduling',
 								'checked' => (int) $ffcertificate_get_option( 'debug_self_scheduling' ) === 1,
-								'label'   => __( 'Enable debug logging for the self-scheduling module', 'ffcertificate' ),
+								'label'   => __( 'Enable debug logging for the Personal Calendars module', 'ffcertificate' ),
 								'data'    => array( 'ffc-autosave-key' => 'debug_self_scheduling' ),
 							)
 						);
@@ -837,7 +837,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 		<?php endforeach; ?>
 		<p class="description ffc-text-warning">
 			<strong><?php esc_html_e( 'Rotation caveat:', 'ffcertificate' ); ?></strong>
-			<?php esc_html_e( 'Apply these directly only on a NEW install with no encrypted data yet. On a site that already stores data, defining a new FFC_ENCRYPTION_KEY makes existing encrypted records unreadable, and a new FFC_HASH_SALT invalidates the stored search hashes — both are repaired by a planned key rotation (S7b) at Settings → Migrations, not a blind edit.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Apply these directly only on a NEW install with no encrypted data yet. On a site that already stores data, defining a new FFC_ENCRYPTION_KEY makes existing encrypted records unreadable, and a new FFC_HASH_SALT invalidates the stored search hashes — both are repaired by a planned key rotation (S7b) at Settings → Data Migrations, not a blind edit.', 'ffcertificate' ); ?>
 		</p>
 	</div>
 	<?php endif; ?>

@@ -265,8 +265,8 @@ final class SettingsReader {
 	 */
 	public const MODULE_SLUGS = array(
 		'certificates',
-		'audiences',
 		'self_scheduling',
+		'audiences',
 		'reregistration',
 		'recruitment',
 		'url_shortener',

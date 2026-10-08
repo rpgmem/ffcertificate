@@ -80,7 +80,7 @@ class TabAdvanced extends SettingsTab {
 						$ffc_version
 					),
 					'FFC_HASH_SALT'      => sprintf(
-						"Free Form Certificate — search-hash salt (FFC_HASH_SALT).\nDedicated secret that salts the blind-index hashes used to look up encrypted\nCPF / RF / e-mail, decoupling them from the shared WordPress salts. Changing it\non a site that already holds data invalidates those hashes until a key rotation\nrebuilds them (WP-Admin → Settings → Migrations). Generated for FFC v%s.",
+						"Free Form Certificate — search-hash salt (FFC_HASH_SALT).\nDedicated secret that salts the blind-index hashes used to look up encrypted\nCPF / RF / e-mail, decoupling them from the shared WordPress salts. Changing it\non a site that already holds data invalidates those hashes until a key rotation\nrebuilds them (WP-Admin → Settings → Data Migrations). Generated for FFC v%s.",
 						$ffc_version
 					),
 				),

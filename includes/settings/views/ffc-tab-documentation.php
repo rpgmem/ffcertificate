@@ -47,8 +47,8 @@ $ffc_doc_tree = array(
 		'file'   => 'overview.php',
 	),
 	array(
-		'icon'     => \FreeFormCertificate\Core\Icons::area_class( 'certificates' ),
-		'title'    => __( 'Certificates & Forms', 'ffcertificate' ),
+		'icon'     => \FreeFormCertificate\Core\PluginAreas::icon_class( 'certificates' ),
+		'title'    => \FreeFormCertificate\Core\PluginAreas::label( 'certificates' ),
 		'children' => array(
 			array(
 				'title'    => __( 'Forms', 'ffcertificate' ),
@@ -281,8 +281,8 @@ $ffc_doc_tree = array(
 		),
 	),
 	array(
-		'icon'     => \FreeFormCertificate\Core\Icons::area_class( 'scheduling' ),
-		'title'    => __( 'Scheduling / Appointments', 'ffcertificate' ),
+		'icon'     => \FreeFormCertificate\Core\PluginAreas::icon_class( 'scheduling' ),
+		'title'    => \FreeFormCertificate\Core\PluginAreas::label( 'scheduling' ),
 		'children' => array(
 			array(
 				'anchor' => 'feature-self-scheduling',
@@ -305,8 +305,8 @@ $ffc_doc_tree = array(
 		),
 	),
 	array(
-		'icon'     => \FreeFormCertificate\Core\Icons::area_class( 'reregistration' ),
-		'title'    => __( 'Reregistration', 'ffcertificate' ),
+		'icon'     => \FreeFormCertificate\Core\PluginAreas::icon_class( 'reregistration' ),
+		'title'    => \FreeFormCertificate\Core\PluginAreas::label( 'reregistration' ),
 		'children' => array(
 			array(
 				'anchor' => 'feature-reregistration',
@@ -324,20 +324,20 @@ $ffc_doc_tree = array(
 	),
 	array(
 		'anchor' => 'feature-recruitment',
-		'icon'   => \FreeFormCertificate\Core\Icons::area_class( 'recruitment' ),
-		'title'  => __( 'Recruitment', 'ffcertificate' ),
+		'icon'   => \FreeFormCertificate\Core\PluginAreas::icon_class( 'recruitment' ),
+		'title'  => \FreeFormCertificate\Core\PluginAreas::label( 'recruitment' ),
 		'file'   => 'feature-recruitment.php',
 	),
 	array(
 		'anchor' => 'feature-url-shortener',
-		'icon'   => \FreeFormCertificate\Core\Icons::area_class( 'url_shortener' ),
-		'title'  => __( 'Short URLs & QR Codes', 'ffcertificate' ),
+		'icon'   => \FreeFormCertificate\Core\PluginAreas::icon_class( 'url_shortener' ),
+		'title'  => \FreeFormCertificate\Core\PluginAreas::label( 'url_shortener' ),
 		'file'   => 'feature-url-shortener.php',
 	),
 	array(
 		'anchor' => 'feature-date-messages',
-		'icon'   => \FreeFormCertificate\Core\Icons::area_class( 'date_messages' ),
-		'title'  => __( 'Date Messages', 'ffcertificate' ),
+		'icon'   => \FreeFormCertificate\Core\PluginAreas::icon_class( 'date_messages' ),
+		'title'  => \FreeFormCertificate\Core\PluginAreas::label( 'date_messages' ),
 		'file'   => 'feature-date-messages.php',
 	),
 	array(

@@ -145,8 +145,8 @@ class AudienceAdminPage {
 	public function add_admin_menus(): void {
 		// Main menu: Scheduling — unified for both systems.
 		add_menu_page(
-			__( 'Scheduling', 'ffcertificate' ),
-			__( 'Scheduling', 'ffcertificate' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'scheduling' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'scheduling' ),
 			'ffc_view_audiences',
 			self::MENU_SLUG,
 			array( $this->dashboard, 'render_dashboard_page' ),

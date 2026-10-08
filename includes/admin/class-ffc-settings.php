@@ -233,8 +233,8 @@ class Settings {
 		// home. The page hook suffix consequently changes from the old
 		// `ffc_form_page_ffc-settings` to `toplevel_page_ffc-settings`.
 		$hook = add_menu_page(
-			__( 'Certificate Settings', 'ffcertificate' ),
-			__( 'FFC Settings', 'ffcertificate' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'settings' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'settings' ),
 			// Virtual meta-cap resolved in grant_settings_page_meta_cap(): the
 			// menu shows iff the user can see at least one tab, rather than being
 			// tied to `ffc_view_settings` alone (which would hide the page from
@@ -605,7 +605,7 @@ class Settings {
 		?>
 		<div class="wrap ffc-admin-page ffc-page-settings ffc-settings-wrap">
 			<span id="ffc-settings-top" aria-hidden="true"></span>
-			<h1><?php esc_html_e( 'Certificate Settings', 'ffcertificate' ); ?></h1>
+			<h1><?php echo esc_html( \FreeFormCertificate\Core\PluginAreas::label( 'settings' ) ); ?></h1>
 			<?php settings_errors( 'ffc_settings' ); ?>
 			<?php
 			$ffc_settings_can_edit = $page_state['can_edit'];
@@ -803,7 +803,7 @@ class Settings {
 				'url'   => admin_url( 'admin.php?page=ffc-scheduling-settings' ),
 				'icon'  => 'ffc-icon-calendar',
 				'label' => __( 'Scheduling', 'ffcertificate' ),
-				'title' => __( 'Global holidays and audience / self-scheduling visibility.', 'ffcertificate' ),
+				'title' => __( 'Global holidays and Personal / Audience Calendars visibility.', 'ffcertificate' ),
 			);
 		}
 

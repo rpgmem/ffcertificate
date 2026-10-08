@@ -223,8 +223,8 @@ final class CapabilityCatalog {
 						'description' => __( 'Read-only access to all scheduled appointments.', 'ffcertificate' ),
 					),
 					'ffc_manage_appointments'         => array(
-						'label'       => __( 'Manage self-scheduling', 'ffcertificate' ),
-						'description' => __( 'Configure personal calendars and self-scheduling windows.', 'ffcertificate' ),
+						'label'       => __( 'Manage personal calendars', 'ffcertificate' ),
+						'description' => __( 'Configure personal calendars and their booking windows.', 'ffcertificate' ),
 					),
 					'ffc_bypass_appointments'         => array(
 						'label'       => __( 'Scheduling bypass', 'ffcertificate' ),
@@ -257,11 +257,11 @@ final class CapabilityCatalog {
 				'caps'  => array(
 					'ffc_view_calendars'   => array(
 						'label'       => __( 'View calendars', 'ffcertificate' ),
-						'description' => __( 'Read-only access to self-scheduling calendars — structure, working hours and options — without the ability to edit them (#739).', 'ffcertificate' ),
+						'description' => __( 'Read-only access to personal calendars — structure, working hours and options — without the ability to edit them (#739).', 'ffcertificate' ),
 					),
 					'ffc_manage_calendars' => array(
 						'label'       => __( 'Manage calendars', 'ffcertificate' ),
-						'description' => __( 'Create and edit self-scheduling calendars — structure, working hours and options. Distinct from managing the bookings made against them (#739).', 'ffcertificate' ),
+						'description' => __( 'Create and edit personal calendars — structure, working hours and options. Distinct from managing the bookings made against them (#739).', 'ffcertificate' ),
 					),
 				),
 			),
@@ -363,7 +363,7 @@ final class CapabilityCatalog {
 			),
 			array(
 				'key'   => self::GROUP_ADMIN_DATE_MESSAGES,
-				'label' => __( 'Date messages', 'ffcertificate' ),
+				'label' => __( 'Date Messages', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
 					'ffc_view_date_messages'     => array(

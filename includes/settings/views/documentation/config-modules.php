@@ -29,13 +29,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</tr>
 			</thead>
 			<tbody>
-				<tr><td><?php esc_html_e( 'Certificates', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Hides the certificate admin and stops public form submissions. While off, the daily expired-ticket cleanup is paused (unredeemed ticket codes of ended forms are not purged until it is re-enabled).', 'ffcertificate' ); ?></td></tr>
-				<tr><td><?php esc_html_e( 'Audiences / Scheduling', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Removes audience groups and the scheduling admin.', 'ffcertificate' ); ?></td></tr>
-				<tr><td><?php esc_html_e( 'Self-Scheduling', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Removes appointment self-booking and its admin screens.', 'ffcertificate' ); ?></td></tr>
-				<tr><td><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Removes the reregistration campaign flow and its admin.', 'ffcertificate' ); ?></td></tr>
-				<tr><td><?php esc_html_e( 'URL Shortener', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Disables the built-in short URLs, redirects and QR codes.', 'ffcertificate' ); ?></td></tr>
-				<tr><td><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Removes recruitment calls, candidates and the public queue.', 'ffcertificate' ); ?></td></tr>
-				<tr><td><?php esc_html_e( 'Date Messages', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Hides the Date Messages menu and stops date-based e-mails such as birthdays. While it is on, nothing is sent until an administrator creates and activates a rule.', 'ffcertificate' ); ?> <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages.', 'ffcertificate' ); ?></a></td></tr>
+				<tr><td><?php echo esc_html( \FreeFormCertificate\Core\PluginAreas::label( 'certificates' ) ); ?></td><td><?php esc_html_e( 'Hides the certificate admin and stops public form submissions. While off, the daily expired-ticket cleanup is paused (unredeemed ticket codes of ended forms are not purged until it is re-enabled).', 'ffcertificate' ); ?></td></tr>
+				<tr><td><?php esc_html_e( 'Personal Calendars', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Removes appointment self-booking and its admin screens.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Removes audience groups and the scheduling admin.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><?php echo esc_html( \FreeFormCertificate\Core\PluginAreas::label( 'reregistration' ) ); ?></td><td><?php esc_html_e( 'Removes the reregistration campaign flow and its admin.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><?php echo esc_html( \FreeFormCertificate\Core\PluginAreas::label( 'recruitment' ) ); ?></td><td><?php esc_html_e( 'Removes recruitment calls, candidates and the public queue.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><?php echo esc_html( \FreeFormCertificate\Core\PluginAreas::label( 'url_shortener' ) ); ?></td><td><?php esc_html_e( 'Disables the built-in short URLs, redirects and QR codes.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><?php echo esc_html( \FreeFormCertificate\Core\PluginAreas::label( 'date_messages' ) ); ?></td><td><?php esc_html_e( 'Hides the Date Messages menu and stops date-based e-mails such as birthdays. While it is on, nothing is sent until an administrator creates and activates a rule.', 'ffcertificate' ); ?> <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages.', 'ffcertificate' ); ?></a></td></tr>
 			</tbody>
 		</table>
 	</div>

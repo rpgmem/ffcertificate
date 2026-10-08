@@ -80,7 +80,7 @@ class TabUrlShortenerTest extends TestCase {
 	}
 
 	public function test_tab_title(): void {
-		$this->assertSame( 'URL Shortener', $this->tab->get_title() );
+		$this->assertSame( 'Short URLs', $this->tab->get_title() );
 	}
 
 	public function test_tab_icon(): void {

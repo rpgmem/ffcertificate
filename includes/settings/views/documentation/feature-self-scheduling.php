@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Scheduling: Personal Calendars Section -->
 <div class="card">
-	<h3 id="feature-self-scheduling" class="ffc-icon-calendar"><?php esc_html_e( 'Personal Calendars (Appointments)', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-self-scheduling" class="ffc-icon-calendar"><?php esc_html_e( 'Personal Calendars', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in four boxes: Calendar Configuration, Working Hours & Availability, Booking Rules & Restrictions, and Email Notifications.', 'ffcertificate' ); ?></p>
 

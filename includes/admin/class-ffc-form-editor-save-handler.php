@@ -699,7 +699,7 @@ class FormEditorSaveHandler {
 			</ul>
 			<p>
 				<?php esc_html_e( 'A plugin update or deploy will delete these files and break the images. Use the "Insert Image" button to add them from the Media Library instead, or run', 'ffcertificate' ); ?>
-				<a href="<?php echo esc_url( $migrations_url ); ?>"><?php esc_html_e( 'Settings → Migrations → Rewrite html/ Image References', 'ffcertificate' ); ?></a>.
+				<a href="<?php echo esc_url( $migrations_url ); ?>"><?php esc_html_e( 'Settings → Data Migrations → Rewrite html/ Image References', 'ffcertificate' ); ?></a>.
 			</p>
 			<?php
 			wp_admin_notice(

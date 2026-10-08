@@ -180,14 +180,6 @@ msgstr ""
 msgid "\"Auto\" follows your operating system preference."
 msgstr ""
 
-#: templates/admin/audience/audience-tab.php:99
-msgid "\"Multiple Audiences\" Badge Color"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-url-shortener.php:162
-msgid "\"Shorten\" shows the URL Shortener meta box on that post type. \"Expose\" publishes the page's short URL as the site's canonical shortlink — the rel=\"shortlink\" tag in the page head and the HTTP Link header (also used by the editor's \"Get Shortlink\" button and REST). Expose depends on Shorten and only takes effect once a short URL exists for the page."
-msgstr ""
-
 #. 1: approved count 2: total count
 #: templates/admin/reregistration/list-row.php:47
 #, php-format
@@ -376,11 +368,6 @@ msgstr[1] ""
 #. %d: number of published calendars
 #: templates/admin/audience/general-tab.php:34
 msgid "%d published calendar(s)"
-msgstr ""
-
-#. %d: number of QR codes cleared
-#: includes/admin/class-ffc-settings.php:485
-msgid "%d QR Code(s) cleared from cache successfully."
 msgstr ""
 
 #. %d: number of seconds
@@ -849,10 +836,6 @@ msgstr ""
 msgid "Accounts that can now read the certificates they own: %d"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-general.php:262
-msgid "An RF carries a check digit, and the form has never verified it — which is why a mistyped RF reaches storage where a mistyped CPF does not. Off by default, because the rule was derived from the identifiers this install already holds rather than read from an official specification: turning it on could refuse a number that is genuinely unusual, and a person blocked from registering costs more than a typo the audit finds later. Before turning it on, run the identity audit (Settings → Migrations) and read how many stored RFs it reports as failing — that count is what enforcement would have rejected."
-msgstr ""
-
 #: includes/migrations/class-ffc-migration-registry.php:123
 msgid "Grant the certificate capabilities to every account that owns a certificate and cannot open it. The permission used to come from whichever path created the account, while ownership comes from the record itself — so a person whose old submissions were claimed after their account was created by a candidacy, a reregistration import or an appointment ended up holding certificates the dashboard refused to show them. Measures the remaining accounts on every read, so running it again once it reports zero does nothing."
 msgstr ""
@@ -1063,10 +1046,6 @@ msgstr ""
 msgid "A required script blocked or timed out. Reload the page (Ctrl+R / Cmd+R) and try again. If the issue persists, try a different browser."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php:21
-msgid "A reregistration campaign collects updated information from the members of one or more audiences over a set period, with optional emails and an approval workflow. Campaigns are managed under the Reregistration admin menu."
-msgstr ""
-
 #: includes/settings/views/documentation/overview.php:55
 msgid "A REST API, an authenticated Forms API and dozens of action/filter hooks let developers integrate and customize everything."
 msgstr ""
@@ -1089,10 +1068,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/reference-privacy.php:28
 msgid "A separate salted one-way hash of each identifier is kept so records can be located and de-duplicated without exposing the original value."
-msgstr ""
-
-#: includes/settings/views/documentation/config-advanced.php:36
-msgid "A set of per-area debug switches, grouped Client (frontend, geofence, QR, browser environment), Server/Processing (form processor, PDF, email, encryption, REST, user manager) and Admin/Operational (admin, self-scheduling, audience, migrations, activity log). All default off — turn one on only while diagnosing, since it increases logging."
 msgstr ""
 
 #: includes/settings/views/documentation/email-texts-hub.php:47
@@ -1260,10 +1235,6 @@ msgstr ""
 msgid "Acknowledgment"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-record.php:49
-msgid "Acknowledgment notice (\"Termo de Ciência\") HTML — editable per-audience in the Reregistration Fields section, with a shipped default fallback."
-msgstr ""
-
 #: includes/admin/class-ffc-admin-activity-log-page.php:106 includes/admin/class-ffc-activity-log-export-source.php:176 includes/admin/views/ffc-admin-activity-log.php:111 includes/settings/views/documentation/developer-hooks-api.php:53 includes/settings/views/documentation/forms-public-operator-access.php:33
 msgid "Action"
 msgstr ""
@@ -1274,10 +1245,6 @@ msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:219 includes/admin/class-ffc-submissions-list.php:84 includes/admin/class-ffc-form-editor-layout-metabox.php:52 includes/self-scheduling/class-ffc-self-scheduling-editor.php:482 includes/self-scheduling/class-ffc-self-scheduling-editor.php:525 includes/reregistration/class-ffc-reregistration-custom-fields-page.php:56 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:685 includes/audience/class-ffc-audience-admin-bookings.php:173 includes/audience/class-ffc-audience-admin-environment.php:136 includes/audience/class-ffc-audience-admin-calendar.php:90 includes/audience/class-ffc-audience-admin-calendar.php:477 includes/audience/class-ffc-audience-admin-calendar.php:579 includes/audience/class-ffc-audience-admin-audience-renderer.php:59 includes/audience/class-ffc-audience-admin-audience-renderer.php:716 templates/admin/reregistration/submissions.php:98 templates/admin/reregistration/list.php:58 templates/admin/url-shortener/short-urls-page.php:201 templates/admin/audience/general-tab.php:103 includes/settings/views/ffc-tab-geolocation.php:44 includes/settings/views/ffc-tab-cache.php:279 includes/settings/tabs/class-ffc-tab-templates.php:135 includes/settings/views/documentation/developer-hooks-api.php:49
 msgid "Actions"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-reregistration.php:29
-msgid "Activate the campaign — a submission is created for every audience member and invitation emails go out."
 msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:315 includes/self-scheduling/class-ffc-self-scheduling-editor.php:376 includes/reregistration/class-ffc-reregistration-repository.php:55 includes/audience/class-ffc-audience-admin-bookings.php:149 includes/audience/class-ffc-audience-admin-bookings.php:229 includes/audience/class-ffc-audience-admin-environment.php:186 includes/audience/class-ffc-audience-admin-environment.php:378 includes/audience/class-ffc-audience-admin-calendar.php:132 includes/audience/class-ffc-audience-admin-calendar.php:432 includes/audience/class-ffc-audience-loader.php:429 includes/audience/class-ffc-audience-booking-export-source.php:277 includes/audience/class-ffc-audience-admin-audience-renderer.php:129 includes/audience/class-ffc-audience-admin-audience-renderer.php:263 includes/audience/class-ffc-audience-admin-audience-renderer.php:427 includes/audience/class-ffc-audience-admin-audience-renderer.php:564 templates/admin/url-shortener/short-urls-page.php:112 templates/admin/url-shortener/short-urls-page.php:149 templates/admin/url-shortener/short-urls-page.php:223 includes/settings/views/ffc-tab-cache.php:60 includes/settings/views/ffc-tab-cache.php:69 includes/settings/views/ffc-tab-cache.php:79
@@ -1668,10 +1635,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:538
 msgid "Administrators bypass geolocation restrictions"
-msgstr ""
-
-#: includes/settings/views/documentation/reference-shortcodes.php:67
-msgid "Administrators can schedule activities for audiences (groups) in configured environments."
 msgstr ""
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:88
@@ -2159,10 +2122,6 @@ msgstr ""
 msgid "Apply Filter"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:856
-msgid "Apply these directly only on a NEW install with no encrypted data yet. On a site that already stores data, defining a new FFC_ENCRYPTION_KEY makes existing encrypted records unreadable, and a new FFC_HASH_SALT invalidates the stored search hashes — both are repaired by a planned key rotation (S7b) at Settings → Migrations, not a blind edit."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-rate-limit.php:40
 msgid "Apply to"
 msgstr ""
@@ -2426,10 +2385,6 @@ msgstr ""
 msgid "Are you sure you want to deactivate this %s?"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:136
-msgid "Are you sure you want to deactivate this audience?"
-msgstr ""
-
 #: includes/audience/class-ffc-audience-admin-calendar.php:138
 msgid "Are you sure you want to deactivate this calendar?"
 msgstr ""
@@ -2471,10 +2426,6 @@ msgstr ""
 #: includes/audience/class-ffc-audience-admin-environment.php:204
 #, php-format
 msgid "Are you sure you want to permanently delete this %s?"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:140
-msgid "Are you sure you want to permanently delete this audience?"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:142
@@ -2581,24 +2532,8 @@ msgstr ""
 msgid "Audience Calendars"
 msgstr ""
 
-#: includes/settings/views/documentation/scheduling-audiences.php:18
-msgid "Audience Calendars (Spaces)"
-msgstr ""
-
-#: includes/settings/views/documentation/scheduling-audiences.php:20
-msgid "Audience calendars book shared spaces (rooms, equipment, \"ambientes\") for named groups of people, rather than fixed one-on-one slots. Everything lives under the Scheduling menu."
-msgstr ""
-
 #: includes/audience/class-ffc-audience-admin-audience.php:88
 msgid "Audience created successfully."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-documentation.php:272 includes/settings/views/documentation/feature-audiences.php:17
-msgid "Audience Custom Fields"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-audiences.php:22
-msgid "Audience custom fields"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience.php:89
@@ -2615,14 +2550,6 @@ msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:484 includes/audience/class-ffc-audience-shortcode.php:369
 msgid "Audience Groups"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-modulos.php:31
-msgid "Audience groups and the scheduling admin."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-user-capabilities.php:327
-msgid "Audience membership"
 msgstr ""
 
 #: includes/privacy/class-ffc-privacy-exporters.php:393
@@ -2657,20 +2584,8 @@ msgstr ""
 msgid "Audiences"
 msgstr ""
 
-#: includes/settings/views/documentation/scheduling-audiences.php:22
-msgid "Audiences (groups)"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-modulos.php:30 includes/settings/views/documentation/config-modules.php:33
-msgid "Audiences / Scheduling"
-msgstr ""
-
 #: includes/settings/views/documentation/feature-audiences.php:19
 msgid "Audiences are named groups of people (imported or self-registered). Their calendars, booking flow and notifications are covered under Audience Calendars; this page covers the group-specific custom fields an audience can collect (reused by reregistration and the user profile)."
-msgstr ""
-
-#: includes/migrations/class-ffc-migration-dynamic-rereg-fields.php:236
-msgid "Audiences table not ready yet (will seed on next run)."
 msgstr ""
 
 #: templates/emails/audience-booking.php:33
@@ -2821,10 +2736,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:200 includes/audience/class-ffc-audience-shortcode.php:301 includes/audience/class-ffc-audience-shortcode.php:820 templates/admin/reregistration/transfer-list.php:24
 msgid "Available"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-device-limit-metabox.php:98
-msgid "Available for this form but currently off. Leave it off if your audience submits from shared devices (labs, kiosks); turn it on if each person submits from their own device and you want to prevent repeat issuances."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-validation-url.php:50
@@ -3327,10 +3238,6 @@ msgstr ""
 msgid "building the certificate verification link"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-modulos.php:43
-msgid "Built-in short URLs, redirects and QR codes."
-msgstr ""
-
 #: includes/admin/class-ffc-admin.php:386
 msgid "Bulk action completed."
 msgstr ""
@@ -3446,10 +3353,6 @@ msgid "Cache warmed for %d form."
 msgid_plural "Cache warmed for %d forms."
 msgstr[0] ""
 msgstr[1] ""
-
-#: includes/settings/views/ffc-tab-cache.php:353
-msgid "Cached QR Codes:"
-msgstr ""
 
 #: includes/settings/views/documentation/config-cache.php:29
 msgid "Caches each form's resolved settings to speed up rendering."
@@ -4052,10 +3955,6 @@ msgstr ""
 msgid "Certificate previously issued (Reprint)."
 msgstr ""
 
-#: includes/admin/class-ffc-settings.php:233 includes/admin/class-ffc-settings.php:575
-msgid "Certificate Settings"
-msgstr ""
-
 #: includes/settings/views/documentation/document-templates-hub.php:46
 msgid "Certificate:"
 msgstr ""
@@ -4094,10 +3993,6 @@ msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:258
 msgid "Change Password"
-msgstr ""
-
-#: includes/settings/views/documentation/developer-hooks-api.php:37
-msgid "Change the URL a certificate QR code encodes."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:124
@@ -4142,10 +4037,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:59
 msgid "checkbox or switch."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-audiences.php:65
-msgid "Child audiences inherit fields from parent audiences"
 msgstr ""
 
 #: templates/public/set-password.php:35
@@ -4290,14 +4181,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-cache.php:284 includes/settings/tabs/class-ffc-tab-cache.php:78
 msgid "Clear all cache?"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:384
-msgid "Clear all cached QR Codes?\\n\\nThey will be regenerated automatically when needed."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:385
-msgid "Clear All QR Code Cache"
 msgstr ""
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:70
@@ -4475,10 +4358,6 @@ msgstr ""
 msgid "Color"
 msgstr ""
 
-#: templates/admin/audience/audience-tab.php:107
-msgid "Color for the \"Multiple audiences\" badge shown in the event list when an event has more than 2 audiences."
-msgstr ""
-
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:226
 msgid "Color used for visual identification in calendars."
 msgstr ""
@@ -4575,24 +4454,12 @@ msgstr ""
 msgid "Configure GPS location caching on the frontend (browser localStorage). GPS cache is always enabled for better performance."
 msgstr ""
 
-#: templates/admin/audience/audience-tab.php:52
-msgid "Configure how private audience calendars are displayed to non-logged-in visitors. Note: Scheduling is always restricted to authorized members."
-msgstr ""
-
 #: templates/admin/audience/self-scheduling-tab.php:57
 msgid "Configure how private calendars are displayed to non-logged-in visitors."
 msgstr ""
 
-#: includes/user-dashboard/class-ffc-capability-catalog.php:224
-msgid "Configure personal calendars and self-scheduling windows."
-msgstr ""
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:446
 msgid "Configure recruitment"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-url-shortener.php:37
-msgid "Configure the built-in URL shortener. Short URLs redirect visitors and generate QR Codes."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:28
@@ -4847,14 +4714,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-user-capabilities.php:485
 msgid "Copy slug"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:379
-msgid "Copy this audience's option lists (departments, unions, work schedules…) to all child and grandchild audiences. Overwrites their current lists."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-loader.php:437
-msgid "Copy this audience's option lists to all child and grandchild audiences? This overwrites their current lists."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-shortcode-metabox.php:36
@@ -5203,10 +5062,6 @@ msgstr ""
 msgid "create / edit notices, candidates and adjutancies."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-reregistration.php:26
-msgid "Create a campaign and link it to one or more audiences."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-tokens.php:135
 msgid "Create a field in Form Builder (e.g. field name \"company\")"
 msgstr ""
@@ -5227,20 +5082,8 @@ msgstr ""
 msgid "Create and edit notices (editais). Each notice has a unique code, a lifecycle status, and a configurable set of public columns."
 msgstr ""
 
-#: includes/user-dashboard/class-ffc-capability-catalog.php:261
-msgid "Create and edit self-scheduling calendars — structure, working hours and options. Distinct from managing the bookings made against them (#739)."
-msgstr ""
-
 #: includes/audience/class-ffc-audience-admin-dashboard.php:166 includes/audience/class-ffc-audience-admin-audience-renderer.php:305
 msgid "Create Audience"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-catalog.php:276
-msgid "Create audiences and manage their members."
-msgstr ""
-
-#: includes/settings/views/documentation/scheduling-audiences.php:47
-msgid "create audiences, schedules, environments and members."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-shortcode.php:421 includes/audience/class-ffc-audience-shortcode.php:828
@@ -5249,10 +5092,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:440
 msgid "Create Calendar"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-certificates.php:19
-msgid "Create certificate-issuance forms, generate the certificate PDF automatically on submission, and let anyone verify authenticity by QR code or validation link."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:561
@@ -5489,10 +5328,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/reference-tokens.php:132
 msgid "Custom fields as variables"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-user-custom-fields.php:116
-msgid "Custom fields from audience memberships. Fields are grouped by audience."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-ajax-controller.php:542
@@ -5870,22 +5705,6 @@ msgstr ""
 msgid "default png"
 msgstr ""
 
-#: includes/settings/views/documentation/reference-qr-codes.php:31
-msgid "Default QR code (uses settings from QR Code tab)"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-general.php:467
-msgid "Default QR Code Margin"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-general.php:455
-msgid "Default QR Code Size"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-general.php:448
-msgid "Default settings for QR Code generation in certificates."
-msgstr ""
-
 #: includes/settings/views/documentation/config-general.php:42
 msgid "Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win."
 msgstr ""
@@ -5990,10 +5809,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:224
 msgid "Delete appointments:"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-catalog.php:287
-msgid "Delete audiences"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:288
@@ -6328,10 +6143,6 @@ msgstr ""
 msgid "Disabled globally — enable in %s before configuring per-form overrides."
 msgstr ""
 
-#: includes/settings/views/documentation/config-modules.php:36
-msgid "Disables the built-in short URLs, redirects and QR codes."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-rate-limit.php:401
 msgid "Disabling strong signals lowers entropy and makes the limit easier to bypass. If you disable so many strong signals that fewer than the configured minimum remain, the strong tier can never be satisfied and only the cookie/threshold will apply."
 msgstr ""
@@ -6382,10 +6193,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/reference-shortcodes.php:52
 msgid "Displays dashboard page."
-msgstr ""
-
-#: includes/settings/views/documentation/reference-shortcodes.php:66
-msgid "Displays the audience scheduling calendar for group bookings."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-shortcodes.php:30
@@ -7037,10 +6844,6 @@ msgstr ""
 msgid "Email texts saved."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-smtp.php:100
-msgid "Email the user when they are granted access to certificates, appointments or audience groups. Edit the text under Settings → Email Texts → Account access."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:462 includes/reregistration/class-ffc-record-generator.php:499 includes/frontend/class-ffc-verification-response-renderer.php:430
 msgid "Email:"
 msgstr ""
@@ -7201,10 +7004,6 @@ msgstr ""
 msgid "Enable debug logging for PDF generation"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:274
-msgid "Enable debug logging for QR code generation"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-advanced.php:410
 msgid "Enable debug logging for REST API operations"
 msgstr ""
@@ -7215,10 +7014,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:503
 msgid "Enable debug logging for the audience module"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-advanced.php:482
-msgid "Enable debug logging for the self-scheduling module"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:431
@@ -7269,10 +7064,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:561
 msgid "Enable Public Operator Access above to expose the postpone-close button to operators."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:305
-msgid "Enable QR Code Cache"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-quiz-metabox.php:47
@@ -7787,20 +7578,12 @@ msgstr ""
 msgid "Every certificate a form issues is a submission. They are managed under the \"Submissions\" admin page (inside the plugin menu)."
 msgstr ""
 
-#: includes/settings/views/documentation/overview.php:32
-msgid "Every certificate carries a QR code and a validation link; anyone can confirm it is genuine, and the holder gets a one-click \"magic link\" to re-download."
-msgstr ""
-
 #: includes/settings/views/documentation/developer-hooks-api.php:71
 msgid "Every data export in the plugin (submissions, public forms, url-shortener, activity log, audience bookings, appointments, reregistration) flows through one shared, timeout-safe engine rather than a bespoke exporter. A source implements the export contract (auth, columns, filename, and a keyset-paged fetch), and one AJAX trio (start → batch × N → download) drives it over a temp file — safe for large datasets on shared hosts where the request time limit cannot be raised."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:344
 msgid "Every email the plugin can send, and where each one is configured. They all share the Email Model (its own tab); the ones marked \"Editable text (global)\" have their wording edited in the box above on this tab, and the rest ship a fixed default body you can only turn on or off."
-msgstr ""
-
-#: includes/settings/views/documentation/reference-emails.php:20
-msgid "Every email the plugin sends — certificate delivery, admin notifications, recruitment convocations, booking confirmations, reregistration invitations, audience notices — goes through one shared pipeline with one configurable look."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:23
@@ -8138,10 +7921,6 @@ msgstr ""
 msgid "Failed to import legacy template: %s"
 msgstr ""
 
-#: includes/url-shortener/class-ffc-url-shortener-admin-page.php:116 includes/url-shortener/class-ffc-url-shortener-meta-box.php:272
-msgid "Failed to load QR Code"
-msgstr ""
-
 #: includes/reregistration/class-ffc-reregistration-admin.php:224
 msgid "Failed to load submission details."
 msgstr ""
@@ -8225,10 +8004,6 @@ msgstr ""
 msgid "FFC Appointments - Administrator"
 msgstr ""
 
-#: includes/user-dashboard/class-ffc-capability-manager.php:762
-msgid "FFC Appointments - Manager"
-msgstr ""
-
 #: includes/user-dashboard/class-ffc-capability-manager.php:758
 msgid "FFC Appointments - Operator"
 msgstr ""
@@ -8245,20 +8020,12 @@ msgstr ""
 msgid "FFC Audience Groups"
 msgstr ""
 
-#: includes/user-dashboard/class-ffc-capability-manager.php:781
-msgid "FFC Audiences - Manager"
-msgstr ""
-
 #: includes/user-dashboard/class-ffc-capability-manager.php:777
 msgid "FFC Audiences - Operator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:773
 msgid "FFC Audiences - Viewer"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:806
-msgid "FFC Calendars - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:802
@@ -8271,10 +8038,6 @@ msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:748
 msgid "FFC Certificates - Administrator"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:741
-msgid "FFC Certificates - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:737
@@ -8291,14 +8054,6 @@ msgstr ""
 
 #: includes/user-dashboard/class-ffc-role-registrar.php:54 includes/user-dashboard/class-ffc-role-registrar.php:303
 msgid "FFC End User"
-msgstr ""
-
-#: includes/admin/class-ffc-cpt.php:47
-msgid "FFC Form"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:816
-msgid "FFC Forms - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:812
@@ -8321,20 +8076,12 @@ msgstr ""
 msgid "FFC Recruitment - Administrator"
 msgstr ""
 
-#: includes/user-dashboard/class-ffc-role-registrar.php:157 includes/user-dashboard/class-ffc-role-registrar.php:304
-msgid "FFC Recruitment - Manager"
-msgstr ""
-
 #: includes/user-dashboard/class-ffc-capability-manager.php:829
 msgid "FFC Recruitment - Operator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:825
 msgid "FFC Recruitment - Viewer"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:795
-msgid "FFC Reregistration - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:791
@@ -8351,10 +8098,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-role-capability-editor.php:160
 msgid "FFC Roles & Capabilities"
-msgstr ""
-
-#: includes/admin/class-ffc-settings.php:234
-msgid "FFC Settings"
 msgstr ""
 
 #: includes/privacy/class-ffc-privacy-handler.php:137 includes/privacy/class-ffc-privacy-exporters.php:569
@@ -8385,24 +8128,8 @@ msgstr ""
 msgid "FFCertificate — Admin"
 msgstr ""
 
-#: includes/core/class-ffc-email-source.php:86
-msgid "FFCertificate — Audience"
-msgstr ""
-
-#: includes/core/class-ffc-email-source.php:82
-msgid "FFCertificate — Certificate"
-msgstr ""
-
-#: includes/core/class-ffc-email-source.php:88
-msgid "FFCertificate — Re-registration"
-msgstr ""
-
 #: includes/core/class-ffc-email-source.php:90
 msgid "FFCertificate — Recruitment"
-msgstr ""
-
-#: includes/core/class-ffc-email-source.php:84
-msgid "FFCertificate — Scheduling"
 msgstr ""
 
 #: includes/migrations/class-ffc-migration-registry.php:92
@@ -8898,10 +8625,6 @@ msgstr ""
 msgid "Free Form Certificate"
 msgstr ""
 
-#: includes/settings/views/documentation/overview.php:20
-msgid "Free Form Certificate turns WordPress into a complete platform for issuing verifiable documents. Build a form, design the certificate once, and let people receive a signed PDF the moment they submit — validated by QR code or a public link, protected against fraud and duplicate issuance, and delivered by email automatically."
-msgstr ""
-
 #: includes/admin/class-ffc-device-threshold-upgrade-notice.php:93
 msgid "Free Form Certificate v6.3.2"
 msgstr ""
@@ -9009,10 +8732,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-settings.php:731 includes/recruitment/class-ffc-recruitment-adjutancy-edit-page.php:98 includes/recruitment/class-ffc-recruitment-reason-edit-page.php:115 includes/audience/class-ffc-audience-admin-settings.php:70 includes/settings/views/ffc-tab-documentation.php:156 includes/settings/tabs/class-ffc-tab-general.php:33 templates/admin/recruitment/candidate-edit/general-section.php:31 templates/admin/recruitment/notice-edit/general-section.php:29 includes/settings/views/documentation/config-general.php:18
 msgid "General"
-msgstr ""
-
-#: templates/admin/audience/general-tab.php:22
-msgid "General scheduling settings that apply to both Self-Scheduling and Audience systems."
 msgstr ""
 
 #: templates/admin/audience/general-tab.php:20 includes/settings/views/ffc-tab-general.php:185
@@ -9168,10 +8887,6 @@ msgstr ""
 
 #: templates/admin/audience/general-tab.php:57
 msgid "Global Holidays"
-msgstr ""
-
-#: includes/admin/class-ffc-settings.php:773
-msgid "Global holidays and audience / self-scheduling visibility."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:170
@@ -9473,16 +9188,8 @@ msgstr ""
 msgid "high entropy; hard to coincide between different physical devices and resistant to incognito. The strong-signal minimum is counted from these."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:305
-msgid "Higher = fewer false positives, but easier to evade (a device only needs to differ on a few strong signals to escape). Lower = closer to the old behavior and more aggressive. 0 disables the strong tier entirely (block on the raw threshold alone — the legacy behavior that over-blocked homogeneous audiences). Submissions that cannot emit this many strong signals (e.g. privacy browsers blocking canvas/WebGL) fall back to the cookie only and are never blocked on weak signals alone. Default is 2."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-captcha.php:149
 msgid "Higher costs an attacker more per attempt, and costs an honest visitor more waiting. The range is bounded on both sides on purpose: too low and the proof means nothing, too high and a slow phone grinds until the widget gives up after 90 seconds."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-general.php:497
-msgid "Higher levels allow more damage to QR Code but create denser patterns."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-admin-page.php:93 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:409 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:467 includes/recruitment/class-ffc-recruitment-dashboard-section.php:328 includes/recruitment/class-ffc-recruitment-dashboard-section.php:353 templates/admin/recruitment/admin-page/settings-tab.php:106
@@ -9547,10 +9254,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-user-capabilities.php:302
 msgid "Hover a role to see what it grants. Assigning a role applies immediately and affects only this user; it does not send an e-mail."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-calendar.php:398
-msgid "How audience badges are displayed. \"Name only\" shows just the audience name. \"Parent: Name\" prefixes with the parent category when available."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:602
@@ -9854,10 +9557,6 @@ msgstr ""
 #. %d: number of templates imported
 #: includes/migrations/strategies/class-ffc-import-legacy-templates-migration-strategy.php:170
 msgid "Imported %d legacy certificate template(s)"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:323
-msgid "Improves performance by caching QR Codes. Increases database size (~4KB per submission)."
 msgstr ""
 
 #: includes/api/class-ffc-user-reregistrations-rest-controller.php:89 includes/reregistration/class-ffc-reregistration-submission-reader.php:60
@@ -10623,10 +10322,6 @@ msgstr ""
 msgid "Limit reached. Please wait {time}."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:268
-msgid "Limit submissions from the same physical device by combining a persistent cookie with multiple browser signals. Two visits count as the same device when (a) their cookie matches, or (b) they match at least the threshold number of signals AND at least the minimum number of STRONG signals. The strong-signal tier prevents false blocks across same-model devices in homogeneous audiences, where weak signals (browser/OS/screen/timezone) are identical between different people."
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-device-limit-metabox.php:80
 msgid "Limit submissions per physical device (cookie + browser fingerprint)."
 msgstr ""
@@ -10945,10 +10640,6 @@ msgstr ""
 msgid "Logs migration execution, user linking, and data transformation operations."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:280
-msgid "Logs QR-code asset resolution, cache hits, and URL composition."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-advanced.php:416
 msgid "Logs REST API requests, responses, and errors."
 msgstr ""
@@ -11051,10 +10742,6 @@ msgstr ""
 msgid "Manage Appointments"
 msgstr ""
 
-#: includes/user-dashboard/class-ffc-capability-catalog.php:275
-msgid "Manage audiences"
-msgstr ""
-
 #: templates/admin/audience/self-scheduling-tab.php:27
 msgid "Manage Calendars"
 msgstr ""
@@ -11105,10 +10792,6 @@ msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:302
 msgid "Manage reregistration campaigns"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-catalog.php:223
-msgid "Manage self-scheduling"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:367
@@ -12233,10 +11916,6 @@ msgstr ""
 msgid "No value to reveal."
 msgstr ""
 
-#: includes/settings/views/documentation/reference-qr-codes.php:45
-msgid "No white margin around QR code"
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:159
 msgid "No WP user found for that lookup. Try the numeric ID, exact login, or full email."
 msgstr ""
@@ -12358,10 +12037,6 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page.php:103 includes/recruitment/class-ffc-recruitment-public-shortcode.php:228 includes/recruitment/class-ffc-recruitment-error-messages.php:110
 msgid "Notice not found."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:583
-msgid "Notice shown at the end of the reregistration form and printed on the record PDF. Use \"Replicate lists to children\" to push it to descendant audiences."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:115
@@ -12558,10 +12233,6 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:711
 msgid "On iOS: tap the \"AA\" button in the address bar → Website Settings → Location → Allow."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-rate-limit.php:302
-msgid "On top of the threshold above, at least this many STRONG signals (canvas, WebGL, audio, fonts, plugins, permissions) must match before two visits count as the same device. Strong signals rarely coincide between different physical devices, so requiring them is what stops false blocks across same-model devices in a homogeneous audience."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:214
@@ -12788,10 +12459,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-email.php:36
 msgid "Optionally notify one or more admin addresses on each submission (comma-separated; blank falls back to the site admin email)."
-msgstr ""
-
-#: includes/settings/views/documentation/config-cache.php:38
-msgid "Optionally store generated QR codes in the database (roughly 4 KB per submission) so they are not re-rendered on every PDF. A \"Clear all QR-code cache\" button flushes them. Statistics show how many codes are cached and their total size."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-import.php:117
@@ -13238,20 +12905,12 @@ msgstr ""
 msgid "Persistent cookie (UUID in localStorage)"
 msgstr ""
 
-#: includes/settings/views/documentation/overview.php:39
-msgid "Personal appointment calendars (fixed slots) and audience calendars for shared spaces (free-form bookings), each with confirmations, reminders and ICS invites."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-cpt.php:89
 msgid "Personal Calendar"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-cpt.php:88 includes/self-scheduling/class-ffc-self-scheduling-cpt.php:95 includes/settings/views/ffc-tab-documentation.php:260
 msgid "Personal Calendars"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:18
-msgid "Personal Calendars (Appointments)"
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:79
@@ -13350,10 +13009,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:597
 msgid "Placeholder keys"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-assets-manager.php:675 includes/frontend/class-ffc-frontend.php:517
-msgid "Placeholders replaced with sample data. QR code shown as placeholder."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:81
@@ -14048,28 +13703,12 @@ msgstr ""
 msgid "Published Forms:"
 msgstr ""
 
-#: includes/settings/views/documentation/reference-privacy.php:48
-msgid "Pure relationships (audience memberships, permission grants, the stored user profile) are removed with the account."
-msgstr ""
-
 #: includes/settings/views/documentation/developer-hooks-api.php:27 includes/settings/views/documentation/feature-recruitment.php:28
 msgid "Purpose"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-cache.php:366
 msgid "QR Actions"
-msgstr ""
-
-#: includes/generators/class-ffc-qrcode-generator.php:366 includes/url-shortener/class-ffc-url-shortener-meta-box.php:162 templates/admin/url-shortener/short-urls-page.php:341 includes/settings/views/ffc-tab-advanced.php:265
-msgid "QR Code"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:296
-msgid "QR Code Cache"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-general.php:446
-msgid "QR Code Defaults"
 msgstr ""
 
 #: includes/settings/views/documentation/config-general.php:41
@@ -14080,36 +13719,12 @@ msgstr ""
 msgid "QR Code Options & Attributes"
 msgstr ""
 
-#: includes/settings/views/documentation/operations-troubleshooting.php:44
-msgid "QR Code too large/small"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-documentation.php:90 includes/settings/views/documentation/feature-certificates.php:27
-msgid "QR Codes"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php:43
-msgid "QR Codes are also available over REST for external automations:"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:388
-msgid "QR Codes will be regenerated automatically when needed. This action is safe and reversible."
-msgstr ""
-
-#: includes/url-shortener/class-ffc-url-shortener-qr-rest-controller.php:176 includes/url-shortener/class-ffc-url-shortener-qr-handler.php:244
-msgid "QR generation failed."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-self-scheduling.php:91
 msgid "QR image and validation link (same options as certificates)"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-cache.php:330
 msgid "QR Statistics"
-msgstr ""
-
-#: includes/settings/views/documentation/config-cache.php:37
-msgid "QR-code cache"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:490
@@ -14279,10 +13894,6 @@ msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:415
 msgid "Read-only access to notices and classifications."
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-catalog.php:257
-msgid "Read-only access to self-scheduling calendars — structure, working hours and options — without the ability to edit them (#739)."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php:76
@@ -14691,10 +14302,6 @@ msgstr ""
 msgid "Removes appointment self-booking and its admin screens."
 msgstr ""
 
-#: includes/settings/views/documentation/config-modules.php:33
-msgid "Removes audience groups and the scheduling admin."
-msgstr ""
-
 #: includes/settings/views/documentation/config-modules.php:37
 msgid "Removes recruitment calls, candidates and the public queue."
 msgstr ""
@@ -14904,10 +14511,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:46
 msgid "Requires approval"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-captcha.php:50
-msgid "Requires JavaScript and HTTPS. A visitor with JavaScript disabled cannot submit the form at all — acceptable when the audience is known, such as staff filling in forms on a workstation."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:88
@@ -15571,10 +15174,6 @@ msgstr ""
 msgid "Schedule type: regular or custom"
 msgstr ""
 
-#: includes/settings/views/documentation/scheduling-audiences.php:36
-msgid "schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin's REST API and can target one or more audiences or an individual, and are cancelled with a required reason."
-msgstr ""
-
 #: templates/emails/audience-booking.php:34
 msgid "Scheduled by:"
 msgstr ""
@@ -15597,10 +15196,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-settings.php:772 includes/self-scheduling/class-ffc-self-scheduling-editor.php:690 includes/audience/class-ffc-audience-admin-page.php:148 includes/audience/class-ffc-audience-admin-page.php:149 includes/settings/views/ffc-tab-advanced.php:118
 msgid "Scheduling"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-documentation.php:255
-msgid "Scheduling / Appointments"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:227
@@ -15813,14 +15408,6 @@ msgstr ""
 msgid "See Advanced → Activity Log settings"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-audiences.php:19
-msgid "See Audience Calendars"
-msgstr ""
-
-#: includes/settings/views/documentation/scheduling-audiences.php:23 includes/settings/views/documentation/feature-reregistration.php:66
-msgid "See Audience Custom Fields"
-msgstr ""
-
 #: includes/settings/views/documentation/document-templates-hub.php:46
 msgid "See Certificates & Forms."
 msgstr ""
@@ -15859,10 +15446,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:39 includes/settings/views/documentation/config-general.php:33
 msgid "See Public Operator Access."
-msgstr ""
-
-#: includes/settings/views/documentation/config-general.php:42 includes/settings/views/documentation/feature-url-shortener.php:42
-msgid "See QR Codes"
 msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:67 includes/settings/views/documentation/config-rate-limit.php:49
@@ -16021,34 +15604,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-page.php:299
 msgid "Self"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-settings.php:74 includes/settings/views/ffc-tab-modulos.php:34 includes/settings/views/ffc-tab-advanced.php:473 includes/settings/views/documentation/config-modules.php:34
-msgid "Self-Scheduling"
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:302 includes/settings/tabs/class-ffc-tab-email-texts.php:420 includes/settings/views/documentation/reference-emails.php:68
-msgid "Self-scheduling"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-dashboard.php:72
-msgid "Self-Scheduling (Personal)"
-msgstr ""
-
-#: includes/settings/views/documentation/email-texts-hub.php:32
-msgid "Self-scheduling confirmation:"
-msgstr ""
-
-#: templates/admin/audience/self-scheduling-tab.php:20
-msgid "Self-Scheduling Settings"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-settings.php:248
-msgid "Self-scheduling visibility settings saved."
-msgstr ""
-
-#: templates/admin/audience/general-tab.php:30
-msgid "Self-Scheduling:"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:523
@@ -16374,10 +15929,6 @@ msgstr ""
 msgid "Settings → Geolocation is where the geofencing building blocks are configured. Individual forms then pick from these."
 msgstr ""
 
-#: includes/admin/class-ffc-html-refs-notice.php:108 includes/admin/class-ffc-form-editor-save-handler.php:658
-msgid "Settings → Migrations → Rewrite html/ Image References"
-msgstr ""
-
 #: includes/settings/views/documentation/config-rate-limit.php:20
 msgid "Settings → Rate Limit throttles abusive traffic across several independent dimensions. Every dimension has its own on/off switch, thresholds and block message. Requests are evaluated in this order: blocklist → allowlist → device → global → IP → email → CPF/RF."
 msgstr ""
@@ -16430,10 +15981,6 @@ msgstr ""
 msgid "Short URL"
 msgstr ""
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:90
-msgid "Short URL & QR Code"
-msgstr ""
-
 #: includes/maintenance/class-ffc-url-shortener-cleaner.php:91 includes/settings/views/ffc-tab-migrations.php:539 includes/settings/views/documentation/operations-maintenance.php:35
 msgid "Short URL Cleanup"
 msgstr ""
@@ -16458,10 +16005,6 @@ msgstr ""
 msgid "Short URL permanently deleted."
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:128
-msgid "Short URL QR Code (base64)"
-msgstr ""
-
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:269
 msgid "Short URL regenerated!"
 msgstr ""
@@ -16476,10 +16019,6 @@ msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:336 includes/url-shortener/class-ffc-url-shortener-admin-page.php:141 includes/url-shortener/class-ffc-url-shortener-admin-page.php:142 templates/admin/url-shortener/short-urls-page.php:34 includes/settings/views/documentation/feature-url-shortener.php:19
 msgid "Short URLs"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-documentation.php:304
-msgid "Short URLs & QR Codes"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-url-shortener.php:67
@@ -16989,14 +16528,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-cache.php:298
 msgid "Store generated certificate QR Codes in database to avoid regenerating them on each request."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:314
-msgid "Store generated QR Codes in database"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:298
-msgid "Store generated QR Codes in database to avoid regenerating them on each request."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-record.php:87
@@ -17911,14 +17442,6 @@ msgstr ""
 msgid "The list"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-url-shortener.php:41
-msgid "The list & QR codes"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php:42
-msgid "The list shows each link's title, short URL, destination, click count and status, with actions to show a QR code, enable/disable, or trash (trashed links can be restored or permanently deleted). Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-security.php:40
 msgid "The listed CPF/RF numbers are blocked. The denylist takes priority over the allowlist."
 msgstr ""
@@ -17938,10 +17461,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:47
 msgid "The member form"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-reregistration.php:93
-msgid "The member form itself is gated by login + audience membership, not a capability."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:887
@@ -18076,14 +17595,6 @@ msgstr ""
 msgid "The public shortcode shows the \"Notice closed.\" banner above the list."
 msgstr ""
 
-#: includes/settings/views/documentation/reference-qr-codes.php:18
-msgid "The QR code can be customized with various attributes:"
-msgstr ""
-
-#: includes/settings/views/documentation/submissions-download.php:32
-msgid "The QR code embedded in the PDF points at the same magic link."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-reasons-list-table.php:133
 msgid "The reason record will be permanently removed."
 msgstr ""
@@ -18138,10 +17649,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:155
 msgid "The selected time block is not available."
-msgstr ""
-
-#: includes/settings/views/documentation/document-templates-hub.php:35
-msgid "The self-scheduling comprovante. Two defaults ship — Regular and Custom."
 msgstr ""
 
 #: includes/settings/views/documentation/email-texts-hub.php:50
@@ -18264,16 +17771,8 @@ msgstr ""
 msgid "Their own issued certificates, with download / verification links"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-user-dashboard.php:31
-msgid "Their self-scheduling appointments (with receipt / cancel actions where allowed)"
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:178
 msgid "There are no preliminary rows to promote."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-reregistration.php:48
-msgid "There is no separate reregistration shortcode. Active campaigns appear as a banner on the member's personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin generates an authentication code and a Record magic link, syncs mapped fields to the user profile, and sends the confirmation email."
 msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:63
@@ -18585,10 +18084,6 @@ msgstr ""
 msgid "This permanently deletes the matched short URLs and cannot be undone. Continue?"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-documentation.php:404
-msgid "This plugin allows you to create certificate issuance forms, generate PDFs automatically, and verify authenticity with QR codes."
-msgstr ""
-
 #: includes/settings/views/documentation/operations-updates.php:20
 msgid "This plugin is not distributed through the WordPress.org directory, so it ships its own updater. It teaches WordPress's native update check to see the plugin's GitHub Releases: when a newer release exists, the update appears in Dashboard → Updates and on the Plugins screen exactly like any other plugin update — \"update now\", the \"View details\" changelog modal, and the per-plugin \"Enable auto-updates\" toggle all work as usual."
 msgstr ""
@@ -18653,10 +18148,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:797
 msgid "This switches off Public Operator Access on the matched forms. Their access tokens are preserved so they can be re-enabled later. Continue?"
-msgstr ""
-
-#: includes/privacy/class-ffc-privacy-handler.php:76
-msgid "This text is suggested by the Free Form Certificate plugin to help you describe how it processes personal data. Review and adapt it to your organisation and to the modules you actually use (form submissions and certificates, appointment scheduling, audiences, re-registration and recruitment). Delete any section that does not apply."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:215
@@ -19271,10 +18762,6 @@ msgstr ""
 msgid "Unknown page cache (WPCACHEHOME defined)"
 msgstr ""
 
-#: includes/settings/views/documentation/scheduling-audiences.php:31
-msgid "Unlike personal calendars, an audience booking has a free start/end time. Two bookings that overlap the same environment are a hard conflict (blocked); overlaps for the same audience or user are soft conflicts the booker can acknowledge. Each booking needs a short description (15–300 characters)."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-rate-limit.php:292
 msgid "Unlike the limits above, 0 is a value here: it lifts the cap on that axis entirely, leaving the other one to do the work. Set both to 0 and this endpoint is unlimited even with the toggle on."
 msgstr ""
@@ -19385,14 +18872,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:65
 msgid "URL prefix (path segment)"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-modulos.php:42 includes/settings/views/ffc-tab-url-shortener.php:35 includes/settings/tabs/class-ffc-tab-url-shortener.php:30 includes/settings/views/documentation/config-modules.php:36
-msgid "URL Shortener"
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-url-shortener.php:85
-msgid "URL Shortener settings view file not found."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-validation-url.php:23 includes/settings/views/documentation/reference-html-styling.php:25 includes/settings/views/documentation/reference-qr-codes.php:23
@@ -20005,14 +19484,6 @@ msgstr ""
 msgid "View submissions for this form"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-url-shortener.php:76
-msgid "view the list and download QR codes."
-msgstr ""
-
-#: includes/settings/views/documentation/scheduling-audiences.php:46
-msgid "view the Scheduling menu and audience pages."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:108 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:219
 msgid "View/Print Receipt"
 msgstr ""
@@ -20333,14 +19804,6 @@ msgstr ""
 msgid "When enabled, actions like submission creation, data access, and settings changes are logged."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:299
-msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-calendar.php:415
-msgid "When enabled, audience same-day and user overlap checks only consider bookings within this calendar. Environment conflicts are always per-environment regardless of this setting."
-msgstr ""
-
 #: includes/settings/views/documentation/forms-public-operator-access.php:24
 msgid "When enabled, each form gets its own secret hash. The operator opens a page carrying the"
 msgstr ""
@@ -20423,10 +19886,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:810
 msgid "When on, this template appears in the certificate form editor’s “Load” dropdown."
-msgstr ""
-
-#: includes/admin/class-ffc-cert-template-admin-screen.php:804
-msgid "When on, this template can be chosen as the appointment receipt in Self-scheduling settings."
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:807
@@ -20513,10 +19972,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:81
 msgid "while the Recruitment module lives under"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-general.php:472
-msgid "White space around QR Code in modules. 0 = no margin, higher values = more white space."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:457
@@ -22743,9 +22198,6 @@ msgstr ""
 msgid "Everyone at %s wishes you a very happy birthday and a wonderful year ahead."
 msgstr ""
 
-msgid "FFCertificate — Date messages"
-msgstr ""
-
 msgid "Give the rule a name."
 msgstr ""
 
@@ -22903,9 +22355,6 @@ msgid "Only the first rows are listed; the totals count everyone."
 msgstr ""
 
 msgid "Opted out"
-msgstr ""
-
-msgid "Outside the audience"
 msgstr ""
 
 msgid "Placeholders:"
@@ -23074,9 +22523,6 @@ msgstr ""
 msgid "Upcoming dates"
 msgstr ""
 
-msgid "[%1$s] Date messages summary: %2$s"
-msgstr ""
-
 msgid "daily run"
 msgstr ""
 
@@ -23126,9 +22572,6 @@ msgid "The birth-date migration has %d account left to examine. Until it runs, a
 msgid_plural "The birth-date migration has %d accounts left to examine. Until it runs, a birth date given before the profile field existed is not on the profile, so those people do not appear in previews or upcoming dates and receive no messages."
 msgstr[0] ""
 msgstr[1] ""
-
-msgid "Run it in Settings → Migrations."
-msgstr ""
 
 msgid "Write the display name, first name and last name of every account that has none of them, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person's name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done."
 msgstr ""
@@ -23532,12 +22975,6 @@ msgstr ""
 msgid "X"
 msgstr ""
 
-msgid "Design and generate QR codes"
-msgstr ""
-
-msgid "Style the QR codes on certificates and short URLs (shapes, colours, logo, frame), and draw standalone codes for a website, Wi-Fi, contact card, event and more with the QR Code Generator."
-msgstr ""
-
 msgid "Send date-based messages"
 msgstr ""
 
@@ -23578,9 +23015,6 @@ msgid "Cloudflare:"
 msgstr ""
 
 msgid "when Cloudflare is in front of the site, a Cloudflare Page Cache card reads the edge cache status of the front page. Cloudflare's default (static assets only) is safe; with \"Cache Everything\", APO or a Cache Rule that caches HTML, add a bypass for the form and dashboard URLs or for the wordpress_logged_in cookie."
-msgstr ""
-
-msgid "This cache covers certificate QR codes only. Short URLs cache their own QR codes separately, with no setting and no manual clearing."
 msgstr ""
 
 msgid "narrow the table by level and by action, or search the entries by text."
@@ -23835,9 +23269,6 @@ msgstr ""
 msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Advanced → Required Certificate Tags. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too."
 msgstr ""
 
-msgid "The {{qr_code}} image follows the design set in Settings → QR Code (module shape, colours, logo, frame) when that design is switched on for certificates; otherwise a plain black-and-white code is drawn."
-msgstr ""
-
 msgid "On the Geolocation tab of the form editor's \"Certificate Form Configuration\" box, choose the area source for GPS and IP validation:"
 msgstr ""
 
@@ -24024,9 +23455,6 @@ msgstr ""
 msgid "A capacity meter and density and contrast warnings help keep the code readable, and the preview panel can also print it. An event code can open the event itself, a pre-filled Google Calendar link, or a signed link to an .ics file; that link may carry an optional \"valid until\" date, after which it answers that it has expired, while a link without one never expires. The generator reopens with each user's last downloaded design (design only, never content), and \"Reset to default\" restores the global one."
 msgstr ""
 
-msgid "The global design (module shape, corners, colours and gradient, logo, frame and caption, transparent background) is set on Settings → QR Code. It is off by default and switched on separately for certificates and for short URLs."
-msgstr ""
-
 msgid "Enable the shortener (Settings → Modules)"
 msgstr ""
 
@@ -24085,9 +23513,6 @@ msgid "Which date in the profile the rule follows (the birth date)."
 msgstr ""
 
 msgid "0 sends on the date itself; a negative number sends that many days before it, a positive one after it, up to two months either way."
-msgstr ""
-
-msgid "Everyone, or the members of one audience (members of its sub-audiences included)."
 msgstr ""
 
 msgid "Subject and message"
@@ -24228,9 +23653,6 @@ msgstr ""
 msgid "Use them on a paragraph, div, span, heading, list or table."
 msgstr ""
 
-msgid "Filter the to / subject / body of the audience, reregistration and date-message emails. Self-scheduling appointment emails do not pass through it (use ffcertificate_email)."
-msgstr ""
-
 msgid "Whether validate_rf() also requires the RF check digit, rejecting a mistyped number at the form instead of storing it. Off by default; normally set from Settings → General, and the filter overrides that setting — args ( enforce )."
 msgstr ""
 
@@ -24250,9 +23672,6 @@ msgid "The appointment receipt template: return HTML to replace it — args ( ht
 msgstr ""
 
 msgid "The receipt PDF filename — args ( filename, calendar_id, validation_code, appointment ) — and its background image URL — args ( url, appointment, calendar )."
-msgstr ""
-
-msgid "The bookable slots of a self-scheduling calendar day — args ( slots, calendar_id, date, calendar )."
 msgstr ""
 
 msgid "When a calendar is deleted: whether its appointments are cancelled — args ( true, calendar_id, post_id ) — and whether each person is notified — args ( true, appointment )."
@@ -24291,9 +23710,6 @@ msgstr ""
 msgid "After a submission is edited — args ( submission_id, update_data ) — or deleted — args ( submission_id )."
 msgstr ""
 
-msgid "Self-scheduling appointment lifecycle — args ( appointment_id, data, calendar ) on create, ( appointment_id, appointment, reason, cancelled_by ) on cancel."
-msgstr ""
-
 msgid "Audience booking lifecycle — args ( booking_id ) on create, ( booking_id, reason ) on cancel."
 msgstr ""
 
@@ -24316,12 +23732,6 @@ msgid "After a certificate's PDF payload is built — args ( pdf_data, submissio
 msgstr ""
 
 msgid "Before the certificate confirmation email is composed — args ( submission_id, user_email, form_id, form_config )."
-msgstr ""
-
-msgid "Before a self-scheduling appointment is stored — args ( data, calendar )."
-msgstr ""
-
-msgid "Triggers for the self-scheduling emails; the plugin's own email handler listens to them — args ( appointment, calendar )."
 msgstr ""
 
 msgid "Before an audience booking is stored — args ( booking_data )."
@@ -24925,4 +24335,424 @@ msgid "off by default; when \"Pre-load cache daily\" is on, a daily task pre-loa
 msgstr ""
 
 msgid "the \"FFC Permissions\" section of the user-edit screen adds or removes FFC roles and grants individual capabilities on top of them. Roles are toggled one at a time and kept alongside the user's other WordPress roles."
+msgstr ""
+
+msgid "\"Shorten\" shows the \"Short URL & QR Code\" meta box on that post type. \"Expose\" publishes the page's short URL as the site's canonical shortlink — the rel=\"shortlink\" tag in the page head and the HTTP Link header (also used by the editor's \"Get Shortlink\" button and REST). Expose depends on Shorten and only takes effect once a short URL exists for the page."
+msgstr ""
+
+msgid "A set of per-area debug switches, grouped Client (frontend, geofence, QR, browser environment), Server/Processing (form processor, PDF, email, encryption, REST, user manager) and Admin/Operational (admin, personal calendars, audience calendars, migrations, activity log). All default off — turn one on only while diagnosing, since it increases logging."
+msgstr ""
+
+msgid "An RF carries a check digit, and the form has never verified it — which is why a mistyped RF reaches storage where a mistyped CPF does not. Off by default, because the rule was derived from the identifiers this install already holds rather than read from an official specification: turning it on could refuse a number that is genuinely unusual, and a person blocked from registering costs more than a typo the audit finds later. Before turning it on, run the identity audit (Settings → Data Migrations) and read how many stored RFs it reports as failing — that count is what enforcement would have rejected."
+msgstr ""
+
+msgid "Apply these directly only on a NEW install with no encrypted data yet. On a site that already stores data, defining a new FFC_ENCRYPTION_KEY makes existing encrypted records unreadable, and a new FFC_HASH_SALT invalidates the stored search hashes — both are repaired by a planned key rotation (S7b) at Settings → Data Migrations, not a blind edit."
+msgstr ""
+
+msgid "Before a personal-calendar appointment is stored — args ( data, calendar )."
+msgstr ""
+
+msgid "Configure personal calendars and their booking windows."
+msgstr ""
+
+msgid "Create and edit personal calendars — structure, working hours and options. Distinct from managing the bookings made against them (#739)."
+msgstr ""
+
+msgid "Email the user when they are granted access to certificates, appointments or audience groups. Edit the text under Settings → Email texts → Account access."
+msgstr ""
+
+msgid "Enable debug logging for the Personal Calendars module"
+msgstr ""
+
+msgid "FFCertificate — Audience Calendars"
+msgstr ""
+
+msgid "FFCertificate — Certificates"
+msgstr ""
+
+msgid "FFCertificate — Date Messages"
+msgstr ""
+
+msgid "FFCertificate — Personal Calendars"
+msgstr ""
+
+msgid "FFCertificate — Reregistration"
+msgstr ""
+
+msgid "Filter the to / subject / body of the audience, reregistration and date-message emails. Personal Calendars appointment emails do not pass through it (use ffcertificate_email)."
+msgstr ""
+
+msgid "General scheduling settings that apply to both Personal Calendars and Audience Calendars."
+msgstr ""
+
+msgid "Global holidays and Personal / Audience Calendars visibility."
+msgstr ""
+
+msgid "Manage personal calendars"
+msgstr ""
+
+msgid "Personal Calendars Settings"
+msgstr ""
+
+msgid "Personal Calendars appointment lifecycle — args ( appointment_id, data, calendar ) on create, ( appointment_id, appointment, reason, cancelled_by ) on cancel."
+msgstr ""
+
+msgid "Personal Calendars confirmation:"
+msgstr ""
+
+msgid "Personal Calendars visibility settings saved."
+msgstr ""
+
+msgid "Personal Calendars:"
+msgstr ""
+
+msgid "Read-only access to personal calendars — structure, working hours and options — without the ability to edit them (#739)."
+msgstr ""
+
+msgid "Run it in Settings → Data Migrations."
+msgstr ""
+
+msgid "Settings → Data Migrations → Rewrite html/ Image References"
+msgstr ""
+
+msgid "Short URLs settings view file not found."
+msgstr ""
+
+msgid "The Personal Calendars appointment receipt. Two defaults ship — Regular and Custom."
+msgstr ""
+
+msgid "The bookable slots of a personal calendar's day — args ( slots, calendar_id, date, calendar )."
+msgstr ""
+
+msgid "Their personal-calendar appointments (with receipt / cancel actions where allowed)"
+msgstr ""
+
+msgid "Triggers for the Personal Calendars emails; the plugin's own email handler listens to them — args ( appointment, calendar )."
+msgstr ""
+
+msgid "When on, this template can be chosen as the appointment receipt in the Personal Calendars settings."
+msgstr ""
+
+msgid "[%1$s] Date Messages summary: %2$s"
+msgstr ""
+
+msgid "\"Multiple Audiences\" Badge Color"
+msgstr ""
+
+msgid "%d QR Code(s) cleared from cache successfully."
+msgstr ""
+
+msgid "A reregistration campaign collects updated information from the members of one or more audiences over a set period, with optional emails and an approval workflow. Campaigns are managed under the Reregistration admin menu."
+msgstr ""
+
+msgid "Acknowledgment notice (\"Termo de Ciência\") HTML — editable per-audience in the Reregistration Fields section, with a shipped default fallback."
+msgstr ""
+
+msgid "Activate the campaign — a submission is created for every audience member and invitation emails go out."
+msgstr ""
+
+msgid "Administrators can schedule activities for audiences (groups) in configured environments."
+msgstr ""
+
+msgid "Are you sure you want to deactivate this audience?"
+msgstr ""
+
+msgid "Are you sure you want to permanently delete this audience?"
+msgstr ""
+
+msgid "Audience calendars book shared spaces (rooms, equipment, \"ambientes\") for named groups of people, rather than fixed one-on-one slots. Everything lives under the Scheduling menu."
+msgstr ""
+
+msgid "Audience Custom Fields"
+msgstr ""
+
+msgid "Audience custom fields"
+msgstr ""
+
+msgid "Audience groups and the scheduling admin."
+msgstr ""
+
+msgid "Audience membership"
+msgstr ""
+
+msgid "Audiences (groups)"
+msgstr ""
+
+msgid "Audiences table not ready yet (will seed on next run)."
+msgstr ""
+
+msgid "Available for this form but currently off. Leave it off if your audience submits from shared devices (labs, kiosks); turn it on if each person submits from their own device and you want to prevent repeat issuances."
+msgstr ""
+
+msgid "Built-in short URLs, redirects and QR codes."
+msgstr ""
+
+msgid "Cached QR Codes:"
+msgstr ""
+
+msgid "Change the URL a certificate QR code encodes."
+msgstr ""
+
+msgid "Child audiences inherit fields from parent audiences"
+msgstr ""
+
+msgid "Clear all cached QR Codes?\\n\\nThey will be regenerated automatically when needed."
+msgstr ""
+
+msgid "Clear All QR Code Cache"
+msgstr ""
+
+msgid "Color for the \"Multiple audiences\" badge shown in the event list when an event has more than 2 audiences."
+msgstr ""
+
+msgid "Configure how private audience calendars are displayed to non-logged-in visitors. Note: Scheduling is always restricted to authorized members."
+msgstr ""
+
+msgid "Configure the built-in URL shortener. Short URLs redirect visitors and generate QR Codes."
+msgstr ""
+
+msgid "Copy this audience's option lists (departments, unions, work schedules…) to all child and grandchild audiences. Overwrites their current lists."
+msgstr ""
+
+msgid "Copy this audience's option lists to all child and grandchild audiences? This overwrites their current lists."
+msgstr ""
+
+msgid "Create a campaign and link it to one or more audiences."
+msgstr ""
+
+msgid "Create audiences and manage their members."
+msgstr ""
+
+msgid "create audiences, schedules, environments and members."
+msgstr ""
+
+msgid "Create certificate-issuance forms, generate the certificate PDF automatically on submission, and let anyone verify authenticity by QR code or validation link."
+msgstr ""
+
+msgid "Custom fields from audience memberships. Fields are grouped by audience."
+msgstr ""
+
+msgid "Default QR code (uses settings from QR Code tab)"
+msgstr ""
+
+msgid "Default QR Code Margin"
+msgstr ""
+
+msgid "Default QR Code Size"
+msgstr ""
+
+msgid "Default settings for QR Code generation in certificates."
+msgstr ""
+
+msgid "Delete audiences"
+msgstr ""
+
+msgid "Disables the built-in short URLs, redirects and QR codes."
+msgstr ""
+
+msgid "Displays the audience scheduling calendar for group bookings."
+msgstr ""
+
+msgid "Enable debug logging for QR code generation"
+msgstr ""
+
+msgid "Enable QR Code Cache"
+msgstr ""
+
+msgid "Every certificate carries a QR code and a validation link; anyone can confirm it is genuine, and the holder gets a one-click \"magic link\" to re-download."
+msgstr ""
+
+msgid "Every email the plugin sends — certificate delivery, admin notifications, recruitment convocations, booking confirmations, reregistration invitations, audience notices — goes through one shared pipeline with one configurable look."
+msgstr ""
+
+msgid "Failed to load QR Code"
+msgstr ""
+
+msgid "FFC Appointments - Manager"
+msgstr ""
+
+msgid "FFC Audiences - Manager"
+msgstr ""
+
+msgid "FFC Calendars - Manager"
+msgstr ""
+
+msgid "FFC Certificates - Manager"
+msgstr ""
+
+msgid "FFC Forms - Manager"
+msgstr ""
+
+msgid "FFC Recruitment - Manager"
+msgstr ""
+
+msgid "FFC Reregistration - Manager"
+msgstr ""
+
+msgid "FFC Settings"
+msgstr ""
+
+msgid "Free Form Certificate turns WordPress into a complete platform for issuing verifiable documents. Build a form, design the certificate once, and let people receive a signed PDF the moment they submit — validated by QR code or a public link, protected against fraud and duplicate issuance, and delivered by email automatically."
+msgstr ""
+
+msgid "Higher = fewer false positives, but easier to evade (a device only needs to differ on a few strong signals to escape). Lower = closer to the old behavior and more aggressive. 0 disables the strong tier entirely (block on the raw threshold alone — the legacy behavior that over-blocked homogeneous audiences). Submissions that cannot emit this many strong signals (e.g. privacy browsers blocking canvas/WebGL) fall back to the cookie only and are never blocked on weak signals alone. Default is 2."
+msgstr ""
+
+msgid "Higher levels allow more damage to QR Code but create denser patterns."
+msgstr ""
+
+msgid "How audience badges are displayed. \"Name only\" shows just the audience name. \"Parent: Name\" prefixes with the parent category when available."
+msgstr ""
+
+msgid "Improves performance by caching QR Codes. Increases database size (~4KB per submission)."
+msgstr ""
+
+msgid "Limit submissions from the same physical device by combining a persistent cookie with multiple browser signals. Two visits count as the same device when (a) their cookie matches, or (b) they match at least the threshold number of signals AND at least the minimum number of STRONG signals. The strong-signal tier prevents false blocks across same-model devices in homogeneous audiences, where weak signals (browser/OS/screen/timezone) are identical between different people."
+msgstr ""
+
+msgid "Logs QR-code asset resolution, cache hits, and URL composition."
+msgstr ""
+
+msgid "Manage audiences"
+msgstr ""
+
+msgid "No white margin around QR code"
+msgstr ""
+
+msgid "Notice shown at the end of the reregistration form and printed on the record PDF. Use \"Replicate lists to children\" to push it to descendant audiences."
+msgstr ""
+
+msgid "On top of the threshold above, at least this many STRONG signals (canvas, WebGL, audio, fonts, plugins, permissions) must match before two visits count as the same device. Strong signals rarely coincide between different physical devices, so requiring them is what stops false blocks across same-model devices in a homogeneous audience."
+msgstr ""
+
+msgid "Optionally store generated QR codes in the database (roughly 4 KB per submission) so they are not re-rendered on every PDF. A \"Clear all QR-code cache\" button flushes them. Statistics show how many codes are cached and their total size."
+msgstr ""
+
+msgid "Personal appointment calendars (fixed slots) and audience calendars for shared spaces (free-form bookings), each with confirmations, reminders and ICS invites."
+msgstr ""
+
+msgid "Placeholders replaced with sample data. QR code shown as placeholder."
+msgstr ""
+
+msgid "Pure relationships (audience memberships, permission grants, the stored user profile) are removed with the account."
+msgstr ""
+
+msgid "QR Code"
+msgstr ""
+
+msgid "QR Code Cache"
+msgstr ""
+
+msgid "QR Code Defaults"
+msgstr ""
+
+msgid "QR Code too large/small"
+msgstr ""
+
+msgid "QR Codes"
+msgstr ""
+
+msgid "QR Codes are also available over REST for external automations:"
+msgstr ""
+
+msgid "QR Codes will be regenerated automatically when needed. This action is safe and reversible."
+msgstr ""
+
+msgid "QR generation failed."
+msgstr ""
+
+msgid "QR-code cache"
+msgstr ""
+
+msgid "Removes audience groups and the scheduling admin."
+msgstr ""
+
+msgid "Requires JavaScript and HTTPS. A visitor with JavaScript disabled cannot submit the form at all — acceptable when the audience is known, such as staff filling in forms on a workstation."
+msgstr ""
+
+msgid "schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin's REST API and can target one or more audiences or an individual, and are cancelled with a required reason."
+msgstr ""
+
+msgid "See Audience Calendars"
+msgstr ""
+
+msgid "See Audience Custom Fields"
+msgstr ""
+
+msgid "See QR Codes"
+msgstr ""
+
+msgid "Short URL & QR Code"
+msgstr ""
+
+msgid "Short URL QR Code (base64)"
+msgstr ""
+
+msgid "Store generated QR Codes in database"
+msgstr ""
+
+msgid "Store generated QR Codes in database to avoid regenerating them on each request."
+msgstr ""
+
+msgid "The list & QR codes"
+msgstr ""
+
+msgid "The list shows each link's title, short URL, destination, click count and status, with actions to show a QR code, enable/disable, or trash (trashed links can be restored or permanently deleted). Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted."
+msgstr ""
+
+msgid "The member form itself is gated by login + audience membership, not a capability."
+msgstr ""
+
+msgid "The QR code can be customized with various attributes:"
+msgstr ""
+
+msgid "The QR code embedded in the PDF points at the same magic link."
+msgstr ""
+
+msgid "There is no separate reregistration shortcode. Active campaigns appear as a banner on the member's personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin generates an authentication code and a Record magic link, syncs mapped fields to the user profile, and sends the confirmation email."
+msgstr ""
+
+msgid "This plugin allows you to create certificate issuance forms, generate PDFs automatically, and verify authenticity with QR codes."
+msgstr ""
+
+msgid "This text is suggested by the Free Form Certificate plugin to help you describe how it processes personal data. Review and adapt it to your organisation and to the modules you actually use (form submissions and certificates, appointment scheduling, audiences, re-registration and recruitment). Delete any section that does not apply."
+msgstr ""
+
+msgid "Unlike personal calendars, an audience booking has a free start/end time. Two bookings that overlap the same environment are a hard conflict (blocked); overlaps for the same audience or user are soft conflicts the booker can acknowledge. Each booking needs a short description (15–300 characters)."
+msgstr ""
+
+msgid "view the list and download QR codes."
+msgstr ""
+
+msgid "view the Scheduling menu and audience pages."
+msgstr ""
+
+msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."
+msgstr ""
+
+msgid "When enabled, audience same-day and user overlap checks only consider bookings within this calendar. Environment conflicts are always per-environment regardless of this setting."
+msgstr ""
+
+msgid "White space around QR Code in modules. 0 = no margin, higher values = more white space."
+msgstr ""
+
+msgid "Outside the audience"
+msgstr ""
+
+msgid "Design and generate QR codes"
+msgstr ""
+
+msgid "Style the QR codes on certificates and short URLs (shapes, colours, logo, frame), and draw standalone codes for a website, Wi-Fi, contact card, event and more with the QR Code Generator."
+msgstr ""
+
+msgid "This cache covers certificate QR codes only. Short URLs cache their own QR codes separately, with no setting and no manual clearing."
+msgstr ""
+
+msgid "The {{qr_code}} image follows the design set in Settings → QR Code (module shape, colours, logo, frame) when that design is switched on for certificates; otherwise a plain black-and-white code is drawn."
+msgstr ""
+
+msgid "The global design (module shape, corners, colours and gradient, logo, frame and caption, transparent background) is set on Settings → QR Code. It is off by default and switched on separately for certificates and for short URLs."
+msgstr ""
+
+msgid "Everyone, or the members of one audience (members of its sub-audiences included)."
 msgstr ""

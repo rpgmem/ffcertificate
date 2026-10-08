@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</ul>
 
 	<h4><?php esc_html_e( 'Debug toggles', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'A set of per-area debug switches, grouped Client (frontend, geofence, QR, browser environment), Server/Processing (form processor, PDF, email, encryption, REST, user manager) and Admin/Operational (admin, self-scheduling, audience, migrations, activity log). All default off — turn one on only while diagnosing, since it increases logging.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A set of per-area debug switches, grouped Client (frontend, geofence, QR, browser environment), Server/Processing (form processor, PDF, email, encryption, REST, user manager) and Admin/Operational (admin, personal calendars, audience calendars, migrations, activity log). All default off — turn one on only while diagnosing, since it increases logging.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Default download limit', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The download quota pre-filled when Public Operator Access is enabled on a new form (each form can override it).', 'ffcertificate' ); ?> <a href="#forms-public-operator-access"><?php esc_html_e( 'See Public Operator Access.', 'ffcertificate' ); ?></a></p>

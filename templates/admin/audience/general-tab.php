@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="card">
 			<h2 class="ffc-icon-settings"><?php esc_html_e( 'General Settings', 'ffcertificate' ); ?></h2>
 			<p class="description">
-				<?php esc_html_e( 'General scheduling settings that apply to both Self-Scheduling and Audience systems.', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'General scheduling settings that apply to both Personal Calendars and Audience Calendars.', 'ffcertificate' ); ?>
 			</p>
 			<table class="form-table" role="presentation">
 				<tbody>
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<th scope="row"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
 						<td>
 							<p>
-								<strong><?php esc_html_e( 'Self-Scheduling:', 'ffcertificate' ); ?></strong>
+								<strong><?php esc_html_e( 'Personal Calendars:', 'ffcertificate' ); ?></strong>
 								<?php
 								printf(
 									/* translators: %d: number of published calendars */
