@@ -16,7 +16,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 <?php wp_nonce_field( 'ffc_rate_limit_nonce' ); ?>
 
 <div class="card">
-	<h2 class="ffc-icon-globe"><?php esc_html_e( 'IP Rate Limit', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-gauge"><?php esc_html_e( 'IP Rate Limit', 'ffcertificate' ); ?></h2>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(
@@ -54,7 +54,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
  */
 ?>
 <div class="card">
-	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Captcha Challenges', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-robot"><?php esc_html_e( 'Captcha Challenges', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'How many ALTCHA challenges one address may request, and over how long. Only applies to the captcha modes that show the widget; the math mode never asks the server for one. Past the cap the widget cannot load a challenge and the form is unusable for everyone on that address — which behind institutional NAT is everyone in the building.', 'ffcertificate' ); ?>
 	</p>
@@ -212,7 +212,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Global Rate Limit', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-globe"><?php esc_html_e( 'Global Rate Limit', 'ffcertificate' ); ?></h2>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(
@@ -237,7 +237,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Read Endpoints (Public GET)', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-eye"><?php esc_html_e( 'Read Endpoints (Public GET)', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Per-endpoint rate limit for public GET endpoints (e.g. the Calendar shortcode\'s /slots lookup). Prevents scraping while leaving submission limits independent.', 'ffcertificate' ); ?>
 	</p>
@@ -312,7 +312,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Device Fingerprint', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-monitor"><?php esc_html_e( 'Device Fingerprint', 'ffcertificate' ); ?></h2>
 	<p class="description" data-ffc-section="rl-device"><?php esc_html_e( 'Limit submissions from the same physical device by combining a persistent cookie with multiple browser signals. Two visits count as the same device when (a) their cookie matches, or (b) they match at least the threshold number of signals AND at least the minimum number of STRONG signals. The strong-signal tier prevents false blocks across same-model devices in homogeneous audiences, where weak signals (browser/OS/screen/timezone) are identical between different people.', 'ffcertificate' ); ?></p>
 	<p>
 		<?php
@@ -502,7 +502,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2 class="ffc-icon-checkmark"><?php esc_html_e( 'Whitelist', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-success"><?php esc_html_e( 'Whitelist', 'ffcertificate' ); ?></h2>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(
@@ -528,7 +528,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2 class="ffc-icon-cross"><?php esc_html_e( 'Blacklist', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-error"><?php esc_html_e( 'Blacklist', 'ffcertificate' ); ?></h2>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(
@@ -554,7 +554,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Logs', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-history"><?php esc_html_e( 'Logs', 'ffcertificate' ); ?></h2>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(
@@ -598,7 +598,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2 class="ffc-icon-palette"><?php esc_html_e( 'Interface', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-layout"><?php esc_html_e( 'Interface', 'ffcertificate' ); ?></h2>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(

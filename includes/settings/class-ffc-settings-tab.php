@@ -202,12 +202,13 @@ abstract class SettingsTab {
 	 *
 	 * @param string $title Section title.
 	 * @param string $description Section description (optional).
+	 * @param string $icon        A `.ffc-icon-*` class for the heading (optional).
 	 * @return void
 	 */
-	protected function render_section_header( $title, $description = '' ) {
+	protected function render_section_header( $title, $description = '', $icon = '' ) {
 		?>
 		<div class="ffc-section-header">
-			<h2><?php echo esc_html( $title ); ?></h2>
+			<h2<?php echo '' !== $icon ? ' class="' . esc_attr( $icon ) . '"' : ''; ?>><?php echo esc_html( $title ); ?></h2>
 			<?php if ( ! empty( $description ) ) : ?>
 				<p class="description"><?php echo wp_kses_post( $description ); ?></p>
 			<?php endif; ?>

@@ -120,7 +120,9 @@ class TabReregistration extends SettingsTab {
 			);
 		}
 		?>
-		<h2><?php esc_html_e( 'Record Template', 'ffcertificate' ); ?></h2>
+		<div class="ffc-settings-wrap">
+		<div class="card">
+		<h2 class="ffc-icon-user-check"><?php esc_html_e( 'Record Template', 'ffcertificate' ); ?></h2>
 		<p class="description">
 			<?php esc_html_e( 'Choose which template the reregistration record PDF uses. Create, edit and duplicate record templates in the Document Templates hub.', 'ffcertificate' ); ?>
 		</p>
@@ -150,7 +152,15 @@ class TabReregistration extends SettingsTab {
 					</a>
 				<?php endif; ?>
 			</p>
-			<h2><?php esc_html_e( 'Invitation password link', 'ffcertificate' ); ?></h2>
+			<p>
+				<a class="button" href="<?php echo esc_url( self::hub_list_url() ); ?>" target="_blank" rel="noopener">
+					<?php esc_html_e( 'Manage record templates', 'ffcertificate' ); ?>
+				</a>
+				<a class="button" href="<?php echo esc_url( self::hub_new_url() ); ?>" target="_blank" rel="noopener">
+					<?php esc_html_e( '+ New record template', 'ffcertificate' ); ?>
+				</a>
+			</p>
+			<h3 class="ffc-icon-key"><?php esc_html_e( 'Invitation password link', 'ffcertificate' ); ?></h3>
 			<p class="description">
 				<?php esc_html_e( 'The invitation and reminder emails carry a link that lets the member define their own password and land straight in the dashboard. The link does not create a session by itself: it opens the password screen, and it can only be used once.', 'ffcertificate' ); ?>
 			</p>
@@ -177,15 +187,8 @@ class TabReregistration extends SettingsTab {
 			</p>
 			<?php submit_button( __( 'Save Changes', 'ffcertificate' ) ); ?>
 		</form>
-
-		<p>
-			<a class="button" href="<?php echo esc_url( self::hub_list_url() ); ?>" target="_blank" rel="noopener">
-				<?php esc_html_e( 'Manage record templates', 'ffcertificate' ); ?>
-			</a>
-			<a class="button" href="<?php echo esc_url( self::hub_new_url() ); ?>" target="_blank" rel="noopener">
-				<?php esc_html_e( '+ New record template', 'ffcertificate' ); ?>
-			</a>
-		</p>
+		</div>
+		</div><!-- .ffc-settings-wrap -->
 		<?php
 	}
 

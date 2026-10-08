@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<!-- Geofence Locations -->
 		<div class="card">
-			<h2 class="ffc-icon-globe"><?php esc_html_e( 'Geofence Locations', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-map-pin"><?php esc_html_e( 'Geofence Locations', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Manage named geofence locations. These locations can be assigned to forms for geolocation restrictions.', 'ffcertificate' ); ?>
 			</p>
@@ -185,7 +185,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<!-- IP Geolocation API Section -->
 		<div class="card">
-			<h2 class="ffc-icon-link"><?php esc_html_e( 'IP Geolocation API', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-globe"><?php esc_html_e( 'IP Geolocation API', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Configure external IP geolocation services for backend validation. These services detect user location by IP address.', 'ffcertificate' ); ?>
 			</p>
@@ -329,7 +329,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<!-- GPS Cache Settings Section -->
 		<div class="card">
-			<h2 class="ffc-icon-package"><?php esc_html_e( 'GPS Cache Settings', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-zap"><?php esc_html_e( 'GPS Cache Settings', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Configure GPS location caching on the frontend (browser localStorage). GPS cache is always enabled for better performance.', 'ffcertificate' ); ?>
 			</p>
@@ -494,7 +494,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<!-- Admin Bypass Section -->
 		<div class="card">
-			<h2 class="ffc-icon-lock"><?php esc_html_e( 'Administrator Bypass', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-unlock"><?php esc_html_e( 'Administrator Bypass', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Allow administrators to bypass geofence restrictions for testing and content management.', 'ffcertificate' ); ?>
 			</p>

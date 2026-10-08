@@ -123,7 +123,8 @@ class TabTemplates extends SettingsTab {
 		$receipt_url        = admin_url( 'admin.php?page=ffc-scheduling-settings&tab=receipt' );
 		$change_label       = __( 'Change →', 'ffcertificate' );
 		?>
-		<h3><?php esc_html_e( 'Current assignments', 'ffcertificate' ); ?></h3>
+		<div class="card">
+		<h2 class="ffc-icon-list"><?php esc_html_e( 'Current assignments', 'ffcertificate' ); ?></h2>
 		<p class="description">
 			<?php esc_html_e( 'Which template each feature is using right now. Templates are edited here; the assignment is chosen in each feature\'s own settings.', 'ffcertificate' ); ?>
 		</p>
@@ -157,6 +158,7 @@ class TabTemplates extends SettingsTab {
 				<?php endif; ?>
 			</tbody>
 		</table>
+		</div>
 		<?php
 	}
 
@@ -168,7 +170,9 @@ class TabTemplates extends SettingsTab {
 	public function render(): void {
 		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' );
 		?>
-		<h2><?php esc_html_e( 'Document Templates', 'ffcertificate' ); ?></h2>
+		<div class="ffc-settings-wrap">
+		<div class="card">
+		<h2 class="ffc-icon-file"><?php esc_html_e( 'Document Templates', 'ffcertificate' ); ?></h2>
 		<p class="description">
 			<?php esc_html_e( 'Create, edit and duplicate the HTML templates for your certificates and appointment receipts. They all live in one pool — use the buttons below to open the full management screen.', 'ffcertificate' ); ?>
 		</p>
@@ -178,10 +182,12 @@ class TabTemplates extends SettingsTab {
 				<?php esc_html_e( 'Manage all templates', 'ffcertificate' ); ?>
 			</a>
 		</p>
+		</div>
 
 		<?php $this->render_current_assignments(); ?>
 
-		<h3><?php esc_html_e( 'Certificates', 'ffcertificate' ); ?></h3>
+		<div class="card">
+		<h2 class="ffc-icon-award"><?php esc_html_e( 'Certificates', 'ffcertificate' ); ?></h2>
 		<p>
 			<a class="button" href="<?php echo esc_url( self::hub_url( CertTemplateCpt::KIND_CERTIFICATE ) ); ?>">
 				<?php esc_html_e( 'Manage certificate templates', 'ffcertificate' ); ?>
@@ -192,8 +198,10 @@ class TabTemplates extends SettingsTab {
 				</a>
 			<?php endif; ?>
 		</p>
+		</div>
 
-		<h3><?php esc_html_e( 'Appointment receipts', 'ffcertificate' ); ?></h3>
+		<div class="card">
+		<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Appointment receipts', 'ffcertificate' ); ?></h2>
 		<p>
 			<a class="button" href="<?php echo esc_url( self::hub_url( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ) ); ?>">
 				<?php esc_html_e( 'Manage receipt templates', 'ffcertificate' ); ?>
@@ -208,8 +216,10 @@ class TabTemplates extends SettingsTab {
 				<?php esc_html_e( 'Which receipt template each scheduling mode uses is chosen in Scheduling → Settings → Receipt.', 'ffcertificate' ); ?>
 			</span>
 		</p>
+		</div>
 
-		<h3><?php esc_html_e( 'Records (reregistration)', 'ffcertificate' ); ?></h3>
+		<div class="card">
+		<h2 class="ffc-icon-user-check"><?php esc_html_e( 'Records (reregistration)', 'ffcertificate' ); ?></h2>
 		<p>
 			<a class="button" href="<?php echo esc_url( self::hub_url( CertTemplateCpt::KIND_RECORD ) ); ?>">
 				<?php esc_html_e( 'Manage record templates', 'ffcertificate' ); ?>
@@ -224,6 +234,8 @@ class TabTemplates extends SettingsTab {
 				<?php esc_html_e( 'Which record template the reregistration PDF uses is chosen in Settings → Reregistration.', 'ffcertificate' ); ?>
 			</span>
 		</p>
+		</div>
+		</div><!-- .ffc-settings-wrap -->
 		<?php
 	}
 }

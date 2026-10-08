@@ -14,7 +14,7 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 ?>
 
 <div class="ffc-settings-wrap">
-	<h2 class="wp-heading-inline ffc-icon-clipboard"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
+	<h2 class="wp-heading-inline ffc-icon-history"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
 
 	<p class="description">
 		<?php esc_html_e( 'Activity logs track important actions for audit and LGPD compliance.', 'ffcertificate' ); ?>

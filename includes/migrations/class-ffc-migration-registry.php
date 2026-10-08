@@ -63,7 +63,7 @@ class MigrationRegistry {
 		$this->migrations['email_hash_rehash'] = array(
 			'name'        => __( 'Rehash Email Lookup Hashes', 'ffcertificate' ),
 			'description' => __( 'Recompute email_hash with the salted Encryption::hash() so lookups match cross-table writes.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-shield',
+			'icon'        => 'ffc-icon-email',
 			'batch_size'  => 100,
 			'order'       => 2,
 		);
@@ -74,7 +74,7 @@ class MigrationRegistry {
 		$this->migrations['key_rotation'] = array(
 			'name'        => __( 'Encryption Key Rotation', 'ffcertificate' ),
 			'description' => __( 'Re-encrypt stored personal data (submissions and appointments) under a strong FFC_ENCRYPTION_KEY defined in wp-config.php, rebuilding CPF/RF/email search hashes. Define the key first (Settings → Advanced → Encryption Key Health); run during low traffic, as hash-based lookups may transiently miss un-migrated rows until it completes.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-shield',
+			'icon'        => 'ffc-icon-key',
 			'batch_size'  => 100,
 			'order'       => 4,
 		);
@@ -87,7 +87,7 @@ class MigrationRegistry {
 		$this->migrations['key_rotation_remaining'] = array(
 			'name'        => __( 'Encryption Key Rotation — Remaining Areas', 'ffcertificate' ),
 			'description' => __( 'Finish the key rotation over the areas the first pass never covered: recruitment candidates and reregistration submission bodies. Re-encrypts them under FFC_ENCRYPTION_KEY and rebuilds the CPF/RF/email search hashes under FFC_HASH_SALT — without this, candidate lookups by CPF or RF silently find nothing, and the data stays tied to the WordPress salts. Define both constants first (Settings → Advanced → Encryption Key Health).', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-shield',
+			'icon'        => 'ffc-icon-key',
 			'batch_size'  => 50,
 			'order'       => 5,
 		);
@@ -99,7 +99,7 @@ class MigrationRegistry {
 		$this->migrations['identity_normalization'] = array(
 			'name'        => __( 'Canonicalise Stored Identifiers', 'ffcertificate' ),
 			'description' => __( 'Rewrite stored CPF, RF and e-mail values into the one canonical form every module now hashes — digits only for CPF/RF, lowercase for e-mail — and rebuild their search hashes. Without it, an appointment booked as Joao@Escola.gov.br stays invisible to every lookup made elsewhere, and a CPF stored with its punctuation never matches the same person\'s certificate. Idempotent: a row already canonical is read and left alone.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-shield',
+			'icon'        => 'ffc-icon-id',
 			'batch_size'  => 25,
 			'order'       => 6,
 		);
@@ -124,7 +124,7 @@ class MigrationRegistry {
 		$this->migrations['certificate_capability_backfill'] = array(
 			'name'        => __( 'Restore Access to Owned Certificates', 'ffcertificate' ),
 			'description' => __( 'Grant the certificate capabilities to every account that owns a certificate and cannot open it. The permission used to come from whichever path created the account, while ownership comes from the record itself — so a person whose old submissions were claimed after their account was created by a candidacy, a reregistration import or an appointment ended up holding certificates the dashboard refused to show them. Measures the remaining accounts on every read, so running it again once it reports zero does nothing.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-shield',
+			'icon'        => 'ffc-icon-user-check',
 			'batch_size'  => 100,
 			'order'       => 8,
 		);
@@ -137,7 +137,7 @@ class MigrationRegistry {
 		$this->migrations['display_name_backfill'] = array(
 			'name'        => __( 'Name the Accounts Created Without One', 'ffcertificate' ),
 			'description' => __( 'Write the display name, first name and last name of every account that has none of them, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person\'s name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-id',
+			'icon'        => 'ffc-icon-user',
 			'batch_size'  => 100,
 			'order'       => 9,
 		);
@@ -148,7 +148,7 @@ class MigrationRegistry {
 		$this->migrations['name_parts_backfill'] = array(
 			'name'        => __( 'Split Full Names into First and Last Name', 'ffcertificate' ),
 			'description' => __( 'Fill WordPress\'s first and last name from the full name the plugin stores — first word, then the rest — on accounts where the whole name sits in the first name, or neither is filled. Account creation used to store the whole name as the first name. Parts somebody filled in by hand are not touched. Completion here means every such account was EXAMINED: a one-word name is read, left as it is, and counted as done.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-id',
+			'icon'        => 'ffc-icon-user',
 			'batch_size'  => 100,
 			'order'       => 10,
 		);
@@ -169,7 +169,7 @@ class MigrationRegistry {
 		$this->migrations['activity_log_clear_plaintext'] = array(
 			'name'        => __( 'Activity Log: Clear Plaintext on Encrypted Rows', 'ffcertificate' ),
 			'description' => __( 'NULL the plaintext context column on activity log rows that already store the JSON in context_encrypted.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-shield',
+			'icon'        => 'ffc-icon-lock',
 			'batch_size'  => 200,
 			'order'       => 3,
 		);
@@ -179,7 +179,7 @@ class MigrationRegistry {
 		$this->migrations['activity_log_encrypt_ip'] = array(
 			'name'        => __( 'Activity Log: Encrypt Client IPs', 'ffcertificate' ),
 			'description' => __( 'Encrypt the client IP address of activity log rows written before addresses were stored encrypted, and clear the plaintext copy. An address that cannot be encrypted is cleared all the same.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-shield',
+			'icon'        => 'ffc-icon-lock',
 			'batch_size'  => 200,
 			'order'       => 4,
 		);
@@ -189,7 +189,7 @@ class MigrationRegistry {
 		$this->migrations['import_legacy_templates'] = array(
 			'name'        => __( 'Import Legacy Certificate Templates', 'ffcertificate' ),
 			'description' => __( 'Import certificate layouts left in the plugin\'s html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-scroll',
+			'icon'        => 'ffc-icon-file',
 			'batch_size'  => 20,
 			'order'       => 5,
 		);
@@ -200,7 +200,7 @@ class MigrationRegistry {
 		$this->migrations['rewrite_html_image_refs'] = array(
 			'name'        => __( 'Rewrite html/ Image References', 'ffcertificate' ),
 			'description' => __( 'Move images referenced from the legacy html/ folder into the Media Library and update stored certificate layouts, backgrounds and template-pool bodies to point at the new attachments. Idempotent; missing files are reported as errors.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-palette',
+			'icon'        => 'ffc-icon-image',
 			'batch_size'  => 10,
 			'order'       => 6,
 		);

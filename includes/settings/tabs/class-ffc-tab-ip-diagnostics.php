@@ -95,12 +95,17 @@ class TabIpDiagnostics extends SettingsTab {
 
 		$diag = $this->diagnostics();
 
-		echo '<div class="ffc-ip-diagnostics">';
+		echo '<div class="ffc-settings-wrap ffc-ip-diagnostics">';
 		$this->render_recommendation();
+		echo '<div class="card">';
 		$this->render_diagnostics_section( $diag );
+		echo '</div><div class="card">';
 		$this->render_config_form();
+		echo '</div>';
 		if ( ClientIpResolver::VERDICT_DIRECT === $diag['verdict'] ) {
+			echo '<div class="card">';
 			$this->render_cloudflare_guide();
+			echo '</div>';
 		}
 		echo '</div>';
 	}
@@ -387,7 +392,8 @@ class TabIpDiagnostics extends SettingsTab {
 	private function render_diagnostics_section( array $d ): void {
 		$this->render_section_header(
 			__( 'Current request diagnosis', 'ffcertificate' ),
-			__( 'How this very request would be resolved. IPs are masked unless you are a full administrator.', 'ffcertificate' )
+			__( 'How this very request would be resolved. IPs are masked unless you are a full administrator.', 'ffcertificate' ),
+			'ffc-icon-network'
 		);
 
 		$verdict = (string) $d['verdict'];
@@ -585,7 +591,8 @@ class TabIpDiagnostics extends SettingsTab {
 
 		$this->render_section_header(
 			__( 'Resolution strategy', 'ffcertificate' ),
-			__( 'This single choice governs every IP read in the plugin — logging, geolocation, and the security controls (rate limiting, geofence, and the public listing throttle) alike. Secure is recommended: it yields the real client behind Cloudflare / a configured proxy and cannot be spoofed. Legacy stays effective by default (no behaviour change) and is safe, but trusts forwarded headers, so it can be spoofed.', 'ffcertificate' )
+			__( 'This single choice governs every IP read in the plugin — logging, geolocation, and the security controls (rate limiting, geofence, and the public listing throttle) alike. Secure is recommended: it yields the real client behind Cloudflare / a configured proxy and cannot be spoofed. Legacy stays effective by default (no behaviour change) and is safe, but trusts forwarded headers, so it can be spoofed.', 'ffcertificate' ),
+			'ffc-icon-sliders'
 		);
 
 		echo '<form method="post" action="">';
@@ -668,7 +675,8 @@ class TabIpDiagnostics extends SettingsTab {
 	private function render_cloudflare_guide(): void {
 		$this->render_section_header(
 			__( 'Optional: put Cloudflare in front of this site', 'ffcertificate' ),
-			__( 'No CDN was detected. Cloudflare is optional — the Auto/Direct mode plus device fingerprinting already protects you — but it gives an unspoofable client IP for free.', 'ffcertificate' )
+			__( 'No CDN was detected. Cloudflare is optional — the Auto/Direct mode plus device fingerprinting already protects you — but it gives an unspoofable client IP for free.', 'ffcertificate' ),
+			'ffc-icon-cloud'
 		);
 
 		echo '<div class="ffc-cf-guide">';
