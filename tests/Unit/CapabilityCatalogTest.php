@@ -202,6 +202,26 @@ class CapabilityCatalogTest extends TestCase {
 		}
 	}
 
+	public function test_every_group_hue_is_painted_by_the_stylesheet(): void {
+		// A hue the sheet does not declare renders no stripe at all: the
+		// date-messages group shipped that way, since the check above only
+		// proves the token is not `neutral`, never that a rule reads it.
+		$css = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-user-permissions.css' );
+		preg_match_all( '/\.ffc-cap-group\[data-ffc-hue="([a-z_]+)"\]\s*\{\s*--ffc-cap-hue:\s*(#[0-9a-f]{6})\s*;/', $css, $m );
+		$declared = array_combine( $m[1], $m[2] );
+		$this->assertArrayHasKey( 'neutral', $declared, 'The hue scan read nothing; the selector shape changed.' );
+
+		$used = array();
+		foreach ( CapabilityCatalog::groups() as $group ) {
+			$hue = CapabilityCatalog::group_hue( (string) $group['key'] );
+			$this->assertArrayHasKey( $hue, $declared, 'Group ' . $group['key'] . ' has hue "' . $hue . '" but ffc-user-permissions.css paints none.' );
+			$used[ $hue ] = $declared[ $hue ];
+		}
+		// Categorical: two domains sharing a colour defeats the scale.
+		$this->assertSame( count( $declared ), count( array_unique( $declared ) ), 'Two hues share one colour.' );
+		$this->assertNotEmpty( $used );
+	}
+
 	public function test_cap_tier_derives_action_and_promotes_pii(): void {
 		$this->assertSame( 'view', CapabilityCatalog::cap_tier( 'ffc_view_certificates' ) );
 		$this->assertSame( 'manage', CapabilityCatalog::cap_tier( 'ffc_manage_settings_smtp' ) );
