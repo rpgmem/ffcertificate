@@ -24754,3 +24754,6 @@ msgstr ""
 
 msgid "Trash is empty"
 msgstr ""
+
+msgid "Open Scheduled Tasks"
+msgstr ""
