@@ -103,6 +103,8 @@ class CertificatesDashboard {
 				<?php esc_html_e( 'Forms organised by GeoFence start date. Forms without a GeoFence start fall back to their publication date.', 'ffcertificate' ); ?>
 			</p>
 
+			<?php $this->render_summary(); ?>
+
 			<div class="ffc-certificates-dashboard">
 				<div class="ffc-certificates-dashboard-calendar">
 					<div id="ffc-certificates-calendar"></div>
@@ -111,14 +113,108 @@ class CertificatesDashboard {
 					<h2 class="ffc-certificates-side-title">
 						<?php esc_html_e( 'Forms on the selected day', 'ffcertificate' ); ?>
 					</h2>
-					<p class="ffc-certificates-side-empty">
-						<?php esc_html_e( 'Pick a day in the calendar to see the forms scheduled for it.', 'ffcertificate' ); ?>
-					</p>
+					<div class="ffc-certificates-side-empty">
+						<?php
+						$ffc_side_empty = AdminUI::get_empty_state(
+							array(
+								'icon'  => 'calendar',
+								'title' => __( 'Pick a day in the calendar to see the forms scheduled for it.', 'ffcertificate' ),
+							)
+						);
+						echo $ffc_side_empty; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_empty_state() escapes every value.
+						?>
+					</div>
 					<ul id="ffc-certificates-day-list" class="ffc-certificates-day-list" hidden></ul>
 				</aside>
 			</div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * The summary row above the calendar (#1614).
+	 *
+	 * The month count is filled in by the dashboard script from the calendar
+	 * payload it already fetches, so it follows the month on screen; the
+	 * other three describe now and are counted here, once per page load.
+	 */
+	private function render_summary(): void {
+		$summary = $this->summary();
+		echo '<div class="ffc-stats ffc-certificates-stats">';
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- get_stat_card() escapes every value.
+		echo AdminUI::get_stat_card(
+			array(
+				'label' => __( 'Forms in the month shown', 'ffcertificate' ),
+				'icon'  => 'file',
+				'id'    => 'ffc-cert-stat-month',
+			)
+		);
+		echo AdminUI::get_stat_card(
+			array(
+				'label' => __( 'Submissions today', 'ffcertificate' ),
+				'value' => $summary['today'],
+				'icon'  => 'inbox',
+			)
+		);
+		echo AdminUI::get_stat_card(
+			array(
+				'label' => __( 'Submissions in the last 7 days', 'ffcertificate' ),
+				'value' => $summary['week'],
+				'icon'  => 'chart',
+			)
+		);
+		echo AdminUI::get_stat_card(
+			array(
+				'label' => __( 'GeoFence windows open now', 'ffcertificate' ),
+				'value' => $summary['open'],
+				'icon'  => 'clock',
+			)
+		);
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '</div>';
+	}
+
+	/**
+	 * Submissions today and over the last 7 days, and the forms whose
+	 * date/time window is open now.
+	 *
+	 * "Today" starts at midnight in the site timezone; the last 7 days are
+	 * today and the six before it. A window is open when the form's
+	 * date/time restriction is on and the same check the public form runs
+	 * (`Geofence::validate_datetime()`) lets a visitor in now.
+	 *
+	 * @return array{today: int, week: int, open: int}
+	 */
+	public function summary(): array {
+		$today = new \DateTimeImmutable( 'today', wp_timezone() );
+		$repo  = new \FreeFormCertificate\Repositories\SubmissionRepository();
+
+		$open = 0;
+		$ids  = get_posts(
+			array(
+				'post_type'      => 'ffc_form',
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			)
+		);
+		foreach ( $ids as $id ) {
+			$config = get_post_meta( (int) $id, '_ffc_geofence_config', true );
+			if ( ! is_array( $config ) || '1' !== (string) ( $config['datetime_enabled'] ?? '' ) ) {
+				continue;
+			}
+			$check = \FreeFormCertificate\Security\Geofence::validate_datetime( $config );
+			if ( ! empty( $check['valid'] ) ) {
+				++$open;
+			}
+		}
+
+		return array(
+			'today' => $repo->countPublishedSince( $today->getTimestamp() ),
+			'week'  => $repo->countPublishedSince( $today->modify( '-6 days' )->getTimestamp() ),
+			'open'  => $open,
+		);
 	}
 
 	/**

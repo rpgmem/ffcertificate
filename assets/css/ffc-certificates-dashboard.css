@@ -42,10 +42,9 @@
     font-size: var(--ffc-font-size-lg);
 }
 
-.ffc-certificates-side-empty {
-    color: var(--ffc-text-secondary);
-    margin: 0;
-    font-style: italic;
+/* The shared empty state, tighter in the narrow side panel (#1614). */
+.ffc-certificates-side-empty .ffc-empty-state {
+    padding: var(--ffc-spacing-2xl) var(--ffc-spacing-md);
 }
 
 .ffc-certificates-day-list {

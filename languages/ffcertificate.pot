@@ -24845,3 +24845,15 @@ msgstr ""
 
 msgid "This submission has no form answers."
 msgstr ""
+
+msgid "Forms in the month shown"
+msgstr ""
+
+msgid "Submissions today"
+msgstr ""
+
+msgid "Submissions in the last 7 days"
+msgstr ""
+
+msgid "GeoFence windows open now"
+msgstr ""

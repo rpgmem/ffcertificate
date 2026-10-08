@@ -287,4 +287,27 @@ class AdminUITest extends TestCase {
 
 		$this->assertSame( AdminUI::section_open( $args ) . AdminUI::section_close(), ob_get_clean() );
 	}
+
+	// ------------------------------------------------------------------
+	// get_stat_card()
+	// ------------------------------------------------------------------
+
+	public function test_stat_card_formats_an_int_and_ids_its_value(): void {
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => number_format( (float) $n, 0, ',', '.' ) );
+
+		$html = AdminUI::get_stat_card( array( 'label' => 'Submissions', 'value' => 1234, 'icon' => 'inbox', 'id' => 'stat-x' ) );
+
+		$this->assertSame(
+			'<div class="ffc-stat-card"><span class="ffc-stat-card__icon ffc-icon-badge ffc-icon-badge-primary ffc-icon-inbox" aria-hidden="true"></span><span class="ffc-stat-card__value" id="stat-x">1.234</span><span class="ffc-stat-card__label">Submissions</span></div>',
+			$html
+		);
+	}
+
+	public function test_stat_card_defaults_and_refusals(): void {
+		$this->assertSame( '', AdminUI::get_stat_card( array( 'value' => 3 ) ), 'no label, no card' );
+
+		$html = AdminUI::get_stat_card( array( 'label' => 'Pending' ) );
+		$this->assertStringContainsString( '<span class="ffc-stat-card__value">—</span>', $html, 'a value not known yet reads as a dash' );
+		$this->assertStringNotContainsString( 'ffc-stat-card__icon', $html );
+	}
 }
