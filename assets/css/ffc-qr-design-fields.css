@@ -1,96 +1,13 @@
 /**
  * QR design fields (#1570).
  *
- * The collapsible sections, tile pickers and colour fields that
- * `templates/admin/qr/design-fields.php` prints on both Settings → QR Code
- * and the QR Code Generator. One sheet for the shared partial, enqueued by
+ * The tile pickers and colour fields that `templates/admin/qr/design-fields.php`
+ * prints on both Settings → QR Code and the QR Code Generator. The collapsible
+ * sections around them are the shared `.ffc-section` component, owned by
+ * ffc-admin-components.css (#1614). One sheet for the shared partial, enqueued by
  * both screens, so the component has a single owner instead of two copies
  * that drift.
  */
-
-/* Sections */
-
-.ffc-qr-sections {
-    display: flex;
-    flex-direction: column;
-    gap: var(--ffc-spacing-sm);
-}
-
-.ffc-qr-section {
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-lg);
-    background: var(--ffc-bg-card);
-    color: var(--ffc-text);
-}
-
-.ffc-qr-section__summary {
-    display: flex;
-    align-items: center;
-    gap: var(--ffc-spacing-md);
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
-    cursor: pointer;
-    list-style: none;
-}
-
-.ffc-qr-section__summary::-webkit-details-marker {
-    display: none;
-}
-
-/* A chevron that turns when the section opens. */
-.ffc-qr-section__summary::after {
-    flex: 0 0 auto;
-    width: 8px;
-    height: 8px;
-    margin-left: auto;
-    border-right: 2px solid currentColor;
-    border-bottom: 2px solid currentColor;
-    content: "";
-    transform: rotate(45deg);
-    transition: transform var(--ffc-transition-fast);
-}
-
-.ffc-qr-section[open] > .ffc-qr-section__summary::after {
-    transform: rotate(-135deg);
-}
-
-.ffc-qr-section__summary:focus-visible {
-    border-radius: var(--ffc-radius-lg);
-    outline: 2px solid var(--ffc-border-focus);
-    outline-offset: 2px;
-}
-
-.ffc-qr-section__icon {
-    display: flex;
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: var(--ffc-radius-md);
-    background: var(--ffc-accent-bg);
-    color: var(--ffc-accent-text);
-}
-
-.ffc-qr-section__text {
-    display: flex;
-    flex-direction: column;
-    gap: var(--ffc-spacing-3xs);
-}
-
-.ffc-qr-section__title {
-    font-size: var(--ffc-font-size-base);
-    font-weight: 600;
-}
-
-.ffc-qr-section__hint {
-    font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-text-muted);
-}
-
-.ffc-qr-section__body {
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) var(--ffc-spacing-lg);
-    border-top: 1px solid var(--ffc-border-light);
-}
 
 /* Tile pickers: a radio group drawn as thumbnails. */
 

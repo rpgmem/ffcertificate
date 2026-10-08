@@ -185,7 +185,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<!-- IP Geolocation API Section -->
 		<div class="card">
-			<h2 class="ffc-icon-globe"><?php esc_html_e( 'IP Geolocation API', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-api"><?php esc_html_e( 'IP Geolocation API', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Configure external IP geolocation services for backend validation. These services detect user location by IP address.', 'ffcertificate' ); ?>
 			</p>

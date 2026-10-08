@@ -129,6 +129,7 @@ final class Icons {
 		'code'          => '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>',
 		'wrench'        => '<path d="M14.5 6.5a4 4 0 0 0 5 5L21 10a6 6 0 0 1-7.9 5.4L6 22.5 1.5 18l7.1-7.1A6 6 0 0 1 14 3l-1.5 1.5z"/>',
 		'cloud'         => '<path d="M7 18a4.5 4.5 0 0 1-.5-9A6 6 0 0 1 18 8.5a4.75 4.75 0 0 1-.5 9.5z"/>',
+		'api'           => '<path d="M10 19H6a4.25 4.25 0 0 1-.6-8.46 6.75 6.75 0 0 1 13.1-1.3A3.6 3.6 0 0 1 21 11.7"/><path d="M15.6 14.4L15.8 13.0L18.2 13.0L18.4 14.4L18.7 14.6L20.1 14.1L21.3 16.1L20.1 17.0L20.1 17.4L21.3 18.3L20.1 20.3L18.7 19.8L18.4 20.0L18.2 21.4L15.8 21.4L15.6 20.0L15.3 19.8L13.9 20.3L12.7 18.3L13.9 17.4L13.9 17.0L12.7 16.1L13.9 14.1L15.3 14.6z"/><circle cx="17" cy="17.2" r="1.3"/>',
 		'server'        => '<rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6"/>',
 		'monitor'       => '<rect x="2.5" y="4" width="15" height="10.5" rx="1.5"/><path d="M7 18.5h6M10 14.5v4"/><rect x="16" y="9" width="5.5" height="11" rx="1.2"/>',
 		'plus'          => '<path d="M12 5v14M5 12h14"/>',
@@ -156,6 +157,7 @@ final class Icons {
 	 * @var array<string, string>
 	 */
 	private const CLASSES = array(
+		'api'           => 'api',
 		'award'         => 'award',
 		'building'      => 'building',
 		'bulb'          => 'bulb',

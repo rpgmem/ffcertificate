@@ -51,6 +51,18 @@ class SubmissionsList extends \WP_List_Table {
 	private array $form_titles_cache = array();
 
 	/**
+	 * The view, search and form filter the last prepare_items() ran with, so
+	 * the empty state can name what produced nothing.
+	 *
+	 * @var array{status: string, search: string, form_ids: array<int, int>}
+	 */
+	private array $query_state = array(
+		'status'   => 'publish',
+		'search'   => '',
+		'form_ids' => array(),
+	);
+
+	/**
 	 * Constructor.
 	 *
 	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Handler.
@@ -435,6 +447,12 @@ class SubmissionsList extends \WP_List_Table {
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
+		$this->query_state = array(
+			'status'   => $status,
+			'search'   => $search,
+			'form_ids' => $filter_form_ids,
+		);
+
 		$result = $this->repository->findPaginated(
 			array(
 				'status'   => $status,
@@ -550,7 +568,60 @@ class SubmissionsList extends \WP_List_Table {
 	 * @return void
 	 */
 	public function no_items() {
-		esc_html_e( 'No submissions found.', 'ffcertificate' );
+		echo $this->get_empty_state(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- AdminUI::get_empty_state() escapes every value.
+	}
+
+	/**
+	 * The empty state for the current view: what is empty, and the way out.
+	 *
+	 * A search or a form filter that matches nothing is a different situation
+	 * from a view with nothing in it, so it says so and offers to clear them;
+	 * the view itself is left as it is, because it is a tab the reader chose.
+	 *
+	 * @return string
+	 */
+	public function get_empty_state(): string {
+		$views  = array(
+			'publish'          => __( 'Published', 'ffcertificate' ),
+			'trash'            => __( 'Trash', 'ffcertificate' ),
+			'quiz_in_progress' => __( 'Quiz: Retry', 'ffcertificate' ),
+			'quiz_failed'      => __( 'Quiz: Failed', 'ffcertificate' ),
+		);
+		$status = $this->query_state['status'];
+		$view   = $views[ $status ] ?? $views['publish'];
+
+		if ( '' !== $this->query_state['search'] || array() !== $this->query_state['form_ids'] ) {
+			return AdminUI::get_empty_state(
+				array(
+					'icon'    => 'filter',
+					'title'   => __( 'No submissions match', 'ffcertificate' ),
+					/* translators: %s: name of the current view, e.g. "Published" */
+					'text'    => sprintf( __( 'Nothing in "%s" matches the current search or form filter.', 'ffcertificate' ), $view ),
+					'actions' => array(
+						array(
+							'label' => __( 'Clear Filter', 'ffcertificate' ),
+							'url'   => remove_query_arg( array( 's', 'filter_form_id', 'paged' ) ),
+						),
+					),
+				)
+			);
+		}
+
+		$empty = array(
+			'publish'          => array( 'inbox', __( 'No submissions yet', 'ffcertificate' ), __( 'Submissions appear here once someone fills in one of your forms.', 'ffcertificate' ) ),
+			'trash'            => array( 'delete', __( 'Trash is empty', 'ffcertificate' ), __( 'Submissions moved to the trash appear here until they are restored or deleted permanently.', 'ffcertificate' ) ),
+			'quiz_in_progress' => array( 'sync', __( 'No quiz retries', 'ffcertificate' ), __( 'Participants who failed a quiz and may still try again appear here.', 'ffcertificate' ) ),
+			'quiz_failed'      => array( 'error', __( 'No failed quiz attempts', 'ffcertificate' ), __( 'Participants who used every quiz attempt without passing appear here.', 'ffcertificate' ) ),
+		);
+		$case  = $empty[ $status ] ?? $empty['publish'];
+
+		return AdminUI::get_empty_state(
+			array(
+				'icon'  => $case[0],
+				'title' => $case[1],
+				'text'  => $case[2],
+			)
+		);
 	}
 
 	/**

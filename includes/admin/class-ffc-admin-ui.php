@@ -139,4 +139,55 @@ class AdminUI {
 		self::render_toggle( $args );
 		return (string) ob_get_clean();
 	}
+
+	/**
+	 * Markup for an empty state (`.ffc-empty-state`): an icon badge, a title,
+	 * a sentence saying why the list is empty, and the actions that change it.
+	 *
+	 * One helper for every admin list, so an empty list says the same kind of
+	 * thing everywhere: which view or filter produced nothing, and the way out.
+	 * The badge takes the primary tone: the neutral one has the ground of a
+	 * striped list row, so on the table it vanished.
+	 *
+	 * @param array<string, mixed> $args `icon` (registered `Core\Icons` class name
+	 *                                    without the `ffc-icon-` prefix, default
+	 *                                    `inbox`), `title` (required string), `text`
+	 *                                    (optional string), `actions` (optional list
+	 *                                    of `{label, url, primary?}`).
+	 * @return string
+	 */
+	public static function get_empty_state( array $args ): string {
+		$title = (string) ( $args['title'] ?? '' );
+		if ( '' === $title ) {
+			return '';
+		}
+		$icon    = (string) ( $args['icon'] ?? 'inbox' );
+		$text    = (string) ( $args['text'] ?? '' );
+		$actions = is_array( $args['actions'] ?? null ) ? $args['actions'] : array();
+
+		$html  = '<div class="ffc-empty-state">';
+		$html .= '<span class="ffc-empty-state__icon ffc-icon-badge ffc-icon-badge-primary ffc-icon-' . esc_attr( $icon ) . '" aria-hidden="true"></span>';
+		$html .= '<p class="ffc-empty-state__title">' . esc_html( $title ) . '</p>';
+		if ( '' !== $text ) {
+			$html .= '<p class="ffc-empty-state__text">' . esc_html( $text ) . '</p>';
+		}
+
+		$links = '';
+		foreach ( $actions as $action ) {
+			if ( ! is_array( $action ) || empty( $action['label'] ) || empty( $action['url'] ) ) {
+				continue;
+			}
+			$links .= sprintf(
+				'<a href="%s" class="button%s">%s</a>',
+				esc_url( (string) $action['url'] ),
+				empty( $action['primary'] ) ? '' : ' button-primary',
+				esc_html( (string) $action['label'] )
+			);
+		}
+		if ( '' !== $links ) {
+			$html .= '<div class="ffc-empty-state__actions">' . $links . '</div>';
+		}
+
+		return $html . '</div>';
+	}
 }

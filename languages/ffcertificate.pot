@@ -24706,3 +24706,51 @@ msgstr ""
 
 msgid "This rule is inactive. Activate it before sending, or use \"Send test to me\" to check it."
 msgstr ""
+
+msgid "A form collects the answers a certificate is issued from. Create one, then place its shortcode on a page."
+msgstr ""
+
+msgid "Forms moved to the trash appear here until they are restored or deleted permanently."
+msgstr ""
+
+msgid "No failed quiz attempts"
+msgstr ""
+
+msgid "No form matches the current search or date filter. A number searches by form ID."
+msgstr ""
+
+msgid "No forms in \"%s\""
+msgstr ""
+
+msgid "No forms match"
+msgstr ""
+
+msgid "No forms yet"
+msgstr ""
+
+msgid "No quiz retries"
+msgstr ""
+
+msgid "No submissions match"
+msgstr ""
+
+msgid "No submissions yet"
+msgstr ""
+
+msgid "Nothing in \"%s\" matches the current search or form filter."
+msgstr ""
+
+msgid "Participants who failed a quiz and may still try again appear here."
+msgstr ""
+
+msgid "Participants who used every quiz attempt without passing appear here."
+msgstr ""
+
+msgid "Submissions appear here once someone fills in one of your forms."
+msgstr ""
+
+msgid "Submissions moved to the trash appear here until they are restored or deleted permanently."
+msgstr ""
+
+msgid "Trash is empty"
+msgstr ""

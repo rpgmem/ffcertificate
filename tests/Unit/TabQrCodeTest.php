@@ -99,7 +99,7 @@ class TabQrCodeTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-autosave-key="qr_default_error_level"', $html );
 		// Shapes are tile pickers now (#1570): a checked radio per value.
 		$this->assertStringContainsString( 'name="ffc_settings[qr_design_dots]" value="fluid"  checked="checked"', $html );
-		$this->assertStringContainsString( '<details class="ffc-qr-section"', $html );
+		$this->assertStringContainsString( '<details class="ffc-section"', $html );
 		$this->assertStringContainsString( 'class="ffc-qr-swatch"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-hex-for="qr_design_color"', $html );
 		$this->assertStringContainsString( 'id="qr_design_color" value="#123456"', $html );
