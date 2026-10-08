@@ -2100,6 +2100,10 @@ details.ffc-consent-description > p {
     flex-shrink: 0;
 }
 
+.ffc-webview-warning-icon::before {
+    margin-right: 0;
+}
+
 .ffc-webview-warning-content {
     flex: 1;
     min-width: 0;
@@ -2206,6 +2210,10 @@ details.ffc-consent-description > p {
     color: var(--ffc-primary);
     flex-shrink: 0;
     font-weight: 700;
+}
+
+.ffc-already-submitted-icon::before {
+    margin-right: 0;
 }
 
 .ffc-already-submitted-content {

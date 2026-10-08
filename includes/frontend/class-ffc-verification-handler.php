@@ -711,7 +711,7 @@ class VerificationHandler {
 		if ( ! $result['found'] ) {
 			wp_send_json_error(
 				array(
-					'message' => '❌ ' . __( 'Document not found or invalid link.', 'ffcertificate' ),
+					'message' => __( 'Document not found or invalid link.', 'ffcertificate' ),
 				)
 			);
 		}
@@ -809,7 +809,7 @@ class VerificationHandler {
 		if ( ! $result['found'] ) {
 			wp_send_json_error(
 				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
-					array( 'message' => '❌ ' . __( 'Document not found or invalid code.', 'ffcertificate' ) )
+					array( 'message' => __( 'Document not found or invalid code.', 'ffcertificate' ) )
 				)
 			);
 		}

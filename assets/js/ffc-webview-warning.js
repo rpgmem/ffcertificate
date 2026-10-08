@@ -105,9 +105,8 @@
 		banner.setAttribute( 'role', 'alert' );
 
 		var icon = document.createElement( 'div' );
-		icon.className = 'ffc-webview-warning-icon';
+		icon.className = 'ffc-webview-warning-icon ffc-icon-warning';
 		icon.setAttribute( 'aria-hidden', 'true' );
-		icon.textContent = '⚠';
 
 		var content = document.createElement( 'div' );
 		content.className = 'ffc-webview-warning-content';

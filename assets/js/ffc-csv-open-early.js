@@ -39,7 +39,7 @@
 			+   '<div class="ffc-open-early-container">'
 			+     '<div class="ffc-open-early-header">'
 			+       '<h2 id="ffc-open-early-title">'
-			+         '<span aria-hidden="true">⚠️</span> '
+			+         '<span class="ffc-icon-warning" aria-hidden="true"></span>'
 			+         esc(strings.openEarlyTitle || 'Start form now?')
 			+       '</h2>'
 			+       '<button type="button" class="ffc-open-early-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'

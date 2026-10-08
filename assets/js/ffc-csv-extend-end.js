@@ -51,7 +51,7 @@
 			+   '<div class="ffc-open-early-container">'
 			+     '<div class="ffc-open-early-header">'
 			+       '<h2 id="ffc-extend-end-title">'
-			+         '<span aria-hidden="true">⏰</span> '
+			+         '<span class="ffc-icon-clock" aria-hidden="true"></span>'
 			+         esc(strings.postponeCloseTitle || 'Postpone form close?')
 			+       '</h2>'
 			+       '<button type="button" class="ffc-open-early-close ffc-extend-end-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'

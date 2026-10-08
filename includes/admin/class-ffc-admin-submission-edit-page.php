@@ -477,7 +477,7 @@ class AdminSubmissionEditPage {
 			</td>
 		</tr>
 
-		<!-- ✅ EMAIL (editável) -->
+		<!-- Email (editable) -->
 		<tr>
 			<th><label for="user_email"><?php esc_html_e( 'Email', 'ffcertificate' ); ?> *</label></th>
 			<td>
@@ -488,7 +488,7 @@ class AdminSubmissionEditPage {
 			</td>
 		</tr>
 
-		<!-- ✅ CPF/RF (read-only se existir) — #739 §3.3 masked unless PII tier -->
+		<!-- CPF/RF (read-only when present) — #739 §3.3 masked unless PII tier -->
 		<?php
 		if ( ! empty( $this->sub_array['cpf_rf'] ) ) :
 			$ffc_is_rf     = ! empty( $this->sub_array['rf'] );
@@ -525,7 +525,7 @@ class AdminSubmissionEditPage {
 		</tr>
 		<?php endif; ?>
 
-		<!-- ✅ AUTH CODE (read-only se existir) -->
+		<!-- Auth code (read-only when present) -->
 		<?php if ( ! empty( $this->sub_array['auth_code'] ) ) : ?>
 		<tr>
 			<th><label><?php esc_html_e( 'Auth Code', 'ffcertificate' ); ?></label></th>

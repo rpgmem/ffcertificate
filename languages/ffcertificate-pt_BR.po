@@ -21422,13 +21422,13 @@ msgid "← Back"
 msgstr "← Voltar"
 
 #: includes/admin/class-ffc-settings.php:529
-msgid "✅ Cache cleared successfully!"
-msgstr "✅ Cache limpo com sucesso!"
+msgid "Cache cleared successfully!"
+msgstr "Cache limpo com sucesso!"
 
 #. %d: number of forms pre-loaded
 #: includes/admin/class-ffc-settings.php:516
-msgid "✅ Cache warmed! %d form(s) pre-loaded."
-msgstr "✅ Cache aquecido! %d formulário(s) pré-carregados."
+msgid "Cache warmed! %d form(s) pre-loaded."
+msgstr "Cache aquecido! %d formulário(s) pré-carregados."
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:479
 msgid "✓ authoritative"

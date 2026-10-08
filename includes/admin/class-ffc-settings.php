@@ -546,7 +546,7 @@ class Settings {
 					esc_html(
 						sprintf(
 						/* translators: %d: number of forms pre-loaded */
-							__( '✅ Cache warmed! %d form(s) pre-loaded.', 'ffcertificate' ),
+							__( 'Cache warmed! %d form(s) pre-loaded.', 'ffcertificate' ),
 							$count
 						)
 					),
@@ -559,7 +559,7 @@ class Settings {
 
 			if ( 'cache_cleared' === $msg ) {
 				wp_admin_notice(
-					esc_html__( '✅ Cache cleared successfully!', 'ffcertificate' ),
+					esc_html__( 'Cache cleared successfully!', 'ffcertificate' ),
 					array(
 						'type'        => 'success',
 						'dismissible' => true,

@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Icons;
+use FreeFormCertificate\Tests\Support\Emoji;
 
 /**
  * The `.ffc-icon-*` classes and the stylesheet that draws them (#1613).
@@ -132,34 +133,12 @@ class IconStylesheetTest extends TestCase {
 	}
 
 	/**
-	 * Whether a `content:` value paints a pictographic emoji, written either as
-	 * the character or as a CSS escape.
+	 * Whether a `content:` value paints a pictographic emoji.
 	 *
 	 * @param string $value The declaration value.
 	 * @return bool
 	 */
 	private static function is_emoji( string $value ): bool {
-		$codepoints = array();
-		if ( preg_match_all( '/\\\\([0-9a-fA-F]{1,6})/', $value, $m ) ) {
-			foreach ( $m[1] as $hex ) {
-				$codepoints[] = (int) hexdec( $hex );
-			}
-		}
-		foreach ( (array) preg_split( '//u', $value, -1, PREG_SPLIT_NO_EMPTY ) as $char ) {
-			$codepoints[] = (int) mb_ord( (string) $char, 'UTF-8' );
-		}
-
-		foreach ( $codepoints as $cp ) {
-			if ( $cp >= 0x1F000 || 0xFE0F === $cp ) {
-				return true;
-			}
-			if ( ( $cp >= 0x2300 && $cp <= 0x23FF ) || ( $cp >= 0x2600 && $cp <= 0x26FF ) || ( $cp >= 0x2B00 && $cp <= 0x2BFF ) ) {
-				return true;
-			}
-			if ( in_array( $cp, array( 0x2139, 0x2705, 0x270F, 0x274C, 0x2753 ), true ) ) {
-				return true;
-			}
-		}
-		return false;
+		return Emoji::in( $value );
 	}
 }
