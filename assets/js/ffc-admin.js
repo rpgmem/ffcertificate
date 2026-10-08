@@ -317,43 +317,8 @@
     // here is needed for it any more.
     // =========================================================================
 
-    // =========================================================================
-    // Copy-to-clipboard buttons. Any button carrying
-    // `data-ffc-copy-target="<selector>"` reads the .val() of the matched
-    // input on click and writes it to the clipboard. Falls back to the
-    // execCommand path for environments without navigator.clipboard.
-    // =========================================================================
-    $(document).on('click', '.ffc-copy-link[data-ffc-copy-target]', function(e) {
-        e.preventDefault();
-        var $btn    = $(this);
-        var target  = $btn.data('ffc-copy-target');
-        var $source = $(target);
-        if (!$source.length) { return; }
-        var text = $source.val();
-        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
-        var copiedText = strings.copied || 'Copied!';
-        var copyFailedText = strings.copyFailed || 'Copy failed';
-        var done = function(ok) {
-            var original = $btn.data('ffc-copy-original') || $btn.text();
-            $btn.data('ffc-copy-original', original);
-            $btn.text(ok ? copiedText : copyFailedText);
-            setTimeout(function() { $btn.text(original); }, 1500);
-        };
-        if (window.navigator && window.navigator.clipboard && window.navigator.clipboard.writeText) {
-            window.navigator.clipboard.writeText(text).then(
-                function() { done(true); },
-                function() { done(false); }
-            );
-        } else {
-            // Legacy fallback for non-secure contexts / older browsers.
-            try {
-                $source[0].select();
-                document.execCommand('copy');
-                done(true);
-            } catch (err) {
-                done(false);
-            }
-        }
-    });
+    // Copy-to-clipboard buttons (`.ffc-copy-link[data-ffc-copy-target]`)
+    // live in `ffc-core.js`, so a screen that loads only the core — the
+    // calendar editor's shortcode box — gets them too.
 
 })(jQuery);

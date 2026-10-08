@@ -330,7 +330,10 @@ class ReregistrationAdmin {
 
 		$can_edit = $this->can_edit();
 
-		echo '<div class="wrap ffc-admin-page ffc-page-reregistration">';
+		// The campaign editor is a screen of boxed sections (`.ffc-boxed`,
+		// #1629); the list and submissions keep the plain list-table screen.
+		$boxed = in_array( $view, array( 'new', 'edit' ), true );
+		echo '<div class="wrap ffc-admin-page ffc-page-reregistration' . ( $boxed ? ' ffc-boxed' : '' ) . '">';
 
 		switch ( $view ) {
 			case 'new':

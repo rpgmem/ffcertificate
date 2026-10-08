@@ -23,6 +23,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Edit Submission uses two columns** (#1614). The record (participant data, form answers, system information and the LGPD consent, now a collapsible section) sits beside a side panel with Save, the magic link with Copy and a new Open certificate button, and the linked user. Values nobody can edit read as text instead of disabled inputs.
 - **The Certificates Dashboard opens with a summary row** (#1614): forms in the month shown, submissions today and over the last 7 days, and GeoFence windows open now. The side panel uses the shared empty state.
 - **Recruitment and Scheduling screens use the boxed sections** (#1627). The Recruitment tabs, the Scheduling Settings tabs and the audience calendar and environment edit screens put each section in a box whose heading carries an icon, as Settings does. The box styles now load on every FFC admin screen.
+- **The personal calendar, audience and reregistration editors follow the same layout** (#1629). The calendar editor's rules and emails open into collapsible sections with icons and On/Off chips, its box titles lose their step numbers and the shortcode gets a Copy button; the audience, members and campaign edit screens put each part in a box with an icon heading.
 
 ### Fixed
 
@@ -32,6 +33,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The form editor no longer refuses to save over a hidden field** (#1614). A required control inside a collapsed block, a closed section or an inactive tab is now revealed or set aside instead of blocking the submit with nothing on screen, and the "Display during" row on the Time tab follows one rule again instead of two scripts disagreeing.
 - **The Certificates Dashboard calendar stayed empty on sites without pretty permalinks** (#1614). Its request added a second `?` to a REST URL that already had one (`?rest_route=…`), so the route answered 404; the query now continues with `&`.
 - **The "Device limit" toggle on the All Forms list works** (#1625). It wrote a meta key nothing else read, so flipping it never reached the runtime and the column could disagree with the editor; it now reads and writes the same key as the editor. The Layout tab also loses a hidden template dropdown no script used.
+- **Working hours added in the calendar editor are saved** (#1629). New rows were named after a key the save never read, so every row added with "Add Working Hours" was dropped; and the cancellation-deadline and waitlist-capacity fields now start hidden when their switch is off.
 
 ### Security
 

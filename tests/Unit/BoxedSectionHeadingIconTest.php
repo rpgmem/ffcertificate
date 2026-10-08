@@ -22,6 +22,7 @@ class BoxedSectionHeadingIconTest extends TestCase {
 	 */
 	private const FILES = array(
 		'includes/admin/class-ffc-cert-template-receipt-settings.php',
+		'includes/audience/class-ffc-audience-admin-audience-renderer.php',
 		'includes/audience/class-ffc-audience-admin-calendar.php',
 		'includes/audience/class-ffc-audience-admin-environment.php',
 		'includes/audience/class-ffc-audience-admin-import.php',
@@ -34,6 +35,8 @@ class BoxedSectionHeadingIconTest extends TestCase {
 		'templates/admin/recruitment/admin-page/create-notice-form.php',
 		'templates/admin/recruitment/admin-page/create-reason-form.php',
 		'templates/admin/recruitment/admin-page/settings-tab.php',
+		'templates/admin/reregistration/form.php',
+		'templates/admin/reregistration/import-panel.php',
 	);
 
 	/**

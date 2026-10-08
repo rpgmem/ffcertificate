@@ -733,10 +733,6 @@ msgstr ""
 msgid "(your host's reverse proxy — a private/reserved address)"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:543
-msgid "+ Add Block"
-msgstr ""
-
 #: includes/audience/class-ffc-audience-loader.php:255 includes/audience/class-ffc-audience-admin-audience-renderer.php:628
 msgid "+ Add Department"
 msgstr ""
@@ -747,10 +743,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:372
 msgid "+ Add Field"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:510
-msgid "+ Add Working Hours"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:191
@@ -805,10 +797,6 @@ msgstr ""
 msgid "1 week"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:148
-msgid "1. Calendar Configuration"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-cache.php:213
 msgid "15 minutes"
 msgstr ""
@@ -817,16 +805,8 @@ msgstr ""
 msgid "15 minutes, 30 minutes, 1 hour (default) or 1 day."
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:158
-msgid "2. Working Hours & Availability"
-msgstr ""
-
 #: includes/security/class-ffc-email-limiter.php:64 includes/security/class-ffc-ip-limiter.php:78 includes/settings/views/ffc-tab-cache.php:216
 msgid "24 hours"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:168
-msgid "3. Booking Rules & Restrictions"
 msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:33
@@ -849,16 +829,8 @@ msgstr ""
 msgid "4 of January, 2026"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:178
-msgid "4. Email Notifications"
-msgstr ""
-
 #: includes/settings/views/documentation/developer-hooks-api.php:131
 msgid "404 for an unknown code."
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:212
-msgid "5. Occupancy Report"
 msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:32
@@ -24844,4 +24816,73 @@ msgid "Submissions in the last 7 days"
 msgstr ""
 
 msgid "GeoFence windows open now"
+msgstr ""
+
+msgid "Add Block"
+msgstr ""
+
+msgid "Administrator recipients"
+msgstr ""
+
+msgid "Approval and waitlist"
+msgstr ""
+
+msgid "Booking Rules & Restrictions"
+msgstr ""
+
+msgid "Booking slots"
+msgstr ""
+
+msgid "Booking window"
+msgstr ""
+
+msgid "Calendar Configuration"
+msgstr ""
+
+msgid "Confirmation message"
+msgstr ""
+
+msgid "Each message on its own switch, and when the reminder goes out."
+msgstr ""
+
+msgid "How far ahead, and how often, a person may book."
+msgstr ""
+
+msgid "Manual review of each booking, and a queue for full slots."
+msgstr ""
+
+msgid "Messages"
+msgstr ""
+
+msgid "Occupancy Report"
+msgstr ""
+
+msgid "The subject and text of the email the person receives."
+msgstr ""
+
+msgid "Visibility of the calendar, and the hours it can be seen or booked in."
+msgstr ""
+
+msgid "Weekly hours or exact blocks, and how each slot is sized."
+msgstr ""
+
+msgid "What the calendar is, and whether it takes bookings."
+msgstr ""
+
+msgid "Whether administrators are held to the rules above."
+msgstr ""
+
+msgid "Whether people can cancel their own bookings, and until when."
+msgstr ""
+
+msgid "Which emails are sent"
+msgstr ""
+
+msgid "Who can see and book"
+msgstr ""
+
+msgid "Who receives the new-booking notification."
+msgstr ""
+
+msgid "Working Hours & Availability"
 msgstr ""

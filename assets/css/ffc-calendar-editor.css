@@ -109,6 +109,20 @@
     background: var(--ffc-bg-alt);
 }
 
+/* The shortcode and its copy button: the sidebar is too narrow to share a
+   line, so the button wraps under the field (#1629). */
+.ffc-calendar-shortcode-copy {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+    margin: var(--ffc-spacing-md) 0;
+}
+
+.ffc-calendar-shortcode-copy .ffc-shortcode-input {
+    flex: 1 1 100%;
+    min-width: 0;
+}
+
 /* Shortcode preview label */
 .ffc-shortcode-preview-label {
     margin-top: var(--ffc-spacing-xl);

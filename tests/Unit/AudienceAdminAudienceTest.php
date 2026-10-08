@@ -141,6 +141,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'wrap', $output );
+		// The list keeps the plain list-table screen (#1629).
+		$this->assertStringNotContainsString( 'ffc-boxed', $output );
 	}
 
 	// ==================================================================
@@ -228,6 +230,12 @@ class AudienceAdminAudienceTest extends TestCase {
 
 		$this->assertStringContainsString( 'Reregistration Fields', $output );
 		$this->assertStringContainsString( 'ffc-add-custom-field', $output );
+		// A boxed screen: the audience and its fields each sit in a card whose
+		// heading carries an icon (#1629).
+		$this->assertMatchesRegularExpression( '/<div class="wrap ffc-admin-page ffc-page-scheduling-audiences ffc-boxed">/', $output );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-users">', $output );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-clipboard">', $output );
+		$this->assertSame( 2, substr_count( $output, '<div class="card">' ) );
 		unset( $_GET['action'], $_GET['id'] );
 	}
 
@@ -404,6 +412,9 @@ class AudienceAdminAudienceTest extends TestCase {
 
 		$this->assertStringContainsString( 'User7', $output );
 		$this->assertStringContainsString( '8@e.com', $output );
+		$this->assertStringContainsString( 'ffc-boxed', $output );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-plus">', $output );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-users">', $output );
 		unset( $_GET['action'], $_GET['id'] );
 	}
 

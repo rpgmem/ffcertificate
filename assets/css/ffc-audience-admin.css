@@ -240,15 +240,6 @@
     width: 120px;
 }
 
-/* Members Section */
-.ffc-members-section {
-    background: var(--ffc-bg-card);
-    padding: var(--ffc-spacing-2xl);
-    margin: var(--ffc-spacing-2xl) 0;
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-}
-
 .ffc-user-results {
     max-height: 200px;
     overflow-y: auto;

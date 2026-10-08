@@ -52,8 +52,11 @@ class AudienceAdminAudience {
 		$action = RequestInput::get_get_string( 'action', 'list' );
 		$id     = RequestInput::get_get_int( 'id' );
 
+		// The edit and members screens are boxed sections (`.ffc-boxed`, #1629);
+		// the list keeps the plain list-table screen.
+		$boxed = in_array( $action, array( 'new', 'edit', 'members' ), true );
 		?>
-		<div class="wrap ffc-admin-page ffc-page-scheduling-audiences">
+		<div class="wrap ffc-admin-page ffc-page-scheduling-audiences <?php echo $boxed ? 'ffc-boxed' : ''; ?>">
 			<?php
 			switch ( $action ) {
 				case 'new':
