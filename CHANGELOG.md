@@ -37,6 +37,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The Certificates Dashboard calendar stayed empty on sites without pretty permalinks** (#1614). Its request added a second `?` to a REST URL that already had one (`?rest_route=…`), so the route answered 404; the query now continues with `&`.
 - **The "Device limit" toggle on the All Forms list works** (#1625). It wrote a meta key nothing else read, so flipping it never reached the runtime and the column could disagree with the editor; it now reads and writes the same key as the editor. The Layout tab also loses a hidden template dropdown no script used.
 - **Working hours added in the calendar editor are saved** (#1629). New rows were named after a key the save never read, so every row added with "Add Working Hours" was dropped; and the cancellation-deadline and waitlist-capacity fields now start hidden when their switch is off.
+- **The Date messages capability group has its colour stripe.** The sheet declared no hue for it, so its header and rows drew none on the role editor and the profile permissions panel; `CapabilityCatalogTest` now fails a group the sheet does not paint, or two groups sharing a colour (#1635).
 
 ### Security
 
