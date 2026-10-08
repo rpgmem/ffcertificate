@@ -65,4 +65,11 @@ class FormEditorShortcodeMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'id="1"', $this->render( 1 ) );
 		$this->assertStringContainsString( 'id="9999"', $this->render( 9999 ) );
 	}
+
+	public function test_render_offers_a_copy_button_bound_to_the_shortcode_input(): void {
+		$html = $this->render( 42 );
+
+		$this->assertStringContainsString( '<input type="text" readonly id="ffc-form-shortcode" class="ffc-shortcode-display code" value="[ffc_form id="42"]">', $html );
+		$this->assertStringContainsString( 'class="button ffc-copy-link ffc-icon-copy" data-ffc-copy-target="#ffc-form-shortcode"', $html );
+	}
 }

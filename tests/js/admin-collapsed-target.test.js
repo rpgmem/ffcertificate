@@ -129,3 +129,27 @@ describe('ffc-admin: .ffc-collapsed-target generic handler', () => {
 		expect(t2.classList.contains('ffc-collapsed')).toBe(false);
 	});
 });
+
+describe('ffc-admin: collapsed targets carry `required` with their visibility (#1614)', () => {
+	it('strips required while collapsed and restores it when revealed', () => {
+		// ffc-core keeps an FFC object that already exists, so start clean:
+		// earlier tests in this file loaded ffc-admin.js without the core.
+		delete window.FFC;
+		loadScript('assets/js/ffc-core.js');
+		document.body.innerHTML = `
+			<input type="checkbox" id="m9">
+			<div class="ffc-collapsed-target" data-ffc-master="m9">
+				<input id="must" type="text" required>
+				<input id="may" type="text">
+			</div>
+		`;
+		flushReady();
+		const $ = window.jQuery;
+
+		expect(document.getElementById('must').required).toBe(false);
+
+		$('#m9').prop('checked', true).trigger('change');
+		expect(document.getElementById('must').required).toBe(true);
+		expect(document.getElementById('may').required).toBe(false, 'a field that was never required stays optional');
+	});
+});

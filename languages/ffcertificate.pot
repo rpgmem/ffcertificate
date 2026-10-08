@@ -9545,10 +9545,6 @@ msgstr ""
 msgid "History"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:460 includes/admin/class-ffc-form-editor-geofence-metabox.php:511
-msgid "Hold Ctrl/Cmd to select multiple locations."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:198 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:371 includes/audience/class-ffc-audience-rest-controller.php:443 includes/audience/class-ffc-audience-shortcode.php:303 includes/audience/class-ffc-audience-shortcode.php:818
 msgid "Holiday"
 msgstr ""
@@ -24753,4 +24749,97 @@ msgid "Submissions moved to the trash appear here until they are restored or del
 msgstr ""
 
 msgid "Trash is empty"
+msgstr ""
+
+msgid "A notice to the site team for every submission."
+msgstr ""
+
+msgid "Administrator"
+msgstr ""
+
+msgid "Allowed areas"
+msgstr ""
+
+msgid "As last saved. Unsaved changes show on the tab dots."
+msgstr ""
+
+msgid "Date/time window"
+msgstr ""
+
+msgid "Download submissions (CSV)"
+msgstr ""
+
+msgid "Email to the participant"
+msgstr ""
+
+msgid "Form summary"
+msgstr ""
+
+msgid "How a visitor's location is checked: GPS in the browser, the IP address, or both."
+msgstr ""
+
+msgid "Lets an operator change the schedule for one submission."
+msgstr ""
+
+msgid "Limit, access link, CPF check and the audit of every attempt."
+msgstr ""
+
+msgid "No locations are registered yet."
+msgstr ""
+
+msgid "Not set"
+msgstr ""
+
+msgid "Notify the administrator"
+msgstr ""
+
+msgid "On"
+msgstr ""
+
+msgid "Open to everyone"
+msgstr ""
+
+msgid "Opening early and closing late"
+msgstr ""
+
+msgid "Operator access"
+msgstr ""
+
+msgid "Participant"
+msgstr ""
+
+msgid "Register them in Settings → Geolocation"
+msgstr ""
+
+msgid "Restrictions"
+msgstr ""
+
+msgid "The actions the access link exposes."
+msgstr ""
+
+msgid "The message the submitter receives after a successful submission."
+msgstr ""
+
+msgid "Ticket"
+msgstr ""
+
+msgid "Validation methods"
+msgstr ""
+
+msgid "Visitors outside the area"
+msgstr ""
+
+msgid "What a visitor sees when the location check fails."
+msgstr ""
+
+msgid "When the event takes place, printed as {{schedule}} on the certificate."
+msgstr ""
+
+msgid "When the form accepts submissions, and what visitors see outside that window."
+msgstr ""
+
+msgid "Where submissions are accepted, from registered locations or custom coordinates."
+msgstr ""
+
+msgid "Whether the operator can use Start Form Early or Postpone Close right now."
 msgstr ""

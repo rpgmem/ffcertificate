@@ -58,6 +58,19 @@ class FormEditorEmailMetabox {
 		$admin_collapsed = ( '1' !== (string) $send_admin );
 		?>
 		<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
+		<div class="ffc-sections">
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title'  => __( 'Email to the participant', 'ffcertificate' ),
+				'hint'   => __( 'The message the submitter receives after a successful submission.', 'ffcertificate' ),
+				'icon'   => 'email',
+				'master' => 'ffc_config_send_user_email',
+				'on'     => '1' === (string) $send_email,
+				'open'   => '1' === (string) $send_email,
+			)
+		);
+		?>
 		<table class="form-table">
 			<tr>
 				<th><label><?php esc_html_e( 'Send Email to User?', 'ffcertificate' ); ?></label></th>
@@ -116,12 +129,12 @@ class FormEditorEmailMetabox {
 			</tr>
 		</table>
 
-		<p class="description ffc-cert-email-global-note"<?php echo $is_custom ? ' style="display:none;"' : ''; ?>>
+		<p class="description ffc-cert-email-global-note<?php echo $is_custom ? ' ffc-hidden' : ''; ?>">
 			<?php esc_html_e( 'This form uses the shared global email text. Turn on the toggle above to write a version just for this form.', 'ffcertificate' ); ?>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=email_texts' ) ); ?>"><?php esc_html_e( 'Edit the global text', 'ffcertificate' ); ?></a>
 		</p>
 
-		<div class="ffc-cert-email-custom-fields"<?php echo $is_custom ? '' : ' style="display:none;"'; ?>>
+		<div class="ffc-cert-email-custom-fields<?php echo $is_custom ? '' : ' ffc-hidden'; ?>">
 		<table class="form-table">
 			<tr>
 				<th><label><?php esc_html_e( 'Subject', 'ffcertificate' ); ?></label></th>
@@ -167,7 +180,19 @@ class FormEditorEmailMetabox {
 		</table>
 		</div><!-- /.ffc-cert-email-custom-fields -->
 		</div><!-- /.ffc-collapsed-target -->
-
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_section_close();
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title'  => __( 'Notify the administrator', 'ffcertificate' ),
+				'hint'   => __( 'A notice to the site team for every submission.', 'ffcertificate' ),
+				'icon'   => 'users',
+				'master' => 'ffc_config_send_admin_email',
+				'on'     => '1' === (string) $send_admin,
+				'open'   => '1' === (string) $send_admin,
+			)
+		);
+		?>
 		<table class="form-table">
 			<tr>
 				<th><label><?php esc_html_e( 'Notify Admin on Submission?', 'ffcertificate' ); ?></label></th>
@@ -202,6 +227,8 @@ class FormEditorEmailMetabox {
 			</tr>
 		</table>
 		</div><!-- /.ffc-collapsed-target -->
+		<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+		</div><!-- /.ffc-sections -->
 		<?php
 	}
 

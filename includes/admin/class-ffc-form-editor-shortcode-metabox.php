@@ -33,10 +33,15 @@ class FormEditorShortcodeMetabox {
 	public function render( WP_Post $post ): void {
 		?>
 		<div class="ffc-shortcode-box">
-			<p><strong><?php esc_html_e( 'Copy this Shortcode:', 'ffcertificate' ); ?></strong></p>
-			<code class="ffc-shortcode-display">
-				[ffc_form id="<?php echo esc_attr( (string) $post->ID ); ?>"]
-			</code>
+			<p><label for="ffc-form-shortcode"><strong><?php esc_html_e( 'Copy this Shortcode:', 'ffcertificate' ); ?></strong></label></p>
+			<?php
+			// A read-only input, not a <code>: the shared copy button
+			// (`.ffc-copy-link`) reads the .val() of its target (#1614).
+			?>
+			<div class="ffc-shortcode-copy">
+				<input type="text" readonly id="ffc-form-shortcode" class="ffc-shortcode-display code" value="<?php echo esc_attr( '[ffc_form id="' . $post->ID . '"]' ); ?>">
+				<button type="button" class="button ffc-copy-link ffc-icon-copy" data-ffc-copy-target="#ffc-form-shortcode"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+			</div>
 			<p class="description">
 				<?php esc_html_e( 'Paste this code into any Page or Post to display the form.', 'ffcertificate' ); ?>
 			</p>

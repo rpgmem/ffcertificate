@@ -215,4 +215,76 @@ class AdminUITest extends TestCase {
 		$this->assertStringNotContainsString( '<u>', $html );
 		$this->assertStringContainsString( 'href="escaped:javascript:alert(1)"', $html );
 	}
+
+	// ------------------------------------------------------------------
+	// section_open() / section_close()
+	// ------------------------------------------------------------------
+
+	public function test_section_with_a_master_renders_its_state_and_both_labels(): void {
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+
+		$html = AdminUI::section_open(
+			array(
+				'title'  => 'Email',
+				'hint'   => 'Sent after submission.',
+				'icon'   => 'email',
+				'master' => 'toggle_id',
+				'on'     => true,
+				'open'   => true,
+				'id'     => 'sec-email',
+			)
+		) . 'BODY' . AdminUI::section_close();
+
+		$this->assertStringStartsWith( '<details class="ffc-section" id="sec-email" open data-ffc-section><summary class="ffc-section__summary">', $html );
+		$this->assertStringContainsString( '<span class="ffc-section__icon"><svg', $html );
+		$this->assertStringContainsString( '<span class="ffc-section__title">Email</span><span class="ffc-section__hint">Sent after submission.</span>', $html );
+		$this->assertStringContainsString( '<span class="ffc-section__chip is-on" data-ffc-section-master="toggle_id" data-on="On" data-off="Off">On</span>', $html );
+		$this->assertStringEndsWith( '<div class="ffc-section__body">BODY</div></details>', $html );
+	}
+
+	public function test_section_off_closed_and_with_fixed_chip(): void {
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+
+		$off = AdminUI::section_open( array( 'title' => 'T', 'master' => 'm', 'on' => false ) );
+		$this->assertStringStartsWith( '<details class="ffc-section" data-ffc-section>', $off, 'closed unless asked' );
+		$this->assertStringContainsString( 'class="ffc-section__chip is-off"', $off );
+		$this->assertStringContainsString( '>Off</span>', $off );
+
+		$fixed = AdminUI::section_open( array( 'title' => 'T', 'chip' => '09:00 – 12:00' ) );
+		$this->assertStringContainsString( '<span class="ffc-section__chip">09:00 – 12:00</span>', $fixed );
+		$this->assertStringNotContainsString( 'data-ffc-section-master', $fixed );
+
+		$bare = AdminUI::section_open( array( 'title' => 'T', 'icon' => 'not-an-icon' ) );
+		$this->assertStringNotContainsString( 'ffc-section__chip', $bare );
+		$this->assertStringNotContainsString( 'ffc-section__hint', $bare );
+		$this->assertStringContainsString( '<span class="ffc-section__icon"></span>', $bare, 'an unknown icon draws nothing rather than failing' );
+	}
+
+	public function test_section_escapes_its_values(): void {
+		Functions\when( 'esc_attr' )->alias( 'htmlspecialchars' );
+		Functions\when( 'esc_html' )->alias( 'htmlspecialchars' );
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+
+		$html = AdminUI::section_open( array( 'title' => '<b>', 'hint' => '<i>', 'chip' => '<u>', 'id' => '"x' ) );
+
+		$this->assertStringNotContainsString( '<b>', $html );
+		$this->assertStringNotContainsString( '<i>', $html );
+		$this->assertStringNotContainsString( '<u>', $html );
+		$this->assertStringContainsString( 'id="&quot;x"', $html );
+	}
+
+	public function test_render_section_helpers_print_the_same_markup(): void {
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		$args = array( 'title' => 'T', 'master' => 'm', 'on' => true );
+
+		ob_start();
+		AdminUI::render_section_open( $args );
+		AdminUI::render_section_close();
+
+		$this->assertSame( AdminUI::section_open( $args ) . AdminUI::section_close(), ob_get_clean() );
+	}
 }

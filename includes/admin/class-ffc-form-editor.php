@@ -123,6 +123,16 @@ class FormEditor {
 			true
 		);
 
+		// Collapsible sections inside the tabs (#1614): live on/off chips,
+		// and opening the section that holds a control the browser rejected.
+		wp_enqueue_script(
+			'ffc-admin-sections',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-sections{$s}.js",
+			array(),
+			FFC_VERSION,
+			true
+		);
+
 		// If the previous save left validation errors, tell the tab script
 		// which tabs to flag (and which one to auto-open). The matching
 		// transients are still consumed by
@@ -288,6 +298,16 @@ class FormEditor {
 			'ffc_form_shortcode',
 			__( 'How to Use / Shortcode', 'ffcertificate' ),
 			array( $this->metabox_renderer, 'render_shortcode_metabox' ),
+			'ffc_form',
+			'side',
+			'high'
+		);
+
+		// Read-only summary of the saved form (#1614), under the shortcode.
+		add_meta_box(
+			'ffc_form_summary',
+			__( 'Form summary', 'ffcertificate' ),
+			array( new FormEditorSummaryMetabox(), 'render' ),
 			'ffc_form',
 			'side',
 			'high'

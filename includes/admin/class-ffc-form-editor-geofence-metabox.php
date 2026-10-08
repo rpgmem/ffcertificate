@@ -123,8 +123,20 @@ class FormEditorGeofenceMetabox {
 			<!-- Sentinel: ensures ffc_geofence is always in POST even when all fields are disabled -->
 			<input type="hidden" name="ffc_geofence[_save]" value="1">
 
-			<div class="card ffc-event-schedule-section">
-				<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Event Schedule (Reference)', 'ffcertificate' ); ?></h2>
+			<div class="ffc-sections">
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_section_open(
+				array(
+					'title' => __( 'Event Schedule (Reference)', 'ffcertificate' ),
+					'hint'  => __( 'When the event takes place, printed as {{schedule}} on the certificate.', 'ffcertificate' ),
+					'icon'  => 'event',
+					'chip'  => '' !== $class_time_start && '' !== $class_time_end
+						? $class_time_start . ' – ' . $class_time_end
+						: __( 'Not set', 'ffcertificate' ),
+					'open'  => '' !== $class_time_start || '' !== $class_time_end,
+				)
+			);
+			?>
 				<p class="description">
 					<?php esc_html_e( "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When filled, the template must contain {{schedule}} — the form save will be blocked until the placeholder is present.", 'ffcertificate' ); ?>
 				</p>
@@ -138,10 +150,20 @@ class FormEditorGeofenceMetabox {
 						</td>
 					</tr>
 				</tbody></table>
-			</div>
+			<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
 
-			<div class="card">
-				<h2 class="ffc-icon-lock"><?php esc_html_e( 'Date/Time Restrictions', 'ffcertificate' ); ?></h2>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_section_open(
+				array(
+					'title'  => __( 'Date/Time Restrictions', 'ffcertificate' ),
+					'hint'   => __( 'When the form accepts submissions, and what visitors see outside that window.', 'ffcertificate' ),
+					'icon'   => 'lock',
+					'master' => 'ffc_geofence_datetime_enabled',
+					'on'     => '1' === $datetime_enabled,
+					'open'   => '1' === $datetime_enabled || '' !== $datetime_order_msg,
+				)
+			);
+			?>
 				<table class="form-table" role="presentation">
 					<tbody>
 					<tr>
@@ -192,7 +214,7 @@ class FormEditorGeofenceMetabox {
 								<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" id="ffc_geofence_date_end" name="ffc_geofence[date_end]" value="<?php echo esc_attr( $date_end ); ?>" min="<?php echo esc_attr( $date_end_min ); ?>"<?php echo $invalid_attr( 'date_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $invalid_attr returns one of two literals — ' class="ffc-input-invalid"' or the empty string — so there is no dynamic value to escape. ?>></label>
 							</span>
 							<p class="description"><?php esc_html_e( 'Leave empty for no date restriction. Format: YYYY-MM-DD', 'ffcertificate' ); ?></p>
-							<p class="description ffc-datetime-order-error"<?php echo $datetime_order_msg ? '' : ' style="display:none;"'; ?>>
+							<p class="description ffc-datetime-order-error<?php echo $datetime_order_msg ? '' : ' ffc-hidden'; ?>">
 								<?php echo esc_html( $datetime_order_msg ); ?>
 							</p>
 						</td>
@@ -243,7 +265,7 @@ class FormEditorGeofenceMetabox {
 							<p class="description"><?php esc_html_e( 'How to display the form before the start date / start time. "Hide form completely" makes the page render as if the form did not exist yet.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
-					<tr id="ffc-datetime-hide-mode-during-row" class="ffc-datetime-hide-during"<?php echo $show_during_row ? '' : ' style="display:none;"'; ?>>
+					<tr id="ffc-datetime-hide-mode-during-row" class="ffc-datetime-hide-during<?php echo $show_during_row ? '' : ' ffc-hidden'; ?>">
 						<th><label for="ffc_datetime_hide_mode_during"><?php esc_html_e( 'Display during, outside daily slot', 'ffcertificate' ); ?></label></th>
 						<td>
 							<select id="ffc_datetime_hide_mode_during" name="ffc_geofence[datetime_hide_mode_during]">
@@ -274,10 +296,20 @@ class FormEditorGeofenceMetabox {
 					</tr>
 					</tbody>
 				</table>
-			</div>
+			<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
 
-			<div class="card ffc-schedule-exception-section">
-				<h2 class="ffc-icon-user"><?php esc_html_e( 'Per-participant entry/exit exception', 'ffcertificate' ); ?></h2>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_section_open(
+				array(
+					'title'  => __( 'Per-participant entry/exit exception', 'ffcertificate' ),
+					'hint'   => __( 'Lets an operator change the schedule for one submission.', 'ffcertificate' ),
+					'icon'   => 'user',
+					'master' => 'ffc_geofence_schedule_exception_enabled',
+					'on'     => '1' === $schedule_exception_enabled,
+					'open'   => '1' === $schedule_exception_enabled,
+				)
+			);
+			?>
 				<p class="description">
 					<?php esc_html_e( 'Lets an authenticated operator override the Event Schedule for a single submission via the public CSV-download panel.', 'ffcertificate' ); ?>
 				</p>
@@ -316,7 +348,8 @@ class FormEditorGeofenceMetabox {
 					</tr>
 					</tbody>
 				</table>
-			</div>
+			<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+			</div><!-- /.ffc-sections -->
 		</div>
 		<?php
 		$this->enqueue_metabox_script();
@@ -392,9 +425,21 @@ class FormEditorGeofenceMetabox {
 					</td>
 				</tr>
 				</tbody>
-				<tbody class="ffc-collapsed-target<?php echo '1' === $geo_enabled ? '' : ' ffc-collapsed'; ?>"
-					data-ffc-master="ffc_geofence_geo_enabled"
-					aria-hidden="<?php echo '1' === $geo_enabled ? 'false' : 'true'; ?>">
+			</table>
+		<div class="ffc-sections ffc-collapsed-target<?php echo '1' === $geo_enabled ? '' : ' ffc-collapsed'; ?>"
+			data-ffc-master="ffc_geofence_geo_enabled"
+			aria-hidden="<?php echo '1' === $geo_enabled ? 'false' : 'true'; ?>">
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title' => __( 'Validation methods', 'ffcertificate' ),
+				'hint'  => __( 'How a visitor\'s location is checked: GPS in the browser, the IP address, or both.', 'ffcertificate' ),
+				'icon'  => 'shield',
+				'open'  => true,
+			)
+		);
+		?>
+			<table class="form-table">
 				<tr>
 					<th><label><?php esc_html_e( 'Validation Methods', 'ffcertificate' ); ?></label></th>
 					<td>
@@ -434,6 +479,31 @@ class FormEditorGeofenceMetabox {
 						<p class="description"><?php esc_html_e( 'Choose one or both methods. GPS is more accurate but requires user permission.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>
+				<tr class="ffc-collapsed-target<?php echo '1' === $geo_ip_enabled ? '' : ' ffc-collapsed'; ?>"
+					data-ffc-master="ffc_geofence_geo_ip_enabled"
+					aria-hidden="<?php echo '1' === $geo_ip_enabled ? 'false' : 'true'; ?>">
+					<th><label><?php esc_html_e( 'GPS + IP Logic', 'ffcertificate' ); ?></label></th>
+					<td>
+						<select name="ffc_geofence[geo_gps_ip_logic]">
+							<option value="or" <?php selected( $geo_gps_ip_logic, 'or' ); ?>><?php esc_html_e( 'OR - Allow if GPS OR IP is valid (recommended)', 'ffcertificate' ); ?></option>
+							<option value="and" <?php selected( $geo_gps_ip_logic, 'and' ); ?>><?php esc_html_e( 'AND - Require both GPS AND IP to be valid (stricter)', 'ffcertificate' ); ?></option>
+						</select>
+						<p class="description"><?php esc_html_e( 'When both GPS and IP are enabled, how to combine the results.', 'ffcertificate' ); ?></p>
+					</td>
+				</tr>
+			</table>
+		<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title' => __( 'Allowed areas', 'ffcertificate' ),
+				'hint'  => __( 'Where submissions are accepted, from registered locations or custom coordinates.', 'ffcertificate' ),
+				'icon'  => 'map-pin',
+				'open'  => true,
+			)
+		);
+		?>
+			<table class="form-table">
 				<tr>
 					<th><label><?php esc_html_e( 'Allowed Areas (GPS)', 'ffcertificate' ); ?></label></th>
 					<td>
@@ -449,18 +519,11 @@ class FormEditorGeofenceMetabox {
 							</label>
 						</fieldset>
 
-						<div class="<?php echo esc_attr( 'ffc-geo-source-locations' . ( 'locations' !== $geo_area_source ? ' ffc-initially-hidden' : '' ) ); ?>">
-							<select multiple name="ffc_geofence[geo_area_location_ids][]" class="ffc-w100" size="5">
-								<?php foreach ( $all_locations as $loc ) : ?>
-									<option value="<?php echo esc_attr( $loc['id'] ); ?>" <?php echo in_array( $loc['id'], $geo_area_location_ids, true ) ? 'selected' : ''; ?>>
-										<?php echo esc_html( $loc['name'] . ' (' . $loc['lat'] . ', ' . $loc['lng'] . ', ' . $loc['radius'] . 'm)' ); ?>
-									</option>
-								<?php endforeach; ?>
-							</select>
-							<p class="description"><?php esc_html_e( 'Hold Ctrl/Cmd to select multiple locations.', 'ffcertificate' ); ?></p>
+						<div class="<?php echo esc_attr( 'ffc-geo-source-locations' . ( 'locations' !== $geo_area_source ? ' ffc-hidden' : '' ) ); ?>">
+							<?php $this->render_location_picker( 'geo_area_location_ids', $geo_area_location_ids, $all_locations ); ?>
 						</div>
 
-						<div class="<?php echo esc_attr( 'ffc-geo-source-custom' . ( 'custom' !== $geo_area_source ? ' ffc-initially-hidden' : '' ) ); ?>">
+						<div class="<?php echo esc_attr( 'ffc-geo-source-custom' . ( 'custom' !== $geo_area_source ? ' ffc-hidden' : '' ) ); ?>">
 							<textarea name="ffc_geofence[geo_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 5000&#10;-22.9068, -43.1729, 10000"><?php echo esc_textarea( $geo_areas ); ?></textarea>
 							<p class="description"><?php esc_html_e( 'Format: latitude, longitude, radius(meters) - One per line. Example: -23.5505, -46.6333, 5000', 'ffcertificate' ); ?></p>
 						</div>
@@ -500,36 +563,30 @@ class FormEditorGeofenceMetabox {
 								</label>
 							</fieldset>
 
-							<div class="<?php echo esc_attr( 'ffc-geo-source-locations' . ( 'locations' !== $geo_ip_area_source ? ' ffc-initially-hidden' : '' ) ); ?>">
-								<select multiple name="ffc_geofence[geo_ip_area_location_ids][]" class="ffc-w100" size="5">
-									<?php foreach ( $all_locations as $loc ) : ?>
-										<option value="<?php echo esc_attr( $loc['id'] ); ?>" <?php echo in_array( $loc['id'], $geo_ip_area_location_ids, true ) ? 'selected' : ''; ?>>
-											<?php echo esc_html( $loc['name'] . ' (' . $loc['lat'] . ', ' . $loc['lng'] . ', ' . $loc['radius'] . 'm)' ); ?>
-										</option>
-									<?php endforeach; ?>
-								</select>
-								<p class="description"><?php esc_html_e( 'Hold Ctrl/Cmd to select multiple locations.', 'ffcertificate' ); ?></p>
+							<div class="<?php echo esc_attr( 'ffc-geo-source-locations' . ( 'locations' !== $geo_ip_area_source ? ' ffc-hidden' : '' ) ); ?>">
+								<?php $this->render_location_picker( 'geo_ip_area_location_ids', $geo_ip_area_location_ids, $all_locations ); ?>
 							</div>
 
-							<div class="<?php echo esc_attr( 'ffc-geo-source-custom' . ( 'custom' !== $geo_ip_area_source ? ' ffc-initially-hidden' : '' ) ); ?>">
+							<div class="<?php echo esc_attr( 'ffc-geo-source-custom' . ( 'custom' !== $geo_ip_area_source ? ' ffc-hidden' : '' ) ); ?>">
 								<textarea name="ffc_geofence[geo_ip_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 50000&#10;-22.9068, -43.1729, 100000"><?php echo esc_textarea( $geo_ip_areas ); ?></textarea>
 								<p class="description"><?php esc_html_e( 'IP geolocation is less precise (1-50km). Use larger radius (in meters).', 'ffcertificate' ); ?></p>
 							</div>
 						</div>
 					</td>
 				</tr>
-				<tr class="ffc-collapsed-target<?php echo '1' === $geo_ip_enabled ? '' : ' ffc-collapsed'; ?>"
-					data-ffc-master="ffc_geofence_geo_ip_enabled"
-					aria-hidden="<?php echo '1' === $geo_ip_enabled ? 'false' : 'true'; ?>">
-					<th><label><?php esc_html_e( 'GPS + IP Logic', 'ffcertificate' ); ?></label></th>
-					<td>
-						<select name="ffc_geofence[geo_gps_ip_logic]">
-							<option value="or" <?php selected( $geo_gps_ip_logic, 'or' ); ?>><?php esc_html_e( 'OR - Allow if GPS OR IP is valid (recommended)', 'ffcertificate' ); ?></option>
-							<option value="and" <?php selected( $geo_gps_ip_logic, 'and' ); ?>><?php esc_html_e( 'AND - Require both GPS AND IP to be valid (stricter)', 'ffcertificate' ); ?></option>
-						</select>
-						<p class="description"><?php esc_html_e( 'When both GPS and IP are enabled, how to combine the results.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
+			</table>
+		<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title' => __( 'Visitors outside the area', 'ffcertificate' ),
+				'hint'  => __( 'What a visitor sees when the location check fails.', 'ffcertificate' ),
+				'icon'  => 'eye',
+				'open'  => true,
+			)
+		);
+		?>
+			<table class="form-table">
 				<tr>
 					<th><label><?php esc_html_e( 'Display Mode', 'ffcertificate' ); ?></label></th>
 					<td>
@@ -555,11 +612,51 @@ class FormEditorGeofenceMetabox {
 						<p class="description"><?php esc_html_e( 'Message shown when location detection fails (GPS denied, etc).', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>
-				</tbody>
 			</table>
+		<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+		</div>
 		</div>
 		<?php
 		$this->enqueue_metabox_script();
+	}
+
+	/**
+	 * Registered-locations picker: one checkbox per location (#1614).
+	 *
+	 * It replaced a `<select multiple>` that needed Ctrl/Cmd to pick more
+	 * than one, which is easy to lose a selection with and gives no hint on a
+	 * touch screen. The POST shape is unchanged — `ffc_geofence[<key>][]`
+	 * with one value per checked location, and nothing when none is — so
+	 * the save handler reads it as before.
+	 *
+	 * @param string                           $key      Config key, e.g. `geo_area_location_ids`.
+	 * @param array<int|string, mixed>         $selected Location ids currently chosen.
+	 * @param array<int, array<string, mixed>> $all      Every registered location.
+	 */
+	private function render_location_picker( string $key, array $selected, array $all ): void {
+		if ( array() === $all ) {
+			printf(
+				'<p class="description">%s <a href="%s">%s</a></p>',
+				esc_html__( 'No locations are registered yet.', 'ffcertificate' ),
+				esc_url( admin_url( 'admin.php?page=ffc-settings&tab=geolocation' ) ),
+				esc_html__( 'Register them in Settings → Geolocation', 'ffcertificate' )
+			);
+			return;
+		}
+		echo '<fieldset class="ffc-location-picker">';
+		printf( '<legend class="screen-reader-text">%s</legend>', esc_html__( 'Registered locations', 'ffcertificate' ) );
+		foreach ( $all as $loc ) {
+			$id = (string) ( $loc['id'] ?? '' );
+			printf(
+				'<label class="ffc-location-picker__item"><input type="checkbox" name="ffc_geofence[%1$s][]" value="%2$s"%3$s> <span class="ffc-location-picker__name">%4$s</span> <span class="ffc-location-picker__meta">%5$s</span></label>',
+				esc_attr( $key ),
+				esc_attr( $id ),
+				in_array( $id, array_map( 'strval', $selected ), true ) ? ' checked' : '',
+				esc_html( (string) ( $loc['name'] ?? '' ) ),
+				esc_html( ( $loc['lat'] ?? '' ) . ', ' . ( $loc['lng'] ?? '' ) . ' · ' . ( $loc['radius'] ?? '' ) . ' m' )
+			);
+		}
+		echo '</fieldset>';
 	}
 
 	/**
