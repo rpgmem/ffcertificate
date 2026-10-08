@@ -154,7 +154,7 @@ class UrlShortenerAdminPage {
 			'ffc_view_url_shortener',
 			'ffc-short-urls',
 			array( $this, 'render_page' ),
-			'dashicons-admin-links',
+			'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
 			26.4
 		);
 	}

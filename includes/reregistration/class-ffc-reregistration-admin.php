@@ -122,7 +122,7 @@ class ReregistrationAdmin {
 			self::VIEW_CAPABILITY,
 			self::MENU_SLUG,
 			array( $this, 'render_page' ),
-			'dashicons-update-alt',
+			'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
 			// Float to keep the FFC block contiguous (26.1 → 26.2 → 26.3);
 			// see Audience admin for rationale.
 			26.2

@@ -107,7 +107,7 @@ class CPT {
 			),
 			'has_archive'     => false,
 			'hierarchical'    => false,
-			'menu_icon'       => 'dashicons-feedback',
+			'menu_icon'       => 'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
 			'supports'        => array( 'title' ),
 			'rewrite'         => array( 'slug' => 'ffc-form' ),
 		);

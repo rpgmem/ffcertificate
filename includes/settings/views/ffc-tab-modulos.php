@@ -17,36 +17,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use FreeFormCertificate\Settings\SettingsReader;
 use FreeFormCertificate\Admin\AdminUI;
+use FreeFormCertificate\Core\Icons;
 
 // Human-facing label + one-line description per module slug. Keys must match
 // SettingsReader::MODULE_SLUGS (the source of truth for order + gating).
 $ffc_module_meta = array(
 	'certificates'    => array(
+		'area'  => 'certificates',
 		'label' => __( 'Certificates', 'ffcertificate' ),
 		'desc'  => __( 'The certificate form post type and public form rendering. Disabling hides the certificate admin and stops public submissions.', 'ffcertificate' ),
 		'note'  => __( 'While disabled, the daily expired-ticket cleanup is paused — unredeemed ticket codes of ended forms are no longer purged until the module is re-enabled.', 'ffcertificate' ),
 	),
 	'audiences'       => array(
+		'area'  => 'scheduling',
 		'label' => __( 'Audiences / Scheduling', 'ffcertificate' ),
 		'desc'  => __( 'Audience groups and the scheduling admin.', 'ffcertificate' ),
 	),
 	'self_scheduling' => array(
+		'area'  => 'scheduling',
 		'label' => __( 'Self-Scheduling', 'ffcertificate' ),
 		'desc'  => __( 'Appointment self-booking and its admin screens.', 'ffcertificate' ),
 	),
 	'reregistration'  => array(
+		'area'  => 'reregistration',
 		'label' => __( 'Reregistration', 'ffcertificate' ),
 		'desc'  => __( 'The reregistration campaign flow and its admin.', 'ffcertificate' ),
 	),
 	'url_shortener'   => array(
+		'area'  => 'url_shortener',
 		'label' => __( 'URL Shortener', 'ffcertificate' ),
 		'desc'  => __( 'Built-in short URLs, redirects and QR codes.', 'ffcertificate' ),
 	),
 	'recruitment'     => array(
+		'area'  => 'recruitment',
 		'label' => __( 'Recruitment', 'ffcertificate' ),
 		'desc'  => __( 'Recruitment calls, candidates and the public queue.', 'ffcertificate' ),
 	),
 	'date_messages'   => array(
+		'area'  => 'date_messages',
 		'label' => __( 'Date Messages', 'ffcertificate' ),
 		'desc'  => __( 'E-mails sent on a date in each person\'s profile, such as a birthday.', 'ffcertificate' ),
 	),
@@ -75,7 +83,7 @@ $ffc_module_meta = array(
 			?>
 			<tr>
 				<th scope="row">
-					<label for="<?php echo esc_attr( $ffc_key ); ?>"><?php echo esc_html( $ffc_meta['label'] ); ?></label>
+					<label for="<?php echo esc_attr( $ffc_key ); ?>" class="<?php echo esc_attr( Icons::area_class( $ffc_meta['area'] ?? '' ) ); ?>"><?php echo esc_html( $ffc_meta['label'] ); ?></label>
 				</th>
 				<td>
 					<?php

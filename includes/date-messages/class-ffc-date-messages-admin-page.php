@@ -146,7 +146,7 @@ final class DateMessagesAdminPage {
 			$cap,
 			self::MENU_SLUG,
 			array( $this, 'render_page' ),
-			'dashicons-email-alt',
+			'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
 			// A top-level menu like the other modules', placed after URL
 			// Shortener (26.4) to keep the FFC block contiguous.
 			26.5
