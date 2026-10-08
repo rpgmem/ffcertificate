@@ -28,9 +28,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="postbox ffc-rec-mt-20">';
-echo '<h2 class="hndle"><span>' . esc_html__( 'Sensitive data (admin only)', 'ffcertificate' ) . '</span></h2>';
-echo '<div class="inside">';
+echo '<div class="card">';
+echo '<h2 class="ffc-icon-lock">' . esc_html__( 'Sensitive data (admin only)', 'ffcertificate' ) . '</h2>';
+echo '<div>';
 
 if ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier ) {
 	echo '<p class="description">' . esc_html__( 'Sensitive fields are masked by default. Click "Reveal" to view; each reveal is recorded in the activity log.', 'ffcertificate' ) . '</p>';

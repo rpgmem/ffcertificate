@@ -27,9 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="postbox ffc-rec-mt-20">';
-echo '<h2 class="hndle"><span>' . esc_html__( 'Hard-delete candidate', 'ffcertificate' ) . '</span></h2>';
-echo '<div class="inside">';
+echo '<div class="card">';
+echo '<h2 class="ffc-icon-delete">' . esc_html__( 'Hard-delete candidate', 'ffcertificate' ) . '</h2>';
+echo '<div>';
 
 if ( $classification_count > 0 ) {
 	echo '<p>' . sprintf(

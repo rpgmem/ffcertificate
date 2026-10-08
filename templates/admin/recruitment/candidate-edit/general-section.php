@@ -27,9 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="postbox ffc-rec-mt-20">';
-echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
-echo '<div class="inside">';
+echo '<div class="card">';
+echo '<h2 class="ffc-icon-id">' . esc_html__( 'General', 'ffcertificate' ) . '</h2>';
+echo '<div>';
 
 echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 echo '<input type="hidden" name="action" value="ffc_recruitment_save_candidate">';

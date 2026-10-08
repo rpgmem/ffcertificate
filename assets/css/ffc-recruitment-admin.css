@@ -189,10 +189,6 @@
    (computed display / data-driven) stay inline by design. */
 
 /* Spacing utilities */
-.ffc-rec-mt-20 {
-    margin-top: var(--ffc-spacing-2xl);
-}
-
 .ffc-rec-mt-0 {
     margin-top: 0;
 }
