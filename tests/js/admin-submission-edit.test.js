@@ -144,7 +144,7 @@ describe('Link to another user button', () => {
 			<form>
 				<input name="linked_user_id" id="ffc-selected-user-id" value="__keep__" />
 				<button type="button" class="ffc-relink-user-btn">Link to Another User</button>
-				<div class="ffc-user-search-container" style="display: none;">
+				<div class="ffc-user-search-container ffc-hidden">
 					<input type="text" id="ffc-user-search-input" />
 				</div>
 			</form>
@@ -156,13 +156,12 @@ describe('Link to another user button', () => {
 		const container = document.querySelector('.ffc-user-search-container');
 		const button = document.querySelector('.ffc-relink-user-btn');
 
-		expect(container.style.display).toBe('none');
+		expect(container.classList.contains('ffc-hidden')).toBe(true);
 
 		button.click();
 
-		// jsdom has no layout, so :visible always reads false -- assert the
-		// computed display instead.
-		expect(container.style.display).not.toBe('none');
+		// Visibility is the shared `.ffc-hidden` class (#1614).
+		expect(container.classList.contains('ffc-hidden')).toBe(false);
 		expect(button.disabled).toBe(true);
 	});
 
@@ -361,55 +360,25 @@ describe('User selection from results', () => {
 		// while the field was only rendered with no user attached, and an unlink
 		// on the next save now that the search also appears for a linked one.
 		expect(document.getElementById('ffc-selected-user-id').value).toBe('__keep__');
-		expect(document.getElementById('ffc-selected-user-preview').style.display).toBe('none');
+		expect(document.getElementById('ffc-selected-user-preview').classList.contains('ffc-hidden')).toBe(true);
 	});
 });
 
 // ----------------------------------------------------------------------
-// Collapsible consent section
+// Consent section
 // ----------------------------------------------------------------------
 
-describe('Collapsible consent section', () => {
-	beforeEach(async () => {
-		window.$.fx.off = true;
+describe('Consent section', () => {
+	it('is a native <details> now: the script no longer toggles it (#1614)', async () => {
 		document.body.innerHTML = `
-			<div class="ffc-consent-box is-open">
-				<div class="ffc-consent-header" tabindex="0" aria-expanded="true">Consent</div>
+			<details class="ffc-section"><summary>Consent</summary>
 				<div class="ffc-consent-details">details</div>
-			</div>
+			</details>
 		`;
 		await loadOnReady();
-	});
-
-	it('clicking the header collapses an open consent box', () => {
-		const header = document.querySelector('.ffc-consent-header');
-		header.click();
-		const box = document.querySelector('.ffc-consent-box');
-		expect(box.classList.contains('is-open')).toBe(false);
-		expect(header.getAttribute('aria-expanded')).toBe('false');
-	});
-
-	it('clicking the header again re-opens a collapsed box', () => {
-		const header = document.querySelector('.ffc-consent-header');
-		header.click(); // close
-		header.click(); // open
-		const box = document.querySelector('.ffc-consent-box');
-		expect(box.classList.contains('is-open')).toBe(true);
-		expect(header.getAttribute('aria-expanded')).toBe('true');
-	});
-
-	it('Enter keypress toggles the section', () => {
-		const header = document.querySelector('.ffc-consent-header');
-		const ev = window.$.Event('keypress', { which: 13 });
-		window.$(header).trigger(ev);
-		expect(document.querySelector('.ffc-consent-box').classList.contains('is-open')).toBe(false);
-	});
-
-	it('ignores non-Enter/Space keypresses', () => {
-		const header = document.querySelector('.ffc-consent-header');
-		const ev = window.$.Event('keypress', { which: 65 });
-		window.$(header).trigger(ev);
-		// Still open — the handler returned early.
-		expect(document.querySelector('.ffc-consent-box').classList.contains('is-open')).toBe(true);
+		const details = document.querySelector('details');
+		details.querySelector('summary').dispatchEvent(new window.KeyboardEvent('keypress', { which: 13, bubbles: true }));
+		expect(details.classList.contains('is-open')).toBe(false);
+		expect(details.hasAttribute('style')).toBe(false);
 	});
 });

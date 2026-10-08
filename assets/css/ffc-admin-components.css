@@ -116,3 +116,25 @@
 .ffc-section__body > .form-table:first-child {
     margin-top: 0;
 }
+
+/* Facts: a read-only label/value list (`<dl class="ffc-facts">`). */
+.ffc-facts {
+    display: grid;
+    grid-template-columns: minmax(8em, auto) 1fr;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
+    margin: 0;
+}
+
+.ffc-facts__label {
+    color: var(--ffc-text-muted);
+}
+
+.ffc-facts__value {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.ffc-facts__value.is-on {
+    font-weight: 600;
+}

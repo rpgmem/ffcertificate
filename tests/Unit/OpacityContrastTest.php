@@ -57,9 +57,6 @@ final class OpacityContrastTest extends TestCase {
 			'.ffc-settings-tabs__external' => 'external-link icon, decorative glyph beside the label',
 			'.ffc-settings-back-to-top'    => 'floating back-to-top button; its label is a glyph',
 		),
-		'ffc-admin-submission-edit.css'   => array(
-			'.ffc-consent-header:hover' => '`:hover` feedback, a transient state',
-		),
 		'ffc-admin.css'                   => array(
 			'#ffc-preview-modal' => 'opacity: 0 — the closed modal is not painted',
 			'.ffc-page-identities .ffc-identity-panel-step[aria-disabled="true"]' => 'the step control at either end of a panel: an INACTIVE component, which SC 1.4.3 exempts — and inactive in fact, not only in wording, since the same rule sets `pointer-events: none` and the attribute says so to a screen reader',

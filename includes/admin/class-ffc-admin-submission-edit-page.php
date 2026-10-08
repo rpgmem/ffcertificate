@@ -138,20 +138,95 @@ class AdminSubmissionEditPage {
 				?>
 				<input type="hidden" name="ffc_save_edit" value="1">
 
-				<table class="form-table ffc-edit-table">
-					<?php
-					$this->render_system_info_section();
-					$this->render_consent_section();
-					$this->render_participant_data_section();
-					$this->render_dynamic_fields();
-					?>
-				</table>
-
-				<p class="submit">
-					<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Changes', 'ffcertificate' ); ?></button>
-					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'ffcertificate' ); ?></a>
-				</p>
+				<div class="ffc-edit-layout">
+					<div class="ffc-edit-main">
+						<?php
+						$this->render_participant_data_section();
+						$this->render_dynamic_fields();
+						$this->render_system_info_section();
+						$this->render_consent_section();
+						?>
+					</div>
+					<div class="ffc-edit-side">
+						<?php
+						$this->render_actions_card();
+						$this->render_magic_link_card();
+						$this->render_user_link_section();
+						?>
+					</div>
+				</div>
 			</form>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Open a card of the edit layout, with an icon heading.
+	 *
+	 * @param string $title Card heading.
+	 * @param string $icon  `.ffc-icon-*` class name, without the prefix.
+	 */
+	private static function card_open( string $title, string $icon ): void {
+		printf(
+			'<div class="ffc-edit-card"><h2 class="ffc-edit-card__title ffc-icon-%s">%s</h2>',
+			esc_attr( $icon ),
+			esc_html( $title )
+		);
+	}
+
+	/**
+	 * One read-only row of a facts list: a label and its value as text.
+	 *
+	 * A value nobody can edit reads as text, not as a disabled input that
+	 * looks like a field to fill in (#1614).
+	 *
+	 * @param string $label Row label.
+	 * @param string $value Plain-text value.
+	 * @param string $note  Optional note under the value.
+	 */
+	private static function fact( string $label, string $value, string $note = '' ): void {
+		printf(
+			'<dt class="ffc-facts__label">%s</dt><dd class="ffc-facts__value">%s%s</dd>',
+			esc_html( $label ),
+			esc_html( $value ),
+			'' !== $note ? '<span class="description ffc-edit-note">' . esc_html( $note ) . '</span>' : ''
+		);
+	}
+
+	/**
+	 * Side panel: save and cancel.
+	 */
+	private function render_actions_card(): void {
+		self::card_open( __( 'Save', 'ffcertificate' ), 'checkmark' );
+		?>
+		<p class="ffc-edit-actions">
+			<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Changes', 'ffcertificate' ); ?></button>
+			<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'ffcertificate' ); ?></a>
+		</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Side panel: the magic link, with copy and open.
+	 */
+	private function render_magic_link_card(): void {
+		$magic_token = isset( $this->sub_array['magic_token'] ) ? (string) $this->sub_array['magic_token'] : '';
+		self::card_open( __( 'Magic Link', 'ffcertificate' ), 'link' );
+		if ( '' === $magic_token ) {
+			echo '<p class="description">' . esc_html__( 'Submission created before magic links', 'ffcertificate' ) . '</p></div>';
+			return;
+		}
+		$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
+		?>
+		<p class="ffc-edit-magic-link">
+			<a href="<?php echo esc_url( $magic_link ); ?>" target="_blank" rel="noopener" class="ffc-magic-link"><?php echo esc_html( $magic_link ); ?></a>
+		</p>
+		<p class="ffc-edit-actions">
+			<button type="button" class="button ffc-copy-magic-link ffc-icon-copy" data-url="<?php echo esc_attr( $magic_link ); ?>"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+			<a href="<?php echo esc_url( $magic_link ); ?>" target="_blank" rel="noopener" class="button ffc-icon-external"><?php esc_html_e( 'Open certificate', 'ffcertificate' ); ?></a>
+		</p>
+		<p class="description"><?php esc_html_e( 'Anyone with this link can download the certificate.', 'ffcertificate' ); ?></p>
 		</div>
 		<?php
 	}
@@ -215,74 +290,26 @@ class AdminSubmissionEditPage {
 	 * Displays ID, date, status, magic token, user IP.
 	 */
 	private function render_system_info_section(): void {
-		$magic_token    = isset( $this->sub_array['magic_token'] ) ? $this->sub_array['magic_token'] : '';
 		$formatted_date = isset( $this->sub_array['submission_date'] )
 			? \FreeFormCertificate\Core\DateFormatter::format_datetime( $this->sub_array['submission_date'] )
 			: __( 'Unknown', 'ffcertificate' );
 
-		?>
-		<!-- SEÇÃO: INFORMAÇÕES DO SISTEMA -->
-		<tr>
-			<td colspan="2">
-				<h2 class="ffc-section-header">
-					<?php esc_html_e( 'System Information', 'ffcertificate' ); ?>
-				</h2>
-			</td>
-		</tr>
-
-		<tr>
-			<th><label><?php esc_html_e( 'Submission ID', 'ffcertificate' ); ?></label></th>
-			<td>
-				<input type="text" value="<?php echo esc_attr( $this->sub_array['id'] ); ?>" class="regular-text ffc-input-readonly" readonly>
-				<p class="description"><?php esc_html_e( 'Unique submission identifier.', 'ffcertificate' ); ?></p>
-			</td>
-		</tr>
-
-		<tr>
-			<th><label><?php esc_html_e( 'Submission Date', 'ffcertificate' ); ?></label></th>
-			<td>
-				<input type="text" value="<?php echo esc_attr( $formatted_date ); ?>" class="regular-text ffc-input-readonly" readonly>
-				<p class="description"><?php esc_html_e( 'Original submission timestamp (read-only).', 'ffcertificate' ); ?></p>
-			</td>
-		</tr>
-
-		<tr>
-			<th><label><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label></th>
-			<td>
-				<input type="text" value="<?php echo esc_attr( $this->sub_array['status'] ); ?>" class="regular-text ffc-input-readonly" readonly>
-				<p class="description"><?php esc_html_e( 'Submission status (publish, trash, etc).', 'ffcertificate' ); ?></p>
-			</td>
-		</tr>
-
-		<tr>
-			<th><label><?php esc_html_e( 'Magic Link Token', 'ffcertificate' ); ?></label></th>
-			<td>
-				<?php if ( ! empty( $magic_token ) ) : ?>
-					<input type="text" value="<?php echo esc_attr( $magic_token ); ?>" class="regular-text ffc-input-readonly" readonly>
-					<p class="description">
-						<?php esc_html_e( 'Unique token for certificate access (read-only).', 'ffcertificate' ); ?>
-						<?php echo wp_kses_post( \FreeFormCertificate\Generators\MagicLinkHelper::get_magic_link_html( $magic_token ) ); ?>
-					</p>
-				<?php else : ?>
-					<p class="description"><?php esc_html_e( 'Submission created before magic links', 'ffcertificate' ); ?></p>
-				<?php endif; ?>
-			</td>
-		</tr>
-
-		<?php if ( ! empty( $this->sub_array['user_ip'] ) ) : ?>
-		<tr>
-			<th><label><?php esc_html_e( 'User IP', 'ffcertificate' ); ?></label></th>
-			<td>
-				<input type="text" value="<?php echo esc_attr( $this->sub_array['user_ip'] ); ?>" class="regular-text ffc-input-readonly" readonly>
-				<?php if ( ! empty( $this->sub_array['user_ip_encrypted'] ) ) : ?>
-					<p class="description"><span class="ffc-icon-lock"></span><?php esc_html_e( 'This IP is encrypted in the database.', 'ffcertificate' ); ?></p>
-				<?php endif; ?>
-			</td>
-		</tr>
-		<?php endif; ?>
-
-		<?php $this->render_user_link_section(); ?>
-		<?php
+		self::card_open( __( 'System Information', 'ffcertificate' ), 'info' );
+		echo '<dl class="ffc-facts">';
+		self::fact( __( 'Submission ID', 'ffcertificate' ), (string) $this->sub_array['id'] );
+		self::fact( __( 'Submission Date', 'ffcertificate' ), (string) $formatted_date );
+		self::fact( __( 'Status', 'ffcertificate' ), (string) $this->sub_array['status'] );
+		if ( ! empty( $this->sub_array['magic_token'] ) ) {
+			self::fact( __( 'Magic Link Token', 'ffcertificate' ), (string) $this->sub_array['magic_token'] );
+		}
+		if ( ! empty( $this->sub_array['user_ip'] ) ) {
+			self::fact(
+				__( 'User IP', 'ffcertificate' ),
+				(string) $this->sub_array['user_ip'],
+				empty( $this->sub_array['user_ip_encrypted'] ) ? '' : __( 'This IP is encrypted in the database.', 'ffcertificate' )
+			);
+		}
+		echo '</dl></div>';
 	}
 
 	/**
@@ -297,10 +324,8 @@ class AdminSubmissionEditPage {
 		$current_user    = $current_user_id ? get_userdata( $current_user_id ) : null;
 		$nonce           = wp_create_nonce( 'ffc_user_search_nonce' );
 
+		self::card_open( __( 'Linked User', 'ffcertificate' ), 'user' );
 		?>
-		<tr>
-			<th><label><?php esc_html_e( 'Linked User', 'ffcertificate' ); ?></label></th>
-			<td>
 				<div class="ffc-user-link-container" data-submission-id="<?php echo esc_attr( $this->sub_array['id'] ); ?>">
 					<?php
 					/*
@@ -331,7 +356,7 @@ class AdminSubmissionEditPage {
 									<span class="ffc-user-email">(<?php echo esc_html( $current_user->user_email ); ?>)</span>
 									<span class="ffc-user-id">ID: <?php echo esc_html( (string) $current_user_id ); ?></span>
 								</span>
-								<a href="<?php echo esc_url( get_edit_user_link( $current_user_id ) ); ?>" target="_blank" class="button button-small">
+								<a href="<?php echo esc_url( get_edit_user_link( $current_user_id ) ); ?>" target="_blank" class="button button-small ffc-icon-external">
 									<?php esc_html_e( 'View Profile', 'ffcertificate' ); ?>
 								</a>
 							</div>
@@ -361,7 +386,7 @@ class AdminSubmissionEditPage {
 					 * searching and saving again.
 					 */
 					?>
-					<div class="ffc-user-search-container"<?php echo $current_user ? ' style="display: none;"' : ''; ?>>
+					<div class="ffc-user-search-container<?php echo $current_user ? ' ffc-hidden' : ''; ?>">
 						<?php if ( ! $current_user ) : ?>
 							<p class="ffc-no-user">
 								<em><?php esc_html_e( 'No user linked to this submission.', 'ffcertificate' ); ?></em>
@@ -374,10 +399,10 @@ class AdminSubmissionEditPage {
 							</button>
 							<span class="spinner" id="ffc-search-spinner"></span>
 						</div>
-						<div id="ffc-user-search-results" class="ffc-user-search-results" style="display: none;">
+						<div id="ffc-user-search-results" class="ffc-user-search-results ffc-hidden">
 							<!-- Results will be populated via AJAX -->
 						</div>
-						<div id="ffc-selected-user-preview" class="ffc-selected-user-preview" style="display: none;">
+						<div id="ffc-selected-user-preview" class="ffc-selected-user-preview ffc-hidden">
 							<!-- Selected user preview will be shown here -->
 						</div>
 						<p class="description">
@@ -385,8 +410,7 @@ class AdminSubmissionEditPage {
 						</p>
 					</div>
 				</div>
-			</td>
-		</tr>
+		</div>
 		<?php
 	}
 
@@ -404,61 +428,53 @@ class AdminSubmissionEditPage {
 			: '';
 		$consent_ip   = \FreeFormCertificate\Core\Encryption::decrypt_field( $this->sub_array, 'user_ip' );
 
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title' => __( 'LGPD Consent Status', 'ffcertificate' ),
+				'icon'  => $consent_given ? 'check' : 'warning',
+				'chip'  => $consent_given ? __( 'Consent given', 'ffcertificate' ) : __( 'No consent recorded', 'ffcertificate' ),
+			)
+		);
 		?>
-		<!-- SEÇÃO LGPD CONSENT STATUS (collapsible) -->
-		<tr>
-			<td colspan="2">
-				<div class="ffc-consent-box ffc-collapsible <?php echo esc_attr( $consent_given ? 'ffc-consent-given' : 'ffc-consent-not-given' ); ?>">
-					<h3 class="ffc-consent-header" tabindex="0" role="button" aria-expanded="false">
-						<span class="ffc-consent-toggle-icon">&#9654;</span>
-						<span class="<?php echo esc_attr( $consent_given ? 'ffc-icon-success' : 'ffc-icon-warning' ); ?>"></span>
-						<?php esc_html_e( 'LGPD Consent Status', 'ffcertificate' ); ?>
-						<span class="ffc-consent-summary">
-							— <?php echo esc_html( $consent_given ? __( 'Consent given', 'ffcertificate' ) : __( 'No consent recorded', 'ffcertificate' ) ); ?>
-						</span>
-					</h3>
+		<div class="ffc-consent-details <?php echo esc_attr( $consent_given ? 'ffc-consent-given' : 'ffc-consent-not-given' ); ?>">
+			<?php if ( $consent_given ) : ?>
+				<p>
+					<strong><?php esc_html_e( 'Consent given:', 'ffcertificate' ); ?></strong>
+					<?php esc_html_e( 'User explicitly agreed to data storage and privacy policy.', 'ffcertificate' ); ?>
+				</p>
+				<?php if ( $consent_date ) : ?>
+					<p class="description">
+						<?php
+						/* translators: %s: consent date/time */
+						echo esc_html( sprintf( __( 'Date: %s', 'ffcertificate' ), $consent_date ) );
+						?>
+					</p>
+				<?php endif; ?>
 
-					<div class="ffc-consent-details" style="display: none;">
-						<?php if ( $consent_given ) : ?>
-							<p>
-								<strong><?php esc_html_e( 'Consent given:', 'ffcertificate' ); ?></strong>
-								<?php esc_html_e( 'User explicitly agreed to data storage and privacy policy.', 'ffcertificate' ); ?>
-							</p>
-							<?php if ( $consent_date ) : ?>
-								<p class="description">
-									<?php
-									/* translators: %s: consent date/time */
-									echo esc_html( sprintf( __( 'Date: %s', 'ffcertificate' ), $consent_date ) );
-									?>
-								</p>
-							<?php endif; ?>
+				<?php if ( $consent_ip ) : ?>
+					<p class="description">
+						<?php
+						/* translators: %s: IP address */
+						echo esc_html( sprintf( __( 'IP: %s', 'ffcertificate' ), $consent_ip ) );
+						?>
+					</p>
+				<?php endif; ?>
 
-							<?php if ( $consent_ip ) : ?>
-								<p class="description">
-									<?php
-									/* translators: %s: IP address */
-									echo esc_html( sprintf( __( 'IP: %s', 'ffcertificate' ), $consent_ip ) );
-									?>
-								</p>
-							<?php endif; ?>
-
-							<p class="description">
-								<?php esc_html_e( 'Sensitive data (email, CPF/RF, IP) is encrypted in the database.', 'ffcertificate' ); ?>
-							</p>
-						<?php else : ?>
-							<p>
-								<strong><?php esc_html_e( 'No consent recorded:', 'ffcertificate' ); ?></strong>
-								<?php esc_html_e( 'This submission was created before LGPD consent feature (v2.10.0).', 'ffcertificate' ); ?>
-							</p>
-							<p class="description">
-								<?php esc_html_e( 'Older submissions do not have explicit consent flag but may have been collected under privacy policy.', 'ffcertificate' ); ?>
-							</p>
-						<?php endif; ?>
-					</div>
-				</div>
-			</td>
-		</tr>
+				<p class="description">
+					<?php esc_html_e( 'Sensitive data (email, CPF/RF, IP) is encrypted in the database.', 'ffcertificate' ); ?>
+				</p>
+			<?php else : ?>
+				<p>
+					<strong><?php esc_html_e( 'No consent recorded:', 'ffcertificate' ); ?></strong>
+					<?php esc_html_e( 'This submission was created before LGPD consent feature (v2.10.0).', 'ffcertificate' ); ?>
+				</p>
+				<p class="description">
+					<?php esc_html_e( 'Older submissions do not have explicit consent flag but may have been collected under privacy policy.', 'ffcertificate' ); ?>
+				</p>
+			<?php endif; ?>
+		</div>
 		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_section_close();
 	}
 
 	/**
@@ -467,29 +483,18 @@ class AdminSubmissionEditPage {
 	 * Displays email (editable), CPF/RF, auth code (read-only).
 	 */
 	private function render_participant_data_section(): void {
+		self::card_open( __( 'Participant Data', 'ffcertificate' ), 'user' );
 		?>
-		<!-- SEÇÃO: DADOS DO PARTICIPANTE -->
-		<tr>
-			<td colspan="2">
-				<h2 class="ffc-section-header">
-					<?php esc_html_e( 'Participant Data', 'ffcertificate' ); ?>
-				</h2>
-			</td>
-		</tr>
-
-		<!-- Email (editable) -->
-		<tr>
-			<th><label for="user_email"><?php esc_html_e( 'Email', 'ffcertificate' ); ?> *</label></th>
-			<td>
-				<input type="email" name="user_email" id="user_email" value="<?php echo esc_attr( $this->sub_array['email'] ); ?>" class="regular-text" required>
-				<?php if ( ! empty( $this->sub_array['email_encrypted'] ) ) : ?>
-					<p class="description"><span class="ffc-icon-lock"></span><?php esc_html_e( 'This email is encrypted in the database.', 'ffcertificate' ); ?></p>
-				<?php endif; ?>
-			</td>
-		</tr>
-
-		<!-- CPF/RF (read-only when present) — #739 §3.3 masked unless PII tier -->
+		<p class="ffc-edit-field">
+			<label for="user_email"><?php esc_html_e( 'Email', 'ffcertificate' ); ?> *</label>
+			<input type="email" name="user_email" id="user_email" value="<?php echo esc_attr( $this->sub_array['email'] ); ?>" class="regular-text" required>
+			<?php if ( ! empty( $this->sub_array['email_encrypted'] ) ) : ?>
+				<span class="description ffc-edit-note ffc-icon-lock"><?php esc_html_e( 'This email is encrypted in the database.', 'ffcertificate' ); ?></span>
+			<?php endif; ?>
+		</p>
+		<dl class="ffc-facts">
 		<?php
+		// CPF/RF — #739 §3.3 masked unless PII tier.
 		if ( ! empty( $this->sub_array['cpf_rf'] ) ) :
 			$ffc_is_rf     = ! empty( $this->sub_array['rf'] );
 			$ffc_pii_field = $ffc_is_rf ? 'rf' : 'cpf';
@@ -506,12 +511,16 @@ class AdminSubmissionEditPage {
 				$ffc_pii_display = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $this->sub_array['cpf_rf'] );
 			}
 			?>
-		<tr>
-			<th><label><?php echo esc_html( $ffc_is_rf ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' ) ); ?></label></th>
-			<td>
-				<input type="text" value="<?php echo esc_attr( $ffc_pii_display ); ?>" class="regular-text ffc-input-readonly" data-ffc-pii-field="<?php echo esc_attr( $ffc_pii_field ); ?>" readonly>
+			<dt class="ffc-facts__label"><?php echo esc_html( $ffc_is_rf ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' ) ); ?></dt>
+			<dd class="ffc-facts__value">
+				<?php
+				// The shared reveal script writes the clear value into the
+				// input it finds by data-ffc-pii-field, so the value stays an
+				// input — read-only and drawn as text.
+				?>
+				<input type="text" value="<?php echo esc_attr( $ffc_pii_display ); ?>" class="ffc-input-readonly ffc-edit-plain" data-ffc-pii-field="<?php echo esc_attr( $ffc_pii_field ); ?>" readonly aria-label="<?php echo esc_attr( $ffc_is_rf ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' ) ); ?>">
 				<?php if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $ffc_pii_tier ) : ?>
-					<button type="button" class="button button-small ffc-reveal-pii"
+					<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye"
 						data-field="<?php echo esc_attr( $ffc_pii_field ); ?>"
 						data-submission-id="<?php echo esc_attr( (string) ( $this->sub_array['id'] ?? 0 ) ); ?>"
 						data-nonce="<?php echo esc_attr( wp_create_nonce( 'ffc_reveal_pii_nonce' ) ); ?>">
@@ -519,34 +528,40 @@ class AdminSubmissionEditPage {
 					</button>
 				<?php endif; ?>
 				<?php if ( ! empty( $this->sub_array['cpf_encrypted'] ) || ! empty( $this->sub_array['rf_encrypted'] ) ) : ?>
-					<p class="description"><span class="ffc-icon-lock"></span><?php esc_html_e( 'This identifier is encrypted in the database.', 'ffcertificate' ); ?></p>
+					<span class="description ffc-edit-note ffc-icon-lock"><?php esc_html_e( 'This identifier is encrypted in the database.', 'ffcertificate' ); ?></span>
 				<?php endif; ?>
-			</td>
-		</tr>
+			</dd>
 		<?php endif; ?>
-
-		<!-- Auth code (read-only when present) -->
-		<?php if ( ! empty( $this->sub_array['auth_code'] ) ) : ?>
-		<tr>
-			<th><label><?php esc_html_e( 'Auth Code', 'ffcertificate' ); ?></label></th>
-			<td>
-				<input type="text" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $this->sub_array['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ) ); ?>" class="regular-text ffc-input-readonly" readonly>
-				<p class="description"><?php esc_html_e( 'Protected authentication code.', 'ffcertificate' ); ?></p>
-			</td>
-		</tr>
-		<?php endif; ?>
+		<?php
+		if ( ! empty( $this->sub_array['auth_code'] ) ) {
+			self::fact(
+				__( 'Auth Code', 'ffcertificate' ),
+				\FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $this->sub_array['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
+				__( 'Protected authentication code.', 'ffcertificate' )
+			);
+		}
+		?>
+		</dl>
+		</div>
 		<?php
 	}
 
 	/**
 	 * Render dynamic fields from JSON data
 	 *
-	 * Renders all custom fields from the form submission.
+	 * The form answers as editable fields. A protected internal field
+	 * (auth code, fill date, ticket) reads as text, and travels in a hidden
+	 * input: the save handler rebuilds the data from what is posted, so a
+	 * field left out of the POST would be deleted.
 	 */
 	private function render_dynamic_fields(): void {
 		// Protected fields (read-only within JSON).
 		$protected_json_fields = array( 'auth_code', 'fill_date', 'ticket' );
 
+		self::card_open( __( 'Form answers', 'ffcertificate' ), 'list' );
+
+		$editable  = '';
+		$protected = '';
 		foreach ( $this->data as $k => $v ) {
 			// Skip old tracking fields (now in columns).
 			if ( 'is_edited' === $k || 'edited_at' === $k ) {
@@ -555,30 +570,44 @@ class AdminSubmissionEditPage {
 
 			// Get field label.
 			$lbl = $k;
-			foreach ( $this->fields as $f ) {
+			foreach ( (array) $this->fields as $f ) {
 				if ( isset( $f['name'] ) && $f['name'] === $k ) {
 					$lbl = $f['label'];
 				}
 			}
 
-			// Determine if field is protected.
-			$is_protected  = in_array( $k, $protected_json_fields, true );
-			$field_class   = $is_protected ? 'regular-text ffc-input-readonly' : 'regular-text';
-			$readonly_attr = $is_protected ? 'readonly' : '';
-			$display_value = is_array( $v ) ? implode( ', ', $v ) : $v;
+			$display_value = is_array( $v ) ? implode( ', ', $v ) : (string) $v;
+			$name          = 'data[' . $k . ']';
 
-			?>
-			<tr>
-				<th><?php echo esc_html( $lbl ); ?></th>
-				<td>
-					<input type="text" name="data[<?php echo esc_attr( $k ); ?>]" value="<?php echo esc_attr( $display_value ); ?>" class="<?php echo esc_attr( $field_class ); ?>" <?php echo esc_attr( $readonly_attr ); ?>>
-					<?php if ( $is_protected ) : ?>
-						<p class="description"><?php esc_html_e( 'Protected internal field.', 'ffcertificate' ); ?></p>
-					<?php endif; ?>
-				</td>
-			</tr>
-			<?php
+			if ( in_array( $k, $protected_json_fields, true ) ) {
+				$protected .= sprintf(
+					'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s<input type="hidden" name="%3$s" value="%4$s"><span class="description ffc-edit-note">%5$s</span></dd>',
+					esc_html( (string) $lbl ),
+					esc_html( $display_value ),
+					esc_attr( $name ),
+					esc_attr( $display_value ),
+					esc_html__( 'Protected internal field.', 'ffcertificate' )
+				);
+				continue;
+			}
+
+			$editable .= sprintf(
+				'<p class="ffc-edit-field"><label for="%1$s">%2$s</label><input type="text" id="%1$s" name="%3$s" value="%4$s" class="regular-text"></p>',
+				esc_attr( 'ffc-edit-data-' . sanitize_key( (string) $k ) ),
+				esc_html( (string) $lbl ),
+				esc_attr( $name ),
+				esc_attr( $display_value )
+			);
 		}
+
+		if ( '' === $editable && '' === $protected ) {
+			echo '<p class="description">' . esc_html__( 'This submission has no form answers.', 'ffcertificate' ) . '</p>';
+		}
+		echo $editable; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped where the markup is built above.
+		if ( '' !== $protected ) {
+			echo '<dl class="ffc-facts ffc-edit-protected">' . $protected . '</dl>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped where the markup is built above.
+		}
+		echo '</div>';
 	}
 
 	/**
