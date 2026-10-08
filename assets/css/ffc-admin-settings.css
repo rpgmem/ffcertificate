@@ -984,6 +984,16 @@
         border-left: none;
         border-bottom-color: var(--ffc-primary);
     }
+
+    /* A group label takes a row of its own, so it heads the tabs it names
+       instead of flowing between them in the wrapped strip (#1637). */
+    .ffc-settings-tabs__group {
+        flex: 0 0 100%;
+    }
+
+    .ffc-settings-tabs__group-label {
+        padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg) 0;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
