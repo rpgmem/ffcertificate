@@ -147,7 +147,7 @@ class TabEmailTextsTest extends TestCase {
 		$this->assertStringContainsString( 'validation_url', $out );
 		// The picker + its feature optgroups drive which editor is shown.
 		$this->assertStringContainsString( 'id="ffc-email-texts-select"', $out );
-		$this->assertStringContainsString( '<optgroup label="Self-scheduling">', $out );
+		$this->assertStringContainsString( '<optgroup label="Personal Calendars">', $out );
 		$this->assertStringContainsString( '<optgroup label="Account access">', $out );
 		// The tab opens on the placeholder with EVERY editor hidden — nothing is
 		// initialized until an email is picked, so TinyMCE is never asked to boot
