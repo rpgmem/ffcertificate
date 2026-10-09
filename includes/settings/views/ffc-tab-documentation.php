@@ -4,17 +4,16 @@
  *
  * The Quick-Navigation TOC and the section cards are both driven by a single
  * ordered, **recursive** registry ($ffc_doc_tree): a tree of nodes mirroring
- * the plugin's functional areas (Certificates / Scheduling / Reregistration /
- * Recruitment / Short URLs / Date Messages / Developer / Troubleshooting) — the
- * reorganization from #697. Each node may carry its own page (`file` + `anchor`) and/or a list
- * of `children`; the nav renders as a collapsible tree and the page partials
- * are required in tree order. Adding or moving a doc page is a one-line
- * registry edit; the nav and the require order stay in sync automatically.
- *
- * NOTE (foundation step of #697): this only re-groups the *existing* pages
- * under the new functional tree — page files, anchors and content are
- * unchanged. Each functional area is then fleshed out (renames to functional
- * slugs, merges/splits, new content) in its own follow-up PR.
+ * the plugin's functional areas (#697). The top level follows the admin menu,
+ * area by area in `Core\PluginAreas` order — Certificates, Scheduling,
+ * Reregistration, Recruitment, Short URLs, Date Messages, FFC Settings — after
+ * the overview, with Developer and Troubleshooting last. FFC Settings is
+ * grouped like its own tab navigation (`Settings::nav_group_labels()`), so a
+ * topic sits where the screen it describes sits. Each node may carry its own
+ * page (`file` + `anchor`) and/or a list of `children`; the nav renders as a
+ * collapsible tree and the page partials are required in tree order. Adding or
+ * moving a doc page is a one-line registry edit; the nav and the require order
+ * stay in sync automatically.
  *
  * @package FreeFormCertificate\Settings
  */
@@ -39,6 +38,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @var array<int, array<string, mixed>> $ffc_doc_tree
  */
+$ffc_doc_groups = \FreeFormCertificate\Admin\Settings::nav_group_labels();
+
 $ffc_doc_tree = array(
 	array(
 		'anchor' => 'overview',
@@ -87,7 +88,7 @@ $ffc_doc_tree = array(
 					array(
 						'anchor' => 'reference-qr-codes',
 						'icon'   => 'ffc-icon-qr',
-						'title'  => __( 'QR Codes', 'ffcertificate' ),
+						'title'  => __( 'QR Code in the Certificate', 'ffcertificate' ),
 						'file'   => 'reference-qr-codes.php',
 					),
 					array(
@@ -152,132 +153,6 @@ $ffc_doc_tree = array(
 					),
 				),
 			),
-			array(
-				'title'    => __( 'Configuration', 'ffcertificate' ),
-				'icon'     => 'ffc-icon-settings',
-				'children' => array(
-					array(
-						'anchor' => 'config-general',
-						'icon'   => 'ffc-icon-settings',
-						'title'  => __( 'General', 'ffcertificate' ),
-						'file'   => 'config-general.php',
-					),
-					array(
-						'anchor' => 'config-modules',
-						'icon'   => 'ffc-icon-grid',
-						'title'  => __( 'Modules', 'ffcertificate' ),
-						'file'   => 'config-modules.php',
-					),
-					array(
-						'anchor' => 'reference-emails',
-						'icon'   => 'ffc-icon-send',
-						'title'  => __( 'Emails & Delivery', 'ffcertificate' ),
-						'file'   => 'reference-emails.php',
-					),
-					array(
-						'anchor' => 'email-texts-hub',
-						'icon'   => 'ffc-icon-email',
-						'title'  => __( 'Email texts hub', 'ffcertificate' ),
-						'file'   => 'email-texts-hub.php',
-					),
-					array(
-						'anchor' => 'document-templates-hub',
-						'icon'   => 'ffc-icon-file',
-						'title'  => __( 'Document Templates hub', 'ffcertificate' ),
-						'file'   => 'document-templates-hub.php',
-					),
-					array(
-						'anchor' => 'config-cache',
-						'icon'   => 'ffc-icon-zap',
-						'title'  => __( 'Cache', 'ffcertificate' ),
-						'file'   => 'config-cache.php',
-					),
-					array(
-						'anchor' => 'config-captcha',
-						'icon'   => 'ffc-icon-robot',
-						'title'  => __( 'Captcha', 'ffcertificate' ),
-						'file'   => 'config-captcha.php',
-					),
-					array(
-						'anchor' => 'config-rate-limit',
-						'icon'   => 'ffc-icon-gauge',
-						'title'  => __( 'Rate Limit', 'ffcertificate' ),
-						'file'   => 'config-rate-limit.php',
-					),
-					array(
-						'anchor' => 'config-geolocation',
-						'icon'   => 'ffc-icon-map-pin',
-						'title'  => __( 'Geolocation', 'ffcertificate' ),
-						'file'   => 'config-geolocation.php',
-					),
-					array(
-						'anchor' => 'config-ip-diagnostics',
-						'icon'   => 'ffc-icon-network',
-						'title'  => __( 'IP Diagnostics', 'ffcertificate' ),
-						'file'   => 'config-ip-diagnostics.php',
-					),
-					array(
-						'anchor' => 'feature-user-dashboard',
-						'icon'   => 'ffc-icon-user',
-						'title'  => __( 'User Dashboard & Access', 'ffcertificate' ),
-						'file'   => 'feature-user-dashboard.php',
-					),
-					array(
-						'anchor' => 'config-user-access',
-						'icon'   => 'ffc-icon-key',
-						'title'  => __( 'User Access', 'ffcertificate' ),
-						'file'   => 'config-user-access.php',
-					),
-					array(
-						'anchor' => 'reference-capabilities',
-						'icon'   => 'ffc-icon-users',
-						'title'  => __( 'Capabilities & Roles', 'ffcertificate' ),
-						'file'   => 'reference-capabilities.php',
-					),
-					array(
-						'anchor' => 'reference-privacy',
-						'icon'   => 'ffc-icon-shield',
-						'title'  => __( 'Privacy & LGPD', 'ffcertificate' ),
-						'file'   => 'reference-privacy.php',
-					),
-					array(
-						'anchor' => 'config-advanced',
-						'icon'   => 'ffc-icon-sliders',
-						'title'  => __( 'Advanced', 'ffcertificate' ),
-						'file'   => 'config-advanced.php',
-					),
-					array(
-						'anchor' => 'config-activity-log',
-						'icon'   => 'ffc-icon-history',
-						'title'  => __( 'Activity Log', 'ffcertificate' ),
-						'file'   => 'config-activity-log.php',
-					),
-					array(
-						'anchor' => 'config-scheduled-tasks',
-						'icon'   => 'ffc-icon-clock',
-						'title'  => __( 'Scheduled Tasks', 'ffcertificate' ),
-						'file'   => 'config-scheduled-tasks.php',
-					),
-					array(
-						'anchor' => 'operations-migrations',
-						'icon'   => 'ffc-icon-database',
-						'title'  => __( 'Data Migrations', 'ffcertificate' ),
-						'file'   => 'operations-migrations.php',
-					),
-					array(
-						'anchor' => 'operations-maintenance',
-						'icon'   => 'ffc-icon-wrench',
-						'title'  => __( 'Maintenance Tools', 'ffcertificate' ),
-						'file'   => 'operations-maintenance.php',
-					),
-					array(
-						'anchor' => 'operations-updates',
-						'icon'   => 'ffc-icon-sync',
-						'title'  => __( 'Updates', 'ffcertificate' ),
-						'file'   => 'operations-updates.php',
-					),
-				),
-			),
 		),
 	),
 	array(
@@ -329,16 +204,196 @@ $ffc_doc_tree = array(
 		'file'   => 'feature-recruitment.php',
 	),
 	array(
-		'anchor' => 'feature-url-shortener',
-		'icon'   => \FreeFormCertificate\Core\PluginAreas::icon_class( 'url_shortener' ),
-		'title'  => \FreeFormCertificate\Core\PluginAreas::label( 'url_shortener' ),
-		'file'   => 'feature-url-shortener.php',
+		'icon'     => \FreeFormCertificate\Core\PluginAreas::icon_class( 'url_shortener' ),
+		'title'    => \FreeFormCertificate\Core\PluginAreas::label( 'url_shortener' ),
+		'children' => array(
+			array(
+				'anchor' => 'feature-url-shortener',
+				'icon'   => 'ffc-icon-link',
+				'title'  => __( 'Short URLs', 'ffcertificate' ),
+				'file'   => 'feature-url-shortener.php',
+			),
+			array(
+				'anchor' => 'feature-qr-generator',
+				'icon'   => 'ffc-icon-qr',
+				'title'  => __( 'QR Code Generator', 'ffcertificate' ),
+				'file'   => 'feature-qr-generator.php',
+			),
+		),
 	),
 	array(
 		'anchor' => 'feature-date-messages',
 		'icon'   => \FreeFormCertificate\Core\PluginAreas::icon_class( 'date_messages' ),
 		'title'  => \FreeFormCertificate\Core\PluginAreas::label( 'date_messages' ),
 		'file'   => 'feature-date-messages.php',
+	),
+	array(
+		'icon'     => \FreeFormCertificate\Core\PluginAreas::icon_class( 'settings' ),
+		'title'    => \FreeFormCertificate\Core\PluginAreas::label( 'settings' ),
+		'children' => array(
+			array(
+				'title'    => $ffc_doc_groups['general'],
+				'icon'     => 'ffc-icon-settings',
+				'children' => array(
+					array(
+						'anchor' => 'config-general',
+						'icon'   => 'ffc-icon-settings',
+						'title'  => __( 'General', 'ffcertificate' ),
+						'file'   => 'config-general.php',
+					),
+					array(
+						'anchor' => 'config-modules',
+						'icon'   => 'ffc-icon-grid',
+						'title'  => __( 'Modules', 'ffcertificate' ),
+						'file'   => 'config-modules.php',
+					),
+				),
+			),
+			array(
+				'title'    => $ffc_doc_groups['communication'],
+				'icon'     => 'ffc-icon-email',
+				'children' => array(
+					array(
+						'anchor' => 'reference-emails',
+						'icon'   => 'ffc-icon-send',
+						'title'  => __( 'Emails & Delivery', 'ffcertificate' ),
+						'file'   => 'reference-emails.php',
+					),
+					array(
+						'anchor' => 'email-texts-hub',
+						'icon'   => 'ffc-icon-email',
+						'title'  => __( 'Email texts hub', 'ffcertificate' ),
+						'file'   => 'email-texts-hub.php',
+					),
+				),
+			),
+			array(
+				'title'    => $ffc_doc_groups['content'],
+				'icon'     => 'ffc-icon-file',
+				'children' => array(
+					array(
+						'anchor' => 'document-templates-hub',
+						'icon'   => 'ffc-icon-file',
+						'title'  => __( 'Document Templates hub', 'ffcertificate' ),
+						'file'   => 'document-templates-hub.php',
+					),
+					array(
+						'anchor' => 'config-qr-code',
+						'icon'   => 'ffc-icon-qr',
+						'title'  => __( 'QR Code', 'ffcertificate' ),
+						'file'   => 'config-qr-code.php',
+					),
+				),
+			),
+			array(
+				'title'    => $ffc_doc_groups['security'],
+				'icon'     => 'ffc-icon-shield',
+				'children' => array(
+					array(
+						'anchor' => 'config-activity-log',
+						'icon'   => 'ffc-icon-history',
+						'title'  => __( 'Activity Log', 'ffcertificate' ),
+						'file'   => 'config-activity-log.php',
+					),
+					array(
+						'anchor' => 'config-captcha',
+						'icon'   => 'ffc-icon-robot',
+						'title'  => __( 'Captcha', 'ffcertificate' ),
+						'file'   => 'config-captcha.php',
+					),
+					array(
+						'anchor' => 'config-rate-limit',
+						'icon'   => 'ffc-icon-gauge',
+						'title'  => __( 'Rate Limit', 'ffcertificate' ),
+						'file'   => 'config-rate-limit.php',
+					),
+					array(
+						'anchor' => 'config-ip-diagnostics',
+						'icon'   => 'ffc-icon-network',
+						'title'  => __( 'IP Diagnostics', 'ffcertificate' ),
+						'file'   => 'config-ip-diagnostics.php',
+					),
+					array(
+						'anchor' => 'config-geolocation',
+						'icon'   => 'ffc-icon-map-pin',
+						'title'  => __( 'Geolocation', 'ffcertificate' ),
+						'file'   => 'config-geolocation.php',
+					),
+					array(
+						'anchor' => 'config-user-access',
+						'icon'   => 'ffc-icon-key',
+						'title'  => __( 'User Access', 'ffcertificate' ),
+						'file'   => 'config-user-access.php',
+					),
+					array(
+						'anchor' => 'feature-user-dashboard',
+						'icon'   => 'ffc-icon-user',
+						'title'  => __( 'User Dashboard & Access', 'ffcertificate' ),
+						'file'   => 'feature-user-dashboard.php',
+					),
+					array(
+						'anchor' => 'reference-capabilities',
+						'icon'   => 'ffc-icon-users',
+						'title'  => __( 'Capabilities & Roles', 'ffcertificate' ),
+						'file'   => 'reference-capabilities.php',
+					),
+					array(
+						'anchor' => 'reference-privacy',
+						'icon'   => 'ffc-icon-shield',
+						'title'  => __( 'Privacy & LGPD', 'ffcertificate' ),
+						'file'   => 'reference-privacy.php',
+					),
+				),
+			),
+			array(
+				'title'    => $ffc_doc_groups['tools'],
+				'icon'     => 'ffc-icon-wrench',
+				'children' => array(
+					array(
+						'anchor' => 'config-cache',
+						'icon'   => 'ffc-icon-zap',
+						'title'  => __( 'Cache', 'ffcertificate' ),
+						'file'   => 'config-cache.php',
+					),
+				),
+			),
+			array(
+				'title'    => $ffc_doc_groups['system'],
+				'icon'     => 'ffc-icon-database',
+				'children' => array(
+					array(
+						'anchor' => 'config-advanced',
+						'icon'   => 'ffc-icon-sliders',
+						'title'  => __( 'Advanced', 'ffcertificate' ),
+						'file'   => 'config-advanced.php',
+					),
+					array(
+						'anchor' => 'operations-migrations',
+						'icon'   => 'ffc-icon-database',
+						'title'  => __( 'Data Migrations', 'ffcertificate' ),
+						'file'   => 'operations-migrations.php',
+					),
+					array(
+						'anchor' => 'config-scheduled-tasks',
+						'icon'   => 'ffc-icon-clock',
+						'title'  => __( 'Scheduled Tasks', 'ffcertificate' ),
+						'file'   => 'config-scheduled-tasks.php',
+					),
+					array(
+						'anchor' => 'operations-maintenance',
+						'icon'   => 'ffc-icon-wrench',
+						'title'  => __( 'Maintenance Tools', 'ffcertificate' ),
+						'file'   => 'operations-maintenance.php',
+					),
+					array(
+						'anchor' => 'operations-updates',
+						'icon'   => 'ffc-icon-sync',
+						'title'  => __( 'Updates', 'ffcertificate' ),
+						'file'   => 'operations-updates.php',
+					),
+				),
+			),
+		),
 	),
 	array(
 		'icon'     => 'ffc-icon-code',

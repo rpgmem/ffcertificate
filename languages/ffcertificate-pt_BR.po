@@ -24749,9 +24749,6 @@ msgstr "Ver calendários de público-alvo"
 msgid "See Audience Custom Fields"
 msgstr "Ver campos personalizados de público-alvo"
 
-msgid "See QR Codes"
-msgstr "Veja os QR Codes"
-
 msgid "Short URL & QR Code"
 msgstr "URL Curta e QR Code"
 
@@ -24821,9 +24818,6 @@ msgstr "Este cache cobre apenas os QR Codes dos certificados. As URLs curtas arm
 msgid "The {{qr_code}} image follows the design set in Settings → QR Code (module shape, colours, logo, frame) when that design is switched on for certificates; otherwise a plain black-and-white code is drawn."
 msgstr "A imagem de {{qr_code}} segue o design definido em Configurações → QR Code (formato dos módulos, cores, logotipo, moldura) quando esse design está ativado para certificados; caso contrário, é gerado um código simples em preto e branco."
 
-msgid "The global design (module shape, corners, colours and gradient, logo, frame and caption, transparent background) is set on Settings → QR Code. It is off by default and switched on separately for certificates and for short URLs."
-msgstr "O design global (formato dos módulos, cantos, cores e degradê, logotipo, moldura e legenda, fundo transparente) é definido em Configurações → QR Code. Ele vem desativado e é ativado separadamente para certificados e para URLs curtas."
-
 msgid "%1$s — %2$s (%3$s)"
 msgstr "%1$s — %2$s (%3$s)"
 
@@ -24892,3 +24886,39 @@ msgstr "Todos, ou os membros dos públicos escolhidos no seletor de duas colunas
 
 msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators."
 msgstr "Lista os aniversários dos próximos 7 ou 30 dias ou de um mês escolhido, por dia e mês. Pode ser filtrada por uma regra ativa e, depois, por um dos públicos dessa regra; sem regra escolhida, o filtro de público oferece os de todas as regras ativas. Uma coluna Públicos mostra a quais deles cada pessoa pertence. A aba aparece só para quem tem ffc_view_date_messages_pii e para administradores."
+
+msgid "QR Code in the Certificate"
+msgstr "QR Code no Certificado"
+
+msgid "See the QR Code Generator"
+msgstr "Veja o Gerador de QR Code"
+
+msgid "Their design follows Settings → QR Code when it is applied to short URLs."
+msgstr "O design deles segue Configurações → QR Code quando aplicado às URLs curtas."
+
+msgid "See QR Code settings"
+msgstr "Veja as configurações de QR Code"
+
+msgid "Short URLs created here"
+msgstr "URLs curtas criadas aqui"
+
+msgid "This is where manual short URLs are made: the Short URLs list has no form of its own, and its \"New short URL\" button opens the generator on the Website type. A short URL created here appears on the list like any other and counts the clicks of the printed code."
+msgstr "É aqui que as URLs curtas manuais são criadas: a lista de URLs Curtas não tem formulário próprio, e o botão \"Nova URL curta\" abre o gerador no tipo Site. Uma URL curta criada aqui aparece na lista como qualquer outra e conta os cliques do código impresso."
+
+msgid "See Short URLs"
+msgstr "Veja URLs Curtas"
+
+msgid "The design sections are the same as on Settings → QR Code, and start from the global design (or from the user's last downloaded one) whether or not it is applied to certificates or short URLs there. A change made in the generator applies to this code only and never alters the global settings; the QR Code defaults for size, margin and error correction do not apply here either, since each code sets its own."
+msgstr "As seções de design são as mesmas de Configurações → QR Code e partem do design global (ou do último baixado pelo usuário), esteja ele aplicado ou não a certificados ou URLs curtas. Uma alteração feita no gerador vale só para este código e nunca muda as configurações globais; os padrões de tamanho, margem e correção de erros do QR Code também não se aplicam aqui, pois cada código define os seus."
+
+msgid "Global QR Code settings"
+msgstr "Configurações globais de QR Code"
+
+msgid "The certificate PDF draws this code with the plugin-wide settings on Settings → QR Code: their defaults fill in any attribute the placeholder leaves out, and their design is used when it is applied to certificates."
+msgstr "O PDF do certificado desenha este código com as configurações gerais do plugin em Configurações → QR Code: os padrões preenchem qualquer atributo que o placeholder omitir, e o design é usado quando está aplicado a certificados."
+
+msgid "These settings apply plugin-wide, to every QR code the plugin draws by itself: the {{qr_code}} placeholder of the certificate PDF, and the QR codes of short URLs. The one exception is the QR Code Generator under Short URLs, where each code is designed by hand: it only starts from the global design, and nothing changed there is saved back."
+msgstr "Estas configurações valem para o plugin inteiro, em todo QR Code que o plugin desenha sozinho: o placeholder {{qr_code}} do PDF do certificado e os QR Codes das URLs curtas. A única exceção é o Gerador de QR Code em URLs Curtas, onde cada código é desenhado à mão: ele apenas parte do design global, e nada alterado lá é gravado de volta."
+
+msgid "The attributes the {{qr_code}} placeholder can set for itself are listed under"
+msgstr "Os atributos que o placeholder {{qr_code}} pode definir por conta própria estão listados em"

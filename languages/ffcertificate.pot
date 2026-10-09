@@ -24665,9 +24665,6 @@ msgstr ""
 msgid "See Audience Custom Fields"
 msgstr ""
 
-msgid "See QR Codes"
-msgstr ""
-
 msgid "Short URL & QR Code"
 msgstr ""
 
@@ -24737,9 +24734,6 @@ msgstr ""
 msgid "The {{qr_code}} image follows the design set in Settings → QR Code (module shape, colours, logo, frame) when that design is switched on for certificates; otherwise a plain black-and-white code is drawn."
 msgstr ""
 
-msgid "The global design (module shape, corners, colours and gradient, logo, frame and caption, transparent background) is set on Settings → QR Code. It is off by default and switched on separately for certificates and for short URLs."
-msgstr ""
-
 msgid "%1$s — %2$s (%3$s)"
 msgstr ""
 
@@ -24807,4 +24801,40 @@ msgid "Everyone, or the members of the audiences chosen in the two-column picker
 msgstr ""
 
 msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators."
+msgstr ""
+
+msgid "QR Code in the Certificate"
+msgstr ""
+
+msgid "See the QR Code Generator"
+msgstr ""
+
+msgid "Their design follows Settings → QR Code when it is applied to short URLs."
+msgstr ""
+
+msgid "See QR Code settings"
+msgstr ""
+
+msgid "Short URLs created here"
+msgstr ""
+
+msgid "This is where manual short URLs are made: the Short URLs list has no form of its own, and its \"New short URL\" button opens the generator on the Website type. A short URL created here appears on the list like any other and counts the clicks of the printed code."
+msgstr ""
+
+msgid "See Short URLs"
+msgstr ""
+
+msgid "The design sections are the same as on Settings → QR Code, and start from the global design (or from the user's last downloaded one) whether or not it is applied to certificates or short URLs there. A change made in the generator applies to this code only and never alters the global settings; the QR Code defaults for size, margin and error correction do not apply here either, since each code sets its own."
+msgstr ""
+
+msgid "Global QR Code settings"
+msgstr ""
+
+msgid "The certificate PDF draws this code with the plugin-wide settings on Settings → QR Code: their defaults fill in any attribute the placeholder leaves out, and their design is used when it is applied to certificates."
+msgstr ""
+
+msgid "These settings apply plugin-wide, to every QR code the plugin draws by itself: the {{qr_code}} placeholder of the certificate PDF, and the QR codes of short URLs. The one exception is the QR Code Generator under Short URLs, where each code is designed by hand: it only starts from the global design, and nothing changed there is saved back."
+msgstr ""
+
+msgid "The attributes the {{qr_code}} placeholder can set for itself are listed under"
 msgstr ""
