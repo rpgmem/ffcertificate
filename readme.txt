@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.3
-Stable tag: 6.34.0
+Stable tag: 6.35.0
 Requires PHP: 8.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -261,8 +261,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.34.0 =
-⚠ Requires WordPress 6.8 or later. Adds a QR code generator and design options. Client IPs are now stored encrypted: after updating, run "Activity Log: Encrypt Client IPs" in Settings → Data Migrations.
+= 6.35.0 =
+One icon set and boxed sections across the admin, Date Messages rules for several audiences, a notice selector for the recruitment queue, documentation that follows the menu, and CPF/RF and email masked behind an audited Reveal on the submission edit screen.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one
