@@ -86,6 +86,10 @@ final class Runner {
 	 * @return void
 	 */
 	public static function run_daily(): void {
+		// The history keeps a year (#1647). Before the kill-switch, which
+		// stops sending and has no reason to stop the pruning.
+		DeliveryLog::purge_expired();
+
 		if ( SettingsReader::emails_disabled() ) {
 			return;
 		}

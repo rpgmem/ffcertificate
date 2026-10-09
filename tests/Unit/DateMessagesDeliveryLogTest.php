@@ -113,4 +113,80 @@ class DateMessagesDeliveryLogTest extends TestCase {
 
 		$this->assertSame( array(), DeliveryLog::recent_runs( 0, -5 ) );
 	}
+
+	// ------------------------------------------------------------------
+	// One-year history (#1647)
+	// ------------------------------------------------------------------
+
+	public function test_purge_removes_old_runs_with_their_deliveries_first(): void {
+		$order = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$flat = isset( $args[0] ) && is_array( $args[0] ) ? $args[0] : $args;
+				return $sql . ' | ' . implode( ',', $flat );
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_col' )->once()->with( 'SELECT id FROM %i WHERE started_at < %d ORDER BY id LIMIT %d | wp_ffc_date_message_runs,1000,200' )->andReturn( array( '4', '9' ) );
+		$this->wpdb->shouldReceive( 'query' )->twice()->andReturnUsing(
+			static function ( $sql ) use ( &$order ) {
+				$order[] = $sql;
+				return 2;
+			}
+		);
+
+		$this->assertSame( 2, DeliveryLog::purge( 1000 ) );
+		$this->assertSame(
+			array(
+				'DELETE FROM %i WHERE run_id IN (%d,%d) | wp_ffc_date_message_log,4,9',
+				'DELETE FROM %i WHERE id IN (%d,%d) | wp_ffc_date_message_runs,4,9',
+			),
+			$order,
+			'Deliveries go before their run, so an interrupted purge never orphans one.'
+		);
+	}
+
+	public function test_purge_with_nothing_old_removes_nothing(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'SELECT' );
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array() );
+		$this->wpdb->shouldReceive( 'query' )->never();
+
+		$this->assertSame( 0, DeliveryLog::purge( 1000 ) );
+	}
+
+	public function test_purge_continues_while_batches_are_full_and_stops_when_one_removes_nothing(): void {
+		$full = array_map( 'strval', range( 1, 200 ) );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_col' )->times( 2 )->andReturn( $full );
+		// First batch removes 200 runs; the second removes none, which ends the
+		// loop even though the selection keeps answering (#1378).
+		$this->wpdb->shouldReceive( 'query' )->times( 4 )->andReturn( 200, 200, 0, 0 );
+
+		$this->assertSame( 200, DeliveryLog::purge( 1000 ) );
+	}
+
+	public function test_purge_stops_after_its_batch_budget(): void {
+		$full = array_map( 'strval', range( 1, 200 ) );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_col' )->times( 25 )->andReturn( $full );
+		$this->wpdb->shouldReceive( 'query' )->times( 50 )->andReturn( 200 );
+
+		$this->assertSame( 5000, DeliveryLog::purge( 1000 ) );
+	}
+
+	public function test_purge_expired_uses_the_one_year_window(): void {
+		$this->assertSame( 365, DeliveryLog::RETENTION_DAYS );
+		$cutoffs = array();
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+			static function ( $sql, $table, $before ) use ( &$cutoffs ) {
+				$cutoffs[] = $before;
+				return 'SELECT';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array() );
+
+		$expected = time() - 365 * DAY_IN_SECONDS;
+		DeliveryLog::purge_expired();
+
+		$this->assertEqualsWithDelta( $expected, $cutoffs[0], 5 );
+	}
 }
