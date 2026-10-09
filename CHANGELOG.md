@@ -34,6 +34,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The WordPress menu shows each module's own icon** (#1640). The top-level menus drew dashicons that disagreed with the icons the documentation and Settings → Modules use; one map now feeds all three, drawn in the menu's own colour so it follows every admin colour scheme, hover, the current page and high-contrast mode. Settings → Modules now lists the modules in menu order.
 - **Each area has one name everywhere** (#1641). The menu, Settings → Modules, the Settings tabs, the documentation, e-mail texts and mail-queue sources now use one name per area — Short URLs (not URL Shortener), Personal and Audience Calendars (not Self-Scheduling), FFC Settings (not Certificate Settings) — and every "Settings → Tab" path names a tab that exists. pt_BR: "Gestor" for the Manager roles, "Público-alvo" and "QR Code" used one way.
 - **Documentation coverage is checked in CI** (#1638). Every Settings tab and module must have a documentation topic and the documentation index must match its topic files; the contributing rules now require a PR that changes what an operator sees to update its topic, and the release PR to cross-check the batch against the documentation diff.
+- **Date Messages history keeps one year** (#1647). Each daily run removes runs older than 365 days together with their deliveries, in bounded batches and even while e-mails are disabled; the History tab says so. A delivery is recorded per date including its year, so no message can go out twice because of it.
 
 ### Fixed
 

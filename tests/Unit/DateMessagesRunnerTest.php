@@ -321,6 +321,8 @@ class DateMessagesRunnerTest extends TestCase {
 			}
 		);
 
+		$this->log->shouldReceive( 'purge_expired' )->once()->andReturn( 0 );
+
 		$today = Runner::today()->format( 'Y-m-d' );
 		Runner::run_daily();
 
@@ -336,9 +338,11 @@ class DateMessagesRunnerTest extends TestCase {
 		);
 	}
 
-	public function test_the_daily_job_does_nothing_while_emails_are_disabled(): void {
+	public function test_the_daily_job_sends_nothing_while_emails_are_disabled_but_still_prunes(): void {
 		$this->settings->shouldReceive( 'emails_disabled' )->andReturn( true );
 		$this->rules->shouldReceive( 'active' )->never();
+		// The kill-switch stops sending, not the one-year history (#1647).
+		$this->log->shouldReceive( 'purge_expired' )->once()->andReturn( 0 );
 
 		Runner::run_daily();
 	}

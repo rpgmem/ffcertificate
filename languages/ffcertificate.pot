@@ -24796,3 +24796,9 @@ msgstr ""
 
 msgid "without a notice, a selector of every notice in its preliminary or definitive list; drafts and closed notices are left out. The chosen notice's list appears below it. Add list=\"preliminary\" or list=\"definitive\" to offer only one kind."
 msgstr ""
+
+msgid "The history keeps the last %d days. Older runs and their deliveries are removed automatically by the daily run."
+msgstr ""
+
+msgid "The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a delivery is recorded per date including its year."
+msgstr ""

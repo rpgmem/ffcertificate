@@ -38,6 +38,26 @@ class DeliveryLog {
 	public const COUNTERS = array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed' );
 
 	/**
+	 * Days the history keeps a run and its deliveries (#1647).
+	 *
+	 * Removing a delivery cannot let a message go out twice: its key carries
+	 * the target date WITH the year, and the furthest a send reaches back is
+	 * the manual range plus the largest offset -- a few months, never a year.
+	 */
+	public const RETENTION_DAYS = 365;
+
+	/**
+	 * Runs removed per statement.
+	 */
+	private const PURGE_BATCH = 200;
+
+	/**
+	 * Statements per call. What is left waits for the next day, so a first
+	 * purge over years of history never runs long inside the daily job.
+	 */
+	private const PURGE_MAX_BATCHES = 25;
+
+	/**
 	 * Cache group (unused for reads; required by the trait).
 	 *
 	 * @return string
@@ -154,6 +174,63 @@ class DeliveryLog {
 	public static function count_runs(): int {
 		$wpdb = self::db();
 		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', DateMessagesActivator::runs_table() ) );
+	}
+
+	/**
+	 * Remove the runs older than the retention window, with their deliveries.
+	 *
+	 * @return int Runs removed.
+	 */
+	public static function purge_expired(): int {
+		return self::purge( time() - self::RETENTION_DAYS * DAY_IN_SECONDS );
+	}
+
+	/**
+	 * Remove the runs started before a moment, with their deliveries, in
+	 * bounded batches.
+	 *
+	 * Deliveries go by run id, which is indexed, and before their run, so an
+	 * interrupted call never leaves a delivery whose run is gone. The loop
+	 * counts the runs it actually removed and stops on a batch that removed
+	 * none, so it ends whatever the selection does (#1378).
+	 *
+	 * @param int $before Unix time; runs started earlier are removed.
+	 * @return int Runs removed.
+	 */
+	public static function purge( int $before ): int {
+		$wpdb    = self::db();
+		$removed = 0;
+
+		for ( $batch = 0; $batch < self::PURGE_MAX_BATCHES; $batch++ ) {
+			$select = $wpdb->prepare(
+				'SELECT id FROM %i WHERE started_at < %d ORDER BY id LIMIT %d',
+				DateMessagesActivator::runs_table(),
+				$before,
+				self::PURGE_BATCH
+			);
+			$ids    = null === $select ? array() : array_map( 'intval', (array) $wpdb->get_col( $select ) );
+			if ( array() === $ids ) {
+				break;
+			}
+
+			$in         = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+			$deliveries = $wpdb->prepare( "DELETE FROM %i WHERE run_id IN ({$in})", array_merge( array( DateMessagesActivator::log_table() ), $ids ) );
+			if ( null === $deliveries || false === $wpdb->query( $deliveries ) ) {
+				break;
+			}
+			$runs    = $wpdb->prepare( "DELETE FROM %i WHERE id IN ({$in})", array_merge( array( DateMessagesActivator::runs_table() ), $ids ) );
+			$deleted = null === $runs ? false : $wpdb->query( $runs );
+			if ( ! is_int( $deleted ) || 0 === $deleted ) {
+				break;
+			}
+
+			$removed += $deleted;
+			if ( count( $ids ) < self::PURGE_BATCH ) {
+				break;
+			}
+		}
+
+		return $removed;
 	}
 
 	/**

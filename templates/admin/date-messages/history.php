@@ -16,6 +16,7 @@
 
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\DateMessages\DateMessagesAdminPage;
+use FreeFormCertificate\DateMessages\DeliveryLog;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -24,6 +25,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 ?>
 <p class="description"><?php esc_html_e( '"Sent" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue.', 'ffcertificate' ); ?></p>
+<p class="description">
+	<?php
+	echo esc_html(
+		sprintf(
+			/* translators: %d: number of days */
+			__( 'The history keeps the last %d days. Older runs and their deliveries are removed automatically by the daily run.', 'ffcertificate' ),
+			DeliveryLog::RETENTION_DAYS
+		)
+	);
+	?>
+</p>
 
 <?php
 // The daily runs listed here come from the scheduled task, whose time lives on

@@ -24880,3 +24880,9 @@ msgstr "a lista pública de classificação de um edital. Mostra só as colunas 
 
 msgid "without a notice, a selector of every notice in its preliminary or definitive list; drafts and closed notices are left out. The chosen notice's list appears below it. Add list=\"preliminary\" or list=\"definitive\" to offer only one kind."
 msgstr "sem edital, um seletor com todos os editais em lista prévia ou definitiva; rascunhos e editais encerrados ficam de fora. A lista do edital escolhido aparece abaixo. Adicione list=\"preliminary\" ou list=\"definitive\" para oferecer só um tipo."
+
+msgid "The history keeps the last %d days. Older runs and their deliveries are removed automatically by the daily run."
+msgstr "O histórico guarda os últimos %d dias. Execuções mais antigas e as entregas delas são apagadas automaticamente pela execução diária."
+
+msgid "The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a delivery is recorded per date including its year."
+msgstr "O histórico guarda os últimos 365 dias: cada execução diária apaga as execuções mais antigas junto com as entregas delas, mesmo com os e-mails desativados. Isso nunca faz uma mensagem sair duas vezes, porque cada entrega é registrada por data, incluindo o ano."

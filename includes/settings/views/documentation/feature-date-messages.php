@@ -60,6 +60,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'History', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. "Sent" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a delivery is recorded per date including its year.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen.', 'ffcertificate' ); ?></p>
