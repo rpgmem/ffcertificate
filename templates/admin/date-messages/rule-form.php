@@ -30,7 +30,7 @@ $ffc_dm_values   = null !== $editing ? array_merge( $editing->to_columns(), arra
 	'name'            => '',
 	'source'          => 'birthday',
 	'offset_days'     => 0,
-	'audience_id'     => null,
+	'audience_ids'    => '[]',
 	'subject'         => $ffc_dm_defaults['subject'],
 	'body'            => $ffc_dm_defaults['body'],
 	'send_to_user'    => 1,
@@ -49,6 +49,10 @@ $ffc_dm_flag   = static fn( $v ): bool => in_array( (string) $v, array( '1', 'tr
 $ffc_dm_chosen = $ffc_dm_values['digest_user_ids'];
 $ffc_dm_chosen = is_string( $ffc_dm_chosen ) ? json_decode( $ffc_dm_chosen, true ) : $ffc_dm_chosen;
 $ffc_dm_chosen = array_map( 'intval', is_array( $ffc_dm_chosen ) ? $ffc_dm_chosen : array() );
+// Stored as JSON, submitted (a failed save's draft) as a list.
+$ffc_dm_audiences = $ffc_dm_values['audience_ids'];
+$ffc_dm_audiences = is_string( $ffc_dm_audiences ) ? json_decode( $ffc_dm_audiences, true ) : $ffc_dm_audiences;
+$ffc_dm_audiences = array_map( 'intval', is_array( $ffc_dm_audiences ) ? $ffc_dm_audiences : array() );
 ?>
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ffc-dm-rule-form">
 	<?php wp_nonce_field( DateMessagesAdminPage::SAVE_ACTION ); ?>
@@ -85,15 +89,10 @@ $ffc_dm_chosen = array_map( 'intval', is_array( $ffc_dm_chosen ) ? $ffc_dm_chose
 		</tr>
 		<?php if ( array() !== $audiences ) : ?>
 			<tr>
-				<th scope="row"><label for="ffc-dm-audience"><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></label></th>
+				<th scope="row"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></th>
 				<td>
-					<select id="ffc-dm-audience" name="rule[audience_id]">
-						<option value=""><?php esc_html_e( 'Everyone', 'ffcertificate' ); ?></option>
-						<?php foreach ( $audiences as $ffc_dm_audience_id => $ffc_dm_audience_name ) : ?>
-							<option value="<?php echo esc_attr( (string) $ffc_dm_audience_id ); ?>" <?php selected( (string) $ffc_dm_values['audience_id'], (string) $ffc_dm_audience_id ); ?>><?php echo esc_html( $ffc_dm_audience_name ); ?></option>
-						<?php endforeach; ?>
-					</select>
-					<p class="description"><?php esc_html_e( 'Members of sub-audiences are included.', 'ffcertificate' ); ?></p>
+					<?php \FreeFormCertificate\Audience\AudienceTransferList::render( $ffc_dm_audiences, 'rule[audience_ids][]', false ); ?>
+					<p class="description"><?php esc_html_e( 'A person receives the message when they belong to any audience on the right; members of sub-audiences are included. With none selected, the rule reaches everyone.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 		<?php endif; ?>

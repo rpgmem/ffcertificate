@@ -113,4 +113,52 @@ class DateMessagesActivatorTest extends TestCase {
 
 		$this->assertCount( 3, $this->deltas );
 	}
+
+	// ------------------------------------------------------------------
+	// audience_id → audience_ids (#1648)
+	// ------------------------------------------------------------------
+
+	public function test_audience_migration_copies_the_single_audience_then_drops_the_column(): void {
+		$queries = array();
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_date_message_rules' );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );
+		// audience_ids is missing, audience_id is still there.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static fn( $q ) => str_ends_with( (string) $q, ',audience_id' ) ? array( (object) array( 'Field' => 'audience_id' ) ) : array()
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $q ) use ( &$queries ) {
+				$queries[] = (string) $q;
+				return 1;
+			}
+		);
+
+		DateMessagesActivator::migrate_audience_ids();
+
+		$this->assertCount( 3, $queries );
+		$this->assertStringContainsString( 'ADD COLUMN', $queries[0] );
+		$this->assertStringContainsString( 'audience_ids', $queries[0] );
+		$this->assertStringStartsWith( "UPDATE %i SET audience_ids = CONCAT('[', audience_id, ']')", $queries[1] );
+		$this->assertSame( 'ALTER TABLE %i DROP COLUMN audience_id|wp_ffc_date_message_rules', $queries[2], 'The old column goes only after the copy.' );
+	}
+
+	public function test_audience_migration_does_nothing_once_done(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_date_message_rules' );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );
+		// audience_ids exists, audience_id is gone.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static fn( $q ) => str_ends_with( (string) $q, ',audience_ids' ) ? array( (object) array( 'Field' => 'audience_ids' ) ) : array()
+		);
+		$this->wpdb->shouldReceive( 'query' )->never();
+
+		DateMessagesActivator::migrate_audience_ids();
+	}
+
+	public function test_audience_migration_skips_a_missing_table(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'get_results' )->never();
+		$this->wpdb->shouldReceive( 'query' )->never();
+
+		DateMessagesActivator::migrate_audience_ids();
+	}
 }

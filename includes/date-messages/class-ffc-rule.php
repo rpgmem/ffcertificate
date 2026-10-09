@@ -42,7 +42,7 @@ final class Rule {
 	 * @param string     $name            Operator-facing name.
 	 * @param string     $source          Date source id (see DateSources).
 	 * @param int        $offset_days     Days from the date: 0 on it, -7 a week before.
-	 * @param int|null   $audience_id     Restrict to one audience, or null for everyone.
+	 * @param array<int> $audience_ids    Audiences whose members qualify (sub-audiences included); empty for everyone.
 	 * @param string     $subject         E-mail subject (tokens allowed).
 	 * @param string     $body            E-mail body HTML (tokens allowed).
 	 * @param bool       $send_to_user    Whether the person receives it.
@@ -56,7 +56,7 @@ final class Rule {
 		public readonly string $name,
 		public readonly string $source,
 		public readonly int $offset_days,
-		public readonly ?int $audience_id,
+		public readonly array $audience_ids,
 		public readonly string $subject,
 		public readonly string $body,
 		public readonly bool $send_to_user,
@@ -69,8 +69,8 @@ final class Rule {
 	/**
 	 * Build a rule from a stored row or a submitted form, validating it.
 	 *
-	 * Keys are the table's column names. `digest_user_ids` may be a JSON
-	 * string (a stored row) or a list (a form).
+	 * Keys are the table's column names. `audience_ids` and
+	 * `digest_user_ids` may be a JSON string (a stored row) or a list (a form).
 	 *
 	 * @param array<string, mixed> $data Raw data.
 	 * @return Rule|\WP_Error
@@ -107,21 +107,18 @@ final class Rule {
 			return new \WP_Error( 'ffc_rule_digest_mode', __( 'Unknown digest mode.', 'ffcertificate' ) );
 		}
 
-		$audience = $data['audience_id'] ?? null;
-		$audience = is_numeric( $audience ) && (int) $audience > 0 ? (int) $audience : null;
-
 		return new self(
 			id: is_numeric( $data['id'] ?? null ) ? max( 0, (int) $data['id'] ) : 0,
 			name: $name,
 			source: $source,
 			offset_days: $offset,
-			audience_id: $audience,
+			audience_ids: self::ids( $data['audience_ids'] ?? array() ),
 			subject: $subject,
 			body: $body,
 			send_to_user: self::flag( $data['send_to_user'] ?? true ),
 			digest_enabled: self::flag( $data['digest_enabled'] ?? false ),
 			digest_mode: $mode,
-			digest_user_ids: self::user_ids( $data['digest_user_ids'] ?? array() ),
+			digest_user_ids: self::ids( $data['digest_user_ids'] ?? array() ),
 			is_active: self::flag( $data['is_active'] ?? true ),
 		);
 	}
@@ -136,7 +133,7 @@ final class Rule {
 			'name'            => $this->name,
 			'source'          => $this->source,
 			'offset_days'     => $this->offset_days,
-			'audience_id'     => $this->audience_id,
+			'audience_ids'    => (string) wp_json_encode( $this->audience_ids ),
 			'subject'         => $this->subject,
 			'body'            => $this->body,
 			'send_to_user'    => $this->send_to_user ? 1 : 0,
@@ -168,12 +165,13 @@ final class Rule {
 	}
 
 	/**
-	 * Positive, unique user ids from a JSON string or a list.
+	 * Positive, unique ids from a JSON string or a list -- the stored and the
+	 * submitted shape of both id lists a rule carries.
 	 *
 	 * @param mixed $value Raw value.
 	 * @return array<int, int>
 	 */
-	private static function user_ids( $value ): array {
+	private static function ids( $value ): array {
 		if ( is_string( $value ) ) {
 			$decoded = json_decode( $value, true );
 			$value   = is_array( $decoded ) ? $decoded : array();

@@ -12,8 +12,8 @@ use PHPUnit\Framework\TestCase;
  * The reregistration campaign editor is a boxed screen (#1629).
  *
  * The template runs in the scope of the renderer that includes it, so this
- * includes it from a stand-in whose `render_audience_transfer_list()` is the
- * one sibling it calls through `self::`. What is under test is the markup the
+ * includes it from a stand-in; the audience picker it prints is the shared
+ * component (#1648), doubled here. What is under test is the markup the
  * template owns: the campaign and its emails each in a card with an icon
  * heading, inside the form; the import and invitation boxes as cards outside
  * it.
@@ -83,6 +83,15 @@ class ReregistrationFormTemplateTest extends TestCase {
 	 * @return string
 	 */
 	private function render(): string {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceTransferList' )
+			->shouldReceive( 'render' )
+			->with( array(), 'rereg_audience_ids[]', true )
+			->andReturnUsing(
+				static function () {
+					echo '<div class="transfer"></div>';
+				}
+			);
+
 		$host = new class() {
 			/**
 			 * Include the template the way the renderer does.
@@ -110,15 +119,6 @@ class ReregistrationFormTemplateTest extends TestCase {
 				ob_start();
 				include FFC_PLUGIN_DIR . 'templates/admin/reregistration/form.php';
 				return (string) ob_get_clean();
-			}
-
-			/**
-			 * The renderer's sibling the template calls through `self::`.
-			 *
-			 * @return void
-			 */
-			public static function render_audience_transfer_list(): void {
-				echo '<div class="transfer"></div>';
 			}
 		};
 		return $host::run();

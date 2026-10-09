@@ -38,7 +38,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?> <span class="ffc-required">*</span></th>
 					<td>
-						<?php self::render_audience_transfer_list( $audiences, $selected_ids ); ?>
+						<?php \FreeFormCertificate\Audience\AudienceTransferList::render( $selected_ids, 'rereg_audience_ids[]', true ); ?>
+						<p class="description ffc-transfer-member-count"></p>
 					</td>
 				</tr>
 				<tr>

@@ -90,6 +90,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 		'ffc-qr-generator.css'          => 0,
 		'ffc-admin-components.css'      => 0,
 		'ffc-qr-design-fields.css'      => 0,
+		'ffc-audience-transfer-list.css' => 0,
 		'ffc-working-hours.css'         => 0,
 
 		// Deliberate literals, reason inline at each site:

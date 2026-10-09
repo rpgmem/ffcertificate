@@ -208,6 +208,9 @@ class ReregistrationAdmin {
 			FFC_VERSION
 		);
 
+		// The campaign form's audience picker is the shared component (#1648).
+		\FreeFormCertificate\Audience\AudienceTransferList::enqueue();
+
 		wp_enqueue_script(
 			'ffc-reregistration-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-reregistration-admin{$s}.js",

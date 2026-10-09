@@ -116,7 +116,6 @@ final class ReregistrationAdminRenderer {
 			$title = __( 'Edit Reregistration', 'ffcertificate' );
 		}
 
-		$audiences    = AudienceReader::get_hierarchical( 'active' );
 		$selected_ids = $id > 0 ? ReregistrationRepository::get_audience_ids( $id ) : array();
 		$back_url     = admin_url( 'admin.php?page=' . $menu_slug );
 
@@ -273,45 +272,5 @@ final class ReregistrationAdminRenderer {
 				}
 			}
 		}
-	}
-
-	/**
-	 * Render dual-column audience transfer list.
-	 *
-	 * @param array<int, mixed> $audiences    Hierarchical audience tree.
-	 * @param array<int>        $selected_ids Currently selected audience IDs.
-	 * @phpstan-param list<AudienceRow> $audiences
-	 * @return void
-	 */
-	public static function render_audience_transfer_list( array $audiences, array $selected_ids ): void {
-		// Flatten hierarchy for data attributes.
-		$flat = array();
-		foreach ( $audiences as $parent ) {
-			$children_ids = array();
-			if ( ! empty( $parent->children ) ) {
-				foreach ( $parent->children as $child ) {
-					$children_ids[] = (int) $child->id;
-				}
-			}
-			$flat[] = array(
-				'id'       => (int) $parent->id,
-				'name'     => $parent->name,
-				'color'    => $parent->color ?? '#ccc',
-				'parent'   => 0,
-				'children' => $children_ids,
-			);
-			if ( ! empty( $parent->children ) ) {
-				foreach ( $parent->children as $child ) {
-					$flat[] = array(
-						'id'       => (int) $child->id,
-						'name'     => $child->name,
-						'color'    => $child->color ?? '#ccc',
-						'parent'   => (int) $parent->id,
-						'children' => array(),
-					);
-				}
-			}
-		}
-		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/transfer-list.php';
 	}
 }

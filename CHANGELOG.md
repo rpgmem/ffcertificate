@@ -36,6 +36,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Documentation coverage is checked in CI** (#1638). Every Settings tab and module must have a documentation topic and the documentation index must match its topic files; the contributing rules now require a PR that changes what an operator sees to update its topic, and the release PR to cross-check the batch against the documentation diff.
 - **Date Messages history keeps one year** (#1647). Each daily run removes runs older than 365 days together with their deliveries, in bounded batches and even while e-mails are disabled; the History tab says so. A delivery is recorded per date including its year, so no message can go out twice because of it.
 
+- **A Date Messages rule can target several audiences** (#1648). The rule editor uses the reregistration campaign's two-column audience picker, now a shared component that also lists third-level audiences; anyone in any chosen audience qualifies. Existing rules keep their audience. Upcoming dates gain a rule filter, narrow the audience list to that rule's audiences, and name each person's audiences.
+
 ### Fixed
 
 - **The disabled Activity Log tab is no longer blank** (#1613). Its notice was lifted by WordPress above the settings tabs, leaving an empty card; it now stays inside the tab.

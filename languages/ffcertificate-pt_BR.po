@@ -22400,9 +22400,6 @@ msgstr "No fuso horário do site (%s), definido em Configurações → Geral."
 msgid "Manual"
 msgstr "Manual"
 
-msgid "Members of sub-audiences are included."
-msgstr "Membros dos subpúblicos são incluídos."
-
 msgid "New rule"
 msgstr "Nova regra"
 
@@ -23624,9 +23621,6 @@ msgstr "Envia uma regra a todos cuja data cai em um intervalo escolhido de até 
 msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen."
 msgstr "Quando ativado em uma regra, os gestores escolhidos recebem um resumo 24 horas após o início de cada execução. Os nomes vão apenas para os destinatários autorizados a ver quem recebe mensagens por data (ffc_view_date_messages_pii, ou administradores); os demais recebem os totais. Uma execução que não alcançou ninguém não envia resumo. Só podem ser escolhidos administradores e contas que possuam uma permissão de mensagens por data."
 
-msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month, optionally filtered by audience. The tab is shown only to holders of ffc_view_date_messages_pii and administrators."
-msgstr "Lista os aniversários dos próximos 7 ou 30 dias ou de um mês escolhido, por dia e mês, com filtro opcional por público-alvo. A aba é exibida apenas para quem possui ffc_view_date_messages_pii e para administradores."
-
 msgid "Daily schedule"
 msgstr "Agendamento diário"
 
@@ -24830,9 +24824,6 @@ msgstr "A imagem de {{qr_code}} segue o design definido em Configurações → Q
 msgid "The global design (module shape, corners, colours and gradient, logo, frame and caption, transparent background) is set on Settings → QR Code. It is off by default and switched on separately for certificates and for short URLs."
 msgstr "O design global (formato dos módulos, cantos, cores e degradê, logotipo, moldura e legenda, fundo transparente) é definido em Configurações → QR Code. Ele vem desativado e é ativado separadamente para certificados e para URLs curtas."
 
-msgid "Everyone, or the members of one audience (members of its sub-audiences included)."
-msgstr "Todos, ou os membros de um público-alvo (incluindo os membros dos seus subpúblicos-alvo)."
-
 msgid "%1$s — %2$s (%3$s)"
 msgstr "%1$s — %2$s (%3$s)"
 
@@ -24886,3 +24877,18 @@ msgstr "O histórico guarda os últimos %d dias. Execuções mais antigas e as e
 
 msgid "The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a delivery is recorded per date including its year."
 msgstr "O histórico guarda os últimos 365 dias: cada execução diária apaga as execuções mais antigas junto com as entregas delas, mesmo com os e-mails desativados. Isso nunca faz uma mensagem sair duas vezes, porque cada entrega é registrada por data, incluindo o ano."
+
+msgid "A person receives the message when they belong to any audience on the right; members of sub-audiences are included. With none selected, the rule reaches everyone."
+msgstr "A pessoa recebe a mensagem quando pertence a qualquer público da direita; membros de sub-públicos estão incluídos. Sem nenhum selecionado, a regra alcança todos."
+
+msgid "All active rules"
+msgstr "Todas as regras ativas"
+
+msgid "All of the rule's audiences"
+msgstr "Todos os públicos da regra"
+
+msgid "Everyone, or the members of the audiences chosen in the two-column picker — the same one the reregistration campaign uses. Belonging to any one of them is enough, and members of their sub-audiences are included; choosing an audience brings its sub-audiences along."
+msgstr "Todos, ou os membros dos públicos escolhidos no seletor de duas colunas — o mesmo usado na campanha de recadastramento. Basta pertencer a um deles, e membros dos sub-públicos estão incluídos; escolher um público traz junto os sub-públicos dele."
+
+msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators."
+msgstr "Lista os aniversários dos próximos 7 ou 30 dias ou de um mês escolhido, por dia e mês. Pode ser filtrada por uma regra ativa e, depois, por um dos públicos dessa regra; sem regra escolhida, o filtro de público oferece os de todas as regras ativas. Uma coluna Públicos mostra a quais deles cada pessoa pertence. A aba aparece só para quem tem ffc_view_date_messages_pii e para administradores."

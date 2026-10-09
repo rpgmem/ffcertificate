@@ -39,7 +39,7 @@ class DateMessagesRuleTest extends TestCase {
 				'name'            => 'Birthday, on the day',
 				'source'          => 'birthday',
 				'offset_days'     => '-7',
-				'audience_id'     => '0',
+				'audience_ids'    => '[]',
 				'subject'         => 'Happy birthday',
 				'body'            => '<p>Hi</p>',
 				'send_to_user'    => '1',
@@ -58,17 +58,17 @@ class DateMessagesRuleTest extends TestCase {
 		$this->assertInstanceOf( Rule::class, $rule );
 		$this->assertSame( 4, $rule->id );
 		$this->assertSame( -7, $rule->offset_days );
-		$this->assertNull( $rule->audience_id, 'Audience 0 means everyone.' );
+		$this->assertSame( array(), $rule->audience_ids, 'No audience means everyone.' );
 		$this->assertTrue( $rule->send_to_user );
 		$this->assertFalse( $rule->digest_enabled );
 		$this->assertSame( array( 3, 5 ), $rule->digest_user_ids, 'Only positive, unique ids survive.' );
 	}
 
 	public function test_to_columns_round_trips(): void {
-		$rule    = Rule::from_array( $this->valid( array( 'audience_id' => '12' ) ) );
+		$rule    = Rule::from_array( $this->valid( array( 'audience_ids' => '[12, "4", 12]' ) ) );
 		$columns = $rule->to_columns();
 
-		$this->assertSame( 12, $columns['audience_id'] );
+		$this->assertSame( '[12,4]', $columns['audience_ids'] );
 		$this->assertSame( '[3,5]', $columns['digest_user_ids'] );
 		$this->assertSame( 1, $columns['is_active'] );
 
@@ -116,5 +116,13 @@ class DateMessagesRuleTest extends TestCase {
 		$this->assertTrue( $rule->send_to_user );
 		$this->assertTrue( $rule->digest_enabled );
 		$this->assertFalse( $rule->is_active );
+	}
+
+	public function test_audiences_come_from_a_stored_list_or_a_submitted_one(): void {
+		$stored    = Rule::from_array( $this->valid( array( 'audience_ids' => '[7, 9]' ) ) );
+		$submitted = Rule::from_array( $this->valid( array( 'audience_ids' => array( '7', '9', '0', 'x' ) ) ) );
+
+		$this->assertSame( array( 7, 9 ), $stored->audience_ids );
+		$this->assertSame( array( 7, 9 ), $submitted->audience_ids, 'Only positive ids survive from a form.' );
 	}
 }
