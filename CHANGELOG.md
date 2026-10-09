@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **A Date Messages rule can draw its message over a background image** (#1660). The body cell takes a Media Library image, a fallback colour and a text colour, with the text on the left, the right or across the whole width; the header and footer stay the Email Model's. The editor gains a rendered message preview at computer and phone width.
+
 ## [6.35.0] (2026-10-09) — `d05e8d5`
 
 ### Added

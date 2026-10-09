@@ -96,7 +96,7 @@ class DateMessagesActivatorTest extends TestCase {
 
 	public function test_maybe_migrate_is_a_no_op_on_the_current_version(): void {
 		Functions\when( 'get_option' )->alias(
-			static fn( $name ) => DateMessagesActivator::AUDIENCE_IDS_OPTION === $name ? '1' : FFC_VERSION
+			static fn( $name ) => in_array( $name, array( DateMessagesActivator::AUDIENCE_IDS_OPTION, DateMessagesActivator::APPEARANCE_OPTION ), true ) ? '1' : FFC_VERSION
 		);
 		Functions\expect( 'update_option' )->never();
 		$this->wpdb->shouldReceive( 'get_var' )->never();
@@ -209,6 +209,54 @@ class DateMessagesActivatorTest extends TestCase {
 		DateMessagesActivator::maybe_migrate();
 
 		$this->assertSame( array(), $this->deltas, 'The version gate still holds for the table chain.' );
+	}
+
+	public function test_appearance_migration_records_the_marker_once_the_column_exists(): void {
+		$added = false;
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_date_message_rules' );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $q ) use ( &$added ) {
+				return $added && str_ends_with( (string) $q, ',appearance' ) ? array( (object) array( 'Field' => 'appearance' ) ) : array();
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $q ) use ( &$added ) {
+				if ( str_contains( (string) $q, 'ADD COLUMN' ) && str_contains( (string) $q, 'appearance' ) ) {
+					$added = true;
+				}
+				return 1;
+			}
+		);
+		Functions\expect( 'update_option' )->once()->with( DateMessagesActivator::APPEARANCE_OPTION, '1' );
+
+		DateMessagesActivator::migrate_appearance();
+	}
+
+	public function test_a_failed_appearance_alter_leaves_the_marker_unset_so_it_retries(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_date_message_rules' );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( false );
+		Functions\expect( 'update_option' )->never();
+
+		DateMessagesActivator::migrate_appearance();
+	}
+
+	public function test_appearance_migration_skips_a_missing_table(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'query' )->never();
+		Functions\expect( 'update_option' )->never();
+
+		DateMessagesActivator::migrate_appearance();
+	}
+
+	public function test_create_tables_declares_the_appearance_column(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+
+		DateMessagesActivator::create_tables();
+
+		$this->assertStringContainsString( 'appearance longtext DEFAULT NULL,', $this->deltas[0] );
 	}
 
 	public function test_audience_migration_skips_a_missing_table(): void {

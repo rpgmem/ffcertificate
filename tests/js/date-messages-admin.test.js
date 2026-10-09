@@ -152,4 +152,103 @@ describe('ffc-date-messages-admin', () => {
 		expect(event.isDefaultPrevented()).toBe(true);
 		confirm.mockRestore();
 	});
+
+	it('renders the message preview in a sandboxed frame and resizes it for a phone (#1660)', async () => {
+		installEditorDom();
+		window.$('.ffc-dm-preview').append(`
+			<button type="button" class="ffc-dm-message-button">Message</button>
+			<div class="ffc-dm-message ffc-hidden">
+				<strong class="ffc-dm-message-subject"></strong>
+				<button type="button" class="ffc-dm-message-size" data-width="640" aria-pressed="true">Computer</button>
+				<button type="button" class="ffc-dm-message-size" data-width="360" aria-pressed="false">Phone</button>
+				<iframe class="ffc-dm-message-frame" sandbox="" width="640"></iframe>
+			</div>
+		`);
+		window.ffcDateMessages.messageAction = 'ffc_date_messages_message_preview';
+		window.ffcDateMessages.messageNonce = 'mn';
+		request.mockResolvedValue({ subject: '<b>Hi</b>', html: '<!DOCTYPE html><p>Body</p>' });
+		await loadOnReady();
+
+		window.$('.ffc-dm-message-button').trigger('click');
+		await flush();
+
+		expect(request.mock.calls[0][0]).toBe('ffc_date_messages_message_preview');
+		expect(request.mock.calls[0][2].nonce).toBe('mn');
+		expect(window.$('.ffc-dm-message').hasClass('ffc-hidden')).toBe(false);
+		expect(window.$('.ffc-dm-message-subject').text()).toBe('<b>Hi</b>');
+		expect(window.$('.ffc-dm-message-subject').children().length).toBe(0);
+		expect(window.$('.ffc-dm-message-frame').attr('srcdoc')).toBe('<!DOCTYPE html><p>Body</p>');
+		expect(window.$('.ffc-dm-message-frame').attr('sandbox')).toBe('');
+
+		window.$('.ffc-dm-message-size[data-width="360"]').trigger('click');
+		expect(window.$('.ffc-dm-message-frame').attr('width')).toBe('360');
+		expect(window.$('.ffc-dm-message-size[data-width="360"]').attr('aria-pressed')).toBe('true');
+		expect(window.$('.ffc-dm-message-size[data-width="640"]').attr('aria-pressed')).toBe('false');
+	});
+
+	it('requires a fallback colour once an image is set and shows the contrast against it (#1660)', async () => {
+		document.body.innerHTML = `
+			<div class="ffc-dm-appearance" data-model-bg="#ffffff" data-model-text="#333333">
+				<input type="hidden" class="ffc-dm-image-id" value="37">
+				<p class="ffc-dm-image-preview"><img class="ffc-dm-image-thumb" src="t.png"><span class="ffc-dm-image-meta">art.png</span></p>
+				<button type="button" class="ffc-dm-image-remove">Remove</button>
+				<input type="hidden" class="ffc-dm-image-url" value="a.png">
+				<input type="text" class="ffc-dm-color ffc-dm-fallback" value="#000000">
+				<input type="text" class="ffc-dm-color ffc-dm-text" value="">
+				<p class="ffc-dm-contrast" data-ok="OK %s:1" data-low="LOW %s:1"></p>
+			</div>
+		`;
+		window.ffcDateMessages.decimal = ',';
+		await loadOnReady();
+
+		expect(window.$('.ffc-dm-fallback').prop('required')).toBe(true);
+		// #333333 on #000000.
+		expect(window.$('.ffc-dm-contrast').text()).toBe('LOW 1,7:1');
+
+		window.$('.ffc-dm-fallback').val('').trigger('input');
+		// Empty fields follow the Email Model: #333333 on #ffffff.
+		expect(window.$('.ffc-dm-contrast').text()).toBe('OK 12,6:1');
+
+		window.$('.ffc-dm-image-remove').trigger('click');
+		expect(window.$('.ffc-dm-image-id').val()).toBe('0');
+		expect(window.$('.ffc-dm-image-url').val()).toBe('');
+		expect(window.$('.ffc-dm-fallback').prop('required')).toBe(false);
+		expect(window.$('.ffc-dm-image-preview').hasClass('ffc-hidden')).toBe(true);
+		expect(window.$('.ffc-dm-image-remove').hasClass('ffc-hidden')).toBe(true);
+	});
+
+	it('takes the chosen image from the Media Library (#1660)', async () => {
+		document.body.innerHTML = `
+			<div class="ffc-dm-appearance" data-model-bg="#ffffff" data-model-text="#333333">
+				<input type="hidden" class="ffc-dm-image-id" value="0">
+				<p class="ffc-dm-image-preview ffc-hidden"><img class="ffc-dm-image-thumb" src=""><span class="ffc-dm-image-meta"></span></p>
+				<button type="button" class="ffc-dm-image-choose" data-title="Pick" data-button="Use">Choose</button>
+				<button type="button" class="ffc-dm-image-remove ffc-hidden">Remove</button>
+				<input type="hidden" class="ffc-dm-image-url" value="">
+				<input type="text" class="ffc-dm-color ffc-dm-fallback" value="">
+				<input type="text" class="ffc-dm-color ffc-dm-text" value="">
+				<p class="ffc-dm-contrast" data-ok="OK %s:1" data-low="LOW %s:1"></p>
+			</div>
+		`;
+		let onSelect;
+		const frame = {
+			on: (event, cb) => { onSelect = cb; },
+			open: vi.fn(),
+			state: () => ({ get: () => ({ first: () => ({ toJSON: () => ({ id: 37, url: 'full.png', filename: 'art.png', width: 600, height: 360, filesizeHumanReadable: '56 KB', sizes: { medium: { url: 'medium.png' } } }) }) }) }),
+		};
+		window.wp = { media: vi.fn(() => frame) };
+		await loadOnReady();
+
+		window.$('.ffc-dm-image-choose').trigger('click');
+		expect(window.wp.media.mock.calls[0][0].library).toEqual({ type: 'image' });
+		expect(frame.open).toHaveBeenCalled();
+		onSelect();
+
+		expect(window.$('.ffc-dm-image-id').val()).toBe('37');
+		expect(window.$('.ffc-dm-image-thumb').attr('src')).toBe('medium.png');
+		expect(window.$('.ffc-dm-image-meta').text()).toBe('art.png · 600 × 360 · 56 KB');
+		expect(window.$('.ffc-dm-fallback').prop('required')).toBe(true);
+		expect(window.$('.ffc-dm-image-preview').hasClass('ffc-hidden')).toBe(false);
+		delete window.wp;
+	});
 });
