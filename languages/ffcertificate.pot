@@ -24632,9 +24632,6 @@ msgstr ""
 msgid "QR Code too large/small"
 msgstr ""
 
-msgid "QR Codes"
-msgstr ""
-
 msgid "QR Codes are also available over REST for external automations:"
 msgstr ""
 
@@ -24843,4 +24840,13 @@ msgid "On the edit screen the CPF/RF and the email start masked for everyone, ad
 msgstr ""
 
 msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."
+msgstr ""
+
+msgid "In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes."
+msgstr ""
+
+msgid "Certificates → Dashboard opens with a summary row (forms in the month shown, submissions today and over the last 7 days, GeoFence windows open now) above a calendar of forms by GeoFence start date, or by publication date when a form has none. Picking a day lists its forms beside the calendar. It needs ffc_view_certificates."
+msgstr ""
+
+msgid "The record sits beside a side panel with Save, the magic link with a Copy button, an Open certificate button that opens the public certificate page in a new tab, and the linked user."
 msgstr ""

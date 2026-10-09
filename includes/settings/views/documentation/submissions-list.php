@@ -24,6 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Editing a submission', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The edit screen lets you correct the participant email and the form\'s custom-field values, and link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed).', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The record sits beside a side panel with Save, the magic link with a Copy button, an Open certificate button that opens the public certificate page in a new tab, and the linked user.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'On the edit screen the CPF/RF and the email start masked for everyone, administrators included. An operator who may see them uses Reveal to fetch the value, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'CSV export', 'ffcertificate' ); ?></h4>

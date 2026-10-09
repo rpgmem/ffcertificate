@@ -24716,9 +24716,6 @@ msgstr "Configurações Padrão do QR Code"
 msgid "QR Code too large/small"
 msgstr "QR Code muito grande/pequeno"
 
-msgid "QR Codes"
-msgstr "QR Codes"
-
 msgid "QR Codes are also available over REST for external automations:"
 msgstr "Os QR Codes também estão disponíveis via REST para automações externas:"
 
@@ -24928,3 +24925,12 @@ msgstr "Na tela de edição, o CPF/RF e o e-mail começam mascarados para todos,
 
 msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."
 msgstr "Administradores (manage_options) possuem todas as permissões acima e, assim como a função de administrador de certificados, veem os dados pessoais sem máscara na lista, sem a etapa de revelação; a tela de edição também os mascara para eles. Veja Capacidades e Funções."
+
+msgid "In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes."
+msgstr "No editor de formulário, cada aba se abre em seções recolhíveis cujo indicador mostra Ligado/Desligado, ou o agendamento, quando fechadas, e cada aba tem um ponto que acompanha seus interruptores. Uma caixa de resumo na barra lateral mostra o que o formulário salvo faz, o shortcode tem um botão Copiar e os locais cadastrados de uma cerca geográfica são escolhidos por caixas de seleção."
+
+msgid "Certificates → Dashboard opens with a summary row (forms in the month shown, submissions today and over the last 7 days, GeoFence windows open now) above a calendar of forms by GeoFence start date, or by publication date when a form has none. Picking a day lists its forms beside the calendar. It needs ffc_view_certificates."
+msgstr "Certificados → Painel abre com uma linha de resumo (formulários no mês exibido, submissões de hoje e dos últimos 7 dias, janelas de GeoFence abertas agora) acima de um calendário de formulários pela data de início da GeoFence, ou pela data de publicação quando o formulário não tem uma. Escolher um dia lista seus formulários ao lado do calendário. Requer ffc_view_certificates."
+
+msgid "The record sits beside a side panel with Save, the magic link with a Copy button, an Open certificate button that opens the public certificate page in a new tab, and the linked user."
+msgstr "O registro fica ao lado de um painel lateral com Salvar, o link mágico com um botão Copiar, um botão Abrir certificado que abre a página pública do certificado em uma nova aba, e o usuário vinculado."
