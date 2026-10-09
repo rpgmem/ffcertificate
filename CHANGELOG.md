@@ -42,6 +42,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Working hours added in the calendar editor are saved** (#1629). New rows were named after a key the save never read, so every row added with "Add Working Hours" was dropped; and the cancellation-deadline and waitlist-capacity fields now start hidden when their switch is off.
 - **The Date messages capability group has its colour stripe.** The sheet declared no hue for it, so its header and rows drew none on the role editor and the profile permissions panel; `CapabilityCatalogTest` now fails a group the sheet does not paint, or two groups sharing a colour (#1635).
 - **The in-admin documentation matches what shipped** (#1638). Four wrong claims fixed (who sets the Date Messages send time, the geofence location list, Dark Mode reaching public pages, the plugin's own roles and permission editor) and seven features documented: the daily run's today-only rule, operator scoping in wp-admin, the user-edit custom data, the All Forms switches, the per-email SMTP switches and opt-in cache warming.
+- **The Settings tab menu reads in groups on a phone** (#1637). At narrow widths the group labels flowed inline between the tabs; each label now takes its own row above the tabs it names.
 
 ### Security
 
