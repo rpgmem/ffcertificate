@@ -78,6 +78,7 @@ final class ClassNamingIdiomTest extends TestCase {
 	private const VENDOR_CLASSES = array(
 		'alternate'        => 'core list-table row striping',
 		'card'             => 'core admin card (about.php, plugin cards)',
+		'count'            => 'core subsubsub view count, `(27)`',
 		'current'          => 'core current pagination / subsubsub item',
 		'description'      => 'core field helper text',
 		'disabled'         => 'core button state (`.button.disabled`), written by core itself',
