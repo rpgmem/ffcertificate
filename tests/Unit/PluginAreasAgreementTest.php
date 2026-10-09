@@ -105,12 +105,9 @@ class PluginAreasAgreementTest extends TestCase {
 		$list = self::read( 'includes/settings/views/documentation/config-modules.php' );
 		$tab  = self::read( 'includes/settings/views/ffc-tab-modulos.php' );
 		foreach ( array_keys( PluginAreas::all() ) as $area ) {
-			if ( 'settings' === $area ) {
-				continue;
-			}
 			$this->assertStringContainsString( "'title'", $docs );
 			$this->assertMatchesRegularExpression( "/PluginAreas::icon_class\\( '" . $area . "' \\),\\s*'title'\\s*=> \\\\FreeFormCertificate\\\\Core\\\\PluginAreas::label\\( '" . $area . "' \\)/", $docs, 'the documentation names ' . $area . ' with a title of its own' );
-			if ( 'scheduling' !== $area ) {
+			if ( 'scheduling' !== $area && 'settings' !== $area ) {
 				// Scheduling is two modules, Personal and Audience Calendars, each
 				// named for its own half; every other module is its area.
 				$this->assertStringContainsString( "'label' => PluginAreas::label( '" . $area . "' )", $tab, 'Settings → Modules names ' . $area . ' with a label of its own' );
@@ -122,9 +119,6 @@ class PluginAreasAgreementTest extends TestCase {
 	public function test_documentation_and_modules_tab_read_the_map(): void {
 		$docs = self::read( 'includes/settings/views/ffc-tab-documentation.php' );
 		foreach ( array_keys( PluginAreas::all() ) as $area ) {
-			if ( 'settings' === $area ) {
-				continue; // The documentation has no Settings area: its topics sit under each feature.
-			}
 			$this->assertStringContainsString( "PluginAreas::icon_class( '" . $area . "' )", $docs, 'the documentation tree draws ' . $area . ' with a class of its own' );
 		}
 

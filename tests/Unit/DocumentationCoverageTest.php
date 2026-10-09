@@ -42,7 +42,7 @@ class DocumentationCoverageTest extends TestCase {
 		'ip_diagnostics'  => 'config-ip-diagnostics',
 		'migrations'      => 'operations-migrations',
 		'modulos'         => 'config-modules',
-		'qr_code'         => 'reference-qr-codes',
+		'qr_code'         => 'config-qr-code',
 		'rate_limit'      => 'config-rate-limit',
 		'reregistration'  => 'feature-reregistration',
 		'scheduled_tasks' => 'config-scheduled-tasks',
@@ -136,6 +136,22 @@ class DocumentationCoverageTest extends TestCase {
 		foreach ( self::MODULE_TOPICS as $module => $anchor ) {
 			$this->assertArrayHasKey( $anchor, $index, $module . ' is mapped to a topic the index does not list' );
 		}
+	}
+
+	public function test_the_top_level_follows_the_admin_menu(): void {
+		// The overview first, then one branch per plugin area in menu order,
+		// then Developer and Troubleshooting. Read as the order of the
+		// top-level `'icon'` lines: an area names itself through PluginAreas.
+		$src = (string) file_get_contents( self::root() . '/includes/settings/views/ffc-tab-documentation.php' );
+		preg_match_all( "/^\\tarray\\(\\n\\t\\t(?:'anchor' => '([a-z-]+)',\\n\\t\\t)?'icon'\\s*=> (?:\\\\FreeFormCertificate\\\\Core\\\\PluginAreas::icon_class\\( '([a-z_]+)' \\)|'([a-z-]+)')/m", $src, $m, PREG_SET_ORDER );
+		$order = array_map(
+			static fn( array $hit ): string => '' !== $hit[2] ? $hit[2] : ( '' !== $hit[1] ? $hit[1] : $hit[3] ),
+			$m
+		);
+		$this->assertSame(
+			array_merge( array( 'overview' ), array_keys( \FreeFormCertificate\Core\PluginAreas::all() ), array( 'ffc-icon-code', 'operations-troubleshooting' ) ),
+			$order
+		);
 	}
 
 	public function test_index_and_topic_files_agree(): void {
