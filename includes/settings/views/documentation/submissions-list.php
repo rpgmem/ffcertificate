@@ -24,6 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Editing a submission', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The edit screen lets you correct the participant email and the form\'s custom-field values, and link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed).', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'On the edit screen the CPF/RF and the email start masked for everyone, administrators included. An operator who may see them uses Reveal to fetch the value, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'CSV export', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability.', 'ffcertificate' ); ?></p>
@@ -45,5 +46,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><code>ffc_view_certificates_pii</code></td><td><?php esc_html_e( 'Reveal the decrypted CPF / RF / email on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation.', 'ffcertificate' ); ?></td></tr>
 		</tbody>
 	</table>
-	<p class="description"><?php esc_html_e( 'Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked without a reveal step. See Capabilities & Roles.', 'ffcertificate' ); ?> <a href="#reference-capabilities"><?php esc_html_e( 'Capabilities & Roles', 'ffcertificate' ); ?></a>.</p>
+	<p class="description"><?php esc_html_e( 'Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles.', 'ffcertificate' ); ?> <a href="#reference-capabilities"><?php esc_html_e( 'Capabilities & Roles', 'ffcertificate' ); ?></a>.</p>
 </div>

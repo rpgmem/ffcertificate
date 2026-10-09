@@ -380,7 +380,7 @@ class AdminAjaxTest extends TestCase {
 		// constant is genuinely defined this way, avoiding the alias-mock
 		// constants-map fragility).
 		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'activity_log_enabled' )->andReturn( false );
+			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
 
 		$ajax = new AdminAjax();
 		try {
@@ -398,7 +398,7 @@ class AdminAjaxTest extends TestCase {
 		}
 	}
 
-	public function test_reveal_pii_unmasked_tier_returns_value(): void {
+	public function test_reveal_pii_unmasked_tier_returns_value_and_audits(): void {
 		$_POST['nonce']         = 'n';
 		$_POST['submission_id'] = '5';
 		$_POST['field']         = 'cpf';
@@ -416,8 +416,13 @@ class AdminAjaxTest extends TestCase {
 		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
 		$df->shouldReceive( 'format_cpf' )->andReturn( '123.456.789-01' );
 
-		// Unmasked tier never reaches the audit branch, so ActivityLog is not
-		// touched at all.
+		// Every served reveal reaches the audit (#1655): the unmasked tier
+		// only calls here from the submission edit page, which masks for it.
+		// The log is kept switched off, so the call proves the path and
+		// honours the switch without a DB write.
+		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
+
 		$ajax = new AdminAjax();
 		$this->expectException( AdminAjaxSuccessException::class );
 		$ajax->reveal_pii();

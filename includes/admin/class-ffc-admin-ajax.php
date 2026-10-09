@@ -92,9 +92,13 @@ class AdminAjax {
 	 * The admin surfaces (submission edit page + list, appointment detail +
 	 * list) render the masked value only; the plaintext is fetched here on
 	 * demand so it never sits in the initial HTML for the `reveal` / `masked`
-	 * tiers. Returns 403 for the masked tier; the `reveal` tier writes an audit
-	 * row, the unmasked `_admin` tier does not. The `type` POST field selects
-	 * the record domain (defaults to `submission` for backward compatibility).
+	 * tiers. Returns 403 for the masked tier. Every reveal served writes an
+	 * audit row, whatever the tier: the unmasked tier sees the clear value on
+	 * the list screens without calling here, so a call is always a deliberate
+	 * disclosure — and the submission edit page masks for that tier too
+	 * (#1655), which makes this the only way it sees a value there. The `type`
+	 * POST field selects the record domain (defaults to `submission` for
+	 * backward compatibility).
 	 *
 	 * @return void
 	 */
@@ -153,17 +157,15 @@ class AdminAjax {
 			wp_send_json_error( array( 'message' => __( 'No value to reveal.', 'ffcertificate' ) ), 404 );
 		}
 
-		// Audit only the `reveal` tier — the unmasked `_admin` role is exempt
-		// to keep the per-field log free of high-trust noise.
-		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier ) {
-			\FreeFormCertificate\Core\ActivityLog::log(
-				$config['audit_action'],
-				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-				array( 'field_key' => $field ),
-				get_current_user_id(),
-				$id
-			);
-		}
+		// Every served reveal is audited (#1655); ActivityLog honours the
+		// Activity Log switch and its category, as every other entry does.
+		\FreeFormCertificate\Core\ActivityLog::log(
+			$config['audit_action'],
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array( 'field_key' => $field ),
+			get_current_user_id(),
+			$id
+		);
 
 		wp_send_json_success(
 			array(
