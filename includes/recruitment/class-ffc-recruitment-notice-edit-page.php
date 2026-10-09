@@ -131,6 +131,7 @@ final class RecruitmentNoticeEditPage {
 		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Notices', 'ffcertificate' ) . '</a></p>';
 
 		RecruitmentNoticeEditPageRenderer::render_general_section( $notice );
+		RecruitmentNoticeEditPageRenderer::render_shortcode_section( $notice );
 		RecruitmentNoticeEditPageRenderer::render_status_section( $notice );
 		RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $notice );
 		// The CSV import section is the strict `ffc_import_recruitment` tier

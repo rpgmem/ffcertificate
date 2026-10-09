@@ -6,6 +6,11 @@
  * server-side, fully public (no login required, per §8 of the
  * implementation plan).
  *
+ * Without `notice=` it renders a selector of the published notices and the
+ * listing of the one chosen (`?notice=CODE`); `list="preliminary|definitive"`
+ * narrows the selector, and with a fixed notice refuses one whose status does
+ * not publish that list (#1646).
+ *
  * Notice-status branching:
  *
  *   - `draft`       → error message "Notice not yet published.";
@@ -64,6 +69,18 @@ final class RecruitmentPublicShortcode {
 
 	/** Tag registered with `add_shortcode`. */
 	public const SHORTCODE_TAG = 'ffc_recruitment_queue';
+
+	/**
+	 * Values the `list=` attribute accepts. Each names the notice status
+	 * that publishes that list; `closed` also shows the definitive list
+	 * (#1646).
+	 */
+	public const LIST_TYPES = array( 'preliminary', 'definitive' );
+
+	/**
+	 * Query parameter that carries the notice chosen in the selector.
+	 */
+	public const NOTICE_PARAM = 'notice';
 
 	/** Cache transient key prefix (matches `uninstall.php` cleanup). */
 	private const CACHE_PREFIX = 'ffc_recruitment_public_cache_';
@@ -152,6 +169,7 @@ final class RecruitmentPublicShortcode {
 			array(
 				'notice'    => '',
 				'adjutancy' => '',
+				'list'      => '',
 			),
 			is_array( $atts ) ? $atts : array(),
 			self::SHORTCODE_TAG
@@ -159,6 +177,20 @@ final class RecruitmentPublicShortcode {
 
 		$notice_code = trim( (string) $atts['notice'] );
 		$attr_filter = trim( (string) $atts['adjutancy'] );
+		$wanted_list = strtolower( trim( (string) $atts['list'] ) );
+
+		if ( '' !== $wanted_list && ! in_array( $wanted_list, self::LIST_TYPES, true ) ) {
+			return self::wrap_output( RecruitmentPublicShortcodeRenderer::msg( __( 'The list attribute must be "preliminary" or "definitive".', 'ffcertificate' ), 'error' ) );
+		}
+
+		// Without `notice=`, the shortcode offers every published notice in a
+		// selector and renders the one the visitor picked (#1646). The pick
+		// travels in the query string, so the cache and the rate limit below
+		// cover it exactly as they cover a fixed notice.
+		$selector = '' === $notice_code;
+		if ( $selector ) {
+			$notice_code = strtoupper( trim( RequestInput::get_get_string( self::NOTICE_PARAM ) ) );
+		}
 		$slug_filter = $attr_filter;
 
 		// When the shortcode wasn't called with a fixed adjutancy attribute,
@@ -172,10 +204,6 @@ final class RecruitmentPublicShortcode {
 		if ( '' === $slug_filter ) {
 			$get_filter  = RequestInput::get_get_string( 'adjutancy' );
 			$slug_filter = trim( $get_filter );
-		}
-
-		if ( '' === $notice_code ) {
-			return self::wrap_output( RecruitmentPublicShortcodeRenderer::msg( __( 'Notice attribute is required.', 'ffcertificate' ), 'error' ) );
 		}
 
 		// Per-IP rate limit BEFORE cache lookup so cache hits don't bypass
@@ -194,13 +222,16 @@ final class RecruitmentPublicShortcode {
 		$subscription_raw = RequestInput::get_get_key( 'subscription' );
 		$subscription     = in_array( $subscription_raw, array( 'pcd', 'geral' ), true ) ? $subscription_raw : '';
 
-		$cache_key = self::cache_key( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query, $subscription );
+		$cache_key = self::cache_key( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query, $subscription, $selector, $wanted_list );
 		$cached    = get_transient( $cache_key );
 		if ( is_string( $cached ) ) {
 			return $cached;
 		}
 
-		$html = self::wrap_output( self::render_uncached( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query, $subscription ) );
+		$body = $selector
+			? self::render_selector_uncached( $notice_code, $wanted_list, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query, $subscription )
+			: self::render_uncached( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query, $subscription, $wanted_list );
+		$html = self::wrap_output( $body );
 
 		$settings = RecruitmentSettings::all();
 		$ttl      = (int) $settings['public_cache_seconds'];
@@ -274,9 +305,13 @@ final class RecruitmentPublicShortcode {
 	 * @param string $subscription  Subscription-type filter (`?subscription=`).
 	 *                              Values: '' / 'pcd' / 'geral'. Empty means
 	 *                              "no subscription filter".
+	 * @param string $wanted_list   `list=` attribute: '' for any, or one of
+	 *                              {@see self::LIST_TYPES}. A notice whose
+	 *                              status does not publish that list renders
+	 *                              a "not published" message instead.
 	 * @return string
 	 */
-	public static function render_uncached( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '', string $subscription = '' ): string {
+	public static function render_uncached( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '', string $subscription = '', string $wanted_list = '' ): string {
 		$notice = RecruitmentNoticeReader::get_by_code( $notice_code );
 		if ( null === $notice ) {
 			return RecruitmentPublicShortcodeRenderer::msg( __( 'Notice not found.', 'ffcertificate' ), 'error' );
@@ -286,6 +321,15 @@ final class RecruitmentPublicShortcode {
 		if ( 'draft' === $notice->status ) {
 			return RecruitmentPublicShortcodeRenderer::msg(
 				__( 'This notice is still being prepared. Public data will be available once the preliminary classification is published.', 'ffcertificate' ),
+				'info'
+			);
+		}
+
+		if ( '' !== $wanted_list && self::list_of( (string) $notice->status ) !== $wanted_list ) {
+			return RecruitmentPublicShortcodeRenderer::msg(
+				'definitive' === $wanted_list
+					? __( 'The definitive list for this notice has not been published yet.', 'ffcertificate' )
+					: __( 'The preliminary list for this notice is no longer available.', 'ffcertificate' ),
 				'info'
 			);
 		}
@@ -426,6 +470,77 @@ final class RecruitmentPublicShortcode {
 	}
 
 	/**
+	 * Selector mode: a picker of the published notices, and the listing of the
+	 * one chosen (#1646).
+	 *
+	 * Only notices in `preliminary` or `definitive` are offered (narrowed by
+	 * `list=`); `draft` and `closed` are not. A requested code outside that
+	 * set is ignored, so a hand-written `?notice=` cannot reach a draft or a
+	 * notice the shortcode filters out. With exactly one notice on offer it
+	 * opens directly and the picker is not drawn.
+	 *
+	 * @param string $requested     Code from `?notice=` ('' when none).
+	 * @param string $wanted_list   `list=` attribute ('' for both).
+	 * @param string $slug_filter   Adjutancy slug filter.
+	 * @param int    $page_top      Page of the "Waiting called" section.
+	 * @param int    $page_bottom   Page of the "Called" section.
+	 * @param bool   $filter_locked Whether the shortcode pinned the adjutancy.
+	 * @param string $name_query    Name filter.
+	 * @param string $subscription  Subscription filter.
+	 * @return string
+	 */
+	public static function render_selector_uncached( string $requested, string $wanted_list, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '', string $subscription = '' ): string {
+		$notices = self::selectable_notices( $wanted_list );
+		if ( array() === $notices ) {
+			return RecruitmentPublicShortcodeRenderer::msg( __( 'No notices are published yet.', 'ffcertificate' ), 'info' );
+		}
+
+		$codes    = array_map( static fn( $notice ): string => strtoupper( (string) $notice->code ), $notices );
+		$selected = in_array( $requested, $codes, true ) ? $requested : '';
+		if ( '' === $selected && 1 === count( $codes ) ) {
+			$selected = $codes[0];
+		}
+
+		$picker = count( $codes ) > 1 ? RecruitmentPublicShortcodeRenderer::render_notice_picker( $notices, $selected ) : '';
+		if ( '' === $selected ) {
+			return $picker . RecruitmentPublicShortcodeRenderer::msg( __( 'Select a notice to see its classification.', 'ffcertificate' ), 'info' );
+		}
+
+		return $picker . self::render_uncached( $selected, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query, $subscription, $wanted_list );
+	}
+
+	/**
+	 * Notices the selector offers, newest first.
+	 *
+	 * @param string $wanted_list `list=` attribute ('' for both lists).
+	 * @return list<NoticeRow>
+	 */
+	public static function selectable_notices( string $wanted_list ): array {
+		$statuses = '' === $wanted_list ? self::LIST_TYPES : array( $wanted_list );
+
+		return array_values(
+			array_filter(
+				RecruitmentNoticeReader::get_all(),
+				static fn( $notice ): bool => in_array( (string) $notice->status, $statuses, true )
+			)
+		);
+	}
+
+	/**
+	 * Which public list a notice status shows: `preliminary` shows the
+	 * preliminary list, `definitive` and `closed` the definitive one.
+	 *
+	 * @param string $status Notice status.
+	 * @return string One of {@see self::LIST_TYPES}, or '' for `draft`.
+	 */
+	public static function list_of( string $status ): string {
+		if ( 'preliminary' === $status ) {
+			return 'preliminary';
+		}
+		return in_array( $status, array( 'definitive', 'closed' ), true ) ? 'definitive' : '';
+	}
+
+	/**
 	 * Build the cache-key for a given (notice, adjutancy filter, page) tuple.
 	 *
 	 * @param string $notice_code   Notice code (case-preserved input).
@@ -436,12 +551,14 @@ final class RecruitmentPublicShortcode {
 	 *                              via attribute (filter UI is suppressed).
 	 * @param string $name_query    Lowercased name-search filter ('' when none).
 	 * @param string $subscription  Subscription-type filter ('' / 'pcd' / 'geral').
+	 * @param bool   $selector      Whether the shortcode runs in selector mode.
+	 * @param string $wanted_list   `list=` attribute ('' for both).
 	 * @return string Transient key (under WP's 172-char limit).
 	 */
-	private static function cache_key( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '', string $subscription = '' ): string {
+	private static function cache_key( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '', string $subscription = '', bool $selector = false, string $wanted_list = '' ): string {
 		$version = \FreeFormCertificate\Core\CacheVersion::current( self::CACHE_VERSION_DOMAIN );
 		return self::CACHE_PREFIX . md5(
-			strtoupper( $notice_code ) . '|' . $slug_filter . '|' . $page_top . '|' . $page_bottom . '|' . ( $filter_locked ? '1' : '0' ) . '|' . strtolower( $name_query ) . '|s:' . $subscription . '|v' . $version
+			strtoupper( $notice_code ) . '|' . $slug_filter . '|' . $page_top . '|' . $page_bottom . '|' . ( $filter_locked ? '1' : '0' ) . '|' . strtolower( $name_query ) . '|s:' . $subscription . '|m:' . ( $selector ? 'sel' : 'fix' ) . '|l:' . $wanted_list . '|v' . $version
 		);
 	}
 

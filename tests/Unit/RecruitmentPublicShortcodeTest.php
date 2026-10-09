@@ -65,6 +65,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$_GET = array();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -84,9 +85,168 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 		);
 	}
 
-	public function test_render_returns_error_when_notice_attribute_missing(): void {
+	// ==================================================================
+	// Selector mode and list= (#1646)
+	// ==================================================================
+
+	/**
+	 * Stubs the picker template needs, and a clean query string.
+	 */
+	private function selector_setup( array $get = array() ): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $s ) => print $s );
+		Functions\when( 'selected' )->alias(
+			static fn( $a, $b = true, $echo = true ) => (string) $a === (string) $b ? ( $echo ? print ' selected="selected"' : ' selected="selected"' ) : ''
+		);
+		$_GET = $get;
+	}
+
+	public function test_render_without_notice_and_nothing_published_says_so(): void {
+		$this->selector_setup();
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array( $this->notice_stub( 'draft' ), $this->notice_stub( 'closed', 'EDITAL-OLD' ) ) );
+
 		$html = RecruitmentPublicShortcode::render( array() );
-		$this->assertStringContainsString( 'Notice attribute is required.', $html );
+
+		$this->assertStringContainsString( 'No notices are published yet.', $html );
+		$this->assertStringNotContainsString( '<select', $html );
+	}
+
+	public function test_selector_offers_preliminary_and_definitive_only_and_prompts(): void {
+		$this->selector_setup();
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+			array(
+				$this->notice_stub( 'definitive', 'EDITAL-02' ),
+				$this->notice_stub( 'preliminary', 'EDITAL-01' ),
+				$this->notice_stub( 'draft', 'EDITAL-03' ),
+				$this->notice_stub( 'closed', 'EDITAL-00' ),
+			)
+		);
+		// Nothing is chosen yet, so no notice is read.
+		$this->wpdb->shouldNotReceive( 'get_row' );
+
+		$html = RecruitmentPublicShortcode::render( array() );
+
+		$this->assertStringContainsString( '<select name="notice"', $html );
+		$this->assertStringContainsString( 'value="EDITAL-02"', $html );
+		$this->assertStringContainsString( 'value="EDITAL-01"', $html );
+		$this->assertStringNotContainsString( 'EDITAL-03', $html );
+		$this->assertStringNotContainsString( 'EDITAL-00', $html );
+		$this->assertStringContainsString( 'Definitive list', $html );
+		$this->assertStringContainsString( 'Preliminary list', $html );
+		$this->assertStringContainsString( 'Select a notice to see its classification.', $html );
+	}
+
+	public function test_selector_renders_the_chosen_notice_below_the_picker(): void {
+		$this->selector_setup( array( 'notice' => 'edital-01' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn(
+			array( $this->notice_stub( 'definitive', 'EDITAL-02' ), $this->notice_stub( 'preliminary', 'EDITAL-01' ) ),
+			array()
+		);
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'preliminary', 'EDITAL-01' ) );
+
+		$html = RecruitmentPublicShortcode::render( array() );
+
+		$this->assertMatchesRegularExpression( '/value="EDITAL-01" selected="selected"/', $html );
+		$this->assertStringContainsString( 'No candidates classified yet.', $html );
+		$this->assertStringNotContainsString( 'Select a notice to see', $html );
+	}
+
+	public function test_selector_ignores_a_requested_code_it_does_not_offer(): void {
+		// A hand-written ?notice= naming a draft must not reach it.
+		$this->selector_setup( array( 'notice' => 'EDITAL-03' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+			array( $this->notice_stub( 'definitive', 'EDITAL-02' ), $this->notice_stub( 'preliminary', 'EDITAL-01' ) )
+		);
+		$this->wpdb->shouldNotReceive( 'get_row' );
+
+		$html = RecruitmentPublicShortcode::render( array() );
+
+		$this->assertStringContainsString( 'Select a notice to see its classification.', $html );
+	}
+
+	public function test_selector_with_one_notice_opens_it_without_a_picker(): void {
+		$this->selector_setup();
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( $this->notice_stub( 'definitive', 'EDITAL-02' ) ), array() );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'definitive', 'EDITAL-02' ) );
+
+		$html = RecruitmentPublicShortcode::render( array() );
+
+		$this->assertStringNotContainsString( '<select name="notice"', $html );
+		$this->assertStringContainsString( 'No candidates classified yet.', $html );
+	}
+
+	public function test_list_attribute_narrows_the_selector(): void {
+		$this->selector_setup();
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+			array(
+				$this->notice_stub( 'definitive', 'EDITAL-02' ),
+				$this->notice_stub( 'preliminary', 'EDITAL-01' ),
+				$this->notice_stub( 'preliminary', 'EDITAL-04' ),
+			)
+		);
+
+		$html = RecruitmentPublicShortcode::render( array( 'list' => 'preliminary' ) );
+
+		$this->assertStringContainsString( 'value="EDITAL-01"', $html );
+		$this->assertStringContainsString( 'value="EDITAL-04"', $html );
+		$this->assertStringNotContainsString( 'EDITAL-02', $html );
+	}
+
+	public function test_unknown_list_attribute_is_an_error(): void {
+		$this->wpdb->shouldNotReceive( 'get_results' );
+
+		$html = RecruitmentPublicShortcode::render( array( 'list' => 'final' ) );
+
+		$this->assertStringContainsString( 'The list attribute must be', $html );
+	}
+
+	public function test_fixed_notice_whose_list_is_not_published_says_so(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'preliminary' ) );
+		$this->wpdb->shouldNotReceive( 'get_results' );
+
+		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-2026-01', '', 1, 1, false, '', '', 'definitive' );
+
+		$this->assertStringContainsString( 'The definitive list for this notice has not been published yet.', $html );
+	}
+
+	public function test_fixed_closed_notice_still_matches_the_definitive_list(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'closed' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-2026-01', '', 1, 1, false, '', '', 'definitive' );
+
+		$this->assertStringContainsString( 'Notice closed.', $html );
+	}
+
+	public function test_list_of_maps_every_status(): void {
+		$this->assertSame( 'preliminary', RecruitmentPublicShortcode::list_of( 'preliminary' ) );
+		$this->assertSame( 'definitive', RecruitmentPublicShortcode::list_of( 'definitive' ) );
+		$this->assertSame( 'definitive', RecruitmentPublicShortcode::list_of( 'closed' ) );
+		$this->assertSame( '', RecruitmentPublicShortcode::list_of( 'draft' ) );
+	}
+
+	public function test_picker_drops_the_listing_filters_and_keeps_other_parameters(): void {
+		$this->selector_setup(
+			array(
+				'page_id'      => '42',
+				'notice'       => 'EDITAL-01',
+				'adjutancy'    => 'emef',
+				'q'            => 'ana',
+				'subscription' => 'pcd',
+				'page_top'     => '3',
+				'page_bottom'  => '2',
+			)
+		);
+
+		$html = \FreeFormCertificate\Recruitment\RecruitmentPublicShortcodeRenderer::render_notice_picker(
+			array( $this->notice_stub( 'preliminary', 'EDITAL-01' ) ),
+			'EDITAL-01'
+		);
+
+		$this->assertStringContainsString( '<input type="hidden" name="page_id" value="42">', $html );
+		foreach ( array( 'adjutancy', 'q', 'subscription', 'page_top', 'page_bottom' ) as $param ) {
+			$this->assertStringNotContainsString( 'name="' . $param . '"', $html, $param . ' belongs to the notice being left' );
+		}
+		$this->assertStringNotContainsString( 'type="hidden" name="notice"', $html );
 	}
 
 	public function test_render_uncached_returns_error_when_notice_unknown(): void {

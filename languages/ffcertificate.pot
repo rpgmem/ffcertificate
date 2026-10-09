@@ -12019,10 +12019,6 @@ msgid_plural "notices"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:138
-msgid "Notice attribute is required."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:405
 msgid "Notice closed."
 msgstr ""
@@ -17573,10 +17569,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:31
 msgid "The Post Types setting has two columns per type: \"Shorten\" (show the meta box and allow short URLs for that type) and \"Expose\". When a type is exposed, a published post's short URL becomes the site's canonical shortlink — WordPress emits it as the"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php:60
-msgid "the public classification list for a notice (the notice code is required). Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:28
@@ -24755,4 +24747,52 @@ msgid "The global design (module shape, corners, colours and gradient, logo, fra
 msgstr ""
 
 msgid "Everyone, or the members of one audience (members of its sub-audiences included)."
+msgstr ""
+
+msgid "%1$s — %2$s (%3$s)"
+msgstr ""
+
+msgid "(offer only notices in that list; with a fixed notice, show a \"not published\" message while the notice is not in that list)."
+msgstr ""
+
+msgid "(the notice chosen in the selector),"
+msgstr ""
+
+msgid "Definitive list"
+msgstr ""
+
+msgid "No notices are published yet."
+msgstr ""
+
+msgid "Paste it into a page or post to publish this notice's classification. For a selector with every published notice, use %s."
+msgstr ""
+
+msgid "Select a notice"
+msgstr ""
+
+msgid "Select a notice to see its classification."
+msgstr ""
+
+msgid "Show on the site"
+msgstr ""
+
+msgid "The definitive list for this notice has not been published yet."
+msgstr ""
+
+msgid "The list attribute must be \"preliminary\" or \"definitive\"."
+msgstr ""
+
+msgid "The preliminary list for this notice is no longer available."
+msgstr ""
+
+msgid "Without a notice:"
+msgstr ""
+
+msgid "shows a selector of every notice in its preliminary or definitive list (drafts and closed notices are left out); the visitor picks one and its list appears below. With a single notice on offer it opens directly. The notice edit screen has the shortcode ready to copy."
+msgstr ""
+
+msgid "the public classification list for a notice. Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters. The \"Show on the site\" card on the notice edit screen has it ready to copy."
+msgstr ""
+
+msgid "without a notice, a selector of every notice in its preliminary or definitive list; drafts and closed notices are left out. The chosen notice's list appears below it. Add list=\"preliminary\" or list=\"definitive\" to offer only one kind."
 msgstr ""

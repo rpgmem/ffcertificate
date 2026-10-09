@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`[ffc_recruitment_queue]` without a notice shows a selector** (#1646). Visitors pick any notice in its preliminary or definitive list and its classification appears below; drafts and closed notices are left out. A new `list="preliminary|definitive"` attribute narrows the choice, and the notice edit screen has the shortcode ready to copy.
+
 ### Changed
 
 - **ALTCHA widget updated to 3.3.0** (#1604), from 3.2.2. It brings `rel="noopener"` on the widget's links and fixes an unhandled error when the audio challenge is paused while it starts. The plugin's v1 challenge was solved and verified end to end in Chromium with the new bundle, which accepts the same nine attributes and the same i18n store.
