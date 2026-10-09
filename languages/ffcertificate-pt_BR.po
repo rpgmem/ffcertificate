@@ -12038,10 +12038,6 @@ msgid_plural "notices"
 msgstr[0] "edital"
 msgstr[1] "editais"
 
-#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:138
-msgid "Notice attribute is required."
-msgstr "Edital não informado."
-
 #: includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:405
 msgid "Notice closed."
 msgstr "Edital encerrado."
@@ -17628,10 +17624,6 @@ msgstr "A interface de desenvolvimento do plugin: hooks de ação e filtro para 
 #: includes/settings/views/documentation/feature-url-shortener.php:31
 msgid "The Post Types setting has two columns per type: \"Shorten\" (show the meta box and allow short URLs for that type) and \"Expose\". When a type is exposed, a published post's short URL becomes the site's canonical shortlink — WordPress emits it as the"
 msgstr "A configuração Tipos de Postagem possui duas colunas por tipo: \"Encurtar\" (exibir a caixa de metadados e permitir URLs curtas para esse tipo) e \"Expor\". Quando um tipo é exposto, a URL curta de uma postagem publicada se torna o link curto canônico do site — o WordPress o emite como o link canônico."
-
-#: includes/settings/views/documentation/feature-recruitment.php:60
-msgid "the public classification list for a notice (the notice code is required). Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters."
-msgstr "a lista de classificação pública de um edital (o código do edital é obrigatório). Exibe apenas as colunas marcadas como públicas no edital. Aceita um atributo opcional `adjutancy=\"slug\"` e respeita os filtros de URL `?q` (busca por nome), `?adjutancy`, `?subscription` (pcd/geral) e `?page_top` / `?page_bottom`."
 
 #: includes/settings/views/documentation/feature-url-shortener.php:28
 msgid "The public short link is"
@@ -24840,3 +24832,51 @@ msgstr "O design global (formato dos módulos, cantos, cores e degradê, logotip
 
 msgid "Everyone, or the members of one audience (members of its sub-audiences included)."
 msgstr "Todos, ou os membros de um público-alvo (incluindo os membros dos seus subpúblicos-alvo)."
+
+msgid "%1$s — %2$s (%3$s)"
+msgstr "%1$s — %2$s (%3$s)"
+
+msgid "(offer only notices in that list; with a fixed notice, show a \"not published\" message while the notice is not in that list)."
+msgstr "(oferece só editais com essa lista; com um edital fixo, mostra uma mensagem de \"não publicada\" enquanto o edital não estiver nessa lista)."
+
+msgid "(the notice chosen in the selector),"
+msgstr "(o edital escolhido no seletor),"
+
+msgid "Definitive list"
+msgstr "Lista definitiva"
+
+msgid "No notices are published yet."
+msgstr "Ainda não há editais publicados."
+
+msgid "Paste it into a page or post to publish this notice's classification. For a selector with every published notice, use %s."
+msgstr "Cole numa página ou post para publicar a classificação deste edital. Para um seletor com todos os editais publicados, use %s."
+
+msgid "Select a notice"
+msgstr "Selecione um edital"
+
+msgid "Select a notice to see its classification."
+msgstr "Selecione um edital para ver a classificação."
+
+msgid "Show on the site"
+msgstr "Exibir no site"
+
+msgid "The definitive list for this notice has not been published yet."
+msgstr "A lista definitiva deste edital ainda não foi publicada."
+
+msgid "The list attribute must be \"preliminary\" or \"definitive\"."
+msgstr "O atributo list deve ser \"preliminary\" ou \"definitive\"."
+
+msgid "The preliminary list for this notice is no longer available."
+msgstr "A lista prévia deste edital não está mais disponível."
+
+msgid "Without a notice:"
+msgstr "Sem edital:"
+
+msgid "shows a selector of every notice in its preliminary or definitive list (drafts and closed notices are left out); the visitor picks one and its list appears below. With a single notice on offer it opens directly. The notice edit screen has the shortcode ready to copy."
+msgstr "mostra um seletor com todos os editais em lista prévia ou definitiva (rascunhos e editais encerrados ficam de fora); o visitante escolhe um e a lista dele aparece abaixo. Com um único edital disponível, ele abre direto. A tela de edição do edital traz o shortcode pronto para copiar."
+
+msgid "the public classification list for a notice. Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters. The \"Show on the site\" card on the notice edit screen has it ready to copy."
+msgstr "a lista pública de classificação de um edital. Mostra só as colunas que o edital marca como públicas. Aceita o atributo opcional adjutancy=\"slug\" e respeita os filtros de URL ?q (busca por nome), ?adjutancy, ?subscription (pcd/geral) e ?page_top / ?page_bottom. O card \"Exibir no site\" na tela de edição do edital traz o shortcode pronto para copiar."
+
+msgid "without a notice, a selector of every notice in its preliminary or definitive list; drafts and closed notices are left out. The chosen notice's list appears below it. Add list=\"preliminary\" or list=\"definitive\" to offer only one kind."
+msgstr "sem edital, um seletor com todos os editais em lista prévia ou definitiva; rascunhos e editais encerrados ficam de fora. A lista do edital escolhido aparece abaixo. Adicione list=\"preliminary\" ou list=\"definitive\" para oferecer só um tipo."

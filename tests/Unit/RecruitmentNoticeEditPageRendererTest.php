@@ -540,4 +540,22 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		// no definitive rows → default tab is preliminary.
 		$this->assertStringContainsString( 'data-ffc-clspanel="preliminary"', $html );
 	}
+
+	// ------------------------------------------------------------------
+	// render_shortcode_section() (#1646)
+	// ------------------------------------------------------------------
+
+	public function test_shortcode_section_offers_the_notice_shortcode_to_copy(): void {
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_shortcode_section( $this->notice( array( 'code' => 'EDITAL-01' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="ffc-notice-shortcode"', $html );
+		$this->assertStringContainsString( 'value="[ffc_recruitment_queue notice="EDITAL-01"]"', $html );
+		// The shared copy handler reads the input the button names.
+		$this->assertStringContainsString( 'ffc-copy-link', $html );
+		$this->assertStringContainsString( 'data-ffc-copy-target="#ffc-notice-shortcode"', $html );
+		// The bare shortcode is offered as the selector alternative.
+		$this->assertStringContainsString( '<code>[ffc_recruitment_queue]</code>', $html );
+	}
 }
