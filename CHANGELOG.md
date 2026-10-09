@@ -54,6 +54,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Security
 
 - **fast-uri updated to 3.1.8** (#1611), closing GHSA-hrr3-gc8f-f4qj. Dev-only, reached through `stylelint`; nothing ships. The `braces` advisory stays open because it covers every release and has no patched version yet; it is also dev-only.
+- **The submission edit screen masks CPF/RF and email for everyone** (#1655). Administrators included, each value is fetched through Reveal, and every reveal writes an Activity Log entry while the log is on; the email is editable only once revealed. Reveal also fills the value again on this screen, which it had stopped doing.
 
 ## [6.34.0] (2026-10-07) — `3c424bd`
 

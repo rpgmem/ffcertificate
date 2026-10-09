@@ -480,36 +480,48 @@ class AdminSubmissionEditPage {
 	/**
 	 * Render participant data section
 	 *
-	 * Displays email (editable), CPF/RF, auth code (read-only).
+	 * Email, CPF/RF and auth code. Email and CPF/RF start masked for everyone,
+	 * administrators included (#1655): the clear value never sits in the page,
+	 * and a user who may see it fetches it through the audited "Reveal" button,
+	 * so every disclosure on this screen leaves an Activity Log entry. The
+	 * email becomes editable only once revealed; left masked, its input is
+	 * disabled, is not posted, and the save keeps the stored address.
 	 */
 	private function render_participant_data_section(): void {
+		$ffc_can_reveal   = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
+			'ffc_view_certificates_pii',
+			'ffc_certificates_admin',
+			(int) ( $this->sub_array['user_id'] ?? 0 )
+		);
+		$ffc_reveal_nonce = $ffc_can_reveal ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';
+		$ffc_record_id    = (string) ( $this->sub_array['id'] ?? 0 );
+
 		self::card_open( __( 'Participant Data', 'ffcertificate' ), 'user' );
 		?>
 		<p class="ffc-edit-field">
 			<label for="user_email"><?php esc_html_e( 'Email', 'ffcertificate' ); ?> *</label>
-			<input type="email" name="user_email" id="user_email" value="<?php echo esc_attr( $this->sub_array['email'] ); ?>" class="regular-text" required>
+			<input type="email" name="user_email" id="user_email" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $this->sub_array['email'] ) ); ?>" class="regular-text" data-ffc-pii-field="email" data-ffc-pii-editable="1" disabled required>
+			<?php if ( $ffc_can_reveal && '' !== (string) $this->sub_array['email'] ) : ?>
+				<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye"
+					data-field="email"
+					data-submission-id="<?php echo esc_attr( $ffc_record_id ); ?>"
+					data-nonce="<?php echo esc_attr( $ffc_reveal_nonce ); ?>">
+					<?php esc_html_e( 'Reveal', 'ffcertificate' ); ?>
+				</button>
+				<span class="description ffc-edit-note ffc-pii-reveal-hint"><?php esc_html_e( 'Reveal the email to edit it.', 'ffcertificate' ); ?></span>
+			<?php endif; ?>
 			<?php if ( ! empty( $this->sub_array['email_encrypted'] ) ) : ?>
 				<span class="description ffc-edit-note ffc-icon-lock"><?php esc_html_e( 'This email is encrypted in the database.', 'ffcertificate' ); ?></span>
 			<?php endif; ?>
 		</p>
 		<dl class="ffc-facts">
 		<?php
-		// CPF/RF — #739 §3.3 masked unless PII tier.
 		if ( ! empty( $this->sub_array['cpf_rf'] ) ) :
-			$ffc_is_rf     = ! empty( $this->sub_array['rf'] );
-			$ffc_pii_field = $ffc_is_rf ? 'rf' : 'cpf';
-			$ffc_pii_tier  = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
-				'ffc_view_certificates_pii',
-				'ffc_certificates_admin',
-				(int) ( $this->sub_array['user_id'] ?? 0 )
-			);
-			if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED === $ffc_pii_tier ) {
-				$ffc_pii_display = \FreeFormCertificate\Core\DocumentFormatter::format_document( $this->sub_array['cpf_rf'] );
-			} elseif ( $ffc_is_rf ) {
-				$ffc_pii_display = \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $this->sub_array['cpf_rf'] );
-			} else {
-				$ffc_pii_display = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $this->sub_array['cpf_rf'] );
-			}
+			$ffc_is_rf       = ! empty( $this->sub_array['rf'] );
+			$ffc_pii_field   = $ffc_is_rf ? 'rf' : 'cpf';
+			$ffc_pii_display = $ffc_is_rf
+				? \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $this->sub_array['cpf_rf'] )
+				: \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $this->sub_array['cpf_rf'] );
 			?>
 			<dt class="ffc-facts__label"><?php echo esc_html( $ffc_is_rf ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' ) ); ?></dt>
 			<dd class="ffc-facts__value">
@@ -519,11 +531,11 @@ class AdminSubmissionEditPage {
 				// input — read-only and drawn as text.
 				?>
 				<input type="text" value="<?php echo esc_attr( $ffc_pii_display ); ?>" class="ffc-input-readonly ffc-edit-plain" data-ffc-pii-field="<?php echo esc_attr( $ffc_pii_field ); ?>" readonly aria-label="<?php echo esc_attr( $ffc_is_rf ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' ) ); ?>">
-				<?php if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $ffc_pii_tier ) : ?>
+				<?php if ( $ffc_can_reveal ) : ?>
 					<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye"
 						data-field="<?php echo esc_attr( $ffc_pii_field ); ?>"
-						data-submission-id="<?php echo esc_attr( (string) ( $this->sub_array['id'] ?? 0 ) ); ?>"
-						data-nonce="<?php echo esc_attr( wp_create_nonce( 'ffc_reveal_pii_nonce' ) ); ?>">
+						data-submission-id="<?php echo esc_attr( $ffc_record_id ); ?>"
+						data-nonce="<?php echo esc_attr( $ffc_reveal_nonce ); ?>">
 						<?php esc_html_e( 'Reveal', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>

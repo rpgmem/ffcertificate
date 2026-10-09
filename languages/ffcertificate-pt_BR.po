@@ -23462,9 +23462,6 @@ msgstr "Enviar para a lixeira / restaurar e ações em massa, incluindo \"Mova p
 msgid "Reveal the decrypted CPF / RF / email on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
 msgstr "Revelar sob demanda o CPF / RF / e-mail descriptografados em vez dos valores mascarados; cada revelação é auditada. Sem ela, a lista e a tela de edição permanecem mascaradas, independentemente de outras permissões do operador. O PDF do certificado não é mascarado: ele imprime o CPF/RF formatado com pontuação."
 
-msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked without a reveal step. See Capabilities & Roles."
-msgstr "Administradores (manage_options) possuem todas as permissões acima e, assim como a função de administrador de certificados, veem os dados pessoais sem máscara, sem a etapa de revelação. Veja Capacidades e Funções."
-
 msgid "Minimum interval between bookings"
 msgstr "Intervalo mínimo entre agendamentos"
 
@@ -24922,3 +24919,12 @@ msgstr "Estas configurações valem para o plugin inteiro, em todo QR Code que o
 
 msgid "The attributes the {{qr_code}} placeholder can set for itself are listed under"
 msgstr "Os atributos que o placeholder {{qr_code}} pode definir por conta própria estão listados em"
+
+msgid "Reveal the email to edit it."
+msgstr "Revele o e-mail para editá-lo."
+
+msgid "On the edit screen the CPF/RF and the email start masked for everyone, administrators included. An operator who may see them uses Reveal to fetch the value, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
+msgstr "Na tela de edição, o CPF/RF e o e-mail começam mascarados para todos, inclusive administradores. Quem tem permissão para vê-los usa Revelar para buscar o valor, e cada revelação grava uma entrada no Log de Atividades enquanto ele estiver ligado. O e-mail só pode ser editado depois de revelado; salvar sem revelá-lo mantém o endereço gravado."
+
+msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."
+msgstr "Administradores (manage_options) possuem todas as permissões acima e, assim como a função de administrador de certificados, veem os dados pessoais sem máscara na lista, sem a etapa de revelação; a tela de edição também os mascara para eles. Veja Capacidades e Funções."

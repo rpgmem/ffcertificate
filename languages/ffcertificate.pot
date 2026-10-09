@@ -23378,9 +23378,6 @@ msgstr ""
 msgid "Reveal the decrypted CPF / RF / email on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
 msgstr ""
 
-msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked without a reveal step. See Capabilities & Roles."
-msgstr ""
-
 msgid "Minimum interval between bookings"
 msgstr ""
 
@@ -24837,4 +24834,13 @@ msgid "These settings apply plugin-wide, to every QR code the plugin draws by it
 msgstr ""
 
 msgid "The attributes the {{qr_code}} placeholder can set for itself are listed under"
+msgstr ""
+
+msgid "Reveal the email to edit it."
+msgstr ""
+
+msgid "On the edit screen the CPF/RF and the email start masked for everyone, administrators included. An operator who may see them uses Reveal to fetch the value, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
+msgstr ""
+
+msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."
 msgstr ""
