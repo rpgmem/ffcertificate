@@ -54,6 +54,12 @@ class DateMessagesActivator {
 	public const AUDIENCE_IDS_OPTION = 'ffc_date_messages_audience_ids_migrated';
 
 	/**
+	 * Marker that the `appearance` column exists (#1660). Listed in
+	 * `uninstall.php`. Its own marker for the reason AUDIENCE_IDS_OPTION gives.
+	 */
+	public const APPEARANCE_OPTION = 'ffc_date_messages_appearance_migrated';
+
+	/**
 	 * Rules table.
 	 *
 	 * @return string
@@ -110,6 +116,39 @@ class DateMessagesActivator {
 		if ( '1' !== (string) get_option( self::AUDIENCE_IDS_OPTION, '' ) ) {
 			self::migrate_audience_ids();
 		}
+
+		if ( '1' !== (string) get_option( self::APPEARANCE_OPTION, '' ) ) {
+			self::migrate_appearance();
+		}
+	}
+
+	/**
+	 * Add the `appearance` column to a rules table created before it (#1660).
+	 *
+	 * The marker is written once the column is read back, so a failed
+	 * `ALTER` is retried on the next request instead of being recorded as done.
+	 *
+	 * @return void
+	 */
+	public static function migrate_appearance(): void {
+		$table = self::rules_table();
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		self::add_columns_if_missing(
+			$table,
+			array(
+				'appearance' => array(
+					'type'  => 'LONGTEXT DEFAULT NULL',
+					'after' => 'body',
+				),
+			)
+		);
+
+		if ( self::column_exists( $table, 'appearance' ) ) {
+			update_option( self::APPEARANCE_OPTION, '1' );
+		}
 	}
 
 	/**
@@ -163,8 +202,9 @@ class DateMessagesActivator {
 	 * Rules.
 	 *
 	 * `offset_days` is signed: 0 sends on the date itself, -7 seven days
-	 * before it. `digest_user_ids` is a JSON list of WordPress user ids,
-	 * declared `longtext` for the reason `CLAUDE.md` gives about `json`.
+	 * before it. `digest_user_ids` is a JSON list of WordPress user ids and
+	 * `appearance` a JSON object (#1660), both declared `longtext` for the
+	 * reason `CLAUDE.md` gives about `json`.
 	 *
 	 * @return void
 	 */
@@ -186,6 +226,7 @@ class DateMessagesActivator {
             audience_ids longtext DEFAULT NULL,
             subject varchar(255) NOT NULL,
             body longtext NOT NULL,
+            appearance longtext DEFAULT NULL,
             send_to_user tinyint(1) NOT NULL DEFAULT 1,
             digest_enabled tinyint(1) NOT NULL DEFAULT 0,
             digest_mode varchar(20) NOT NULL DEFAULT 'summary',

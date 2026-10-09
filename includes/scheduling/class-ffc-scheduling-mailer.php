@@ -38,12 +38,13 @@ class SchedulingMailer {
 	 * other plugin email uses (#662 P2). The old class-based `wrap_html` chrome
 	 * was retired here.
 	 *
-	 * @param string        $to          Recipient email.
-	 * @param string        $subject     Email subject.
-	 * @param string        $body        Email body (inner HTML — wrapped automatically unless $wrap is false).
-	 * @param array<string> $attachments File paths to attach.
-	 * @param bool          $wrap        Whether to wrap body in the standard chrome (default true).
-	 * @param string        $source_key  Optional {@see \FreeFormCertificate\Core\EmailSource} key tagging the sending function.
+	 * @param string               $to          Recipient email.
+	 * @param string               $subject     Email subject.
+	 * @param string               $body        Email body (inner HTML — wrapped automatically unless $wrap is false).
+	 * @param array<string>        $attachments File paths to attach.
+	 * @param bool                 $wrap        Whether to wrap body in the standard chrome (default true).
+	 * @param string               $source_key  Optional {@see \FreeFormCertificate\Core\EmailSource} key tagging the sending function.
+	 * @param array<string, mixed> $document Extra layout arguments, such as a message's `body_appearance` (#1660).
 	 * @return bool
 	 */
 	public static function send(
@@ -52,13 +53,14 @@ class SchedulingMailer {
 		string $body,
 		array $attachments = array(),
 		bool $wrap = true,
-		string $source_key = ''
+		string $source_key = '',
+		array $document = array()
 	): bool {
 		$headers = array(
 			'Content-Type: text/html; charset=UTF-8',
 		);
 
-		$html = $wrap ? self::ffc_email_document( $body, array( 'recipient' => $to ) ) : $body;
+		$html = $wrap ? self::document( $body, array_merge( $document, array( 'recipient' => $to ) ) ) : $body;
 
 		/**
 		 * Filters scheduling email data before sending.
@@ -80,5 +82,17 @@ class SchedulingMailer {
 		);
 
 		return \FreeFormCertificate\Core\EmailService::send( $email_data['to'], $email_data['subject'], $email_data['body'], $headers, $attachments, $source_key );
+	}
+
+	/**
+	 * The full e-mail HTML a body becomes, without sending it: what a preview
+	 * shows is then what `send()` delivers.
+	 *
+	 * @param string               $body    Inner HTML.
+	 * @param array<string, mixed> $context Layout arguments (`recipient`, `body_appearance`).
+	 * @return string
+	 */
+	public static function document( string $body, array $context = array() ): string {
+		return self::ffc_email_document( $body, $context );
 	}
 }

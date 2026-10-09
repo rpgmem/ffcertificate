@@ -175,10 +175,15 @@ final class DateMessagesAdminPage {
 			FFC_VERSION
 		);
 
+		// The body appearance card (#1660) picks an image from the Media
+		// Library and its colours with the picker the Email Model uses.
+		wp_enqueue_media();
+		wp_enqueue_style( 'wp-color-picker' );
+
 		wp_enqueue_script(
 			'ffc-date-messages-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-date-messages-admin{$suffix}.js",
-			array( 'jquery', 'ffc-core' ),
+			array( 'jquery', 'ffc-core', 'wp-color-picker' ),
 			FFC_VERSION,
 			true
 		);
@@ -191,6 +196,9 @@ final class DateMessagesAdminPage {
 				'previewNonce'  => wp_create_nonce( DateMessagesAjaxEndpoint::PREVIEW_ACTION ),
 				'testAction'    => DateMessagesAjaxEndpoint::TEST_ACTION,
 				'testNonce'     => wp_create_nonce( DateMessagesAjaxEndpoint::TEST_ACTION ),
+				'messageAction' => DateMessagesAjaxEndpoint::MESSAGE_ACTION,
+				'messageNonce'  => wp_create_nonce( DateMessagesAjaxEndpoint::MESSAGE_ACTION ),
+				'decimal'       => self::decimal_point(),
 				'decisions'     => self::decision_labels(),
 				'strings'       => array(
 					'loading'   => __( 'Working…', 'ffcertificate' ),
@@ -222,6 +230,17 @@ final class DateMessagesAdminPage {
 				),
 			)
 		);
+	}
+
+	/**
+	 * The site's decimal separator, for the contrast ratio the editor shows.
+	 *
+	 * @return string
+	 */
+	private static function decimal_point(): string {
+		global $wp_locale;
+		$point = isset( $wp_locale->number_format['decimal_point'] ) ? (string) $wp_locale->number_format['decimal_point'] : '.';
+		return '' !== $point ? $point : '.';
 	}
 
 	/**
@@ -518,6 +537,7 @@ final class DateMessagesAdminPage {
 			'digest_enabled'  => isset( $posted['digest_enabled'] ) ? '1' : '0',
 			'digest_mode'     => $posted['digest_mode'] ?? 'summary',
 			'digest_user_ids' => is_array( $posted['digest_user_ids'] ?? null ) ? $posted['digest_user_ids'] : array(),
+			'appearance'      => is_array( $posted['appearance'] ?? null ) ? $posted['appearance'] : array(),
 		);
 	}
 

@@ -23525,9 +23525,6 @@ msgstr ""
 msgid "Preview recipients and test send"
 msgstr ""
 
-msgid "\"Preview recipients\" lists, for a range of dates, everyone the rule would reach and the decision for each, using the very selection the send uses, so the preview cannot disagree with what is sent. Long lists show only the first rows, while the totals count everyone. \"Send test to me\" mails the message, filled with fictional values, to your own address. Both use the values on the form, saved or not, and neither sends to anybody else nor records anything."
-msgstr ""
-
 msgid "Sends one rule to everyone whose date falls in a chosen range of up to 31 days, in batches handed to wp_mail(). People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs."
 msgstr ""
 
@@ -24849,4 +24846,94 @@ msgid "Certificates → Dashboard opens with a summary row (forms in the month s
 msgstr ""
 
 msgid "The record sits beside a side panel with Save, the magic link with a Copy button, an Open certificate button that opens the public certificate page in a new tab, and the linked user."
+msgstr ""
+
+msgid "Body appearance"
+msgstr ""
+
+msgid "Only the body of this message changes; the header and footer stay the Email Model's. Fields left empty follow the Email Model."
+msgstr ""
+
+msgid "Background image"
+msgstr ""
+
+msgid "Choose a background image"
+msgstr ""
+
+msgid "Choose image"
+msgstr ""
+
+msgid "It covers the whole body, anchored on the side the text leaves free. Recommended: %d px wide (the Email Model width), up to 200 KB, with the strong details away from the text."
+msgstr ""
+
+msgid "Fallback colour"
+msgstr ""
+
+msgid "Required with an image. It is what Outlook on Windows and readers that block images show instead of the image."
+msgstr ""
+
+msgid "Text colour"
+msgstr ""
+
+msgid "Contrast %s:1 with the fallback colour."
+msgstr ""
+
+msgid "Contrast %s:1 with the fallback colour: below 4.5:1, hard to read."
+msgstr ""
+
+msgid "Text position"
+msgstr ""
+
+msgid "Full width"
+msgstr ""
+
+msgid "On the left"
+msgstr ""
+
+msgid "On the right"
+msgstr ""
+
+msgid "Text area width"
+msgstr ""
+
+msgid "Used when the text sits on one side. On phones the text takes the full width, over the image."
+msgstr ""
+
+msgid "Preview message"
+msgstr ""
+
+msgid "Computer"
+msgstr ""
+
+msgid "Message preview"
+msgstr ""
+
+msgid "Sample values; images load as most readers show them. Outlook on Windows and readers that block images show the fallback colour instead."
+msgstr ""
+
+msgid "Colours must be written as #RRGGBB."
+msgstr ""
+
+msgid "Unknown text position."
+msgstr ""
+
+msgid "Unknown text area width."
+msgstr ""
+
+msgid "The background must be an image from the Media Library."
+msgstr ""
+
+msgid "Choose a fallback colour: it is what readers that do not load the image will see."
+msgstr ""
+
+msgid "A rule can draw its message body over a background image from the Media Library, with a fallback colour, a text colour and the text on the left, on the right or across the whole width (taking 50, 60 or 70 per cent of it). Only the body changes: the header and footer stay the Email Model's, and the image fills the body edge to edge at the Email Model width, at least as tall as the image. On phones the text takes the full width, over the image."
+msgstr ""
+
+msgid "The fallback colour is required with an image: Outlook on Windows and readers that block images show it instead. The editor shows the contrast of the text against it; over the image itself, check it in \"Preview message\"."
+msgstr ""
+
+msgid "\"Preview recipients\" lists, for a range of dates, everyone the rule would reach and the decision for each, using the very selection the send uses, so the preview cannot disagree with what is sent. Long lists show only the first rows, while the totals count everyone. \"Preview message\" shows the e-mail as it will be sent, header, body appearance and footer, at computer or phone width. \"Send test to me\" mails the message, filled with fictional values, to your own address. All three use the values on the form, saved or not, and none sends to anybody else nor records anything."
+msgstr ""
+
+msgid "A Date Messages rule can give its own message body a background image, colours and a text column; the header, footer, width and padding stay the ones set here."
 msgstr ""

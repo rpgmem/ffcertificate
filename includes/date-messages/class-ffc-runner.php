@@ -223,7 +223,7 @@ final class Runner {
 		}
 
 		$message = MessageBuilder::build( $rule, $source, $row, $day, $today );
-		$sent    = SchedulingMailer::send( $row['email'], $message['subject'], $message['body'], array(), true, EmailSource::DATE_MESSAGES );
+		$sent    = SchedulingMailer::send( $row['email'], $message['subject'], $message['body'], array(), true, EmailSource::DATE_MESSAGES, $rule->appearance->document_args() );
 
 		if ( $sent ) {
 			DeliveryLog::bump( $run_id, 'sent' );

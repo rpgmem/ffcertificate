@@ -488,6 +488,12 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $a ) => 'nonce-' . $a );
+		$media     = 0;
+		Functions\when( 'wp_enqueue_media' )->alias(
+			static function () use ( &$media ) {
+				++$media;
+			}
+		);
 		$scripts   = array();
 		$styles    = array();
 		$localized = array();
@@ -509,12 +515,15 @@ class DateMessagesAdminPageTest extends TestCase {
 		);
 
 		( new DateMessagesAdminPage() )->enqueue( 'toplevel_page_ffc-settings' );
+		$this->assertSame( 0, $media );
 		$this->assertSame( array(), $scripts );
 		$this->assertSame( array(), $styles );
 
 		( new DateMessagesAdminPage() )->enqueue( 'ffc_form_page_ffc-date-messages' );
 		$this->assertSame( array( 'ffc-date-messages-admin', 'ffc-audience-transfer-list', 'ffc-email-restore-default' ), $scripts );
-		$this->assertSame( array( 'ffc-admin-settings', 'ffc-audience-transfer-list' ), $styles, 'the vertical tab layout lives in that sheet; the rule editor\'s audience picker brings its own' );
+		$this->assertSame( array( 'ffc-admin-settings', 'wp-color-picker', 'ffc-audience-transfer-list' ), $styles, 'the vertical tab layout lives in that sheet; the body appearance colours use core\'s picker; the rule editor\'s audience picker brings its own' );
+		$this->assertSame( 1, $media, 'the background image comes from the Media Library' );
+		$this->assertSame( 'nonce-ffc_date_messages_message_preview', $localized['ffcDateMessages']['messageNonce'] );
 		$this->assertSame( 'nonce-ffc_date_messages_preview', $localized['ffcDateMessages']['previewNonce'] );
 		$this->assertSame( 'nonce-ffc_date_messages_test_send', $localized['ffcDateMessages']['testNonce'] );
 		$this->assertSame( 'DEFAULT', $localized['ffcEmailRestoreDefaults']['date_message_body']['body'] );

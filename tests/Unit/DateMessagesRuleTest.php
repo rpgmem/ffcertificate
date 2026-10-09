@@ -125,4 +125,33 @@ class DateMessagesRuleTest extends TestCase {
 		$this->assertSame( array( 7, 9 ), $stored->audience_ids );
 		$this->assertSame( array( 7, 9 ), $submitted->audience_ids, 'Only positive ids survive from a form.' );
 	}
+
+	public function test_the_appearance_is_validated_with_the_rule_and_stored_as_json(): void {
+		Functions\when( 'sanitize_hex_color' )->returnArg();
+		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
+
+		$plain = Rule::from_array( $this->valid() );
+		$this->assertInstanceOf( Rule::class, $plain );
+		$this->assertTrue( $plain->appearance->is_default() );
+		$this->assertSame( '', $plain->to_columns()['appearance'], 'a rule without an appearance stores nothing' );
+
+		$styled = Rule::from_array( $this->valid( array( 'appearance' => array( 'fallback_color' => '#fff3e8', 'position' => 'left' ) ) ) );
+		$this->assertInstanceOf( Rule::class, $styled );
+		$this->assertSame( 'left', $styled->appearance->position );
+		$this->assertSame( '{"image_id":0,"fallback_color":"#fff3e8","text_color":"","position":"left","text_width":60}', $styled->to_columns()['appearance'] );
+
+		$again = Rule::from_array( $this->valid( array( 'appearance' => $styled->to_columns()['appearance'] ) ) );
+		$this->assertInstanceOf( Rule::class, $again );
+		$this->assertSame( $styled->appearance->to_array(), $again->appearance->to_array() );
+	}
+
+	public function test_an_invalid_appearance_refuses_the_rule(): void {
+		Functions\when( 'sanitize_hex_color' )->returnArg();
+		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
+
+		$error = Rule::from_array( $this->valid( array( 'appearance' => array( 'position' => 'middle' ) ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $error );
+		$this->assertSame( 'ffc_appearance_position', $error->get_error_code() );
+	}
 }
