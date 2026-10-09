@@ -177,7 +177,7 @@ final class RecruitmentPublicShortcode {
 
 		$notice_code = trim( (string) $atts['notice'] );
 		$attr_filter = trim( (string) $atts['adjutancy'] );
-		$wanted_list = strtolower( trim( (string) $atts['list'] ) );
+		$wanted_list = sanitize_key( (string) $atts['list'] );
 
 		if ( '' !== $wanted_list && ! in_array( $wanted_list, self::LIST_TYPES, true ) ) {
 			return self::wrap_output( RecruitmentPublicShortcodeRenderer::msg( __( 'The list attribute must be "preliminary" or "definitive".', 'ffcertificate' ), 'error' ) );

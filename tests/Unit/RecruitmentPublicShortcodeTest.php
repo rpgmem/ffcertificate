@@ -52,6 +52,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( static fn( $k ) => strtolower( (string) $k ) );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'shortcode_atts' )->alias(
 			static function ( $defaults, $atts ) {
