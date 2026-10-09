@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Configuration: Captcha Section -->
 <div class="card">
-	<h3 id="config-captcha"><span class="dashicons dashicons-shield" aria-hidden="true"></span> <?php esc_html_e( 'Captcha', 'ffcertificate' ); ?></h3>
+	<h3 id="config-captcha" class="ffc-icon-robot"><?php esc_html_e( 'Captcha', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Settings → Captcha chooses the challenge that guards every public form at once: certificate submissions, certificate verification, appointment booking and the public CSV download. The invisible honeypot field is always on and is not part of this choice.', 'ffcertificate' ); ?></p>
 

@@ -39,7 +39,7 @@ class TabQrCode extends SettingsTab {
 		$this->tab_id    = 'qr_code';
 		$this->tab_group = 'content';
 		$this->tab_title = __( 'QR Code', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-phone';
+		$this->tab_icon  = 'ffc-icon-qr';
 		$this->tab_order = 25;
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );

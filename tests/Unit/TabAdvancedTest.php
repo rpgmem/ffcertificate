@@ -82,7 +82,7 @@ class TabAdvancedTest extends TestCase {
 	}
 
 	public function test_tab_icon_is_settings(): void {
-		$this->assertSame( 'ffc-icon-settings', $this->tab->get_icon() );
+		$this->assertSame( 'ffc-icon-sliders', $this->tab->get_icon() );
 	}
 
 	public function test_tab_order_is_70(): void {

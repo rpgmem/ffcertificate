@@ -266,6 +266,56 @@
 			} );
 		}
 
+		/**
+		 * Draw an on/off dot on every tab whose feature has a master toggle
+		 * (`data-ffc-tab-masters`), kept in step with the toggles. A tab is
+		 * on when any of its masters is checked. The state is also written
+		 * as screen-reader text, so it is not carried by colour alone.
+		 */
+		function setupStateDots() {
+			var $nav = $container.find( '.ffc-form-tabs__nav' );
+			var onText  = String( $nav.attr( 'data-ffc-state-on' ) || 'On' );
+			var offText = String( $nav.attr( 'data-ffc-state-off' ) || 'Off' );
+			$tabs.each( function () {
+				var $tab = $( this );
+				var ids  = String( $tab.attr( 'data-ffc-tab-masters' ) || '' ).split( /\s+/ ).filter( Boolean );
+				var $masters = $( ids.map( function ( id ) {
+					return document.getElementById( id );
+				} ).filter( Boolean ) );
+				if ( ! $masters.length || $tab.find( '.ffc-form-tabs__state' ).length ) {
+					return;
+				}
+				var $dot = $( '<span class="ffc-form-tabs__state" aria-hidden="true"></span>' );
+				var $sr  = $( '<span class="screen-reader-text"></span>' );
+				$tab.append( $dot, $sr );
+				function sync() {
+					var on = $masters.filter( ':checked' ).length > 0;
+					$tab.toggleClass( 'is-on', on ).toggleClass( 'is-off', ! on );
+					$sr.text( ' (' + ( on ? onText : offText ) + ')' );
+				}
+				$masters.on( 'change', sync );
+				sync();
+			} );
+		}
+
+		/**
+		 * A control the browser rejects on submit may sit in an inactive
+		 * panel, which is `display:none` and cannot take focus — the submit
+		 * would fail with nothing on screen. Open its tab first. `invalid`
+		 * does not bubble, hence the capture listener.
+		 */
+		function setupInvalidReveal() {
+			$container[ 0 ].addEventListener( 'invalid', function ( e ) {
+				var panel = e.target && e.target.closest ? e.target.closest( '.ffc-form-tabs__panel' ) : null;
+				if ( panel && ! panel.classList.contains( 'is-active' ) ) {
+					activate( panel.id.replace( PANEL_PREFIX, '' ), { focus: false, updateHash: false } );
+				}
+			}, true );
+		}
+
+		setupStateDots();
+		setupInvalidReveal();
+
 		// Initial paint: honour a deep-link hash, else keep the first tab
 		// (already marked active server-side). Don't rewrite the hash on load.
 		var initialKey = keyFromHash() || tabKey( $tabs.first() );

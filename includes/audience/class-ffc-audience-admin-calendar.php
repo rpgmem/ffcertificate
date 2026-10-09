@@ -46,8 +46,11 @@ class AudienceAdminCalendar {
 		$action = RequestInput::get_get_string( 'action', 'list' );
 		$id     = RequestInput::get_get_int( 'id' );
 
+		// The add/edit form is a screen of boxed sections (`.ffc-boxed`); the
+		// list keeps the plain list-table screen.
+		$boxed = in_array( $action, array( 'new', 'edit' ), true );
 		?>
-		<div class="wrap ffc-admin-page ffc-page-scheduling-calendars">
+		<div class="wrap ffc-admin-page ffc-page-scheduling-calendars <?php echo $boxed ? 'ffc-boxed' : ''; ?>">
 			<?php
 			switch ( $action ) {
 				case 'new':
@@ -180,6 +183,8 @@ class AudienceAdminCalendar {
 
 		<?php settings_errors( 'ffc_audience' ); ?>
 
+		<div class="card">
+		<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></h2>
 		<form method="post" action="" class="ffc-form">
 			<?php wp_nonce_field( 'save_schedule', 'ffc_schedule_nonce' ); ?>
 			<input type="hidden" name="schedule_id" value="<?php echo esc_attr( (string) $id ); ?>">
@@ -439,11 +444,11 @@ class AudienceAdminCalendar {
 
 			<?php submit_button( $id > 0 ? __( 'Update Calendar', 'ffcertificate' ) : __( 'Create Calendar', 'ffcertificate' ) ); ?>
 		</form>
+		</div>
 
 		<?php if ( $id > 0 ) : ?>
-			<!-- User Access Section -->
-			<hr>
-			<h2><?php esc_html_e( 'User Access & Permissions', 'ffcertificate' ); ?></h2>
+			<div class="card">
+			<h2 class="ffc-icon-users"><?php esc_html_e( 'User Access & Permissions', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Manage which users have access to this calendar and what they can do. For private calendars, only listed users can see and book. For public calendars, these permissions control who can book and cancel.', 'ffcertificate' ); ?>
 			</p>
@@ -541,10 +546,10 @@ class AudienceAdminCalendar {
 			</table>
 
 			<?php // Calendar permissions logic in ffc-audience-admin.js. ?>
+			</div>
 
-			<!-- Holidays Section -->
-			<hr>
-			<h2><?php esc_html_e( 'Holidays / Closed Dates', 'ffcertificate' ); ?></h2>
+			<div class="card">
+			<h2 class="ffc-icon-lock"><?php esc_html_e( 'Holidays / Closed Dates', 'ffcertificate' ); ?></h2>
 			<p class="description"><?php esc_html_e( 'Add specific dates when the calendar will be closed (holidays, maintenance, etc.).', 'ffcertificate' ); ?></p>
 
 			<form method="post" action="" class="ffc-holiday-form ffc-aud-panel">
@@ -602,6 +607,7 @@ class AudienceAdminCalendar {
 			<?php else : ?>
 				<p><em><?php esc_html_e( 'No holidays defined yet.', 'ffcertificate' ); ?></em></p>
 			<?php endif; ?>
+			</div>
 		<?php endif; ?>
 
 		<!-- Styles in ffc-audience-admin.css -->

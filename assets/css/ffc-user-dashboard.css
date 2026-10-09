@@ -740,13 +740,14 @@
     background: var(--ffc-danger-bg);
 }
 
-.ffc-icon-logout {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    background: currentColor;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4'/%3E%3Cpolyline points='16 17 21 12 16 7'/%3E%3Cline x1='21' y1='12' x2='9' y2='12'/%3E%3C/svg%3E") center/contain no-repeat;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4'/%3E%3Cpolyline points='16 17 21 12 16 7'/%3E%3Cline x1='21' y1='12' x2='9' y2='12'/%3E%3C/svg%3E") center/contain no-repeat;
+/* The icon itself comes from the shared .ffc-icon-* set (#1613); the link's
+   gap already spaces it from the label, so its own trailing margin goes. */
+.ffc-logout-link .ffc-icon-logout {
+    display: inline-flex;
+}
+
+.ffc-logout-link .ffc-icon-logout::before {
+    margin-right: 0;
 }
 
 /* ==========================================================================
@@ -1484,12 +1485,7 @@
     font-size: var(--ffc-font-size-base);
 }
 
-.ffc-empty-state {
-    text-align: center;
-    padding: 56px var(--ffc-spacing-2xl);
-    color: var(--ffc-text-muted);
-}
-
+/* The base .ffc-empty-state rule lives in ffc-common.css (#1614). */
 .ffc-empty-state p {
     font-size: var(--ffc-font-size-lg);
     margin: var(--ffc-spacing-sm) 0;

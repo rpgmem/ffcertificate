@@ -124,6 +124,11 @@ class RecruitmentAdjutancyEditPageRenderSaveTest extends TestCase {
 		$this->assertStringContainsString( 'ffc_recruitment_save_adjutancy', $html );
 		$this->assertStringContainsString( 'medical-board', $html );
 		$this->assertStringContainsString( '#123456', $html );
+		// A boxed edit screen (#1631): the record is the h1, and the section
+		// is a card whose heading carries the adjutancy icon, not a postbox.
+		$this->assertMatchesRegularExpression( '/<h1>Edit adjutancy — [^<]+<\/h1>/', $html );
+		$this->assertStringContainsString( '<div class="card"><h2 class="ffc-icon-building">General</h2>', $html );
+		$this->assertStringNotContainsString( 'postbox', $html );
 	}
 
 	public function test_render_not_found_shows_notice(): void {

@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Recruitment Section -->
 <div class="card">
-	<h3 id="feature-recruitment"><span class="dashicons dashicons-groups" aria-hidden="true"></span> <?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-recruitment" class="ffc-icon-users"><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'The Recruitment module manages public-tender candidate queues: import classified candidates, publish the ranking, and record call-ups (convocations). It lives under the top-level "Recruitment" admin menu.', 'ffcertificate' ); ?></p>
 
@@ -57,7 +57,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Public shortcodes', 'ffcertificate' ); ?></h4>
 	<ul>
-		<li><code>[ffc_recruitment_queue notice="EDITAL-01"]</code> — <?php esc_html_e( 'the public classification list for a notice (the notice code is required). Shows only the columns the notice marks public. Accepts an optional adjutancy="slug" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters.', 'ffcertificate' ); ?></li>
+		<li><code>[ffc_recruitment_queue notice="EDITAL-01"]</code> — <?php esc_html_e( 'the public classification list for a notice. Shows only the columns the notice marks public. Accepts an optional adjutancy="slug" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters. The "Show on the site" card on the notice edit screen has it ready to copy.', 'ffcertificate' ); ?></li>
+		<li><code>[ffc_recruitment_queue]</code> — <?php esc_html_e( 'without a notice, a selector of every notice in its preliminary or definitive list; drafts and closed notices are left out. The chosen notice\'s list appears below it. Add list="preliminary" or list="definitive" to offer only one kind.', 'ffcertificate' ); ?></li>
 		<li><code>[ffc_recruitment_my_calls]</code> — <?php esc_html_e( 'shows the logged-in candidate their own call-ups (no attributes). Matched by the candidate record linked to their WordPress account.', 'ffcertificate' ); ?></li>
 	</ul>
 

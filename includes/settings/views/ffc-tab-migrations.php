@@ -39,7 +39,7 @@ try {
 <div class="ffc-migrations-settings-wrap">
 	
 	<div class="card">
-		<h2 class="ffc-icon-settings"><?php esc_html_e( 'Database Migrations', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-icon-database"><?php esc_html_e( 'Database Migrations', 'ffcertificate' ); ?></h2>
 		
 		<p class="description">
 			<?php esc_html_e( 'Manage database structure migrations to improve performance and data organization. These migrations move data from JSON storage to dedicated database columns for faster queries and better reliability.', 'ffcertificate' ); ?>
@@ -268,8 +268,7 @@ try {
 					</p>
 					<?php if ( '' !== $ffcertificate_identities_url ) : ?>
 						<p>
-							<a href="<?php echo esc_url( $ffcertificate_identities_url ); ?>" class="button button-secondary">
-								<span class="dashicons dashicons-admin-users"></span>
+							<a href="<?php echo esc_url( $ffcertificate_identities_url ); ?>" class="button button-secondary ffc-icon-users">
 								<?php esc_html_e( 'Resolve on Identity Resolution', 'ffcertificate' ); ?>
 							</a>
 						</p>
@@ -284,8 +283,7 @@ try {
 			<!-- Actions -->
 			<div class="ffc-migration-actions">
 				<?php if ( $ffcertificate_is_complete ) : ?>
-					<span class="button button-secondary" disabled>
-						<span class="dashicons dashicons-yes-alt"></span>
+					<span class="button button-secondary ffc-icon-success" disabled>
 						<?php esc_html_e( 'Migration Complete', 'ffcertificate' ); ?>
 					</span>
 					
@@ -350,8 +348,7 @@ try {
 							'ffc_rearm_' . $ffcertificate_key
 						);
 						?>
-						<a href="<?php echo esc_url( $ffcertificate_rearm_url ); ?>" class="button button-secondary">
-							<span class="dashicons dashicons-update"></span>
+						<a href="<?php echo esc_url( $ffcertificate_rearm_url ); ?>" class="button button-secondary ffc-icon-sync">
 							<?php esc_html_e( 'Re-check accounts resolved since the last pass', 'ffcertificate' ); ?>
 						</a>
 						<p class="description">
@@ -362,7 +359,7 @@ try {
 					?>
 				<?php else : ?>
 					<a href="<?php echo esc_url( $ffcertificate_migrate_url ); ?>"
-						class="button button-primary"
+						class="button button-primary ffc-icon-sync"
 						data-confirm="
 						<?php
 						echo esc_attr(
@@ -374,7 +371,6 @@ try {
 						);
 						?>
 							">
-						<span class="dashicons dashicons-update"></span>
 						<?php esc_html_e( 'Run Migration', 'ffcertificate' ); ?>
 					</a>
 
@@ -497,21 +493,18 @@ try {
 
 			<!-- Action buttons -->
 			<div class="ffc-migration-actions">
-				<a href="<?php echo esc_url( $ffcertificate_preview_url ); ?>" class="button button-secondary">
-					<span class="dashicons dashicons-visibility"></span>
+				<a href="<?php echo esc_url( $ffcertificate_preview_url ); ?>" class="button button-secondary ffc-icon-eye">
 					<?php esc_html_e( 'Preview affected posts', 'ffcertificate' ); ?>
 				</a>
 
 				<?php if ( $ffcertificate_preview_ok ) : ?>
 					<a href="<?php echo esc_url( $ffcertificate_apply_url ); ?>"
-						class="button button-primary"
+						class="button button-primary ffc-icon-delete"
 						data-confirm="<?php esc_attr_e( 'This will modify the post_content of every affected post. Revisions will be created automatically. Continue?', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-trash"></span>
 						<?php esc_html_e( 'Remove shortcodes now', 'ffcertificate' ); ?>
 					</a>
 				<?php else : ?>
-					<span class="button button-primary" disabled aria-disabled="true" title="<?php esc_attr_e( 'Run a preview first', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-trash"></span>
+					<span class="button button-primary ffc-icon-delete" disabled aria-disabled="true" title="<?php esc_attr_e( 'Run a preview first', 'ffcertificate' ); ?>">
 						<?php esc_html_e( 'Remove shortcodes now', 'ffcertificate' ); ?>
 					</span>
 				<?php endif; ?>
@@ -745,22 +738,19 @@ try {
 							?>
 						</div>
 					</fieldset>
-				<button type="submit" class="button button-secondary">
-					<span class="dashicons dashicons-visibility"></span>
+				<button type="submit" class="button button-secondary ffc-icon-eye">
 					<?php esc_html_e( 'Save criteria & preview', 'ffcertificate' ); ?>
 				</button>
 			</form>
 
 			<div class="ffc-migration-actions">
 				<?php if ( $ffcertificate_url_preview_ok ) : ?>
-					<a href="<?php echo esc_url( $ffcertificate_url_apply_url ); ?>" class="button button-primary"
+					<a href="<?php echo esc_url( $ffcertificate_url_apply_url ); ?>" class="button button-primary ffc-icon-delete"
 						data-confirm="<?php esc_attr_e( 'This permanently deletes the matched short URLs and cannot be undone. Continue?', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-trash"></span>
 						<?php esc_html_e( 'Delete matched short URLs', 'ffcertificate' ); ?>
 					</a>
 				<?php else : ?>
-					<span class="button button-primary" disabled aria-disabled="true" title="<?php esc_attr_e( 'Run a preview first', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-trash"></span>
+					<span class="button button-primary ffc-icon-delete" disabled aria-disabled="true" title="<?php esc_attr_e( 'Run a preview first', 'ffcertificate' ); ?>">
 						<?php esc_html_e( 'Delete matched short URLs', 'ffcertificate' ); ?>
 					</span>
 				<?php endif; ?>
@@ -912,22 +902,19 @@ try {
 				</label>
 				<input type="number" id="ffc-pubaccess-days" name="public_access_disable_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_pa_days ); ?>" class="ffc-set-w-90" required>
 				<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
-				<button type="submit" class="button button-secondary">
-					<span class="dashicons dashicons-visibility"></span>
+				<button type="submit" class="button button-secondary ffc-icon-eye">
 					<?php esc_html_e( 'Save & preview', 'ffcertificate' ); ?>
 				</button>
 			</form>
 
 			<div class="ffc-migration-actions">
 				<?php if ( $ffcertificate_pa_preview_ok ) : ?>
-					<a href="<?php echo esc_url( $ffcertificate_pa_apply_url ); ?>" class="button button-primary"
+					<a href="<?php echo esc_url( $ffcertificate_pa_apply_url ); ?>" class="button button-primary ffc-icon-lock"
 						data-confirm="<?php esc_attr_e( 'This switches off Public Operator Access on the matched forms. Their access tokens are preserved so they can be re-enabled later. Continue?', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-lock"></span>
 						<?php esc_html_e( 'Disable access now', 'ffcertificate' ); ?>
 					</a>
 				<?php else : ?>
-					<span class="button button-primary" disabled aria-disabled="true" title="<?php esc_attr_e( 'Run a preview first', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-lock"></span>
+					<span class="button button-primary ffc-icon-lock" disabled aria-disabled="true" title="<?php esc_attr_e( 'Run a preview first', 'ffcertificate' ); ?>">
 						<?php esc_html_e( 'Disable access now', 'ffcertificate' ); ?>
 					</span>
 				<?php endif; ?>
@@ -1083,12 +1070,10 @@ try {
 			<?php endif; ?>
 
 			<div class="ffc-migration-actions ffc-set-my-12">
-				<a href="<?php echo esc_url( $ffcertificate_sa_scan_url ); ?>" class="button button-secondary">
-					<span class="dashicons dashicons-search"></span>
+				<a href="<?php echo esc_url( $ffcertificate_sa_scan_url ); ?>" class="button button-secondary ffc-icon-search">
 					<?php esc_html_e( 'Run audit', 'ffcertificate' ); ?>
 				</a>
-				<a href="<?php echo esc_url( $ffcertificate_sa_export_url ); ?>" class="button button-secondary">
-					<span class="dashicons dashicons-download"></span>
+				<a href="<?php echo esc_url( $ffcertificate_sa_export_url ); ?>" class="button button-secondary ffc-icon-download">
 					<?php esc_html_e( 'Export findings (CSV)', 'ffcertificate' ); ?>
 				</a>
 				<?php
@@ -1113,8 +1098,7 @@ try {
 				// `wp_die` is worse than an absent one.
 				?>
 				<?php if ( current_user_can( \FreeFormCertificate\Admin\IdentityResolutionPage::CAPABILITY ) ) : ?>
-					<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . \FreeFormCertificate\Admin\IdentityResolutionPage::MENU_SLUG ) ); ?>" class="button button-secondary">
-						<span class="dashicons dashicons-admin-users"></span>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . \FreeFormCertificate\Admin\IdentityResolutionPage::MENU_SLUG ) ); ?>" class="button button-secondary ffc-icon-users">
 						<?php esc_html_e( 'Resolve on Identity Resolution', 'ffcertificate' ); ?>
 					</a>
 				<?php endif; ?>

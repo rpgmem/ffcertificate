@@ -58,6 +58,7 @@ class FormListColumnsHooksTest extends TestCase {
 		Filters\expectAdded( 'manage_edit-ffc_form_sortable_columns' )->once();
 		Actions\expectAdded( 'pre_get_posts' )->once();
 		Actions\expectAdded( 'admin_enqueue_scripts' )->once();
+		Filters\expectAdded( 'wp_list_table_class_name' )->once()->with( array( FormListColumns::class, 'list_table_class' ), 10, 2 );
 
 		FormListColumns::init();
 	}

@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Configuration: IP Diagnostics Section -->
 <div class="card">
-	<h3 id="config-ip-diagnostics"><span class="dashicons dashicons-networking" aria-hidden="true"></span> <?php esc_html_e( 'IP Diagnostics', 'ffcertificate' ); ?></h3>
+	<h3 id="config-ip-diagnostics" class="ffc-icon-network"><?php esc_html_e( 'IP Diagnostics', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'Settings → IP Diagnostics decides how the plugin works out a visitor\'s IP address. That one choice governs every IP read in the plugin: the activity log, IP geolocation, rate limiting, the geofence and the public listing throttle.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Resolution strategy', 'ffcertificate' ); ?></h4>

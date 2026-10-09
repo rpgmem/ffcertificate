@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- User Dashboard & Access Section -->
 <div class="card">
-	<h3 id="feature-user-dashboard"><span class="dashicons dashicons-admin-users" aria-hidden="true"></span> <?php esc_html_e( 'User Dashboard & Access', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-user-dashboard" class="ffc-icon-user"><?php esc_html_e( 'User Dashboard & Access', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'A front-end panel where each logged-in user sees their own data — issued certificates, appointments and profile — without any admin access.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'What the user sees', 'ffcertificate' ); ?></h4>
 		<ul>
 			<li><?php esc_html_e( 'Their own issued certificates, with download / verification links', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Their self-scheduling appointments (with receipt / cancel actions where allowed)', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Their personal-calendar appointments (with receipt / cancel actions where allowed)', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'The reregistration banner and "Download Record" action when a reregistration applies to them', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Their audience bookings, and the Recruitment tab with their call-ups, when they belong to an audience or are linked to a candidate', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'A Profile tab, read from the plugin\'s own user profile, where they edit their display name, phone, department, organization, notes and birth date (stored encrypted, and the date Date Messages uses)', 'ffcertificate' ); ?></li>
@@ -50,5 +50,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Profile custom fields', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'The identity/contact/address/employment fields live on the plugin\'s user profile and are mapped to the reregistration and audience data, so a user\'s details stay consistent across a certificate PDF, a record and their profile. WordPress\'s first and last name follow the plugin\'s full name (first word / the rest), and editing First/Last Name on the user-edit screen updates it back.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'Administrators see and edit the same fields on the user-edit screen, in the "FFC Custom Data" section, grouped by the audiences the user belongs to. They behave as on the reregistration form: CPF, RF, RG and phone fields are masked and validated, dependent selects follow their parent, and a field mapped to the profile is saved there, encrypted when it holds personal data, so the profile, the dashboard and the next reregistration read the same value.', 'ffcertificate' ); ?></p>
 	</div>
 </div>

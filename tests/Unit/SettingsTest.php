@@ -1043,7 +1043,7 @@ class SettingsTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-settings-back-to-top', $html );
 		$this->assertStringContainsString( '#ffc-settings-top', $html );
-		$this->assertStringContainsString( 'dashicons-arrow-up-alt2', $html );
+		$this->assertStringContainsString( 'ffc-icon-chevron-up', $html );
 	}
 
 	// ==================================================================
@@ -1210,7 +1210,7 @@ class SettingsTest extends TestCase {
 		$this->settings->display_settings_page();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Certificate Settings', $html );
+		$this->assertStringContainsString( 'FFC Settings', $html );
 		$this->assertStringContainsString( 'lazy-loaded-body', $html );
 		$this->assertNotEmpty( $ref->getValue( $this->settings ) );
 	}

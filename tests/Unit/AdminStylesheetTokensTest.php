@@ -88,14 +88,16 @@ final class AdminStylesheetTokensTest extends TestCase {
 		'ffc-reregistration-frontend.css' => 0,
 		'ffc-url-shortener-admin.css'   => 0,
 		'ffc-qr-generator.css'          => 0,
+		'ffc-admin-components.css'      => 0,
 		'ffc-qr-design-fields.css'      => 0,
+		'ffc-audience-transfer-list.css' => 0,
 		'ffc-working-hours.css'         => 0,
 
 		// Deliberate literals, reason inline at each site:
 		// - a white switch knob that would vanish into a dark track;
 		// - translucent veils over whatever colour sits underneath;
 		// - the white paper of the certificate preview;
-		// - the twelve-hue categorical scale of the capability groups;
+		// - the categorical hue scale of the capability groups, one per group;
 		// - `#adminmenu`, which follows the user's own wp-admin colour scheme;
 		// - two vendor brand colours and one code-sample theme.
 		'ffc-admin.css'                 => 3,
@@ -104,7 +106,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 		'ffc-audience-admin.css'        => 4,
 		'ffc-frontend.css'              => 4,
 		'ffc-user-dashboard.css'        => 2,
-		'ffc-user-permissions.css'      => 12,
+		'ffc-user-permissions.css'      => 13,
 
 		// The palette itself, and the two sheets whose literals ARE the point:
 		// a code-editor theme and a print stylesheet.

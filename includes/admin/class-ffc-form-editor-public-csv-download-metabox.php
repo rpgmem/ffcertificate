@@ -123,10 +123,20 @@ class FormEditorPublicCsvDownloadMetabox {
 			</tr>
 		</table>
 
-		<div class="ffc-collapsed-target<?php echo $sub_disabled ? ' ffc-collapsed' : ''; ?>"
+		<div class="ffc-sections ffc-collapsed-target<?php echo $sub_disabled ? ' ffc-collapsed' : ''; ?>"
 			data-ffc-master="ffc_csv_public_enabled"
 			aria-hidden="<?php echo $sub_disabled ? 'true' : 'false'; ?>">
 
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title' => __( 'Operator features', 'ffcertificate' ),
+				'hint'  => __( 'The actions the access link exposes.', 'ffcertificate' ),
+				'icon'  => 'users',
+				'open'  => true,
+			)
+		);
+		?>
 		<table class="form-table ffc-csv-public-table">
 			<tr>
 				<th scope="row">
@@ -203,6 +213,7 @@ class FormEditorPublicCsvDownloadMetabox {
 				</td>
 			</tr>
 		</table>
+		<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
 
 		<?php
 		// ───── CSV Download sub-options ─────────────────────────────.
@@ -211,6 +222,18 @@ class FormEditorPublicCsvDownloadMetabox {
 		// the master on (Start Early / Postpone Close still work) while
 		// turning the CSV download off for read-only deployments.
 		$csv_download_collapsed = ( '1' !== $download_enabled );
+		?>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title'  => __( 'Download submissions (CSV)', 'ffcertificate' ),
+				'hint'   => __( 'Limit, access link, CPF check and the audit of every attempt.', 'ffcertificate' ),
+				'icon'   => 'download',
+				'master' => 'ffc_csv_public_download_enabled',
+				'on'     => '1' === $download_enabled,
+				'open'   => '1' === $download_enabled,
+			)
+		);
 		?>
 		<div class="ffc-collapsed-target<?php echo $csv_download_collapsed ? ' ffc-collapsed' : ''; ?>"
 			data-ffc-master="ffc_csv_public_download_enabled"
@@ -437,7 +460,17 @@ class FormEditorPublicCsvDownloadMetabox {
 			</tr>
 		</table>
 		</div><!-- /.ffc-collapsed-target (CSV Download sub-options) -->
-
+		<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title' => __( 'Opening early and closing late', 'ffcertificate' ),
+				'hint'  => __( 'Whether the operator can use Start Form Early or Postpone Close right now.', 'ffcertificate' ),
+				'icon'  => 'clock',
+				'open'  => '1' === $start_early_enabled || '1' === $extend_end_enabled,
+			)
+		);
+		?>
 		<?php
 		// ───── Start Form Early status ─────────────────────────────.
 		$this->render_start_form_early_status( $post, $enabled, $hash, $start_early_enabled );
@@ -445,6 +478,7 @@ class FormEditorPublicCsvDownloadMetabox {
 		// ───── Postpone Close status ───────────────────────────────.
 		$this->render_extend_end_status( $post, $enabled, $hash, $extend_end_enabled );
 		?>
+		<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
 
 		</div><!-- /.ffc-collapsed-target — wraps the Operator features list +
 			all three sub-feature blocks (CSV Download / Start Form Early /

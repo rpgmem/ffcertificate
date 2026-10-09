@@ -35,14 +35,11 @@ class FormEditorLayoutMetabox {
 		$layout   = isset( $config['pdf_layout'] ) ? $config['pdf_layout'] : '';
 		$bg_image = isset( $config['bg_image'] ) ? $config['bg_image'] : '';
 
-		// Populate the layout-editor "Load" dropdown from the DB-backed
-		// template pool (#865): visible templates, defaults first, addressed
-		// by post id. The modal's picker reads the same pool — the legacy
-		// `html/` glob it once fell back to was removed in 6.23.0 (#1087), so
-		// both surfaces are pool-only now (#1309).
-		$templates    = CertTemplateReader::list_for_editor();
-		$default_tpls = array_values( array_filter( $templates, static fn( array $t ): bool => $t['is_default'] ) );
-		$user_tpls    = array_values( array_filter( $templates, static fn( array $t ): bool => ! $t['is_default'] ) );
+		// The Load button opens a modal built from the same DB-backed pool
+		// (#865), localized as `ffc_ajax.templates`; it is drawn only when the
+		// pool has something to offer. A hidden <select> once sat beside it
+		// that no script read (#1625).
+		$templates = CertTemplateReader::list_for_editor();
 
 		wp_nonce_field( 'ffc_save_form_data', 'ffc_form_nonce' );
 		?>
@@ -54,50 +51,33 @@ class FormEditorLayoutMetabox {
 						<div class="ffc-action-group">
 							<input type="file" id="ffc_import_html_file" accept=".html,.txt" class="ffc-hidden">
 							<button type="button" class="button" id="ffc_btn_import_html">
-								<span class="dashicons dashicons-upload" aria-hidden="true"></span>
+								<span class="ffc-icon-upload" aria-hidden="true"></span>
 								<?php esc_html_e( 'Import HTML', 'ffcertificate' ); ?>
 							</button>
 							<button type="button" class="button" id="ffc_btn_media_lib">
-								<span class="dashicons dashicons-cover-image" aria-hidden="true"></span>
+								<span class="ffc-icon-image" aria-hidden="true"></span>
 								<?php esc_html_e( 'Background Image', 'ffcertificate' ); ?>
 							</button>
 							<button type="button" class="button" id="ffc_btn_insert_image">
-								<span class="dashicons dashicons-format-image" aria-hidden="true"></span>
+								<span class="ffc-icon-image" aria-hidden="true"></span>
 								<?php esc_html_e( 'Insert Image', 'ffcertificate' ); ?>
 							</button>
 							<button type="button" class="button button-primary" id="ffc_btn_preview">
-								<span class="dashicons dashicons-visibility" aria-hidden="true"></span>
+								<span class="ffc-icon-eye" aria-hidden="true"></span>
 								<?php esc_html_e( 'Preview', 'ffcertificate' ); ?>
 							</button>
 							<button type="button" class="button" id="ffc_save_as_model_btn">
-								<span class="dashicons dashicons-saved" aria-hidden="true"></span>
+								<span class="ffc-icon-success" aria-hidden="true"></span>
 								<?php esc_html_e( 'Save as model', 'ffcertificate' ); ?>
 							</button>
 						</div>
 
 						<?php if ( $templates ) : ?>
 						<div class="ffc-template-loader">
-							<select id="ffc_template_select">
-								<option value=""><?php esc_html_e( 'Select a template…', 'ffcertificate' ); ?></option>
-								<?php if ( $default_tpls ) : ?>
-									<optgroup label="<?php esc_attr_e( 'Default templates', 'ffcertificate' ); ?>">
-										<?php foreach ( $default_tpls as $tpl ) : ?>
-											<option value="<?php echo esc_attr( (string) $tpl['id'] ); ?>"><?php echo esc_html( $tpl['label'] ); ?></option>
-										<?php endforeach; ?>
-									</optgroup>
-								<?php endif; ?>
-								<?php if ( $user_tpls ) : ?>
-									<optgroup label="<?php esc_attr_e( 'My templates', 'ffcertificate' ); ?>">
-										<?php foreach ( $user_tpls as $tpl ) : ?>
-											<option value="<?php echo esc_attr( (string) $tpl['id'] ); ?>"><?php echo esc_html( $tpl['label'] ); ?></option>
-										<?php endforeach; ?>
-									</optgroup>
-								<?php endif; ?>
-							</select>
 							<button type="button" id="ffc_load_template_btn" class="button">
-									<span class="dashicons dashicons-download" aria-hidden="true"></span>
-									<?php esc_html_e( 'Load', 'ffcertificate' ); ?>
-								</button>
+								<span class="ffc-icon-download" aria-hidden="true"></span>
+								<?php esc_html_e( 'Load', 'ffcertificate' ); ?>
+							</button>
 						</div>
 						<?php endif; ?>
 					</div>

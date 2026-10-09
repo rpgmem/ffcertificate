@@ -376,8 +376,10 @@ class AppointmentReceiptHandler {
 				.action-button.secondary:hover {
 					background: #3c434a;
 				}
-				.ffc-icon-inbox::before { content: "\1F4E5 "; }
-				.ffc-icon-print::before { content: "\1F5A8\FE0F "; }
+				.action-button .ffc-svg-icon {
+					vertical-align: -3px;
+					margin-right: 6px;
+				}
 				@media print {
 					body {
 						background: white;
@@ -395,8 +397,8 @@ class AppointmentReceiptHandler {
 		</head>
 		<body>
 			<div class="action-buttons">
-				<button class="action-button ffc-icon-inbox" id="ffc-download-pdf-btn"><?php echo esc_html__( 'Download PDF', 'ffcertificate' ); ?></button>
-				<button class="action-button secondary ffc-icon-print" onclick="window.print()"><?php echo esc_html__( 'Print', 'ffcertificate' ); ?></button>
+				<button class="action-button" id="ffc-download-pdf-btn"><?php echo \FreeFormCertificate\Core\Icons::svg( 'download', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?><?php echo esc_html__( 'Download PDF', 'ffcertificate' ); ?></button>
+				<button class="action-button secondary" onclick="window.print()"><?php echo \FreeFormCertificate\Core\Icons::svg( 'print', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?><?php echo esc_html__( 'Print', 'ffcertificate' ); ?></button>
 			</div>
 
 			<div class="receipt-container" id="ffc-receipt-content">

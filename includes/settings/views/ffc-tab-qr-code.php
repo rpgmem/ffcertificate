@@ -29,7 +29,7 @@ $ffc_qr_name      = static fn( string $key ): string => 'ffc_settings[' . $key .
 
 <!-- QR Code Defaults Card -->
 <div class="card">
-	<h2 class="ffc-icon-phone"><?php esc_html_e( 'QR Code Defaults', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-qr"><?php esc_html_e( 'QR Code Defaults', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Default settings for QR Code generation in certificates.', 'ffcertificate' ); ?>
 	</p>
@@ -98,13 +98,13 @@ $ffc_qr_name      = static fn( string $key ): string => 'ffc_settings[' . $key .
 
 <!-- QR Code Design Card -->
 <div class="card" id="ffc-qr-design">
-	<h2 class="ffc-icon-phone"><?php esc_html_e( 'QR Code Design', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-palette"><?php esc_html_e( 'QR Code Design', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Shapes and colours of the QR codes the plugin draws. Applies only where it is switched on below; elsewhere the plain black-and-white code is kept.', 'ffcertificate' ); ?>
 	</p>
 
 	<div class="ffc-qr-design-layout">
-		<div class="ffc-qr-sections">
+		<div class="ffc-sections">
 			<?php require FFC_PLUGIN_DIR . 'templates/admin/qr/design-fields.php'; ?>
 		</div>
 
@@ -117,7 +117,7 @@ $ffc_qr_name      = static fn( string $key ): string => 'ffc_settings[' . $key .
 
 <!-- Where the design applies -->
 <div class="card">
-	<h2 class="ffc-icon-settings"><?php esc_html_e( 'Apply the design to', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-layout"><?php esc_html_e( 'Apply the design to', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'A designed code is drawn as SVG. Certificates embed it directly; short URL PNG downloads are rasterised by your browser so they match the preview.', 'ffcertificate' ); ?>
 	</p>

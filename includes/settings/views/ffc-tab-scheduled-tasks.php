@@ -36,7 +36,7 @@ $ffcertificate_method_labels = array(
 <div class="ffc-settings-wrap">
 
 	<div class="card">
-		<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Scheduled Tasks', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-icon-clock"><?php esc_html_e( 'Scheduled Tasks', 'ffcertificate' ); ?></h2>
 		<p class="description">
 			<?php esc_html_e( 'The background tasks this plugin runs through WP-Cron: when each one is due and when it last actually ran. WordPress only records when a task is due, so "last run" is recorded by the plugin itself and appears after a task first runs.', 'ffcertificate' ); ?>
 		</p>
@@ -82,7 +82,7 @@ $ffcertificate_method_labels = array(
 						<td><?php echo esc_html( null !== $ffcertificate_row['next_run'] ? \FreeFormCertificate\Core\DateFormatter::format_datetime( $ffcertificate_row['next_run'] ) : '—' ); ?></td>
 						<td><?php echo esc_html( null !== $ffcertificate_row['last_run'] ? \FreeFormCertificate\Core\DateFormatter::format_datetime( $ffcertificate_row['last_run'] ) : '—' ); ?></td>
 						<td>
-							<span class="dashicons <?php echo esc_attr( 'ok' === $ffcertificate_row['state'] ? 'dashicons-yes-alt' : ( 'late' === $ffcertificate_row['state'] || 'not_scheduled' === $ffcertificate_row['state'] ? 'dashicons-warning' : 'dashicons-clock' ) ); ?>" aria-hidden="true"></span>
+							<span class="<?php echo esc_attr( 'ok' === $ffcertificate_row['state'] ? 'ffc-icon-success ffc-icon-tone-success' : ( 'late' === $ffcertificate_row['state'] || 'not_scheduled' === $ffcertificate_row['state'] ? 'ffc-icon-warning ffc-icon-tone-warning' : 'ffc-icon-clock ffc-icon-tone-neutral' ) ); ?>" aria-hidden="true"></span>
 							<?php echo esc_html( \FreeFormCertificate\Settings\Tabs\TabScheduledTasks::state_label( $ffcertificate_row['state'] ) ); ?>
 						</td>
 					</tr>
@@ -102,8 +102,10 @@ $ffcertificate_method_labels = array(
 		</p>
 		<p><button type="submit" name="ffc_save_cron_times" value="1" class="button button-primary"><?php esc_html_e( 'Save times', 'ffcertificate' ); ?></button></p>
 		</form>
+	</div>
 
-		<h3><?php esc_html_e( 'Queued one-off tasks', 'ffcertificate' ); ?></h3>
+	<div class="card">
+		<h2 class="ffc-icon-list"><?php esc_html_e( 'Queued one-off tasks', 'ffcertificate' ); ?></h2>
 		<p class="description"><?php esc_html_e( 'Created per piece of work and removed once they run. A number that keeps growing means WP-Cron is not running.', 'ffcertificate' ); ?></p>
 		<ul>
 			<?php foreach ( $ffcertificate_singles as $ffcertificate_hook => $ffcertificate_count ) : ?>
@@ -116,7 +118,7 @@ $ffcertificate_method_labels = array(
 	</div>
 
 	<div class="card">
-		<h2 class="ffc-icon-settings"><?php esc_html_e( 'Server cron', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-icon-server"><?php esc_html_e( 'Server cron', 'ffcertificate' ); ?></h2>
 		<p class="description">
 			<?php esc_html_e( 'By default WP-Cron runs only when someone visits the site, so on a quiet site a daily task can run hours late. A server cron line calls WP-Cron on a fixed rhythm. The line does not decide when each task runs — WordPress keeps that schedule — it only makes sure due tasks are run promptly, so a short interval is right.', 'ffcertificate' ); ?>
 		</p>

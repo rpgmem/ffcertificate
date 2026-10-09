@@ -92,6 +92,7 @@ class AdminLoader {
 		AdminUserCapabilities::init();
 		RoleCapabilityEditor::init();
 		AdminMenuVisibility::init();
+		AdminMenuIcons::init();
 		DeviceThresholdUpgradeNotice::init();
 		CaptchaModeNotice::init();
 		EncryptionKeyHealthNotice::init();

@@ -247,7 +247,7 @@ class QrDesignTest extends TestCase {
 		$this->assertSame( array( 'heart', 'dotted', 'flower', 'circle', 'globe' ), array( $design->dots, $design->eye_frame, $design->eye_ball, $design->frame, $design->frame_icon ) );
 		// Every frame icon is one the icon set can draw.
 		foreach ( QrDesign::FRAME_ICONS as $icon ) {
-			$this->assertTrue( \FreeFormCertificate\Generators\QrIcons::has( $icon ), $icon );
+			$this->assertTrue( \FreeFormCertificate\Core\Icons::has( $icon ), $icon );
 		}
 	}
 

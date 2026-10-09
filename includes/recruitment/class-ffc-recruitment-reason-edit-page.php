@@ -68,6 +68,7 @@ final class RecruitmentReasonEditPage {
 		$reason    = $reason_id > 0 ? RecruitmentReasonReader::get_by_id( $reason_id ) : null;
 
 		if ( null === $reason ) {
+			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 			wp_admin_notice(
 				esc_html__( 'Reason not found.', 'ffcertificate' ),
 				array( 'type' => 'error' )
@@ -76,12 +77,12 @@ final class RecruitmentReasonEditPage {
 			return;
 		}
 
-		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Reasons', 'ffcertificate' ) . '</a></p>';
-		echo '<h2>' . sprintf(
+		echo '<h1>' . sprintf(
 			/* translators: %s — reason label */
 			esc_html__( 'Edit reason — %s', 'ffcertificate' ),
 			esc_html( (string) $reason->label )
-		) . '</h2>';
+		) . '</h1>';
+		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Reasons', 'ffcertificate' ) . '</a></p>';
 
 		self::render_general_section( $reason );
 	}
@@ -111,9 +112,9 @@ final class RecruitmentReasonEditPage {
 			'appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
 		);
 
-		echo '<div class="postbox ffc-rec-mt-20">';
-		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
-		echo '<div class="inside">';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-clipboard">' . esc_html__( 'General', 'ffcertificate' ) . '</h2>';
+		echo '<div>';
 
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		echo '<input type="hidden" name="action" value="ffc_recruitment_save_reason">';

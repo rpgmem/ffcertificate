@@ -251,15 +251,15 @@ $ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identi
 					// the shape `CssNamespaceAnchorTest` exists to bound.
 					$ffc_identity_step_class = 'button button-secondary ffc-identity-panel-step ffc-identity-panel-step-' . $ffc_identity_step;
 					$ffc_identity_step_icon  = 'previous' === $ffc_identity_step
-						? 'dashicons-arrow-left-alt2'
-						: 'dashicons-arrow-right-alt2';
+						? 'ffc-icon-chevron-left'
+						: 'ffc-icon-chevron-right';
 					?>
 					<?php if ( '' !== (string) $panel[ $ffc_identity_step ] ) : ?>
 						<a class="<?php echo esc_attr( $ffc_identity_step_class ); ?>"
 							aria-label="<?php echo esc_attr( $ffc_identity_step_label ); ?>"
 							title="<?php echo esc_attr( $ffc_identity_step_label ); ?>"
 							href="<?php echo esc_url( $ffc_identity_url( $tier, (string) $panel[ $ffc_identity_step ], $ffc_identity_listed ) ); ?>">
-							<span class="dashicons <?php echo esc_attr( $ffc_identity_step_icon ); ?>" aria-hidden="true"></span>
+							<span class="<?php echo esc_attr( $ffc_identity_step_icon ); ?>" aria-hidden="true"></span>
 						</a>
 					<?php else : ?>
 						<?php // Rendered and disabled rather than absent, so the controls do not move under the pointer as the operator walks the list. ?>
@@ -267,7 +267,7 @@ $ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identi
 							aria-disabled="true"
 							aria-label="<?php echo esc_attr( $ffc_identity_step_label ); ?>"
 							title="<?php echo esc_attr( $ffc_identity_step_label ); ?>">
-							<span class="dashicons <?php echo esc_attr( $ffc_identity_step_icon ); ?>" aria-hidden="true"></span>
+							<span class="<?php echo esc_attr( $ffc_identity_step_icon ); ?>" aria-hidden="true"></span>
 						</span>
 					<?php endif; ?>
 				<?php endforeach; ?>
@@ -1592,7 +1592,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									data-ffc-input="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
 									data-ffc-split="ffc-split-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
 									data-ffc-submit="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
-									<span class="dashicons dashicons-search" aria-hidden="true"></span>
+									<span class="ffc-icon-search" aria-hidden="true"></span>
 									<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
 								</button>
 								<?php
@@ -2660,7 +2660,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							data-ffc-input="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
 							data-ffc-split="ffc-orphan-open-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
 							data-ffc-submit="ffc-orphan-link-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-							<span class="dashicons dashicons-search" aria-hidden="true"></span>
+							<span class="ffc-icon-search" aria-hidden="true"></span>
 							<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
 						</button>
 						<button type="submit" class="button button-primary"

@@ -668,12 +668,81 @@ class SubmissionsListTest extends TestCase {
 	// no_items
 	// ==================================================================
 
-	public function test_no_items_outputs_message(): void {
+	public function test_no_items_prints_the_empty_state(): void {
 		$list = $this->makeList();
 		ob_start();
 		$list->no_items();
-		$out = ob_get_clean();
-		$this->assertNotEmpty( $out );
+		$out = (string) ob_get_clean();
+		$this->assertStringContainsString( '<div class="ffc-empty-state">', $out );
+		$this->assertStringContainsString( 'No submissions yet', $out );
+	}
+
+	/**
+	 * Run prepare_items() against an empty result, so the list records the
+	 * view and filters the empty state reads.
+	 */
+	private function emptyListFromRequest(): SubmissionsList {
+		$this->stubStaticCollaborators( true, true );
+		$handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
+		$list    = $this->makeList( $handler );
+		$repo    = Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+		$repo->shouldReceive( 'findPaginated' )->once()->andReturn( array( 'items' => array(), 'total' => 0, 'pages' => 0 ) );
+		$this->injectRepository( $list, $repo );
+		$list->prepare_items();
+		return $list;
+	}
+
+	public function test_empty_state_names_each_view_without_offering_to_clear(): void {
+		$cases = array(
+			'publish'          => array( 'ffc-icon-inbox', 'No submissions yet' ),
+			'trash'            => array( 'ffc-icon-delete', 'Trash is empty' ),
+			'quiz_in_progress' => array( 'ffc-icon-sync', 'No quiz retries' ),
+			'quiz_failed'      => array( 'ffc-icon-error', 'No failed quiz attempts' ),
+		);
+		foreach ( $cases as $status => $expected ) {
+			$list = $this->makeList();
+			$this->set_prop( $list, 'query_state', array( 'status' => $status, 'search' => '', 'form_ids' => array() ) );
+			$html = $list->get_empty_state();
+			$this->assertStringContainsString( $expected[0], $html, $status );
+			$this->assertStringContainsString( $expected[1], $html, $status );
+			$this->assertStringNotContainsString( 'Clear Filter', $html, $status . ': an empty view is not a filter to clear' );
+		}
+	}
+
+	public function test_empty_state_falls_back_to_published_for_an_unknown_view(): void {
+		$list = $this->makeList();
+		$this->set_prop( $list, 'query_state', array( 'status' => 'bogus', 'search' => '', 'form_ids' => array() ) );
+		$this->assertStringContainsString( 'No submissions yet', $list->get_empty_state() );
+	}
+
+	public function test_empty_state_after_a_search_names_the_view_and_clears_the_filter(): void {
+		$_GET['status'] = 'trash';
+		$_REQUEST['s']  = 'maria';
+		$cleared        = null;
+		Functions\when( 'remove_query_arg' )->alias(
+			static function ( $keys ) use ( &$cleared ) {
+				$cleared = $keys;
+				return '/cleared';
+			}
+		);
+
+		$html = $this->emptyListFromRequest()->get_empty_state();
+
+		$this->assertStringContainsString( 'ffc-icon-filter', $html );
+		$this->assertStringContainsString( 'No submissions match', $html );
+		$this->assertStringContainsString( 'Nothing in "Trash" matches', $html );
+		$this->assertStringContainsString( '<a href="/cleared" class="button">Clear Filter</a>', $html );
+		$this->assertSame( array( 's', 'filter_form_id', 'paged' ), $cleared, 'the view is kept; only the search, the form filter and the page go' );
+	}
+
+	public function test_empty_state_after_a_form_filter_offers_to_clear_it(): void {
+		$_GET['filter_form_id'] = '7';
+
+		$html = $this->emptyListFromRequest()->get_empty_state();
+
+		$this->assertStringContainsString( 'No submissions match', $html );
+		$this->assertStringContainsString( 'Nothing in "Published" matches', $html );
+		$this->assertStringContainsString( 'Clear Filter', $html );
 	}
 
 	// ==================================================================

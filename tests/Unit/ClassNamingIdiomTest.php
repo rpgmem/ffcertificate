@@ -79,7 +79,6 @@ final class ClassNamingIdiomTest extends TestCase {
 		'alternate'        => 'core list-table row striping',
 		'card'             => 'core admin card (about.php, plugin cards)',
 		'current'          => 'core current pagination / subsubsub item',
-		'dashicons'        => 'core icon font',
 		'description'      => 'core field helper text',
 		'disabled'         => 'core button state (`.button.disabled`), written by core itself',
 		'displaying-num'   => 'core list-table item count',

@@ -230,7 +230,7 @@ class FormListColumnsTest extends TestCase {
 			$map = array(
 				'_ffc_csv_public_enabled' => '1',
 				'_ffc_form_config'        => array( 'quiz_enabled' => 1 ),
-				'_ffc_device_limit'       => array( 'enabled' => 1 ),
+				'_ffc_device_limit_enabled' => '1',
 			);
 			return $map[ $key ] ?? '';
 		} );
@@ -247,6 +247,28 @@ class FormListColumnsTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-features-badge', $output );
 		// All features on => checkboxes are checked.
 		$this->assertStringContainsString( 'checked', $output );
+	}
+
+	public function test_device_state_reads_the_flat_key_not_the_legacy_array(): void {
+		// #1625: the column read `_ffc_device_limit['enabled']`, the key only the
+		// list's own toggle wrote, so it disagreed with the editor and runtime.
+		$states = new \ReflectionMethod( FormListColumns::class, 'get_feature_states' );
+		$states->setAccessible( true );
+
+		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) {
+			return '_ffc_device_limit' === $key ? array( 'enabled' => '1' ) : '';
+		} );
+		$this->assertFalse( $states->invoke( null, 42 )['device_enabled'], 'the legacy array alone is not "on"' );
+
+		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) {
+			return '_ffc_device_limit_enabled' === $key ? '1' : '';
+		} );
+		$this->assertTrue( $states->invoke( null, 42 )['device_enabled'] );
+
+		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) {
+			return '_ffc_device_limit_enabled' === $key ? '0' : '';
+		} );
+		$this->assertFalse( $states->invoke( null, 42 )['device_enabled'], 'the editor stores "0" for off' );
 	}
 
 	public function test_render_column_features_disabled_when_user_cannot_edit(): void {
@@ -325,5 +347,95 @@ class FormListColumnsTest extends TestCase {
 
 		FormListColumns::search_by_id( $query );
 		$this->assertTrue( true );
+	}
+
+	// ------------------------------------------------------------------
+	// list_table_class() / empty_state()
+	// ------------------------------------------------------------------
+
+	public function test_list_table_class_swaps_only_the_forms_screen(): void {
+		$forms            = new \WP_Screen();
+		$forms->post_type = 'ffc_form';
+		$posts            = new \WP_Screen();
+		$posts->post_type = 'post';
+
+		$this->assertSame( \FreeFormCertificate\Admin\FormsListTable::class, FormListColumns::list_table_class( 'WP_Posts_List_Table', array( 'screen' => $forms ) ) );
+		$this->assertSame( 'WP_Posts_List_Table', FormListColumns::list_table_class( 'WP_Posts_List_Table', array( 'screen' => $posts ) ), 'other post types keep core\'s table' );
+		$this->assertSame( 'WP_Terms_List_Table', FormListColumns::list_table_class( 'WP_Terms_List_Table', array( 'screen' => $forms ) ), 'other list tables on the screen are left alone' );
+		$this->assertSame( 'WP_Posts_List_Table', FormListColumns::list_table_class( 'WP_Posts_List_Table', array() ), 'no screen, no swap' );
+		$this->assertNull( FormListColumns::list_table_class( null, array( 'screen' => $forms ) ), 'a value another filter broke passes through untouched' );
+		$this->assertSame( 'WP_Posts_List_Table', FormListColumns::list_table_class( 'WP_Posts_List_Table', 'not-an-array' ) );
+	}
+
+	/**
+	 * Stub what empty_state() reads from WordPress.
+	 *
+	 * @param bool $can_create Whether the user may create forms.
+	 */
+	private function stub_empty_state( bool $can_create = true ): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( static fn( $k ) => strtolower( (string) $k ) );
+		Functions\when( 'remove_query_arg' )->justReturn( '/cleared' );
+		Functions\when( 'get_post_status_object' )->alias(
+			static fn( $status ) => 'draft' === $status ? (object) array( 'label' => 'Draft' ) : null
+		);
+		Functions\when( 'get_post_type_object' )->justReturn( (object) array( 'cap' => (object) array( 'create_posts' => 'edit_posts' ) ) );
+		Functions\when( 'current_user_can' )->justReturn( $can_create );
+	}
+
+	private function empty_state_for( array $get ): string {
+		$saved = $_GET;
+		$_GET  = $get;
+		try {
+			return FormListColumns::empty_state();
+		} finally {
+			$_GET = $saved;
+		}
+	}
+
+	public function test_empty_state_with_no_forms_offers_to_create_one(): void {
+		$this->stub_empty_state();
+		$html = $this->empty_state_for( array() );
+
+		$this->assertStringContainsString( 'ffc-icon-file', $html );
+		$this->assertStringContainsString( 'No forms yet', $html );
+		$this->assertStringContainsString( '<a href="https://example.test/wp-admin/post-new.php?post_type=ffc_form" class="button button-primary">Add New Form</a>', $html );
+	}
+
+	public function test_empty_state_hides_the_create_button_from_who_cannot_create(): void {
+		$this->stub_empty_state( false );
+		$html = $this->empty_state_for( array() );
+
+		$this->assertStringContainsString( 'No forms yet', $html );
+		$this->assertStringNotContainsString( 'Add New Form', $html );
+	}
+
+	public function test_empty_state_after_a_search_or_month_filter_offers_to_clear_it(): void {
+		$this->stub_empty_state();
+		foreach ( array( array( 's' => 'certificate' ), array( 'm' => '202610' ) ) as $get ) {
+			$html = $this->empty_state_for( $get );
+			$this->assertStringContainsString( 'ffc-icon-search', $html );
+			$this->assertStringContainsString( 'No forms match', $html );
+			$this->assertStringContainsString( '<a href="/cleared" class="button">Clear Filter</a>', $html );
+		}
+	}
+
+	public function test_empty_state_ignores_the_all_dates_month_value(): void {
+		$this->stub_empty_state();
+		$this->assertStringContainsString( 'No forms yet', $this->empty_state_for( array( 'm' => '0' ) ) );
+	}
+
+	public function test_empty_state_names_the_trash_and_other_views(): void {
+		$this->stub_empty_state();
+
+		$trash = $this->empty_state_for( array( 'post_status' => 'trash' ) );
+		$this->assertStringContainsString( 'ffc-icon-delete', $trash );
+		$this->assertStringContainsString( 'Trash is empty', $trash );
+		$this->assertStringNotContainsString( 'Add New Form', $trash );
+
+		$this->assertStringContainsString( 'No forms in "Draft"', $this->empty_state_for( array( 'post_status' => 'draft' ) ) );
+		$this->assertStringContainsString( 'No forms yet', $this->empty_state_for( array( 'post_status' => 'publish' ) ), 'Published is the main list' );
+		$this->assertStringContainsString( 'No forms yet', $this->empty_state_for( array( 'post_status' => 'unknown' ) ) );
 	}
 }

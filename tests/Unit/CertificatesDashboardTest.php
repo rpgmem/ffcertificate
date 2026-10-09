@@ -141,15 +141,6 @@ class CertificatesDashboardTest extends TestCase {
 		}
 	}
 
-	public function test_render_page_emits_container_with_capability(): void {
-		Functions\when( 'current_user_can' )->justReturn( true );
-
-		ob_start();
-		( new CertificatesDashboard() )->render_page();
-		$output = (string) ob_get_clean();
-
-		$this->assertStringContainsString( 'class="ffc-certificates-dashboard"', $output );
-		$this->assertStringContainsString( 'id="ffc-certificates-calendar"', $output );
-		$this->assertStringContainsString( 'id="ffc-certificates-day-list"', $output );
-	}
+	// The render path counts submissions and open windows, which needs alias
+	// mocks in an isolated process: see CertificatesDashboardSummaryTest.
 }

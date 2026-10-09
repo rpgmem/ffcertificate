@@ -218,16 +218,32 @@
     border: 1px solid var(--ffc-border);
 }
 
+/* The shortcode, and its copy button below it: the sidebar is too narrow to share a line (#1614). */
+.ffc-shortcode-copy {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+    margin: var(--ffc-spacing-md) 0;
+}
+
 .ffc-shortcode-display {
     display: block;
+    flex: 1 1 100%;
+    min-width: 0;
     padding: var(--ffc-spacing-sm);
     background: var(--ffc-bg-card);
+    color: var(--ffc-text);
     border: 1px solid var(--ffc-border-light);
-    margin: var(--ffc-spacing-md) 0;
+    margin: 0;
     user-select: all;
     font-family: 'Courier New', Courier, monospace;
     font-size: var(--ffc-font-size-sm);
     word-break: break-all;
+}
+
+/* Form summary sidebar metabox (#1614): the shared .ffc-facts list, values to the right. */
+#ffc_form_summary .ffc-facts__value {
+    text-align: right;
 }
 
 .ffc-tips-list {
@@ -305,18 +321,7 @@
    15. SUBMISSION EDIT PAGE
    ========================================================================== */
 
-/* Seções de cabeçalho */
-.ffc-edit-submission-form h2 {
-    font-size: var(--ffc-font-size-base);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Botão de copiar magic link */
-.ffc-copy-magic-link {
-    margin-left: var(--ffc-spacing-md);
-    vertical-align: middle;
-}
+/* Magic-link copy button, in the side panel's action row (#1614). */
 
 .ffc-copy-magic-link:hover {
     background: var(--ffc-primary-hover);
@@ -346,19 +351,12 @@
    16. TEMPLATE LOADER CUSTOMIZATIONS
    ======================================== */
 
-/* Hide the legacy template <select> in the layout metabox — the "Load" button
-   opens the JS-built template modal (ffc-admin-pdf.js) instead; the dropdown is
-   dead markup kept only for backward compatibility. */
-#ffc_template_select {
-    display: none !important;
-}
-
 /* NOTE: the former per-id overrides here (padding/font-size/inline-block on
    #ffc_btn_import_html / #ffc_btn_media_lib / #ffc_load_template_btn) were
    removed — they over-sized those three buttons and broke icon centering by
    overriding the unified `.ffc-action-group .button` toolbar (inline-flex).
    All layout-action buttons now share that single rule for consistent
-   sizing, borders, and dashicon alignment. */
+   sizing, borders, and icon alignment. */
 
 /* ==========================================================================
    17. DATA MIGRATIONS TAB STYLES
@@ -386,8 +384,8 @@
 
 
 /* Certificate layout actions: a consistent, wrapping toolbar of icon buttons.
-   Every button carries a leading dashicon; align and space them uniformly
-   instead of per-button inline styles. */
+   Every button carries a leading registry icon; align and space them
+   uniformly instead of per-button inline styles. */
 .ffc-action-group {
     display: flex;
     flex-wrap: wrap;
@@ -410,17 +408,6 @@
     align-items: center;
 }
 
-.ffc-action-group .button .dashicons,
-/* 17px literal: a glyph box, not text — an icon or a `&times;` sized by
-   font-size is a box, and the typography scale does not govern it. Same
-   reason as .ffc-stat-icon (#1148 step 1). */
-.ffc-template-loader .button .dashicons {
-    margin-right: var(--ffc-spacing-2xs);
-    font-size: 17px;
-    width: 17px;
-    height: 17px;
-    line-height: 1;
-}
 
 /* Inline autosave feedback for the template visibility toggle (edit screen). */
 .ffc-autosave-status {
@@ -799,7 +786,7 @@ td .ffc-restriction-label {
 
 /* 28px literal: a glyph box, not text — an icon or a `&times;` sized by
    font-size is a box, and the typography scale does not govern it. Same
-   reason as .ffc-stat-icon (#1148 step 1). */
+   reason the glyph-box family gives (#1148 step 1). */
 .ffc-preview-close {
     background: none;
     border: none;
@@ -890,7 +877,7 @@ td .ffc-restriction-label {
     cursor: pointer; padding: var(--ffc-spacing-3xs) var(--ffc-spacing-2xs); line-height: 1; color: var(--ffc-text-muted);
 }
 .ffc-copy-shortcode:hover { color: var(--ffc-primary); border-color: var(--ffc-primary); }
-.ffc-copy-shortcode .dashicons { font-size: var(--ffc-font-size-base); width: 14px; height: 14px; }
+.ffc-copy-shortcode .ffc-icon-copy::before { margin-right: 0; }
 .ffc-copy-shortcode.is-copied { color: var(--ffc-success-text); border-color: var(--ffc-success); }
 
 /* =========================================================================
@@ -914,18 +901,30 @@ p.ffc-datetime-order-error {
 	margin-top: var(--ffc-spacing-2xs);
 }
 
-/* =========================================================================
- * Geofence (Time / Geolocation) cards span the panel.
- *
- * The Time and Geolocation tabs group their sections into WP-core `.card`
- * blocks. Core ships `.card { max-width: 520px }`, which leaves a wide
- * empty gutter inside the form-editor panel. Scope an override to the
- * geofence container so the cards fill the available width without
- * touching the settings-page cards (which keep the core width on purpose).
- * ========================================================================= */
-.ffc-geofence-container .card {
-	max-width: 100%;
-	box-sizing: border-box;
+/* Registered-locations picker in the Geolocation tab (#1614). */
+.ffc-location-picker {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-2xs);
+	max-height: 16em;
+	margin: var(--ffc-spacing-sm) 0;
+	padding: var(--ffc-spacing-sm);
+	overflow-y: auto;
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-md);
+	background: var(--ffc-bg-card);
+	color: var(--ffc-text);
+}
+
+.ffc-location-picker__item {
+	display: flex;
+	align-items: baseline;
+	gap: var(--ffc-spacing-xs);
+}
+
+.ffc-location-picker__meta {
+	font-size: var(--ffc-font-size-sm);
+	color: var(--ffc-text-muted);
 }
 
 /* =========================================================================
@@ -984,12 +983,14 @@ p.ffc-datetime-order-error {
 	outline-offset: -2px;
 }
 
-.ffc-form-tabs__tab .dashicons {
+.ffc-form-tabs__tab .ffc-form-tabs__icon {
 	flex: 0 0 auto;
-	width: 18px;
-	height: 18px;
-	font-size: var(--ffc-font-size-xl);
+	font-size: var(--ffc-font-size-lg);
 	color: var(--ffc-text-muted);
+}
+
+.ffc-form-tabs__icon::before {
+	margin-right: 0;
 }
 
 .ffc-form-tabs__tab.is-active {
@@ -998,7 +999,7 @@ p.ffc-datetime-order-error {
 	border-left-color: var(--ffc-primary);
 }
 
-.ffc-form-tabs__tab.is-active .dashicons {
+.ffc-form-tabs__tab.is-active .ffc-form-tabs__icon {
 	color: var(--ffc-primary);
 }
 
@@ -1007,7 +1008,7 @@ p.ffc-datetime-order-error {
 	color: var(--ffc-danger);
 }
 
-.ffc-form-tabs__tab.has-error .dashicons {
+.ffc-form-tabs__tab.has-error .ffc-form-tabs__icon {
 	color: var(--ffc-danger);
 }
 
@@ -1017,6 +1018,30 @@ p.ffc-datetime-order-error {
 	margin-left: auto;
 	border-radius: var(--ffc-radius-full);
 	background: var(--ffc-danger);
+}
+
+/*
+ * Feature state (#1614): a hollow dot while the tab's feature is off, a
+ * filled one while it is on. The tab also carries the state as screen-reader
+ * text, so the colour is never the only signal. An error dot replaces it.
+ */
+.ffc-form-tabs__state {
+	flex: 0 0 auto;
+	width: 8px;
+	height: 8px;
+	margin-left: auto;
+	border: 1px solid var(--ffc-text-muted);
+	border-radius: var(--ffc-radius-full);
+	box-sizing: border-box;
+}
+
+.ffc-form-tabs__tab.is-on .ffc-form-tabs__state {
+	border-color: var(--ffc-success);
+	background: var(--ffc-success);
+}
+
+.ffc-form-tabs__tab.has-error .ffc-form-tabs__state {
+	display: none;
 }
 
 .ffc-form-tabs__panels {
@@ -1037,15 +1062,9 @@ p.ffc-datetime-order-error {
 	border-bottom: 2px solid var(--ffc-primary);
 }
 
-/* 20px literal: a glyph box, not text — an icon or a `&times;` sized by
-   font-size is a box, and the typography scale does not govern it. Same
-   reason as .ffc-stat-icon (#1148 step 1). */
-.ffc-form-tabs__panel-title .dashicons {
+.ffc-form-tabs__panel-title .ffc-form-tabs__icon {
 	flex: 0 0 auto;
 	color: var(--ffc-primary);
-	font-size: 20px;
-	width: 20px;
-	height: 20px;
 }
 
 /* Client-side required-tag save-guard banner (prepended to the Layout panel). */
@@ -1058,10 +1077,8 @@ p.ffc-datetime-order-error {
 }
 
 /* "Duplicate this form" link inside the Publish (Submit) box. */
-.misc-pub-section.ffc-duplicate-action .dashicons {
+.misc-pub-section.ffc-duplicate-action .ffc-icon-copy {
 	color: var(--ffc-text-muted);
-	margin-right: var(--ffc-spacing-2xs);
-	vertical-align: text-bottom;
 }
 
 /* Panel hiding only kicks in once JS marks the container ready. */
@@ -1181,9 +1198,11 @@ p.ffc-datetime-order-error {
     background: var(--ffc-primary-light);
 }
 
+/* An inline SVG from Core\Icons (#1613), drawn in the link's colour. */
 .ffc-preflight-badge-icon {
-    font-size: var(--ffc-font-size-lg);
-    line-height: 1;
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--ffc-primary);
 }
 
 .ffc-preflight-badge strong {
@@ -1496,11 +1515,13 @@ p.ffc-datetime-order-error {
     padding: 0;
 }
 
-.ffc-page-identities .ffc-identity-panel-step .dashicons {
-    width: auto;
-    height: auto;
-    font-size: var(--ffc-font-size-xl);
+.ffc-page-identities .ffc-identity-panel-step [class*="ffc-icon-chevron"] {
+    font-size: var(--ffc-font-size-lg);
     line-height: 1;
+}
+
+.ffc-page-identities .ffc-identity-panel-step [class*="ffc-icon-chevron"]::before {
+    margin-right: 0;
 }
 
 /* `aria-disabled` rather than `disabled`, because these are links and a link
@@ -1983,8 +2004,8 @@ p.ffc-datetime-order-error {
 }
 
 /* The search button carries a glyph before its word, so it stops being a
-   text box: `inline-flex` is what puts the two on one baseline, since a
-   dashicon is a 20px square that a button's own line-height cannot centre.
+   text box: `inline-flex` is what puts the two on one baseline, since an
+   icon box is a square that a button's own line-height cannot centre.
    Sized to the label rather than to its own default, or the glyph reads as
    the control and the word as its caption. */
 .ffc-page-identities .ffc-identity-find {
@@ -1993,11 +2014,8 @@ p.ffc-datetime-order-error {
     gap: var(--ffc-spacing-3xs);
 }
 
-.ffc-page-identities .ffc-identity-find .dashicons {
-    width: auto;
-    height: auto;
-    font-size: var(--ffc-font-size-lg);
-    line-height: 1;
+.ffc-page-identities .ffc-identity-find .ffc-icon-search::before {
+    margin-right: 0;
 }
 
 @media screen and (max-width: 782px) {

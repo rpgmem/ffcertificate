@@ -111,9 +111,8 @@
 		notice.setAttribute( 'role', 'status' );
 
 		var icon    = document.createElement( 'div' );
-		icon.className = 'ffc-already-submitted-icon';
+		icon.className = 'ffc-already-submitted-icon ffc-icon-info';
 		icon.setAttribute( 'aria-hidden', 'true' );
-		icon.textContent = 'ℹ';
 
 		var content = document.createElement( 'div' );
 		content.className = 'ffc-already-submitted-content';

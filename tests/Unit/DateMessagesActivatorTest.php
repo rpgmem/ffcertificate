@@ -95,7 +95,9 @@ class DateMessagesActivatorTest extends TestCase {
 	}
 
 	public function test_maybe_migrate_is_a_no_op_on_the_current_version(): void {
-		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		Functions\when( 'get_option' )->alias(
+			static fn( $name ) => DateMessagesActivator::AUDIENCE_IDS_OPTION === $name ? '1' : FFC_VERSION
+		);
 		Functions\expect( 'update_option' )->never();
 		$this->wpdb->shouldReceive( 'get_var' )->never();
 
@@ -112,5 +114,108 @@ class DateMessagesActivatorTest extends TestCase {
 		DateMessagesActivator::maybe_migrate();
 
 		$this->assertCount( 3, $this->deltas );
+	}
+
+	// ------------------------------------------------------------------
+	// audience_id → audience_ids (#1648)
+	// ------------------------------------------------------------------
+
+	public function test_audience_migration_copies_the_single_audience_then_drops_the_column(): void {
+		$queries = array();
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_date_message_rules' );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );
+		// audience_ids is missing, audience_id is still there.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static fn( $q ) => str_ends_with( (string) $q, ',audience_id' ) ? array( (object) array( 'Field' => 'audience_id' ) ) : array()
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $q ) use ( &$queries ) {
+				$queries[] = (string) $q;
+				return 1;
+			}
+		);
+
+		DateMessagesActivator::migrate_audience_ids();
+
+		$this->assertCount( 3, $queries );
+		$this->assertStringContainsString( 'ADD COLUMN', $queries[0] );
+		$this->assertStringContainsString( 'audience_ids', $queries[0] );
+		$this->assertStringStartsWith( "UPDATE %i SET audience_ids = CONCAT('[', audience_id, ']')", $queries[1] );
+		$this->assertSame( 'ALTER TABLE %i DROP COLUMN audience_id|wp_ffc_date_message_rules', $queries[2], 'The old column goes only after the copy.' );
+	}
+
+	public function test_audience_migration_on_a_done_table_only_records_the_marker(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_date_message_rules' );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );
+		// audience_ids exists, audience_id is gone.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static fn( $q ) => str_ends_with( (string) $q, ',audience_ids' ) ? array( (object) array( 'Field' => 'audience_ids' ) ) : array()
+		);
+		$this->wpdb->shouldReceive( 'query' )->never();
+		Functions\expect( 'update_option' )->once()->with( DateMessagesActivator::AUDIENCE_IDS_OPTION, '1' );
+
+		DateMessagesActivator::migrate_audience_ids();
+	}
+
+	public function test_audience_migration_records_the_marker_only_once_the_old_column_is_gone(): void {
+		$dropped = false;
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_date_message_rules' );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $q ) use ( &$dropped ) {
+				if ( str_ends_with( (string) $q, ',audience_ids' ) ) {
+					return array( (object) array( 'Field' => 'audience_ids' ) );
+				}
+				return ! $dropped && str_ends_with( (string) $q, ',audience_id' ) ? array( (object) array( 'Field' => 'audience_id' ) ) : array();
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $q ) use ( &$dropped ) {
+				if ( str_contains( (string) $q, 'DROP COLUMN' ) ) {
+					$dropped = true;
+				}
+				return 1;
+			}
+		);
+		Functions\expect( 'update_option' )->once()->with( DateMessagesActivator::AUDIENCE_IDS_OPTION, '1' );
+
+		DateMessagesActivator::migrate_audience_ids();
+	}
+
+	public function test_a_failed_drop_leaves_the_marker_unset_so_it_retries(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_date_message_rules' );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );
+		// Both columns stay: the DROP did not take.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'x' ) ) );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( false );
+		Functions\expect( 'update_option' )->never();
+
+		DateMessagesActivator::migrate_audience_ids();
+	}
+
+	public function test_the_audience_move_runs_on_an_install_already_at_this_version(): void {
+		// The testes case (#1648): `develop` keeps FFC_VERSION, so the schema
+		// option already matches and only the move's own marker is missing.
+		Functions\when( 'get_option' )->alias(
+			static fn( $name ) => DateMessagesActivator::SCHEMA_OPTION === $name ? FFC_VERSION : ''
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_date_message_rules' );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static fn( $q ) => str_ends_with( (string) $q, ',audience_ids' ) ? array( (object) array( 'Field' => 'audience_ids' ) ) : array()
+		);
+		Functions\expect( 'update_option' )->once()->with( DateMessagesActivator::AUDIENCE_IDS_OPTION, '1' );
+
+		DateMessagesActivator::maybe_migrate();
+
+		$this->assertSame( array(), $this->deltas, 'The version gate still holds for the table chain.' );
+	}
+
+	public function test_audience_migration_skips_a_missing_table(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'get_results' )->never();
+		$this->wpdb->shouldReceive( 'query' )->never();
+
+		DateMessagesActivator::migrate_audience_ids();
 	}
 }

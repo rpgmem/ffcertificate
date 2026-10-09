@@ -30,7 +30,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 <div class="ffc-settings-wrap">
 
 <div class="card">
-	<h2 class="ffc-icon-email"><?php esc_html_e( 'Email Configuration', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-send"><?php esc_html_e( 'Email Configuration', 'ffcertificate' ); ?></h2>
 	<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
 
 	<form method="post">
@@ -97,7 +97,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 					// behaviour; the toggle is what makes it reachable.
 					'notify_capability_grant'        => array(
 						'th_label'    => __( 'Access Granted Notification', 'ffcertificate' ),
-						'description' => __( 'Email the user when they are granted access to certificates, appointments or audience groups. Edit the text under Settings → Email Texts → Account access.', 'ffcertificate' ),
+						'description' => __( 'Email the user when they are granted access to certificates, appointments or audience groups. Edit the text under Settings → Email texts → Account access.', 'ffcertificate' ),
 						'default'     => '0',
 					),
 				);
@@ -225,7 +225,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 
 <?php // Popular providers are only relevant to Custom SMTP — hidden otherwise (JS keeps it in sync with the Mode radio). ?>
 <div class="card<?php echo ( ! $ffcertificate_emails_disabled && 'custom' === $ffcertificate_smtp_mode ) ? '' : ' ffc-hidden'; ?>" id="ffc-smtp-providers">
-	<h2 class="ffc-icon-bulb"><?php esc_html_e( 'Popular SMTP Providers', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-server"><?php esc_html_e( 'Popular SMTP Providers', 'ffcertificate' ); ?></h2>
 
 	<div class="ffc-provider-grid">
 		<div class="ffc-provider-card ffc-provider-gmail">

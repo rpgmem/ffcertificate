@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Submissions: Download Section -->
 <div class="card">
-	<h3 id="submissions-download"><span class="dashicons dashicons-download" aria-hidden="true"></span> <?php esc_html_e( 'Downloading the certificate', 'ffcertificate' ); ?></h3>
+	<h3 id="submissions-download" class="ffc-icon-download"><?php esc_html_e( 'Downloading the certificate', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Certificates are not stored as files — the PDF is regenerated on demand each time it is requested, always reflecting the current template. There are two ways to reach it, both served from the public /valid page.', 'ffcertificate' ); ?></p>
 

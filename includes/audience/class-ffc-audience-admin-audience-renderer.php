@@ -206,6 +206,8 @@ final class AudienceAdminAudienceRenderer {
 			<input type="hidden" name="audience_id" value="<?php echo esc_attr( (string) $id ); ?>">
 			<input type="hidden" name="ffc_action" value="save_audience">
 
+			<div class="card">
+			<h2 class="ffc-icon-users"><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
@@ -301,6 +303,7 @@ final class AudienceAdminAudienceRenderer {
 					</td>
 				</tr>
 			</tbody></table>
+			</div>
 
 			<?php submit_button( $id > 0 ? __( 'Update Audience', 'ffcertificate' ) : __( 'Create Audience', 'ffcertificate' ) ); ?>
 		</form>
@@ -353,8 +356,8 @@ final class AudienceAdminAudienceRenderer {
 		$has_children = ! empty( AudienceReader::get_children( $audience_id ) );
 
 		?>
-		<hr>
-		<h2><?php esc_html_e( 'Reregistration Fields', 'ffcertificate' ); ?></h2>
+		<div class="card">
+		<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Reregistration Fields', 'ffcertificate' ); ?></h2>
 		<p class="description"><?php esc_html_e( 'Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use "+ Add Field" to create custom fields.', 'ffcertificate' ); ?></p>
 
 		<div id="ffc-custom-fields-container" data-audience-id="<?php echo esc_attr( (string) $audience_id ); ?>">
@@ -386,11 +389,12 @@ final class AudienceAdminAudienceRenderer {
 			<p class="description"><em><?php esc_html_e( 'Read-only — you do not have permission to edit custom field definitions.', 'ffcertificate' ); ?></em></p>
 			<?php endif; ?>
 		</div>
+		</div>
 
 		<!-- Template for new field row (used by JS) -->
 		<script type="text/html" id="tmpl-ffc-custom-field-row">
 			<div class="ffc-custom-field-row" data-field-id="new_{{data.index}}" data-field-source="custom">
-				<div class="ffc-field-handle"><span class="dashicons dashicons-menu"></span></div>
+				<div class="ffc-field-handle"><span class="ffc-icon-grip" aria-hidden="true"></span></div>
 				<div class="ffc-field-content">
 					<div class="ffc-field-main-row">
 						<span class="ffc-field-source-badge ffc-field-source-custom"><?php esc_html_e( 'Custom', 'ffcertificate' ); ?></span>
@@ -465,10 +469,10 @@ final class AudienceAdminAudienceRenderer {
 				</div>
 				<div class="ffc-field-actions">
 					<button type="button" class="button button-small ffc-field-toggle-details" title="<?php esc_attr_e( 'Toggle details', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-admin-generic"></span>
+						<span class="ffc-icon-settings" aria-hidden="true"></span>
 					</button>
 					<button type="button" class="button button-small button-link-delete ffc-field-delete" title="<?php esc_attr_e( 'Remove', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-trash"></span>
+						<span class="ffc-icon-delete" aria-hidden="true"></span>
 					</button>
 				</div>
 			</div>
@@ -530,7 +534,7 @@ final class AudienceAdminAudienceRenderer {
 
 		?>
 		<div class="ffc-custom-field-row <?php echo empty( $field->is_active ) ? 'ffc-field-inactive' : ''; ?> ffc-field-source-<?php echo esc_attr( $source ); ?>" data-field-id="<?php echo esc_attr( (string) $field->id ); ?>" data-field-source="<?php echo esc_attr( $source ); ?>">
-			<div class="ffc-field-handle"><span class="dashicons dashicons-menu"></span></div>
+			<div class="ffc-field-handle"><span class="ffc-icon-grip" aria-hidden="true"></span></div>
 			<div class="ffc-field-content">
 				<div class="ffc-field-main-row">
 					<span class="ffc-field-source-badge <?php echo esc_attr( $badge_class ); ?>"><?php echo esc_html( $badge_label ); ?></span>
@@ -650,11 +654,11 @@ final class AudienceAdminAudienceRenderer {
 			</div>
 			<div class="ffc-field-actions">
 				<button type="button" class="button button-small ffc-field-toggle-details" title="<?php esc_attr_e( 'Toggle details', 'ffcertificate' ); ?>">
-					<span class="dashicons dashicons-admin-generic"></span>
+					<span class="ffc-icon-settings" aria-hidden="true"></span>
 				</button>
 				<?php if ( ! $is_standard ) : ?>
 					<button type="button" class="button button-small button-link-delete ffc-field-delete" title="<?php esc_attr_e( 'Remove', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-trash"></span>
+						<span class="ffc-icon-delete" aria-hidden="true"></span>
 					</button>
 				<?php endif; ?>
 			</div>
@@ -684,8 +688,8 @@ final class AudienceAdminAudienceRenderer {
 
 		<?php settings_errors( 'ffc_audience' ); ?>
 
-		<div class="ffc-members-section">
-			<h2><?php esc_html_e( 'Add Members', 'ffcertificate' ); ?></h2>
+		<div class="card">
+			<h2 class="ffc-icon-plus"><?php esc_html_e( 'Add Members', 'ffcertificate' ); ?></h2>
 			<form method="post" action="">
 				<?php wp_nonce_field( 'add_members', 'ffc_add_members_nonce' ); ?>
 				<input type="hidden" name="audience_id" value="<?php echo esc_attr( (string) $id ); ?>">
@@ -702,8 +706,8 @@ final class AudienceAdminAudienceRenderer {
 			</form>
 		</div>
 
-		<div class="ffc-members-section">
-			<h2><?php esc_html_e( 'Current Members', 'ffcertificate' ); ?> (<?php echo count( $members ); ?>)</h2>
+		<div class="card">
+			<h2 class="ffc-icon-users"><?php esc_html_e( 'Current Members', 'ffcertificate' ); ?> (<?php echo count( $members ); ?>)</h2>
 
 			<?php if ( empty( $members ) ) : ?>
 				<p><?php esc_html_e( 'No members yet.', 'ffcertificate' ); ?></p>

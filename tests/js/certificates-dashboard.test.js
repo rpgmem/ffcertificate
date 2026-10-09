@@ -63,7 +63,7 @@ describe('ffc-certificates-dashboard — happy path', () => {
 		document.body.innerHTML = `
 			<div id="ffc-certificates-calendar"></div>
 			<ul id="ffc-certificates-day-list"></ul>
-			<p class="ffc-certificates-side-empty">Empty</p>
+			<div class="ffc-certificates-side-empty"><div class="ffc-empty-state"><p class="ffc-empty-state__title">Empty</p></div></div>
 			<h3 class="ffc-certificates-side-title">Forms</h3>
 		`;
 		loadScript('assets/js/ffc-certificates-dashboard.js');

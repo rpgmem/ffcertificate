@@ -56,7 +56,12 @@
 
         function fetchMonth(year, month) {
             var thisFetch = ++fetchId;
-            var url = settings.restUrl + 'certificates/calendar?year=' + year + '&month=' + month;
+            // restUrl is `…/wp-json/ffc/v1/` with pretty permalinks and
+            // `…/index.php?rest_route=/ffc/v1/` without them, where the query
+            // must continue with `&`: a second `?` makes the route 404 and
+            // the calendar stays empty (#1614).
+            var base = settings.restUrl + 'certificates/calendar';
+            var url = base + (base.indexOf('?') === -1 ? '?' : '&') + 'year=' + year + '&month=' + month;
 
             // Reset month state immediately so stale badges disappear during the request.
             eventsByDate = {};
@@ -69,6 +74,8 @@
                     return;
                 }
                 eventsByDate = {};
+                // The summary row's month card counts what the calendar shows.
+                $('#ffc-cert-stat-month').text(Array.isArray(response) ? response.length : 0);
                 // `$.isArray` was removed in jQuery 4; native Array.isArray
                 // is the modern equivalent and works in every supported env.
                 if (Array.isArray(response)) {
@@ -132,13 +139,15 @@
 
             if (!entries.length) {
                 $list.attr('hidden', 'hidden').empty();
+                // The shared empty state (#1614): only its title changes.
                 $emptyMessage
-                    .text(i18n.noFormsForDay || 'No forms scheduled for this day.')
-                    .show();
+                    .removeAttr('hidden')
+                    .find('.ffc-empty-state__title')
+                    .text(i18n.noFormsForDay || 'No forms scheduled for this day.');
                 return;
             }
 
-            $emptyMessage.hide();
+            $emptyMessage.attr('hidden', 'hidden');
             $list.removeAttr('hidden').empty();
 
             entries.sort(function (a, b) {
@@ -183,7 +192,7 @@
                             .attr('title', i18n.viewSubmissions || 'View submissions for this form')
                             .attr('aria-label', i18n.viewSubmissions || 'View submissions for this form')
                             .append(
-                                $('<span class="dashicons dashicons-list-view" aria-hidden="true"></span>')
+                                $('<span class="ffc-icon-list" aria-hidden="true"></span>')
                             )
                     );
                 }

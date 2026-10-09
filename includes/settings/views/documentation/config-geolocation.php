@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Configuration: Geolocation Section -->
 <div class="card">
-	<h3 id="config-geolocation"><span class="dashicons dashicons-location-alt" aria-hidden="true"></span> <?php esc_html_e( 'Geolocation', 'ffcertificate' ); ?></h3>
+	<h3 id="config-geolocation" class="ffc-icon-map-pin"><?php esc_html_e( 'Geolocation', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Settings → Geolocation is where the geofencing building blocks are configured. Individual forms then pick from these.', 'ffcertificate' ); ?> <a href="#forms-geolocation"><?php esc_html_e( 'See Geolocation (Forms)', 'ffcertificate' ); ?></a> <?php esc_html_e( 'for per-form usage.', 'ffcertificate' ); ?></p>
 

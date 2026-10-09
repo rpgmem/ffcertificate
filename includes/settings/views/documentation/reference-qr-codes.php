@@ -3,7 +3,8 @@
  * Documentation partial — Reference: QR Codes.
  *
  * Documents the {{qr_code}} token and its attributes (size, and other
- * customization options) for embedding QR codes in a certificate.
+ * customization options) for embedding QR codes in a certificate. The global
+ * defaults and design it reads are documented with their tab, config-qr-code.
  *
  * @package FreeFormCertificate\Settings
  */
@@ -12,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<!-- 5. QR Code Options Section -->
+<!-- QR Code in the Certificate Section -->
 <div class="card">
-	<h3 id="reference-qr-codes"><span class="dashicons dashicons-camera" aria-hidden="true"></span> <?php esc_html_e( 'QR Code Options & Attributes', 'ffcertificate' ); ?></h3>
+	<h3 id="reference-qr-codes" class="ffc-icon-qr"><?php esc_html_e( 'QR Code Options & Attributes', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'The QR code can be customized with various attributes:', 'ffcertificate' ); ?></p>
 	
 	<table class="widefat striped">
@@ -64,11 +65,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
-	<h4><?php esc_html_e( 'QR Code defaults', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win.', 'ffcertificate' ); ?></p>
-
-	<h4><?php esc_html_e( 'QR Code Design', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Settings → QR Code also sets the shape of the modules and of the three corner markers, their colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. The design is applied only where it is switched on: the {{qr_code}} placeholder of certificates, and the QR codes of short URLs. Elsewhere the plain black-and-white code is kept.', 'ffcertificate' ); ?></p>
-	<p><?php esc_html_e( 'A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as "Scan to verify", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height.', 'ffcertificate' ); ?></p>
+	<h4><?php esc_html_e( 'Global QR Code settings', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'The certificate PDF draws this code with the plugin-wide settings on Settings → QR Code: their defaults fill in any attribute the placeholder leaves out, and their design is used when it is applied to certificates.', 'ffcertificate' ); ?> <a href="#config-qr-code"><?php esc_html_e( 'See QR Code settings', 'ffcertificate' ); ?></a>.</p>
 	<p class="description"><?php esc_html_e( 'With the design applied to certificates, the {{qr_code}} placeholder is drawn as an SVG and is not cached; without it, a PNG is generated and may be served from the QR Code cache.', 'ffcertificate' ); ?></p>
 </div>

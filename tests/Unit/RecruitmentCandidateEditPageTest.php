@@ -183,8 +183,10 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 
 		$html = $this->capture_output( array( RecruitmentCandidateEditPage::class, 'render' ) );
 
-		// Screen header + the five section postboxes.
-		$this->assertStringContainsString( 'Edit candidate — Jane Doe', $html );
+		// Screen header + the five section cards (#1631).
+		$this->assertStringContainsString( '<h1>Edit candidate — Jane Doe</h1>', $html );
+		$this->assertSame( 5, substr_count( $html, '<div class="card"><h2 class="ffc-icon-' ) );
+		$this->assertStringNotContainsString( 'postbox', $html );
 		$this->assertStringContainsString( 'General', $html );
 		$this->assertStringContainsString( 'Sensitive data (admin only)', $html );
 		$this->assertStringContainsString( 'Classifications + call history', $html );

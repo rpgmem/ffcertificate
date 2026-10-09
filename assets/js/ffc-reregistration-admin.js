@@ -13,7 +13,6 @@
         initReturnToDraftConfirm();
         initRecordDownload();
         initSubmissionDetailsModal();
-        initTransferList();
         initCsvExport();
         initSendInvitations();
     });
@@ -162,7 +161,7 @@
 
             function restoreBtn() {
                 $btn.prop('disabled', false).html(
-                    '<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span> ' + (S.record || 'Record')
+                    '<span class="ffc-icon-file" aria-hidden="true"></span>' + (S.record || 'Record')
                 );
             }
 
@@ -245,162 +244,32 @@
     }
 
     /**
-     * Audience transfer list (dual-column picker)
+     * Members the chosen audiences reach, under the shared audience picker
+     * (#1648). The picker announces every change; this screen only counts.
+     * Bound at load, before the picker's own ready handler renders the first
+     * time, so the initial count is not missed.
      */
-    function initTransferList() {
-        var $wrap = $('.ffc-transfer-list');
-        if (!$wrap.length) return;
-
-        var allAudiences = JSON.parse($wrap.attr('data-audiences') || '[]');
-        var selectedIds = JSON.parse($wrap.attr('data-selected') || '[]');
-        var byId = {};
-        allAudiences.forEach(function (a) { byId[a.id] = a; });
-
-        var $available = $wrap.find('.ffc-transfer-available .ffc-transfer-items');
-        var $selected = $wrap.find('.ffc-transfer-selected .ffc-transfer-items');
-        var $hidden = $wrap.find('.ffc-transfer-hidden-inputs');
-        var $search = $wrap.find('.ffc-transfer-search');
-        var $memberCount = $wrap.siblings('.ffc-transfer-member-count');
-        var memberTimer = null;
-
-        function render() {
-            var filter = ($search.val() || '').toLowerCase();
-            $available.empty();
-            $selected.empty();
-            $hidden.empty();
-
-            allAudiences.forEach(function (a) {
-                var inSelected = selectedIds.indexOf(a.id) !== -1;
-                var cls = 'ffc-transfer-item' + (a.parent ? ' ffc-transfer-child' : '');
-                var label = (a.parent ? '— ' : '') + a.name;
-
-                // Build via jQuery text()/attr() so audience name/color/id are
-                // escaped. Previously concatenated into an HTML string and
-                // injected with .append(), which CodeQL flagged as
-                // js/xss-through-dom (a malicious audience name/color stored by
-                // a delegated audience manager could execute in the admin).
-                var $dot = $('<span>', { 'class': 'ffc-color-dot' });
-                if (/^#[0-9a-fA-F]{3,8}$/.test(a.color || '')) {
-                    $dot.css('background', a.color);
-                }
-                var $item = $('<div>', { 'class': cls, 'data-id': a.id })
-                    .append($dot)
-                    .append(document.createTextNode(' '))
-                    .append($('<span>', { 'class': 'ffc-transfer-label' }).text(label));
-
-                if (inSelected) {
-                    $selected.append($item);
-                    $hidden.append($('<input>', { type: 'hidden', name: 'rereg_audience_ids[]', value: a.id }));
-                } else {
-                    if (!filter || a.name.toLowerCase().indexOf(filter) !== -1) {
-                        $available.append($item);
-                    }
-                }
-            });
-
-            updateMemberCount();
+    var memberTimer = null;
+    $(document).on('ffc:transfer-list-change', '.ffc-transfer-list', function (e, selectedIds) {
+        var $memberCount = $(this).siblings('.ffc-transfer-member-count');
+        if (!$memberCount.length) return;
+        if (memberTimer) clearTimeout(memberTimer);
+        if (!selectedIds || !selectedIds.length) {
+            $memberCount.html('');
+            return;
         }
-
-        function addAudience(id) {
-            if (selectedIds.indexOf(id) !== -1) return;
-            selectedIds.push(id);
-            // If parent, cascade children
-            var a = byId[id];
-            if (a && a.children) {
-                a.children.forEach(function (childId) {
-                    if (selectedIds.indexOf(childId) === -1) {
-                        selectedIds.push(childId);
-                    }
-                });
-            }
-        }
-
-        function removeAudience(id) {
-            var idx = selectedIds.indexOf(id);
-            if (idx === -1) return;
-            selectedIds.splice(idx, 1);
-            // If parent, cascade-remove children
-            var a = byId[id];
-            if (a && a.children) {
-                a.children.forEach(function (childId) {
-                    var ci = selectedIds.indexOf(childId);
-                    if (ci !== -1) selectedIds.splice(ci, 1);
-                });
-            }
-        }
-
-        function updateMemberCount() {
-            if (memberTimer) clearTimeout(memberTimer);
-            if (!selectedIds.length) {
-                $memberCount.html('');
-                return;
-            }
-            memberTimer = setTimeout(function () {
-                FFC.request(
-                    'ffc_rereg_count_members',
-                    { audience_ids: selectedIds },
-                    { nonce: ffcReregistrationAdmin.adminNonce, ajaxUrl: ffcReregistrationAdmin.ajaxUrl }
-                )
-                    .then(function (data) {
-                        var S = ffcReregistrationAdmin.strings || {};
-                        $memberCount.html('<strong>' + (S.affectedUsers || 'Affected users:') + '</strong> ' + data.count);
-                    })
-                    .catch(function () { /* silent — UI count is best-effort */ });
-            }, 300);
-        }
-
-        // Click to toggle highlight
-        $wrap.on('click', '.ffc-transfer-item', function () {
-            $(this).toggleClass('ffc-transfer-highlight');
-        });
-
-        // Double-click to move
-        $available.on('dblclick', '.ffc-transfer-item', function () {
-            addAudience(parseInt($(this).data('id'), 10));
-            render();
-        });
-        $selected.on('dblclick', '.ffc-transfer-item', function () {
-            removeAudience(parseInt($(this).data('id'), 10));
-            render();
-        });
-
-        // Arrow buttons
-        $wrap.find('.ffc-transfer-add').on('click', function () {
-            $available.find('.ffc-transfer-highlight').each(function () {
-                addAudience(parseInt($(this).data('id'), 10));
-            });
-            render();
-        });
-        $wrap.find('.ffc-transfer-add-all').on('click', function () {
-            allAudiences.forEach(function (a) { addAudience(a.id); });
-            render();
-        });
-        $wrap.find('.ffc-transfer-remove').on('click', function () {
-            $selected.find('.ffc-transfer-highlight').each(function () {
-                removeAudience(parseInt($(this).data('id'), 10));
-            });
-            render();
-        });
-        $wrap.find('.ffc-transfer-remove-all').on('click', function () {
-            selectedIds = [];
-            render();
-        });
-
-        // Search filter
-        $search.on('input', function () { render(); });
-
-        // Form validation — require at least one audience
-        $wrap.closest('form').on('submit', function (e) {
-            if (!selectedIds.length) {
-                e.preventDefault();
-                $wrap.find('.ffc-transfer-selected').addClass('ffc-transfer-error');
-                setTimeout(function () {
-                    $wrap.find('.ffc-transfer-selected').removeClass('ffc-transfer-error');
-                }, 2000);
-            }
-        });
-
-        render();
-    }
+        memberTimer = setTimeout(function () {
+            FFC.request(
+                'ffc_rereg_count_members',
+                { audience_ids: selectedIds },
+                { nonce: ffcReregistrationAdmin.adminNonce, ajaxUrl: ffcReregistrationAdmin.ajaxUrl }
+            )
+                .then(function (data) {
+                    var S = ffcReregistrationAdmin.strings || {};
+                    $memberCount.html('<strong>' + (S.affectedUsers || 'Affected users:') + '</strong> ' + data.count);
+                })
+                .catch(function () { /* silent — UI count is best-effort */ });
+        }, 300);
+    });
 
 })(jQuery);

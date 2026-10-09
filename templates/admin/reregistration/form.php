@@ -28,6 +28,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<input type="hidden" name="reregistration_id" value="<?php echo esc_attr( (string) $id ); ?>">
 			<input type="hidden" name="ffc_action" value="save_reregistration">
 
+			<div class="card">
+			<h2 class="ffc-icon-user-check"><?php esc_html_e( 'Campaign', 'ffcertificate' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row"><label for="rereg_title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label></th>
@@ -36,7 +38,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?> <span class="ffc-required">*</span></th>
 					<td>
-						<?php self::render_audience_transfer_list( $audiences, $selected_ids ); ?>
+						<?php \FreeFormCertificate\Audience\AudienceTransferList::render( $selected_ids, 'rereg_audience_ids[]', true ); ?>
+						<p class="description ffc-transfer-member-count"></p>
 					</td>
 				</tr>
 				<tr>
@@ -73,8 +76,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 						?>
 					</td>
 				</tr>
+			</tbody></table>
+
+			<p class="description" id="ffc-affected-users">
+				<?php
+				if ( $id > 0 ) {
+					$affected = ReregistrationRepository::get_affected_user_ids_for_reregistration( $id );
+					printf(
+						'<strong>%s</strong> %s',
+						esc_html__( 'Affected users:', 'ffcertificate' ),
+						esc_html( (string) count( $affected ) )
+					);
+				}
+				?>
+			</p>
+			</div>
+
+			<div class="card">
+			<h2 class="ffc-icon-email"><?php esc_html_e( 'Email Notifications', 'ffcertificate' ); ?></h2>
+			<table class="form-table" role="presentation"><tbody>
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Email Notifications', 'ffcertificate' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Messages', 'ffcertificate' ); ?></th>
 					<td>
 						<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
 						<?php
@@ -129,19 +151,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</td>
 				</tr>
 			</tbody></table>
-
-			<p class="description" id="ffc-affected-users">
-				<?php
-				if ( $id > 0 ) {
-					$affected = ReregistrationRepository::get_affected_user_ids_for_reregistration( $id );
-					printf(
-						'<strong>%s</strong> %s',
-						esc_html__( 'Affected users:', 'ffcertificate' ),
-						esc_html( (string) count( $affected ) )
-					);
-				}
-				?>
-			</p>
+			</div>
 
 			<?php submit_button( $id > 0 ? __( 'Update Reregistration', 'ffcertificate' ) : __( 'Create Reregistration', 'ffcertificate' ) ); ?>
 		</form>
@@ -167,8 +177,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			}
 			?>
 
-		<div class="postbox ffc-rereg-invite-box">
-			<h2 class="hndle"><span><?php esc_html_e( 'Invitations', 'ffcertificate' ); ?></span></h2>
+		<div class="card ffc-rereg-invite-box">
+			<h2 class="ffc-icon-send"><?php esc_html_e( 'Invitations', 'ffcertificate' ); ?></h2>
 			<div class="inside">
 				<p class="description">
 					<?php esc_html_e( 'Sends the invitation to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished.', 'ffcertificate' ); ?>

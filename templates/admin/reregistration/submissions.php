@@ -28,19 +28,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<?php settings_errors( 'ffc_reregistration' ); ?>
 
-		<!-- Stats summary -->
-		<div class="ffc-rereg-stats">
-			<?php foreach ( $stats as $status => $count ) : ?>
-				<?php if ( 'total' !== $status ) : ?>
-					<span class="ffc-stat-item">
-						<span class="ffc-reregistration-status-badge ffc-reregistration-status-<?php echo esc_attr( $status ); ?>"><?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $status ) ); ?></span>
-						<strong><?php echo esc_html( (string) $count ); ?></strong>
-					</span>
-				<?php endif; ?>
-			<?php endforeach; ?>
-			<span class="ffc-stat-item">
-				<?php esc_html_e( 'Total:', 'ffcertificate' ); ?> <strong><?php echo esc_html( (string) $stats['total'] ); ?></strong>
-			</span>
+		<?php
+		// One shared stat card per status (#1631), toned for what the status
+		// means, then the total; the component the dashboards draw.
+		$ffc_rereg_stat_look = array(
+			'pending'     => array( 'clock', 'neutral' ),
+			'in_progress' => array( 'edit', 'info' ),
+			'submitted'   => array( 'inbox', 'warning' ),
+			'approved'    => array( 'checkmark', 'success' ),
+			'rejected'    => array( 'cross', 'danger' ),
+			'expired'     => array( 'history', 'neutral' ),
+		);
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- get_stat_card() escapes every value.
+		?>
+		<div class="ffc-stats">
+			<?php
+			foreach ( $stats as $status => $count ) {
+				if ( 'total' === $status ) {
+					continue;
+				}
+				$ffc_look = $ffc_rereg_stat_look[ $status ] ?? array( 'info', 'neutral' );
+				echo \FreeFormCertificate\Admin\AdminUI::get_stat_card(
+					array(
+						'label' => ReregistrationSubmissionReader::get_status_label( (string) $status ),
+						'value' => (int) $count,
+						'icon'  => $ffc_look[0],
+						'tone'  => $ffc_look[1],
+					)
+				);
+			}
+			echo \FreeFormCertificate\Admin\AdminUI::get_stat_card(
+				array(
+					'label' => __( 'Total', 'ffcertificate' ),
+					'value' => (int) $stats['total'],
+					'icon'  => 'users',
+				)
+			);
+			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+			?>
 		</div>
 
 		<!-- Filters & actions -->

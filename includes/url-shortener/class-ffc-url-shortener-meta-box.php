@@ -150,7 +150,7 @@ class UrlShortenerMetaBox {
 							id="ffc-shorturl-input" class="widefat ffc-shorturl-input-sm" />
 					<button type="button" class="button ffc-copy-shorturl" data-url="<?php echo esc_attr( $short_url ); ?>"
 							title="<?php esc_attr_e( 'Copy', 'ffcertificate' ); ?>">
-						<span class="dashicons dashicons-clipboard ffc-dashicon-valign"></span>
+						<span class="ffc-icon-copy" aria-hidden="true"></span>
 					</button>
 				</div>
 			</div>
@@ -171,10 +171,10 @@ class UrlShortenerMetaBox {
 				<!-- Download Buttons -->
 				<div class="ffc-shorturl-download-row">
 					<button type="button" class="button button-small ffc-download-qr" data-format="png" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-						<span class="dashicons dashicons-download ffc-dashicon-sm"></span> PNG
+						<span class="ffc-icon-download" aria-hidden="true"></span>PNG
 					</button>
 					<button type="button" class="button button-small ffc-download-qr" data-format="svg" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-						<span class="dashicons dashicons-download ffc-dashicon-sm"></span> SVG
+						<span class="ffc-icon-download" aria-hidden="true"></span>SVG
 					</button>
 				</div>
 			<?php endif; ?>
@@ -182,7 +182,7 @@ class UrlShortenerMetaBox {
 			<!-- Regenerate -->
 			<div class="ffc-shorturl-regenerate">
 				<button type="button" class="button button-small ffc-regenerate-shorturl" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-					<span class="dashicons dashicons-update ffc-dashicon-sm"></span>
+					<span class="ffc-icon-sync" aria-hidden="true"></span>
 					<?php esc_html_e( 'Regenerate', 'ffcertificate' ); ?>
 				</button>
 			</div>

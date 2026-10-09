@@ -241,7 +241,7 @@ class SelfSchedulingCleanupHandler {
 								class="button ffc-cleanup-btn ffc-cleanup-btn-full"
 								data-action="old"
 								data-calendar-id="<?php echo esc_attr( (string) $calendar_id ); ?>">
-							<span class="dashicons dashicons-calendar"></span> 
+							<span class="ffc-icon-calendar" aria-hidden="true"></span>
 							<?php
 							/* translators: %d: number of past appointments */
 							printf( esc_html__( 'Past (%d)', 'ffcertificate' ), intval( $count_old ) );

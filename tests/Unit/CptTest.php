@@ -147,7 +147,8 @@ class CptTest extends TestCase {
 		$this->assertFalse( $captured_args['public'] );
 		$this->assertTrue( $captured_args['show_ui'] );
 		$this->assertTrue( $captured_args['show_in_menu'] );
-		$this->assertSame( 'dashicons-feedback', $captured_args['menu_icon'] );
+		// Drawn from the icon registry by AdminMenuIcons (#1640).
+		$this->assertSame( 'none', $captured_args['menu_icon'] );
 		$this->assertSame( array( 'title' ), $captured_args['supports'] );
 		$this->assertFalse( $captured_args['has_archive'] );
 		// #739: decoupled from native post caps — custom capability_type +

@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Identity Resolution Section -->
 <div class="card">
-	<h3 id="feature-identity-resolution"><span class="dashicons dashicons-groups" aria-hidden="true"></span> <?php esc_html_e( 'Identity Resolution', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-identity-resolution" class="ffc-icon-id"><?php esc_html_e( 'Identity Resolution', 'ffcertificate' ); ?></h3>
 	<p><?php esc_html_e( 'Certificate → Identities lists accounts and stored CPF/RF numbers that do not agree with each other — the findings of the identity audit on the Data Migrations tab — sorted by how much of the answer is already known. Check digits can say a number is wrong, never what the right one is, so confirm corrections with HR. Identifiers are shown as a hash; a stored number is never displayed.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">

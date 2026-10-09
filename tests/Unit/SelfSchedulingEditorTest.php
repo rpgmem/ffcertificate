@@ -27,6 +27,8 @@ class SelfSchedulingEditorTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
+		// The section chips (#1629) label their On/Off states.
+		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
@@ -177,6 +179,9 @@ class SelfSchedulingEditorTest extends TestCase {
 		// render_toggle controls depend on.
 		$this->assertContains( 'ffc-common', $styles );
 		$this->assertContains( 'ffc-calendar-editor', $styles );
+		// The collapsible sections (#1629).
+		$this->assertContains( 'ffc-admin-components', $styles );
+		$this->assertContains( 'ffc-admin-sections', $enqueued );
 	}
 
 	// ==================================================================
@@ -197,6 +202,27 @@ class SelfSchedulingEditorTest extends TestCase {
 		$editor->add_custom_metaboxes();
 
 		$this->assertNotEmpty( $boxes, 'add_custom_metaboxes() registered no box' );
+	}
+
+	public function test_metabox_titles_carry_no_step_number(): void {
+		// The titles read "1. …" to "5. …" while the boxes can be reordered
+		// and the fifth only exists in custom mode (#1629).
+		$titles = array();
+		Functions\when( 'add_meta_box' )->alias(
+			static function ( $id, $title ) use ( &$titles ) {
+				$titles[] = $title;
+				return true;
+			}
+		);
+		Functions\when( 'get_post_meta' )->justReturn( array( 'schedule_type' => 'custom' ) );
+
+		$editor = new SelfSchedulingEditor();
+		$editor->add_custom_metaboxes();
+
+		$this->assertCount( 7, $titles );
+		foreach ( $titles as $title ) {
+			$this->assertDoesNotMatchRegularExpression( '/^\d+\./', $title );
+		}
 	}
 
 	// ==================================================================
@@ -248,6 +274,66 @@ class SelfSchedulingEditorTest extends TestCase {
 		$this->assertStringContainsString( 'advance_booking', $output );
 	}
 
+	public function test_render_box_rules_splits_into_sections_whose_icons_draw(): void {
+		// #1629: the rules were one flat table. Each group is a collapsible
+		// section; an icon name the registry does not know prints an empty
+		// span, which is what `calendar` / `cross` (class names, not drawing
+		// names) did on the first render.
+		$post = Mockery::mock( 'WP_Post' );
+		$post->ID = 10;
+
+		$editor = new SelfSchedulingEditor();
+		ob_start();
+		$editor->render_box_rules( $post );
+		$output = ob_get_clean();
+
+		$this->assertSame( 5, substr_count( $output, '<details class="ffc-section"' ) );
+		$this->assertSame( 5, substr_count( $output, '<span class="ffc-section__icon"><svg' ) );
+		$this->assertStringContainsString( 'data-ffc-section-master="allow_cancellation"', $output );
+		$this->assertStringContainsString( 'data-ffc-section-master="admin_bypass"', $output );
+		$this->assertSame( substr_count( $output, '<details' ), substr_count( $output, '</details>' ) );
+	}
+
+	public function test_render_box_config_sections_draw_their_icons(): void {
+		$post = Mockery::mock( 'WP_Post' );
+		$post->ID = 10;
+
+		$editor = new SelfSchedulingEditor();
+		ob_start();
+		$editor->render_box_config( $post );
+		$output = ob_get_clean();
+
+		$this->assertSame( 2, substr_count( $output, '<span class="ffc-section__icon"><svg' ) );
+	}
+
+	public function test_dependent_rows_start_hidden_with_a_real_style_attribute(): void {
+		// The rows used to print `esc_attr( 'style="display:none;"' )`, which
+		// escapes the quotes into an attribute nobody reads, so the deadline
+		// and waitlist-capacity rows always showed on load (#1629).
+		$post = Mockery::mock( 'WP_Post' );
+		$post->ID = 10;
+		Functions\when( 'esc_attr' )->alias(
+			static function ( $text ) {
+				return htmlspecialchars( (string) $text, ENT_QUOTES );
+			}
+		);
+		Functions\when( 'get_post_meta' )->justReturn(
+			array(
+				'allow_cancellation' => 0,
+				'waitlist_enabled'   => 0,
+			)
+		);
+
+		$editor = new SelfSchedulingEditor();
+		ob_start();
+		$editor->render_box_rules( $post );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '<tr class="ffc-cancellation-hours" style="display:none;">', $output );
+		$this->assertStringContainsString( '<tr class="ffc-waitlist-capacity" style="display:none;">', $output );
+		$this->assertStringNotContainsString( '&quot;display:none;&quot;', $output );
+	}
+
 	// ==================================================================
 	// render_box_email()
 	// ==================================================================
@@ -273,6 +359,22 @@ class SelfSchedulingEditorTest extends TestCase {
 		// TinyMCE editor + the "Restore Default Text" button for the confirmation body.
 		$this->assertStringContainsString( 'id="user_confirmation_body"', $output );
 		$this->assertStringContainsString( 'ffc-email-restore-default', $output );
+	}
+
+	public function test_render_box_email_groups_into_three_sections(): void {
+		$post = Mockery::mock( 'WP_Post' );
+		$post->ID = 10;
+		Functions\when( 'get_option' )->justReturn( '' );
+		Functions\when( 'wp_editor' )->justReturn( null );
+
+		$editor = new SelfSchedulingEditor();
+		ob_start();
+		$editor->render_box_email( $post );
+		$output = ob_get_clean();
+
+		$this->assertSame( 3, substr_count( $output, '<span class="ffc-section__icon"><svg' ) );
+		$this->assertStringContainsString( 'data-ffc-section-master="ffc_send_admin_notification"', $output );
+		$this->assertStringContainsString( 'data-ffc-section-master="ffc_send_user_confirmation"', $output );
 	}
 
 	// ==================================================================
@@ -341,6 +443,9 @@ class SelfSchedulingEditorTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'ffc_self_scheduling id="42"', $output );
+		// The shared copy button reads the read-only input it targets (#1629).
+		$this->assertStringContainsString( 'id="ffc-calendar-shortcode"', $output );
+		$this->assertStringContainsString( 'data-ffc-copy-target="#ffc-calendar-shortcode"', $output );
 	}
 
 	// ==================================================================

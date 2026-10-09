@@ -65,7 +65,7 @@ class TabMigrationsTest extends TestCase {
 	}
 
 	public function test_tab_icon(): void {
-		$this->assertSame( 'ffc-icon-sync', $this->tab->get_icon() );
+		$this->assertSame( 'ffc-icon-database', $this->tab->get_icon() );
 	}
 
 	public function test_tab_order(): void {
@@ -424,7 +424,7 @@ class TabMigrationsTest extends TestCase {
 
 		$anchor = substr( $block, (int) $start );
 
-		$this->assertStringContainsString( 'class="button button-secondary"', $anchor );
+		$this->assertStringContainsString( 'class="button button-secondary ffc-icon-sync"', $anchor );
 		$this->assertStringNotContainsString( 'button-primary', $anchor );
 
 		// The driver's own selector, asserted here so a rename on either side

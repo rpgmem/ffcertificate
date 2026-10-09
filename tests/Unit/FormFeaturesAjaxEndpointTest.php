@@ -171,9 +171,9 @@ class FormFeaturesAjaxEndpointTest extends TestCase {
 
 	public function test_nested_feature_creates_array_when_missing(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		// No _ffc_device_limit meta yet.
+		// No _ffc_form_config meta yet.
 
-		$_POST = array( 'nonce' => 'x', 'form_id' => '42', 'feature' => 'device_enabled', 'value' => 'true' );
+		$_POST = array( 'nonce' => 'x', 'form_id' => '42', 'feature' => 'quiz_enabled', 'value' => 'true' );
 
 		try {
 			FormFeaturesAjaxEndpoint::handle();
@@ -181,7 +181,30 @@ class FormFeaturesAjaxEndpointTest extends TestCase {
 			// expected
 		}
 
-		$this->assertSame( array( 'enabled' => '1' ), $this->meta_store[42]['_ffc_device_limit'] );
+		$this->assertSame( array( 'quiz_enabled' => '1' ), $this->meta_store[42]['_ffc_form_config'] );
+	}
+
+	public function test_device_toggle_writes_the_flat_key_the_runtime_reads(): void {
+		// #1625: it wrote `_ffc_device_limit['enabled']`, which nothing but the
+		// list itself read, so the toggle never reached the runtime.
+		Functions\when( 'current_user_can' )->justReturn( true );
+
+		$_POST = array( 'nonce' => 'x', 'form_id' => '42', 'feature' => 'device_enabled', 'value' => 'true' );
+		try {
+			FormFeaturesAjaxEndpoint::handle();
+		} catch ( \RuntimeException $e ) {
+			// expected
+		}
+		$this->assertSame( '1', $this->meta_store[42]['_ffc_device_limit_enabled'] );
+		$this->assertArrayNotHasKey( '_ffc_device_limit', $this->meta_store[42] );
+
+		$_POST['value'] = '0';
+		try {
+			FormFeaturesAjaxEndpoint::handle();
+		} catch ( \RuntimeException $e ) {
+			// expected
+		}
+		$this->assertSame( '', $this->meta_store[42]['_ffc_device_limit_enabled'] );
 	}
 
 	public function test_per_post_capability_isolated_across_forms(): void {

@@ -329,29 +329,29 @@
         showAdminBypassMessages: function(formWrapper, bypassInfo) {
             if (!bypassInfo) {
                 // Fallback: show generic message if no bypass info
-                const message = '🔓 ' + this.getString('bypassGeneric', 'Admin Bypass Mode Active - Geofence restrictions are disabled for administrators');
-                const html = '<div class="ffc-geofence-admin-bypass"><p>' + this.escapeHtml(message) + '</p></div>';
+                const message = this.getString('bypassGeneric', 'Admin Bypass Mode Active - Geofence restrictions are disabled for administrators');
+                const html = '<div class="ffc-geofence-admin-bypass"><p class="ffc-icon-unlock">' + this.escapeHtml(message) + '</p></div>';
                 formWrapper.prepend(html);
                 return;
             }
 
             // Show specific messages for each bypassed restriction
             if (bypassInfo.hasDatetime) {
-                const datetimeMsg = '🔓 ' + this.getString('bypassDatetime', 'Admin Bypass: Date/Time restrictions are disabled for administrators');
-                const datetimeHtml = '<div class="ffc-geofence-admin-bypass"><p>' + this.escapeHtml(datetimeMsg) + '</p></div>';
+                const datetimeMsg = this.getString('bypassDatetime', 'Admin Bypass: Date/Time restrictions are disabled for administrators');
+                const datetimeHtml = '<div class="ffc-geofence-admin-bypass"><p class="ffc-icon-unlock">' + this.escapeHtml(datetimeMsg) + '</p></div>';
                 formWrapper.prepend(datetimeHtml);
             }
 
             if (bypassInfo.hasGeo) {
-                const geoMsg = '🔓 ' + this.getString('bypassGeo', 'Admin Bypass: Geolocation restrictions are disabled for administrators');
-                const geoHtml = '<div class="ffc-geofence-admin-bypass"><p>' + this.escapeHtml(geoMsg) + '</p></div>';
+                const geoMsg = this.getString('bypassGeo', 'Admin Bypass: Geolocation restrictions are disabled for administrators');
+                const geoHtml = '<div class="ffc-geofence-admin-bypass"><p class="ffc-icon-unlock">' + this.escapeHtml(geoMsg) + '</p></div>';
                 formWrapper.prepend(geoHtml);
             }
 
             // If neither, show generic message
             if (!bypassInfo.hasDatetime && !bypassInfo.hasGeo) {
-                const message = '🔓 ' + this.getString('bypassActive', 'Admin Bypass Mode Active');
-                const html = '<div class="ffc-geofence-admin-bypass"><p>' + this.escapeHtml(message) + '</p></div>';
+                const message = this.getString('bypassActive', 'Admin Bypass Mode Active');
+                const html = '<div class="ffc-geofence-admin-bypass"><p class="ffc-icon-unlock">' + this.escapeHtml(message) + '</p></div>';
                 formWrapper.prepend(html);
             }
         },

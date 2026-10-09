@@ -462,10 +462,6 @@
 }
 
 /* ---- role → capability editor (Settings → User Access) --------------- */
-.ffc-role-editor-sep {
-	margin: 28px 0 var(--ffc-spacing-lg);
-}
-
 .ffc-role-impact {
 	max-width: 860px;
 }
@@ -500,11 +496,11 @@
    (view = faint → delete = solid). Domains read by color, severity by
    intensity. The bar reinforces the textual label, never replaces it.
 
-   THESE DOZE STAY LITERAL, on purpose (#1126). They are a categorical scale,
+   THESE STAY LITERAL, on purpose (#1126). They are a categorical scale,
    not palette roles: what matters is that the hues stay distinguishable from
    each other, and two of them happen to sit near --ffc-primary and
    --ffc-warning. Routing those two through the palette would move them
-   between themes while the other ten stayed put — breaking the set — and
+   between themes while the rest stayed put — breaking the set — and
    would paint the certificates domain in the same blue the granted-role state
    uses. The bar is decorative and always doubled by a text label, so it
    carries no contrast floor of its own. */
@@ -519,6 +515,7 @@
 .ffc-cap-group[data-ffc-hue="settings"]       { --ffc-cap-hue: #64748b; }
 .ffc-cap-group[data-ffc-hue="system"]         { --ffc-cap-hue: #334155; }
 .ffc-cap-group[data-ffc-hue="recruitment"]    { --ffc-cap-hue: #4338ca; }
+.ffc-cap-group[data-ffc-hue="date_messages"]  { --ffc-cap-hue: #c026d3; }
 .ffc-cap-group[data-ffc-hue="neutral"]        { --ffc-cap-hue: #9ca3af; }
 
 /* Domain accent on the group header so the hue is visible while collapsed. */

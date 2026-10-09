@@ -41,7 +41,7 @@ class TabEmailModel extends SettingsTab {
 		$this->tab_id    = 'email_model';
 		$this->tab_group = 'communication';
 		$this->tab_title = __( 'Email Model', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-email';
+		$this->tab_icon  = 'ffc-icon-layout';
 		$this->tab_order = 21;
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );

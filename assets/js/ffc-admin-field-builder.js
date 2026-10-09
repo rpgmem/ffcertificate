@@ -206,7 +206,7 @@
         var fieldHtml = '<div class="ffc-field-row" data-index="' + fieldCounter + '">';
         fieldHtml += '  <div class="ffc-field-row-header">';
         fieldHtml += '    <span class="ffc-sort-handle">';
-        fieldHtml += '      <span class="dashicons dashicons-menu"></span>';
+        fieldHtml += '      <span class="ffc-icon-grip" aria-hidden="true"></span>';
         fieldHtml += '      <span class="ffc-field-title"><strong>' + fieldType.toUpperCase() + '</strong></span>';
         fieldHtml += '    </span>';
         fieldHtml += '    <button type="button" class="button button-link-delete ffc-remove-field">' + removeText + '</button>';

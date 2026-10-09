@@ -117,12 +117,12 @@ class ReregistrationAdmin {
 	 */
 	public function add_menu(): void {
 		add_menu_page(
-			__( 'Reregistration', 'ffcertificate' ),
-			__( 'Reregistration', 'ffcertificate' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'reregistration' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'reregistration' ),
 			self::VIEW_CAPABILITY,
 			self::MENU_SLUG,
 			array( $this, 'render_page' ),
-			'dashicons-update-alt',
+			'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
 			// Float to keep the FFC block contiguous (26.1 → 26.2 → 26.3);
 			// see Audience admin for rationale.
 			26.2
@@ -207,6 +207,9 @@ class ReregistrationAdmin {
 			array( 'ffc-common' ),
 			FFC_VERSION
 		);
+
+		// The campaign form's audience picker is the shared component (#1648).
+		\FreeFormCertificate\Audience\AudienceTransferList::enqueue();
 
 		wp_enqueue_script(
 			'ffc-reregistration-admin',
@@ -330,7 +333,10 @@ class ReregistrationAdmin {
 
 		$can_edit = $this->can_edit();
 
-		echo '<div class="wrap ffc-admin-page ffc-page-reregistration">';
+		// The campaign editor is a screen of boxed sections (`.ffc-boxed`,
+		// #1629); the list and submissions keep the plain list-table screen.
+		$boxed = in_array( $view, array( 'new', 'edit' ), true );
+		echo '<div class="wrap ffc-admin-page ffc-page-reregistration ' . ( $boxed ? 'ffc-boxed' : '' ) . '">';
 
 		switch ( $view ) {
 			case 'new':

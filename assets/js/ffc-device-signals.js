@@ -7,7 +7,7 @@
  * (selector: `form.ffc-submission-form`).
  *
  * The actual signal probes are delegated to the vendored thumbmarkjs
- * library (libs/js/thumbmark-1.10.1.umd.js, MIT) which exposes its raw
+ * library (libs/js/thumbmark-1.12.0.umd.js, MIT) which exposes its raw
  * components via `getFingerprintData()`. We map those components 1:1
  * onto our 10-column SQL schema, hash each one independently with
  * SubtleCrypto SHA-256, and ship the JSON to the server. The server
@@ -16,9 +16,13 @@
  *
  * Telemetry note: thumbmarkjs ships with `logging:true` by default,
  * which sends a sampling beacon to api.thumbmarkjs.com 1× per session.
- * We *unconditionally* disable that here on first load via
- * `setOption('logging', false)`. A grep test enforces the call stays
- * (tests/Unit/DeviceSignalsLoggingOffTest.php).
+ * Since 1.11.0 that same path also downloads a payload from
+ * experimental.thumbmarkjs.com and evaluates it, and `options.experimental`
+ * does NOT gate it: `logging` is the only switch. We *unconditionally*
+ * disable it here on first load via `setOption('logging', false)`. A grep
+ * test enforces the call stays (tests/Unit/DeviceSignalsLoggingOffTest.php).
+ * The 1.12.0 "collect beacon" fires only on a paid-API response, which
+ * needs an `api_key` this plugin never sets.
  *
  * The set of signals to collect is provided server-side via
  * `wp_localize_script` as `ffc_device_config.signals` (e.g. ["cookie",

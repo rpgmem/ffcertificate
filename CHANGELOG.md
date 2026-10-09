@@ -7,7 +7,38 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.34.0] (2026-10-07)
+## [6.35.0] (2026-10-09)
+
+### Added
+
+- **`[ffc_recruitment_queue]` without a notice shows a selector** (#1646). Visitors pick an open notice and its classification appears below; `list="preliminary|definitive"` narrows the choice, and the notice edit screen has the shortcode ready to copy.
+
+### Changed
+
+- **Vendored bundles updated: ALTCHA 3.3.0 and thumbmarkjs 1.12.0** (#1604). The captcha challenge was verified end to end with the new widget; all 13 device signals hash identically, so stored device limits keep matching, and the new telemetry stays off through `logging: false`.
+- **One icon set across the plugin and the WordPress menu** (#1613, #1640). Emoji and dashicons gave way to monochrome SVG icons from one registry, `Core\Icons`, that follow the dark theme, every admin colour scheme and high-contrast mode; colour is kept for meaning inside a tab, and guards keep emoji out of markup.
+- **Every admin screen uses the same layout** (#1613, #1614, #1627, #1629, #1631). Settings, Recruitment, Scheduling and every editor put each part in a box with an icon heading; Date Messages uses the vertical tabs; dashboards use shared stat cards; empty lists say which filter produced nothing.
+- **The form editor and Edit Submission were reorganised** (#1614). The editor's tabs open into collapsible sections with On/Off chips and a summary box; Edit Submission uses two columns with Save, the magic link and an Open certificate button beside the record. The Certificates Dashboard opens with a summary row.
+- **Each area has one name everywhere** (#1641): Short URLs, Personal and Audience Calendars, FFC Settings — in the menu, Settings → Modules, the tabs, the documentation, e-mail texts and mail-queue sources — and every "Settings → Tab" path names a tab that exists.
+- **The documentation follows the admin menu and is checked in CI** (#1638, #1653). FFC Settings has its own branch grouped like its tabs, QR Code Generator and Settings → QR Code have topics, and CI fails a tab or module with no topic.
+- **Date Messages: several audiences per rule, a year of history** (#1538, #1647, #1648). A rule targets any number of audiences through the shared two-column picker, and upcoming dates filter by rule. History keeps 365 days and links to the daily schedule.
+
+### Fixed
+
+- **Settings screens:** the disabled Activity Log tab is no longer blank, icons stay visible in high-contrast mode (#1613), and the tab menu reads in groups on a phone (#1637).
+- **The update screens describe the version being offered** (#1607). Requirements and the Upgrade Notice came from the installed copy; they now come from the release's own `readme.txt`.
+- **The form editor no longer refuses to save over a hidden required field** (#1614), and the Certificates Dashboard calendar works on sites without pretty permalinks (#1614).
+- **The "Device limit" toggle on the All Forms list works** (#1625). It wrote a meta key nothing read; it now shares the editor's key.
+- **Working hours added in the calendar editor are saved** (#1629). New rows used a key the save never read and were dropped.
+- **The Date Messages capability group has its colour stripe** (#1635); a test now fails a group the sheet does not paint.
+- **The in-admin documentation matches what shipped** (#1638): four wrong claims fixed and seven features documented.
+
+### Security
+
+- **The submission edit screen masks CPF/RF and email for everyone** (#1655). Administrators included, each value is fetched through an audited Reveal, the email is editable only once revealed, and Reveal fills the value again on this screen.
+- **fast-uri updated to 3.1.8** (#1611), closing GHSA-hrr3-gc8f-f4qj. Dev-only, through `stylelint`; nothing ships.
+
+## [6.34.0] (2026-10-07) — `3c424bd`
 
 ### Added
 

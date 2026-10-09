@@ -17,37 +17,45 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use FreeFormCertificate\Settings\SettingsReader;
 use FreeFormCertificate\Admin\AdminUI;
+use FreeFormCertificate\Core\PluginAreas;
 
 // Human-facing label + one-line description per module slug. Keys must match
 // SettingsReader::MODULE_SLUGS (the source of truth for order + gating).
 $ffc_module_meta = array(
 	'certificates'    => array(
-		'label' => __( 'Certificates', 'ffcertificate' ),
+		'area'  => 'certificates',
+		'label' => PluginAreas::label( 'certificates' ),
 		'desc'  => __( 'The certificate form post type and public form rendering. Disabling hides the certificate admin and stops public submissions.', 'ffcertificate' ),
 		'note'  => __( 'While disabled, the daily expired-ticket cleanup is paused — unredeemed ticket codes of ended forms are no longer purged until the module is re-enabled.', 'ffcertificate' ),
 	),
 	'audiences'       => array(
-		'label' => __( 'Audiences / Scheduling', 'ffcertificate' ),
+		'area'  => 'scheduling',
+		'label' => __( 'Audience Calendars', 'ffcertificate' ),
 		'desc'  => __( 'Audience groups and the scheduling admin.', 'ffcertificate' ),
 	),
 	'self_scheduling' => array(
-		'label' => __( 'Self-Scheduling', 'ffcertificate' ),
+		'area'  => 'scheduling',
+		'label' => __( 'Personal Calendars', 'ffcertificate' ),
 		'desc'  => __( 'Appointment self-booking and its admin screens.', 'ffcertificate' ),
 	),
 	'reregistration'  => array(
-		'label' => __( 'Reregistration', 'ffcertificate' ),
+		'area'  => 'reregistration',
+		'label' => PluginAreas::label( 'reregistration' ),
 		'desc'  => __( 'The reregistration campaign flow and its admin.', 'ffcertificate' ),
 	),
 	'url_shortener'   => array(
-		'label' => __( 'URL Shortener', 'ffcertificate' ),
+		'area'  => 'url_shortener',
+		'label' => PluginAreas::label( 'url_shortener' ),
 		'desc'  => __( 'Built-in short URLs, redirects and QR codes.', 'ffcertificate' ),
 	),
 	'recruitment'     => array(
-		'label' => __( 'Recruitment', 'ffcertificate' ),
+		'area'  => 'recruitment',
+		'label' => PluginAreas::label( 'recruitment' ),
 		'desc'  => __( 'Recruitment calls, candidates and the public queue.', 'ffcertificate' ),
 	),
 	'date_messages'   => array(
-		'label' => __( 'Date Messages', 'ffcertificate' ),
+		'area'  => 'date_messages',
+		'label' => PluginAreas::label( 'date_messages' ),
 		'desc'  => __( 'E-mails sent on a date in each person\'s profile, such as a birthday.', 'ffcertificate' ),
 	),
 );
@@ -56,7 +64,7 @@ $ffc_module_meta = array(
 <div class="ffc-settings-wrap">
 
 <div class="card">
-	<h2 class="ffc-icon-package"><?php esc_html_e( 'Modules', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-grid"><?php esc_html_e( 'Modules', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Enable or disable individual plugin modules. Changes save instantly and take effect on the next page load. Disabling a module hides its screens and stops its runtime, but never deletes its data — re-enable at any time.', 'ffcertificate' ); ?>
 	</p>
@@ -75,7 +83,7 @@ $ffc_module_meta = array(
 			?>
 			<tr>
 				<th scope="row">
-					<label for="<?php echo esc_attr( $ffc_key ); ?>"><?php echo esc_html( $ffc_meta['label'] ); ?></label>
+					<label for="<?php echo esc_attr( $ffc_key ); ?>" class="<?php echo esc_attr( PluginAreas::icon_class( $ffc_meta['area'] ?? '' ) ); ?>"><?php echo esc_html( $ffc_meta['label'] ); ?></label>
 				</th>
 				<td>
 					<?php
@@ -97,7 +105,7 @@ $ffc_module_meta = array(
 					<?php endif; ?>
 					<?php if ( ! empty( $ffc_meta['note'] ) ) : ?>
 						<p class="description ffc-module-note">
-							<span class="dashicons dashicons-info-outline" aria-hidden="true"></span>
+							<span class="ffc-icon-info ffc-icon-tone-info" aria-hidden="true"></span>
 							<?php echo esc_html( $ffc_meta['note'] ); ?>
 						</p>
 					<?php endif; ?>

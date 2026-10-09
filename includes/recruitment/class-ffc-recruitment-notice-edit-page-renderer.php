@@ -61,6 +61,20 @@ final class RecruitmentNoticeEditPageRenderer {
 	}
 
 	/**
+	 * The shortcode that shows this notice on the site, ready to copy (#1646).
+	 *
+	 * @param object $notice Notice row.
+	 * @phpstan-param NoticeRow $notice
+	 * @return void
+	 */
+	public static function render_shortcode_section( object $notice ): void {
+		$shortcode = sprintf( '[%s notice="%s"]', RecruitmentPublicShortcode::SHORTCODE_TAG, (string) $notice->code );
+		$selector  = '[' . RecruitmentPublicShortcode::SHORTCODE_TAG . ']';
+
+		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/shortcode-section.php';
+	}
+
+	/**
 	 * Section 1: General (code + name + public_columns_config).
 	 *
 	 * @param object $notice Notice row.

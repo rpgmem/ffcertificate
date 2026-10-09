@@ -20,7 +20,7 @@
  * @since   6.34.0
  */
 
-use FreeFormCertificate\Generators\QrIcons;
+use FreeFormCertificate\Core\Icons;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -64,14 +64,14 @@ $ffc_qr_vcard_fields = array(
 	<form id="ffc-qr-generator" class="ffc-qr-generator" autocomplete="off">
 		<div class="ffc-qr-generator__main">
 			<div class="card">
-				<h2><?php esc_html_e( 'Content', 'ffcertificate' ); ?></h2>
+				<h2 class="ffc-icon-qr"><?php esc_html_e( 'Content', 'ffcertificate' ); ?></h2>
 				<fieldset class="ffc-qr-generator__types">
 					<legend class="screen-reader-text"><?php esc_html_e( 'Type of content', 'ffcertificate' ); ?></legend>
 					<?php foreach ( $ffc_qr_types as $ffc_type => $ffc_label ) : ?>
 						<label class="ffc-qr-type">
 							<input type="radio" class="ffc-qr-type__input" name="type" value="<?php echo esc_attr( $ffc_type ); ?>" <?php checked( 'url', $ffc_type ); ?>>
 							<span class="ffc-qr-type__face">
-								<?php echo QrIcons::svg( $ffc_type, 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
+								<?php echo Icons::svg( $ffc_type, 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
 								<span class="ffc-qr-type__label"><?php echo esc_html( $ffc_label ); ?></span>
 							</span>
 						</label>
@@ -333,11 +333,11 @@ $ffc_qr_vcard_fields = array(
 
 			<div class="ffc-qr-generator__design">
 				<div class="ffc-qr-generator__design-head">
-					<h2><?php esc_html_e( 'Design', 'ffcertificate' ); ?></h2>
+					<h2 class="ffc-icon-palette"><?php esc_html_e( 'Design', 'ffcertificate' ); ?></h2>
 					<button type="button" class="button" id="ffc-qr-design-reset"><?php esc_html_e( 'Reset to default', 'ffcertificate' ); ?></button>
 				</div>
 				<p class="description"><?php esc_html_e( 'The generator remembers your design when you download a code; "Reset to default" goes back to the global design from Settings → QR Code.', 'ffcertificate' ); ?></p>
-				<div class="ffc-qr-sections">
+				<div class="ffc-sections">
 					<?php require FFC_PLUGIN_DIR . 'templates/admin/qr/design-fields.php'; ?>
 					<?php $ffc_qr_section( 'advanced', __( 'Advanced', 'ffcertificate' ), __( 'Quiet zone and error correction.', 'ffcertificate' ) ); ?>
 						<div class="ffc-qr-fields">
@@ -362,7 +362,7 @@ $ffc_qr_vcard_fields = array(
 
 		<div class="ffc-qr-generator__side">
 			<div class="ffc-qr-generator__panel">
-				<h2 class="ffc-qr-generator__panel-title"><?php esc_html_e( 'Preview', 'ffcertificate' ); ?></h2>
+				<h2 class="ffc-qr-generator__panel-title ffc-icon-eye"><?php esc_html_e( 'Preview', 'ffcertificate' ); ?></h2>
 				<div id="ffc-qr-generator-preview" class="ffc-qr-generator__preview" aria-hidden="true"></div>
 				<p id="ffc-qr-generator-usage" class="ffc-qr-generator__usage"></p>
 				<p id="ffc-qr-generator-status" class="ffc-qr-generator__status" role="status" aria-live="polite"></p>
@@ -385,11 +385,11 @@ $ffc_qr_vcard_fields = array(
 				</div>
 				<div class="ffc-qr-generator__actions">
 					<button type="button" class="button button-primary ffc-qr-generator__download" id="ffc-qr-download" disabled>
-						<?php echo QrIcons::svg( 'download', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
+						<?php echo Icons::svg( 'download', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
 						<?php esc_html_e( 'Download', 'ffcertificate' ); ?>
 					</button>
 					<button type="button" class="button ffc-qr-generator__print" id="ffc-qr-print" disabled>
-						<?php echo QrIcons::svg( 'print', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
+						<?php echo Icons::svg( 'print', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
 						<span class="screen-reader-text"><?php esc_html_e( 'Print', 'ffcertificate' ); ?></span>
 					</button>
 				</div>
@@ -401,7 +401,7 @@ $ffc_qr_vcard_fields = array(
 		<div class="ffc-qr-saved__backdrop" data-ffc-qr-saved-close></div>
 		<div class="ffc-qr-saved__dialog" role="dialog" aria-modal="true" aria-labelledby="ffc-qr-short-saved-title" aria-describedby="ffc-qr-short-saved-text">
 			<button type="button" class="ffc-qr-saved__close" data-ffc-qr-saved-close aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
-			<span class="dashicons dashicons-yes-alt ffc-qr-saved__icon" aria-hidden="true"></span>
+			<span class="ffc-icon-success ffc-qr-saved__icon" aria-hidden="true"></span>
 			<h2 class="ffc-qr-saved__title" id="ffc-qr-short-saved-title"><?php esc_html_e( 'Short URL saved', 'ffcertificate' ); ?></h2>
 			<p class="ffc-qr-saved__text" id="ffc-qr-short-saved-text"></p>
 			<div class="ffc-qr-saved__link">

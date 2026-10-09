@@ -69,7 +69,7 @@ class TabActivityLogTest extends TestCase {
 	}
 
 	public function test_tab_icon_is_clipboard(): void {
-		$this->assertSame( 'ffc-icon-clipboard', $this->tab->get_icon() );
+		$this->assertSame( 'ffc-icon-history', $this->tab->get_icon() );
 	}
 
 

@@ -48,6 +48,56 @@ describe('ffc-pii-reveal', () => {
 		expect(window.$('.ffc-reveal-pii').length).toBe(0);
 	});
 
+	it('reveals into an input inside a facts list (submission edit page, #1655)', async () => {
+		document.body.innerHTML = `<dl><dd>
+			<input data-ffc-pii-field="cpf" value="***" readonly />
+			<button class="ffc-reveal-pii" data-field="cpf" data-submission-id="12" data-nonce="n">Reveal</button>
+		</dd></dl>`;
+		window.FFC.request = vi.fn(() => Promise.resolve({ field: 'cpf', value: '123.456.789-01' }));
+
+		await load();
+		window.$('.ffc-reveal-pii').trigger('click');
+		await flush();
+
+		expect(window.$('[data-ffc-pii-field="cpf"]').val()).toBe('123.456.789-01');
+	});
+
+	it('enables an editable input only once revealed (submission email, #1655)', async () => {
+		document.body.innerHTML = `<form><p class="ffc-edit-field">
+			<input type="email" name="user_email" data-ffc-pii-field="email" data-ffc-pii-editable="1" value="m***@x.com" disabled />
+			<button class="ffc-reveal-pii" data-field="email" data-submission-id="12" data-nonce="n">Reveal</button>
+			<span class="ffc-pii-reveal-hint">Reveal the email to edit it.</span>
+		</p></form>`;
+		window.FFC.request = vi.fn(() => Promise.resolve({ field: 'email', value: 'me@x.com' }));
+
+		await load();
+		expect(window.$('form').serialize()).toBe('');
+		window.$('.ffc-reveal-pii').trigger('click');
+		await flush();
+
+		const $input = window.$('[data-ffc-pii-field="email"]');
+		expect($input.val()).toBe('me@x.com');
+		expect($input.prop('disabled')).toBe(false);
+		expect(window.$('.ffc-pii-reveal-hint').length).toBe(0);
+		expect(window.$('form').serialize()).toBe('user_email=me%40x.com');
+	});
+
+	it('leaves the editable input disabled when the reveal fails', async () => {
+		document.body.innerHTML = `<p class="ffc-edit-field">
+			<input type="email" name="user_email" data-ffc-pii-field="email" data-ffc-pii-editable="1" value="m***@x.com" disabled />
+			<button class="ffc-reveal-pii" data-field="email" data-submission-id="12" data-nonce="n">Reveal</button>
+		</p>`;
+		window.FFC.request = vi.fn(() => Promise.reject(new Error('nope')));
+		vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+		await load();
+		window.$('.ffc-reveal-pii').trigger('click');
+		await flush();
+
+		expect(window.$('[data-ffc-pii-field="email"]').prop('disabled')).toBe(true);
+		expect(window.$('[data-ffc-pii-field="email"]').val()).toBe('m***@x.com');
+	});
+
 	it('reveals into a text node for an appointment field', async () => {
 		document.body.innerHTML = `<table><tr><td>
 			<span class="ffc-pii-value" data-field="email">m***@x.com</span>

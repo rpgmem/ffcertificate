@@ -80,10 +80,11 @@ class AdminSubmissionEditPageTest extends TestCase {
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'get_avatar' )->justReturn( '<img>' );
 		Functions\when( 'get_edit_user_link' )->justReturn( 'edit-user' );
-		// #739 §3.3 — the CPF/RF block resolves Core\PiiAccessPolicy; stub the
-		// WP user funcs so it resolves to the UNMASKED tier (super-admin), which
-		// renders the plaintext CPF/RF exactly as before the carve.
+		// #739 §3.3 — the participant block resolves Core\PiiAccessPolicy; stub
+		// the WP user funcs so it resolves to the UNMASKED tier (super-admin).
+		// Since #1655 that tier is masked on this screen too, behind Reveal.
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( (string) $e, FILTER_VALIDATE_EMAIL ) ? $e : false );
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
@@ -114,7 +115,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 		// static helpers, no WP deps) — use it as-is rather than alias-mocking.
 
 		$mlh = Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' );
-		$mlh->shouldReceive( 'get_magic_link_html' )->andReturn( '<a>link</a>' )->byDefault();
+		$mlh->shouldReceive( 'generate_magic_link' )->andReturnUsing( static fn( $t ) => 'https://example.org/valid/?token=' . $t )->byDefault();
 
 		$html = Mockery::mock( 'alias:FreeFormCertificate\Core\HtmlPolicy' );
 		$html->shouldReceive( 'get_allowed_html_tags' )->andReturn( array() )->byDefault();
@@ -257,7 +258,11 @@ class AdminSubmissionEditPageTest extends TestCase {
 		// System info section.
 		$this->assertStringContainsString( 'System Information', $html );
 		$this->assertStringContainsString( 'Magic Link Token', $html );
-		$this->assertStringContainsString( '<a>link</a>', $html );
+		// Magic link card in the side panel: the link, Copy and Open certificate (#1614).
+		$this->assertStringContainsString( 'class="ffc-edit-layout"', $html );
+		$this->assertStringContainsString( 'data-url="https://example.org/valid/?token=', $html );
+		$this->assertMatchesRegularExpression( '#<a href="https://example.org/valid/\?token=[^"]+" target="_blank" rel="noopener" class="button ffc-icon-external">Open certificate</a>#', $html );
+		$this->assertStringNotContainsString( 'style="display', $html, 'visibility is the shared class, never an inline style' );
 		// Encrypted IP notice.
 		$this->assertStringContainsString( 'User IP', $html );
 		// Edited warning (edited_at set, edited_by resolves to "ID: 7" because get_userdata=false).
@@ -268,8 +273,11 @@ class AdminSubmissionEditPageTest extends TestCase {
 		// Participant data.
 		$this->assertStringContainsString( 'Participant Data', $html );
 		$this->assertStringContainsString( 'name="user_email"', $html );
-		// Real DocumentFormatter: 11-digit CPF formatted, auth code prefixed.
-		$this->assertStringContainsString( '518.178.420-80', $html );
+		// Real DocumentFormatter: the CPF and email are masked even for an
+		// administrator (#1655); the auth code is prefixed.
+		$this->assertStringNotContainsString( '518.178.420-80', $html );
+		$this->assertStringNotContainsString( '51817842080', $html );
+		$this->assertStringNotContainsString( 'foo@bar.com', $html );
 		$this->assertStringContainsString( 'C-AUTH123', $html );
 		// Dynamic fields (label fallback to key; protected auth_code field).
 		$this->assertStringContainsString( 'name="data[nome_completo]"', $html );
@@ -426,6 +434,37 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-user-search-input', $html );
 	}
 
+	public function test_render_masks_cpf_and_email_for_an_administrator_and_offers_reveal(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'value="f***@bar.com"', $html );
+		$this->assertMatchesRegularExpression( '/<input type="email" name="user_email"[^>]*data-ffc-pii-editable="1" disabled required>/', $html, 'the masked email is not posted until revealed' );
+		$this->assertStringContainsString( 'data-field="email"', $html );
+		$this->assertStringContainsString( 'data-field="cpf"', $html );
+		$this->assertSame( 2, substr_count( $html, 'class="button button-small ffc-reveal-pii' ) );
+		$this->assertStringContainsString( 'data-submission-id="42"', $html );
+		$this->assertStringContainsString( 'Reveal the email to edit it.', $html );
+	}
+
+	public function test_render_without_the_pii_capability_masks_and_offers_no_reveal(): void {
+		Functions\when( 'user_can' )->justReturn( false );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( '518.178.420-80', $html );
+		$this->assertStringNotContainsString( 'foo@bar.com', $html );
+		$this->assertStringContainsString( 'value="f***@bar.com"', $html );
+		$this->assertStringNotContainsString( 'ffc-reveal-pii', $html );
+		$this->assertStringNotContainsString( 'Reveal the email to edit it.', $html );
+	}
+
 	public function test_render_no_consent_and_rf_label(): void {
 		$row = $this->submission_row(
 			array(
@@ -524,6 +563,19 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringContainsString( 'msg=updated', $msg );
 	}
 
+	public function test_handle_save_keeps_the_email_when_it_was_not_revealed(): void {
+		// A masked email input is disabled, so the browser does not post it;
+		// an empty email reaches the handler, which leaves the column alone.
+		$_POST['ffc_save_edit'] = '1';
+		$_POST['submission_id'] = '42';
+		$_POST['data']          = array( 'curso' => 'PHP' );
+
+		$this->handler->shouldReceive( 'update_submission' )->once()->with( 42, '', Mockery::type( 'array' ) );
+
+		$msg = $this->capture( fn () => $this->page()->handle_save() );
+		$this->assertStringStartsWith( 'REDIRECT:', $msg );
+	}
+
 	public function test_handle_save_invalid_id_passes_zero(): void {
 		$_POST['ffc_save_edit'] = '1';
 		// No submission_id -> 0.
@@ -573,6 +625,19 @@ class AdminSubmissionEditPageTest extends TestCase {
 
 		$msg = $this->capture( fn () => $this->page()->handle_save() );
 		$this->assertStringStartsWith( 'REDIRECT:', $msg );
+	}
+	public function test_render_reads_protected_fields_as_text_and_still_posts_them(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		// The save handler rebuilds the data from the POST, so a protected
+		// field must still be posted, or saving would delete it.
+		$this->assertMatchesRegularExpression( '#<dd class="ffc-facts__value">[^<]*<input type="hidden" name="data\[auth_code\]" value="[^"]*"><span class="description ffc-edit-note">Protected internal field.</span></dd>#', $html );
+		$this->assertStringNotContainsString( 'readonly>', preg_replace( '/data-ffc-pii-field="[a-z]+" readonly/', '', $html ), 'only the PII value, which the reveal script writes into, stays an input' );
+		$this->assertStringContainsString( '<details class="ffc-section" data-ffc-section>', $html, 'consent is the shared section, closed' );
 	}
 }
 

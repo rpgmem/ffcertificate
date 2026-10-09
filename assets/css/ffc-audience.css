@@ -449,7 +449,7 @@
     margin-top: var(--ffc-spacing-xl);
 }
 
-.ffc-shortcode .ffc-conflict-warning .dashicons {
+.ffc-shortcode .ffc-conflict-warning .ffc-icon-warning {
     color: var(--ffc-warning);
     float: left;
     margin-right: var(--ffc-spacing-md);
@@ -489,7 +489,7 @@
     margin-top: var(--ffc-spacing-xl);
 }
 
-.ffc-shortcode .ffc-conflict-error .dashicons {
+.ffc-shortcode .ffc-conflict-error .ffc-icon-error {
     color: var(--ffc-danger);
     float: left;
     margin-right: var(--ffc-spacing-md);

@@ -437,11 +437,9 @@ describe('admin device-limit toggle', () => {
 describe('admin copy-to-clipboard', () => {
 	beforeAll(() => {
 		window.ffc_ajax = { strings: { copied: 'Copied!', copyFailed: 'Copy failed' } };
+		// The handler lives in ffc-core.js (bound on document at eval, once
+		// per file), so a screen loading only the core gets it too.
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
-		// The delegated click handler is bound on document at IIFE eval —
-		// already present from prior suites' loads. Ensure at least one load.
-		loadScript('assets/js/ffc-batched-export.js');
-		loadScript('assets/js/ffc-admin.js');
 	});
 
 	beforeEach(() => {

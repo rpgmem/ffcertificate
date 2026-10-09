@@ -168,12 +168,12 @@ final class RecruitmentAdminPage {
 	 */
 	public static function register_menu(): void {
 		add_menu_page(
-			__( 'Recruitment', 'ffcertificate' ),
-			__( 'Recruitment', 'ffcertificate' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'recruitment' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'recruitment' ),
 			self::VIEW_CAP,
 			self::PAGE_SLUG,
 			array( self::class, 'render_page' ),
-			'dashicons-groups',
+			'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
 			// Float keeps the FFC block (Scheduling 26.1, Reregistration
 			// 26.2, Recruitment 26.3) contiguous in the wp-admin sidebar:
 			// other plugins picking integer 26 / 27 / 28 can no longer
@@ -274,13 +274,15 @@ final class RecruitmentAdminPage {
 		$action = RequestInput::get_get_key( 'action' );
 
 		// Edit screens hijack the whole render — they have their own
-		// chrome (h1 + back link) and don't share the tab strip.
+		// chrome and don't share the tab strip. Each prints its own h1 (the
+		// record being edited) and back link, then its sections as boxed
+		// cards (`.ffc-boxed`, #1631), the shape the audience and campaign
+		// editors already use.
 		if ( 'edit-notice' === $action || 'edit-candidate' === $action || 'edit-reason' === $action || 'edit-adjutancy' === $action ) {
 			if ( ! $can_edit ) {
 				wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 			}
-			echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin">';
-			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
+			echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin ffc-boxed">';
 			$msg = RequestInput::get_get_key( 'ffc_msg' );
 			if ( '' !== $msg ) {
 				RecruitmentAdminPageRenderer::render_flash_notice( $msg );
@@ -317,7 +319,10 @@ final class RecruitmentAdminPage {
 			$tab = 'notices';
 		}
 
-		echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin">';
+		// `ffc-settings-wrap` is the layout class of the vertical-tab screens: it
+		// gives each tab's `.card` boxes the same look as Settings and Date
+		// Messages. The edit screens above keep their own chrome.
+		echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin ffc-settings-wrap">';
 		echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 
 		echo '<div class="ffc-settings-tabs">';

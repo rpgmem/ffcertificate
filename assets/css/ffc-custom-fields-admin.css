@@ -49,10 +49,22 @@
     color: var(--ffc-primary);
 }
 
-.ffc-field-handle .dashicons {
-    font-size: var(--ffc-font-size-xl);
-    width: 18px;
-    height: 18px;
+.ffc-field-handle .ffc-icon-grip {
+    font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-field-handle .ffc-icon-grip::before,
+.ffc-field-actions [class*="ffc-icon-"]::before {
+    margin-right: 0;
+}
+
+/* The section toggle's chevron turns to point at a collapsed section. */
+.ffc-cf-toggle-icon::before {
+    transition: transform 0.15s ease;
+}
+
+.ffc-cf-toggle.is-collapsed .ffc-cf-toggle-icon::before {
+    transform: rotate(-90deg);
 }
 
 /* Field content */
@@ -149,11 +161,8 @@
     line-height: 26px;
 }
 
-.ffc-field-actions .dashicons {
+.ffc-field-actions [class*="ffc-icon-"] {
     font-size: var(--ffc-font-size-lg);
-    width: 16px;
-    height: 16px;
-    vertical-align: text-bottom;
 }
 
 /* Sortable placeholder */

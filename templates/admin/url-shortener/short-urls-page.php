@@ -107,20 +107,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php endif; ?>
 
 			<?php if ( 'trashed' !== $status ) : ?>
-			<!-- Stats -->
-			<div class="ffc-shorturl-stats">
-				<div>
-					<strong><?php echo esc_html( number_format_i18n( $stats['total_links'] ) ); ?></strong>
-					<span class="ffc-stat-label"><?php esc_html_e( 'Total Links', 'ffcertificate' ); ?></span>
-				</div>
-				<div>
-					<strong><?php echo esc_html( number_format_i18n( $stats['active_links'] ) ); ?></strong>
-					<span class="ffc-stat-label"><?php esc_html_e( 'Active', 'ffcertificate' ); ?></span>
-				</div>
-				<div>
-					<strong><?php echo esc_html( number_format_i18n( $stats['total_clicks'] ) ); ?></strong>
-					<span class="ffc-stat-label"><?php esc_html_e( 'Total Clicks', 'ffcertificate' ); ?></span>
-				</div>
+				<?php
+				// The shared stat cards (#1631), the component the dashboards draw.
+				// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- get_stat_card() escapes every value.
+				?>
+			<div class="ffc-stats">
+				<?php
+				echo \FreeFormCertificate\Admin\AdminUI::get_stat_card(
+					array(
+						'label' => __( 'Total Links', 'ffcertificate' ),
+						'value' => (int) $stats['total_links'],
+						'icon'  => 'link',
+					)
+				);
+				echo \FreeFormCertificate\Admin\AdminUI::get_stat_card(
+					array(
+						'label' => __( 'Active', 'ffcertificate' ),
+						'value' => (int) $stats['active_links'],
+						'icon'  => 'checkmark',
+						'tone'  => 'success',
+					)
+				);
+				echo \FreeFormCertificate\Admin\AdminUI::get_stat_card(
+					array(
+						'label' => __( 'Total Clicks', 'ffcertificate' ),
+						'value' => (int) $stats['total_clicks'],
+						'icon'  => 'chart',
+					)
+				);
+				// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
 			</div>
 			<?php endif; ?>
 
@@ -267,7 +283,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 													data-id="<?php echo esc_attr( (string) $item['id'] ); ?>"
 													data-target="<?php echo esc_attr( $item['target_url'] ); ?>"
 													data-title="<?php echo esc_attr( (string) $item['title'] ); ?>">
-												<span class="dashicons dashicons-edit ffc-dashicon-sm-inline"></span>
+												<span class="ffc-icon-edit" aria-hidden="true"></span>
 												<?php esc_html_e( 'Edit', 'ffcertificate' ); ?>
 											</button>
 										<?php endif; ?>
@@ -275,7 +291,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 												data-code="<?php echo esc_attr( $item['short_code'] ); ?>"
 												data-url="<?php echo esc_attr( $short_url ); ?>"
 												data-title="<?php echo esc_attr( $item['title'] ? $item['title'] : $item['short_code'] ); ?>">
-											<span class="dashicons dashicons-screenoptions ffc-dashicon-sm-inline"></span>
+											<span class="ffc-icon-qr" aria-hidden="true"></span>
 											QR
 										</button>
 										<a href="<?php echo esc_url( $toggle_url ); ?>" class="button button-small">
@@ -327,15 +343,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</div>
 					<div class="ffc-qr-modal__actions">
 						<button type="button" class="button ffc-copy-shorturl" data-url="">
-							<span class="dashicons dashicons-clipboard ffc-dashicon-valign"></span>
+							<span class="ffc-icon-copy" aria-hidden="true"></span>
 							<?php esc_html_e( 'Copy URL', 'ffcertificate' ); ?>
 						</button>
 						<button type="button" class="button ffc-download-qr" data-format="png" data-code="">
-							<span class="dashicons dashicons-download ffc-dashicon-valign"></span>
+							<span class="ffc-icon-download" aria-hidden="true"></span>
 							PNG
 						</button>
 						<button type="button" class="button ffc-download-qr" data-format="svg" data-code="">
-							<span class="dashicons dashicons-download ffc-dashicon-valign"></span>
+							<span class="ffc-icon-download" aria-hidden="true"></span>
 							SVG
 						</button>
 					</div>

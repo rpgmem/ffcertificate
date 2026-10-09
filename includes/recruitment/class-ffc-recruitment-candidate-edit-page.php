@@ -81,6 +81,7 @@ final class RecruitmentCandidateEditPage {
 		$candidate_id = RequestInput::get_get_int( 'candidate_id' );
 		$candidate    = $candidate_id > 0 ? RecruitmentCandidateReader::get_by_id( $candidate_id ) : null;
 		if ( null === $candidate ) {
+			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 			wp_admin_notice(
 				esc_html__( 'Candidate not found.', 'ffcertificate' ),
 				array( 'type' => 'error' )
@@ -89,12 +90,12 @@ final class RecruitmentCandidateEditPage {
 			return;
 		}
 
-		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Candidates', 'ffcertificate' ) . '</a></p>';
-		echo '<h2>' . sprintf(
+		echo '<h1>' . sprintf(
 			/* translators: %s — candidate name */
 			esc_html__( 'Edit candidate — %s', 'ffcertificate' ),
 			esc_html( (string) $candidate->name )
-		) . '</h2>';
+		) . '</h1>';
+		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Candidates', 'ffcertificate' ) . '</a></p>';
 
 		self::render_general_section( $candidate );
 		self::render_sensitive_section( $candidate );
@@ -168,7 +169,7 @@ final class RecruitmentCandidateEditPage {
 	 * @return void
 	 */
 	private static function render_sensitive_section( object $candidate ): void {
-		// Resolve the access tier once for the whole postbox so all three
+		// Resolve the access tier once for the whole card so all three
 		// fields (CPF, RF, email) get a consistent treatment per user
 		// (issue #330).
 		$tier = RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
@@ -214,7 +215,7 @@ final class RecruitmentCandidateEditPage {
 	}
 
 	/**
-	 * Render one row of the Sensitive data postbox under the access tier.
+	 * Render one row of the Sensitive data card under the access tier.
 	 *
 	 * - `unmasked`: decrypt and show the value immediately, same as
 	 *   render_decrypted().
@@ -408,7 +409,7 @@ final class RecruitmentCandidateEditPage {
 	 * Delegates the cross-table lookup + decryption to
 	 * {@see RecruitmentCandidateHistoryService::get_for_candidate()}.
 	 *
-	 * Rendered ABOVE the hard-delete postbox so the operator can scan
+	 * Rendered ABOVE the hard-delete card so the operator can scan
 	 * the audit trail before committing a destructive action.
 	 *
 	 * @since 6.6.2

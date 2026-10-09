@@ -23,7 +23,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 
 <!-- Activity Log Settings Card -->
 <div class="card">
-	<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-history"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Activity Log tracks important actions in your system for audit and compliance purposes (LGPD).', 'ffcertificate' ); ?> <br>
 		<?php esc_html_e( 'This option has a significant impact on website speed and stability, so use it wisely.', 'ffcertificate' ); ?> <br>
@@ -166,7 +166,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 
 <!-- Certificate Editor Card -->
 <div class="card">
-	<h2 class="ffc-icon-settings"><?php esc_html_e( 'Certificate Editor', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-code"><?php esc_html_e( 'Certificate Editor', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Validation rules for the Certificate HTML editor. Its colour theme is on the General tab, next to Dark Mode.', 'ffcertificate' ); ?>
 	</p>
@@ -454,7 +454,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 				</tr>
 				<tr>
 					<th scope="row">
-						<label for="debug_self_scheduling"><?php esc_html_e( 'Self-Scheduling', 'ffcertificate' ); ?></label>
+						<label for="debug_self_scheduling"><?php esc_html_e( 'Personal Calendars', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<?php
@@ -463,7 +463,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 								'name'    => 'ffc_settings[debug_self_scheduling]',
 								'id'      => 'debug_self_scheduling',
 								'checked' => (int) $ffcertificate_get_option( 'debug_self_scheduling' ) === 1,
-								'label'   => __( 'Enable debug logging for the self-scheduling module', 'ffcertificate' ),
+								'label'   => __( 'Enable debug logging for the Personal Calendars module', 'ffcertificate' ),
 								'data'    => array( 'ffc-autosave-key' => 'debug_self_scheduling' ),
 							)
 						);
@@ -543,7 +543,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 
 <!-- Public Operator Access Card (formerly Public CSV Download) -->
 <div class="card">
-	<h2 class="ffc-icon-download"><?php esc_html_e( 'Public Operator Access', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-share"><?php esc_html_e( 'Public Operator Access', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Default download limit suggested when enabling Public Operator Access on a form (formerly named "Public CSV Download"). Each form can override this value in its editor.', 'ffcertificate' ); ?>
 	</p>
@@ -585,7 +585,7 @@ $ffc_kh_labels = array(
 $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 ?>
 <div class="card" id="ffc-encryption-health">
-	<h2 class="ffc-icon-warning"><?php esc_html_e( 'Encryption Key Health', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-lock"><?php esc_html_e( 'Encryption Key Health', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'CPF/RF and e-mail are encrypted at rest using your WordPress secret keys (or the FFC decoupling constants). If those secrets are missing, weak, or still the wp-config sample placeholder, the encryption key and the search-hash salt become predictable — this panel reports their real state.', 'ffcertificate' ); ?>
 	</p>
@@ -837,7 +837,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 		<?php endforeach; ?>
 		<p class="description ffc-text-warning">
 			<strong><?php esc_html_e( 'Rotation caveat:', 'ffcertificate' ); ?></strong>
-			<?php esc_html_e( 'Apply these directly only on a NEW install with no encrypted data yet. On a site that already stores data, defining a new FFC_ENCRYPTION_KEY makes existing encrypted records unreadable, and a new FFC_HASH_SALT invalidates the stored search hashes — both are repaired by a planned key rotation (S7b) at Settings → Migrations, not a blind edit.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Apply these directly only on a NEW install with no encrypted data yet. On a site that already stores data, defining a new FFC_ENCRYPTION_KEY makes existing encrypted records unreadable, and a new FFC_HASH_SALT invalidates the stored search hashes — both are repaired by a planned key rotation (S7b) at Settings → Data Migrations, not a blind edit.', 'ffcertificate' ); ?>
 		</p>
 	</div>
 	<?php endif; ?>

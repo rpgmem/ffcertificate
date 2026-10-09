@@ -25,8 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Decisions, checked in this order, first match wins:
  *
- * - `out_of_audience` -- the rule names an audience the person is not in
- *   (sub-audiences count). The filter reads the membership whether or not the
+ * - `out_of_audience` -- the rule names audiences and the person is in none
+ *   of them (sub-audiences count; any one is enough, #1648). The filter reads the membership whether or not the
  *   Audiences module is toggled on: a rule restricted to an audience must
  *   never widen to everyone because a toggle moved;
  * - `opted_out`       -- the person turned date messages off;
@@ -85,7 +85,7 @@ final class RecipientResolver {
 
 		$opted_out = OptOut::among( $ids );
 		$delivered = DeliveryLog::delivered_among( $rule->id, $occurrence, $ids );
-		$members   = null === $rule->audience_id ? null : $this->members_of( $rule->audience_id );
+		$members   = array() === $rule->audience_ids ? null : $this->members_of_any( $rule->audience_ids );
 
 		$rows   = array();
 		$cursor = $after;
@@ -113,6 +113,20 @@ final class RecipientResolver {
 			'cursor'   => $cursor,
 			'complete' => count( $candidates ) < $limit,
 		);
+	}
+
+	/**
+	 * Members of any of the audiences, sub-audiences included, as a set.
+	 *
+	 * @param array<int> $audience_ids Audiences.
+	 * @return array<int, true>
+	 */
+	private function members_of_any( array $audience_ids ): array {
+		$set = array();
+		foreach ( $audience_ids as $audience_id ) {
+			$set += $this->members_of( (int) $audience_id );
+		}
+		return $set;
 	}
 
 	/**

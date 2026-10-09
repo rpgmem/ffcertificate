@@ -145,12 +145,12 @@ class AudienceAdminPage {
 	public function add_admin_menus(): void {
 		// Main menu: Scheduling — unified for both systems.
 		add_menu_page(
-			__( 'Scheduling', 'ffcertificate' ),
-			__( 'Scheduling', 'ffcertificate' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'scheduling' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'scheduling' ),
 			'ffc_view_audiences',
 			self::MENU_SLUG,
 			array( $this->dashboard, 'render_dashboard_page' ),
-			'dashicons-calendar-alt',
+			'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
 			// Floats avoid third-party plugins picking the same integer
 			// from interleaving inside the FFC block. The block lives
 			// at 26.x so all three FFC top-level menus stay contiguous.

@@ -470,7 +470,7 @@ class AdminAssetsManagerTest extends TestCase {
 
 		AdminAssetsManager::enqueue_admin_base_styles();
 
-		foreach (array('ffc-pdf-core', 'ffc-common', 'ffc-admin-utilities', 'ffc-admin-css') as $handle) {
+		foreach (array('ffc-pdf-core', 'ffc-common', 'ffc-admin-utilities', 'ffc-admin-components', 'ffc-admin-css') as $handle) {
 			$this->assertContains($handle, $styles);
 		}
 	}

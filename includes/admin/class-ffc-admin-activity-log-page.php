@@ -168,7 +168,7 @@ class AdminActivityLogPage {
 		if ( file_exists( $view_file ) ) {
 			include $view_file;
 		} else {
-			echo '<div class="ffc-settings-wrap"><h2 class="wp-heading-inline">' . esc_html__( 'Activity Log', 'ffcertificate' ) . '</h2>';
+			echo '<div class="ffc-settings-wrap"><h2 class="ffc-icon-history">' . esc_html__( 'Activity Log', 'ffcertificate' ) . '</h2>';
 			wp_admin_notice(
 				esc_html__( 'View file not found.', 'ffcertificate' ),
 				array( 'type' => 'error' )
@@ -183,7 +183,8 @@ class AdminActivityLogPage {
 	private function render_disabled_notice(): void {
 		?>
 		<div class="ffc-settings-wrap">
-			<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
+		<div class="card">
+			<h2 class="ffc-icon-history"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
 			<?php
 			ob_start();
 			?>
@@ -200,11 +201,15 @@ class AdminActivityLogPage {
 			wp_admin_notice(
 				(string) ob_get_clean(),
 				array(
-					'type'           => 'warning',
-					'paragraph_wrap' => false,
+					'type'               => 'warning',
+					'paragraph_wrap'     => false,
+					// Inline, or WordPress's common.js lifts the notice above
+					// the settings tabs and the card is left empty.
+					'additional_classes' => array( 'inline' ),
 				)
 			);
 			?>
+		</div>
 		</div>
 		<?php
 	}

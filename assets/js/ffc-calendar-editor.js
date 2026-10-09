@@ -159,15 +159,15 @@
             const rowHtml = `
                 <tr>
                     <td>
-                        <select name="ffc_calendar_working_hours[${index}][day]" required>
+                        <select name="ffc_self_scheduling_working_hours[${index}][day]" required>
                             ${optionsHtml}
                         </select>
                     </td>
                     <td>
-                        <input type="time" name="ffc_calendar_working_hours[${index}][start]" value="09:00" required />
+                        <input type="time" name="ffc_self_scheduling_working_hours[${index}][start]" value="09:00" required />
                     </td>
                     <td>
-                        <input type="time" name="ffc_calendar_working_hours[${index}][end]" value="17:00" required />
+                        <input type="time" name="ffc_self_scheduling_working_hours[${index}][end]" value="17:00" required />
                     </td>
                     <td>
                         <button type="button" class="button ffc-remove-hour">${$('<div>').text(removeLabel).html()}</button>

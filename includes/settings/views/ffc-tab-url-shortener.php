@@ -32,7 +32,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 <div class="ffc-settings-wrap">
 
 <div class="card">
-	<h2 class="ffc-icon-link"><?php esc_html_e( 'URL Shortener', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-link"><?php echo esc_html( \FreeFormCertificate\Core\PluginAreas::label( 'url_shortener' ) ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Configure the built-in URL shortener. Short URLs redirect visitors and generate QR Codes.', 'ffcertificate' ); ?>
 	</p>
@@ -159,7 +159,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 				</tbody>
 			</table>
 			<p class="description">
-				<?php esc_html_e( '"Shorten" shows the URL Shortener meta box on that post type. "Expose" publishes the page\'s short URL as the site\'s canonical shortlink — the rel="shortlink" tag in the page head and the HTTP Link header (also used by the editor\'s "Get Shortlink" button and REST). Expose depends on Shorten and only takes effect once a short URL exists for the page.', 'ffcertificate' ); ?>
+				<?php esc_html_e( '"Shorten" shows the "Short URL & QR Code" meta box on that post type. "Expose" publishes the page\'s short URL as the site\'s canonical shortlink — the rel="shortlink" tag in the page head and the HTTP Link header (also used by the editor\'s "Get Shortlink" button and REST). Expose depends on Shorten and only takes effect once a short URL exists for the page.', 'ffcertificate' ); ?>
 			</p>
 		</td>
 	</tr>

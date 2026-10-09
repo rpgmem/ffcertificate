@@ -255,6 +255,50 @@ final class RecruitmentPublicShortcodeRenderer {
 	}
 
 	/**
+	 * Render the notice picker of the selector mode (#1646).
+	 *
+	 * A GET form, so the choice lands in the URL and a page can be linked or
+	 * reloaded on it. Every other query parameter is re-emitted except the
+	 * notice itself and the listing's own filters and pages: those belong to
+	 * the notice being left, and carrying them over would filter the next one
+	 * by an adjutancy it may not have.
+	 *
+	 * @param array<int, object> $notices  Notices on offer (NoticeRow shape).
+	 * @phpstan-param list<NoticeRow> $notices
+	 * @param string             $selected Code currently shown ('' for none).
+	 * @return string
+	 */
+	public static function render_notice_picker( array $notices, string $selected ): string {
+		$preserved = '';
+		$dropped   = array( RecruitmentPublicShortcode::NOTICE_PARAM, 'adjutancy', 'q', 'subscription', 'page_top', 'page_bottom' );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only re-emission of caller's params.
+		foreach ( (array) $_GET as $key => $value ) {
+			$key_str = (string) $key;
+			if ( in_array( $key_str, $dropped, true ) || ! is_scalar( $value ) ) {
+				continue;
+			}
+			$preserved .= '<input type="hidden" name="' . esc_attr( $key_str ) . '" value="' . esc_attr( wp_unslash( (string) $value ) ) . '">';
+		}
+
+		$options = array();
+		foreach ( $notices as $notice ) {
+			$options[ strtoupper( (string) $notice->code ) ] = sprintf(
+				/* translators: 1: notice code, 2: notice name, 3: "Preliminary list" or "Definitive list" */
+				__( '%1$s — %2$s (%3$s)', 'ffcertificate' ),
+				(string) $notice->code,
+				(string) $notice->name,
+				'preliminary' === $notice->status ? __( 'Preliminary list', 'ffcertificate' ) : __( 'Definitive list', 'ffcertificate' )
+			);
+		}
+
+		$param = RecruitmentPublicShortcode::NOTICE_PARAM;
+
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/public/recruitment/notice-picker.php';
+		return (string) ob_get_clean();
+	}
+
+	/**
 	 * Render the subscription-type <select> for the public filter bar.
 	 * Three options: All / PCD / GERAL. Auto-submits on change so the
 	 * UX matches the adjutancy dropdown.

@@ -233,8 +233,8 @@ class Settings {
 		// home. The page hook suffix consequently changes from the old
 		// `ffc_form_page_ffc-settings` to `toplevel_page_ffc-settings`.
 		$hook = add_menu_page(
-			__( 'Certificate Settings', 'ffcertificate' ),
-			__( 'FFC Settings', 'ffcertificate' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'settings' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'settings' ),
 			// Virtual meta-cap resolved in grant_settings_page_meta_cap(): the
 			// menu shows iff the user can see at least one tab, rather than being
 			// tied to `ffc_view_settings` alone (which would hide the page from
@@ -242,7 +242,7 @@ class Settings {
 			'ffc_view_settings_page',
 			'ffc-settings',
 			array( $this, 'display_settings_page' ),
-			'dashicons-admin-settings'
+			'none' // Drawn from the icon registry by AdminMenuIcons (#1640).
 		);
 
 		if ( $hook ) {
@@ -264,7 +264,7 @@ class Settings {
 	public function render_back_to_top_link(): void {
 		?>
 		<a href="#ffc-settings-top" class="ffc-settings-back-to-top" aria-label="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>" title="<?php esc_attr_e( 'Back to top', 'ffcertificate' ); ?>">
-			<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
+			<span class="ffc-icon-chevron-up" aria-hidden="true"></span>
 		</a>
 		<?php
 	}
@@ -546,7 +546,7 @@ class Settings {
 					esc_html(
 						sprintf(
 						/* translators: %d: number of forms pre-loaded */
-							__( '✅ Cache warmed! %d form(s) pre-loaded.', 'ffcertificate' ),
+							__( 'Cache warmed! %d form(s) pre-loaded.', 'ffcertificate' ),
 							$count
 						)
 					),
@@ -559,7 +559,7 @@ class Settings {
 
 			if ( 'cache_cleared' === $msg ) {
 				wp_admin_notice(
-					esc_html__( '✅ Cache cleared successfully!', 'ffcertificate' ),
+					esc_html__( 'Cache cleared successfully!', 'ffcertificate' ),
 					array(
 						'type'        => 'success',
 						'dismissible' => true,
@@ -605,7 +605,7 @@ class Settings {
 		?>
 		<div class="wrap ffc-admin-page ffc-page-settings ffc-settings-wrap">
 			<span id="ffc-settings-top" aria-hidden="true"></span>
-			<h1><?php esc_html_e( 'Certificate Settings', 'ffcertificate' ); ?></h1>
+			<h1><?php echo esc_html( \FreeFormCertificate\Core\PluginAreas::label( 'settings' ) ); ?></h1>
 			<?php settings_errors( 'ffc_settings' ); ?>
 			<?php
 			$ffc_settings_can_edit = $page_state['can_edit'];
@@ -803,7 +803,7 @@ class Settings {
 				'url'   => admin_url( 'admin.php?page=ffc-scheduling-settings' ),
 				'icon'  => 'ffc-icon-calendar',
 				'label' => __( 'Scheduling', 'ffcertificate' ),
-				'title' => __( 'Global holidays and audience / self-scheduling visibility.', 'ffcertificate' ),
+				'title' => __( 'Global holidays and Personal / Audience Calendars visibility.', 'ffcertificate' ),
 			);
 		}
 
@@ -839,7 +839,7 @@ class Settings {
 					title="<?php echo esc_attr( $link['title'] ); ?>">
 					<span class="ffc-settings-tabs__icon <?php echo esc_attr( $link['icon'] ); ?>" aria-hidden="true"></span>
 					<span class="ffc-settings-tabs__label"><?php echo esc_html( $link['label'] ); ?></span>
-					<span class="ffc-settings-tabs__external" aria-hidden="true"></span>
+					<span class="ffc-settings-tabs__external ffc-icon-external" aria-hidden="true"></span>
 					<span class="screen-reader-text"><?php echo esc_html( $link['title'] ); ?></span>
 				</a>
 			</li>

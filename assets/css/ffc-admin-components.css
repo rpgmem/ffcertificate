@@ -1,0 +1,232 @@
+/**
+ * Admin components (#1614).
+ *
+ * Components shared by several admin screens, named for the component family
+ * rather than for the screen that first drew them (#1525): the collapsible
+ * section began on the QR screens as `.ffc-qr-section` and moved here when the
+ * certificate screens needed it too.
+ *
+ * Loaded on every FFC admin screen through the base chain
+ * (AdminAssetsManager::enqueue_admin_base_styles()), after ffc-common.
+ */
+
+/* Collapsible section: a <details> with an icon, a title and a hint. */
+
+.ffc-sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-sm);
+}
+
+.ffc-section {
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-lg);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+}
+
+.ffc-section__summary {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    cursor: pointer;
+    list-style: none;
+}
+
+.ffc-section__summary::-webkit-details-marker {
+    display: none;
+}
+
+/* A chevron that turns when the section opens. */
+.ffc-section__summary::after {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    margin-left: auto;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    content: "";
+    transform: rotate(45deg);
+    transition: transform var(--ffc-transition-fast);
+}
+
+.ffc-section[open] > .ffc-section__summary::after {
+    transform: rotate(-135deg);
+}
+
+.ffc-section__summary:focus-visible {
+    border-radius: var(--ffc-radius-lg);
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
+}
+
+.ffc-section__icon {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--ffc-radius-md);
+    background: var(--ffc-accent-bg);
+    color: var(--ffc-accent-text);
+}
+
+.ffc-section__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--ffc-spacing-3xs);
+    min-width: 0;
+}
+
+.ffc-section__title {
+    font-size: var(--ffc-font-size-base);
+    font-weight: 600;
+}
+
+.ffc-section__hint {
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
+
+.ffc-section__body {
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) var(--ffc-spacing-lg);
+    border-top: 1px solid var(--ffc-border-light);
+}
+
+/* The chip: what the section is set to, readable while it is closed. */
+.ffc-section__chip {
+    flex: 0 0 auto;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-section__chip.is-on {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+/* A form-table inside a section body sits flush with the body's padding. */
+.ffc-section__body > .form-table:first-child {
+    margin-top: 0;
+}
+
+/* Facts: a read-only label/value list (`<dl class="ffc-facts">`). */
+.ffc-facts {
+    display: grid;
+    grid-template-columns: minmax(8em, auto) 1fr;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
+    margin: 0;
+}
+
+.ffc-facts__label {
+    color: var(--ffc-text-muted);
+}
+
+.ffc-facts__value {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.ffc-facts__value.is-on {
+    font-weight: 600;
+}
+
+/* Stat cards: a number and what it counts, laid out in a .ffc-stats row. */
+.ffc-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12em, 1fr));
+    gap: var(--ffc-spacing-lg);
+    margin: var(--ffc-spacing-lg) 0;
+}
+
+.ffc-stat-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: var(--ffc-spacing-md);
+    align-items: center;
+    padding: var(--ffc-spacing-lg);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-lg);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+}
+
+.ffc-stat-card__icon {
+    grid-row: 1 / span 3;
+    font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-stat-card__value {
+    font-size: var(--ffc-font-size-2xl);
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.ffc-stat-card__label {
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
+
+.ffc-stat-card__link {
+    margin-top: var(--ffc-spacing-xs);
+    font-size: var(--ffc-font-size-sm);
+    text-decoration: none;
+}
+
+/* Boxed sections: each section of a screen is a `.card` whose h2 carries the
+   icon of its subject. `.ffc-settings-wrap` is the vertical-tab layout and
+   `.ffc-boxed` a screen without tabs (an edit form); both draw the same box.
+   Moved from ffc-admin-settings.css, which loads on the settings screens only
+   (#1627). */
+
+.ffc-settings-wrap .card,
+.ffc-boxed .card {
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    padding: var(--ffc-spacing-2xl);
+    margin-bottom: var(--ffc-spacing-2xl);
+    min-width: 255px;
+    max-width: 1500px;
+    box-shadow: var(--ffc-shadow-sm);
+}
+
+.ffc-settings-wrap .card:last-child,
+.ffc-boxed .card:last-child {
+    margin-bottom: 0;
+}
+
+.ffc-settings-wrap .card h2,
+.ffc-settings-wrap .card > h3[id],
+.ffc-boxed .card h2 {
+    margin-top: 0;
+    margin-bottom: var(--ffc-spacing-xl);
+    padding-bottom: var(--ffc-spacing-md);
+    border-bottom: 1px solid var(--ffc-border-light);
+    font-size: var(--ffc-font-size-xl);
+    font-weight: 600;
+    color: var(--ffc-text);
+}
+
+.ffc-settings-wrap .card h3,
+.ffc-boxed .card h3 {
+    margin-top: var(--ffc-spacing-2xl);
+    margin-bottom: var(--ffc-spacing-xl);
+    font-size: var(--ffc-font-size-lg);
+    font-weight: 600;
+}
+
+.ffc-settings-wrap .card > p.description,
+.ffc-boxed .card > p.description {
+    margin-top: 0;
+    margin-bottom: var(--ffc-spacing-xl);
+    color: var(--ffc-text-muted);
+}

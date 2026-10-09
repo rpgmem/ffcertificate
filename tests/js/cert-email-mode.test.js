@@ -60,8 +60,8 @@ describe('ffc-cert-email-mode', () => {
 
 		expect($()('input[name="ffc_config[email_subject]"]').val()).toBe('GLOBAL SUBJECT');
 		expect($()('#ffc_email_body').val()).toBe('<p>GLOBAL BODY</p>');
-		expect($()('.ffc-cert-email-custom-fields').css('display')).not.toBe('none');
-		expect($()('.ffc-cert-email-global-note').css('display')).toBe('none');
+		expect($()('.ffc-cert-email-custom-fields').hasClass('ffc-hidden')).toBe(false);
+		expect($()('.ffc-cert-email-global-note').hasClass('ffc-hidden')).toBe(true);
 	});
 
 	it('flip to Custom does not overwrite existing custom text', async () => {
@@ -82,8 +82,8 @@ describe('ffc-cert-email-mode', () => {
 
 		expect($()('input[name="ffc_config[email_subject]"]').val()).toBe('');
 		expect($()('#ffc_email_body').val()).toBe('');
-		expect($()('.ffc-cert-email-custom-fields').css('display')).toBe('none');
-		expect($()('.ffc-cert-email-global-note').css('display')).not.toBe('none');
+		expect($()('.ffc-cert-email-custom-fields').hasClass('ffc-hidden')).toBe(true);
+		expect($()('.ffc-cert-email-global-note').hasClass('ffc-hidden')).toBe(false);
 	});
 
 	it('flip to Global is cancellable — reverts to Custom and keeps the text', async () => {

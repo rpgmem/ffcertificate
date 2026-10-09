@@ -141,12 +141,12 @@ final class DateMessagesAdminPage {
 		$cap = ! current_user_can( self::VIEW_CAP ) && current_user_can( self::MANAGE_CAP ) ? self::MANAGE_CAP : self::VIEW_CAP;
 
 		add_menu_page(
-			__( 'Date Messages', 'ffcertificate' ),
-			__( 'Date Messages', 'ffcertificate' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'date_messages' ),
+			\FreeFormCertificate\Core\PluginAreas::label( 'date_messages' ),
 			$cap,
 			self::MENU_SLUG,
 			array( $this, 'render_page' ),
-			'dashicons-email-alt',
+			'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
 			// A top-level menu like the other modules', placed after URL
 			// Shortener (26.4) to keep the FFC block contiguous.
 			26.5
@@ -165,6 +165,15 @@ final class DateMessagesAdminPage {
 		}
 
 		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
+		// The vertical tab layout lives in ffc-admin-settings.css, as it does
+		// for Recruitment; its other rules are scoped and stay dormant here.
+		wp_enqueue_style(
+			'ffc-admin-settings',
+			FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$suffix}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
 
 		wp_enqueue_script(
 			'ffc-date-messages-admin',
@@ -191,6 +200,9 @@ final class DateMessagesAdminPage {
 				),
 			)
 		);
+
+		// The rule editor's audience picker is the shared component (#1648).
+		\FreeFormCertificate\Audience\AudienceTransferList::enqueue();
 
 		$defaults = MessageBuilder::defaults();
 		wp_enqueue_script(
@@ -277,9 +289,19 @@ final class DateMessagesAdminPage {
 			$total   = DeliveryLog::count_runs();
 		}
 
-		$period      = RequestInput::get_get_key( 'period', 'next30' );
-		$audience_id = RequestInput::get_get_int( 'audience' );
-		$upcoming    = 'upcoming' === $tab ? self::upcoming( $period, $audience_id, Runner::today() ) : null;
+		// Upcoming dates narrow by an active rule, then by one of its audiences
+		// (#1648). A rule or audience the filter does not offer -- a stale or
+		// hand-written URL -- reads as "all".
+		$period             = RequestInput::get_get_key( 'period', 'next30' );
+		$upcoming_rule      = RequestInput::get_get_int( 'rule_filter' );
+		$upcoming_rule      = array() === self::active_rules( $rules, max( 0, $upcoming_rule ) ) || $upcoming_rule <= 0 ? 0 : $upcoming_rule;
+		$upcoming_audiences = 'upcoming' === $tab ? self::upcoming_audience_options( $rules, $upcoming_rule, $audiences ) : array();
+		$audience_id        = RequestInput::get_get_int( 'audience' );
+		$audience_id        = isset( $upcoming_audiences[ $audience_id ] ) ? $audience_id : 0;
+		$upcoming           = 'upcoming' === $tab ? self::upcoming( $period, self::upcoming_scope( $rules, $upcoming_rule, $audience_id ), Runner::today() ) : null;
+		if ( null !== $upcoming ) {
+			$upcoming['rows'] = self::with_audience_names( $upcoming['rows'], $upcoming_audiences );
+		}
 
 		$rule_names = array();
 		foreach ( $rules as $rule ) {
@@ -327,7 +349,7 @@ final class DateMessagesAdminPage {
 
 		if ( Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			$message .= ' <a href="' . esc_url( admin_url( 'admin.php?page=ffc-settings&tab=migrations' ) ) . '">'
-				. esc_html__( 'Run it in Settings → Migrations.', 'ffcertificate' ) . '</a>';
+				. esc_html__( 'Run it in Settings → Data Migrations.', 'ffcertificate' ) . '</a>';
 		}
 
 		wp_admin_notice(
@@ -488,7 +510,7 @@ final class DateMessagesAdminPage {
 			'name'            => $posted['name'] ?? '',
 			'source'          => $posted['source'] ?? BirthdaySource::ID,
 			'offset_days'     => $posted['offset_days'] ?? '',
-			'audience_id'     => $posted['audience_id'] ?? '',
+			'audience_ids'    => is_array( $posted['audience_ids'] ?? null ) ? $posted['audience_ids'] : array(),
 			'subject'         => $posted['subject'] ?? '',
 			'body'            => is_string( $body ) ? wp_kses_post( $body ) : '',
 			'send_to_user'    => isset( $posted['send_to_user'] ) ? '1' : '0',
@@ -573,19 +595,109 @@ final class DateMessagesAdminPage {
 	}
 
 	/**
+	 * The audiences the upcoming-dates filter offers (#1648): those of the
+	 * chosen active rule, or of every active rule when none is chosen. A rule
+	 * that reaches everyone -- the chosen one, or any active one when none is
+	 * chosen -- offers every audience, and so does a screen with no active
+	 * rule at all, where narrowing to nothing would only hide the filter.
+	 *
+	 * @param array<int, Rule>   $rules     Every rule.
+	 * @param int                $rule_id   Chosen rule, 0 for none.
+	 * @param array<int, string> $audiences Every audience, id => indented name.
+	 * @return array<int, string> Audience id => name, in the tree's order.
+	 */
+	public static function upcoming_audience_options( array $rules, int $rule_id, array $audiences ): array {
+		$active = self::active_rules( $rules, $rule_id );
+		if ( array() === $active ) {
+			return $audiences;
+		}
+
+		$ids = array();
+		foreach ( $active as $rule ) {
+			if ( array() === $rule->audience_ids ) {
+				return $audiences;
+			}
+			foreach ( $rule->audience_ids as $id ) {
+				$ids[ $id ] = true;
+			}
+		}
+		return array_intersect_key( $audiences, $ids );
+	}
+
+	/**
+	 * The audiences the upcoming-dates list covers: the one chosen, else those
+	 * of the chosen rule; empty -- everyone -- when neither narrows it.
+	 *
+	 * @param array<int, Rule> $rules       Every rule.
+	 * @param int              $rule_id     Chosen rule, 0 for none.
+	 * @param int              $audience_id Chosen audience, 0 for none.
+	 * @return array<int>
+	 */
+	public static function upcoming_scope( array $rules, int $rule_id, int $audience_id ): array {
+		if ( $audience_id > 0 ) {
+			return array( $audience_id );
+		}
+		if ( $rule_id <= 0 ) {
+			return array();
+		}
+		$chosen = self::active_rules( $rules, $rule_id );
+		return array() === $chosen ? array() : $chosen[0]->audience_ids;
+	}
+
+	/**
+	 * Name, on each upcoming row, the offered audiences the person belongs to
+	 * directly, so the list says why someone is in it.
+	 *
+	 * @param array<int, array<string, mixed>> $rows      Upcoming rows.
+	 * @param array<int, string>               $offered   Audience id => indented name.
+	 * @return array<int, array<string, mixed>> The rows, each with an `audiences` string.
+	 */
+	private static function with_audience_names( array $rows, array $offered ): array {
+		if ( array() === $offered || ! class_exists( \FreeFormCertificate\Audience\AudienceReader::class ) ) {
+			return $rows;
+		}
+		foreach ( $rows as $i => $row ) {
+			$names = array();
+			foreach ( \FreeFormCertificate\Audience\AudienceReader::get_user_audiences( (int) ( $row['user_id'] ?? 0 ) ) as $audience ) {
+				if ( isset( $offered[ (int) $audience->id ] ) ) {
+					$names[] = (string) $audience->name;
+				}
+			}
+			$rows[ $i ]['audiences'] = implode( ', ', $names );
+		}
+		return $rows;
+	}
+
+	/**
+	 * The active rules, or only the chosen one when it is active.
+	 *
+	 * @param array<int, Rule> $rules   Every rule.
+	 * @param int              $rule_id Chosen rule, 0 for every active one.
+	 * @return list<Rule>
+	 */
+	private static function active_rules( array $rules, int $rule_id ): array {
+		return array_values(
+			array_filter(
+				$rules,
+				static fn( Rule $rule ): bool => $rule->is_active && ( $rule_id <= 0 || $rule->id === $rule_id )
+			)
+		);
+	}
+
+	/**
 	 * The people whose date falls in a period, through the same resolver the
-	 * send uses: a synthetic rule carries only the audience, so the panel
+	 * send uses: a synthetic rule carries only the audiences, so the panel
 	 * filters, and flags opt-outs, exactly as a send would.
 	 *
 	 * A month already past this year means its next occurrence, next year,
 	 * which only matters for 29 February.
 	 *
-	 * @param string             $period      A key of upcoming_periods().
-	 * @param int                $audience_id Audience, 0 for everyone.
-	 * @param \DateTimeImmutable $today       Today, site timezone.
+	 * @param string             $period       A key of upcoming_periods().
+	 * @param array<int>         $audience_ids Audiences to list, empty for everyone.
+	 * @param \DateTimeImmutable $today        Today, site timezone.
 	 * @return array{from: \DateTimeImmutable, to: \DateTimeImmutable, rows: array<int, array{user_id: int, name: string, email: string, date: string, decision: string}>, truncated: bool}
 	 */
-	public static function upcoming( string $period, int $audience_id, \DateTimeImmutable $today ): array {
+	public static function upcoming( string $period, array $audience_ids, \DateTimeImmutable $today ): array {
 		if ( 1 === preg_match( '/^m(1[0-2]|[1-9])$/', $period, $m ) ) {
 			$month = (int) $m[1];
 			$year  = (int) $today->format( 'Y' ) + ( $month < (int) $today->format( 'n' ) ? 1 : 0 );
@@ -598,10 +710,10 @@ final class DateMessagesAdminPage {
 
 		$rule      = Rule::from_array(
 			array(
-				'name'        => 'upcoming',
-				'subject'     => '-',
-				'body'        => '-',
-				'audience_id' => $audience_id > 0 ? $audience_id : null,
+				'name'         => 'upcoming',
+				'subject'      => '-',
+				'body'         => '-',
+				'audience_ids' => $audience_ids,
 			)
 		);
 		$rows      = array();

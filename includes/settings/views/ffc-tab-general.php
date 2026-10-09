@@ -197,7 +197,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 							<option value="auto" <?php selected( $ffcertificate_get_option( 'dark_mode', 'off' ), 'auto' ); ?>><?php esc_html_e( 'Auto (follow OS)', 'ffcertificate' ); ?></option>
 						</select>
 						<p class="description">
-							<?php esc_html_e( 'Controls the dark mode appearance for plugin admin pages.', 'ffcertificate' ); ?><br>
+							<?php esc_html_e( 'Controls the dark mode appearance of the plugin\'s admin screens and of its public pages (forms, user dashboard, shortcodes).', 'ffcertificate' ); ?><br>
 							<span class="ffc-text-info ffc-icon-info"><?php esc_html_e( '"Auto" follows your operating system preference.', 'ffcertificate' ); ?></span>
 						</p>
 					</td>
@@ -261,7 +261,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 						);
 						?>
 						<p class="description">
-							<?php esc_html_e( 'An RF carries a check digit, and the form has never verified it — which is why a mistyped RF reaches storage where a mistyped CPF does not. Off by default, because the rule was derived from the identifiers this install already holds rather than read from an official specification: turning it on could refuse a number that is genuinely unusual, and a person blocked from registering costs more than a typo the audit finds later. Before turning it on, run the identity audit (Settings → Migrations) and read how many stored RFs it reports as failing — that count is what enforcement would have rejected.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'An RF carries a check digit, and the form has never verified it — which is why a mistyped RF reaches storage where a mistyped CPF does not. Off by default, because the rule was derived from the identifiers this install already holds rather than read from an official specification: turning it on could refuse a number that is genuinely unusual, and a person blocked from registering costs more than a typo the audit finds later. Before turning it on, run the identity audit (Settings → Data Migrations) and read how many stored RFs it reports as failing — that count is what enforcement would have rejected.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>

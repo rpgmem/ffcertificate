@@ -8,6 +8,7 @@
  * @var int                              $total      Number of runs.
  * @var int                              $paged      Current page.
  * @var array<int, string>               $rule_names Rule id => name.
+ * @var int|false                        $next_run   Next daily run.
  *
  * @package FreeFormCertificate\DateMessages
  * @since   6.33.0
@@ -15,6 +16,7 @@
 
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\DateMessages\DateMessagesAdminPage;
+use FreeFormCertificate\DateMessages\DeliveryLog;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,6 +25,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 ?>
 <p class="description"><?php esc_html_e( '"Sent" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue.', 'ffcertificate' ); ?></p>
+<p class="description">
+	<?php
+	echo esc_html(
+		sprintf(
+			/* translators: %d: number of days */
+			__( 'The history keeps the last %d days. Older runs and their deliveries are removed automatically by the daily run.', 'ffcertificate' ),
+			DeliveryLog::RETENTION_DAYS
+		)
+	);
+	?>
+</p>
+
+<?php
+// The daily runs listed here come from the scheduled task, whose time lives on
+// Settings → Scheduled Tasks; a missing run is answered there, so the way is
+// offered from where it is noticed. The link is drawn only for who can open it.
+?>
+<p class="ffc-date-messages-schedule">
+	<?php
+	echo esc_html(
+		false === $next_run
+			? __( 'The daily run is not scheduled.', 'ffcertificate' )
+			: sprintf(
+				/* translators: %s: date and time */
+				__( 'Next daily run: %s.', 'ffcertificate' ),
+				DateFormatter::format_datetime( $next_run )
+			)
+	);
+	?>
+	<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_settings' ) ) : ?>
+		<a class="button ffc-icon-clock" href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=scheduled_tasks' ) ); ?>"><?php esc_html_e( 'Open Scheduled Tasks', 'ffcertificate' ); ?></a>
+	<?php endif; ?>
+</p>
 
 <?php if ( array() === $history ) : ?>
 	<p><?php esc_html_e( 'Nothing has been sent yet.', 'ffcertificate' ); ?></p>

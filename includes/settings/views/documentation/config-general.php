@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Configuration: General Section -->
 <div class="card">
-	<h3 id="config-general"><span class="dashicons dashicons-admin-settings" aria-hidden="true"></span> <?php esc_html_e( 'General', 'ffcertificate' ); ?></h3>
+	<h3 id="config-general" class="ffc-icon-settings"><?php esc_html_e( 'General', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Settings → General holds the plugin-wide basics.', 'ffcertificate' ); ?></p>
 
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</thead>
 		<tbody>
-			<tr><td><strong><?php esc_html_e( 'Dark Mode', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Admin appearance: Off, On (always dark), or Auto (follow the operating system).', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Dark Mode', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Off, On (always dark), or Auto (follow the operating system). Applies to the plugin\'s admin screens and to what it shows visitors: the public forms, the user dashboard and the scheduling, audience and recruitment shortcodes. Certificates and other PDFs are always light.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><strong><?php esc_html_e( 'Code Editor Theme', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Colours of the certificate HTML editor on the form screen: Auto (follows Dark Mode), Light or Dark. New installs default to Dark.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><strong><?php esc_html_e( 'Auto-delete old submissions', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Off by default. When switched on, the daily cleanup permanently deletes published submissions older than the "Delete after (days)" window (default 365).', 'ffcertificate' ); ?></td></tr>
 			<tr><td><strong><?php esc_html_e( 'RF check digit', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Off by default. When on, forms reject an RF whose check digit does not match. Before turning it on, run the identity audit on the Data Migrations tab to see how many stored RFs would fail.', 'ffcertificate' ); ?></td></tr>

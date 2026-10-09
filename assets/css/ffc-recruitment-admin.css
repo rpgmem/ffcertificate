@@ -189,10 +189,6 @@
    (computed display / data-driven) stay inline by design. */
 
 /* Spacing utilities */
-.ffc-rec-mt-20 {
-    margin-top: var(--ffc-spacing-2xl);
-}
-
 .ffc-rec-mt-0 {
     margin-top: 0;
 }
@@ -328,6 +324,12 @@
 .ffc-rec-welcome-notice {
     padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     margin: 1em 0;
+}
+
+/* The notice sits inside the Notices tab's `.card`, where
+   `.ffc-settings-wrap .card h3` would push its heading down; it opens flush. */
+.ffc-recruitment-admin .ffc-rec-welcome-notice h3 {
+    margin-top: 0;
 }
 
 .ffc-rec-pre-block {

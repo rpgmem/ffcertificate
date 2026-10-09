@@ -42,6 +42,96 @@ class FormListColumns {
 		add_filter( 'manage_edit-ffc_form_sortable_columns', array( __CLASS__, 'sortable_columns' ) );
 		add_action( 'pre_get_posts', array( __CLASS__, 'search_by_id' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_features_script' ) );
+		// The only seam that changes what an empty list prints: WordPress
+		// echoes `labels->not_found` as plain text, and a label is no place
+		// for markup. Default priority; nothing else here competes for it.
+		add_filter( 'wp_list_table_class_name', array( __CLASS__, 'list_table_class' ), 10, 2 );
+	}
+
+	/**
+	 * Swap in FormsListTable on the forms list screen, and nowhere else.
+	 *
+	 * Untyped on purpose: another callback earlier in the chain may hand on
+	 * something that is not a string, and a typed parameter would turn that
+	 * into a fatal error on the screen. Anything unexpected passes through.
+	 *
+	 * @param mixed $class_name List table class WordPress is about to build.
+	 * @param mixed $args       The `_get_list_table()` arguments.
+	 * @return mixed
+	 */
+	public static function list_table_class( $class_name, $args ) {
+		$screen = is_array( $args ) ? ( $args['screen'] ?? null ) : null;
+		if ( 'WP_Posts_List_Table' === $class_name && $screen instanceof \WP_Screen && 'ffc_form' === $screen->post_type ) {
+			return FormsListTable::class;
+		}
+		return $class_name;
+	}
+
+	/**
+	 * The empty state of the forms list, for the view and search in the request.
+	 *
+	 * @return string
+	 */
+	public static function empty_state(): string {
+		$search = trim( \FreeFormCertificate\Core\RequestInput::get_get_string( 's' ) );
+		$month  = \FreeFormCertificate\Core\RequestInput::get_get_key( 'm' );
+		$status = \FreeFormCertificate\Core\RequestInput::get_get_key( 'post_status' );
+
+		if ( '' !== $search || ( '' !== $month && '0' !== $month ) ) {
+			return AdminUI::get_empty_state(
+				array(
+					'icon'    => 'search',
+					'title'   => __( 'No forms match', 'ffcertificate' ),
+					'text'    => __( 'No form matches the current search or date filter. A number searches by form ID.', 'ffcertificate' ),
+					'actions' => array(
+						array(
+							'label' => __( 'Clear Filter', 'ffcertificate' ),
+							'url'   => remove_query_arg( array( 's', 'm', 'paged' ) ),
+						),
+					),
+				)
+			);
+		}
+
+		if ( 'trash' === $status ) {
+			return AdminUI::get_empty_state(
+				array(
+					'icon'  => 'delete',
+					'title' => __( 'Trash is empty', 'ffcertificate' ),
+					'text'  => __( 'Forms moved to the trash appear here until they are restored or deleted permanently.', 'ffcertificate' ),
+				)
+			);
+		}
+
+		$object = '' !== $status ? get_post_status_object( $status ) : null;
+		if ( $object && 'publish' !== $status ) {
+			return AdminUI::get_empty_state(
+				array(
+					'icon'  => 'file',
+					/* translators: %s: post status label, e.g. "Draft" */
+					'title' => sprintf( __( 'No forms in "%s"', 'ffcertificate' ), (string) $object->label ),
+				)
+			);
+		}
+
+		$type    = get_post_type_object( 'ffc_form' );
+		$actions = array();
+		if ( $type && current_user_can( (string) $type->cap->create_posts ) ) {
+			$actions[] = array(
+				'label'   => __( 'Add New Form', 'ffcertificate' ),
+				'url'     => admin_url( 'post-new.php?post_type=ffc_form' ),
+				'primary' => true,
+			);
+		}
+
+		return AdminUI::get_empty_state(
+			array(
+				'icon'    => 'file',
+				'title'   => __( 'No forms yet', 'ffcertificate' ),
+				'text'    => __( 'A form collects the answers a certificate is issued from. Create one, then place its shortcode on a page.', 'ffcertificate' ),
+				'actions' => $actions,
+			)
+		);
 	}
 
 	/**
@@ -162,14 +252,13 @@ class FormListColumns {
 	 * @return array<string, bool>
 	 */
 	private static function get_feature_states( int $post_id ): array {
-		$config      = get_post_meta( $post_id, '_ffc_form_config', true );
-		$device_meta = get_post_meta( $post_id, '_ffc_device_limit', true );
-		$csv_enabled = self::meta_string( $post_id, '_ffc_csv_public_enabled' );
+		$config = get_post_meta( $post_id, '_ffc_form_config', true );
 
 		return array(
-			'csv_public_enabled' => '1' === $csv_enabled,
+			'csv_public_enabled' => '1' === self::meta_string( $post_id, '_ffc_csv_public_enabled' ),
 			'quiz_enabled'       => is_array( $config ) && ! empty( $config['quiz_enabled'] ),
-			'device_enabled'     => is_array( $device_meta ) && ! empty( $device_meta['enabled'] ),
+			// The flat key the editor and the runtime read (#1625).
+			'device_enabled'     => '1' === self::meta_string( $post_id, '_ffc_device_limit_enabled' ),
 		);
 	}
 
@@ -234,7 +323,7 @@ class FormListColumns {
 					'<span class="ffc-shortcode-cell">'
 					. '<code class="ffc-shortcode-code">%s</code>'
 					. '<button type="button" class="ffc-copy-shortcode" data-shortcode="%s" title="%s">'
-					. '<span class="dashicons dashicons-clipboard"></span>'
+					. '<span class="ffc-icon-copy" aria-hidden="true"></span>'
 					. '</button>'
 					. '</span>',
 					esc_html( $shortcode ),

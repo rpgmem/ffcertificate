@@ -30,7 +30,7 @@ class TabCache extends SettingsTab {
 		$this->tab_id    = 'cache';
 		$this->tab_group = 'tools';
 		$this->tab_title = __( 'Cache', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-package';
+		$this->tab_icon  = 'ffc-icon-zap';
 		$this->tab_order = 30;
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );

@@ -29,6 +29,8 @@ class AudienceAdminDashboardTest extends TestCase {
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'current_time' )->justReturn( '2025-01-01 12:00:00' );
+		// The shared stat cards format their number (#1631).
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		// AudienceEnvironmentRepository::count() folds the CacheVersion counter
@@ -83,5 +85,20 @@ class AudienceAdminDashboardTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'wrap', $output );
+	}
+
+	public function test_dashboard_draws_the_shared_stat_cards_under_icon_headings(): void {
+		// #1631: the screen had its own card markup and bare h2s with a rule.
+		$page = new AudienceAdminDashboard( 'ffc-scheduling' );
+		ob_start();
+		$page->render_dashboard_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertSame( 6, substr_count( $output, '<div class="ffc-stat-card">' ) );
+		$this->assertSame( 6, substr_count( $output, 'class="ffc-stat-card__link"' ) );
+		foreach ( array( 'ffc-icon-user', 'ffc-icon-users', 'ffc-icon-zap' ) as $icon ) {
+			$this->assertStringContainsString( '<h2 class="' . $icon . '">', $output );
+		}
+		$this->assertStringNotContainsString( 'ffc-audience-stat-card', $output );
 	}
 }

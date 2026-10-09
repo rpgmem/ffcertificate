@@ -15,7 +15,9 @@
  *
  * On success the value replaces either an `[data-ffc-pii-field]` input (the
  * submission edit page) or a `.ffc-pii-value[data-field]` text node (the
- * appointment detail page), and the button is removed.
+ * appointment detail page), and the button is removed. An input marked
+ * `data-ffc-pii-editable` (the submission email) is enabled once it holds the
+ * clear value, so it is edited and posted only after a reveal (#1655).
  */
 jQuery(document).ready(function ($) {
     'use strict';
@@ -32,7 +34,7 @@ jQuery(document).ready(function ($) {
         var $btn = $(this);
         var field = $btn.data('field');
         var type = $btn.data('type') || 'submission';
-        var $cell = $btn.closest('td');
+        var $cell = $btn.closest('td, dd, .ffc-edit-field');
         var $input = $cell.find('[data-ffc-pii-field="' + field + '"]');
         var $text = $cell.find('.ffc-pii-value[data-field="' + field + '"]');
 
@@ -47,6 +49,10 @@ jQuery(document).ready(function ($) {
                 if (data && typeof data.value !== 'undefined') {
                     if ($input.length) {
                         $input.val(data.value);
+                        if ($input.is('[data-ffc-pii-editable]')) {
+                            $input.prop('disabled', false).trigger('focus');
+                            $cell.find('.ffc-pii-reveal-hint').remove();
+                        }
                     } else if ($text.length) {
                         $text.text(data.value);
                     }

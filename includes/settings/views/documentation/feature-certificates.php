@@ -14,9 +14,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <!-- Certificates & Forms Section -->
 <div class="card">
-	<h3 id="feature-certificates"><span class="dashicons dashicons-feedback" aria-hidden="true"></span> <?php esc_html_e( 'Certificates & Forms', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-certificates" class="ffc-icon-award"><?php esc_html_e( 'Certificates & Forms', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Create certificate-issuance forms, generate the certificate PDF automatically on submission, and let anyone verify authenticity by QR code or validation link.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'Certificates Dashboard', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'Certificates → Dashboard opens with a summary row (forms in the month shown, submissions today and over the last 7 days, GeoFence windows open now) above a calendar of forms by GeoFence start date, or by publication date when a form has none. Picking a day lists its forms beside the calendar. It needs ffc_view_certificates.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Building a form', 'ffcertificate' ); ?></h4>
@@ -24,11 +27,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<ul>
 			<li><strong><?php esc_html_e( 'Shortcodes', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the [ffc_form] tag and its attributes', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Template Variables / Tokens', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the {{placeholders}} available in the certificate PDF', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'QR Codes', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the {{qr_code}} verification placeholder', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'QR Code in the Certificate', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the {{qr_code}} verification placeholder', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Validation URL', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'building the certificate verification link', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Advanced → Required Certificate Tags. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'The {{qr_code}} image follows the design set in Settings → QR Code (module shape, colours, logo, frame) when that design is switched on for certificates; otherwise a plain black-and-white code is drawn.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-note">
@@ -67,7 +72,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'Using in Forms:', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'On the Geolocation tab of the form editor\'s "Certificate Form Configuration" box, choose the area source for GPS and IP validation:', 'ffcertificate' ); ?></p>
 		<ul>
-			<li><strong><?php esc_html_e( 'Registered Locations:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Select one or more named locations from a dropdown. Coordinates are resolved at runtime from the registry.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Registered Locations:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Tick one or more named locations in the list. Coordinates are resolved at runtime from the registry.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Custom Coordinates:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Enter coordinates manually in the textarea (lat,lng,radius format, one per line). This is the legacy behavior.', 'ffcertificate' ); ?></li>
 		</ul>
 		<p><?php esc_html_e( 'Existing forms that were created before this feature default to "Custom Coordinates" and continue to work without any changes.', 'ffcertificate' ); ?></p>

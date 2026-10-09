@@ -78,21 +78,23 @@ class TypographyTokensTest extends TestCase {
 		'ffc-reregistration-frontend.css'  => 0,
 		'ffc-url-shortener-admin.css'      => 0,
 		'ffc-qr-generator.css'             => 0,
+		'ffc-admin-components.css'         => 0,
 		'ffc-qr-design-fields.css'         => 0,
 		'ffc-user-permissions.css'         => 0,
 		'ffc-working-hours.css'            => 0,
+		'ffc-audience-transfer-list.css'   => 0,
 
 		// Glyphs: an icon (dashicon, `&times;`, a success mark) sized by
 		// font-size is a glyph box, not text.
 		'ffc-admin-settings.css'           => 1,
 		'ffc-calendar-frontend.css'        => 1,
 		'ffc-reregistration-admin.css'     => 1,
-		'ffc-admin.css'                    => 3,
+		'ffc-admin.css'                    => 1,
 		'ffc-frontend.css'                 => 2,
 
 		// Card hero numbers, deliberately above the text scale — plus the phone
 		// step, which would make no sense if it rose to the floor.
-		'ffc-audience-admin.css'           => 2,
+		'ffc-audience-admin.css'           => 0,
 		'ffc-user-dashboard.css'           => 2,
 
 		// A badge that has to fit inside the day cell, with its own responsive step.

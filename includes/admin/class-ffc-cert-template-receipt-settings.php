@@ -89,7 +89,7 @@ class CertTemplateReceiptSettings {
 	public function add_tab( array $tabs ): array {
 		$tabs[ self::TAB ] = array(
 			'label' => __( 'Receipt', 'ffcertificate' ),
-			'icon'  => 'media-document',
+			'icon'  => 'ffc-icon-file',
 		);
 		return $tabs;
 	}
@@ -146,7 +146,8 @@ class CertTemplateReceiptSettings {
 			);
 		}
 		?>
-		<h2><?php esc_html_e( 'Appointment Receipt Templates', 'ffcertificate' ); ?></h2>
+		<div class="card">
+		<h2 class="ffc-icon-file"><?php esc_html_e( 'Appointment Receipt Templates', 'ffcertificate' ); ?></h2>
 		<p class="description">
 			<?php esc_html_e( 'Choose which template the appointment receipt (comprovante) PDF uses, separately for Regular and Custom calendars. Create, edit and duplicate templates in the Document Templates hub.', 'ffcertificate' ); ?>
 		</p>
@@ -167,6 +168,7 @@ class CertTemplateReceiptSettings {
 			?>
 			<?php submit_button( __( 'Save Changes', 'ffcertificate' ) ); ?>
 		</form>
+		</div>
 		<?php
 	}
 

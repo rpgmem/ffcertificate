@@ -390,7 +390,7 @@ final class QrSvgRenderer {
 		 * coloured through currentColor, so one drawing serves any ink.
 		 */
 		$icon     = static function ( float $x, float $y, float $size, string $ink ) use ( $design ): string {
-			$paths = 'none' === $design->frame_icon ? '' : QrIcons::paths( $design->frame_icon );
+			$paths = 'none' === $design->frame_icon ? '' : \FreeFormCertificate\Core\Icons::paths( $design->frame_icon );
 			if ( '' === $paths ) {
 				return '';
 			}
@@ -403,7 +403,7 @@ final class QrSvgRenderer {
 				$paths
 			);
 		};
-		$has_icon = 'none' !== $design->frame_icon && '' !== QrIcons::paths( $design->frame_icon );
+		$has_icon = 'none' !== $design->frame_icon && '' !== \FreeFormCertificate\Core\Icons::paths( $design->frame_icon );
 
 		switch ( $design->frame ) {
 			case 'pill':

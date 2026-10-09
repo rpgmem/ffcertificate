@@ -90,7 +90,7 @@ class TabRateLimitTest extends TestCase {
 	}
 
 	public function test_tab_icon_is_shield(): void {
-		$this->assertSame( 'ffc-icon-shield', $this->tab->get_icon() );
+		$this->assertSame( 'ffc-icon-gauge', $this->tab->get_icon() );
 	}
 
 	public function test_tab_order_is_40(): void {

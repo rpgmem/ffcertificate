@@ -139,4 +139,194 @@ class AdminUI {
 		self::render_toggle( $args );
 		return (string) ob_get_clean();
 	}
+
+	/**
+	 * Markup for an empty state (`.ffc-empty-state`): an icon badge, a title,
+	 * a sentence saying why the list is empty, and the actions that change it.
+	 *
+	 * One helper for every admin list, so an empty list says the same kind of
+	 * thing everywhere: which view or filter produced nothing, and the way out.
+	 * The badge takes the primary tone: the neutral one has the ground of a
+	 * striped list row, so on the table it vanished.
+	 *
+	 * @param array<string, mixed> $args `icon` (registered `Core\Icons` class name
+	 *                                    without the `ffc-icon-` prefix, default
+	 *                                    `inbox`), `title` (required string), `text`
+	 *                                    (optional string), `actions` (optional list
+	 *                                    of `{label, url, primary?}`).
+	 * @return string
+	 */
+	public static function get_empty_state( array $args ): string {
+		$title = (string) ( $args['title'] ?? '' );
+		if ( '' === $title ) {
+			return '';
+		}
+		$icon    = (string) ( $args['icon'] ?? 'inbox' );
+		$text    = (string) ( $args['text'] ?? '' );
+		$actions = is_array( $args['actions'] ?? null ) ? $args['actions'] : array();
+
+		$html  = '<div class="ffc-empty-state">';
+		$html .= '<span class="ffc-empty-state__icon ffc-icon-badge ffc-icon-badge-primary ffc-icon-' . esc_attr( $icon ) . '" aria-hidden="true"></span>';
+		$html .= '<p class="ffc-empty-state__title">' . esc_html( $title ) . '</p>';
+		if ( '' !== $text ) {
+			$html .= '<p class="ffc-empty-state__text">' . esc_html( $text ) . '</p>';
+		}
+
+		$links = '';
+		foreach ( $actions as $action ) {
+			if ( ! is_array( $action ) || empty( $action['label'] ) || empty( $action['url'] ) ) {
+				continue;
+			}
+			$links .= sprintf(
+				'<a href="%s" class="button%s">%s</a>',
+				esc_url( (string) $action['url'] ),
+				empty( $action['primary'] ) ? '' : ' button-primary',
+				esc_html( (string) $action['label'] )
+			);
+		}
+		if ( '' !== $links ) {
+			$html .= '<div class="ffc-empty-state__actions">' . $links . '</div>';
+		}
+
+		return $html . '</div>';
+	}
+
+	/**
+	 * Opening markup of a collapsible section (`.ffc-section`): a `<details>`
+	 * whose summary carries an icon, a title, a hint and, optionally, a chip.
+	 *
+	 * The chip says what the section is set to without opening it. With
+	 * `master` it follows a toggle live (`ffc-admin-sections.js` keeps it in
+	 * step); with `chip` it is fixed text the caller computed. Close the
+	 * section with {@see self::section_close()}.
+	 *
+	 * @param array<string, mixed> $args `title` (required), `icon` (a `Core\Icons`
+	 *                                    drawing name), `hint`, `open` (bool),
+	 *                                    `id`, `master` (id of the toggle the
+	 *                                    chip follows) with `on` (its state at
+	 *                                    render), `chip` (fixed chip text).
+	 * @return string
+	 */
+	public static function section_open( array $args ): string {
+		$title  = (string) ( $args['title'] ?? '' );
+		$icon   = (string) ( $args['icon'] ?? '' );
+		$hint   = (string) ( $args['hint'] ?? '' );
+		$id     = (string) ( $args['id'] ?? '' );
+		$master = (string) ( $args['master'] ?? '' );
+		$chip   = (string) ( $args['chip'] ?? '' );
+
+		$html  = sprintf(
+			'<details class="ffc-section"%s%s data-ffc-section>',
+			'' !== $id ? ' id="' . esc_attr( $id ) . '"' : '',
+			empty( $args['open'] ) ? '' : ' open'
+		);
+		$html .= '<summary class="ffc-section__summary">';
+		if ( '' !== $icon ) {
+			$html .= '<span class="ffc-section__icon">' . \FreeFormCertificate\Core\Icons::svg( $icon, 22 ) . '</span>';
+		}
+		$html .= '<span class="ffc-section__text"><span class="ffc-section__title">' . esc_html( $title ) . '</span>';
+		if ( '' !== $hint ) {
+			$html .= '<span class="ffc-section__hint">' . esc_html( $hint ) . '</span>';
+		}
+		$html .= '</span>';
+		if ( '' !== $master ) {
+			$on    = ! empty( $args['on'] );
+			$html .= sprintf(
+				'<span class="ffc-section__chip %s" data-ffc-section-master="%s" data-on="%s" data-off="%s">%s</span>',
+				$on ? 'is-on' : 'is-off',
+				esc_attr( $master ),
+				esc_attr__( 'On', 'ffcertificate' ),
+				esc_attr__( 'Off', 'ffcertificate' ),
+				$on ? esc_html__( 'On', 'ffcertificate' ) : esc_html__( 'Off', 'ffcertificate' )
+			);
+		} elseif ( '' !== $chip ) {
+			$html .= '<span class="ffc-section__chip">' . esc_html( $chip ) . '</span>';
+		}
+		return $html . '</summary><div class="ffc-section__body">';
+	}
+
+	/**
+	 * Closing markup of a section opened with {@see self::section_open()}.
+	 *
+	 * @return string
+	 */
+	public static function section_close(): string {
+		return '</div></details>';
+	}
+
+	/**
+	 * Print {@see self::section_open()}.
+	 *
+	 * @param array<string, mixed> $args See {@see self::section_open()}.
+	 */
+	public static function render_section_open( array $args ): void {
+		echo self::section_open( $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- section_open() escapes every value.
+	}
+
+	/**
+	 * Print {@see self::section_close()}.
+	 */
+	public static function render_section_close(): void {
+		echo self::section_close(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static closing markup.
+	}
+
+	/**
+	 * Markup for a stat card (`.ffc-stat-card`): an icon badge, a number and
+	 * what it counts. Lay several out in a `.ffc-stats` row.
+	 *
+	 * @param array<string, mixed> $args `label` (required), `value` (int or
+	 *                                    string; '—' until known), `icon`
+	 *                                    (`.ffc-icon-*` name without the
+	 *                                    prefix), `tone` (the badge's tone:
+	 *                                    primary by default, or info, success,
+	 *                                    warning, danger, neutral), `id` (on
+	 *                                    the value, for a script that fills
+	 *                                    it in), `url` with `link` (a link
+	 *                                    under the label to the screen the
+	 *                                    number counts).
+	 * @return string
+	 */
+	public static function get_stat_card( array $args ): string {
+		$label = (string) ( $args['label'] ?? '' );
+		if ( '' === $label ) {
+			return '';
+		}
+		$value = $args['value'] ?? '—';
+		$value = is_int( $value ) ? number_format_i18n( $value ) : (string) $value;
+		$icon  = (string) ( $args['icon'] ?? '' );
+		$id    = (string) ( $args['id'] ?? '' );
+		$url   = (string) ( $args['url'] ?? '' );
+		$link  = (string) ( $args['link'] ?? '' );
+		$tone  = (string) ( $args['tone'] ?? 'primary' );
+
+		$html = '<div class="ffc-stat-card">';
+		if ( '' !== $icon ) {
+			// The plain badge is the neutral one; every other tone is a modifier.
+			// Whole class names, never assembled, so the icon-class scan reads
+			// each one (IconStylesheetTest).
+			$badges = array(
+				'primary' => 'ffc-icon-badge ffc-icon-badge-primary',
+				'info'    => 'ffc-icon-badge ffc-icon-badge-info',
+				'success' => 'ffc-icon-badge ffc-icon-badge-success',
+				'warning' => 'ffc-icon-badge ffc-icon-badge-warning',
+				'danger'  => 'ffc-icon-badge ffc-icon-badge-danger',
+			);
+			$badge  = $badges[ $tone ] ?? 'ffc-icon-badge';
+			$html  .= '<span class="ffc-stat-card__icon ' . esc_attr( $badge ) . ' ffc-icon-' . esc_attr( $icon ) . '" aria-hidden="true"></span>';
+		}
+		$html .= sprintf(
+			'<span class="ffc-stat-card__value"%s>%s</span><span class="ffc-stat-card__label">%s</span>',
+			'' !== $id ? ' id="' . esc_attr( $id ) . '"' : '',
+			esc_html( $value ),
+			esc_html( $label )
+		);
+		if ( '' !== $url && '' !== $link ) {
+			$html .= sprintf(
+				'<a class="ffc-stat-card__link" href="%s">%s &rarr;</a>',
+				esc_url( $url ),
+				esc_html( $link )
+			);
+		}
+		return $html . '</div>';
+	}
 }

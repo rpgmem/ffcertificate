@@ -114,6 +114,7 @@ final class RecruitmentNoticeEditPage {
 		$notice_id = RequestInput::get_get_int( 'notice_id' );
 		$notice    = $notice_id > 0 ? RecruitmentNoticeReader::get_by_id( $notice_id ) : null;
 		if ( null === $notice ) {
+			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 			wp_admin_notice(
 				esc_html__( 'Notice not found.', 'ffcertificate' ),
 				array( 'type' => 'error' )
@@ -122,14 +123,15 @@ final class RecruitmentNoticeEditPage {
 			return;
 		}
 
-		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Notices', 'ffcertificate' ) . '</a></p>';
-		echo '<h2>' . sprintf(
+		echo '<h1>' . sprintf(
 			/* translators: %s — notice code */
 			esc_html__( 'Edit notice — %s', 'ffcertificate' ),
 			'<code>' . esc_html( (string) $notice->code ) . '</code>'
-		) . '</h2>';
+		) . '</h1>';
+		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Notices', 'ffcertificate' ) . '</a></p>';
 
 		RecruitmentNoticeEditPageRenderer::render_general_section( $notice );
+		RecruitmentNoticeEditPageRenderer::render_shortcode_section( $notice );
 		RecruitmentNoticeEditPageRenderer::render_status_section( $notice );
 		RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $notice );
 		// The CSV import section is the strict `ffc_import_recruitment` tier

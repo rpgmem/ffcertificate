@@ -30,7 +30,7 @@ class TabAdvanced extends SettingsTab {
 		$this->tab_id    = 'advanced';
 		$this->tab_group = 'system';
 		$this->tab_title = __( 'Advanced', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-settings';
+		$this->tab_icon  = 'ffc-icon-sliders';
 		$this->tab_order = 70;
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
@@ -80,7 +80,7 @@ class TabAdvanced extends SettingsTab {
 						$ffc_version
 					),
 					'FFC_HASH_SALT'      => sprintf(
-						"Free Form Certificate — search-hash salt (FFC_HASH_SALT).\nDedicated secret that salts the blind-index hashes used to look up encrypted\nCPF / RF / e-mail, decoupling them from the shared WordPress salts. Changing it\non a site that already holds data invalidates those hashes until a key rotation\nrebuilds them (WP-Admin → Settings → Migrations). Generated for FFC v%s.",
+						"Free Form Certificate — search-hash salt (FFC_HASH_SALT).\nDedicated secret that salts the blind-index hashes used to look up encrypted\nCPF / RF / e-mail, decoupling them from the shared WordPress salts. Changing it\non a site that already holds data invalidates those hashes until a key rotation\nrebuilds them (WP-Admin → Settings → Data Migrations). Generated for FFC v%s.",
 						$ffc_version
 					),
 				),

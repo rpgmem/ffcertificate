@@ -5,75 +5,12 @@
  * @package FreeFormCertificate\Audience
  */
 
-/* Dashboard Stats Grid */
-.ffc-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--ffc-spacing-2xl);
-    margin-bottom: 30px;
-}
-
-.ffc-stat-card {
-    background: var(--ffc-bg-card);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-2xl);
+/* Scheduling Dashboard quick actions: a wrapping row of buttons. The stat
+   cards above them are the shared `.ffc-stat-card` component (#1631). */
+.ffc-scheduling-quick-actions {
     display: flex;
-    flex-direction: column;
-}
-
-.ffc-stat-number {
-    display: flex;
-    align-items: center;
-    gap: var(--ffc-spacing-lg);
-}
-
-/* 32px literal: this is the icon's glyph, not text — an icon sized by
-   font-size is a glyph box, and the typography scale does not govern it. */
-.ffc-stat-icon {
-    font-size: 32px;
-    color: var(--ffc-primary);
-}
-
-/* 36px literal: the card's hero number, deliberately above the text scale,
-   paired with the 32px icon beside it. A rung used once is not a scale. */
-.ffc-stat-value {
-    font-size: 36px;
-    font-weight: 600;
-    color: var(--ffc-text);
-}
-
-.ffc-stat-label {
-    color: var(--ffc-text-secondary);
-    font-size: var(--ffc-font-size-base);
-}
-
-.ffc-stat-link {
-    margin-top: var(--ffc-spacing-xl);
-    color: var(--ffc-link);
-    text-decoration: none;
-}
-
-.ffc-stat-link:hover {
-    text-decoration: underline;
-}
-
-/* Quick Actions */
-.ffc-quick-actions {
-    background: var(--ffc-bg-card);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-2xl);
-}
-
-.ffc-quick-actions h2 {
-    margin-top: 0;
-}
-
-.ffc-action-buttons {
-    display: flex;
-    gap: var(--ffc-spacing-md);
     flex-wrap: wrap;
+    gap: var(--ffc-spacing-md);
 }
 
 /* Status Badges — a name of their own since #1162.
@@ -237,15 +174,6 @@
 
 .ffc-day-row input[type="time"] {
     width: 120px;
-}
-
-/* Members Section */
-.ffc-members-section {
-    background: var(--ffc-bg-card);
-    padding: var(--ffc-spacing-2xl);
-    margin: var(--ffc-spacing-2xl) 0;
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-user-results {
@@ -436,27 +364,8 @@
     margin-bottom: var(--ffc-spacing-md);
 }
 
-/* Dashboard Headings */
-.ffc-scheduling-dashboard {
-    margin-top: var(--ffc-spacing-2xl);
-}
-
-.ffc-scheduling-dashboard > h2 {
-    margin: 25px 0 var(--ffc-spacing-xl);
-    padding-bottom: var(--ffc-spacing-sm);
-    border-bottom: 1px solid var(--ffc-border);
-}
-
-.ffc-scheduling-dashboard > h2:first-of-type {
-    margin-top: 0;
-}
-
 /* Responsive */
 @media screen and (max-width: 782px) {
-    .ffc-stats-grid {
-        grid-template-columns: 1fr;
-    }
-
     .ffc-day-row {
         flex-wrap: wrap;
     }

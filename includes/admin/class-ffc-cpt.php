@@ -43,8 +43,8 @@ class CPT {
 		$labels = array(
 			'name'               => _x( 'Forms', 'Post Type General Name', 'ffcertificate' ),
 			'singular_name'      => _x( 'Form', 'Post Type Singular Name', 'ffcertificate' ),
-			'menu_name'          => __( 'Certificate', 'ffcertificate' ),
-			'name_admin_bar'     => __( 'FFC Form', 'ffcertificate' ),
+			'menu_name'          => \FreeFormCertificate\Core\PluginAreas::label( 'certificates' ),
+			'name_admin_bar'     => _x( 'Form', 'Post Type Singular Name', 'ffcertificate' ),
 			'add_new'            => __( 'Add New Form', 'ffcertificate' ),
 			'add_new_item'       => __( 'Add New Form', 'ffcertificate' ),
 			'new_item'           => __( 'New Form', 'ffcertificate' ),
@@ -107,7 +107,7 @@ class CPT {
 			),
 			'has_archive'     => false,
 			'hierarchical'    => false,
-			'menu_icon'       => 'dashicons-feedback',
+			'menu_icon'       => 'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
 			'supports'        => array( 'title' ),
 			'rewrite'         => array( 'slug' => 'ffc-form' ),
 		);
@@ -174,7 +174,7 @@ class CPT {
 		);
 		?>
 		<div class="misc-pub-section ffc-duplicate-action">
-			<span class="dashicons dashicons-admin-page" aria-hidden="true"></span>
+			<span class="ffc-icon-copy" aria-hidden="true"></span>
 			<a href="<?php echo esc_url( $url ); ?>" title="<?php esc_attr_e( 'Duplicate this form as a new draft. Copies fields, layout, geofence and CSV/device settings; the access hash, counters and audit log start fresh.', 'ffcertificate' ); ?>">
 				<?php esc_html_e( 'Duplicate this form', 'ffcertificate' ); ?>
 			</a>

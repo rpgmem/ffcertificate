@@ -305,8 +305,8 @@ class TabEmailTexts extends SettingsTab {
 	 */
 	private static function email_hub_groups(): array {
 		return array(
-			__( 'Certificates & forms', 'ffcertificate' ) => array( 'certificate-user' ),
-			__( 'Self-scheduling', 'ffcertificate' )      => array(
+			__( 'Certificates', 'ffcertificate' )       => array( 'certificate-user' ),
+			__( 'Personal Calendars', 'ffcertificate' ) => array(
 				'selfscheduling-confirmation',
 				'appointment-approval',
 				'appointment-cancellation',
@@ -315,15 +315,15 @@ class TabEmailTexts extends SettingsTab {
 				'appointment-waitlisted',
 				'calendar-deleted-cancellation',
 			),
-			__( 'Recruitment', 'ffcertificate' )          => array( 'recruitment-convocation' ),
-			__( 'Reregistration', 'ffcertificate' )       => array(
+			__( 'Recruitment', 'ffcertificate' )        => array( 'recruitment-convocation' ),
+			__( 'Reregistration', 'ffcertificate' )     => array(
 				'reregistration-invitation',
 				'reregistration-reminder',
 				'reregistration-confirmation',
 			),
-			__( 'Audiences', 'ffcertificate' )            => array( 'audience-booking', 'audience-cancellation' ),
-			__( 'Account access', 'ffcertificate' )       => array( 'access-granted' ),
-			__( 'Date messages', 'ffcertificate' )        => array( 'date-message-birthday' ),
+			__( 'Audience Calendars', 'ffcertificate' ) => array( 'audience-booking', 'audience-cancellation' ),
+			__( 'Account access', 'ffcertificate' )     => array( 'access-granted' ),
+			__( 'Date Messages', 'ffcertificate' )      => array( 'date-message-birthday' ),
 		);
 	}
 
@@ -347,7 +347,7 @@ class TabEmailTexts extends SettingsTab {
 
 		$open_label = __( 'Open →', 'ffcertificate' );
 		?>
-		<h2 class="ffc-icon-email"><?php esc_html_e( 'All plugin emails', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-icon-list"><?php esc_html_e( 'All plugin emails', 'ffcertificate' ); ?></h2>
 		<p class="description">
 			<?php esc_html_e( 'Every email the plugin can send, and where each one is configured. They all share the Email Model (its own tab); the ones marked "Editable text (global)" have their wording edited in the box above on this tab, and the rest ship a fixed default body you can only turn on or off.', 'ffcertificate' ); ?>
 		</p>
@@ -425,7 +425,7 @@ class TabEmailTexts extends SettingsTab {
 			),
 			array(
 				'cap'   => 'ffc_view_calendars',
-				'title' => __( 'Self-scheduling', 'ffcertificate' ),
+				'title' => __( 'Personal Calendars', 'ffcertificate' ),
 				'url'   => admin_url( 'edit.php?post_type=ffc_self_scheduling' ),
 				'rows'  => array(
 					array(
@@ -487,7 +487,7 @@ class TabEmailTexts extends SettingsTab {
 			),
 			array(
 				'cap'   => 'ffc_view_audiences',
-				'title' => __( 'Audiences', 'ffcertificate' ),
+				'title' => __( 'Audience Calendars', 'ffcertificate' ),
 				'url'   => admin_url( 'admin.php?page=ffc-scheduling-calendars' ),
 				'rows'  => array(
 					array(

@@ -508,7 +508,7 @@ $inputs.each(function() {
                     'text-align': 'center',
                     'animation': 'ffcSlideDown 0.3s ease'
                 })
-                .html('<h3 style="margin: 0 0 10px 0; font-size: 20px;">✅ ' + (ffc_ajax.strings.success || 'Success!') + '</h3><p style="margin: 0;">' + (ffc_ajax.strings.submissionSuccessful || 'Your submission was successful.') + '</p>');
+                .html('<h3 style="margin: 0 0 10px 0; font-size: 20px;"><span class="ffc-icon-success" aria-hidden="true"></span>' + (ffc_ajax.strings.success || 'Success!') + '</h3><p style="margin: 0;">' + (ffc_ajax.strings.submissionSuccessful || 'Your submission was successful.') + '</p>');
             
             $form.html($success);
         },
@@ -603,7 +603,7 @@ $inputs.each(function() {
         /**
          * Put an `<altcha-widget>` back to its unsolved state.
          *
-         * `reset()` is the widget's own public API: the 3.2.2 component returns
+         * `reset()` is the widget's own public API: the 3.3.0 component returns
          * `{configure, getConfiguration, getState, hide, log, reset, setState,
          * show, updateUI, verify}` and the custom element carries it. That was
          * read off the vendored bundle rather than taken from documentation,
@@ -665,7 +665,7 @@ $inputs.each(function() {
             // wrong for ticking values).
             $form.prepend(
                 '<div class="ffc-rate-limit-notice" role="status" aria-live="polite">' +
-                    '<div class="ffc-rate-limit-icon" aria-hidden="true">⏱️</div>' +
+                    '<div class="ffc-rate-limit-icon ffc-icon-clock" aria-hidden="true"></div>' +
                     '<div class="ffc-rate-limit-message">' +
                         $('<span>').text(message)[0].outerHTML +
                         ' <strong id="ffc-countdown">' + initialDisplay + '</strong>' +

@@ -25,6 +25,7 @@ class FormEditorEmailMetaboxTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_textarea' )->returnArg();
@@ -127,8 +128,8 @@ class FormEditorEmailMetaboxTest extends TestCase {
 		// No pre-seed of the shipped body into the editor (#964).
 		$html = $this->render( array( 'send_user_email' => '1' ) );
 
-		$this->assertStringContainsString( 'ffc-cert-email-custom-fields" style="display:none', $html );
-		$this->assertStringContainsString( 'ffc-cert-email-global-note', $html );
+		$this->assertStringContainsString( 'class="ffc-cert-email-custom-fields ffc-hidden"', $html );
+		$this->assertStringContainsString( 'class="description ffc-cert-email-global-note"', $html );
 		$this->assertStringContainsString( 'shared global email text', $html );
 		// The shipped default body is NOT dumped into the editor any more.
 		$this->assertStringNotContainsString( 'Hello {{name}},', $html );
@@ -144,8 +145,9 @@ class FormEditorEmailMetaboxTest extends TestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'ffc-cert-email-custom-fields">', $html );
-		$this->assertStringNotContainsString( 'ffc-cert-email-custom-fields" style="display:none', $html );
+		$this->assertStringContainsString( 'class="ffc-cert-email-custom-fields"', $html );
+		$this->assertStringContainsString( 'class="description ffc-cert-email-global-note ffc-hidden"', $html );
+		$this->assertStringNotContainsString( 'style="display:none', $html, 'visibility is the shared class, never an inline style (#1614)' );
 		$this->assertStringContainsString( '<p>My own message</p>', $html );
 	}
 
@@ -163,5 +165,15 @@ class FormEditorEmailMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'data-editor="ffc_email_body"', $html );
 		$this->assertStringContainsString( 'data-default-key="certificate_body"', $html );
 		$this->assertStringContainsString( 'Restore Default Text', $html );
+	}
+
+	public function test_render_groups_the_two_emails_into_sections_whose_chips_follow_their_toggles(): void {
+		$html = $this->render( array( 'send_user_email' => '1' ) );
+
+		$this->assertSame( 2, substr_count( $html, '<details class="ffc-section"' ) );
+		$this->assertStringContainsString( 'data-ffc-section-master="ffc_config_send_user_email"', $html );
+		$this->assertStringContainsString( 'data-ffc-section-master="ffc_config_send_admin_email"', $html );
+		$this->assertMatchesRegularExpression( '/<details class="ffc-section" open data-ffc-section>.*?Email to the participant.*?class="ffc-section__chip is-on"/s', $html, 'an email that is on opens its section' );
+		$this->assertMatchesRegularExpression( '/<details class="ffc-section" data-ffc-section>.*?Notify the administrator.*?class="ffc-section__chip is-off"/s', $html, 'an email that is off stays closed' );
 	}
 }

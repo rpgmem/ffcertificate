@@ -30,7 +30,7 @@
 
         $('.ffc-admin-notification').remove();
 
-        var icons = {success: 'yes-alt', error: 'dismiss', warning: 'warning', info: 'info'};
+        var icons = {success: 'success', error: 'error', warning: 'warning', info: 'info'};
         var colors = {success: 'notice-success', error: 'notice-error', warning: 'notice-warning', info: 'notice-info'};
 
         // Get localized strings with fallbacks
@@ -38,7 +38,7 @@
         var dismissText = strings.dismiss || 'Dismiss';
 
         var $notif = $('<div class="ffc-admin-notification notice ' + colors[type] + ' is-dismissible">' +
-            '<p><span class="dashicons dashicons-' + icons[type] + '"></span> ' + message + '</p>' +
+            '<p><span class="ffc-icon-' + icons[type] + '" aria-hidden="true"></span>' + message + '</p>' +
             '<button type="button" class="notice-dismiss"><span class="screen-reader-text">' + dismissText + '</span></button>' +
             '</div>');
 
@@ -291,6 +291,12 @@
             $target.toggleClass('ffc-collapsed', !on);
             $target.attr('aria-hidden', on ? 'false' : 'true');
             $master.attr('aria-expanded', on ? 'true' : 'false');
+            // A collapsed block is `display: none`, and a `required` control
+            // inside it would block the submit against something nobody can
+            // see (#1117). Carry the attribute with the visibility.
+            if (window.FFC && typeof window.FFC.setRequiredWithin === 'function') {
+                window.FFC.setRequiredWithin($target, on);
+            }
         }
 
         $master.on('change', sync);
@@ -311,43 +317,8 @@
     // here is needed for it any more.
     // =========================================================================
 
-    // =========================================================================
-    // Copy-to-clipboard buttons. Any button carrying
-    // `data-ffc-copy-target="<selector>"` reads the .val() of the matched
-    // input on click and writes it to the clipboard. Falls back to the
-    // execCommand path for environments without navigator.clipboard.
-    // =========================================================================
-    $(document).on('click', '.ffc-copy-link[data-ffc-copy-target]', function(e) {
-        e.preventDefault();
-        var $btn    = $(this);
-        var target  = $btn.data('ffc-copy-target');
-        var $source = $(target);
-        if (!$source.length) { return; }
-        var text = $source.val();
-        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
-        var copiedText = strings.copied || 'Copied!';
-        var copyFailedText = strings.copyFailed || 'Copy failed';
-        var done = function(ok) {
-            var original = $btn.data('ffc-copy-original') || $btn.text();
-            $btn.data('ffc-copy-original', original);
-            $btn.text(ok ? copiedText : copyFailedText);
-            setTimeout(function() { $btn.text(original); }, 1500);
-        };
-        if (window.navigator && window.navigator.clipboard && window.navigator.clipboard.writeText) {
-            window.navigator.clipboard.writeText(text).then(
-                function() { done(true); },
-                function() { done(false); }
-            );
-        } else {
-            // Legacy fallback for non-secure contexts / older browsers.
-            try {
-                $source[0].select();
-                document.execCommand('copy');
-                done(true);
-            } catch (err) {
-                done(false);
-            }
-        }
-    });
+    // Copy-to-clipboard buttons (`.ffc-copy-link[data-ffc-copy-target]`)
+    // live in `ffc-core.js`, so a screen that loads only the core — the
+    // calendar editor's shortcode box — gets them too.
 
 })(jQuery);

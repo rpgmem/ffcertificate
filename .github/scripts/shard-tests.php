@@ -7,7 +7,10 @@
  * <file> entries — passing many paths on the CLI is unreliable, PHPUnit 9 only
  * honours the first). The <coverage> include/exclude mirrors phpunit.xml.dist
  * exactly, so each shard's coverage uses the same source scope and the merged
- * clover denominator matches a single-process run.
+ * clover denominator matches a single-process run. The <extensions> block
+ * mirrors it too: without `SuiteCpuBudget` a shard inherits the sixty-second
+ * limit `BatchedCsvExportTest` sets on the way past (#1493), and the shard
+ * that holds it dies with "Maximum execution time" once enough tests follow.
  *
  * Usage:  php .github/scripts/shard-tests.php <shardIndex 1-based> <shardTotal> > phpunit.shard-N.xml
  *
@@ -132,6 +135,9 @@ echo <<<XML
     convertNoticesToExceptions="true"
     convertWarningsToExceptions="true"
     >
+    <extensions>
+        <extension class="FreeFormCertificate\Tests\Support\SuiteCpuBudget"/>
+    </extensions>
     <testsuites>
         <testsuite name="shard-{$shard}">
 {$entries}        </testsuite>

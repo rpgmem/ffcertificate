@@ -35,7 +35,7 @@ function mountMetabox() {
 				<tr id="ffc-datetime-hide-mode-during-row">
 					<td><select name="ffc_geofence[hide_mode_during]"><option value="hidden">hidden</option></select></td>
 				</tr>
-				<p class="ffc-datetime-order-error" style="display:none"></p>
+				<p class="ffc-datetime-order-error ffc-hidden"></p>
 			</div>
 
 			<div id="ffc-tab-geolocation">
@@ -114,33 +114,23 @@ describe('ffc-geofence-admin — time-mode row visibility', () => {
 	});
 });
 
-describe('ffc-geofence-admin — during-mode row toggle', () => {
-	it('hides the during-row when time_mode = span', async () => {
+describe('ffc-geofence-admin — during-mode row', () => {
+	// The row has one owner, ffc-form-editor-geofence-metabox.js, which applies
+	// the server's rule (multi-day AND daily). This file used to toggle it on
+	// time_mode alone, and the two answered the same change differently
+	// depending on load order (#1614).
+	it('leaves the during-row alone when time_mode changes', async () => {
 		mountMetabox();
-		window.$('input[name="ffc_geofence[time_mode]"][value="daily"]').prop('checked', false);
-		window.$('input[name="ffc_geofence[time_mode]"][value="span"]').prop('checked', true);
 		loadScript('assets/js/ffc-geofence-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
+		const $row = window.$('#ffc-datetime-hide-mode-during-row');
+		const before = $row.attr('class') || '';
 
-		expect(window.$('#ffc-datetime-hide-mode-during-row').is(':visible')).toBe(false);
-	});
-
-	it('shows the during-row again when time_mode flips back to daily', async () => {
-		mountMetabox();
 		window.$('input[name="ffc_geofence[time_mode]"][value="daily"]').prop('checked', false);
-		window.$('input[name="ffc_geofence[time_mode]"][value="span"]').prop('checked', true);
-		loadScript('assets/js/ffc-geofence-admin.js');
-		await new Promise((r) => setTimeout(r, 0));
+		window.$('input[name="ffc_geofence[time_mode]"][value="span"]').prop('checked', true).trigger('change');
 
-		window.$('input[name="ffc_geofence[time_mode]"][value="span"]').prop('checked', false);
-		window.$('input[name="ffc_geofence[time_mode]"][value="daily"]')
-			.prop('checked', true)
-			.trigger('change');
-
-		// jsdom has no layout, so jQuery's `:visible` always reports false
-		// for shown elements. Assert directly on the inline display style,
-		// which `.show()` clears (or sets to '').
-		expect(window.$('#ffc-datetime-hide-mode-during-row').css('display')).not.toBe('none');
+		expect($row.attr('class') || '').toBe(before);
+		expect($row.attr('style')).toBeUndefined();
 	});
 });
 
@@ -191,10 +181,10 @@ describe('ffc-geofence-admin — live validity refresh', () => {
 
 		expect(window.$('input[name="ffc_geofence[date_start]"]').hasClass('ffc-input-invalid')).toBe(true);
 		expect(window.$('input[name="ffc_geofence[date_end]"]').hasClass('ffc-input-invalid')).toBe(true);
-		// The inline error paragraph carries the first error message.
-		// jsdom has no layout, so assert via display + text content.
+		// The inline error paragraph carries the first error message and
+		// loses the shared hidden class.
 		const $msg = window.$('p.ffc-datetime-order-error');
-		expect($msg.css('display')).not.toBe('none');
+		expect($msg.hasClass('ffc-hidden')).toBe(false);
 		expect($msg.text().length).toBeGreaterThan(0);
 	});
 
@@ -210,7 +200,6 @@ describe('ffc-geofence-admin — live validity refresh', () => {
 
 		expect(window.$('input[name="ffc_geofence[date_start]"]').hasClass('ffc-input-invalid')).toBe(false);
 		expect(window.$('input[name="ffc_geofence[date_end]"]').hasClass('ffc-input-invalid')).toBe(false);
-		// `.hide()` sets display:none — this is the assertable signal in jsdom.
-		expect(window.$('p.ffc-datetime-order-error').css('display')).toBe('none');
+		expect(window.$('p.ffc-datetime-order-error').hasClass('ffc-hidden')).toBe(true);
 	});
 });

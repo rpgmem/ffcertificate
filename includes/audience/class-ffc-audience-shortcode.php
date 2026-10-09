@@ -395,7 +395,7 @@ class AudienceShortcode {
 
 						<!-- Soft Conflict Warning -->
 						<div class="ffc-conflict-warning ffc-conflict-soft" id="ffc-conflict-warning" style="display: none;">
-							<span class="dashicons dashicons-warning"></span>
+							<span class="ffc-icon-warning" aria-hidden="true"></span>
 							<div class="ffc-conflict-details" id="ffc-conflict-details"></div>
 							<label class="ffc-conflict-acknowledge">
 								<input type="checkbox" id="ffc-conflict-acknowledge">
@@ -405,7 +405,7 @@ class AudienceShortcode {
 
 						<!-- Hard Conflict Error -->
 						<div class="ffc-conflict-error" id="ffc-conflict-error" style="display: none;">
-							<span class="dashicons dashicons-dismiss"></span>
+							<span class="ffc-icon-error" aria-hidden="true"></span>
 							<div class="ffc-conflict-error-details" id="ffc-conflict-error-details"></div>
 						</div>
 					</form>

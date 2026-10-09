@@ -51,7 +51,7 @@ final class QrDesign {
 	/** Frames drawn around the code. */
 	public const FRAMES = array( 'none', 'banner', 'badge', 'bubble', 'pill', 'speech', 'circle', 'brackets', 'double' );
 
-	/** Icons a frame can put beside its caption (#1570); names of QrIcons. */
+	/** Icons a frame can put beside its caption (#1570); names of Core\Icons. */
 	public const FRAME_ICONS = array( 'scan', 'none', 'globe', 'url', 'wifi', 'phone' );
 
 	/** Frames that print their caption in the frame colour on the paper. */

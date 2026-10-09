@@ -100,39 +100,25 @@ jQuery(document).ready(function($) {
                     break;
                 }
             }
-            if (firstMsg) {
-                $msg.text(firstMsg).show();
-            } else {
-                $msg.hide();
-            }
+            $msg.text(firstMsg).toggleClass('ffc-hidden', !firstMsg);
         }
     }
 
-    // Toggle visibility of the "Display during, outside daily slot" row
-    // based on Time Behavior. The row carries the metabox-rendered
-    // `display:none` server-side when time_mode='span'; this JS keeps it
-    // in sync with live edits.
-    function toggleDuringHideModeRow() {
-        var timeMode = $('input[name="ffc_geofence[time_mode]"]:checked').val() || 'daily';
-        var $row     = $('#ffc-datetime-hide-mode-during-row');
-        if (timeMode === 'daily') {
-            $row.show();
-        } else {
-            $row.hide();
-        }
-    }
+    // The "Display during, outside daily slot" row is owned by
+    // ffc-form-editor-geofence-metabox.js, which applies the same rule as
+    // the server (multi-day AND daily). This file used to toggle it on
+    // time_mode alone, and the two handlers answered the same change with
+    // different results depending on load order (#1614).
 
     $(document).on(
         'change input',
         'input[name="ffc_geofence[date_start]"], input[name="ffc_geofence[date_end]"], input[name="ffc_geofence[time_start]"], input[name="ffc_geofence[time_end]"], input[name="ffc_geofence[class_time_start]"], input[name="ffc_geofence[class_time_end]"], input[name="ffc_geofence[time_mode]"]',
         function() {
             refreshDateTimeValidity();
-            toggleDuringHideModeRow();
         }
     );
 
     refreshDateTimeValidity(); // Sync on load (covers first-paint state).
-    toggleDuringHideModeRow(); // Sync on load.
 
     // Geolocation restrictions — visibility now handled by the generic
     // `.ffc-collapsed-target` initializer in ffc-admin.js. We still

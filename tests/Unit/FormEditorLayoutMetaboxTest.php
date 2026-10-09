@@ -84,34 +84,45 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'id="ffc_save_as_model_btn"', $html );
 	}
 
-	public function test_render_lists_pool_templates_grouped_by_id(): void {
-		// #865: the "Load" dropdown is populated from the DB-backed pool,
-		// grouped defaults / user templates, each <option> valued by post id.
+	public function test_load_button_renders_without_a_template_select_when_the_pool_has_templates(): void {
+		// #1625: the Load button opens the modal built from `ffc_ajax.templates`;
+		// the hidden <select> that once sat beside it was read by no script.
 		$default_post             = new \WP_Post();
 		$default_post->ID         = 10;
 		$default_post->post_title = 'Certificate model 1';
-		$user_post                = new \WP_Post();
-		$user_post->ID            = 20;
-		$user_post->post_title    = 'My layout';
-		Functions\when( 'get_posts' )->justReturn( array( $default_post, $user_post ) );
+		Functions\when( 'get_posts' )->justReturn( array( $default_post ) );
 		Functions\when( 'get_post_meta' )->alias( static function ( $id, $key ) {
-			if ( '_ffc_form_config' === $key ) {
-				return array();
-			}
-			// META_IS_DEFAULT — only post 10 is a shipped default.
-			return ( 10 === $id ) ? '1' : '';
+			return '_ffc_form_config' === $key ? array() : '1';
 		} );
 
+		$html = $this->render_for_post( 11 );
+
+		$this->assertStringContainsString( 'id="ffc_load_template_btn"', $html );
+		$this->assertStringNotContainsString( 'ffc_template_select', $html );
+		$this->assertStringNotContainsString( '<select', $html );
+	}
+
+	public function test_load_button_is_omitted_when_the_pool_is_empty(): void {
+		Functions\when( 'get_posts' )->justReturn( array() );
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+
+		$html = $this->render_for_post( 11 );
+
+		$this->assertStringNotContainsString( 'id="ffc_load_template_btn"', $html );
+		$this->assertStringContainsString( 'id="ffc_btn_preview"', $html, 'the other actions still render' );
+	}
+
+	/**
+	 * Render the metabox for a post id.
+	 *
+	 * @param int $id Post id.
+	 * @return string
+	 */
+	private function render_for_post( int $id ): string {
 		$post     = Mockery::mock( 'WP_Post' );
-		$post->ID = 11;
+		$post->ID = $id;
 		ob_start();
 		$this->metabox->render( $post );
-		$html = (string) ob_get_clean();
-
-		$this->assertStringContainsString( '<optgroup label="Default templates">', $html );
-		$this->assertStringContainsString( '<optgroup label="My templates">', $html );
-		$this->assertStringContainsString( '<option value="10">Certificate model 1</option>', $html );
-		$this->assertStringContainsString( '<option value="20">My layout</option>', $html );
-		$this->assertStringContainsString( 'id="ffc_load_template_btn"', $html );
+		return (string) ob_get_clean();
 	}
 }

@@ -741,11 +741,11 @@ class CertTemplateAdminScreen {
 			?>
 			<div class="ffc-action-group">
 				<button type="button" class="button" id="ffc_btn_media_lib">
-					<span class="dashicons dashicons-cover-image" aria-hidden="true"></span>
+					<span class="ffc-icon-image" aria-hidden="true"></span>
 					<?php esc_html_e( 'Background Image', 'ffcertificate' ); ?>
 				</button>
 				<button type="button" class="button" id="ffc_btn_insert_image">
-					<span class="dashicons dashicons-format-image" aria-hidden="true"></span>
+					<span class="ffc-icon-image" aria-hidden="true"></span>
 					<?php esc_html_e( 'Insert Image', 'ffcertificate' ); ?>
 				</button>
 			</div>
@@ -803,7 +803,7 @@ class CertTemplateAdminScreen {
 		$kind = CertTemplateReader::get_kind( (int) $post->ID );
 		if ( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === $kind ) {
 			$toggle_label = __( 'Show in the appointment-receipt selection', 'ffcertificate' );
-			$toggle_help  = __( 'When on, this template can be chosen as the appointment receipt in Self-scheduling settings.', 'ffcertificate' );
+			$toggle_help  = __( 'When on, this template can be chosen as the appointment receipt in the Personal Calendars settings.', 'ffcertificate' );
 		} elseif ( CertTemplateCpt::KIND_RECORD === $kind ) {
 			$toggle_label = __( 'Show in the record selection', 'ffcertificate' );
 			$toggle_help  = __( 'When on, this template can be chosen as the record in Reregistration settings.', 'ffcertificate' );

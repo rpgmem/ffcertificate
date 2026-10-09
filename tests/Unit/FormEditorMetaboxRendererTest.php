@@ -216,7 +216,29 @@ class FormEditorMetaboxRendererTest extends TestCase {
 		$this->assertStringContainsString( 'aria-selected="true"', $output );
 		$this->assertStringContainsString( 'aria-selected="false"', $output );
 
-		// Dashicon glyphs are present in the nav.
-		$this->assertStringContainsString( 'dashicons dashicons-media-document', $output );
+		// Registry icons are present in the nav and in each panel title.
+		$this->assertStringContainsString( 'ffc-form-tabs__icon ffc-icon-file', $output );
+		$this->assertStringNotContainsString( 'dashicons', $output );
+	}
+
+	public function test_every_tab_master_names_a_toggle_the_panels_render(): void {
+		$post              = Mockery::mock( 'WP_Post' );
+		$post->ID          = 10;
+		$post->post_status = 'publish';
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => '_ffc_form_fields' === $key ? array() : '' );
+
+		ob_start();
+		$this->renderer->render_tabbed_container( $post );
+		$output = (string) ob_get_clean();
+
+		preg_match_all( '/id="ffc-tabnav-([a-z]+)"[^>]*?data-ffc-tab-masters="([^"]+)"/', $output, $m, PREG_SET_ORDER );
+		$tabs = array_column( $m, 1 );
+		$this->assertSame( array( 'restriction', 'email', 'time', 'geolocation', 'quiz', 'operator' ), $tabs, 'Layout and Fields have no master; every other tab does' );
+		foreach ( $m as $match ) {
+			foreach ( explode( ' ', $match[2] ) as $id ) {
+				$this->assertStringContainsString( 'id="' . $id . '"', $output, $match[1] . ' names a master no panel renders, so its dot would never light' );
+			}
+		}
+		$this->assertStringContainsString( 'data-ffc-state-on="On" data-ffc-state-off="Off"', $output );
 	}
 }

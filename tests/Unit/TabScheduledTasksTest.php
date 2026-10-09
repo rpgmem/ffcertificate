@@ -122,6 +122,8 @@ class TabScheduledTasksTest extends TestCase {
 		}
 		$this->assertStringContainsString( 'Submission processing (one per submission):', $html );
 		$this->assertMatchesRegularExpression( '#one per submission\):\s*<strong>1</strong>#', $html );
+		// The queue is its own card, not a sub-heading of the task table (#1631).
+		$this->assertStringContainsString( '<h2 class="ffc-icon-list">Queued one-off tasks</h2>', $html );
 	}
 
 	public function test_a_late_task_raises_the_warning_and_a_fresh_one_does_not(): void {

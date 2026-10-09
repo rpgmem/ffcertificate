@@ -43,6 +43,17 @@ class DateMessagesActivator {
 	public const SCHEMA_OPTION = 'ffc_date_messages_schema_version';
 
 	/**
+	 * Marker that the `audience_id` → `audience_ids` move is done (#1648).
+	 * Listed in `uninstall.php`.
+	 *
+	 * Its own marker, not the version gate: the move first reached the
+	 * testes site on `develop`, where `FFC_VERSION` does not change, so behind
+	 * the gate it never ran -- every save failed on the missing column, and
+	 * every existing rule read as reaching everyone.
+	 */
+	public const AUDIENCE_IDS_OPTION = 'ffc_date_messages_audience_ids_migrated';
+
+	/**
 	 * Rules table.
 	 *
 	 * @return string
@@ -85,18 +96,67 @@ class DateMessagesActivator {
 
 	/**
 	 * Heal the schema on an install that was never re-activated (#1311),
-	 * gated on `FFC_VERSION` (#1231) and recorded after the body.
+	 * gated on `FFC_VERSION` (#1231) and recorded after the body; then run
+	 * the audience move once, on its own marker, whatever the version.
 	 *
 	 * @return void
 	 */
 	public static function maybe_migrate(): void {
-		if ( get_option( self::SCHEMA_OPTION, '' ) === FFC_VERSION ) {
+		if ( get_option( self::SCHEMA_OPTION, '' ) !== FFC_VERSION ) {
+			self::create_tables();
+			update_option( self::SCHEMA_OPTION, FFC_VERSION );
+		}
+
+		if ( '1' !== (string) get_option( self::AUDIENCE_IDS_OPTION, '' ) ) {
+			self::migrate_audience_ids();
+		}
+	}
+
+	/**
+	 * Move a rule's single `audience_id` into the `audience_ids` list (#1648).
+	 *
+	 * Adds the list column, copies every set audience into it as a one-item
+	 * list, then drops the old column, which nothing reads any more. Each step
+	 * checks before it acts, so a run interrupted halfway resumes: the copy
+	 * only fills a list still empty, and the drop runs only after the copy.
+	 * The marker is written once the table has the list and no longer the old
+	 * column -- read back, not assumed -- so a failed drop is retried.
+	 *
+	 * @return void
+	 */
+	public static function migrate_audience_ids(): void {
+		global $wpdb;
+
+		$table = self::rules_table();
+		if ( ! self::table_exists( $table ) ) {
 			return;
 		}
 
-		self::create_tables();
+		self::add_columns_if_missing(
+			$table,
+			array(
+				'audience_ids' => array(
+					'type'  => 'LONGTEXT DEFAULT NULL',
+					'after' => 'offset_days',
+				),
+			)
+		);
 
-		update_option( self::SCHEMA_OPTION, FFC_VERSION );
+		if ( self::column_exists( $table, 'audience_id' ) ) {
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery -- One-shot schema migration of the plugin's own rules table, which WordPress exposes no API for.
+			$wpdb->query(
+				$wpdb->prepare(
+					"UPDATE %i SET audience_ids = CONCAT('[', audience_id, ']') WHERE audience_id IS NOT NULL AND audience_id > 0 AND ( audience_ids IS NULL OR audience_ids = '' OR audience_ids = '[]' )",
+					$table
+				)
+			);
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN audience_id', $table ) );
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery
+		}
+
+		if ( self::column_exists( $table, 'audience_ids' ) && ! self::column_exists( $table, 'audience_id' ) ) {
+			update_option( self::AUDIENCE_IDS_OPTION, '1' );
+		}
 	}
 
 	/**
@@ -123,7 +183,7 @@ class DateMessagesActivator {
             name varchar(190) NOT NULL,
             source varchar(50) NOT NULL DEFAULT 'birthday',
             offset_days smallint(6) NOT NULL DEFAULT 0,
-            audience_id bigint(20) unsigned DEFAULT NULL,
+            audience_ids longtext DEFAULT NULL,
             subject varchar(255) NOT NULL,
             body longtext NOT NULL,
             send_to_user tinyint(1) NOT NULL DEFAULT 1,
