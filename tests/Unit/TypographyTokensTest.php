@@ -82,6 +82,7 @@ class TypographyTokensTest extends TestCase {
 		'ffc-qr-design-fields.css'         => 0,
 		'ffc-user-permissions.css'         => 0,
 		'ffc-working-hours.css'            => 0,
+		'ffc-audience-transfer-list.css'   => 0,
 
 		// Glyphs: an icon (dashicon, `&times;`, a success mark) sized by
 		// font-size is a glyph box, not text.

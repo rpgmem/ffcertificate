@@ -7,8 +7,10 @@
  *
  * @var array<string, mixed> $upcoming    'from', 'to', 'rows', 'truncated'.
  * @var string               $period      Period key.
- * @var int                  $audience_id Audience filter, 0 for everyone.
- * @var array<int, string>   $audiences   Audience id => name.
+ * @var int                  $upcoming_rule      Rule filter, 0 for every active rule.
+ * @var array<int, string>   $upcoming_audiences Audiences offered for that rule, id => name.
+ * @var int                  $audience_id        Audience filter, 0 for all of them.
+ * @var array<int, \FreeFormCertificate\DateMessages\Rule> $rules Every rule.
  * @var \DateTimeImmutable   $today       Today, site timezone.
  *
  * @package FreeFormCertificate\DateMessages
@@ -34,11 +36,24 @@ $ffc_dm_rows = is_array( $upcoming['rows'] ?? null ) ? $upcoming['rows'] : array
 				<option value="<?php echo esc_attr( $ffc_dm_key ); ?>" <?php selected( $period, $ffc_dm_key ); ?>><?php echo esc_html( $ffc_dm_label ); ?></option>
 			<?php endforeach; ?>
 		</select>
-		<?php if ( array() !== $audiences ) : ?>
+		<?php
+		$ffc_dm_active = array_filter( $rules, static fn( $r ): bool => $r->is_active );
+		?>
+		<?php if ( array() !== $ffc_dm_active ) : ?>
+			<label for="ffc-dm-upcoming-rule"><?php esc_html_e( 'Rule', 'ffcertificate' ); ?></label>
+			<?php // A new rule changes which audiences the next filter offers, so it reloads the form. ?>
+			<select id="ffc-dm-upcoming-rule" name="rule_filter" onchange="this.form.submit()">
+				<option value="0"><?php esc_html_e( 'All active rules', 'ffcertificate' ); ?></option>
+				<?php foreach ( $ffc_dm_active as $ffc_dm_rule ) : ?>
+					<option value="<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>" <?php selected( $upcoming_rule, $ffc_dm_rule->id ); ?>><?php echo esc_html( $ffc_dm_rule->name ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		<?php endif; ?>
+		<?php if ( array() !== $upcoming_audiences ) : ?>
 			<label for="ffc-dm-upcoming-audience"><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></label>
 			<select id="ffc-dm-upcoming-audience" name="audience">
-				<option value="0"><?php esc_html_e( 'Everyone', 'ffcertificate' ); ?></option>
-				<?php foreach ( $audiences as $ffc_dm_audience => $ffc_dm_name ) : ?>
+				<option value="0"><?php echo esc_html( $upcoming_rule > 0 ? __( 'All of the rule\'s audiences', 'ffcertificate' ) : __( 'Everyone', 'ffcertificate' ) ); ?></option>
+				<?php foreach ( $upcoming_audiences as $ffc_dm_audience => $ffc_dm_name ) : ?>
 					<option value="<?php echo esc_attr( (string) $ffc_dm_audience ); ?>" <?php selected( $audience_id, $ffc_dm_audience ); ?>><?php echo esc_html( $ffc_dm_name ); ?></option>
 				<?php endforeach; ?>
 			</select>
@@ -57,6 +72,9 @@ $ffc_dm_rows = is_array( $upcoming['rows'] ?? null ) ? $upcoming['rows'] : array
 			<tr>
 				<th scope="col"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th>
+				<?php if ( array() !== $upcoming_audiences ) : ?>
+					<th scope="col"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></th>
+				<?php endif; ?>
 				<th scope="col"><?php esc_html_e( 'In', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
 			</tr>
@@ -76,6 +94,9 @@ $ffc_dm_rows = is_array( $upcoming['rows'] ?? null ) ? $upcoming['rows'] : array
 						?>
 					</td>
 					<td><?php echo esc_html( (string) $ffc_dm_row['name'] ); ?></td>
+					<?php if ( array() !== $upcoming_audiences ) : ?>
+						<td><?php echo esc_html( (string) ( $ffc_dm_row['audiences'] ?? '' ) ); ?></td>
+					<?php endif; ?>
 					<td>
 						<?php
 						echo esc_html(

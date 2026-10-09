@@ -103,7 +103,7 @@ class DateMessagesRecipientResolverTest extends TestCase {
 		$this->log->shouldReceive( 'delivered_among' )->with( 3, '2026-10-10', array( 1, 2, 3, 4, 5, 6 ) )->andReturn( array( 4 => true ) );
 		$this->audiences->shouldReceive( 'get_members' )->with( 9, true )->andReturn( array( '1', '2', '3', '4', '5' ) );
 
-		$page = ( new RecipientResolver( $this->source ) )->resolve( $this->rule( array( 'audience_id' => 9 ) ), $target, 0, 10 );
+		$page = ( new RecipientResolver( $this->source ) )->resolve( $this->rule( array( 'audience_ids' => array( 9 ) ) ), $target, 0, 10 );
 
 		$this->assertSame(
 			array(
@@ -139,8 +139,25 @@ class DateMessagesRecipientResolverTest extends TestCase {
 		$this->log->shouldReceive( 'delivered_among' )->andReturn( array() );
 		$this->audiences->shouldReceive( 'get_members' )->andReturn( array() );
 
-		$page = ( new RecipientResolver( $this->source ) )->resolve( $this->rule( array( 'audience_id' => 9 ) ), new \DateTimeImmutable( '2026-10-10' ), 0, 10 );
+		$page = ( new RecipientResolver( $this->source ) )->resolve( $this->rule( array( 'audience_ids' => array( 9 ) ) ), new \DateTimeImmutable( '2026-10-10' ), 0, 10 );
 
 		$this->assertSame( RecipientResolver::OUT_OF_AUDIENCE, $page['rows'][0]['decision'] );
+	}
+
+	public function test_belonging_to_any_of_the_audiences_is_enough(): void {
+		// #1648: a rule may name several audiences; the person qualifies
+		// through any of them, never through all.
+		$this->source->shouldReceive( 'due' )->andReturn( array( $this->candidate( 1 ), $this->candidate( 2 ), $this->candidate( 3 ) ) );
+		$this->opt_out->shouldReceive( 'among' )->andReturn( array() );
+		$this->log->shouldReceive( 'delivered_among' )->andReturn( array() );
+		$this->audiences->shouldReceive( 'get_members' )->with( 7, true )->once()->andReturn( array( '1' ) );
+		$this->audiences->shouldReceive( 'get_members' )->with( 9, true )->once()->andReturn( array( '2' ) );
+
+		$page = ( new RecipientResolver( $this->source ) )->resolve( $this->rule( array( 'audience_ids' => array( 7, 9 ) ) ), new \DateTimeImmutable( '2026-10-10' ), 0, 10 );
+
+		$this->assertSame(
+			array( RecipientResolver::WILL_SEND, RecipientResolver::WILL_SEND, RecipientResolver::OUT_OF_AUDIENCE ),
+			array_column( $page['rows'], 'decision' )
+		);
 	}
 }

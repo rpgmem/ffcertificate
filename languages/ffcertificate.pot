@@ -22316,9 +22316,6 @@ msgstr ""
 msgid "Manual"
 msgstr ""
 
-msgid "Members of sub-audiences are included."
-msgstr ""
-
 msgid "New rule"
 msgstr ""
 
@@ -23540,9 +23537,6 @@ msgstr ""
 msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen."
 msgstr ""
 
-msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month, optionally filtered by audience. The tab is shown only to holders of ffc_view_date_messages_pii and administrators."
-msgstr ""
-
 msgid "Daily schedule"
 msgstr ""
 
@@ -24746,9 +24740,6 @@ msgstr ""
 msgid "The global design (module shape, corners, colours and gradient, logo, frame and caption, transparent background) is set on Settings → QR Code. It is off by default and switched on separately for certificates and for short URLs."
 msgstr ""
 
-msgid "Everyone, or the members of one audience (members of its sub-audiences included)."
-msgstr ""
-
 msgid "%1$s — %2$s (%3$s)"
 msgstr ""
 
@@ -24801,4 +24792,19 @@ msgid "The history keeps the last %d days. Older runs and their deliveries are r
 msgstr ""
 
 msgid "The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a delivery is recorded per date including its year."
+msgstr ""
+
+msgid "A person receives the message when they belong to any audience on the right; members of sub-audiences are included. With none selected, the rule reaches everyone."
+msgstr ""
+
+msgid "All active rules"
+msgstr ""
+
+msgid "All of the rule's audiences"
+msgstr ""
+
+msgid "Everyone, or the members of the audiences chosen in the two-column picker — the same one the reregistration campaign uses. Belonging to any one of them is enough, and members of their sub-audiences are included; choosing an audience brings its sub-audiences along."
+msgstr ""
+
+msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators."
 msgstr ""

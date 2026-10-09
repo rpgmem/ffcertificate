@@ -21,6 +21,8 @@
  * @var bool                                                  $queue_ready Whether a mail queue is active.
  * @var array<string, mixed>|null                             $upcoming    The upcoming-dates panel's data, on that tab only.
  * @var string                                                $period      Upcoming-dates period key.
+ * @var int                                                   $upcoming_rule      Upcoming-dates rule filter, 0 for every active rule.
+ * @var array<int, string>                                    $upcoming_audiences Audiences the upcoming-dates filter offers.
  * @var int                                                   $audience_id Upcoming-dates audience filter.
  * @var \DateTimeImmutable                                    $today       Today, site timezone.
  *

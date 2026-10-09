@@ -761,30 +761,6 @@ class ReregistrationAdminTest extends TestCase {
 		$this->assertStringContainsString( 'Parent B', $html );
 	}
 
-	public function test_renderer_audience_transfer_list_outputs_data_attributes(): void {
-		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
-		Functions\when( 'wp_json_encode' )->alias( function ( $value ) { return json_encode( $value ); } );
-
-		$audiences = array(
-			(object) array(
-				'id'       => 1,
-				'name'     => 'Parent A',
-				'color'    => '#abc',
-				'children' => array(
-					(object) array( 'id' => 2, 'name' => 'Child A1', 'color' => '#def' ),
-				),
-			),
-		);
-
-		ob_start();
-		ReregistrationAdminRenderer::render_audience_transfer_list( $audiences, array( 2 ) );
-		$html = (string) ob_get_clean();
-
-		$this->assertStringContainsString( 'ffc-transfer-list', $html );
-		$this->assertStringContainsString( 'data-audiences', $html );
-		$this->assertStringContainsString( 'data-selected', $html );
-	}
-
 	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled

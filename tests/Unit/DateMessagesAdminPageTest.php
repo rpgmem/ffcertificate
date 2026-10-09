@@ -144,7 +144,7 @@ class DateMessagesAdminPageTest extends TestCase {
 			'name'         => 'Week before',
 			'source'       => 'birthday',
 			'offset_days'  => '-7',
-			'audience_id'  => '',
+			'audience_ids' => array( '4', '6' ),
 			'subject'      => 'Soon',
 			'body'         => '<p>Body</p><script>',
 			'send_to_user' => '1',
@@ -295,7 +295,7 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 
-		$out = DateMessagesAdminPage::upcoming( $period, 0, new \DateTimeImmutable( '2026-10-03', new \DateTimeZone( 'America/Sao_Paulo' ) ) );
+		$out = DateMessagesAdminPage::upcoming( $period, array(), new \DateTimeImmutable( '2026-10-03', new \DateTimeZone( 'America/Sao_Paulo' ) ) );
 
 		$this->assertSame( $from, $out['from']->format( 'Y-m-d' ) );
 	}
@@ -324,7 +324,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		);
 		$preview = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RecipientPreview' );
 		$preview->shouldReceive( 'collect' )->once()->with(
-			Mockery::on( static fn( Rule $r ): bool => 9 === $r->audience_id ),
+			Mockery::on( static fn( Rule $r ): bool => array( 9 ) === $r->audience_ids ),
 			Mockery::any(),
 			Mockery::any(),
 			true
@@ -337,7 +337,7 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 
-		$out = DateMessagesAdminPage::upcoming( 'next7', 9, new \DateTimeImmutable( '2026-10-03' ) );
+		$out = DateMessagesAdminPage::upcoming( 'next7', array( 9 ), new \DateTimeImmutable( '2026-10-03' ) );
 
 		$this->assertSame( array( 1, 3 ), array_column( $out['rows'], 'user_id' ) );
 		$this->assertTrue( $out['truncated'] );
@@ -513,8 +513,8 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertSame( array(), $styles );
 
 		( new DateMessagesAdminPage() )->enqueue( 'ffc_form_page_ffc-date-messages' );
-		$this->assertSame( array( 'ffc-date-messages-admin', 'ffc-email-restore-default' ), $scripts );
-		$this->assertSame( array( 'ffc-admin-settings' ), $styles, 'the vertical tab layout lives in that sheet' );
+		$this->assertSame( array( 'ffc-date-messages-admin', 'ffc-audience-transfer-list', 'ffc-email-restore-default' ), $scripts );
+		$this->assertSame( array( 'ffc-admin-settings', 'ffc-audience-transfer-list' ), $styles, 'the vertical tab layout lives in that sheet; the rule editor\'s audience picker brings its own' );
 		$this->assertSame( 'nonce-ffc_date_messages_preview', $localized['ffcDateMessages']['previewNonce'] );
 		$this->assertSame( 'nonce-ffc_date_messages_test_send', $localized['ffcDateMessages']['testNonce'] );
 		$this->assertSame( 'DEFAULT', $localized['ffcEmailRestoreDefaults']['date_message_body']['body'] );
@@ -597,5 +597,55 @@ class DateMessagesAdminPageTest extends TestCase {
 		$with       = $this->backfill_notice( 1 );
 
 		$this->assertStringContainsString( 'admin.php?page=ffc-settings&tab=migrations', $with[0] );
+	}
+
+	// ------------------------------------------------------------------
+	// Upcoming dates filtered by rule, then audience (#1648)
+	// ------------------------------------------------------------------
+
+	/**
+	 * @param int        $id        Rule id.
+	 * @param array<int> $audiences Audience ids.
+	 * @param bool       $active    Whether it is active.
+	 * @return Rule
+	 */
+	private function filter_rule( int $id, array $audiences, bool $active = true ): Rule {
+		$rule = Rule::from_array(
+			array(
+				'id'           => $id,
+				'name'         => 'R' . $id,
+				'subject'      => 's',
+				'body'         => 'b',
+				'audience_ids' => $audiences,
+				'is_active'    => $active ? '1' : '0',
+			)
+		);
+		$this->assertInstanceOf( Rule::class, $rule );
+		return $rule;
+	}
+
+	public function test_upcoming_audiences_are_those_of_the_chosen_rule(): void {
+		$all   = array( 1 => 'A', 2 => '— A1', 3 => 'B', 4 => 'C' );
+		$rules = array( $this->filter_rule( 7, array( 3, 1 ) ), $this->filter_rule( 8, array( 4 ) ), $this->filter_rule( 9, array(), false ) );
+
+		$this->assertSame( array( 1 => 'A', 3 => 'B' ), DateMessagesAdminPage::upcoming_audience_options( $rules, 7, $all ), 'In the tree\'s order.' );
+		$this->assertSame( array( 1 => 'A', 3 => 'B', 4 => 'C' ), DateMessagesAdminPage::upcoming_audience_options( $rules, 0, $all ), 'No rule chosen: every active rule\'s audiences.' );
+	}
+
+	public function test_a_rule_reaching_everyone_offers_every_audience(): void {
+		$all = array( 1 => 'A', 3 => 'B' );
+
+		$this->assertSame( $all, DateMessagesAdminPage::upcoming_audience_options( array( $this->filter_rule( 7, array() ) ), 7, $all ) );
+		$this->assertSame( $all, DateMessagesAdminPage::upcoming_audience_options( array( $this->filter_rule( 7, array( 1 ) ), $this->filter_rule( 8, array() ) ), 0, $all ), 'An active rule for everyone widens the "all rules" list.' );
+		$this->assertSame( $all, DateMessagesAdminPage::upcoming_audience_options( array( $this->filter_rule( 7, array( 1 ), false ) ), 0, $all ), 'With no active rule the filter is not narrowed to nothing.' );
+	}
+
+	public function test_upcoming_scope_prefers_the_audience_then_the_rule(): void {
+		$rules = array( $this->filter_rule( 7, array( 3, 1 ) ), $this->filter_rule( 9, array( 5 ), false ) );
+
+		$this->assertSame( array( 1 ), DateMessagesAdminPage::upcoming_scope( $rules, 7, 1 ) );
+		$this->assertSame( array( 3, 1 ), DateMessagesAdminPage::upcoming_scope( $rules, 7, 0 ) );
+		$this->assertSame( array(), DateMessagesAdminPage::upcoming_scope( $rules, 0, 0 ), 'Neither chosen: everyone.' );
+		$this->assertSame( array(), DateMessagesAdminPage::upcoming_scope( $rules, 9, 0 ), 'An inactive rule does not narrow the list.' );
 	}
 }

@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<th scope="col"><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'When', 'ffcertificate' ); ?></th>
-				<th scope="col"><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
 				<?php if ( $can_manage ) : ?>
 					<th scope="col"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
@@ -76,7 +76,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 						}
 						?>
 					</td>
-					<td><?php echo esc_html( null === $ffc_dm_rule->audience_id ? __( 'Everyone', 'ffcertificate' ) : ( $audiences[ $ffc_dm_rule->audience_id ] ?? '#' . $ffc_dm_rule->audience_id ) ); ?></td>
+					<td>
+						<?php
+						$ffc_dm_names = array();
+						foreach ( $ffc_dm_rule->audience_ids as $ffc_dm_audience_id ) {
+							// The options are indented for the tree; a list reads the plain name.
+							$ffc_dm_names[] = isset( $audiences[ $ffc_dm_audience_id ] ) ? (string) preg_replace( '/^(?:— )+/u', '', $audiences[ $ffc_dm_audience_id ] ) : '#' . $ffc_dm_audience_id;
+						}
+						echo esc_html( array() === $ffc_dm_names ? __( 'Everyone', 'ffcertificate' ) : implode( ', ', $ffc_dm_names ) );
+						?>
+					</td>
 					<td>
 						<?php
 						if ( ! $ffc_dm_rule->is_active ) {
