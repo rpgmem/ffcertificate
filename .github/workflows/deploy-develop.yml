@@ -57,6 +57,33 @@ jobs:
           # `StrictHostKeyChecking=accept-new` como fallback TOFU.
           ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
+      # `--delete` empties whatever directory it is pointed at, so the path is
+      # checked before anything is sent. The first deploy had a placeholder
+      # value and created a stray copy in the home directory; pointed at an
+      # existing directory, the same mistake would have deleted its contents.
+      # Requiring `…/wp-content/plugins/<slug>` stops that, and needs no
+      # connection: rsync creates only the last component, so a wrong prefix
+      # fails instead of building a tree. It cannot tell testes from another
+      # site on the same account; that part is the secret's job.
+      - name: Check the target path
+        env:
+          REMOTE_PATH: ${{ secrets.TESTES_REMOTE_PATH }}
+          SLUG: ffcertificate
+        run: |
+          TARGET="${REMOTE_PATH%/}"
+          PLUGINS="$(dirname "$TARGET")"
+          case "$TARGET" in
+            /*) ;;
+            *) echo "::error::TESTES_REMOTE_PATH must be an absolute path."; exit 1 ;;
+          esac
+          if [ "$(basename "$TARGET")" != "$SLUG" ] \
+            || [ "$(basename "$PLUGINS")" != "plugins" ] \
+            || [ "$(basename "$(dirname "$PLUGINS")")" != "wp-content" ]; then
+            echo "::error::TESTES_REMOTE_PATH must end in /wp-content/plugins/${SLUG}. Nothing was sent."
+            exit 1
+          fi
+          echo "Target path has the expected shape."
+
       - name: Rsync to testes
         env:
           SSH_HOST: ${{ secrets.TESTES_SSH_HOST }}
