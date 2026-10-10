@@ -10,6 +10,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **A Date Messages rule can draw its message over a background image** (#1660). The body cell takes a Media Library image, a fallback colour and a text colour, with the text on the left, the right or across the whole width; the header and footer stay the Email Model's. The editor gains a rendered message preview at computer and phone width.
+- **The repository has a README with screenshots** (#1662). Fourteen English screenshots, one in dark mode, are rebuilt from invented data by `.github/scripts/screenshots/`. The stale Screenshots section of `readme.txt` now matches them.
+
+### Fixed
+
+- **Dark mode no longer hides the page title on the plugin's admin screens** (#1662). The text turned light but the page behind it stayed core's light grey, so titles, list counts and "N items" were light-on-light; the form editor's title field had the same problem. The canvas is now painted dark.
+- **The Date Messages "Computer" preview no longer shows the phone layout** (#1662). It was exactly as wide as the layout's phone breakpoint, so the text column covered the artwork.
 
 ## [6.35.0] (2026-10-09) — `d05e8d5`
 

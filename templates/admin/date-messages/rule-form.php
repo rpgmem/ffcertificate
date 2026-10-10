@@ -328,15 +328,20 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 		<?php endif; ?>
 		<p class="description"><?php esc_html_e( 'The dates are the dates in the profile (such as birthdays), not the day the message goes out.', 'ffcertificate' ); ?></p>
 		<div class="ffc-dm-preview-result" aria-live="polite"></div>
+		<?php
+		// Wider than the layout's phone breakpoint (the Email Model width plus
+		// 40, inclusive), or the computer preview shows the phone layout (#1660).
+		$ffc_dm_desktop = (int) $ffc_dm_model['body_max_width'] + 80;
+		?>
 		<div class="ffc-dm-message ffc-hidden">
 			<p>
 				<strong class="ffc-dm-message-subject"></strong>
 				<span class="ffc-dm-message-sizes">
-					<button type="button" class="button button-small ffc-dm-message-size" data-width="<?php echo esc_attr( (string) ( (int) $ffc_dm_model['body_max_width'] + 40 ) ); ?>" aria-pressed="true"><?php esc_html_e( 'Computer', 'ffcertificate' ); ?></button>
+					<button type="button" class="button button-small ffc-dm-message-size" data-width="<?php echo esc_attr( (string) $ffc_dm_desktop ); ?>" aria-pressed="true"><?php esc_html_e( 'Computer', 'ffcertificate' ); ?></button>
 					<button type="button" class="button button-small ffc-dm-message-size" data-width="360" aria-pressed="false"><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></button>
 				</span>
 			</p>
-			<iframe class="ffc-dm-message-frame" sandbox="" title="<?php esc_attr_e( 'Message preview', 'ffcertificate' ); ?>" width="<?php echo esc_attr( (string) ( (int) $ffc_dm_model['body_max_width'] + 40 ) ); ?>" height="640"></iframe>
+			<iframe class="ffc-dm-message-frame" sandbox="" title="<?php esc_attr_e( 'Message preview', 'ffcertificate' ); ?>" width="<?php echo esc_attr( (string) $ffc_dm_desktop ); ?>" height="640"></iframe>
 			<p class="description"><?php esc_html_e( 'Sample values; images load as most readers show them. Outlook on Windows and readers that block images show the fallback colour instead.', 'ffcertificate' ); ?></p>
 		</div>
 	</div>
