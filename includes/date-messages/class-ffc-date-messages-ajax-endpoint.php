@@ -33,7 +33,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * so what the editor shows is what goes out. It sends and writes nothing.
  *
  * TEST SEND uses the fictional sample values, goes to the operator's own
- * address with `[TEST]` in the subject, and is neither logged nor counted.
+ * address with `[TEST]` in the subject, and shows in the history as a run
+ * marked "Test". It writes no delivery row, so it never counts for the
+ * deduplication, and it schedules no digest.
  */
 final class DateMessagesAjaxEndpoint {
 
@@ -170,6 +172,10 @@ final class DateMessagesAjaxEndpoint {
 			EmailSource::DATE_MESSAGES,
 			$rule->appearance->document_args()
 		);
+
+		// The history shows the test, marked as one; it never reaches the
+		// delivery log, so it cannot stand in for a real message.
+		DeliveryLog::record_test( (int) $rule->id, $target->format( 'Y-m-d' ), get_current_user_id(), $sent );
 
 		if ( ! $sent ) {
 			wp_send_json_error( array( 'message' => __( 'The test message was not sent. Check whether e-mails are disabled in the settings.', 'ffcertificate' ) ), 500 );

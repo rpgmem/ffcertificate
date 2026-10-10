@@ -24932,8 +24932,23 @@ msgstr ""
 msgid "The fallback colour is required with an image: Outlook on Windows and readers that block images show it instead. The editor shows the contrast of the text against it; over the image itself, check it in \"Preview message\"."
 msgstr ""
 
-msgid "\"Preview recipients\" lists, for a range of dates, everyone the rule would reach and the decision for each, using the very selection the send uses, so the preview cannot disagree with what is sent. Long lists show only the first rows, while the totals count everyone. \"Preview message\" shows the e-mail as it will be sent, header, body appearance and footer, at computer or phone width. \"Send test to me\" mails the message, filled with fictional values, to your own address. All three use the values on the form, saved or not, and none sends to anybody else nor records anything."
+msgid "A Date Messages rule can give its own message body a background image, colours and a text column; the header, footer, width and padding stay the ones set here."
 msgstr ""
 
-msgid "A Date Messages rule can give its own message body a background image, colours and a text column; the header, footer, width and padding stay the ones set here."
+msgid "\"Preview recipients\" lists, for a range of dates, everyone the rule would reach and the decision for each, using the very selection the send uses, so the preview cannot disagree with what is sent. Long lists show only the first rows, while the totals count everyone. \"Preview message\" shows the e-mail as it will be sent, header, body appearance and footer, at computer or phone width. \"Send test to me\" mails the message, filled with fictional values, to your own address. All three use the values on the form, saved or not, and none sends to anybody else. Only the test send is recorded: it shows in the history marked \"Test\", with who sent it, and it never counts as a delivery, so it cannot stop the real message from going out."
+msgstr ""
+
+msgid "Test"
+msgstr ""
+
+msgid "by %s"
+msgstr ""
+
+msgid "Hide test sends"
+msgstr ""
+
+msgid "Show test sends"
+msgstr ""
+
+msgid "(unsaved rule)"
 msgstr ""

@@ -303,9 +303,11 @@ final class DateMessagesAdminPage {
 		$history = array();
 		$total   = 0;
 		$paged   = max( 1, RequestInput::get_get_int( 'paged', 1 ) );
+		// Test sends are listed unless the operator hides them.
+		$show_tests = 'hide' !== RequestInput::get_get_key( 'tests' );
 		if ( 'history' === $tab ) {
-			$history = DeliveryLog::recent_runs( self::HISTORY_PER_PAGE, ( $paged - 1 ) * self::HISTORY_PER_PAGE );
-			$total   = DeliveryLog::count_runs();
+			$history = DeliveryLog::recent_runs( self::HISTORY_PER_PAGE, ( $paged - 1 ) * self::HISTORY_PER_PAGE, $show_tests );
+			$total   = DeliveryLog::count_runs( $show_tests );
 		}
 
 		// Upcoming dates narrow by an active rule, then by one of its audiences

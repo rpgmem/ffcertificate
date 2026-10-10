@@ -288,7 +288,7 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 		$this->assertSame( 403, $r->status );
 	}
 
-	public function test_test_send_goes_to_the_operator_marked_as_a_test_and_records_nothing(): void {
+	public function test_test_send_goes_to_the_operator_and_is_recorded_only_as_a_test(): void {
 		$this->caps = array( 'ffc_manage_date_messages' );
 		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'user_email' => 'op@example.org' ) );
 		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )->shouldReceive( 'sample' )->once()->andReturn(
@@ -297,7 +297,12 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 				'body'    => '<p>B</p>',
 			)
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DeliveryLog' )->shouldReceive( 'claim', 'start_run', 'bump' )->never();
+		// The history shows the test; the delivery log, which is the
+		// deduplication, never sees it.
+		$log = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DeliveryLog' );
+		$log->shouldReceive( 'claim', 'start_run', 'bump' )->never();
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$log->shouldReceive( 'record_test' )->once()->with( 3, Mockery::type( 'string' ), 5, true )->andReturn( 12 );
 		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )->shouldReceive( 'send' )->once()->with(
 			'op@example.org',
 			'[TEST] Hi Maria',
@@ -325,6 +330,9 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 			)
 		);
 		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )->shouldReceive( 'send' )->andReturn( false );
+		// A refused test is in the history too, counted as failed.
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DeliveryLog' )->shouldReceive( 'record_test' )->once()->with( 3, Mockery::type( 'string' ), 5, false )->andReturn( 12 );
 		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
 		$_POST = array( 'rule_id' => '3' );
 

@@ -107,6 +107,66 @@ class DateMessagesDeliveryLogTest extends TestCase {
 		$this->assertSame( 41, DeliveryLog::count_runs() );
 	}
 
+	public function test_hiding_tests_filters_the_page_and_the_count_alike(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with(
+			'SELECT * FROM %i WHERE trigger_kind <> %s ORDER BY id DESC LIMIT %d OFFSET %d',
+			'wp_ffc_date_message_runs',
+			'test',
+			20,
+			0
+		)->andReturn( 'PAGE' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( 'PAGE', ARRAY_A )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with( 'SELECT COUNT(*) FROM %i WHERE trigger_kind <> %s', 'wp_ffc_date_message_runs', 'test' )->andReturn( 'COUNT' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->with( 'COUNT' )->andReturn( '3' );
+
+		$this->assertSame( array(), DeliveryLog::recent_runs( 20, 0, false ) );
+		$this->assertSame( 3, DeliveryLog::count_runs( false ) );
+	}
+
+	/**
+	 * A test is a finished run marked as one, counting one message, and never
+	 * a delivery row: the log is the deduplication, so a test written there
+	 * would stop the real message (#1664).
+	 *
+	 * @dataProvider send_outcomes
+	 *
+	 * @param bool   $sent    Whether wp_mail() accepted it.
+	 * @param string $counter Counter expected to move.
+	 */
+	public function test_a_test_send_is_a_finished_test_run_and_never_a_delivery( bool $sent, string $counter ): void {
+		$this->wpdb->insert_id = 12;
+		$this->wpdb->shouldReceive( 'insert' )->once()->with(
+			'wp_ffc_date_message_runs',
+			Mockery::on(
+				static function ( array $row ): bool {
+					return 'test' === $row['trigger_kind'] && 3 === $row['rule_id'] && '2026-10-10' === $row['target_from'] && '2026-10-10' === $row['target_to'] && 5 === $row['created_by'];
+				}
+			)
+		)->andReturn( 1 );
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with( 'UPDATE %i SET %i = %i + %d WHERE id = %d', 'wp_ffc_date_message_runs', $counter, $counter, 1, 12 )->andReturn( 'BUMP' );
+		$this->wpdb->shouldReceive( 'query' )->once()->with( 'BUMP' );
+		$this->wpdb->shouldReceive( 'update' )->once()->with( 'wp_ffc_date_message_runs', Mockery::type( 'array' ), array( 'id' => 12 ) );
+
+		$this->assertSame( 12, DeliveryLog::record_test( 3, '2026-10-10', 5, $sent ) );
+	}
+
+	/**
+	 * @return array<string, array{0: bool, 1: string}>
+	 */
+	public function send_outcomes(): array {
+		return array(
+			'accepted' => array( true, 'sent' ),
+			'refused'  => array( false, 'failed' ),
+		);
+	}
+
+	public function test_a_test_run_that_could_not_be_opened_records_nothing_else(): void {
+		$this->wpdb->shouldReceive( 'insert' )->once()->andReturn( false );
+		$this->wpdb->shouldReceive( 'prepare', 'query', 'update' )->never();
+
+		$this->assertSame( 0, DeliveryLog::record_test( 3, '2026-10-10', 5, true ) );
+	}
+
 	public function test_recent_runs_reads_a_failed_query_as_none(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'PAGE' );
 		$this->wpdb->shouldReceive( 'get_results' )->andReturn( null );
