@@ -25016,8 +25016,23 @@ msgstr "Uma regra pode desenhar o corpo da mensagem sobre uma imagem de fundo da
 msgid "The fallback colour is required with an image: Outlook on Windows and readers that block images show it instead. The editor shows the contrast of the text against it; over the image itself, check it in \"Preview message\"."
 msgstr "A cor de reserva é obrigatória com imagem: o Outlook no Windows e os leitores que bloqueiam imagens a mostram no lugar. O editor mostra o contraste do texto com ela; sobre a própria imagem, confira em \"Ver prévia da mensagem\"."
 
-msgid "\"Preview recipients\" lists, for a range of dates, everyone the rule would reach and the decision for each, using the very selection the send uses, so the preview cannot disagree with what is sent. Long lists show only the first rows, while the totals count everyone. \"Preview message\" shows the e-mail as it will be sent, header, body appearance and footer, at computer or phone width. \"Send test to me\" mails the message, filled with fictional values, to your own address. All three use the values on the form, saved or not, and none sends to anybody else nor records anything."
-msgstr "\"Prévia dos destinatários\" lista, para um intervalo de datas, todos que a regra alcançaria e a decisão para cada um, usando a mesma seleção do envio, então a prévia não pode divergir do que é enviado. Listas longas mostram só as primeiras linhas, enquanto os totais contam todos. \"Ver prévia da mensagem\" mostra o e-mail como será enviado, com cabeçalho, aparência do corpo e rodapé, na largura de computador ou de celular. \"Enviar teste para mim\" envia a mensagem, preenchida com valores fictícios, para o seu próprio endereço. Os três usam os valores do formulário, salvos ou não, e nenhum envia para outra pessoa nem grava nada."
-
 msgid "A Date Messages rule can give its own message body a background image, colours and a text column; the header, footer, width and padding stay the ones set here."
 msgstr "Uma regra de Mensagens por Data pode dar ao corpo da própria mensagem uma imagem de fundo, cores e uma coluna de texto; o cabeçalho, o rodapé, a largura e o espaçamento continuam os definidos aqui."
+
+msgid "\"Preview recipients\" lists, for a range of dates, everyone the rule would reach and the decision for each, using the very selection the send uses, so the preview cannot disagree with what is sent. Long lists show only the first rows, while the totals count everyone. \"Preview message\" shows the e-mail as it will be sent, header, body appearance and footer, at computer or phone width. \"Send test to me\" mails the message, filled with fictional values, to your own address. All three use the values on the form, saved or not, and none sends to anybody else. Only the test send is recorded: it shows in the history marked \"Test\", with who sent it, and it never counts as a delivery, so it cannot stop the real message from going out."
+msgstr "\"Prévia dos destinatários\" lista, para um intervalo de datas, todos que a regra alcançaria e a decisão para cada um, usando a mesma seleção do envio, então a prévia não pode divergir do que é enviado. Listas longas mostram só as primeiras linhas, enquanto os totais contam todos. \"Ver prévia da mensagem\" mostra o e-mail como será enviado, com cabeçalho, aparência do corpo e rodapé, na largura de computador ou de celular. \"Enviar teste para mim\" envia a mensagem, preenchida com valores fictícios, para o seu próprio endereço. Os três usam os valores do formulário, salvos ou não, e nenhum envia para outra pessoa. Só o envio de teste fica registrado: aparece no histórico com o selo \"Teste\" e o nome de quem enviou, e nunca conta como entrega, então não impede que a mensagem real seja enviada."
+
+msgid "Test"
+msgstr "Teste"
+
+msgid "by %s"
+msgstr "por %s"
+
+msgid "Hide test sends"
+msgstr "Ocultar envios de teste"
+
+msgid "Show test sends"
+msgstr "Mostrar envios de teste"
+
+msgid "(unsaved rule)"
+msgstr "(regra não salva)"

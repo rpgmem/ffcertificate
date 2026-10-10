@@ -11,6 +11,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **A Date Messages rule can draw its message over a background image** (#1660). The body cell takes a Media Library image, a fallback colour and a text colour, with the text on the left, the right or across the whole width; the header and footer stay the Email Model's. The editor gains a rendered message preview at computer and phone width.
 - **The repository has a README with screenshots** (#1662). Fourteen English screenshots, one in dark mode, are rebuilt from invented data by `.github/scripts/screenshots/`. The stale Screenshots section of `readme.txt` now matches them.
+- **"Send test to me" now shows in the Date Messages history** (#1664). Each test is a run with a Test badge and the name of the sender, which can be hidden. It is never written to the delivery log, so it cannot stop the real message, and it schedules no digest.
 
 ### Fixed
 

@@ -9,6 +9,7 @@
  * @var int                              $paged      Current page.
  * @var array<int, string>               $rule_names Rule id => name.
  * @var int|false                        $next_run   Next daily run.
+ * @var bool                             $show_tests Whether test sends are listed.
  *
  * @package FreeFormCertificate\DateMessages
  * @since   6.33.0
@@ -59,6 +60,14 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 	<?php endif; ?>
 </p>
 
+<p class="ffc-date-messages-history-filter">
+	<?php if ( $show_tests ) : ?>
+		<a href="<?php echo esc_url( add_query_arg( 'tests', 'hide', remove_query_arg( 'paged' ) ) ); ?>"><?php esc_html_e( 'Hide test sends', 'ffcertificate' ); ?></a>
+	<?php else : ?>
+		<a href="<?php echo esc_url( remove_query_arg( array( 'tests', 'paged' ) ) ); ?>"><?php esc_html_e( 'Show test sends', 'ffcertificate' ); ?></a>
+	<?php endif; ?>
+</p>
+
 <?php if ( array() === $history ) : ?>
 	<p><?php esc_html_e( 'Nothing has been sent yet.', 'ffcertificate' ); ?></p>
 <?php else : ?>
@@ -82,8 +91,33 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 				<?php $ffc_dm_rule_id = $ffc_dm_int( $ffc_dm_run['rule_id'] ?? 0 ); ?>
 				<tr>
 					<td><?php echo esc_html( DateFormatter::format_datetime( $ffc_dm_int( $ffc_dm_run['started_at'] ?? 0 ) ) ); ?></td>
-					<td><?php echo esc_html( $rule_names[ $ffc_dm_rule_id ] ?? __( '(deleted rule)', 'ffcertificate' ) ); ?></td>
-					<td><?php echo esc_html( 'manual' === ( $ffc_dm_run['trigger_kind'] ?? '' ) ? __( 'Manual', 'ffcertificate' ) : __( 'Daily', 'ffcertificate' ) ); ?></td>
+					<?php
+					$ffc_dm_trigger = is_string( $ffc_dm_run['trigger_kind'] ?? null ) ? $ffc_dm_run['trigger_kind'] : '';
+					$ffc_dm_is_test = DeliveryLog::TRIGGER_TEST === $ffc_dm_trigger;
+					// A test can come from a form never saved, which has no rule id.
+					$ffc_dm_rule_label = 0 === $ffc_dm_rule_id && $ffc_dm_is_test
+						? __( '(unsaved rule)', 'ffcertificate' )
+						: ( $rule_names[ $ffc_dm_rule_id ] ?? __( '(deleted rule)', 'ffcertificate' ) );
+					?>
+					<td><?php echo esc_html( $ffc_dm_rule_label ); ?></td>
+					<td>
+						<?php if ( $ffc_dm_is_test ) : ?>
+							<span class="ffc-badge ffc-badge-info"><?php esc_html_e( 'Test', 'ffcertificate' ); ?></span>
+							<?php
+							$ffc_dm_operator = get_userdata( $ffc_dm_int( $ffc_dm_run['created_by'] ?? 0 ) );
+							if ( false !== $ffc_dm_operator ) :
+								?>
+								<br><span class="description">
+									<?php
+									/* translators: %s: name of the user who sent the test */
+									echo esc_html( sprintf( __( 'by %s', 'ffcertificate' ), $ffc_dm_operator->display_name ) );
+									?>
+								</span>
+							<?php endif; ?>
+						<?php else : ?>
+							<?php echo esc_html( 'manual' === $ffc_dm_trigger ? __( 'Manual', 'ffcertificate' ) : __( 'Daily', 'ffcertificate' ) ); ?>
+						<?php endif; ?>
+					</td>
 					<td>
 						<?php
 						$ffc_dm_from = is_string( $ffc_dm_run['target_from'] ?? null ) ? $ffc_dm_run['target_from'] : '';

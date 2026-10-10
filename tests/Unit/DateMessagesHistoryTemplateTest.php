@@ -52,9 +52,12 @@ class DateMessagesHistoryTemplateTest extends TestCase {
 	/**
 	 * Render the template with no runs.
 	 *
-	 * @param int|false $next_run Next daily run.
+	 * @param int|false $next_run   Next daily run.
+	 * @param bool      $show_tests Whether test sends are listed.
 	 */
-	private function render( $next_run ): string {
+	private function render( $next_run, bool $show_tests = true ): string {
+		Functions\when( 'remove_query_arg' )->justReturn( 'admin.php?page=ffc-date-messages&tab=history' );
+		Functions\when( 'add_query_arg' )->alias( static fn( $key, $value, $url ) => $url . '&' . $key . '=' . $value );
 		$history    = array();
 		$total      = 0;
 		$paged      = 1;
@@ -90,5 +93,15 @@ class DateMessagesHistoryTemplateTest extends TestCase {
 
 		$this->assertStringContainsString( 'Next daily run', $html, 'the fact is still shown' );
 		$this->assertStringNotContainsString( 'scheduled_tasks', $html );
+	}
+
+	public function test_the_filter_link_hides_tests_and_brings_them_back(): void {
+		$shown  = $this->render( false );
+		$hidden = $this->render( false, false );
+
+		$this->assertStringContainsString( 'tab=history&tests=hide', $shown );
+		$this->assertStringContainsString( 'Hide test sends', $shown );
+		$this->assertStringContainsString( 'Show test sends', $hidden );
+		$this->assertStringNotContainsString( 'tests=hide', $hidden );
 	}
 }

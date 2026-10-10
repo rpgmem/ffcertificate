@@ -47,6 +47,15 @@ class DeliveryLog {
 	public const RETENTION_DAYS = 365;
 
 	/**
+	 * The trigger a "Send test to me" run carries.
+	 *
+	 * A test is a run so the history shows it, and only a run: it writes no
+	 * delivery row, so it can never stand in for a real message in the
+	 * deduplication, and no digest is scheduled for it.
+	 */
+	public const TRIGGER_TEST = 'test';
+
+	/**
 	 * Runs removed per statement.
 	 */
 	private const PURGE_BATCH = 200;
@@ -70,7 +79,7 @@ class DeliveryLog {
 	 * Open a run.
 	 *
 	 * @param int    $rule_id    Rule.
-	 * @param string $trigger    'cron' or 'manual'.
+	 * @param string $trigger    'cron', 'manual' or TRIGGER_TEST.
 	 * @param string $target_from First target day, `Y-m-d`.
 	 * @param string $target_to   Last target day, `Y-m-d`.
 	 * @param int    $created_by  Operator for a manual run, 0 for the cron.
@@ -90,6 +99,25 @@ class DeliveryLog {
 			)
 		);
 		return false === $result ? 0 : (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * Record a "Send test to me" in the history: one finished run, counting
+	 * the message as sent or failed, and nothing in the delivery log.
+	 *
+	 * @param int    $rule_id    Rule, 0 for one not saved yet.
+	 * @param string $target     The target day the sample stood for, `Y-m-d`.
+	 * @param int    $created_by Operator who sent it.
+	 * @param bool   $sent       Whether wp_mail() accepted the message.
+	 * @return int Run id, or 0 on failure.
+	 */
+	public static function record_test( int $rule_id, string $target, int $created_by, bool $sent ): int {
+		$run_id = self::start_run( $rule_id, self::TRIGGER_TEST, $target, $target, $created_by );
+		if ( $run_id > 0 ) {
+			self::bump( $run_id, $sent ? 'sent' : 'failed' );
+			self::finish_run( $run_id );
+		}
+		return $run_id;
 	}
 
 	/**
@@ -139,19 +167,28 @@ class DeliveryLog {
 	/**
 	 * The most recent runs, newest first, for the history screen.
 	 *
-	 * @param int $limit  Page size.
-	 * @param int $offset Rows to skip.
+	 * @param int  $limit         Page size.
+	 * @param int  $offset        Rows to skip.
+	 * @param bool $include_tests Whether test sends are listed.
 	 * @return array<int, array<string, mixed>>
 	 */
-	public static function recent_runs( int $limit, int $offset = 0 ): array {
+	public static function recent_runs( int $limit, int $offset = 0, bool $include_tests = true ): array {
 		$wpdb = self::db();
 		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT * FROM %i ORDER BY id DESC LIMIT %d OFFSET %d',
-				DateMessagesActivator::runs_table(),
-				max( 1, $limit ),
-				max( 0, $offset )
-			),
+			$include_tests
+				? $wpdb->prepare(
+					'SELECT * FROM %i ORDER BY id DESC LIMIT %d OFFSET %d',
+					DateMessagesActivator::runs_table(),
+					max( 1, $limit ),
+					max( 0, $offset )
+				)
+				: $wpdb->prepare(
+					'SELECT * FROM %i WHERE trigger_kind <> %s ORDER BY id DESC LIMIT %d OFFSET %d',
+					DateMessagesActivator::runs_table(),
+					self::TRIGGER_TEST,
+					max( 1, $limit ),
+					max( 0, $offset )
+				),
 			ARRAY_A
 		);
 
@@ -169,11 +206,16 @@ class DeliveryLog {
 	/**
 	 * How many runs are stored.
 	 *
+	 * @param bool $include_tests Whether test sends are counted.
 	 * @return int
 	 */
-	public static function count_runs(): int {
+	public static function count_runs( bool $include_tests = true ): int {
 		$wpdb = self::db();
-		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', DateMessagesActivator::runs_table() ) );
+		return (int) $wpdb->get_var(
+			$include_tests
+				? $wpdb->prepare( 'SELECT COUNT(*) FROM %i', DateMessagesActivator::runs_table() )
+				: $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE trigger_kind <> %s', DateMessagesActivator::runs_table(), self::TRIGGER_TEST )
+		);
 	}
 
 	/**
