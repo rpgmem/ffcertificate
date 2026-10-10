@@ -17,7 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Dark mode no longer hides the page title on the plugin's admin screens** (#1662). The text turned light but the page behind it stayed core's light grey, so titles, list counts and "N items" were light-on-light; the form editor's title field had the same problem. The canvas is now painted dark.
 - **The Date Messages "Computer" preview no longer shows the phone layout** (#1662). It was exactly as wide as the layout's phone breakpoint, so the text column covered the artwork.
-- **The testes deploy no longer reports green when WordPress fails to boot, and checks its target before syncing.** `wp_die()` on an unreachable database exited 0 and read as a passing smoke; any early end now fails it. A `TESTES_REMOTE_PATH` that does not end in `/wp-content/plugins/ffcertificate` stops the deploy before `rsync --delete` runs (#PRNUM).
+- **The testes deploy no longer reports green when WordPress fails to boot, and checks its target before syncing.** `wp_die()` on an unreachable database exited 0 and read as a passing smoke; any early end now fails it. A `TESTES_REMOTE_PATH` that does not end in `/wp-content/plugins/ffcertificate` stops the deploy before `rsync --delete` runs (#1666).
 
 ## [6.35.0] (2026-10-09) — `d05e8d5`
 
