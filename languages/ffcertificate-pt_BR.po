@@ -25036,3 +25036,9 @@ msgstr "Mostrar envios de teste"
 
 msgid "(unsaved rule)"
 msgstr "(regra não salva)"
+
+msgid "Developed by %s."
+msgstr "Desenvolvido por %s."
+
+msgid "Source code and issue tracker: %s"
+msgstr "Código-fonte e relato de problemas: %s"

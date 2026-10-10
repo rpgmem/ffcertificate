@@ -24952,3 +24952,9 @@ msgstr ""
 
 msgid "(unsaved rule)"
 msgstr ""
+
+msgid "Developed by %s."
+msgstr ""
+
+msgid "Source code and issue tracker: %s"
+msgstr ""
