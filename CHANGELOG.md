@@ -13,6 +13,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The repository has a README with screenshots** (#1662). Fourteen English screenshots, one in dark mode, are rebuilt from invented data by `.github/scripts/screenshots/`. The stale Screenshots section of `readme.txt` now matches them.
 - **"Send test to me" now shows in the Date Messages history** (#1664). Each test is a run with a Test badge and the name of the sender, which can be hidden. It is never written to the delivery log, so it cannot stop the real message, and it schedules no digest.
 - **The documentation names its developer and links the repository**, read from the plugin header, the same lines the Plugins screen shows (#1667).
+- **`[ffc_geofence]` shows a page's content only inside a time window or a place** (#1668). The content never reaches the page HTML: once the browser's date and GPS checks pass, it is fetched from an endpoint that re-reads the shortcode from the post and re-checks date/time and IP. GPS can be spoofed, so this controls visibility and does not authorize access.
 
 ### Changed
 

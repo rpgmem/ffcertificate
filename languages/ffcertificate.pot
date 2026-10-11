@@ -24958,3 +24958,18 @@ msgstr ""
 
 msgid "Source code and issue tracker: %s"
 msgstr ""
+
+msgid "Checking access…"
+msgstr ""
+
+msgid "This content needs JavaScript to check your access."
+msgstr ""
+
+msgid "This content is not available at this time."
+msgstr ""
+
+msgid "This content is not available in your location."
+msgstr ""
+
+msgid "This content is not available."
+msgstr ""

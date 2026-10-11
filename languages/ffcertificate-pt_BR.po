@@ -25042,3 +25042,18 @@ msgstr "Desenvolvido por %s."
 
 msgid "Source code and issue tracker: %s"
 msgstr "Código-fonte e relato de problemas: %s"
+
+msgid "Checking access…"
+msgstr "Verificando o acesso…"
+
+msgid "This content needs JavaScript to check your access."
+msgstr "Este conteúdo precisa de JavaScript para verificar o seu acesso."
+
+msgid "This content is not available at this time."
+msgstr "Este conteúdo não está disponível neste momento."
+
+msgid "This content is not available in your location."
+msgstr "Este conteúdo não está disponível na sua localização."
+
+msgid "This content is not available."
+msgstr "Este conteúdo não está disponível."
