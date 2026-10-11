@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.3
-Stable tag: 6.35.0
+Stable tag: 6.36.0
 Requires PHP: 8.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -174,14 +174,22 @@ The plugin is translation-ready with the `ffcertificate` text domain. Use Loco T
 
 == Screenshots ==
 
-1. Form Builder with drag & drop interface
-2. Certificate layout editor with live preview
-3. Submissions management with PDF download
-4. Security settings (allowlist, tickets, denylist)
-5. Frontend certificate generation
-6. Magic link email with one-click access
-7. Certificate preview page with download button
-8. Appointment calendar frontend booking
+The images live in the repository's `docs/screenshots/` folder and are shown in its README.
+
+1. Certificates dashboard: forms by date, with today's and the week's submissions
+2. Form builder
+3. Certificate layout preview with sample data
+4. Submissions list with PDF download
+5. Public certificate form
+6. Certificate verification page
+7. Personal calendar booking on the public site
+8. Appointments list
+9. Room calendar for group bookings
+10. Date Messages: a birthday card with a background image, previewed before sending
+11. QR code generator
+12. Short URLs with click counts
+13. Dark mode
+14. The user's own dashboard
 
 == Shortcodes ==
 
@@ -261,8 +269,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.35.0 =
-One icon set and boxed sections across the admin, Date Messages rules for several audiences, a notice selector for the recruitment queue, documentation that follows the menu, and CPF/RF and email masked behind an audited Reveal on the submission edit screen.
+= 6.36.0 =
+Protect page content by time window or place with the new [ffc_geofence] shortcode, background images in Date Messages bodies, test sends in the Date Messages history, and dark-mode title fixes on admin screens.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one

@@ -182,9 +182,16 @@
                     // Only act on a positive transition. denied↔prompt
                     // transitions are noise here (the banner already
                     // describes the situation).
-                    if (status.state === 'granted') {
-                        const banner = formWrapper[0].querySelector('.ffc-preflight-gps');
-                        if (banner) banner.remove();
+                    //
+                    // And only while the banner is still waiting. Once the
+                    // visitor has clicked through it, a check is already
+                    // running, and the grant it prompts for is the very
+                    // change that fires this: re-entering would ask for the
+                    // position a second time and, outside the area, block
+                    // the wrapper twice (#1668).
+                    const banner = formWrapper[0].querySelector('.ffc-preflight-gps');
+                    if (status.state === 'granted' && banner) {
+                        banner.remove();
                         self.validateGeolocation(formWrapper, config, true);
                     }
                 };

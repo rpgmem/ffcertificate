@@ -288,7 +288,7 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 		$this->assertSame( 403, $r->status );
 	}
 
-	public function test_test_send_goes_to_the_operator_marked_as_a_test_and_records_nothing(): void {
+	public function test_test_send_goes_to_the_operator_and_is_recorded_only_as_a_test(): void {
 		$this->caps = array( 'ffc_manage_date_messages' );
 		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'user_email' => 'op@example.org' ) );
 		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )->shouldReceive( 'sample' )->once()->andReturn(
@@ -297,14 +297,20 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 				'body'    => '<p>B</p>',
 			)
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DeliveryLog' )->shouldReceive( 'claim', 'start_run', 'bump' )->never();
+		// The history shows the test; the delivery log, which is the
+		// deduplication, never sees it.
+		$log = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DeliveryLog' );
+		$log->shouldReceive( 'claim', 'start_run', 'bump' )->never();
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$log->shouldReceive( 'record_test' )->once()->with( 3, Mockery::type( 'string' ), 5, true )->andReturn( 12 );
 		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )->shouldReceive( 'send' )->once()->with(
 			'op@example.org',
 			'[TEST] Hi Maria',
 			'<p>B</p>',
 			array(),
 			true,
-			'plugin:ffcertificate_date_messages'
+			'plugin:ffcertificate_date_messages',
+			array()
 		)->andReturn( true );
 		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
 		$_POST = array( 'rule_id' => '3' );
@@ -324,12 +330,65 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 			)
 		);
 		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )->shouldReceive( 'send' )->andReturn( false );
+		// A refused test is in the history too, counted as failed.
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DeliveryLog' )->shouldReceive( 'record_test' )->once()->with( 3, Mockery::type( 'string' ), 5, false )->andReturn( 12 );
 		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
 		$_POST = array( 'rule_id' => '3' );
 
 		$r = $this->respond( array( DateMessagesAjaxEndpoint::class, 'test_send' ) );
 
 		$this->assertSame( 500, $r->status );
+	}
+
+	public function test_message_preview_needs_the_view_capability(): void {
+		$this->caps = array();
+		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )->shouldReceive( 'document' )->never();
+
+		$r = $this->respond( array( DateMessagesAjaxEndpoint::class, 'message_preview' ) );
+
+		$this->assertSame( 403, $r->status );
+	}
+
+	public function test_message_preview_renders_what_sending_wraps_and_sends_nothing(): void {
+		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'user_email' => 'op@example.org' ) );
+		// EmailTemplateOptions::all(), read for the contrast, falls back to its defaults.
+		Functions\when( 'get_option' )->justReturn( array() );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )->shouldReceive( 'sample' )->once()->andReturn(
+			array(
+				'subject' => 'Hi Maria',
+				'body'    => '<p>B</p>',
+			)
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DeliveryLog' )->shouldReceive( 'claim', 'start_run', 'bump' )->never();
+		$mailer = Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' );
+		$mailer->shouldReceive( 'send' )->never();
+		$mailer->shouldReceive( 'document' )->once()->with( '<p>B</p>', array( 'recipient' => 'op@example.org' ) )->andReturn( '<!DOCTYPE html><html>DOC</html>' );
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$_POST = array( 'rule_id' => '3' );
+
+		$r = $this->respond( array( DateMessagesAjaxEndpoint::class, 'message_preview' ) );
+
+		$this->assertTrue( $r->success );
+		$this->assertSame( 'Hi Maria', $r->data['subject'] );
+		$this->assertSame( '<!DOCTYPE html><html>DOC</html>', $r->data['html'] );
+		$this->assertIsFloat( $r->data['contrast'] );
+	}
+
+	public function test_message_preview_reports_an_invalid_appearance(): void {
+		Functions\when( 'sanitize_hex_color' )->justReturn( null );
+		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )->shouldReceive( 'document' )->never();
+		$_POST = array(
+			'rule' => array(
+				'subject'    => 'S',
+				'body'       => 'B',
+				'appearance' => array( 'text_color' => 'red' ),
+			),
+		);
+
+		$r = $this->respond( array( DateMessagesAjaxEndpoint::class, 'message_preview' ) );
+
+		$this->assertSame( 400, $r->status );
 	}
 }
 

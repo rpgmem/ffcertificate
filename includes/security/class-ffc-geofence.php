@@ -145,20 +145,15 @@ class Geofence {
 	/**
 	 * Check if user can access form (complete validation)
 	 *
+	 * Reads the form's stored configuration and runs {@see check_access()}
+	 * on it; the checks themselves are shared with any other content the
+	 * engine guards (#1668).
+	 *
 	 * @param int                  $form_id Form ID.
 	 * @param array<string, mixed> $options Validation options.
 	 * @return array{allowed: bool, reason?: string, message?: string}
 	 */
 	public static function can_access_form( int $form_id, array $options = array() ): array {
-		$defaults = array(
-			'check_datetime' => true,
-			'check_geo'      => false, // GPS validation is frontend-only by default.
-			'user_location'  => null, // For manual location override (testing).
-		);
-
-		$options = wp_parse_args( $options, $defaults );
-
-		// Get form geofence config.
 		$config = self::get_form_config( $form_id );
 
 		if ( empty( $config ) ) {
@@ -170,16 +165,41 @@ class Geofence {
 			);
 		}
 
+		return self::check_access( $config, $options, array( 'form_id' => $form_id ) );
+	}
+
+	/**
+	 * Run the date/time and geolocation checks against a geofence config.
+	 *
+	 * The config is the shape {@see normalize_config()} returns; the caller
+	 * resolves where it comes from (a form's meta, a shortcode's attributes).
+	 * The context only labels the denied-access log entry, so a denial can be
+	 * traced back to what was being protected.
+	 *
+	 * @param array<string, mixed> $config  Normalized geofence config.
+	 * @param array<string, mixed> $options Validation options: check_datetime, check_geo, user_location.
+	 * @param array<string, mixed> $context What is protected, for the log (e.g. `form_id`).
+	 * @return array{allowed: bool, reason?: string, message?: string}
+	 */
+	public static function check_access( array $config, array $options = array(), array $context = array() ): array {
+		$defaults = array(
+			'check_datetime' => true,
+			'check_geo'      => false, // GPS validation is frontend-only by default.
+			'user_location'  => null, // For manual location override (testing).
+		);
+
+		$options = wp_parse_args( $options, $defaults );
+
 		// Check admin bypass settings (require manage_options capability).
 		$bypass_datetime = self::should_bypass_datetime();
 		$bypass_geo      = self::should_bypass_geo();
 
 		// PRIORITY 1: Date/Time Validation (skip if admin bypass enabled).
-		if ( $options['check_datetime'] && $config['datetime_enabled'] && ! $bypass_datetime ) {
+		if ( $options['check_datetime'] && ! empty( $config['datetime_enabled'] ) && ! $bypass_datetime ) {
 			$datetime_check = self::validate_datetime( $config );
 
 			if ( ! $datetime_check['valid'] ) {
-				self::log_access_denied( $form_id, 'datetime_invalid', $datetime_check );
+				self::log_access_denied( $context, 'datetime_invalid', $datetime_check );
 
 				return array(
 					'allowed' => false,
@@ -190,11 +210,11 @@ class Geofence {
 		}
 
 		// PRIORITY 2: Geolocation Validation (skip if admin bypass enabled).
-		if ( $options['check_geo'] && $config['geo_enabled'] && ! $bypass_geo ) {
+		if ( $options['check_geo'] && ! empty( $config['geo_enabled'] ) && ! $bypass_geo ) {
 			$geo_check = self::validate_geolocation( $config, $options['user_location'] );
 
 			if ( ! $geo_check['valid'] ) {
-				self::log_access_denied( $form_id, 'geolocation_invalid', $geo_check );
+				self::log_access_denied( $context, 'geolocation_invalid', $geo_check );
 
 				return array(
 					'allowed' => false,
@@ -601,7 +621,20 @@ class Geofence {
 			return null;
 		}
 
-		// Ensure boolean fields are properly typed.
+		return self::normalize_config( $config );
+	}
+
+	/**
+	 * Type the switches of a raw geofence config as booleans.
+	 *
+	 * Every other key is left as stored. Whatever builds a config — the form
+	 * metabox's saved meta, a shortcode's attributes — passes it through here
+	 * before handing it to the checks.
+	 *
+	 * @param array<string, mixed> $config Raw geofence config.
+	 * @return array<string, mixed> The same config with its switches typed.
+	 */
+	public static function normalize_config( array $config ): array {
 		$config['datetime_enabled']        = ! empty( $config['datetime_enabled'] );
 		$config['geo_enabled']             = ! empty( $config['geo_enabled'] );
 		$config['geo_gps_enabled']         = ! empty( $config['geo_gps_enabled'] );
@@ -697,25 +730,43 @@ class Geofence {
 			return null;
 		}
 
+		return self::build_frontend_config( $config, array( 'formId' => $form_id ) );
+	}
+
+	/**
+	 * Build the configuration the frontend geofence scripts read.
+	 *
+	 * The identity keys lead the array, so the script can tell what it is
+	 * guarding: a form passes `formId`; other guarded content passes its own.
+	 *
+	 * @param array<string, mixed> $config   Normalized geofence config.
+	 * @param array<string, mixed> $identity Keys naming what is guarded (e.g. `formId`).
+	 * @return array<string, mixed> Configuration for the frontend.
+	 */
+	public static function build_frontend_config( array $config, array $identity = array() ): array {
+		$config = self::normalize_config( $config );
+
 		// Check admin bypass for each restriction type.
 		$bypass_datetime = self::should_bypass_datetime();
 		$bypass_geo      = self::should_bypass_geo();
 
 		// If both restrictions are bypassed, return special config.
 		if ( $bypass_datetime && $bypass_geo ) {
-			return array(
-				'formId'      => $form_id,
-				'adminBypass' => true,
-				'bypassInfo'  => array(
-					'hasDatetime' => $config['datetime_enabled'],
-					'hasGeo'      => $config['geo_enabled'],
-				),
-				'datetime'    => array( 'enabled' => false ),
-				'geo'         => array( 'enabled' => false ),
-				'global'      => array(
-					'debug' => class_exists( '\FreeFormCertificate\Core\Debug' )
-					&& \FreeFormCertificate\Core\Debug::is_enabled( \FreeFormCertificate\Core\Debug::AREA_GEOFENCE ),
-				),
+			return array_merge(
+				$identity,
+				array(
+					'adminBypass' => true,
+					'bypassInfo'  => array(
+						'hasDatetime' => $config['datetime_enabled'],
+						'hasGeo'      => $config['geo_enabled'],
+					),
+					'datetime'    => array( 'enabled' => false ),
+					'geo'         => array( 'enabled' => false ),
+					'global'      => array(
+						'debug' => class_exists( '\FreeFormCertificate\Core\Debug' )
+						&& \FreeFormCertificate\Core\Debug::is_enabled( \FreeFormCertificate\Core\Debug::AREA_GEOFENCE ),
+					),
+				)
 			);
 		}
 
@@ -771,44 +822,46 @@ class Geofence {
 			'safetyTimer'         => 'allow' === ( $cases['safety_timer'] ?? 'block' ),
 		);
 
-		$frontend_config = array(
-			'formId'      => $form_id,
-			'adminBypass' => $has_partial_bypass,
-			'bypassInfo'  => $has_partial_bypass ? array(
-				'hasDatetime' => $bypass_datetime && $config['datetime_enabled'],
-				'hasGeo'      => $bypass_geo && $config['geo_enabled'],
-			) : null,
-			'datetime'    => array(
-				'enabled'        => ! $bypass_datetime && $config['datetime_enabled'],
-				'dateStart'      => $config['date_start'] ?? '',
-				'dateEnd'        => $config['date_end'] ?? '',
-				'timeStart'      => $config['time_start'] ?? '',
-				'timeEnd'        => $config['time_end'] ?? '',
-				'timeMode'       => $config['time_mode'] ?? 'daily', // 'span' or 'daily'
-				'message'        => $config['msg_datetime'] ?? '',
-				// Per-phase hide modes (#159). Each one falls back to the legacy
-				// single `datetime_hide_mode` for forms saved before #159 S1.
-				'hideModeBefore' => self::resolve_hide_mode( $config, 'before' ),
-				'hideModeDuring' => self::resolve_hide_mode( $config, 'during' ),
-				'hideModeAfter'  => self::resolve_hide_mode( $config, 'after' ),
-			),
-			'geo'         => array(
-				'enabled'        => ! $bypass_geo && $config['geo_enabled'],
-				'gpsEnabled'     => ! $bypass_geo && $config['geo_gps_enabled'],
-				'ipEnabled'      => ! $bypass_geo && $config['geo_ip_enabled'],
-				'areas'          => self::parse_areas( self::resolve_areas_text( $config, 'geo_area_source', 'geo_area_location_ids', 'geo_areas' ) ),
-				'gpsIpLogic'     => $config['geo_gps_ip_logic'] ?? 'or', // 'and' or 'or'
-				'messageBlocked' => $config['msg_geo_blocked'] ?? '',
-				'messageError'   => $config['msg_geo_error'] ?? '',
-				'hideMode'       => $config['geo_hide_mode'] ?? 'message', // 'hide' or 'message'
-				'gpsFallback'    => $gps_fallback, // Per-case allow/block map — honoured by frontend on GPS failure.
-				'cacheEnabled'   => true, // Always enable frontend cache.
-				'cacheTtl'       => $gps_cache_ttl, // From global settings.
-			),
-			'global'      => array(
-				'debug' => class_exists( '\FreeFormCertificate\Core\Debug' )
-					&& \FreeFormCertificate\Core\Debug::is_enabled( \FreeFormCertificate\Core\Debug::AREA_GEOFENCE ),
-			),
+		$frontend_config = array_merge(
+			$identity,
+			array(
+				'adminBypass' => $has_partial_bypass,
+				'bypassInfo'  => $has_partial_bypass ? array(
+					'hasDatetime' => $bypass_datetime && $config['datetime_enabled'],
+					'hasGeo'      => $bypass_geo && $config['geo_enabled'],
+				) : null,
+				'datetime'    => array(
+					'enabled'        => ! $bypass_datetime && $config['datetime_enabled'],
+					'dateStart'      => $config['date_start'] ?? '',
+					'dateEnd'        => $config['date_end'] ?? '',
+					'timeStart'      => $config['time_start'] ?? '',
+					'timeEnd'        => $config['time_end'] ?? '',
+					'timeMode'       => $config['time_mode'] ?? 'daily', // 'span' or 'daily'
+					'message'        => $config['msg_datetime'] ?? '',
+					// Per-phase hide modes (#159). Each one falls back to the legacy
+					// single `datetime_hide_mode` for forms saved before #159 S1.
+					'hideModeBefore' => self::resolve_hide_mode( $config, 'before' ),
+					'hideModeDuring' => self::resolve_hide_mode( $config, 'during' ),
+					'hideModeAfter'  => self::resolve_hide_mode( $config, 'after' ),
+				),
+				'geo'         => array(
+					'enabled'        => ! $bypass_geo && $config['geo_enabled'],
+					'gpsEnabled'     => ! $bypass_geo && $config['geo_gps_enabled'],
+					'ipEnabled'      => ! $bypass_geo && $config['geo_ip_enabled'],
+					'areas'          => self::parse_areas( self::resolve_areas_text( $config, 'geo_area_source', 'geo_area_location_ids', 'geo_areas' ) ),
+					'gpsIpLogic'     => $config['geo_gps_ip_logic'] ?? 'or', // 'and' or 'or'
+					'messageBlocked' => $config['msg_geo_blocked'] ?? '',
+					'messageError'   => $config['msg_geo_error'] ?? '',
+					'hideMode'       => $config['geo_hide_mode'] ?? 'message', // 'hide' or 'message'
+					'gpsFallback'    => $gps_fallback, // Per-case allow/block map — honoured by frontend on GPS failure.
+					'cacheEnabled'   => true, // Always enable frontend cache.
+					'cacheTtl'       => $gps_cache_ttl, // From global settings.
+				),
+				'global'      => array(
+					'debug' => class_exists( '\FreeFormCertificate\Core\Debug' )
+						&& \FreeFormCertificate\Core\Debug::is_enabled( \FreeFormCertificate\Core\Debug::AREA_GEOFENCE ),
+				),
+			)
 		);
 
 		return $frontend_config;
@@ -836,11 +889,11 @@ class Geofence {
 	/**
 	 * Log access denied event
 	 *
-	 * @param int                  $form_id Form ID.
-	 * @param string               $reason Denial reason.
+	 * @param array<string, mixed> $context What was protected (e.g. `form_id`).
+	 * @param string               $reason  Denial reason.
 	 * @param array<string, mixed> $details Additional details.
 	 */
-	private static function log_access_denied( int $form_id, string $reason, array $details = array() ): void {
+	private static function log_access_denied( array $context, string $reason, array $details = array() ): void {
 		if ( ! class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			return;
 		}
@@ -852,10 +905,8 @@ class Geofence {
 			\FreeFormCertificate\Core\Debug::log_geofence(
 				'Access denied',
 				array_merge(
-					array(
-						'form_id' => $form_id,
-						'reason'  => $reason,
-					),
+					$context,
+					array( 'reason' => $reason ),
 					$details
 				)
 			);

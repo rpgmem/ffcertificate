@@ -226,6 +226,9 @@
             formWrapper.removeClass('ffc-validated');
             formWrapper.find('.ffc-geofence-blocked').remove();
             formWrapper.find('.ffc-geofence-admin-bypass').remove();
+            // processForm draws the pre-flight banner again when it is
+            // still needed; leaving the old one stacks a second (#1668).
+            formWrapper.find('.ffc-preflight-banner').remove();
             formWrapper.find('.ffc-submission-form').show();
             formWrapper.find('.ffc-form-title').show();
             formWrapper.show();
@@ -311,6 +314,8 @@
                     + this.escapeHtml(label) + '</button>';
             }
             html += '</div>';
+            // One block at a time: a second verdict replaces the first (#1668).
+            formWrapper.find('.ffc-geofence-blocked').remove();
             formWrapper.append(html);
 
             if (showReload) {

@@ -488,6 +488,12 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $a ) => 'nonce-' . $a );
+		$media     = 0;
+		Functions\when( 'wp_enqueue_media' )->alias(
+			static function () use ( &$media ) {
+				++$media;
+			}
+		);
 		$scripts   = array();
 		$styles    = array();
 		$localized = array();
@@ -509,12 +515,15 @@ class DateMessagesAdminPageTest extends TestCase {
 		);
 
 		( new DateMessagesAdminPage() )->enqueue( 'toplevel_page_ffc-settings' );
+		$this->assertSame( 0, $media );
 		$this->assertSame( array(), $scripts );
 		$this->assertSame( array(), $styles );
 
 		( new DateMessagesAdminPage() )->enqueue( 'ffc_form_page_ffc-date-messages' );
 		$this->assertSame( array( 'ffc-date-messages-admin', 'ffc-audience-transfer-list', 'ffc-email-restore-default' ), $scripts );
-		$this->assertSame( array( 'ffc-admin-settings', 'ffc-audience-transfer-list' ), $styles, 'the vertical tab layout lives in that sheet; the rule editor\'s audience picker brings its own' );
+		$this->assertSame( array( 'ffc-admin-settings', 'wp-color-picker', 'ffc-audience-transfer-list' ), $styles, 'the vertical tab layout lives in that sheet; the body appearance colours use core\'s picker; the rule editor\'s audience picker brings its own' );
+		$this->assertSame( 1, $media, 'the background image comes from the Media Library' );
+		$this->assertSame( 'nonce-ffc_date_messages_message_preview', $localized['ffcDateMessages']['messageNonce'] );
 		$this->assertSame( 'nonce-ffc_date_messages_preview', $localized['ffcDateMessages']['previewNonce'] );
 		$this->assertSame( 'nonce-ffc_date_messages_test_send', $localized['ffcDateMessages']['testNonce'] );
 		$this->assertSame( 'DEFAULT', $localized['ffcEmailRestoreDefaults']['date_message_body']['body'] );
@@ -647,5 +656,21 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertSame( array( 3, 1 ), DateMessagesAdminPage::upcoming_scope( $rules, 7, 0 ) );
 		$this->assertSame( array(), DateMessagesAdminPage::upcoming_scope( $rules, 0, 0 ), 'Neither chosen: everyone.' );
 		$this->assertSame( array(), DateMessagesAdminPage::upcoming_scope( $rules, 9, 0 ), 'An inactive rule does not narrow the list.' );
+	}
+
+	/**
+	 * The computer preview must be wider than the layout's phone breakpoint,
+	 * which is inclusive: at exactly that width the text column takes the whole
+	 * body and runs over the artwork, so the preview showed the phone layout
+	 * under the "Computer" button (#1660).
+	 */
+	public function test_the_computer_preview_is_wider_than_the_phone_breakpoint(): void {
+		$root   = dirname( __DIR__, 2 );
+		$layout = (string) file_get_contents( $root . '/templates/emails/layout.php' );
+		$form   = (string) file_get_contents( $root . '/templates/admin/date-messages/rule-form.php' );
+
+		$this->assertSame( 1, preg_match( '/max-width:\s*<\?php echo esc_attr\( \(string\) \( \$ffc_max \+ (\d+) \) \); \?>px/', $layout, $breakpoint ) );
+		$this->assertSame( 1, preg_match( '/\$ffc_dm_desktop = \(int\) \$ffc_dm_model\[\'body_max_width\'\] \+ (\d+);/', $form, $preview ) );
+		$this->assertGreaterThan( (int) $breakpoint[1], (int) $preview[1] );
 	}
 }

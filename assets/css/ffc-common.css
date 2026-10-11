@@ -366,6 +366,15 @@
     color: var(--ffc-text);
 }
 
+/* The CANVAS the base pair needs. Painting the text light and leaving core's
+   `#f0f0f1` page behind it put every page title, the list-table view counts
+   and "N items" at light-on-light on every FFC screen: the cards were dark,
+   the page around them was not. The class lands on an admin screen only when
+   it is ours, so this cannot reach a core screen. */
+:root.ffc-dark-mode body.wp-admin {
+    background-color: var(--ffc-bg);
+}
+
 :root.ffc-dark-mode .wrap h1,
 :root.ffc-dark-mode .wrap h2,
 :root.ffc-dark-mode .wrap h3,
@@ -389,11 +398,15 @@
 
 :root.ffc-dark-mode p.description,
 :root.ffc-dark-mode .description,
-:root.ffc-dark-mode .howto {
+:root.ffc-dark-mode .howto,
+:root.ffc-dark-mode .subsubsub .count,
+:root.ffc-dark-mode .displaying-num {
     color: var(--ffc-text-muted);
 }
 
-/* Inputs — core keeps these white on a dark card otherwise. */
+/* Inputs — core keeps these white on a dark card otherwise. The post title
+   needs its id: core styles it as `#titlediv #title`, which no type selector
+   outranks. */
 :root.ffc-dark-mode input[type="text"],
 :root.ffc-dark-mode input[type="search"],
 :root.ffc-dark-mode input[type="number"],
@@ -405,7 +418,8 @@
 :root.ffc-dark-mode input[type="time"],
 :root.ffc-dark-mode input[type="datetime-local"],
 :root.ffc-dark-mode select,
-:root.ffc-dark-mode textarea {
+:root.ffc-dark-mode textarea,
+:root.ffc-dark-mode #titlediv #title {
     color: var(--ffc-text);
     background-color: var(--ffc-bg-input);
     border-color: var(--ffc-border);

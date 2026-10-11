@@ -33,6 +33,7 @@
 /tests
 /docs
 /CHANGELOG.md
+/README.md
 /CONTRIBUTING.md
 /SECURITY.md
 # Internal agent/maintainer conventions — not for end users

@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h3 id="config-geolocation" class="ffc-icon-map-pin"><?php esc_html_e( 'Geolocation', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Settings → Geolocation is where the geofencing building blocks are configured. Individual forms then pick from these.', 'ffcertificate' ); ?> <a href="#forms-geolocation"><?php esc_html_e( 'See Geolocation (Forms)', 'ffcertificate' ); ?></a> <?php esc_html_e( 'for per-form usage.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The same building blocks protect page content: the [ffc_geofence] shortcode uses these locations, fallbacks and the administrator bypass.', 'ffcertificate' ); ?> <a href="#reference-shortcodes"><?php esc_html_e( 'See Shortcodes.', 'ffcertificate' ); ?></a></p>
 
 	<h4><?php esc_html_e( 'Named-location registry', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Create reusable locations shared by every form. Each has a name, latitude, longitude, radius (meters) and optional "default for GPS" / "default for IP" flags — a new form auto-selects the defaults. Editing a location updates every form that references it.', 'ffcertificate' ); ?></p>

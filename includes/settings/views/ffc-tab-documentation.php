@@ -470,6 +470,22 @@ $ffc_render_doc_nav = static function ( array $ffc_nodes, int $ffc_depth ) use (
 };
 
 /**
+ * The author, the author's page and the repository, read from the plugin
+ * header: the same lines WordPress shows on the Plugins screen, so the two
+ * cannot disagree.
+ *
+ * @var array{author: string, author_uri: string, plugin_uri: string} $ffc_plugin_meta
+ */
+$ffc_plugin_meta = get_file_data(
+	FFC_PLUGIN_DIR . 'ffcertificate.php',
+	array(
+		'author'     => 'Author',
+		'author_uri' => 'Author URI',
+		'plugin_uri' => 'Plugin URI',
+	)
+);
+
+/**
  * Require the page partials in tree (depth-first) order.
  *
  * @param array<int, array<string, mixed>> $ffc_nodes Nodes to walk.
@@ -493,6 +509,25 @@ $ffc_require_doc_pages = static function ( array $ffc_nodes ) use ( &$ffc_requir
 <div class="card">
 	<h2 class="ffc-icon-doc"><?php esc_html_e( 'Complete Plugin Documentation', 'ffcertificate' ); ?></h2>
 	<p><?php esc_html_e( 'This plugin allows you to create certificate issuance forms, generate PDFs automatically, and verify authenticity with QR codes.', 'ffcertificate' ); ?></p>
+	<p class="ffc-doc-credits">
+		<?php
+		echo wp_kses_post(
+			sprintf(
+				/* translators: %s: plugin author's name, linked to the author's page */
+				__( 'Developed by %s.', 'ffcertificate' ),
+				'<a href="' . esc_url( $ffc_plugin_meta['author_uri'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $ffc_plugin_meta['author'] ) . '</a>'
+			)
+		);
+		echo ' ';
+		echo wp_kses_post(
+			sprintf(
+				/* translators: %s: link to the plugin's source repository */
+				__( 'Source code and issue tracker: %s', 'ffcertificate' ),
+				'<a href="' . esc_url( $ffc_plugin_meta['plugin_uri'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( (string) preg_replace( '#^https?://#', '', $ffc_plugin_meta['plugin_uri'] ) ) . '</a>'
+			)
+		);
+		?>
+	</p>
 </div>
 
 <!-- Quick Navigation — a sticky card holding the search box and the

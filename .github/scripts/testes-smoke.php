@@ -190,6 +190,21 @@ $_SERVER['REQUEST_METHOD'] = 'GET';
 $_SERVER['REQUEST_URI']    = '/';
 $_SERVER['SCRIPT_NAME']    = '/index.php';
 
+// WordPress can end the process during boot WITHOUT an error status: wp_die()
+// on a database it cannot reach prints its page and exits 0, which the
+// workflow would read as a pass with no check run. Measured on Total Mail
+// Queue's port of this script, with MariaDB stopped. So anything that ends the
+// run before the verdict below is a failure.
+$GLOBALS['ffc_smoke_verdict'] = false;
+register_shutdown_function(
+	static function (): void {
+		if ( ! $GLOBALS['ffc_smoke_verdict'] ) {
+			echo "\nSMOKE FAILED: WordPress stopped before the checks ran (see the output above).\n";
+			exit( 1 );
+		}
+	}
+);
+
 // A fatal in the plugin surfaces here as a non-zero exit with PHP's own error —
 // which is precisely the loudest signal this smoke can give.
 require_once $wp_load;
@@ -403,5 +418,6 @@ ffc_smoke_check(
 	false
 );
 
+$GLOBALS['ffc_smoke_verdict'] = true;
 echo "\n" . ( $failed ? "SMOKE FAILED\n" : "SMOKE PASSED\n" );
 exit( $failed ? 1 : 0 );

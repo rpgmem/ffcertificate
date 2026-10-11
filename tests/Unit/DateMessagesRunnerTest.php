@@ -183,7 +183,7 @@ class DateMessagesRunnerTest extends TestCase {
 			5
 		);
 		$this->log->shouldReceive( 'claim' )->once()->with( 7, 3, 1, '2026-10-10' )->andReturn( true );
-		$this->mailer->shouldReceive( 'send' )->once()->with( 'u1@example.org', 'S', 'B', array(), true, 'plugin:ffcertificate_date_messages' )->andReturn( true );
+		$this->mailer->shouldReceive( 'send' )->once()->with( 'u1@example.org', 'S', 'B', array(), true, 'plugin:ffcertificate_date_messages', array() )->andReturn( true );
 		$this->log->shouldReceive( 'finish_run' )->once()->with( 7 );
 
 		Runner::process( 7, '2026-10-10', 0 );

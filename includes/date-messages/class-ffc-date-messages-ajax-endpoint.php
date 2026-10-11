@@ -1,6 +1,6 @@
 <?php
 /**
- * Date-messages AJAX: recipient preview and test send.
+ * Date-messages AJAX: recipient preview, message preview and test send.
  *
  * @package FreeFormCertificate\DateMessages
  * @since 6.33.0
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * The two date-messages actions that work on a form not saved yet (#1538).
+ * The date-messages actions that work on a form not saved yet (#1538).
  *
  * PREVIEW IS THE SEND, MINUS THE SENDING. It walks the same
  * `RecipientResolver` the runner sends from, day by day over the range, and
@@ -27,8 +27,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * operator holding the PII capability, with the address masked. It writes
  * nothing: no run, no log, no event.
  *
+ * MESSAGE PREVIEW renders the e-mail the form would send, with the same
+ * fictional values as the test send and the rule's body appearance (#1660),
+ * through the same `SchedulingMailer::document()` that sending wraps with --
+ * so what the editor shows is what goes out. It sends and writes nothing.
+ *
  * TEST SEND uses the fictional sample values, goes to the operator's own
- * address with `[TEST]` in the subject, and is neither logged nor counted.
+ * address with `[TEST]` in the subject, and shows in the history as a run
+ * marked "Test". It writes no delivery row, so it never counts for the
+ * deduplication, and it schedules no digest.
  */
 final class DateMessagesAjaxEndpoint {
 
@@ -43,13 +50,53 @@ final class DateMessagesAjaxEndpoint {
 	public const TEST_ACTION = 'ffc_date_messages_test_send';
 
 	/**
-	 * Register the handlers. Admin-only: both need a logged-in operator.
+	 * Message-preview action, also its nonce action.
+	 */
+	public const MESSAGE_ACTION = 'ffc_date_messages_message_preview';
+
+	/**
+	 * Register the handlers. Admin-only: each needs a logged-in operator.
 	 *
 	 * @return void
 	 */
 	public static function init(): void {
 		add_action( 'wp_ajax_' . self::PREVIEW_ACTION, array( self::class, 'preview' ) );
 		add_action( 'wp_ajax_' . self::TEST_ACTION, array( self::class, 'test_send' ) );
+		add_action( 'wp_ajax_' . self::MESSAGE_ACTION, array( self::class, 'message_preview' ) );
+	}
+
+	/**
+	 * The e-mail the form would send, rendered with sample values.
+	 *
+	 * @return void
+	 */
+	public static function message_preview(): void {
+		check_ajax_referer( self::MESSAGE_ACTION, 'nonce' );
+		if ( ! DateMessagesAdminPage::can_view() ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to do this.', 'ffcertificate' ) ), 403 );
+		}
+
+		$rule = self::posted_rule();
+		if ( is_wp_error( $rule ) ) {
+			wp_send_json_error( array( 'message' => $rule->get_error_message() ), 400 );
+		}
+		$source = DateSources::get( $rule->source );
+		if ( null === $source ) {
+			wp_send_json_error( array( 'message' => __( 'Unknown date source.', 'ffcertificate' ) ), 400 );
+		}
+
+		$today   = Runner::today();
+		$target  = $today->modify( sprintf( '%+d days', -$rule->offset_days ) );
+		$message = MessageBuilder::sample( $rule->subject, $rule->body, $source, $target, $today );
+		$user    = wp_get_current_user();
+
+		wp_send_json_success(
+			array(
+				'subject'  => $message['subject'],
+				'html'     => SchedulingMailer::document( $message['body'], array_merge( $rule->appearance->document_args(), array( 'recipient' => (string) $user->user_email ) ) ),
+				'contrast' => $rule->appearance->contrast(),
+			)
+		);
 	}
 
 	/**
@@ -122,8 +169,13 @@ final class DateMessagesAjaxEndpoint {
 			$message['body'],
 			array(),
 			true,
-			EmailSource::DATE_MESSAGES
+			EmailSource::DATE_MESSAGES,
+			$rule->appearance->document_args()
 		);
+
+		// The history shows the test, marked as one; it never reaches the
+		// delivery log, so it cannot stand in for a real message.
+		DeliveryLog::record_test( (int) $rule->id, $target->format( 'Y-m-d' ), get_current_user_id(), $sent );
 
 		if ( ! $sent ) {
 			wp_send_json_error( array( 'message' => __( 'The test message was not sent. Check whether e-mails are disabled in the settings.', 'ffcertificate' ) ), 500 );

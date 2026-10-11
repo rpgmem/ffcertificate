@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\DateMessages;
 
+use FreeFormCertificate\Core\EmailBodyAppearance;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -38,18 +40,19 @@ final class Rule {
 	/**
 	 * Constructor.
 	 *
-	 * @param int        $id              Rule id (0 before it is stored).
-	 * @param string     $name            Operator-facing name.
-	 * @param string     $source          Date source id (see DateSources).
-	 * @param int        $offset_days     Days from the date: 0 on it, -7 a week before.
-	 * @param array<int> $audience_ids    Audiences whose members qualify (sub-audiences included); empty for everyone.
-	 * @param string     $subject         E-mail subject (tokens allowed).
-	 * @param string     $body            E-mail body HTML (tokens allowed).
-	 * @param bool       $send_to_user    Whether the person receives it.
-	 * @param bool       $digest_enabled  Whether managers get a digest.
-	 * @param string     $digest_mode     One of DIGEST_MODES.
-	 * @param array<int> $digest_user_ids Managers (WordPress user ids).
-	 * @param bool       $is_active       Whether the cron sends it.
+	 * @param int                 $id              Rule id (0 before it is stored).
+	 * @param string              $name            Operator-facing name.
+	 * @param string              $source          Date source id (see DateSources).
+	 * @param int                 $offset_days     Days from the date: 0 on it, -7 a week before.
+	 * @param array<int>          $audience_ids    Audiences whose members qualify (sub-audiences included); empty for everyone.
+	 * @param string              $subject         E-mail subject (tokens allowed).
+	 * @param string              $body            E-mail body HTML (tokens allowed).
+	 * @param bool                $send_to_user    Whether the person receives it.
+	 * @param bool                $digest_enabled  Whether managers get a digest.
+	 * @param string              $digest_mode     One of DIGEST_MODES.
+	 * @param array<int>          $digest_user_ids Managers (WordPress user ids).
+	 * @param bool                $is_active       Whether the cron sends it.
+	 * @param EmailBodyAppearance $appearance How the body cell is drawn (#1660).
 	 */
 	private function __construct(
 		public readonly int $id,
@@ -64,13 +67,14 @@ final class Rule {
 		public readonly string $digest_mode,
 		public readonly array $digest_user_ids,
 		public readonly bool $is_active,
+		public readonly EmailBodyAppearance $appearance,
 	) {}
 
 	/**
 	 * Build a rule from a stored row or a submitted form, validating it.
 	 *
-	 * Keys are the table's column names. `audience_ids` and
-	 * `digest_user_ids` may be a JSON string (a stored row) or a list (a form).
+	 * Keys are the table's column names. `audience_ids`, `digest_user_ids`
+	 * and `appearance` may be a JSON string (a stored row) or a list (a form).
 	 *
 	 * @param array<string, mixed> $data Raw data.
 	 * @return Rule|\WP_Error
@@ -106,6 +110,10 @@ final class Rule {
 		if ( ! in_array( $mode, self::DIGEST_MODES, true ) ) {
 			return new \WP_Error( 'ffc_rule_digest_mode', __( 'Unknown digest mode.', 'ffcertificate' ) );
 		}
+		$appearance = EmailBodyAppearance::from_array( $data['appearance'] ?? null );
+		if ( is_wp_error( $appearance ) ) {
+			return $appearance;
+		}
 
 		return new self(
 			id: is_numeric( $data['id'] ?? null ) ? max( 0, (int) $data['id'] ) : 0,
@@ -120,6 +128,7 @@ final class Rule {
 			digest_mode: $mode,
 			digest_user_ids: self::ids( $data['digest_user_ids'] ?? array() ),
 			is_active: self::flag( $data['is_active'] ?? true ),
+			appearance: $appearance,
 		);
 	}
 
@@ -141,6 +150,7 @@ final class Rule {
 			'digest_mode'     => $this->digest_mode,
 			'digest_user_ids' => (string) wp_json_encode( $this->digest_user_ids ),
 			'is_active'       => $this->is_active ? 1 : 0,
+			'appearance'      => $this->appearance->is_default() ? '' : (string) wp_json_encode( $this->appearance->to_array() ),
 		);
 	}
 

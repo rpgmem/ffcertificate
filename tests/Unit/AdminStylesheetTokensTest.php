@@ -960,6 +960,24 @@ final class AdminStylesheetTokensTest extends TestCase {
 		);
 	}
 
+	/**
+	 * The base pair paints TEXT light; the canvas has to follow, or every page
+	 * title and list count sits light-on-light on core's `#f0f0f1`. That shipped:
+	 * cards and tables were dark, the page around them was not, and the title of
+	 * every FFC screen vanished in dark mode. The text-on-background pair is
+	 * measured in DarkModeCssTest; this pins that the background is painted.
+	 */
+	public function test_the_dark_mode_paints_the_admin_canvas(): void {
+		$css = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' );
+		$css = (string) preg_replace( '#/\*.*?\*/#s', '', $css );
+
+		$this->assertMatchesRegularExpression(
+			'/:root\.ffc-dark-mode\s+body\.wp-admin\s*\{[^{}]*background-color:\s*var\(--ffc-bg\)/',
+			$css,
+			'The dark admin canvas vanished: the light text of the base pair is back on core\'s light page.'
+		);
+	}
+
 	public function test_the_dark_mode_base_pair_names_only_live_roots(): void {
 		$css      = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' );
 		$selector = self::base_pair_selector( (string) preg_replace( '#/\*.*?\*/#s', '', $css ) );

@@ -77,6 +77,61 @@ class SchedulingMailerTest extends TestCase {
 		$this->assertStringContainsString( '<p>Body</p>', $sent_body );
 	}
 
+	public function test_document_without_an_appearance_keeps_the_email_model_body(): void {
+		$html = SchedulingMailer::document( '<p>Body</p>' );
+
+		$this->assertStringNotContainsString( 'ffc-email-col-text', $html );
+		$this->assertStringNotContainsString( 'background-image', $html );
+		$this->assertMatchesRegularExpression( '/<td class="ffc-email-body" valign="top" style="background-color:#ffffff;color:#333333;/', $html );
+	}
+
+	public function test_document_draws_the_body_appearance_between_the_global_header_and_footer(): void {
+		Functions\when( 'esc_url_raw' )->returnArg();
+		$html = SchedulingMailer::document(
+			'<p>Body</p>',
+			array(
+				'body_appearance' => array(
+					'image_url'      => 'https://example.org/art.png',
+					'min_height'     => 360,
+					'fallback_color' => '#fff3e8',
+					'text_color'     => '#2b2d42',
+					'position'       => 'left',
+					'text_width'     => 60,
+				),
+			)
+		);
+
+		// The body cell: image anchored on the free side, fallback colour, height and the legacy attributes.
+		$this->assertStringContainsString( 'background="https://example.org/art.png" bgcolor="#fff3e8" height="360"', $html );
+		$this->assertStringContainsString( "background-color:#fff3e8;background-image:url('https://example.org/art.png');background-position:right center;background-size:cover;", $html );
+		// The text column first, the free side after it.
+		$this->assertMatchesRegularExpression( '/ffc-email-col-text" width="60%".*<p>Body<\/p>.*ffc-email-col-space" width="40%"/s', $html );
+		// Phones: the text takes the full width.
+		$this->assertStringContainsString( '.ffc-email-col-text { width: 100% !important; display: block !important; }', $html );
+		// Header and footer are still the Email Model's.
+		$this->assertStringContainsString( 'Test Site', $html );
+	}
+
+	public function test_document_puts_the_free_side_first_when_the_text_is_on_the_right(): void {
+		Functions\when( 'esc_url_raw' )->returnArg();
+		$html = SchedulingMailer::document(
+			'<p>Body</p>',
+			array(
+				'body_appearance' => array(
+					'image_url'      => '',
+					'fallback_color' => '#fff3e8',
+					'text_color'     => '',
+					'position'       => 'right',
+					'text_width'     => 50,
+				),
+			)
+		);
+
+		$this->assertMatchesRegularExpression( '/ffc-email-col-space" width="50%".*ffc-email-col-text" width="50%"/s', $html );
+		$this->assertStringNotContainsString( 'background-image', $html, 'no image, no background image' );
+		$this->assertStringNotContainsString( 'height="', $html );
+	}
+
 	public function test_send_skip_wrap_when_false(): void {
 		$sent_body = null;
 		Functions\when( 'wp_mail' )->alias( function ( $to, $subj, $body ) use ( &$sent_body ) {

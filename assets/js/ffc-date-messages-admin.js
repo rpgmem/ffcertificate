@@ -1,6 +1,7 @@
 /**
- * Date Messages admin screen (#1538): recipient preview, test send and the
- * confirmations on destructive forms.
+ * Date Messages admin screen (#1538): recipient preview, message preview,
+ * test send, the body appearance controls (#1660) and the confirmations on
+ * destructive forms.
  *
  * The preview posts either the editor's unsaved values (`data-ffc-dm-preview
  * ="form"`) or a saved rule's id (`="saved"`, the Send now tab) and renders
@@ -21,6 +22,8 @@ jQuery(function ($) {
 			e.preventDefault();
 		}
 	});
+
+	initAppearance();
 
 	if (!$('.ffc-dm-preview').length || !window.FFC || typeof window.FFC.request !== 'function') {
 		return;
@@ -111,9 +114,141 @@ jQuery(function ($) {
 		run($(this), cfg.previewAction, cfg.previewNonce, render);
 	});
 
+	$(document).on('click', '.ffc-dm-message-button', function () {
+		run($(this), cfg.messageAction, cfg.messageNonce, function ($out, data) {
+			var $box = $out.closest('.ffc-dm-preview');
+			var $panel = $box.find('.ffc-dm-message');
+			$out.empty();
+			$panel.find('.ffc-dm-message-subject').text(data.subject || '');
+			// The e-mail is a whole document of its own; srcdoc keeps it out
+			// of this page, and the frame's empty sandbox runs nothing in it.
+			$panel.find('.ffc-dm-message-frame').attr('srcdoc', String(data.html || ''));
+			$panel.removeClass('ffc-hidden');
+		});
+	});
+
+	$(document).on('click', '.ffc-dm-message-size', function () {
+		var $button = $(this);
+		$button.closest('.ffc-dm-message').find('.ffc-dm-message-frame').attr('width', String($button.data('width')));
+		$button.siblings('.ffc-dm-message-size').attr('aria-pressed', 'false');
+		$button.attr('aria-pressed', 'true');
+	});
+
 	$(document).on('click', '.ffc-dm-test-button', function () {
 		run($(this), cfg.testAction, cfg.testNonce, function ($out, data) {
 			message($out, data.message || '', false);
 		});
 	});
+
+	/**
+	 * Relative luminance of a #rgb / #rrggbb colour (WCAG 2), or null.
+	 *
+	 * @param {string} hex Colour.
+	 * @return {number|null}
+	 */
+	function luminance(hex) {
+		var m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(hex || '').trim());
+		if (!m) {
+			return null;
+		}
+		var h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1];
+		var channels = [0, 2, 4].map(function (i) {
+			var c = parseInt(h.substr(i, 2), 16) / 255;
+			return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+		});
+		return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+	}
+
+	/**
+	 * WCAG contrast ratio of two colours, rounded to one decimal, or null.
+	 *
+	 * @param {string} a First colour.
+	 * @param {string} b Second colour.
+	 * @return {number|null}
+	 */
+	function contrast(a, b) {
+		var la = luminance(a);
+		var lb = luminance(b);
+		if (null === la || null === lb) {
+			return null;
+		}
+		return Math.round(((Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05)) * 10) / 10;
+	}
+
+	/**
+	 * Body appearance card (#1660): image picker, colours, live contrast,
+	 * and the fallback colour required once an image is chosen. The server
+	 * validates all of it again; this only keeps the form honest early.
+	 */
+	function initAppearance() {
+		var $card = $('.ffc-dm-appearance');
+		if (!$card.length) {
+			return;
+		}
+		var $id = $card.find('.ffc-dm-image-id');
+		var $fallback = $card.find('.ffc-dm-fallback');
+		var $text = $card.find('.ffc-dm-text');
+		var $contrast = $card.find('.ffc-dm-contrast');
+
+		function update() {
+			var hasImage = parseInt($id.val(), 10) > 0;
+			$fallback.prop('required', hasImage);
+			$card.find('.ffc-dm-image-preview, .ffc-dm-image-remove').toggleClass('ffc-hidden', !hasImage);
+
+			var ratio = contrast(
+				String($text.val() || '') || String($card.data('model-text') || ''),
+				String($fallback.val() || '') || String($card.data('model-bg') || '')
+			);
+			if (null === ratio) {
+				$contrast.text('');
+				return;
+			}
+			var shown = String(ratio).replace('.', String(cfg.decimal || '.'));
+			$contrast.text(String($contrast.data(ratio >= 4.5 ? 'ok' : 'low')).replace('%s', shown));
+		}
+
+		if (typeof $.fn.wpColorPicker === 'function') {
+			$card.find('.ffc-dm-color').wpColorPicker({ change: function () { setTimeout(update, 0); }, clear: function () { setTimeout(update, 0); } });
+		}
+		$card.on('input change', '.ffc-dm-color', update);
+
+		$card.on('click', '.ffc-dm-image-choose', function (e) {
+			e.preventDefault();
+			if (!window.wp || !window.wp.media) {
+				return;
+			}
+			var $button = $(this);
+			var frame = window.wp.media({
+				title: String($button.data('title') || ''),
+				button: { text: String($button.data('button') || '') },
+				library: { type: 'image' },
+				multiple: false,
+			});
+			frame.on('select', function () {
+				var item = frame.state().get('selection').first().toJSON();
+				var thumb = item.sizes && item.sizes.medium ? item.sizes.medium.url : item.url;
+				var meta = [item.filename, item.width + ' × ' + item.height];
+				if (item.filesizeHumanReadable) {
+					meta.push(item.filesizeHumanReadable);
+				}
+				$id.val(String(item.id));
+				$card.find('.ffc-dm-image-thumb').attr('src', thumb);
+				$card.find('.ffc-dm-image-url').val(item.url);
+				$card.find('.ffc-dm-image-meta').text(meta.join(' · '));
+				update();
+			});
+			frame.open();
+		});
+
+		$card.on('click', '.ffc-dm-image-remove', function (e) {
+			e.preventDefault();
+			$id.val('0');
+			$card.find('.ffc-dm-image-thumb').attr('src', '');
+			$card.find('.ffc-dm-image-url').val('');
+			$card.find('.ffc-dm-image-meta').text('');
+			update();
+		});
+
+		update();
+	}
 });

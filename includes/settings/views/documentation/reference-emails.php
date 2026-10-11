@@ -50,6 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'The "Email Model" chrome', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'The Email Model tab styles the shell shared by every email: header band (logo or site name, colors, alignment, padding), body card (colors, font, size, width), footer (colors + tokenized text) and outer wrapper. It has a live preview and a "Restore default model" button. You edit only the chrome here — the message text of each email is separate, on the Email texts tab.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'A Date Messages rule can give its own message body a background image, colours and a text column; the header, footer, width and padding stay the ones set here.', 'ffcertificate' ); ?> <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages', 'ffcertificate' ); ?></a>.</p>
 	</div>
 
 	<div class="ffc-doc-example">
