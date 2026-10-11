@@ -24958,3 +24958,57 @@ msgstr ""
 
 msgid "Source code and issue tracker: %s"
 msgstr ""
+
+msgid "Checking access…"
+msgstr ""
+
+msgid "This content needs JavaScript to check your access."
+msgstr ""
+
+msgid "This content is not available at this time."
+msgstr ""
+
+msgid "This content is not available in your location."
+msgstr ""
+
+msgid "This content is not available."
+msgstr ""
+
+msgid "(HH:MM),"
+msgstr ""
+
+msgid "(YYYY-MM-DD),"
+msgstr ""
+
+msgid "(hide the block entirely, or the message shown instead of the content)."
+msgstr ""
+
+msgid "(location ids from Settings → Geolocation),"
+msgstr ""
+
+msgid "(one continuous period instead of the same hours every day),"
+msgstr ""
+
+msgid "(one-off areas, radius in meters),"
+msgstr ""
+
+msgid "(which checks run, and whether GPS and IP must both pass),"
+msgstr ""
+
+msgid "Limits:"
+msgstr ""
+
+msgid "See Shortcodes."
+msgstr ""
+
+msgid "GPS coordinates come from the visitor's browser and can be faked, so a GPS check controls who sees the content, not who is allowed to: never put anything secret behind it. The date/time and IP checks are repeated on the server. The shortcode only works in the content of a page or post, not in widgets or templates."
+msgstr ""
+
+msgid "Place it in a page or post. The content is not in the page HTML: once the browser checks pass it is loaded from the server, which re-checks the date/time window and, when asked, the IP location. Without any location or area attribute, the default GPS and IP locations of Settings → Geolocation apply."
+msgstr ""
+
+msgid "Shows the content between the tags only to a visitor inside a date/time window and/or inside an area, with the same checks as a geofenced form."
+msgstr ""
+
+msgid "The same building blocks protect page content: the [ffc_geofence] shortcode uses these locations, fallbacks and the administrator bypass."
+msgstr ""

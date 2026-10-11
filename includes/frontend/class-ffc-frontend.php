@@ -73,6 +73,10 @@ class Frontend {
 		// the action callback array.
 		new PreflightTelemetry();
 
+		// [ffc_geofence] registers its shortcode, content filter and
+		// content endpoint in its constructor (#1668).
+		new GeofenceContent();
+
 		$this->register_hooks();
 		$this->public_csv_download->register_hooks();
 	}
@@ -143,8 +147,14 @@ class Frontend {
 		$has_form         = has_shortcode( $post->post_content, 'ffc_form' );
 		$has_verification = has_shortcode( $post->post_content, 'ffc_verification' );
 		$has_csv_download = has_shortcode( $post->post_content, 'ffc_csv_download' );
+		$has_geofence     = has_shortcode( $post->post_content, GeofenceContent::SHORTCODE );
+		$has_base_assets  = $has_form || $has_verification || $has_csv_download;
 
-		if ( $has_form || $has_verification || $has_csv_download ) {
+		if ( $has_geofence ) {
+			$this->enqueue_geofence_content_assets( $has_base_assets );
+		}
+
+		if ( $has_base_assets ) {
 			$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 			// Dark mode script (loaded early to prevent flash).
@@ -589,6 +599,50 @@ class Frontend {
 	}
 
 	/**
+	 * Enqueue what [ffc_geofence] needs (#1668).
+	 *
+	 * The content script reuses the form geofence modules (date/time, GPS,
+	 * pre-flight) and their styles, so it loads them itself on a page that
+	 * has no form; on a page that has one, the form branch loads them and
+	 * localizes their shared configuration.
+	 *
+	 * @param bool $has_base_assets Whether the form branch also runs on this page.
+	 */
+	private function enqueue_geofence_content_assets( bool $has_base_assets ): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
+		if ( ! $has_base_assets ) {
+			\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+			wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
+			wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
+			wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css", array( 'ffc-pdf-core', 'ffc-common' ), FFC_VERSION );
+		}
+
+		wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		$modules = array( 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-preflight' );
+		foreach ( $modules as $module ) {
+			wp_enqueue_script( $module, FFC_PLUGIN_URL . "assets/js/{$module}{$s}.js", array( 'jquery', 'ffc-geofence-frontend' ), FFC_VERSION, true );
+		}
+
+		wp_enqueue_script( GeofenceContent::SCRIPT_HANDLE, FFC_PLUGIN_URL . "assets/js/ffc-geofence-content{$s}.js", array_merge( array( 'jquery', 'ffc-core' ), $modules ), FFC_VERSION, true );
+		wp_localize_script(
+			GeofenceContent::SCRIPT_HANDLE,
+			'ffcGeofenceContent',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'action'  => GeofenceContent::AJAX_ACTION,
+				'strings' => array(
+					'unavailable' => __( 'This content is not available.', 'ffcertificate' ),
+				),
+			)
+		);
+
+		if ( ! $has_base_assets ) {
+			$this->localize_geofence_config();
+		}
+	}
+
+	/**
 	 * Localize geofence configuration for frontend
 	 *
 	 * @since 3.0.0
@@ -633,7 +687,9 @@ class Frontend {
 			}
 		}
 
-		if ( empty( $form_ids ) ) {
+		// A page with only [ffc_geofence] still needs the shared strings
+		// below: the content script reads them through the same object.
+		if ( empty( $form_ids ) && ! has_shortcode( $post->post_content, GeofenceContent::SHORTCODE ) ) {
 			return;
 		}
 
