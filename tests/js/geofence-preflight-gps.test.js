@@ -226,4 +226,30 @@ describe('GPS Permissions API pre-check', () => {
 
 		expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
 	});
+
+	it('a recheck while the prompt banner waits leaves one banner', async () => {
+		stubPermissions('prompt');
+		setupForm(7);
+		window.FFCGeofence.init();
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(document.querySelectorAll('.ffc-preflight-banner')).toHaveLength(1);
+
+		// The cached-page fragment refresh rechecks every form (#1668).
+		window.FFCGeofence.recheck();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(document.querySelectorAll('.ffc-preflight-banner')).toHaveLength(1);
+	});
+
+	it('a block shown twice leaves one message', () => {
+		setupForm(7);
+		const $w = window.$('#ffc-form-7');
+
+		window.FFCGeofence.handleBlocked($w, 'message', 'Outside the area.');
+		window.FFCGeofence.handleBlocked($w, 'message', 'Outside the area.');
+
+		expect($w.find('.ffc-geofence-blocked')).toHaveLength(1);
+	});
 });

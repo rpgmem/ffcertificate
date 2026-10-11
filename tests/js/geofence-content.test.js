@@ -145,7 +145,8 @@ describe('protected content', () => {
 		expect(request).toHaveBeenCalledTimes(1);
 	});
 
-	it('shows the admin bypass notice', async () => {
+	it('marks a bypass with a badge that outlives the content swap', async () => {
+		window.ffcGeofenceContent.strings.bypassBadge = 'Admin bypass';
 		const $w = mount({
 			adminBypass: true,
 			bypassInfo: { hasDatetime: true, hasGeo: false },
@@ -154,8 +155,24 @@ describe('protected content', () => {
 		});
 
 		window.FFCGeofence.processContent($w);
+		await flush();
 
-		expect($w.find('.ffc-geofence-admin-bypass')).toHaveLength(1);
+		const $badge = $w.find('.ffc-geofence-bypass-badge');
+		expect($badge).toHaveLength(1);
+		expect($badge.text()).toBe('Admin bypass');
+		expect($badge.attr('title')).toContain('Date/Time');
+		expect($w.children().first().is($badge)).toBe(true);
+		expect($w.find('p').last().text()).toBe('Answer key');
+		expect($w.find('.ffc-geofence-admin-bypass')).toHaveLength(0);
+	});
+
+	it('shows no badge without a bypass', async () => {
+		const $w = mount({ datetime: { enabled: false }, geo: { enabled: false } });
+
+		window.FFCGeofence.processContent($w);
+		await flush();
+
+		expect($w.find('.ffc-geofence-bypass-badge')).toHaveLength(0);
 	});
 });
 

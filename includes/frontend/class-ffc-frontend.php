@@ -633,6 +633,7 @@ class Frontend {
 				'action'  => GeofenceContent::AJAX_ACTION,
 				'strings' => array(
 					'unavailable' => __( 'This content is not available.', 'ffcertificate' ),
+					'bypassBadge' => __( 'Admin bypass', 'ffcertificate' ),
 				),
 			)
 		);
