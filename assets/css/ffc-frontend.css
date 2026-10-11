@@ -1114,6 +1114,23 @@ details.ffc-consent-description > p {
     font-weight: 500;
 }
 
+/* [ffc_geofence]: the bypass shows as a badge over the content (#1668). */
+.ffc-shortcode .ffc-geofence-bypass-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    margin: 0 0 var(--ffc-spacing-sm) 0;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border: 1px solid var(--ffc-info-border);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: help;
+}
+
 /* ============================================
    LOADING STATE (Magic Link)
    ============================================ */

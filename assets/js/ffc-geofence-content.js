@@ -68,8 +68,8 @@
                 config = {};
             }
 
-            if (config.adminBypass === true && config.bypassInfo) {
-                this.showAdminBypassMessages(wrapper, config.bypassInfo);
+            if (config.adminBypass === true) {
+                this.showBypassBadge(wrapper, config.bypassInfo);
             }
 
             if (config.datetime && config.datetime.enabled) {
@@ -85,6 +85,33 @@
             }
 
             this.processGeoOrShow(wrapper, config);
+        },
+
+        /**
+         * A small badge over the content telling an administrator that a
+         * restriction was skipped for them. A form shows full notices; here
+         * they would sit above content that is the page's own (#1668). The
+         * badge survives the content replacing the placeholder.
+         *
+         * @param {jQuery} wrapper    Placeholder element.
+         * @param {Object} bypassInfo Which restrictions were skipped.
+         */
+        showBypassBadge: function(wrapper, bypassInfo) {
+            const settings = window.ffcGeofenceContent || {};
+            const label = (settings.strings && settings.strings.bypassBadge) || 'Admin bypass';
+            const details = [];
+            if (bypassInfo && bypassInfo.hasDatetime) {
+                details.push(this.getString('bypassDatetime', 'Admin Bypass: Date/Time restrictions are disabled for administrators'));
+            }
+            if (bypassInfo && bypassInfo.hasGeo) {
+                details.push(this.getString('bypassGeo', 'Admin Bypass: Geolocation restrictions are disabled for administrators'));
+            }
+            const $badge = $('<span class="ffc-geofence-bypass-badge ffc-icon-unlock"></span>').text(label);
+            if (details.length) {
+                $badge.attr('title', details.join('\n'));
+            }
+            wrapper.data('ffcBypassBadge', $badge);
+            wrapper.prepend($badge);
         },
 
         /**
@@ -107,6 +134,9 @@
                 { ajaxUrl: settings.ajaxUrl }
             ).then(function(data) {
                 wrapper.addClass('ffc-validated').html(data && data.html ? data.html : '');
+                if (wrapper.data('ffcBypassBadge')) {
+                    wrapper.prepend(wrapper.data('ffcBypassBadge'));
+                }
             }).catch(function(err) {
                 const fallback = (settings.strings && settings.strings.unavailable) || 'This content is not available.';
                 const message = (err && err.data && err.data.message)
