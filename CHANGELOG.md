@@ -14,6 +14,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"Send test to me" now shows in the Date Messages history** (#1664). Each test is a run with a Test badge and the name of the sender, which can be hidden. It is never written to the delivery log, so it cannot stop the real message, and it schedules no digest.
 - **The documentation names its developer and links the repository**, read from the plugin header, the same lines the Plugins screen shows (#1667).
 
+### Changed
+
+- **The geofence checks take a config, not only a form** (#1668). `Geofence::check_access()` and `build_frontend_config()` run the date/time and location checks on any config, and the form methods now read the form's meta and call them, with no change for forms. This is the base for protecting page content.
+
 ### Fixed
 
 - **Dark mode no longer hides the page title on the plugin's admin screens** (#1662). The text turned light but the page behind it stayed core's light grey, so titles, list counts and "N items" were light-on-light; the form editor's title field had the same problem. The canvas is now painted dark.
