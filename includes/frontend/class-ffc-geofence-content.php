@@ -521,7 +521,7 @@ class GeofenceContent {
 	 * @return bool
 	 */
 	private static function yes( $value ): bool {
-		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'yes', 'true', 'on' ), true );
+		return filter_var( $value, FILTER_VALIDATE_BOOLEAN );
 	}
 
 	/**
