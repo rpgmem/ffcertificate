@@ -47,6 +47,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</td>
 			</tr>
 			<tr>
+				<td><code>[ffc_geofence date_end="2026-12-31" locations="school"]…[/ffc_geofence]</code></td>
+				<td>
+					<?php esc_html_e( 'Shows the content between the tags only to a visitor inside a date/time window and/or inside an area, with the same checks as a geofenced form.', 'ffcertificate' ); ?><br>
+					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Place it in a page or post. The content is not in the page HTML: once the browser checks pass it is loaded from the server, which re-checks the date/time window and, when asked, the IP location. Without any location or area attribute, the default GPS and IP locations of Settings → Geolocation apply.', 'ffcertificate' ); ?><br>
+					<strong><?php esc_html_e( 'Optional attributes:', 'ffcertificate' ); ?></strong>
+					<code>date_start</code> / <code>date_end</code> <?php esc_html_e( '(YYYY-MM-DD),', 'ffcertificate' ); ?>
+					<code>time_start</code> / <code>time_end</code> <?php esc_html_e( '(HH:MM),', 'ffcertificate' ); ?>
+					<code>time_mode="span"</code> <?php esc_html_e( '(one continuous period instead of the same hours every day),', 'ffcertificate' ); ?>
+					<code>locations="id1,id2"</code> / <code>ip_locations</code> <?php esc_html_e( '(location ids from Settings → Geolocation),', 'ffcertificate' ); ?>
+					<code>areas="lat, lng, radius; …"</code> / <code>ip_areas</code> <?php esc_html_e( '(one-off areas, radius in meters),', 'ffcertificate' ); ?>
+					<code>gps="no"</code>, <code>ip="yes"</code>, <code>logic="and"</code> <?php esc_html_e( '(which checks run, and whether GPS and IP must both pass),', 'ffcertificate' ); ?>
+					<code>hide_mode="hide"</code>, <code>message="…"</code> <?php esc_html_e( '(hide the block entirely, or the message shown instead of the content).', 'ffcertificate' ); ?><br>
+					<strong><?php esc_html_e( 'Limits:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'GPS coordinates come from the visitor\'s browser and can be faked, so a GPS check controls who sees the content, not who is allowed to: never put anything secret behind it. The date/time and IP checks are repeated on the server. The shortcode only works in the content of a page or post, not in widgets or templates.', 'ffcertificate' ); ?>
+				</td>
+			</tr>
+			<tr>
 				<td><code>[user_dashboard_personal]</code></td>
 				<td>
 					<?php esc_html_e( 'Displays dashboard page.', 'ffcertificate' ); ?><br>
