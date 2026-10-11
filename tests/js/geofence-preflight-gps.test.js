@@ -208,4 +208,22 @@ describe('GPS Permissions API pre-check', () => {
 		expect(document.querySelector('.ffc-preflight-gps')).toBeNull();
 		expect(document.querySelector('.ffc-form-wrapper').classList.contains('ffc-geofence-loading')).toBe(true);
 	});
+
+	it('PermissionStatus.onchange after "Continue" does not run the check twice', async () => {
+		const status = stubPermissions('prompt');
+		setupForm(7);
+		window.FFCGeofence.init();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// The visitor clicks "Continue": the banner goes and the check runs.
+		document.querySelector('.ffc-preflight-gps .ffc-preflight-try-anyway').click();
+		expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
+
+		// Allowing the browser prompt is the change that fires onchange.
+		status.state = 'granted';
+		status.onchange();
+
+		expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
+	});
 });
