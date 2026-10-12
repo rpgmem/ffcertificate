@@ -651,4 +651,159 @@ class UserProfileServiceTest extends TestCase {
 		$result = UserProfileService::write( 42, array( 'leaky_key' => 'two' ) );
 		$this->assertFalse( $result, 'second write without descriptors must ignore the dynamic key.' );
 	}
+
+	// ==================================================================
+	// Read edges: absent storage, plain meta, generic mask
+	// ==================================================================
+
+	public function test_read_of_a_missing_user_answers_null_for_its_fields(): void {
+		Functions\when( 'get_userdata' )->justReturn( false );
+
+		$this->assertSame( array( 'user_email' => null ), UserProfileService::read( 42, array( 'user_email' ) ) );
+	}
+
+	public function test_read_profile_table_without_a_row_answers_null_per_field(): void {
+		$this->profile_row = null;
+
+		$this->assertSame(
+			array(
+				'phone'      => null,
+				'department' => null,
+			),
+			UserProfileService::read( 42, array( 'phone', 'department' ) )
+		);
+	}
+
+	public function test_read_plain_usermeta_returns_the_stored_value_or_empty(): void {
+		$this->usermeta_store[42] = array( 'ffc_user_jornada' => '40h' );
+		$this->assertSame( array( 'jornada' => '40h' ), UserProfileService::read( 42, array( 'jornada' ) ) );
+
+		$this->usermeta_store[42] = array();
+		$this->assertSame( array( 'jornada' => '' ), UserProfileService::read( 42, array( 'jornada' ) ) );
+	}
+
+	public function test_a_full_read_of_plain_fields_is_not_audited(): void {
+		$this->usermeta_store[42] = array( 'ffc_user_jornada' => '20h' );
+		$this->wpdb->shouldNotReceive( 'insert' );
+
+		$this->assertSame(
+			array( 'jornada' => '20h' ),
+			UserProfileService::read( 42, array( 'jornada' ), ViewPolicy::FULL )
+		);
+	}
+
+	/**
+	 * A sensitive field without a document masker keeps only its ends.
+	 */
+	public function test_a_sensitive_field_without_a_masker_is_masked_generically(): void {
+		$this->usermeta_store[42] = array( 'ffc_user_rg' => (string) \FreeFormCertificate\Core\Encryption::encrypt( '123456789' ) );
+		$this->assertSame( array( 'rg' => '1*******9' ), UserProfileService::read( 42, array( 'rg' ) ) );
+
+		$this->usermeta_store[42] = array( 'ffc_user_rg' => (string) \FreeFormCertificate\Core\Encryption::encrypt( '12' ) );
+		$this->assertSame( array( 'rg' => '**' ), UserProfileService::read( 42, array( 'rg' ) ), 'A value too short to keep its ends is fully masked.' );
+	}
+
+	public function test_an_undecryptable_sensitive_value_reads_as_empty_not_as_ciphertext(): void {
+		$this->usermeta_store[42] = array( 'ffc_user_rg' => 'v2:bm90LWEtcmVhbC1lbnZlbG9wZQ==' );
+
+		$this->assertSame( array( 'rg' => '' ), UserProfileService::read( 42, array( 'rg' ) ) );
+	}
+
+	// ==================================================================
+	// Write edges: wp_users, descriptors missing their target
+	// ==================================================================
+
+	public function test_write_routes_a_wp_users_field_through_wp_update_user(): void {
+		$payloads = array();
+		Functions\when( 'wp_update_user' )->alias(
+			static function ( $payload ) use ( &$payloads ) {
+				$payloads[] = $payload;
+				return 42;
+			}
+		);
+
+		$this->assertTrue( UserProfileService::write( 42, array( 'user_email' => 'new@example.test' ) ) );
+		$this->assertSame(
+			array(
+				array(
+					'ID'         => 42,
+					'user_email' => 'new@example.test',
+				),
+			),
+			$payloads
+		);
+	}
+
+	public function test_write_reports_a_refused_wp_users_update(): void {
+		Functions\when( 'wp_update_user' )->justReturn( new \WP_Error( 'existing_user_email', 'Taken.' ) );
+
+		$this->assertFalse( UserProfileService::write( 42, array( 'user_email' => 'taken@example.test' ) ) );
+	}
+
+	public function test_descriptors_without_a_storage_target_write_nothing(): void {
+		Functions\expect( 'wp_update_user' )->never();
+		$this->wpdb->shouldNotReceive( 'insert' );
+		$this->wpdb->shouldNotReceive( 'update' );
+
+		$result = UserProfileService::write(
+			42,
+			array(
+				'no_storage' => 'a',
+				'no_column'  => 'b',
+				'no_wp_col'  => 'c',
+				'no_meta'    => 'd',
+			),
+			array(
+				'no_storage' => array( 'storage' => '' ),
+				'no_column'  => array( 'storage' => UserProfileFieldMap::STORAGE_PROFILE_TABLE ),
+				'no_wp_col'  => array( 'storage' => UserProfileFieldMap::STORAGE_WP_USER ),
+				'no_meta'    => array( 'storage' => UserProfileFieldMap::STORAGE_USERMETA ),
+			)
+		);
+
+		$this->assertFalse( $result );
+		$this->assertArrayNotHasKey( 42, $this->usermeta_store );
+	}
+
+	public function test_a_value_that_cannot_be_encoded_clears_the_meta(): void {
+		$this->usermeta_store[42] = array( 'ffc_user_blob' => 'old' );
+
+		$result = UserProfileService::write(
+			42,
+			array( 'blob' => array( NAN ) ),
+			array(
+				'blob' => array(
+					'storage'  => UserProfileFieldMap::STORAGE_USERMETA,
+					'meta_key' => 'ffc_user_blob',
+				),
+			)
+		);
+
+		$this->assertTrue( $result );
+		$this->assertArrayNotHasKey( 'ffc_user_blob', $this->usermeta_store[42] );
+	}
+
+	public function test_a_plain_mirror_copies_the_value_and_malformed_mirrors_are_skipped(): void {
+		Functions\expect( 'wp_update_user' )->never();
+
+		UserProfileService::write(
+			42,
+			array( 'nickname_src' => 'Bia' ),
+			array(
+				'nickname_src' => array(
+					'storage'  => UserProfileFieldMap::STORAGE_USERMETA,
+					'meta_key' => 'ffc_user_nickname_src',
+					'mirrors'  => array(
+						'not-an-array',
+						array(
+							'storage'  => UserProfileFieldMap::STORAGE_USERMETA,
+							'meta_key' => 'nickname_copy',
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 'Bia', $this->usermeta_store[42]['nickname_copy'] );
+	}
 }

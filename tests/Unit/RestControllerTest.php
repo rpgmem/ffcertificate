@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\API\RestController;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Tests for RestController: REST API coordinator that initialises sub-controllers.
@@ -91,10 +92,15 @@ class RestControllerTest extends TestCase {
 	public function test_suppress_notices_noop_when_not_rest_request(): void {
 		// #1030: the comment named the two side effects and then checked
 		// neither. add_filter() is the observable one.
-		Functions\expect( 'add_filter' )->never();
-
+		// The constructor registers rest_post_dispatch through add_filter(), so
+		// the count starts after it. The old expect()->never() was never
+		// consulted, which is how that call went unnoticed (#1699).
 		$controller = new RestController();
+		$add_filter = CallLog::record( 'add_filter', true );
+
 		$controller->suppress_rest_api_notices();
+
+		$this->assertSame( 0, $add_filter->count() );
 	}
 
 	// ==================================================================

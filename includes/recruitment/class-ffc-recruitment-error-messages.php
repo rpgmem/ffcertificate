@@ -197,6 +197,7 @@ final class RecruitmentErrorMessages {
 			// was truncated or mistyped, and no correction here can recover the
 			// digits the file never carried.
 			'recruitment_csv_cpf_invalid'                  => __( 'CPF is not valid — its check digits do not match. Confirm the number in the source spreadsheet.', 'ffcertificate' ),
+			'recruitment_csv_rf_invalid'                   => __( 'RF is not valid — its check digit does not match, and the RF check digit setting is on. Confirm the number in the source spreadsheet.', 'ffcertificate' ),
 			'recruitment_csv_missing_score'                => __( 'Score is required.', 'ffcertificate' ),
 			'recruitment_csv_score_uses_comma_decimal'     => __( 'Score uses a comma decimal — replace with a dot (e.g. 12.5).', 'ffcertificate' ),
 			'recruitment_csv_score_invalid_format'         => __( 'Score format is invalid (numeric value expected).', 'ffcertificate' ),

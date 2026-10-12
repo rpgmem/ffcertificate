@@ -1,0 +1,79 @@
+name: Task
+description: Internal work — a defect found by measurement, tech debt, an audit, maintenance
+title: "<Area>: <the problem in one sentence>"
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For work the maintainer or an agent will pick up. Write it in English, and
+        state what was **measured**, not what is suspected: a number, a query, a
+        failing test, a screenshot. The acceptance criteria are ticked, or named
+        as deferred, when the issue closes — `CLAUDE.md` → "Closing an issue".
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: The part of the plugin the work is in. The maintainer applies the matching `area:` label.
+      options:
+        - Certificates
+        - Scheduling
+        - Reregistration
+        - Recruitment
+        - Short URLs
+        - Date Messages
+        - Settings
+        - Identity resolution
+        - Infrastructure (CI, build, release)
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is wrong or missing, and why it matters to an operator or to the code.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: What was measured — counts, file:line references, a reproduction, the failing check.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What the change will do, and what it deliberately will not (out of scope).
+      value: |
+        **In scope**
+        -
+
+        **Out of scope**
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Checkboxes the closing PR must satisfy.
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related
+      description: Issues, PRs or precedents this builds on.
+    validations:
+      required: false

@@ -64,6 +64,13 @@ class IdentityRepairTest extends TestCase {
 	private array $refusing = array();
 
 	/**
+	 * Tables `SHOW TABLES LIKE` does not report.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $absent = array();
+
+	/**
 	 * Set up Brain\Monkey, the $wpdb double and the encryption seams.
 	 */
 	protected function setUp(): void {
@@ -79,6 +86,10 @@ class IdentityRepairTest extends TestCase {
 		$this->refusing = array();
 		$this->plain    = array();
 		$this->ciphers  = array();
+
+		$this->merge_check = true;
+		$this->merge_apply = array( 'classifications' => 2, 'duplicates' => 0 );
+		$this->merge_calls = array();
 
 		Functions\when( '__' )->returnArg( 1 );
 		Functions\when( 'esc_html__' )->returnArg( 1 );
@@ -113,7 +124,9 @@ class IdentityRepairTest extends TestCase {
 					return $this->ciphers[ $hash ] ?? null;
 				}
 
-				return $prepared['args'][0] ?? null;
+				$table = $prepared['args'][0] ?? null;
+
+				return in_array( $table, $this->absent, true ) ? null : $table;
 			}
 		);
 
@@ -199,7 +212,92 @@ class IdentityRepairTest extends TestCase {
 			protected function decrypt( string $cipher ): ?string {
 				return $this->test->plaintext_of( $cipher );
 			}
+
+			/**
+			 * The candidacy merge, steered by the case.
+			 *
+			 * @return \FreeFormCertificate\Maintenance\CandidacyMerge
+			 */
+			protected function candidacies(): \FreeFormCertificate\Maintenance\CandidacyMerge {
+				return $this->test->candidacy_merge();
+			}
 		};
+	}
+
+	/**
+	 * What the candidacy merge answers to `check()`.
+	 *
+	 * @var bool|\WP_Error
+	 */
+	private $merge_check = true;
+
+	/**
+	 * What the candidacy merge answers to `apply()`.
+	 *
+	 * @var array<string, int>|\WP_Error
+	 */
+	private $merge_apply = array( 'classifications' => 2, 'duplicates' => 0 );
+
+	/**
+	 * Calls that reached the candidacy merge, as `method => [from, into]`.
+	 *
+	 * @var array<int, array{0: string, 1: int, 2: int}>
+	 */
+	public array $merge_calls = array();
+
+	/**
+	 * A candidacy merge that records its calls and answers as told.
+	 *
+	 * @return \FreeFormCertificate\Maintenance\CandidacyMerge
+	 */
+	public function candidacy_merge(): \FreeFormCertificate\Maintenance\CandidacyMerge {
+		$test = $this;
+
+		return new class( $test ) extends \FreeFormCertificate\Maintenance\CandidacyMerge {
+
+			/** @var IdentityRepairTest */
+			private $test;
+
+			/**
+			 * @param IdentityRepairTest $test The case.
+			 */
+			public function __construct( $test ) {
+				$this->test = $test;
+			}
+
+			/**
+			 * @param int    $from  Candidacy that goes.
+			 * @param int    $into  Candidacy that stays.
+			 * @param string $field Identifier.
+			 * @return bool|\WP_Error
+			 */
+			public function check( int $from, int $into, string $field ): bool|\WP_Error {
+				return $this->test->merge_answer( 'check', $from, $into );
+			}
+
+			/**
+			 * @param int $from Candidacy that goes.
+			 * @param int $into Candidacy that stays.
+			 * @return array<string, int>|\WP_Error
+			 */
+			public function apply( int $from, int $into ): array|\WP_Error {
+				return $this->test->merge_answer( 'apply', $from, $into );
+			}
+		};
+	}
+
+	/**
+	 * Record a merge call and answer it.
+	 *
+	 * @param string $method `check` or `apply`.
+	 * @param int    $from   Candidacy that goes.
+	 * @param int    $into   Candidacy that stays.
+	 * @return mixed
+	 */
+	public function merge_answer( string $method, int $from, int $into ) {
+		$this->merge_calls[] = array( $method, $from, $into );
+
+		return 'check' === $method ? $this->merge_check : $this->merge_apply;
 	}
 
 	/**
@@ -581,13 +679,48 @@ class IdentityRepairTest extends TestCase {
 	}
 
 	/**
-	 * `ffc_recruitment_candidate` holds each RF once (`UNIQUE KEY uq_rf_hash`),
-	 * so a consolidation with both identifiers recorded there would leave two
-	 * rows claiming one. The database would refuse it as a duplicate key,
-	 * which says nothing an operator can act on -- so this refuses first, and
-	 * says what is in the way.
+	 * ONE PERSON IMPORTED TWICE UNDER TWO NUMBERS IS FOLDED, NOT REFUSED.
+	 *
+	 * `ffc_recruitment_candidate` holds each identifier once, so where both
+	 * candidacies are this account's the mistyped one cannot be rewritten --
+	 * it would collide with the sound one. This refused with a sentence asking
+	 * the operator to decide what became of the second candidacy, which no
+	 * screen could do, so the finding never left the queue. Now the mistyped
+	 * candidacy is folded into the sound one, and never rewritten first.
 	 */
-	public function test_it_refuses_a_consolidation_the_unique_store_cannot_hold(): void {
+	public function test_a_same_account_candidacy_pair_is_folded_into_one(): void {
+		$this->given( 'ffc_recruitment_candidate', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 7, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_recruitment_candidate',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 398 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertIsArray( $result );
+		$this->assertSame(
+			array( array( 'check', 1, 5 ), array( 'apply', 1, 5 ) ),
+			$this->merge_calls,
+			'The mistyped candidacy goes into the sound one, checked before it is applied.'
+		);
+		$this->assertSame(
+			array( 'wp_ffc_submissions' ),
+			array_column( $this->updates, 'table' ),
+			'The mistyped candidacy is folded, never rewritten: rewriting it first would collide with the one it joins.'
+		);
+		$this->assertSame( 1, $result['rows']['wp_ffc_recruitment_candidate'] );
+		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $this->control );
+	}
+
+	/**
+	 * A merge that is a decision rather than a correction is refused, and
+	 * the refusal arrives before anything is written.
+	 */
+	public function test_a_candidacy_merge_the_check_refuses_writes_nothing(): void {
+		$this->merge_check = new \WP_Error( 'ffc_identity_candidacy_overlap', 'overlap' );
+
 		$this->given( 'ffc_recruitment_candidate', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
 		$this->given(
 			'ffc_recruitment_candidate',
@@ -598,8 +731,31 @@ class IdentityRepairTest extends TestCase {
 		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'ffc_identity_repair_unique_store', $result->get_error_code() );
-		$this->assertSame( array(), $this->updates, 'Nothing may be written before the store refuses.' );
+		$this->assertSame( 'ffc_identity_candidacy_overlap', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates, 'Nothing may be written before the merge refuses.' );
+		$this->assertSame( array(), $this->control, 'No transaction may even open.' );
+		$this->assertSame( array( array( 'check', 1, 5 ) ), $this->merge_calls );
+	}
+
+	/**
+	 * A merge that fails mid-write takes every other store's rewrite with it.
+	 */
+	public function test_a_failed_candidacy_merge_rolls_the_whole_repair_back(): void {
+		$this->merge_apply = new \WP_Error( 'ffc_identity_repair_failed', 'refused' );
+
+		$this->given( 'ffc_recruitment_candidate', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 7, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_recruitment_candidate',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 398 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_failed', $result->get_error_code() );
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $this->control );
 	}
 
 	/**
@@ -865,5 +1021,115 @@ class IdentityRepairTest extends TestCase {
 	 */
 	private function hash_of( string $rf ): string {
 		return (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'rf', $rf );
+	}
+
+	public function test_it_refuses_a_repair_that_names_no_finding(): void {
+		$result = $this->repair()->repair( '   ', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_no_subject', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	public function test_it_refuses_a_correction_that_is_already_the_stored_value(): void {
+		$result = $this->repair()->repair( $this->hash_of( self::GOOD_RF ), self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_unchanged', $result->get_error_code() );
+		$this->assertSame( array(), $this->control, 'A no-op correction must not even open a transaction.' );
+	}
+
+	public function test_it_refuses_to_consolidate_an_identifier_it_does_not_handle(): void {
+		$result = $this->repair()->consolidate( 'wrong', 'right', 0, 'pis' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_unknown_field', $result->get_error_code() );
+	}
+
+	/**
+	 * A store that is not installed is skipped on both reads, and a store
+	 * holding no ciphertext for the target is passed over for one that does.
+	 */
+	public function test_absent_and_empty_stores_are_skipped_on_the_way_to_a_value(): void {
+		$this->absent = array( 'wp_ffc_self_scheduling_appointments' );
+		$this->given( 'ffc_submissions', 'wrong', array( array( 'id' => 3, 'user_id' => 12 ) ) );
+		$this->stores_value( 'right', 'cipher-right', null );
+
+		$result = $this->repair()->consolidate( 'wrong', 'right' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_consolidate_unreadable', $result->get_error_code() );
+
+		$this->stores_value( 'right', 'cipher-right', self::GOOD_RF );
+
+		$result = $this->repair()->consolidate( 'wrong', 'right' );
+
+		$this->assertIsArray( $result );
+		$this->assertNotContains(
+			'wp_ffc_self_scheduling_appointments',
+			array_column( $this->updates, 'table' ),
+			'An absent store is never written.'
+		);
+	}
+
+	/**
+	 * Folding a candidacy invalidates the recruitment caches when the object
+	 * cache can flush a group.
+	 */
+	public function test_a_folded_candidacy_flushes_the_recruitment_cache_groups(): void {
+		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		$flushed = array();
+		Functions\when( 'wp_cache_flush_group' )->alias(
+			static function ( $group ) use ( &$flushed ) {
+				$flushed[] = $group;
+				return true;
+			}
+		);
+
+		$this->given( 'ffc_recruitment_candidate', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given( 'ffc_recruitment_candidate', $this->hash_of( self::GOOD_RF ), array( array( 'id' => 5, 'user_id' => 398 ) ) );
+
+		$this->assertIsArray( $this->repair()->repair( 'subject', self::GOOD_RF ) );
+		$this->assertSame( array( 'ffc_recruitment_candidate', 'ffc_recruitment_classification' ), $flushed );
+	}
+
+	/**
+	 * The production seams build what they name.
+	 */
+	public function test_the_default_seams(): void {
+		$repair = new IdentityRepair();
+
+		$candidacies = new \ReflectionMethod( $repair, 'candidacies' );
+		$candidacies->setAccessible( true );
+		$this->assertInstanceOf( \FreeFormCertificate\Maintenance\CandidacyMerge::class, $candidacies->invoke( $repair ) );
+
+		$decrypt = new \ReflectionMethod( $repair, 'decrypt' );
+		$decrypt->setAccessible( true );
+		$this->assertSame( 'plain', $decrypt->invoke( $repair, (string) \FreeFormCertificate\Core\Encryption::encrypt( 'plain' ) ) );
+
+		$inserted = array();
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			static function ( $table, $data ) use ( &$inserted ) {
+				$inserted[] = array( $table, $data );
+				return 1;
+			}
+		);
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+
+		$reindex = new \ReflectionMethod( $repair, 'reindex' );
+		$reindex->setAccessible( true );
+		$this->assertTrue( $reindex->invoke( $repair, 44, 'new-hash', 'cpf_hash' ) );
+		$this->assertSame(
+			array(
+				array(
+					'wp_ffc_user_profiles',
+					array(
+						'cpf_hash' => 'new-hash',
+						'user_id'  => 44,
+					),
+				),
+			),
+			$inserted
+		);
 	}
 }

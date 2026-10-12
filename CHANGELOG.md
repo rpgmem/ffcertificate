@@ -7,7 +7,28 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.37.0] (2026-10-12)
+## [6.38.0] (2026-10-12)
+
+The licence moves to AGPLv3 or later. Identity resolution names each number in "One address, several people" and can consolidate a candidate imported twice, the recruitment CSV import honours the RF check digit, and a manage-only role reaches the Reregistration screen. Behind the screens, tests now cover error paths across the plugin and the PHP coverage floor rises to 90%.
+
+### Changed
+
+- ⚠ **The licence is now AGPLv3 or later** (#1695). Reuse and forks stay free; a modified copy offered as a network service must publish its source too. The repository now ships the AGPL text in `LICENSE`, a test holds every declaration together, and releases already published stay GPLv3.
+- **"One address, several people" names each number** (#1684). Each Move / Split group shows the names recorded beside the number, now also read from the submission answers, so a number can be taken to HR by name rather than by hash.
+- **Tests cover error paths across the plugin, and the PHP coverage floor rises from 86% to 90%** (#1690). About 2,650 more statements in 51 classes, from audience, recruitment and reregistration to certificates, settings, identity, migrations and `Encryption`: refusals, `WP_Error` returns and database failures. CI measured 93.64%; the floor follows the rule the four plugins share.
+- **Twelve "never called" test checks now verify something** (#1699). An `expect()->never()` on a function `setUp()` had already stubbed was never consulted; those tests now count calls, and a guard refuses the shape. The magic-link QR code also drops a check that could never fail (#1702).
+
+### Fixed
+
+- **Consolidating a person imported twice as a candidate no longer dead-ends** (#1682). The mistyped candidacy is folded into the sound one: classifications move unchanged, an identical never-called one is deduplicated, and a differing or called one is still refused.
+- **The recruitment CSV import honours the RF check digit setting** (#1683). With Settings → General → RF check digit on, a row whose RF fails the digit is refused by line, as the forms already did.
+- **A role holding only `ffc_manage_reregistration` opens the Reregistration screen** (#1698). The menu and the page admitted the view capability alone; the shipped presets grant both and were not affected.
+
+### Security
+
+- **CI jobs run with a read-only token** (#1703). `ci.yml`, `lint.yml`, `phpcs.yml` and `assets.yml` declare `contents: read`.
+
+## [6.37.0] (2026-10-12) — `5823fad`
 
 ### Added
 

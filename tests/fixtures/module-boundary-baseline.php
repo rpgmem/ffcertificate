@@ -66,6 +66,7 @@ return array(
 	'Integrations>Settings',
 	'Maintenance>Core',
 	'Maintenance>Migrations',
+	'Maintenance>Recruitment',
 	'Maintenance>Repositories',
 	'Maintenance>Security',
 	'Maintenance>UrlShortener',

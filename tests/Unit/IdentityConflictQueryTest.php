@@ -1819,4 +1819,76 @@ class IdentityConflictQueryTest extends TestCase {
 		$this->assertStringContainsString( 'WHERE rf_hash IN (hashA,hashB)', $sql, $sql );
 		$this->assertStringContainsString( 'GROUP BY rf_hash', $sql, $sql );
 	}
+
+	/**
+	 * With no store installed every reader answers with nothing, and says so
+	 * in its own shape rather than failing.
+	 */
+	public function test_every_reader_answers_empty_when_no_store_is_installed(): void {
+		$this->without_table = array( 'wp_ffc_' );
+		$query               = new IdentityConflictQuery();
+
+		$this->assertSame( array(), $query->unindexed_links() );
+		$this->assertSame( array(), $query->shared_identities() );
+		$this->assertSame( array(), $query->check_digit_failures_of_both() );
+		Functions\when( 'get_users' )->justReturn( array( '7' ) );
+		$this->assertSame(
+			array(
+				7 => array(
+					'status'   => IdentityConflictQuery::STATUS_EXISTS,
+					'rows'     => array(),
+					'activity' => '',
+				),
+				8 => array(
+					'status'   => IdentityConflictQuery::STATUS_MISSING,
+					'rows'     => array(),
+					'activity' => '',
+				),
+			),
+			$query->account_facts( array( 7, '8', 'x', 0 ) ),
+			'Without stores an account is still classified as present or missing, with nothing to count.'
+		);
+		$this->assertSame(
+			array( 'h1' => IdentityConflictQuery::VERDICT_ABSENT ),
+			$query->check_digit_verdicts( 'rf_hash', array( 'h1', ' h1 ', '' ) ),
+			'A hash no store could answer for is ABSENT, never missing, and each is asked once.'
+		);
+	}
+
+	public function test_parse_accounts_keeps_each_numeric_id_once(): void {
+		$this->assertSame(
+			array( 1, 2 ),
+			IdentityConflictQuery::parse_accounts( '1' . IdentityConflictQuery::RELATED_SEPARATOR . 'x' . IdentityConflictQuery::RELATED_SEPARATOR . IdentityConflictQuery::RELATED_SEPARATOR . '2' . IdentityConflictQuery::RELATED_SEPARATOR . '1' )
+		);
+		$this->assertSame( array(), IdentityConflictQuery::parse_accounts( null ) );
+	}
+
+	/**
+	 * The shape of two identifiers that are not one typo apart.
+	 */
+	public function test_shape_names_unrelated_values_and_skips_single_identifier_findings(): void {
+		$shape = new \ReflectionMethod( IdentityConflictQuery::class, 'shape' );
+		$shape->setAccessible( true );
+
+		$this->assertSame( '', $shape->invoke( null, array( 'a' => '1234567' ), 'rf', 1 ), 'One identifier has no shape to name.' );
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_UNRELATED,
+			$shape->invoke( null, array( 'a' => '1234567', 'b' => '98765' ), 'rf', 2 ),
+			'Two lengths apart, and no deletion explains it.'
+		);
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_UNRELATED,
+			$shape->invoke( null, array( 'a' => '123456', 'b' => '9876543' ), 'rf', 2 ),
+			'One digit longer, but not by a single deletion.'
+		);
+	}
+
+	public function test_the_default_decryption_seam_reads_real_ciphertext(): void {
+		$query   = new IdentityConflictQuery();
+		$decrypt = new \ReflectionMethod( $query, 'decrypt' );
+		$decrypt->setAccessible( true );
+
+		$this->assertSame( '1234567', $decrypt->invoke( $query, (string) \FreeFormCertificate\Core\Encryption::encrypt( '1234567' ) ) );
+		$this->assertNull( $decrypt->invoke( $query, 'not-a-ciphertext' ) );
+	}
 }

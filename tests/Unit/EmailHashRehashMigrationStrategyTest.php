@@ -465,4 +465,101 @@ class EmailHashRehashMigrationStrategyTest extends TestCase {
 		}
 		$this->assertTrue( $found, 'batch_size from config should reach the SELECT prepare call' );
 	}
+
+	// ------------------------------------------------------------------
+	// A schema that answers by statement, for the error paths
+	// ------------------------------------------------------------------
+
+	/**
+	 * Route `$wpdb` by statement: every store exists, a batch read returns
+	 * the given rows for submissions only, MAX(id) answers $max.
+	 *
+	 * @param array<int, array<string, mixed>> $rows Submission rows.
+	 * @param int                              $max  What MAX(id) answers.
+	 * @return void
+	 */
+	private function route( array $rows, int $max ): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				foreach ( $args as $arg ) {
+					$sql = preg_replace( '/%[isd]/', (string) $arg, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $sql ) use ( $max ) {
+				$sql = (string) $sql;
+				if ( 1 === preg_match( '/SHOW TABLES LIKE (\S+)/', $sql, $m ) ) {
+					return $m[1];
+				}
+				if ( false !== strpos( $sql, 'MAX(id)' ) ) {
+					return (string) $max;
+				}
+				return '1';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $sql ) use ( $rows ) {
+				$sql = (string) $sql;
+				if ( 0 === strpos( $sql, 'SHOW COLUMNS' ) ) {
+					return array( (object) array( 'Field' => 'x' ) );
+				}
+				if ( false !== strpos( $sql, 'FROM wp_ffc_submissions WHERE id > 0' ) ) {
+					return $rows;
+				}
+				return array();
+			}
+		);
+	}
+
+	public function test_an_empty_read_parks_the_cursor_at_the_table_end(): void {
+		$this->route( array(), 30 );
+
+		$this->strategy->execute( 'email_hash_rehash', array() );
+
+		$this->assertSame( 30, $this->options['ffc_email_hash_rehash_cursor_wp_ffc_submissions'] ?? null );
+		$this->assertSame( 30, $this->options['ffc_email_hash_rehash_cursor_wp_ffc_self_scheduling_appointments'] ?? null );
+	}
+
+	public function test_a_refused_write_is_reported_with_the_database_message(): void {
+		$this->route(
+			array(
+				array(
+					'id'              => 4,
+					'email_encrypted' => \FreeFormCertificate\Core\Encryption::encrypt( 'x@example.test' ),
+					'email_hash'      => 'stale',
+				),
+			),
+			4
+		);
+		$this->wpdb->last_error = 'Deadlock found';
+		$this->wpdb->shouldReceive( 'update' )->andReturn( false );
+
+		$result = $this->strategy->execute( 'email_hash_rehash', array() );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( array( 'Failed to update email_hash for ID 4 in wp_ffc_submissions: Deadlock found' ), $result['errors'] );
+		$this->assertArrayNotHasKey( 'ffc_email_hash_rehash_completed', $this->options, 'A run with errors never latches complete.' );
+	}
+
+	public function test_an_exception_while_writing_is_reported_and_the_cursor_still_moves(): void {
+		$this->route(
+			array(
+				array(
+					'id'              => 6,
+					'email_encrypted' => \FreeFormCertificate\Core\Encryption::encrypt( 'y@example.test' ),
+					'email_hash'      => 'stale',
+				),
+			),
+			6
+		);
+		$this->wpdb->shouldReceive( 'update' )->andThrow( new \Exception( 'connection lost' ) );
+
+		$result = $this->strategy->execute( 'email_hash_rehash', array() );
+
+		$this->assertSame( array( 'Error processing ID 6 in wp_ffc_submissions: connection lost' ), $result['errors'] );
+		$this->assertSame( 6, $this->options['ffc_email_hash_rehash_cursor_wp_ffc_submissions'] );
+	}
 }

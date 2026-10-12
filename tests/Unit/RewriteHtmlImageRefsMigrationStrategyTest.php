@@ -365,4 +365,182 @@ class RewriteHtmlImageRefsMigrationStrategyTest extends TestCase {
 		$this->assertTrue( $strategy->can_run( 'rewrite_html_image_refs', array() ) );
 		$this->assertNotSame( '', $strategy->get_name() );
 	}
+
+	public function test_a_reference_that_escapes_the_folder_is_refused_not_resolved(): void {
+		$this->put_file( 'ok.png' );
+		$escape = '/wp-content/plugins/ffcertificate/html/../wp-config.php';
+		$this->wire(
+			array(),
+			array( 20 ),
+			array( '20|' . CertTemplateCpt::META_HTML => '<img src="' . $escape . '">' )
+		);
+
+		$strategy = new TestableRewriteHtmlImageRefsMigrationStrategy( $this->dir );
+		$result   = $strategy->execute( 'rewrite_html_image_refs', array() );
+
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertSame( array(), $strategy->sideloaded, 'A traversal must never reach the filesystem.' );
+		$this->assertNull( $this->last_written( 20, CertTemplateCpt::META_HTML ) );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( 'Unrecognized html/ reference', $result['errors'][0] );
+		$this->assertStringContainsString( 'template#20', $result['errors'][0] );
+	}
+
+	public function test_a_failed_import_is_reported_and_leaves_the_reference(): void {
+		$this->put_file( 'bg.png' );
+		$this->wire(
+			array( 10 ),
+			array(),
+			array(
+				'10|_ffc_form_config' => array( 'pdf_layout' => '', 'bg_image' => '' ),
+				'10|_ffc_form_bg'     => $this->html_url( 'bg.png' ),
+			)
+		);
+
+		$strategy = new class( $this->dir ) extends RewriteHtmlImageRefsMigrationStrategy {
+			protected function sideload_resolved_file( string $src_path, string $basename ): string {
+				return '';
+			}
+		};
+		$result = $strategy->execute( 'rewrite_html_image_refs', array() );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertStringContainsString( 'Failed to import html/ file "bg.png"', $result['errors'][0] );
+		$this->assertNull( $this->last_written( 10, '_ffc_form_bg' ) );
+	}
+
+	public function test_a_batch_stops_at_its_size_and_reports_more(): void {
+		$this->put_file( 'bg.png' );
+		$ref = '<img src="' . $this->html_url( 'bg.png' ) . '">';
+		$this->wire(
+			array( 10, 11 ),
+			array(),
+			array(
+				'10|_ffc_form_config' => array( 'pdf_layout' => $ref, 'bg_image' => '' ),
+				'11|_ffc_form_config' => array( 'pdf_layout' => $ref, 'bg_image' => '' ),
+			)
+		);
+
+		$strategy = new TestableRewriteHtmlImageRefsMigrationStrategy( $this->dir );
+		$result   = $strategy->execute( 'rewrite_html_image_refs', array( 'batch_size' => 1 ) );
+
+		$this->assertSame( 1, $result['processed'] );
+		$this->assertTrue( $result['has_more'] );
+		$this->assertSame( array( 'form:10' ), $this->options['ffc_html_rewrite_processed'] );
+	}
+
+	public function test_a_file_already_in_the_media_map_is_reused_and_malformed_state_is_ignored(): void {
+		$this->put_file( 'bg.png' );
+		$this->wire(
+			array( 10 ),
+			array(),
+			array(
+				'10|_ffc_form_config' => array( 'pdf_layout' => '', 'bg_image' => '' ),
+				'10|_ffc_form_bg'     => $this->html_url( 'bg.png' ),
+			)
+		);
+		$this->options['ffc_html_rewrite_processed'] = 'not-a-list';
+		$this->options['ffc_html_migrated_media']    = array(
+			'bg.png' => 'https://media.example/uploads/already.png',
+			7        => 'https://media.example/uploads/numeric-key.png',
+			'x.png'  => array( 'not a url' ),
+		);
+
+		$strategy = new TestableRewriteHtmlImageRefsMigrationStrategy( $this->dir );
+		$result   = $strategy->execute( 'rewrite_html_image_refs', array() );
+
+		$this->assertSame( 1, $result['processed'] );
+		$this->assertSame( array(), $strategy->sideloaded, 'A file the map already holds is never imported twice.' );
+		$this->assertSame( 'https://media.example/uploads/already.png', $this->last_written( 10, '_ffc_form_bg' ) );
+		$this->assertSame(
+			array( 'bg.png' => 'https://media.example/uploads/already.png' ),
+			$this->options['ffc_html_migrated_media'],
+			'Malformed map entries are dropped when the map is read back.'
+		);
+	}
+
+	public function test_a_non_array_media_map_reads_as_empty(): void {
+		$this->options['ffc_html_migrated_media'] = 'corrupt';
+		$strategy                                 = new TestableRewriteHtmlImageRefsMigrationStrategy( $this->dir );
+
+		$read = new \ReflectionMethod( RewriteHtmlImageRefsMigrationStrategy::class, 'media_map' );
+		$read->setAccessible( true );
+		Functions\when( 'get_option' )->alias(
+			function ( $name, $default = false ) {
+				return $this->options[ $name ] ?? $default;
+			}
+		);
+
+		$this->assertSame( array(), $read->invoke( $strategy ) );
+	}
+
+	// ------------------------------------------------------------------
+	// sideload_resolved_file() — the real Media Library hand-off
+	// ------------------------------------------------------------------
+
+	/**
+	 * Call the production sideload with WordPress's media API stubbed.
+	 *
+	 * @param string $src  Source file.
+	 * @param mixed  $tmp  What wp_tempnam returns.
+	 * @param mixed  $id   What media_handle_sideload returns.
+	 * @param array  $deleted Collected wp_delete_file paths.
+	 * @return string
+	 */
+	private function sideload( string $src, $tmp, $id, array &$deleted ): string {
+		Functions\when( 'media_handle_sideload' )->justReturn( $id );
+		Functions\when( 'wp_tempnam' )->justReturn( $tmp );
+		Functions\when( 'is_wp_error' )->alias( static fn( $t ) => $t instanceof \WP_Error );
+		Functions\when( 'wp_get_attachment_url' )->alias( static fn( $aid ) => 'https://media.example/?attachment_id=' . $aid );
+		Functions\when( 'wp_delete_file' )->alias(
+			static function ( $path ) use ( &$deleted ) {
+				$deleted[] = $path;
+				if ( is_file( $path ) ) {
+					unlink( $path );
+				}
+			}
+		);
+
+		$strategy = new RewriteHtmlImageRefsMigrationStrategy( $this->dir );
+		$method   = new \ReflectionMethod( $strategy, 'sideload_resolved_file' );
+		$method->setAccessible( true );
+
+		return (string) $method->invoke( $strategy, $src, basename( $src ) );
+	}
+
+	public function test_sideload_returns_the_attachment_url(): void {
+		$this->put_file( 'logo.png' );
+		$deleted = array();
+
+		$url = $this->sideload( $this->dir . 'logo.png', $this->dir . 'tmp-logo', 42, $deleted );
+
+		$this->assertSame( 'https://media.example/?attachment_id=42', $url );
+		$this->assertSame( array(), $deleted, 'A successful sideload owns the temp file; nothing is deleted here.' );
+		$this->assertSame( 'PNGDATA', file_get_contents( $this->dir . 'tmp-logo' ) );
+	}
+
+	public function test_sideload_gives_up_without_a_temp_file(): void {
+		$this->put_file( 'logo.png' );
+		$deleted = array();
+
+		$this->assertSame( '', $this->sideload( $this->dir . 'logo.png', false, 42, $deleted ) );
+	}
+
+	public function test_sideload_cleans_up_when_the_copy_fails(): void {
+		$deleted = array();
+
+		$this->assertSame( '', $this->sideload( $this->dir . 'absent.png', $this->dir . 'tmp-absent', 42, $deleted ) );
+		$this->assertSame( array( $this->dir . 'tmp-absent' ), $deleted );
+	}
+
+	public function test_sideload_cleans_up_when_the_media_library_refuses(): void {
+		$this->put_file( 'logo.png' );
+		$deleted = array();
+
+		$this->assertSame(
+			'',
+			$this->sideload( $this->dir . 'logo.png', $this->dir . 'tmp-refused', new \WP_Error( 'upload_error', 'No.' ), $deleted )
+		);
+		$this->assertSame( array( $this->dir . 'tmp-refused' ), $deleted );
+	}
 }

@@ -18,9 +18,8 @@ use FreeFormCertificate\Maintenance\IdentityRecordNames;
  *
  * THE THREE OUTCOMES ARE NOT TWO.
  *
- * A name; no name recorded, which is what a submission-only finding always
- * gives because that store keeps the name inside its `data` JSON; and no
- * readable store present at all, which is not a result. Collapsing the last
+ * A name; no name recorded beside a store that was read; and no readable
+ * store present at all, which is not a result. Collapsing the last
  * two makes an absence render as an answer — the #1071 rule.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityRecordNames
@@ -52,10 +51,13 @@ class IdentityRecordNamesTest extends TestCase {
 
 		class_exists( '\FreeFormCertificate\Maintenance\IdentityRecordNames' );
 
-		$this->names   = array();
-		$this->present = array(
+		$this->names            = array();
+		$this->submissions      = array();
+		$this->submission_limit = 0;
+		$this->present          = array(
 			'wp_ffc_recruitment_candidate',
 			'wp_ffc_self_scheduling_appointments',
+			'wp_ffc_submissions',
 		);
 
 		$wpdb         = Mockery::mock( 'wpdb' );
@@ -87,7 +89,59 @@ class IdentityRecordNamesTest extends TestCase {
 			}
 		);
 
+		// Only the submissions store is read through `get_results`.
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $prepared ) {
+				$this->submission_limit = (int) ( $prepared['args'][3] ?? 0 );
+
+				return $this->submissions[ (string) ( $prepared['args'][2] ?? '' ) ] ?? array();
+			}
+		);
+
 		$GLOBALS['wpdb'] = $wpdb;
+	}
+
+	/**
+	 * Submission rows per hash, as `data_encrypted` + `data`.
+	 *
+	 * @var array<string, array<int, array<string, string|null>>>
+	 */
+	private array $submissions = array();
+
+	/**
+	 * The row limit the submissions statement carried.
+	 *
+	 * @var int
+	 */
+	private int $submission_limit = 0;
+
+	/**
+	 * A reader whose decryption is a lookup table.
+	 *
+	 * @param array<string, string> $plain Ciphertext => plaintext.
+	 * @return IdentityRecordNames
+	 */
+	private function reader( array $plain = array() ): IdentityRecordNames {
+		return new class( $plain ) extends IdentityRecordNames {
+
+			/** @var array<string, string> */
+			private array $plain;
+
+			/**
+			 * @param array<string, string> $plain Ciphertext => plaintext.
+			 */
+			public function __construct( array $plain ) {
+				$this->plain = $plain;
+			}
+
+			/**
+			 * @param string $cipher Ciphertext.
+			 * @return string|null
+			 */
+			protected function decrypt( string $cipher ): ?string {
+				return $this->plain[ $cipher ] ?? null;
+			}
+		};
 	}
 
 	/**
@@ -142,8 +196,8 @@ class IdentityRecordNamesTest extends TestCase {
 	}
 
 	/**
-	 * A finding whose rows are all submissions has no name here, and that is
-	 * reported as "none recorded" over a store that WAS read.
+	 * A finding whose rows carry no name is reported as "none recorded" over
+	 * a store that WAS read.
 	 */
 	public function test_a_finding_with_no_recorded_name_is_readable_and_empty(): void {
 		$out = ( new IdentityRecordNames() )->for_hash( 'h' );
@@ -197,5 +251,80 @@ class IdentityRecordNamesTest extends TestCase {
 
 		$this->assertSame( array(), $out['names'] );
 		$this->assertFalse( $out['readable'] );
+	}
+
+	/**
+	 * THE SHARED-MAILBOX CASE (#1684): one login submitted for several
+	 * people, so every row is a submission and the name is in the answers.
+	 * The encrypted copy is read, and each number gets its own person.
+	 */
+	public function test_it_reads_the_name_inside_a_submission_s_encrypted_answers(): void {
+		$this->submissions['h'] = array(
+			array(
+				'data_encrypted' => 'c1',
+				'data'           => null,
+			),
+		);
+
+		$out = $this->reader( array( 'c1' => '{"nome_completo":"Eronides Neves da Silva Braga","email":"x@example.org"}' ) )->for_hash( 'h', 'cpf' );
+
+		$this->assertSame( array( 'Eronides Neves da Silva Braga' ), $out['names'] );
+		$this->assertTrue( $out['readable'] );
+		$this->assertSame( IdentityRecordNames::SUBMISSION_ROWS, $this->submission_limit, 'Decryption is bounded per hash.' );
+	}
+
+	/**
+	 * The ciphertext is the current copy, so it wins over the plaintext one;
+	 * a row whose ciphertext does not decrypt falls back to the plaintext.
+	 */
+	public function test_the_encrypted_answers_win_and_the_plaintext_is_the_fallback(): void {
+		$this->submissions['h'] = array(
+			array(
+				'data_encrypted' => 'c1',
+				'data'           => '{"nome":"Old Spelling"}',
+			),
+			array(
+				'data_encrypted' => 'unreadable',
+				'data'           => '{"name":"Legacy Row"}',
+			),
+		);
+
+		$out = $this->reader( array( 'c1' => '{"nome":"Current Spelling"}' ) )->for_hash( 'h', 'cpf' );
+
+		$this->assertSame( array( 'Current Spelling', 'Legacy Row' ), $out['names'] );
+	}
+
+	/**
+	 * A submission whose answers carry no name key adds nothing, and the
+	 * names from the stores with a column still come through first.
+	 */
+	public function test_a_nameless_submission_adds_nothing(): void {
+		$this->given( 'ffc_recruitment_candidate', 'h', array( 'Clarice Fontes Miranda' ) );
+		$this->submissions['h'] = array(
+			array(
+				'data_encrypted' => null,
+				'data'           => '{"email":"x@example.org"}',
+			),
+			array(
+				'data_encrypted' => null,
+				'data'           => 'not json',
+			),
+		);
+
+		$out = $this->reader()->for_hash( 'h' );
+
+		$this->assertSame( array( 'Clarice Fontes Miranda' ), $out['names'] );
+	}
+
+	/**
+	 * An install holding only submissions still reads them: the store was
+	 * present, so the answer is a result.
+	 */
+	public function test_submissions_alone_are_a_readable_store(): void {
+		$this->present = array( 'wp_ffc_submissions' );
+
+		$out = $this->reader()->for_hash( 'h' );
+
+		$this->assertTrue( $out['readable'] );
 	}
 }

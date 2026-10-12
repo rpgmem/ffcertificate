@@ -477,4 +477,33 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 		$this->assertSame( 'plain-text', $this->meta[10]['ffc_user_cpf'] );
 		$this->assertArrayNotHasKey( 'ffc_user_cpf_hash', $this->meta[10] );
 	}
+
+	/**
+	 * A meta that will not decrypt is reported and left exactly as stored.
+	 */
+	public function test_an_undecryptable_meta_is_reported_and_left_alone(): void {
+		$broken         = Encryption::V2_PREFIX . 'bm90LWEtcmVhbC1lbnZlbG9wZQ==';
+		$this->meta[21] = array( 'ffc_user_cpf' => $broken );
+
+		$result = $this->strategy->execute( '', array() );
+
+		$this->assertSame( $broken, $this->meta[21]['ffc_user_cpf'] );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( 'Could not decrypt ffc_user_cpf for user 21', $result['errors'][0] );
+		$this->assertSame( array(), $this->profiles, 'Nothing decrypted, so nothing to index.' );
+		$this->assertArrayNotHasKey( 'completed', $this->options['ffc_key_rotation_remaining_state'] ?? array(), 'A run with errors never latches complete.' );
+	}
+
+	/**
+	 * A user whose only encrypted meta is not searchable touches no index row.
+	 */
+	public function test_a_user_with_only_unsearchable_meta_writes_no_index_row(): void {
+		$this->meta[30] = array( 'ffc_user_rg' => (string) Encryption::encrypt( '12.345.678-9' ) );
+
+		$result = $this->strategy->execute( '', array() );
+
+		$this->assertSame( 1, $result['processed'] );
+		$this->assertSame( '12.345.678-9', Encryption::decrypt( $this->meta[30]['ffc_user_rg'] ) );
+		$this->assertSame( array(), $this->profiles, 'No searchable field means no identity-index write.' );
+	}
 }

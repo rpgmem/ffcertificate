@@ -53,6 +53,12 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 	/** @var int|false Return value of wpdb->update(). */
 	private $update_return = 1;
 
+	/** @var array<int, string> Tables SHOW TABLES reports as absent. */
+	private array $absent_tables = array();
+
+	/** Whether the batch read returns nothing even when rows exist. */
+	private bool $select_empty = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -161,7 +167,8 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 	public function fake_get_var( string $query ) {
 		if ( false !== strpos( $query, 'SHOW TABLES' ) ) {
 			// table_exists() compares the result === table name.
-			return $this->detect_table( $query );
+			$table = $this->detect_table( $query );
+			return in_array( $table, $this->absent_tables, true ) ? null : $table;
 		}
 
 		$table = $this->detect_table( $query );
@@ -202,6 +209,9 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 		}
 
 		if ( false !== strpos( $query, 'SELECT id' ) ) {
+			if ( $this->select_empty ) {
+				return array();
+			}
 			$table  = $this->detect_table( $query );
 			$cursor = preg_match( '/id > (\d+)/', $query, $m ) ? (int) $m[1] : 0;
 			$out    = array_values( array_filter( $this->rows[ $table ] ?? array(), static fn( $r ) => (int) $r['id'] > $cursor ) );
@@ -418,6 +428,101 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 		$this->assertSame( 0, $status['pending'] );
 		$this->assertTrue( $status['is_complete'] );
 		$this->assertSame( 100.0, $status['percent'] );
+	}
+
+	// ------------------------------------------------------------------
+	// Edges: missing tables and columns, an empty read, a thrown write
+	// ------------------------------------------------------------------
+
+	public function test_missing_tables_count_and_process_nothing(): void {
+		$this->absent_tables = array( self::SUBMISSIONS, self::APPOINTMENTS );
+		$this->rows[ self::SUBMISSIONS ] = array(
+			array( 'id' => 1, 'email_encrypted' => Encryption::encrypt( 'a@b.com' ) ),
+		);
+
+		$result = $this->strategy->execute( 'key_rotation', array() );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertCount( 0, $this->captured_updates );
+		$this->assertTrue( $this->options['ffc_key_rotation_state']['completed'], 'Nothing to rotate is a completed rotation.' );
+	}
+
+	public function test_a_table_without_any_encrypted_column_is_skipped(): void {
+		$this->missing_columns = array( 'email_encrypted', 'cpf_encrypted', 'rf_encrypted', 'user_ip_encrypted', 'data_encrypted', 'phone_encrypted', 'custom_data_encrypted' );
+		$this->rows[ self::SUBMISSIONS ] = array(
+			array( 'id' => 1, 'email_encrypted' => Encryption::encrypt( 'a@b.com' ) ),
+		);
+
+		$status = $this->strategy->calculate_status( 'key_rotation', array() );
+		$result = $this->strategy->execute( 'key_rotation', array() );
+
+		$this->assertSame( 0, $status['total'] );
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertCount( 0, $this->captured_updates );
+	}
+
+	public function test_an_empty_read_above_the_cursor_parks_it_at_the_end(): void {
+		$this->select_empty               = true;
+		$this->rows[ self::SUBMISSIONS ] = array(
+			array( 'id' => 9, 'email_encrypted' => Encryption::encrypt( 'a@b.com' ) ),
+		);
+
+		$result = $this->strategy->execute( 'key_rotation', array() );
+
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertSame( 9, $this->options['ffc_key_rotation_state']['cursor'][ self::SUBMISSIONS ] );
+		$this->assertFalse( $result['has_more'] );
+	}
+
+	public function test_an_exception_while_writing_is_reported_per_row(): void {
+		$this->wpdb->shouldReceive( 'update' )->andThrow( new \Exception( 'lock wait timeout' ) );
+		$this->rows[ self::APPOINTMENTS ] = array(
+			array( 'id' => 4, 'phone_encrypted' => Encryption::encrypt( '11999990000' ) ),
+		);
+
+		$result = $this->strategy->execute( 'key_rotation', array() );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( array( 'Error processing ID 4 in ' . self::APPOINTMENTS . ': lock wait timeout' ), $result['errors'] );
+		$this->assertSame( 4, $this->options['ffc_key_rotation_state']['cursor'][ self::APPOINTMENTS ], 'The cursor still moves past a row that threw.' );
+	}
+
+	public function test_a_malformed_cursor_in_the_state_is_rebuilt(): void {
+		$this->options['ffc_key_rotation_state'] = array(
+			'fingerprint' => Encryption::key_fingerprint(),
+			'cursor'      => 'not-an-array',
+			'completed'   => false,
+		);
+		$this->rows[ self::SUBMISSIONS ] = array(
+			array( 'id' => 3, 'email_encrypted' => Encryption::encrypt( 'a@b.com' ) ),
+		);
+
+		$this->strategy->execute( 'key_rotation', array() );
+
+		$cursor = $this->options['ffc_key_rotation_state']['cursor'];
+		$this->assertIsArray( $cursor, 'A malformed cursor is replaced by a map, not written into.' );
+		$this->assertSame( 3, $cursor[ self::SUBMISSIONS ] );
+	}
+
+	public function test_an_unknown_table_has_no_field_map(): void {
+		$map = new \ReflectionMethod( $this->strategy, 'field_map' );
+		$map->setAccessible( true );
+
+		$this->assertSame( array(), $map->invoke( $this->strategy, 'wp_some_other_table' ) );
+	}
+
+	/**
+	 * With both constants defined the gate opens.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_can_run_once_both_constants_are_defined(): void {
+		define( 'FFC_ENCRYPTION_KEY', str_repeat( 'K', 64 ) );
+		define( 'FFC_HASH_SALT', str_repeat( 'S', 64 ) );
+
+		$this->assertTrue( $this->strategy->can_run( 'key_rotation', array() ) );
 	}
 
 	// ------------------------------------------------------------------

@@ -73,6 +73,13 @@ class IdentityRelinkTest extends TestCase {
 	/**
 	 * Set up Brain\Monkey and the $wpdb double.
 	 */
+	/**
+	 * Tables `SHOW TABLES LIKE` does not report.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $absent = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -105,8 +112,10 @@ class IdentityRelinkTest extends TestCase {
 
 		// Every `ffc_*` table this class knows exists.
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
-			static function ( $prepared ) {
-				return $prepared['args'][0] ?? null;
+			function ( $prepared ) {
+				$table = $prepared['args'][0] ?? null;
+
+				return in_array( $table, $this->absent, true ) ? null : $table;
 			}
 		);
 
@@ -685,5 +694,112 @@ class IdentityRelinkTest extends TestCase {
 		// Both sentences survive: the finding may or may not be accepted, and
 		// the panel named has to match.
 		$this->assertStringContainsString( 'Correct it first, under "Numbers to correct"', $source );
+	}
+
+	public function test_an_origin_index_that_refuses_to_clear_rolls_the_move_back(): void {
+		$this->given(
+			'ffc_submissions',
+			array(
+				self::row( 1, 398, 'cpfA', 'rfMoving' ),
+				self::row( 2, 513, 'cpfA', '' ),
+			)
+		);
+		$this->refusing = array( 'wp_ffc_user_profiles' );
+
+		$result = $this->relink()->relink( 'rfMoving', 513 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_relink_index_failed', $result->get_error_code() );
+		$this->assertSame( 'ROLLBACK', end( $this->control ) );
+		$this->assertNotContains( 'COMMIT', $this->control );
+	}
+
+	public function test_moving_needs_a_hash(): void {
+		$result = $this->relink()->moving( '   ' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_relink_no_target', $result->get_error_code() );
+	}
+
+	public function test_a_verdict_without_a_target_is_refused_before_any_read(): void {
+		$this->wpdb->shouldNotReceive( 'get_row' );
+
+		$result = $this->relink()->verdict(
+			array(
+				'identifiers' => array(),
+				'origin'      => 398,
+			),
+			0
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_relink_no_target', $result->get_error_code() );
+	}
+
+	public function test_absent_stores_are_skipped_and_an_absent_index_needs_no_clearing(): void {
+		$this->absent = array( 'wp_ffc_self_scheduling_appointments', 'wp_ffc_recruitment_candidate', 'wp_ffc_user_profiles' );
+		$this->given(
+			'ffc_submissions',
+			array(
+				self::row( 1, 398, 'cpfA', 'rfMoving' ),
+				self::row( 2, 513, 'cpfA', '' ),
+			)
+		);
+		$this->given( 'ffc_recruitment_candidate', array( self::row( 9, 777, 'cpfZ', 'rfMoving' ) ) );
+
+		$result = $this->relink()->relink( 'rfMoving', 513 );
+
+		$this->assertIsArray( $result, 'Rows in a store that is not installed cannot make the move ambiguous.' );
+		$this->assertSame(
+			array(),
+			array_values( array_filter( $this->updates, static fn( $u ) => 'wp_ffc_user_profiles' === $u['table'] ) ),
+			'With no index table there is no entry to clear.'
+		);
+		$this->assertContains( 'COMMIT', $this->control );
+	}
+
+	/**
+	 * A shared number failing its own check digit is named as such, never
+	 * as a disagreement.
+	 */
+	public function test_an_unusable_shared_identifier_is_explained_as_a_number_to_correct(): void {
+		$refusal = new \ReflectionMethod( IdentityRelink::class, 'refusal' );
+		$refusal->setAccessible( true );
+
+		$error = $refusal->invoke(
+			null,
+			array(
+				'matches'   => array(),
+				'gaps'      => array(),
+				'conflicts' => array( 'rf' ),
+				'reasons'   => array( 'rf' => \FreeFormCertificate\Maintenance\IdentityAgreement::REASON_UNUSABLE ),
+			),
+			array( 'rf' => array( 'h-rf' ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $error );
+		$this->assertStringContainsString( 'share the same RF, and that number fails its own check digit', $error->get_error_message() );
+		$this->assertStringContainsString( 'Correct it first, under "Numbers to correct"', $error->get_error_message() );
+		$this->assertStringNotContainsString( 'hold different values', $error->get_error_message() );
+	}
+
+	public function test_the_default_index_write_goes_through_the_repository(): void {
+		$inserted = array();
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			static function ( $table, $data ) use ( &$inserted ) {
+				$inserted[] = array( $table, $data );
+				return 1;
+			}
+		);
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		$this->absent = array( 'wp_ffc_user_profiles' );
+
+		$relink  = new IdentityRelink();
+		$reindex = new \ReflectionMethod( $relink, 'reindex' );
+		$reindex->setAccessible( true );
+
+		$this->assertTrue( $reindex->invoke( $relink, 513, array( 'rf_hash' => 'rfMoving' ) ) );
+		$this->assertSame( 'wp_ffc_user_profiles', $inserted[0][0] );
+		$this->assertSame( 513, $inserted[0][1]['user_id'] );
 	}
 }

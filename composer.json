@@ -2,7 +2,7 @@
     "name": "rpgmem/ffcertificate",
     "description": "Free Form Certificate — WordPress plugin for dynamic forms, PDF certificates, and appointment scheduling.",
     "type": "wordpress-plugin",
-    "license": "GPL-3.0-or-later",
+    "license": "AGPL-3.0-or-later",
     "require": {
         "php": ">=8.3"
     },

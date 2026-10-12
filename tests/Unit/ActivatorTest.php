@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Activator;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Tests for Activator: plugin activation table creation, cron scheduling,
@@ -271,6 +272,7 @@ class ActivatorTest extends TestCase {
 
 	public function test_maybe_add_columns_skips_when_version_matches(): void {
 		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		$update_option = CallLog::record( 'update_option', true );
 
 		$query_called = false;
 		$this->wpdb->shouldReceive( 'query' )
@@ -283,7 +285,8 @@ class ActivatorTest extends TestCase {
 
 		// When version matches, no ALTER TABLE queries should be issued for column additions.
 		// The method returns early so update_option is never called either.
-		Functions\expect( 'update_option' )->never();
+		// Counted rather than expect()'d, and before the call (#1699).
+		$this->assertSame( 0, $update_option->count(), 'A current version must not rewrite the stored one.' );
 	}
 
 	public function test_maybe_add_columns_runs_when_version_differs(): void {

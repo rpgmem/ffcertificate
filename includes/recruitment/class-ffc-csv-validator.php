@@ -176,13 +176,27 @@ final class CsvValidator {
 			// so a row carrying just an RF must stay valid; `''` here means not
 			// supplied, and the missing-both case was already refused above.
 			//
-			// AND THE RF's CHECK DIGIT IS DELIBERATELY NOT CHECKED. `validate_rf()`
-			// is structure-only by default and its check digit is an opt-in
-			// setting (`validate_rf_check_digit`), so enforcing it here would
-			// refuse rows every other path in the plugin accepts.
+			// The RF's own check digit is not part of this rule: see below.
 			if ( '' !== $cpf_norm['value']
 				&& ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $cpf_norm['value'] ) ) {
 				$errors[] = self::line_error( $line, 'recruitment_csv_cpf_invalid' );
+				continue;
+			}
+
+			// THE RF FOLLOWS THE SAME SWITCH AS EVERY OTHER WRITE PATH (#1683).
+			//
+			// Its check digit is an opt-in (`validate_rf_check_digit`), because
+			// an institution whose RF scheme carries none must still be able to
+			// use the plugin. This used to skip the check outright, on the
+			// reasoning that enforcing it would refuse rows the other paths
+			// accept. That held only with the setting off: switched on, the form,
+			// reregistration and appointments refused a mistyped RF while this
+			// path staged it -- and an import is the path that writes the most.
+			// `validate_rf()` reads the setting, so off keeps the old behaviour
+			// exactly and on closes the gap.
+			if ( '' !== $rf_norm['value']
+				&& ! \FreeFormCertificate\Core\DocumentFormatter::validate_rf( $rf_norm['value'] ) ) {
+				$errors[] = self::line_error( $line, 'recruitment_csv_rf_invalid' );
 				continue;
 			}
 

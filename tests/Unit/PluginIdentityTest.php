@@ -69,6 +69,38 @@ final class PluginIdentityTest extends TestCase {
 	}
 
 	/**
+	 * GitHub reads LICENSE, WordPress the header and readme.txt, Composer and
+	 * npm their manifests. This repository had no LICENSE at all, so GitHub
+	 * showed no licence while the header said GPLv3; in Institutional Email
+	 * LICENSE carried GPLv2 while every declaration said GPLv3.
+	 */
+	public function test_the_licence_agrees_everywhere(): void {
+		$name = 'AGPLv3 or later';
+		$uri  = 'https://www.gnu.org/licenses/agpl-3.0.html';
+		$spdx = 'AGPL-3.0-or-later';
+
+		$field = static function ( string $text, string $prefix, string $key ): ?string {
+			return 1 === preg_match( '/^' . $prefix . preg_quote( $key, '/' ) . ':\s*(.+?)\s*$/m', $text, $m ) ? $m[1] : null;
+		};
+
+		$this->assertSame( $name, $field( $this->file( 'ffcertificate.php' ), '\s*\*\s*', 'License' ), 'Plugin header License.' );
+		$this->assertSame( $uri, $field( $this->file( 'ffcertificate.php' ), '\s*\*\s*', 'License URI' ), 'Plugin header License URI.' );
+		$this->assertSame( $name, $field( $this->file( 'readme.txt' ), '', 'License' ), 'readme.txt License.' );
+		$this->assertSame( $uri, $field( $this->file( 'readme.txt' ), '', 'License URI' ), 'readme.txt License URI.' );
+
+		foreach ( array( 'composer.json', 'package.json' ) as $manifest ) {
+			$json = json_decode( $this->file( $manifest ), true );
+			$this->assertSame( $spdx, $json['license'] ?? null, "{$manifest} license." );
+		}
+
+		$this->assertStringContainsString( '**License** ' . $name, $this->file( 'README.md' ), 'README.md.' );
+
+		$licence = $this->file( 'LICENSE' );
+		$this->assertStringStartsWith( 'GNU AFFERO GENERAL PUBLIC LICENSE', ltrim( $licence ), 'LICENSE is the AGPL text.' );
+		$this->assertStringContainsString( 'Version 3, 19 November 2007', $licence, 'LICENSE is version 3.' );
+	}
+
+	/**
 	 * A plugin header field.
 	 *
 	 * @param string $name Header name.
