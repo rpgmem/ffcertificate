@@ -7,26 +7,26 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.38.0] (2026-10-12)
+
+The licence moves to AGPLv3 or later. Identity resolution names each number in "One address, several people" and can consolidate a candidate imported twice, the recruitment CSV import honours the RF check digit, and a manage-only role reaches the Reregistration screen. Behind the screens, tests now cover error paths across the plugin and the PHP coverage floor rises to 90%.
+
 ### Changed
 
-- **"One address, several people" names each number** (#1684). Each number's Move / Split group shows the names recorded beside it. They are now also read from the submission answers (encrypted copy first), which is where this panel's rows live, so each number can be taken to HR by name rather than by hash.
-- ⚠ **The licence is now AGPLv3 or later** (#1695). Reuse and forks stay free, and a modified copy offered as a network service must publish its source too. The repository had no `LICENSE`, so GitHub showed none; it now ships the AGPL text, and a test holds every declaration together. Releases already published stay GPLv3.
-- **Audience, recruitment and reregistration code is covered by tests, error paths included** (#1690). New and extended unit tests cover 18 classes, from the audience shortcode and CSV import to the reregistration form and admin screens and the recruitment activator: about 1,050 more statements, with refusals, `WP_Error` returns and database failures.
-- **Certificate, form editor and settings code is covered by tests, error paths included** (#1690). New and extended unit tests reach 14 more classes, from the certificate template and receipt screens to the form editor's save handler and public CSV metabox, the form cache, the rate limiter and the Date Messages admin page: 754 more statements.
-- **Identity, migration and encryption code is covered by tests, error paths included** (#1690). New and extended unit tests reach 19 more classes, from the identity resolution screen and its repair, relink and agreement services to the migration strategies, the status calculator, foreign keys and `Encryption`: 841 more statements.
-- **The PHP coverage floor rises from 86% to 90%** (#1690). CI measured 93.64% after the three test pushes above; the floor follows the rule the four plugins now share — the highest of 90%, the measured figure minus 5 points, and its current value — written in `CLAUDE.md`.
-- **The magic-link QR code drops a check that could never fail** (#1702). `generate_magic_link_qr()` logged "Link generation failed" for an empty link, which `MagicLinkHelper` returns only for an empty token the method already turns away; no behaviour changes.
-- **Twelve "never called" test checks now verify something** (#1699). An `expect()->never()` on a function `setUp()` already stubbed was never consulted, so those tests passed whatever ran; they count calls through a new `CallLog` helper, and `ExpectAfterSetUpStubTest` refuses the shape.
+- ⚠ **The licence is now AGPLv3 or later** (#1695). Reuse and forks stay free; a modified copy offered as a network service must publish its source too. The repository now ships the AGPL text in `LICENSE`, a test holds every declaration together, and releases already published stay GPLv3.
+- **"One address, several people" names each number** (#1684). Each Move / Split group shows the names recorded beside the number, now also read from the submission answers, so a number can be taken to HR by name rather than by hash.
+- **Tests cover error paths across the plugin, and the PHP coverage floor rises from 86% to 90%** (#1690). About 2,650 more statements in 51 classes, from audience, recruitment and reregistration to certificates, settings, identity, migrations and `Encryption`: refusals, `WP_Error` returns and database failures. CI measured 93.64%; the floor follows the rule the four plugins share.
+- **Twelve "never called" test checks now verify something** (#1699). An `expect()->never()` on a function `setUp()` had already stubbed was never consulted; those tests now count calls, and a guard refuses the shape. The magic-link QR code also drops a check that could never fail (#1702).
 
 ### Fixed
 
-- **Consolidating a person imported twice as a candidate no longer dead-ends** (#1682). Where both numbers sat on candidacies of one account, Identity resolution refused and asked to decide about the second candidacy, which no screen could do. The mistyped candidacy is now folded into the sound one: classifications move unchanged and the empty row is deleted. An identical, never-called classification on both (a preliminary list promoted under one number, the definitive re-imported under the other) is deduplicated; a differing or called one, or a different PCD condition, is still refused.
-- **The recruitment CSV import honours the RF check digit setting** (#1683). It refused a mistyped CPF but never checked an RF, even with Settings → General → RF check digit on, so the one path that writes candidacy numbers kept storing RFs every form refused. With the setting on, such a row is now refused by line; off, nothing changes.
-- **A role holding only `ffc_manage_reregistration` opens the Reregistration screen** (#1698). The menu and the page admitted the view capability alone, so a custom role with manage but not view got "Permission denied"; the shipped presets grant both and were not affected.
+- **Consolidating a person imported twice as a candidate no longer dead-ends** (#1682). The mistyped candidacy is folded into the sound one: classifications move unchanged, an identical never-called one is deduplicated, and a differing or called one is still refused.
+- **The recruitment CSV import honours the RF check digit setting** (#1683). With Settings → General → RF check digit on, a row whose RF fails the digit is refused by line, as the forms already did.
+- **A role holding only `ffc_manage_reregistration` opens the Reregistration screen** (#1698). The menu and the page admitted the view capability alone; the shipped presets grant both and were not affected.
 
 ### Security
 
-- **CI jobs run with a read-only token** (#1703). `ci.yml`, `lint.yml`, `phpcs.yml` and `assets.yml` now declare `contents: read`; no job in them writes to the repository.
+- **CI jobs run with a read-only token** (#1703). `ci.yml`, `lint.yml`, `phpcs.yml` and `assets.yml` declare `contents: read`.
 
 ## [6.37.0] (2026-10-12) — `5823fad`
 
