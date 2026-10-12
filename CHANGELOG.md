@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.37.0] (2026-10-12)
+
 ### Added
 
 - **Settings → Public Design** (#1677). Off by default; switched on, an accent, field borders, hints, errors, the corner radius, the form width and the font apply to every public screen (forms, verification, scheduling, audiences, the user dashboard, recruitment). The colours apply to the light theme only, and a pair below WCAG's floor is saved with a warning.
