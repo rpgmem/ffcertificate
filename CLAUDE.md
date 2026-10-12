@@ -274,7 +274,7 @@ Three places carry the plugin version and must stay in sync:
 2. `ffcertificate.php` PHP constant — `define( 'FFC_VERSION', 'X.Y.Z' )`. Source of `?ver=…` on every `wp_enqueue_*` call.
 3. `readme.txt` `Stable tag: X.Y.Z`. Parsed by WordPress.org before PHP runs; also a literal string.
 
-When changing the version, update all three in the same commit.
+When changing the version, update all three in the same commit. `PluginIdentityTest` fails when they disagree, when the released version has no `## [X.Y.Z]` section in `CHANGELOG.md`, and when the PHP or WordPress floor in the header differs from `readme.txt`, `composer.json` (`require` and `config.platform`) or the `testVersion` / `minimum_wp_version` that `phpcs.xml.dist` judges the code against. The floors there had drifted for two releases (8.1 / 6.2 against 8.3 / 6.8) when it was written (#PR).
 
 #### Patch vs. cache-bust-only releases
 
@@ -451,6 +451,8 @@ What it does not see, deliberately: a **single** Portuguese word — `_x( 'ficha
 `tests/Unit/TranslationCatalogueAgreementTest.php` compares the three files in `languages/` with each other, by `(msgctxt, msgid)` and in both directions: every **translated** `.po` entry must appear with the same value in the `.mo` and the `.l10n.php`, and neither compiled catalogue may carry an entry the `.po` does not. Plurals compare form by form.
 
 It exists because they had already disagreed **in production, for two releases**: the `.po` and `.l10n.php` carried #1209's fix while the shipped `.mo` still said `Estado` and `Agradecimentos`. WordPress reads `.l10n.php` only from **6.5** and this plugin's floor was then **6.4**, so on the floor the defect #1209 existed to fix was never delivered. The floor is **6.8** since #1590, so every supported WordPress now prefers the `.l10n.php`; the guard stays because the `.mo` is still what WordPress loads when the `.l10n.php` is missing or a site forces the format through the `translation_file_format` filter, and what translation tools read — a stale `.mo` is still a wrong translation somewhere.
+
+**Recompile, never hand-edit.** After changing the `.po`, `php .github/scripts/ffc-compile-translations.php` writes the `.mo` (GNU gettext's `msgfmt --check`) and the `.l10n.php` from the same `PoCatalogue` reader this guard uses, so the compiler and the guard cannot disagree about what an entry is (#PR).
 
 **Parse the file with its own language where you can.** The `.l10n.php` is read by **including** it — a side-effect-free `return array()` — which removes two traps outright, because PHP is the authority on how PHP escapes a string. The contrast with `.github/scripts/ffc-uninstall-manifest.php`, which parses `uninstall.php` as *text*, is deliberate: including that one would run the uninstaller. The rule is not "never include" — it is **include when the file does nothing**.
 

@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **PHPCS judges the code against the real floors, and a test keeps every version and floor in step** (#PR). `phpcs.xml.dist` still declared PHP 8.1 and WordPress 6.2; it now reads 8.3 and 6.8, and `PluginIdentityTest` compares the header, `FFC_VERSION`, `readme.txt`, `composer.json` and `phpcs.xml.dist`, and requires a CHANGELOG section for the released version. Translations recompile with one script.
+
 ## [6.36.0] (2026-10-11) — `71fe666`
 
 ### Added
