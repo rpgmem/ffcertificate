@@ -75,6 +75,7 @@ class IdentifierIdiomTest extends TestCase {
 		'includes/recruitment/class-ffc-csv-parser.php'                             => 'Case-folds a CSV header name for column matching.',
 		'includes/user-dashboard/class-ffc-user-creator.php'                        => 'Builds a login from the local part of an address; it is a username, never a lookup key.',
 		'includes/generators/class-ffc-qr-design.php'                               => 'Normalises a `#rrggbb` colour for the QR design (#1563); never an address.',
+		'includes/core/class-ffc-public-design.php'                                 => 'Normalises a `#rrggbb` colour for the public form design (#1677); never an address.',
 	);
 
 	/**
