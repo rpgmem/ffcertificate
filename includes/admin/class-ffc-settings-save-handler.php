@@ -97,6 +97,7 @@ class SettingsSaveHandler {
 		$clean = $this->save_date_format_settings( $clean, $new );
 		$clean = $this->save_url_shortener_settings( $clean, $new );
 		$clean = $this->save_captcha_settings( $clean, $new );
+		$clean = $this->save_public_design_settings( $clean, $new );
 
 		// "Email Model" chrome lives in its own option (`ffc_email_template`),
 		// posted from its own form in the SMTP tab.
@@ -452,6 +453,52 @@ class SettingsSaveHandler {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Save the Public Design tab.
+	 *
+	 * The tab's switch and values only exist on its own form, so they are
+	 * rebuilt from that form alone, through `PublicDesign`, the same
+	 * normaliser the stylesheet reads with. A colour pair below WCAG's floor
+	 * is still saved, with a warning naming it: the administrator may have a
+	 * reason, and refusing the colour would hide which pair was weak.
+	 *
+	 * @param array<string, mixed> $clean Current settings.
+	 * @param array<string, mixed> $new New settings from POST.
+	 * @return array<string, mixed> Updated settings
+	 */
+	private function save_public_design_settings( array $clean, array $new ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
+		if ( ! isset( $_POST['_ffc_tab'] ) || 'public_design' !== sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) ) {
+			return $clean;
+		}
+
+		$raw = array();
+		foreach ( \FreeFormCertificate\Core\PublicDesign::KEYS as $field => $key ) {
+			$raw[ $field ] = $new[ $key ] ?? null;
+		}
+		$design = new \FreeFormCertificate\Core\PublicDesign( $raw );
+
+		$weak = array();
+		foreach ( $design->weak_contrasts() as $pair ) {
+			/* translators: 1: a colour pair, such as "hints on white"; 2: its contrast ratio; 3: the minimum WCAG asks. */
+			$weak[] = sprintf( __( '%1$s (%2$s:1, at least %3$s:1)', 'ffcertificate' ), $pair['pair'], number_format_i18n( $pair['ratio'], 2 ), number_format_i18n( $pair['min'], 1 ) );
+		}
+		if ( $design->enabled && array() !== $weak ) {
+			add_settings_error(
+				'ffc_settings',
+				'ffc_public_design_contrast',
+				sprintf(
+					/* translators: %s: the colour pairs, separated by semicolons. */
+					__( 'The design was saved, but some colours are hard to read: %s', 'ffcertificate' ),
+					implode( '; ', $weak )
+				),
+				'warning'
+			);
+		}
+
+		return array_merge( $clean, $design->to_settings() );
 	}
 
 	/**

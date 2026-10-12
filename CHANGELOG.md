@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Settings → Public Design** (#PR). Off by default; switched on, an accent, field borders, hints, errors, the corner radius, the form width and the font apply to every public screen (forms, verification, scheduling, audiences, the user dashboard, recruitment). The colours apply to the light theme only, and a pair below WCAG's floor is saved with a warning.
+
 ### Changed
 
 - **Public form widths and control corners read tokens** (#1676). A new `--ffc-form-width` (600px) sets the form and verification cards, and their field column follows at 150px less (the 450px it always was). The submit and download buttons, messages and verification fields take `--ffc-radius-sm`: their corners move from 5px to 4px, the only visible change. This prepares the form design setting.

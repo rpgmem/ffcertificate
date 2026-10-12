@@ -242,6 +242,12 @@ $ffc_doc_tree = array(
 						'file'   => 'config-general.php',
 					),
 					array(
+						'anchor' => 'config-public-design',
+						'icon'   => 'ffc-icon-palette',
+						'title'  => __( 'Public Design', 'ffcertificate' ),
+						'file'   => 'config-public-design.php',
+					),
+					array(
 						'anchor' => 'config-modules',
 						'icon'   => 'ffc-icon-grid',
 						'title'  => __( 'Modules', 'ffcertificate' ),
