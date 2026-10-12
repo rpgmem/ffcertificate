@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Maintenance;
 
+use FreeFormCertificate\Core\ArrayValue;
 use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
 use WP_Error;
 
@@ -97,7 +98,7 @@ class CandidacyMerge {
 
 		list( $source, $target ) = $pair;
 
-		if ( (int) ( $source['user_id'] ?? 0 ) !== (int) ( $target['user_id'] ?? 0 ) ) {
+		if ( ArrayValue::int( $source, 'user_id' ) !== ArrayValue::int( $target, 'user_id' ) ) {
 			return new WP_Error(
 				'ffc_identity_candidacy_accounts',
 				__( 'The two candidacies belong to different accounts, so folding one into the other would merge two people. Decide the merge under "Two accounts, one number" first.', 'ffcertificate' )
@@ -115,8 +116,8 @@ class CandidacyMerge {
 		}
 
 		$other = 'cpf' === $field ? 'rf_hash' : 'cpf_hash';
-		$mine  = (string) ( $source[ $other ] ?? '' );
-		$kept  = (string) ( $target[ $other ] ?? '' );
+		$mine  = ArrayValue::string( $source, $other );
+		$kept  = ArrayValue::string( $target, $other );
 
 		if ( '' !== $mine && '' !== $kept && $mine !== $kept ) {
 			return new WP_Error(
@@ -184,7 +185,7 @@ class CandidacyMerge {
 		// first, or moving it onto the survivor would collide with the
 		// survivor's own row on the unique key.
 		foreach ( $overlaps as $overlap ) {
-			if ( false === $wpdb->delete( $classification_table, array( 'id' => (int) $overlap['from_id'] ), array( '%d' ) ) ) {
+			if ( false === $wpdb->delete( $classification_table, array( 'id' => ArrayValue::int( $overlap, 'from_id' ) ), array( '%d' ) ) ) {
 				return $this->failed( $classification_table );
 			}
 		}
@@ -239,8 +240,8 @@ class CandidacyMerge {
 	 * confirmed most recently, so it is never overwritten. Notes are the one
 	 * exception, kept from both so nothing an operator wrote is lost.
 	 *
-	 * @param array<string, mixed> $source The candidacy that goes away.
-	 * @param array<string, mixed> $target The candidacy that stays.
+	 * @param array<array-key, mixed> $source The candidacy that goes away.
+	 * @param array<array-key, mixed> $target The candidacy that stays.
 	 * @return array<string, string>
 	 */
 	private function gains( array $source, array $target ): array {
@@ -249,17 +250,17 @@ class CandidacyMerge {
 		foreach ( self::FILLABLE as $columns ) {
 			$lead = $columns[ count( $columns ) - 1 ];
 
-			if ( '' !== (string) ( $target[ $lead ] ?? '' ) || '' === (string) ( $source[ $lead ] ?? '' ) ) {
+			if ( '' !== ArrayValue::string( $target, $lead ) || '' === ArrayValue::string( $source, $lead ) ) {
 				continue;
 			}
 
 			foreach ( $columns as $column ) {
-				$gains[ $column ] = (string) ( $source[ $column ] ?? '' );
+				$gains[ $column ] = ArrayValue::string( $source, $column );
 			}
 		}
 
-		$theirs = trim( (string) ( $source['notes'] ?? '' ) );
-		$ours   = trim( (string) ( $target['notes'] ?? '' ) );
+		$theirs = trim( ArrayValue::string( $source, 'notes' ) );
+		$ours   = trim( ArrayValue::string( $target, 'notes' ) );
 
 		if ( '' !== $theirs && $theirs !== $ours ) {
 			$gains['notes'] = '' === $ours ? $theirs : $ours . "\n\n" . $theirs;
@@ -277,7 +278,7 @@ class CandidacyMerge {
 	 *
 	 * @param int $from The candidacy that goes away.
 	 * @param int $into The candidacy that stays.
-	 * @return array<int, array<string, mixed>>
+	 * @return array<int, array<array-key, mixed>>
 	 */
 	private function overlaps( int $from, int $into ): array {
 		global $wpdb;
@@ -308,7 +309,15 @@ class CandidacyMerge {
 			ARRAY_A
 		);
 
-		return is_array( $rows ) ? array_values( $rows ) : array();
+		$out = array();
+
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( is_array( $row ) ) {
+				$out[] = $row;
+			}
+		}
+
+		return $out;
 	}
 
 	/**
@@ -318,27 +327,27 @@ class CandidacyMerge {
 	 * compared as numbers, because `decimal(10,4)` comes back as a string
 	 * whose spelling is the driver's and not the value's.
 	 *
-	 * @param array<int, array<string, mixed>> $overlaps From {@see self::overlaps()}.
+	 * @param array<int, array<array-key, mixed>> $overlaps From {@see self::overlaps()}.
 	 * @return array{notice: string, list_type: string}|null
 	 */
 	private function conflict( array $overlaps ): ?array {
 		foreach ( $overlaps as $row ) {
-			$same = (int) ( $row['calls'] ?? 1 ) === 0
-				&& 'empty' === (string) ( $row['from_status'] ?? '' )
-				&& 'empty' === (string) ( $row['into_status'] ?? '' )
-				&& (int) ( $row['from_rank'] ?? -1 ) === (int) ( $row['into_rank'] ?? -2 )
-				&& abs( (float) ( $row['from_score'] ?? 0 ) - (float) ( $row['into_score'] ?? 0 ) ) < 0.00005
-				&& abs( (float) ( $row['from_time_points'] ?? 0 ) - (float) ( $row['into_time_points'] ?? 0 ) ) < 0.00005
-				&& (int) ( $row['from_hab_emebs'] ?? 0 ) === (int) ( $row['into_hab_emebs'] ?? 0 )
-				&& (string) ( $row['from_preview_status'] ?? '' ) === (string) ( $row['into_preview_status'] ?? '' )
-				&& (int) ( $row['from_preview_reason_id'] ?? 0 ) === (int) ( $row['into_preview_reason_id'] ?? 0 );
+			$same = ArrayValue::int( $row, 'calls', 1 ) === 0
+				&& 'empty' === ArrayValue::string( $row, 'from_status' )
+				&& 'empty' === ArrayValue::string( $row, 'into_status' )
+				&& ArrayValue::int( $row, 'from_rank', -1 ) === ArrayValue::int( $row, 'into_rank', -2 )
+				&& abs( (float) ArrayValue::string( $row, 'from_score', '0' ) - (float) ArrayValue::string( $row, 'into_score', '0' ) ) < 0.00005
+				&& abs( (float) ArrayValue::string( $row, 'from_time_points', '0' ) - (float) ArrayValue::string( $row, 'into_time_points', '0' ) ) < 0.00005
+				&& ArrayValue::int( $row, 'from_hab_emebs' ) === ArrayValue::int( $row, 'into_hab_emebs' )
+				&& ArrayValue::string( $row, 'from_preview_status' ) === ArrayValue::string( $row, 'into_preview_status' )
+				&& ArrayValue::int( $row, 'from_preview_reason_id' ) === ArrayValue::int( $row, 'into_preview_reason_id' );
 
 			if ( ! $same ) {
-				$code = (string) ( $row['code'] ?? '' );
+				$code = ArrayValue::string( $row, 'code' );
 
 				return array(
-					'notice'    => '' !== $code ? $code : '#' . (int) ( $row['notice_id'] ?? 0 ),
-					'list_type' => (string) ( $row['list_type'] ?? '' ),
+					'notice'    => '' !== $code ? $code : '#' . ArrayValue::int( $row, 'notice_id' ),
+					'list_type' => ArrayValue::string( $row, 'list_type' ),
 				);
 			}
 		}
@@ -351,7 +360,7 @@ class CandidacyMerge {
 	 *
 	 * @param int $from The candidacy that goes away.
 	 * @param int $into The candidacy that stays.
-	 * @return array{0: array<string, mixed>, 1: array<string, mixed>}|WP_Error
+	 * @return array{0: array<array-key, mixed>, 1: array<array-key, mixed>}|WP_Error
 	 */
 	private function load( int $from, int $into ): array|WP_Error {
 		global $wpdb;
@@ -375,8 +384,10 @@ class CandidacyMerge {
 
 		$by_id = array();
 
-		foreach ( (array) $rows as $row ) {
-			$by_id[ (int) ( $row['id'] ?? 0 ) ] = (array) $row;
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( is_array( $row ) ) {
+				$by_id[ ArrayValue::int( $row, 'id' ) ] = $row;
+			}
 		}
 
 		if ( ! isset( $by_id[ $from ], $by_id[ $into ] ) ) {
@@ -396,11 +407,11 @@ class CandidacyMerge {
 	 * and that is refused rather than guessed: an unreadable condition cannot
 	 * be shown to agree with anything.
 	 *
-	 * @param array<string, mixed> $row A candidacy row.
+	 * @param array<array-key, mixed> $row A candidacy row.
 	 * @return bool|null
 	 */
 	protected function is_pcd( array $row ): ?bool {
-		return RecruitmentPcdHasher::verify( (string) ( $row['pcd_hash'] ?? '' ), (int) ( $row['id'] ?? 0 ) );
+		return RecruitmentPcdHasher::verify( ArrayValue::string( $row, 'pcd_hash' ), ArrayValue::int( $row, 'id' ) );
 	}
 
 	/**
