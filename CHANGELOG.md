@@ -16,6 +16,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Public form widths and control corners read tokens** (#1676). A new `--ffc-form-width` (600px) sets the form and verification cards, and their field column follows at 150px less (the 450px it always was). The submit and download buttons, messages and verification fields take `--ffc-radius-sm`: their corners move from 5px to 4px, the only visible change. This prepares the form design setting.
 - **PHPCS judges the code against the real floors, and a test keeps every version and floor in step** (#1675). `phpcs.xml.dist` still declared PHP 8.1 and WordPress 6.2; it now reads 8.3 and 6.8, and `PluginIdentityTest` compares the header, `FFC_VERSION`, `readme.txt`, `composer.json` and `phpcs.xml.dist`, and requires a CHANGELOG section for the released version. Translations recompile with one script.
 
+### Fixed
+
+- **Documentation navigation stays in view, beside the topics** (#PR). The Quick Navigation was meant to stick while reading but scrolled away, because the Settings tab container clipped with `overflow: hidden`, which turns it into a scroll container; it now clips with `overflow: clip`. On a wide screen the navigation is a column next to the topics instead of a card above them.
+
 ## [6.36.0] (2026-10-11) — `71fe666`
 
 ### Added
