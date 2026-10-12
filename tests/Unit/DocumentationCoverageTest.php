@@ -42,6 +42,7 @@ class DocumentationCoverageTest extends TestCase {
 		'ip_diagnostics'  => 'config-ip-diagnostics',
 		'migrations'      => 'operations-migrations',
 		'modulos'         => 'config-modules',
+		'public_design'   => 'config-public-design',
 		'qr_code'         => 'config-qr-code',
 		'rate_limit'      => 'config-rate-limit',
 		'reregistration'  => 'feature-reregistration',

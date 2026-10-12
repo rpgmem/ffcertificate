@@ -174,6 +174,7 @@ class Settings {
 		// v4.6.16: Reorganized tabs for better UX.
 		$tab_classes = array(
 			'general'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
+			'public_design'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabPublicDesign',
 			'templates'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabTemplates',
 			'reregistration'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabReregistration',
 			'modulos'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
@@ -310,6 +311,15 @@ class Settings {
 			'qr_design_transparent'      => 0,
 			'qr_design_on_certificate'   => 0,
 			'qr_design_on_short_urls'    => 0,
+			// Settings → Public Design: off, and at the stylesheet's own look.
+			'public_design'              => 0,
+			'public_design_accent'       => '#2271b1',
+			'public_design_border'       => '#8e8f91',
+			'public_design_muted'        => '#646970',
+			'public_design_error'        => '#d63638',
+			'public_design_radius'       => 4,
+			'public_design_width'        => 600,
+			'public_design_font'         => 'theme',
 			// `d/m/Y` default since #244 — Brazilian-locale friendly. Pre-
 			// #244 default was 'F j, Y'; installs that explicitly saved
 			// 'F j, Y' keep it because get_option() returns the persisted

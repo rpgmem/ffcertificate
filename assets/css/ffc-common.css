@@ -113,6 +113,11 @@
        taller than that is what calls for `999px`, with its own proof. */
     --ffc-radius-pill: 12px;
 
+    /* The widest a public form card grows. The field column inside it is
+       this less 150px (the 600 / 450 the cards always had), so one value
+       moves both; the form design setting overrides it on .ffc-shortcode. */
+    --ffc-form-width: 600px;
+
     /* Stacking layers (#1171). Named by ROLE, never by number. `modal` is
        100000 because the wp-admin bar is 99999 — that is the one number here
        with an external reason, and it is the reason it exists.

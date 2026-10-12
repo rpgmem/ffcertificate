@@ -242,6 +242,12 @@ $ffc_doc_tree = array(
 						'file'   => 'config-general.php',
 					),
 					array(
+						'anchor' => 'config-public-design',
+						'icon'   => 'ffc-icon-palette',
+						'title'  => __( 'Public Design', 'ffcertificate' ),
+						'file'   => 'config-public-design.php',
+					),
+					array(
 						'anchor' => 'config-modules',
 						'icon'   => 'ffc-icon-grid',
 						'title'  => __( 'Modules', 'ffcertificate' ),
@@ -530,8 +536,10 @@ $ffc_require_doc_pages = static function ( array $ffc_nodes ) use ( &$ffc_requir
 	</p>
 </div>
 
-<!-- Quick Navigation — a sticky card holding the search box and the
-	section tree, grouped as collapsible functional areas (#697). -->
+<!-- Quick Navigation — the search box and the section tree, grouped as
+	collapsible functional areas (#697). On a wide screen it is a sticky
+	column beside the topics rather than a bar over them. -->
+<div class="ffc-doc-layout">
 <div class="card ffc-doc-toc ffc-doc-toc--tree">
 	<h3 id="ffc-doc-nav" class="ffc-icon-search"><?php esc_html_e( 'Quick Navigation', 'ffcertificate' ); ?></h3>
 	<p>
@@ -540,6 +548,9 @@ $ffc_require_doc_pages = static function ( array $ffc_nodes ) use ( &$ffc_requir
 	<?php $ffc_render_doc_nav( $ffc_doc_tree, 0 ); ?>
 </div>
 
+<div class="ffc-doc-topics">
 <?php $ffc_require_doc_pages( $ffc_doc_tree ); ?>
+</div>
+</div><!-- .ffc-doc-layout -->
 
 </div><!-- .ffc-settings-wrap -->

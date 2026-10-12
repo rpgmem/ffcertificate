@@ -106,6 +106,10 @@ class Loader {
 		// Development installs (SCRIPT_DEBUG) version assets by file time, so
 		// a merge reaches the browser without a release bump.
 		\FreeFormCertificate\Core\AssetHelper::register_dev_cache_busting();
+
+		// The administrator's public design, printed after `ffc-common` on
+		// public pages (Settings → Public Design).
+		\FreeFormCertificate\Core\PublicDesign::init();
 		$this->define_activation_hooks();
 	}
 

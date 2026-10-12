@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.3
-Stable tag: 6.36.0
+Stable tag: 6.37.0
 Requires PHP: 8.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -102,6 +102,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 * **REST API** - REST endpoints for external integrations.
 * **Capabilities & Roles** - Granular, delegable permissions with three states per domain (hidden / view only / view and edit), dedicated roles, and per-user and per-role editors, so the plugin can be delegated without granting WordPress administrator.
 * **Dark Mode** - An admin dark theme (off, on, or following the operating system).
+* **Public Design** - Settings → Public Design gives every public screen the site's accent, field, hint and error colours, corner radius, form width and font. It is off by default, applies to the light theme only, and warns when a colour pair falls below WCAG's contrast floor.
 
 = Integrations =
 
@@ -269,8 +270,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.36.0 =
-Protect page content by time window or place with the new [ffc_geofence] shortcode, background images in Date Messages bodies, test sends in the Date Messages history, and dark-mode title fixes on admin screens.
+= 6.37.0 =
+New Settings → Public Design (off by default) gives every public screen your accent, field and error colours, corners, width and font, with a warning for hard-to-read pairs. Form buttons and fields now have 4px corners, and the documentation's Quick Navigation stays beside the topics.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one
