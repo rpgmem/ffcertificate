@@ -1131,4 +1131,157 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$this->assertSame( array( 'jquery', 'ffc-field-behaviours' ), $scripts['ffc-admin-user-fields'] ?? null );
 		$this->assertSame( 'I hold', $localize['ffcAdminUserFields']['strings']['dualPostShowValue'] ?? null );
 	}
+
+	// ==================================================================
+	// Profile-mapped values, dependent selects and the post-save notices
+	// ==================================================================
+
+	public function test_render_section_shows_a_profile_mapped_field_from_the_profile(): void {
+		$user     = new \WP_User(10);
+		$user->ID = 10;
+		$audience = (object) [ 'id' => 1, 'name' => 'Staff', 'color' => '#fff' ];
+		$phone    = (object) [
+			'id' => 23, 'field_key' => 'ramal', 'field_label' => 'Extension', 'field_type' => 'text',
+			'field_profile_key' => 'phone_ext', 'is_sensitive' => 1, 'field_mask' => null, 'validation_rules' => null,
+			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Staff', 'field_options' => '',
+		];
+
+		$this->audience_repo_mock->shouldReceive('get_user_audiences')->with(10)->andReturn([$audience]);
+		$this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')->with(1, true)->andReturn([$phone]);
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(10, true)->andReturn([$phone]);
+		// The snapshot carries a stale copy; the profile is what the screen shows.
+		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn([ 'field_23' => 'stale' ]);
+		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
+		$manager->shouldReceive('get_extended_profile')
+			->once()
+			->with(10, array( 'phone_ext' ), array( 'phone_ext' ))
+			->andReturn(array( 'phone_ext' => '4321' ));
+		Functions\when('esc_html_e')->alias(static function ($t) { echo $t; });
+		Functions\when('wp_nonce_field')->justReturn('');
+
+		ob_start();
+		AdminUserCustomFields::render_section($user);
+		$output = (string) ob_get_clean();
+
+		$this->assertMatchesRegularExpression('/name="ffc_cf_23"[^>]*value="4321"/', $output);
+		$this->assertStringNotContainsString('stale', $output);
+	}
+
+	public function test_save_section_writes_a_sensitive_dependent_select_to_the_profile_as_sensitive(): void {
+		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_30']                    = '{"parent":"DIPED","child":"Sector A"}';
+
+		$field = (object) [
+			'id' => 30, 'field_type' => 'dependent_select', 'field_label' => 'Division / Department',
+			'field_profile_key' => 'divisao_setor', 'is_sensitive' => 1, 'is_required' => 0, 'field_options' => '',
+		];
+
+		Functions\when('wp_verify_nonce')->justReturn(true);
+		Functions\when('current_user_can')->justReturn(true);
+		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
+
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$field]);
+		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([ 'DIPED' => ['Sector A'] ]);
+		$this->custom_field_repo_mock->shouldReceive('get_validation_rules')->andReturn([]);
+		$this->custom_field_writer_mock->shouldReceive('save_user_data')->once()->with(5, array());
+
+		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
+		$manager->shouldReceive('get_extended_profile')->andReturn(array());
+		$manager->shouldReceive('update_extended_profile')
+			->once()
+			->with(5, array( 'divisao_setor' => '{"parent":"DIPED","child":"Sector A"}' ), array( 'divisao_setor' ))
+			->andReturn(true);
+
+		AdminUserCustomFields::save_section(5);
+	}
+
+	public function test_save_section_stores_an_unmapped_dependent_select_in_the_snapshot(): void {
+		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_30']                    = '{"parent":"DIPED","child":"Sector A"}';
+
+		$field = (object) [
+			'id' => 30, 'field_type' => 'dependent_select', 'field_label' => 'Division / Department',
+			'is_required' => 0, 'field_options' => '',
+		];
+
+		Functions\when('wp_verify_nonce')->justReturn(true);
+		Functions\when('current_user_can')->justReturn(true);
+		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
+
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$field]);
+		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([ 'DIPED' => ['Sector A'] ]);
+		$this->custom_field_repo_mock->shouldReceive('get_validation_rules')->andReturn([]);
+		$this->custom_field_writer_mock->shouldReceive('save_user_data')
+			->once()
+			->with(5, array( 'field_30' => '{"parent":"DIPED","child":"Sector A"}' ));
+
+		AdminUserCustomFields::save_section(5);
+	}
+
+	/**
+	 * Run render_save_notice() on a screen with the given transients.
+	 *
+	 * @param string               $screen_id  Current screen id.
+	 * @param array<string, mixed> $transients Key => value.
+	 * @return array{0: string, 1: array<int, string>} Output and deleted keys.
+	 */
+	private function save_notice_on( string $screen_id, array $transients ): array {
+		$screen     = new \WP_Screen();
+		$screen->id = $screen_id;
+		Functions\when('get_current_screen')->justReturn($screen);
+		Functions\when('get_current_user_id')->justReturn(3);
+		Functions\when('get_transient')->alias(static fn($key) => $transients[ $key ] ?? false);
+		$deleted = array();
+		Functions\when('delete_transient')->alias(function ($key) use (&$deleted) {
+			$deleted[] = $key;
+			return true;
+		});
+
+		ob_start();
+		AdminUserCustomFields::render_save_notice();
+		return array( (string) ob_get_clean(), $deleted );
+	}
+
+	public function test_render_save_notice_stays_off_other_screens(): void {
+		list( $html, $deleted ) = $this->save_notice_on('dashboard', array( 'ffc_cf_required_kept_3' => array( 'CPF' ) ));
+
+		$this->assertSame('', $html);
+		$this->assertSame(array(), $deleted, 'the notice is kept for the profile screen');
+	}
+
+	public function test_render_save_notice_names_the_kept_fields_and_the_incomplete_rows(): void {
+		$GLOBALS['wp_locale'] = new class() {
+			public function get_weekday( $day ) {
+				return 'Weekday ' . $day;
+			}
+		};
+		Functions\when('esc_html__')->returnArg();
+
+		list( $html, $deleted ) = $this->save_notice_on(
+			'user-edit',
+			array(
+				'ffc_cf_required_kept_3' => array( 'CPF', 'Date of Birth' ),
+				'ffc_cf_wh_incomplete_3' => array(
+					'not a row',
+					array( 'label' => 'Hours', 'day' => 1, 'missing' => array( 'entry1', 'exit2' ) ),
+					array( 'label' => 'Hours', 'day' => 9, 'missing' => 'none' ),
+				),
+			)
+		);
+		unset( $GLOBALS['wp_locale'] );
+
+		$this->assertStringContainsString('kept their previous value: CPF, Date of Birth', $html);
+		$this->assertStringContainsString('<li>Hours — Weekday 1: missing Entry 1, Exit 2</li><li>Hours — 9: missing </li>', $html);
+		$this->assertSame(array( 'ffc_cf_required_kept_3', 'ffc_cf_wh_incomplete_3' ), $deleted);
+	}
+
+	public function test_render_save_notice_prints_nothing_for_rows_it_cannot_read(): void {
+		list( $html, $deleted ) = $this->save_notice_on(
+			'profile',
+			array( 'ffc_cf_wh_incomplete_3' => array( 'not a row', 42 ) )
+		);
+
+		$this->assertSame('', $html);
+		$this->assertSame(array( 'ffc_cf_wh_incomplete_3' ), $deleted, 'the unreadable notice is still consumed');
+	}
 }

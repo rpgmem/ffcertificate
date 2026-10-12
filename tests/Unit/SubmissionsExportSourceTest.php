@@ -297,4 +297,177 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 		parent::stub_terminators();
 	}
 
+	public function test_authorize_batch_rejects_without_capability(): void {
+		$this->stub_terminators();
+		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'json_error' );
+		$this->source->authorize_batch( array( 'user_id' => 1 ) );
+	}
+
+	public function test_authorize_download_rejects_without_capability(): void {
+		$this->stub_terminators();
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die' );
+		$this->source->authorize_download( array( 'user_id' => 1 ) );
+	}
+
+	public function test_the_owner_with_the_capability_passes_every_phase(): void {
+		$this->stub_terminators();
+		$nonces = array();
+		Functions\when( 'check_ajax_referer' )->alias(
+			static function ( $action ) use ( &$nonces ) {
+				$nonces[] = $action;
+				return true;
+			}
+		);
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+
+		$this->source->authorize_start();
+		$this->source->authorize_batch( array( 'user_id' => 5 ) );
+		$this->source->authorize_download( array( 'user_id' => 5 ) );
+
+		// The export page localises this nonce action; both AJAX phases check it.
+		$this->assertSame( array( 'ffc_csv_export', 'ffc_csv_export' ), $nonces );
+	}
+
+	public function test_the_constructor_keeps_the_repository_and_the_type_is_stable(): void {
+		$repo   = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+		$repo->shouldReceive( 'countForExport' )->once()->with( null, 'publish' )->andReturn( 3 );
+		$source = new SubmissionsExportSource( $repo );
+
+		$this->assertSame( SubmissionsExportSource::TYPE, $source->type() );
+		$this->assertSame( 3, $source->count( array( 'form_ids' => null, 'status' => 'publish' ) ) );
+	}
+
+	public function test_sanitize_filters_reads_form_ids_and_status(): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => strtolower( (string) $v ) );
+		$_POST['form_ids'] = array( '3', '-4', 'x' );
+		$_POST['status']   = 'Trash';
+
+		$filters = $this->source->sanitize_filters();
+		unset( $_POST['form_ids'], $_POST['status'] );
+
+		$this->assertSame(
+			array(
+				'form_ids' => array( 3, 4, 0 ),
+				'status'   => 'trash',
+			),
+			$filters
+		);
+		$this->assertSame(
+			array(
+				'form_ids' => null,
+				'status'   => 'publish',
+			),
+			$this->source->sanitize_filters(),
+			'no selection exports every form, published'
+		);
+	}
+
+	public function test_build_context_freezes_the_dynamic_keys_and_the_edit_columns(): void {
+		$repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+		$repo->shouldReceive( 'getExportKeysBatch' )->andReturn( array( array( 'id' => 9, 'data' => '{"city":"SP"}' ) ), array() );
+		$repo->shouldReceive( 'hasEditInfo' )->once()->andReturn( true );
+		$this->set_repository( $repo );
+
+		$context = $this->source->build_context(
+			array(
+				'form_ids' => array( 1 ),
+				'status'   => 'publish',
+			)
+		);
+
+		$this->assertSame(
+			array(
+				'dynamic_keys'         => array( 'city' ),
+				'include_edit_columns' => true,
+			),
+			$context
+		);
+	}
+
+	public function test_header_appends_the_dynamic_columns_and_passes_the_filter(): void {
+		$seen = null;
+		Functions\when( 'apply_filters' )->alias(
+			static function ( $hook, $value, ...$args ) use ( &$seen ) {
+				$seen = array( $hook, $args );
+				return $value;
+			}
+		);
+
+		$header = $this->source->header(
+			array( 'form_ids' => array( 2 ) ),
+			array(
+				'dynamic_keys'         => array( 'full_name' ),
+				'include_edit_columns' => false,
+			)
+		);
+
+		$this->assertCount( 16, $header );
+		$this->assertSame( 'Full Name', $header[15] );
+		$this->assertSame( array( 'ffc_export_headers', array( false, array( 2 ) ) ), $seen );
+	}
+
+	public function test_filename_names_one_form_several_or_all(): void {
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'get_the_title' )->justReturn( 'Workshop: Day 1' );
+		$date = gmdate( 'Y-m-d' );
+
+		$this->assertSame( "workshop-day-1-{$date}.csv", $this->source->filename( array( 'form_ids' => array( 5 ), 'status' => 'publish' ), array() ) );
+		$this->assertSame( "3-forms-{$date}.csv", $this->source->filename( array( 'form_ids' => array( 5, 6, 7 ), 'status' => 'publish' ), array() ) );
+		$this->assertSame( "all-forms-{$date}.csv", $this->source->filename( array( 'form_ids' => null, 'status' => 'publish' ), array() ) );
+	}
+
+	public function test_fetch_page_reads_a_keyset_batch_through_the_filter(): void {
+		$repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+		$repo->shouldReceive( 'getExportBatch' )->once()->with( array( 2 ), 'publish', 500, 100 )->andReturn( array( array( 'id' => 499 ) ) );
+		$this->set_repository( $repo );
+		Functions\when( 'apply_filters' )->alias(
+			static fn( $hook, $batch ) => 'ffc_export_data' === $hook ? array_merge( $batch, array( array( 'id' => 1 ) ) ) : $batch
+		);
+
+		$rows = $this->source->fetch_page( array( 'form_ids' => array( 2 ), 'status' => 'publish' ), array(), 500, 100 );
+
+		$this->assertSame( array( array( 'id' => 499 ), array( 'id' => 1 ) ), $rows );
+	}
+
+	public function test_format_row_uses_the_frozen_context(): void {
+		$row = $this->source->format_row(
+			$this->sample_row(),
+			array(
+				'dynamic_keys'         => array(),
+				'include_edit_columns' => true,
+			)
+		);
+
+		$this->assertCount( 18, $row );
+	}
+
+	public function test_completion_fires_the_action_and_the_other_hooks_are_inert(): void {
+		$fired = array();
+		Functions\when( 'do_action' )->alias(
+			static function ( ...$args ) use ( &$fired ) {
+				$fired[] = $args;
+			}
+		);
+		$job = array(
+			'file'      => '/tmp/x.csv',
+			'processed' => '12',
+		);
+
+		$this->source->on_complete( 'job-1', $job );
+		$this->source->on_before_download( $job );
+
+		$this->assertSame( array( array( 'ffc_export_completed', 'job-1', '/tmp/x.csv', 12, $job ) ), $fired );
+		$this->assertSame( array(), $this->source->extra_start_response( 'job-1', $job ) );
+	}
 }
