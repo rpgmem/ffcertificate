@@ -34,10 +34,10 @@
     <rule ref="WordPress-Docs"/>
 
     <!-- PHP version compatibility -->
-    <config name="testVersion" value="8.1-"/>
+    <config name="testVersion" value="8.3-"/>
     <rule ref="PHPCompatibilityWP"/>
 
-    <config name="minimum_wp_version" value="6.2"/>
+    <config name="minimum_wp_version" value="6.8"/>
 
     <rule ref="WordPress.WP.I18n">
         <properties>
