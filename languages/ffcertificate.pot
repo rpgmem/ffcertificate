@@ -21896,7 +21896,28 @@ msgstr ""
 msgid "That value is already stored against records this cannot attribute to one other account — either they belong to nobody, or to more than one. Correcting into it would leave a claim on the number that no finding on this screen would ever report."
 msgstr ""
 
-msgid "Both identifiers are recorded in %s, which holds each identifier once, so writing the corrected value there would leave two records claiming one. Decide what becomes of the second record first."
+msgid "Both identifiers are recorded in %s, on candidacies of different accounts, and that store holds each identifier once. Decide the merge under \"Two accounts, one number\" first."
+msgstr ""
+
+msgid "The two candidacies belong to different accounts, so folding one into the other would merge two people. Decide the merge under \"Two accounts, one number\" first."
+msgstr ""
+
+msgid "The two candidacies do not record the same PCD condition, and PCD belongs to the candidacy: merging them would change the condition one of the classifications competes under. Correct the candidacy first."
+msgstr ""
+
+msgid "The two candidacies carry different values for the other identifier, so they disagree about who this is. Resolve that finding first."
+msgstr ""
+
+msgid "Both candidacies are classified on notice %1$s for the same adjutancy and list (%2$s) with different standings, or one of them was already called, and one person holds one standing there. Merging would mean deleting one of the two classifications, which is HR's decision, not a correction. Nothing was changed."
+msgstr ""
+
+msgid "The two candidacies' classifications changed since the check and no longer agree. Nothing was changed; reload the queue."
+msgstr ""
+
+msgid "The candidacies to merge could not be found. Reload the queue."
+msgstr ""
+
+msgid "fold the mistyped number into the account's sound one. When the same person has a recruitment candidacy under each number, the two candidacies become one: the classifications move unchanged and the emptied candidacy is deleted. Where both hold an identical, never-called classification on the same notice, adjutancy and list, the copy is dropped. It is refused when such a pair differs or was called, or the two record a different PCD condition — those are decisions for HR."
 msgstr ""
 
 msgid "The value you confirmed already belongs to account %s. Correcting this one is not a merge and moves no records — but afterwards both accounts carry the number, and this correction cannot be undone here, because putting the old value back means confirming a number that fails its own check digit. Confirm that you mean to, and then decide the merge under \"Two accounts, one number\"."

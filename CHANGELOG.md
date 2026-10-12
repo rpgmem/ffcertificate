@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Consolidating a person imported twice as a candidate no longer dead-ends** (#1682). Where both numbers sat on candidacies of one account, Identity resolution refused and asked to decide about the second candidacy, which no screen could do. The mistyped candidacy is now folded into the sound one: classifications move unchanged and the empty row is deleted. An identical, never-called classification on both (a preliminary list promoted under one number, the definitive re-imported under the other) is deduplicated; a differing or called one, or a different PCD condition, is still refused.
+
 ## [6.37.0] (2026-10-12) — `5823fad`
 
 ### Added
