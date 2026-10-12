@@ -12,7 +12,8 @@
  *
  * The four variants beside the colour icon (black and white lines, dark
  * screen, no background) are read by no code; they ship for whoever needs the
- * mark elsewhere, so their only guard is that they exist and are SVG.
+ * mark elsewhere, as SVG and as 128 px and 256 px PNG, so their only guard is
+ * that every one of those files exists at its size.
  *
  * Dependency-free on purpose: it reads files, never runs WordPress.
  *
@@ -79,6 +80,19 @@ class PluginIconAssetsTest extends TestCase {
 			$file = self::root() . '/' . self::DIR . $name;
 			$this->assertFileExists( $file );
 			$this->assertStringStartsWith( '<svg ', (string) file_get_contents( $file ), "{$name} is not an SVG document." );
+		}
+	}
+
+	public function test_every_variant_ships_as_png_in_both_sizes(): void {
+		foreach ( self::VARIANTS as $name ) {
+			foreach ( array( 128, 256 ) as $size ) {
+				$png  = substr( $name, 0, -4 ) . '-' . $size . '.png';
+				$file = self::root() . '/' . self::DIR . $png;
+				$this->assertFileExists( $file, "{$png} is missing; every SVG variant ships as a 128 px and a 256 px PNG." );
+				$info = getimagesize( $file );
+				$this->assertIsArray( $info );
+				$this->assertSame( array( $size, $size ), array( $info[0], $info[1] ), "{$png} must be {$size}px square." );
+			}
 		}
 	}
 
