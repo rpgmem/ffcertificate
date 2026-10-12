@@ -25012,3 +25012,132 @@ msgstr ""
 
 msgid "The same building blocks protect page content: the [ffc_geofence] shortcode uses these locations, fallbacks and the administrator bypass."
 msgstr ""
+
+#: includes/core/class-ffc-public-design.php:248
+msgid "links on white"
+msgstr ""
+
+#: includes/core/class-ffc-public-design.php:249
+msgid "hints on white"
+msgstr ""
+
+#: includes/core/class-ffc-public-design.php:250
+msgid "errors on white"
+msgstr ""
+
+#: includes/core/class-ffc-public-design.php:251
+msgid "field borders on white"
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php:17
+msgid "Public Design"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-public-design.php:62
+msgid "Public Design settings view file not found."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:18
+msgid "Accent (buttons, links and focus)"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:19
+msgid "Field borders"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:20
+msgid "Hints and secondary text"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:21
+msgid "Errors"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:34
+msgid "The look of every screen visitors see: forms, certificate verification, scheduling, audiences, the user dashboard and recruitment. The colours apply to the light theme; in dark mode the plugin keeps its own dark palette, whose contrast is already checked."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:40
+msgid "Customise"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:48
+msgid "Use the colours, corners, width and font below"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:53
+msgid "Off, the screens keep the plugin's own look and the values below are not used. Saving with it off puts them back to their defaults."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:63
+#, php-format
+msgid "Default: %s"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:70
+msgid "The text on buttons is chosen for you, black or white, whichever reads best on the accent. A colour that reads poorly on white (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it."
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php:24
+msgid "Shape and Font"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:79
+msgid "Rounded corners"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:85
+#, php-format
+msgid "Of the fields and buttons; 0 makes them square. Default: %1$d px, up to %2$d."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:91
+msgid "Form width"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:97
+#, php-format
+msgid "The widest a form or verification card grows; its fields are 150 px narrower. On a narrower screen it fills the space it has. Default: %1$d px, from %2$d to %3$d."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:106
+msgid "The site theme's"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:107
+msgid "The system font, as in the admin screens"
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php:18
+msgid "Settings → Public Design sets the look of every screen visitors see: forms, certificate verification, the CSV download, geofenced content, scheduling, audiences, the user dashboard and recruitment. It is off by default, and the screens keep the plugin's own look until it is switched on."
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php:21
+msgid "The accent of buttons, links and the focus outline, the field borders, hints and secondary text, and errors. The text on buttons is chosen automatically, black or white, whichever reads best on the accent. A colour that reads poorly on white (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it."
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php:22
+msgid "The colours apply to the light theme only. With Dark Mode on, the plugin keeps its own dark palette, because a colour chosen for a white page is often unreadable on a dark one."
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php:25
+msgid "The corner radius of fields and buttons (0 makes them square), the widest a form or verification card grows (its fields are 150 px narrower), and either the site theme's font or the system font of the admin screens. These apply in both themes."
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php:27
+msgid "Cached pages"
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php:28
+msgid "The design is part of the page, so a page cache keeps the old look until it is purged. After changing it, purge the cache of the pages with forms."
+msgstr ""
+
+#: includes/admin/class-ffc-settings-save-handler.php:486
+#, php-format
+msgid "%1$s (%2$s:1, at least %3$s:1)"
+msgstr ""
+
+#: includes/admin/class-ffc-settings-save-handler.php:494
+#, php-format
+msgid "The design was saved, but some colours are hard to read: %s"
+msgstr ""

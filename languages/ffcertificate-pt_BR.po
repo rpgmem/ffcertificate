@@ -25096,3 +25096,132 @@ msgstr "Mostra o conteúdo entre as tags apenas ao visitante dentro de uma janel
 
 msgid "The same building blocks protect page content: the [ffc_geofence] shortcode uses these locations, fallbacks and the administrator bypass."
 msgstr "Os mesmos recursos protegem conteúdo de páginas: o shortcode [ffc_geofence] usa estes locais, os fallbacks e o bypass de administrador."
+
+#: includes/core/class-ffc-public-design.php:248
+msgid "links on white"
+msgstr "links sobre o branco"
+
+#: includes/core/class-ffc-public-design.php:249
+msgid "hints on white"
+msgstr "dicas sobre o branco"
+
+#: includes/core/class-ffc-public-design.php:250
+msgid "errors on white"
+msgstr "erros sobre o branco"
+
+#: includes/core/class-ffc-public-design.php:251
+msgid "field borders on white"
+msgstr "bordas dos campos sobre o branco"
+
+#: includes/settings/views/documentation/config-public-design.php:17
+msgid "Public Design"
+msgstr "Design Público"
+
+#: includes/settings/tabs/class-ffc-tab-public-design.php:62
+msgid "Public Design settings view file not found."
+msgstr "Arquivo de visualização das configurações de Design Público não encontrado."
+
+#: includes/settings/views/ffc-tab-public-design.php:18
+msgid "Accent (buttons, links and focus)"
+msgstr "Destaque (botões, links e foco)"
+
+#: includes/settings/views/ffc-tab-public-design.php:19
+msgid "Field borders"
+msgstr "Bordas dos campos"
+
+#: includes/settings/views/ffc-tab-public-design.php:20
+msgid "Hints and secondary text"
+msgstr "Dicas e texto secundário"
+
+#: includes/settings/views/ffc-tab-public-design.php:21
+msgid "Errors"
+msgstr "Erros"
+
+#: includes/settings/views/ffc-tab-public-design.php:34
+msgid "The look of every screen visitors see: forms, certificate verification, scheduling, audiences, the user dashboard and recruitment. The colours apply to the light theme; in dark mode the plugin keeps its own dark palette, whose contrast is already checked."
+msgstr "A aparência de todas as telas que os visitantes veem: formulários, verificação de certificados, agendamento, públicos, o painel do usuário e o recrutamento. As cores valem para o tema claro; no modo escuro o plugin mantém a própria paleta escura, cujo contraste já é verificado."
+
+#: includes/settings/views/ffc-tab-public-design.php:40
+msgid "Customise"
+msgstr "Personalizar"
+
+#: includes/settings/views/ffc-tab-public-design.php:48
+msgid "Use the colours, corners, width and font below"
+msgstr "Usar as cores, os cantos, a largura e a fonte abaixo"
+
+#: includes/settings/views/ffc-tab-public-design.php:53
+msgid "Off, the screens keep the plugin's own look and the values below are not used. Saving with it off puts them back to their defaults."
+msgstr "Desligado, as telas mantêm a aparência do próprio plugin e os valores abaixo não são usados. Salvar com ele desligado devolve os valores aos padrões."
+
+#: includes/settings/views/ffc-tab-public-design.php:63
+#, php-format
+msgid "Default: %s"
+msgstr "Padrão: %s"
+
+#: includes/settings/views/ffc-tab-public-design.php:70
+msgid "The text on buttons is chosen for you, black or white, whichever reads best on the accent. A colour that reads poorly on white (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it."
+msgstr "O texto dos botões é escolhido automaticamente, preto ou branco, o que for mais legível sobre o destaque. Uma cor pouco legível sobre o branco (abaixo de 4,5:1 para texto e 3:1 para bordas, como pede a WCAG) é salva mesmo assim, com um aviso que a nomeia."
+
+#: includes/settings/views/documentation/config-public-design.php:24
+msgid "Shape and Font"
+msgstr "Forma e Fonte"
+
+#: includes/settings/views/ffc-tab-public-design.php:79
+msgid "Rounded corners"
+msgstr "Cantos arredondados"
+
+#: includes/settings/views/ffc-tab-public-design.php:85
+#, php-format
+msgid "Of the fields and buttons; 0 makes them square. Default: %1$d px, up to %2$d."
+msgstr "Dos campos e botões; 0 os deixa retos. Padrão: %1$d px, até %2$d."
+
+#: includes/settings/views/ffc-tab-public-design.php:91
+msgid "Form width"
+msgstr "Largura do formulário"
+
+#: includes/settings/views/ffc-tab-public-design.php:97
+#, php-format
+msgid "The widest a form or verification card grows; its fields are 150 px narrower. On a narrower screen it fills the space it has. Default: %1$d px, from %2$d to %3$d."
+msgstr "A largura máxima de um cartão de formulário ou de verificação; os campos ficam 150 px mais estreitos. Em uma tela mais estreita, ele ocupa o espaço disponível. Padrão: %1$d px, de %2$d a %3$d."
+
+#: includes/settings/views/ffc-tab-public-design.php:106
+msgid "The site theme's"
+msgstr "A do tema do site"
+
+#: includes/settings/views/ffc-tab-public-design.php:107
+msgid "The system font, as in the admin screens"
+msgstr "A fonte do sistema, como nas telas do painel"
+
+#: includes/settings/views/documentation/config-public-design.php:18
+msgid "Settings → Public Design sets the look of every screen visitors see: forms, certificate verification, the CSV download, geofenced content, scheduling, audiences, the user dashboard and recruitment. It is off by default, and the screens keep the plugin's own look until it is switched on."
+msgstr "Configurações → Design Público define a aparência de todas as telas que os visitantes veem: formulários, verificação de certificados, o download de CSV, conteúdo com geolocalização, agendamento, públicos, o painel do usuário e o recrutamento. Vem desligado, e as telas mantêm a aparência do próprio plugin até que seja ligado."
+
+#: includes/settings/views/documentation/config-public-design.php:21
+msgid "The accent of buttons, links and the focus outline, the field borders, hints and secondary text, and errors. The text on buttons is chosen automatically, black or white, whichever reads best on the accent. A colour that reads poorly on white (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it."
+msgstr "O destaque de botões, links e do contorno de foco, as bordas dos campos, as dicas e o texto secundário, e os erros. O texto dos botões é escolhido automaticamente, preto ou branco, o que for mais legível sobre o destaque. Uma cor pouco legível sobre o branco (abaixo de 4,5:1 para texto e 3:1 para bordas, como pede a WCAG) é salva mesmo assim, com um aviso que a nomeia."
+
+#: includes/settings/views/documentation/config-public-design.php:22
+msgid "The colours apply to the light theme only. With Dark Mode on, the plugin keeps its own dark palette, because a colour chosen for a white page is often unreadable on a dark one."
+msgstr "As cores valem só para o tema claro. Com o Modo Escuro ligado, o plugin mantém a própria paleta escura, porque uma cor escolhida para uma página branca costuma ficar ilegível numa escura."
+
+#: includes/settings/views/documentation/config-public-design.php:25
+msgid "The corner radius of fields and buttons (0 makes them square), the widest a form or verification card grows (its fields are 150 px narrower), and either the site theme's font or the system font of the admin screens. These apply in both themes."
+msgstr "O raio dos cantos de campos e botões (0 os deixa retos), a largura máxima de um cartão de formulário ou de verificação (os campos ficam 150 px mais estreitos) e a fonte do tema do site ou a fonte do sistema das telas do painel. Esses valem nos dois temas."
+
+#: includes/settings/views/documentation/config-public-design.php:27
+msgid "Cached pages"
+msgstr "Páginas em cache"
+
+#: includes/settings/views/documentation/config-public-design.php:28
+msgid "The design is part of the page, so a page cache keeps the old look until it is purged. After changing it, purge the cache of the pages with forms."
+msgstr "O design faz parte da página, então um cache de página mantém a aparência antiga até ser limpo. Depois de alterá-lo, limpe o cache das páginas com formulários."
+
+#: includes/admin/class-ffc-settings-save-handler.php:486
+#, php-format
+msgid "%1$s (%2$s:1, at least %3$s:1)"
+msgstr "%1$s (%2$s:1, pelo menos %3$s:1)"
+
+#: includes/admin/class-ffc-settings-save-handler.php:494
+#, php-format
+msgid "The design was saved, but some colours are hard to read: %s"
+msgstr "O design foi salvo, mas algumas cores são difíceis de ler: %s"
