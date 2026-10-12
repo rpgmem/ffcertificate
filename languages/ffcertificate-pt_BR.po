@@ -21980,8 +21980,29 @@ msgstr "Os números desta conta compartilham um endereço e não são variantes 
 msgid "That value is already stored against records this cannot attribute to one other account — either they belong to nobody, or to more than one. Correcting into it would leave a claim on the number that no finding on this screen would ever report."
 msgstr "Esse valor já está armazenado em registros que isto não consegue atribuir a uma única outra conta — ou não pertencem a ninguém, ou pertencem a mais de uma. Corrigir para ele deixaria uma reivindicação sobre o número que nenhum achado desta tela reportaria."
 
-msgid "Both identifiers are recorded in %s, which holds each identifier once, so writing the corrected value there would leave two records claiming one. Decide what becomes of the second record first."
-msgstr "Os dois identificadores estão registrados em %s, que guarda cada identificador uma única vez, então gravar o valor corrigido lá deixaria dois registros reivindicando um. Decida antes o que acontece com o segundo registro."
+msgid "Both identifiers are recorded in %s, on candidacies of different accounts, and that store holds each identifier once. Decide the merge under \"Two accounts, one number\" first."
+msgstr "Os dois identificadores estão registrados em %s, em candidaturas de contas diferentes, e esse depósito guarda cada identificador uma única vez. Decida antes a fusão em \"Duas contas, um número\"."
+
+msgid "The two candidacies belong to different accounts, so folding one into the other would merge two people. Decide the merge under \"Two accounts, one number\" first."
+msgstr "As duas candidaturas pertencem a contas diferentes, então juntar uma à outra fundiria duas pessoas. Decida antes a fusão em \"Duas contas, um número\"."
+
+msgid "The two candidacies do not record the same PCD condition, and PCD belongs to the candidacy: merging them would change the condition one of the classifications competes under. Correct the candidacy first."
+msgstr "As duas candidaturas não registram a mesma condição de PCD, e PCD pertence à candidatura: juntá-las mudaria a condição sob a qual uma das classificações concorre. Corrija a candidatura antes."
+
+msgid "The two candidacies carry different values for the other identifier, so they disagree about who this is. Resolve that finding first."
+msgstr "As duas candidaturas têm valores diferentes no outro identificador, então discordam sobre quem é esta pessoa. Resolva esse achado antes."
+
+msgid "Both candidacies are classified on notice %1$s for the same adjutancy and list (%2$s) with different standings, or one of them was already called, and one person holds one standing there. Merging would mean deleting one of the two classifications, which is HR's decision, not a correction. Nothing was changed."
+msgstr "As duas candidaturas estão classificadas no edital %1$s para a mesma função e lista (%2$s) com posições diferentes, ou uma delas já foi convocada, e uma pessoa ocupa uma única posição ali. Juntá-las significaria excluir uma das duas classificações, o que é decisão do RH, não uma correção. Nada foi alterado."
+
+msgid "The two candidacies' classifications changed since the check and no longer agree. Nothing was changed; reload the queue."
+msgstr "As classificações das duas candidaturas mudaram desde a verificação e não coincidem mais. Nada foi alterado; recarregue a fila."
+
+msgid "The candidacies to merge could not be found. Reload the queue."
+msgstr "As candidaturas a juntar não foram encontradas. Recarregue a fila."
+
+msgid "fold the mistyped number into the account's sound one. When the same person has a recruitment candidacy under each number, the two candidacies become one: the classifications move unchanged and the emptied candidacy is deleted. Where both hold an identical, never-called classification on the same notice, adjutancy and list, the copy is dropped. It is refused when such a pair differs or was called, or the two record a different PCD condition — those are decisions for HR."
+msgstr "junta o número digitado errado ao número íntegro da conta. Quando a mesma pessoa tem uma candidatura de recrutamento em cada número, as duas viram uma: as classificações são movidas sem alteração e a candidatura esvaziada é excluída. Quando as duas têm uma classificação idêntica e nunca convocada no mesmo edital, função e lista, a cópia é descartada. É recusado quando esse par difere ou já foi convocado, ou quando registram condição de PCD diferente — essas são decisões do RH."
 
 msgid "The value you confirmed already belongs to account %s. Correcting this one is not a merge and moves no records — but afterwards both accounts carry the number, and this correction cannot be undone here, because putting the old value back means confirming a number that fails its own check digit. Confirm that you mean to, and then decide the merge under \"Two accounts, one number\"."
 msgstr "O valor que você confirmou já pertence à conta %s. Corrigir esta não é uma mesclagem e não move registro nenhum — mas depois as duas contas passam a ter o número, e esta correção não pode ser desfeita aqui, porque gravar o valor antigo de volta significa confirmar um número que falha no próprio dígito verificador. Confirme que é essa a sua intenção e depois decida a mesclagem em \"Duas contas, um número\"."
@@ -22039,6 +22060,9 @@ msgstr "O RF tem mais dígitos do que um RF pode ter — verifique se há um val
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:199
 msgid "CPF is not valid — its check digits do not match. Confirm the number in the source spreadsheet."
 msgstr "O CPF não é válido — os dígitos verificadores não conferem. Confirme o número na planilha de origem."
+
+msgid "RF is not valid — its check digit does not match, and the RF check digit setting is on. Confirm the number in the source spreadsheet."
+msgstr "O RF não é válido — o dígito verificador não confere, e a validação do dígito do RF está ativada. Confirme o número na planilha de origem."
 
 #. translators: %s: the identifier both accounts hold, e.g. RF.
 #: includes/maintenance/class-ffc-identity-merge.php:303
@@ -23063,8 +23087,8 @@ msgstr "Cores do editor HTML do certificado na tela do formulário: Automático 
 msgid "Off by default. When switched on, the daily cleanup permanently deletes published submissions older than the \"Delete after (days)\" window (default 365)."
 msgstr "Desativado por padrão. Quando ativado, a limpeza diária exclui permanentemente os envios publicados mais antigos que a janela \"Excluir após (dias)\" (padrão 365)."
 
-msgid "Off by default. When on, forms reject an RF whose check digit does not match. Before turning it on, run the identity audit on the Data Migrations tab to see how many stored RFs would fail."
-msgstr "Desativado por padrão. Quando ativado, os formulários recusam um RF cujo dígito verificador não confere. Antes de ativá-lo, execute a auditoria de identidades na aba Migrações de Dados para ver quantos RFs armazenados seriam recusados."
+msgid "Off by default. When on, forms and the recruitment CSV import reject an RF whose check digit does not match. Before turning it on, run the identity audit on the Data Migrations tab to see how many stored RFs would fail."
+msgstr "Desativado por padrão. Quando ativado, os formulários e a importação CSV do recrutamento recusam um RF cujo dígito verificador não confere. Antes de ativá-lo, execute a auditoria de identidades na aba Migrações de Dados para ver quantos RFs armazenados seriam recusados."
 
 msgid "Branding logos"
 msgstr "Logotipos de branding"
