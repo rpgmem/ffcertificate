@@ -154,9 +154,9 @@ class Frontend {
 			$this->enqueue_geofence_content_assets( $has_base_assets );
 		}
 
-		if ( $has_base_assets ) {
-			$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
+		if ( $has_base_assets ) {
 			// Dark mode script (loaded early to prevent flash).
 			\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
@@ -221,8 +221,6 @@ class Frontend {
 		}
 
 		if ( $has_form || $has_verification ) {
-			$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-
 			// PDF Libraries - Using centralized version constants.
 			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
 			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', array(), FFC_JSPDF_VERSION, true );
@@ -377,8 +375,6 @@ class Frontend {
 		}
 
 		if ( $has_csv_download ) {
-			$s = $s ?? \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-
 			wp_enqueue_script(
 				'ffc-csv-download',
 				FFC_PLUGIN_URL . "assets/js/ffc-csv-download{$s}.js",
