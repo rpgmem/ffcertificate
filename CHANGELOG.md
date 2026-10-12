@@ -9,7 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **The plugin has an icon on Dashboard → Updates and in the plugin list** (#1712). A certificate with a seal, white on blue, replaces WordPress's grey placeholder, read from the installed copy. `assets/img/brand/` also ships black, white, dark-screen and no-background variants.
+- **The plugin has an icon on Dashboard → Updates and in the plugin list** (#1712). A certificate with a seal, white on blue, replaces WordPress's grey placeholder, read from the installed copy. `assets/img/brand/` also ships black, white, dark-screen and no-background variants, each as SVG and as 128 px and 256 px PNG.
 
 ## [6.38.0] (2026-10-12) — `529e80a1`
 
