@@ -80,6 +80,10 @@ class IdentityRepairTest extends TestCase {
 		$this->plain    = array();
 		$this->ciphers  = array();
 
+		$this->merge_check = true;
+		$this->merge_apply = array( 'classifications' => 2, 'duplicates' => 0 );
+		$this->merge_calls = array();
+
 		Functions\when( '__' )->returnArg( 1 );
 		Functions\when( 'esc_html__' )->returnArg( 1 );
 		Functions\when( 'do_action' )->justReturn( null );
@@ -199,7 +203,92 @@ class IdentityRepairTest extends TestCase {
 			protected function decrypt( string $cipher ): ?string {
 				return $this->test->plaintext_of( $cipher );
 			}
+
+			/**
+			 * The candidacy merge, steered by the case.
+			 *
+			 * @return \FreeFormCertificate\Maintenance\CandidacyMerge
+			 */
+			protected function candidacies(): \FreeFormCertificate\Maintenance\CandidacyMerge {
+				return $this->test->candidacy_merge();
+			}
 		};
+	}
+
+	/**
+	 * What the candidacy merge answers to `check()`.
+	 *
+	 * @var bool|\WP_Error
+	 */
+	private $merge_check = true;
+
+	/**
+	 * What the candidacy merge answers to `apply()`.
+	 *
+	 * @var array<string, int>|\WP_Error
+	 */
+	private $merge_apply = array( 'classifications' => 2, 'duplicates' => 0 );
+
+	/**
+	 * Calls that reached the candidacy merge, as `method => [from, into]`.
+	 *
+	 * @var array<int, array{0: string, 1: int, 2: int}>
+	 */
+	public array $merge_calls = array();
+
+	/**
+	 * A candidacy merge that records its calls and answers as told.
+	 *
+	 * @return \FreeFormCertificate\Maintenance\CandidacyMerge
+	 */
+	public function candidacy_merge(): \FreeFormCertificate\Maintenance\CandidacyMerge {
+		$test = $this;
+
+		return new class( $test ) extends \FreeFormCertificate\Maintenance\CandidacyMerge {
+
+			/** @var IdentityRepairTest */
+			private $test;
+
+			/**
+			 * @param IdentityRepairTest $test The case.
+			 */
+			public function __construct( $test ) {
+				$this->test = $test;
+			}
+
+			/**
+			 * @param int    $from  Candidacy that goes.
+			 * @param int    $into  Candidacy that stays.
+			 * @param string $field Identifier.
+			 * @return bool|\WP_Error
+			 */
+			public function check( int $from, int $into, string $field ): bool|\WP_Error {
+				return $this->test->merge_answer( 'check', $from, $into );
+			}
+
+			/**
+			 * @param int $from Candidacy that goes.
+			 * @param int $into Candidacy that stays.
+			 * @return array<string, int>|\WP_Error
+			 */
+			public function apply( int $from, int $into ): array|\WP_Error {
+				return $this->test->merge_answer( 'apply', $from, $into );
+			}
+		};
+	}
+
+	/**
+	 * Record a merge call and answer it.
+	 *
+	 * @param string $method `check` or `apply`.
+	 * @param int    $from   Candidacy that goes.
+	 * @param int    $into   Candidacy that stays.
+	 * @return mixed
+	 */
+	public function merge_answer( string $method, int $from, int $into ) {
+		$this->merge_calls[] = array( $method, $from, $into );
+
+		return 'check' === $method ? $this->merge_check : $this->merge_apply;
 	}
 
 	/**
@@ -581,13 +670,48 @@ class IdentityRepairTest extends TestCase {
 	}
 
 	/**
-	 * `ffc_recruitment_candidate` holds each RF once (`UNIQUE KEY uq_rf_hash`),
-	 * so a consolidation with both identifiers recorded there would leave two
-	 * rows claiming one. The database would refuse it as a duplicate key,
-	 * which says nothing an operator can act on -- so this refuses first, and
-	 * says what is in the way.
+	 * ONE PERSON IMPORTED TWICE UNDER TWO NUMBERS IS FOLDED, NOT REFUSED.
+	 *
+	 * `ffc_recruitment_candidate` holds each identifier once, so where both
+	 * candidacies are this account's the mistyped one cannot be rewritten --
+	 * it would collide with the sound one. This refused with a sentence asking
+	 * the operator to decide what became of the second candidacy, which no
+	 * screen could do, so the finding never left the queue. Now the mistyped
+	 * candidacy is folded into the sound one, and never rewritten first.
 	 */
-	public function test_it_refuses_a_consolidation_the_unique_store_cannot_hold(): void {
+	public function test_a_same_account_candidacy_pair_is_folded_into_one(): void {
+		$this->given( 'ffc_recruitment_candidate', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 7, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_recruitment_candidate',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 398 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertIsArray( $result );
+		$this->assertSame(
+			array( array( 'check', 1, 5 ), array( 'apply', 1, 5 ) ),
+			$this->merge_calls,
+			'The mistyped candidacy goes into the sound one, checked before it is applied.'
+		);
+		$this->assertSame(
+			array( 'wp_ffc_submissions' ),
+			array_column( $this->updates, 'table' ),
+			'The mistyped candidacy is folded, never rewritten: rewriting it first would collide with the one it joins.'
+		);
+		$this->assertSame( 1, $result['rows']['wp_ffc_recruitment_candidate'] );
+		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $this->control );
+	}
+
+	/**
+	 * A merge that is a decision rather than a correction is refused, and
+	 * the refusal arrives before anything is written.
+	 */
+	public function test_a_candidacy_merge_the_check_refuses_writes_nothing(): void {
+		$this->merge_check = new \WP_Error( 'ffc_identity_candidacy_overlap', 'overlap' );
+
 		$this->given( 'ffc_recruitment_candidate', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
 		$this->given(
 			'ffc_recruitment_candidate',
@@ -598,8 +722,31 @@ class IdentityRepairTest extends TestCase {
 		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'ffc_identity_repair_unique_store', $result->get_error_code() );
-		$this->assertSame( array(), $this->updates, 'Nothing may be written before the store refuses.' );
+		$this->assertSame( 'ffc_identity_candidacy_overlap', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates, 'Nothing may be written before the merge refuses.' );
+		$this->assertSame( array(), $this->control, 'No transaction may even open.' );
+		$this->assertSame( array( array( 'check', 1, 5 ) ), $this->merge_calls );
+	}
+
+	/**
+	 * A merge that fails mid-write takes every other store's rewrite with it.
+	 */
+	public function test_a_failed_candidacy_merge_rolls_the_whole_repair_back(): void {
+		$this->merge_apply = new \WP_Error( 'ffc_identity_repair_failed', 'refused' );
+
+		$this->given( 'ffc_recruitment_candidate', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 7, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_recruitment_candidate',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 398 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_failed', $result->get_error_code() );
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $this->control );
 	}
 
 	/**
