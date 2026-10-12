@@ -345,4 +345,289 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Deadline', $html );
 		$this->assertStringContainsString( '2025-09-15', $html );
 	}
+
+	// ==================================================================
+	// render_input() — one branch per field type
+	// ==================================================================
+
+	/**
+	 * Makes selected()/checked() behave like WordPress so the chosen option
+	 * is observable in the markup.
+	 */
+	private function stubRealSelectedAndChecked(): void {
+		$helper = static function ( $current, $value, $echo, string $attr ): string {
+			$out = (string) $current === (string) $value ? " {$attr}='{$attr}'" : '';
+			if ( $echo ) {
+				echo $out;
+			}
+			return $out;
+		};
+		Functions\when( 'selected' )->alias(
+			static fn ( $current, $value = true, $echo = true ) => $helper( $current, $value, $echo, 'selected' )
+		);
+		Functions\when( 'checked' )->alias(
+			static fn ( $current, $value = true, $echo = true ) => $helper( $current, $value, $echo, 'checked' )
+		);
+		Functions\when( 'esc_textarea' )->alias( static fn ( $text ) => htmlspecialchars( (string) $text, ENT_QUOTES ) );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+	}
+
+	/**
+	 * @param array<string, mixed> $rules
+	 */
+	private function renderInput( object $field, $value, bool $required = false, array $rules = array() ): string {
+		ob_start();
+		ReregistrationFormRenderer::render_input( $field, 'fid', 'fields[' . $field->field_key . ']', $value, $required, $rules );
+		return (string) ob_get_clean();
+	}
+
+	public function test_render_input_textarea_escapes_its_value_and_marks_required(): void {
+		$this->stubRealSelectedAndChecked();
+		$html = $this->renderInput( $this->makeField( array( 'field_key' => 'notes', 'field_type' => 'textarea' ) ), '<b>x</b>', true );
+
+		$this->assertSame( '<textarea id="fid" name="fields[notes]" rows="3" required>&lt;b&gt;x&lt;/b&gt;</textarea>', $html );
+	}
+
+	public function test_render_input_textarea_drops_a_non_scalar_value(): void {
+		$this->stubRealSelectedAndChecked();
+		$html = $this->renderInput( $this->makeField( array( 'field_key' => 'notes', 'field_type' => 'textarea' ) ), array( 'x' ) );
+
+		$this->assertSame( '<textarea id="fid" name="fields[notes]" rows="3"></textarea>', $html );
+	}
+
+	public function test_render_input_select_lists_choices_and_selects_the_value(): void {
+		$this->stubRealSelectedAndChecked();
+		$field = $this->makeField( array( 'field_key' => 'shift', 'field_type' => 'select' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' )
+			->shouldReceive( 'get_field_choices' )->with( $field )->andReturn( array( 'Morning', 'Evening' ) );
+
+		$html = $this->renderInput( $field, 'Evening', true );
+
+		$this->assertStringContainsString( '<select id="fid" name="fields[shift]" required>', $html );
+		$this->assertStringContainsString( '<option value="">Select</option>', $html );
+		$this->assertStringContainsString( '<option value="Morning" >Morning</option>', $html );
+		$this->assertStringContainsString( "<option value=\"Evening\"  selected='selected'>Evening</option>", $html );
+		$this->assertStringEndsWith( '</select>', $html );
+	}
+
+	public function test_render_input_checkbox_is_checked_for_one_and_flags_required(): void {
+		$this->stubRealSelectedAndChecked();
+		$field = $this->makeField( array( 'field_key' => 'agree', 'field_type' => 'checkbox', 'field_label' => 'I agree' ) );
+
+		$checked   = $this->renderInput( $field, '1', true );
+		$unchecked = $this->renderInput( $field, '0', false );
+
+		$this->assertStringContainsString( "checked='checked'", $checked );
+		$this->assertStringContainsString( 'I agree <span class="ffc-required">*</span>', $checked );
+		$this->assertStringNotContainsString( 'checked=', $unchecked );
+		$this->assertStringNotContainsString( 'ffc-required', $unchecked );
+	}
+
+	public function test_render_input_number_carries_the_field_mask(): void {
+		$this->stubRealSelectedAndChecked();
+		$field = $this->makeField( array( 'field_key' => 'age', 'field_type' => 'number', 'field_mask' => '000' ) );
+
+		$this->assertSame(
+			'<input type="number" id="fid" name="fields[age]" value="42" data-mask="000">',
+			$this->renderInput( $field, 42 )
+		);
+	}
+
+	public function test_render_input_date_ignores_masks(): void {
+		$this->stubRealSelectedAndChecked();
+		$field = $this->makeField( array( 'field_key' => 'born', 'field_type' => 'date', 'field_mask' => '00/00' ) );
+
+		$this->assertSame(
+			'<input type="date" id="fid" name="fields[born]" value="2000-01-02" required>',
+			$this->renderInput( $field, '2000-01-02', true )
+		);
+	}
+
+	public function test_render_input_text_takes_the_mask_from_the_format_rule(): void {
+		$this->stubRealSelectedAndChecked();
+		$field = $this->makeField( array( 'field_key' => 'cpf', 'field_type' => 'text' ) );
+
+		$this->assertSame(
+			'<input type="text" id="fid" name="fields[cpf]" value="" data-mask="cpf">',
+			$this->renderInput( $field, null, false, array( 'format' => 'cpf' ) )
+		);
+	}
+
+	public function test_render_input_unknown_type_falls_back_to_text(): void {
+		$this->stubRealSelectedAndChecked();
+		$field = $this->makeField( array( 'field_key' => 'misc', 'field_type' => 'color' ) );
+
+		$this->assertSame( '<input type="text" id="fid" name="fields[misc]" value="v">', $this->renderInput( $field, 'v' ) );
+	}
+
+	public function test_render_input_dependent_select_restores_parent_and_child(): void {
+		$this->stubRealSelectedAndChecked();
+		$field = $this->makeField( array(
+			'field_key'     => 'unit',
+			'field_type'    => 'dependent_select',
+			'field_options' => json_encode( array( 'parent_label' => 'Region', 'child_label' => 'School' ) ),
+		) );
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' )
+			->shouldReceive( 'get_dependent_choices' )->with( $field )
+			->andReturn( array( 'North' => array( 'N1', 'N2' ), 'South' => array( 'S1' ) ) );
+
+		$html = $this->renderInput( $field, json_encode( array( 'parent' => 'North', 'child' => 'N2' ) ) );
+
+		$this->assertStringContainsString( '<label>Region</label>', $html );
+		$this->assertStringContainsString( '<label>School</label>', $html );
+		$this->assertStringContainsString( "<option value=\"North\"  selected='selected'>North</option>", $html );
+		$this->assertStringContainsString( "<option value=\"N2\"  selected='selected'>N2</option>", $html );
+		$this->assertStringNotContainsString( 'value="S1"', $html, 'Only the chosen parent\'s children are listed.' );
+	}
+
+	public function test_render_input_dependent_select_without_value_uses_default_labels(): void {
+		$this->stubRealSelectedAndChecked();
+		$field = $this->makeField( array( 'field_key' => 'unit', 'field_type' => 'dependent_select' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' )
+			->shouldReceive( 'get_dependent_choices' )->andReturn( array( 'North' => array( 'N1' ) ) );
+
+		$html = $this->renderInput( $field, '' );
+
+		$this->assertStringContainsString( '<label>Category</label>', $html );
+		$this->assertStringContainsString( '<label>Subcategory</label>', $html );
+		$this->assertStringNotContainsString( 'value="N1"', $html, 'No parent chosen, so no child is listed.' );
+	}
+
+	public function test_render_input_working_hours_renders_stored_rows(): void {
+		$this->stubRealSelectedAndChecked();
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
+			->shouldNotReceive( 'get_default_working_hours' );
+		$field = $this->makeField( array( 'field_key' => 'hours', 'field_type' => 'working_hours' ) );
+		$rows  = array( array( 'day' => 3, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00' ) );
+
+		$html = $this->renderInput( $field, json_encode( $rows ) );
+
+		$this->assertSame( 1, substr_count( $html, '<tr>' ) - 1, 'One stored row plus the header row.' );
+		$this->assertStringContainsString( "<option value=\"3\"  selected='selected'>Wednesday</option>", $html );
+		$this->assertStringContainsString( 'value="13:00"', $html );
+	}
+
+	public function test_render_input_working_hours_falls_back_to_the_default_schedule(): void {
+		$this->stubRealSelectedAndChecked();
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
+			->shouldReceive( 'get_default_working_hours' )->once()
+			->andReturn( array( array( 'day' => 1, 'entry1' => '09:00', 'exit1' => '', 'entry2' => '', 'exit2' => '18:00' ) ) );
+		$field = $this->makeField( array( 'field_key' => 'hours', 'field_type' => 'working_hours' ) );
+
+		$html = $this->renderInput( $field, '[]' );
+
+		$this->assertStringContainsString( 'value="09:00"', $html );
+		$this->assertStringContainsString( "<option value=\"1\"  selected='selected'>Monday</option>", $html );
+	}
+
+	// ==================================================================
+	// render_field() / render_group_fieldset() / acknowledgment fallback
+	// ==================================================================
+
+	public function test_render_field_acknowledgment_without_html_uses_the_default_notice(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
+			->shouldReceive( 'get_default_acknowledgment_html' )->once()->andReturn( '<p>Shipped notice</p>' );
+		$field = $this->makeField( array(
+			'field_key'     => 'ack',
+			'field_type'    => 'acknowledgment',
+			'field_options' => json_encode( array( 'html' => '' ) ),
+		) );
+
+		ob_start();
+		ReregistrationFormRenderer::render_field( $field, '' );
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( '<div class="ffc-rereg-termo-text"><p>Shipped notice</p></div>', $html );
+	}
+
+	public function test_render_field_checkbox_uses_the_inline_wrapper(): void {
+		$this->stubRealSelectedAndChecked();
+		$field = $this->makeField( array(
+			'id'               => 9,
+			'field_key'        => 'agree',
+			'field_type'       => 'checkbox',
+			'field_label'      => 'I agree',
+			'validation_rules' => json_encode( array( 'format' => 'ignored' ) ),
+		) );
+
+		ob_start();
+		ReregistrationFormRenderer::render_field( $field, '1' );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'data-field-key="agree"', $html );
+		$this->assertStringContainsString( 'id="ffc_rereg_field_9"', $html );
+		$this->assertStringContainsString( "checked='checked'", $html );
+		$this->assertStringNotContainsString( '<label for=', $html, 'A checkbox carries its label inline, not above.' );
+	}
+
+	public function test_render_group_fieldset_prints_nothing_for_an_empty_group(): void {
+		ob_start();
+		ReregistrationFormRenderer::render_group_fieldset( 1, 'Personal', array(), array() );
+		$this->assertSame( '', ob_get_clean() );
+	}
+
+	public function test_render_acknowledgment_fieldset_prints_the_default_notice(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' )
+			->shouldReceive( 'get_default_acknowledgment_html' )->andReturn( '<p>Shipped notice</p>' );
+
+		ob_start();
+		ReregistrationFormRenderer::render_acknowledgment_fieldset( 4 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<legend>4. Acknowledgment</legend>', $html );
+		$this->assertStringContainsString( '<p>Shipped notice</p>', $html );
+	}
+
+	// ==================================================================
+	// build_field_values() — resolution order
+	// ==================================================================
+
+	public function test_build_field_values_follows_draft_profile_email_default_order(): void {
+		$user_manager = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' );
+		$user_manager->shouldReceive( 'get_extended_profile' )
+			->once()
+			->with( 10, array( 'phone', 'cpf', 'empty_key' ), array( 'cpf' ) )
+			->andReturn( array( 'phone' => '1188887777', 'cpf' => '529.982.247-25', 'empty_key' => '' ) );
+
+		$fields = array(
+			$this->makeField( array( 'id' => 1, 'field_key' => 'name' ) ),
+			$this->makeField( array( 'id' => 2, 'field_key' => 'phone', 'field_profile_key' => 'phone' ) ),
+			$this->makeField( array( 'id' => 3, 'field_key' => 'cpf', 'field_profile_key' => 'cpf', 'is_sensitive' => 1 ) ),
+			$this->makeField( array( 'id' => 4, 'field_key' => 'email_institucional' ) ),
+			$this->makeField( array( 'id' => 5, 'field_key' => 'blank', 'field_profile_key' => 'empty_key', 'field_options' => array( 'default' => 'fallback' ) ) ),
+			$this->makeField( array( 'id' => 6, 'field_key' => 'nothing' ) ),
+		);
+		$user   = (object) array( 'user_email' => 'teacher@example.org' );
+
+		$method = new \ReflectionMethod( ReregistrationFormRenderer::class, 'build_field_values' );
+		$method->setAccessible( true );
+		$values = $method->invoke( null, $fields, array( 'name' => 'From draft' ), 10, $user );
+
+		$this->assertSame(
+			array(
+				'name'                => 'From draft',
+				'phone'               => '1188887777',
+				'cpf'                 => '529.982.247-25',
+				'email_institucional' => 'teacher@example.org',
+				'blank'               => 'fallback',
+				'nothing'             => '',
+			),
+			$values
+		);
+	}
+
+	public function test_build_field_values_skips_the_profile_for_a_guest(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
+			->shouldNotReceive( 'get_extended_profile' );
+
+		$fields = array(
+			$this->makeField( array( 'id' => 1, 'field_key' => 'email_institucional' ) ),
+		);
+
+		$method = new \ReflectionMethod( ReregistrationFormRenderer::class, 'build_field_values' );
+		$method->setAccessible( true );
+		$values = $method->invoke( null, $fields, array(), 0, false );
+
+		$this->assertSame( array( 'email_institucional' => '' ), $values, 'No user, so no e-mail fallback either.' );
+	}
 }
