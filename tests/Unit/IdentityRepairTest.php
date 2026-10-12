@@ -81,7 +81,7 @@ class IdentityRepairTest extends TestCase {
 		$this->ciphers  = array();
 
 		$this->merge_check = true;
-		$this->merge_apply = array( 'classifications' => 2 );
+		$this->merge_apply = array( 'classifications' => 2, 'duplicates' => 0 );
 		$this->merge_calls = array();
 
 		Functions\when( '__' )->returnArg( 1 );
@@ -227,7 +227,7 @@ class IdentityRepairTest extends TestCase {
 	 *
 	 * @var array<string, int>|\WP_Error
 	 */
-	private $merge_apply = array( 'classifications' => 2 );
+	private $merge_apply = array( 'classifications' => 2, 'duplicates' => 0 );
 
 	/**
 	 * Calls that reached the candidacy merge, as `method => [from, into]`.

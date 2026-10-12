@@ -33,11 +33,11 @@ class CandidacyMergeTest extends TestCase {
 	private array $candidates = array();
 
 	/**
-	 * The overlapping classification `get_row` answers with, or null.
+	 * Colliding classification pairs the overlap query answers with.
 	 *
-	 * @var array<string, mixed>|null
+	 * @var array<int, array<string, mixed>>
 	 */
-	private ?array $overlap = null;
+	private array $overlaps = array();
 
 	/**
 	 * PCD condition per candidacy id; a missing id reads as unreadable.
@@ -75,7 +75,7 @@ class CandidacyMergeTest extends TestCase {
 		Monkey\setUp();
 
 		$this->candidates = array();
-		$this->overlap    = null;
+		$this->overlaps   = array();
 		$this->pcd        = array();
 		$this->writes     = array();
 		$this->refusing   = array();
@@ -93,15 +93,19 @@ class CandidacyMergeTest extends TestCase {
 			}
 		);
 
+		// Two statements reach `get_results`: the candidacy pair, which is
+		// `SELECT *`, and the overlap query, which names its columns.
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $prepared ) {
+				if ( 0 !== strpos( (string) $prepared['sql'], 'SELECT *' ) ) {
+					return $this->overlaps;
+				}
+
 				$ids = array( (int) $prepared['args'][1], (int) $prepared['args'][2] );
 
 				return array_values( array_intersect_key( $this->candidates, array_flip( $ids ) ) );
 			}
 		);
-
-		$wpdb->shouldReceive( 'get_row' )->andReturnUsing( fn() => $this->overlap );
 
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			fn( $prepared ) => $this->staging ? $prepared['args'][0] : null
@@ -218,22 +222,126 @@ class CandidacyMergeTest extends TestCase {
 	}
 
 	/**
-	 * Both classified on one notice, adjutancy and list: one standing per
-	 * person there, so merging would mean deleting one. Refused, naming it.
+	 * One colliding pair: the preliminary list promoted under the mistyped
+	 * number and the definitive list re-imported under the right one.
+	 *
+	 * @param array<string, mixed> $from Overrides for the merged side.
+	 * @param array<string, mixed> $into Overrides for the surviving side.
+	 * @param int                  $calls Calls on either side.
+	 * @return array<string, mixed>
 	 */
-	public function test_a_shared_notice_adjutancy_and_list_is_refused(): void {
-		$this->pair();
-		$this->overlap = array(
+	private function collision( array $from = array(), array $into = array(), int $calls = 0 ): array {
+		$side = array(
+			'rank'              => '72',
+			'score'             => '62.4600',
+			'time_points'       => '0.0000',
+			'hab_emebs'         => '0',
+			'status'            => 'empty',
+			'preview_status'    => 'empty',
+			'preview_reason_id' => null,
+		);
+		$row  = array(
+			'from_id'   => 31,
+			'into_id'   => 47,
 			'notice_id' => 12,
 			'list_type' => 'definitive',
 			'code'      => '6016.2026/0026032-4',
+			'calls'     => (string) $calls,
 		);
+
+		foreach ( array_merge( $side, $from ) as $key => $value ) {
+			$row[ 'from_' . $key ] = $value;
+		}
+
+		foreach ( array_merge( $side, $into ) as $key => $value ) {
+			$row[ 'into_' . $key ] = $value;
+		}
+
+		return $row;
+	}
+
+	/**
+	 * THE PRELIMINARY/DEFINITIVE DIVERGENCE: an identical, never-called pair
+	 * on one notice, adjutancy and list is a duplicate, and it merges.
+	 */
+	public function test_an_identical_never_called_pair_is_a_duplicate_and_merges(): void {
+		$this->pair();
+		$this->overlaps = array( $this->collision( array( 'score' => '62.46' ) ) );
+
+		$this->assertTrue(
+			$this->merge()->check( 1, 5, 'cpf' ),
+			'The score is compared as a number: 62.46 and 62.4600 are one score.'
+		);
+	}
+
+	/**
+	 * The duplicate leaves before the move, or the move would collide with
+	 * the survivor's own row on the unique key. The survivor's row is never
+	 * written.
+	 */
+	public function test_apply_drops_the_merged_side_s_duplicate_before_moving(): void {
+		$this->pair();
+		$this->overlaps = array( $this->collision() );
+
+		$result = $this->merge()->apply( 1, 5 );
+
+		$this->assertSame( array( 'classifications' => 2, 'duplicates' => 1 ), $result );
+		$this->assertSame(
+			array( 'delete', 'wp_ffc_recruitment_classification', array(), array( 'id' => 31 ) ),
+			$this->writes[0]
+		);
+		$this->assertSame( 'wp_ffc_recruitment_classification', $this->writes[1][1] );
+		$this->assertSame( array( 'candidate_id' => 5 ), $this->writes[1][2] );
+		$this->assertNotContains( array( 'id' => 47 ), array_column( $this->writes, 3 ), 'The survivor\'s classification is never touched.' );
+	}
+
+	/**
+	 * Every way a pair can differ refuses, naming the notice.
+	 *
+	 * @dataProvider differing_pairs
+	 * @param array<string, mixed> $from  Overrides for the merged side.
+	 * @param int                  $calls Calls on either side.
+	 */
+	public function test_a_pair_that_differs_or_was_called_is_refused( array $from, int $calls ): void {
+		$this->pair();
+		$this->overlaps = array( $this->collision( $from, array(), $calls ) );
 
 		$result = $this->merge()->check( 1, 5, 'cpf' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'ffc_identity_candidacy_overlap', $result->get_error_code() );
 		$this->assertStringContainsString( '6016.2026/0026032-4', $result->get_error_message() );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, mixed>, 1: int}>
+	 */
+	public static function differing_pairs(): array {
+		return array(
+			'rank'           => array( array( 'rank' => '73' ), 0 ),
+			'score'          => array( array( 'score' => '62.4700' ), 0 ),
+			'time points'    => array( array( 'time_points' => '1.0000' ), 0 ),
+			'EMEBS'          => array( array( 'hab_emebs' => '1' ), 0 ),
+			'status'         => array( array( 'status' => 'called' ), 0 ),
+			'preview status' => array( array( 'preview_status' => 'denied' ), 0 ),
+			'reason'         => array( array( 'preview_reason_id' => '4' ), 0 ),
+			'a call'         => array( array(), 1 ),
+		);
+	}
+
+	/**
+	 * One identical pair does not excuse a second, different one.
+	 */
+	public function test_one_conflicting_pair_among_duplicates_refuses_the_whole_merge(): void {
+		$this->pair();
+		$this->overlaps = array(
+			$this->collision(),
+			$this->collision( array( 'rank' => '9' ) ),
+		);
+
+		$this->assertSame( 'ffc_identity_candidacy_overlap', $this->merge()->check( 1, 5, 'cpf' )->get_error_code() );
+		$this->assertSame( 'ffc_identity_candidacy_overlap', $this->merge()->apply( 1, 5 )->get_error_code() );
+		$this->assertSame( array(), $this->writes, 'Apply re-measures and writes nothing.' );
 	}
 
 	/**
@@ -316,7 +424,7 @@ class CandidacyMergeTest extends TestCase {
 
 		$result = $this->merge()->apply( 1, 5 );
 
-		$this->assertSame( array( 'classifications' => 2 ), $result );
+		$this->assertSame( array( 'classifications' => 2, 'duplicates' => 0 ), $result );
 		$this->assertSame(
 			array(
 				array( 'update', 'wp_ffc_recruitment_classification', array( 'candidate_id' => 5 ), array( 'candidate_id' => 1 ) ),

@@ -514,6 +514,7 @@ class IdentityRepair {
 		}
 
 		$merged_classifications = 0;
+		$merged_duplicates      = 0;
 
 		if ( null !== $candidacy ) {
 			$merged = $this->candidacies()->apply( $candidacy['from'], $candidacy['into'] );
@@ -526,6 +527,7 @@ class IdentityRepair {
 
 			$written[ $unique ]     = 1;
 			$merged_classifications = $merged['classifications'];
+			$merged_duplicates      = $merged['duplicates'];
 		}
 
 		if ( $account > 0 && ! $this->reindex( $account, (string) $pair[ $hash_column ], $hash_column ) ) {
@@ -575,6 +577,8 @@ class IdentityRepair {
 					'removed'         => $candidacy['from'],
 					'kept'            => $candidacy['into'],
 					'classifications' => $merged_classifications,
+					// Identical copies dropped from the merged candidacy.
+					'duplicates'      => $merged_duplicates,
 				),
 			),
 			$actor
