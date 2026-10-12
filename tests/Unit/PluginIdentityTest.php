@@ -35,16 +35,16 @@ final class PluginIdentityTest extends TestCase {
 
 	public function test_the_version_agrees_everywhere(): void {
 		$version = $this->header( 'Version' );
-		self::assertMatchesRegularExpression( '/^\d+\.\d+\.\d+(\.\d+)?$/', $version, 'The header carries a version.' );
+		$this->assertMatchesRegularExpression( '/^\d+\.\d+\.\d+(\.\d+)?$/', $version, 'The header carries a version.' );
 
-		self::assertSame( 1, preg_match( "/^define\\( 'FFC_VERSION', '([^']+)' \\);/m", $this->file( 'ffcertificate.php' ), $m ), 'The main file defines FFC_VERSION once.' );
-		self::assertSame( $version, $m[1], 'FFC_VERSION beside the header.' );
-		self::assertSame( $version, $this->readme( 'Stable tag' ), 'readme.txt Stable tag.' );
+		$this->assertSame( 1, preg_match( "/^define\\( 'FFC_VERSION', '([^']+)' \\);/m", $this->file( 'ffcertificate.php' ), $m ), 'The main file defines FFC_VERSION once.' );
+		$this->assertSame( $version, $m[1], 'FFC_VERSION beside the header.' );
+		$this->assertSame( $version, $this->readme( 'Stable tag' ), 'readme.txt Stable tag.' );
 	}
 
 	public function test_the_released_version_has_its_changelog_section(): void {
 		$version = $this->header( 'Version' );
-		self::assertMatchesRegularExpression(
+		$this->assertMatchesRegularExpression(
 			'/^## \[' . preg_quote( $version, '/' ) . '\] \(\d{4}-\d{2}-\d{2}\)/m',
 			$this->file( 'CHANGELOG.md' ),
 			'The version the header declares is released, so CHANGELOG.md has its section; release.yml publishes that section as the notes.'
@@ -53,19 +53,19 @@ final class PluginIdentityTest extends TestCase {
 
 	public function test_the_php_floor_agrees_everywhere(): void {
 		$floor = $this->header( 'Requires PHP' );
-		self::assertSame( $floor, $this->readme( 'Requires PHP' ), 'readme.txt.' );
+		$this->assertSame( $floor, $this->readme( 'Requires PHP' ), 'readme.txt.' );
 
 		$composer = json_decode( $this->file( 'composer.json' ), true );
-		self::assertSame( '>=' . $floor, $composer['require']['php'], 'composer.json require.' );
-		self::assertSame( $floor, $composer['config']['platform']['php'], 'composer.json platform: dependencies resolve for the floor.' );
+		$this->assertSame( '>=' . $floor, $composer['require']['php'], 'composer.json require.' );
+		$this->assertSame( $floor, $composer['config']['platform']['php'], 'composer.json platform: dependencies resolve for the floor.' );
 
-		self::assertStringContainsString( '<config name="testVersion" value="' . $floor . '-"/>', $this->file( 'phpcs.xml.dist' ), 'PHPCompatibility judges against the floor.' );
+		$this->assertStringContainsString( '<config name="testVersion" value="' . $floor . '-"/>', $this->file( 'phpcs.xml.dist' ), 'PHPCompatibility judges against the floor.' );
 	}
 
 	public function test_the_wordpress_floor_agrees_everywhere(): void {
 		$floor = $this->header( 'Requires at least' );
-		self::assertSame( $floor, $this->readme( 'Requires at least' ), 'readme.txt.' );
-		self::assertStringContainsString( '<config name="minimum_wp_version" value="' . $floor . '"/>', $this->file( 'phpcs.xml.dist' ), 'WPCS judges deprecations against the floor.' );
+		$this->assertSame( $floor, $this->readme( 'Requires at least' ), 'readme.txt.' );
+		$this->assertStringContainsString( '<config name="minimum_wp_version" value="' . $floor . '"/>', $this->file( 'phpcs.xml.dist' ), 'WPCS judges deprecations against the floor.' );
 	}
 
 	/**
@@ -74,7 +74,7 @@ final class PluginIdentityTest extends TestCase {
 	 * @param string $name Header name.
 	 */
 	private function header( string $name ): string {
-		self::assertSame( 1, preg_match( '/^\s*\*\s*' . preg_quote( $name, '/' ) . ':\s*(\S+)\s*$/m', $this->file( 'ffcertificate.php' ), $m ), "The plugin header declares {$name}." );
+		$this->assertSame( 1, preg_match( '/^\s*\*\s*' . preg_quote( $name, '/' ) . ':\s*(\S+)\s*$/m', $this->file( 'ffcertificate.php' ), $m ), "The plugin header declares {$name}." );
 		return $m[1];
 	}
 
@@ -84,7 +84,7 @@ final class PluginIdentityTest extends TestCase {
 	 * @param string $name Field name.
 	 */
 	private function readme( string $name ): string {
-		self::assertSame( 1, preg_match( '/^' . preg_quote( $name, '/' ) . ':\s*(\S+)\s*$/m', $this->file( 'readme.txt' ), $m ), "readme.txt declares {$name}." );
+		$this->assertSame( 1, preg_match( '/^' . preg_quote( $name, '/' ) . ':\s*(\S+)\s*$/m', $this->file( 'readme.txt' ), $m ), "readme.txt declares {$name}." );
 		return $m[1];
 	}
 
