@@ -461,4 +461,139 @@ class IdentitySearchAjaxEndpointTest extends TestCase {
 		$this->assertNotSame( 'rfMovingHashThatIsLong', $sent['prefix'] );
 		$this->assertSame( 1, $sent['records'] );
 	}
+
+	public function test_init_registers_the_ajax_action(): void {
+		Functions\expect( 'add_action' )
+			->once()
+			->with( 'wp_ajax_' . IdentitySearchAjaxEndpoint::AJAX_ACTION, array( IdentitySearchAjaxEndpoint::class, 'handle' ) );
+
+		IdentitySearchAjaxEndpoint::init();
+	}
+
+	public function test_a_caller_without_the_capability_is_refused_before_any_read(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$GLOBALS['wpdb']->shouldNotReceive( 'get_results' );
+
+		$sent = $this->search( 'rfMoving', array( 513 ) );
+
+		$this->assertFalse( $this->ok );
+		$this->assertSame( 'You do not have permission to resolve identities.', $sent['message'] );
+	}
+
+	/**
+	 * The index names the account that already files the moving records'
+	 * OTHER identifier, and that account is offered first -- never the
+	 * origin, which the index also names.
+	 */
+	public function test_the_suggestion_is_the_account_the_index_files_under_the_other_identifier(): void {
+		$this->given(
+			'ffc_submissions',
+			array(
+				self::row( 1, 398, 'cpfA', 'rfMoving' ),
+				self::row( 2, 513, 'cpfA', '' ),
+			)
+		);
+		$_POST = array(
+			'subject' => 'rfMoving',
+			'field'   => 'rf',
+			'q'       => '',
+		);
+
+		$profiles = Mockery::mock( \FreeFormCertificate\Repositories\UserProfileRepository::class );
+		$profiles->shouldReceive( 'findUserIdsByHash' )->with( 'cpf_hash', 'cpfA' )->andReturn( array( 398, 513 ) );
+		$profiles->shouldReceive( 'findUserIdsByHash' )->andReturn( array() );
+
+		$endpoint = new class( $profiles ) extends IdentitySearchAjaxEndpoint {
+
+			/** @var object */
+			public static $profiles;
+
+			/**
+			 * @param object $profiles Stand-in for the index.
+			 */
+			public function __construct( $profiles ) {
+				self::$profiles = $profiles;
+			}
+
+			protected static function profiles(): \FreeFormCertificate\Repositories\UserProfileRepository {
+				return self::$profiles;
+			}
+		};
+
+		try {
+			$endpoint::handle();
+		} catch ( RuntimeException $e ) {
+			$this->assertSame( 'ffc_test_sent', $e->getMessage() );
+		}
+
+		$this->assertTrue( $this->ok );
+		$this->assertSame( 513, $this->sent['suggestion']['id'], 'The origin is skipped; the next account the index names is the suggestion.' );
+		$this->assertTrue( $this->sent['suggestion']['allowed'] );
+		$this->assertSame( array(), $this->sent['accounts'], 'An empty term searches nothing.' );
+	}
+
+	public function test_an_account_that_already_agrees_on_everything_gains_nothing(): void {
+		$this->given(
+			'ffc_submissions',
+			array(
+				self::row( 1, 398, 'cpfA', 'rfMoving' ),
+				self::row( 2, 513, 'cpfA', '' ),
+			)
+		);
+		$this->index[513] = array(
+			'cpf_hash' => 'cpfA',
+			'rf_hash'  => 'rfMoving',
+		);
+
+		$shown = self::account( $this->search( 'rfMoving', array( 513 ) ), 513 );
+
+		$this->assertTrue( (bool) $shown['allowed'] );
+		$this->assertSame( 'Agrees by RF, CPF', $shown['label'], 'Nothing to gain: the label names only the agreement.' );
+	}
+
+	/**
+	 * Every refusal the write can return has a badge, and an unknown one is
+	 * still a refusal rather than an empty badge.
+	 */
+	public function test_every_refusal_code_has_its_own_short_label(): void {
+		$label = new \ReflectionMethod( IdentitySearchAjaxEndpoint::class, 'refusal_label' );
+		$label->setAccessible( true );
+
+		$this->assertSame( 'Already holds these records', $label->invoke( null, 'ffc_identity_relink_unchanged' ) );
+		$this->assertSame( 'Holds a different value — refused', $label->invoke( null, 'ffc_identity_relink_conflict' ) );
+		$this->assertSame( 'Shares no identifier — refused', $label->invoke( null, 'ffc_identity_relink_no_agreement' ) );
+		$this->assertSame( 'Records carry two values — refused', $label->invoke( null, 'ffc_identity_relink_multiple_identities' ) );
+		$this->assertSame( 'Refused', $label->invoke( null, 'something_new' ) );
+	}
+
+	public function test_an_empty_term_matches_nobody(): void {
+		$matching = new \ReflectionMethod( IdentitySearchAjaxEndpoint::class, 'matching' );
+		$matching->setAccessible( true );
+
+		$this->assertSame( array(), $matching->invoke( null, '   ', 11 ) );
+	}
+
+	/**
+	 * An all-digits term is an account number as well as a search, and an
+	 * account found both ways is listed once.
+	 *
+	 * Separate process: `WP_User_Query` is overloaded, which must not leak.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_a_numeric_term_finds_the_account_by_id_and_by_search_once(): void {
+		$by_search_a = new WP_User( 42 );
+		$by_search_b = new WP_User( 77 );
+
+		$query = Mockery::mock( 'overload:WP_User_Query' );
+		$query->shouldReceive( 'get_results' )->andReturn( array( $by_search_a, $by_search_b, 'not a user' ) );
+
+		$matching = new \ReflectionMethod( IdentitySearchAjaxEndpoint::class, 'matching' );
+		$matching->setAccessible( true );
+
+		$found = $matching->invoke( null, ' 42 ', 11 );
+
+		$this->assertSame( array( 42, 77 ), array_map( static fn( $u ) => $u->ID, $found ) );
+	}
 }

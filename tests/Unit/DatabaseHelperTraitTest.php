@@ -432,4 +432,118 @@ class DatabaseHelperTraitTest extends TestCase {
 
 		$this->assertTrue( true );
 	}
+
+	/**
+	 * Drive the full migration over a schema the double answers by statement.
+	 *
+	 * @param bool                               $staging_exists Whether `<column>_ts` is already there.
+	 * @param array<int, object>                 $legacy_rows    What the backfill read returns.
+	 * @param array<int, string>                 $live_indexes   Index names SHOW INDEX reports.
+	 * @param bool                               $nullable       Whether the column allows NULL.
+	 * @param array<int, string>                 $drop           Indexes to drop before the swap.
+	 * @param array<string, string>              $recreate       Indexes to create after it.
+	 * @return array{0: array<int, string>, 1: array<int, array<string, mixed>>, 2: array<int, string>} Queries, updates, selects.
+	 */
+	private function migrate_over( bool $staging_exists, array $legacy_rows, array $live_indexes, bool $nullable, array $drop, array $recreate ): array {
+		$queries = array();
+		$updates = array();
+		$selects = array();
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				foreach ( $args as $arg ) {
+					$sql = preg_replace( '/%[isd]/', (string) $arg, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_foo' );
+		$served = false;
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $sql ) use ( $staging_exists, $legacy_rows, $live_indexes, &$served, &$selects ) {
+				$sql = (string) $sql;
+				if ( 1 === preg_match( '/SHOW COLUMNS FROM wp_foo LIKE (\S+)/', $sql, $m ) ) {
+					if ( 'called_at' === $m[1] ) {
+						return array( (object) array( 'Field' => 'called_at', 'Type' => 'datetime' ) );
+					}
+					return $staging_exists ? array( (object) array( 'Field' => $m[1], 'Type' => 'bigint' ) ) : array();
+				}
+				if ( 1 === preg_match( '/Key_name = (\S+)/', $sql, $m ) ) {
+					return in_array( $m[1], $live_indexes, true ) ? array( (object) array( 'Key_name' => $m[1] ) ) : array();
+				}
+				if ( 0 === strpos( $sql, 'SELECT id, called_at' ) ) {
+					$selects[] = $sql;
+					if ( $served ) {
+						return array();
+					}
+					$served = true;
+					return $legacy_rows;
+				}
+				return array();
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $sql ) use ( &$queries ) {
+				$queries[] = trim( preg_replace( '/\s+/', ' ', (string) $sql ) );
+				return 1;
+			}
+		);
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			static function ( $table, $data, $where ) use ( &$updates ) {
+				$updates[] = array( $where['id'] => $data );
+				return 1;
+			}
+		);
+
+		DatabaseHelperTraitHost::pub_migrate_datetime_column_to_unix( 'wp_foo', 'called_at', $nullable, $drop, $recreate );
+
+		return array( $queries, $updates, $selects );
+	}
+
+	public function test_migrate_datetime_runs_every_step_in_order_for_a_nullable_column(): void {
+		list( $queries, $updates, $selects ) = $this->migrate_over(
+			false,
+			array(
+				(object) array( 'id' => '1', 'legacy_value' => '2026-01-02 03:04:05' ),
+				(object) array( 'id' => '2', 'legacy_value' => 'not a date' ),
+			),
+			array( 'idx_old' ),
+			true,
+			array( 'idx_old', 'idx_gone' ),
+			array( 'idx_new' => '(called_at)' )
+		);
+
+		$this->assertSame(
+			array(
+				'ALTER TABLE wp_foo ADD COLUMN called_at_ts BIGINT UNSIGNED DEFAULT NULL AFTER called_at',
+				'ALTER TABLE wp_foo DROP INDEX idx_old',
+				'ALTER TABLE wp_foo DROP COLUMN called_at',
+				'ALTER TABLE wp_foo CHANGE called_at_ts called_at BIGINT UNSIGNED DEFAULT NULL',
+				'ALTER TABLE wp_foo ADD INDEX idx_new (called_at)',
+			),
+			$queries,
+			'Staging column, backfill, index drop, column swap, index recreate -- in that order, and only for indexes that exist.'
+		);
+		$this->assertSame(
+			array( array( '1' => array( 'called_at_ts' => 1767323045 ) ) ),
+			$updates,
+			'A parsable value is backfilled as UTC seconds; an unparsable one is skipped, not fatal.'
+		);
+		$this->assertStringContainsString( 'called_at IS NOT NULL AND called_at_ts IS NULL', $selects[0] );
+	}
+
+	public function test_migrate_datetime_resumes_a_required_column_whose_staging_already_exists(): void {
+		list( $queries, $updates, $selects ) = $this->migrate_over( true, array(), array(), false, array(), array() );
+
+		$this->assertSame(
+			array(
+				'ALTER TABLE wp_foo DROP COLUMN called_at',
+				'ALTER TABLE wp_foo CHANGE called_at_ts called_at BIGINT UNSIGNED NOT NULL',
+			),
+			$queries,
+			'An existing staging column is not added twice, and a required column stays NOT NULL.'
+		);
+		$this->assertSame( array(), $updates );
+		$this->assertStringContainsString( 'WHERE called_at_ts = 0', $selects[0] );
+	}
 }

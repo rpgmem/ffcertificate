@@ -47,6 +47,9 @@ class IdentityNormalizationMigrationStrategyTest extends TestCase {
 	/** Whether the next $wpdb->update() reports a duplicate-key refusal. */
 	private bool $refuse_write = false;
 
+	/** The one table the harness reports as existing. */
+	private string $table_name = 'wp_ffc_self_scheduling_appointments';
+
 	private IdentityNormalizationMigrationStrategy $strategy;
 
 	protected function setUp(): void {
@@ -171,7 +174,7 @@ class IdentityNormalizationMigrationStrategyTest extends TestCase {
 	}
 
 	private function table(): string {
-		return 'wp_ffc_self_scheduling_appointments';
+		return $this->table_name;
 	}
 
 	private function max_id(): int {
@@ -409,5 +412,249 @@ class IdentityNormalizationMigrationStrategyTest extends TestCase {
 			SensitiveFieldRegistry::normalizer_fingerprint()
 		);
 		$this->assertNotSame( '', SensitiveFieldRegistry::normalizer_fingerprint() );
+	}
+
+	/**
+	 * Without encryption the card refuses, and writes nothing.
+	 */
+	public function test_execute_refuses_when_encryption_is_unavailable(): void {
+		$this->seed_row( 10, array( 'email' => 'Joao@Escola.gov.br' ) );
+
+		$strategy = new class() extends IdentityNormalizationMigrationStrategy {
+			protected function encryption_available(): bool {
+				return false;
+			}
+		};
+
+		$result = $strategy->execute( '', array() );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertStringContainsString( 'Encryption is not configured', $result['message'] );
+		$this->assertSame( array(), $this->writes );
+		$this->assertSame( array(), $this->options, 'A refused run must not even stamp the fingerprint.' );
+
+		$can_run = $strategy->can_run( '', array() );
+		$this->assertInstanceOf( \WP_Error::class, $can_run );
+		$this->assertSame( 'encryption_not_configured', $can_run->get_error_code() );
+	}
+
+	/**
+	 * The production gate reads `Encryption::is_configured()`.
+	 */
+	public function test_the_real_gate_follows_the_encryption_configuration(): void {
+		$strategy = new IdentityNormalizationMigrationStrategy();
+		$gate     = new \ReflectionMethod( $strategy, 'encryption_available' );
+		$gate->setAccessible( true );
+
+		$this->assertSame( Encryption::is_configured(), $gate->invoke( $strategy ) );
+		$this->assertSame( 'Canonicalise Stored Identifiers', $strategy->get_name() );
+	}
+
+	/**
+	 * A finished walk latches complete, and a second run re-stamps nothing.
+	 */
+	public function test_a_finished_walk_latches_complete_and_reports_everything_migrated(): void {
+		$this->seed_row( 10, array( 'email' => 'Joao@Escola.gov.br' ) );
+
+		$first = $this->strategy->execute( '', array() );
+		$this->assertSame( 1, $first['processed'] );
+		$this->assertSame( 0, $first['pending'] );
+		$this->assertFalse( $first['has_more'] );
+		$this->assertTrue( $this->options['ffc_identity_normalization_state']['completed'] ?? false );
+
+		$fingerprint = $this->options['ffc_identity_normalization_state']['fingerprint'];
+
+		$status = $this->strategy->calculate_status( '', array() );
+		$this->assertSame(
+			array(
+				'total'       => 1,
+				'migrated'    => 1,
+				'pending'     => 0,
+				'percent'     => 100.0,
+				'is_complete' => true,
+			),
+			$status
+		);
+
+		$this->strategy->execute( '', array() );
+		$this->assertSame( $fingerprint, $this->options['ffc_identity_normalization_state']['fingerprint'] );
+		$this->assertSame( 1, count( $this->writes ), 'A latched card must not rewrite the row it already corrected.' );
+	}
+
+	/**
+	 * A cursor behind rows the read cannot see is parked at the end.
+	 *
+	 * Without the park the count stays one row short of complete forever.
+	 */
+	public function test_an_empty_read_parks_the_cursor_at_the_table_end(): void {
+		global $wpdb;
+		$this->seed_row( 30, array( 'email' => 'joao@escola.gov.br' ) );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		$result = $this->strategy->execute( '', array() );
+
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertSame( 30, $this->options['ffc_identity_normalization_state']['cursors']['appointments'] );
+		$this->assertSame( 0, $result['pending'] );
+	}
+
+	/**
+	 * A ciphertext that will not decrypt is reported and left in place.
+	 */
+	public function test_an_undecryptable_value_is_reported_not_written(): void {
+		$this->seed_row( 10, array( 'email' => 'joao@escola.gov.br' ) );
+		$this->rows[0]['cpf_encrypted'] = 'not-a-ciphertext';
+
+		$result = $this->strategy->execute( '', array() );
+
+		$this->assertSame( array(), $this->writes );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( 'Could not decrypt cpf_encrypted on appointments row 10', $result['errors'][0] );
+	}
+
+	/**
+	 * Submissions are walked with their own registry context.
+	 */
+	public function test_the_submission_target_is_canonicalised(): void {
+		$this->table_name = 'wp_ffc_submissions';
+		$this->seed_row( 5, array( 'cpf' => '518.178.420-80' ) );
+
+		$result = $this->strategy->execute( '', array() );
+
+		$this->assertSame( 1, $result['processed'] );
+		$this->assertSame( '51817842080', Encryption::decrypt( (string) $this->rows[0]['cpf_encrypted'] ) );
+		$this->assertSame( 5, $this->options['ffc_identity_normalization_state']['cursors']['submissions'] );
+	}
+
+	/**
+	 * A refused candidate write names the collision, because it is the point.
+	 */
+	public function test_a_refused_candidate_write_names_the_duplicate_person(): void {
+		$this->table_name   = 'wp_ffc_recruitment_candidate';
+		$this->refuse_write = true;
+		$this->seed_row( 8, array( 'rf' => '518.178-0' ) );
+
+		$result = $this->strategy->execute( '', array() );
+
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( 'Candidate 8 could not be canonicalised', $result['errors'][0] );
+		$this->assertFalse(
+			$this->options['ffc_identity_normalization_state']['completed'] ?? false,
+			'A run that reported an error must not latch complete.'
+		);
+	}
+
+	/**
+	 * The profile target: users' encrypted meta and the identity index.
+	 *
+	 * @param array<int, array<string, string>> $meta        User id => meta key => value.
+	 * @param array<string, string>|null        $profile_row What the index row holds.
+	 * @return array{0: array<string, mixed>, 1: array<int, array<string, mixed>>, 2: array<int, array<string, mixed>>}
+	 */
+	private function run_profile_batch( array $meta, ?array $profile_row ): array {
+		global $wpdb;
+		$this->table_name = 'wp_no_table_exists_in_this_case';
+
+		$meta_writes  = array();
+		$index_writes = array();
+		$users        = array_keys( $meta );
+
+		Functions\when( 'get_user_meta' )->alias(
+			static function ( $user_id, $key ) use ( &$meta ) {
+				return $meta[ (int) $user_id ][ $key ] ?? '';
+			}
+		);
+		Functions\when( 'update_user_meta' )->alias(
+			static function ( $user_id, $key, $value ) use ( &$meta, &$meta_writes ) {
+				$meta[ (int) $user_id ][ $key ] = $value;
+				$meta_writes[]                  = array( (int) $user_id, $key, $value );
+				return true;
+			}
+		);
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) use ( $users ) {
+				$sql = (string) $sql;
+				if ( str_contains( $sql, 'COUNT(DISTINCT user_id)' ) ) {
+					$cursor = 1 === preg_match( '/user_id <= (\d+)/', $sql, $m ) ? (int) $m[1] : PHP_INT_MAX;
+					return (string) count( array_filter( $users, static fn( $u ) => $u <= $cursor ) );
+				}
+				return null;
+			}
+		);
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			static function ( $sql ) use ( $users ) {
+				$cursor = 1 === preg_match( '/user_id > (\d+)/', (string) $sql, $m ) ? (int) $m[1] : 0;
+				return array_values( array_map( 'strval', array_filter( $users, static fn( $u ) => $u > $cursor ) ) );
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturn( $profile_row );
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			static function ( $table, $data ) use ( &$index_writes ) {
+				$index_writes[] = array( $table, $data );
+				return 1;
+			}
+		);
+
+		$result = $this->strategy->execute( '', array() );
+
+		return array( $result, $meta_writes, $index_writes );
+	}
+
+	public function test_a_masked_profile_document_is_rewritten_and_indexed(): void {
+		$cipher = Encryption::encrypt( '518.178.420-80' );
+
+		list( $result, $meta_writes, $index_writes ) = $this->run_profile_batch(
+			array( 12 => array( 'ffc_user_cpf' => $cipher ) ),
+			null
+		);
+
+		$this->assertSame( 1, $result['processed'] );
+		$this->assertSame( 0, $result['pending'] );
+		$this->assertCount( 1, $meta_writes );
+		$this->assertSame( '51817842080', Encryption::decrypt( (string) $meta_writes[0][2] ) );
+		$this->assertCount( 1, $index_writes );
+		$this->assertSame( 'wp_ffc_user_profiles', $index_writes[0][0] );
+		$this->assertSame( SensitiveFieldRegistry::hash_identifier( 'cpf', '51817842080' ), $index_writes[0][1]['cpf_hash'] );
+		$this->assertSame( 12, $index_writes[0][1]['user_id'] );
+		$this->assertSame( 12, $this->options['ffc_identity_normalization_state']['cursors']['user_profile'] );
+	}
+
+	public function test_an_already_indexed_canonical_profile_is_not_rewritten(): void {
+		$hash = SensitiveFieldRegistry::hash_identifier( 'rf', '5181780' );
+
+		list( $result, $meta_writes, $index_writes ) = $this->run_profile_batch(
+			array( 4 => array( 'ffc_user_rf' => Encryption::encrypt( '5181780' ) ) ),
+			array( 'user_id' => '4', 'rf_hash' => $hash )
+		);
+
+		$this->assertSame( 1, $result['processed'], 'The user was walked even though nothing changed.' );
+		$this->assertSame( array(), $meta_writes );
+		$this->assertSame( array(), $index_writes, 'An index that already agrees costs a read and no write.' );
+	}
+
+	public function test_profile_values_that_cannot_be_used_are_reported(): void {
+		list( $result, $meta_writes, $index_writes ) = $this->run_profile_batch(
+			array(
+				6 => array(
+					// Carries the prefix, so it is attempted, and does not decrypt.
+					'ffc_user_cpf' => Encryption::V2_PREFIX . 'garbage',
+					// Decrypts, and holds no identifier.
+					'ffc_user_rf'  => Encryption::encrypt( '..--' ),
+				),
+				9 => array( 'ffc_user_cpf' => 'plaintext-never-encrypted' ),
+			),
+			null
+		);
+
+		$this->assertSame( 2, $result['processed'] );
+		$this->assertSame( array(), $meta_writes );
+		$this->assertSame( array(), $index_writes );
+		$this->assertCount( 2, $result['errors'] );
+		$this->assertStringContainsString( 'Could not decrypt ffc_user_cpf for user 6', $result['errors'][0] );
+		$this->assertStringContainsString( 'ffc_user_rf for user 6 holds no identifier', $result['errors'][1] );
 	}
 }

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use Mockery;
+use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\IdentityAgreement;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
@@ -25,6 +27,8 @@ use FreeFormCertificate\Maintenance\IdentityConflictQuery;
  * @covers \FreeFormCertificate\Maintenance\IdentityAgreement
  */
 class IdentityAgreementTest extends TestCase {
+
+	use MockeryPHPUnitIntegration;
 
 	/**
 	 * Equal on both sides, one value each: the only shape that matches.
@@ -338,5 +342,96 @@ class IdentityAgreementTest extends TestCase {
 		$this->assertSame( array( 'rf' ), $out['matches'] );
 		$this->assertSame( array( 'cpf' => 'hash-cpf' ), $out['gaps'] );
 		$this->assertSame( array(), $out['conflicts'] );
+	}
+
+	/**
+	 * Read what an account holds through a `$wpdb` that answers by table.
+	 *
+	 * @param array<string, array<int, array<string, mixed>>> $rows    Store table => rows for the account.
+	 * @param array<string, mixed>|null                        $indexed The identity-index row.
+	 * @param array<int, string>                               $absent  Tables SHOW TABLES does not report.
+	 * @return array<string, array<int, string>>
+	 */
+	private function held( array $rows, ?array $indexed, array $absent ): array {
+		global $wpdb;
+		$previous = $wpdb;
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				foreach ( $args as $arg ) {
+					$sql = preg_replace( '/%[isd]/', (string) $arg, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $sql ) use ( $absent ) {
+				$table = substr( (string) $sql, strlen( 'SHOW TABLES LIKE ' ) );
+				return in_array( $table, $absent, true ) ? null : $table;
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $sql ) use ( $rows ) {
+				foreach ( $rows as $table => $found ) {
+					if ( false !== strpos( (string) $sql, 'FROM ' . $table . ' ' ) ) {
+						return $found;
+					}
+				}
+				return array();
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturn( $indexed );
+
+		try {
+			return IdentityAgreement::held_by( 7 );
+		} finally {
+			$wpdb = $previous;
+		}
+	}
+
+	/**
+	 * Records and the index together, each value once, empties ignored.
+	 */
+	public function test_held_by_unions_every_store_and_the_index_without_repeats(): void {
+		$held = $this->held(
+			array(
+				'wp_ffc_submissions'                  => array(
+					array( 'cpf_hash' => 'c1', 'rf_hash' => '' ),
+					array( 'cpf_hash' => 'c1', 'rf_hash' => 'r1' ),
+				),
+				'wp_ffc_self_scheduling_appointments' => array(
+					array( 'cpf_hash' => 'c2', 'rf_hash' => null ),
+				),
+			),
+			array( 'cpf_hash' => 'c1', 'rf_hash' => 'r2' ),
+			array()
+		);
+
+		$this->assertSame(
+			array(
+				'cpf' => array( 'c1', 'c2' ),
+				'rf'  => array( 'r1', 'r2' ),
+			),
+			$held,
+			'An account holding two values for one field must show both -- the index alone would hide the second.'
+		);
+	}
+
+	/**
+	 * A store that is not installed is skipped, never queried.
+	 */
+	public function test_held_by_skips_absent_stores_and_a_missing_index(): void {
+		$held = $this->held(
+			array(
+				'wp_ffc_recruitment_candidate' => array( array( 'cpf_hash' => 'never-read', 'rf_hash' => '' ) ),
+				'wp_ffc_submissions'           => array( array( 'cpf_hash' => '', 'rf_hash' => 'r9' ) ),
+			),
+			null,
+			array( 'wp_ffc_recruitment_candidate', 'wp_ffc_user_profiles' )
+		);
+
+		$this->assertSame( array( 'rf' => array( 'r9' ) ), $held );
 	}
 }

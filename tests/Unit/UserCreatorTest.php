@@ -635,4 +635,211 @@ class UserCreatorTest extends TestCase {
 		);
 	}
 
+	// ==================================================================
+	// Paths the cases above leave: creation refused, appointments, index
+	// ==================================================================
+
+	/**
+	 * Teach `$wpdb` to answer by statement, interpolating as it goes.
+	 *
+	 * @param array<string, mixed> $vars    Substring => what get_var answers.
+	 * @param int                  $updates What every UPDATE reports.
+	 * @return \ArrayObject Statements passed to query().
+	 */
+	private function answering( array $vars, int $updates = 0 ): \ArrayObject {
+		global $wpdb;
+		$queries = new \ArrayObject();
+
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				foreach ( $args as $arg ) {
+					$sql = preg_replace( '/%[isd]/', (string) $arg, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $sql ) use ( $vars ) {
+				foreach ( $vars as $needle => $answer ) {
+					if ( false !== strpos( (string) $sql, $needle ) ) {
+						return $answer;
+					}
+				}
+				return null;
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $sql ) use ( $queries, $updates ) {
+				$queries[] = (string) $sql;
+				return $updates;
+			}
+		);
+
+		return $queries;
+	}
+
+	public function test_a_refused_account_creation_is_returned_and_nothing_is_linked(): void {
+		$queries = $this->answering( array() );
+
+		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'wp_generate_password' )->justReturn( 'pw' );
+		Functions\when( 'sanitize_user' )->returnArg();
+		Functions\when( 'remove_accents' )->returnArg();
+		Functions\when( 'username_exists' )->justReturn( false );
+		Functions\when( 'wp_create_user' )->justReturn( new \WP_Error( 'existing_user_login', 'Login taken.' ) );
+
+		$result = UserCreator::get_or_create_user_dual( 'CPF-X', null, 'taken@example.test' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'existing_user_login', $result->get_error_code() );
+		$this->assertSame( array(), $queries->getArrayCopy(), 'No account, so no record may be claimed.' );
+	}
+
+	public function test_resolve_existing_user_prefers_the_identity_index(): void {
+		$this->answering( array( 'wp_ffc_user_profiles' => '12' ) );
+		Functions\expect( 'get_user_by' )->never();
+
+		$this->assertSame( 12, UserCreator::resolve_existing_user( 'CPF-HASH', null, 'someone@example.test' ) );
+	}
+
+	public function test_an_email_match_without_identifiers_links_nothing_and_fills_a_blank_name(): void {
+		$queries = $this->answering( array() );
+
+		$user               = Mockery::mock( 'WP_User' );
+		$user->ID           = 61;
+		$user->display_name = 'mail61';
+		$user->user_login   = 'mail61';
+		$user->shouldReceive( 'add_role' )->once()->with( 'ffc_end_user' );
+		$user->shouldReceive( 'has_cap' )->andReturn( true );
+		Functions\when( 'get_user_by' )->justReturn( $user );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		Functions\when( 'update_user_meta' )->justReturn( true );
+
+		$updated = array();
+		Functions\when( 'wp_update_user' )->alias(
+			static function ( $payload ) use ( &$updated ) {
+				$updated[] = $payload;
+				return 61;
+			}
+		);
+
+		$result = UserCreator::get_or_create_user_dual( null, null, 'mail61@example.test', array( 'nome_completo' => 'Ana Lima' ) );
+
+		$this->assertSame( 61, $result );
+		$this->assertSame( 'Ana Lima', $updated[0]['display_name'], 'A display name equal to the login is replaced by the person\'s name.' );
+		$this->assertSame( 'Ana', $updated[0]['first_name'] );
+		$this->assertSame( array(), $queries->getArrayCopy(), 'With no identifier there is nothing to adopt.' );
+	}
+
+	public function test_a_matched_email_user_with_a_blank_name_and_no_data_is_left_unnamed(): void {
+		$this->answering( array() );
+
+		$user               = Mockery::mock( 'WP_User' );
+		$user->ID           = 62;
+		$user->display_name = '';
+		$user->user_login   = 'mail62';
+		$user->shouldReceive( 'add_role' )->once();
+		$user->shouldReceive( 'has_cap' )->andReturn( true );
+		Functions\when( 'get_user_by' )->justReturn( $user );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		Functions\expect( 'wp_update_user' )->never();
+		Functions\expect( 'update_user_meta' )->never();
+
+		$this->assertSame( 62, UserCreator::get_or_create_user_dual( null, null, 'mail62@example.test' ) );
+	}
+
+	public function test_appointments_are_adopted_by_both_hashes_and_grant_their_capability(): void {
+		$queries = $this->answering(
+			array(
+				'SHOW TABLES LIKE wp_ffc_self_scheduling_appointments' => 'wp_ffc_self_scheduling_appointments',
+				'SELECT user_id FROM wp_ffc_user_profiles'              => '70',
+			),
+			1
+		);
+		global $wpdb;
+		$wpdb->shouldReceive( 'get_row' )->andReturn(
+			array(
+				'user_id'  => '70',
+				'cpf_hash' => 'CPF-H',
+				'rf_hash'  => 'RF-H',
+			)
+		);
+		$wpdb->shouldNotReceive( 'insert' );
+		$wpdb->shouldNotReceive( 'update' );
+
+		$granted = array();
+		$user    = Mockery::mock( 'WP_User' );
+		$user->ID = 70;
+		$user->shouldReceive( 'has_cap' )->andReturn( false );
+		$user->shouldReceive( 'add_cap' )->andReturnUsing(
+			static function ( $cap ) use ( &$granted ) {
+				$granted[] = (string) $cap;
+			}
+		);
+		Functions\when( 'get_userdata' )->justReturn( $user );
+
+		$this->assertSame( 70, UserCreator::get_or_create_user_dual( 'CPF-H', 'RF-H', '', array(), CapabilityManager::CONTEXT_RECRUITMENT ) );
+
+		$statements = $queries->getArrayCopy();
+		$this->assertContains( 'UPDATE wp_ffc_self_scheduling_appointments SET user_id = 70 WHERE cpf_hash = CPF-H AND user_id IS NULL', $statements );
+		$this->assertContains( 'UPDATE wp_ffc_self_scheduling_appointments SET user_id = 70 WHERE rf_hash = RF-H AND user_id IS NULL', $statements );
+		$this->assertContains( 'ffc_view_own_appointments', $granted, 'Claiming an appointment grants the capability that reads it.' );
+	}
+
+	public function test_create_for_identity_split_opens_an_account_without_mail(): void {
+		$this->answering( array() );
+
+		Functions\when( 'wp_generate_password' )->justReturn( 'pw' );
+		Functions\when( 'sanitize_user' )->returnArg();
+		Functions\when( 'remove_accents' )->returnArg();
+		Functions\when( 'username_exists' )->justReturn( false );
+		Functions\expect( 'wp_create_user' )->once()->with( 'split.person', 'pw', 'split.person@example.test' )->andReturn( 808 );
+		Functions\when( 'get_userdata' )->justReturn( null );
+		Functions\expect( 'wp_new_user_notification' )->never();
+
+		$this->assertSame( 808, UserCreator::create_for_identity_split( 'split.person@example.test' ) );
+	}
+
+	public function test_a_new_account_gets_a_profile_row_named_after_the_user(): void {
+		$this->answering(
+			array(
+				'SHOW TABLES LIKE wp_ffc_user_profiles' => 'wp_ffc_user_profiles',
+			)
+		);
+		global $wpdb;
+		$wpdb->insert_id = 5;
+		$inserted        = array();
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			static function ( $table, $data ) use ( &$inserted ) {
+				$inserted[] = array( $table, $data );
+				return 1;
+			}
+		);
+
+		$user               = new \WP_User( 809 );
+		$user->display_name = 'Profiled Person';
+		Functions\when( 'wp_generate_password' )->justReturn( 'pw' );
+		Functions\when( 'sanitize_user' )->returnArg();
+		Functions\when( 'remove_accents' )->returnArg();
+		Functions\when( 'username_exists' )->justReturn( false );
+		Functions\when( 'wp_create_user' )->justReturn( 809 );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+
+		$this->assertSame( 809, UserCreator::create_for_identity_split( 'profiled@example.test' ) );
+		$this->assertSame( 'wp_ffc_user_profiles', $inserted[0][0] );
+		$this->assertSame( 809, $inserted[0][1]['user_id'] );
+		$this->assertSame( 'Profiled Person', $inserted[0][1]['display_name'] );
+	}
+
+	public function test_a_taken_name_slug_is_numbered(): void {
+		Functions\when( 'sanitize_user' )->returnArg();
+		Functions\when( 'remove_accents' )->returnArg();
+		Functions\when( 'username_exists' )->alias(
+			static function ( $name ) {
+				return in_array( $name, array( 'bobsantos', 'bobsantos.2' ), true );
+			}
+		);
+
+		$this->assertSame( 'bobsantos.3', UserCreator::generate_username( '', array( 'nome' => 'Bob Santos' ) ) );
+	}
 }

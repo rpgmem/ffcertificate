@@ -497,4 +497,99 @@ class EncryptionTest extends TestCase {
 		$this->assertSame( $fingerprint, Encryption::key_fingerprint() );
 		$this->assertSame( $fingerprint, Encryption::key_health_report()['fingerprint'] );
 	}
+
+	// ------------------------------------------------------------------
+	// looks_like_envelope() — a shape test, deliberately strict
+	// ------------------------------------------------------------------
+
+	public function test_looks_like_envelope_accepts_real_ciphertext_of_both_shapes(): void {
+		$this->assertTrue( Encryption::looks_like_envelope( (string) Encryption::encrypt( 'x' ) ), 'A v2 envelope must be recognised.' );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- building a legacy-shaped fixture.
+		$this->assertTrue( Encryption::looks_like_envelope( base64_encode( str_repeat( "\x01", 32 ) ) ), 'A v1-shaped value (IV + one block) must be recognised.' );
+	}
+
+	public function test_looks_like_envelope_refuses_ordinary_values(): void {
+		$this->assertFalse( Encryption::looks_like_envelope( '518.178.420-80' ), 'A formatted CPF is not base64.' );
+		$this->assertFalse( Encryption::looks_like_envelope( '1234567' ), 'A short RF decodes too short to be an envelope.' );
+		$this->assertFalse( Encryption::looks_like_envelope( 'v2:YWJj' ), 'A v2 prefix over a short payload is not an envelope.' );
+		$this->assertFalse( Encryption::looks_like_envelope( 'v2:not base64!' ) );
+	}
+
+	// ------------------------------------------------------------------
+	// Legacy (v1) ciphertexts
+	// ------------------------------------------------------------------
+
+	/**
+	 * The active encryption key, read the way the class reads it.
+	 *
+	 * @return string
+	 */
+	private function active_key(): string {
+		$method = new \ReflectionMethod( Encryption::class, 'get_encryption_key' );
+		$method->setAccessible( true );
+		return (string) $method->invoke( null );
+	}
+
+	public function test_a_legacy_v1_ciphertext_still_decrypts(): void {
+		$iv     = str_repeat( "\x02", 16 );
+		$cipher = openssl_encrypt( 'legacy-value', 'AES-256-CBC', $this->active_key(), OPENSSL_RAW_DATA, $iv );
+
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- building a legacy fixture.
+		$this->assertSame( 'legacy-value', Encryption::decrypt( base64_encode( $iv . $cipher ) ) );
+	}
+
+	public function test_a_legacy_v1_value_too_short_for_an_iv_is_refused(): void {
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- building a legacy fixture.
+		$this->assertNull( Encryption::decrypt( base64_encode( 'abc' ) ) );
+	}
+
+	public function test_a_legacy_v1_value_with_broken_padding_is_refused(): void {
+		$iv = str_repeat( "\x03", 16 );
+		// One block whose plaintext ends in a zero byte: PKCS#7 has no zero pad,
+		// so openssl refuses it on decryption, deterministically.
+		$block = openssl_encrypt( str_repeat( "\x00", 16 ), 'AES-256-CBC', $this->active_key(), OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, $iv );
+
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- building a legacy fixture.
+		$this->assertNull( Encryption::decrypt( base64_encode( $iv . $block ) ) );
+	}
+
+	// ------------------------------------------------------------------
+	// Batch helpers: the columns the older tests did not reach
+	// ------------------------------------------------------------------
+
+	public function test_decrypt_submission_restores_ip_and_data(): void {
+		$row = array(
+			'user_ip_encrypted' => Encryption::encrypt( '203.0.113.9' ),
+			'data_encrypted'    => Encryption::encrypt( '{"a":1}' ),
+		);
+
+		$out = Encryption::decrypt_submission( $row );
+
+		$this->assertSame( '203.0.113.9', $out['user_ip'] );
+		$this->assertSame( '{"a":1}', $out['data'] );
+	}
+
+	public function test_decrypt_appointment_falls_back_to_the_rf_column(): void {
+		$out = Encryption::decrypt_appointment( array( 'rf_encrypted' => Encryption::encrypt( '5181780' ) ) );
+
+		$this->assertSame( '5181780', $out['rf'] );
+		$this->assertSame( '5181780', $out['cpf_rf'] );
+		$this->assertArrayNotHasKey( 'cpf', $out );
+	}
+
+	/**
+	 * A decoupled hash salt is what `hash()` uses, and the health check reads it.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_a_dedicated_hash_salt_is_used_and_audited(): void {
+		define( 'FFC_HASH_SALT', str_repeat( 'S', 64 ) );
+
+		$this->assertSame( hash( 'sha256', 'value' . str_repeat( 'S', 64 ) ), Encryption::hash( 'value' ) );
+
+		$report = new \ReflectionMethod( Encryption::class, 'active_secrets' );
+		$report->setAccessible( true );
+		$this->assertContains( str_repeat( 'S', 64 ), $report->invoke( null ), 'The health check must audit the salt actually in use.' );
+	}
 }

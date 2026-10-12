@@ -467,6 +467,135 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 		$this->assertSame( array(), $this->updates );
 	}
 
+	public function test_a_body_that_is_not_json_is_reported_and_left_unchanged(): void {
+		$this->rows[ self::REREG ][] = array(
+			'id'   => 4,
+			'data' => 'not json but mentions ' . Encryption::V2_PREFIX . 'abc',
+		);
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertSame( array(), $this->updates );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( 'reregistration submission 4 is not valid JSON', $result['errors'][0] );
+		$this->assertSame( 4, $this->options['ffc_key_rotation_remaining_state']['cursors']['reregistration_data'] ?? null, 'The cursor still moves past a row it could not use.' );
+	}
+
+	public function test_a_body_without_a_fields_map_is_skipped_silently(): void {
+		$this->rows[ self::REREG ][] = array(
+			'id'   => 5,
+			'data' => (string) json_encode( array( 'note' => Encryption::V2_PREFIX . 'abc' ) ),
+		);
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertSame( array(), $this->updates );
+		$this->assertSame( array(), $result['errors'] );
+	}
+
+	public function test_a_field_that_will_not_decrypt_is_reported_and_kept(): void {
+		$broken = Encryption::V2_PREFIX . 'bm90LWEtcmVhbC1lbnZlbG9wZQ==';
+
+		$this->rows[ self::REREG ][] = array(
+			'id'   => 6,
+			'data' => (string) json_encode( array( 'fields' => array( 'cpf' => $broken ) ) ),
+		);
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertSame( array(), $this->updates, 'A body whose only ciphertext failed has nothing to write.' );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( 'Could not decrypt cpf on reregistration submission 6', $result['errors'][0] );
+	}
+
+	public function test_a_refused_body_write_is_reported(): void {
+		global $wpdb;
+
+		$this->rows[ self::REREG ][] = array(
+			'id'   => 8,
+			'data' => (string) json_encode( array( 'fields' => array( 'cpf' => (string) Encryption::encrypt( '123' ) ) ) ),
+		);
+		$wpdb->shouldReceive( 'update' )->andReturn( false );
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertSame(
+			array( 'Could not write the re-encrypted body for reregistration submission 8.' ),
+			$result['errors']
+		);
+	}
+
+	public function test_an_empty_reregistration_read_parks_the_cursor_at_the_end(): void {
+		global $wpdb;
+
+		$this->rows[ self::REREG ][] = array(
+			'id'   => 12,
+			'data' => (string) json_encode( array( 'fields' => array( 'cpf' => (string) Encryption::encrypt( '123' ) ) ) ),
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertSame( 12, $this->options['ffc_key_rotation_remaining_state']['cursors']['reregistration_data'] );
+		$this->assertSame( 0, $result['pending'] );
+	}
+
+	public function test_an_empty_recruitment_read_parks_the_cursor_at_the_end(): void {
+		global $wpdb;
+
+		$this->rows[ self::CANDIDATES ][] = $this->candidate( 15, '44444444444' );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertSame( 15, $this->options['ffc_key_rotation_remaining_state']['cursors']['recruitment_candidate'] );
+	}
+
+	public function test_a_candidate_column_that_will_not_decrypt_is_reported(): void {
+		$row                  = $this->candidate( 3, '55555555555' );
+		$row['rf_encrypted']  = Encryption::V2_PREFIX . 'bm90LWEtcmVhbC1lbnZlbG9wZQ==';
+		$row['email_encrypted'] = '';
+		$this->rows[ self::CANDIDATES ][] = $row;
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( 'Could not decrypt rf_encrypted for recruitment candidate 3', $result['errors'][0] );
+		$this->assertCount( 1, $this->updates, 'The column that did decrypt is still rotated.' );
+		$this->assertArrayNotHasKey( 'rf_encrypted', $this->updates[0]['data'] );
+		$this->assertArrayHasKey( 'cpf_encrypted', $this->updates[0]['data'] );
+	}
+
+	public function test_a_candidate_without_ciphertext_is_not_written(): void {
+		$row                  = $this->candidate( 2, '66666666666' );
+		$row['cpf_encrypted'] = null;
+		$this->rows[ self::CANDIDATES ][] = $row;
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertSame( array(), $this->updates );
+		$this->assertSame( 0, $result['processed'] );
+	}
+
+	public function test_a_second_run_under_the_same_key_keeps_the_stamped_state(): void {
+		$this->rows[ self::CANDIDATES ][] = $this->candidate( 1, '77777777777' );
+
+		$this->strategy->execute( 'key_rotation_remaining', array() );
+		$state = $this->options['ffc_key_rotation_remaining_state'];
+
+		$this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertSame( $state['fingerprint'], $this->options['ffc_key_rotation_remaining_state']['fingerprint'] );
+		$this->assertSame(
+			$state['cursors'],
+			$this->options['ffc_key_rotation_remaining_state']['cursors'],
+			'A matching fingerprint must not reset the cursors.'
+		);
+	}
+
 	public function test_name_is_the_one_the_registry_advertises(): void {
 		$this->assertSame( 'Encryption Key Rotation — Remaining Areas', $this->strategy->get_name() );
 	}
