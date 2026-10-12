@@ -23297,8 +23297,8 @@ msgstr "uma conta com dois valores em que os dígitos verificadores mostram qual
 msgid "one number stored against more than one account: either a duplicate login to merge, or one login carrying someone else's mistyped number."
 msgstr "um número armazenado em mais de uma conta: ou um login duplicado a mesclar, ou um login com o número digitado errado de outra pessoa."
 
-msgid "numbers that share one address without being variants of each other, such as a shared mailbox or an account submitting for other people."
-msgstr "números que compartilham um mesmo endereço sem serem variações uns dos outros, como uma caixa de correio compartilhada ou uma conta que envia por outras pessoas."
+msgid "numbers that share one address without being variants of each other, such as a shared mailbox or an account submitting for other people. Each number shows the names recorded beside it, read from the submissions themselves, so the right person can be found for each one."
+msgstr "números que compartilham um mesmo endereço sem serem variações uns dos outros, como uma caixa de correio compartilhada ou uma conta que envia por outras pessoas. Cada número mostra os nomes registrados junto a ele, lidos das próprias submissões, para que se encontre a pessoa certa de cada um."
 
 msgid "the check digits do not single one value out, so HR has to say which number is this person's."
 msgstr "os dígitos verificadores não apontam um único valor, então o RH precisa dizer qual número é o desta pessoa."

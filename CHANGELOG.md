@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **"One address, several people" names each number** (#1684). Each number's Move / Split group shows the names recorded beside it. They are now also read from the submission answers (encrypted copy first), which is where this panel's rows live, so each number can be taken to HR by name rather than by hash.
+
 ## [6.37.0] (2026-10-12) — `5823fad`
 
 ### Added
