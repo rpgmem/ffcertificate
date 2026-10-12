@@ -208,6 +208,98 @@ class AudienceLoaderTest extends TestCase {
 		$loader->enqueue_frontend_assets();
 	}
 
+	/**
+	 * Runs alone: it resets the process-wide SourceRegistry.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_init_in_admin_registers_the_bookings_export_source(): void {
+		Functions\when('is_admin')->justReturn(true);
+		Functions\when('add_shortcode')->justReturn(null);
+		\FreeFormCertificate\Core\SourceRegistry::reset();
+
+		AudienceLoader::get_instance()->init();
+
+		$source = \FreeFormCertificate\Core\SourceRegistry::get(\FreeFormCertificate\Audience\AudienceBookingExportSource::TYPE);
+		\FreeFormCertificate\Core\SourceRegistry::reset();
+
+		$this->assertInstanceOf(\FreeFormCertificate\Audience\AudienceBookingExportSource::class, $source);
+	}
+
+	// ==================================================================
+	// enqueue_admin_assets() — page-specific bundles
+	// ==================================================================
+
+	/**
+	 * Records every style/script handle the admin enqueue touches.
+	 *
+	 * @return \ArrayObject<string, list<string>> Keys: registered, styles, scripts, localized.
+	 */
+	private function recordAdminEnqueues( bool $common_registered ): \ArrayObject {
+		$log = new \ArrayObject(array('registered' => array(), 'styles' => array(), 'scripts' => array(), 'localized' => array()));
+		$push = static function (string $key, string $handle) use ($log): void {
+			$list   = $log[$key];
+			$list[] = $handle;
+			$log[$key] = $list;
+		};
+		Functions\when('wp_style_is')->justReturn($common_registered);
+		Functions\when('wp_register_style')->alias(static function ($handle) use ($push) { $push('registered', $handle); });
+		Functions\when('wp_enqueue_style')->alias(static function ($handle) use ($push) { $push('styles', $handle); });
+		Functions\when('wp_enqueue_script')->alias(static function ($handle) use ($push) { $push('scripts', $handle); });
+		Functions\when('wp_localize_script')->alias(static function ($handle, $name) use ($push) { $push('localized', $name); return true; });
+		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+		Functions\when('rest_url')->justReturn('https://example.com/wp-json/ffc/v1/audience/');
+		Functions\when('wp_create_nonce')->justReturn('test-nonce');
+		Functions\when('sanitize_text_field')->returnArg();
+		Functions\when('wp_unslash')->returnArg();
+		return $log;
+	}
+
+	/**
+	 * Runs alone: it stubs `wp_style_is`, which a `function_exists()` guard in the
+	 * loader checks, and a definition left behind would change later tests.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_enqueue_admin_assets_on_the_audiences_page_loads_the_field_editor(): void {
+		$log           = $this->recordAdminEnqueues(false);
+		$_GET['page']  = 'ffc-scheduling-audiences';
+
+		AudienceLoader::get_instance()->enqueue_admin_assets('scheduling_page_ffc-scheduling-audiences');
+		unset($_GET['page']);
+
+		$this->assertSame(array('ffc-common'), $log['registered'], 'The shared palette is registered when nobody did yet.');
+		$this->assertContains('ffc-custom-fields-admin', $log['styles']);
+		$this->assertContains('jquery-ui-sortable', $log['scripts']);
+		$this->assertContains('ffc-division-sector-editor', $log['scripts']);
+		$this->assertContains('ffc-custom-fields-admin', $log['scripts']);
+		$this->assertNotContains('ffc-batched-export', $log['scripts']);
+		$this->assertSame(array('ffcDivisionSectorEditor', 'ffcAudienceAdmin', 'ffcAdminAutosave'), $log['localized']);
+	}
+
+	/**
+	 * Runs alone: it stubs `wp_style_is`, which a `function_exists()` guard in the
+	 * loader checks, and a definition left behind would change later tests.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_enqueue_admin_assets_on_the_bookings_page_loads_the_batched_export(): void {
+		$log          = $this->recordAdminEnqueues(true);
+		$_GET['page'] = 'ffc-scheduling-bookings';
+
+		AudienceLoader::get_instance()->enqueue_admin_assets('scheduling_page_ffc-scheduling-bookings');
+		unset($_GET['page']);
+
+		$this->assertSame(array(), $log['registered'], 'An already registered palette is left alone.');
+		$this->assertContains('ffc-batched-export', $log['scripts']);
+		$this->assertContains('ffc-progress-overlay', $log['styles']);
+		$this->assertNotContains('ffc-custom-fields-admin', $log['scripts']);
+		$this->assertSame(array('ffcAudienceAdmin', 'ffcAdminAutosave'), $log['localized']);
+	}
+
 	// ==================================================================
 	// register_rest_routes()
 	// ==================================================================

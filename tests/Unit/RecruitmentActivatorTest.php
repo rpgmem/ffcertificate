@@ -315,6 +315,301 @@ class RecruitmentActivatorTest extends TestCase {
 		$this->assertContains( 7, $version_writes, 'Schema-version marker should still advance past v7.' );
 	}
 
+	// ==================================================================
+	// maybe_migrate() — the whole chain against a stateful schema double
+	// ==================================================================
+
+	/**
+	 * Wires `$wpdb` to a small in-memory schema.
+	 *
+	 * `$columns` maps a column name to its SQL type (absent = missing); ALTERs
+	 * that add, drop or rename `called_at*` update it, so the v7 step reads
+	 * back what it wrote. Every `query()` and `update()` is recorded.
+	 *
+	 * @param bool                  $tables_exist Whether SHOW TABLES finds each table.
+	 * @param array<string, string> $columns      Column name => type.
+	 * @param list<object>          $legacy_rows  Rows the v7 batch SELECT returns once.
+	 * @return \ArrayObject<string, mixed> Keys: queries, updates, dbdelta.
+	 */
+	private function stub_schema( bool $tables_exist, array $columns, array $legacy_rows = array() ): \ArrayObject {
+		$log = new \ArrayObject(
+			array(
+				'queries' => array(),
+				'updates' => array(),
+				'dbdelta' => array(),
+				'columns' => $columns,
+			)
+		);
+
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $query ) use ( $tables_exist, $log ) {
+				if ( preg_match( "/SHOW TABLES LIKE\s+'([^']+)'/", $query, $m ) ) {
+					return $tables_exist ? $m[1] : null;
+				}
+				if ( preg_match( "/SHOW COLUMNS FROM `[^`]+` LIKE '([^']+)'/", $query, $m ) ) {
+					return isset( $log['columns'][ $m[1] ] ) ? $m[1] : null;
+				}
+				return null;
+			}
+		);
+
+		$rows_served = false;
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $query ) use ( $log, $legacy_rows, &$rows_served ) {
+				$normalized = str_replace( '\\', '', $query );
+				if ( preg_match( "/SHOW COLUMNS FROM '[^']+' LIKE '([^']+)'/", $normalized, $m ) ) {
+					$name = $m[1];
+					return isset( $log['columns'][ $name ] )
+						? array( (object) array( 'Field' => $name, 'Type' => $log['columns'][ $name ] ) )
+						: array();
+				}
+				if ( false !== strpos( $normalized, 'SELECT id, called_at' ) ) {
+					if ( $rows_served ) {
+						return array();
+					}
+					$rows_served = true;
+					return $legacy_rows;
+				}
+				return array();
+			}
+		);
+
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $query ) use ( $log ) {
+				$queries   = $log['queries'];
+				$queries[] = $query;
+				$log['queries'] = $queries;
+				$columns   = $log['columns'];
+				if ( false !== strpos( $query, "ADD COLUMN 'called_at_ts'" ) ) {
+					$columns['called_at_ts'] = 'bigint(20) unsigned';
+				}
+				if ( false !== strpos( $query, "DROP COLUMN 'called_at'" ) ) {
+					unset( $columns['called_at'] );
+				}
+				if ( false !== strpos( $query, "CHANGE 'called_at_ts' 'called_at'" ) ) {
+					$columns['called_at'] = $columns['called_at_ts'];
+					unset( $columns['called_at_ts'] );
+				}
+				$log['columns'] = $columns;
+				return 1;
+			}
+		);
+
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			static function ( $table, $data, $where ) use ( $log ) {
+				$updates   = $log['updates'];
+				$updates[] = array( $table, $data, $where );
+				$log['updates'] = $updates;
+				return 1;
+			}
+		);
+
+		Functions\when( 'dbDelta' )->alias(
+			static function ( $sql ) use ( $log ) {
+				$sqls   = $log['dbdelta'];
+				$sqls[] = $sql;
+				$log['dbdelta'] = $sqls;
+				return array();
+			}
+		);
+
+		return $log;
+	}
+
+	/**
+	 * @return \ArrayObject<int, int> Every schema-version value written, in order.
+	 */
+	private function record_schema_versions( $stored ): \ArrayObject {
+		$writes = new \ArrayObject();
+		Functions\when( 'get_option' )->justReturn( $stored );
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( $writes ) {
+				if ( 'ffc_recruitment_schema_version' === $key ) {
+					$writes[] = $value;
+				}
+				return true;
+			}
+		);
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		return $writes;
+	}
+
+	/**
+	 * @param \ArrayObject<string, mixed> $log
+	 * @return list<string>
+	 */
+	private function queries_matching( \ArrayObject $log, string $needle ): array {
+		return array_values(
+			array_filter( $log['queries'], static fn ( $q ) => false !== stripos( $q, $needle ) )
+		);
+	}
+
+	public function test_maybe_migrate_runs_every_step_on_a_legacy_install(): void {
+		$writes = $this->record_schema_versions( 0 );
+		$log    = $this->stub_schema(
+			true,
+			array(
+				'called_at' => 'datetime',
+				'list_type' => "enum('preview','definitive')",
+			),
+			array(
+				(object) array( 'id' => '1', 'called_at' => '2024-01-02 03:04:05' ),
+				(object) array( 'id' => '2', 'called_at' => 'not a date' ),
+			)
+		);
+
+		RecruitmentActivator::maybe_migrate();
+
+		$this->assertSame( array( 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ), $writes->getArrayCopy() );
+
+		// v2 + v3: widen, rename, narrow — twice.
+		$this->assertCount( 1, $this->queries_matching( $log, "SET status = 'definitive' WHERE status = 'active'" ) );
+		$this->assertCount( 1, $this->queries_matching( $log, "SET status = 'definitive' WHERE status = 'final'" ) );
+		// v4 adjutancy colour, v5 preview columns + index, v6 CSV extension columns.
+		$this->assertCount( 1, $this->queries_matching( $log, 'ADD COLUMN color VARCHAR(9)' ) );
+		$this->assertCount( 1, $this->queries_matching( $log, 'ADD COLUMN preview_status' ) );
+		$this->assertCount( 1, $this->queries_matching( $log, 'ADD COLUMN preview_reason_id' ) );
+		$this->assertCount( 1, $this->queries_matching( $log, 'ADD INDEX idx_preview_reason_id' ) );
+		$this->assertCount( 1, $this->queries_matching( $log, 'ADD COLUMN time_points' ) );
+		$this->assertCount( 1, $this->queries_matching( $log, 'ADD COLUMN hab_emebs' ) );
+		// v7: staged, back-filled (the unparseable row is skipped), dropped, renamed.
+		$this->assertCount( 1, $this->queries_matching( $log, "ADD COLUMN 'called_at_ts'" ) );
+		$this->assertSame(
+			array( array( 'wp_ffc_recruitment_call', array( 'called_at_ts' => 1704164645 ), array( 'id' => 1 ) ) ),
+			$log['updates']
+		);
+		$this->assertCount( 1, $this->queries_matching( $log, "DROP COLUMN 'called_at'" ) );
+		$this->assertCount( 1, $this->queries_matching( $log, "CHANGE 'called_at_ts' 'called_at' BIGINT" ) );
+		$this->assertSame( 'bigint(20) unsigned', $log['columns']['called_at'] );
+		$this->assertArrayNotHasKey( 'called_at_ts', $log['columns'] );
+		// v8 withdrew, v9 list_type widened then purged.
+		$this->assertCount( 1, $this->queries_matching( $log, "'hired','withdrew'" ) );
+		$this->assertCount( 1, $this->queries_matching( $log, 'MODIFY list_type VARCHAR(50)' ) );
+		$this->assertCount( 1, $this->queries_matching( $log, "DELETE FROM 'wp_ffc_recruitment_classification'" ) );
+		// v11 drops the staging table; every table already exists, so nothing is created.
+		$this->assertCount( 1, $this->queries_matching( $log, 'DROP TABLE IF EXISTS `wp_ffc_recruitment_import_staging`' ) );
+		$this->assertSame( array(), $log['dbdelta'] );
+	}
+
+	public function test_maybe_migrate_on_a_bare_database_only_creates_the_late_tables(): void {
+		$writes = $this->record_schema_versions( array() );
+		$log    = $this->stub_schema( false, array() );
+
+		RecruitmentActivator::maybe_migrate();
+
+		$this->assertSame( array( 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ), $writes->getArrayCopy(), 'An unusable stored value reads as 0.' );
+		$this->assertSame(
+			array( 'DROP TABLE IF EXISTS `wp_ffc_recruitment_import_staging`' ),
+			$log['queries'],
+			'Every ALTER step returns early when its table is missing.'
+		);
+		$created = array_map(
+			static fn ( $sql ) => preg_match( '/CREATE TABLE (\S+)/', $sql, $m ) ? $m[1] : '',
+			$log['dbdelta']
+		);
+		$this->assertSame(
+			array(
+				'wp_ffc_recruitment_reason',
+				'wp_ffc_recruitment_import_jobs',
+				'wp_ffc_recruitment_import_staging',
+				'wp_ffc_recruitment_import_staging',
+			),
+			$created
+		);
+	}
+
+	public function test_maybe_migrate_skips_columns_that_already_exist_and_an_empty_backfill(): void {
+		$this->record_schema_versions( 3 );
+		$log = $this->stub_schema(
+			true,
+			array(
+				'color'             => 'varchar(9)',
+				'preview_status'    => 'enum',
+				'preview_reason_id' => 'bigint',
+				'time_points'       => 'decimal',
+				'hab_emebs'         => 'tinyint',
+				'called_at'         => 'datetime',
+				'list_type'         => 'varchar(50)',
+			)
+		);
+
+		RecruitmentActivator::maybe_migrate();
+
+		$this->assertSame( array(), $this->queries_matching( $log, 'ADD COLUMN color' ) );
+		$this->assertSame( array(), $this->queries_matching( $log, 'ADD COLUMN preview' ) );
+		$this->assertSame( array(), $this->queries_matching( $log, 'ADD INDEX' ) );
+		$this->assertSame( array(), $this->queries_matching( $log, 'ADD COLUMN time_points' ) );
+		$this->assertSame( array(), $this->queries_matching( $log, 'ADD COLUMN hab_emebs' ) );
+		$this->assertSame( array(), $log['updates'], 'No legacy row, so nothing is back-filled.' );
+		$this->assertSame( 'bigint(20) unsigned', $log['columns']['called_at'], 'The swap still completes.' );
+	}
+
+	public function test_create_tables_returns_early_when_the_version_gate_matches(): void {
+		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		$log = $this->stub_schema( false, array() );
+		Functions\when( 'update_option' )->alias(
+			function () {
+				$this->fail( 'A matching gate must not rewrite the option.' );
+			}
+		);
+
+		RecruitmentActivator::create_tables();
+
+		$this->assertSame( array(), $log['dbdelta'] );
+	}
+
+	public function test_maybe_migrate_does_nothing_when_already_current(): void {
+		$writes = $this->record_schema_versions( '11' );
+		$log    = $this->stub_schema( true, array() );
+
+		RecruitmentActivator::maybe_migrate();
+
+		$this->assertCount( 0, $writes );
+		$this->assertSame( array(), $log['queries'] );
+	}
+
+	public function test_maybe_migrate_v9_only_purges_when_list_type_is_already_varchar(): void {
+		$writes = $this->record_schema_versions( 8 );
+		$log    = $this->stub_schema( true, array( 'list_type' => 'varchar(50)' ) );
+
+		RecruitmentActivator::maybe_migrate();
+
+		$this->assertSame( array( 9, 10, 11 ), $writes->getArrayCopy() );
+		$this->assertCount( 0, $this->queries_matching( $log, 'MODIFY list_type' ) );
+		$this->assertCount( 1, $this->queries_matching( $log, "DELETE FROM 'wp_ffc_recruitment_classification'" ) );
+	}
+
+	public function test_maybe_migrate_v7_without_either_column_alters_nothing(): void {
+		$writes = $this->record_schema_versions( 6 );
+		$log    = $this->stub_schema( true, array( 'list_type' => 'varchar(50)' ) );
+
+		RecruitmentActivator::maybe_migrate();
+
+		$this->assertContains( 7, $writes->getArrayCopy() );
+		$this->assertSame( array(), $this->queries_matching( $log, 'called_at' ) );
+		$this->assertSame( array(), $log['updates'] );
+	}
+
+	public function test_maybe_migrate_v7_resumes_a_partial_run_with_both_columns_present(): void {
+		$this->record_schema_versions( 6 );
+		$log = $this->stub_schema(
+			true,
+			array(
+				'called_at'    => 'datetime',
+				'called_at_ts' => 'bigint(20) unsigned',
+				'list_type'    => 'varchar(50)',
+			),
+			array( (object) array( 'id' => '5', 'called_at' => '2024-01-01 00:00:00' ) )
+		);
+
+		RecruitmentActivator::maybe_migrate();
+
+		$this->assertCount( 0, $this->queries_matching( $log, "ADD COLUMN 'called_at_ts'" ), 'The staging column is reused.' );
+		$this->assertSame( array( array( 'wp_ffc_recruitment_call', array( 'called_at_ts' => 1704067200 ), array( 'id' => 5 ) ) ), $log['updates'] );
+		$this->assertSame( 'bigint(20) unsigned', $log['columns']['called_at'] );
+		$this->assertArrayNotHasKey( 'called_at_ts', $log['columns'] );
+	}
+
 	/**
 	 * Capture the CREATE TABLE SQL emitted to dbDelta for a specific table suffix.
 	 *

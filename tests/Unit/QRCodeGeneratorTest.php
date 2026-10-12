@@ -657,4 +657,42 @@ class QRCodeGeneratorTest extends TestCase {
 		preg_match( '/height:(\d+)px/', $html, $m );
 		$this->assertGreaterThan( 200, (int) $m[1] );
 	}
+
+	public function test_generate_magic_link_qr_encodes_the_verification_link(): void {
+		global $wpdb;
+		$wpdb->shouldReceive( 'get_row' )->andReturn( array( 'magic_token' => 'abc123abc123abc123abc123abc123ab' ) );
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.org' . $path );
+
+		$base64 = $this->generator->generate_magic_link_qr( 7, 120 );
+
+		$this->assertNotSame( '', $base64 );
+		$png = (string) base64_decode( $base64, true );
+		$this->assertStringStartsWith( "\x89PNG", $png );
+		// Same link, same parameters → the same image the plain generator draws.
+		$this->assertSame(
+			$this->generator->generate(
+				'https://example.org/valid/#token=abc123abc123abc123abc123abc123ab',
+				array( 'size' => 120 )
+			),
+			$base64
+		);
+	}
+
+	public function test_save_to_cache_adds_the_missing_column_before_writing(): void {
+		global $wpdb;
+		$queries = array();
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $sql . ' ' . implode( ',', $args ) );
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $sql ) use ( &$queries ) {
+				$queries[] = $sql;
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->once()->andReturn( 1 );
+
+		$this->assertTrue( $this->invokePrivate( 'save_to_cache', array( 42, 'NEWB64' ) ) );
+		$this->assertCount( 1, $queries );
+		$this->assertStringContainsString( 'ALTER TABLE %i ADD COLUMN %i LONGTEXT NULL', $queries[0] );
+		$this->assertStringContainsString( 'qr_code_cache', $queries[0] );
+	}
 }
