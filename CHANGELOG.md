@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The recruitment CSV import honours the RF check digit setting** (#1683). It refused a mistyped CPF but never checked an RF, even with Settings → General → RF check digit on, so the one path that writes candidacy numbers kept storing RFs every form refused. With the setting on, such a row is now refused by line; off, nothing changes.
+
 ## [6.37.0] (2026-10-12) — `5823fad`
 
 ### Added

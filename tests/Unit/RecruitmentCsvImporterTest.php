@@ -694,6 +694,46 @@ class RecruitmentCsvImporterTest extends TestCase {
 	}
 
 	/**
+	 * The RF check digit is an opt-in, and with it OFF a mistyped RF still
+	 * imports -- an institution whose RF scheme has no check digit must be
+	 * able to use the plugin (#1683).
+	 */
+	public function test_validate_accepts_a_mistyped_rf_while_the_check_digit_setting_is_off(): void {
+		// `7310242` is valid; the last digit is one off.
+		$rows   = array( $this->csv_row( array( 'cpf' => '', 'rf' => '7310241' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertEmpty( $errors );
+	}
+
+	/**
+	 * THE GAP #1683 CLOSES: with the setting ON, every other write path
+	 * refused a mistyped RF while the import staged it.
+	 */
+	public function test_validate_rejects_a_mistyped_rf_when_the_check_digit_setting_is_on(): void {
+		Monkey\Filters\expectApplied( 'ffc_validate_rf_check_digit' )->andReturn( true );
+
+		$rows   = array( $this->csv_row( array( '_line' => 9, 'cpf' => '', 'rf' => '7310241' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertNotEmpty( $errors );
+		$this->assertStringContainsString( 'recruitment_csv_rf_invalid', $errors[0] );
+		$this->assertStringContainsString( 'line=9', $errors[0] );
+	}
+
+	/**
+	 * With the setting ON a sound RF still imports, padded or not.
+	 */
+	public function test_validate_accepts_a_sound_rf_when_the_check_digit_setting_is_on(): void {
+		Monkey\Filters\expectApplied( 'ffc_validate_rf_check_digit' )->andReturn( true );
+
+		$rows   = array( $this->csv_row( array( 'cpf' => '', 'rf' => '7310242' ) ) );
+		$errors = $this->validate_rows( $rows );
+
+		$this->assertEmpty( $errors );
+	}
+
+	/**
 	 * A row carrying only an RF is untouched: the import accepts either.
 	 */
 	public function test_validate_accepts_a_row_with_no_cpf_at_all(): void {
