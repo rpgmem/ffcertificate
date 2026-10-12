@@ -255,8 +255,15 @@ jobs:
     # isolated coverage per-shard on CI but not in a mixed single-process run), so
     # the true (CI, sharded) figure sits above the ~89% baseline — 86 stays well
     # clear while still ratcheting the pending #910 gain.
+    #
+    # 86 → 90 — error-path coverage push (#1690, #1697 / #1700 / #1701): the
+    # audience/recruitment/reregistration, certificate/form-editor/settings and
+    # identity/migration/encryption modules. This job measured 93.64% on #1701's
+    # head (sharded phpcov merge). The floor follows the rule shared by the four
+    # plugins — the highest of 90%, the measured figure minus 5 points (88.64)
+    # and the current value — so 90, a 3.6pp buffer.
     env:
-      COVERAGE_FLOOR_LINES: '86'
+      COVERAGE_FLOOR_LINES: '90'
     steps:
       - name: Fail if any coverage shard did not succeed
         if: needs.coverage-shard.result != 'success'
