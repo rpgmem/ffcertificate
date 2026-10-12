@@ -15,12 +15,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificate, form editor and settings code is covered by tests, error paths included** (#1690). New and extended unit tests reach 14 more classes, from the certificate template and receipt screens to the form editor's save handler and public CSV metabox, the form cache, the rate limiter and the Date Messages admin page: 754 more statements.
 - **Identity, migration and encryption code is covered by tests, error paths included** (#1690). New and extended unit tests reach 19 more classes, from the identity resolution screen and its repair, relink and agreement services to the migration strategies, the status calculator, foreign keys and `Encryption`: 841 more statements.
 - **The PHP coverage floor rises from 86% to 90%** (#1690). CI measured 93.64% after the three test pushes above; the floor follows the rule the four plugins now share — the highest of 90%, the measured figure minus 5 points, and its current value — written in `CLAUDE.md`.
+- **The magic-link QR code drops a check that could never fail** (#1702). `generate_magic_link_qr()` logged "Link generation failed" for an empty link, which `MagicLinkHelper` returns only for an empty token the method already turns away; no behaviour changes.
 - **Twelve "never called" test checks now verify something** (#1699). An `expect()->never()` on a function `setUp()` already stubbed was never consulted, so those tests passed whatever ran; they count calls through a new `CallLog` helper, and `ExpectAfterSetUpStubTest` refuses the shape.
 
 ### Fixed
 
 - **Consolidating a person imported twice as a candidate no longer dead-ends** (#1682). Where both numbers sat on candidacies of one account, Identity resolution refused and asked to decide about the second candidacy, which no screen could do. The mistyped candidacy is now folded into the sound one: classifications move unchanged and the empty row is deleted. An identical, never-called classification on both (a preliminary list promoted under one number, the definitive re-imported under the other) is deduplicated; a differing or called one, or a different PCD condition, is still refused.
 - **The recruitment CSV import honours the RF check digit setting** (#1683). It refused a mistyped CPF but never checked an RF, even with Settings → General → RF check digit on, so the one path that writes candidacy numbers kept storing RFs every form refused. With the setting on, such a row is now refused by line; off, nothing changes.
+- **A role holding only `ffc_manage_reregistration` opens the Reregistration screen** (#1698). The menu and the page admitted the view capability alone, so a custom role with manage but not view got "Permission denied"; the shipped presets grant both and were not affected.
 
 ### Security
 
