@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.38.0] (2026-10-12)
+## [6.38.0] (2026-10-12) — `529e80a1`
 
 The licence moves to AGPLv3 or later. Identity resolution names each number in "One address, several people" and can consolidate a candidate imported twice, the recruitment CSV import honours the RF check digit, and a manage-only role reaches the Reregistration screen. Behind the screens, tests now cover error paths across the plugin and the PHP coverage floor rises to 90%.
 
