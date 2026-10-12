@@ -64,6 +64,13 @@ class IdentityRepairTest extends TestCase {
 	private array $refusing = array();
 
 	/**
+	 * Tables `SHOW TABLES LIKE` does not report.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $absent = array();
+
+	/**
 	 * Set up Brain\Monkey, the $wpdb double and the encryption seams.
 	 */
 	protected function setUp(): void {
@@ -117,7 +124,9 @@ class IdentityRepairTest extends TestCase {
 					return $this->ciphers[ $hash ] ?? null;
 				}
 
-				return $prepared['args'][0] ?? null;
+				$table = $prepared['args'][0] ?? null;
+
+				return in_array( $table, $this->absent, true ) ? null : $table;
 			}
 		);
 
@@ -1012,5 +1021,115 @@ class IdentityRepairTest extends TestCase {
 	 */
 	private function hash_of( string $rf ): string {
 		return (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'rf', $rf );
+	}
+
+	public function test_it_refuses_a_repair_that_names_no_finding(): void {
+		$result = $this->repair()->repair( '   ', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_no_subject', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	public function test_it_refuses_a_correction_that_is_already_the_stored_value(): void {
+		$result = $this->repair()->repair( $this->hash_of( self::GOOD_RF ), self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_unchanged', $result->get_error_code() );
+		$this->assertSame( array(), $this->control, 'A no-op correction must not even open a transaction.' );
+	}
+
+	public function test_it_refuses_to_consolidate_an_identifier_it_does_not_handle(): void {
+		$result = $this->repair()->consolidate( 'wrong', 'right', 0, 'pis' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_unknown_field', $result->get_error_code() );
+	}
+
+	/**
+	 * A store that is not installed is skipped on both reads, and a store
+	 * holding no ciphertext for the target is passed over for one that does.
+	 */
+	public function test_absent_and_empty_stores_are_skipped_on_the_way_to_a_value(): void {
+		$this->absent = array( 'wp_ffc_self_scheduling_appointments' );
+		$this->given( 'ffc_submissions', 'wrong', array( array( 'id' => 3, 'user_id' => 12 ) ) );
+		$this->stores_value( 'right', 'cipher-right', null );
+
+		$result = $this->repair()->consolidate( 'wrong', 'right' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_consolidate_unreadable', $result->get_error_code() );
+
+		$this->stores_value( 'right', 'cipher-right', self::GOOD_RF );
+
+		$result = $this->repair()->consolidate( 'wrong', 'right' );
+
+		$this->assertIsArray( $result );
+		$this->assertNotContains(
+			'wp_ffc_self_scheduling_appointments',
+			array_column( $this->updates, 'table' ),
+			'An absent store is never written.'
+		);
+	}
+
+	/**
+	 * Folding a candidacy invalidates the recruitment caches when the object
+	 * cache can flush a group.
+	 */
+	public function test_a_folded_candidacy_flushes_the_recruitment_cache_groups(): void {
+		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		$flushed = array();
+		Functions\when( 'wp_cache_flush_group' )->alias(
+			static function ( $group ) use ( &$flushed ) {
+				$flushed[] = $group;
+				return true;
+			}
+		);
+
+		$this->given( 'ffc_recruitment_candidate', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given( 'ffc_recruitment_candidate', $this->hash_of( self::GOOD_RF ), array( array( 'id' => 5, 'user_id' => 398 ) ) );
+
+		$this->assertIsArray( $this->repair()->repair( 'subject', self::GOOD_RF ) );
+		$this->assertSame( array( 'ffc_recruitment_candidate', 'ffc_recruitment_classification' ), $flushed );
+	}
+
+	/**
+	 * The production seams build what they name.
+	 */
+	public function test_the_default_seams(): void {
+		$repair = new IdentityRepair();
+
+		$candidacies = new \ReflectionMethod( $repair, 'candidacies' );
+		$candidacies->setAccessible( true );
+		$this->assertInstanceOf( \FreeFormCertificate\Maintenance\CandidacyMerge::class, $candidacies->invoke( $repair ) );
+
+		$decrypt = new \ReflectionMethod( $repair, 'decrypt' );
+		$decrypt->setAccessible( true );
+		$this->assertSame( 'plain', $decrypt->invoke( $repair, (string) \FreeFormCertificate\Core\Encryption::encrypt( 'plain' ) ) );
+
+		$inserted = array();
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			static function ( $table, $data ) use ( &$inserted ) {
+				$inserted[] = array( $table, $data );
+				return 1;
+			}
+		);
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+
+		$reindex = new \ReflectionMethod( $repair, 'reindex' );
+		$reindex->setAccessible( true );
+		$this->assertTrue( $reindex->invoke( $repair, 44, 'new-hash', 'cpf_hash' ) );
+		$this->assertSame(
+			array(
+				array(
+					'wp_ffc_user_profiles',
+					array(
+						'cpf_hash' => 'new-hash',
+						'user_id'  => 44,
+					),
+				),
+			),
+			$inserted
+		);
 	}
 }

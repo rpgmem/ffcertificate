@@ -424,6 +424,160 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 	}
 
 	// ==================================================================
+	// execute() end to end, over a schema that answers by table
+	// ==================================================================
+
+	/**
+	 * Route the introspection and data statements by what they ask.
+	 *
+	 * @param array<string, array<int, array<string, mixed>>> $records  Table => rows the batch read returns.
+	 * @param array<string, int>                              $pending  Table => pending count.
+	 * @param array<int, string>                              $missing  "table.column" pairs that do not exist.
+	 * @return \ArrayObject Statements passed to query().
+	 */
+	private function route( array $records, array $pending, array $missing = array() ): \ArrayObject {
+		$queries = new \ArrayObject();
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				foreach ( $args as $arg ) {
+					$sql = preg_replace( '/%[isd]/', (string) $arg, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $sql ) use ( $pending ) {
+				$sql = (string) $sql;
+				if ( 1 === preg_match( '/SHOW TABLES LIKE (\S+)/', $sql, $m ) ) {
+					return $m[1];
+				}
+				if ( false !== strpos( $sql, 'INFORMATION_SCHEMA.STATISTICS' ) ) {
+					return 1 === preg_match( '/INDEX_NAME = cpf_rf_hash/', $sql ) ? '1' : '0';
+				}
+				foreach ( $pending as $table => $count ) {
+					if ( false !== strpos( $sql, 'FROM ' . $table ) ) {
+						return false !== strpos( $sql, 'cpf_rf_hash IS NOT NULL' ) ? (string) $count : '10';
+					}
+				}
+				return null;
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $sql ) use ( $records, $missing ) {
+				$sql = (string) $sql;
+				if ( 1 === preg_match( '/SHOW COLUMNS FROM (\S+) LIKE (\S+)/', $sql, $m ) ) {
+					return in_array( $m[1] . '.' . $m[2], $missing, true ) ? array() : array( (object) array( 'Field' => $m[2] ) );
+				}
+				foreach ( $records as $table => $rows ) {
+					if ( false !== strpos( $sql, 'FROM ' . $table ) ) {
+						return $rows;
+					}
+				}
+				return array();
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $sql ) use ( $queries ) {
+				$queries[] = (string) $sql;
+				return 1;
+			}
+		);
+
+		return $queries;
+	}
+
+	public function test_execute_reports_unresolvable_rows_from_both_tables_and_drops_nothing(): void {
+		$queries = $this->route(
+			array(
+				'wp_ffc_submissions'                  => array( array( 'id' => 3, 'cpf_rf' => '', 'cpf_rf_encrypted' => '', 'cpf_rf_hash' => 'h' ) ),
+				'wp_ffc_self_scheduling_appointments' => array( array( 'id' => 8, 'cpf_rf' => '', 'cpf_rf_encrypted' => '', 'cpf_rf_hash' => 'h' ) ),
+			),
+			array(
+				'wp_ffc_submissions'                  => 1,
+				'wp_ffc_self_scheduling_appointments' => 1,
+			)
+		);
+
+		$result = $this->strategy->execute( 'split_cpf_rf', array( 'batch_size' => 10 ) );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertTrue( $result['has_more'] );
+		$this->assertSame(
+			array(
+				'Could not resolve plain value for ID 3 in wp_ffc_submissions',
+				'Could not resolve plain value for ID 8 in wp_ffc_self_scheduling_appointments',
+			),
+			$result['errors']
+		);
+		$this->assertSame( array(), $queries->getArrayCopy(), 'Nothing may be dropped while rows are pending.' );
+	}
+
+	public function test_execute_drops_the_legacy_columns_and_indexes_once_nothing_is_pending(): void {
+		$queries = $this->route(
+			array(),
+			array(
+				'wp_ffc_submissions'                  => 0,
+				'wp_ffc_self_scheduling_appointments' => 0,
+			)
+		);
+
+		$result = $this->strategy->execute( 'split_cpf_rf', array() );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertFalse( $result['has_more'] );
+
+		$statements = $queries->getArrayCopy();
+		$this->assertContains( 'ALTER TABLE wp_ffc_submissions DROP COLUMN cpf_rf_encrypted', $statements );
+		$this->assertContains( 'ALTER TABLE wp_ffc_self_scheduling_appointments DROP COLUMN custom_data', $statements, 'Appointments carry their own extra plaintext columns.' );
+		$this->assertNotContains( 'ALTER TABLE wp_ffc_submissions DROP COLUMN custom_data', $statements, 'Submissions never had that column.' );
+		$this->assertContains( 'ALTER TABLE wp_ffc_submissions DROP INDEX cpf_rf_hash', $statements );
+		$this->assertNotContains( 'ALTER TABLE wp_ffc_submissions DROP INDEX email', $statements, 'Only an index that exists is dropped.' );
+	}
+
+	public function test_status_of_a_table_without_the_split_columns_is_empty(): void {
+		$this->route( array(), array(), array( 'wp_ffc_submissions.cpf_hash' ) );
+
+		$status = $this->invokePrivate( 'count_table_status', array( 'wp_ffc_submissions' ) );
+
+		$this->assertSame(
+			array(
+				'total'    => 0,
+				'migrated' => 0,
+				'pending'  => 0,
+			),
+			$status
+		);
+	}
+
+	public function test_an_exception_while_writing_a_row_is_reported_and_the_batch_continues(): void {
+		$this->route(
+			array(
+				'wp_ffc_submissions' => array(
+					array( 'id' => 1, 'cpf_rf' => '5181780', 'cpf_rf_encrypted' => 'E1', 'cpf_rf_hash' => 'H1' ),
+					array( 'id' => 2, 'cpf_rf' => '51817842080', 'cpf_rf_encrypted' => 'E2', 'cpf_rf_hash' => 'H2' ),
+				),
+			),
+			array()
+		);
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			static function ( $table, $data, $where ) {
+				if ( 1 === $where['id'] ) {
+					throw new \Exception( 'deadlock' );
+				}
+				return 1;
+			}
+		);
+
+		$result = $this->invokePrivate( 'process_table', array( 'wp_ffc_submissions', 10 ) );
+
+		$this->assertSame( 1, $result['processed'] );
+		$this->assertSame( array( 'Error processing ID 1 in wp_ffc_submissions: deadlock' ), $result['errors'] );
+	}
+
+	// ==================================================================
 	// can_run() — encryption not configured branch
 	// ==================================================================
 

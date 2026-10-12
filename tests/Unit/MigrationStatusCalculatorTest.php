@@ -562,6 +562,68 @@ class MigrationStatusCalculatorTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Every lazily-resolvable key and the strategy class it must build.
+	 *
+	 * @return array<string, array{0: string, 1: class-string}>
+	 */
+	public function lazy_strategy_provider(): array {
+		$ns = 'FreeFormCertificate\\Migrations\\Strategies\\';
+		return array(
+			'split_cpf_rf'                    => array( 'split_cpf_rf', $ns . 'CpfRfSplitMigrationStrategy' ),
+			'email_hash_rehash'               => array( 'email_hash_rehash', $ns . 'EmailHashRehashMigrationStrategy' ),
+			'activity_log_clear_plaintext'    => array( 'activity_log_clear_plaintext', $ns . 'ActivityLogClearPlaintextMigrationStrategy' ),
+			'activity_log_encrypt_ip'         => array( 'activity_log_encrypt_ip', $ns . 'ActivityLogEncryptIpMigrationStrategy' ),
+			'key_rotation_remaining'          => array( 'key_rotation_remaining', $ns . 'KeyRotationRemainingMigrationStrategy' ),
+			'identity_normalization'          => array( 'identity_normalization', $ns . 'IdentityNormalizationMigrationStrategy' ),
+			'identity_index_backfill'         => array( 'identity_index_backfill', $ns . 'IdentityIndexBackfillMigrationStrategy' ),
+			'certificate_capability_backfill' => array( 'certificate_capability_backfill', $ns . 'CertificateCapabilityBackfillMigrationStrategy' ),
+			'display_name_backfill'           => array( 'display_name_backfill', $ns . 'DisplayNameBackfillMigrationStrategy' ),
+			'name_parts_backfill'             => array( 'name_parts_backfill', $ns . 'NamePartsBackfillMigrationStrategy' ),
+			'birth_date_backfill'             => array( 'birth_date_backfill', $ns . 'BirthDateBackfillMigrationStrategy' ),
+			'import_legacy_templates'         => array( 'import_legacy_templates', $ns . 'ImportLegacyTemplatesMigrationStrategy' ),
+			'rewrite_html_image_refs'         => array( 'rewrite_html_image_refs', $ns . 'RewriteHtmlImageRefsMigrationStrategy' ),
+		);
+	}
+
+	/**
+	 * @dataProvider lazy_strategy_provider
+	 */
+	public function test_try_create_strategy_builds_each_known_key( string $key, string $expected_class ): void {
+		global $wpdb;
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		$method = $this->ref->getMethod( 'try_create_strategy' );
+		$method->setAccessible( true );
+		$method->invoke( $this->calculator, $key );
+
+		$strategies = $this->getPrivate( 'strategies' );
+
+		$this->assertArrayHasKey( $key, $strategies );
+		$this->assertInstanceOf( $expected_class, $strategies[ $key ] );
+		$this->assertArrayNotHasKey( $key, $this->getPrivate( 'strategy_errors' ), 'A successful build must clear any earlier error for the key.' );
+	}
+
+	public function test_try_create_strategy_keeps_an_existing_instance(): void {
+		$this->injectStrategy( 'key_rotation' );
+
+		$method = $this->ref->getMethod( 'try_create_strategy' );
+		$method->setAccessible( true );
+		$method->invoke( $this->calculator, 'key_rotation' );
+
+		$this->assertSame( $this->strategy, $this->getPrivate( 'strategies' )['key_rotation'] );
+	}
+
+	public function test_try_create_strategy_ignores_an_unknown_key(): void {
+		$method = $this->ref->getMethod( 'try_create_strategy' );
+		$method->setAccessible( true );
+		$method->invoke( $this->calculator, 'no_such_card' );
+
+		$this->assertSame( array(), $this->getPrivate( 'strategies' ) );
+		$this->assertSame( array(), $this->getPrivate( 'strategy_errors' ) );
+	}
+
 	// ==================================================================
 	// rearm() (#1530)
 	// ==================================================================

@@ -343,4 +343,18 @@ class DecryptFailureLoggingTest extends TestCase {
 			);
 		}
 	}
+
+	/**
+	 * A logger that throws must never reach the caller of decrypt().
+	 */
+	public function test_a_failing_audit_never_propagates_into_decryption(): void {
+		Functions\when( 'get_option' )->alias(
+			static function () {
+				throw new \RuntimeException( 'options table unavailable' );
+			}
+		);
+
+		$this->assertNull( Encryption::decrypt( '!!!invalid-base64!!!' ) );
+		$this->assertSame( array(), $this->getWriteBuffer(), 'Nothing was logged, and nothing was thrown.' );
+	}
 }
