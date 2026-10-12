@@ -46,7 +46,7 @@
    FORM CONTAINER & LAYOUT
    ============================================ */
 .ffc-shortcode.ffc-form-wrapper {
-    max-width: 600px;
+    max-width: var(--ffc-form-width);
     margin: 30px auto;
     padding: 30px;
     background: var(--ffc-bg-card);
@@ -71,7 +71,7 @@
    ============================================ */
 .ffc-shortcode .ffc-submission-form {
     width: 100%; /* ← Form pega largura total do wrapper */
-    max-width: 450px; /* ← Mas limitado a 450px */
+    max-width: calc(var(--ffc-form-width) - 150px);
     display: flex; /* ← CENTRALIZAÇÃO */
     flex-direction: column; /* ← CENTRALIZAÇÃO */
     align-items: stretch; /* ← Elementos pegam largura total */
@@ -145,7 +145,7 @@
    below align it visually with the rest of the form and the `/valid`
    notice patterns. */
 .ffc-shortcode .ffc-schedule-exception-banner {
-    max-width: 450px;
+    max-width: calc(var(--ffc-form-width) - 150px);
     margin-left: auto;
     margin-right: auto;
     border: 2px solid var(--ffc-primary);
@@ -211,7 +211,7 @@
 }
 
 .ffc-shortcode .ffc-embed-media {
-    max-width: 600px;
+    max-width: var(--ffc-form-width);
     width: 100%;
 }
 
@@ -556,7 +556,7 @@ details.ffc-consent-description > p {
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
     border: none;
-    border-radius: 5px;
+    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     cursor: pointer;
@@ -589,7 +589,7 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-message {
     margin-top: var(--ffc-spacing-2xl);
     padding: var(--ffc-spacing-xl);
-    border-radius: 5px;
+    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
 }
@@ -610,7 +610,7 @@ details.ffc-consent-description > p {
    VERIFICATION PAGE
    ============================================ */
 .ffc-shortcode.ffc-verification-container {
-    max-width: 600px;
+    max-width: var(--ffc-form-width);
     margin: 30px auto;
     padding: 30px;
     background: var(--ffc-bg-card);
@@ -656,7 +656,7 @@ details.ffc-consent-description > p {
    ============================================ */
 .ffc-shortcode .ffc-verification-form {
     width: 100%;
-    max-width: 450px;
+    max-width: calc(var(--ffc-form-width) - 150px);
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -665,7 +665,7 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-verify-input {
     padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border: 2px solid var(--ffc-border-light);
-    border-radius: 5px;
+    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-xl);
     font-family: monospace;
     text-transform: uppercase;
@@ -700,7 +700,7 @@ details.ffc-consent-description > p {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
     border: 1px solid var(--ffc-danger-border);
-    border-radius: 5px;
+    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-xl);
 }
 
@@ -709,7 +709,7 @@ details.ffc-consent-description > p {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
     border: 1px solid var(--ffc-success-border);
-    border-radius: 5px;
+    border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-shortcode .ffc-verify-success h3 {
@@ -1020,7 +1020,7 @@ details.ffc-consent-description > p {
     padding: var(--ffc-spacing-xl) 40px;
     font-size: var(--ffc-font-size-xl);
     font-weight: 600;
-    border-radius: 5px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     transition: all var(--ffc-transition-slow);
     box-shadow: 0 4px 12px var(--ffc-focus-ring);
@@ -1317,7 +1317,7 @@ details.ffc-consent-description > p {
    match the H4 ("Save this link…") above it so the two hints read as
    peers, not parent/child. */
 .ffc-shortcode .ffc-success-where-is-file {
-    max-width: 450px;
+    max-width: calc(var(--ffc-form-width) - 150px);
     margin: var(--ffc-spacing-xl) auto 0;
     padding: 0;
     text-align: left;

@@ -73,7 +73,7 @@ final class RadiusAndLayerTokensTest extends TestCase {
 		'ffc-code-editor-dark.css'       => 2,
 		'ffc-common.css'                 => 5,
 		'ffc-custom-fields-admin.css'    => 1,
-		'ffc-frontend.css'               => 7,
+		'ffc-frontend.css'               => 1,
 		'ffc-pdf-core.css'               => 2,
 		'ffc-recruitment-admin.css'      => 2,
 		'ffc-recruitment-public.css'     => 1,
