@@ -113,6 +113,7 @@ class ReregistrationAdminTest extends TestCase {
 	public function test_add_menu_registers_menu_pages(): void {
 		// #1030: this asserted nothing and called that "the menus were
 		// registered" — it passed for an add_menu() that registered none.
+		Functions\when( 'current_user_can' )->justReturn( true );
 		$registered = array();
 		Functions\when( 'add_menu_page' )->alias(
 			function () use ( &$registered ) {
