@@ -9,8 +9,8 @@
  * Requires PHP:       8.3
  * Author:             Alex Meusburger
  * Author URI:         https://github.com/rpgmem
- * License:             GPLv3 or later
- * License URI:         https://www.gnu.org/licenses/gpl-3.0.html
+ * License:            AGPLv3 or later
+ * License URI:        https://www.gnu.org/licenses/agpl-3.0.html
  * Text Domain:        ffcertificate
  * Domain Path:        /languages
  *

@@ -5,8 +5,8 @@ Requires at least: 6.8
 Tested up to: 7.1.3
 Stable tag: 6.37.0
 Requires PHP: 8.3
-License: GPLv3 or later
-License URI: https://www.gnu.org/licenses/gpl-3.0.html
+License: AGPLv3 or later
+License URI: https://www.gnu.org/licenses/agpl-3.0.html
 
 Create dynamic forms, generate PDF certificates, and validate authenticity with magic link access.
 
