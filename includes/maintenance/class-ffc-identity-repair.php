@@ -119,7 +119,7 @@ class IdentityRepair {
 	 * @param string $confirmed    The value HR confirmed.
 	 * @param string $field        `rf` or `cpf`; defaults to {@see self::FIELD}.
 	 * @param int    $only_account Restrict to one account's rows; 0 means every row carrying the hash.
-	 * @return array{subject: string, found: array{rows: array<string, array<int, int>>, accounts: array<int, int>}, account: int, consolidates: bool, pair: array<string, string|null>, shared_with: int}|WP_Error
+	 * @return array{subject: string, found: array{rows: array<string, array<int, int>>, accounts: array<int, int>}, account: int, consolidates: bool, pair: array<string, string|null>, shared_with: int, candidacy: array{from: int, into: int}|null}|WP_Error
 	 */
 	public function plan( string $subject_hash, string $confirmed, string $field = self::FIELD, int $only_account = 0 ): array|WP_Error {
 		global $wpdb;
@@ -213,6 +213,7 @@ class IdentityRepair {
 		$collides     = $this->rows_for( $new_hash, $hash_column );
 		$consolidates = false;
 		$shared_with  = 0;
+		$candidacy    = null;
 
 		if ( array() !== $collides['rows'] ) {
 			// A COLLISION ON THE SAME ACCOUNT IS THE TYPO ITSELF.
@@ -304,13 +305,42 @@ class IdentityRepair {
 			// new path bypasses, and a reviewer checking for that would have
 			// moved code that was already correct.
 			if ( isset( $found['rows'][ $unique ], $collides['rows'][ $unique ] ) ) {
-				return new WP_Error(
-					'ffc_identity_repair_unique_store',
-					sprintf(
-						/* translators: %s: the store that cannot hold two rows with one identifier. */
-						__( 'Both identifiers are recorded in %s, which holds each identifier once, so writing the corrected value there would leave two records claiming one. Decide what becomes of the second record first.', 'ffcertificate' ),
-						$unique
-					)
+				// ONE PERSON'S TWO CANDIDACIES ARE FOLDED INTO ONE.
+				//
+				// This refused every time, telling the operator to decide what
+				// became of the second candidacy -- and no screen could make
+				// that decision, so a person imported twice under two numbers
+				// could never leave the queue. Where both candidacies are this
+				// account's, the decision is mechanical: the sound one stays,
+				// the mistyped one's classifications move onto it untouched,
+				// and the emptied row goes. `CandidacyMerge::check()` refuses
+				// the cases that are a decision rather than a correction.
+				//
+				// Across accounts it still refuses: there the two candidacies
+				// are two logins, and folding them is the account merge.
+				$from = $found['rows'][ $unique ];
+				$into = $collides['rows'][ $unique ];
+
+				if ( ! $consolidates || 1 !== count( $from ) || 1 !== count( $into ) ) {
+					return new WP_Error(
+						'ffc_identity_repair_unique_store',
+						sprintf(
+							/* translators: %s: the store that cannot hold two rows with one identifier. */
+							__( 'Both identifiers are recorded in %s, on candidacies of different accounts, and that store holds each identifier once. Decide the merge under "Two accounts, one number" first.', 'ffcertificate' ),
+							$unique
+						)
+					);
+				}
+
+				$mergeable = $this->candidacies()->check( (int) $from[0], (int) $into[0], $field );
+
+				if ( is_wp_error( $mergeable ) ) {
+					return $mergeable;
+				}
+
+				$candidacy = array(
+					'from' => (int) $from[0],
+					'into' => (int) $into[0],
 				);
 			}
 		}
@@ -346,7 +376,20 @@ class IdentityRepair {
 			// other account specifically, which is the one the acknowledgement
 			// is about.
 			'shared_with'  => $shared_with,
+			// The two candidacies `repair()` folds into one, when the unique
+			// store holds both identifiers on this account; null otherwise.
+			'candidacy'    => $candidacy,
 		);
+	}
+
+	/**
+	 * The candidacy merge, as a seam a test can replace.
+	 *
+	 * @since 6.38.0
+	 * @return CandidacyMerge
+	 */
+	protected function candidacies(): CandidacyMerge {
+		return new CandidacyMerge();
 	}
 
 	/**
@@ -411,6 +454,8 @@ class IdentityRepair {
 		$account       = $plan['account'];
 		$consolidates  = $plan['consolidates'];
 		$pair          = $plan['pair'];
+		$candidacy     = $plan['candidacy'];
+		$unique        = $wpdb->prefix . self::UNIQUE_RF_STORE;
 
 		$written = array();
 
@@ -435,6 +480,12 @@ class IdentityRepair {
 		}
 
 		foreach ( $found['rows'] as $table => $ids ) {
+			// The mistyped candidacy is not rewritten: it is folded into the
+			// sound one below, and rewriting it first would collide with it.
+			if ( null !== $candidacy && $unique === $table ) {
+				continue;
+			}
+
 			$done = $wpdb->update(
 				$table,
 				array(
@@ -462,6 +513,21 @@ class IdentityRepair {
 			$written[ $table ] = count( $ids );
 		}
 
+		$merged_classifications = 0;
+
+		if ( null !== $candidacy ) {
+			$merged = $this->candidacies()->apply( $candidacy['from'], $candidacy['into'] );
+
+			if ( is_wp_error( $merged ) ) {
+				$wpdb->query( 'ROLLBACK' );
+
+				return $merged;
+			}
+
+			$written[ $unique ]     = 1;
+			$merged_classifications = $merged['classifications'];
+		}
+
 		if ( $account > 0 && ! $this->reindex( $account, (string) $pair[ $hash_column ], $hash_column ) ) {
 			$wpdb->query( 'ROLLBACK' );
 
@@ -472,6 +538,13 @@ class IdentityRepair {
 		}
 
 		$wpdb->query( 'COMMIT' );
+
+		// The recruitment readers cache candidacies and classifications by
+		// id; a folded candidacy must not be served from a cache afterwards.
+		if ( null !== $candidacy && function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
+			wp_cache_flush_group( 'ffc_recruitment_candidate' );
+			wp_cache_flush_group( 'ffc_recruitment_classification' );
+		}
 
 		// #1367's defect, one account at a time: a record that becomes
 		// readable is useless behind an account that cannot read it. The
@@ -487,15 +560,22 @@ class IdentityRepair {
 			array(
 				// Prefixes, never the hashes and never the value: the log is
 				// read by more people than the screen is.
-				'from'    => substr( $subject_hash, 0, self::LOG_PREFIX ),
-				'to'      => substr( (string) $pair[ $hash_column ], 0, self::LOG_PREFIX ),
-				'field'   => $field,
-				'stores'  => $written,
-				'account' => $account,
+				'from'      => substr( $subject_hash, 0, self::LOG_PREFIX ),
+				'to'        => substr( (string) $pair[ $hash_column ], 0, self::LOG_PREFIX ),
+				'field'     => $field,
+				'stores'    => $written,
+				'account'   => $account,
 				// A consolidation merged two of one person's own records; a
 				// plain repair renamed one. Same action, different blast
 				// radius, and the log is where that is legible afterwards.
-				'merged'  => $consolidates,
+				'merged'    => $consolidates,
+				// Present only when two candidacies were folded into one: the
+				// survivor's id, and how many classifications moved onto it.
+				'candidacy' => null === $candidacy ? null : array(
+					'removed'         => $candidacy['from'],
+					'kept'            => $candidacy['into'],
+					'classifications' => $merged_classifications,
+				),
 			),
 			$actor
 		);
