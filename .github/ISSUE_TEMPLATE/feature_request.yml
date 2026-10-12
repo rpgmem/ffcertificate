@@ -10,6 +10,25 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: The part of the plugin the problem is in. The maintainer applies the matching `area:` label.
+      options:
+        - Certificates
+        - Scheduling
+        - Reregistration
+        - Recruitment
+        - Short URLs
+        - Date Messages
+        - Settings
+        - Identity resolution
+        - Infrastructure (CI, build, release)
+        - Not sure
+    validations:
+      required: true
+
   - type: textarea
     id: proposal
     attributes:
