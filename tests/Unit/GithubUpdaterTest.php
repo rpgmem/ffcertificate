@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Integrations\GithubUpdater;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Tests for the self-hosted GitHub Releases updater: transient injection
@@ -496,10 +497,11 @@ class GithubUpdaterTest extends TestCase {
 			)
 		);
 		$this->seed_cache( $release );
-		Functions\expect( 'wp_remote_get' )->never();
+		$wp_remote_get = CallLog::record( 'wp_remote_get', new \WP_Error( 'stub', 'stubbed' ) ); // expect()->never() cannot see past setUp's stub (#1699).
 
 		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
 
+		$this->assertSame( 0, $wp_remote_get->count(), 'A cached release must not fetch the readme again.' );
 		$this->assertSame( '9.3.2', $item->tested );
 		$this->assertSame( 'Cached notice.', $item->upgrade_notice );
 	}

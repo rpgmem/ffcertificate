@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\UserDashboard\UserDashboardActivator;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Tests for UserDashboardActivator: the user-dashboard module's activation
@@ -110,10 +111,14 @@ class UserDashboardActivatorTest extends TestCase {
 	public function test_maybe_migrate_does_nothing_when_the_stored_version_is_current(): void {
 		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
 
-		Functions\expect( 'update_option' )->never();
-		Functions\expect( 'dbDelta' )->never();
+		// Counted rather than expect()'d: setUp already stubs both (#1699).
+		$update_option = CallLog::record( 'update_option', true );
+		$db_delta      = CallLog::record( 'dbDelta', array() );
 
 		UserDashboardActivator::maybe_migrate();
+
+		$this->assertSame( 0, $update_option->count() );
+		$this->assertSame( 0, $db_delta->count() );
 	}
 
 	public function test_maybe_migrate_creates_both_tables_when_the_version_is_stale(): void {
@@ -151,11 +156,16 @@ class UserDashboardActivatorTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
 		Functions\when( 'dbDelta' )->justReturn( array() );
 
+		// get_page_by_path is not stubbed in setUp, so expect() works for it;
+		// the other two are, so they are counted instead (#1699).
 		Functions\expect( 'get_page_by_path' )->never();
-		Functions\expect( 'wp_insert_post' )->never();
-		Functions\expect( 'get_role' )->never();
+		$wp_insert_post = CallLog::record( 'wp_insert_post', 42 );
+		$get_role       = CallLog::record( 'get_role', null );
 
 		UserDashboardActivator::maybe_migrate();
+
+		$this->assertSame( 0, $wp_insert_post->count() );
+		$this->assertSame( 0, $get_role->count() );
 	}
 
 	/**
