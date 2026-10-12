@@ -56,6 +56,7 @@ A built-in short-link domain with click counts, plus a QR code generator for lin
 - **Privacy:** e-mail, CPF/RF, IP addresses and other sensitive fields are encrypted at rest, and a reveal is logged.
 - **Administration:** granular capabilities (hidden, view only, view and edit), an activity log, batched CSV exports, data migrations, a scheduled-tasks screen that generates the server cron line, and one e-mail layout shared by every message.
 - **Dark mode:** for the plugin's admin screens and public pages, either always on or following the operating system.
+- **Public design:** an optional setting that gives every public screen the site's accent and field colours, corners, form width and font, and warns about hard-to-read colour pairs.
 
 | User dashboard | Dark mode |
 | --- | --- |
