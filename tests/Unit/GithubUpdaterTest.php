@@ -621,6 +621,27 @@ class GithubUpdaterTest extends TestCase {
 		$this->assertSame( '8.5', $info->requires_php );
 	}
 
+	public function test_update_object_and_details_modal_carry_the_installed_icon(): void {
+		$this->seed_cache( $this->release( '6.17.0' ) );
+
+		$expected = array(
+			'1x'  => FFC_PLUGIN_URL . 'assets/img/brand/icon-128.png',
+			'2x'  => FFC_PLUGIN_URL . 'assets/img/brand/icon-256.png',
+			'svg' => FFC_PLUGIN_URL . 'assets/img/brand/icon.svg',
+		);
+
+		$update = GithubUpdater::check_for_update( $this->transient( '6.16.0' ) );
+		$this->assertSame( $expected, $update->response[ self::PLUGIN_FILE ]->icons );
+
+		$current = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) );
+		$this->assertSame( $expected, $current->no_update[ self::PLUGIN_FILE ]->icons, 'The plugin list draws the icon for a current plugin too.' );
+
+		$args       = new \stdClass();
+		$args->slug = 'ffcertificate';
+		$info       = GithubUpdater::plugin_info( false, 'plugin_information', $args );
+		$this->assertSame( $expected, $info->icons );
+	}
+
 	// ------------------------------------------------------------------
 	// plugin_info()
 	// ------------------------------------------------------------------
