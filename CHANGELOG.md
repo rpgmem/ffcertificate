@@ -13,7 +13,6 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ **The licence is now AGPLv3 or later** (#1695). Reuse and forks stay free, and a modified copy offered as a network service must publish its source too. The repository had no `LICENSE`, so GitHub showed none; it now ships the AGPL text, and a test holds every declaration together. Releases already published stay GPLv3.
 - **Audience, recruitment and reregistration code is covered by tests, error paths included** (#1690). New and extended unit tests cover 18 classes, from the audience shortcode and CSV import to the reregistration form and admin screens and the recruitment activator: about 1,050 more statements, with refusals, `WP_Error` returns and database failures.
 
-
 ### Fixed
 
 - **Consolidating a person imported twice as a candidate no longer dead-ends** (#1682). Where both numbers sat on candidacies of one account, Identity resolution refused and asked to decide about the second candidacy, which no screen could do. The mistyped candidacy is now folded into the sound one: classifications move unchanged and the empty row is deleted. An identical, never-called classification on both (a preliminary list promoted under one number, the definitive re-imported under the other) is deduplicated; a differing or called one, or a different PCD condition, is still refused.
