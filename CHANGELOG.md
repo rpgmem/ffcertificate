@@ -15,6 +15,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificate, form editor and settings code is covered by tests, error paths included** (#1690). New and extended unit tests reach 14 more classes, from the certificate template and receipt screens to the form editor's save handler and public CSV metabox, the form cache, the rate limiter and the Date Messages admin page: 754 more statements.
 - **Identity, migration and encryption code is covered by tests, error paths included** (#1690). New and extended unit tests reach 19 more classes, from the identity resolution screen and its repair, relink and agreement services to the migration strategies, the status calculator, foreign keys and `Encryption`: 841 more statements.
 - **The PHP coverage floor rises from 86% to 90%** (#1690). CI measured 93.64% after the three test pushes above; the floor follows the rule the four plugins now share — the highest of 90%, the measured figure minus 5 points, and its current value — written in `CLAUDE.md`.
+- **The magic-link QR code drops a check that could never fail** (#1702). `generate_magic_link_qr()` logged "Link generation failed" for an empty link, which `MagicLinkHelper` returns only for an empty token the method already turns away; no behaviour changes.
 
 ### Fixed
 

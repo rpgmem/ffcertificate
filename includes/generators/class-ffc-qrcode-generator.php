@@ -596,18 +596,9 @@ class QRCodeGenerator {
 			return '';
 		}
 
+		// Never empty here: the helper returns '' only for an empty token,
+		// which the guard above already turned away (#1702).
 		$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $submission['magic_token'] );
-
-		if ( empty( $magic_link ) ) {
-			\FreeFormCertificate\Core\Debug::log_qrcode(
-				'Magic QR: Link generation failed',
-				array(
-					'submission_id' => $submission_id,
-					'token'         => substr( $submission['magic_token'], 0, 8 ) . '...',
-				)
-			);
-			return '';
-		}
 
 		\FreeFormCertificate\Core\Debug::log_qrcode(
 			'Magic QR: Generating for submission',
