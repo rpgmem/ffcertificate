@@ -699,8 +699,8 @@ class RecruitmentCsvImporterTest extends TestCase {
 	 * able to use the plugin (#1683).
 	 */
 	public function test_validate_accepts_a_mistyped_rf_while_the_check_digit_setting_is_off(): void {
-		// `7310242` is valid; the last digit is one off.
-		$rows   = array( $this->csv_row( array( 'cpf' => '', 'rf' => '7310241' ) ) );
+		// `RF_A` (`5181780`) with its last digit changed: `Identifiers::RF_BAD_CHECK_DIGIT`.
+		$rows   = array( $this->csv_row( array( 'cpf' => '', 'rf' => '5181784' ) ) );
 		$errors = $this->validate_rows( $rows );
 
 		$this->assertEmpty( $errors );
@@ -713,7 +713,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 	public function test_validate_rejects_a_mistyped_rf_when_the_check_digit_setting_is_on(): void {
 		Monkey\Filters\expectApplied( 'ffc_validate_rf_check_digit' )->andReturn( true );
 
-		$rows   = array( $this->csv_row( array( '_line' => 9, 'cpf' => '', 'rf' => '7310241' ) ) );
+		$rows   = array( $this->csv_row( array( '_line' => 9, 'cpf' => '', 'rf' => '5181784' ) ) );
 		$errors = $this->validate_rows( $rows );
 
 		$this->assertNotEmpty( $errors );
