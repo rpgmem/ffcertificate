@@ -1335,4 +1335,115 @@ class CustomFieldRepositoryTest extends TestCase {
 			$this->assertNotSame( '', $label, "Label for '{$slug}' must not be empty." );
 		}
 	}
+
+	// ==================================================================
+	// Derived views of get_by_audience()
+	// ==================================================================
+
+	/**
+	 * Fields of one audience, in sort order, spread over two groups.
+	 *
+	 * @return list<object>
+	 */
+	private function mixed_fields(): array {
+		return array(
+			$this->make_field( array( 'id' => 1, 'field_key' => 'name', 'field_group' => 'personal' ) ),
+			$this->make_field( array( 'id' => 2, 'field_key' => 'cpf', 'field_group' => 'personal', 'is_sensitive' => 1, 'field_profile_key' => 'cpf' ) ),
+			$this->make_field( array( 'id' => 3, 'field_key' => 'phone', 'field_group' => 'contact', 'field_profile_key' => 'phone' ) ),
+			$this->make_field( array( 'id' => 4, 'field_key' => 'loose' ) ),
+		);
+	}
+
+	public function test_get_by_audience_grouped_keeps_first_seen_group_order(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $this->mixed_fields() );
+
+		$grouped = CustomFieldReader::get_by_audience_grouped( 10 );
+
+		$this->assertSame( array( 'personal', 'contact', '' ), array_keys( $grouped ) );
+		$this->assertSame( array( 'name', 'cpf' ), array_column( $grouped['personal'], 'field_key' ) );
+		$this->assertSame( array( 'loose' ), array_column( $grouped[''], 'field_key' ), 'A field without a group lands under the empty key.' );
+	}
+
+	public function test_get_groups_for_audience_lists_the_group_keys(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $this->mixed_fields() );
+
+		$this->assertSame( array( 'personal', 'contact', '' ), CustomFieldReader::get_groups_for_audience( 10 ) );
+	}
+
+	public function test_get_profile_fields_keeps_only_profile_mapped_fields(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $this->mixed_fields() );
+
+		$this->assertSame( array( 'cpf', 'phone' ), array_column( CustomFieldReader::get_profile_fields( 10 ), 'field_key' ) );
+	}
+
+	public function test_get_sensitive_keys_for_audience_names_only_sensitive_fields(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $this->mixed_fields() );
+
+		$this->assertSame( array( 'cpf' ), CustomFieldReader::get_sensitive_keys_for_audience( 10 ) );
+	}
+
+	public function test_get_by_audience_keyed_indexes_by_field_key(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $this->mixed_fields() );
+
+		$keyed = CustomFieldReader::get_by_audience_keyed( 10, false );
+
+		$this->assertSame( array( 'name', 'cpf', 'phone', 'loose' ), array_keys( $keyed ) );
+		$this->assertSame( 3, $keyed['phone']->id );
+	}
+
+	public function test_derived_views_are_empty_when_the_query_fails(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( null );
+
+		$this->assertSame( array(), CustomFieldReader::get_by_audience_grouped( 10 ) );
+		$this->assertSame( array(), CustomFieldReader::get_sensitive_keys_for_audience( 10 ) );
+	}
+
+	// ==================================================================
+	// get_by_key()
+	// ==================================================================
+
+	public function test_get_by_key_returns_the_row(): void {
+		$field = $this->make_field( array( 'field_key' => 'cpf' ) );
+		$this->wpdb->shouldReceive( 'prepare' )->once()
+			->with( 'SELECT * FROM %i WHERE audience_id = %d AND field_key = %s LIMIT 1', 'wp_ffc_custom_fields', 10, 'cpf' )
+			->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->with( 'SQL' )->andReturn( $field );
+
+		$this->assertSame( $field, CustomFieldReader::get_by_key( 10, 'cpf' ) );
+	}
+
+	public function test_get_by_key_returns_null_when_absent(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+
+		$this->assertNull( CustomFieldReader::get_by_key( 10, 'missing' ) );
+	}
+
+	// ==================================================================
+	// standard_field_ids_with_label()
+	// ==================================================================
+
+	public function test_standard_field_ids_with_label_needs_a_key_and_labels(): void {
+		$this->wpdb->shouldNotReceive( 'get_col' );
+
+		$this->assertSame( array(), CustomFieldReader::standard_field_ids_with_label( '', array( 'CPF' ) ) );
+		$this->assertSame( array(), CustomFieldReader::standard_field_ids_with_label( 'cpf', array() ) );
+	}
+
+	public function test_standard_field_ids_with_label_binds_every_label_and_drops_bad_ids(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()
+			->with(
+				"SELECT id FROM %i WHERE field_source = 'standard' AND field_key = %s AND field_label IN ( %s, %s )",
+				array( 'wp_ffc_custom_fields', 'cpf', 'CPF', 'CPF/RF' )
+			)
+			->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_col' )->once()->with( 'SQL' )->andReturn( array( '7', 'x', '0', 9 ) );
+
+		$this->assertSame( array( 7, 9 ), CustomFieldReader::standard_field_ids_with_label( 'cpf', array( 'a' => 'CPF', 'b' => 'CPF/RF' ) ) );
+	}
+
+	public function test_standard_field_ids_with_label_survives_a_failed_query(): void {
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( null );
+
+		$this->assertSame( array(), CustomFieldReader::standard_field_ids_with_label( 'cpf', array( 'CPF' ) ) );
+	}
 }

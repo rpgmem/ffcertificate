@@ -219,4 +219,148 @@ class RecruitmentClassificationRepositoryTest extends TestCase {
 		$this->assertStringContainsString( 'wp_ffc_recruitment_candidate', $sql );
 		$this->assertStringContainsString( 'GROUP BY c.user_id', $sql );
 	}
+
+	// ==================================================================
+	// get_by_id() — object cache
+	// ==================================================================
+
+	public function test_get_by_id_answers_from_the_object_cache(): void {
+		$row = (object) array( 'id' => '4' );
+		Functions\when( 'wp_cache_get' )->justReturn( $row );
+		$this->wpdb->shouldNotReceive( 'get_row' );
+
+		$this->assertSame( $row, RecruitmentClassificationRepository::get_by_id( 4 ) );
+	}
+
+	public function test_get_by_id_caches_a_found_row(): void {
+		$row = (object) array( 'id' => '4' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
+		$cached = array();
+		Functions\when( 'wp_cache_set' )->alias(
+			static function ( $key, $value ) use ( &$cached ) {
+				$cached[ $key ] = $value;
+				return true;
+			}
+		);
+
+		$this->assertSame( $row, RecruitmentClassificationRepository::get_by_id( 4 ) );
+		$this->assertSame( array( 'id_4' => $row ), $cached );
+	}
+
+	public function test_get_by_id_does_not_cache_a_miss(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+		$cached = array();
+		Functions\when( 'wp_cache_set' )->alias(
+			static function ( $key ) use ( &$cached ) {
+				$cached[] = $key;
+				return true;
+			}
+		);
+
+		$this->assertNull( RecruitmentClassificationRepository::get_by_id( 4 ) );
+		$this->assertSame( array(), $cached );
+	}
+
+	// ==================================================================
+	// get_for_notice() / get_for_candidate() — failure shapes
+	// ==================================================================
+
+	public function test_get_for_notice_without_filters_binds_only_the_notice(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()
+			->with( 'SELECT * FROM %i WHERE notice_id = %d ORDER BY `rank` ASC, candidate_id ASC', array( 'wp_ffc_recruitment_classification', 3 ) )
+			->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( 'SQL' )->andReturn( null );
+
+		$this->assertSame( array(), RecruitmentClassificationRepository::get_for_notice( 3 ) );
+	}
+
+	public function test_get_for_notice_returns_empty_when_prepare_fails(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( null );
+		$this->wpdb->shouldNotReceive( 'get_results' );
+
+		$this->assertSame( array(), RecruitmentClassificationRepository::get_for_notice( 3, 'preview' ) );
+	}
+
+	public function test_get_for_candidate_returns_rows_or_empty(): void {
+		$rows = array( (object) array( 'id' => '1' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->twice()->andReturn( $rows, null );
+
+		$this->assertSame( $rows, RecruitmentClassificationRepository::get_for_candidate( 8 ) );
+		$this->assertSame( array(), RecruitmentClassificationRepository::get_for_candidate( 8 ) );
+	}
+
+	// ==================================================================
+	// create() / set_preview_status() / set_status() / delete() — failures
+	// ==================================================================
+
+	public function test_create_returns_false_on_a_unique_collision_without_dirtying_the_cache(): void {
+		$this->wpdb->shouldReceive( 'insert' )->once()->andReturnUsing(
+			function ( $table, $data ) {
+				$this->assertSame( '1.25', $data['time_points'] );
+				$this->assertSame( 1, $data['hab_emebs'] );
+				$this->assertSame( 'called', $data['status'] );
+				return false;
+			}
+		);
+		\Brain\Monkey\Actions\expectDone( 'ffc_recruitment_public_cache_dirty' )->never();
+
+		$this->assertFalse(
+			RecruitmentClassificationRepository::create(
+				array(
+					'candidate_id' => 1,
+					'adjutancy_id' => 2,
+					'notice_id'    => 3,
+					'list_type'    => 'definitive',
+					'rank'         => 1,
+					'score'        => 9,
+					'time_points'  => 1.25,
+					'hab_emebs'    => true,
+					'status'       => 'called',
+				)
+			)
+		);
+	}
+
+	public function test_set_preview_status_writes_and_dirties_the_public_cache(): void {
+		$this->wpdb->shouldReceive( 'update' )->once()->with(
+			'wp_ffc_recruitment_classification',
+			array( 'preview_status' => 'denied', 'preview_reason_id' => 6, 'updated_at' => '2026-05-01 10:00:00' ),
+			array( 'id' => 4 ),
+			array( '%s', '%d', '%s' ),
+			array( '%d' )
+		)->andReturn( 1 );
+		\Brain\Monkey\Actions\expectDone( 'ffc_recruitment_public_cache_dirty' )->once();
+
+		$this->assertTrue( RecruitmentClassificationRepository::set_preview_status( 4, 'denied', 6 ) );
+	}
+
+	public function test_set_preview_status_reports_a_failed_update(): void {
+		$this->wpdb->shouldReceive( 'update' )->once()->andReturn( false );
+		\Brain\Monkey\Actions\expectDone( 'ffc_recruitment_public_cache_dirty' )->never();
+
+		$this->assertFalse( RecruitmentClassificationRepository::set_preview_status( 4, 'empty', null ) );
+	}
+
+	public function test_set_status_returns_zero_when_prepare_fails(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( null );
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$this->assertSame( 0, RecruitmentClassificationRepository::set_status( 1, 'empty', 'called' ) );
+	}
+
+	public function test_delete_reports_success_and_failure(): void {
+		$this->wpdb->shouldReceive( 'delete' )->twice()->with( 'wp_ffc_recruitment_classification', array( 'id' => 4 ), array( '%d' ) )->andReturn( 1, false );
+		$deleted = array();
+		Functions\when( 'wp_cache_delete' )->alias(
+			static function ( $key ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+		\Brain\Monkey\Actions\expectDone( 'ffc_recruitment_public_cache_dirty' )->once();
+
+		$this->assertTrue( RecruitmentClassificationRepository::delete( 4 ) );
+		$this->assertFalse( RecruitmentClassificationRepository::delete( 4 ) );
+		$this->assertSame( array( 'id_4', 'id_4' ), $deleted, 'The cached row is dropped either way.' );
+	}
 }
