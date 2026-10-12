@@ -834,6 +834,472 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertContains( 'ffc-admin-code-editor', $scripts );
 	}
 
+	// ==================================================================
+	// Refusals, not-found paths and the remaining render branches
+	// ==================================================================
+
+	/**
+	 * Make wp_die() throw so a refusal stops the handler like the real exit.
+	 */
+	private function die_throws(): void {
+		Functions\when( 'wp_die' )->alias(
+			static function ( $message = '' ) {
+				throw new \RuntimeException( 'wp_die: ' . $message );
+			}
+		);
+	}
+
+	/**
+	 * Run a handler expected to stop through wp_die()/redirect and return the message.
+	 */
+	private function stop_message( callable $fn ): string {
+		try {
+			$fn();
+		} catch ( \RuntimeException $e ) {
+			return $e->getMessage();
+		}
+		return '';
+	}
+
+	public function test_columns_appends_the_custom_columns_when_title_is_absent(): void {
+		$out = ( new CertTemplateAdminScreen() )->columns( array( 'cb' => '<input />', 'date' => 'Date' ) );
+
+		$this->assertSame( array( 'cb', 'date', 'ffc_category', 'ffc_type', 'ffc_visible' ), array_keys( $out ) );
+	}
+
+	public function test_render_column_category_reports_record_kind(): void {
+		Functions\when( 'get_post_meta' )->justReturn( CertTemplateCpt::KIND_RECORD );
+
+		$this->assertSame( 'Record', $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_column( 'ffc_category', 4 ) ) );
+	}
+
+	public function test_render_column_ignores_unknown_columns(): void {
+		Functions\expect( 'get_post_meta' )->never();
+
+		$this->assertSame( '', $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_column( 'date', 4 ) ) );
+	}
+
+	public function test_ajax_toggle_reports_not_found_for_a_foreign_post(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		$page            = new \WP_Post();
+		$page->ID        = 9;
+		$page->post_type = 'page';
+		Functions\when( 'get_post' )->justReturn( $page );
+		Functions\expect( 'update_post_meta' )->never();
+
+		$status = null;
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $data, $code ) use ( &$status ) {
+				$status = $code;
+				throw new \RuntimeException( 'json_error' );
+			}
+		);
+
+		$_POST['post_id'] = '9';
+		$this->stop_message( fn() => ( new CertTemplateAdminScreen() )->ajax_toggle_visibility() );
+		unset( $_POST['post_id'] );
+
+		$this->assertSame( 404, $status );
+	}
+
+	public function test_handle_duplicate_denies_without_cap(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\expect( 'check_admin_referer' )->never();
+		$this->die_throws();
+
+		$this->assertStringContainsString( 'permission', $this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_duplicate() ) );
+	}
+
+	public function test_handle_duplicate_dies_when_the_post_is_not_a_template(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\expect( 'wp_insert_post' )->never();
+		$this->die_throws();
+
+		$_GET['post'] = '404';
+		$this->assertStringContainsString( 'Template not found', $this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_duplicate() ) );
+	}
+
+	public function test_handle_duplicate_falls_back_to_the_list_when_create_fails(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+		// wp_insert_post( …, true ) failing yields a WP_Error → create() returns 0.
+		Functions\when( 'wp_insert_post' )->justReturn( new \WP_Error( 'db', 'fail' ) );
+
+		$redirected = null;
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( $url ) use ( &$redirected ) {
+				$redirected = $url;
+				throw new \RuntimeException( 'redirect' );
+			}
+		);
+
+		$_GET['post'] = '5';
+		$this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_duplicate() );
+
+		$this->assertSame( 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE, $redirected );
+	}
+
+	public function test_handle_export_denies_without_cap(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\expect( 'check_admin_referer' )->never();
+		$this->die_throws();
+
+		$this->assertStringContainsString( 'permission', $this->stop_message( fn() => ( new TestableCertTemplateAdminScreen() )->handle_export() ) );
+	}
+
+	public function test_handle_export_dies_when_the_post_is_not_a_template(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'get_post' )->justReturn( null );
+		$this->die_throws();
+
+		$screen       = new TestableCertTemplateAdminScreen();
+		$_GET['post'] = '404';
+		$this->assertStringContainsString( 'Template not found', $this->stop_message( fn() => $screen->handle_export() ) );
+		$this->assertSame( '', $screen->emitted_filename, 'nothing is downloaded for a missing template' );
+	}
+
+	public function test_handle_export_falls_back_to_a_generic_filename(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		// A title made only of characters the sanitiser strips yields an empty slug.
+		Functions\when( 'sanitize_file_name' )->justReturn( '' );
+		$post             = $this->pool_post( 5 );
+		$post->post_title = '???';
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'get_post_meta' )->justReturn( '<p>x</p>' );
+
+		$screen       = new TestableCertTemplateAdminScreen();
+		$_GET['post'] = '5';
+		$this->stop_message( fn() => $screen->handle_export() );
+
+		$this->assertSame( 'template.html', $screen->emitted_filename );
+	}
+
+	public function test_handle_restore_defaults_reseeds_and_redirects(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$referer = null;
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( $action ) use ( &$referer ) {
+				$referer = $action;
+				return true;
+			}
+		);
+		// No default exists yet, and every insert fails: restore() reads each seed
+		// file and tries to insert it.
+		Functions\when( 'get_posts' )->justReturn( array() );
+		$inserted = array();
+		Functions\when( 'wp_insert_post' )->alias(
+			static function ( $arr ) use ( &$inserted ) {
+				$inserted[] = $arr['post_title'];
+				return new \WP_Error( 'db', 'fail' );
+			}
+		);
+		$redirected = null;
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( $url ) use ( &$redirected ) {
+				$redirected = $url;
+				throw new \RuntimeException( 'redirect' );
+			}
+		);
+
+		$this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_restore_defaults() );
+
+		$this->assertSame( 'ffc_restore_cert_templates', $referer );
+		$this->assertNotEmpty( $inserted, 'restore() tried to seed the shipped defaults' );
+		$this->assertStringContainsString( 'ffc_restored=1', (string) $redirected );
+	}
+
+	public function test_render_kind_filter_lists_every_kind_and_marks_the_current_one(): void {
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'selected' )->alias( static fn( $a, $b ) => (string) $a === (string) $b ? ' selected' : '' );
+
+		$_GET['ffc_kind'] = CertTemplateCpt::KIND_RECORD;
+		$html             = $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_kind_filter( CertTemplateCpt::POST_TYPE ) );
+		unset( $_GET['ffc_kind'] );
+
+		$this->assertStringContainsString( '<select name="ffc_kind">', $html );
+		$this->assertStringContainsString( 'All categories', $html );
+		$this->assertStringContainsString( 'Appointment receipt', $html );
+		$this->assertStringContainsString( 'value="' . CertTemplateCpt::KIND_RECORD . '" selected>Record', $html );
+		$this->assertSame( 4, substr_count( $html, '<option' ) );
+	}
+
+	public function test_render_kind_filter_is_silent_on_other_post_types(): void {
+		$this->assertSame( '', $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_kind_filter( 'page' ) ) );
+	}
+
+	/**
+	 * A WP_Query double that records every set() call.
+	 *
+	 * @param string             $post_type Value get( 'post_type' ) answers.
+	 * @param array<int, mixed>  $sets      Receives each set() call.
+	 */
+	private function recording_query( string $post_type, array &$sets ) {
+		$query = \Mockery::mock( '\WP_Query' );
+		$query->shouldReceive( 'is_main_query' )->andReturn( true );
+		$query->shouldReceive( 'get' )->with( 'post_type' )->andReturn( $post_type );
+		$query->shouldReceive( 'set' )->andReturnUsing(
+			static function ( $key, $value ) use ( &$sets ) {
+				$sets[] = array( $key, $value );
+			}
+		);
+		return $query;
+	}
+
+	public function test_filter_by_kind_ignores_front_end_queries(): void {
+		Functions\when( 'is_admin' )->justReturn( false );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		$sets = array();
+
+		$_GET['ffc_kind'] = CertTemplateCpt::KIND_RECORD;
+		( new CertTemplateAdminScreen() )->filter_by_kind( $this->recording_query( CertTemplateCpt::POST_TYPE, $sets ) );
+		unset( $_GET['ffc_kind'] );
+
+		$this->assertSame( array(), $sets );
+	}
+
+	public function test_filter_by_kind_ignores_other_post_types(): void {
+		Functions\when( 'is_admin' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		$sets = array();
+
+		$_GET['ffc_kind'] = CertTemplateCpt::KIND_RECORD;
+		( new CertTemplateAdminScreen() )->filter_by_kind( $this->recording_query( 'page', $sets ) );
+		unset( $_GET['ffc_kind'] );
+
+		$this->assertSame( array(), $sets );
+	}
+
+	public function test_filter_by_kind_without_a_selected_kind_leaves_the_query_alone(): void {
+		Functions\when( 'is_admin' )->justReturn( true );
+		$sets = array();
+
+		( new CertTemplateAdminScreen() )->filter_by_kind( $this->recording_query( CertTemplateCpt::POST_TYPE, $sets ) );
+
+		$this->assertSame( array(), $sets );
+	}
+
+	public function test_filter_by_kind_certificate_also_matches_templates_without_kind_meta(): void {
+		Functions\when( 'is_admin' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		$query = \Mockery::mock( '\WP_Query' );
+		$query->shouldReceive( 'is_main_query' )->andReturn( true );
+		$query->shouldReceive( 'get' )->with( 'post_type' )->andReturn( CertTemplateCpt::POST_TYPE );
+		$captured = null;
+		$query->shouldReceive( 'set' )->once()->with(
+			'meta_query',
+			\Mockery::on(
+				static function ( $mq ) use ( &$captured ) {
+					$captured = $mq;
+					return true;
+				}
+			)
+		);
+
+		$_GET['ffc_kind'] = CertTemplateCpt::KIND_CERTIFICATE;
+		( new CertTemplateAdminScreen() )->filter_by_kind( $query );
+		unset( $_GET['ffc_kind'] );
+
+		$this->assertSame( 'OR', $captured['relation'] );
+		$this->assertSame( CertTemplateCpt::KIND_CERTIFICATE, $captured[0]['value'] );
+		$this->assertSame( 'NOT EXISTS', $captured[1]['compare'] );
+	}
+
+	public function test_filter_by_kind_other_kinds_match_the_meta_exactly(): void {
+		Functions\when( 'is_admin' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		$sets = array();
+
+		$_GET['ffc_kind'] = CertTemplateCpt::KIND_RECORD;
+		( new CertTemplateAdminScreen() )->filter_by_kind( $this->recording_query( CertTemplateCpt::POST_TYPE, $sets ) );
+		unset( $_GET['ffc_kind'] );
+
+		$this->assertSame(
+			array(
+				array(
+					'meta_query',
+					array(
+						array(
+							'key'   => CertTemplateCpt::META_KIND,
+							'value' => CertTemplateCpt::KIND_RECORD,
+						),
+					),
+				),
+			),
+			$sets
+		);
+	}
+
+	public function test_handle_preview_dies_when_the_post_is_not_a_template(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'get_post' )->justReturn( null );
+		$this->die_throws();
+
+		$screen       = new TestableCertTemplateAdminScreen();
+		$_GET['post'] = '404';
+		$this->assertStringContainsString( 'Template not found', $this->stop_message( fn() => $screen->handle_preview() ) );
+		$this->assertSame( '', $screen->preview_body );
+	}
+
+	public function test_enqueue_preview_assets_skips_the_list_of_another_post_type(): void {
+		$screen            = new \WP_Screen();
+		$screen->post_type = 'page';
+		Functions\when( 'get_current_screen' )->justReturn( $screen );
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle ) use ( &$enqueued ) {
+				$enqueued[] = $handle;
+			}
+		);
+
+		( new CertTemplateAdminScreen() )->enqueue_preview_assets( 'edit.php' );
+
+		$this->assertSame( array(), $enqueued );
+	}
+
+	public function test_render_edit_metabox_carries_the_kind_preset_on_a_new_receipt(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_textarea' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( null );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => CertTemplateCpt::META_KIND === $key ? CertTemplateCpt::KIND_APPOINTMENT_RECEIPT : ''
+		);
+
+		$post              = $this->pool_post( 12 );
+		$post->post_status = 'auto-draft';
+		$_GET['ffc_kind']  = CertTemplateCpt::KIND_APPOINTMENT_RECEIPT;
+		$html              = $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $post ) );
+		unset( $_GET['ffc_kind'] );
+
+		$this->assertStringContainsString( 'name="ffc_template_kind" value="' . CertTemplateCpt::KIND_APPOINTMENT_RECEIPT . '"', $html );
+		$this->assertStringContainsString( 'Receipt HTML', $html );
+		$this->assertStringContainsString( '{{appointment_date}}', $html );
+		$this->assertStringNotContainsString( 'Mandatory Tags', $html );
+	}
+
+	public function test_render_edit_metabox_ignores_an_invalid_kind_preset_and_labels_a_record(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_textarea' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( null );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => CertTemplateCpt::META_KIND === $key ? CertTemplateCpt::KIND_RECORD : ''
+		);
+
+		$post              = $this->pool_post( 12 );
+		$post->post_status = 'auto-draft';
+		$_GET['ffc_kind']  = 'bogus';
+		$html              = $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $post ) );
+		unset( $_GET['ffc_kind'] );
+
+		$this->assertStringNotContainsString( 'name="ffc_template_kind"', $html );
+		$this->assertStringContainsString( 'Record HTML', $html );
+		$this->assertStringContainsString( '{{custom_fields_section}}', $html );
+	}
+
+	public function test_render_options_metabox_labels_follow_the_template_kind(): void {
+		Functions\when( 'checked' )->justReturn( '' );
+		$kind = CertTemplateCpt::KIND_APPOINTMENT_RECEIPT;
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) use ( &$kind ) {
+				return CertTemplateCpt::META_KIND === $key ? $kind : '';
+			}
+		);
+		$screen = new CertTemplateAdminScreen();
+
+		$receipt = $this->capture( fn() => $screen->render_options_metabox( $this->pool_post( 3 ) ) );
+		$kind    = CertTemplateCpt::KIND_RECORD;
+		$record  = $this->capture( fn() => $screen->render_options_metabox( $this->pool_post( 3 ) ) );
+
+		$this->assertStringContainsString( 'appointment-receipt selection', $receipt );
+		$this->assertStringContainsString( 'Personal Calendars settings', $receipt );
+		$this->assertStringContainsString( 'record selection', $record );
+		$this->assertStringContainsString( 'Reregistration settings', $record );
+	}
+
+	public function test_save_edit_metabox_without_a_nonce_writes_nothing(): void {
+		$verified = null;
+		Functions\when( 'wp_verify_nonce' )->alias(
+			static function ( $nonce ) use ( &$verified ) {
+				$verified = $nonce;
+				return false;
+			}
+		);
+		Functions\expect( 'update_post_meta' )->never();
+
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$this->assertSame( '', $verified, 'a missing nonce field is verified as the empty string' );
+	}
+
+	public function test_save_edit_metabox_without_manage_cap_writes_nothing(): void {
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$updated = false;
+		Functions\when( 'update_post_meta' )->alias(
+			static function () use ( &$updated ) {
+				$updated = true;
+				return true;
+			}
+		);
+
+		$_POST['ffc_cert_template_nonce'] = 'n';
+		$_POST['ffc_template_html']       = '<div>x</div>';
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$this->assertFalse( $updated, 'a user without the manage cap cannot save a template' );
+	}
+
+	public function test_protect_default_caps_passes_through_without_a_post_id(): void {
+		Functions\expect( 'get_post' )->never();
+
+		$out = ( new CertTemplateAdminScreen() )->protect_default_caps( array( 'delete_posts' ), 'delete_post', 1, array() );
+
+		$this->assertSame( array( 'delete_posts' ), $out );
+	}
+
+	public function test_preserve_default_title_ignores_other_post_types(): void {
+		Functions\expect( 'get_post_meta' )->never();
+
+		$data = ( new CertTemplateAdminScreen() )->preserve_default_title(
+			array( 'post_type' => 'page', 'post_title' => 'Anything' ),
+			array( 'ID' => 5 )
+		);
+
+		$this->assertSame( 'Anything', $data['post_title'] );
+	}
+
 	/**
 	 * Capture echoed output of a callable.
 	 */

@@ -932,4 +932,220 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->expectExceptionMessage( 'redirect' );
 		$this->handler->handle_send_test_email();
 	}
+
+	// ==================================================================
+	// Out-of-range input, unreadable settings and tools that throw
+	// ==================================================================
+
+	/**
+	 * Build real redirect URLs and run a handler to its redirect.
+	 *
+	 * @param string $method Handler.
+	 * @return string The URL it redirected to, decoded.
+	 */
+	private function redirect_of( string $method ): string {
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( $key, $value = null, $url = null ) {
+				return is_array( $key )
+					? (string) $value . '?' . http_build_query( $key )
+					: (string) $url . '&' . $key . '=' . $value;
+			}
+		);
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( $url ) use ( &$redirect ) {
+				$redirect = (string) $url;
+				throw new \RuntimeException( 'redirect' );
+			}
+		);
+		try {
+			$this->handler->$method();
+			$this->fail( "{$method} did not redirect." );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect', $e->getMessage() );
+		}
+		return rawurldecode( $redirect );
+	}
+
+	/** A maintenance tool whose run() throws. */
+	private function make_failing_tool() {
+		$tool = Mockery::mock( 'FreeFormCertificate\\Maintenance\\MaintenanceToolInterface' );
+		$tool->shouldReceive( 'run' )->andThrow( new \RuntimeException( 'Table is locked' ) );
+		return $tool;
+	}
+
+	/**
+	 * Capture what update_option() writes.
+	 *
+	 * @return array<string, mixed> Holder whose 'value' key receives the write.
+	 */
+	private function capture_option_write(): \ArrayObject {
+		$written = new \ArrayObject();
+		Functions\when( 'update_option' )->alias(
+			static function ( $name, $value ) use ( $written ) {
+				$written[ $name ] = $value;
+				return true;
+			}
+		);
+		return $written;
+	}
+
+	public function test_obsolete_save_days_raises_a_zero_to_one_day(): void {
+		$_REQUEST['ffc_obsolete_cleanup'] = 'save_days';
+		$_REQUEST['_wpnonce']             = 'ok';
+		$_POST['obsolete_shortcode_days'] = '0';
+		$this->mock_capabilities( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$written = $this->capture_option_write();
+
+		$this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
+
+		$this->assertSame( 1, $written['ffc_settings']['obsolete_shortcode_days'] );
+	}
+
+	public function test_obsolete_save_days_caps_at_ten_years_over_unreadable_settings(): void {
+		$_REQUEST['ffc_obsolete_cleanup'] = 'save_days';
+		$_REQUEST['_wpnonce']             = 'ok';
+		$_POST['obsolete_shortcode_days'] = '99999';
+		$this->mock_capabilities( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( 'corrupt' );
+		$written = $this->capture_option_write();
+
+		$this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
+
+		$this->assertSame( array( 'obsolete_shortcode_days' => 3650 ), $written['ffc_settings'] );
+	}
+
+	public function test_obsolete_preview_uses_the_stored_days_and_reports_a_tool_failure(): void {
+		$_REQUEST['ffc_obsolete_cleanup'] = 'preview';
+		$_REQUEST['_wpnonce']             = 'ok';
+		$this->mock_capabilities( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( array( 'obsolete_shortcode_days' => 30 ) );
+		$tool = Mockery::mock( 'FreeFormCertificate\\Maintenance\\MaintenanceToolInterface' );
+		$tool->shouldReceive( 'run' )
+			->once()
+			->with(
+				array(
+					'days'    => 30,
+					'dry_run' => true,
+				)
+			)
+			->andThrow( new \RuntimeException( 'Table is locked' ) );
+		$this->mock_tool_registry( $tool );
+
+		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
+
+		$this->assertStringContainsString( 'obsolete_cleanup_error=Table is locked', $url );
+	}
+
+	public function test_obsolete_apply_reports_a_tool_failure(): void {
+		$_REQUEST['ffc_obsolete_cleanup'] = 'apply';
+		$_REQUEST['_wpnonce']             = 'ok';
+		$this->mock_capabilities( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( 1 );
+		$this->mock_tool_registry( $this->make_failing_tool() );
+
+		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
+
+		$this->assertStringContainsString( 'obsolete_cleanup_error=Table is locked', $url );
+		$this->assertStringNotContainsString( 'obsolete_cleanup_msg', $url );
+	}
+
+	public function test_obsolete_apply_without_the_tool_says_so(): void {
+		$_REQUEST['ffc_obsolete_cleanup'] = 'apply';
+		$_REQUEST['_wpnonce']             = 'ok';
+		$this->mock_capabilities( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( 1 );
+		$this->mock_tool_registry( null );
+
+		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
+
+		$this->assertStringContainsString( 'obsolete_cleanup_error=Maintenance tool not available.', $url );
+	}
+
+	public function test_url_cleanup_preview_reports_a_tool_failure_over_unreadable_settings(): void {
+		$_REQUEST['ffc_url_cleanup'] = 'preview';
+		$_REQUEST['_wpnonce']        = 'ok';
+		$this->mock_capabilities( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( 'corrupt' );
+		$written = $this->capture_option_write();
+		$this->mock_tool_registry( $this->make_failing_tool() );
+
+		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
+
+		$this->assertStringContainsString( 'url_cleanup_error=Table is locked', $url );
+		$this->assertSame( 90, $written['ffc_settings']['url_cleanup_days'], 'the posted criteria are still saved' );
+	}
+
+	public function test_url_cleanup_apply_reports_a_tool_failure(): void {
+		$_REQUEST['ffc_url_cleanup'] = 'apply';
+		$_REQUEST['_wpnonce']        = 'ok';
+		$this->mock_capabilities( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( 1 );
+		$this->mock_tool_registry( $this->make_failing_tool() );
+
+		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
+
+		$this->assertStringContainsString( 'url_cleanup_error=Table is locked', $url );
+	}
+
+	public function test_pubaccess_preview_reports_a_tool_failure_over_unreadable_settings(): void {
+		$_REQUEST['ffc_pubaccess']           = 'preview';
+		$_REQUEST['_wpnonce']                = 'ok';
+		$_POST['public_access_disable_days'] = '5000';
+		$this->mock_capabilities( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( 'corrupt' );
+		$written = $this->capture_option_write();
+		$this->mock_tool_registry( $this->make_failing_tool() );
+
+		$url = $this->redirect_of( 'handle_public_access_disabler' );
+
+		$this->assertStringContainsString( 'pubaccess_error=Table is locked', $url );
+		$this->assertSame( array( 'public_access_disable_days' => 3650 ), $written['ffc_settings'] );
+	}
+
+	public function test_pubaccess_apply_reports_a_tool_failure(): void {
+		$_REQUEST['ffc_pubaccess'] = 'apply';
+		$_REQUEST['_wpnonce']      = 'ok';
+		$this->mock_capabilities( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( 1 );
+		$this->mock_tool_registry( $this->make_failing_tool() );
+
+		$url = $this->redirect_of( 'handle_public_access_disabler' );
+
+		$this->assertStringContainsString( 'pubaccess_error=Table is locked', $url );
+	}
+
+	public function test_submission_audit_scan_reports_a_tool_failure(): void {
+		$_REQUEST['ffc_submission_audit'] = 'scan';
+		$_REQUEST['_wpnonce']             = 'ok';
+		$this->mock_capabilities( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$this->mock_tool_registry( $this->make_failing_tool() );
+
+		$url = $this->redirect_of( 'handle_submission_link_audit' );
+
+		$this->assertStringContainsString( 'submission_audit_error=Table is locked', $url );
+	}
+
+	public function test_submission_audit_export_streams_through_the_identity_audit_source(): void {
+		$_REQUEST['ffc_submission_audit'] = 'export';
+		$this->mock_capabilities( true );
+		// The export's own gate lives in the source; the scan nonce is never read.
+		Functions\expect( 'wp_verify_nonce' )->never();
+		Mockery::mock( 'overload:FreeFormCertificate\\Core\\SyncCsvExport' )
+			->shouldReceive( 'handle' )
+			->once()
+			->with( Mockery::type( 'FreeFormCertificate\\Maintenance\\IdentityAuditExportSource' ) );
+
+		$this->handler->handle_submission_link_audit();
+	}
 }

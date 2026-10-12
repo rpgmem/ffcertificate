@@ -517,4 +517,149 @@ class ActivityLogQueryTest extends TestCase {
 
 		$this->assertSame( 3, ActivityLogQuery::redact_user_id( 42 ) );
 	}
+
+	// ==================================================================
+	// Remaining filters, the export cursor and the submission audit trail
+	// ==================================================================
+
+	/**
+	 * Record every prepare() call as "sql | arg, arg".
+	 *
+	 * @return \ArrayObject<int, string>
+	 */
+	private function record_prepares(): \ArrayObject {
+		$prepared = new \ArrayObject();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) use ( $prepared ) {
+				$flat       = is_array( $args[0] ?? null ) ? $args[0] : $args;
+				$prepared[] = $sql . ' | ' . implode( ', ', array_map( 'strval', $flat ) );
+				return $sql;
+			}
+		);
+		return $prepared;
+	}
+
+	public function test_get_activities_filters_by_action_user_and_date_range(): void {
+		$prepared = $this->record_prepares();
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		ActivityLogQuery::get_activities(
+			array(
+				'action'    => 'submission_created',
+				'user_id'   => '-7',
+				'date_from' => '2026-01-01',
+				'date_to'   => '2026-01-31',
+			)
+		);
+
+		$this->assertContains( 'action = %s | submission_created', (array) $prepared );
+		$this->assertContains( 'user_id = %d | 7', (array) $prepared );
+		$this->assertContains( 'created_at >= %s | 2026-01-01', (array) $prepared );
+		$this->assertContains( 'created_at <= %s | 2026-01-31', (array) $prepared );
+	}
+
+	public function test_find_by_cursor_filters_and_pages_by_id(): void {
+		$prepared = $this->record_prepares();
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $s ) => $s );
+		$sql = null;
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturnUsing(
+			static function ( $query ) use ( &$sql ) {
+				$sql = $query;
+				return array(
+					array(
+						'id'      => 9,
+						'action'  => 'login',
+						'context' => '{"k":1}',
+						'user_ip' => '198.51.100.4',
+					),
+				);
+			}
+		);
+
+		$rows = ActivityLogQuery::find_by_cursor(
+			array(
+				'level'  => 'warning',
+				'action' => 'login',
+				'search' => 'abc',
+			),
+			100,
+			25
+		);
+
+		$this->assertContains( 'level = %s | warning', (array) $prepared );
+		$this->assertContains( 'action = %s | login', (array) $prepared );
+		$this->assertContains( '(action LIKE %s OR context LIKE %s) | %abc%, %abc%', (array) $prepared );
+		$this->assertContains( 'SELECT * FROM %i WHERE {where} AND id < %d ORDER BY id DESC LIMIT %d | wp_ffc_activity_log, 100, 25', str_replace( '1=1 AND level = %s AND action = %s AND (action LIKE %s OR context LIKE %s)', '{where}', (array) $prepared ) );
+		$this->assertSame( array( 'k' => 1 ), $rows[0]['context'] );
+		$this->assertSame( '198.51.100.4', $rows[0]['user_ip'], 'a legacy plaintext IP still reads' );
+	}
+
+	public function test_find_by_cursor_returns_nothing_when_the_query_fails(): void {
+		$this->record_prepares();
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+		$this->assertSame( array(), ActivityLogQuery::find_by_cursor( array(), PHP_INT_MAX, 50 ) );
+	}
+
+	public function test_distinct_actions_returns_empty_when_the_query_fails(): void {
+		$this->record_prepares();
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( null );
+
+		$this->assertSame( array(), ActivityLogQuery::distinct_actions() );
+	}
+
+	public function test_get_submission_logs_is_empty_without_the_submission_id_column(): void {
+		\FreeFormCertificate\Core\ActivityLog::clear_column_cache();
+		$this->record_prepares();
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'id', 'action' ) );
+		$this->wpdb->shouldNotReceive( 'get_results' );
+
+		$logs = ActivityLogQuery::get_submission_logs( 5 );
+		\FreeFormCertificate\Core\ActivityLog::clear_column_cache();
+
+		$this->assertSame( array(), $logs );
+	}
+
+	public function test_get_submission_logs_decrypts_context_and_ip(): void {
+		\FreeFormCertificate\Core\ActivityLog::clear_column_cache();
+		$context = \FreeFormCertificate\Core\Encryption::encrypt( '{"field":"value"}' );
+		$ip      = \FreeFormCertificate\Core\Encryption::encrypt( '203.0.113.5' );
+		$this->assertNotNull( $context, 'The test keys must encrypt, or this test proves nothing.' );
+		$prepared = $this->record_prepares();
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'id', 'submission_id' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+			array(
+				array(
+					'id'                => 1,
+					'context'           => '',
+					'context_encrypted' => $context,
+					'user_ip_encrypted' => $ip,
+				),
+				array(
+					'id'                => 2,
+					'context'           => '{"kept":true}',
+					'context_encrypted' => $context,
+					'user_ip'           => '',
+				),
+				array(
+					'id'                => 3,
+					'context'           => '',
+					'context_encrypted' => 'not-a-ciphertext',
+					'user_ip_encrypted' => 'not-a-ciphertext',
+				),
+			)
+		);
+
+		$logs = ActivityLogQuery::get_submission_logs( 5, 10 );
+		\FreeFormCertificate\Core\ActivityLog::clear_column_cache();
+
+		$this->assertContains( 'SELECT * FROM %i WHERE submission_id = %d ORDER BY created_at DESC LIMIT %d | wp_ffc_activity_log, 5, 10', (array) $prepared );
+		$this->assertSame( '{"field":"value"}', $logs[0]['context'] );
+		$this->assertSame( '{"field":"value"}', $logs[0]['context_decrypted'] );
+		$this->assertSame( '203.0.113.5', $logs[0]['user_ip'] );
+		$this->assertSame( '{"kept":true}', $logs[1]['context'], 'a plaintext context is not overwritten' );
+		$this->assertNull( $logs[1]['user_ip'] );
+		$this->assertArrayNotHasKey( 'context_decrypted', $logs[2], 'an undecryptable context is left alone' );
+		$this->assertNull( $logs[2]['user_ip'], 'an undecryptable IP reads as null, never as the ciphertext' );
+	}
 }

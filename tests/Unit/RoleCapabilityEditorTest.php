@@ -272,4 +272,110 @@ class RoleCapabilityEditorTest extends TestCase {
 
 		unset( $_POST['role'], $_POST['cap'], $_POST['grant'] );
 	}
+
+	public function test_ajax_reports_a_role_that_is_not_registered_on_this_install(): void {
+		Functions\when( 'get_role' )->justReturn( null );
+
+		$_POST['role']  = 'ffc_end_user';
+		$_POST['cap']   = 'ffc_view_own_certificates';
+		$_POST['grant'] = '1';
+
+		$res = $this->run_ajax();
+
+		$this->assertFalse( $res['ok'] );
+		$this->assertSame( 'role_not_found', $res['data']['message'] );
+		$this->assertSame( 404, $res['code'] );
+
+		unset( $_POST['role'], $_POST['cap'], $_POST['grant'] );
+	}
+
+	public function test_init_wires_the_ajax_handler_and_the_assets(): void {
+		$hooks = array();
+		Functions\when( 'add_action' )->alias(
+			static function ( $hook, $callback ) use ( &$hooks ) {
+				$hooks[ $hook ] = $callback;
+				return true;
+			}
+		);
+
+		RoleCapabilityEditor::init();
+
+		$this->assertSame(
+			array(
+				'wp_ajax_ffc_set_role_cap' => array( RoleCapabilityEditor::class, 'ajax_set_role_cap' ),
+				'admin_enqueue_scripts'    => array( RoleCapabilityEditor::class, 'enqueue' ),
+			),
+			$hooks
+		);
+	}
+
+	public function test_enqueue_loads_only_on_the_user_access_tab(): void {
+		\Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'wp_create_nonce' )->alias( static fn( $action ) => 'nonce-' . $action );
+		Functions\when( 'get_role' )->justReturn( null );
+		$assets = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $handle ) use ( &$assets ) {
+				$assets[] = $handle;
+			}
+		);
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle ) use ( &$assets ) {
+				$assets[] = $handle;
+			}
+		);
+		$localized = array();
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( $handle, $name, $data ) use ( &$localized ) {
+				$localized[ $name ] = $data;
+				return true;
+			}
+		);
+
+		RoleCapabilityEditor::enqueue( 'edit.php' );
+		$_GET['tab'] = 'general';
+		RoleCapabilityEditor::enqueue( 'toplevel_page_ffc-settings' );
+		$this->assertSame( array(), $assets, 'another screen or tab loads nothing' );
+
+		$_GET['tab'] = 'user_access';
+		RoleCapabilityEditor::enqueue( 'toplevel_page_ffc-settings' );
+		unset( $_GET['tab'] );
+
+		$this->assertSame( array( 'ffc-common', 'ffc-user-permissions', 'ffc-role-editor' ), $assets );
+		$this->assertSame( 'nonce-ffc_set_role_cap', $localized['ffcRoleEditor']['nonce'] );
+		$this->assertSame( array(), $localized['ffcRoleEditor']['roleCaps'], 'a role missing on this install is left out of the map' );
+	}
+
+	public function test_editable_roles_count_their_members(): void {
+		// Declared here, in this test's own process: core's query class with a fixed total.
+		// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Declares a WordPress core class inside this test's own process.
+		eval(
+			'class WP_User_Query {
+				public $args;
+				public function __construct( $args ) { $this->args = $args; $GLOBALS["ffc_test_user_queries"][] = $args; }
+				public function get_total() { return "ffc_end_user" === $this->args["role"] ? 12 : 0; }
+			}'
+		);
+		$GLOBALS['ffc_test_user_queries'] = array();
+		Functions\when( 'get_role' )->alias( fn( $slug ) => $this->fake_role() );
+
+		$roles = array_column( RoleCapabilityEditor::editable_roles(), 'users', 'slug' );
+
+		$this->assertSame( 12, $roles['ffc_end_user'] );
+		$this->assertSame( 'ID', $GLOBALS['ffc_test_user_queries'][0]['fields'] );
+		$this->assertTrue( $GLOBALS['ffc_test_user_queries'][0]['count_total'] );
+	}
+
+	public function test_render_says_so_when_no_ffc_role_is_registered(): void {
+		Functions\when( 'get_role' )->justReturn( null );
+
+		ob_start();
+		RoleCapabilityEditor::render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-role-impact', $html );
+		$this->assertStringContainsString( '<p>No FFC roles are registered.</p></div>', $html );
+		$this->assertStringNotContainsString( 'ffc-role-select', $html );
+	}
 }

@@ -1394,4 +1394,330 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertSame( '17:30', $merged['class_time_end'] );
 		$this->assertSame( 'manual', $merged['schedule_default_mode'] );
 	}
+
+	// ==================================================================
+	// Remaining save branches and the post-save notices
+	// ==================================================================
+
+	public function test_save_form_data_refuses_a_user_who_cannot_edit_the_post(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		$checked = null;
+		Functions\when( 'current_user_can' )->alias(
+			static function ( $cap, $id = null ) use ( &$checked ) {
+				$checked = array( $cap, $id );
+				return false;
+			}
+		);
+		$touched = false;
+		Functions\when( 'delete_post_meta' )->alias(
+			static function () use ( &$touched ) {
+				$touched = true;
+				return true;
+			}
+		);
+
+		$_POST = array( 'ffc_form_nonce' => 'ok' );
+		$this->handler->save_form_data( 42 );
+
+		$this->assertSame( array( 'edit_post', 42 ), $checked );
+		$this->assertFalse( $touched, 'nothing is reset or written without edit_post' );
+	}
+
+	public function test_save_fields_meta_drops_rows_with_nothing_to_store(): void {
+		$bag     = $this->stub_for_save();
+		$written = &$bag[0];
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_fields'     => array(
+				array( 'type' => 'text' ),
+				array(
+					'label' => 'Name',
+					'name'  => 'nome',
+					'type'  => 'text',
+				),
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$this->assertCount( 1, $written['_ffc_form_fields'] );
+		$this->assertSame( 'Name', $written['_ffc_form_fields'][0]['label'] );
+	}
+
+	public function test_every_gated_config_section_is_written_when_its_toggle_is_on(): void {
+		$bag     = $this->stub_for_save();
+		$written = &$bag[0];
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_config'     => array(
+				'pdf_layout'           => '{{auth_code}} {{name}} {{cpf_rf}}',
+				'send_admin_email'     => '1',
+				'email_admin'          => 'boss@example.org',
+				'restrictions'         => array(
+					'allowlist' => '1',
+					'denylist'  => '1',
+					'ticket'    => '1',
+				),
+				'allowed_users_list'   => "111\n222",
+				'denied_users_list'    => '333',
+				'generated_codes_list' => 'ABC',
+				'quiz_enabled'         => '1',
+				'quiz_passing_score'   => '80',
+				'quiz_max_attempts'    => '3',
+				'quiz_show_score'      => '1',
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$config = $written['_ffc_form_config'];
+		$this->assertSame( 'boss@example.org', $config['email_admin'] );
+		$this->assertSame( "111\n222", $config['allowed_users_list'] );
+		$this->assertSame( '333', $config['denied_users_list'] );
+		$this->assertSame( 'ABC', $config['generated_codes_list'] );
+		$this->assertArrayNotHasKey( 'validation_code', $config, 'the password toggle stayed off' );
+		$this->assertSame( 80, $config['quiz_passing_score'] );
+		$this->assertSame( 3, $config['quiz_max_attempts'] );
+		$this->assertSame( '1', $config['quiz_show_score'] );
+		$this->assertSame( '0', $config['quiz_show_correct'] );
+	}
+
+	public function test_a_layout_missing_tags_or_pointing_at_html_leaves_both_warnings(): void {
+		$bag       = $this->stub_for_save();
+		$written   = &$bag[0];
+		$transient = array();
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$transient ) {
+				$transient[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_config'     => array(
+				'pdf_layout' => '<img src="https://x.test/wp-content/plugins/ffcertificate/html/logo.png"> {{name}}',
+				'bg_image'   => 'https://x.test/wp-content/plugins/ffcertificate/html/bg.jpg',
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$this->assertArrayHasKey( '_ffc_form_config', $written, 'both warnings are non-blocking' );
+		$this->assertContains( '{{auth_code}}', $transient['ffc_save_error_1'] );
+		$this->assertSame(
+			array( 'https://x.test/wp-content/plugins/ffcertificate/html/logo.png', 'https://x.test/wp-content/plugins/ffcertificate/html/bg.jpg' ),
+			$transient['ffc_html_lint_1']
+		);
+	}
+
+	public function test_geofence_ip_area_fields_are_saved_when_ip_permissive_is_on(): void {
+		$bag     = $this->stub_for_save();
+		$written = &$bag[0];
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_geofence'   => array(
+				'geo_enabled'              => '1',
+				'geo_ip_enabled'           => '1',
+				'geo_ip_areas_permissive'  => '1',
+				'geo_ip_area_source'       => 'somewhere-else',
+				'geo_ip_area_location_ids' => array( 'sp', array( 'nested' ), 'rj' ),
+				'geo_ip_areas'             => '-23.5, -46.6, 5000',
+				'msg_geo_blocked'          => 'You are outside the allowed area for this form.',
+				'msg_geo_error'            => 'We could not determine where you are right now.',
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$geo = $written['_ffc_geofence_config'];
+		$this->assertSame( 'custom', $geo['geo_ip_area_source'], 'an unknown source folds to custom' );
+		$this->assertSame( array( 'sp', 'rj' ), $geo['geo_ip_area_location_ids'] );
+		$this->assertSame( '-23.5, -46.6, 5000', $geo['geo_ip_areas'] );
+	}
+
+	public function test_an_invalid_geofence_is_not_saved_and_routes_its_errors(): void {
+		$bag       = $this->stub_for_save();
+		$written   = &$bag[0];
+		$transient = array();
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$transient ) {
+				$transient[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_geofence'   => array(
+				'geo_enabled'     => '1',
+				'geo_gps_enabled' => '1',
+				'geo_areas'       => '',
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$this->assertArrayNotHasKey( '_ffc_geofence_config', $written );
+		$this->assertNotEmpty( $transient['ffc_geofence_error_1'] );
+		$this->assertContains( 'geolocation', $transient['ffc_geofence_error_tabs_1'] );
+	}
+
+	public function test_first_enable_of_public_access_generates_a_hash_and_defaults_to_audit(): void {
+		$bag     = $this->stub_for_save();
+		$written = &$bag[0];
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_csv_public' => array(
+				'enabled'       => '1',
+				'reset_counter' => '1',
+				'cpf_mode'      => 'none',
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$this->assertMatchesRegularExpression( '/^[0-9a-f]{32}$/', $written['_ffc_csv_public_hash'] );
+		$this->assertSame( 0, $written['_ffc_csv_public_count'] );
+		$this->assertSame( 'audit', $written['_ffc_csv_public_cpf_mode'], 'a just-enabled download always logs who pulled it' );
+	}
+
+	public function test_regenerate_replaces_an_existing_hash_and_an_unknown_mode_reads_as_none(): void {
+		$bag     = $this->stub_for_save();
+		$written = &$bag[0];
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) {
+				if ( '_ffc_csv_public_hash' === $key ) {
+					return 'oldhash';
+				}
+				return '_ffc_csv_public_enabled' === $key ? '1' : '';
+			}
+		);
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_csv_public' => array(
+				'enabled'         => '1',
+				'regenerate_hash' => '1',
+				'cpf_mode'        => 'bogus',
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$this->assertNotSame( 'oldhash', $written['_ffc_csv_public_hash'] );
+		$this->assertSame( 32, strlen( $written['_ffc_csv_public_hash'] ) );
+		$this->assertSame( 'none', $written['_ffc_csv_public_cpf_mode'], 'already enabled: an explicit none is respected' );
+		$this->assertArrayNotHasKey( '_ffc_csv_public_count', $written );
+	}
+
+	public function test_the_cpf_whitelist_keeps_only_distinct_eleven_digit_cpfs(): void {
+		$bag     = $this->stub_for_save();
+		$written = &$bag[0];
+		Functions\when( 'get_post_meta' )->justReturn( 'hash' );
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_csv_public' => array(
+				'enabled'       => '1',
+				'cpf_mode'      => 'whitelist',
+				'cpf_whitelist' => "123.456.789-01\n12345678901, 999\r\n987.654.321-00",
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$this->assertSame( 'whitelist', $written['_ffc_csv_public_cpf_mode'] );
+		$this->assertSame( "12345678901\n98765432100", $written['_ffc_csv_public_cpf_whitelist'] );
+	}
+
+	public function test_an_emptied_cpf_whitelist_is_deleted(): void {
+		$this->stub_for_save();
+		Functions\when( 'get_post_meta' )->justReturn( 'hash' );
+		$deleted = array();
+		Functions\when( 'delete_post_meta' )->alias(
+			static function ( $id, $key ) use ( &$deleted ): bool {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_csv_public' => array(
+				'enabled'       => '1',
+				'cpf_whitelist' => "  \n ",
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$this->assertContains( '_ffc_csv_public_cpf_whitelist', $deleted );
+	}
+
+	public function test_device_limit_threshold_and_message_are_clamped_and_stored(): void {
+		$bag     = $this->stub_for_save();
+		$written = &$bag[0];
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$_POST = array(
+			'ffc_form_nonce'   => 'ok',
+			'ffc_device_limit' => array(
+				'enabled'   => '1',
+				'threshold' => '40',
+				'message'   => 'This device already submitted.',
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$this->assertSame( 12, $written['_ffc_device_match_threshold'] );
+		$this->assertSame( 'This device already submitted.', $written['_ffc_device_limit_message'] );
+	}
+
+	/**
+	 * Run display_save_errors() with the given transients present.
+	 *
+	 * @param array<string, mixed> $transients Key (without the user suffix) => value.
+	 * @return array{0: string, 1: array<int, string>} Output and deleted keys.
+	 */
+	private function display_with( array $transients ): array {
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
+		Functions\when( 'get_transient' )->alias(
+			static function ( $key ) use ( $transients ) {
+				return $transients[ preg_replace( '/_7$/', '', $key ) ] ?? false;
+			}
+		);
+		$deleted = array();
+		Functions\when( 'delete_transient' )->alias(
+			static function ( $key ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+
+		ob_start();
+		$this->handler->display_save_errors();
+		return array( (string) ob_get_clean(), $deleted );
+	}
+
+	public function test_display_save_errors_lists_the_missing_tags(): void {
+		list( $html, $deleted ) = $this->display_with( array( 'ffc_save_error' => array( '{{name}}', array( 'x' ), '{{cpf_rf}}' ) ) );
+
+		$this->assertStringContainsString( 'notice-error', $html );
+		$this->assertStringContainsString( '<code>{{name}}, {{cpf_rf}}</code>', $html, 'a non-scalar entry is dropped' );
+		$this->assertSame( array( 'ffc_save_error_7' ), $deleted );
+	}
+
+	public function test_display_save_errors_lists_geofence_errors_and_clears_the_tab_routing(): void {
+		list( $html, $deleted ) = $this->display_with( array( 'ffc_geofence_error' => array( 'Areas are required.', array( 'x' ) ) ) );
+
+		$this->assertStringContainsString( 'Geolocation Configuration Error:', $html );
+		$this->assertStringContainsString( '<li>Areas are required.</li>', $html );
+		$this->assertStringContainsString( '<li></li>', $html );
+		$this->assertSame( array( 'ffc_geofence_error_7', 'ffc_geofence_error_tabs_7' ), $deleted );
+	}
 }
