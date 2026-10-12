@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceAdminImport;
 use FreeFormCertificate\Core\CsvStreamer;
 use FreeFormCertificate\Core\CsvDownloadInterface;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * @covers \FreeFormCertificate\Audience\AudienceAdminImport
@@ -121,10 +122,12 @@ class AudienceAdminImportTest extends TestCase {
 		// anything here. Every branch that acts verifies a nonce first — that
 		// is the marker for "no branch was entered".
 
-		Functions\expect( 'wp_verify_nonce' )->never();
+		$wp_verify_nonce = CallLog::record( 'wp_verify_nonce', true ); // expect()->never() cannot see past setUp's stub (#1699).
 
 		$page = new AudienceAdminImport( 'ffc-scheduling' );
 		$page->handle_csv_import();
+
+		$this->assertSame( 0, $wp_verify_nonce->count() );
 	}
 
 	// ==================================================================

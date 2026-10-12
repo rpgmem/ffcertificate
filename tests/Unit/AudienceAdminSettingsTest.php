@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceAdminSettings;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * @covers \FreeFormCertificate\Audience\AudienceAdminSettings
@@ -146,10 +147,12 @@ class AudienceAdminSettingsTest extends TestCase {
 
 		// Past the capability check the method saves through update_option(),
 		// so no option write is the proof nothing was persisted.
-		Functions\expect( 'update_option' )->never();
+		$update_option = CallLog::record( 'update_option', true ); // expect()->never() cannot see past setUp's stub (#1699).
 
 		$page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
 		$page->handle_visibility_settings();
+
+		$this->assertSame( 0, $update_option->count() );
 	}
 
 	// ==================================================================
@@ -172,10 +175,12 @@ class AudienceAdminSettingsTest extends TestCase {
 		);
 
 		// The branch persists through update_option( 'ffc_global_holidays' ).
-		Functions\expect( 'update_option' )->never();
+		$update_option = CallLog::record( 'update_option', true ); // expect()->never() cannot see past setUp's stub (#1699).
 
 		$page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
 		$page->handle_global_holiday_actions();
+
+		$this->assertSame( 0, $update_option->count() );
 	}
 
 	// ==================================================================

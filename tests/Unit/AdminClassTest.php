@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\Admin;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * @covers \FreeFormCertificate\Admin\Admin
@@ -750,10 +751,12 @@ class AdminClassTest extends TestCase {
 		// #1030: this asserted nothing. Past the param guard the method checks
 		// the capability and wp_die()s without it — see the sibling test — so a
 		// capability never consulted is the proof the guard returned.
-		Functions\expect( 'current_user_can' )->never();
+		$current_user_can = CallLog::record( 'current_user_can', true ); // expect()->never() cannot see past setUp's stub (#1699).
 
 		list( $admin ) = $this->makeAdmin();
 		$admin->handle_migration_action();
+
+		$this->assertSame( 0, $current_user_can->count() );
 	}
 
 	public function test_handle_migration_action_dies_without_permission(): void {

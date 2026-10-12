@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\Settings;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Tests for Settings: plugin settings coordinator.
@@ -324,9 +325,11 @@ class SettingsTest extends TestCase {
 		unset( $_GET['ffc_run_migration'] );
 
 		// Should return early — no permission check needed
-		Functions\expect( 'current_user_can' )->never();
+		$current_user_can = CallLog::record( 'current_user_can', true ); // expect()->never() cannot see past setUp's stub (#1699).
 
 		$this->settings->handle_migration_execution();
+
+		$this->assertSame( 0, $current_user_can->count() );
 	}
 
 	public function test_handle_migration_dies_without_permission(): void {
