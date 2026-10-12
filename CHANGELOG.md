@@ -20,6 +20,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Consolidating a person imported twice as a candidate no longer dead-ends** (#1682). Where both numbers sat on candidacies of one account, Identity resolution refused and asked to decide about the second candidacy, which no screen could do. The mistyped candidacy is now folded into the sound one: classifications move unchanged and the empty row is deleted. An identical, never-called classification on both (a preliminary list promoted under one number, the definitive re-imported under the other) is deduplicated; a differing or called one, or a different PCD condition, is still refused.
 - **The recruitment CSV import honours the RF check digit setting** (#1683). It refused a mistyped CPF but never checked an RF, even with Settings → General → RF check digit on, so the one path that writes candidacy numbers kept storing RFs every form refused. With the setting on, such a row is now refused by line; off, nothing changes.
+- **A role holding only `ffc_manage_reregistration` opens the Reregistration screen** (#1698). The menu and the page admitted the view capability alone, so a custom role with manage but not view got "Permission denied"; the shipped presets grant both and were not affected.
 
 ### Security
 

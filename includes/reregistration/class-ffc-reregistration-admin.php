@@ -66,6 +66,29 @@ class ReregistrationAdmin {
 	}
 
 	/**
+	 * Whether the current user can open the campaigns screen — the view OR
+	 * the manage tier (the 3-state model: a manage grant does not also need
+	 * the view one). WP admins always pass.
+	 *
+	 * @return bool
+	 */
+	private function can_view(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::VIEW_CAPABILITY ) || $this->can_edit();
+	}
+
+	/**
+	 * The capability the Reregistration menu is registered with.
+	 *
+	 * WordPress gates a menu on ONE capability, while the screen opens for
+	 * view OR manage, so the menu names whichever of the two the user holds.
+	 *
+	 * @return string
+	 */
+	private function menu_capability(): string {
+		return ! current_user_can( self::VIEW_CAPABILITY ) && current_user_can( self::CAPABILITY ) ? self::CAPABILITY : self::VIEW_CAPABILITY;
+	}
+
+	/**
 	 * AJAX handler (lazily created in init()).
 	 *
 	 * @var ReregistrationAjaxHandler|null
@@ -116,10 +139,12 @@ class ReregistrationAdmin {
 	 * @return void
 	 */
 	public function add_menu(): void {
+		$menu_cap = $this->menu_capability();
+
 		add_menu_page(
 			\FreeFormCertificate\Core\PluginAreas::label( 'reregistration' ),
 			\FreeFormCertificate\Core\PluginAreas::label( 'reregistration' ),
-			self::VIEW_CAPABILITY,
+			$menu_cap,
 			self::MENU_SLUG,
 			array( $this, 'render_page' ),
 			'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
@@ -133,7 +158,7 @@ class ReregistrationAdmin {
 			self::MENU_SLUG,
 			__( 'Campaigns', 'ffcertificate' ),
 			__( 'Campaigns', 'ffcertificate' ),
-			self::VIEW_CAPABILITY,
+			$menu_cap,
 			self::MENU_SLUG,
 			array( $this, 'render_page' )
 		);
@@ -318,8 +343,9 @@ class ReregistrationAdmin {
 	 */
 	public function render_page(): void {
 		// 3-state: viewers (ffc_view_reregistration) reach the list/submissions
-		// read-only; the campaign editor (new/edit) needs the manage cap.
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::VIEW_CAPABILITY ) ) {
+		// read-only; the campaign editor (new/edit) needs the manage cap, and
+		// a manage-only role opens the screen without the view cap (#1698).
+		if ( ! $this->can_view() ) {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
 

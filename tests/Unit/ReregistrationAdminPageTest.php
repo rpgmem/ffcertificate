@@ -123,9 +123,9 @@ class ReregistrationAdminPageTest extends TestCase {
 	}
 
 	public function test_a_manager_gets_the_boxed_editor_for_a_new_campaign(): void {
-		// The page gate reads the view tier (the menu is registered under it),
-		// so a manager holds both, as the shipped role presets grant.
-		$this->grant( array( 'ffc_view_reregistration', 'ffc_manage_reregistration' ) );
+		// Manage alone opens the screen: the 3-state model does not ask a
+		// manage role to hold the view cap as well (#1698).
+		$this->grant( array( 'ffc_manage_reregistration' ) );
 		$_GET['view'] = 'new';
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationAdminRenderer' )
 			->shouldReceive( 'render_form' )->once()->with( 'ffc-reregistration', 0 );
@@ -133,6 +133,69 @@ class ReregistrationAdminPageTest extends TestCase {
 		$html = $this->renderPage();
 
 		$this->assertStringContainsString( 'ffc-page-reregistration ffc-boxed', $html );
+	}
+
+	public function test_a_manage_only_role_gets_the_editable_list(): void {
+		$this->grant( array( 'ffc_manage_reregistration' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationAdminRenderer' )
+			->shouldReceive( 'render_list' )->once()->with( 'ffc-reregistration', true );
+
+		$this->renderPage();
+	}
+
+	public function test_a_role_with_neither_tier_is_refused(): void {
+		$this->grant( array( 'ffc_view_audiences' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationAdminRenderer' )->shouldNotReceive( 'render_list' );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die: Permission denied.' );
+
+		$this->renderPage();
+	}
+
+	/**
+	 * @return array<string, array{0: list<string>, 1: string}>
+	 */
+	public static function menu_capability_cases(): array {
+		return array(
+			'view only'   => array( array( 'ffc_view_reregistration' ), 'ffc_view_reregistration' ),
+			'manage only' => array( array( 'ffc_manage_reregistration' ), 'ffc_manage_reregistration' ),
+			'both'        => array( array( 'ffc_view_reregistration', 'ffc_manage_reregistration' ), 'ffc_view_reregistration' ),
+			'neither'     => array( array(), 'ffc_view_reregistration' ),
+		);
+	}
+
+	/**
+	 * WordPress gates a menu on one capability, so the menu names whichever
+	 * tier the user holds; otherwise a manage-only role never reaches the page.
+	 *
+	 * @dataProvider menu_capability_cases
+	 *
+	 * @param list<string> $caps     Capabilities held.
+	 * @param string       $expected Capability the campaign menu is registered with.
+	 */
+	public function test_the_menu_is_registered_under_the_tier_the_user_holds( array $caps, string $expected ): void {
+		$this->grant( $caps );
+		$registered = array();
+		Functions\when( 'add_menu_page' )->alias(
+			function () use ( &$registered ) {
+				$registered[ func_get_arg( 3 ) ] = func_get_arg( 2 );
+				return 'hook';
+			}
+		);
+		Functions\when( 'add_submenu_page' )->alias(
+			function () use ( &$registered ) {
+				$registered[ 'sub:' . func_get_arg( 4 ) ] = func_get_arg( 3 );
+				return 'hook';
+			}
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Core\PluginAreas' )->shouldReceive( 'label' )->andReturn( 'Reregistration' );
+
+		( new ReregistrationAdmin() )->add_menu();
+
+		$this->assertSame( $expected, $registered['ffc-reregistration'] );
+		$this->assertSame( $expected, $registered['sub:ffc-reregistration'] );
+		$this->assertSame( 'ffc_manage_reregistration', $registered['sub:ffc-custom-fields'] );
 	}
 
 	public function test_the_submissions_view_carries_the_id_and_the_edit_tier(): void {
