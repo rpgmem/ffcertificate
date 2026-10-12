@@ -22061,6 +22061,9 @@ msgstr "O RF tem mais dígitos do que um RF pode ter — verifique se há um val
 msgid "CPF is not valid — its check digits do not match. Confirm the number in the source spreadsheet."
 msgstr "O CPF não é válido — os dígitos verificadores não conferem. Confirme o número na planilha de origem."
 
+msgid "RF is not valid — its check digit does not match, and the RF check digit setting is on. Confirm the number in the source spreadsheet."
+msgstr "O RF não é válido — o dígito verificador não confere, e a validação do dígito do RF está ativada. Confirme o número na planilha de origem."
+
 #. translators: %s: the identifier both accounts hold, e.g. RF.
 #: includes/maintenance/class-ffc-identity-merge.php:303
 msgid "Both accounts hold the same %s, and that number fails its own check digit — so it cannot be either person's, and it is not evidence that they are one person. Correct it first, under \"Numbers to correct\": doing so may dissolve this pair rather than resolve it, because the shared number may be the typo that paired them."
@@ -23084,8 +23087,8 @@ msgstr "Cores do editor HTML do certificado na tela do formulário: Automático 
 msgid "Off by default. When switched on, the daily cleanup permanently deletes published submissions older than the \"Delete after (days)\" window (default 365)."
 msgstr "Desativado por padrão. Quando ativado, a limpeza diária exclui permanentemente os envios publicados mais antigos que a janela \"Excluir após (dias)\" (padrão 365)."
 
-msgid "Off by default. When on, forms reject an RF whose check digit does not match. Before turning it on, run the identity audit on the Data Migrations tab to see how many stored RFs would fail."
-msgstr "Desativado por padrão. Quando ativado, os formulários recusam um RF cujo dígito verificador não confere. Antes de ativá-lo, execute a auditoria de identidades na aba Migrações de Dados para ver quantos RFs armazenados seriam recusados."
+msgid "Off by default. When on, forms and the recruitment CSV import reject an RF whose check digit does not match. Before turning it on, run the identity audit on the Data Migrations tab to see how many stored RFs would fail."
+msgstr "Desativado por padrão. Quando ativado, os formulários e a importação CSV do recrutamento recusam um RF cujo dígito verificador não confere. Antes de ativá-lo, execute a auditoria de identidades na aba Migrações de Dados para ver quantos RFs armazenados seriam recusados."
 
 msgid "Branding logos"
 msgstr "Logotipos de branding"
