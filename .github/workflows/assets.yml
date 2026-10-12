@@ -8,6 +8,10 @@ on:
 # and leave PRs in mergeable_state: blocked. With npm cache + npm ci
 # the job finishes in well under a minute.
 
+# Every job only reads the repository; nothing here writes to it.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

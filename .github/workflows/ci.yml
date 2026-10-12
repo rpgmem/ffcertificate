@@ -10,6 +10,11 @@ on:
     # same gates per PR — develop must stay deployable to the testes site.
     branches: [main, develop, "release/**"]
 
+# Every job only reads the repository; nothing here writes to it. The
+# Coveralls upload below passes the token to identify the repository only.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
