@@ -237,4 +237,425 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertStringContainsString( '05/06/2026', $output );
 		$this->assertStringNotContainsString( '04/06/2026', $output );
 	}
+
+	// ==================================================================
+	// render_page() — every tab, the fallback and an extension tab
+	// ==================================================================
+
+	private function page( ?\FreeFormCertificate\Audience\AudienceAdminImport $import = null ): AudienceAdminSettings {
+		return new AudienceAdminSettings(
+			'ffc-scheduling',
+			$import ?? \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing()
+		);
+	}
+
+	private function render( AudienceAdminSettings $page ): string {
+		ob_start();
+		try {
+			$page->render_page();
+		} finally {
+			$html = (string) ob_get_clean();
+		}
+		return $html;
+	}
+
+	public function test_render_page_self_scheduling_tab_shows_the_stored_messages(): void {
+		$_GET['tab'] = 'self-scheduling';
+		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+			return 'ffc_ss_business_hours_booking_message' === $key ? 'Stored booking text' : $default;
+		} );
+
+		$html = $this->render( $this->page() );
+
+		$this->assertStringContainsString( 'id="ffc-scheduling-tabpanel-self-scheduling"', $html );
+		$this->assertStringContainsString( 'Stored booking text', $html );
+		$this->assertStringContainsString( 'save_ss_visibility_settings', $html );
+	}
+
+	public function test_render_page_audience_tab_shows_its_form(): void {
+		$_GET['tab'] = 'audience';
+
+		$html = $this->render( $this->page() );
+
+		$this->assertStringContainsString( 'id="ffc-scheduling-tabpanel-audience"', $html );
+		$this->assertStringContainsString( 'save_aud_visibility_settings', $html );
+		$this->assertStringContainsString( 'aria-selected="true"', $html );
+	}
+
+	public function test_render_page_import_tab_delegates_to_the_import_page(): void {
+		$_GET['tab'] = 'import';
+		$import      = \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class );
+		$import->shouldReceive( 'render_content' )->once()->andReturnUsing( function () { echo '<import-body>'; } );
+
+		$html = $this->render( $this->page( $import ) );
+
+		$this->assertStringContainsString( '<import-body>', $html );
+	}
+
+	public function test_render_page_falls_back_to_general_for_an_unknown_tab(): void {
+		$_GET['tab'] = 'nope';
+		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
+
+		$html = $this->render( $this->page() );
+
+		$this->assertStringContainsString( 'id="ffc-scheduling-tabpanel-general"', $html );
+		$this->assertStringNotContainsString( 'tabpanel-nope', $html );
+	}
+
+	public function test_render_page_renders_a_filter_contributed_tab_through_its_action(): void {
+		$_GET['tab'] = 'receipt';
+		\Brain\Monkey\Filters\expectApplied( 'ffc_scheduling_settings_tabs' )->once()->andReturnUsing(
+			function ( $tabs ) {
+				$tabs['receipt'] = array( 'label' => 'Receipt', 'icon' => 'ffc-icon-file' );
+				return $tabs;
+			}
+		);
+		\Brain\Monkey\Actions\expectDone( 'ffc_scheduling_settings_render_tab_receipt' )->once();
+
+		$html = $this->render( $this->page() );
+
+		$this->assertStringContainsString( 'id="ffc-scheduling-tabpanel-receipt"', $html );
+		$this->assertStringContainsString( '<span class="ffc-settings-tabs__label">Receipt</span>', $html );
+	}
+
+	// ==================================================================
+	// handle_visibility_settings() — the three forms
+	// ==================================================================
+
+	/**
+	 * @return \ArrayObject<string, mixed> option => value written.
+	 */
+	private function record_writes(): \ArrayObject {
+		$written = new \ArrayObject();
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( $written ) {
+				$written[ $key ] = $value;
+				return true;
+			}
+		);
+		return $written;
+	}
+
+	/**
+	 * @return \ArrayObject<int, string>
+	 */
+	private function record_notices(): \ArrayObject {
+		$notices = new \ArrayObject();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $message ) use ( $notices ) {
+				$notices[] = $message;
+			}
+		);
+		return $notices;
+	}
+
+	public function test_visibility_settings_need_the_manage_capability(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$written = $this->record_writes();
+		$_POST   = array(
+			'ffc_action'              => 'save_ss_visibility_settings',
+			'ffc_ss_visibility_nonce' => 'n',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertCount( 0, $written );
+	}
+
+	public function test_self_scheduling_visibility_with_a_bad_nonce_writes_nothing(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		$written = $this->record_writes();
+		$_POST   = array(
+			'ffc_action'              => 'save_ss_visibility_settings',
+			'ffc_ss_visibility_nonce' => 'forged',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertCount( 0, $written );
+	}
+
+	public function test_self_scheduling_visibility_coerces_an_unknown_display_mode(): void {
+		$written = $this->record_writes();
+		$notices = $this->record_notices();
+		$_POST   = array(
+			'ffc_action'                  => 'save_ss_visibility_settings',
+			'ffc_ss_visibility_nonce'     => 'n',
+			'ffc_ss_private_display_mode' => 'shout',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertSame( 'show_message', $written['ffc_ss_private_display_mode'] );
+		$this->assertSame( '', $written['ffc_ss_visibility_message'], 'An absent field stores an empty string.' );
+		$this->assertSame( array( 'Personal Calendars visibility settings saved.' ), $notices->getArrayCopy() );
+	}
+
+	public function test_business_hours_messages_are_saved(): void {
+		$written = $this->record_writes();
+		$notices = $this->record_notices();
+		$_POST   = array(
+			'ffc_action'                            => 'save_ss_business_hours_settings',
+			'ffc_ss_business_hours_nonce'           => 'n',
+			'ffc_ss_business_hours_viewing_message' => 'View during %hours%',
+			'ffc_ss_business_hours_booking_message' => 'Book during %hours%',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertSame(
+			array(
+				'ffc_ss_business_hours_viewing_message' => 'View during %hours%',
+				'ffc_ss_business_hours_booking_message' => 'Book during %hours%',
+			),
+			$written->getArrayCopy()
+		);
+		$this->assertSame( array( 'Business hours restriction messages saved.' ), $notices->getArrayCopy() );
+	}
+
+	public function test_business_hours_messages_without_a_nonce_are_ignored(): void {
+		$written = $this->record_writes();
+		$_POST   = array( 'ffc_action' => 'save_ss_business_hours_settings' );
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertCount( 0, $written );
+	}
+
+	public function test_audience_visibility_normalises_the_mode_and_the_colour(): void {
+		$written = $this->record_writes();
+		$notices = $this->record_notices();
+		$_POST   = array(
+			'ffc_action'                       => 'save_aud_visibility_settings',
+			'ffc_aud_visibility_nonce'         => 'n',
+			'ffc_aud_private_display_mode'     => 'show_title_message',
+			'ffc_aud_visibility_message'       => 'Log in',
+			'ffc_aud_scheduling_message'       => 'Book',
+			'ffc_aud_multiple_audiences_color' => ' #AABBCC ',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertSame(
+			array(
+				'ffc_aud_private_display_mode'     => 'show_title_message',
+				'ffc_aud_visibility_message'       => 'Log in',
+				'ffc_aud_scheduling_message'       => 'Book',
+				'ffc_aud_multiple_audiences_color' => '#aabbcc',
+			),
+			$written->getArrayCopy()
+		);
+		$this->assertSame( array( 'Audience visibility settings saved.' ), $notices->getArrayCopy() );
+	}
+
+	public function test_audience_visibility_drops_an_invalid_colour_and_mode(): void {
+		$written = $this->record_writes();
+		$this->record_notices();
+		$_POST = array(
+			'ffc_action'                       => 'save_aud_visibility_settings',
+			'ffc_aud_visibility_nonce'         => 'n',
+			'ffc_aud_private_display_mode'     => 'loud',
+			'ffc_aud_multiple_audiences_color' => 'red; background:url(x)',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertSame( 'show_message', $written['ffc_aud_private_display_mode'] );
+		$this->assertSame( '', $written['ffc_aud_multiple_audiences_color'] );
+	}
+
+	public function test_audience_visibility_with_a_bad_nonce_writes_nothing(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		$written = $this->record_writes();
+		$_POST   = array(
+			'ffc_action'               => 'save_aud_visibility_settings',
+			'ffc_aud_visibility_nonce' => 'forged',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertCount( 0, $written );
+	}
+
+	// ==================================================================
+	// handle_global_holiday_actions() — add and delete
+	// ==================================================================
+
+	/**
+	 * @return \ArrayObject<int, string> Redirect targets; the redirect throws to stand in for exit.
+	 */
+	private function record_redirects(): \ArrayObject {
+		$redirects = new \ArrayObject();
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( $url ) use ( $redirects ) {
+				$redirects[] = $url;
+				throw new \RuntimeException( 'redirected' );
+			}
+		);
+		return $redirects;
+	}
+
+	private function run_holiday_action(): void {
+		try {
+			$this->page()->handle_global_holiday_actions();
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirected', $e->getMessage() );
+		} finally {
+			$_POST = array();
+			$_GET  = array();
+		}
+	}
+
+	/**
+	 * @param list<array{date: string, description: string}> $stored
+	 */
+	private function stored_holidays( array $stored ): void {
+		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) use ( $stored ) {
+			return 'ffc_global_holidays' === $key ? $stored : $default;
+		} );
+	}
+
+	public function test_adding_a_new_holiday_appends_it_and_redirects(): void {
+		$this->stored_holidays( array( array( 'date' => '2026-01-01', 'description' => 'New Year' ) ) );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+		$_POST     = array(
+			'ffc_action'                 => 'add_global_holiday',
+			'ffc_global_holiday_nonce'   => 'n',
+			'global_holiday_date'        => '2026-12-25',
+			'global_holiday_description' => 'Christmas',
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertSame(
+			array(
+				array( 'date' => '2026-01-01', 'description' => 'New Year' ),
+				array( 'date' => '2026-12-25', 'description' => 'Christmas' ),
+			),
+			$written['ffc_global_holidays']
+		);
+		$this->assertSame( array( 'https://example.com/wp-admin/' ), $redirects->getArrayCopy() );
+	}
+
+	public function test_adding_a_duplicate_or_empty_date_changes_nothing(): void {
+		$this->stored_holidays( array( array( 'date' => '2026-12-25', 'description' => 'Christmas' ) ) );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+
+		$_POST = array(
+			'ffc_action'               => 'add_global_holiday',
+			'ffc_global_holiday_nonce' => 'n',
+			'global_holiday_date'      => '2026-12-25',
+		);
+		$this->run_holiday_action();
+		$_POST = array(
+			'ffc_action'               => 'add_global_holiday',
+			'ffc_global_holiday_nonce' => 'n',
+			'global_holiday_date'      => '',
+		);
+		$this->run_holiday_action();
+
+		$this->assertCount( 0, $written );
+		$this->assertCount( 2, $redirects, 'Both still return to the General tab.' );
+	}
+
+	public function test_adding_a_holiday_with_a_bad_nonce_is_ignored(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+		$_POST     = array(
+			'ffc_action'               => 'add_global_holiday',
+			'ffc_global_holiday_nonce' => 'forged',
+			'global_holiday_date'      => '2026-12-25',
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertCount( 0, $written );
+		$this->assertCount( 0, $redirects );
+	}
+
+	public function test_deleting_a_holiday_removes_that_index(): void {
+		$this->stored_holidays(
+			array(
+				array( 'date' => '2026-01-01', 'description' => 'A' ),
+				array( 'date' => '2026-05-01', 'description' => 'B' ),
+			)
+		);
+		$verified = array();
+		Functions\when( 'wp_verify_nonce' )->alias(
+			static function ( $nonce, $action ) use ( &$verified ) {
+				$verified[] = $action;
+				return true;
+			}
+		);
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+		$_GET      = array(
+			'ffc_action'               => 'delete_global_holiday',
+			'holiday_index'            => '0',
+			'ffc_global_holiday_nonce' => 'n',
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertSame( array( 'delete_global_holiday_0' ), $verified, 'The nonce is bound to the index.' );
+		$this->assertSame( array( array( 'date' => '2026-05-01', 'description' => 'B' ) ), $written['ffc_global_holidays'] );
+		$this->assertCount( 1, $redirects );
+	}
+
+	public function test_deleting_an_unknown_index_writes_nothing(): void {
+		$this->stored_holidays( array( array( 'date' => '2026-01-01', 'description' => 'A' ) ) );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+		$_GET      = array(
+			'ffc_action'               => 'delete_global_holiday',
+			'holiday_index'            => '5',
+			'ffc_global_holiday_nonce' => 'n',
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertCount( 0, $written );
+		$this->assertCount( 1, $redirects );
+	}
+
+	public function test_deleting_a_holiday_without_the_capability_is_refused(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+		$_GET      = array(
+			'ffc_action'               => 'delete_global_holiday',
+			'holiday_index'            => '0',
+			'ffc_global_holiday_nonce' => 'n',
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertCount( 0, $written );
+		$this->assertCount( 0, $redirects );
+	}
+
+	public function test_deleting_a_holiday_without_a_nonce_is_refused(): void {
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+		$_GET      = array(
+			'ffc_action'    => 'delete_global_holiday',
+			'holiday_index' => '0',
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertCount( 0, $written );
+		$this->assertCount( 0, $redirects );
+	}
 }

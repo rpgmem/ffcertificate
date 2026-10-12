@@ -11,6 +11,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **"One address, several people" names each number** (#1684). Each number's Move / Split group shows the names recorded beside it. They are now also read from the submission answers (encrypted copy first), which is where this panel's rows live, so each number can be taken to HR by name rather than by hash.
 - ⚠ **The licence is now AGPLv3 or later** (#1695). Reuse and forks stay free, and a modified copy offered as a network service must publish its source too. The repository had no `LICENSE`, so GitHub showed none; it now ships the AGPL text, and a test holds every declaration together. Releases already published stay GPLv3.
+- **Audience, recruitment and reregistration code is covered by tests, error paths included** (#1690). New and extended unit tests cover 18 classes, from the audience shortcode and CSV import to the reregistration form and admin screens and the recruitment activator: about 1,050 more statements, with refusals, `WP_Error` returns and database failures.
 
 ### Fixed
 

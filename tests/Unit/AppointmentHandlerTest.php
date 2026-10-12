@@ -925,4 +925,193 @@ class AppointmentHandlerTest extends TestCase {
 	public function test_get_blocked_date_repository(): void {
 		$this->assertSame( $this->blockedDateRepo, $this->handler->get_blocked_date_repository() );
 	}
+
+	// ==================================================================
+	// process_appointment() — custom-mode blocks
+	// ==================================================================
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	private function customCalendar(): array {
+		return $this->makeCalendar( array(
+			'schedule_type' => 'custom',
+			'custom_slots'  => array(
+				array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => '' ),
+			),
+		) );
+	}
+
+	public function test_process_custom_mode_refuses_a_block_that_no_longer_exists(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->customCalendar() );
+		$this->appointmentRepo->shouldNotReceive( 'begin_transaction' );
+
+		$result = $this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2026-09-03',
+			'start_time'       => '14:00',
+			'consent_given'    => '1',
+		) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'invalid_slot', $result->get_error_code() );
+	}
+
+	public function test_process_custom_mode_takes_the_end_time_from_the_block(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->customCalendar() );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->validator->shouldReceive( 'validate' )->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'createAppointment' )->once()
+			->with( Mockery::on( static fn ( $data ) => '13:00:00' === $data['end_time'] ) )
+			->andReturn( 400 );
+		$this->appointmentRepo->shouldReceive( 'commit' )->once();
+		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array( 'id' => 400, 'confirmation_token' => 'tok400' ) );
+
+		$result = $this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2026-09-03',
+			'start_time'       => '08:00',
+			'consent_given'    => '1',
+		) );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 400, $result['appointment_id'] );
+	}
+
+	// ==================================================================
+	// process_appointment() — post-commit failures never fail the booking
+	// ==================================================================
+
+	/**
+	 * Books a confirmed appointment whose post-commit steps are free to throw.
+	 *
+	 * @param array<string, mixed>|null $stored What findById() returns after the commit.
+	 * @return array<string, mixed>|\WP_Error
+	 */
+	private function bookCommitted( ?array $stored, string $email_config = '{"send_user_confirmation":1}' ) {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
+			$this->makeCalendar( array( 'email_config' => $email_config ) )
+		);
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->validator->shouldReceive( 'validate' )->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'createAppointment' )->andReturn( 500 );
+		$this->appointmentRepo->shouldReceive( 'commit' )->once();
+		$this->appointmentRepo->shouldNotReceive( 'rollback' );
+		$this->appointmentRepo->shouldReceive( 'findById' )->with( 500 )->andReturn( $stored );
+
+		return $this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2026-03-01',
+			'start_time'       => '09:00',
+			'consent_given'    => '1',
+		) );
+	}
+
+	public function test_a_throwing_after_create_hook_still_returns_the_booking(): void {
+		Functions\when( 'do_action' )->alias( static function ( $hook ) {
+			if ( 'ffcertificate_after_appointment_create' === $hook ) {
+				throw new \RuntimeException( 'listener broke' );
+			}
+		} );
+		Functions\when( 'add_query_arg' )->alias( static fn ( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
+
+		$result = $this->bookCommitted( array( 'id' => 500, 'confirmation_token' => 'tok' ) );
+
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['success'] );
+		$this->assertNull( $result['confirmation_token'], 'The row was never re-read, so there is no token to hand back.' );
+		$this->assertSame( 'https://example.com?ffc_appointment_receipt=500', $result['receipt_url'] );
+		$this->assertTrue( $result['notifications_ok'], 'No email was attempted, so none failed.' );
+	}
+
+	public function test_a_throwing_email_listener_flags_the_notifications(): void {
+		Functions\when( 'do_action' )->alias( static function ( $hook ) {
+			if ( 'ffcertificate_self_scheduling_appointment_created_email' === $hook ) {
+				throw new \RuntimeException( 'smtp down' );
+			}
+		} );
+
+		$result = $this->bookCommitted( array( 'id' => 500, 'confirmation_token' => 'tok500' ) );
+
+		$this->assertIsArray( $result );
+		$this->assertFalse( $result['notifications_ok'] );
+		$this->assertSame( 'tok500', $result['confirmation_token'] );
+	}
+
+	public function test_a_throwing_receipt_link_leaves_it_empty(): void {
+		Functions\when( 'home_url' )->alias( static function () {
+			throw new \RuntimeException( 'no home' );
+		} );
+
+		$result = $this->bookCommitted( array( 'id' => 500, 'confirmation_token' => 'tok500' ) );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( '', $result['receipt_url'] );
+		$this->assertTrue( $result['success'] );
+	}
+
+	// ==================================================================
+	// get_available_slots() — custom mode edges
+	// ==================================================================
+
+	public function test_available_slots_custom_mode_with_no_block_that_day_is_empty(): void {
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $this->customCalendar() );
+		$this->appointmentRepo->shouldNotReceive( 'getAppointmentsByDate' );
+		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+
+		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2026-09-05' ) );
+	}
+
+	public function test_available_slots_custom_mode_drops_a_blocked_block(): void {
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $this->customCalendar() );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->with( 1, '2026-09-03' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->with( 1, '2026-09-03', '08:00:00' )->andReturn( true );
+
+		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2026-09-03' ) );
+	}
+
+	// ==================================================================
+	// schedule_email_notifications() — confirmed / waitlisted / promoted
+	// ==================================================================
+
+	/**
+	 * @return list<string> Hooks fired for the event.
+	 */
+	private function notify( string $event, array $config ): array {
+		$fired = array();
+		Functions\when( 'do_action' )->alias( function ( $hook ) use ( &$fired ) {
+			$fired[] = $hook;
+		} );
+		$method = $this->ref->getMethod( 'schedule_email_notifications' );
+		$method->setAccessible( true );
+		$method->invoke( $this->handler, array( 'id' => 1 ), $this->makeCalendar( array( 'email_config' => json_encode( $config ) ) ), $event );
+		return $fired;
+	}
+
+	public function test_confirmed_event_fires_only_when_approval_mail_is_on(): void {
+		$this->assertSame(
+			array( 'ffcertificate_self_scheduling_appointment_confirmed_email' ),
+			$this->notify( 'confirmed', array( 'send_approval_notification' => 1 ) )
+		);
+		$this->assertSame( array(), $this->notify( 'confirmed', array( 'send_user_confirmation' => 1 ) ) );
+	}
+
+	public function test_waitlisted_event_also_notifies_the_admin(): void {
+		$this->assertSame(
+			array(
+				'ffcertificate_self_scheduling_appointment_waitlisted_email',
+				'ffcertificate_self_scheduling_appointment_admin_notification',
+			),
+			$this->notify( 'waitlisted', array( 'send_user_confirmation' => 1, 'send_admin_notification' => 1 ) )
+		);
+	}
+
+	public function test_promoted_event_reuses_the_confirmation_toggle(): void {
+		$this->assertSame(
+			array( 'ffcertificate_self_scheduling_appointment_promoted_email' ),
+			$this->notify( 'promoted', array( 'send_user_confirmation' => 1 ) )
+		);
+		$this->assertSame( array(), $this->notify( 'promoted', array() ) );
+	}
 }
