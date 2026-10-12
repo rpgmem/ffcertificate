@@ -18,7 +18,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- **Documentation navigation stays in view, beside the topics** (#PR). The Quick Navigation was meant to stick while reading but scrolled away, because the Settings tab container clipped with `overflow: hidden`, which turns it into a scroll container; it now clips with `overflow: clip`. On a wide screen the navigation is a column next to the topics instead of a card above them.
+- **Documentation navigation stays in view, beside the topics** (#1678). The Quick Navigation was meant to stick while reading but scrolled away, because the Settings tab container clipped with `overflow: hidden`, which turns it into a scroll container; it now clips with `overflow: clip`. On a wide screen the navigation is a column next to the topics instead of a card above them.
 
 ## [6.36.0] (2026-10-11) — `71fe666`
 
