@@ -13,16 +13,24 @@
  * number with HR without being able to say whose. The stores hold the name
  * themselves, and that is what this reads.
  *
- * TWO OF THE THREE STORES, AND SAYING SO IS THE POINT.
+ * ALL THREE STORES, THE THIRD BY DECODING ITS ANSWERS (#1684).
  *
  * `ffc_recruitment_candidate` and `ffc_self_scheduling_appointments` each
- * declare a plain `name` column. `ffc_submissions` does NOT: its name lives
- * inside the `data` JSON under a per-install `field_key`, and the encrypted
- * copy under `data_encrypted` — so reading it means decoding a blob whose
- * shape differs per form. This class does not do that, and a finding whose
- * rows are all submissions therefore has no name here. That is reported as
- * "not recorded", never as an empty string: the #1071 rule, which is that an
- * absence must never render as an answer.
+ * declare a plain `name` column. `ffc_submissions` does not: its name lives
+ * inside the answers JSON under a per-form `field_key`, encrypted under
+ * `data_encrypted` on current installs. This class used to skip it, so a
+ * finding whose rows were all submissions had no name -- and that is exactly
+ * the shared-mailbox panel, where one login submitted for several people and
+ * the operator has to tell them apart to move each number to its owner. It
+ * now reads that store the way `IdentitySplit::proposal()` already does:
+ * ciphertext first, then the plaintext copy, through `SubmitterName`.
+ *
+ * Decoding costs a decryption per row, so submissions are read up to
+ * {@see self::SUBMISSION_ROWS} rows per hash: enough to find every spelling
+ * one person's name takes, and bounded on the account that submitted
+ * thousands. Nothing found is still reported as "not recorded", never as an
+ * empty string: the #1071 rule, which is that an absence must never render
+ * as an answer.
  *
  * @package FreeFormCertificate\Maintenance
  * @since   6.28.4
@@ -31,6 +39,9 @@
 declare(strict_types=1);
 
 namespace FreeFormCertificate\Maintenance;
+
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\SubmitterName;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -45,7 +56,8 @@ class IdentityRecordNames {
 	/**
 	 * Stores carrying a plain `name` beside an identifier hash.
 	 *
-	 * `ffc_submissions` is absent for the reason the class docblock gives.
+	 * `ffc_submissions` is read separately, for the reason the class docblock
+	 * gives.
 	 *
 	 * @var array<int, string>
 	 */
@@ -66,6 +78,14 @@ class IdentityRecordNames {
 	 * @var int
 	 */
 	public const LIMIT = 4;
+
+	/**
+	 * How many submissions are decoded per hash.
+	 *
+	 * @since 6.38.0
+	 * @var int
+	 */
+	public const SUBMISSION_ROWS = 20;
 
 	/**
 	 * Every distinct name recorded beside one identifier hash.
@@ -122,11 +142,75 @@ class IdentityRecordNames {
 			}
 		}
 
+		$submissions = $wpdb->prefix . 'ffc_submissions';
+
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $submissions ) ) === $submissions ) {
+			$readable = true;
+
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT data_encrypted, data FROM %i WHERE %i = %s ORDER BY id DESC LIMIT %d',
+					$submissions,
+					$column,
+					trim( $hash ),
+					self::SUBMISSION_ROWS
+				),
+				ARRAY_A
+			);
+
+			foreach ( (array) $rows as $row ) {
+				$name = trim( $this->submitted_name( (array) $row ) );
+
+				if ( '' !== $name && ! in_array( $name, $names, true ) ) {
+					$names[] = $name;
+				}
+			}
+		}
+
 		return array(
 			'names'    => array_slice( $names, 0, self::LIMIT ),
 			'capped'   => count( $names ) > self::LIMIT,
 			'readable' => $readable,
 		);
+	}
+
+	/**
+	 * The name a submission's answers carry, or an empty string.
+	 *
+	 * THE ENCRYPTED COPY FIRST, because it is the one kept current: the
+	 * plaintext `data` column is what installs held before the answers were
+	 * encrypted. The same order as `IdentitySplit::name_in()`.
+	 *
+	 * @since 6.38.0
+	 * @param array<string, mixed> $row A submission's `data_encrypted` and `data`.
+	 * @return string
+	 */
+	private function submitted_name( array $row ): string {
+		$cipher = is_string( $row['data_encrypted'] ?? null ) ? $row['data_encrypted'] : '';
+
+		if ( '' !== $cipher ) {
+			$plain   = $this->decrypt( $cipher );
+			$answers = null === $plain ? null : json_decode( $plain, true );
+
+			if ( is_array( $answers ) ) {
+				return SubmitterName::from( $answers );
+			}
+		}
+
+		$answers = json_decode( is_string( $row['data'] ?? null ) ? $row['data'] : '', true );
+
+		return is_array( $answers ) ? SubmitterName::from( $answers ) : '';
+	}
+
+	/**
+	 * Decryption as a seam, so the names can be read without a key.
+	 *
+	 * @since 6.38.0
+	 * @param string $cipher The stored ciphertext.
+	 * @return string|null
+	 */
+	protected function decrypt( string $cipher ): ?string {
+		return class_exists( Encryption::class ) ? Encryption::decrypt( $cipher ) : null;
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery

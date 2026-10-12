@@ -1523,6 +1523,30 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									<code><?php echo esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
 									<span class="ffc-identity-card-said"><?php echo esc_html( $ffc_identity_kind ); ?></span>
 								</p>
+								<?php
+								// WHOSE NUMBER THIS IS, FROM THE RECORDS (#1684).
+								//
+								// A hash prefix tells the operator nothing they can
+								// take to HR, and on a shared mailbox every number
+								// sits on one login, so the account's name is the
+								// one name that does NOT tell them apart. The rows
+								// carrying each number hold the person's own name --
+								// inside the submission's answers on this panel --
+								// and that is what each group now says.
+								$ffc_identity_number_names = $ffc_identity_names( (string) $ffc_identity_move, $ffc_identity_field );
+								?>
+								<p class="ffc-identity-card-names">
+									<?php if ( array() !== $ffc_identity_number_names['names'] ) : ?>
+										<strong><?php echo esc_html( implode( ', ', array_map( 'strval', $ffc_identity_number_names['names'] ) ) ); ?></strong>
+										<?php if ( ! empty( $ffc_identity_number_names['capped'] ) ) : ?>
+											<span class="description"><?php esc_html_e( 'and more', 'ffcertificate' ); ?></span>
+										<?php endif; ?>
+									<?php elseif ( empty( $ffc_identity_number_names['readable'] ) ) : ?>
+										<span class="description"><?php esc_html_e( 'No store that records a name is installed, so this was not looked up.', 'ffcertificate' ); ?></span>
+									<?php else : ?>
+										<span class="description"><?php esc_html_e( 'No name recorded beside these rows.', 'ffcertificate' ); ?></span>
+									<?php endif; ?>
+								</p>
 							<?php
 							// TWO ROUTES TO ONE DESTINATION, EACH NAMED -- NOT A SENTENCE ABOUT BOTH (#1464).
 							//
@@ -2102,10 +2126,9 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						// themselves.
 						//
 						// Three outcomes, and the last two are NOT the same.
-						// A name; no name recorded, which a submission-only
-						// finding always gives because that store keeps the
-						// name inside its `data` JSON; or no store this can
-						// read being present at all, which is not a result.
+						// A name; no name recorded beside rows that were
+						// read; or no store this can read being present at
+						// all, which is not a result.
 						?>
 						<?php if ( array() !== $ffc_identity_person_names['names'] ) : ?>
 							<?php echo esc_html( implode( ', ', array_map( 'strval', $ffc_identity_person_names['names'] ) ) ); ?>

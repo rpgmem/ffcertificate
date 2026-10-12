@@ -23237,7 +23237,7 @@ msgstr ""
 msgid "one number stored against more than one account: either a duplicate login to merge, or one login carrying someone else's mistyped number."
 msgstr ""
 
-msgid "numbers that share one address without being variants of each other, such as a shared mailbox or an account submitting for other people."
+msgid "numbers that share one address without being variants of each other, such as a shared mailbox or an account submitting for other people. Each number shows the names recorded beside it, read from the submissions themselves, so the right person can be found for each one."
 msgstr ""
 
 msgid "the check digits do not single one value out, so HR has to say which number is this person's."
