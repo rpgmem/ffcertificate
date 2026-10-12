@@ -4,7 +4,7 @@ A WordPress plugin for issuing PDF certificates from forms and proving they are 
 
 Every module, certificates included, can be switched on or off. The complete reference (every token, shortcode, capability and setting) ships inside the plugin under **FFC Settings → Documentation**.
 
-**Requires** WordPress 6.8 or later and PHP 8.3 or later · **License** GPLv3 or later
+**Requires** WordPress 6.8 or later and PHP 8.3 or later · **License** AGPLv3 or later
 
 ![Certificates dashboard](docs/screenshots/01-certificates-dashboard.png)
 

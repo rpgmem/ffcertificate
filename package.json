@@ -1,5 +1,6 @@
 {
   "private": true,
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "build:css": "for f in assets/css/*.css; do case \"$f\" in *.min.css) continue;; esac; npx cleancss -o \"${f%.css}.min.css\" --source-map \"$f\"; done && echo 'CSS minified.'",
     "build:js": "for f in assets/js/*.js; do case \"$f\" in *.min.js) continue;; esac; npx terser \"$f\" -o \"${f%.js}.min.js\" --compress --mangle --source-map \"url='$(basename ${f%.js}.min.js.map)'\"; done && echo 'JS minified.'",
