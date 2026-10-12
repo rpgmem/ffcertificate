@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\UserDashboard\RoleRegistrar;
@@ -187,5 +188,155 @@ class RoleRegistrarTest extends TestCase {
 		Functions\when( 'get_role' )->justReturn( null );
 
 		RoleRegistrar::sync_admin_role( 7 );
+	}
+
+	/**
+	 * A role holding the given capability map.
+	 *
+	 * @param array<string, bool> $caps Capability map.
+	 * @return \WP_Role
+	 */
+	private function role_with( array $caps ): \WP_Role {
+		$role               = new \WP_Role();
+		$role->capabilities = $caps;
+		return $role;
+	}
+
+	public function test_the_recruitment_manager_role_is_created_with_its_two_caps(): void {
+		Functions\when( 'get_role' )->justReturn( null );
+		Functions\expect( 'add_role' )
+			->once()
+			->with(
+				\FreeFormCertificate\UserDashboard\CapabilityManager::RECRUITMENT_MANAGER_ROLE,
+				'FFC Recruitment - Manager',
+				array(
+					'read'                   => true,
+					'ffc_manage_recruitment' => true,
+				)
+			);
+
+		RoleRegistrar::register_recruitment_manager_role();
+	}
+
+	public function test_an_existing_recruitment_manager_role_gains_missing_caps_and_keeps_custom_ones(): void {
+		$role = $this->role_with( array( 'custom_cap' => true ) );
+		Functions\when( 'get_role' )->justReturn( $role );
+		Functions\expect( 'add_role' )->never();
+
+		RoleRegistrar::register_recruitment_manager_role();
+
+		$this->assertSame(
+			array(
+				'custom_cap'             => true,
+				'read'                   => true,
+				'ffc_manage_recruitment' => true,
+			),
+			$role->capabilities
+		);
+	}
+
+	public function test_a_complete_recruitment_manager_role_is_not_rewritten(): void {
+		$role = Mockery::mock( \WP_Role::class );
+		$role->capabilities = array(
+			'read'                   => true,
+			'ffc_manage_recruitment' => false,
+		);
+		$role->shouldNotReceive( 'add_cap' );
+		Functions\when( 'get_role' )->justReturn( $role );
+
+		RoleRegistrar::register_recruitment_manager_role();
+
+		$this->assertFalse( $role->capabilities['ffc_manage_recruitment'], 'An operator\'s explicit choice is not overwritten.' );
+	}
+
+	public function test_the_removals_name_the_roles_they_own(): void {
+		$removed = array();
+		Functions\when( 'remove_role' )->alias(
+			static function ( $slug ) use ( &$removed ) {
+				$removed[] = $slug;
+			}
+		);
+
+		RoleRegistrar::remove_recruitment_manager_role();
+		RoleRegistrar::remove_role();
+		RoleRegistrar::remove_module_roles();
+
+		$this->assertSame( \FreeFormCertificate\UserDashboard\CapabilityManager::RECRUITMENT_MANAGER_ROLE, $removed[0] );
+		$this->assertSame( 'ffc_end_user', $removed[1] );
+		$this->assertSame(
+			array_keys( \FreeFormCertificate\UserDashboard\CapabilityManager::module_roles_definition() ),
+			array_slice( $removed, 2 )
+		);
+	}
+
+	public function test_module_roles_are_created_with_read_and_their_declared_caps(): void {
+		$added = array();
+		Functions\when( 'get_role' )->justReturn( null );
+		Functions\when( 'add_role' )->alias(
+			static function ( $slug, $label, $caps ) use ( &$added ) {
+				$added[ $slug ] = array( $label, $caps );
+			}
+		);
+
+		RoleRegistrar::register_module_roles();
+
+		$definition = \FreeFormCertificate\UserDashboard\CapabilityManager::module_roles_definition();
+		$this->assertSame( array_keys( $definition ), array_keys( $added ) );
+
+		foreach ( $definition as $slug => $def ) {
+			$this->assertSame( $def['label'], $added[ $slug ][0] );
+			$this->assertTrue( $added[ $slug ][1]['read'], $slug . ' must carry read.' );
+			foreach ( $def['caps'] as $cap ) {
+				$this->assertTrue( $added[ $slug ][1][ $cap ], $slug . ' must carry ' . $cap );
+			}
+		}
+	}
+
+	public function test_existing_module_roles_are_topped_up_and_the_manager_gains_its_tier(): void {
+		$roles = array();
+		Functions\when( 'get_role' )->alias(
+			function ( $slug ) use ( &$roles ) {
+				if ( ! isset( $roles[ $slug ] ) ) {
+					$roles[ $slug ] = $this->role_with( array( 'operator_extra' => true ) );
+				}
+				return $roles[ $slug ];
+			}
+		);
+		Functions\expect( 'add_role' )->never();
+
+		RoleRegistrar::register_module_roles();
+
+		foreach ( \FreeFormCertificate\UserDashboard\CapabilityManager::module_roles_definition() as $slug => $def ) {
+			$this->assertTrue( $roles[ $slug ]->capabilities['read'] );
+			$this->assertTrue( $roles[ $slug ]->capabilities['operator_extra'], 'A manually granted cap must survive.' );
+			foreach ( $def['caps'] as $cap ) {
+				$this->assertArrayHasKey( $cap, $roles[ $slug ]->capabilities );
+			}
+		}
+
+		$manager = $roles[ \FreeFormCertificate\UserDashboard\CapabilityManager::RECRUITMENT_MANAGER_ROLE ];
+		foreach ( array( 'ffc_view_recruitment', 'ffc_call_recruitment', 'ffc_import_recruitment', 'ffc_view_recruitment_pii', 'ffc_delete_recruitment', 'ffc_view_recruitment_reasons', 'ffc_manage_recruitment_reasons' ) as $cap ) {
+			$this->assertTrue( $manager->capabilities[ $cap ] ?? false, 'The 6.0.0 manager must be upgraded with ' . $cap );
+		}
+	}
+
+	public function test_relabel_rewrites_both_label_maps_for_ffc_roles_only(): void {
+		$wp_roles             = Mockery::mock( \WP_Roles::class );
+		$wp_roles->roles      = array(
+			'ffc_end_user' => array( 'name' => 'stale' ),
+			'editor'       => array( 'name' => 'Editor' ),
+		);
+		$wp_roles->role_names = array(
+			'ffc_end_user' => 'stale',
+			'editor'       => 'Editor',
+		);
+
+		RoleRegistrar::relabel_ffc_roles( $wp_roles );
+
+		$label = RoleRegistrar::ffc_managed_role_labels()['ffc_end_user'];
+		$this->assertSame( $label, $wp_roles->roles['ffc_end_user']['name'] );
+		$this->assertSame( $label, $wp_roles->role_names['ffc_end_user'] );
+		$this->assertSame( 'Editor', $wp_roles->roles['editor']['name'] );
+		$this->assertSame( 'Editor', $wp_roles->role_names['editor'] );
 	}
 }
