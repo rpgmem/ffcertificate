@@ -794,7 +794,7 @@
 /* A link inside a documentation table reads like every other link in the
    topic: WordPress drops the underline in `.widefat` cells, which left three
    cross-references looking like plain coloured text (#1638). */
-.ffc-doc-toc ~ .card td a {
+.ffc-doc-topics .card td a {
     text-decoration: underline;
 }
 
@@ -839,7 +839,11 @@
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);
     box-shadow: var(--ffc-shadow-sm);
-    overflow: hidden;
+    /* Clips the columns to the rounded corners. `clip`, not `hidden`: a
+       `hidden` box is a scroll container, so every `position: sticky` inside
+       a tab (the documentation's navigation, the QR preview) stuck to this
+       box instead of the page and scrolled away with it. */
+    overflow: clip;
 }
 
 .ffc-settings-tabs__nav {
@@ -1028,20 +1032,31 @@
 }
 
 /* ==========================================================================
-   Documentation tab — sticky Quick Navigation card.
+   Documentation tab — Quick Navigation beside the topics.
 
-   The card is `position: sticky` so the search box and section tree stay
-   in view as the user scrolls through the documentation sections. It is
-   always fully expanded — the tree itself is what opens and closes, one
-   branch at a time (native <details>). Older browsers without
-   `position: sticky` support degrade to a plain top-of-page card that
-   scrolls away with the rest of the content.
+   On a wide screen the layout is two columns: the navigation card (search
+   box and section tree) sticks below the admin bar while the topics scroll
+   next to it, so it never covers the text being read. The tree itself is
+   what opens and closes, one branch at a time (native <details>); a tree
+   taller than the screen scrolls on its own. On a narrower screen the card
+   sits above the topics and scrolls away with them.
    ========================================================================== */
 
-.ffc-doc-toc {
-    position: sticky;
-    top: 16px;
-    z-index: var(--ffc-z-sticky);
+@media screen and (min-width: 1280px) {
+    .ffc-doc-layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        column-gap: var(--ffc-spacing-2xl);
+        align-items: start;
+    }
+
+    .ffc-doc-toc {
+        position: sticky;
+        top: calc(var(--wp-admin--admin-bar--height, 32px) + var(--ffc-spacing-xl));
+        z-index: var(--ffc-z-sticky);
+        max-height: calc(100vh - var(--wp-admin--admin-bar--height, 32px) - 2 * var(--ffc-spacing-xl));
+        overflow-y: auto;
+    }
 }
 
 /* ==========================================================================
