@@ -114,6 +114,10 @@ class TypographyTokensTest extends TestCase {
 		// and with a second enqueue on the frontend. Reading a token the page
 		// may not have invalidates the whole declaration.
 		'ffc-pdf-core.css'                 => 7,
+		// The screenshot viewer (#1716) loads in core's modal without
+		// ffc-common, so it cannot read the scale; its glyph buttons are sized
+		// as glyph boxes.
+		'ffc-screenshots.css'              => 4,
 	);
 
 	/**

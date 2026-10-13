@@ -25255,3 +25255,31 @@ msgstr "%1$s (%2$s:1, pelo menos %3$s:1)"
 #, php-format
 msgid "The design was saved, but some colours are hard to read: %s"
 msgstr "O design foi salvo, mas algumas cores são difíceis de ler: %s"
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Screenshots"
+msgstr "Capturas de tela"
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Previous screenshot"
+msgstr "Captura anterior"
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Next screenshot"
+msgstr "Próxima captura"
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Zoom in"
+msgstr "Ampliar"
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Zoom out"
+msgstr "Reduzir"
+
+#: includes/settings/views/documentation/operations-updates.php
+msgid "In your language, screenshots in place."
+msgstr "No seu idioma, capturas na própria janela."
+
+#: includes/settings/views/documentation/operations-updates.php
+msgid "The tabs and the banner are shown in your language when the plugin ships a translation of them; the changelog stays in English. A screenshot opens larger without leaving the window: the arrows move between them, and the wheel, a pinch or a click zooms in."
+msgstr "As abas e o banner aparecem no seu idioma quando o plugin traz uma tradução deles; o changelog continua em inglês. Uma captura abre ampliada sem sair da janela: as setas passam de uma para outra, e a roda do mouse, o gesto de pinça ou um clique aproximam a imagem."

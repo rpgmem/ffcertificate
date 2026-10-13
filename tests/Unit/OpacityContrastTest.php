@@ -99,6 +99,9 @@ final class OpacityContrastTest extends TestCase {
 		'ffc-reregistration-frontend.css' => array(
 			'.ffc-rereg-header-subtitle' => 'header subtitle: measured in #1185, 17.58:1 light and 10.10:1 dark with the fade included',
 		),
+		'ffc-screenshots.css'             => array(
+			'.ffc-shots-button:disabled' => 'inactive component (a zoom button at its bound), exempt under SC 1.4.3',
+		),
 		'ffc-url-shortener-admin.css'     => array(
 			'.ffc-shorturl-toast' => 'opacity: 0 — the toast only appears through animation',
 		),

@@ -120,6 +120,12 @@ final class AdminStylesheetTokensTest extends TestCase {
 		'ffc-common.css'                => 123,
 		'ffc-code-editor-dark.css'      => 35,
 		'ffc-pdf-core.css'              => 12,
+		// The screenshot viewer in core's "View details" modal (#1716). That
+		// iframe is not an FFC screen and does not load ffc-common, so the sheet
+		// cannot read a token -- the ffc-pdf-core case. It is also dark in both
+		// themes on purpose, like any image viewer: a dark backdrop with white
+		// controls, whatever theme the site uses.
+		'ffc-screenshots.css'           => 8,
 	);
 
 	/**
