@@ -67,6 +67,16 @@ class SuccessResponder {
 				/* translators: %d: quiz score percentage */
 				? sprintf( __( 'Congratulations! Score: %d%%. Certificate generated.', 'ffcertificate' ), $quiz_score['percent'] )
 				: __( 'Congratulations! Quiz passed. Certificate generated.', 'ffcertificate' );
+
+			$shown = SubmissionPersister::shown_results( $form_config, $quiz_score );
+			if ( null !== $shown ) {
+				$msg .= ' ' . sprintf(
+					/* translators: 1: questions answered right, 2: questions scored. */
+					_n( '%1$s of %2$s question answered correctly.', '%1$s of %2$s questions answered correctly.', $shown['question_count'], 'ffcertificate' ),
+					number_format_i18n( $shown['correct_count'] ),
+					number_format_i18n( $shown['question_count'] )
+				);
+			}
 		}
 
 		$response = array(

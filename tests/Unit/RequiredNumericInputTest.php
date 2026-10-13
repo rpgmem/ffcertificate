@@ -64,6 +64,10 @@ class RequiredNumericInputTest extends TestCase {
 		'includes/admin/class-ffc-form-editor-builder-metabox.php::ffc_fields[ ][max_length]'        => 'empty means the server ceiling',
 		'includes/admin/class-ffc-form-editor-builder-metabox.php::ffc_fields[ ][min]'               => 'empty means no lower bound',
 		'includes/admin/class-ffc-form-editor-builder-metabox.php::ffc_fields[ ][max]'               => 'empty means no upper bound',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::ffc_fields[ ][choice_points][]'   => 'empty means the option is worth 0 points (#1730)',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::[quiz_answer_min]'                => 'empty means no lowest correct answer (#1730)',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::[quiz_answer_max]'                => 'empty means no highest correct answer (#1730)',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::[quiz_points]'                    => 'empty means the default of 1 point (#1730)',
 
 		// 2. Not a form field. `ffc_qty_codes` has no `name` — it is the
 		// argument to the "Generate Tickets" AJAX button — and it sits inside

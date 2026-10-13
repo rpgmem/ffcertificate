@@ -14,6 +14,7 @@ namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Core\FormField;
 use FreeFormCertificate\Core\LabelSorter;
+use FreeFormCertificate\Core\QuizQuestion;
 use WP_Post;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -196,8 +197,11 @@ class FormEditorBuilderMetabox {
 		$choices   = FormField::choices( $field );
 		$content   = isset( $field['content'] ) ? $field['content'] : '';
 		$embed_url = isset( $field['embed_url'] ) ? $field['embed_url'] : '';
-		$points    = isset( $field['points'] ) ? $field['points'] : '';
-		$fixed     = isset( $field['default_value'] ) ? $field['default_value'] : '';
+		$points    = isset( $field['points'] ) ? (string) $field['points'] : '';
+		$correct   = QuizQuestion::correct( $field );
+
+		$option_points = QuizQuestion::option_points( $field );
+		$fixed         = isset( $field['default_value'] ) ? $field['default_value'] : '';
 
 		$is_info               = 'info' === $type;
 		$is_embed              = 'embed' === $type;
@@ -303,10 +307,22 @@ class FormEditorBuilderMetabox {
 					<?php esc_html_e( 'Options (one per row):', 'ffcertificate' ); ?>
 				</p>
 				<ol class="ffc-choice-list">
-					<?php foreach ( ( array() === $choices ? array( '' ) : $choices ) as $choice ) : ?>
+					<?php foreach ( ( array() === $choices ? array( '' ) : $choices ) as $choice_i => $choice ) : ?>
+						<?php $is_correct = '' !== $choice && in_array( $choice, $correct, true ); ?>
 						<li class="ffc-choice-row">
 							<span class="ffc-choice-handle ffc-icon-grip" aria-hidden="true"></span>
 							<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][choices][]" value="<?php echo esc_attr( $choice ); ?>" class="ffc-choice-input" aria-label="<?php esc_attr_e( 'Option', 'ffcertificate' ); ?>">
+							<?php // The mark posts as an aligned 0/1 so the server can pair it with its option; the visible box drives it. ?>
+							<input type="hidden" name="ffc_fields[<?php echo esc_attr( $index ); ?>][choice_correct][]" value="<?php echo $is_correct ? '1' : '0'; ?>" class="ffc-choice-correct-value">
+							<label class="ffc-choice-quiz ffc-choice-correct" data-ffc-quiz-mode="correct">
+								<input type="checkbox" class="ffc-choice-correct-input"<?php checked( $is_correct ); ?>>
+								<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
+							</label>
+							<label class="ffc-choice-quiz ffc-choice-points" data-ffc-quiz-mode="points">
+								<span class="screen-reader-text"><?php esc_html_e( 'Points', 'ffcertificate' ); ?></span>
+								<input type="number" name="ffc_fields[<?php echo esc_attr( $index ); ?>][choice_points][]" value="<?php echo esc_attr( isset( $option_points[ $choice_i ] ) && '' !== $points ? (string) $option_points[ $choice_i ] : '' ); ?>" step="1" class="small-text ffc-choice-points-input" placeholder="0">
+								<span aria-hidden="true"><?php esc_html_e( 'pts', 'ffcertificate' ); ?></span>
+							</label>
 							<button type="button" class="button-link ffc-choice-remove" aria-label="<?php esc_attr_e( 'Remove option', 'ffcertificate' ); ?>"><span class="ffc-icon-cross" aria-hidden="true"></span></button>
 						</li>
 					<?php endforeach; ?>
@@ -328,12 +344,6 @@ class FormEditorBuilderMetabox {
 						<input type="number" name="ffc_fields[<?php echo esc_attr( $index ); ?>][max_select]" value="<?php echo esc_attr( (string) ( $field['max_select'] ?? '' ) ); ?>" min="1" step="1" class="small-text">
 						<span class="description"><?php esc_html_e( 'Empty means no limit. Once it is reached, the other boxes are disabled.', 'ffcertificate' ); ?></span>
 					</label>
-				</div>
-				<div class="ffc-quiz-points ffc-hidden">
-					<p class="description ffc-options-desc ffc-mt-2xs">
-						<?php esc_html_e( 'Points per option (same order, separate with commas):', 'ffcertificate' ); ?>
-					</p>
-					<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][points]" value="<?php echo esc_attr( $points ); ?>" placeholder="<?php esc_attr_e( 'Ex: 0, 10, 0', 'ffcertificate' ); ?>" class="ffc-w100">
 				</div>
 			</div>
 
@@ -390,6 +400,81 @@ class FormEditorBuilderMetabox {
 					<input type="date" name="ffc_fields[<?php echo esc_attr( $index ); ?>][max_date]" value="<?php echo esc_attr( 'date' === $type ? FormField::max( $field ) : '' ); ?>" data-ffc-bound="max">
 				</label>
 				<span class="description"><?php esc_html_e( 'Empty means no limit. The participant sees the range.', 'ffcertificate' ); ?></span>
+			</div>
+
+			<?php $this->render_quiz_block( $index, $field, $type ); ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * The field's quiz settings, shown while quiz mode is on (#1730).
+	 *
+	 * @param string               $index Field index.
+	 * @param array<string, mixed> $field Field data.
+	 * @param string               $type  Field type.
+	 */
+	private function render_quiz_block( string $index, array $field, string $type ): void {
+		$base   = 'ffc_fields[' . $index . ']';
+		$scored = QuizQuestion::is_scored( $field ) || '1' === (string) ( $field['quiz_scored'] ?? '' );
+		$mode   = QuizQuestion::mode( $field );
+		$text   = QuizQuestion::text_mode( $field );
+		$is_num = 'number' === $type;
+		?>
+		<div class="ffc-field-quiz ffc-hidden" data-ffc-quiz-types="<?php echo esc_attr( implode( ' ', QuizQuestion::SCORABLE_TYPES ) ); ?>">
+			<input type="hidden" name="<?php echo esc_attr( $base ); ?>[quiz_block]" value="1">
+			<div class="ffc-field-quiz-head">
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					array(
+						'name'        => $base . '[quiz_scored]',
+						'id'          => 'ffc_field_quiz_scored_' . $index,
+						'checked'     => $scored,
+						'label'       => __( 'Score this question', 'ffcertificate' ),
+						'input_class' => 'ffc-quiz-scored',
+					)
+				);
+				?>
+				<span class="description"><?php esc_html_e( 'Off: the question is left out of the count and of the points the percentage is taken from.', 'ffcertificate' ); ?></span>
+			</div>
+			<div class="ffc-field-quiz-body ffc-field-settings">
+				<label class="ffc-field-setting" data-ffc-types="select radio checkbox">
+					<?php esc_html_e( 'How to score', 'ffcertificate' ); ?>
+					<select name="<?php echo esc_attr( $base ); ?>[quiz_mode]" class="ffc-quiz-mode">
+						<option value="<?php echo esc_attr( QuizQuestion::MODE_CORRECT ); ?>" <?php selected( $mode, QuizQuestion::MODE_CORRECT ); ?>><?php esc_html_e( 'Correct option(s)', 'ffcertificate' ); ?></option>
+						<option value="<?php echo esc_attr( QuizQuestion::MODE_POINTS ); ?>" <?php selected( $mode, QuizQuestion::MODE_POINTS ); ?>><?php esc_html_e( 'Points per option', 'ffcertificate' ); ?></option>
+					</select>
+				</label>
+				<label class="ffc-field-setting" data-ffc-types="text textarea">
+					<?php esc_html_e( 'How to score', 'ffcertificate' ); ?>
+					<select name="<?php echo esc_attr( $base ); ?>[quiz_text]" class="ffc-quiz-text">
+						<option value="<?php echo esc_attr( QuizQuestion::TEXT_NONE ); ?>" <?php selected( $text, QuizQuestion::TEXT_NONE ); ?>><?php esc_html_e( 'No points', 'ffcertificate' ); ?></option>
+						<option value="<?php echo esc_attr( QuizQuestion::TEXT_ANSWERED ); ?>" <?php selected( $text, QuizQuestion::TEXT_ANSWERED ); ?>><?php esc_html_e( 'Points when answered', 'ffcertificate' ); ?></option>
+					</select>
+				</label>
+				<label class="ffc-field-setting" data-ffc-types="number">
+					<?php esc_html_e( 'Correct from', 'ffcertificate' ); ?>
+					<input type="number" name="<?php echo esc_attr( $base ); ?>[quiz_answer_min]" value="<?php echo esc_attr( $is_num ? QuizQuestion::answer_min( $field ) : '' ); ?>" step="any" class="small-text">
+				</label>
+				<label class="ffc-field-setting" data-ffc-types="number">
+					<?php esc_html_e( 'to', 'ffcertificate' ); ?>
+					<input type="number" name="<?php echo esc_attr( $base ); ?>[quiz_answer_max]" value="<?php echo esc_attr( $is_num ? QuizQuestion::answer_max( $field ) : '' ); ?>" step="any" class="small-text">
+				</label>
+				<label class="ffc-field-setting" data-ffc-types="date">
+					<?php esc_html_e( 'Correct from', 'ffcertificate' ); ?>
+					<input type="date" name="<?php echo esc_attr( $base ); ?>[quiz_answer_min_date]" value="<?php echo esc_attr( 'date' === $type ? QuizQuestion::answer_min( $field ) : '' ); ?>">
+				</label>
+				<label class="ffc-field-setting" data-ffc-types="date">
+					<?php esc_html_e( 'to', 'ffcertificate' ); ?>
+					<input type="date" name="<?php echo esc_attr( $base ); ?>[quiz_answer_max_date]" value="<?php echo esc_attr( 'date' === $type ? QuizQuestion::answer_max( $field ) : '' ); ?>">
+				</label>
+				<label class="ffc-field-setting ffc-quiz-points-setting">
+					<?php esc_html_e( 'Points', 'ffcertificate' ); ?>
+					<input type="number" name="<?php echo esc_attr( $base ); ?>[quiz_points]" value="<?php echo esc_attr( (string) QuizQuestion::points( $field ) ); ?>" min="0" step="1" class="small-text">
+				</label>
+				<p class="description ffc-quiz-help" data-ffc-quiz-help="correct"><?php esc_html_e( 'Tick the correct option(s) beside each option. A checkbox scores only when every correct option is ticked and no other.', 'ffcertificate' ); ?></p>
+				<p class="description ffc-quiz-help" data-ffc-quiz-help="points"><?php esc_html_e( 'Give each option its points beside it. A checkbox adds the boxes ticked, never below zero; a wrong box can be worth negative points.', 'ffcertificate' ); ?></p>
+				<p class="description ffc-quiz-help" data-ffc-quiz-help="range"><?php esc_html_e( 'An answer within the range, bounds included, earns the points. Set both bounds to the same value for one exact answer; leave one empty for an open range.', 'ffcertificate' ); ?></p>
 			</div>
 		</div>
 		<?php

@@ -339,6 +339,9 @@ class Frontend {
 						'submissionSuccessful'   => __( 'Your submission was successful.', 'ffcertificate' ),
 						'error'                  => __( 'Error occurred', 'ffcertificate' ),
 						'fillRequired'           => __( 'Please fill all required fields', 'ffcertificate' ),
+						// Per-question verdict after a quiz attempt (#1730).
+						'quizCorrect'            => __( 'Correct', 'ffcertificate' ),
+						'quizIncorrect'          => __( 'Incorrect', 'ffcertificate' ),
 
 						// Rate Limiting.
 						'wait'                   => __( 'Wait...', 'ffcertificate' ),

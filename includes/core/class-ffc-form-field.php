@@ -276,7 +276,7 @@ final class FormField {
 	 * @param string $type  Field type.
 	 * @param string $value Raw bound.
 	 */
-	private static function bound( string $type, string $value ): string {
+	public static function bound( string $type, string $value ): string {
 		$value = trim( $value );
 		if ( '' === $value ) {
 			return '';
