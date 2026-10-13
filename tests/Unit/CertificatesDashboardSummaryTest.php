@@ -66,12 +66,19 @@ class CertificatesDashboardSummaryTest extends TestCase {
 	}
 
 	public function test_counts_today_and_the_last_seven_days_from_midnight_in_the_site_timezone(): void {
-		$summary = ( new CertificatesDashboard() )->summary();
+		// Midnight is read before and after the call and either is accepted:
+		// a single read fails when the run crosses midnight (#1719).
+		$midnight = static fn(): int => ( new \DateTimeImmutable( 'today', new \DateTimeZone( 'America/Sao_Paulo' ) ) )->getTimestamp();
+		$before   = $midnight();
+		$summary  = ( new CertificatesDashboard() )->summary();
+		$after    = $midnight();
 
 		$this->assertSame( 3, $summary['today'] );
 		$this->assertSame( 12, $summary['week'] );
-		$midnight = ( new \DateTimeImmutable( 'today', new \DateTimeZone( 'America/Sao_Paulo' ) ) )->getTimestamp();
-		$this->assertSame( array( $midnight, $midnight - 6 * 86400 ), $this->since );
+		$this->assertContains(
+			$this->since,
+			array( array( $before, $before - 6 * 86400 ), array( $after, $after - 6 * 86400 ) )
+		);
 	}
 
 	public function test_counts_only_forms_whose_date_window_is_on_and_open(): void {
