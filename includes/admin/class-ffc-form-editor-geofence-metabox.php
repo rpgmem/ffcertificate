@@ -231,27 +231,27 @@ class FormEditorGeofenceMetabox {
 					<tr id="ffc-time-mode-row" class="ffc-collapsed-target<?php echo esc_attr( $multi_day_collapsed_class ); ?>"
 						data-ffc-master="ffc_geofence_multi_day"
 						aria-hidden="<?php echo esc_attr( $multi_day_aria ); ?>">
-						<th><label><?php esc_html_e( 'Time Behavior', 'ffcertificate' ); ?></label></th>
+						<th><?php esc_html_e( 'Time Behavior', 'ffcertificate' ); ?></th>
 						<td>
-							<fieldset>
-								<label>
-									<input type="radio" name="ffc_geofence[time_mode]" value="span" <?php checked( $time_mode, 'span' ); ?>>
-									<strong><?php esc_html_e( 'Time spans across dates', 'ffcertificate' ); ?></strong>
-								</label>
-								<p class="description ffc-time-description">
-									<?php esc_html_e( 'Start time applies to start date, end time applies to end date. Form is open continuously between those timestamps.', 'ffcertificate' ); ?><br>
-									<?php esc_html_e( 'Example: Start 01/01 12:00 + End 10/01 23:00 = Open from 12:00 on Jan 1st until 23:00 on Jan 10th', 'ffcertificate' ); ?>
-								</p>
-
-								<label>
-									<input type="radio" name="ffc_geofence[time_mode]" value="daily" <?php checked( $time_mode, 'daily' ); ?>>
-									<strong><?php esc_html_e( 'Time applies to each day individually', 'ffcertificate' ); ?></strong>
-								</label>
-								<p class="description ffc-time-description">
-									<?php esc_html_e( 'Time range applies to every day in the date range. Form respects daily hours.', 'ffcertificate' ); ?><br>
-									<?php esc_html_e( 'Example: Start 01/01 + End 10/01 + Time 12:00-23:00 = Open 12:00-23:00 every day from Jan 1-10', 'ffcertificate' ); ?>
-								</p>
-							</fieldset>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_segmented(
+								array(
+									'name'         => 'ffc_geofence[time_mode]',
+									'id'           => 'ffc_geofence_time_mode',
+									'value'        => (string) $time_mode,
+									'default'      => 'daily',
+									'legend'       => __( 'Time Behavior', 'ffcertificate' ),
+									'options'      => array(
+										'span'  => __( 'Across dates', 'ffcertificate' ),
+										'daily' => __( 'Each day', 'ffcertificate' ),
+									),
+									'descriptions' => array(
+										'span'  => __( 'Start time applies to start date, end time applies to end date. Form is open continuously between those timestamps.', 'ffcertificate' ) . ' ' . __( 'Example: Start 01/01 12:00 + End 10/01 23:00 = Open from 12:00 on Jan 1st until 23:00 on Jan 10th', 'ffcertificate' ),
+										'daily' => __( 'Time range applies to every day in the date range. Form respects daily hours.', 'ffcertificate' ) . ' ' . __( 'Example: Start 01/01 + End 10/01 + Time 12:00-23:00 = Open 12:00-23:00 every day from Jan 1-10', 'ffcertificate' ),
+									),
+								)
+							);
+							?>
 						</td>
 					</tr>
 					<tr>

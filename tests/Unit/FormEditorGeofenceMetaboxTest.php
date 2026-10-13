@@ -340,4 +340,15 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-initially-hidden', $html );
 		$this->assertStringContainsString( 'class="description ffc-datetime-order-error ffc-hidden"', $html );
 	}
+
+	public function test_time_behavior_is_a_segmented_control_keeping_the_stored_values(): void {
+		$daily = $this->render( array() );
+		$this->assertStringContainsString( '<legend class="screen-reader-text">Time Behavior</legend>', $daily );
+		$this->assertStringContainsString( 'id="ffc_geofence_time_mode-2" name="ffc_geofence[time_mode]" value="daily" checked', $daily, 'No stored mode reads as daily, as before.' );
+		$this->assertSame( 2, substr_count( $daily, 'name="ffc_geofence[time_mode]"' ) );
+		$this->assertSame( 2, substr_count( $daily, 'ffc-control-segmented-desc' ), 'Each mode keeps its explanation.' );
+
+		$span = $this->render( array( 'time_mode' => 'span' ) );
+		$this->assertStringContainsString( 'id="ffc_geofence_time_mode-1" name="ffc_geofence[time_mode]" value="span" checked', $span );
+	}
 }

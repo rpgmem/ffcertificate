@@ -2650,12 +2650,8 @@ msgstr ""
 msgid "Authenticity:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-general.php:212
-msgid "Auto (follow Dark Mode above)"
-msgstr ""
 
-#: includes/settings/views/ffc-tab-general.php:197
-msgid "Auto (follow OS)"
+msgid "Auto"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:182
@@ -5410,8 +5406,7 @@ msgstr ""
 msgid "Danger Zone."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:184
-msgid "Dark (VS Code style)"
+msgid "Dark"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:191 includes/settings/views/documentation/config-general.php:30
@@ -12115,9 +12110,6 @@ msgstr ""
 msgid "on"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-general.php:196
-msgid "On (always dark)"
-msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:60
 msgid "on activation, on focus, on page load or on submit. Verifying on load spends the work before anyone decides to submit, and a challenge started too early can expire while the form is still being filled in."
@@ -18118,8 +18110,7 @@ msgstr ""
 msgid "Time"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:226
-msgid "Time applies to each day individually"
+msgid "Each day"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:212
@@ -18172,8 +18163,7 @@ msgstr ""
 msgid "Time slot already booked for this environment."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:217
-msgid "Time spans across dates"
+msgid "Across dates"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-cache.php:218

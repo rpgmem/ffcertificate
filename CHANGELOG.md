@@ -27,6 +27,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Required form fields are a list of their own** (#1741). Settings → Certificates keeps the layout tags and, apart, the fields every form needs with label and type (default `name`, `cpf_rf`, `email`; Email stays). New forms start with them, their type is locked, and the editor adds missing ones.
 - **Ordered three-level settings use the steps control** (#1745). The four geofence display modes, the two private-calendar displays and the IP API fallback store the same values as before; an unknown stored value shows the old default.
 - **The on/off toggle joins the control family** (#1748). `.ffc-toggle` is now `.ffc-control-toggle` everywhere, with the shared hover and pressed halo, a greyed disabled state instead of a faded one, and an optional check / cross mark on the knob.
+- **Small unordered choices use a segmented control** (#1750). Dark Mode, Code Editor Theme and the geofence Time Behavior are one row of options instead of a select or stacked radios, with the same stored values; new `AdminUI::render_segmented()` takes 2 to 6 options.
 
 ### Fixed
 
@@ -38,6 +39,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A certificate form submits again** (#1739). A script printed before `ffc-core.js` that created the `FFC` namespace made the core skip its own API, so every submit failed on `FFC.request is not a function`; the core now installs its API and keeps what was already there.
 - **A quiz attempt that did not pass is no longer a certificate** (#1744). The first attempt was saved as issued and its certificate link emailed before its result was known; its code also verified. The email, verification by code or link, the REST lookup and the user dashboard now skip it.
 - **The dashboard's notification toggles can be reached by keyboard** (#1748). They used a second toggle that hid its checkbox with `display: none`; they now use the plugin's one toggle.
+- **The steps control lines up inside a settings table** (#1750). WordPress makes every label in a `.form-table` fieldset inline-block, which pushed each stop's mark to the left of its rail; the stops and the segmented options now outrank that rule.
 
 ## [6.38.0] (2026-10-12) — `529e80a1`
 

@@ -188,14 +188,26 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 			<tbody>
 				<tr>
 					<th scope="row">
-						<label for="ffc_dark_mode"><?php esc_html_e( 'Dark Mode', 'ffcertificate' ); ?></label>
+						<?php esc_html_e( 'Dark Mode', 'ffcertificate' ); ?>
 					</th>
 					<td>
-						<select name="ffc_settings[dark_mode]" id="ffc_dark_mode" class="regular-text" data-ffc-autosave-key="dark_mode">
-							<option value="off" <?php selected( $ffcertificate_get_option( 'dark_mode', 'off' ), 'off' ); ?>><?php esc_html_e( 'Off', 'ffcertificate' ); ?></option>
-							<option value="on" <?php selected( $ffcertificate_get_option( 'dark_mode', 'off' ), 'on' ); ?>><?php esc_html_e( 'On (always dark)', 'ffcertificate' ); ?></option>
-							<option value="auto" <?php selected( $ffcertificate_get_option( 'dark_mode', 'off' ), 'auto' ); ?>><?php esc_html_e( 'Auto (follow OS)', 'ffcertificate' ); ?></option>
-						</select>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_segmented(
+							array(
+								'name'    => 'ffc_settings[dark_mode]',
+								'id'      => 'ffc_dark_mode',
+								'value'   => (string) $ffcertificate_get_option( 'dark_mode', 'off' ),
+								'default' => 'off',
+								'legend'  => __( 'Dark Mode', 'ffcertificate' ),
+								'options' => array(
+									'off'  => __( 'Off', 'ffcertificate' ),
+									'on'   => __( 'On', 'ffcertificate' ),
+									'auto' => __( 'Auto', 'ffcertificate' ),
+								),
+								'data'    => array( 'ffc-autosave-key' => 'dark_mode' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Controls the dark mode appearance of the plugin\'s admin screens and of its public pages (forms, user dashboard, shortcodes).', 'ffcertificate' ); ?><br>
 							<span class="ffc-text-info ffc-icon-info"><?php esc_html_e( '"Auto" follows your operating system preference.', 'ffcertificate' ); ?></span>
@@ -204,15 +216,26 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 				</tr>
 				<tr>
 					<th scope="row">
-						<label for="code_editor_theme"><?php esc_html_e( 'Code Editor Theme', 'ffcertificate' ); ?></label>
+						<?php esc_html_e( 'Code Editor Theme', 'ffcertificate' ); ?>
 					</th>
 					<td>
-						<?php $ffc_code_editor_theme = $ffcertificate_get_option( 'code_editor_theme', 'dark' ); ?>
-						<select name="ffc_settings[code_editor_theme]" id="code_editor_theme" class="regular-text" data-ffc-autosave-key="code_editor_theme">
-							<option value="auto" <?php selected( $ffc_code_editor_theme, 'auto' ); ?>><?php esc_html_e( 'Auto (follow Dark Mode above)', 'ffcertificate' ); ?></option>
-							<option value="light" <?php selected( $ffc_code_editor_theme, 'light' ); ?>><?php esc_html_e( 'Light', 'ffcertificate' ); ?></option>
-							<option value="dark" <?php selected( $ffc_code_editor_theme, 'dark' ); ?>><?php esc_html_e( 'Dark (VS Code style)', 'ffcertificate' ); ?></option>
-						</select>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_segmented(
+							array(
+								'name'    => 'ffc_settings[code_editor_theme]',
+								'id'      => 'code_editor_theme',
+								'value'   => (string) $ffcertificate_get_option( 'code_editor_theme', 'dark' ),
+								'default' => 'dark',
+								'legend'  => __( 'Code Editor Theme', 'ffcertificate' ),
+								'options' => array(
+									'auto'  => __( 'Auto', 'ffcertificate' ),
+									'light' => __( 'Light', 'ffcertificate' ),
+									'dark'  => __( 'Dark', 'ffcertificate' ),
+								),
+								'data'    => array( 'ffc-autosave-key' => 'code_editor_theme' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Applies to the Certificate HTML editor on the form edit screen. "Auto" mirrors the Dark Mode setting above; fresh installs default to Dark.', 'ffcertificate' ); ?>
 						</p>

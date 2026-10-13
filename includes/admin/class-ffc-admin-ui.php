@@ -198,18 +198,13 @@ class AdminUI {
 		if ( '' === $name || array() === $options ) {
 			return;
 		}
-		$values  = array_map( 'strval', array_keys( $options ) );
-		$default = (string) ( $args['default'] ?? '' );
-		$default = in_array( $default, $values, true ) ? $default : $values[0];
-		$value   = (string) ( $args['value'] ?? '' );
-		$value   = in_array( $value, $values, true ) ? $value : $default;
-		$base_id = is_string( $args['id'] ?? null ) && '' !== $args['id'] ? $args['id'] : trim( (string) preg_replace( '/[^a-z0-9_-]+/i', '-', $name ), '-' );
-		$data    = is_array( $args['data'] ?? null ) ? $args['data'] : array();
-
-		$data_attrs = '';
-		foreach ( $data as $k => $v ) {
-			$data_attrs .= ' data-' . esc_attr( (string) $k ) . '="' . esc_attr( (string) $v ) . '"';
-		}
+		$values   = array_map( 'strval', array_keys( $options ) );
+		$default  = (string) ( $args['default'] ?? '' );
+		$default  = in_array( $default, $values, true ) ? $default : $values[0];
+		$value    = (string) ( $args['value'] ?? '' );
+		$value    = in_array( $value, $values, true ) ? $value : $default;
+		$base_id  = self::control_id( $args, $name );
+		$data     = self::control_data_attrs( $args );
 		$disabled = ! empty( $args['disabled'] ) ? ' disabled' : '';
 
 		$count = count( $values );
@@ -227,11 +222,7 @@ class AdminUI {
 				),
 				'6.39.0'
 			);
-			printf( '<select id="%1$s" name="%2$s"%3$s%4$s>', esc_attr( $base_id ), esc_attr( $name ), $disabled, $data_attrs ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literals and pre-escaped attributes.
-			foreach ( $values as $v ) {
-				printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $v ), selected( $v, $value, false ), esc_html( (string) $options[ $v ] ) );
-			}
-			echo '</select>';
+			self::control_fallback_select( $base_id, $name, $options, $value, $disabled, $data );
 			return;
 		}
 
@@ -271,7 +262,7 @@ class AdminUI {
 				esc_attr( $name ),
 				esc_attr( $v ),
 				$v === $value ? ' checked' : '',
-				$data_attrs, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above.
+				$data, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped by control_data_attrs().
 				esc_html( (string) $options[ $v ] )
 			);
 		}
@@ -282,6 +273,154 @@ class AdminUI {
 			}
 		}
 		echo '</fieldset>';
+	}
+
+	/**
+	 * Fewest and most options a segmented control draws. Outside them a
+	 * select is printed instead: one option is no choice, and past six the
+	 * segments no longer fit a settings row.
+	 */
+	public const SEGMENTED_MIN = 2;
+	public const SEGMENTED_MAX = 6;
+
+	/**
+	 * Render a segmented control: a row of options joined in one pill, the
+	 * chosen one filled (#1750).
+	 *
+	 * Underneath are native radios, so the arrow keys, screen readers and
+	 * forced colours work, and the form posts the value without any script.
+	 * Use it for 2 to 6 choices with NO order between them -- dark, light,
+	 * auto. An ordered scale is {@see self::render_steps()}; a plain on/off
+	 * is {@see self::render_toggle()}.
+	 *
+	 * For autosave pass `data-ffc-autosave-key` (or `-form-key`) in `data`:
+	 * it lands on each radio, and the widget saves the group as one field.
+	 *
+	 * @param array<string, mixed> $args Render arguments:
+	 *   - `name` (string, required) and `options` (array, required: value =>
+	 *     label, 2 to 6 of them; keep the labels short);
+	 *   - `value` (the chosen value) and `default` (shown when `value` is not
+	 *     one of the options; the first option otherwise);
+	 *   - `id` (base id, derived from `name`) and `legend` (the group's name,
+	 *     read by screen readers);
+	 *   - `descriptions` (value => text; the chosen one shows under the row);
+	 *   - `size`: `sm`, `md` (default) or `lg`; `fluid` (bool): the segments
+	 *     share the row's width;
+	 *   - `disabled` (bool) and `data` (data-* attributes on each radio).
+	 */
+	public static function render_segmented( array $args ): void {
+		$name    = is_string( $args['name'] ?? null ) ? $args['name'] : '';
+		$options = is_array( $args['options'] ?? null ) ? $args['options'] : array();
+		if ( '' === $name || array() === $options ) {
+			return;
+		}
+		$values   = array_map( 'strval', array_keys( $options ) );
+		$default  = (string) ( $args['default'] ?? '' );
+		$default  = in_array( $default, $values, true ) ? $default : $values[0];
+		$value    = (string) ( $args['value'] ?? '' );
+		$value    = in_array( $value, $values, true ) ? $value : $default;
+		$base_id  = self::control_id( $args, $name );
+		$data     = self::control_data_attrs( $args );
+		$disabled = ! empty( $args['disabled'] ) ? ' disabled' : '';
+
+		$count = count( $values );
+		if ( $count < self::SEGMENTED_MIN || $count > self::SEGMENTED_MAX ) {
+			_doing_it_wrong(
+				__METHOD__,
+				// A message to the developer, read under WP_DEBUG: English, untranslated, like core's own.
+				esc_html(
+					sprintf(
+						'A segmented control takes %2$d to %3$d options; %1$d were given, so a select is printed instead. Use a select for more than %3$d.',
+						$count,
+						self::SEGMENTED_MIN,
+						self::SEGMENTED_MAX
+					)
+				),
+				'6.39.0'
+			);
+			self::control_fallback_select( $base_id, $name, $options, $value, $disabled, $data );
+			return;
+		}
+
+		$descs  = is_array( $args['descriptions'] ?? null ) ? $args['descriptions'] : array();
+		$legend = is_string( $args['legend'] ?? null ) ? $args['legend'] : '';
+
+		$classes = array( 'ffc-control-segmented' );
+		if ( in_array( $args['size'] ?? null, array( 'sm', 'lg' ), true ) ) {
+			$classes[] = sprintf( 'ffc-control-segmented-%s', (string) $args['size'] );
+		}
+		if ( ! empty( $args['fluid'] ) ) {
+			$classes[] = 'ffc-control-segmented-fluid';
+		}
+
+		printf( '<fieldset class="%1$s"%2$s>', esc_attr( implode( ' ', $classes ) ), $disabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $disabled is a literal attribute or empty.
+		if ( '' !== $legend ) {
+			echo '<legend class="screen-reader-text">' . esc_html( $legend ) . '</legend>';
+		}
+		echo '<span class="ffc-control-segmented-track">';
+		foreach ( $values as $i => $v ) {
+			printf(
+				'<label class="ffc-control-segmented-option"><input type="radio" id="%1$s" name="%2$s" value="%3$s"%4$s%5$s><span class="ffc-control-segmented-label">%6$s</span></label>',
+				esc_attr( $base_id . '-' . ( $i + 1 ) ),
+				esc_attr( $name ),
+				esc_attr( $v ),
+				$v === $value ? ' checked' : '',
+				$data, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped by control_data_attrs().
+				esc_html( (string) $options[ $v ] )
+			);
+		}
+		echo '</span>';
+		foreach ( $values as $i => $v ) {
+			if ( isset( $descs[ $v ] ) && '' !== (string) $descs[ $v ] ) {
+				printf( '<span class="description ffc-control-segmented-desc" data-option="%1$d">%2$s</span>', (int) $i + 1, esc_html( (string) $descs[ $v ] ) );
+			}
+		}
+		echo '</fieldset>';
+	}
+
+	/**
+	 * Base id of a control's radios: `id` when given, else derived from `name`.
+	 *
+	 * @param array<string, mixed> $args Render arguments.
+	 * @param string               $name The field name.
+	 * @return string
+	 */
+	private static function control_id( array $args, string $name ): string {
+		return is_string( $args['id'] ?? null ) && '' !== $args['id'] ? $args['id'] : trim( (string) preg_replace( '/[^a-z0-9_-]+/i', '-', $name ), '-' );
+	}
+
+	/**
+	 * The `data` argument of a control as escaped `data-*` attributes.
+	 *
+	 * @param array<string, mixed> $args Render arguments.
+	 * @return string Escaped attributes, each with a leading space.
+	 */
+	private static function control_data_attrs( array $args ): string {
+		$data  = is_array( $args['data'] ?? null ) ? $args['data'] : array();
+		$attrs = '';
+		foreach ( $data as $k => $v ) {
+			$attrs .= ' data-' . esc_attr( (string) $k ) . '="' . esc_attr( (string) $v ) . '"';
+		}
+		return $attrs;
+	}
+
+	/**
+	 * The select a control prints when it is given a number of options it
+	 * cannot draw, so the field still works.
+	 *
+	 * @param string               $id       Element id.
+	 * @param string               $name     Field name.
+	 * @param array<string, mixed> $options  Value => label.
+	 * @param string               $value    The chosen value.
+	 * @param string               $disabled ' disabled' or empty.
+	 * @param string               $data     Pre-escaped data attributes.
+	 */
+	private static function control_fallback_select( string $id, string $name, array $options, string $value, string $disabled, string $data ): void {
+		printf( '<select id="%1$s" name="%2$s"%3$s%4$s>', esc_attr( $id ), esc_attr( $name ), $disabled, $data ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literals and pre-escaped attributes.
+		foreach ( $options as $v => $label ) {
+			printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( (string) $v ), selected( (string) $v, $value, false ), esc_html( (string) $label ) );
+		}
+		echo '</select>';
 	}
 
 	/**

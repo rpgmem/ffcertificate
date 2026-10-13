@@ -484,4 +484,107 @@ class AdminUITest extends TestCase {
 		$this->steps( array( 'options' => array_combine( range( 1, 11 ), range( 1, 11 ) ) ) );
 		$this->assertSame( array(), $notices, 'Eleven is still a steps control.' );
 	}
+
+	// ==================================================================
+	// Segmented control (#1750)
+	// ==================================================================
+
+	private function segmented( array $args ): string {
+		ob_start();
+		AdminUI::render_segmented(
+			$args + array(
+				'name'    => 'cfg[theme]',
+				'options' => array(
+					'off'  => 'Off',
+					'on'   => 'On',
+					'auto' => 'Auto',
+				),
+			)
+		);
+		return (string) ob_get_clean();
+	}
+
+	public function test_segmented_is_one_radio_per_option_with_its_visible_name(): void {
+		$html = $this->segmented( array( 'value' => 'on', 'id' => 'thm', 'legend' => 'Theme' ) );
+
+		$this->assertStringContainsString( '<fieldset class="ffc-control-segmented">', $html );
+		$this->assertSame( 3, substr_count( $html, 'type="radio"' ) );
+		$this->assertSame( 3, substr_count( $html, 'name="cfg[theme]"' ) );
+		$this->assertStringContainsString( '<legend class="screen-reader-text">Theme</legend>', $html );
+		$this->assertStringContainsString( 'id="thm-2" name="cfg[theme]" value="on" checked', $html );
+		$this->assertSame( 1, substr_count( $html, ' checked' ) );
+		$this->assertStringContainsString( '<label class="ffc-control-segmented-option"><input type="radio" id="thm-3" name="cfg[theme]" value="auto"><span class="ffc-control-segmented-label">Auto</span></label>', $html );
+	}
+
+	public function test_segmented_layout_parameters_become_classes(): void {
+		$this->assertStringContainsString( 'class="ffc-control-segmented ffc-control-segmented-sm ffc-control-segmented-fluid"', $this->segmented( array( 'size' => 'sm', 'fluid' => true ) ) );
+		$this->assertStringContainsString( 'class="ffc-control-segmented ffc-control-segmented-lg"', $this->segmented( array( 'size' => 'lg' ) ) );
+		$this->assertStringContainsString( '<fieldset class="ffc-control-segmented">', $this->segmented( array( 'size' => 'xl' ) ), 'An unknown size adds nothing.' );
+	}
+
+	public function test_segmented_checks_the_default_and_then_the_first_when_the_value_is_not_one(): void {
+		$this->assertStringContainsString( 'value="off" checked', $this->segmented( array( 'value' => 'x' ) ) );
+		$this->assertStringContainsString( 'value="auto" checked', $this->segmented( array( 'value' => 'x', 'default' => 'auto' ) ), 'A stored value the control does not know shows the default, as the select it replaced did.' );
+		$this->assertStringContainsString( 'value="off" checked', $this->segmented( array( 'value' => 'x', 'default' => 'y' ) ), 'A default outside the options falls back to the first.' );
+	}
+
+	public function test_segmented_carries_data_on_every_radio_and_disables_the_group(): void {
+		$html = $this->segmented(
+			array(
+				'disabled' => true,
+				'data'     => array( 'ffc-autosave-key' => 'dark_mode' ),
+			)
+		);
+		$this->assertSame( 3, substr_count( $html, ' data-ffc-autosave-key="dark_mode"' ) );
+		$this->assertStringContainsString( '<fieldset class="ffc-control-segmented" disabled>', $html, 'A disabled fieldset disables every radio in it.' );
+	}
+
+	public function test_segmented_prints_a_description_per_value_given_tied_to_its_option(): void {
+		$html = $this->segmented( array( 'descriptions' => array( 'auto' => 'Follows the system.' ) ) );
+		$this->assertStringContainsString( '<span class="description ffc-control-segmented-desc" data-option="3">Follows the system.</span>', $html );
+		$this->assertSame( 1, substr_count( $html, 'ffc-control-segmented-desc' ) );
+	}
+
+	public function test_segmented_needs_a_name_and_options_and_derives_an_id(): void {
+		$this->assertSame( '', $this->segmented( array( 'name' => '' ) ) );
+		$this->assertSame( '', $this->segmented( array( 'options' => array() ) ) );
+		$this->assertStringContainsString( 'id="cfg-theme-1"', $this->segmented( array() ) );
+	}
+
+	/**
+	 * Out of range the field still works, as a select, and the developer is
+	 * told why.
+	 */
+	public function test_segmented_out_of_range_prints_a_select_and_tells_the_developer(): void {
+		$notices = array();
+		Functions\when( '_doing_it_wrong' )->alias(
+			static function ( $fn, $message ) use ( &$notices ) {
+				$notices[] = $message;
+			}
+		);
+		Functions\when( 'selected' )->alias( static fn( $a, $b, $echo = true ) => (string) $a === (string) $b ? ' selected=\'selected\'' : '' );
+
+		$one = $this->segmented( array( 'options' => array( 'only' => 'Only' ) ) );
+		$this->assertStringContainsString( '<select id="cfg-theme" name="cfg[theme]">', $one );
+		$this->assertStringContainsString( '<option value="only" selected=\'selected\'>Only</option>', $one );
+		$this->assertStringNotContainsString( 'ffc-control-segmented', $one );
+
+		$seven = $this->segmented(
+			array(
+				'disabled' => true,
+				'options'  => array_combine( range( 1, 7 ), range( 1, 7 ) ),
+			)
+		);
+		$this->assertSame( 7, substr_count( $seven, '<option ' ) );
+		$this->assertStringContainsString( 'name="cfg[theme]" disabled>', $seven );
+
+		$this->assertCount( 2, $notices );
+		$this->assertStringContainsString( '1 were given', $notices[0] );
+		$this->assertStringContainsString( '7 were given', $notices[1] );
+
+		$notices = array();
+		$this->segmented( array( 'options' => array( 'a' => 'A', 'b' => 'B' ) ) );
+		$this->segmented( array( 'options' => array_combine( range( 1, 6 ), range( 1, 6 ) ) ) );
+		$this->assertSame( array(), $notices, 'Two and six are still a segmented control.' );
+	}
 }
