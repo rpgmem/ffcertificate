@@ -323,7 +323,8 @@ class SubmissionRestController {
 
 			$submission = $this->submission_repository->findByAuthCode( $auth_code );
 
-			if ( ! $submission ) {
+			// A quiz attempt that did not pass is not a certificate (#1744).
+			if ( ! $submission || \FreeFormCertificate\Core\SubmissionStatus::is_unpassed_quiz( $submission ) ) {
 				return new \WP_Error(
 					'certificate_not_found',
 					'Certificate not found. Please check the authentication code.',

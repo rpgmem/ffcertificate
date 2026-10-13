@@ -1033,6 +1033,36 @@ class SubmissionHandlerTest extends TestCase {
 	}
 
 	/**
+	 * #1744 — a quiz attempt that did not pass is not emailed its
+	 * certificate: the status is lowered before the pipeline fires.
+	 *
+	 * @dataProvider provider_unpassed_quiz_statuses
+	 */
+	public function test_dispatch_async_pipeline_skips_a_quiz_attempt_that_did_not_pass( string $status ): void {
+		$this->mockRepo->shouldReceive( 'findById' )->once()->andReturn( $this->encryptedRow( array( 'status' => $status ) ) );
+
+		$this->assertNull( $this->capturedPipelineArgs() );
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function provider_unpassed_quiz_statuses(): array {
+		return array(
+			'retry'  => array( 'quiz_in_progress' ),
+			'failed' => array( 'quiz_failed' ),
+		);
+	}
+
+	public function test_dispatch_async_pipeline_still_fires_for_a_passed_quiz(): void {
+		$this->mockRepo->shouldReceive( 'findById' )->once()->andReturn( $this->encryptedRow( array( 'status' => 'publish' ) ) );
+		Functions\when( 'get_the_title' )->justReturn( '' );
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+
+		$this->assertIsArray( $this->capturedPipelineArgs() );
+	}
+
+	/**
 	 * An invalid id does not even query the database.
 	 */
 	public function test_dispatch_async_pipeline_ignores_a_non_positive_id(): void {

@@ -110,7 +110,7 @@ class VerificationHandler {
 				return $appointment_result;
 			}
 			// Fallback: certificates, then reregistrations.
-			$submission = $repository->findByAuthCode( $clean_code );
+			$submission = $this->certificate_by_auth_code( $repository, $clean_code );
 			if ( ! $submission ) {
 				return $this->search_reregistration_by_code( $clean_code );
 			}
@@ -121,13 +121,13 @@ class VerificationHandler {
 				return $rereg_result;
 			}
 			// Fallback: certificates, then appointments.
-			$submission = $repository->findByAuthCode( $clean_code );
+			$submission = $this->certificate_by_auth_code( $repository, $clean_code );
 			if ( ! $submission ) {
 				return $this->search_appointment_by_code( $clean_code );
 			}
 		} else {
 			// C prefix or no prefix: certificates first (original behavior).
-			$submission = $repository->findByAuthCode( $clean_code );
+			$submission = $this->certificate_by_auth_code( $repository, $clean_code );
 
 			// Fallback: search appointments by validation_code.
 			if ( ! $submission ) {
@@ -177,6 +177,24 @@ class VerificationHandler {
 			'submission' => (object) $submission,
 			'data'       => $data,
 		);
+	}
+
+	/**
+	 * The certificate an auth code names, or null.
+	 *
+	 * A quiz attempt that did not pass carries an auth code but is not a
+	 * certificate, so it is not found (#1744).
+	 *
+	 * @param SubmissionRepository $repository Submissions repository.
+	 * @param string               $code       Clean auth code.
+	 * @return array<string, mixed>|null
+	 */
+	private function certificate_by_auth_code( SubmissionRepository $repository, string $code ): ?array {
+		$submission = $repository->findByAuthCode( $code );
+		if ( ! is_array( $submission ) || \FreeFormCertificate\Core\SubmissionStatus::is_unpassed_quiz( $submission ) ) {
+			return null;
+		}
+		return $submission;
 	}
 
 	/**
@@ -517,8 +535,12 @@ class VerificationHandler {
 			);
 		}
 
-		// Get submission by token.
+		// Get submission by token. A quiz attempt that did not pass has a
+		// token but is not a certificate (#1744).
 		$submission = $this->submission_handler()->get_submission_by_token( $token );
+		if ( \FreeFormCertificate\Core\SubmissionStatus::is_unpassed_quiz( $submission ) ) {
+			$submission = null;
+		}
 
 		\FreeFormCertificate\Core\Debug::log_frontend(
 			'Magic token lookup result',

@@ -291,6 +291,24 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		$this->assertSame( 'certificate_deleted', $result->get_error_code() );
 	}
 
+	/**
+	 * #1744 — a quiz attempt that did not pass is not a certificate.
+	 */
+	public function test_verify_certificate_does_not_find_an_unpassed_quiz_attempt(): void {
+		$repo = Mockery::mock( SubmissionRepository::class );
+		$repo->shouldReceive( 'findByAuthCode' )->once()->andReturn(
+			array( 'id' => 1, 'form_id' => 1, 'status' => 'quiz_failed' )
+		);
+
+		$ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+		$request = Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_param' )->with( 'auth_code' )->andReturn( 'CLEANCODE123' );
+
+		$result = $ctrl->verify_certificate( $request );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'certificate_not_found', $result->get_error_code() );
+	}
+
 	public function test_verify_certificate_happy_path(): void {
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Cert Form' ) );
 		Functions\when( 'is_email' )->alias( function ( $email ) {

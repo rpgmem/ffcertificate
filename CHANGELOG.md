@@ -32,6 +32,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The standard fields validate as they claim** (#1734). An invalid CPF/RF now blocks the submit and its message stays until corrected; an invalid email says so instead of "Email address is required."; a name needs at least two words and 4 characters, in the browser and on the server.
 - **Settings → Certificates saves the required tags one per line** (#1736). The Save button stored the list on a single line, which then read as one tag; a list already stored that way reads as separate tags again.
 - **A certificate form submits again** (#1739). A script printed before `ffc-core.js` that created the `FFC` namespace made the core skip its own API, so every submit failed on `FFC.request is not a function`; the core now installs its API and keeps what was already there.
+- **A quiz attempt that did not pass is no longer a certificate** (#1744). The first attempt was saved as issued and its certificate link emailed before its result was known; its code also verified. The email, verification by code or link, the REST lookup and the user dashboard now skip it.
 
 ## [6.38.0] (2026-10-12) — `529e80a1`
 

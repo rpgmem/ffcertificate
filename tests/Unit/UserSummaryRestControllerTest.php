@@ -178,6 +178,21 @@ class UserSummaryRestControllerTest extends TestCase {
 	// get_user_summary() — certificates count with manage_options
 	// ------------------------------------------------------------------
 
+	/**
+	 * #1744 — the count matches the list: no trash, no unpassed attempt.
+	 */
+	public function test_get_user_summary_counts_only_certificates(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' === $cap );
+		$this->wpdb->shouldReceive( 'prepare' )
+			->once()
+			->with( Mockery::pattern( '/status NOT IN \(%s, %s, %s\)/' ), Mockery::any(), 5, 'trash', 'quiz_in_progress', 'quiz_failed' )
+			->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '2' );
+
+		( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
+	}
+
 	public function test_get_user_summary_counts_certificates_when_manage_options(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->alias( function( $cap ) {
