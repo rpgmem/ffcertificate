@@ -189,8 +189,12 @@ class SettingsSaveHandler {
 
 		// The required-tag list moved to its own tab (#1734). It also
 		// autosaves; this keeps the tab's Save button writing what is shown.
-		if ( 'certificates' === $ffc_tab && isset( $new['required_certificate_tags'] ) && is_string( $new['required_certificate_tags'] ) ) {
-			$clean['required_certificate_tags'] = sanitize_textarea_field( $new['required_certificate_tags'] );
+		// `$new` went through sanitize_text_field(), which turns the line
+		// breaks into spaces, so the textarea is read raw and sanitised as
+		// a textarea (#1736).
+		$raw_settings = \FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'ffc_settings' );
+		if ( 'certificates' === $ffc_tab && isset( $raw_settings['required_certificate_tags'] ) && is_string( $raw_settings['required_certificate_tags'] ) ) {
+			$clean['required_certificate_tags'] = sanitize_textarea_field( $raw_settings['required_certificate_tags'] );
 		}
 
 		if ( 'advanced' === $ffc_tab ) {

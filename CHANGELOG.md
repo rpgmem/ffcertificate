@@ -27,6 +27,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Personal Calendars and Certificate templates follow dark mode** (#1725). Their lists and editors are WordPress post screens the toggle never reached, so they stayed light; the rich-text e-mail editor's tabs and toolbar now read the palette too.
 - **A checkbox field renders its options, and the server enforces every field's rules** (#1729). A "Checkbox" field rendered as one empty text box that posted `on`; it is now a group of boxes posting the ticked options, and "Required" means at least one. A required answer, a length, a range and whether an answer is one of the options were the browser's word only; an edited page could post anything.
 - **The standard fields validate as they claim** (#1734). An invalid CPF/RF now blocks the submit and its message stays until corrected; an invalid email says so instead of "Email address is required."; a name needs at least two words and 4 characters, in the browser and on the server.
+- **Settings → Certificates saves the required tags one per line** (#1736). The Save button stored the list on a single line, which then read as one tag; a list already stored that way reads as separate tags again.
 
 ## [6.38.0] (2026-10-12) — `529e80a1`
 
