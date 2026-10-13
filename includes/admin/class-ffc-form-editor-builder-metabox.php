@@ -15,6 +15,7 @@ namespace FreeFormCertificate\Admin;
 use FreeFormCertificate\Core\FormField;
 use FreeFormCertificate\Core\LabelSorter;
 use FreeFormCertificate\Core\QuizQuestion;
+use FreeFormCertificate\Settings\SettingsReader;
 use WP_Post;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -129,32 +130,20 @@ class FormEditorBuilderMetabox {
 	public function render( WP_Post $post ): void {
 		$fields = get_post_meta( $post->ID, '_ffc_form_fields', true );
 
-		// Default fields for brand new forms.
+		// A brand new form starts with the fields every form must have, as
+		// configured on Settings → Certificates (#1741).
 		if ( empty( $fields ) && 'auto-draft' === $post->post_status ) {
-			$fields = array(
-				array(
-					'type'     => 'text',
-					'label'    => __( 'Full Name', 'ffcertificate' ),
-					'name'     => 'name',
+			$fields = array();
+			foreach ( SettingsReader::required_form_fields() as $required ) {
+				$fields[] = array(
+					'type'     => $required['type'],
+					'label'    => $required['label'],
+					'name'     => $required['name'],
 					'required' => '1',
-					'options'  => '',
-				),
-				array(
-					'type'     => 'email',
-					'label'    => __( 'Email', 'ffcertificate' ),
-					'name'     => 'email',
-					'required' => '1',
-					'options'  => '',
-				),
-				array(
-					'type'     => 'text',
-					'label'    => __( 'CPF / ID', 'ffcertificate' ),
-					'name'     => 'cpf_rf',
-					'required' => '1',
-					'options'  => '',
-				),
-			);
+				);
+			}
 		}
+		$missing = is_array( $fields ) ? $this->missing_required_rows( $fields ) : SettingsReader::required_form_fields();
 		?>
 		<div id="ffc-fields-container">
 			<?php
@@ -167,8 +156,24 @@ class FormEditorBuilderMetabox {
 		</div>
 		<div>
 		<p class="description">
-		<?php esc_html_e( 'Minimal fields (Tag):', 'ffcertificate' ); ?> <code>name</code>, <code>email</code>, <code>cpf_rf</code>.
+			<?php esc_html_e( 'Required fields (Tag):', 'ffcertificate' ); ?>
+			<?php echo implode( ', ', array_map( static fn( string $name ): string => '<code>' . esc_html( $name ) . '</code>', FormEditorSaveValidator::required_field_names() ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each name is escaped above. ?>.
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=certificates' ) ); ?>"><?php esc_html_e( 'Settings → Certificates', 'ffcertificate' ); ?></a>
 		</p>
+		<?php if ( array() !== $missing ) : ?>
+			<div class="notice notice-warning inline ffc-required-fields-missing">
+				<p>
+					<?php esc_html_e( 'This form lacks required fields:', 'ffcertificate' ); ?>
+					<?php echo implode( ', ', array_map( static fn( array $row ): string => '<code>' . esc_html( $row['name'] ) . '</code>', $missing ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each name is escaped above. ?>
+				</p>
+				<p>
+					<button type="button" class="button ffc-add-required-fields" data-ffc-required-fields="<?php echo esc_attr( (string) wp_json_encode( $missing ) ); ?>">
+						<span class="ffc-icon-plus" aria-hidden="true"></span>
+						<?php esc_html_e( 'Add the required fields', 'ffcertificate' ); ?>
+					</button>
+				</p>
+			</div>
+		<?php endif; ?>
 		</div>
 		<div class="ffc-builder-actions ffc-mt-2xl">
 			<button type="button" class="button button-primary ffc-add-field">
@@ -182,6 +187,33 @@ class FormEditorBuilderMetabox {
 		</div>
 		<?php
 	}
+
+	/**
+	 * Required-field rows the saved fields do not answer (#1741).
+	 *
+	 * @param array<int|string, mixed> $fields Saved fields.
+	 * @return array<int, array{name: string, label: string, type: string}>
+	 */
+	private function missing_required_rows( array $fields ): array {
+		$names = array();
+		foreach ( $fields as $field ) {
+			if ( is_array( $field ) && is_scalar( $field['name'] ?? null ) ) {
+				$names[] = (string) $field['name'];
+			}
+		}
+		$missing = array();
+		foreach ( SettingsReader::required_form_fields() as $row ) {
+			$found = false;
+			foreach ( $names as $name ) {
+				$found = $found || FormEditorSaveValidator::satisfies( $name, $row['name'] );
+			}
+			if ( ! $found ) {
+				$missing[] = $row;
+			}
+		}
+		return $missing;
+	}
+
 	/**
 	 * Helper: Renders a field row in the builder
 	 *
@@ -207,10 +239,16 @@ class FormEditorBuilderMetabox {
 		$is_embed              = 'embed' === $type;
 		$is_display_only       = $is_info || $is_embed;
 		$options_visible_class = ( 'select' === $type || 'radio' === $type || 'checkbox' === $type ) ? '' : 'ffc-hidden';
-		// A field a required certificate tag calls for keeps its name and
-		// cannot be removed: the certificate would lose the value (#1734).
+		// A field the required-field table calls for keeps its name and type
+		// and cannot be removed (#1734, #1741).
 		$is_locked = ! $is_display_only && FormEditorSaveValidator::is_required_field( (string) $name );
-		$lock_id   = 'ffc_field_lock_' . $index;
+		if ( $is_locked ) {
+			// The configured type wins, as it does on save (#1741).
+			$required_row          = FormEditorSaveValidator::required_field( (string) $name );
+			$type                  = null !== $required_row ? $required_row['type'] : $type;
+			$options_visible_class = 'ffc-hidden';
+		}
+		$lock_id = 'ffc_field_lock_' . $index;
 		?>
 		<div class="ffc-field-row<?php echo $is_locked ? ' ffc-field-row-required-tag' : ''; ?>" data-index="<?php echo esc_attr( $index ); ?>">
 			<div class="ffc-field-row-header">
@@ -228,7 +266,7 @@ class FormEditorBuilderMetabox {
 					?>
 					</strong></span>
 					<?php if ( $is_locked ) : ?>
-						<span class="ffc-required-tag-badge" id="<?php echo esc_attr( $lock_id ); ?>"><span class="ffc-icon-lock" aria-hidden="true"></span> <?php esc_html_e( 'Required certificate tag', 'ffcertificate' ); ?></span>
+						<span class="ffc-required-tag-badge" id="<?php echo esc_attr( $lock_id ); ?>"><span class="ffc-icon-lock" aria-hidden="true"></span> <?php esc_html_e( 'Required field', 'ffcertificate' ); ?></span>
 					<?php endif; ?>
 				</span>
 				<button type="button" class="button button-link-delete ffc-remove-field"<?php echo $is_locked ? ' disabled aria-describedby="' . esc_attr( $lock_id ) . '"' : ''; ?>><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
@@ -255,7 +293,11 @@ class FormEditorBuilderMetabox {
 				</div>
 				<div class="ffc-grid-item">
 					<label><?php esc_html_e( 'Type', 'ffcertificate' ); ?></label>
-					<select name="ffc_fields[<?php echo esc_attr( $index ); ?>][type]" class="ffc-field-type-selector ffc-w100">
+					<?php if ( $is_locked ) : ?>
+						<?php // A disabled select posts nothing; the value travels in the hidden input, and the save handler forces it anyway (#1741). ?>
+						<input type="hidden" name="ffc_fields[<?php echo esc_attr( $index ); ?>][type]" value="<?php echo esc_attr( (string) $type ); ?>">
+					<?php endif; ?>
+					<select<?php echo $is_locked ? '' : ' name="ffc_fields[' . esc_attr( $index ) . '][type]"'; ?> class="ffc-field-type-selector ffc-w100"<?php echo $is_locked ? ' disabled aria-describedby="' . esc_attr( $lock_id ) . '"' : ''; ?>>
 						<?php foreach ( self::field_types_ordered() as $type_slug => $type_label ) : ?>
 							<option value="<?php echo esc_attr( $type_slug ); ?>" <?php selected( $type, $type_slug ); ?>><?php echo esc_html( $type_label ); ?></option>
 						<?php endforeach; ?>

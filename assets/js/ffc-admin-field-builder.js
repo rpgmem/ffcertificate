@@ -336,13 +336,71 @@
         return $row;
     }
 
+    /**
+     * Lock a row the way the server renders a required field (#1741): the
+     * name, the type and the required flag cannot change, and the row
+     * cannot be removed. Only the label stays editable.
+     */
+    function lockRequiredRow($row, field) {
+        var index = String($row.attr('data-index'));
+        var lockId = 'ffc_field_lock_' + index;
+        var $select = $row.find('.ffc-field-type-selector');
+
+        $row.addClass('ffc-field-row-required-tag');
+        $row.find('input[name$="[label]"]').first().val(field.label || field.name);
+        $row.find('input[name$="[name]"]').first().val(field.name).prop('readonly', true).attr('aria-describedby', lockId);
+
+        // A disabled select posts nothing, so the type travels in a hidden input.
+        $select.removeAttr('name').prop('disabled', true).attr('aria-describedby', lockId);
+        $('<input type="hidden">').attr('name', 'ffc_fields[' + index + '][type]').val(field.type).insertBefore($select);
+
+        $row.find('.ffc-field-required').prop('checked', true).prop('disabled', true);
+        $row.find('.ffc-remove-field').prop('disabled', true).attr('aria-describedby', lockId);
+
+        var $badge = $('<span class="ffc-required-tag-badge"></span>').attr('id', lockId);
+        $badge.append('<span class="ffc-icon-lock" aria-hidden="true"></span> ');
+        $badge.append(document.createTextNode(strings().requiredField || 'Required field'));
+        $row.find('.ffc-field-title').after($badge);
+    }
+
+    /**
+     * Add every required field the form lacks, locked, and drop the notice.
+     */
+    function addRequiredFields($button) {
+        var fields;
+        try {
+            fields = JSON.parse(String($button.attr('data-ffc-required-fields') || '[]'));
+        } catch (err) {
+            fields = [];
+        }
+        if (!Array.isArray(fields)) {
+            return;
+        }
+        fields.forEach(function(field) {
+            if (!field || !field.name) {
+                return;
+            }
+            var $row = addFieldToBuilder(field.type || 'text');
+            if ($row) {
+                lockRequiredRow($row, field);
+            }
+        });
+        $button.closest('.ffc-required-fields-missing').remove();
+    }
+
+    $(document).on('click', '.ffc-add-required-fields', function(e) {
+        e.preventDefault();
+        addRequiredFields($(this));
+    });
+
     window.FFC = window.FFC || {};
     window.FFC.Admin = window.FFC.Admin || {};
     window.FFC.Admin.FieldBuilder = {
         init: initFormBuilder,
         addField: addFieldToBuilder,
         applyType: applyType,
-        refreshQuiz: refreshQuiz
+        refreshQuiz: refreshQuiz,
+        addRequiredFields: addRequiredFields
     };
 
     if (FFC && FFC.registerModule) {

@@ -55,15 +55,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><?php esc_html_e( 'The server checks every rule again on submit — a required answer, the length, the range, the number of options ticked and that each answer is one of the options — and refuses the submission listing every problem at once. The browser is a courtesy, never the guard.', 'ffcertificate' ); ?></li>
 	</ul>
 
-	<h4><?php esc_html_e( 'The three seed fields', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'A new form starts with three fields, which are also the minimal set most templates rely on:', 'ffcertificate' ); ?></p>
+	<h4><?php esc_html_e( 'Required Form Fields', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'A new form starts with the fields listed under Settings → Certificates → Required Form Fields, with the label and type given there. By default they are:', 'ffcertificate' ); ?></p>
 	<ul>
 		<li><code>name</code> — <?php esc_html_e( 'the participant\'s full name (required): at least two words and 4 characters, checked in the browser and on the server.', 'ffcertificate' ); ?></li>
 		<li><code>email</code> — <?php esc_html_e( 'the participant\'s email (required); used to deliver the certificate. An address that is not valid is refused as such, not as a missing one.', 'ffcertificate' ); ?></li>
 		<li><code>cpf_rf</code> — <?php esc_html_e( 'the identifier (required). See the note below on CPF/RF validation.', 'ffcertificate' ); ?></li>
 	</ul>
 
-	<p><?php esc_html_e( 'A field whose tag is a required certificate tag (Settings → Certificates) is drawn with an amber border and a "Required certificate tag" badge: it is always required, its variable name cannot change and it cannot be removed. Saving a form that has no field for one of those tags shows a warning naming it.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A required field is drawn with an amber border and a "Required field" badge: it is always required, its variable name and type cannot change and it cannot be removed; only its label can. A form missing one shows a warning naming it, with an "Add the required fields" button that adds them.', 'ffcertificate' ); ?></p>
 
 	<p><?php esc_html_e( 'Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as "da" and "de" in lowercase.', 'ffcertificate' ); ?></p>
 

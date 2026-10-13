@@ -275,18 +275,22 @@ class FormEditorSaveHandlerTest extends TestCase {
 	}
 
 	/**
-	 * #1734 — a field a required certificate tag calls for is stored as
-	 * required, and a form missing one is told which.
+	 * #1734, #1741 — a required field is stored as required with the type
+	 * the table gives it, and a form missing one is told which.
 	 */
-	public function test_save_fields_meta_forces_required_tags_and_reports_the_missing_ones(): void {
+	public function test_save_fields_meta_forces_required_fields_and_reports_the_missing_ones(): void {
 		$_POST['ffc_fields'] = array(
 			array(
 				'name' => 'name',
-				'type' => 'text',
+				'type' => 'textarea',
 			),
 			array(
 				'name' => 'email',
-				'type' => 'email',
+				'type' => 'text',
+			),
+			array(
+				'name' => 'course',
+				'type' => 'text',
 			),
 		);
 
@@ -295,8 +299,11 @@ class FormEditorSaveHandlerTest extends TestCase {
 
 		$fields = $out['written']['_ffc_form_fields'];
 		$this->assertSame( '1', $fields[0]['required'] );
-		$this->assertSame( '', $fields[1]['required'] );
-		$this->assertSame( array( '{{cpf_rf}}' ), $out['transients']['ffc_save_fields_error_7'] );
+		$this->assertSame( 'text', $fields[0]['type'], 'A posted type cannot change a required field.' );
+		$this->assertSame( '1', $fields[1]['required'] );
+		$this->assertSame( 'email', $fields[1]['type'] );
+		$this->assertSame( '', $fields[2]['required'] );
+		$this->assertSame( array( 'cpf_rf' ), $out['transients']['ffc_save_fields_error_7'] );
 	}
 
 	/**

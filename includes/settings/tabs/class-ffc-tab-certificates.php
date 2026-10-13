@@ -39,7 +39,7 @@ class TabCertificates extends SettingsTab {
 	}
 
 	/**
-	 * Load the autosave widget on this tab.
+	 * Load the autosave widget and the required-field table script.
 	 *
 	 * @param string $hook Current admin page hook.
 	 */
@@ -47,6 +47,14 @@ class TabCertificates extends SettingsTab {
 		if ( ! $this->should_enqueue_on( $hook ) ) {
 			return;
 		}
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-certificate-settings',
+			FFC_PLUGIN_URL . "assets/js/ffc-certificate-settings{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
 		$this->enqueue_autosave_infra();
 	}
 

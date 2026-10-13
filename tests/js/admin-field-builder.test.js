@@ -24,7 +24,7 @@ function row(index) {
 				<option value="info">Info</option><option value="embed">Embed</option>
 				<option value="hidden">Hidden</option>
 			</select>
-			<label for="ffc_field_required_${index}"><input type="checkbox" id="ffc_field_required_${index}" name="ffc_fields[${index}][required]"></label>
+			<label for="ffc_field_required_${index}"><input type="checkbox" id="ffc_field_required_${index}" name="ffc_fields[${index}][required]" class="ffc-field-required"></label>
 		</div>
 		<p class="ffc-type-desc"></p>
 		<div class="ffc-content-field ffc-hidden"></div>
@@ -52,8 +52,8 @@ function row(index) {
 	</div>`;
 }
 
-function page(savedRows) {
-	document.body.innerHTML = `
+function page(savedRows, extra) {
+	document.body.innerHTML = (extra || '') + `
 		<input type="checkbox" id="ffc_quiz_enabled">
 		<div id="ffc-fields-container">${(savedRows || []).map(row).join('')}</div>
 		<button type="button" class="ffc-add-field">Add New Field</button>
@@ -319,5 +319,57 @@ describe('FieldBuilder — quiz (#1730)', () => {
 		master.checked = false;
 		window.$(master).trigger('change');
 		expect(row().find('.ffc-field-quiz').hasClass('ffc-hidden')).toBe(true);
+	});
+});
+
+describe('Add the required fields (#1741)', () => {
+	const missing = [
+		{ name: 'name', label: 'Full Name', type: 'text' },
+		{ name: 'email', label: 'Email', type: 'email' },
+	];
+
+	function notice(json) {
+		return `<div class="notice ffc-required-fields-missing"><button type="button" class="ffc-add-required-fields" data-ffc-required-fields='${json}'>Add</button></div>`;
+	}
+
+	beforeEach(() => {
+		window.ffc_ajax.strings.requiredField = 'Required field';
+		page([0], notice(JSON.stringify(missing)));
+		FB().init();
+	});
+
+	it('adds one locked row per missing field and drops the notice', () => {
+		window.$('.ffc-add-required-fields').trigger('click');
+
+		const rows = $$('#ffc-fields-container .ffc-field-row');
+		expect(rows).toHaveLength(3);
+		expect($('.ffc-required-fields-missing')).toBeNull();
+
+		const email = rows[2];
+		expect(email.classList.contains('ffc-field-row-required-tag')).toBe(true);
+		expect(email.querySelector('[name="ffc_fields[2][name]"]').value).toBe('email');
+		expect(email.querySelector('[name="ffc_fields[2][name]"]').readOnly).toBe(true);
+		expect(email.querySelector('[name="ffc_fields[2][label]"]').value).toBe('Email');
+
+		const select = email.querySelector('.ffc-field-type-selector');
+		expect(select.disabled).toBe(true);
+		expect(select.hasAttribute('name')).toBe(false);
+		expect(email.querySelector('input[type="hidden"][name="ffc_fields[2][type]"]').value).toBe('email');
+
+		expect(email.querySelector('.ffc-field-required').checked).toBe(true);
+		expect(email.querySelector('.ffc-remove-field').disabled).toBe(true);
+		expect(email.querySelector('.ffc-required-tag-badge').textContent).toContain('Required field');
+		expect(email.querySelector('.ffc-required-tag-badge').id).toBe('ffc_field_lock_2');
+	});
+
+	it('ignores a payload it cannot read', () => {
+		page([0], notice('not json'));
+		FB().init();
+		window.$('.ffc-add-required-fields').trigger('click');
+		expect($$('#ffc-fields-container .ffc-field-row')).toHaveLength(1);
+	});
+
+	it('is exposed for callers', () => {
+		expect(typeof FB().addRequiredFields).toBe('function');
 	});
 });

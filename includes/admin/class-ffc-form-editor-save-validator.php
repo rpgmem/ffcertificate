@@ -46,39 +46,49 @@ class FormEditorSaveValidator {
 	 *
 	 * @var array<int, string>
 	 */
-	public const GENERATED_TAGS = array(
-		'auth_code',
-		'validation_code',
-		'magic_token',
-		'submission_date',
-		'print_date',
-		'form_title',
-		'schedule',
-		'score',
-		'max_score',
-		'score_percent',
-		'correct_count',
-		'question_count',
-	);
+	public const GENERATED_TAGS = \FreeFormCertificate\Settings\SettingsReader::GENERATED_TAGS;
 
 	/**
-	 * Field names the required tags call for: each required tag that is
-	 * not one the plugin generates, without its braces (#1734).
+	 * Names of the fields every form must have — the required-field table
+	 * on Settings → Certificates (#1741).
 	 *
 	 * @return array<int, string>
 	 */
 	public static function required_field_names(): array {
-		$names = array();
-		foreach ( \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags() as $tag ) {
-			if ( 1 !== preg_match( '/^\{\{([a-z0-9_]+)\}\}$/i', trim( $tag ), $m ) ) {
-				continue;
-			}
-			$name = strtolower( $m[1] );
-			if ( ! in_array( $name, self::GENERATED_TAGS, true ) && 0 !== strpos( $name, 'qr_code' ) ) {
-				$names[] = $name;
+		return array_column( \FreeFormCertificate\Settings\SettingsReader::required_form_fields(), 'name' );
+	}
+
+	/**
+	 * The required-field row a field name answers, or null.
+	 *
+	 * @param string $field_name Field's variable name.
+	 * @return array{name: string, label: string, type: string}|null
+	 */
+	public static function required_field( string $field_name ): ?array {
+		foreach ( \FreeFormCertificate\Settings\SettingsReader::required_form_fields() as $row ) {
+			if ( self::satisfies( $field_name, $row['name'] ) ) {
+				return $row;
 			}
 		}
-		return array_values( array_unique( $names ) );
+		return null;
+	}
+
+	/**
+	 * Tags this form's layout must carry: the configured list, with
+	 * `{{schedule}}` asked only of a form that has an Event Schedule —
+	 * elsewhere it would print nothing (#1741).
+	 *
+	 * @param int $post_id Form post ID.
+	 * @return array<int, string>
+	 */
+	public static function layout_required_tags( int $post_id ): array {
+		$required = \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags();
+		$geofence = $post_id > 0 ? get_post_meta( $post_id, '_ffc_geofence_config', true ) : array();
+		$has_time = is_array( $geofence ) && ( ! empty( $geofence['class_time_start'] ) || ! empty( $geofence['class_time_end'] ) );
+		if ( ! $has_time ) {
+			$required = array_values( array_diff( $required, array( '{{schedule}}' ) ) );
+		}
+		return $required;
 	}
 
 	/**
@@ -107,10 +117,10 @@ class FormEditorSaveValidator {
 	}
 
 	/**
-	 * Required tags with no field to fill them, in required order.
+	 * Required fields the form does not have, in table order.
 	 *
 	 * @param array<int, array<string, mixed>> $fields Saved fields.
-	 * @return array<int, string> Missing `{{tag}}` tokens.
+	 * @return array<int, string> Missing field names.
 	 */
 	public function missing_required_fields( array $fields ): array {
 		$names = array();
@@ -131,7 +141,7 @@ class FormEditorSaveValidator {
 				}
 			}
 			if ( ! $found ) {
-				$missing[] = '{{' . $required . '}}';
+				$missing[] = $required;
 			}
 		}
 		return $missing;
@@ -145,12 +155,10 @@ class FormEditorSaveValidator {
 	 * historical `{{name}}`/`{{nome}}` alias — a layout using either token
 	 * satisfies a `{{name}}` requirement.
 	 *
-	 * `{{schedule}}` is dynamically added to the required list for this
-	 * save when the form has an Event Schedule configured (geofence
-	 * `class_time_start` or `class_time_end` non-empty). PdfGenerator
-	 * resolves `{{schedule}}` from that field, so a layout that omits
-	 * the placeholder would silently drop the operator-configured event
-	 * schedule.
+	 * `{{schedule}}`, when the list names it, is asked only of a form with
+	 * an Event Schedule configured (geofence `class_time_start` or
+	 * `class_time_end`): PdfGenerator resolves it from that field, and on
+	 * a form without one it would print nothing ({@see self::layout_required_tags()}).
 	 *
 	 * @param string $layout  PDF layout HTML.
 	 * @param int    $post_id Form post ID — used to read the per-form
@@ -159,18 +167,7 @@ class FormEditorSaveValidator {
 	 * @return array<int, string> Missing `{{tag}}` tokens, in required order.
 	 */
 	public function missing_required_tags( string $layout, int $post_id ): array {
-		$required = \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags();
-
-		// Per-form gate: when Event Schedule is configured, the layout
-		// MUST consume {{schedule}} or the operator's configured time
-		// silently disappears from the rendered certificate.
-		$geofence = get_post_meta( $post_id, '_ffc_geofence_config', true );
-		if ( is_array( $geofence )
-			&& ( ! empty( $geofence['class_time_start'] ) || ! empty( $geofence['class_time_end'] ) )
-			&& ! in_array( '{{schedule}}', $required, true )
-		) {
-			$required[] = '{{schedule}}';
-		}
+		$required = self::layout_required_tags( $post_id );
 
 		$missing = array();
 		foreach ( $required as $tag ) {

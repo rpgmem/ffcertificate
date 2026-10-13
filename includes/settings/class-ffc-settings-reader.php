@@ -51,6 +51,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class SettingsReader {
 
 	/**
+	 * Tags a certificate layout must carry when nothing was saved (#1741).
+	 *
+	 * @var array<int, string>
+	 */
+	public const DEFAULT_CERTIFICATE_TAGS = array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}', '{{schedule}}' );
+
+	/**
+	 * Types a required form field may take: the ones that hold one typed
+	 * answer a certificate can print.
+	 *
+	 * @var array<int, string>
+	 */
+	public const REQUIRED_FIELD_TYPES = array( 'text', 'textarea', 'email', 'number', 'date' );
+
+	/**
+	 * Tags the plugin fills in itself, never from a form field.
+	 *
+	 * @var array<int, string>
+	 */
+	public const GENERATED_TAGS = array(
+		'auth_code',
+		'validation_code',
+		'magic_token',
+		'submission_date',
+		'print_date',
+		'form_title',
+		'schedule',
+		'score',
+		'max_score',
+		'score_percent',
+		'correct_count',
+		'question_count',
+	);
+
+	/**
 	 * WP option key that backs every read in this class.
 	 */
 	public const OPTION_KEY = 'ffc_settings';
@@ -210,12 +245,135 @@ final class SettingsReader {
 			}
 		}
 		if ( empty( $tags ) ) {
-			$tags = array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' );
+			$tags = self::DEFAULT_CERTIFICATE_TAGS;
+		} elseif ( ! is_array( self::get( 'required_form_fields' ) ) && ! in_array( '{{schedule}}', $tags, true ) ) {
+			// A list saved before the two settings split (#1741) never named
+			// {{schedule}}: the layout check added it on its own whenever the
+			// form had an Event Schedule. Keep that until the tab is saved again.
+			$tags[] = '{{schedule}}';
 		}
 		if ( ! in_array( '{{auth_code}}', $tags, true ) ) {
 			array_unshift( $tags, '{{auth_code}}' );
 		}
 		return array_values( array_unique( $tags ) );
+	}
+
+	/**
+	 * Fields every certificate form must have (#1741): variable name,
+	 * default label and type.
+	 *
+	 * Configured in Settings → Certificates. `email` is always required:
+	 * the submission needs it and the certificate is sent to it, so it is
+	 * force-injected, as an Email field, even if removed from the saved
+	 * table. An install that never saved the table keeps the fields its
+	 * old tag list required, as Text fields.
+	 *
+	 * @return array<int, array{name: string, label: string, type: string}>
+	 */
+	public static function required_form_fields(): array {
+		$saved = self::get( 'required_form_fields' );
+		$rows  = array();
+
+		if ( is_array( $saved ) ) {
+			foreach ( $saved as $row ) {
+				$row = self::form_field_row( $row );
+				if ( null !== $row ) {
+					$rows[ $row['name'] ] = $row;
+				}
+			}
+		} else {
+			foreach ( self::default_form_fields() as $row ) {
+				$rows[ $row['name'] ] = $row;
+			}
+			foreach ( self::legacy_field_names() as $name ) {
+				if ( ! isset( $rows[ $name ] ) ) {
+					$rows[ $name ] = array(
+						'name'  => $name,
+						'label' => $name,
+						'type'  => 'text',
+					);
+				}
+			}
+		}
+
+		$email         = $rows['email'] ?? array( 'label' => __( 'Email', 'ffcertificate' ) );
+		$rows['email'] = array(
+			'name'  => 'email',
+			'label' => (string) $email['label'],
+			'type'  => 'email',
+		);
+
+		return array_values( $rows );
+	}
+
+	/**
+	 * The table a fresh install starts with.
+	 *
+	 * @return array<int, array{name: string, label: string, type: string}>
+	 */
+	public static function default_form_fields(): array {
+		return array(
+			array(
+				'name'  => 'name',
+				'label' => __( 'Full Name', 'ffcertificate' ),
+				'type'  => 'text',
+			),
+			array(
+				'name'  => 'cpf_rf',
+				'label' => __( 'CPF / RF', 'ffcertificate' ),
+				'type'  => 'text',
+			),
+			array(
+				'name'  => 'email',
+				'label' => __( 'Email', 'ffcertificate' ),
+				'type'  => 'email',
+			),
+		);
+	}
+
+	/**
+	 * One stored table row, or null when it names no usable field.
+	 *
+	 * @param mixed $row Stored row.
+	 * @return array{name: string, label: string, type: string}|null
+	 */
+	private static function form_field_row( $row ): ?array {
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
+		$name = strtolower( ArrayValue::string( $row, 'name' ) );
+		if ( 1 !== preg_match( '/^[a-z0-9_]+$/', $name ) ) {
+			return null;
+		}
+		$type = ArrayValue::string( $row, 'type', 'text' );
+		return array(
+			'name'  => $name,
+			'label' => '' !== ArrayValue::string( $row, 'label' ) ? ArrayValue::string( $row, 'label' ) : $name,
+			'type'  => in_array( $type, self::REQUIRED_FIELD_TYPES, true ) ? $type : 'text',
+		);
+	}
+
+	/**
+	 * Field names the single pre-#1741 list required: each `{{tag}}` the
+	 * plugin does not generate itself.
+	 *
+	 * @return array<int, string>
+	 */
+	private static function legacy_field_names(): array {
+		$raw = self::get( 'required_certificate_tags', '' );
+		if ( ! is_string( $raw ) || '' === trim( $raw ) ) {
+			return array();
+		}
+		$names = array();
+		foreach ( (array) preg_split( '/[\s,]+/', $raw ) as $tag ) {
+			if ( 1 === preg_match( '/^\{\{([a-z0-9_]+)\}\}$/i', trim( (string) $tag ), $m ) ) {
+				$name = strtolower( $m[1] );
+				if ( ! in_array( $name, self::GENERATED_TAGS, true ) && 0 !== strpos( $name, 'qr_code' ) && 'nome' !== $name ) {
+					$names[] = $name;
+				}
+			}
+		}
+		return $names;
 	}
 
 	/**

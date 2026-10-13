@@ -984,10 +984,6 @@ msgstr "É necessária uma justificativa para prosseguir."
 msgid "A manual resend replaces that member's automatic reminder — it does not add to it."
 msgstr "Um reenvio manual substitui o lembrete automático daquele membro — não se soma a ele."
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:50
-msgid "A new form starts with three fields, which are also the minimal set most templates rely on:"
-msgstr "Um novo formulário começa com três campos, que também constituem o conjunto mínimo utilizado pela maioria dos modelos:"
-
 #: templates/emails/reregistration-invitation.php:26
 msgid "A new reregistration campaign has been opened for your group."
 msgstr "Uma nova campanha de recadastramento foi aberta para o seu grupo."
@@ -4926,10 +4922,6 @@ msgstr "CPF (mascarado)"
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:386
 msgid "CPF + CAPTCHA validated."
 msgstr "Validação por CPF + CAPTCHA."
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:149
-msgid "CPF / ID"
-msgstr "CPF / ID"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:603
 msgid "CPF / RF"
@@ -11125,10 +11117,6 @@ msgstr "As migrações melhoram o desempenho do banco de dados, movendo os dados
 #: includes/settings/tabs/class-ffc-tab-migrations.php:63
 msgid "Migrations view file not found."
 msgstr "Arquivo de visualização de migrações não encontrado."
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:168
-msgid "Minimal fields (Tag):"
-msgstr "Campos mínimos (Tag):"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:592
 msgid "Minimum Advance Booking"
@@ -17636,10 +17624,6 @@ msgstr "Não foi possível enviar o e-mail de teste. Verifique suas configuraç�
 #: includes/settings/views/documentation/config-captcha.php:22
 msgid "The three modes"
 msgstr "Os três modos"
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:49
-msgid "The three seed fields"
-msgstr "Os três campos de sementes"
 
 #: includes/settings/views/documentation/reference-emails.php:35
 msgid "the transport (how mail leaves the server) plus the global \"Disable all emails\" switch."
@@ -25442,10 +25426,6 @@ msgstr "O servidor confere cada regra de novo no envio — resposta obrigatória
 msgid "%1$s: enter the full name — at least two words and %2$s characters."
 msgstr "%1$s: informe o nome completo — pelo menos duas palavras e %2$s caracteres."
 
-#: includes/admin/class-ffc-form-editor-save-handler.php:700
-msgid "Add a field whose variable name is the tag without braces."
-msgstr "Adicione um campo cujo nome da variável seja a etiqueta sem as chaves."
-
 #: includes/settings/tabs/class-ffc-tab-certificates.php:63
 msgid "Certificates settings view file not found."
 msgstr "Arquivo de visualização das configurações de Certificados não encontrado."
@@ -25462,25 +25442,13 @@ msgstr "Informe o nome e o sobrenome."
 msgid "First and last name."
 msgstr "Nome e sobrenome."
 
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:227
-msgid "Required certificate tag"
-msgstr "Etiqueta obrigatória do certificado"
-
 #: includes/admin/class-ffc-admin-ui.php:351
 msgid "Settings → Certificates"
 msgstr "Configurações → Certificados"
 
-#: includes/admin/class-ffc-form-editor-save-handler.php:700
-msgid "Warning! These required certificate tags have no field in the form:"
-msgstr "Atenção! Estas etiquetas obrigatórias do certificado não têm campo no formulário:"
-
 #: includes/settings/views/ffc-tab-certificates.php:25
 msgid "What every certificate form must carry. The certificate HTML editor's colour theme is on the General tab, next to Dark Mode."
 msgstr "O que todo formulário de certificado precisa ter. O tema de cores do editor HTML do certificado fica na aba Geral, ao lado do Modo Escuro."
-
-#: includes/settings/views/ffc-tab-certificates.php:36
-msgid "One tag per line (with braces). Every certificate layout must contain them, and every form must have a field for each one the participant fills in; the form editor highlights those fields and does not let them be renamed or removed. {{auth_code}} is always required — certificate verification depends on it — and the plugin generates it, so it needs no field."
-msgstr "Uma etiqueta por linha (com as chaves). Todo layout de certificado precisa contê-las, e todo formulário precisa de um campo para cada uma que o participante preenche; o editor de campos destaca esses campos e não deixa renomeá-los nem removê-los. {{auth_code}} é sempre obrigatória — a verificação do certificado depende dela — e o plugin a gera, então ela não precisa de campo."
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:61
 msgid "the participant's full name (required): at least two words and 4 characters, checked in the browser and on the server."
@@ -25490,17 +25458,9 @@ msgstr "o nome completo do participante (obrigatório): pelo menos duas palavras
 msgid "the participant's email (required); used to deliver the certificate. An address that is not valid is refused as such, not as a missing one."
 msgstr "o e-mail do participante (obrigatório); usado para entregar o certificado. Um endereço inválido é recusado como inválido, e não como ausente."
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:66
-msgid "A field whose tag is a required certificate tag (Settings → Certificates) is drawn with an amber border and a \"Required certificate tag\" badge: it is always required, its variable name cannot change and it cannot be removed. Saving a form that has no field for one of those tags shows a warning naming it."
-msgstr "Um campo cuja etiqueta é uma etiqueta obrigatória do certificado (Configurações → Certificados) aparece com borda âmbar e o selo \"Etiqueta obrigatória do certificado\": ele é sempre obrigatório, o nome da variável não muda e ele não pode ser removido. Salvar um formulário sem campo para uma dessas etiquetas mostra um aviso com o nome dela."
-
 #: includes/settings/views/documentation/forms-dynamic-fields.php:72
 msgid "A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF); the browser masks it and blocks the submit while the number is invalid. The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate \"CPF field type\" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked."
 msgstr "Um campo chamado cpf_rf é validado no envio como documento brasileiro: o que não é dígito é removido e o valor precisa ter exatamente 11 dígitos (CPF, com dígito verificador conferido) ou 7 dígitos (RF); o navegador aplica a máscara e bloqueia o envio enquanto o número for inválido. O dígito verificador do RF só é exigido quando Configurações → Geral → Dígito verificador do RF está ligado (desligado por padrão). Não existe um \"tipo de campo CPF\" — é o nome que ativa a validação. No PDF, as variáveis cpf, cpf_rf e rg são formatadas com pontuação (por exemplo, 000.000.000-00 para CPF e 000.000-0 para RF), sem mascaramento."
-
-#: includes/settings/views/documentation/feature-certificates.php:34
-msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Certificates → Required Certificate Tags; the form editor also requires a field for each tag the participant fills in, and locks it. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too."
-msgstr "O editor de formulários recusa salvar um layout de certificado sem uma etiqueta obrigatória — por padrão {{auth_code}}, {{name}} e {{cpf_rf}}, configuráveis em Configurações → Certificados → Etiquetas de Certificado Obrigatórias; o editor também exige um campo para cada etiqueta que o participante preenche, e o trava. Quando um Horário do evento é preenchido na aba Horário, {{schedule}} também passa a ser obrigatória."
 
 #: includes/settings/views/documentation/feature-quiz.php:23
 msgid "\"Correct option(s)\": tick the correct options beside them; radio and select score when a correct option is chosen, a checkbox only when every correct option is ticked and no other. \"Points per option\": give each option its points; a checkbox adds the boxes ticked, never below zero, so a wrong box can be worth negative points."
@@ -25655,3 +25615,67 @@ msgstr "Correta"
 msgctxt "quiz answer"
 msgid "Incorrect"
 msgstr "Incorreta"
+
+#: includes/admin/class-ffc-admin-ui.php:345
+msgid "(when the form has an Event Schedule)"
+msgstr "(quando o formulário tem uma Cronograma do Evento)"
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:59
+msgid "A new form starts with the fields listed under Settings → Certificates → Required Form Fields, with the label and type given there. By default they are:"
+msgstr "Um formulário novo começa com os campos listados em Configurações → Certificados → Campos Obrigatórios do Formulário, com o rótulo e o tipo definidos ali. Por padrão, são:"
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:66
+msgid "A required field is drawn with an amber border and a \"Required field\" badge: it is always required, its variable name and type cannot change and it cannot be removed; only its label can. A form missing one shows a warning naming it, with an \"Add the required fields\" button that adds them."
+msgstr "Um campo obrigatório aparece com borda âmbar e o selo \"Campo obrigatório\": ele é sempre obrigatório, o nome da variável e o tipo não podem mudar e ele não pode ser removido; só o rótulo pode. Um formulário sem algum deles mostra um aviso com o nome, e o botão \"Adicionar os campos obrigatórios\" os adiciona."
+
+#: includes/settings/views/ffc-tab-certificates.php:125
+msgid "Add required field"
+msgstr "Adicionar campo obrigatório"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:172
+msgid "Add the required fields"
+msgstr "Adicionar os campos obrigatórios"
+
+#: includes/settings/views/ffc-tab-certificates.php:36
+msgid "Field name"
+msgstr "Nome do campo"
+
+#: includes/settings/views/ffc-tab-certificates.php:92
+msgid "Fields every certificate form must have. A new form starts with them; in the form editor their name, type and required flag are locked, and only the label can change. Email is always required: the certificate is sent to it."
+msgstr "Campos que todo formulário de certificado precisa ter. Um formulário novo começa com eles; no editor do formulário, o nome, o tipo e a obrigatoriedade ficam bloqueados, e só o rótulo pode mudar. O e-mail é sempre obrigatório: o certificado é enviado para ele."
+
+#: includes/settings/views/ffc-tab-certificates.php:81
+msgid "One tag per line (with braces). Every certificate layout must contain them. {{auth_code}} is always required — certificate verification depends on it. {{schedule}} is required only of a form that has an Event Schedule."
+msgstr "Uma etiqueta por linha (com chaves). Todo layout de certificado precisa contê-las. {{auth_code}} é sempre obrigatória — a verificação do certificado depende dela. {{schedule}} só é exigida de um formulário que tenha Cronograma do Evento."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:58
+msgid "Required Form Fields"
+msgstr "Campos Obrigatórios do Formulário"
+
+#: includes/admin/class-ffc-admin-assets-manager.php:628
+msgid "Required field"
+msgstr "Campo obrigatório"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:159
+msgid "Required fields (Tag):"
+msgstr "Campos obrigatórios (Etiqueta):"
+
+#: includes/admin/class-ffc-form-editor-save-handler.php:794
+msgid "The Fields tab can add them: “Add the required fields”."
+msgstr "A aba Campos pode adicioná-los: “Adicionar os campos obrigatórios”."
+
+#: includes/settings/views/ffc-tab-certificates.php:128
+msgid "The certificate layout prints a field through its name in braces, such as {{cpf_rf}}. A name takes lowercase letters, digits and underscores."
+msgstr "O layout do certificado imprime um campo pelo nome entre chaves, como {{cpf_rf}}. Um nome aceita letras minúsculas, dígitos e sublinhados."
+
+#: includes/settings/views/documentation/feature-certificates.php:34
+msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Certificates → Required Certificate Tags. {{auth_code}} cannot be removed, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The fields every form must have are a separate list on the same tab, Required Form Fields: by default name, cpf_rf and email, each with its label and type; email cannot be removed."
+msgstr "O editor do formulário não salva um layout de certificado sem uma etiqueta obrigatória — por padrão {{auth_code}}, {{name}} e {{cpf_rf}}, configuráveis em Configurações → Certificados → Etiquetas de Certificado Obrigatórias. {{auth_code}} não pode ser removida, e {{schedule}} só é exigida de um formulário com Cronograma do Evento na aba Horário. Os campos que todo formulário precisa ter são uma lista separada na mesma aba, Campos Obrigatórios do Formulário: por padrão name, cpf_rf e email, cada um com rótulo e tipo; o email não pode ser removido."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:166
+msgid "This form lacks required fields:"
+msgstr "Faltam campos obrigatórios neste formulário:"
+
+#: includes/admin/class-ffc-form-editor-save-handler.php:794
+msgid "Warning! The form lacks these required fields:"
+msgstr "Atenção! Faltam estes campos obrigatórios no formulário:"
