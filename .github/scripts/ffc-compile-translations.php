@@ -12,10 +12,14 @@
  * conversion each time.
  *
  * The `.mo` comes from GNU gettext's `msgfmt --check`. The `.l10n.php` is
- * written here, in the shape Loco writes it (the headers, then `messages` in
- * the `.po`'s order, on one line), from the same `.po` reader the guards use, so the
- * compiler and the guard cannot disagree about what an entry is. Only
- * translated, non-fuzzy entries are written, as `msgfmt` does.
+ * written here in `wp i18n make-php`'s shape, byte for byte (#1721): `domain`
+ * (WP-CLI reads it from the `.po`'s `X-Domain` header), then the headers in
+ * FFC_L10N_HEADERS the `.po` carries, then `messages` in the `.po`'s order, on
+ * one line. Loco writes the same shape, so a catalogue compiled here, saved
+ * from Loco or made by WP-CLI is the same file. It reads the `.po` through the
+ * reader the guards use, so the compiler and the guard cannot disagree about
+ * what an entry is. Only translated, non-fuzzy entries are written, as
+ * `msgfmt` does.
  *
  * @package FreeFormCertificate\Build
  */
@@ -25,6 +29,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../tests/Support/PoCatalogue.php';
 
 use FreeFormCertificate\Tests\Support\PoCatalogue;
+
+/**
+ * The headers `wp i18n make-php` writes after `domain`, in its order.
+ */
+const FFC_L10N_HEADERS = array( 'plural-forms', 'language', 'project-id-version', 'pot-creation-date', 'po-revision-date', 'x-generator' );
 
 $root  = dirname( __DIR__, 2 );
 $files = glob( $root . '/languages/*.po' ) ?: array();
@@ -49,13 +58,17 @@ foreach ( $files as $po ) {
 		}
 	}
 
-	$pairs = array();
-	foreach ( ffc_po_headers( $po ) as $name => $value ) {
-		$pairs[] = var_export( $name, true ) . '=>' . var_export( $value, true );
+	$headers = ffc_po_headers( $po );
+	$pairs   = array( "'domain'=>" . var_export( $headers['x-domain'] ?? null, true ) );
+	foreach ( FFC_L10N_HEADERS as $name ) {
+		if ( isset( $headers[ $name ] ) ) {
+			$pairs[] = var_export( $name, true ) . '=>' . var_export( $headers[ $name ], true );
+		}
 	}
 	$items = array();
 	foreach ( $messages as $key => $value ) {
-		$items[] = var_export( (string) $key, true ) . '=>' . var_export( $value, true );
+		// An integer-like key is written bare, as PHP and WP-CLI write it: `302=>`.
+		$items[] = var_export( $key, true ) . '=>' . var_export( $value, true );
 	}
 	$pairs[] = "'messages'=>[" . implode( ',', $items ) . ']';
 

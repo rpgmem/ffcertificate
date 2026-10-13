@@ -16,6 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **Clock-reading tests no longer fail when a run crosses a boundary** (#1719). The rate-limit window, dashboard midnight and export-filename tests read the clock before and after the call; the issue holds the audit of every clock-reading test. A `readme.txt` change now carries its pt_BR copy in the same PR (#1718).
+- **The compiled `.l10n.php` is `wp i18n make-php`'s shape, byte for byte** (#1721). The compiler writes WP-CLI's `domain` and headers and an integer-like key bare, so a catalogue compiled here, saved from Loco or made by WP-CLI is the same file.
 
 ### Fixed
 
