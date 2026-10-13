@@ -2211,7 +2211,9 @@
     .ffc-btn-success,
     :root.ffc-dark-mode .button,
     :root.ffc-dark-mode .button-secondary,
-    :root.ffc-dark-mode .button.disabled {
+    :root.ffc-dark-mode .button.disabled,
+    :root.ffc-dark-mode .button-primary.disabled,
+    :root.ffc-dark-mode .button-primary[disabled] {
         border: 1px solid ButtonText;
     }
 
