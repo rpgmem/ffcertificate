@@ -1,13 +1,16 @@
 /**
  * FFC Admin - Field Builder Module
- * v3.1.0 - Extracted from ffc-admin.js
  *
- * Handles form field creation, editing, and management in the admin area
+ * Adds, removes, reorders and reshapes the rows of the certificate form's
+ * field builder. A new row is a copy of the server-rendered template row, so
+ * the markup a row is born with and the markup it is saved and re-rendered
+ * with are the same (#1729) — the builder used to assemble its own, different
+ * row out of strings, and every option the server row gained had to be
+ * written a second time here.
  *
  * Dependencies:
  * - jQuery
  * - jQuery UI Sortable
- * - FFC Core (for notifications via window.FFC.Admin.showNotification)
  *
  * @since 3.1.0
  */
@@ -15,336 +18,245 @@
 (function($, FFC) {
     'use strict';
 
-    // ==========================================================================
-    // FIELD BUILDER - Add/Remove Fields
-    // ==========================================================================
+    var CHOICE_TYPES = ['select', 'radio', 'checkbox'];
 
     var fieldCounter = 0;
 
+    function strings() {
+        return (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+    }
+
     // Field types — the ordered {value,label} list localized from the canonical
-    // PHP source (FormEditorBuilderMetabox::field_types_ordered), so the JS
-    // builder and the server-rendered row <select> offer the same types in the
-    // same locale-aware order. Falls back to a static union (same order,
-    // untranslated) if the localized list is unavailable.
+    // PHP source (FormEditorBuilderMetabox::field_types_ordered), so the menu
+    // offers the same types, in the same order, as the row's own <select>.
     function getFieldTypes() {
         if (typeof ffc_ajax !== 'undefined' && Array.isArray(ffc_ajax.fieldTypes) && ffc_ajax.fieldTypes.length) {
             return ffc_ajax.fieldTypes;
         }
-        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
         return [
-            { value: 'checkbox', label: strings.checkbox || 'Checkbox' },
-            { value: 'date', label: strings.date || 'Date' },
-            { value: 'select', label: strings.dropdownSelect || 'Dropdown Select' },
-            { value: 'email', label: strings.email || 'Email' },
-            { value: 'number', label: strings.number || 'Number' },
-            { value: 'radio', label: strings.radioButtons || 'Radio Buttons' },
-            { value: 'text', label: strings.textField || 'Text Field' },
-            { value: 'textarea', label: strings.textarea || 'Textarea' },
-            { value: 'embed', label: strings.embedMedia || 'Embed (Media)' },
-            { value: 'hidden', label: strings.hiddenField || 'Hidden Field' },
-            { value: 'info', label: strings.infoBlock || 'Info Block' }
+            { value: 'checkbox', label: 'Checkbox' },
+            { value: 'date', label: 'Date' },
+            { value: 'select', label: 'Dropdown Select' },
+            { value: 'email', label: 'Email' },
+            { value: 'number', label: 'Number' },
+            { value: 'radio', label: 'Radio Buttons' },
+            { value: 'text', label: 'Text' },
+            { value: 'textarea', label: 'Textarea' },
+            { value: 'embed', label: 'Embed (Media)' },
+            { value: 'hidden', label: 'Hidden Field' },
+            { value: 'info', label: 'Info Block' }
         ];
     }
 
-    var fieldTypes = getFieldTypes();
+    function typeDescription(type) {
+        var map = (typeof ffc_ajax !== 'undefined' && ffc_ajax.fieldTypeDescriptions) ? ffc_ajax.fieldTypeDescriptions : {};
+        return map[type] || '';
+    }
 
-    // Initialize Form Builder
+    function quizOn() {
+        return $('#ffc_quiz_enabled').is(':checked');
+    }
+
+    /**
+     * Show the parts of a row that belong to its type, hide the rest.
+     */
+    function applyType($row, type) {
+        var isInfo = type === 'info';
+        var isEmbed = type === 'embed';
+        var isChoice = CHOICE_TYPES.indexOf(type) !== -1;
+
+        $row.find('.ffc-content-field').toggleClass('ffc-hidden', !isInfo);
+        $row.find('.ffc-embed-field').toggleClass('ffc-hidden', !isEmbed);
+        $row.find('.ffc-hidden-value-field').toggleClass('ffc-hidden', type !== 'hidden');
+        $row.find('.ffc-standard-row').toggleClass('ffc-hidden', isInfo || isEmbed);
+        $row.find('.ffc-options-field').toggleClass('ffc-hidden', !isChoice);
+        $row.find('.ffc-quiz-points').toggleClass('ffc-hidden', !(isChoice && quizOn()));
+        $row.find('[data-ffc-types]').each(function() {
+            var types = String($(this).attr('data-ffc-types')).split(' ');
+            $(this).toggleClass('ffc-hidden', types.indexOf(type) === -1);
+        });
+        $row.find('.ffc-type-desc').text(typeDescription(type));
+    }
+
+    // A number above every index already on the page, so a new row's
+    // `ffc_fields[N]` never collides with a saved one.
+    function nextIndex() {
+        var max = -1;
+        $('#ffc-fields-container .ffc-field-row').each(function() {
+            var n = parseInt($(this).attr('data-index'), 10);
+            if (!isNaN(n) && n > max) {
+                max = n;
+            }
+        });
+        return Math.max(max + 1, fieldCounter);
+    }
+
+    function addChoice($list, value) {
+        var $first = $list.children('.ffc-choice-row').first();
+        if (!$first.length) {
+            return null;
+        }
+        var $row = $first.clone();
+        $row.find('.ffc-choice-input').val(value || '');
+        $list.append($row);
+        return $row;
+    }
+
+    function makeChoicesSortable($scope) {
+        if ($.fn.sortable) {
+            $scope.find('.ffc-choice-list').sortable({ handle: '.ffc-choice-handle', axis: 'y' });
+        }
+    }
+
     function initFormBuilder() {
-        if ($('#ffc-fields-container').length === 0) {
+        var $container = $('#ffc-fields-container');
+        if ($container.length === 0) {
             return;
         }
 
-        // Count existing fields
-        fieldCounter = $('#ffc-fields-container .ffc-field-row').length;
+        fieldCounter = 0;
+        fieldCounter = nextIndex();
 
-        // Add Field button - Show dropdown menu
-        $(document).on('click', '.ffc-add-field', function(e) {
+        // Namespaced and replaced, so a second init() does not stack handlers.
+        $(document).off('click.ffcFieldBuilder');
+        $(document).on('click.ffcFieldBuilder', '.ffc-add-field', function(e) {
             e.preventDefault();
             showFieldTypeMenu($(this));
         });
 
-        // Remove Field button
-        $(document).on('click', '.ffc-remove-field', function(e) {
+        $(document).on('click.ffcFieldBuilder', '.ffc-remove-field', function(e) {
             e.preventDefault();
-
-            // Get localized string or fallback to English
-            var confirmMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.confirmDeleteField)
-                ? ffc_ajax.strings.confirmDeleteField
-                : 'Remove this field?';
-
-            if (confirm(confirmMsg)) {
+            if (confirm(strings().confirmDeleteField || 'Remove this field?')) {
                 $(this).closest('.ffc-field-row').fadeOut(300, function() {
                     $(this).remove();
-                    updateFieldsJSON();
                 });
             }
         });
 
-        // Update JSON when fields change
-        $('#ffc-fields-container').on('change input', 'input, select, textarea', function() {
-            updateFieldsJSON();
+        $container.on('change', '.ffc-field-type-selector', function() {
+            applyType($(this).closest('.ffc-field-row'), $(this).val());
         });
 
-        // Toggle info/embed vs standard rows when field type changes (JS-built rows)
-        $('#ffc-fields-container').on('change', '.ffc-field-type', function() {
-            var $row = $(this).closest('.ffc-field-row');
-            var val = $(this).val();
-            var isInfo = val === 'info';
-            var isEmbed = val === 'embed';
-            var isDisplayOnly = isInfo || isEmbed;
-            $row.find('.ffc-content-row').toggle(isInfo);
-            $row.find('.ffc-embed-row').toggle(isEmbed);
-            $row.find('.ffc-hidden-value-row').toggle(val === 'hidden');
-            $row.find('.ffc-standard-row').toggle(!isDisplayOnly);
-            $row.find('.ffc-options-field').toggle(val === 'select' || val === 'radio' || val === 'checkbox');
+        $container.on('click', '.ffc-choice-add', function(e) {
+            e.preventDefault();
+            var $row = addChoice($(this).siblings('.ffc-choice-list'), '');
+            if ($row) {
+                $row.find('.ffc-choice-input').trigger('focus');
+            }
         });
 
-        // Toggle info/embed vs standard rows when field type changes (PHP-rendered rows)
-        $('#ffc-fields-container').on('change', '.ffc-field-type-selector', function() {
-            var $row = $(this).closest('.ffc-field-row');
-            var val = $(this).val();
-            var isInfo = val === 'info';
-            var isEmbed = val === 'embed';
-            var isDisplayOnly = isInfo || isEmbed;
-            $row.find('.ffc-content-field').toggleClass('ffc-hidden', !isInfo);
-            $row.find('.ffc-embed-field').toggleClass('ffc-hidden', !isEmbed);
-            $row.find('.ffc-hidden-value-field').toggleClass('ffc-hidden', val !== 'hidden');
-            $row.find('.ffc-standard-row').toggleClass('ffc-hidden', isDisplayOnly);
-            $row.find('.ffc-options-field').toggleClass('ffc-hidden', !(val === 'select' || val === 'radio' || val === 'checkbox'));
+        // The last row is emptied rather than removed, so there is always one
+        // to copy from.
+        $container.on('click', '.ffc-choice-remove', function(e) {
+            e.preventDefault();
+            var $choice = $(this).closest('.ffc-choice-row');
+            if ($choice.siblings('.ffc-choice-row').length) {
+                $choice.remove();
+            } else {
+                $choice.find('.ffc-choice-input').val('');
+            }
         });
 
-        // Make fields sortable
-        if ($.fn.sortable) {
-            $('#ffc-fields-container').sortable({
-                handle: '.ffc-sort-handle',
-                placeholder: 'ffc-field-placeholder',
-                update: function() {
-                    updateFieldsJSON();
+        // Enter in an option adds the next one instead of submitting the post.
+        $container.on('keydown', '.ffc-choice-input', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                var $next = addChoice($(this).closest('.ffc-choice-list'), '');
+                if ($next) {
+                    $next.insertAfter($(this).closest('.ffc-choice-row'));
+                    $next.find('.ffc-choice-input').trigger('focus');
                 }
+            }
+        });
+
+        if ($.fn.sortable) {
+            $container.sortable({
+                handle: '.ffc-sort-handle',
+                placeholder: 'ffc-field-placeholder'
             });
         }
+        makeChoicesSortable($container);
     }
 
-    // Show field type dropdown menu
     function showFieldTypeMenu($button) {
-        // Remove existing menu
         $('.ffc-field-type-menu').remove();
 
-        // Create menu
         var $menu = $('<div class="ffc-field-type-menu"></div>');
-        var headerText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.chooseFieldType)
-            ? ffc_ajax.strings.chooseFieldType
-            : 'Choose Field Type:';
-        $menu.append('<div class="ffc-menu-header">' + headerText + '</div>');
+        $menu.append($('<div class="ffc-menu-header"></div>').text(strings().chooseFieldType || 'Choose Field Type:'));
 
         var $list = $('<ul></ul>');
-        fieldTypes.forEach(function(type) {
-            var $item = $('<li data-type="' + type.value + '">' + type.label + '</li>');
-            $item.on('click', function() {
+        getFieldTypes().forEach(function(type) {
+            var $option = $('<button type="button" class="ffc-field-type-option"></button>')
+                .attr('data-type', type.value)
+                .text(type.label);
+            $option.on('click', function() {
                 addFieldToBuilder(type.value);
                 $menu.remove();
             });
-            $list.append($item);
+            $list.append($('<li></li>').append($option));
         });
-
         $menu.append($list);
 
-        // Position menu below button
         var btnOffset = $button.offset();
-        var btnHeight = $button.outerHeight();
-
         $menu.css({
             position: 'absolute',
-            top: (btnOffset.top + btnHeight + 5) + 'px',
-            left: btnOffset.left + 'px',
-            zIndex: 99999,
-            background: '#fff',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            minWidth: '200px'
+            top: (btnOffset.top + $button.outerHeight() + 5) + 'px',
+            left: btnOffset.left + 'px'
         });
 
         $('body').append($menu);
+        $menu.find('.ffc-field-type-option').first().trigger('focus');
 
-        // Close menu when clicking outside
         setTimeout(function() {
             $(document).one('click', function() {
                 $menu.remove();
             });
         }, 100);
-
     }
 
-    // Add field to builder
+    /**
+     * Append a row of the given type, copied from the template row.
+     *
+     * @return {jQuery|null} The new row, or null when the page has no template.
+     */
     function addFieldToBuilder(fieldType) {
-        fieldCounter++;
+        var $template = $('.ffc-field-template .ffc-field-row').first();
+        if (!$template.length) {
+            return null;
+        }
 
-        // Get localized strings with fallbacks
-        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
-        var removeText = strings.remove || 'Remove';
-        var fieldTypeText = strings.fieldType || 'Field Type:';
-        var labelText = strings.label || 'Label:';
-        var fieldLabelPlaceholder = strings.fieldLabel || 'Field Label';
-        var nameVariableText = strings.nameVariable || 'Name (variable):';
-        var fieldNamePlaceholder = strings.fieldName || 'field_name';
-        var requiredText = strings.required || 'Required:';
-        var optionsText = strings.options || 'Options:';
-        var separateWithCommasPlaceholder = strings.separateWithCommas || 'Separate with commas';
-        var contentText = strings.content || 'Content:';
-        var contentPlaceholder = strings.contentPlaceholder || 'Text to display. Supports <b>, <i>, <a>.';
-        var titleOptionalText = strings.titleOptional || 'Title (optional):';
-        var embedUrlText = strings.embedUrl || 'Media URL:';
-        var embedUrlPlaceholder = strings.embedUrlPlaceholder || 'https://www.youtube.com/watch?v=... or image URL';
-        var captionOptionalText = strings.captionOptional || 'Caption (optional):';
-        var hiddenValueText = strings.hiddenValue || 'Value submitted with every entry:';
+        var index = String(nextIndex());
+        fieldCounter = parseInt(index, 10) + 1;
 
-        var isInfo = fieldType === 'info';
-        var isEmbed = fieldType === 'embed';
-        var isDisplayOnly = isInfo || isEmbed;
-
-        var fieldHtml = '<div class="ffc-field-row" data-index="' + fieldCounter + '">';
-        fieldHtml += '  <div class="ffc-field-row-header">';
-        fieldHtml += '    <span class="ffc-sort-handle">';
-        fieldHtml += '      <span class="ffc-icon-grip" aria-hidden="true"></span>';
-        fieldHtml += '      <span class="ffc-field-title"><strong>' + fieldType.toUpperCase() + '</strong></span>';
-        fieldHtml += '    </span>';
-        fieldHtml += '    <button type="button" class="button button-link-delete ffc-remove-field">' + removeText + '</button>';
-        fieldHtml += '  </div>';
-        fieldHtml += '  <div class="ffc-field-row-body">';
-        fieldHtml += '    <table class="form-table">';
-        fieldHtml += '      <tr>';
-        fieldHtml += '        <th><label>' + fieldTypeText + '</label></th>';
-        fieldHtml += '        <td><select class="ffc-field-type" name="ffc_fields[' + fieldCounter + '][type]">';
-
-        fieldTypes.forEach(function(type) {
-            var selected = type.value === fieldType ? ' selected' : '';
-            fieldHtml += '<option value="' + type.value + '"' + selected + '>' + type.label + '</option>';
+        var $row = $template.clone();
+        $row.attr('data-index', index);
+        $row.find('[name], [id], [for]').each(function() {
+            var el = this;
+            ['name', 'id', 'for'].forEach(function(attr) {
+                var v = el.getAttribute(attr);
+                if (v && v.indexOf('TEMPLATE') !== -1) {
+                    el.setAttribute(attr, v.split('TEMPLATE').join(index));
+                }
+            });
         });
 
-        fieldHtml += '        </select></td>';
-        fieldHtml += '      </tr>';
-
-        // Content row (info only)
-        fieldHtml += '      <tr class="ffc-content-row"' + (isInfo ? '' : ' style="display:none"') + '>';
-        fieldHtml += '        <th><label>' + contentText + '</label></th>';
-        fieldHtml += '        <td><textarea class="ffc-field-content large-text" name="ffc_fields[' + fieldCounter + '][content]" rows="4" placeholder="' + contentPlaceholder + '"></textarea></td>';
-        fieldHtml += '      </tr>';
-
-        // Embed URL row (embed only)
-        fieldHtml += '      <tr class="ffc-embed-row"' + (isEmbed ? '' : ' style="display:none"') + '>';
-        fieldHtml += '        <th><label>' + embedUrlText + '</label></th>';
-        fieldHtml += '        <td><input type="url" class="ffc-field-embed-url regular-text" name="ffc_fields[' + fieldCounter + '][embed_url]" placeholder="' + embedUrlPlaceholder + '"></td>';
-        fieldHtml += '      </tr>';
-
-        // Fixed value row (hidden only)
-        fieldHtml += '      <tr class="ffc-hidden-value-row"' + (fieldType === 'hidden' ? '' : ' style="display:none"') + '>';
-        fieldHtml += '        <th><label>' + hiddenValueText + '</label></th>';
-        fieldHtml += '        <td><input type="text" class="ffc-field-default-value regular-text" name="ffc_fields[' + fieldCounter + '][default_value]"></td>';
-        fieldHtml += '      </tr>';
-
-        // Label row (title for info, caption for embed, label for others)
-        fieldHtml += '      <tr>';
-        var currentLabelText = isInfo ? titleOptionalText : (isEmbed ? captionOptionalText : labelText);
-        fieldHtml += '        <th><label>' + currentLabelText + '</label></th>';
-        fieldHtml += '        <td><input type="text" class="ffc-field-label regular-text" name="ffc_fields[' + fieldCounter + '][label]" placeholder="' + fieldLabelPlaceholder + '"></td>';
-        fieldHtml += '      </tr>';
-
-        // Name row (standard fields only)
-        fieldHtml += '      <tr class="ffc-standard-row"' + (isDisplayOnly ? ' style="display:none"' : '') + '>';
-        fieldHtml += '        <th><label>' + nameVariableText + '</label></th>';
-        fieldHtml += '        <td><input type="text" class="ffc-field-name regular-text" name="ffc_fields[' + fieldCounter + '][name]" placeholder="' + fieldNamePlaceholder + '"></td>';
-        fieldHtml += '      </tr>';
-
-        // Required row (standard fields only) — emit the same
-        // .ffc-toggle markup the PHP-rendered fields use so the new
-        // row looks native. The `.ffc-field-required` class stays on
-        // the inner <input> because the field-builder serialiser at
-        // line ~285 below reads its state via that class selector.
-        var requiredId = 'ffc_field_required_' + fieldCounter;
-        fieldHtml += '      <tr class="ffc-standard-row"' + (isDisplayOnly ? ' style="display:none"' : '') + '>';
-        fieldHtml += '        <th><label for="' + requiredId + '">' + requiredText + '</label></th>';
-        fieldHtml += '        <td>';
-        fieldHtml += '          <label class="ffc-toggle ffc-req-label" for="' + requiredId + '">';
-        fieldHtml += '            <input type="checkbox" id="' + requiredId + '" class="ffc-field-required" name="ffc_fields[' + fieldCounter + '][required]" value="1">';
-        fieldHtml += '            <span class="ffc-toggle-track" aria-hidden="true"></span>';
-        fieldHtml += '          </label>';
-        fieldHtml += '        </td>';
-        fieldHtml += '      </tr>';
-
-        // Additional options for select/radio/checkbox
-        if (fieldType === 'select' || fieldType === 'radio' || fieldType === 'checkbox') {
-            fieldHtml += '      <tr>';
-            fieldHtml += '        <th><label>' + optionsText + '</label></th>';
-            fieldHtml += '        <td><textarea class="ffc-field-options large-text" name="ffc_fields[' + fieldCounter + '][options]" rows="3" placeholder="' + separateWithCommasPlaceholder + '"></textarea>';
-            // Quiz points row (initially hidden, toggled by quiz checkbox)
-            var quizPointsText = strings.quizPoints || 'Points per option:';
-            var quizPointsPlaceholder = strings.quizPointsPlaceholder || 'Ex: 0, 10, 0';
-            var quizOn = typeof jQuery !== 'undefined' && jQuery('#ffc_quiz_enabled').is(':checked');
-            fieldHtml += '          <div class="ffc-quiz-points' + (quizOn ? '' : ' ffc-hidden') + '" style="margin-top:8px">';
-            fieldHtml += '            <label style="font-weight:500;font-size:13px">' + quizPointsText + '</label>';
-            fieldHtml += '            <input type="text" class="ffc-field-points regular-text" name="ffc_fields[' + fieldCounter + '][points]" placeholder="' + quizPointsPlaceholder + '" style="width:100%;margin-top:4px">';
-            fieldHtml += '          </div>';
-            fieldHtml += '        </td>';
-            fieldHtml += '      </tr>';
-        }
-
-        fieldHtml += '    </table>';
-        fieldHtml += '  </div>';
-        fieldHtml += '</div>';
-
-        $('#ffc-fields-container').append(fieldHtml);
-        updateFieldsJSON();
+        $('#ffc-fields-container').append($row);
+        $row.find('.ffc-field-type-selector').val(fieldType);
+        applyType($row, fieldType);
+        makeChoicesSortable($row);
+        $row.find('input[type="text"]').first().trigger('focus');
+        return $row;
     }
 
-    // Update hidden JSON field with current fields
-    function updateFieldsJSON() {
-        var fields = [];
-
-        $('#ffc-fields-container .ffc-field-row').each(function() {
-            var $row = $(this);
-            var field = {
-                type: $row.find('.ffc-field-type').val(),
-                label: $row.find('.ffc-field-label').val(),
-                name: $row.find('.ffc-field-name').val(),
-                required: $row.find('.ffc-field-required').is(':checked'),
-                options: $row.find('.ffc-field-options').val(),
-                content: $row.find('.ffc-field-content').val() || '',
-                embed_url: $row.find('.ffc-field-embed-url').val() || '',
-                default_value: $row.find('.ffc-field-default-value').val() || '',
-                points: $row.find('.ffc-field-points').val() || ''
-            };
-            fields.push(field);
-        });
-
-        // Find the JSON field (try different possible IDs/names)
-        var $jsonField = $('#ffc-form-fields-json');
-        if (!$jsonField.length) {
-            $jsonField = $('input[name="ffc_form_fields"], textarea[name="ffc_form_fields"]');
-        }
-
-        if ($jsonField.length) {
-            $jsonField.val(JSON.stringify(fields));
-        } else {
-            console.warn('[FFC] JSON field not found');
-        }
-    }
-
-    // ==========================================================================
-    // PUBLIC API - Export functions
-    // ==========================================================================
-
-    // Initialize FFC.Admin namespace if not exists
     window.FFC = window.FFC || {};
     window.FFC.Admin = window.FFC.Admin || {};
     window.FFC.Admin.FieldBuilder = {
         init: initFormBuilder,
         addField: addFieldToBuilder,
-        updateJSON: updateFieldsJSON
+        applyType: applyType
     };
 
-    // Register module
-    if (FFC.registerModule) {
+    if (FFC && FFC.registerModule) {
         FFC.registerModule('Admin.FieldBuilder', FFC.version);
     }
 

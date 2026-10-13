@@ -22,6 +22,7 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
 
 		// `LabelSorter::locale()` is guarded by `function_exists( 'get_locale' )`,
 		// so this used to take the no-WordPress branch only because nothing in

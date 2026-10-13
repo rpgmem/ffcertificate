@@ -110,7 +110,8 @@
     text-transform: none;
 }
 
-.ffc-shortcode .ffc-form-field label .ffc-required {
+.ffc-shortcode .ffc-form-field label .ffc-required,
+.ffc-shortcode .ffc-field-legend .ffc-required {
     color: var(--ffc-danger);
     font-weight: 700;
     margin-left: 3px;
@@ -128,6 +129,55 @@
     gap: var(--ffc-spacing-sm);
     font-weight: 400;
     cursor: pointer;
+}
+
+/* A radio or checkbox group is a fieldset whose legend reads as the label
+   of any other field (#1729). */
+.ffc-shortcode fieldset.ffc-choice-field {
+    border: 0;
+    margin: 0 0 var(--ffc-spacing-2xl);
+    padding: 0;
+    min-width: 0;
+}
+
+.ffc-shortcode .ffc-field-legend {
+    display: block;
+    padding: 0;
+    margin-bottom: var(--ffc-spacing-sm);
+    font-weight: 500;
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-xl);
+}
+
+.ffc-shortcode .ffc-radio-group label.is-disabled {
+    color: var(--ffc-text-muted);
+    cursor: not-allowed;
+}
+
+.ffc-shortcode .ffc-field-hint,
+.ffc-shortcode .ffc-field-counter {
+    margin: var(--ffc-spacing-xs) 0 0;
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-shortcode .ffc-field-legend + .ffc-field-hint {
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+/* A control keeps the bottom margin every field has; what follows it
+   directly is pulled up under it, so it reads as part of the field. */
+.ffc-shortcode .ffc-input + .ffc-length-counter,
+.ffc-shortcode .ffc-input + .ffc-field-hint {
+    margin-top: calc(var(--ffc-spacing-xl) * -1 + var(--ffc-spacing-xs));
+}
+
+.ffc-shortcode .ffc-length-counter {
+    text-align: right;
+}
+
+.ffc-shortcode .ffc-length-counter.is-below-min {
+    color: var(--ffc-warning-text);
 }
 
 /* ============================================

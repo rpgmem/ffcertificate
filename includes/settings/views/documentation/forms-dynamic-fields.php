@@ -33,19 +33,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</thead>
 		<tbody>
-			<tr><td><code>text</code></td><td><?php esc_html_e( 'Single-line text.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>text</code></td><td><?php esc_html_e( 'Single-line text, up to 255 characters — for names, roles, codes. Optional minimum and maximum length.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>email</code></td><td><?php esc_html_e( 'Email address — validated as an email on submit.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>number</code></td><td><?php esc_html_e( 'Numeric input.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>date</code></td><td><?php esc_html_e( 'Date picker.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>textarea</code></td><td><?php esc_html_e( 'Multi-line text.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>select</code></td><td><?php esc_html_e( 'Dropdown — fill the Options field (one choice per comma). Can carry quiz points.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>radio</code></td><td><?php esc_html_e( 'Radio buttons — fill the Options field. Can carry quiz points.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>checkbox</code></td><td><?php esc_html_e( 'Checkbox — fill the Options field. Not scored in quiz mode.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>number</code></td><td><?php esc_html_e( 'Numeric input. Optional minimum, maximum and decimal places (whole numbers by default).', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>date</code></td><td><?php esc_html_e( 'Date picker. Optional earliest and latest date.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>textarea</code></td><td><?php esc_html_e( 'Multi-line text, up to 2,000 characters — for explanations and comments. Optional minimum and maximum length.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>select</code></td><td><?php esc_html_e( 'Dropdown — one option per row. Can carry quiz points.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>radio</code></td><td><?php esc_html_e( 'Radio buttons — one option per row; the participant picks exactly one. Can carry quiz points.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>checkbox</code></td><td><?php esc_html_e( 'Checkboxes — one option per row; the participant ticks one or more, up to an optional maximum. "Required" means at least one. Not scored in quiz mode.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>hidden</code></td><td><?php esc_html_e( 'Hidden field — no visible control; every entry submits the fixed value set on the field\'s Value input (the server uses that value, never one sent by the browser).', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>info</code></td><td><?php esc_html_e( 'Info block — display-only HTML, collects no value.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>embed</code></td><td><?php esc_html_e( 'Embedded media — display-only, collects no value.', 'ffcertificate' ); ?></td></tr>
 		</tbody>
 	</table>
+
+	<h4><?php esc_html_e( 'Options and limits', 'ffcertificate' ); ?></h4>
+	<ul>
+		<li><?php esc_html_e( 'Options are edited one per row, so an option may contain a comma. Drag a row to reorder it; Enter in an option adds the next one. A form saved before keeps working and is converted on its next save.', 'ffcertificate' ); ?></li>
+		<li><?php esc_html_e( '"Shuffle the options for each participant" puts a choice field\'s options in a random order in the browser, so a cached page still shows each participant a different order.', 'ffcertificate' ); ?></li>
+		<li><?php esc_html_e( 'The participant sees the limits you set — "Between 50 and 2,000 characters.", "Choose up to 3 options.", "Between 01/01/1800 and 31/12/1999." — and a live character counter under text fields.', 'ffcertificate' ); ?></li>
+		<li><?php esc_html_e( 'The server checks every rule again on submit — a required answer, the length, the range, the number of options ticked and that each answer is one of the options — and refuses the submission listing every problem at once. The browser is a courtesy, never the guard.', 'ffcertificate' ); ?></li>
+	</ul>
 
 	<h4><?php esc_html_e( 'The three seed fields', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A new form starts with three fields, which are also the minimal set most templates rely on:', 'ffcertificate' ); ?></p>

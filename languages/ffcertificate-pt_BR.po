@@ -3835,10 +3835,6 @@ msgstr "Captcha: mecanismo de contingência utilizado"
 msgid "Caption (optional)"
 msgstr "Legenda (opcional)"
 
-#: includes/admin/class-ffc-admin-assets-manager.php:638
-msgid "Caption (optional):"
-msgstr "Legenda (opcional):"
-
 #: includes/settings/views/documentation/config-advanced.php:26
 msgid "Categories"
 msgstr "Categorias"
@@ -4618,10 +4614,6 @@ msgstr "Conteúdo"
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:273
 msgid "Content (supports <b>, <i>, <a>, <p>, <ul>, <ol>):"
 msgstr "Conteúdo (suporta <b>, <i>, <a>, <p>, <ul>, <ol>):"
-
-#: includes/admin/class-ffc-admin-assets-manager.php:631
-msgid "Content:"
-msgstr "Conteúdo:"
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:109 includes/admin/class-ffc-activity-log-export-source.php:179 includes/admin/views/ffc-admin-activity-log.php:114
 msgid "Context"
@@ -5528,10 +5520,6 @@ msgstr "Data de Nascimento"
 #: includes/settings/views/documentation/feature-audiences.php:39
 msgid "Date picker (YYYY-MM-DD)"
 msgstr "Seletor de data (AAAA-MM-DD)"
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:39
-msgid "Date picker."
-msgstr "Seletor de data."
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:185
 msgid "Date Range"
@@ -6456,10 +6444,6 @@ msgstr "Caixa de seleção suspensa"
 #: includes/settings/views/documentation/feature-audiences.php:40
 msgid "Dropdown with predefined options"
 msgstr "Menu suspenso com opções predefinidas"
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:41
-msgid "Dropdown — fill the Options field (one choice per comma). Can carry quiz points."
-msgstr "Menu suspenso — preencha o campo Opções (uma opção por vírgula). Pode atribuir pontos ao quiz."
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:244 includes/admin/class-ffc-cpt.php:140 includes/self-scheduling/class-ffc-self-scheduling-cpt.php:176
 msgid "Duplicate"
@@ -7614,10 +7598,6 @@ msgstr "Ex: 0, 10, 0"
 msgid "ex: course_name"
 msgstr "ex: nome_do_curso"
 
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:289
-msgid "Ex: Option 1, Option 2, Option 3"
-msgstr "Exemplo: Opção 1, Opção 2, Opção 3"
-
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:137
 msgid "Ex: PASS2025"
 msgstr "Ex: PASS2025"
@@ -8260,10 +8240,6 @@ msgstr "Rótulo do Campo"
 msgid "Field not found."
 msgstr "Campo não encontrado."
 
-#: includes/admin/class-ffc-admin-assets-manager.php:608
-msgid "Field Type:"
-msgstr "Tipo de Campo:"
-
 #: includes/settings/views/documentation/forms-dynamic-fields.php:27
 msgid "Field types"
 msgstr "Tipos de campo"
@@ -8275,10 +8251,6 @@ msgstr "chave_do_campo"
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:443
 msgid "field_key (auto)"
 msgstr "chave_do_campo (automático)"
-
-#: includes/admin/class-ffc-admin-assets-manager.php:612
-msgid "field_name"
-msgstr "field_name"
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:297 includes/reregistration/class-ffc-reregistration-custom-fields-page.php:55
 msgid "Fields"
@@ -9398,10 +9370,6 @@ msgstr "https://github.com/rpgmem"
 msgid "https://github.com/rpgmem/ffcertificate"
 msgstr "https://github.com/rpgmem/ffcertificate"
 
-#: includes/admin/class-ffc-admin-assets-manager.php:637
-msgid "https://www.youtube.com/watch?v=... or image URL"
-msgstr "https://www.youtube.com/watch?v=... ou URL da imagem"
-
 #: includes/settings/views/ffc-tab-geolocation.php:391
 msgid "Hybrid — allow only when the user denied or the browser lacks support"
 msgstr "Híbrido — permitir somente quando o usuário negar ou o navegador não for compatível."
@@ -10185,10 +10153,6 @@ msgstr "Rótulo"
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:524
 msgid "Label (optional)"
 msgstr "Rótulo (opcional)"
-
-#: includes/admin/class-ffc-admin-assets-manager.php:609
-msgid "Label:"
-msgstr "Rótulo:"
 
 #: templates/public/recruitment/pagination.php:42
 msgid "Last page"
@@ -11055,10 +11019,6 @@ msgstr "Consultas de mídia (esquema de cores, movimento reduzido, …)"
 msgid "Media URL (YouTube, Vimeo, image, or audio):"
 msgstr "URL da Mídia (YouTube, Vimeo, imagem ou áudio):"
 
-#: includes/admin/class-ffc-admin-assets-manager.php:636
-msgid "Media URL:"
-msgstr "URL da Mídia:"
-
 #: includes/settings/views/documentation/reference-qr-codes.php:55
 msgid "Medium (15% - recommended)"
 msgstr "Médio (15% - recomendado)"
@@ -11370,10 +11330,6 @@ msgstr "Vários dias"
 msgid "Multi-line text input"
 msgstr "Entrada de texto em várias linhas"
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:40
-msgid "Multi-line text."
-msgstr "Texto de várias linhas."
-
 #: includes/settings/views/documentation/reference-emails.php:113
 msgid "Multipart:"
 msgstr "Multiparte:"
@@ -11413,10 +11369,6 @@ msgstr "Nome"
 #: templates/admin/recruitment/notice-edit/classification-filters-form.php:38
 msgid "Name (substring)"
 msgstr "Nome (substring)"
-
-#: includes/admin/class-ffc-admin-assets-manager.php:611
-msgid "Name (variable):"
-msgstr "Nome (variável):"
 
 #. prompt asking for a name when saving the current layout as a reusable template
 #: includes/admin/class-ffc-admin-assets-manager.php:649
@@ -12123,10 +12075,6 @@ msgstr "Número"
 msgid "Numeric input"
 msgstr "Entrada numérica"
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:38
-msgid "Numeric input."
-msgstr "Entrada numérica."
-
 #: includes/settings/views/documentation/reference-tokens.php:66
 msgid "Numeric submission ID"
 msgstr "ID de envio numérico"
@@ -12486,10 +12434,6 @@ msgstr "Opções"
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:447 includes/audience/class-ffc-audience-admin-audience-renderer.php:608
 msgid "Options (one per line)"
 msgstr "Opções (uma por linha)"
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:287
-msgid "Options (separate with commas):"
-msgstr "Opções (separadas por vírgulas):"
 
 #: includes/admin/class-ffc-admin-assets-manager.php:614 includes/settings/views/documentation/reference-qr-codes.php:53
 msgid "Options:"
@@ -13806,10 +13750,6 @@ msgstr "Quiz: Tentando"
 msgid "Radio Buttons"
 msgstr "Botões de Seleção Única"
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:42
-msgid "Radio buttons — fill the Options field. Can carry quiz points."
-msgstr "Botões de opção — preencha o campo Opções. Podem atribuir pontos ao quiz."
-
 #: includes/settings/views/documentation/feature-certificates.php:57
 msgid "Radius"
 msgstr "Raio"
@@ -14525,10 +14465,6 @@ msgstr "Colunas obrigatórias: name. Opcionais: color, parent (nome do público-
 #: includes/settings/views/ffc-tab-geolocation.php:279
 msgid "Required only if using ipinfo.io service. Free tier: 50,000 requests/month."
 msgstr "Necessário apenas se estiver usando o serviço ipinfo.io. Plano gratuito: 50.000 solicitações/mês."
-
-#: includes/admin/class-ffc-admin-assets-manager.php:613
-msgid "Required:"
-msgstr "Obrigatório:"
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:262
 msgid "Required?"
@@ -15832,10 +15768,6 @@ msgstr "Enviado quando um candidato é convocado — assunto/corpo editados glob
 msgid "Separate combined CPF/RF column into individual CPF and RF columns"
 msgstr "Separe a coluna combinada CPF/RF em colunas individuais de CPF e RF."
 
-#: includes/admin/class-ffc-admin-assets-manager.php:615
-msgid "Separate with commas"
-msgstr "Separe com vírgulas"
-
 #: includes/admin/class-ffc-admin-conditional-assets.php:206 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:183 includes/audience/class-ffc-audience-shortcode.php:813
 msgid "September"
 msgstr "Setembro"
@@ -16272,10 +16204,6 @@ msgstr "Senha Única"
 #: includes/settings/views/documentation/feature-audiences.php:36
 msgid "Single-line text input"
 msgstr "Entrada de texto em linha única"
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:36
-msgid "Single-line text."
-msgstr "Texto de linha única."
 
 #: includes/settings/views/documentation/overview.php:35
 msgid "Single-use tickets, allow/deny lists, one-certificate-per-person reprints, per-device limits, rate limiting, and geofencing by GPS or IP."
@@ -17139,14 +17067,6 @@ msgstr "Alinhamento de texto"
 #: templates/admin/settings/email-model-box.php:29 templates/admin/settings/email-model-box.php:37 templates/admin/settings/email-model-box.php:46 includes/settings/views/documentation/reference-html-styling.php:110
 msgid "Text color"
 msgstr "Cor do texto"
-
-#: includes/admin/class-ffc-admin-assets-manager.php:618
-msgid "Text Field"
-msgstr "Campo de Texto"
-
-#: includes/admin/class-ffc-admin-assets-manager.php:632
-msgid "Text to display. Supports <b>, <i>, <a>."
-msgstr "Texto a ser exibido. Suporta <b>, <i>, <a>."
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:80 includes/admin/class-ffc-admin-assets-manager.php:621 includes/reregistration/class-ffc-custom-field-reader.php:82
 msgid "Textarea"
@@ -18409,10 +18329,6 @@ msgstr "Título"
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:229 templates/admin/url-shortener/short-urls-page.php:132 templates/admin/url-shortener/short-urls-page.php:374
 msgid "Title (optional)"
 msgstr "Título (opcional)"
-
-#: includes/admin/class-ffc-admin-assets-manager.php:633
-msgid "Title (optional):"
-msgstr "Título (opcional):"
 
 #: includes/settings/views/ffc-tab-migrations.php:686
 msgid "Title / target"
@@ -23426,9 +23342,6 @@ msgstr "Uma visão geral somente leitura, \"Atribuições atuais\", na aba Model
 msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails."
 msgstr "Os campos de entrada de um formulário são definidos na aba Campos (\"Construtor de Formulários (Campos)\") da caixa \"Configuração do Formulário de Certificado\" do editor de formulários — uma lista ordenável de campos. Cada campo tem um Nome da variável (etiqueta); essa etiqueta é a chave interna que se torna um {{token}} no PDF do certificado e nos e-mails."
 
-msgid "Checkbox — fill the Options field. Not scored in quiz mode."
-msgstr "Caixa de seleção múltipla — preencha o campo Opções. Não é pontuada no modo quiz."
-
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
 msgstr "Campos de nome (chaves como name, nome, nome_completo, full_name ou participante) são normalizados no envio para a capitalização correta, mantendo em minúsculas conectivos como \"da\" e \"de\"."
 
@@ -23929,9 +23842,6 @@ msgstr "Um formulário sem data de término nunca libera o arquivo CSV. Os downl
 
 msgid "Value submitted with every entry (the visitor cannot change it):"
 msgstr "Valor enviado em todas as respostas (o visitante não pode alterá-lo):"
-
-msgid "Value submitted with every entry:"
-msgstr "Valor enviado em todas as respostas:"
 
 msgid "Hidden field — no visible control; every entry submits the fixed value set on the field's Value input (the server uses that value, never one sent by the browser)."
 msgstr "Campo oculto — sem controle visível; toda resposta envia o valor fixo definido no campo Valor (o servidor usa esse valor, nunca um enviado pelo navegador)."
@@ -25287,3 +25197,297 @@ msgstr "No seu idioma, capturas na própria janela."
 #: includes/settings/views/documentation/operations-updates.php
 msgid "The tabs and the banner are shown in your language when the plugin ships a translation of them; the changelog stays in English. A screenshot opens larger without leaving the window: the arrows move between them, and the wheel, a pinch or a click zooms in."
 msgstr "As abas e o banner aparecem no seu idioma quando o plugin traz uma tradução deles; o changelog continua em inglês. Uma captura abre ampliada sem sair da janela: as setas passam de uma para outra, e a roda do mouse, o gesto de pinça ou um clique aproximam a imagem."
+
+#. 1: field label, 2: most characters.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:168
+#, php-format
+msgid "%1$s accepts up to %2$s characters."
+msgstr "%1$s aceita até %2$s caracteres."
+
+#. 1: field label, 2: decimal places allowed.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:190
+#, php-format
+msgid "%1$s accepts up to %2$s decimal places."
+msgstr "%1$s aceita até %2$s casas decimais."
+
+#. 1: field label, 2: the accepted range, as a sentence.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:224
+#, php-format
+msgid "%1$s is out of range. %2$s"
+msgstr "%1$s está fora do intervalo. %2$s"
+
+#. 1: field label, 2: fewest characters.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:164
+#, php-format
+msgid "%1$s needs at least %2$s characters."
+msgstr "%1$s precisa de pelo menos %2$s caracteres."
+
+#. 1: options ticked, 2: most options allowed.
+#: includes/frontend/class-ffc-frontend.php:218
+#, php-format
+msgid "%1$s of %2$s selected."
+msgstr "%1$s de %2$s selecionadas."
+
+#. 1: field label, 2: most options the participant may tick.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:143
+#, php-format
+msgid "%1$s: choose up to %2$s option."
+msgid_plural "%1$s: choose up to %2$s options."
+msgstr[0] "%1$s: escolha até %2$s opção."
+msgstr[1] "%1$s: escolha até %2$s opções."
+
+#. %s: field label.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:135
+#, php-format
+msgid "%s has an answer that is not one of its options."
+msgstr "%s tem uma resposta que não está entre as opções."
+
+#. %s: field label.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:99
+#, php-format
+msgid "%s has an invalid answer."
+msgstr "%s tem uma resposta inválida."
+
+#. %s: field label.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:205
+#, php-format
+msgid "%s must be a valid date."
+msgstr "%s precisa ser uma data válida."
+
+#. %s: field label.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:188
+#, php-format
+msgid "%s must be a whole number."
+msgstr "%s precisa ser um número inteiro."
+
+#. %s: highest accepted number.
+#: includes/frontend/class-ffc-form-field-renderer.php:291
+#, php-format
+msgid "%s or less."
+msgstr "%s ou menos."
+
+#. %s: lowest accepted number.
+#: includes/frontend/class-ffc-form-field-renderer.php:284
+#, php-format
+msgid "%s or more."
+msgstr "%s ou mais."
+
+#. %s: field label.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:85
+#, php-format
+msgid "%s: choose at least one option."
+msgstr "%s: escolha pelo menos uma opção."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:412
+msgid "A date picked from a calendar, with an optional range."
+msgstr "Uma data escolhida num calendário, com intervalo opcional."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:413
+msgid "A drop-down list: the participant picks one option."
+msgstr "Uma lista suspensa: o participante escolhe uma opção."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:418
+msgid "A fixed value saved with every submission. The participant does not see it."
+msgstr "Um valor fixo salvo em todo envio. O participante não o vê."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:411
+msgid "A number, with an optional range and decimal places."
+msgstr "Um número, com intervalo e casas decimais opcionais."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:417
+msgid "A video, image or audio shown on the form. Collects nothing."
+msgstr "Um vídeo, imagem ou áudio exibido no formulário. Não coleta nada."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:308
+msgid "Add option"
+msgstr "Adicionar opção"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:410
+msgid "An email address, checked for format."
+msgstr "Um endereço de e-mail, com o formato verificado."
+
+#. %s: fewest characters.
+#: includes/frontend/class-ffc-form-field-renderer.php:266
+#, php-format
+msgid "At least %s characters."
+msgstr "Pelo menos %s caracteres."
+
+#. 1: fewest characters, 2: most characters.
+#: includes/frontend/class-ffc-form-field-renderer.php:262
+#, php-format
+msgid "Between %1$s and %2$s characters."
+msgstr "Entre %1$s e %2$s caracteres."
+
+#. 1: lowest accepted value, 2: highest accepted value.
+#: includes/frontend/class-ffc-form-field-renderer.php:277
+#, php-format
+msgid "Between %1$s and %2$s."
+msgstr "Entre %1$s e %2$s."
+
+#: includes/frontend/class-ffc-frontend.php:220
+msgid "Choose at least one option."
+msgstr "Escolha pelo menos uma opção."
+
+#. %s: most options the participant may tick.
+#: includes/frontend/class-ffc-form-field-renderer.php:248
+#, php-format
+msgid "Choose up to %s option."
+msgid_plural "Choose up to %s options."
+msgstr[0] "Escolha até %s opção."
+msgstr[1] "Escolha até %s opções."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:367
+msgid "Decimal places"
+msgstr "Casas decimais"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:379
+msgid "Earliest date"
+msgstr "Data mais antiga"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:323
+msgid "Empty means no limit. Once it is reached, the other boxes are disabled."
+msgstr "Vazio = sem limite. Ao atingi-lo, as demais caixas ficam desabilitadas."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:374
+msgid "Empty means no limit. The participant sees the range."
+msgstr "Vazio = sem limite. O participante vê o intervalo."
+
+#. 1: longest single-line text answer, 2: longest textarea answer.
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:348
+#, php-format
+msgid "Empty means no minimum, and the server ceiling for the maximum: %1$s characters for Text, %2$s for Textarea. The participant sees the limits you set."
+msgstr "Vazio = sem mínimo e, no máximo, o teto do servidor: %1$s caracteres para Texto, %2$s para Área de texto. O participante vê os limites que você definir."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:414
+msgid "Every option visible: the participant picks exactly one."
+msgstr "Todas as opções visíveis: o participante escolhe exatamente uma."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:415
+msgid "Every option visible: the participant ticks one or more. \"Required\" means at least one."
+msgstr "Todas as opções visíveis: o participante marca uma ou mais. \"Obrigatório\" exige pelo menos uma."
+
+#. %s: earliest accepted date.
+#: includes/frontend/class-ffc-form-field-renderer.php:282
+#, php-format
+msgid "From %s."
+msgstr "A partir de %s."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:383
+msgid "Latest date"
+msgstr "Data mais recente"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:363
+msgid "Maximum"
+msgstr "Máximo"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:340
+msgid "Maximum characters"
+msgstr "Máximo de caracteres"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:321
+msgid "Maximum selections"
+msgstr "Máximo de seleções"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:359
+msgid "Minimum"
+msgstr "Mínimo"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:336
+msgid "Minimum characters"
+msgstr "Mínimo de caracteres"
+
+#. %s: longest answer, in characters.
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:402
+#, php-format
+msgid "One line, up to %s characters. For names, roles, codes."
+msgstr "Uma linha, até %s caracteres. Para nomes, cargos, códigos."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:303
+msgid "Option"
+msgstr "Opção"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:297
+msgid "Options (one per row):"
+msgstr "Opções (uma por linha):"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:304
+msgid "Remove option"
+msgstr "Remover opção"
+
+#. %s: longest answer, in characters.
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:407
+#, php-format
+msgid "Several lines, up to %s characters. For explanations and comments."
+msgstr "Várias linhas, até %s caracteres. Para justificativas e comentários."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:316
+msgid "Shuffle the options for each participant"
+msgstr "Embaralhar as opções para cada participante"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:416
+msgid "Text shown on the form. Collects nothing."
+msgstr "Texto exibido no formulário. Não coleta nada."
+
+#: includes/frontend/class-ffc-frontend.php:219
+msgid "Untick one to choose another."
+msgstr "Desmarque uma para escolher outra."
+
+#. %s: latest accepted date.
+#: includes/frontend/class-ffc-form-field-renderer.php:289
+#, php-format
+msgid "Until %s."
+msgstr "Até %s."
+
+#. %s: most characters.
+#: includes/frontend/class-ffc-form-field-renderer.php:269
+#, php-format
+msgid "Up to %s characters."
+msgstr "Até %s caracteres."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:36
+msgid "Single-line text, up to 255 characters — for names, roles, codes. Optional minimum and maximum length."
+msgstr "Texto em uma linha, até 255 caracteres — para nomes, cargos, códigos. Mínimo e máximo de caracteres opcionais."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:38
+msgid "Numeric input. Optional minimum, maximum and decimal places (whole numbers by default)."
+msgstr "Campo numérico. Mínimo, máximo e casas decimais opcionais (números inteiros por padrão)."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:39
+msgid "Date picker. Optional earliest and latest date."
+msgstr "Seletor de data. Data mais antiga e mais recente opcionais."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:40
+msgid "Multi-line text, up to 2,000 characters — for explanations and comments. Optional minimum and maximum length."
+msgstr "Texto em várias linhas, até 2.000 caracteres — para justificativas e comentários. Mínimo e máximo de caracteres opcionais."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:41
+msgid "Dropdown — one option per row. Can carry quiz points."
+msgstr "Lista suspensa — uma opção por linha. Pode ter pontos no quiz."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:42
+msgid "Radio buttons — one option per row; the participant picks exactly one. Can carry quiz points."
+msgstr "Botões de seleção única — uma opção por linha; o participante escolhe exatamente uma. Pode ter pontos no quiz."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:43
+msgid "Checkboxes — one option per row; the participant ticks one or more, up to an optional maximum. \"Required\" means at least one. Not scored in quiz mode."
+msgstr "Caixas de seleção — uma opção por linha; o participante marca uma ou mais, até um máximo opcional. \"Obrigatório\" exige pelo menos uma. Não pontua no modo quiz."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:50
+msgid "Options and limits"
+msgstr "Opções e limites"
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:52
+msgid "Options are edited one per row, so an option may contain a comma. Drag a row to reorder it; Enter in an option adds the next one. A form saved before keeps working and is converted on its next save."
+msgstr "As opções são editadas uma por linha, então uma opção pode conter vírgula. Arraste uma linha para reordená-la; Enter numa opção adiciona a próxima. Um formulário salvo antes continua funcionando e é convertido no próximo salvamento."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:53
+msgid "\"Shuffle the options for each participant\" puts a choice field's options in a random order in the browser, so a cached page still shows each participant a different order."
+msgstr "\"Embaralhar as opções para cada participante\" coloca as opções de um campo de escolha em ordem aleatória no navegador, então mesmo uma página em cache mostra a cada participante uma ordem diferente."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:54
+msgid "The participant sees the limits you set — \"Between 50 and 2,000 characters.\", \"Choose up to 3 options.\", \"Between 01/01/1800 and 31/12/1999.\" — and a live character counter under text fields."
+msgstr "O participante vê os limites que você definir — \"Entre 50 e 2.000 caracteres.\", \"Escolha até 3 opções.\", \"Entre 01/01/1800 e 31/12/1999.\" — e um contador de caracteres ao vivo sob os campos de texto."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:55
+msgid "The server checks every rule again on submit — a required answer, the length, the range, the number of options ticked and that each answer is one of the options — and refuses the submission listing every problem at once. The browser is a courtesy, never the guard."
+msgstr "O servidor confere cada regra de novo no envio — resposta obrigatória, tamanho, intervalo, quantidade de opções marcadas e se cada resposta está entre as opções — e recusa o envio listando todos os problemas de uma vez. O navegador é uma cortesia, nunca a proteção."

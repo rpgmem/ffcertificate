@@ -225,6 +225,45 @@ class FormEditorSaveHandlerTest extends TestCase {
 	}
 
 	/**
+	 * #1729 — options are saved as a list, so one may contain a comma, and
+	 * the field's limits ride along; a row from an older editor still posts
+	 * the comma string and is converted.
+	 */
+	public function test_save_fields_meta_stores_options_as_a_list_with_the_limits(): void {
+		$_POST['ffc_fields'] = array(
+			array(
+				'name'       => 'langs',
+				'type'       => 'checkbox',
+				'choices'    => array( 'PHP', 'Yes, both', '' ),
+				'max_select' => '2',
+				'shuffle'    => '1',
+			),
+			array(
+				'name'    => 'uf',
+				'type'    => 'select',
+				'options' => 'SP, RJ',
+			),
+			array(
+				'name'       => 'notes',
+				'type'       => 'textarea',
+				'max_length' => '500',
+			),
+		);
+
+		$out = $this->capture_meta_writes( 'save_fields_meta' );
+		unset( $_POST['ffc_fields'] );
+
+		$fields = $out['written']['_ffc_form_fields'];
+		$this->assertSame( array( 'PHP', 'Yes, both' ), $fields[0]['choices'] );
+		$this->assertSame( '2', $fields[0]['max_select'] );
+		$this->assertSame( '1', $fields[0]['shuffle'] );
+		$this->assertArrayNotHasKey( 'options', $fields[0] );
+		$this->assertSame( array( 'SP', 'RJ' ), $fields[1]['choices'] );
+		$this->assertSame( '500', $fields[2]['max_length'] );
+		$this->assertArrayNotHasKey( 'choices', $fields[2] );
+	}
+
+	/**
 	 * #1084 — `sanitize_textarea_field( (string) array() )` is the literal
 	 * `Array` plus a PHP warning, and that string was stored as the
 	 * per-form device-limit message. An unusable value now reads as empty,
