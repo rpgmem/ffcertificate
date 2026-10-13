@@ -86,6 +86,30 @@
     color: var(--ffc-primary);
 }
 
+/* A field a required certificate tag calls for (#1734): another colour,
+   a badge naming why, and a name that cannot change. */
+.ffc-field-row.ffc-field-row-required-tag {
+    border-left-color: var(--ffc-warning);
+}
+
+.ffc-required-tag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    margin-left: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-field-row-required-tag input[readonly] {
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
+}
+
 .ffc-type-desc {
     margin: var(--ffc-spacing-sm) 0 0;
 }

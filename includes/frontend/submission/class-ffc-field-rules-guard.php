@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Per-field rules gate: required, options, length, range.
+ * Per-field rules gate: required, options, length, range, a full name.
  */
 class FieldRulesGuard {
 
@@ -101,6 +101,14 @@ class FieldRulesGuard {
 		$value = $values[0];
 
 		if ( in_array( $type, FormField::LENGTH_TYPES, true ) ) {
+			if ( FormField::is_full_name( $field ) && ! FormField::looks_like_full_name( $value ) ) {
+				return sprintf(
+					/* translators: 1: field label, 2: fewest characters. */
+					__( '%1$s: enter the full name — at least two words and %2$s characters.', 'ffcertificate' ),
+					$label,
+					number_format_i18n( FormField::FULL_NAME_MIN_LENGTH )
+				);
+			}
 			return $this->check_length( $field, $label, $value );
 		}
 		if ( 'number' === $type ) {

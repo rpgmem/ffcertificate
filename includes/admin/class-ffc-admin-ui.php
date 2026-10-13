@@ -329,4 +329,26 @@ class AdminUI {
 		}
 		return $html . '</div>';
 	}
+
+	/**
+	 * The "Mandatory Tags" line under a certificate HTML editor, read from
+	 * the configured list (#1734). It used to be a fixed sentence naming the
+	 * default three, so a list changed on the Certificates tab was enforced
+	 * on save and contradicted on the screen.
+	 *
+	 * @return string Escaped HTML.
+	 */
+	public static function get_required_tags_line(): string {
+		$tags = array_map(
+			static fn( string $tag ): string => '<code>' . esc_html( $tag ) . '</code>',
+			\FreeFormCertificate\Settings\SettingsReader::required_certificate_tags()
+		);
+		return sprintf(
+			'%1$s %2$s. <a href="%3$s">%4$s</a>',
+			esc_html__( 'Mandatory Tags:', 'ffcertificate' ),
+			implode( ', ', $tags ),
+			esc_url( admin_url( 'admin.php?page=ffc-settings&tab=certificates' ) ),
+			esc_html__( 'Settings → Certificates', 'ffcertificate' )
+		);
+	}
 }

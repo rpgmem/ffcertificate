@@ -32,6 +32,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class FormFieldRenderer {
 
 	/**
+	 * Characters in a masked CPF (`000.000.000-00`), the longer of the two.
+	 */
+	private const CPF_RF_MASKED_LENGTH = 14;
+
+	/**
 	 * Render the field.
 	 *
 	 * @param array<string, mixed> $field Stored field.
@@ -155,7 +160,15 @@ final class FormFieldRenderer {
 		}
 
 		$max_length = FormField::max_length( $field );
-		$min_length = FormField::min_length( $field );
+		$min_length = FormField::effective_min_length( $field );
+		// The CPF/RF field is masked to at most 000.000.000-00 (#1734).
+		if ( 'cpf_rf' === $name ) {
+			$max_length = self::CPF_RF_MASKED_LENGTH;
+			$common    .= ' inputmode="numeric" autocomplete="off"';
+		}
+		if ( FormField::is_full_name( $field ) ) {
+			$common .= ' data-ffc-full-name="1" autocomplete="name"';
+		}
 		if ( $max_length > 0 ) {
 			$common .= ' maxlength="' . esc_attr( (string) $max_length ) . '"';
 		}
@@ -252,7 +265,7 @@ final class FormFieldRenderer {
 
 		if ( in_array( $type, FormField::LENGTH_TYPES, true ) ) {
 			if ( ! FormField::has_configured_length( $field ) ) {
-				return '';
+				return FormField::is_full_name( $field ) ? __( 'First and last name.', 'ffcertificate' ) : '';
 			}
 			$min        = FormField::min_length( $field );
 			$max        = FormField::max_length( $field );

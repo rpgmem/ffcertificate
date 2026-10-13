@@ -160,4 +160,14 @@ class FieldRulesGuardTest extends TestCase {
 		$this->guard->apply( $ctx );
 		$this->assertSame( array( 'f' => 'ok' ), $ctx->submission_data );
 	}
+
+	public function test_a_name_field_refuses_a_single_word(): void {
+		$field = array(
+			'type'  => 'text',
+			'name'  => 'name',
+			'label' => 'Full name',
+		);
+		$this->assertSame( 'Full name: enter the full name — at least two words and 4 characters.', $this->guard->check( $field, array( 'name' => 'Maria' ) ) );
+		$this->assertNull( $this->guard->check( $field, array( 'name' => 'Maria Souza' ) ) );
+	}
 }

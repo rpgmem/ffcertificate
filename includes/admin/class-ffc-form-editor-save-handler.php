@@ -153,7 +153,9 @@ class FormEditorSaveHandler {
 				'label'         => sanitize_text_field( ArrayValue::string( $field, 'label' ) ),
 				'name'          => sanitize_key( ArrayValue::string( $field, 'name' ) ),
 				'type'          => $type,
-				'required'      => isset( $field['required'] ) ? '1' : '',
+				// A field a required certificate tag calls for is always
+				// required: the editor disables its toggle (#1734).
+				'required'      => isset( $field['required'] ) || FormEditorSaveValidator::is_required_field( sanitize_key( ArrayValue::string( $field, 'name' ) ) ) ? '1' : '',
 				'content'       => wp_kses_post( ArrayValue::string( $field, 'content' ) ),
 				'embed_url'     => esc_url_raw( ArrayValue::string( $field, 'embed_url' ) ),
 				'points'        => sanitize_text_field( ArrayValue::string( $field, 'points' ) ),
@@ -166,6 +168,13 @@ class FormEditorSaveHandler {
 			) + \FreeFormCertificate\Core\FormField::sanitize_limits( $field, $type );
 		}
 		update_post_meta( $post_id, '_ffc_form_fields', $clean_fields );
+
+		// Non-blocking, like the layout check: the fields save, and the
+		// editor says which required tag has no field to fill it (#1734).
+		$missing_fields = $this->validator()->missing_required_fields( $clean_fields );
+		if ( array() !== $missing_fields ) {
+			set_transient( 'ffc_save_fields_error_' . get_current_user_id(), $missing_fields, 45 );
+		}
 	}
 
 	/**
@@ -672,6 +681,23 @@ class FormEditorSaveHandler {
 			ob_start();
 			?>
 			<p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $error_tags, 'is_scalar' ) ) ) ); ?></code>.</p>
+			<?php
+			wp_admin_notice(
+				(string) ob_get_clean(),
+				array(
+					'type'           => 'error',
+					'dismissible'    => true,
+					'paragraph_wrap' => false,
+				)
+			);
+		}
+
+		$missing_fields = get_transient( 'ffc_save_fields_error_' . get_current_user_id() );
+		if ( is_array( $missing_fields ) && ! empty( $missing_fields ) ) {
+			delete_transient( 'ffc_save_fields_error_' . get_current_user_id() );
+			ob_start();
+			?>
+			<p><strong><?php esc_html_e( 'Warning! These required certificate tags have no field in the form:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $missing_fields, 'is_scalar' ) ) ) ); ?></code>. <?php esc_html_e( 'Add a field whose variable name is the tag without braces.', 'ffcertificate' ); ?></p>
 			<?php
 			wp_admin_notice(
 				(string) ob_get_clean(),

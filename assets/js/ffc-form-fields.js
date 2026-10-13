@@ -10,6 +10,7 @@
  * - Makes a required checkbox group (`data-ffc-required`) refuse an empty
  *   answer through the browser's own validation: HTML `required` on a box
  *   would demand that box, not "at least one".
+ * - Makes a name field (`data-ffc-full-name`) refuse a single word.
  *
  * The server enforces every one of these again; this file only spares the
  * participant a round trip (#1729).
@@ -106,6 +107,16 @@
         }
     }
 
+    // A name field needs two words, each with a letter (#1734); the server
+    // refuses the same thing, this only says it before the round trip.
+    function updateFullName(control) {
+        var words = control.value.trim().split(/\s+/).filter(function(word) {
+            return /\p{L}/u.test(word);
+        });
+        var ok = control.value.trim() === '' || words.length >= 2;
+        control.setCustomValidity(ok ? '' : (strings().fullName || 'Enter the first and last name.'));
+    }
+
     function init(root) {
         var scope = root || document;
 
@@ -124,11 +135,15 @@
         });
 
         Array.prototype.forEach.call(scope.querySelectorAll('.ffc-choice-checkbox'), updateGroup);
+        Array.prototype.forEach.call(scope.querySelectorAll('[data-ffc-full-name]'), updateFullName);
     }
 
     document.addEventListener('input', function(e) {
         if (e.target && lengthCounter(e.target)) {
             updateLength(e.target);
+        }
+        if (e.target && e.target.hasAttribute && e.target.hasAttribute('data-ffc-full-name')) {
+            updateFullName(e.target);
         }
     });
 
@@ -150,6 +165,7 @@
         init: init,
         shuffle: shuffle,
         updateGroup: updateGroup,
-        updateLength: updateLength
+        updateLength: updateLength,
+        updateFullName: updateFullName
     };
 })(window, document);

@@ -203,8 +203,12 @@ class FormEditorBuilderMetabox {
 		$is_embed              = 'embed' === $type;
 		$is_display_only       = $is_info || $is_embed;
 		$options_visible_class = ( 'select' === $type || 'radio' === $type || 'checkbox' === $type ) ? '' : 'ffc-hidden';
+		// A field a required certificate tag calls for keeps its name and
+		// cannot be removed: the certificate would lose the value (#1734).
+		$is_locked = ! $is_display_only && FormEditorSaveValidator::is_required_field( (string) $name );
+		$lock_id   = 'ffc_field_lock_' . $index;
 		?>
-		<div class="ffc-field-row" data-index="<?php echo esc_attr( $index ); ?>">
+		<div class="ffc-field-row<?php echo $is_locked ? ' ffc-field-row-required-tag' : ''; ?>" data-index="<?php echo esc_attr( $index ); ?>">
 			<div class="ffc-field-row-header">
 				<span class="ffc-sort-handle">
 					<span class="ffc-icon-grip" aria-hidden="true"></span>
@@ -219,8 +223,11 @@ class FormEditorBuilderMetabox {
 					}
 					?>
 					</strong></span>
+					<?php if ( $is_locked ) : ?>
+						<span class="ffc-required-tag-badge" id="<?php echo esc_attr( $lock_id ); ?>"><span class="ffc-icon-lock" aria-hidden="true"></span> <?php esc_html_e( 'Required certificate tag', 'ffcertificate' ); ?></span>
+					<?php endif; ?>
 				</span>
-				<button type="button" class="button button-link-delete ffc-remove-field"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
+				<button type="button" class="button button-link-delete ffc-remove-field"<?php echo $is_locked ? ' disabled aria-describedby="' . esc_attr( $lock_id ) . '"' : ''; ?>><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
 			</div>
 
 			<div class="ffc-field-row-grid">
@@ -240,7 +247,7 @@ class FormEditorBuilderMetabox {
 				</div>
 				<div class="ffc-grid-item ffc-standard-row<?php echo $is_display_only ? ' ffc-hidden' : ''; ?>">
 					<label><?php esc_html_e( 'Variable Name (Tag)', 'ffcertificate' ); ?></label>
-					<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][name]" value="<?php echo esc_attr( $name ); ?>" placeholder="<?php esc_attr_e( 'ex: course_name', 'ffcertificate' ); ?>" class="ffc-w100">
+					<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][name]" value="<?php echo esc_attr( $name ); ?>" placeholder="<?php esc_attr_e( 'ex: course_name', 'ffcertificate' ); ?>" class="ffc-w100"<?php echo $is_locked ? ' readonly aria-describedby="' . esc_attr( $lock_id ) . '"' : ''; ?>>
 				</div>
 				<div class="ffc-grid-item">
 					<label><?php esc_html_e( 'Type', 'ffcertificate' ); ?></label>
@@ -252,15 +259,14 @@ class FormEditorBuilderMetabox {
 				</div>
 				<div class="ffc-grid-item ffc-flex-center ffc-standard-row<?php echo $is_display_only ? ' ffc-hidden' : ''; ?>">
 					<?php
-					// Keep the .ffc-field-required class on the inner checkbox —
-					// ffc-admin-field-builder.js reads its state via
-					// `$row.find('.ffc-field-required').is(':checked')` when
-					// serialising the field row to JSON for save_post.
+					// A locked field is always required; its toggle is shown on
+					// and disabled, and the save handler stores it as required.
 					\FreeFormCertificate\Admin\AdminUI::render_toggle(
 						array(
 							'name'        => 'ffc_fields[' . $index . '][required]',
 							'id'          => 'ffc_field_required_' . $index,
-							'checked'     => '1' === (string) $req,
+							'checked'     => $is_locked || '1' === (string) $req,
+							'disabled'    => $is_locked,
 							'label'       => __( 'Required?', 'ffcertificate' ),
 							'class'       => 'ffc-req-label',
 							'input_class' => 'ffc-field-required',
