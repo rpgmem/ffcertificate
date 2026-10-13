@@ -44,6 +44,7 @@ class SubmissionGuardsTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_email' )->returnArg();
+		Functions\when( 'is_email' )->alias( static fn( $v ) => false !== filter_var( (string) $v, FILTER_VALIDATE_EMAIL ) ? $v : false );
 		Functions\when( 'absint' )->alias( 'intval' );
 	}
 
@@ -254,7 +255,7 @@ class SubmissionGuardsTest extends TestCase {
 		}
 	}
 
-	public function test_field_sanitizer_rejects_when_email_empty(): void {
+	public function test_field_sanitizer_says_invalid_when_an_address_was_typed(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
 			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
 			->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( static fn( $v ) => (string) preg_replace( '/\D/', '', (string) $v ) )->byDefault()
@@ -268,7 +269,40 @@ class SubmissionGuardsTest extends TestCase {
 			( new FieldSanitizer() )->apply( $ctx );
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
-			$this->assertStringContainsString( 'Email address is required', $e->get_payload()['message'] );
+			$this->assertSame( 'Enter a valid email address.', $e->get_payload()['message'] );
+		}
+	}
+
+	/**
+	 * #1734 — an invalid address was reported as a missing one.
+	 */
+	public function test_field_sanitizer_says_required_only_when_nothing_was_typed(): void {
+		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
+			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
+			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault();
+		$_POST              = array( 'email' => '   ' );
+		$ctx                = $this->ctx();
+		$ctx->fields_config = array( array( 'name' => 'email', 'type' => 'email' ) );
+		try {
+			( new FieldSanitizer() )->apply( $ctx );
+			$this->fail( 'expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertSame( 'Email address is required.', $e->get_payload()['message'] );
+		}
+	}
+
+	public function test_field_sanitizer_refuses_an_address_is_email_rejects(): void {
+		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
+			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
+			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault();
+		$_POST              = array( 'email' => 'user@' );
+		$ctx                = $this->ctx();
+		$ctx->fields_config = array( array( 'name' => 'email', 'type' => 'email' ) );
+		try {
+			( new FieldSanitizer() )->apply( $ctx );
+			$this->fail( 'expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertSame( 'Enter a valid email address.', $e->get_payload()['message'] );
 		}
 	}
 

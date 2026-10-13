@@ -184,4 +184,28 @@ class FormFieldTest extends TestCase {
 	public function test_a_type_without_limits_stores_none(): void {
 		$this->assertSame( array(), FormField::sanitize_limits( array( 'min' => '1' ), 'email' ) );
 	}
+
+	// ---- full name (#1734) ------------------------------------------------
+
+	public function test_a_name_field_is_a_text_field_under_a_name_key(): void {
+		$this->assertTrue( FormField::is_full_name( array( 'type' => 'text', 'name' => 'name' ) ) );
+		$this->assertTrue( FormField::is_full_name( array( 'type' => 'text', 'name' => 'nome_completo' ) ) );
+		$this->assertFalse( FormField::is_full_name( array( 'type' => 'text', 'name' => 'curso' ) ) );
+		$this->assertFalse( FormField::is_full_name( array( 'type' => 'select', 'name' => 'name' ) ) );
+	}
+
+	public function test_a_full_name_needs_two_words_with_letters_and_four_characters(): void {
+		$this->assertTrue( FormField::looks_like_full_name( 'Ana Lu' ) );
+		$this->assertTrue( FormField::looks_like_full_name( 'José da Silva' ) );
+		$this->assertFalse( FormField::looks_like_full_name( 'Maria' ) );
+		$this->assertFalse( FormField::looks_like_full_name( 'A B' ) );
+		$this->assertFalse( FormField::looks_like_full_name( 'Ana 123' ) );
+		$this->assertFalse( FormField::looks_like_full_name( '   ' ) );
+	}
+
+	public function test_the_full_name_floor_raises_the_minimum_length(): void {
+		$this->assertSame( 4, FormField::effective_min_length( array( 'type' => 'text', 'name' => 'name' ) ) );
+		$this->assertSame( 10, FormField::effective_min_length( array( 'type' => 'text', 'name' => 'name', 'min_length' => '10' ) ) );
+		$this->assertSame( 0, FormField::effective_min_length( array( 'type' => 'text', 'name' => 'curso' ) ) );
+	}
 }

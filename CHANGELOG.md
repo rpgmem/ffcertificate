@@ -19,12 +19,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Clock-reading tests no longer fail when a run crosses a boundary** (#1719). The rate-limit window, dashboard midnight and export-filename tests read the clock before and after the call; the issue holds the audit of every clock-reading test. A `readme.txt` change now carries its pt_BR copy in the same PR (#1718).
 - **The compiled `.l10n.php` is `wp i18n make-php`'s shape, byte for byte** (#1721). The compiler writes WP-CLI's `domain` and headers and an integer-like key bare, so a catalogue compiled here, saved from Loco or made by WP-CLI is the same file.
 - **Form fields follow the form's font, and Public Design offers Arial** (#1727). Fields, selects and buttons inherit the font the labels use instead of the browser's; the font choice is the theme's (default), the plugin's system font or Arial, as in Email Signature Generator and Institutional Email.
+- **Required certificate tags have their own Settings tab and protect their fields** (#1734). The list moved from Advanced to a new Certificates tab; the layout and template screens list the configured tags instead of a fixed three. A field a required tag calls for is amber, badged, always required, and cannot be renamed or removed; a form missing one is warned on save.
 
 ### Fixed
 
 - **Dark mode reaches what core paints on its own** (#1723). Admin screens declare `color-scheme: dark` (scrollbars, the time picker's clock, the file button). Links, notice links, "Add New", disabled primary buttons, the colour picker, checkboxes, radios, the Publish box footer, row actions, Screen Options and the booking details title follow the palette. Quick Navigation no longer scrolls sideways; the submissions ID column is narrower.
 - **Personal Calendars and Certificate templates follow dark mode** (#1725). Their lists and editors are WordPress post screens the toggle never reached, so they stayed light; the rich-text e-mail editor's tabs and toolbar now read the palette too.
 - **A checkbox field renders its options, and the server enforces every field's rules** (#1729). A "Checkbox" field rendered as one empty text box that posted `on`; it is now a group of boxes posting the ticked options, and "Required" means at least one. A required answer, a length, a range and whether an answer is one of the options were the browser's word only; an edited page could post anything.
+- **The standard fields validate as they claim** (#1734). An invalid CPF/RF now blocks the submit and its message stays until corrected; an invalid email says so instead of "Email address is required."; a name needs at least two words and 4 characters, in the browser and on the server.
 
 ## [6.38.0] (2026-10-12) — `529e80a1`
 

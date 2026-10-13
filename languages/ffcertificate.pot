@@ -3871,10 +3871,6 @@ msgstr ""
 msgid "Certificate Details"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:169
-msgid "Certificate Editor"
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:163 includes/settings/tabs/class-ffc-tab-email-texts.php:406
 msgid "Certificate email to the user"
 msgstr ""
@@ -12235,10 +12231,6 @@ msgstr ""
 msgid "One shared password everyone must type to submit."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:199
-msgid "One tag per line (with braces). The form editor blocks saving a certificate layout that is missing any of these. {{auth_code}} is always required — certificate verification depends on it."
-msgstr ""
-
 #: includes/settings/views/documentation/config-advanced.php:32
 msgid "one {{tag}} per line; the form editor refuses to save a certificate layout that is missing any of them. {{auth_code}} is always required (and injected if absent) so every certificate stays verifiable."
 msgstr ""
@@ -17451,14 +17443,6 @@ msgstr ""
 msgid "the parent half only (e.g. the Division)."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:53
-msgid "the participant's email (required); used to deliver the certificate."
-msgstr ""
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:52
-msgid "the participant's full name (required)."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-emails.php:37
 msgid "the per-email subject + body editor for every plugin email, plus a read-only \"All plugin emails\" directory."
 msgstr ""
@@ -19150,10 +19134,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-audiences.php:50
 msgid "Validation Options:"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-advanced.php:171
-msgid "Validation rules for the Certificate HTML editor. Its colour theme is on the General tab, next to Dark Mode."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-documentation.php:84 includes/settings/views/documentation/feature-certificates.php:28 includes/settings/views/documentation/reference-validation-url.php:17 includes/settings/views/documentation/forms-email.php:33
@@ -23201,9 +23181,6 @@ msgstr ""
 msgid "New wrong RFs keep arriving while the RF check digit setting is off."
 msgstr ""
 
-msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Advanced → Required Certificate Tags. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too."
-msgstr ""
-
 msgid "On the Geolocation tab of the form editor's \"Certificate Form Configuration\" box, choose the area source for GPS and IP validation:"
 msgstr ""
 
@@ -23259,9 +23236,6 @@ msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fiel
 msgstr ""
 
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
-msgstr ""
-
-msgid "A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF). The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate \"CPF field type\" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked."
 msgstr ""
 
 msgid "Each form has its own Email tab (\"Email Configuration\") in the form editor's \"Certificate Form Configuration\" box, controlling the message sent to the participant on submission, plus an optional admin notification."
@@ -25406,4 +25380,70 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:55
 msgid "The server checks every rule again on submit — a required answer, the length, the range, the number of options ticked and that each answer is one of the options — and refuses the submission listing every problem at once. The browser is a courtesy, never the guard."
+msgstr ""
+
+#. 1: field label, 2: fewest characters.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:107
+#, php-format
+msgid "%1$s: enter the full name — at least two words and %2$s characters."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-save-handler.php:700
+msgid "Add a field whose variable name is the tag without braces."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-certificates.php:63
+msgid "Certificates settings view file not found."
+msgstr ""
+
+#: includes/frontend/submission/class-ffc-field-sanitizer.php:115
+msgid "Enter a valid email address."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:221
+msgid "Enter the first and last name."
+msgstr ""
+
+#: includes/frontend/class-ffc-form-field-renderer.php:268
+msgid "First and last name."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:227
+msgid "Required certificate tag"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ui.php:351
+msgid "Settings → Certificates"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-save-handler.php:700
+msgid "Warning! These required certificate tags have no field in the form:"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:25
+msgid "What every certificate form must carry. The certificate HTML editor's colour theme is on the General tab, next to Dark Mode."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:36
+msgid "One tag per line (with braces). Every certificate layout must contain them, and every form must have a field for each one the participant fills in; the form editor highlights those fields and does not let them be renamed or removed. {{auth_code}} is always required — certificate verification depends on it — and the plugin generates it, so it needs no field."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:61
+msgid "the participant's full name (required): at least two words and 4 characters, checked in the browser and on the server."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:62
+msgid "the participant's email (required); used to deliver the certificate. An address that is not valid is refused as such, not as a missing one."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:66
+msgid "A field whose tag is a required certificate tag (Settings → Certificates) is drawn with an amber border and a \"Required certificate tag\" badge: it is always required, its variable name cannot change and it cannot be removed. Saving a form that has no field for one of those tags shows a warning naming it."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:72
+msgid "A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF); the browser masks it and blocks the submit while the number is invalid. The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate \"CPF field type\" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php:34
+msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Certificates → Required Certificate Tags; the form editor also requires a field for each tag the participant fills in, and locks it. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too."
 msgstr ""

@@ -69,6 +69,53 @@ final class FormField {
 	public const RANGE_TYPES = array( 'number', 'date' );
 
 	/**
+	 * Shortest full name accepted on a name field (#1734).
+	 */
+	public const FULL_NAME_MIN_LENGTH = 4;
+
+	/**
+	 * Whether the field asks for the participant's full name: a text field
+	 * under one of the keys the plugin reads the submitter's name from.
+	 *
+	 * @param array<array-key, mixed> $field Stored field.
+	 */
+	public static function is_full_name( array $field ): bool {
+		return 'text' === self::type( $field )
+			&& in_array( ArrayValue::string( $field, 'name' ), SubmitterName::CANDIDATE_KEYS, true );
+	}
+
+	/**
+	 * Whether a name has at least two words, each with a letter, and the
+	 * minimum length — "A" or "12345" never names anybody (#1734).
+	 *
+	 * @param string $value Answer, decoded.
+	 */
+	public static function looks_like_full_name( string $value ): bool {
+		$value = trim( $value );
+		if ( mb_strlen( $value ) < self::FULL_NAME_MIN_LENGTH ) {
+			return false;
+		}
+		$words = preg_split( '/\s+/u', $value );
+		$named = 0;
+		foreach ( false === $words ? array() : $words as $word ) {
+			if ( 1 === preg_match( '/\p{L}/u', $word ) ) {
+				++$named;
+			}
+		}
+		return $named >= 2;
+	}
+
+	/**
+	 * Shortest answer a field accepts, the full-name floor included.
+	 *
+	 * @param array<array-key, mixed> $field Stored field.
+	 */
+	public static function effective_min_length( array $field ): int {
+		$min = self::min_length( $field );
+		return self::is_full_name( $field ) ? max( $min, self::FULL_NAME_MIN_LENGTH ) : $min;
+	}
+
+	/**
 	 * The field's type.
 	 *
 	 * @param array<array-key, mixed> $field Stored field.

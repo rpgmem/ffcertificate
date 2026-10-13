@@ -45,6 +45,8 @@ class FormEditorSaveHandlerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// SettingsReader reads the required certificate tags (#1734).
+		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
@@ -140,12 +142,21 @@ class FormEditorSaveHandlerTest extends TestCase {
 				return true;
 			}
 		);
+		$transients = array();
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$transients ) {
+				$transients[ $key ] = $value;
+				return true;
+			}
+		);
 
 		$this->invoke( $method, array( 100 ) );
 
 		return array(
-			'written' => $written,
-			'deleted' => $deleted,
+			'written'    => $written,
+			'deleted'    => $deleted,
+			'transients' => $transients,
 		);
 	}
 
@@ -261,6 +272,31 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertSame( array( 'SP', 'RJ' ), $fields[1]['choices'] );
 		$this->assertSame( '500', $fields[2]['max_length'] );
 		$this->assertArrayNotHasKey( 'choices', $fields[2] );
+	}
+
+	/**
+	 * #1734 — a field a required certificate tag calls for is stored as
+	 * required, and a form missing one is told which.
+	 */
+	public function test_save_fields_meta_forces_required_tags_and_reports_the_missing_ones(): void {
+		$_POST['ffc_fields'] = array(
+			array(
+				'name' => 'name',
+				'type' => 'text',
+			),
+			array(
+				'name' => 'email',
+				'type' => 'email',
+			),
+		);
+
+		$out = $this->capture_meta_writes( 'save_fields_meta' );
+		unset( $_POST['ffc_fields'] );
+
+		$fields = $out['written']['_ffc_form_fields'];
+		$this->assertSame( '1', $fields[0]['required'] );
+		$this->assertSame( '', $fields[1]['required'] );
+		$this->assertSame( array( '{{cpf_rf}}' ), $out['transients']['ffc_save_fields_error_7'] );
 	}
 
 	/**

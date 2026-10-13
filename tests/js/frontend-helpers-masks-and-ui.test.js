@@ -178,16 +178,27 @@ describe('FFC.Frontend.Masks.applyCpfRf — blur validation', () => {
 		expect($input.hasClass('ffc-valid')).toBe(true);
 	});
 
-	it('schedules the 5s auto-hide of the error span', () => {
+	it('keeps the error visible and blocks the submit until the value changes (#1734)', () => {
 		vi.useFakeTimers();
 		const $input = setup('123.456.789-00'); // invalid CPF
 		$input.trigger('blur');
 		const $err = $input.next('.ffc-field-error');
 		expect($err.length).toBe(1);
-		// Advance past the 5s auto-hide — fadeOut runs (no throw, css applied).
-		vi.advanceTimersByTime(5000);
-		expect($err.css('display')).toBe('none');
+		vi.advanceTimersByTime(10000);
+		expect($err.css('display')).not.toBe('none');
+		expect($input[0].validity.customError).toBe(true);
+		$input.val('123.456.789-09').trigger('input');
+		expect($input[0].validity.customError).toBe(false);
 		vi.useRealTimers();
+	});
+
+	it('clears the custom validity of a valid or emptied value', () => {
+		const $input = setup('123.456.789-00');
+		$input.trigger('blur');
+		$input.val('').trigger('blur');
+		expect($input[0].validity.customError).toBe(false);
+		$input.val('123.456.789-09').trigger('blur');
+		expect($input[0].validity.customError).toBe(false);
 	});
 
 	it('re-applies the mask shortly after a paste event', () => {

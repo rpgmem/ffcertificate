@@ -218,6 +218,7 @@ class Frontend {
 							'selected'     => __( '%1$s of %2$s selected.', 'ffcertificate' ),
 							'limitReached' => __( 'Untick one to choose another.', 'ffcertificate' ),
 							'chooseOne'    => __( 'Choose at least one option.', 'ffcertificate' ),
+							'fullName'     => __( 'Enter the first and last name.', 'ffcertificate' ),
 						),
 					)
 				);

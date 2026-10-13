@@ -41,9 +41,104 @@ class FormEditorSaveValidator {
 	public const GEOFENCE_MESSAGE_MIN_LENGTH = 25;
 
 	/**
+	 * Tags the plugin fills in itself, never from a form field. A required
+	 * tag among these asks nothing of the form's fields (#1734).
+	 *
+	 * @var array<int, string>
+	 */
+	public const GENERATED_TAGS = array(
+		'auth_code',
+		'validation_code',
+		'magic_token',
+		'submission_date',
+		'print_date',
+		'form_title',
+		'schedule',
+		'score',
+		'max_score',
+		'score_percent',
+	);
+
+	/**
+	 * Field names the required tags call for: each required tag that is
+	 * not one the plugin generates, without its braces (#1734).
+	 *
+	 * @return array<int, string>
+	 */
+	public static function required_field_names(): array {
+		$names = array();
+		foreach ( \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags() as $tag ) {
+			if ( 1 !== preg_match( '/^\{\{([a-z0-9_]+)\}\}$/i', trim( $tag ), $m ) ) {
+				continue;
+			}
+			$name = strtolower( $m[1] );
+			if ( ! in_array( $name, self::GENERATED_TAGS, true ) && 0 !== strpos( $name, 'qr_code' ) ) {
+				$names[] = $name;
+			}
+		}
+		return array_values( array_unique( $names ) );
+	}
+
+	/**
+	 * Whether a field name satisfies a required field name — `nome` stands
+	 * in for `name`, as it does in the layout check.
+	 *
+	 * @param string $field_name Field's variable name.
+	 * @param string $required   Required field name.
+	 */
+	public static function satisfies( string $field_name, string $required ): bool {
+		return $field_name === $required || ( 'name' === $required && 'nome' === $field_name );
+	}
+
+	/**
+	 * Whether a field's name is one the required tags call for.
+	 *
+	 * @param string $field_name Field's variable name.
+	 */
+	public static function is_required_field( string $field_name ): bool {
+		foreach ( self::required_field_names() as $required ) {
+			if ( self::satisfies( $field_name, $required ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Required tags with no field to fill them, in required order.
+	 *
+	 * @param array<int, array<string, mixed>> $fields Saved fields.
+	 * @return array<int, string> Missing `{{tag}}` tokens.
+	 */
+	public function missing_required_fields( array $fields ): array {
+		$names = array();
+		foreach ( $fields as $field ) {
+			$type = (string) ( $field['type'] ?? '' );
+			if ( ! in_array( $type, array( 'info', 'embed' ), true ) ) {
+				$names[] = (string) ( $field['name'] ?? '' );
+			}
+		}
+
+		$missing = array();
+		foreach ( self::required_field_names() as $required ) {
+			$found = false;
+			foreach ( $names as $name ) {
+				if ( self::satisfies( $name, $required ) ) {
+					$found = true;
+					break;
+				}
+			}
+			if ( ! $found ) {
+				$missing[] = '{{' . $required . '}}';
+			}
+		}
+		return $missing;
+	}
+
+	/**
 	 * Required certificate tags absent from a PDF layout.
 	 *
-	 * Reads the configurable required-tag list (Settings → Advanced) via
+	 * Reads the configurable required-tag list (Settings → Certificates) via
 	 * {@see SettingsReader::required_certificate_tags()} and honours the
 	 * historical `{{name}}`/`{{nome}}` alias — a layout using either token
 	 * satisfies a `{{name}}` requirement.

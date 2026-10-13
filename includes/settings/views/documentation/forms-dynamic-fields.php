@@ -58,17 +58,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'The three seed fields', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A new form starts with three fields, which are also the minimal set most templates rely on:', 'ffcertificate' ); ?></p>
 	<ul>
-		<li><code>name</code> — <?php esc_html_e( 'the participant\'s full name (required).', 'ffcertificate' ); ?></li>
-		<li><code>email</code> — <?php esc_html_e( 'the participant\'s email (required); used to deliver the certificate.', 'ffcertificate' ); ?></li>
+		<li><code>name</code> — <?php esc_html_e( 'the participant\'s full name (required): at least two words and 4 characters, checked in the browser and on the server.', 'ffcertificate' ); ?></li>
+		<li><code>email</code> — <?php esc_html_e( 'the participant\'s email (required); used to deliver the certificate. An address that is not valid is refused as such, not as a missing one.', 'ffcertificate' ); ?></li>
 		<li><code>cpf_rf</code> — <?php esc_html_e( 'the identifier (required). See the note below on CPF/RF validation.', 'ffcertificate' ); ?></li>
 	</ul>
+
+	<p><?php esc_html_e( 'A field whose tag is a required certificate tag (Settings → Certificates) is drawn with an amber border and a "Required certificate tag" badge: it is always required, its variable name cannot change and it cannot be removed. Saving a form that has no field for one of those tags shows a warning naming it.', 'ffcertificate' ); ?></p>
 
 	<p><?php esc_html_e( 'Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as "da" and "de" in lowercase.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-note">
 		<p>
 			<strong class="ffc-icon-info"><?php esc_html_e( 'CPF/RF validation is by field name, not by type.', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF). The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate "CPF field type" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF); the browser masks it and blocks the submit while the number is invalid. The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate "CPF field type" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked.', 'ffcertificate' ); ?>
 		</p>
 	</div>
 </div>

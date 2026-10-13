@@ -790,7 +790,7 @@ class CertTemplateAdminScreen {
 			<?php elseif ( $is_record ) : ?>
 				<?php esc_html_e( 'Common tags:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{cpf_rf}}</code>, <code>{{custom_fields_section}}</code>, <code>{{termo_ciencia}}</code>, <code>{{submitted_at}}</code>.
 			<?php else : ?>
-				<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
+				<?php echo \FreeFormCertificate\Admin\AdminUI::get_required_tags_line(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where it is built. ?>
 			<?php endif; ?>
 		</p>
 

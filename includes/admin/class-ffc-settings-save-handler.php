@@ -187,6 +187,12 @@ class SettingsSaveHandler {
 		// v4.6.16: Activity Log + Debug moved to Advanced tab.
 		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
 
+		// The required-tag list moved to its own tab (#1734). It also
+		// autosaves; this keeps the tab's Save button writing what is shown.
+		if ( 'certificates' === $ffc_tab && isset( $new['required_certificate_tags'] ) && is_string( $new['required_certificate_tags'] ) ) {
+			$clean['required_certificate_tags'] = sanitize_textarea_field( $new['required_certificate_tags'] );
+		}
+
 		if ( 'advanced' === $ffc_tab ) {
 			$clean['enable_activity_log'] = isset( $new['enable_activity_log'] ) ? 1 : 0;
 

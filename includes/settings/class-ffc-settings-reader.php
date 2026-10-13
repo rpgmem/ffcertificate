@@ -183,7 +183,7 @@ final class SettingsReader {
 	/**
 	 * Certificate-layout tags that every form's PDF layout must contain.
 	 *
-	 * Configured in Settings → Advanced as a newline/comma list of `{{tag}}`
+	 * Configured in Settings → Certificates as a newline/comma list of `{{tag}}`
 	 * tokens; defaults to the historical trio when nothing is saved.
 	 * `{{auth_code}}` is always required (certificate verification breaks
 	 * without it) and is force-injected even if removed from the saved list.
