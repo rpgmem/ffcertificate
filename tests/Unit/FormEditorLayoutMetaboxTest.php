@@ -22,6 +22,9 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// SettingsReader reads the required certificate tags (#1734).
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'admin_url' )->returnArg();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();

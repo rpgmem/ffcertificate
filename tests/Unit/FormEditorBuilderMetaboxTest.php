@@ -22,6 +22,8 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// SettingsReader reads the required certificate tags (#1734).
+		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
 
 		// `LabelSorter::locale()` is guarded by `function_exists( 'get_locale' )`,
@@ -116,5 +118,32 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 		// #1574: the value a hidden field submits is editable in the row.
 		$this->assertMatchesRegularExpression( '/<div class="ffc-hidden-value-field">/', $html, 'Visible for a hidden field.' );
 		$this->assertStringContainsString( 'name="ffc_fields[0][default_value]" value="2026-A"', $html );
+	}
+
+	/**
+	 * #1734 — a field a required certificate tag calls for is marked and
+	 * locked; any other field is not.
+	 */
+	public function test_a_required_tag_field_is_marked_and_locked(): void {
+		$html = $this->render(
+			array(
+				array(
+					'name'  => 'cpf_rf',
+					'type'  => 'text',
+					'label' => 'CPF / RF',
+				),
+				array(
+					'name'  => 'curso',
+					'type'  => 'text',
+					'label' => 'Curso',
+				),
+			)
+		);
+
+		$this->assertSame( 1, substr_count( $html, 'ffc-field-row ffc-field-row-required-tag' ) );
+		$this->assertStringContainsString( 'Required certificate tag', $html );
+		$this->assertMatchesRegularExpression( '/name="ffc_fields\[0\]\[name\]" value="cpf_rf"[^>]*readonly/', $html );
+		$this->assertDoesNotMatchRegularExpression( '/name="ffc_fields\[1\]\[name\]" value="curso"[^>]*readonly/', $html );
+		$this->assertSame( 1, substr_count( $html, 'ffc-remove-field" disabled' ) );
 	}
 }

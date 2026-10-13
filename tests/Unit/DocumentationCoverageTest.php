@@ -35,6 +35,7 @@ class DocumentationCoverageTest extends TestCase {
 		'advanced'        => 'config-advanced',
 		'cache'           => 'config-cache',
 		'captcha'         => 'config-captcha',
+		'certificates'    => 'feature-certificates',
 		'email_model'     => 'email-texts-hub',
 		'email_texts'     => 'email-texts-hub',
 		'general'         => 'config-general',

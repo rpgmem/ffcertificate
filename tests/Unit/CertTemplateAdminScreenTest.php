@@ -19,6 +19,8 @@ class CertTemplateAdminScreenTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// SettingsReader reads the required certificate tags (#1734).
+		Functions\when( 'get_option' )->justReturn( array() );
 		class_exists( '\\FreeFormCertificate\\Admin\\CertTemplateAdminScreen' );
 
 		Functions\when( '__' )->returnArg();
