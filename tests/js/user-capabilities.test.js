@@ -185,7 +185,7 @@ function rolePanelMarkup() {
 
 function capRow(slug, userGranted) {
 	return `<div class="ffc-cap-row" data-ffc-cap-slug="${slug}" data-ffc-cap-name="${slug}" data-ffc-user-granted="${userGranted ? '1' : '0'}">
-		<label class="ffc-toggle"><input type="checkbox" class="ffc-cap-checkbox"${userGranted ? ' checked' : ''}><span class="ffc-toggle-track"></span></label>
+		<label class="ffc-control-toggle"><input type="checkbox" class="ffc-cap-checkbox"${userGranted ? ' checked' : ''}><span class="ffc-control-toggle-track"></span></label>
 		<div><span class="ffc-cap-row-name">${slug}</span><span class="ffc-cap-role-tag" data-ffc-role-tag></span></div>
 		<span class="ffc-cap-origin" data-ffc-origin>—</span>
 	</div>`;

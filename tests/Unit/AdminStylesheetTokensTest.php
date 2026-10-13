@@ -105,7 +105,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 		'ffc-audience.css'              => 2,
 		'ffc-audience-admin.css'        => 4,
 		'ffc-frontend.css'              => 4,
-		'ffc-user-dashboard.css'        => 2,
+		'ffc-user-dashboard.css'        => 1,
 		'ffc-user-permissions.css'      => 13,
 
 		// The palette itself, and the two sheets whose literals ARE the point:
@@ -117,7 +117,11 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// opting out of the theme, and here it is how a theme is declared.
 		// The ratchet still bites: six is the whole of `--ffc-accent-*`, so a
 		// seventh has to be argued.
-		'ffc-common.css'                => 123,
+		//
+		// 123 -> 124 in #1748: the ink of the toggle's optional mark. The knob
+		// is white in both themes by decision, so what is drawn on it cannot
+		// follow a token that lightens in the dark theme.
+		'ffc-common.css'                => 124,
 		'ffc-code-editor-dark.css'      => 35,
 		'ffc-pdf-core.css'              => 12,
 		// The screenshot viewer in core's "View details" modal (#1716). That
@@ -1185,7 +1189,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 		);
 		$this->assertSame(
 			array(),
-			self::detect_controls( ".x .ffc-toggle-track { background: var(--ffc-bg-alt); }" ),
+			self::detect_controls( ".x .ffc-control-toggle-track { background: var(--ffc-bg-alt); }" ),
 			'A toggle track carries no text.'
 		);
 	}

@@ -77,15 +77,15 @@
         if ($explicit && $explicit.length) {
             return $explicit;
         }
-        // `.ffc-toggle` wraps `<input>` + `<span.ffc-toggle-track>` + label
+        // `.ffc-control-toggle` wraps `<input>` + `<span.ffc-control-toggle-track>` + label
         // text. Injecting the badge between the input and the track kills
-        // the `input:checked + .ffc-toggle-track` CSS rule that recolors
+        // the `input:checked + .ffc-control-toggle-track` CSS rule that recolors
         // the track on toggle-on — so the toggle visually stays "off"
         // even after the save succeeds. Anchor the badge AFTER the
         // wrapping label instead so the track stays adjacent.
         // A steps control (#1745) is one field made of one radio per step:
         // its badge goes after the whole control, once.
-        var $anchor = $field.closest('.ffc-toggle, .ffc-control-steps');
+        var $anchor = $field.closest('.ffc-control-toggle, .ffc-control-steps');
         if (!$anchor.length) {
             $anchor = $field;
         }

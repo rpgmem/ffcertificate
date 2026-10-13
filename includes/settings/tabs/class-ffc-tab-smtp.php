@@ -61,7 +61,7 @@ class TabSMTP extends SettingsTab {
 			FFC_VERSION,
 			true
 		);
-		// Powers the `.ffc-toggle` switch on `disable_all_emails`.
+		// Powers the `.ffc-control-toggle` switch on `disable_all_emails`.
 		$this->enqueue_autosave_infra();
 	}
 

@@ -415,6 +415,17 @@ final class Icons {
 	}
 
 	/**
+	 * Icons a component draws where no `.ffc-icon-*` class can reach -- a
+	 * pseudo-element of another control, such as the toggle knob's mark
+	 * (#1748). Each becomes a `--ffc-icon-mask-<name>` custom property on
+	 * `:root`, holding the same mask the class would use, so the drawing still
+	 * has one source.
+	 *
+	 * @var array<int, string>
+	 */
+	public const MASKS = array( 'check', 'x' );
+
+	/**
 	 * The CSS that draws every `.ffc-icon-*` class, between its markers.
 	 *
 	 * Each icon is a mask over `currentColor`, so it is painted in the text
@@ -473,7 +484,13 @@ final class Icons {
 			. "    }\n"
 			. '}';
 
-		return self::CSS_BEGIN . "\n" . $base . "\n\n" . implode( "\n\n", $rules ) . "\n\n" . self::tone_rules() . "\n\n" . $forced . "\n" . self::CSS_END;
+		$masks = array();
+		foreach ( self::MASKS as $icon ) {
+			$masks[] = '    --ffc-icon-mask-' . $icon . ': url("data:image/svg+xml,' . self::data_uri_body( $icon ) . '");';
+		}
+		$mask_vars = ":root {\n" . implode( "\n", $masks ) . "\n}";
+
+		return self::CSS_BEGIN . "\n" . $base . "\n\n" . implode( "\n\n", $rules ) . "\n\n" . $mask_vars . "\n\n" . self::tone_rules() . "\n\n" . $forced . "\n" . self::CSS_END;
 	}
 
 	/**

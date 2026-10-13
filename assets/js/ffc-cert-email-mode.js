@@ -1,7 +1,7 @@
 /**
  * Per-form certificate email — Global/Custom toggle behaviour (#964).
  *
- * The form editor's email metabox renders a `.ffc-toggle` (`#ffc_email_custom_mode`)
+ * The form editor's email metabox renders a `.ffc-control-toggle` (`#ffc_email_custom_mode`)
  * that chooses between the shared GLOBAL default text and a per-form CUSTOM copy.
  * The toggle is UI-only — the effective mode is re-derived server-side from the
  * stored subject/body on every load, so nothing here needs to be persisted:

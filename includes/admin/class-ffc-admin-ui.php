@@ -3,7 +3,7 @@
  * Reusable admin UI helpers.
  *
  * Currently exposes `render_toggle()` — emits the markup contract the
- * `.ffc-toggle` CSS expects (label > hidden checkbox + decorative
+ * `.ffc-control-toggle` CSS expects (label > hidden checkbox + decorative
  * track + visible label text). Keeping the markup behind a helper lets
  * every call-site stay consistent without copying the HTML.
  *
@@ -46,7 +46,7 @@ class AdminUI {
 	}
 
 	/**
-	 * Render a toggle switch (`.ffc-toggle`) — visually a switch, an
+	 * Render a toggle switch (`.ffc-control-toggle`) — visually a switch, an
 	 * accessible checkbox underneath.
 	 *
 	 * Usage:
@@ -75,7 +75,10 @@ class AdminUI {
 	 *                                    `.ffc-field-required`), `title` (optional
 	 *                                    string, tooltip on the wrapper label),
 	 *                                    `data` (optional array<string,string> of
-	 *                                    data-* attributes on the input).
+	 *                                    data-* attributes on the input), `mark`
+	 *                                    (optional bool, draws a check or a cross
+	 *                                    on the knob so on and off do not rest on
+	 *                                    colour alone; #1748).
 	 */
 	public static function render_toggle( array $args ): void {
 		$name = $args['name'] ?? '';
@@ -92,7 +95,7 @@ class AdminUI {
 		$input_class = trim( (string) ( $args['input_class'] ?? '' ) );
 		$data        = $args['data'] ?? array();
 
-		$wrapper_class = 'ffc-toggle' . ( '' !== $extra ? ' ' . $extra : '' );
+		$wrapper_class = 'ffc-control-toggle' . ( ! empty( $args['mark'] ) ? ' ffc-control-toggle-mark' : '' ) . ( '' !== $extra ? ' ' . $extra : '' );
 		$title_attr    = '' !== $title ? ' title="' . esc_attr( $title ) . '"' : '';
 
 		$data_attrs = '';
@@ -120,9 +123,9 @@ class AdminUI {
 			$input_class_attr, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above.
 			$data_attrs // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above.
 		);
-		echo '<span class="ffc-toggle-track" aria-hidden="true"></span>';
+		echo '<span class="ffc-control-toggle-track" aria-hidden="true"></span>';
 		if ( '' !== $label ) {
-			echo '<span class="ffc-toggle-label">' . esc_html( $label ) . '</span>';
+			echo '<span class="ffc-control-toggle-label">' . esc_html( $label ) . '</span>';
 		}
 		echo '</label>';
 	}

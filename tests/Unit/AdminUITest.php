@@ -44,14 +44,14 @@ class AdminUITest extends TestCase {
 
 	public function test_renders_unchecked_toggle_by_default(): void {
 		$html = $this->capture( array( 'name' => 'my_key' ) );
-		$this->assertStringContainsString( 'class="ffc-toggle"', $html );
+		$this->assertStringContainsString( 'class="ffc-control-toggle"', $html );
 		$this->assertStringContainsString( 'name="my_key"', $html );
 		$this->assertStringContainsString( 'id="my_key"', $html );
 		$this->assertStringContainsString( 'type="checkbox"', $html );
 		$this->assertStringContainsString( 'value="1"', $html );
 		$this->assertStringNotContainsString( 'checked', $html );
 		$this->assertStringNotContainsString( 'disabled', $html );
-		$this->assertStringContainsString( '<span class="ffc-toggle-track"', $html );
+		$this->assertStringContainsString( '<span class="ffc-control-toggle-track"', $html );
 	}
 
 	public function test_emits_checked_when_args_checked_true(): void {
@@ -71,7 +71,7 @@ class AdminUITest extends TestCase {
 				'label' => 'My toggle',
 			)
 		);
-		$this->assertStringContainsString( '<span class="ffc-toggle-label">My toggle</span>', $html );
+		$this->assertStringContainsString( '<span class="ffc-control-toggle-label">My toggle</span>', $html );
 	}
 
 	public function test_separate_id_and_name(): void {
@@ -83,7 +83,7 @@ class AdminUITest extends TestCase {
 
 	public function test_appends_extra_class(): void {
 		$html = $this->capture( array( 'name' => 'k', 'class' => 'is-large' ) );
-		$this->assertStringContainsString( 'class="ffc-toggle is-large"', $html );
+		$this->assertStringContainsString( 'class="ffc-control-toggle is-large"', $html );
 	}
 
 	public function test_emits_data_attributes(): void {
@@ -121,9 +121,9 @@ class AdminUITest extends TestCase {
 		$echoed = (string) ob_get_clean();
 
 		$this->assertSame( '', $echoed, 'get_toggle must not echo' );
-		$this->assertStringContainsString( 'class="ffc-toggle"', $returned );
+		$this->assertStringContainsString( 'class="ffc-control-toggle"', $returned );
 		$this->assertStringContainsString( 'name="k"', $returned );
-		$this->assertStringContainsString( '<span class="ffc-toggle-label">My toggle</span>', $returned );
+		$this->assertStringContainsString( '<span class="ffc-control-toggle-label">My toggle</span>', $returned );
 	}
 
 	/**
@@ -330,6 +330,25 @@ class AdminUITest extends TestCase {
 
 		$this->assertStringNotContainsString( '<a ', AdminUI::get_stat_card( array( 'label' => 'Calendars', 'url' => '/x' ) ) );
 		$this->assertStringNotContainsString( '<a ', AdminUI::get_stat_card( array( 'label' => 'Calendars', 'link' => 'Manage' ) ) );
+	}
+
+	public function test_toggle_mark_is_opt_in(): void {
+		ob_start();
+		AdminUI::render_toggle(
+			array(
+				'name'  => 'flag',
+				'mark'  => true,
+				'class' => 'extra',
+			)
+		);
+		$marked = (string) ob_get_clean();
+		ob_start();
+		AdminUI::render_toggle( array( 'name' => 'flag' ) );
+		$plain = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<label class="ffc-control-toggle ffc-control-toggle-mark extra"', $marked );
+		$this->assertStringContainsString( '<label class="ffc-control-toggle" for="flag">', $plain );
+		$this->assertStringNotContainsString( 'ffc-toggle', str_replace( 'ffc-control-toggle', '', $plain ), 'No class of the pre-family name is left (#1748).' );
 	}
 
 	// ==================================================================
