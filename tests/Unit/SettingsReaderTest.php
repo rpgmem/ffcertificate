@@ -375,6 +375,20 @@ class SettingsReaderTest extends TestCase {
 		);
 	}
 
+	/**
+	 * #1736 — a list the Save button stored on one line still reads as tags.
+	 */
+	public function test_required_certificate_tags_reads_a_list_stored_on_one_line(): void {
+		$this->stub_option(
+			array( 'required_certificate_tags' => '{{auth_code}} {{name}} {{cpf_rf}} {{curso}}' )
+		);
+
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}', '{{curso}}' ),
+			SettingsReader::required_certificate_tags()
+		);
+	}
+
 	public function test_required_certificate_tags_force_injects_auth_code(): void {
 		// Admin removed auth_code — it must come back, first.
 		$this->stub_option(

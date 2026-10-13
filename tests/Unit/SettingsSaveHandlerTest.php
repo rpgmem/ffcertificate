@@ -51,7 +51,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_POST['_ffc_tab'] );
+		unset( $_POST['_ffc_tab'], $_POST['ffc_settings'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -195,6 +195,30 @@ class SettingsSaveHandlerTest extends TestCase {
 	// ==================================================================
 	// save_general_settings()
 	// ==================================================================
+
+	/**
+	 * #1736 — the Save button stored the required tags on one line: the
+	 * sanitised `$new` had already turned the line breaks into spaces.
+	 */
+	public function test_certificates_tab_keeps_the_tags_one_per_line(): void {
+		$_POST['_ffc_tab']     = 'certificates';
+		$_POST['ffc_settings'] = array( 'required_certificate_tags' => "{{auth_code}}\r\n{{name}}\r\n{{curso}}" );
+		// What `get_post_array()` hands the section: line breaks collapsed.
+		$new = array( 'required_certificate_tags' => '{{auth_code}} {{name}} {{curso}}' );
+
+		$result = $this->invoke( 'save_general_settings', array( array(), $new ) );
+
+		$this->assertSame( "{{auth_code}}\r\n{{name}}\r\n{{curso}}", $result['required_certificate_tags'] );
+	}
+
+	public function test_another_tab_leaves_the_required_tags_alone(): void {
+		$_POST['_ffc_tab']     = 'general';
+		$_POST['ffc_settings'] = array( 'required_certificate_tags' => '{{x}}' );
+
+		$result = $this->invoke( 'save_general_settings', array( array( 'required_certificate_tags' => "{{auth_code}}\n{{name}}" ), array() ) );
+
+		$this->assertSame( "{{auth_code}}\n{{name}}", $result['required_certificate_tags'] );
+	}
 
 	public function test_general_dark_mode_valid_values_accepted(): void {
 		foreach ( array( 'off', 'on', 'auto' ) as $mode ) {
