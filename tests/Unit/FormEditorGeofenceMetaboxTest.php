@@ -284,6 +284,37 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'name="ffc_geofence[geo_ip_area_location_ids][]" value="loc_a"', $html, 'the IP picker uses the same control' );
 	}
 
+	/**
+	 * #1745 — the four "what does a blocked visitor see" selects are
+	 * steps controls posting the values the selects posted.
+	 */
+	public function test_display_modes_are_three_position_switches_keeping_the_stored_values(): void {
+		$html = $this->render(
+			array(
+				'datetime_hide_mode_before' => 'hide',
+				'datetime_hide_mode_during' => 'title_message',
+				'datetime_hide_mode_after'  => 'message',
+				'geo_hide_mode'             => 'hide',
+			)
+		);
+
+		$this->assertStringNotContainsString( 'hide_mode_before]">', $html, 'no select is left' );
+		foreach ( array( 'datetime_hide_mode_before', 'datetime_hide_mode_during', 'datetime_hide_mode_after', 'geo_hide_mode' ) as $key ) {
+			$this->assertSame( 3, substr_count( $html, 'name="ffc_geofence[' . $key . ']"' ), $key );
+		}
+		$this->assertStringContainsString( 'id="ffc_datetime_hide_mode_before-3" name="ffc_geofence[datetime_hide_mode_before]" value="hide" checked', $html );
+		$this->assertStringContainsString( 'id="ffc_datetime_hide_mode_during-1" name="ffc_geofence[datetime_hide_mode_during]" value="title_message" checked', $html );
+		$this->assertStringContainsString( 'id="ffc_datetime_hide_mode_after-2" name="ffc_geofence[datetime_hide_mode_after]" value="message" checked', $html );
+		$this->assertStringContainsString( 'id="ffc_geo_hide_mode-3" name="ffc_geofence[geo_hide_mode]" value="hide" checked', $html );
+	}
+
+	public function test_display_modes_default_to_the_message(): void {
+		$html = $this->render( array( 'geo_hide_mode' => 'unknown' ) );
+
+		$this->assertStringContainsString( 'id="ffc_geo_hide_mode-2" name="ffc_geofence[geo_hide_mode]" value="message" checked', $html );
+		$this->assertStringContainsString( 'id="ffc_datetime_hide_mode_before-2" name="ffc_geofence[datetime_hide_mode_before]" value="message" checked', $html );
+	}
+
 	public function test_without_registered_locations_the_picker_points_to_settings(): void {
 		$html = $this->render( array() );
 

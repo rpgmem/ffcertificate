@@ -449,20 +449,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<!-- API Failure Fallback (IP-dependent — collapsed when IP API off). -->
 				<tr data-ffc-section="ip_api_full">
 					<th scope="row">
-						<label for="ffc_api_fallback"><?php esc_html_e( 'When IP API Fails', 'ffcertificate' ); ?></label>
+						<?php esc_html_e( 'When IP API Fails', 'ffcertificate' ); ?>
 					</th>
 					<td>
-						<select name="api_fallback" id="ffc_api_fallback">
-							<option value="allow" <?php selected( $settings['api_fallback'], 'allow' ); ?>>
-								<?php esc_html_e( 'Allow access (assume valid)', 'ffcertificate' ); ?>
-							</option>
-							<option value="block" <?php selected( $settings['api_fallback'], 'block' ); ?>>
-								<?php esc_html_e( 'Block access (assume invalid)', 'ffcertificate' ); ?>
-							</option>
-							<option value="gps_only" <?php selected( $settings['api_fallback'], 'gps_only' ); ?>>
-								<?php esc_html_e( 'Use GPS only (ignore IP validation)', 'ffcertificate' ); ?>
-							</option>
-						</select>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_steps(
+							array(
+								'name'         => 'api_fallback',
+								'id'           => 'ffc_api_fallback',
+								'value'        => (string) $settings['api_fallback'],
+								'default'      => 'gps_only',
+								'palette'      => 'severity',
+								'legend'       => __( 'When IP API Fails', 'ffcertificate' ),
+								'options'      => array(
+									'allow'    => __( 'Allow', 'ffcertificate' ),
+									'gps_only' => __( 'GPS only', 'ffcertificate' ),
+									'block'    => __( 'Block', 'ffcertificate' ),
+								),
+								'descriptions' => array(
+									'allow'    => __( 'Allow access (assume valid)', 'ffcertificate' ),
+									'gps_only' => __( 'Use GPS only (ignore IP validation)', 'ffcertificate' ),
+									'block'    => __( 'Block access (assume invalid)', 'ffcertificate' ),
+								),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'What to do when IP geolocation API is unavailable or returns error.', 'ffcertificate' ); ?>
 						</p>
