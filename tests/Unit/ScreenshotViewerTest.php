@@ -6,6 +6,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Core\AssetHelper;
 use FreeFormCertificate\Integrations\ScreenshotViewer;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -68,7 +69,9 @@ final class ScreenshotViewerTest extends TestCase {
 		ScreenshotViewer::enqueue( 'plugin-install.php' );
 
 		$this->assertSame( array( 'css:ffc-screenshots', 'js:ffc-screenshots' ), array_keys( $this->enqueued ) );
-		$this->assertStringEndsWith( 'assets/js/ffc-screenshots.min.js', $this->enqueued['js:ffc-screenshots'] );
+		// The suffix depends on SCRIPT_DEBUG, which an earlier test in the
+		// process may have defined, so it is read rather than assumed.
+		$this->assertSame( FFC_PLUGIN_URL . 'assets/js/ffc-screenshots' . AssetHelper::asset_suffix() . '.js', $this->enqueued['js:ffc-screenshots'] );
 		$this->assertSame( '%1$s of %2$s', $this->localized['ffcScreenshots']['counter'] );
 		$this->assertSame( array( 'dialog', 'close', 'previous', 'next', 'zoomIn', 'zoomOut', 'counter' ), array_keys( $this->localized['ffcScreenshots'] ) );
 	}
