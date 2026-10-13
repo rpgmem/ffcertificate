@@ -2027,7 +2027,8 @@
    ========================================================================== */
 /* The family's shared hover / pressed halo. */
 .ffc-control-toggle,
-.ffc-control-steps {
+.ffc-control-steps,
+.ffc-control-segmented {
     --ffc-control-halo: color-mix(in srgb, var(--ffc-primary) 18%, transparent);
     --ffc-control-knob-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     /* The ink of a mark drawn on the toggle's knob. The knob is white in both
@@ -2465,6 +2466,167 @@
 
     .ffc-control-steps-many .ffc-control-steps-stop:has(input:checked) .ffc-control-steps-label {
         white-space: nowrap;
+    }
+}
+
+/* ==========================================================================
+   SEGMENTED (#1750) — AdminUI::render_segmented(): 2 to 6 choices with NO
+   order between them, joined in one pill. One native radio per segment, so
+   it posts and works without a script. The chosen segment is filled with
+   the accent and set in bold, so colour is never the only signal.
+   ========================================================================== */
+.ffc-control-segmented {
+    --ffc-control-segmented-pad-y: var(--ffc-spacing-2xs);
+    --ffc-control-segmented-pad-x: var(--ffc-spacing-lg);
+    --ffc-control-segmented-font: var(--ffc-font-size-sm);
+    --ffc-control-segmented-shape: var(--ffc-radius-pill);
+
+    display: inline-block;
+    vertical-align: top;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.ffc-control-segmented-track {
+    display: inline-flex;
+    gap: var(--ffc-spacing-3xs);
+    padding: var(--ffc-spacing-3xs);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-control-segmented-shape);
+    background: var(--ffc-gray-100);
+}
+
+.ffc-control-segmented-option {
+    position: relative;
+    display: flex;
+    cursor: pointer;
+}
+
+.ffc-control-segmented-option input {
+    /* Visually hidden but reachable by keyboard + assistive tech. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
+.ffc-control-segmented-label {
+    flex: 1 1 auto;
+    padding: var(--ffc-control-segmented-pad-y) var(--ffc-control-segmented-pad-x);
+    border-radius: var(--ffc-control-segmented-shape);
+    color: var(--ffc-text);
+    font-size: var(--ffc-control-segmented-font);
+    line-height: 1.4;
+    text-align: center;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ffc-control-segmented-option:hover input:not(:checked) + .ffc-control-segmented-label {
+    background: var(--ffc-control-halo);
+}
+
+.ffc-control-segmented-option input:checked + .ffc-control-segmented-label {
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
+    font-weight: 600;
+    box-shadow: var(--ffc-shadow-sm);
+}
+
+.ffc-control-segmented-option:active input:checked + .ffc-control-segmented-label {
+    box-shadow: 0 0 0 4px var(--ffc-control-halo);
+}
+
+.ffc-control-segmented-option input:focus-visible + .ffc-control-segmented-label {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: 2px;
+}
+
+/* Sizes and width. */
+.ffc-control-segmented-sm {
+    --ffc-control-segmented-pad-y: var(--ffc-spacing-3xs);
+    --ffc-control-segmented-pad-x: var(--ffc-spacing-sm);
+    --ffc-control-segmented-font: var(--ffc-font-size-xs);
+}
+
+.ffc-control-segmented-lg {
+    --ffc-control-segmented-pad-y: var(--ffc-spacing-xs);
+    --ffc-control-segmented-pad-x: var(--ffc-spacing-xl);
+    --ffc-control-segmented-font: var(--ffc-font-size-base);
+}
+
+.ffc-control-segmented-fluid {
+    display: block;
+}
+
+.ffc-control-segmented-fluid .ffc-control-segmented-track {
+    display: flex;
+}
+
+.ffc-control-segmented-fluid .ffc-control-segmented-option {
+    flex: 1 1 0;
+}
+
+/* Disabled: the colour leaves, nothing fades. */
+.ffc-control-segmented:disabled .ffc-control-segmented-option {
+    cursor: not-allowed;
+}
+
+.ffc-control-segmented:disabled .ffc-control-segmented-option input:checked + .ffc-control-segmented-label {
+    background: var(--ffc-gray-200);
+    color: var(--ffc-text-muted);
+    box-shadow: inset 0 0 0 1px var(--ffc-gray-300);
+}
+
+/* Only the chosen option's description shows. */
+.ffc-control-segmented-desc {
+    display: none;
+    margin-top: var(--ffc-spacing-xs);
+}
+
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(1) input:checked) .ffc-control-segmented-desc[data-option="1"],
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(2) input:checked) .ffc-control-segmented-desc[data-option="2"],
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(3) input:checked) .ffc-control-segmented-desc[data-option="3"],
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(4) input:checked) .ffc-control-segmented-desc[data-option="4"],
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(5) input:checked) .ffc-control-segmented-desc[data-option="5"],
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(6) input:checked) .ffc-control-segmented-desc[data-option="6"] {
+    display: block;
+}
+
+/* A phone: the segments share the width and may wrap their names. */
+@media (max-width: 480px) {
+    .ffc-control-segmented {
+        display: block;
+    }
+
+    .ffc-control-segmented .ffc-control-segmented-track {
+        display: flex;
+    }
+
+    .ffc-control-segmented .ffc-control-segmented-option {
+        flex: 1 1 0;
+    }
+
+    .ffc-control-segmented .ffc-control-segmented-label {
+        white-space: normal;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-control-segmented-label {
+        transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .ffc-control-segmented-option input:checked + .ffc-control-segmented-label {
+        forced-color-adjust: none;
+        background: Highlight;
+        color: HighlightText;
     }
 }
 

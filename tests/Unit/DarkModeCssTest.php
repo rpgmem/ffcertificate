@@ -213,6 +213,13 @@ final class DarkModeCssTest extends TestCase {
 			array( '--ffc-success', '--ffc-bg-card', 3.0, 'a steps fill at green' ),
 			array( '--ffc-info', '--ffc-bg-card', 3.0, 'a steps fill in the info tone' ),
 			array( '--ffc-border', '--ffc-bg-card', 3.0, 'an idle stop on a card' ),
+			// The segmented control (#1750): an option's name on the track, the
+			// chosen one on the accent, and a disabled choice. The track's outline
+			// and the accent fill are graphics against the card.
+			array( '--ffc-text', '--ffc-gray-100', 4.5, 'a segmented option on its track' ),
+			array( '--ffc-text-on-primary', '--ffc-primary', 4.5, 'the chosen segmented option' ),
+			array( '--ffc-text-muted', '--ffc-gray-200', 4.5, 'a disabled chosen segmented option' ),
+			array( '--ffc-border', '--ffc-gray-100', 3.0, 'the segmented track outline on its own ground' ),
 			array( '--ffc-text-secondary', '--ffc-bg-alt', 4.5, 'neutral status badge' ),
 			array( '--ffc-text-muted', '--ffc-bg-alt', 4.5, 'closed status badge' ),
 			array( '--ffc-text-secondary', '--ffc-bg-card', 4.5, 'a label inside the modal' ),

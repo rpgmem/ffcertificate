@@ -83,9 +83,10 @@
         // the track on toggle-on — so the toggle visually stays "off"
         // even after the save succeeds. Anchor the badge AFTER the
         // wrapping label instead so the track stays adjacent.
-        // A steps control (#1745) is one field made of one radio per step:
-        // its badge goes after the whole control, once.
-        var $anchor = $field.closest('.ffc-control-toggle, .ffc-control-steps');
+        // A steps (#1745) or segmented (#1750) control is one field made of
+        // one radio per option: its badge goes after the whole control, once.
+        // Inside it the badge would also break `input:checked + label`.
+        var $anchor = $field.closest('.ffc-control-toggle, .ffc-control-steps, .ffc-control-segmented');
         if (!$anchor.length) {
             $anchor = $field;
         }

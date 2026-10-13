@@ -804,12 +804,13 @@ A setting that picks among a few values is drawn by a control from the `ffc-cont
 | --- | --- | --- |
 | two (on/off) | toggle | `AdminUI::render_toggle()` |
 | an ORDERED scale of 3 to 11 | steps | `AdminUI::render_steps()` |
-| 2 to 6 with no order | segmented | `AdminUI::render_segmented()` (planned) |
+| 2 to 6 with no order | segmented | `AdminUI::render_segmented()` |
 | anything else | a `<select>` | — |
 
 - **One toggle, everywhere** (#1748). `.ffc-control-toggle` is the only on/off control, the user dashboard's included — it had a second implementation that hid its checkbox with `display: none`, which took it out of keyboard reach. A toggle built in JS prints the same markup `render_toggle()` does. `mark` adds a check or a cross on the knob; the knob is white in both themes, so the mark's ink is fixed too, and the drawings come from `Core\Icons` through `--ffc-icon-mask-*` custom properties (`Icons::MASKS`).
 - **Order is the test for steps.** A rail and a fill say "more of the same thing"; three unrelated choices on a rail lie about their relation. Off → Moderate → Strict is a scale; Dark / Light / Auto is not.
-- **Out of range is handled, not refused.** `render_steps()` given fewer or more options than it draws prints a select, so the field still works, and calls `_doing_it_wrong()` naming the control that fits — which surfaces under `WP_DEBUG`, where the developer is.
+- **A segment's name is short; the explanation is a description.** A select hid the long option text until opened; a segmented row shows every name at once, so `On (always dark)` became `On` and the sentence moved to `descriptions`, of which only the chosen one shows (#1750).
+- **Out of range is handled, not refused.** `render_steps()` or `render_segmented()` given fewer or more options than it draws prints a select, so the field still works, and calls `_doing_it_wrong()` naming the control that fits — which surfaces under `WP_DEBUG`, where the developer is.
 - **Every control is native inputs plus CSS.** Radios or a checkbox carry the value, so the form posts without a script, the arrow keys and screen readers work, and autosave (`data-ffc-autosave-key` / `-form-key` on the inputs) saves the group as one field with no change to the widget.
 - **Parameters for what varies, custom properties for fine tuning.** Palette, size, shape, width and which labels show are parameters that become classes; anything finer is a `--ffc-control-*` property set by a module class or inline. A palette or tone colours through tokens only and stays inside `:where()`, so a state such as disabled always wins over the colour of the chosen value.
 - **One state language.** Hover and pressed draw a halo (`--ffc-control-halo`), keyboard focus the 2px primary ring, and disabled takes the colour away instead of fading — `opacity` would multiply down the contrast `DarkModeCssTest` measures.

@@ -864,12 +864,6 @@
     text-transform: uppercase;
 }
 
-/* Time description indent */
-.ffc-time-description {
-    margin-left: var(--ffc-spacing-2xl);
-    margin-top: var(--ffc-spacing-2xs);
-}
-
 /* List style */
 .ffc-list-disc {
     list-style: disc;

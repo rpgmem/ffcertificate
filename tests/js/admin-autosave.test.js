@@ -259,6 +259,34 @@ describe('FFC admin-autosave — bootAutoSaveFields page-init', () => {
 		vi.useRealTimers();
 	});
 
+	it('saves a segmented control as one field with its badge after the control (#1750)', () => {
+		vi.useFakeTimers();
+		document.body.innerHTML = `
+			<form>
+				<fieldset class="ffc-control-segmented">
+					<span class="ffc-control-segmented-track">
+						<label class="ffc-control-segmented-option"><input type="radio" name="dm" id="d1" value="off" data-ffc-autosave-key="dark_mode" checked><span class="ffc-control-segmented-label">Off</span></label>
+						<label class="ffc-control-segmented-option"><input type="radio" name="dm" id="d2" value="on" data-ffc-autosave-key="dark_mode"><span class="ffc-control-segmented-label">On</span></label>
+						<label class="ffc-control-segmented-option"><input type="radio" name="dm" id="d3" value="auto" data-ffc-autosave-key="dark_mode"><span class="ffc-control-segmented-label">Auto</span></label>
+					</span>
+				</fieldset>
+			</form>`;
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+
+		window.FFC.Admin.bootAutoSaveFields();
+		window.$('#d3').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1].value).toBe('auto');
+		expect(document.querySelectorAll('.ffc-autosave-badge')).toHaveLength(1);
+		expect(document.querySelector('.ffc-control-segmented').nextElementSibling.classList.contains('ffc-autosave-badge')).toBe(true);
+		// The label stays right after its radio, so `input:checked + label` still paints it.
+		expect(document.getElementById('d3').nextElementSibling.classList.contains('ffc-control-segmented-label')).toBe(true);
+		postSpy.mockRestore();
+		vi.useRealTimers();
+	});
+
 	it('skips inputs that have already been wired (idempotent re-scan)', () => {
 		document.body.innerHTML = `
 			<input type="checkbox" data-ffc-autosave-key="cache_enabled">

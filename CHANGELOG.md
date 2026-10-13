@@ -27,6 +27,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Required form fields are a list of their own** (#1741). Settings → Certificates keeps the layout tags and, apart, the fields every form needs with label and type (default `name`, `cpf_rf`, `email`; Email stays). New forms start with them, their type is locked, and the editor adds missing ones.
 - **Ordered three-level settings use the steps control** (#1745). The four geofence display modes, the two private-calendar displays and the IP API fallback store the same values as before; an unknown stored value shows the old default.
 - **The on/off toggle joins the control family** (#1748). `.ffc-toggle` is now `.ffc-control-toggle` everywhere, with the shared hover and pressed halo, a greyed disabled state instead of a faded one, and an optional check / cross mark on the knob.
+- **Small unordered choices use a segmented control** (#1750). Dark Mode, Code Editor Theme and the geofence Time Behavior are one row of options instead of a select or stacked radios, with the same stored values; new `AdminUI::render_segmented()` takes 2 to 6 options.
 
 ### Fixed
 
