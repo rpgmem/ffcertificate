@@ -380,6 +380,15 @@
     background-color: var(--ffc-bg);
 }
 
+/* What the user agent paints itself: scrollbars, the date picker's popup and
+   an unstyled control. Without this they stay light on the dark canvas — the
+   Documentation tab's navigation column and every code block scrolled with a
+   white bar. Admin only: on a public page `<html>` is the theme's, and its
+   scrollbars are not ours to recolour. */
+:root.ffc-dark-mode:has(> body.wp-admin) {
+    color-scheme: dark;
+}
+
 :root.ffc-dark-mode .wrap h1,
 :root.ffc-dark-mode .wrap h2,
 :root.ffc-dark-mode .wrap h3,
@@ -440,6 +449,15 @@
 :root.ffc-dark-mode textarea:focus {
     border-color: var(--ffc-border-focus);
     box-shadow: 0 0 0 1px var(--ffc-border-focus);
+}
+
+/* Core paints checkboxes and radios `#fff`; the check mark and the dot are
+   core's blue, which reads on the dark ground too. */
+:root.ffc-dark-mode input[type="checkbox"],
+:root.ffc-dark-mode input[type="radio"] {
+    color: var(--ffc-text);
+    background-color: var(--ffc-bg-alt);
+    border-color: var(--ffc-text-muted);
 }
 
 /* A disabled control must still read as text, not as the background. */
@@ -527,6 +545,33 @@
     color: var(--ffc-text-light);
     background: var(--ffc-bg);
     border-color: var(--ffc-border-light);
+}
+
+/* A link-styled button ("Clear" beside an image picker) keeps core's
+   `#2271b1`, which is too dark to read on the dark card. Core's red
+   delete link keeps its own colour. */
+:root.ffc-dark-mode .button-link:not(.button-link-delete) {
+    color: var(--ffc-primary);
+}
+
+/* Core's colour picker. The swatch button is a `.button` and follows the rule
+   above, but its "Select Color" label is a span core paints `#f6f7f7` on its
+   own, so it stayed a light block on every picker (Email Model, the message
+   appearance). The popup is painted white by Iris. */
+:root.ffc-dark-mode .wp-picker-container .wp-color-result-text {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-left-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .wp-picker-container .wp-color-result:hover .wp-color-result-text,
+:root.ffc-dark-mode .wp-picker-container .wp-color-result:focus .wp-color-result-text {
+    background: var(--ffc-bg-card);
+}
+
+:root.ffc-dark-mode .wp-picker-container .iris-picker {
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border);
 }
 
 /* Tab strips. */

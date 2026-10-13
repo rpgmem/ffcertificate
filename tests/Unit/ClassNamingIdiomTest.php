@@ -88,6 +88,7 @@ final class ClassNamingIdiomTest extends TestCase {
 		'hndle'            => 'core metabox title',
 		'howto'            => 'core instruction text',
 		'inside'           => 'core metabox body',
+		'iris-picker'      => 'the popup of core\'s colour picker, emitted by the bundled Iris script',
 		'large-text'       => 'core input width modifier',
 		'misc-pub-section' => 'core publish-box section',
 		'notice'           => 'core admin notice',

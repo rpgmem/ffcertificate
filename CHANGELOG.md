@@ -17,6 +17,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Clock-reading tests no longer fail when a run crosses a boundary** (#1719). The rate-limit window, dashboard midnight and export-filename tests read the clock before and after the call; the issue holds the audit of every clock-reading test. A `readme.txt` change now carries its pt_BR copy in the same PR (#1718).
 
+### Fixed
+
+- **Dark mode reaches the colour picker, scrollbars, time pickers and radios** (#1723). The picker's label and popup, `.button-link` and checkboxes follow the palette, and admin screens declare `color-scheme: dark`, so native parts stop painting light. Quick Navigation no longer scrolls sideways, and the Geolocation "Add new location" fields get their padding back.
+
 ## [6.38.0] (2026-10-12) — `529e80a1`
 
 The licence moves to AGPLv3 or later. Identity resolution names each number in "One address, several people" and can consolidate a candidate imported twice, the recruitment CSV import honours the RF check digit, and a manage-only role reaches the Reregistration screen. Behind the screens, tests now cover error paths across the plugin and the PHP coverage floor rises to 90%.
