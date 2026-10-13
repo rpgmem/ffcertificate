@@ -68,6 +68,7 @@ class FormProcessor {
 			( new Submission\FormConfigResolver() )->apply( $ctx );
 			( new Submission\PreflightGuard() )->apply( $ctx );
 			( new Submission\FieldSanitizer() )->apply( $ctx );
+			( new Submission\FieldRulesGuard() )->apply( $ctx );
 			( new Submission\DeviceSignalsResolver() )->apply( $ctx );
 			( new Submission\GeofenceGuard() )->apply( $ctx );
 			( new Submission\RateLimitGuard() )->apply( $ctx );

@@ -12,6 +12,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The plugin has an icon on Dashboard → Updates and in the plugin list** (#1712). A certificate with a seal, white on blue, replaces WordPress's grey placeholder, read from the installed copy. `assets/img/brand/` also ships black, white, dark-screen and no-background variants, each as SVG and as 128 px and 256 px PNG.
 - **"View details" shows a banner and the readme's tabs** (#1714). Description, Installation, FAQ, Screenshots and Other notes come from the offered release's `readme.txt`, and the changelog renders its Markdown instead of printing it raw.
 - **"View details" speaks Portuguese and opens screenshots in place** (#1716). The tabs and banner follow the viewer's language when the plugin ships a translation (`languages/readme-pt_BR.txt`), and a screenshot opens in an overlay with arrows, swipe and zoom instead of a new tab.
+- **Choice fields take one option per row, and every field can carry limits** (#1729). Options may contain commas; a choice field can shuffle its options per participant; a checkbox can cap how many are ticked; text and textarea take a minimum and maximum length (server ceilings 255 and 2,000) with a live counter; number and date take a range. The participant sees each limit, and the editor says what each type is for.
 
 ### Changed
 
@@ -23,6 +24,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Dark mode reaches what core paints on its own** (#1723). Admin screens declare `color-scheme: dark` (scrollbars, the time picker's clock, the file button). Links, notice links, "Add New", disabled primary buttons, the colour picker, checkboxes, radios, the Publish box footer, row actions, Screen Options and the booking details title follow the palette. Quick Navigation no longer scrolls sideways; the submissions ID column is narrower.
 - **Personal Calendars and Certificate templates follow dark mode** (#1725). Their lists and editors are WordPress post screens the toggle never reached, so they stayed light; the rich-text e-mail editor's tabs and toolbar now read the palette too.
+- **A checkbox field renders its options, and the server enforces every field's rules** (#1729). A "Checkbox" field rendered as one empty text box that posted `on`; it is now a group of boxes posting the ticked options, and "Required" means at least one. A required answer, a length, a range and whether an answer is one of the options were the browser's word only; an edited page could post anything.
 
 ## [6.38.0] (2026-10-12) — `529e80a1`
 

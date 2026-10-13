@@ -327,7 +327,7 @@ class SubmissionPersister {
 				continue;
 			}
 
-			$options = array_map( 'trim', explode( ',', ArrayValue::string( $field, 'options' ) ) );
+			$options = \FreeFormCertificate\Core\FormField::choices( $field );
 			$points  = array_map( 'intval', array_map( 'trim', explode( ',', $points_str ) ) );
 
 			// Max score: highest point value for this field.

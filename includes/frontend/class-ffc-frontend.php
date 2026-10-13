@@ -205,6 +205,23 @@ class Frontend {
 			// global ajaxComplete to add the form_id to that list once a
 			// submission succeeds. Only enqueued where [ffc_form] renders.
 			if ( $has_form ) {
+				// Shuffle, character counters, the checkbox cap and "choose at
+				// least one" (#1729). Footer, no dependency: it reads the form's
+				// markup and listens on the document.
+				wp_enqueue_script( 'ffc-form-fields', FFC_PLUGIN_URL . "assets/js/ffc-form-fields{$s}.js", array(), FFC_VERSION, true );
+				wp_localize_script(
+					'ffc-form-fields',
+					'ffcFormFields',
+					array(
+						'strings' => array(
+							/* translators: 1: options ticked, 2: most options allowed. */
+							'selected'     => __( '%1$s of %2$s selected.', 'ffcertificate' ),
+							'limitReached' => __( 'Untick one to choose another.', 'ffcertificate' ),
+							'chooseOne'    => __( 'Choose at least one option.', 'ffcertificate' ),
+						),
+					)
+				);
+
 				wp_enqueue_script( 'ffc-already-submitted-notice', FFC_PLUGIN_URL . "assets/js/ffc-already-submitted-notice{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 				wp_localize_script(
 					'ffc-already-submitted-notice',

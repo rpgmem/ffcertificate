@@ -86,6 +86,104 @@
     color: var(--ffc-primary);
 }
 
+.ffc-type-desc {
+    margin: var(--ffc-spacing-sm) 0 0;
+}
+
+/* One row per option (#1729): drag handle, text, remove. */
+.ffc-choice-list {
+    list-style: none;
+    margin: 0 0 var(--ffc-spacing-sm);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-choice-row {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) 32px;
+    gap: var(--ffc-spacing-sm);
+    align-items: center;
+    margin: 0;
+}
+
+.ffc-choice-handle {
+    cursor: move;
+    color: var(--ffc-text-muted);
+}
+
+.ffc-choice-input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffc-choice-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    color: var(--ffc-danger);
+}
+
+.ffc-field-settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
+    margin-top: var(--ffc-spacing-lg);
+}
+
+.ffc-field-setting {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+}
+
+.ffc-field-type-menu {
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    box-shadow: var(--ffc-shadow-md);
+    min-width: 200px;
+    z-index: var(--ffc-z-overlay);
+}
+
+.ffc-field-type-menu .ffc-menu-header {
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+    font-weight: 600;
+    border-bottom: 1px solid var(--ffc-border-light);
+}
+
+.ffc-field-type-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: var(--ffc-spacing-xs) 0;
+}
+
+.ffc-field-type-menu li {
+    margin: 0;
+}
+
+.ffc-field-type-option {
+    display: block;
+    width: 100%;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+    border: 0;
+    background: transparent;
+    color: var(--ffc-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ffc-field-type-option:hover,
+.ffc-field-type-option:focus-visible {
+    background: var(--ffc-bg-alt);
+}
+
 .ffc-builder-actions {
     margin-top: var(--ffc-spacing-2xl);
     padding: var(--ffc-spacing-md);

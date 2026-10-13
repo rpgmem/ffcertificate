@@ -375,8 +375,6 @@ class Shortcodes {
 		$name    = isset( $field['name'] ) ? $field['name'] : '';
 		$label   = isset( $field['label'] ) ? $field['label'] : '';
 		$default = isset( $field['default_value'] ) ? $field['default_value'] : '';
-		$is_req  = ! empty( $field['required'] );
-		$options = ! empty( $field['options'] ) ? explode( ',', $field['options'] ) : array();
 
 		// Info block: display-only, no input.
 		if ( 'info' === $type ) {
@@ -448,67 +446,6 @@ class Shortcodes {
 			return '<input type="hidden" name="' . esc_attr( $name ) . '" id="' . esc_attr( $name ) . '" value="' . esc_attr( $default ) . '">';
 		}
 
-		ob_start();
-		?>
-		<div class="ffc-form-field">
-			<label for="<?php echo esc_attr( $name ); ?>">
-				<?php echo esc_html( $label ); ?> 
-				<?php
-				if ( $is_req ) {
-					echo '<span class="ffc-required">*</span>';}
-				?>
-			</label>
-			
-			<?php if ( 'textarea' === $type ) : ?>
-				<textarea class="ffc-input ffc-textarea" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" 
-				<?php
-				if ( $is_req ) {
-					echo 'required aria-required="true"'; }
-				?>
-				rows="1"><?php echo esc_textarea( $default ); ?></textarea>
-
-			<?php elseif ( 'select' === $type ) : ?>
-				<select class="ffc-input" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" 
-				<?php
-				if ( $is_req ) {
-					echo 'required aria-required="true"'; }
-				?>
-				>
-					<option value=""><?php esc_html_e( 'Select...', 'ffcertificate' ); ?></option>
-					<?php
-					foreach ( $options as $opt ) :
-						$opt_val = trim( $opt );
-						?>
-						<option value="<?php echo esc_attr( $opt_val ); ?>" <?php selected( $default, $opt_val ); ?>><?php echo esc_html( $opt_val ); ?></option>
-					<?php endforeach; ?>
-				</select>
-
-			<?php elseif ( 'radio' === $type ) : ?>
-				<div class="ffc-radio-group" role="group" aria-label="<?php echo esc_attr( $label ); ?>">
-					<?php
-					foreach ( $options as $opt ) :
-						$opt_val = trim( $opt );
-						?>
-						<label><input type="radio" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $opt_val ); ?>" 
-						<?php
-						if ( $is_req ) {
-							echo 'required aria-required="true"'; }
-						?>
-						<?php checked( $default, $opt_val ); ?>> <?php echo esc_html( $opt_val ); ?></label>
-					<?php endforeach; ?>
-				</div>
-
-			<?php else : ?>
-				<input class="ffc-input" type="<?php echo esc_attr( $type ); ?>" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $default ); ?>" 
-				<?php
-				if ( $is_req ) {
-					echo 'required aria-required="true"'; }
-				?>
-				>
-			<?php endif; ?>
-		</div>
-		<?php
-		$field_html = ob_get_clean();
-		return $field_html ? $field_html : '';
+		return ( new FormFieldRenderer() )->render( $field, $type );
 	}
 }

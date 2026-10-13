@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\FormField;
 use FreeFormCertificate\Core\LabelSorter;
 use WP_Post;
 
@@ -192,7 +193,7 @@ class FormEditorBuilderMetabox {
 		$label     = isset( $field['label'] ) ? $field['label'] : '';
 		$name      = isset( $field['name'] ) ? $field['name'] : '';
 		$req       = isset( $field['required'] ) ? $field['required'] : '';
-		$opts      = isset( $field['options'] ) ? $field['options'] : '';
+		$choices   = FormField::choices( $field );
 		$content   = isset( $field['content'] ) ? $field['content'] : '';
 		$embed_url = isset( $field['embed_url'] ) ? $field['embed_url'] : '';
 		$points    = isset( $field['points'] ) ? $field['points'] : '';
@@ -268,6 +269,7 @@ class FormEditorBuilderMetabox {
 					?>
 				</div>
 			</div>
+			<p class="description ffc-type-desc" aria-live="polite"><?php echo esc_html( self::field_type_descriptions()[ $type ] ?? '' ); ?></p>
 
 			<div class="ffc-content-field<?php echo $is_info ? '' : ' ffc-hidden'; ?>">
 				<p class="description ffc-options-desc">
@@ -292,9 +294,35 @@ class FormEditorBuilderMetabox {
 
 			<div class="ffc-options-field <?php echo esc_attr( $options_visible_class ); ?>">
 				<p class="description ffc-options-desc">
-					<?php esc_html_e( 'Options (separate with commas):', 'ffcertificate' ); ?>
+					<?php esc_html_e( 'Options (one per row):', 'ffcertificate' ); ?>
 				</p>
-				<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][options]" value="<?php echo esc_attr( $opts ); ?>" placeholder="<?php esc_attr_e( 'Ex: Option 1, Option 2, Option 3', 'ffcertificate' ); ?>" class="ffc-w100">
+				<ol class="ffc-choice-list">
+					<?php foreach ( ( array() === $choices ? array( '' ) : $choices ) as $choice ) : ?>
+						<li class="ffc-choice-row">
+							<span class="ffc-choice-handle ffc-icon-grip" aria-hidden="true"></span>
+							<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][choices][]" value="<?php echo esc_attr( $choice ); ?>" class="ffc-choice-input" aria-label="<?php esc_attr_e( 'Option', 'ffcertificate' ); ?>">
+							<button type="button" class="button-link ffc-choice-remove" aria-label="<?php esc_attr_e( 'Remove option', 'ffcertificate' ); ?>"><span class="ffc-icon-cross" aria-hidden="true"></span></button>
+						</li>
+					<?php endforeach; ?>
+				</ol>
+				<button type="button" class="button ffc-choice-add"><span class="ffc-icon-plus" aria-hidden="true"></span> <?php esc_html_e( 'Add option', 'ffcertificate' ); ?></button>
+				<div class="ffc-field-settings">
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_fields[' . $index . '][shuffle]',
+							'id'      => 'ffc_field_shuffle_' . $index,
+							'checked' => '1' === (string) ( $field['shuffle'] ?? '' ),
+							'label'   => __( 'Shuffle the options for each participant', 'ffcertificate' ),
+						)
+					);
+					?>
+					<label class="ffc-field-setting<?php echo 'checkbox' === $type ? '' : ' ffc-hidden'; ?>" data-ffc-types="checkbox">
+						<?php esc_html_e( 'Maximum selections', 'ffcertificate' ); ?>
+						<input type="number" name="ffc_fields[<?php echo esc_attr( $index ); ?>][max_select]" value="<?php echo esc_attr( (string) ( $field['max_select'] ?? '' ) ); ?>" min="1" step="1" class="small-text">
+						<span class="description"><?php esc_html_e( 'Empty means no limit. Once it is reached, the other boxes are disabled.', 'ffcertificate' ); ?></span>
+					</label>
+				</div>
 				<div class="ffc-quiz-points ffc-hidden">
 					<p class="description ffc-options-desc ffc-mt-2xs">
 						<?php esc_html_e( 'Points per option (same order, separate with commas):', 'ffcertificate' ); ?>
@@ -302,7 +330,92 @@ class FormEditorBuilderMetabox {
 					<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][points]" value="<?php echo esc_attr( $points ); ?>" placeholder="<?php esc_attr_e( 'Ex: 0, 10, 0', 'ffcertificate' ); ?>" class="ffc-w100">
 				</div>
 			</div>
+
+			<div class="ffc-field-settings<?php echo in_array( $type, FormField::LENGTH_TYPES, true ) ? '' : ' ffc-hidden'; ?>" data-ffc-types="text textarea">
+				<label class="ffc-field-setting">
+					<?php esc_html_e( 'Minimum characters', 'ffcertificate' ); ?>
+					<input type="number" name="ffc_fields[<?php echo esc_attr( $index ); ?>][min_length]" value="<?php echo esc_attr( (string) ( $field['min_length'] ?? '' ) ); ?>" min="0" step="1" class="small-text">
+				</label>
+				<label class="ffc-field-setting">
+					<?php esc_html_e( 'Maximum characters', 'ffcertificate' ); ?>
+					<input type="number" name="ffc_fields[<?php echo esc_attr( $index ); ?>][max_length]" value="<?php echo esc_attr( (string) ( $field['max_length'] ?? '' ) ); ?>" min="1" step="1" class="small-text">
+				</label>
+				<span class="description">
+					<?php
+					echo esc_html(
+						sprintf(
+							/* translators: 1: longest single-line text answer, 2: longest textarea answer. */
+							__( 'Empty means no minimum, and the server ceiling for the maximum: %1$s characters for Text, %2$s for Textarea. The participant sees the limits you set.', 'ffcertificate' ),
+							number_format_i18n( FormField::TEXT_MAX_LENGTH ),
+							number_format_i18n( FormField::TEXTAREA_MAX_LENGTH )
+						)
+					);
+					?>
+				</span>
+			</div>
+
+			<div class="ffc-field-settings<?php echo 'number' === $type ? '' : ' ffc-hidden'; ?>" data-ffc-types="number">
+				<label class="ffc-field-setting">
+					<?php esc_html_e( 'Minimum', 'ffcertificate' ); ?>
+					<input type="number" name="ffc_fields[<?php echo esc_attr( $index ); ?>][min]" value="<?php echo esc_attr( 'number' === $type ? FormField::min( $field ) : '' ); ?>" step="any" class="small-text ffc-range-number" data-ffc-bound="min">
+				</label>
+				<label class="ffc-field-setting">
+					<?php esc_html_e( 'Maximum', 'ffcertificate' ); ?>
+					<input type="number" name="ffc_fields[<?php echo esc_attr( $index ); ?>][max]" value="<?php echo esc_attr( 'number' === $type ? FormField::max( $field ) : '' ); ?>" step="any" class="small-text ffc-range-number" data-ffc-bound="max">
+				</label>
+				<label class="ffc-field-setting">
+					<?php esc_html_e( 'Decimal places', 'ffcertificate' ); ?>
+					<select name="ffc_fields[<?php echo esc_attr( $index ); ?>][decimals]">
+						<?php for ( $places = 0; $places <= FormField::MAX_DECIMALS; $places++ ) : ?>
+							<option value="<?php echo esc_attr( (string) $places ); ?>" <?php selected( FormField::decimals( $field ), $places ); ?>><?php echo esc_html( number_format_i18n( $places ) ); ?></option>
+						<?php endfor; ?>
+					</select>
+				</label>
+				<span class="description"><?php esc_html_e( 'Empty means no limit. The participant sees the range.', 'ffcertificate' ); ?></span>
+			</div>
+
+			<div class="ffc-field-settings<?php echo 'date' === $type ? '' : ' ffc-hidden'; ?>" data-ffc-types="date">
+				<label class="ffc-field-setting">
+					<?php esc_html_e( 'Earliest date', 'ffcertificate' ); ?>
+					<input type="date" name="ffc_fields[<?php echo esc_attr( $index ); ?>][min_date]" value="<?php echo esc_attr( 'date' === $type ? FormField::min( $field ) : '' ); ?>" data-ffc-bound="min">
+				</label>
+				<label class="ffc-field-setting">
+					<?php esc_html_e( 'Latest date', 'ffcertificate' ); ?>
+					<input type="date" name="ffc_fields[<?php echo esc_attr( $index ); ?>][max_date]" value="<?php echo esc_attr( 'date' === $type ? FormField::max( $field ) : '' ); ?>" data-ffc-bound="max">
+				</label>
+				<span class="description"><?php esc_html_e( 'Empty means no limit. The participant sees the range.', 'ffcertificate' ); ?></span>
+			</div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * One line per field type, shown under the Type select, saying what the
+	 * participant gets and what the field is for (#1729).
+	 *
+	 * @return array<string, string> slug => translated description.
+	 */
+	public static function field_type_descriptions(): array {
+		return array(
+			'text'     => sprintf(
+				/* translators: %s: longest answer, in characters. */
+				__( 'One line, up to %s characters. For names, roles, codes.', 'ffcertificate' ),
+				number_format_i18n( FormField::TEXT_MAX_LENGTH )
+			),
+			'textarea' => sprintf(
+				/* translators: %s: longest answer, in characters. */
+				__( 'Several lines, up to %s characters. For explanations and comments.', 'ffcertificate' ),
+				number_format_i18n( FormField::TEXTAREA_MAX_LENGTH )
+			),
+			'email'    => __( 'An email address, checked for format.', 'ffcertificate' ),
+			'number'   => __( 'A number, with an optional range and decimal places.', 'ffcertificate' ),
+			'date'     => __( 'A date picked from a calendar, with an optional range.', 'ffcertificate' ),
+			'select'   => __( 'A drop-down list: the participant picks one option.', 'ffcertificate' ),
+			'radio'    => __( 'Every option visible: the participant picks exactly one.', 'ffcertificate' ),
+			'checkbox' => __( 'Every option visible: the participant ticks one or more. "Required" means at least one.', 'ffcertificate' ),
+			'info'     => __( 'Text shown on the form. Collects nothing.', 'ffcertificate' ),
+			'embed'    => __( 'A video, image or audio shown on the form. Collects nothing.', 'ffcertificate' ),
+			'hidden'   => __( 'A fixed value saved with every submission. The participant does not see it.', 'ffcertificate' ),
+		);
 	}
 }
