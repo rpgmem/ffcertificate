@@ -71,7 +71,9 @@ final class RadiusAndLayerTokensTest extends TestCase {
 		'ffc-audience.css'               => 2,
 		'ffc-certificates-dashboard.css' => 2,
 		'ffc-code-editor-dark.css'       => 2,
-		'ffc-common.css'                 => 5,
+		// The three-position switch's pill track (#1745): half its 30px height,
+		// which `pill` (12px) would leave visibly squared at that size.
+		'ffc-common.css'                 => 6,
 		'ffc-custom-fields-admin.css'    => 1,
 		'ffc-frontend.css'               => 1,
 		'ffc-pdf-core.css'               => 2,
