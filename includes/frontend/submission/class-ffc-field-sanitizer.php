@@ -96,8 +96,8 @@ class FieldSanitizer {
 				if ( isset( $field['type'] ) && 'email' === $field['type'] ) {
 					$email_typed = $email_typed || ( is_string( $value ) && '' !== trim( $value ) );
 					// Normalize email to lowercase for consistent storage and lookups.
-					$candidate  = sanitize_email( is_string( $value ) ? $value : '' );
-					$user_email = is_email( $candidate ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( $candidate ) : '';
+					$candidate  = \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( is_string( $value ) ? $value : '' ) );
+					$user_email = is_email( $candidate ) ? $candidate : '';
 				}
 			}
 		}

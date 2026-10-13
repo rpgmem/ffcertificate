@@ -110,6 +110,15 @@
     color: var(--ffc-text-secondary);
 }
 
+@media (forced-colors: active) {
+    /* The badge and the locked name paint only a ground, which forced-colors
+       discards: the badge keeps a contour, the locked name keeps its field. */
+    .ffc-required-tag-badge,
+    .ffc-field-row-required-tag input[readonly] {
+        border: 1px solid CanvasText;
+    }
+}
+
 .ffc-type-desc {
     margin: var(--ffc-spacing-sm) 0 0;
 }
