@@ -25,6 +25,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Form fields follow the form's font, and Public Design offers Arial** (#1727). Fields, selects and buttons inherit the font the labels use instead of the browser's; the font choice is the theme's (default), the plugin's system font or Arial, as in Email Signature Generator and Institutional Email.
 - **Required certificate tags have their own Settings tab and protect their fields** (#1734). The list moved from Advanced to a new Certificates tab; the layout and template screens list the configured tags instead of a fixed three. A field a required tag calls for is amber, badged, always required, and cannot be renamed or removed; a form missing one is warned on save.
 - **Required form fields are a list of their own** (#1741). Settings → Certificates keeps the layout tags and, apart, the fields every form needs with label and type (default `name`, `cpf_rf`, `email`; Email stays). New forms start with them, their type is locked, and the editor adds missing ones.
+- **Ordered three-level settings use the steps control** (#1745). The four geofence display modes, the two private-calendar displays and the IP API fallback store the same values as before; an unknown stored value shows the old default.
 
 ### Fixed
 

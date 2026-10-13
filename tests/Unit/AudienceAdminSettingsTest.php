@@ -267,10 +267,17 @@ class AudienceAdminSettingsTest extends TestCase {
 	public function test_render_page_self_scheduling_tab_shows_the_stored_messages(): void {
 		$_GET['tab'] = 'self-scheduling';
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+			if ( 'ffc_ss_private_display_mode' === $key ) {
+				return 'hide';
+			}
 			return 'ffc_ss_business_hours_booking_message' === $key ? 'Stored booking text' : $default;
 		} );
 
 		$html = $this->render( $this->page() );
+
+		// #1745: the display mode is a steps control, most shown first.
+		$this->assertStringContainsString( 'id="ffc_ss_private_display_mode-3" name="ffc_ss_private_display_mode" value="hide" checked', $html );
+		$this->assertStringNotContainsString( '<select name="ffc_ss_private_display_mode"', $html );
 
 		$this->assertStringContainsString( 'id="ffc-scheduling-tabpanel-self-scheduling"', $html );
 		$this->assertStringContainsString( 'Stored booking text', $html );
@@ -285,6 +292,7 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertStringContainsString( 'id="ffc-scheduling-tabpanel-audience"', $html );
 		$this->assertStringContainsString( 'save_aud_visibility_settings', $html );
 		$this->assertStringContainsString( 'aria-selected="true"', $html );
+		$this->assertStringContainsString( 'id="ffc_aud_private_display_mode-2" name="ffc_aud_private_display_mode" value="show_message" checked', $html, 'The default is the middle position.' );
 	}
 
 	public function test_render_page_import_tab_delegates_to_the_import_page(): void {

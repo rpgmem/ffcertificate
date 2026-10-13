@@ -255,35 +255,23 @@ class FormEditorGeofenceMetabox {
 						</td>
 					</tr>
 					<tr>
-						<th><label for="ffc_datetime_hide_mode_before"><?php esc_html_e( 'Display before opening', 'ffcertificate' ); ?></label></th>
+						<th><?php esc_html_e( 'Display before opening', 'ffcertificate' ); ?></th>
 						<td>
-							<select id="ffc_datetime_hide_mode_before" name="ffc_geofence[datetime_hide_mode_before]">
-								<option value="message" <?php selected( $datetime_hide_mode_before, 'message' ); ?>><?php esc_html_e( 'Show blocked message (Recommended)', 'ffcertificate' ); ?></option>
-								<option value="title_message" <?php selected( $datetime_hide_mode_before, 'title_message' ); ?>><?php esc_html_e( 'Show title + description + message', 'ffcertificate' ); ?></option>
-								<option value="hide" <?php selected( $datetime_hide_mode_before, 'hide' ); ?>><?php esc_html_e( 'Hide form completely', 'ffcertificate' ); ?></option>
-							</select>
+							<?php self::render_hide_mode( 'datetime_hide_mode_before', $datetime_hide_mode_before, __( 'Display before opening', 'ffcertificate' ) ); ?>
 							<p class="description"><?php esc_html_e( 'How to display the form before the start date / start time. "Hide form completely" makes the page render as if the form did not exist yet.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
 					<tr id="ffc-datetime-hide-mode-during-row" class="ffc-datetime-hide-during<?php echo $show_during_row ? '' : ' ffc-hidden'; ?>">
-						<th><label for="ffc_datetime_hide_mode_during"><?php esc_html_e( 'Display during, outside daily slot', 'ffcertificate' ); ?></label></th>
+						<th><?php esc_html_e( 'Display during, outside daily slot', 'ffcertificate' ); ?></th>
 						<td>
-							<select id="ffc_datetime_hide_mode_during" name="ffc_geofence[datetime_hide_mode_during]">
-								<option value="message" <?php selected( $datetime_hide_mode_during, 'message' ); ?>><?php esc_html_e( 'Show blocked message (Recommended)', 'ffcertificate' ); ?></option>
-								<option value="title_message" <?php selected( $datetime_hide_mode_during, 'title_message' ); ?>><?php esc_html_e( 'Show title + description + message', 'ffcertificate' ); ?></option>
-								<option value="hide" <?php selected( $datetime_hide_mode_during, 'hide' ); ?>><?php esc_html_e( 'Hide form completely', 'ffcertificate' ); ?></option>
-							</select>
+							<?php self::render_hide_mode( 'datetime_hide_mode_during', $datetime_hide_mode_during, __( 'Display during, outside daily slot', 'ffcertificate' ) ); ?>
 							<p class="description"><?php esc_html_e( 'How to display the form when the campaign is in its date range but the current time is outside today\'s daily slot (only used in Time Behavior = "applies to each day individually").', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
 					<tr>
-						<th><label for="ffc_datetime_hide_mode_after"><?php esc_html_e( 'Display after closing', 'ffcertificate' ); ?></label></th>
+						<th><?php esc_html_e( 'Display after closing', 'ffcertificate' ); ?></th>
 						<td>
-							<select id="ffc_datetime_hide_mode_after" name="ffc_geofence[datetime_hide_mode_after]">
-								<option value="message" <?php selected( $datetime_hide_mode_after, 'message' ); ?>><?php esc_html_e( 'Show blocked message (Recommended)', 'ffcertificate' ); ?></option>
-								<option value="title_message" <?php selected( $datetime_hide_mode_after, 'title_message' ); ?>><?php esc_html_e( 'Show title + description + message', 'ffcertificate' ); ?></option>
-								<option value="hide" <?php selected( $datetime_hide_mode_after, 'hide' ); ?>><?php esc_html_e( 'Hide form completely', 'ffcertificate' ); ?></option>
-							</select>
+							<?php self::render_hide_mode( 'datetime_hide_mode_after', $datetime_hide_mode_after, __( 'Display after closing', 'ffcertificate' ) ); ?>
 							<p class="description"><?php esc_html_e( 'How to display the form after the end date / end time.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
@@ -588,13 +576,9 @@ class FormEditorGeofenceMetabox {
 		?>
 			<table class="form-table">
 				<tr>
-					<th><label><?php esc_html_e( 'Display Mode', 'ffcertificate' ); ?></label></th>
+					<th><?php esc_html_e( 'Display Mode', 'ffcertificate' ); ?></th>
 					<td>
-						<select name="ffc_geofence[geo_hide_mode]">
-							<option value="message" <?php selected( $geo_hide_mode, 'message' ); ?>><?php esc_html_e( 'Show blocked message (Recommended)', 'ffcertificate' ); ?></option>
-							<option value="title_message" <?php selected( $geo_hide_mode, 'title_message' ); ?>><?php esc_html_e( 'Show title + description + message', 'ffcertificate' ); ?></option>
-							<option value="hide" <?php selected( $geo_hide_mode, 'hide' ); ?>><?php esc_html_e( 'Hide form completely', 'ffcertificate' ); ?></option>
-						</select>
+						<?php self::render_hide_mode( 'geo_hide_mode', (string) $geo_hide_mode, __( 'Display Mode', 'ffcertificate' ) ); ?>
 						<p class="description"><?php esc_html_e( 'How to display the form when user is outside allowed areas.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>
@@ -618,6 +602,37 @@ class FormEditorGeofenceMetabox {
 		</div>
 		<?php
 		$this->enqueue_metabox_script();
+	}
+
+	/**
+	 * A "what does a blocked visitor see" setting, as a steps control
+	 * ordered from the most shown to nothing (#1745). The stored values are
+	 * the ones the select used to post.
+	 *
+	 * @param string $key    Key under `ffc_geofence`.
+	 * @param string $value  Stored value.
+	 * @param string $legend Group name read by screen readers.
+	 */
+	private static function render_hide_mode( string $key, string $value, string $legend ): void {
+		AdminUI::render_steps(
+			array(
+				'name'         => 'ffc_geofence[' . $key . ']',
+				'id'           => 'ffc_' . $key,
+				'value'        => $value,
+				'default'      => 'message',
+				'legend'       => $legend,
+				'options'      => array(
+					'title_message' => __( 'Title and message', 'ffcertificate' ),
+					'message'       => __( 'Message only', 'ffcertificate' ),
+					'hide'          => __( 'Hidden', 'ffcertificate' ),
+				),
+				'descriptions' => array(
+					'title_message' => __( 'Show title + description + message', 'ffcertificate' ),
+					'message'       => __( 'Show blocked message (Recommended)', 'ffcertificate' ),
+					'hide'          => __( 'Hide form completely', 'ffcertificate' ),
+				),
+			)
+		);
 	}
 
 	/**
