@@ -254,7 +254,7 @@ class AdminUI {
 			$classes[] = 'ffc-control-steps-many';
 		}
 
-		printf( '<fieldset class="%1$s"%2$s>', esc_attr( implode( ' ', $classes ) ), $disabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a literal.
+		printf( '<fieldset class="%1$s"%2$s>', esc_attr( implode( ' ', $classes ) ), $disabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $disabled is a literal attribute or empty.
 		if ( '' !== $legend ) {
 			echo '<legend class="screen-reader-text">' . esc_html( $legend ) . '</legend>';
 		}
