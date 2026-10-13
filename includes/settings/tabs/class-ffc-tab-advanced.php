@@ -38,7 +38,7 @@ class TabAdvanced extends SettingsTab {
 
 	/**
 	 * Enqueue auto-save infrastructure when this tab is active. Powers
-	 * the `.ffc-toggle` switches for the activity-log master flag and
+	 * the `.ffc-control-toggle` switches for the activity-log master flag and
 	 * the per-module debug flags.
 	 *
 	 * @param string $hook Current admin page hook.

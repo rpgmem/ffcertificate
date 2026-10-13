@@ -3,7 +3,7 @@
  *
  * Grouped-card layout for the per-user capability manager on the WordPress
  * user-edit / profile screen. The toggle switch itself comes from
- * ffc-common.css (.ffc-toggle); this file adds the panel, context summary,
+ * ffc-common.css (.ffc-control-toggle); this file adds the panel, context summary,
  * search/preset toolbar, collapsible group cards, slug chips and origin
  * badges.
  *
@@ -429,12 +429,12 @@
 }
 
 /* role-granted capability: amber, "locked" toggle */
-.ffc-toggle.ffc-cap-toggle--byrole input[type="checkbox"]:checked + .ffc-toggle-track {
+.ffc-control-toggle.ffc-cap-toggle--byrole input[type="checkbox"]:checked + .ffc-control-toggle-track {
 	background: var(--ffc-warning);
 	cursor: not-allowed;
 }
 
-.ffc-toggle.ffc-cap-toggle--byrole .ffc-toggle-track::after {
+.ffc-control-toggle.ffc-cap-toggle--byrole .ffc-control-toggle-track::after {
 	box-shadow: 0 0 0 2px var(--ffc-warning-bg);
 }
 

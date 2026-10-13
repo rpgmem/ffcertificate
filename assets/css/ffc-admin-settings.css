@@ -527,6 +527,15 @@
     color: var(--ffc-text);
 }
 
+/* The search box fills the card. Core's `.regular-text` is 25em, wider than
+   the 280px navigation column, so the card scrolled sideways on every wide
+   screen. */
+.ffc-doc-toc input[type="search"] {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
 /* Quick-Navigation as a collapsible functional tree (#697). Top list + nested
    sub-lists are single-column; grouping nodes are <details> branches. */
 .ffc-doc-toc-list,
@@ -1366,4 +1375,26 @@ html:has(.ffc-settings-back-to-top) {
 
 .ffc-qr-design-preview__checks.is-error {
     color: var(--ffc-danger-text);
+}
+
+/* Geolocation → "Add new location" lives in the table's <tfoot>, where core's
+   `.widefat tfoot td input { padding: 0 }` (meant for footer checkboxes)
+   pressed the placeholder against the border. Give the fields back the
+   padding every other text field has. */
+.widefat tfoot .ffc-location-new-field {
+    padding: 0 var(--ffc-spacing-lg);
+}
+
+/* Settings → Certificates → Required Form Fields (#1741): the inputs fill
+   their cells instead of `.regular-text`'s fixed width, which pushed the
+   Type and Remove columns past the card. */
+.ffc-required-fields-table input[type="text"],
+.ffc-required-fields-table select {
+    width: 100%;
+    max-width: none;
+}
+
+.ffc-required-fields-table td:last-child {
+    width: 1%;
+    white-space: nowrap;
 }

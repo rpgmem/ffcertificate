@@ -64,7 +64,7 @@
 	function refreshRow(row, roleSet) {
 		var slug = row.getAttribute('data-ffc-cap-slug');
 		var cb = row.querySelector('.ffc-cap-checkbox');
-		var tg = row.querySelector('.ffc-toggle');
+		var tg = row.querySelector('.ffc-control-toggle');
 		var origin = row.querySelector('[data-ffc-origin]');
 		if (!cb) { return; }
 		if (roleSet.has(slug)) {

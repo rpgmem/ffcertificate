@@ -91,21 +91,26 @@ class UserCertificatesRestController {
 
 			$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
+			// Trash and a quiz attempt that did not pass are not certificates (#1744).
+			$hidden = \FreeFormCertificate\Core\SubmissionStatus::NOT_A_CERTIFICATE;
+			// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list is `%s` repeated once per hidden status, so the sniff cannot count it.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own submissions table to wp_posts for one user's REST payload; the response is built once per request.
 			$submissions = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT s.*, p.post_title as form_title
+					'SELECT s.*, p.post_title as form_title
                  FROM %i s
                  LEFT JOIN %i p ON s.form_id = p.ID
                  WHERE s.user_id = %d
-                 AND s.status != 'trash'
-                 ORDER BY s.submission_date DESC",
+                 AND s.status NOT IN (' . implode( ', ', array_fill( 0, count( $hidden ), '%s' ) ) . ')
+                 ORDER BY s.submission_date DESC',
 					$table,
 					$wpdb->posts,
-					$user_id
+					$user_id,
+					...$hidden
 				),
 				ARRAY_A
 			);
+			// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 			// Check per-capability permissions for the target user.
 			$can_download     = $this->user_has_capability( 'ffc_download_own_certificates', $user_id, $ctx['is_view_as'] );

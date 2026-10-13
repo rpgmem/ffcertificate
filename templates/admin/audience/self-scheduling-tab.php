@@ -60,20 +60,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<tbody>
 						<tr>
 							<th scope="row">
-								<label for="ffc_ss_private_display_mode"><?php esc_html_e( 'Private Calendar Display', 'ffcertificate' ); ?></label>
+								<?php esc_html_e( 'Private Calendar Display', 'ffcertificate' ); ?>
 							</th>
 							<td>
-								<select name="ffc_ss_private_display_mode" id="ffc_ss_private_display_mode">
-									<option value="show_message" <?php selected( $display_mode, 'show_message' ); ?>>
-										<?php esc_html_e( 'Show message', 'ffcertificate' ); ?>
-									</option>
-									<option value="show_title_message" <?php selected( $display_mode, 'show_title_message' ); ?>>
-										<?php esc_html_e( 'Show calendar title + message', 'ffcertificate' ); ?>
-									</option>
-									<option value="hide" <?php selected( $display_mode, 'hide' ); ?>>
-										<?php esc_html_e( 'Hide completely', 'ffcertificate' ); ?>
-									</option>
-								</select>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_steps(
+									array(
+										'name'         => 'ffc_ss_private_display_mode',
+										'id'           => 'ffc_ss_private_display_mode',
+										'value'        => (string) $display_mode,
+										'default'      => 'show_message',
+										'legend'       => __( 'Private Calendar Display', 'ffcertificate' ),
+										'options'      => array(
+											'show_title_message' => __( 'Title and message', 'ffcertificate' ),
+											'show_message' => __( 'Message only', 'ffcertificate' ),
+											'hide'         => __( 'Hidden', 'ffcertificate' ),
+										),
+										'descriptions' => array(
+											'show_title_message' => __( 'Show calendar title + message', 'ffcertificate' ),
+											'show_message' => __( 'Show message', 'ffcertificate' ),
+											'hide'         => __( 'Hide completely', 'ffcertificate' ),
+										),
+									)
+								);
+								?>
 								<p class="description"><?php esc_html_e( 'What to show when a private calendar is accessed by a non-logged-in user.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>

@@ -149,9 +149,17 @@ class SubmissionContext {
 	/**
 	 * Quiz score breakdown, when quiz mode is active.
 	 *
-	 * @var array{score: int, max_score: int, percent: int}|null
+	 * @var array{score: int, max_score: int, percent: int, correct_count: int, question_count: int, results: array<string, bool>, pending: list<string>}|null
 	 */
 	public ?array $quiz_score = null;
+
+	/**
+	 * Whether the submission waits for a person to grade an open answer
+	 * (#1732): no certificate, no PDF, and a response that says so.
+	 *
+	 * @var bool
+	 */
+	public bool $awaiting_grading = false;
 
 	/**
 	 * Generated PDF payload handed back to the client.

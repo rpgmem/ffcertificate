@@ -42,6 +42,8 @@ class GithubUpdaterTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( '' );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'wpautop' )->returnArg();
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'get_user_locale' )->justReturn( 'en_US' );
 		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
 		Functions\when( 'is_wp_error' )->alias(
 			static function ( $thing ) {
@@ -599,6 +601,103 @@ class GithubUpdaterTest extends TestCase {
 		$this->assertStringContainsString( 'Read this', $item->upgrade_notice );
 	}
 
+	public function test_details_modal_has_the_banner_and_the_offered_readme_tabs_in_order(): void {
+		$urls   = array();
+		$readme = array(
+			'code' => 200,
+			'body' => $this->release_readme() . "\n== Description ==\n\nIssues **certificates**.\n\n== Frequently Asked Questions ==\n\n= Is it free? =\n\nYes.\n\n== Screenshots ==\n\nThe images live in the repository.\n\n1. Dashboard\n\n== Installation ==\n\nActivate it.\n",
+		);
+		$this->route_fetches( '6.18.0', $readme, $urls );
+
+		$args       = new \stdClass();
+		$args->slug = 'ffcertificate';
+		$info       = GithubUpdater::plugin_info( false, 'plugin_information', $args );
+
+		$base = FFC_PLUGIN_URL . 'assets/img/brand/';
+		$this->assertSame(
+			array(
+				'low'  => $base . 'banner-772x250.png',
+				'high' => $base . 'banner-1544x500.png',
+			),
+			$info->banners
+		);
+		$this->assertSame( array( 'description', 'installation', 'faq', 'changelog', 'screenshots', 'other_notes' ), array_keys( $info->sections ) );
+		$this->assertSame( '<p>Issues <strong>certificates</strong>.</p>', $info->sections['description'] );
+		$this->assertSame( '<h4>Is it free?</h4><p>Yes.</p>', $info->sections['faq'] );
+		$this->assertSame( '<h4>Added</h4><ul><li>stuff</li></ul>', $info->sections['changelog'], 'The release notes are rendered, not printed as raw Markdown.' );
+		$this->assertStringContainsString( 'https://raw.githubusercontent.com/rpgmem/ffcertificate/v6.18.0/docs/screenshots/01-certificates-dashboard.png', $info->sections['screenshots'] );
+		$this->assertStringNotContainsString( 'live in the repository', $info->sections['screenshots'] );
+		$this->assertSame( '<h3>Privacy</h3>', $info->sections['other_notes'] );
+	}
+
+	public function test_details_modal_falls_back_to_the_installed_readme_for_an_older_cached_payload(): void {
+		$this->seed_cache( $this->release( '6.18.0' ) );
+
+		$args       = new \stdClass();
+		$args->slug = 'ffcertificate';
+		$info       = GithubUpdater::plugin_info( false, 'plugin_information', $args );
+
+		$this->assertArrayHasKey( 'description', $info->sections );
+		$this->assertStringContainsString( '13-dark-mode.png', $info->sections['screenshots'] );
+	}
+
+	public function test_a_portuguese_viewer_reads_the_translated_readme_and_banner(): void {
+		Functions\when( 'get_user_locale' )->justReturn( 'pt_BR' );
+		$urls = array();
+		$this->route_fetches( '6.18.0', array( 'code' => 200, 'body' => $this->release_readme() . "\n== Description ==\n\nIssues certificates.\n" ), $urls );
+		Functions\when( 'wp_remote_get' )->alias(
+			function ( $url ) use ( &$urls ) {
+				$urls[] = $url;
+				if ( false !== strpos( $url, 'languages/readme-pt_BR.txt' ) ) {
+					return array( 'code' => 200, 'body' => "== Description ==\n\nEmite certificados.\n\n== Screenshots ==\n\n1. O painel\n" );
+				}
+				if ( false !== strpos( $url, 'raw.githubusercontent.com' ) ) {
+					return array( 'code' => 200, 'body' => $this->release_readme() . "\n== Description ==\n\nIssues certificates.\n" );
+				}
+				return array( 'code' => 200, 'body' => $this->release_json( '6.18.0' ) );
+			}
+		);
+
+		$args       = new \stdClass();
+		$args->slug = 'ffcertificate';
+		$info       = GithubUpdater::plugin_info( false, 'plugin_information', $args );
+
+		$this->assertSame( '<p>Emite certificados.</p>', $info->sections['description'] );
+		$this->assertStringContainsString( 'alt="O painel"', $info->sections['screenshots'] );
+		$this->assertContains( 'https://raw.githubusercontent.com/rpgmem/ffcertificate/v6.18.0/languages/readme-pt_BR.txt', $urls );
+		$base = FFC_PLUGIN_URL . 'assets/img/brand/';
+		$this->assertSame(
+			array(
+				'low'  => $base . 'banner-772x250-pt_BR.png',
+				'high' => $base . 'banner-1544x500-pt_BR.png',
+			),
+			$info->banners
+		);
+	}
+
+	public function test_a_missing_release_translation_falls_back_to_the_installed_one(): void {
+		Functions\when( 'get_user_locale' )->justReturn( 'pt_BR' );
+		$this->seed_cache( $this->release( '6.18.0' ) );
+
+		$args       = new \stdClass();
+		$args->slug = 'ffcertificate';
+		$info       = GithubUpdater::plugin_info( false, 'plugin_information', $args );
+
+		$this->assertStringContainsString( 'emitir certificados', $info->sections['description'], 'The installed languages/readme-pt_BR.txt is the fallback.' );
+	}
+
+	public function test_a_locale_with_no_translation_reads_english(): void {
+		Functions\when( 'get_user_locale' )->justReturn( 'de_DE' );
+		$this->seed_cache( $this->release( '6.18.0' ) );
+
+		$args       = new \stdClass();
+		$args->slug = 'ffcertificate';
+		$info       = GithubUpdater::plugin_info( false, 'plugin_information', $args );
+
+		$this->assertStringContainsString( 'issuing PDF certificates', $info->sections['description'] );
+		$this->assertStringEndsWith( 'banner-1544x500.png', $info->banners['high'] );
+	}
+
 	public function test_plugin_info_describes_the_offered_release(): void {
 		$this->seed_cache(
 			array_merge(
@@ -619,6 +718,27 @@ class GithubUpdaterTest extends TestCase {
 		$this->assertSame( '9.1', $info->requires );
 		$this->assertSame( '9.3.2', $info->tested );
 		$this->assertSame( '8.5', $info->requires_php );
+	}
+
+	public function test_update_object_and_details_modal_carry_the_installed_icon(): void {
+		$this->seed_cache( $this->release( '6.17.0' ) );
+
+		$expected = array(
+			'1x'  => FFC_PLUGIN_URL . 'assets/img/brand/icon-128.png',
+			'2x'  => FFC_PLUGIN_URL . 'assets/img/brand/icon-256.png',
+			'svg' => FFC_PLUGIN_URL . 'assets/img/brand/icon.svg',
+		);
+
+		$update = GithubUpdater::check_for_update( $this->transient( '6.16.0' ) );
+		$this->assertSame( $expected, $update->response[ self::PLUGIN_FILE ]->icons );
+
+		$current = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) );
+		$this->assertSame( $expected, $current->no_update[ self::PLUGIN_FILE ]->icons, 'The plugin list draws the icon for a current plugin too.' );
+
+		$args       = new \stdClass();
+		$args->slug = 'ffcertificate';
+		$info       = GithubUpdater::plugin_info( false, 'plugin_information', $args );
+		$this->assertSame( $expected, $info->icons );
 	}
 
 	// ------------------------------------------------------------------

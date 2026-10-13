@@ -175,7 +175,7 @@ class SelfSchedulingEditorTest extends TestCase {
 		$editor->enqueue_scripts( 'post.php' );
 
 		$this->assertContains( 'ffc-calendar-editor', $enqueued );
-		// ffc-common carries the .ffc-toggle switch styles the editor's
+		// ffc-common carries the .ffc-control-toggle switch styles the editor's
 		// render_toggle controls depend on.
 		$this->assertContains( 'ffc-common', $styles );
 		$this->assertContains( 'ffc-calendar-editor', $styles );

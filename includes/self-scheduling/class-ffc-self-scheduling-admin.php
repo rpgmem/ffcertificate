@@ -129,6 +129,11 @@ class SelfSchedulingAdmin {
 		// The status badges paint through `var(--ffc-*)` since #1126 (defeito B).
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
+		// The calendar list and editor are plugin screens WordPress draws, so
+		// `AdminAssetsManager` (which only knows `?page=ffc-*` and the form
+		// post type) never put the dark-mode class on them.
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+
 		wp_enqueue_style(
 			'ffc-calendar-admin',
 			plugins_url( "assets/css/ffc-calendar-admin{$s}.css", dirname( __DIR__, 1 ) ),

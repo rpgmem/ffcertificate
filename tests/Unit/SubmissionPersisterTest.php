@@ -303,6 +303,59 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( '1', $ctx->submission_data['_quiz_passed'] );
 	}
 
+	/**
+	 * #1731 — a reset quiz records how many times the window was left,
+	 * capped; a quiz without the reset records nothing.
+	 *
+	 * @dataProvider provider_focus_losses
+	 */
+	public function test_quiz_records_the_window_leave_count_only_when_reset( string $reset, $posted, ?int $expected ): void {
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Quiz' ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_unslash' )->returnArg();
+		$_POST['ffc_quiz_focus_losses'] = $posted;
+
+		$handler = $this->handlerWithRepo();
+		$handler->shouldReceive( 'process_submission' )->once()->andReturn( 901 );
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
+		$enc->shouldReceive( 'is_configured' )->andReturn( false )->byDefault();
+
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'        => '1',
+					'quiz_passing_score'  => 70,
+					'quiz_max_attempts'   => 0,
+					'quiz_reset_on_leave' => $reset,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'A' ),
+			)
+		);
+
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+		unset( $_POST['ffc_quiz_focus_losses'] );
+
+		if ( null === $expected ) {
+			$this->assertArrayNotHasKey( '_quiz_focus_losses', $ctx->submission_data );
+		} else {
+			$this->assertSame( $expected, $ctx->submission_data['_quiz_focus_losses'] );
+		}
+	}
+
+	/**
+	 * @return array<string, array{string, mixed, ?int}>
+	 */
+	public static function provider_focus_losses(): array {
+		return array(
+			'reset on, two exits'      => array( '1', '2', 2 ),
+			'reset on, capped'         => array( '1', '5000', SubmissionPersister::MAX_FOCUS_LOSSES ),
+			'reset on, not a number'   => array( '1', array( 'x' ), 0 ),
+			'reset off, nothing kept'  => array( '0', '3', null ),
+			'strict, kept too (#1745)' => array( '2', '4', 4 ),
+		);
+	}
+
 	public function test_quiz_failing_in_progress_throws_feedback(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'is_wp_error' )->justReturn( false );
@@ -337,6 +390,100 @@ class SubmissionPersisterTest extends TestCase {
 			$this->assertSame( 'quiz_in_progress', $payload['quiz']['status'] );
 			$this->assertSame( 1, $payload['quiz']['attempt'] );
 			$this->assertSame( 2, $payload['quiz']['remaining'] );
+		}
+	}
+
+	/**
+	 * #1732 — an open answer a person grades holds the result back: the
+	 * attempt is stored awaiting grading, with no feedback and no certificate.
+	 */
+	public function test_quiz_with_an_open_answer_waits_for_grading(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		$handler = $this->handlerWithRepo( $repo );
+		$handler->shouldReceive( 'process_submission' )->once()->andReturn( 902 );
+		$repo->shouldReceive( 'updateStatus' )->once()->with( 902, 'quiz_pending' );
+
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
+		$enc->shouldReceive( 'is_configured' )->andReturn( false )->byDefault();
+
+		$fields   = $this->quizFieldsConfig();
+		$fields[] = array(
+			'type'        => 'textarea',
+			'name'        => 'essay',
+			'quiz_scored' => '1',
+			'quiz_text'   => 'manual',
+			'quiz_points' => '10',
+		);
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+					'quiz_max_attempts'  => 3,
+				),
+				'fields_config'   => $fields,
+				'submission_data' => array(
+					'q1'    => 'A',
+					'essay' => 'An answer.',
+				),
+			)
+		);
+
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+
+		$this->assertTrue( $ctx->awaiting_grading );
+		$this->assertSame( 902, $ctx->submission_id );
+		$this->assertSame( array( 'essay' ), $ctx->submission_data['_quiz_pending'] );
+		$this->assertSame( 20, $ctx->submission_data['_quiz_max_score'], 'The open answer counts in the maximum from the start.' );
+		$this->assertSame( 10, $ctx->submission_data['_quiz_score'] );
+	}
+
+	public function test_quiz_refuses_a_new_attempt_while_the_last_awaits_grading(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+
+		$existing = (object) array(
+			'id'              => '80',
+			'status'          => 'quiz_pending',
+			'data'            => json_encode( array( '_quiz_attempt' => 1 ) ),
+			'submission_date' => '2026-01-01 00:00:00',
+			'auth_code'       => '',
+		);
+
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
+		$enc->shouldReceive( 'is_configured' )->andReturn( true )->byDefault();
+		$enc->shouldReceive( 'hash' )->andReturn( 'hh' )->byDefault();
+
+		$srepo = Mockery::mock( 'alias:FreeFormCertificate\\Repositories\\SubmissionRepository' );
+		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
+
+		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
+		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '51817842080' );
+		$ds->shouldReceive( 'classify_cpf_rf' )->andReturn( 'cpf' );
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $existing );
+
+		$handler = $this->bareHandler();
+		$handler->shouldReceive( 'process_submission' )->never();
+
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'A' ),
+			)
+		);
+
+		try {
+			( new SubmissionPersister( $handler ) )->apply( $ctx );
+			$this->fail( 'Expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertTrue( $e->get_payload()['quiz']['awaiting_grading'] );
 		}
 	}
 
@@ -572,6 +719,43 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( 0, $result['score'] );
 		$this->assertSame( 0, $result['max_score'] );
 		$this->assertSame( 0, $result['percent'] );
+	}
+
+	/**
+	 * #1730 — the per-question verdict leaves only when the form shows it,
+	 * and carries the verdict, never the right answer.
+	 */
+	public function test_shown_results_follow_the_show_correct_setting(): void {
+		$score = array(
+			'correct_count'  => 1,
+			'question_count' => 2,
+			'results'        => array( 'q1' => true, 'q2' => false ),
+		);
+
+		$this->assertNull( SubmissionPersister::shown_results( array( 'quiz_show_correct' => '0' ), $score ) );
+		$this->assertNull( SubmissionPersister::shown_results( array(), $score ), 'Off unless the form turns it on.' );
+		$this->assertSame(
+			array(
+				'correct_count'  => 1,
+				'question_count' => 2,
+				'fields'         => array( 'q1' => true, 'q2' => false ),
+			),
+			SubmissionPersister::shown_results( array( 'quiz_show_correct' => '1' ), $score )
+		);
+	}
+
+	public function test_calculate_quiz_score_returns_the_counts(): void {
+		$persister = new SubmissionPersister( $this->handlerWithRepo() );
+		$result    = $persister->calculate_quiz_score(
+			array(
+				array( 'type' => 'radio', 'name' => 'q1', 'options' => 'A,B', 'points' => '5,0' ),
+				array( 'type' => 'radio', 'name' => 'q2', 'options' => 'A,B', 'points' => '5,0' ),
+			),
+			array( 'q1' => 'A', 'q2' => 'B' )
+		);
+
+		$this->assertSame( 1, $result['correct_count'] );
+		$this->assertSame( 2, $result['question_count'] );
 	}
 
 	// =====================================================================

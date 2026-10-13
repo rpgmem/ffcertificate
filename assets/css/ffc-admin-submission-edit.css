@@ -99,6 +99,22 @@
     overflow-wrap: anywhere;
 }
 
+/* Quiz grading card (#1732): one open answer per block. */
+.ffc-grade-question + .ffc-grade-question {
+    margin-top: var(--ffc-spacing-md);
+    padding-top: var(--ffc-spacing-md);
+    border-top: 1px solid var(--ffc-border-light);
+}
+
+.ffc-grade-answer {
+    margin: 0 0 var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    border-left: 3px solid var(--ffc-border);
+    background: var(--ffc-gray-100);
+    color: var(--ffc-text);
+    overflow-wrap: anywhere;
+}
+
 /* LGPD consent, inside the shared collapsible section. */
 .ffc-consent-details p {
     margin: 0 0 var(--ffc-spacing-xs);

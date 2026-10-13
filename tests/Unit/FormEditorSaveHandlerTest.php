@@ -45,6 +45,8 @@ class FormEditorSaveHandlerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// SettingsReader reads the required certificate tags (#1734).
+		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
@@ -140,12 +142,21 @@ class FormEditorSaveHandlerTest extends TestCase {
 				return true;
 			}
 		);
+		$transients = array();
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$transients ) {
+				$transients[ $key ] = $value;
+				return true;
+			}
+		);
 
 		$this->invoke( $method, array( 100 ) );
 
 		return array(
-			'written' => $written,
-			'deleted' => $deleted,
+			'written'    => $written,
+			'deleted'    => $deleted,
+			'transients' => $transients,
 		);
 	}
 
@@ -222,6 +233,131 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$fields = $out['written']['_ffc_form_fields'];
 		$this->assertSame( '2026-A', $fields[0]['default_value'] );
 		$this->assertSame( '', $fields[1]['default_value'] );
+	}
+
+	/**
+	 * #1729 — options are saved as a list, so one may contain a comma, and
+	 * the field's limits ride along; a row from an older editor still posts
+	 * the comma string and is converted.
+	 */
+	public function test_save_fields_meta_stores_options_as_a_list_with_the_limits(): void {
+		$_POST['ffc_fields'] = array(
+			array(
+				'name'       => 'langs',
+				'type'       => 'checkbox',
+				'choices'    => array( 'PHP', 'Yes, both', '' ),
+				'max_select' => '2',
+				'shuffle'    => '1',
+			),
+			array(
+				'name'    => 'uf',
+				'type'    => 'select',
+				'options' => 'SP, RJ',
+			),
+			array(
+				'name'       => 'notes',
+				'type'       => 'textarea',
+				'max_length' => '500',
+			),
+		);
+
+		$out = $this->capture_meta_writes( 'save_fields_meta' );
+		unset( $_POST['ffc_fields'] );
+
+		$fields = $out['written']['_ffc_form_fields'];
+		$this->assertSame( array( 'PHP', 'Yes, both' ), $fields[0]['choices'] );
+		$this->assertSame( '2', $fields[0]['max_select'] );
+		$this->assertSame( '1', $fields[0]['shuffle'] );
+		$this->assertArrayNotHasKey( 'options', $fields[0] );
+		$this->assertSame( array( 'SP', 'RJ' ), $fields[1]['choices'] );
+		$this->assertSame( '500', $fields[2]['max_length'] );
+		$this->assertArrayNotHasKey( 'choices', $fields[2] );
+	}
+
+	/**
+	 * #1734, #1741 — a required field is stored as required with the type
+	 * the table gives it, and a form missing one is told which.
+	 */
+	public function test_save_fields_meta_forces_required_fields_and_reports_the_missing_ones(): void {
+		$_POST['ffc_fields'] = array(
+			array(
+				'name' => 'name',
+				'type' => 'textarea',
+			),
+			array(
+				'name' => 'email',
+				'type' => 'text',
+			),
+			array(
+				'name' => 'course',
+				'type' => 'text',
+			),
+		);
+
+		$out = $this->capture_meta_writes( 'save_fields_meta' );
+		unset( $_POST['ffc_fields'] );
+
+		$fields = $out['written']['_ffc_form_fields'];
+		$this->assertSame( '1', $fields[0]['required'] );
+		$this->assertSame( 'text', $fields[0]['type'], 'A posted type cannot change a required field.' );
+		$this->assertSame( '1', $fields[1]['required'] );
+		$this->assertSame( 'email', $fields[1]['type'] );
+		$this->assertSame( '', $fields[2]['required'] );
+		$this->assertSame( array( 'cpf_rf' ), $out['transients']['ffc_save_fields_error_7'] );
+	}
+
+	/**
+	 * #1730 — the option rows store their points and correct marks, a
+	 * checkbox cannot cap its selections below its correct options, and a
+	 * scored question that cannot be marked is reported.
+	 */
+	public function test_save_fields_meta_stores_the_quiz_and_fits_the_question(): void {
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		$_POST['ffc_fields'] = array(
+			array(
+				'label'          => 'Pick two',
+				'name'           => 'q1',
+				'type'           => 'checkbox',
+				'choices'        => array( 'A', 'B', 'C' ),
+				'choice_points'  => array( '', '', '' ),
+				'choice_correct' => array( '1', '0', '1' ),
+				'max_select'     => '1',
+				'quiz_block'     => '1',
+				'quiz_scored'    => '1',
+				'quiz_mode'      => 'correct',
+			),
+			array(
+				'label'      => 'Year',
+				'name'       => 'q2',
+				'type'       => 'number',
+				'quiz_block' => '1',
+				'quiz_scored' => '1',
+			),
+			array(
+				'name'          => 'q3',
+				'type'          => 'radio',
+				'choices'       => array( 'X', 'Y' ),
+				'choice_points' => array( '10', '0' ),
+				'quiz_block'    => '1',
+				'quiz_scored'   => '1',
+				'quiz_mode'     => 'points',
+			),
+		);
+
+		$out = $this->capture_meta_writes( 'save_fields_meta' );
+		unset( $_POST['ffc_fields'] );
+
+		$fields = $out['written']['_ffc_form_fields'];
+		$this->assertSame( array( 'A', 'C' ), $fields[0]['correct'] );
+		$this->assertSame( '2', $fields[0]['max_select'], 'Raised to the number of correct options.' );
+		$this->assertSame( '10,0', $fields[2]['points'], 'The points string is rebuilt from the option rows.' );
+		$this->assertSame(
+			array(
+				'Pick two: the maximum selections was raised to 2, the number of correct options.',
+				'Year: no correct answer is set, so the question is not scored.',
+			),
+			$out['transients']['ffc_save_quiz_warning_7']
+		);
 	}
 
 	/**
@@ -1469,6 +1605,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 				'quiz_passing_score'   => '80',
 				'quiz_max_attempts'    => '3',
 				'quiz_show_score'      => '1',
+				'quiz_reset_on_leave'  => '1',
 			),
 		);
 		$this->handler->save_form_data( 10 );
@@ -1483,6 +1620,29 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertSame( 3, $config['quiz_max_attempts'] );
 		$this->assertSame( '1', $config['quiz_show_score'] );
 		$this->assertSame( '0', $config['quiz_show_correct'] );
+		$this->assertSame( '1', $config['quiz_reset_on_leave'], 'The leave-the-window reset is stored (#1731).' );
+	}
+
+	/**
+	 * #1745 — the leave level is a closed list: Strict is kept, anything
+	 * that is not a level is stored as Off.
+	 */
+	public function test_the_quiz_leave_level_is_kept_or_falls_to_off(): void {
+		foreach ( array( '2' => '2', 'on' => '0' ) as $posted => $stored ) {
+			$bag     = $this->stub_for_save();
+			$written = &$bag[0];
+			Functions\when( 'get_post_meta' )->justReturn( '' );
+			$_POST = array(
+				'ffc_form_nonce' => 'ok',
+				'ffc_config'     => array(
+					'quiz_enabled'        => '1',
+					'quiz_reset_on_leave' => $posted,
+				),
+			);
+			$this->handler->save_form_data( 10 );
+			$this->assertSame( $stored, $written['_ffc_form_config']['quiz_reset_on_leave'], "posted {$posted}" );
+			unset( $written );
+		}
 	}
 
 	public function test_a_layout_missing_tags_or_pointing_at_html_leaves_both_warnings(): void {

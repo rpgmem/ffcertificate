@@ -66,7 +66,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 				<?php
 				// Each row used to be a pair of Enabled/Disabled radios
 				// emitting '1' or '0'. Replaced with a hidden sibling
-				// (value=0) followed by a .ffc-toggle whose checked
+				// (value=0) followed by a .ffc-control-toggle whose checked
 				// value is '1' — WordPress POST takes the last value
 				// with the same name, so unchecked → '0' / checked → '1'.
 				// The on-disk shape is unchanged.

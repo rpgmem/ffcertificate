@@ -60,9 +60,11 @@ final class PublicDesign {
 
 	/**
 	 * `theme` inherits the site's font, which is what the screens do today;
-	 * `plugin` uses the system font stack of `--ffc-font-family`.
+	 * `plugin` uses the system font stack of `--ffc-font-family`; `arial` is
+	 * Arial. The same three choices as the family's other plugins with a
+	 * public form (Email Signature Generator, Institutional Email).
 	 */
-	public const FONTS = array( 'theme', 'plugin' );
+	public const FONTS = array( 'theme', 'plugin', 'arial' );
 
 	/**
 	 * WCAG SC 1.4.3 for text on the white card.
@@ -213,6 +215,8 @@ final class PublicDesign {
 		);
 		if ( 'plugin' === $this->font ) {
 			$shape .= 'font-family:var(--ffc-font-family);';
+		} elseif ( 'arial' === $this->font ) {
+			$shape .= 'font-family:arial,sans-serif;';
 		}
 
 		$text_on = ContrastColor::on( $this->accent );

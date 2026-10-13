@@ -18,7 +18,7 @@ function installDom(opts = {}) {
 	const fieldsHidden = opts.checked ? '' : 'style="display:none"';
 	const noteHidden = opts.checked ? 'style="display:none"' : '';
 	document.body.innerHTML = `
-		<input type="checkbox" id="ffc_email_custom_mode" class="ffc-toggle" ${checked}>
+		<input type="checkbox" id="ffc_email_custom_mode" class="ffc-control-toggle" ${checked}>
 		<p class="description ffc-cert-email-global-note" ${noteHidden}>global note</p>
 		<div class="ffc-cert-email-custom-fields" ${fieldsHidden}>
 			<input type="text" name="ffc_config[email_subject]" value="${opts.subject || ''}">

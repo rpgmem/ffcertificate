@@ -134,7 +134,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</p>
 	<p class="description">
 		<strong><?php esc_html_e( 'Quiz forms:', 'ffcertificate' ); ?></strong>
-		<code>{{score}}</code>, <code>{{max_score}}</code>, <code>{{score_percent}}</code>
+		<code>{{score}}</code>, <code>{{max_score}}</code>, <code>{{score_percent}}</code>, <code>{{correct_count}}</code>, <code>{{question_count}}</code>
 		<a href="#feature-quiz"><?php esc_html_e( 'See Quiz / Evaluation.', 'ffcertificate' ); ?></a>
 	</p>
 	<p class="description"><?php esc_html_e( '{{name}} is filled from a form field whose key is "name"; first_name, last_name and full_name are not certificate tokens (they belong to the date-message emails).', 'ffcertificate' ); ?></p>

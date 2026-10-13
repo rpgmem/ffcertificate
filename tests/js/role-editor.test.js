@@ -7,7 +7,7 @@ import { loadScript } from './helpers.js';
 
 function row(slug, checked) {
 	return `<div class="ffc-cap-row" data-ffc-cap-slug="${slug}" data-ffc-cap-name="${slug}">
-		<label class="ffc-toggle"><input type="checkbox" class="ffc-role-cap" data-ffc-cap-slug="${slug}"${checked ? ' checked' : ''}><span class="ffc-toggle-track"></span></label>
+		<label class="ffc-control-toggle"><input type="checkbox" class="ffc-role-cap" data-ffc-cap-slug="${slug}"${checked ? ' checked' : ''}><span class="ffc-control-toggle-track"></span></label>
 		<div><span class="ffc-cap-row-name">${slug}</span></div>
 		<span class="ffc-cap-savestate" data-ffc-savestate></span>
 	</div>`;

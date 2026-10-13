@@ -205,6 +205,29 @@ class Frontend {
 			// global ajaxComplete to add the form_id to that list once a
 			// submission succeeds. Only enqueued where [ffc_form] renders.
 			if ( $has_form ) {
+				// Shuffle, character counters, the checkbox cap and "choose at
+				// least one" (#1729). Footer, no dependency: it reads the form's
+				// markup and listens on the document.
+				wp_enqueue_script( 'ffc-form-fields', FFC_PLUGIN_URL . "assets/js/ffc-form-fields{$s}.js", array(), FFC_VERSION, true );
+				wp_localize_script(
+					'ffc-form-fields',
+					'ffcFormFields',
+					array(
+						'strings' => array(
+							/* translators: 1: options ticked, 2: most options allowed. */
+							'selected'     => __( '%1$s of %2$s selected.', 'ffcertificate' ),
+							'limitReached' => __( 'Untick one to choose another.', 'ffcertificate' ),
+							'chooseOne'    => __( 'Choose at least one option.', 'ffcertificate' ),
+							'fullName'     => __( 'Enter the first and last name.', 'ffcertificate' ),
+						),
+					)
+				);
+
+				// Clears a quiz's answers when the participant leaves the
+				// window, on the forms that ask for it (#1731). No dependency:
+				// it reads the form's markup, which carries its own strings.
+				wp_enqueue_script( 'ffc-quiz-leave', FFC_PLUGIN_URL . "assets/js/ffc-quiz-leave{$s}.js", array(), FFC_VERSION, true );
+
 				wp_enqueue_script( 'ffc-already-submitted-notice', FFC_PLUGIN_URL . "assets/js/ffc-already-submitted-notice{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 				wp_localize_script(
 					'ffc-already-submitted-notice',
@@ -321,6 +344,9 @@ class Frontend {
 						'submissionSuccessful'   => __( 'Your submission was successful.', 'ffcertificate' ),
 						'error'                  => __( 'Error occurred', 'ffcertificate' ),
 						'fillRequired'           => __( 'Please fill all required fields', 'ffcertificate' ),
+						// Per-question verdict after a quiz attempt (#1730).
+						'quizCorrect'            => _x( 'Correct', 'quiz answer', 'ffcertificate' ),
+						'quizIncorrect'          => _x( 'Incorrect', 'quiz answer', 'ffcertificate' ),
 
 						// Rate Limiting.
 						'wait'                   => __( 'Wait...', 'ffcertificate' ),

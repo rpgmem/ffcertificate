@@ -173,6 +173,9 @@ $inputs.each(function() {
                     
                     // Remove validation styling while typing
                     $(this).removeClass('ffc-invalid ffc-valid');
+                    if (this.setCustomValidity) {
+                        this.setCustomValidity('');
+                    }
                 });
                 
                 // Validate on blur (when user leaves field)
@@ -183,6 +186,9 @@ $inputs.each(function() {
                     if (value.length === 0) {
                         $(this).removeClass('ffc-invalid ffc-valid').removeAttr('aria-invalid aria-describedby');
                         $(this).next('.ffc-field-error').remove();
+                        if (this.setCustomValidity) {
+                            this.setCustomValidity('');
+                        }
                         return;
                     }
                     
@@ -221,6 +227,13 @@ $inputs.each(function() {
                     var inputId = $(this).attr('id') || $(this).attr('name') || 'cpfrf';
                     var errorId = 'ffc-error-' + inputId;
 
+                    // The browser's own validation carries the verdict, so an
+                    // invalid CPF/RF blocks the submit instead of reaching the
+                    // server first (#1734).
+                    if (this.setCustomValidity) {
+                        this.setCustomValidity(isValid ? '' : errorMsg);
+                    }
+
                     if (isValid) {
                         $(this).removeClass('ffc-invalid').addClass('ffc-valid')
                                .removeAttr('aria-invalid aria-describedby');
@@ -235,12 +248,9 @@ $inputs.each(function() {
                         if ($errorSpan.length === 0) {
                             $errorSpan = $('<span class="ffc-field-error" role="alert"></span>').insertAfter($(this));
                         }
+                        // Stays until the value changes: the submit is blocked
+                        // for as long as it stands.
                         $errorSpan.attr('id', errorId).text(errorMsg).fadeIn();
-
-                        // Hide error after 5 seconds
-                        setTimeout(function() {
-                            $errorSpan.fadeOut();
-                        }, 5000);
                     }
                 });
                 

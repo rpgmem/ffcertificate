@@ -3,7 +3,7 @@
  * Reusable admin UI helpers.
  *
  * Currently exposes `render_toggle()` — emits the markup contract the
- * `.ffc-toggle` CSS expects (label > hidden checkbox + decorative
+ * `.ffc-control-toggle` CSS expects (label > hidden checkbox + decorative
  * track + visible label text). Keeping the markup behind a helper lets
  * every call-site stay consistent without copying the HTML.
  *
@@ -46,7 +46,7 @@ class AdminUI {
 	}
 
 	/**
-	 * Render a toggle switch (`.ffc-toggle`) — visually a switch, an
+	 * Render a toggle switch (`.ffc-control-toggle`) — visually a switch, an
 	 * accessible checkbox underneath.
 	 *
 	 * Usage:
@@ -75,7 +75,10 @@ class AdminUI {
 	 *                                    `.ffc-field-required`), `title` (optional
 	 *                                    string, tooltip on the wrapper label),
 	 *                                    `data` (optional array<string,string> of
-	 *                                    data-* attributes on the input).
+	 *                                    data-* attributes on the input), `mark`
+	 *                                    (optional bool, draws a check or a cross
+	 *                                    on the knob so on and off do not rest on
+	 *                                    colour alone; #1748).
 	 */
 	public static function render_toggle( array $args ): void {
 		$name = $args['name'] ?? '';
@@ -92,7 +95,7 @@ class AdminUI {
 		$input_class = trim( (string) ( $args['input_class'] ?? '' ) );
 		$data        = $args['data'] ?? array();
 
-		$wrapper_class = 'ffc-toggle' . ( '' !== $extra ? ' ' . $extra : '' );
+		$wrapper_class = 'ffc-control-toggle' . ( ! empty( $args['mark'] ) ? ' ffc-control-toggle-mark' : '' ) . ( '' !== $extra ? ' ' . $extra : '' );
 		$title_attr    = '' !== $title ? ' title="' . esc_attr( $title ) . '"' : '';
 
 		$data_attrs = '';
@@ -120,11 +123,304 @@ class AdminUI {
 			$input_class_attr, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above.
 			$data_attrs // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above.
 		);
-		echo '<span class="ffc-toggle-track" aria-hidden="true"></span>';
+		echo '<span class="ffc-control-toggle-track" aria-hidden="true"></span>';
 		if ( '' !== $label ) {
-			echo '<span class="ffc-toggle-label">' . esc_html( $label ) . '</span>';
+			echo '<span class="ffc-control-toggle-label">' . esc_html( $label ) . '</span>';
 		}
 		echo '</label>';
+	}
+
+	/**
+	 * Palettes a steps control can wear (#1745), passed as `palette`. Each
+	 * colours the filled rail and the thumb's ring after the chosen step.
+	 *
+	 * - `primary`: the accent at every step -- for a scale where no end is
+	 *   worse than the other (the default).
+	 * - `severity`: grey, amber, red -- the further right, the harsher.
+	 * - `traffic`: red, amber, green -- for a scale whose right-hand end is
+	 *   the good one.
+	 */
+	public const STEPS_PALETTES = array( 'primary', 'severity', 'traffic' );
+
+	/**
+	 * Tones one step can name in `tones`, overriding the palette for it.
+	 */
+	public const STEPS_TONES = array( 'neutral', 'primary', 'info', 'success', 'warning', 'danger' );
+
+	/**
+	 * Fewest and most options a steps control draws. Outside them a select
+	 * is printed instead: two values are a toggle, and past eleven the stops
+	 * are too close to read.
+	 */
+	public const STEPS_MIN = 3;
+	public const STEPS_MAX = 11;
+
+	/**
+	 * Past this many stops the control tightens and, on a phone, shows only
+	 * the chosen step's name.
+	 */
+	private const STEPS_MANY = 5;
+
+	/**
+	 * Render a steps control: a rail with one stop per value of an ordered
+	 * scale, filled up to the chosen one (#1745).
+	 *
+	 * Underneath are native radios, one per stop, so the arrow keys, screen
+	 * readers and forced colours work, and the form posts the value without
+	 * any script. Use it for an ORDERED scale of 3 to 11 values -- off,
+	 * moderate, strict -- never for unrelated choices, which a rail and a
+	 * fill would misrepresent. With 2 values use {@see self::render_toggle()}.
+	 *
+	 * For autosave pass `data-ffc-autosave-key` (or `-form-key`) in `data`:
+	 * it lands on each radio, and the widget saves the group as one field.
+	 *
+	 * @param array<string, mixed> $args Render arguments:
+	 *   - `name` (string, required) and `options` (array, required: value =>
+	 *     label, mildest first, 3 to 11 of them);
+	 *   - `value` (the chosen value) and `default` (shown when `value` is not
+	 *     one of the options; the first option otherwise);
+	 *   - `id` (base id, derived from `name`) and `legend` (the group's name,
+	 *     read by screen readers);
+	 *   - `descriptions` (value => text; the chosen one shows under the rail);
+	 *   - `labels`: `all` (default) or `selected` -- every step's name under
+	 *     its stop, or only the chosen one's (the others stay for screen
+	 *     readers);
+	 *   - `palette`: a {@see self::STEPS_PALETTES} key, default `primary`;
+	 *   - `tones` (value => a {@see self::STEPS_TONES} key), overriding the
+	 *     palette for those steps;
+	 *   - `size`: `sm`, `md` (default) or `lg`; `shape`: `round` (default) or
+	 *     `square`; `fluid` (bool): the stops share the row's width;
+	 *   - `disabled` (bool) and `data` (data-* attributes on each radio).
+	 */
+	public static function render_steps( array $args ): void {
+		$name    = is_string( $args['name'] ?? null ) ? $args['name'] : '';
+		$options = is_array( $args['options'] ?? null ) ? $args['options'] : array();
+		if ( '' === $name || array() === $options ) {
+			return;
+		}
+		$values   = array_map( 'strval', array_keys( $options ) );
+		$default  = (string) ( $args['default'] ?? '' );
+		$default  = in_array( $default, $values, true ) ? $default : $values[0];
+		$value    = (string) ( $args['value'] ?? '' );
+		$value    = in_array( $value, $values, true ) ? $value : $default;
+		$base_id  = self::control_id( $args, $name );
+		$data     = self::control_data_attrs( $args );
+		$disabled = ! empty( $args['disabled'] ) ? ' disabled' : '';
+
+		$count = count( $values );
+		if ( $count < self::STEPS_MIN || $count > self::STEPS_MAX ) {
+			_doing_it_wrong(
+				__METHOD__,
+				// A message to the developer, read under WP_DEBUG: English, untranslated, like core's own.
+				esc_html(
+					sprintf(
+						'A steps control takes %2$d to %3$d ordered options; %1$d were given, so a select is printed instead. Use AdminUI::render_toggle() for two values and a select for more than %3$d.',
+						$count,
+						self::STEPS_MIN,
+						self::STEPS_MAX
+					)
+				),
+				'6.39.0'
+			);
+			self::control_fallback_select( $base_id, $name, $options, $value, $disabled, $data );
+			return;
+		}
+
+		$palette = in_array( $args['palette'] ?? null, self::STEPS_PALETTES, true ) ? (string) $args['palette'] : self::STEPS_PALETTES[0];
+		$tones   = is_array( $args['tones'] ?? null ) ? $args['tones'] : array();
+		$descs   = is_array( $args['descriptions'] ?? null ) ? $args['descriptions'] : array();
+		$legend  = is_string( $args['legend'] ?? null ) ? $args['legend'] : '';
+
+		$classes = array( 'ffc-control-steps', sprintf( 'ffc-control-steps-%s', $palette ) );
+		if ( in_array( $args['size'] ?? null, array( 'sm', 'lg' ), true ) ) {
+			$classes[] = sprintf( 'ffc-control-steps-%s', (string) $args['size'] );
+		}
+		if ( 'square' === ( $args['shape'] ?? null ) ) {
+			$classes[] = 'ffc-control-steps-square';
+		}
+		if ( ! empty( $args['fluid'] ) ) {
+			$classes[] = 'ffc-control-steps-fluid';
+		}
+		if ( 'selected' === ( $args['labels'] ?? null ) ) {
+			$classes[] = 'ffc-control-steps-labels-selected';
+		}
+		if ( $count > self::STEPS_MANY ) {
+			$classes[] = 'ffc-control-steps-many';
+		}
+
+		printf( '<fieldset class="%1$s"%2$s>', esc_attr( implode( ' ', $classes ) ), $disabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $disabled is a literal attribute or empty.
+		if ( '' !== $legend ) {
+			echo '<legend class="screen-reader-text">' . esc_html( $legend ) . '</legend>';
+		}
+		echo '<span class="ffc-control-steps-track">';
+		foreach ( $values as $i => $v ) {
+			$tone = $tones[ $v ] ?? null;
+			printf(
+				'<label class="ffc-control-steps-stop"%1$s><input type="radio" id="%2$s" name="%3$s" value="%4$s"%5$s%6$s><span class="ffc-control-steps-mark" aria-hidden="true"></span><span class="ffc-control-steps-label">%7$s</span></label>',
+				in_array( $tone, self::STEPS_TONES, true ) ? ' data-tone="' . esc_attr( (string) $tone ) . '"' : '',
+				esc_attr( $base_id . '-' . ( $i + 1 ) ),
+				esc_attr( $name ),
+				esc_attr( $v ),
+				$v === $value ? ' checked' : '',
+				$data, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped by control_data_attrs().
+				esc_html( (string) $options[ $v ] )
+			);
+		}
+		echo '</span>';
+		foreach ( $values as $i => $v ) {
+			if ( isset( $descs[ $v ] ) && '' !== (string) $descs[ $v ] ) {
+				printf( '<span class="description ffc-control-steps-desc" data-step="%1$d">%2$s</span>', (int) $i + 1, esc_html( (string) $descs[ $v ] ) );
+			}
+		}
+		echo '</fieldset>';
+	}
+
+	/**
+	 * Fewest and most options a segmented control draws. Outside them a
+	 * select is printed instead: one option is no choice, and past six the
+	 * segments no longer fit a settings row.
+	 */
+	public const SEGMENTED_MIN = 2;
+	public const SEGMENTED_MAX = 6;
+
+	/**
+	 * Render a segmented control: a row of options joined in one pill, the
+	 * chosen one filled (#1750).
+	 *
+	 * Underneath are native radios, so the arrow keys, screen readers and
+	 * forced colours work, and the form posts the value without any script.
+	 * Use it for 2 to 6 choices with NO order between them -- dark, light,
+	 * auto. An ordered scale is {@see self::render_steps()}; a plain on/off
+	 * is {@see self::render_toggle()}.
+	 *
+	 * For autosave pass `data-ffc-autosave-key` (or `-form-key`) in `data`:
+	 * it lands on each radio, and the widget saves the group as one field.
+	 *
+	 * @param array<string, mixed> $args Render arguments:
+	 *   - `name` (string, required) and `options` (array, required: value =>
+	 *     label, 2 to 6 of them; keep the labels short);
+	 *   - `value` (the chosen value) and `default` (shown when `value` is not
+	 *     one of the options; the first option otherwise);
+	 *   - `id` (base id, derived from `name`) and `legend` (the group's name,
+	 *     read by screen readers);
+	 *   - `descriptions` (value => text; the chosen one shows under the row);
+	 *   - `size`: `sm`, `md` (default) or `lg`; `fluid` (bool): the segments
+	 *     share the row's width;
+	 *   - `disabled` (bool) and `data` (data-* attributes on each radio).
+	 */
+	public static function render_segmented( array $args ): void {
+		$name    = is_string( $args['name'] ?? null ) ? $args['name'] : '';
+		$options = is_array( $args['options'] ?? null ) ? $args['options'] : array();
+		if ( '' === $name || array() === $options ) {
+			return;
+		}
+		$values   = array_map( 'strval', array_keys( $options ) );
+		$default  = (string) ( $args['default'] ?? '' );
+		$default  = in_array( $default, $values, true ) ? $default : $values[0];
+		$value    = (string) ( $args['value'] ?? '' );
+		$value    = in_array( $value, $values, true ) ? $value : $default;
+		$base_id  = self::control_id( $args, $name );
+		$data     = self::control_data_attrs( $args );
+		$disabled = ! empty( $args['disabled'] ) ? ' disabled' : '';
+
+		$count = count( $values );
+		if ( $count < self::SEGMENTED_MIN || $count > self::SEGMENTED_MAX ) {
+			_doing_it_wrong(
+				__METHOD__,
+				// A message to the developer, read under WP_DEBUG: English, untranslated, like core's own.
+				esc_html(
+					sprintf(
+						'A segmented control takes %2$d to %3$d options; %1$d were given, so a select is printed instead. Use a select for more than %3$d.',
+						$count,
+						self::SEGMENTED_MIN,
+						self::SEGMENTED_MAX
+					)
+				),
+				'6.39.0'
+			);
+			self::control_fallback_select( $base_id, $name, $options, $value, $disabled, $data );
+			return;
+		}
+
+		$descs  = is_array( $args['descriptions'] ?? null ) ? $args['descriptions'] : array();
+		$legend = is_string( $args['legend'] ?? null ) ? $args['legend'] : '';
+
+		$classes = array( 'ffc-control-segmented' );
+		if ( in_array( $args['size'] ?? null, array( 'sm', 'lg' ), true ) ) {
+			$classes[] = sprintf( 'ffc-control-segmented-%s', (string) $args['size'] );
+		}
+		if ( ! empty( $args['fluid'] ) ) {
+			$classes[] = 'ffc-control-segmented-fluid';
+		}
+
+		printf( '<fieldset class="%1$s"%2$s>', esc_attr( implode( ' ', $classes ) ), $disabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $disabled is a literal attribute or empty.
+		if ( '' !== $legend ) {
+			echo '<legend class="screen-reader-text">' . esc_html( $legend ) . '</legend>';
+		}
+		echo '<span class="ffc-control-segmented-track">';
+		foreach ( $values as $i => $v ) {
+			printf(
+				'<label class="ffc-control-segmented-option"><input type="radio" id="%1$s" name="%2$s" value="%3$s"%4$s%5$s><span class="ffc-control-segmented-label">%6$s</span></label>',
+				esc_attr( $base_id . '-' . ( $i + 1 ) ),
+				esc_attr( $name ),
+				esc_attr( $v ),
+				$v === $value ? ' checked' : '',
+				$data, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped by control_data_attrs().
+				esc_html( (string) $options[ $v ] )
+			);
+		}
+		echo '</span>';
+		foreach ( $values as $i => $v ) {
+			if ( isset( $descs[ $v ] ) && '' !== (string) $descs[ $v ] ) {
+				printf( '<span class="description ffc-control-segmented-desc" data-option="%1$d">%2$s</span>', (int) $i + 1, esc_html( (string) $descs[ $v ] ) );
+			}
+		}
+		echo '</fieldset>';
+	}
+
+	/**
+	 * Base id of a control's radios: `id` when given, else derived from `name`.
+	 *
+	 * @param array<string, mixed> $args Render arguments.
+	 * @param string               $name The field name.
+	 * @return string
+	 */
+	private static function control_id( array $args, string $name ): string {
+		return is_string( $args['id'] ?? null ) && '' !== $args['id'] ? $args['id'] : trim( (string) preg_replace( '/[^a-z0-9_-]+/i', '-', $name ), '-' );
+	}
+
+	/**
+	 * The `data` argument of a control as escaped `data-*` attributes.
+	 *
+	 * @param array<string, mixed> $args Render arguments.
+	 * @return string Escaped attributes, each with a leading space.
+	 */
+	private static function control_data_attrs( array $args ): string {
+		$data  = is_array( $args['data'] ?? null ) ? $args['data'] : array();
+		$attrs = '';
+		foreach ( $data as $k => $v ) {
+			$attrs .= ' data-' . esc_attr( (string) $k ) . '="' . esc_attr( (string) $v ) . '"';
+		}
+		return $attrs;
+	}
+
+	/**
+	 * The select a control prints when it is given a number of options it
+	 * cannot draw, so the field still works.
+	 *
+	 * @param string               $id       Element id.
+	 * @param string               $name     Field name.
+	 * @param array<string, mixed> $options  Value => label.
+	 * @param string               $value    The chosen value.
+	 * @param string               $disabled ' disabled' or empty.
+	 * @param string               $data     Pre-escaped data attributes.
+	 */
+	private static function control_fallback_select( string $id, string $name, array $options, string $value, string $disabled, string $data ): void {
+		printf( '<select id="%1$s" name="%2$s"%3$s%4$s>', esc_attr( $id ), esc_attr( $name ), $disabled, $data ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literals and pre-escaped attributes.
+		foreach ( $options as $v => $label ) {
+			printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( (string) $v ), selected( (string) $v, $value, false ), esc_html( (string) $label ) );
+		}
+		echo '</select>';
 	}
 
 	/**
@@ -328,5 +624,29 @@ class AdminUI {
 			);
 		}
 		return $html . '</div>';
+	}
+
+	/**
+	 * The "Mandatory Tags" line under a certificate HTML editor, read from
+	 * the configured list (#1734). It used to be a fixed sentence naming the
+	 * default three, so a list changed on the Certificates tab was enforced
+	 * on save and contradicted on the screen.
+	 *
+	 * @return string Escaped HTML.
+	 */
+	public static function get_required_tags_line(): string {
+		$tags = array_map(
+			static fn( string $tag ): string => '<code>' . esc_html( $tag ) . '</code>'
+				// Asked only of a form with an Event Schedule (#1741).
+				. ( '{{schedule}}' === $tag ? ' ' . esc_html__( '(when the form has an Event Schedule)', 'ffcertificate' ) : '' ),
+			\FreeFormCertificate\Settings\SettingsReader::required_certificate_tags()
+		);
+		return sprintf(
+			'%1$s %2$s. <a href="%3$s">%4$s</a>',
+			esc_html__( 'Mandatory Tags:', 'ffcertificate' ),
+			implode( ', ', $tags ),
+			esc_url( admin_url( 'admin.php?page=ffc-settings&tab=certificates' ) ),
+			esc_html__( 'Settings → Certificates', 'ffcertificate' )
+		);
 	}
 }

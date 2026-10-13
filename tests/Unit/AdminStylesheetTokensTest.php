@@ -105,7 +105,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 		'ffc-audience.css'              => 2,
 		'ffc-audience-admin.css'        => 4,
 		'ffc-frontend.css'              => 4,
-		'ffc-user-dashboard.css'        => 2,
+		'ffc-user-dashboard.css'        => 1,
 		'ffc-user-permissions.css'      => 13,
 
 		// The palette itself, and the two sheets whose literals ARE the point:
@@ -117,9 +117,19 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// opting out of the theme, and here it is how a theme is declared.
 		// The ratchet still bites: six is the whole of `--ffc-accent-*`, so a
 		// seventh has to be argued.
-		'ffc-common.css'                => 123,
+		//
+		// 123 -> 124 in #1748: the ink of the toggle's optional mark. The knob
+		// is white in both themes by decision, so what is drawn on it cannot
+		// follow a token that lightens in the dark theme.
+		'ffc-common.css'                => 124,
 		'ffc-code-editor-dark.css'      => 35,
 		'ffc-pdf-core.css'              => 12,
+		// The screenshot viewer in core's "View details" modal (#1716). That
+		// iframe is not an FFC screen and does not load ffc-common, so the sheet
+		// cannot read a token -- the ffc-pdf-core case. It is also dark in both
+		// themes on purpose, like any image viewer: a dark backdrop with white
+		// controls, whatever theme the site uses.
+		'ffc-screenshots.css'           => 8,
 	);
 
 	/**
@@ -524,8 +534,9 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// every `is_ffc_page()` screen, and these all run on one.
 		'includes/admin/class-ffc-admin-activity-log-page.php::enqueue_scripts()' => 'AdminAssetsManager already enqueues the toggle on this screen',
 		'includes/admin/class-ffc-role-capability-editor.php::enqueue()' => 'likewise',
-		'includes/self-scheduling/class-ffc-self-scheduling-editor.php::enqueue_scripts()' => 'likewise',
-		'includes/self-scheduling/class-ffc-self-scheduling-admin.php::enqueue_admin_assets()' => 'likewise',
+		// The calendar editor is a post screen, not `is_ffc_page()`: its toggle
+		// comes from SelfSchedulingAdmin, which matches the same post type.
+		'includes/self-scheduling/class-ffc-self-scheduling-editor.php::enqueue_scripts()' => 'SelfSchedulingAdmin::enqueue_admin_assets() enqueues the toggle on this screen',
 		'includes/url-shortener/class-ffc-url-shortener-admin-page.php::enqueue_assets()' => 'likewise',
 		'includes/recruitment/class-ffc-recruitment-admin-assets-manager.php::maybe_enqueue()' => 'likewise',
 
@@ -1178,7 +1189,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 		);
 		$this->assertSame(
 			array(),
-			self::detect_controls( ".x .ffc-toggle-track { background: var(--ffc-bg-alt); }" ),
+			self::detect_controls( ".x .ffc-control-toggle-track { background: var(--ffc-bg-alt); }" ),
 			'A toggle track carries no text.'
 		);
 	}

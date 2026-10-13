@@ -211,6 +211,10 @@ class Shortcodes {
 			$schedule_exception_cookie = '';
 		}
 
+		$form_config = get_post_meta( $form_id, '_ffc_form_config', true );
+		$quiz_leave  = $this->quiz_leave_questions( is_array( $form_config ) ? $form_config : array(), $fields );
+		$leave_level = \FreeFormCertificate\Core\QuizLeaveLevel::of( is_array( $form_config ) ? $form_config : array() );
+
 		ob_start();
 		?>
 		<div class="<?php echo esc_attr( $wrapper_class ); ?>" id="ffc-form-<?php echo esc_attr( (string) $form_id ); ?>">
@@ -232,8 +236,11 @@ class Shortcodes {
 					</p>
 				</div>
 			<?php endif; ?>
-			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>">
+			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>"<?php echo null !== $quiz_leave ? $this->quiz_leave_attributes( $quiz_leave, $leave_level ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped in quiz_leave_attributes(). ?>>
 				<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form_id ); ?>">
+				<?php if ( null !== $quiz_leave ) : ?>
+					<?php $this->render_quiz_leave_notice( $form_id, $leave_level ); ?>
+				<?php endif; ?>
 				<?php if ( null !== $schedule_exception && '' !== $schedule_exception_cookie ) : ?>
 					<input type="hidden" name="ffc_schedule_exception_token" value="<?php echo esc_attr( $schedule_exception_cookie ); ?>">
 				<?php endif; ?>
@@ -251,7 +258,6 @@ class Shortcodes {
 				?>
 
 				<?php
-				$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
 				$restrictions = isset( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
 
 				// Password field (if active).
@@ -366,6 +372,90 @@ class Shortcodes {
 	}
 
 	/**
+	 * The scored questions a "leave the window" reset clears, or null when
+	 * the form does not reset (#1731).
+	 *
+	 * Only the answers are cleared: the name, the CPF/RF and every other
+	 * field the quiz does not score are the participant's, not the quiz's.
+	 *
+	 * @param array<array-key, mixed>          $form_config Form configuration.
+	 * @param array<int, array<string, mixed>> $fields      Form fields.
+	 * @return list<string>|null
+	 */
+	private function quiz_leave_questions( array $form_config, array $fields ): ?array {
+		if ( \FreeFormCertificate\Core\QuizLeaveLevel::OFF === \FreeFormCertificate\Core\QuizLeaveLevel::of( $form_config ) ) {
+			return null;
+		}
+		$names = array();
+		foreach ( $fields as $field ) {
+			if ( \FreeFormCertificate\Core\QuizQuestion::is_scored( $field ) && is_scalar( $field['name'] ?? null ) ) {
+				$names[] = (string) $field['name'];
+			}
+		}
+		return $names;
+	}
+
+	/**
+	 * The attributes that tell `ffc-quiz-leave.js` what to watch (#1731,
+	 * #1745): the scored questions, the level, and at Strict the grace a
+	 * lost focus must outlast.
+	 *
+	 * @param array  $questions Scored question names.
+	 * @param string $level     A {@see \FreeFormCertificate\Core\QuizLeaveLevel} value.
+	 * @phpstan-param list<string> $questions
+	 * @return string Escaped attributes, each with its leading space.
+	 */
+	private function quiz_leave_attributes( array $questions, string $level ): string {
+		$attrs = ' data-ffc-quiz-leave="' . esc_attr( (string) wp_json_encode( $questions ) ) . '"'
+			. ' data-ffc-quiz-leave-level="' . esc_attr( $level ) . '"';
+		if ( \FreeFormCertificate\Core\QuizLeaveLevel::STRICT === $level ) {
+			$attrs .= ' data-ffc-quiz-leave-grace="' . esc_attr( (string) \FreeFormCertificate\Settings\SettingsReader::quiz_focus_grace_ms() ) . '"';
+		}
+		return $attrs;
+	}
+
+	/**
+	 * The notice a reset quiz shows before the participant starts, the
+	 * leave counter it posts, and the dialog it opens on return (#1731).
+	 *
+	 * The dialog is markup rather than a script string, so it is translated
+	 * where every other string of the form is.
+	 *
+	 * @param int    $form_id Form ID.
+	 * @param string $level   A {@see \FreeFormCertificate\Core\QuizLeaveLevel} value.
+	 */
+	private function render_quiz_leave_notice( int $form_id, string $level ): void {
+		$title_id = 'ffc-quiz-leave-title-' . $form_id;
+		$text_id  = 'ffc-quiz-leave-text-' . $form_id;
+		?>
+		<div class="ffc-form-info-block ffc-quiz-leave-notice" role="note">
+			<p><strong><?php esc_html_e( 'Stay on this page while you answer.', 'ffcertificate' ); ?></strong>
+			<?php if ( \FreeFormCertificate\Core\QuizLeaveLevel::STRICT === $level ) : ?>
+				<?php esc_html_e( 'Switching to another tab, minimising the browser or clicking another window clears your answers, and the number of times you leave is recorded with your submission.', 'ffcertificate' ); ?>
+			<?php else : ?>
+				<?php esc_html_e( 'Switching to another tab or minimising the browser clears your answers, and the number of times you leave is recorded with your submission.', 'ffcertificate' ); ?>
+			<?php endif; ?>
+			</p>
+		</div>
+		<input type="hidden" name="ffc_quiz_focus_losses" value="0" class="ffc-quiz-focus-losses">
+		<div class="ffc-modal ffc-quiz-leave-overlay" role="alertdialog" aria-modal="true" aria-labelledby="<?php echo esc_attr( $title_id ); ?>" aria-describedby="<?php echo esc_attr( $text_id ); ?>" hidden>
+			<div class="ffc-modal-backdrop"></div>
+			<div class="ffc-modal-content">
+				<div class="ffc-modal-header">
+					<h3 id="<?php echo esc_attr( $title_id ); ?>"><?php esc_html_e( 'Your answers were cleared', 'ffcertificate' ); ?></h3>
+				</div>
+				<div class="ffc-modal-body">
+					<p id="<?php echo esc_attr( $text_id ); ?>"><?php esc_html_e( 'You left this page while answering the quiz, so the answers were cleared. Leaving does not count as an attempt. Start again reloads the quiz.', 'ffcertificate' ); ?></p>
+				</div>
+				<div class="ffc-modal-footer">
+					<button type="button" class="ffc-submit-btn ffc-quiz-leave-restart"><?php esc_html_e( 'Start again', 'ffcertificate' ); ?></button>
+				</div>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Render individual form field
 	 *
 	 * @param array<string, mixed> $field Field configuration.
@@ -375,8 +465,6 @@ class Shortcodes {
 		$name    = isset( $field['name'] ) ? $field['name'] : '';
 		$label   = isset( $field['label'] ) ? $field['label'] : '';
 		$default = isset( $field['default_value'] ) ? $field['default_value'] : '';
-		$is_req  = ! empty( $field['required'] );
-		$options = ! empty( $field['options'] ) ? explode( ',', $field['options'] ) : array();
 
 		// Info block: display-only, no input.
 		if ( 'info' === $type ) {
@@ -448,67 +536,6 @@ class Shortcodes {
 			return '<input type="hidden" name="' . esc_attr( $name ) . '" id="' . esc_attr( $name ) . '" value="' . esc_attr( $default ) . '">';
 		}
 
-		ob_start();
-		?>
-		<div class="ffc-form-field">
-			<label for="<?php echo esc_attr( $name ); ?>">
-				<?php echo esc_html( $label ); ?> 
-				<?php
-				if ( $is_req ) {
-					echo '<span class="ffc-required">*</span>';}
-				?>
-			</label>
-			
-			<?php if ( 'textarea' === $type ) : ?>
-				<textarea class="ffc-input ffc-textarea" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" 
-				<?php
-				if ( $is_req ) {
-					echo 'required aria-required="true"'; }
-				?>
-				rows="1"><?php echo esc_textarea( $default ); ?></textarea>
-
-			<?php elseif ( 'select' === $type ) : ?>
-				<select class="ffc-input" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" 
-				<?php
-				if ( $is_req ) {
-					echo 'required aria-required="true"'; }
-				?>
-				>
-					<option value=""><?php esc_html_e( 'Select...', 'ffcertificate' ); ?></option>
-					<?php
-					foreach ( $options as $opt ) :
-						$opt_val = trim( $opt );
-						?>
-						<option value="<?php echo esc_attr( $opt_val ); ?>" <?php selected( $default, $opt_val ); ?>><?php echo esc_html( $opt_val ); ?></option>
-					<?php endforeach; ?>
-				</select>
-
-			<?php elseif ( 'radio' === $type ) : ?>
-				<div class="ffc-radio-group" role="group" aria-label="<?php echo esc_attr( $label ); ?>">
-					<?php
-					foreach ( $options as $opt ) :
-						$opt_val = trim( $opt );
-						?>
-						<label><input type="radio" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $opt_val ); ?>" 
-						<?php
-						if ( $is_req ) {
-							echo 'required aria-required="true"'; }
-						?>
-						<?php checked( $default, $opt_val ); ?>> <?php echo esc_html( $opt_val ); ?></label>
-					<?php endforeach; ?>
-				</div>
-
-			<?php else : ?>
-				<input class="ffc-input" type="<?php echo esc_attr( $type ); ?>" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $default ); ?>" 
-				<?php
-				if ( $is_req ) {
-					echo 'required aria-required="true"'; }
-				?>
-				>
-			<?php endif; ?>
-		</div>
-		<?php
-		$field_html = ob_get_clean();
-		return $field_html ? $field_html : '';
+		return ( new FormFieldRenderer() )->render( $field, $type );
 	}
 }

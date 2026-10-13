@@ -22,6 +22,9 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// SettingsReader reads the required certificate tags (#1734).
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
 
 		// `LabelSorter::locale()` is guarded by `function_exists( 'get_locale' )`,
 		// so this used to take the no-WordPress branch only because nothing in
@@ -34,6 +37,7 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
@@ -45,7 +49,8 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
-		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		Functions\when( 'checked' )->alias( static fn( $c, $cur = true, $echo = true ) => (string) $c === (string) $cur ? ( $echo ? print( ' checked' ) : ' checked' ) : '' );
 
 		$this->metabox = new FormEditorBuilderMetabox();
 	}
@@ -55,10 +60,11 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 		parent::tearDown();
 	}
 
-	private function render( $fields_meta = '' ): string {
+	private function render( $fields_meta = '', string $status = 'publish' ): string {
 		Functions\when( 'get_post_meta' )->justReturn( $fields_meta );
-		$post     = Mockery::mock( 'WP_Post' );
-		$post->ID = 22;
+		$post              = Mockery::mock( 'WP_Post' );
+		$post->ID          = 22;
+		$post->post_status = $status;
 		ob_start();
 		$this->metabox->render( $post );
 		return (string) ob_get_clean();
@@ -115,5 +121,122 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 		// #1574: the value a hidden field submits is editable in the row.
 		$this->assertMatchesRegularExpression( '/<div class="ffc-hidden-value-field">/', $html, 'Visible for a hidden field.' );
 		$this->assertStringContainsString( 'name="ffc_fields[0][default_value]" value="2026-A"', $html );
+	}
+
+	/**
+	 * #1730 — each option row carries its correct mark and points, aligned,
+	 * and every field carries its quiz block.
+	 */
+	public function test_option_rows_carry_their_correct_mark_and_points(): void {
+		$html = $this->render(
+			array(
+				array(
+					'name'        => 'q',
+					'type'        => 'radio',
+					'choices'     => array( 'A', 'B' ),
+					'points'      => '0,7',
+					'correct'     => array( 'B' ),
+					'quiz_scored' => '1',
+					'quiz_mode'   => 'correct',
+				),
+			)
+		);
+
+		$this->assertSame( 2, preg_match_all( '/name="ffc_fields\[0\]\[choice_correct\]\[\]" value="([01])"/', $html, $marks ) );
+		$this->assertSame( array( '0', '1' ), $marks[1], 'The mark follows its option.' );
+		$this->assertSame( 2, preg_match_all( '/name="ffc_fields\[0\]\[choice_points\]\[\]" value="(\d*)"/', $html, $points ) );
+		$this->assertSame( array( '0', '7' ), $points[1] );
+		$this->assertStringContainsString( 'name="ffc_fields[0][quiz_block]" value="1"', $html );
+		$this->assertMatchesRegularExpression( '/id="ffc_field_quiz_scored_0"[^>]*checked/', $html );
+		$this->assertStringNotContainsString( 'ffc-quiz-points ffc-hidden', $html, 'The old comma-separated points input is gone.' );
+	}
+
+	/**
+	 * #1734 — a field a required certificate tag calls for is marked and
+	 * locked; any other field is not.
+	 */
+	public function test_a_required_tag_field_is_marked_and_locked(): void {
+		$html = $this->render(
+			array(
+				array(
+					'name'  => 'cpf_rf',
+					'type'  => 'text',
+					'label' => 'CPF / RF',
+				),
+				array(
+					'name'  => 'curso',
+					'type'  => 'text',
+					'label' => 'Curso',
+				),
+			)
+		);
+
+		$this->assertSame( 1, substr_count( $html, 'ffc-field-row ffc-field-row-required-tag' ) );
+		$this->assertStringContainsString( 'Required field', $html );
+		$this->assertMatchesRegularExpression( '/name="ffc_fields\[0\]\[name\]" value="cpf_rf"[^>]*readonly/', $html );
+		$this->assertDoesNotMatchRegularExpression( '/name="ffc_fields\[1\]\[name\]" value="curso"[^>]*readonly/', $html );
+		$this->assertSame( 1, substr_count( $html, 'ffc-remove-field" disabled' ) );
+	}
+
+	/**
+	 * #1741 — a required field takes the configured type and cannot change it.
+	 */
+	public function test_a_required_field_has_its_type_locked(): void {
+		$html = $this->render(
+			array(
+				array(
+					'name'  => 'email',
+					'type'  => 'text',
+					'label' => 'E-mail',
+				),
+			)
+		);
+
+		$this->assertStringContainsString( '<input type="hidden" name="ffc_fields[0][type]" value="email">', $html );
+		$this->assertMatchesRegularExpression( '/<select class="ffc-field-type-selector ffc-w100" disabled/', $html, 'The visible select posts nothing.' );
+		$this->assertStringContainsString( 'value="E-mail"', $html, 'The label stays the operator\'s.' );
+	}
+
+	/**
+	 * #1741 — a form lacking required fields offers to add them.
+	 */
+	public function test_a_form_missing_required_fields_offers_to_add_them(): void {
+		$html = $this->render(
+			array(
+				array(
+					'name'  => 'email',
+					'type'  => 'email',
+					'label' => 'Email',
+				),
+			)
+		);
+
+		$this->assertStringContainsString( 'ffc-required-fields-missing', $html );
+		$this->assertStringContainsString( 'ffc-add-required-fields', $html );
+		$this->assertMatchesRegularExpression( '/data-ffc-required-fields="\[\{&quot;name&quot;:&quot;name&quot;|data-ffc-required-fields="\[\{"name":"name"/', $html );
+		$this->assertStringNotContainsString( '"name":"email"', $html, 'Only what is missing is offered.' );
+	}
+
+	public function test_a_complete_form_shows_no_missing_notice(): void {
+		$html = $this->render(
+			array(
+				array( 'name' => 'name', 'type' => 'text', 'label' => 'Name' ),
+				array( 'name' => 'cpf_rf', 'type' => 'text', 'label' => 'CPF' ),
+				array( 'name' => 'email', 'type' => 'email', 'label' => 'Email' ),
+			)
+		);
+
+		$this->assertStringNotContainsString( 'ffc-required-fields-missing', $html );
+	}
+
+	/**
+	 * #1741 — a new form starts with the configured table, locked.
+	 */
+	public function test_a_new_form_is_seeded_from_the_required_field_table(): void {
+		$html = $this->render( '', 'auto-draft' );
+
+		$this->assertSame( 3, substr_count( $html, 'ffc-field-row ffc-field-row-required-tag' ) );
+		$this->assertStringContainsString( 'value="CPF / RF"', $html );
+		$this->assertStringNotContainsString( 'ffc-required-fields-missing', $html );
 	}
 }

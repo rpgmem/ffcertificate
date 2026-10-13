@@ -77,7 +77,9 @@ final class RadiusAndLayerTokensTest extends TestCase {
 		'ffc-pdf-core.css'               => 2,
 		'ffc-recruitment-admin.css'      => 2,
 		'ffc-recruitment-public.css'     => 1,
-		'ffc-user-dashboard.css'         => 2,
+		// Screenshot viewer (#1716): no ffc-common in core's modal.
+		'ffc-screenshots.css'            => 1,
+		'ffc-user-dashboard.css'         => 1,
 		'ffc-user-permissions.css'       => 6,
 	);
 
@@ -93,6 +95,9 @@ final class RadiusAndLayerTokensTest extends TestCase {
 		'ffc-admin.css'               => 1,
 		'ffc-frontend.css'            => 1,
 		'ffc-pdf-core.css'            => 5,
+		// Screenshot viewer (#1716): above core's own modal, which sits at
+		// 100000+, and with no ffc-common in that iframe to read a layer from.
+		'ffc-screenshots.css'         => 1,
 		'ffc-url-shortener-admin.css' => 2,
 	);
 

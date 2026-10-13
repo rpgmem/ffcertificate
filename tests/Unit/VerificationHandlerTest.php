@@ -739,6 +739,41 @@ class VerificationHandlerTest extends TestCase {
 		$this->assertSame( '', $result['magic_token'] );
 	}
 
+	/**
+	 * #1744 — a quiz attempt that did not pass has an auth code and a token,
+	 * but is not a certificate: neither verifies it.
+	 */
+	public function test_an_unpassed_quiz_attempt_is_not_found_by_auth_code(): void {
+		global $wpdb;
+		$row = array(
+			'id'        => '9',
+			'email'     => 'x@example.com',
+			'auth_code' => 'ABCD1234EFGH',
+			'data'      => '{}',
+			'status'    => 'quiz_failed',
+		);
+		// The certificate lookup finds the row; the fallbacks find nothing.
+		$wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
+		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$this->submission_handler->shouldNotReceive( 'decrypt_submission_data' );
+
+		$result = $this->invokePrivate( 'search_certificate', [ 'ABCD-1234-EFGH' ] );
+
+		$this->assertFalse( $result['found'] );
+	}
+
+	public function test_an_unpassed_quiz_attempt_is_not_found_by_magic_token(): void {
+		$this->submission_handler
+			->shouldReceive( 'get_submission_by_token' )
+			->andReturn( array( 'id' => 9, 'status' => 'quiz_in_progress', 'magic_token' => str_repeat( 'ee', 16 ) ) );
+		global $wpdb;
+		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
+
+		$result = $this->handler->verify_by_magic_token( str_repeat( 'ee', 16 ) );
+
+		$this->assertFalse( $result['found'] );
+	}
+
 	public function test_magic_token_falls_back_to_appointment(): void {
 		$valid_token = str_repeat( 'dd', 16 );
 

@@ -233,6 +233,60 @@ describe('FFC admin-autosave — bootAutoSaveFields page-init', () => {
 		spy.mockRestore();
 	});
 
+	it('saves a steps control as one field with one badge (#1745)', () => {
+		vi.useFakeTimers();
+		document.body.innerHTML = `
+			<form>
+				<fieldset class="ffc-control-steps ffc-control-steps-severity">
+					<span class="ffc-control-steps-track">
+						<label class="ffc-control-steps-stop"><input type="radio" name="lvl" id="l1" value="0" data-ffc-autosave-key="quiz_level" checked></label>
+						<label class="ffc-control-steps-stop"><input type="radio" name="lvl" id="l2" value="1" data-ffc-autosave-key="quiz_level"></label>
+						<label class="ffc-control-steps-stop"><input type="radio" name="lvl" id="l3" value="2" data-ffc-autosave-key="quiz_level"></label>
+					</span>
+				</fieldset>
+			</form>`;
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+
+		window.FFC.Admin.bootAutoSaveFields();
+		window.$('#l3').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1].value).toBe('2');
+		expect(document.querySelectorAll('.ffc-autosave-badge')).toHaveLength(1);
+		expect(document.querySelector('.ffc-control-steps').nextElementSibling.classList.contains('ffc-autosave-badge')).toBe(true);
+		postSpy.mockRestore();
+		vi.useRealTimers();
+	});
+
+	it('saves a segmented control as one field with its badge after the control (#1750)', () => {
+		vi.useFakeTimers();
+		document.body.innerHTML = `
+			<form>
+				<fieldset class="ffc-control-segmented">
+					<span class="ffc-control-segmented-track">
+						<label class="ffc-control-segmented-option"><input type="radio" name="dm" id="d1" value="off" data-ffc-autosave-key="dark_mode" checked><span class="ffc-control-segmented-label">Off</span></label>
+						<label class="ffc-control-segmented-option"><input type="radio" name="dm" id="d2" value="on" data-ffc-autosave-key="dark_mode"><span class="ffc-control-segmented-label">On</span></label>
+						<label class="ffc-control-segmented-option"><input type="radio" name="dm" id="d3" value="auto" data-ffc-autosave-key="dark_mode"><span class="ffc-control-segmented-label">Auto</span></label>
+					</span>
+				</fieldset>
+			</form>`;
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+
+		window.FFC.Admin.bootAutoSaveFields();
+		window.$('#d3').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1].value).toBe('auto');
+		expect(document.querySelectorAll('.ffc-autosave-badge')).toHaveLength(1);
+		expect(document.querySelector('.ffc-control-segmented').nextElementSibling.classList.contains('ffc-autosave-badge')).toBe(true);
+		// The label stays right after its radio, so `input:checked + label` still paints it.
+		expect(document.getElementById('d3').nextElementSibling.classList.contains('ffc-control-segmented-label')).toBe(true);
+		postSpy.mockRestore();
+		vi.useRealTimers();
+	});
+
 	it('skips inputs that have already been wired (idempotent re-scan)', () => {
 		document.body.innerHTML = `
 			<input type="checkbox" data-ffc-autosave-key="cache_enabled">
@@ -276,17 +330,17 @@ describe('FFC admin-autosave — bootAutoSaveFields page-init', () => {
 		spy.mockRestore();
 	});
 
-	it('anchors the badge after the .ffc-toggle wrapper, not between input and track', async () => {
+	it('anchors the badge after the .ffc-control-toggle wrapper, not between input and track', async () => {
 		// Regression test for the user-reported bug where toggle change
 		// "didn't save" — actually saved fine, but the badge injected
-		// between <input> and <span.ffc-toggle-track> broke the CSS
-		// `input:checked + .ffc-toggle-track` sibling rule, so the
+		// between <input> and <span.ffc-control-toggle-track> broke the CSS
+		// `input:checked + .ffc-control-toggle-track` sibling rule, so the
 		// track never recoloured and the toggle visually stayed off.
 		document.body.innerHTML = `
-			<label class="ffc-toggle" for="t">
+			<label class="ffc-control-toggle" for="t">
 				<input type="checkbox" id="t" />
-				<span class="ffc-toggle-track"></span>
-				<span class="ffc-toggle-label">Test</span>
+				<span class="ffc-control-toggle-track"></span>
+				<span class="ffc-control-toggle-label">Test</span>
 			</label>
 		`;
 		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
@@ -302,14 +356,14 @@ describe('FFC admin-autosave — bootAutoSaveFields page-init', () => {
 		// Track must still be the immediate next sibling of the input.
 		const input = document.getElementById('t');
 		expect(input.nextElementSibling).not.toBeNull();
-		expect(input.nextElementSibling.className).toBe('ffc-toggle-track');
+		expect(input.nextElementSibling.className).toBe('ffc-control-toggle-track');
 
 		// Badge must exist and live outside the label.
 		const badge = document.querySelector('.ffc-autosave-badge');
 		expect(badge).not.toBeNull();
 		expect(badge.parentElement).toBe(document.body);
-		// Anchored right after the wrapping .ffc-toggle label.
-		const label = document.querySelector('.ffc-toggle');
+		// Anchored right after the wrapping .ffc-control-toggle label.
+		const label = document.querySelector('.ffc-control-toggle');
 		expect(label.nextElementSibling).toBe(badge);
 	});
 

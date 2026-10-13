@@ -269,10 +269,10 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 
 		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
 		$ui->shouldReceive( 'get_toggle' )->andReturnUsing(
-			static fn( $args ) => '<span class="ffc-toggle" data-name="' . $args['name'] . '"></span>'
+			static fn( $args ) => '<span class="ffc-control-toggle" data-name="' . $args['name'] . '"></span>'
 		);
 		$ui->shouldReceive( 'render_toggle' )->andReturnUsing(
-			static fn( $args ) => print '<span class="ffc-toggle" data-name="' . $args['name'] . '"></span>'
+			static fn( $args ) => print '<span class="ffc-control-toggle" data-name="' . $args['name'] . '"></span>'
 		);
 
 		ob_start();
@@ -292,7 +292,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->declare_template_facade_stubs();
 
 		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
-		$ui->shouldReceive( 'get_toggle' )->andReturn( '<span class="ffc-toggle"></span>' );
+		$ui->shouldReceive( 'get_toggle' )->andReturn( '<span class="ffc-control-toggle"></span>' );
 		$ui->shouldReceive( 'render_toggle' )->andReturnUsing( static fn() => print '' );
 
 		ob_start();

@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'The colours apply to the light theme only. With Dark Mode on, the plugin keeps its own dark palette, because a colour chosen for a white page is often unreadable on a dark one.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Shape and Font', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'The corner radius of fields and buttons (0 makes them square), the widest a form or verification card grows (its fields are 150 px narrower), and either the site theme\'s font or the system font of the admin screens. These apply in both themes.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The corner radius of fields and buttons (0 makes them square), the widest a form or verification card grows (its fields are 150 px narrower), and the font: the site theme\'s (the default), the plugin\'s system font, or Arial, the same three choices as Email Signature Generator and Institutional Email. These apply in both themes.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Cached pages', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The design is part of the page, so a page cache keeps the old look until it is purged. After changing it, purge the cache of the pages with forms.', 'ffcertificate' ); ?></p>

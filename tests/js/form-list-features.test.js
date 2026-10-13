@@ -27,10 +27,10 @@ beforeEach(() => {
 			<tr id="row-42">
 				<td>
 					<div class="ffc-features-cell">
-						<label class="ffc-toggle ffc-features-toggle">
+						<label class="ffc-control-toggle ffc-features-toggle">
 							<input type="checkbox" data-ffc-form-id="42" data-ffc-feature="csv_public_enabled">
 						</label>
-						<label class="ffc-toggle ffc-features-toggle">
+						<label class="ffc-control-toggle ffc-features-toggle">
 							<input type="checkbox" data-ffc-form-id="42" data-ffc-feature="quiz_enabled" checked>
 						</label>
 						<span class="ffc-features-badge" hidden></span>

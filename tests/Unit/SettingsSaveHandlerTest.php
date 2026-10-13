@@ -51,7 +51,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_POST['_ffc_tab'] );
+		unset( $_POST['_ffc_tab'], $_POST['ffc_settings'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -195,6 +195,87 @@ class SettingsSaveHandlerTest extends TestCase {
 	// ==================================================================
 	// save_general_settings()
 	// ==================================================================
+
+	/**
+	 * #1736 — the Save button stored the required tags on one line: the
+	 * sanitised `$new` had already turned the line breaks into spaces.
+	 */
+	public function test_certificates_tab_keeps_the_tags_one_per_line(): void {
+		$_POST['_ffc_tab']     = 'certificates';
+		$_POST['ffc_settings'] = array( 'required_certificate_tags' => "{{auth_code}}\r\n{{name}}\r\n{{curso}}" );
+		// What `get_post_array()` hands the section: line breaks collapsed.
+		$new = array( 'required_certificate_tags' => '{{auth_code}} {{name}} {{curso}}' );
+
+		$result = $this->invoke( 'save_general_settings', array( array(), $new ) );
+
+		$this->assertSame( "{{auth_code}}\r\n{{name}}\r\n{{curso}}", $result['required_certificate_tags'] );
+	}
+
+	/**
+	 * #1745 — the Strict quiz level's grace is clamped, and an emptied field
+	 * keeps the stored value instead of saving 0.
+	 */
+	public function test_certificates_tab_stores_the_quiz_grace_clamped_and_skips_empty(): void {
+		$_POST['_ffc_tab'] = 'certificates';
+
+		$_POST['ffc_settings'] = array( 'quiz_focus_grace_ms' => '2500' );
+		$this->assertSame( 2500, $this->invoke( 'save_general_settings', array( array(), array() ) )['quiz_focus_grace_ms'] );
+
+		$_POST['ffc_settings'] = array( 'quiz_focus_grace_ms' => '99999' );
+		$this->assertSame( 10000, $this->invoke( 'save_general_settings', array( array(), array() ) )['quiz_focus_grace_ms'] );
+
+		$_POST['ffc_settings'] = array( 'quiz_focus_grace_ms' => '' );
+		$this->assertSame( 700, $this->invoke( 'save_general_settings', array( array( 'quiz_focus_grace_ms' => 700 ), array() ) )['quiz_focus_grace_ms'] );
+	}
+
+	public function test_another_tab_leaves_the_required_tags_alone(): void {
+		$_POST['_ffc_tab']     = 'general';
+		$_POST['ffc_settings'] = array( 'required_certificate_tags' => '{{x}}' );
+
+		$result = $this->invoke( 'save_general_settings', array( array( 'required_certificate_tags' => "{{auth_code}}\n{{name}}" ), array() ) );
+
+		$this->assertSame( "{{auth_code}}\n{{name}}", $result['required_certificate_tags'] );
+	}
+
+	/**
+	 * #1741 — the required-field table is stored from the raw POST: one
+	 * row per usable name, a type from the allowlist, no generated tag.
+	 */
+	public function test_certificates_tab_stores_the_required_field_table(): void {
+		$_POST['_ffc_tab']     = 'certificates';
+		$_POST['ffc_settings'] = array(
+			'required_form_fields' => array(
+				array( 'name' => 'cpf_rf', 'label' => 'CPF / RF', 'type' => 'text' ),
+				array( 'name' => 'birth-date', 'label' => '', 'type' => 'date' ),
+				array( 'name' => 'cpf_rf', 'label' => 'Duplicate', 'type' => 'number' ),
+				array( 'name' => 'auth_code', 'label' => 'Generated', 'type' => 'text' ),
+				array( 'name' => 'course', 'label' => 'Course', 'type' => 'select' ),
+				array( 'name' => '', 'label' => 'Empty', 'type' => 'text' ),
+				'not a row',
+			),
+		);
+
+		$result = $this->invoke( 'save_general_settings', array( array(), array() ) );
+
+		$this->assertSame(
+			array(
+				array( 'name' => 'cpf_rf', 'label' => 'CPF / RF', 'type' => 'text' ),
+				array( 'name' => 'birth_date', 'label' => 'birth_date', 'type' => 'date' ),
+				array( 'name' => 'course', 'label' => 'Course', 'type' => 'text' ),
+			),
+			$result['required_form_fields']
+		);
+	}
+
+	public function test_a_certificates_save_without_the_table_leaves_it_alone(): void {
+		$_POST['_ffc_tab']     = 'certificates';
+		$_POST['ffc_settings'] = array( 'required_certificate_tags' => '{{auth_code}}' );
+		$stored                = array( array( 'name' => 'name', 'label' => 'Name', 'type' => 'text' ) );
+
+		$result = $this->invoke( 'save_general_settings', array( array( 'required_form_fields' => $stored ), array() ) );
+
+		$this->assertSame( $stored, $result['required_form_fields'] );
+	}
 
 	public function test_general_dark_mode_valid_values_accepted(): void {
 		foreach ( array( 'off', 'on', 'auto' ) as $mode ) {

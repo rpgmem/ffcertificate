@@ -460,7 +460,7 @@ class FormRestController {
 					'label'    => isset( $field['label'] ) ? (string) $field['label'] : '',
 					'type'     => isset( $field['type'] ) ? (string) $field['type'] : 'text',
 					'required' => ! empty( $field['required'] ),
-					'options'  => ( isset( $field['options'] ) && is_array( $field['options'] ) ) ? array_values( $field['options'] ) : array(),
+					'options'  => \FreeFormCertificate\Core\FormField::choices( $field ),
 				);
 			}
 

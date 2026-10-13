@@ -544,19 +544,19 @@ class AdminAssetsManager {
 		$field_types = FormEditorBuilderMetabox::field_types_ordered();
 
 		return array(
-			'ajax_url'       => admin_url( 'admin-ajax.php' ),
-			'nonce'          => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
-			'export_nonce'   => wp_create_nonce( 'ffc_csv_export' ),
+			'ajax_url'              => admin_url( 'admin-ajax.php' ),
+			'nonce'                 => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
+			'export_nonce'          => wp_create_nonce( 'ffc_csv_export' ),
 			// Canonical placeholder → sample-value map for the in-editor
 			// certificate preview. Single source of truth lives in PHP so
 			// the JS can't drift from the generators' real placeholders.
-			'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
-			'templates'      => self::discover_layout_templates(),
+			'previewSamples'        => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
+			'templates'             => self::discover_layout_templates(),
 			// Certificate field types as an ordered {value,label} list — the
 			// single source of truth shared with the server-rendered row
 			// `<select>` (FormEditorBuilderMetabox), so the JS builder offers
 			// the same types in the same locale-aware order.
-			'fieldTypes'     => array_map(
+			'fieldTypes'            => array_map(
 				static function ( string $slug, string $label ): array {
 					return array(
 						'value' => $slug,
@@ -566,7 +566,10 @@ class AdminAssetsManager {
 				array_keys( $field_types ),
 				array_values( $field_types )
 			),
-			'strings'        => array(
+			// One line per type, swapped in under the Type select when it
+			// changes (#1729); the server renders the first one.
+			'fieldTypeDescriptions' => FormEditorBuilderMetabox::field_type_descriptions(),
+			'strings'               => array(
 				// General.
 				'generating'              => __( 'Generating...', 'ffcertificate' ),
 				'error'                   => __( 'Error: ', 'ffcertificate' ),
@@ -616,45 +619,13 @@ class AdminAssetsManager {
 				/* translators: %d: number */
 				'serverError'             => __( 'Server error (Status: %d)', 'ffcertificate' ),
 
-				// Field Builder.
+				// Field Builder — the rows themselves are copied from the
+				// server-rendered template, so only the menu and the quiz
+				// check need words.
 				'chooseFieldType'         => __( 'Choose Field Type:', 'ffcertificate' ),
-				'remove'                  => __( 'Remove', 'ffcertificate' ),
-				'fieldType'               => __( 'Field Type:', 'ffcertificate' ),
-				'label'                   => __( 'Label:', 'ffcertificate' ),
-				'fieldLabel'              => __( 'Field Label', 'ffcertificate' ),
-				'nameVariable'            => __( 'Name (variable):', 'ffcertificate' ),
-				'fieldName'               => __( 'field_name', 'ffcertificate' ),
-				'required'                => __( 'Required:', 'ffcertificate' ),
-				'options'                 => __( 'Options:', 'ffcertificate' ),
-				'separateWithCommas'      => __( 'Separate with commas', 'ffcertificate' ),
-
-				// Field Types.
-				'textField'               => __( 'Text Field', 'ffcertificate' ),
-				'email'                   => __( 'Email', 'ffcertificate' ),
-				'number'                  => __( 'Number', 'ffcertificate' ),
-				'textarea'                => __( 'Textarea', 'ffcertificate' ),
-				'dropdownSelect'          => __( 'Dropdown Select', 'ffcertificate' ),
-				'checkbox'                => __( 'Checkbox', 'ffcertificate' ),
-				'radioButtons'            => __( 'Radio Buttons', 'ffcertificate' ),
-				'date'                    => __( 'Date', 'ffcertificate' ),
-				'infoBlock'               => __( 'Info Block', 'ffcertificate' ),
-				'embedMedia'              => __( 'Embed (Media)', 'ffcertificate' ),
-				'hiddenField'             => __( 'Hidden Field', 'ffcertificate' ),
-
-				// Info Block Field.
-				'content'                 => __( 'Content:', 'ffcertificate' ),
-				'contentPlaceholder'      => __( 'Text to display. Supports <b>, <i>, <a>.', 'ffcertificate' ),
-				'titleOptional'           => __( 'Title (optional):', 'ffcertificate' ),
-
-				// Embed Field.
-				'embedUrl'                => __( 'Media URL:', 'ffcertificate' ),
-				'embedUrlPlaceholder'     => __( 'https://www.youtube.com/watch?v=... or image URL', 'ffcertificate' ),
-				'hiddenValue'             => __( 'Value submitted with every entry:', 'ffcertificate' ),
-				'captionOptional'         => __( 'Caption (optional):', 'ffcertificate' ),
-
-				// Quiz Mode.
-				'quizPoints'              => __( 'Points per option:', 'ffcertificate' ),
-				'quizPointsPlaceholder'   => __( 'Ex: 0, 10, 0', 'ffcertificate' ),
+				/* translators: %d: number of options marked correct. */
+				'maxSelectBelowCorrect'   => __( 'The maximum selections is below the number of correct options (%d).', 'ffcertificate' ),
+				'requiredField'           => __( 'Required field', 'ffcertificate' ),
 
 				// Template Manager.
 				'selectTemplate'          => __( 'Select a Template', 'ffcertificate' ),

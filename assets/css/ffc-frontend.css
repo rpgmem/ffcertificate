@@ -8,6 +8,14 @@
 /* ==========================================================================
    1. CORE INPUT STYLE
    ========================================================================== */
+
+/* A control does not inherit the font: the browser gives fields and buttons
+   its own (Arial, or the system's), so the labels read in the form's font and
+   the fields beside them in another. The size, the weight and the line height
+   stay each control's own rule. */
+.ffc-shortcode :is(input, select, textarea, button) {
+    font-family: inherit;
+}
 .ffc-shortcode .ffc-input {
     width: 100% !important; /* ← 100% of the field (already 450px) */
     max-width: none !important; /* ← Drops the old cap */
@@ -102,7 +110,8 @@
     text-transform: none;
 }
 
-.ffc-shortcode .ffc-form-field label .ffc-required {
+.ffc-shortcode .ffc-form-field label .ffc-required,
+.ffc-shortcode .ffc-field-legend .ffc-required {
     color: var(--ffc-danger);
     font-weight: 700;
     margin-left: 3px;
@@ -120,6 +129,74 @@
     gap: var(--ffc-spacing-sm);
     font-weight: 400;
     cursor: pointer;
+}
+
+/* A radio or checkbox group is a fieldset whose legend reads as the label
+   of any other field (#1729). */
+.ffc-shortcode fieldset.ffc-choice-field {
+    border: 0;
+    margin: 0 0 var(--ffc-spacing-2xl);
+    padding: 0;
+    min-width: 0;
+}
+
+.ffc-shortcode .ffc-field-legend {
+    display: block;
+    padding: 0;
+    margin-bottom: var(--ffc-spacing-sm);
+    font-weight: 500;
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-xl);
+}
+
+.ffc-shortcode .ffc-radio-group label.is-disabled {
+    color: var(--ffc-text-muted);
+    cursor: not-allowed;
+}
+
+.ffc-shortcode .ffc-field-hint,
+.ffc-shortcode .ffc-field-counter {
+    margin: var(--ffc-spacing-xs) 0 0;
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-shortcode .ffc-field-legend + .ffc-field-hint {
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+/* A control keeps the bottom margin every field has; what follows it
+   directly is pulled up under it, so it reads as part of the field. */
+.ffc-shortcode .ffc-input + .ffc-length-counter,
+.ffc-shortcode .ffc-input + .ffc-field-hint {
+    margin-top: calc(var(--ffc-spacing-xl) * -1 + var(--ffc-spacing-xs));
+}
+
+.ffc-shortcode .ffc-length-counter {
+    text-align: right;
+}
+
+.ffc-shortcode .ffc-length-counter.is-below-min {
+    color: var(--ffc-warning-text);
+}
+
+/* Per-question verdict after a quiz attempt (#1730): the word carries the
+   meaning, the colour and the icon only repeat it. */
+.ffc-shortcode .ffc-quiz-verdict {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    margin: var(--ffc-spacing-xs) 0 0;
+    font-size: var(--ffc-font-size-sm);
+    font-weight: 600;
+}
+
+.ffc-shortcode .ffc-quiz-right .ffc-quiz-verdict {
+    color: var(--ffc-success-text);
+}
+
+.ffc-shortcode .ffc-quiz-wrong .ffc-quiz-verdict {
+    color: var(--ffc-danger-text);
 }
 
 /* ============================================
@@ -2317,4 +2394,18 @@ details.ffc-consent-description > p {
     .ffc-shortcode .ffc-verification-status-submitted {
         border: 1px solid CanvasText;
     }
+}
+
+/* Quiz "leave the window" dialog (#1731). It reuses the shared modal; the
+   theme's paragraph size would otherwise dwarf the dialog's own title. */
+.ffc-shortcode .ffc-quiz-leave-overlay .ffc-modal-header h3 {
+    font-weight: 600;
+    color: var(--ffc-text);
+}
+
+.ffc-shortcode .ffc-quiz-leave-overlay .ffc-modal-body p {
+    margin: 0;
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
+    color: var(--ffc-text);
 }

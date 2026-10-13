@@ -390,6 +390,10 @@ class Loader {
 		// is_admin(): the update scan runs in cron, outside the admin context.
 		\FreeFormCertificate\Integrations\GithubUpdater::init();
 
+		// Screenshot viewer in that update's "View details" modal. Its hook
+		// only fires in wp-admin, so it needs no is_admin() gate of its own.
+		\FreeFormCertificate\Integrations\ScreenshotViewer::init();
+
 		// Challenge endpoint for the ALTCHA strategy. Registered
 		// unconditionally: the strategy can be switched at any moment, and a
 		// handler that only exists while its provider is selected leaves the
@@ -525,6 +529,7 @@ class Loader {
 		$this->ensure_email_templates_cap_granted();
 		$this->ensure_identities_cap_granted();
 		$this->ensure_identity_verbs_cap_granted();
+		$this->ensure_grade_cap_granted();
 		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_url_shortener_export_cap_granted();
@@ -703,6 +708,24 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_identity_verbs_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration seeding `ffc_grade_certificates` (#1732) onto every
+	 * user and role already holding `ffc_edit_certificates`.
+	 *
+	 * @since 6.39.0
+	 * @return void
+	 */
+	private function ensure_grade_cap_granted(): void {
+		$flag = 'ffc_grade_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_grade_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}

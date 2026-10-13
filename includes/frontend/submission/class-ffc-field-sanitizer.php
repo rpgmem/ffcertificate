@@ -36,6 +36,7 @@ class FieldSanitizer {
 	public function apply( SubmissionContext $ctx ): void {
 		$submission_data = array();
 		$user_email      = '';
+		$email_typed     = false;
 
 		// Name fields that should be normalized (capitalized with lowercase
 		// connectives) -- the key list is `SubmitterName`'s (#1480).
@@ -93,8 +94,10 @@ class FieldSanitizer {
 				$submission_data[ $name ] = $value;
 
 				if ( isset( $field['type'] ) && 'email' === $field['type'] ) {
+					$email_typed = $email_typed || ( is_string( $value ) && '' !== trim( $value ) );
 					// Normalize email to lowercase for consistent storage and lookups.
-					$user_email = \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( $value ) );
+					$candidate  = \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( is_string( $value ) ? $value : '' ) );
+					$user_email = is_email( $candidate ) ? $candidate : '';
 				}
 			}
 		}
@@ -104,7 +107,15 @@ class FieldSanitizer {
 		// check (e.g. user typed "not an email"). Keep this gate as a
 		// fallback so $user_email is never empty downstream.
 		if ( empty( $user_email ) ) {
-			throw new SubmissionRejected( array( 'message' => __( 'Email address is required.', 'ffcertificate' ) ) );
+			// Something was typed and `sanitize_email()` refused it: that is
+			// an invalid address, not a missing one (#1734).
+			throw new SubmissionRejected(
+				array(
+					'message' => $email_typed
+						? __( 'Enter a valid email address.', 'ffcertificate' )
+						: __( 'Email address is required.', 'ffcertificate' ),
+				)
+			);
 		}
 
 		// LGPD already validated up-front (PreflightGuard); just stamp the

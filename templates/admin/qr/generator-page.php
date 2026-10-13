@@ -259,7 +259,7 @@ $ffc_qr_vcard_fields = array(
 								</td>
 							</tr>
 							<tr data-ffc-qr-short-on>
-								<th scope="row"><label for="ffc-qr-short-title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="required" aria-hidden="true">*</span></label></th>
+								<th scope="row"><label for="ffc-qr-short-title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label></th>
 								<td>
 									<input type="text" id="ffc-qr-short-title" class="regular-text" maxlength="255" aria-required="true">
 									<p class="description"><?php esc_html_e( 'Required: it names the short URL in the list.', 'ffcertificate' ); ?></p>

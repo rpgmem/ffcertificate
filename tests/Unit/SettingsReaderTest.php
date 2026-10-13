@@ -18,6 +18,7 @@ class SettingsReaderTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( '__' )->returnArg();
 	}
 
 	protected function tearDown(): void {
@@ -355,18 +356,21 @@ class SettingsReaderTest extends TestCase {
 	// required_certificate_tags()
 	// ------------------------------------------------------------------
 
-	public function test_required_certificate_tags_defaults_to_historical_trio(): void {
+	public function test_required_certificate_tags_default_list(): void {
 		$this->stub_option( array() );
 
 		$this->assertSame(
-			array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ),
+			array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}', '{{schedule}}' ),
 			SettingsReader::required_certificate_tags()
 		);
 	}
 
 	public function test_required_certificate_tags_parses_newline_list(): void {
 		$this->stub_option(
-			array( 'required_certificate_tags' => "{{auth_code}}\n{{name}}\n{{course}}" )
+			array(
+				'required_certificate_tags' => "{{auth_code}}\n{{name}}\n{{course}}",
+				'required_form_fields'      => array(),
+			)
 		);
 
 		$this->assertSame(
@@ -375,10 +379,30 @@ class SettingsReaderTest extends TestCase {
 		);
 	}
 
+	/**
+	 * #1736 — a list the Save button stored on one line still reads as tags.
+	 */
+	public function test_required_certificate_tags_reads_a_list_stored_on_one_line(): void {
+		$this->stub_option(
+			array(
+				'required_certificate_tags' => '{{auth_code}} {{name}} {{cpf_rf}} {{curso}}',
+				'required_form_fields'      => array(),
+			)
+		);
+
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}', '{{curso}}' ),
+			SettingsReader::required_certificate_tags()
+		);
+	}
+
 	public function test_required_certificate_tags_force_injects_auth_code(): void {
 		// Admin removed auth_code — it must come back, first.
 		$this->stub_option(
-			array( 'required_certificate_tags' => "{{name}}\n{{cpf_rf}}" )
+			array(
+				'required_certificate_tags' => "{{name}}\n{{cpf_rf}}",
+				'required_form_fields'      => array(),
+			)
 		);
 
 		$this->assertSame(
@@ -389,12 +413,88 @@ class SettingsReaderTest extends TestCase {
 
 	public function test_required_certificate_tags_dedupes_and_accepts_array(): void {
 		$this->stub_option(
-			array( 'required_certificate_tags' => array( '{{auth_code}}', '{{name}}', '{{name}}' ) )
+			array(
+				'required_certificate_tags' => array( '{{auth_code}}', '{{name}}', '{{name}}' ),
+				'required_form_fields'      => array(),
+			)
 		);
 
 		$this->assertSame(
 			array( '{{auth_code}}', '{{name}}' ),
 			SettingsReader::required_certificate_tags()
+		);
+	}
+
+	/**
+	 * #1741 — a list saved before the split never named {{schedule}}; the
+	 * layout check added it on its own, so the reader keeps doing so until
+	 * the tab is saved with the new table.
+	 */
+	public function test_a_list_saved_before_the_split_keeps_the_schedule_check(): void {
+		$this->stub_option( array( 'required_certificate_tags' => "{{auth_code}}\n{{name}}" ) );
+
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}', '{{schedule}}' ),
+			SettingsReader::required_certificate_tags()
+		);
+	}
+
+	// ------------------------------------------------------------------
+	// required_form_fields()
+	// ------------------------------------------------------------------
+
+	public function test_required_form_fields_default_table(): void {
+		$this->stub_option( array() );
+
+		$this->assertSame(
+			array(
+				array( 'name' => 'name', 'label' => 'Full Name', 'type' => 'text' ),
+				array( 'name' => 'cpf_rf', 'label' => 'CPF / RF', 'type' => 'text' ),
+				array( 'name' => 'email', 'label' => 'Email', 'type' => 'email' ),
+			),
+			SettingsReader::required_form_fields()
+		);
+	}
+
+	public function test_a_saved_table_wins_and_email_is_forced_as_an_email_field(): void {
+		$this->stub_option(
+			array(
+				'required_form_fields' => array(
+					array( 'name' => 'Course', 'label' => 'Course name', 'type' => 'select' ),
+					array( 'name' => 'email', 'label' => 'Work email', 'type' => 'text' ),
+					array( 'name' => 'bad name!', 'label' => 'x', 'type' => 'text' ),
+					'not a row',
+				),
+			)
+		);
+
+		$this->assertSame(
+			array(
+				array( 'name' => 'course', 'label' => 'Course name', 'type' => 'text' ),
+				array( 'name' => 'email', 'label' => 'Work email', 'type' => 'email' ),
+			),
+			SettingsReader::required_form_fields(),
+			'A type outside the allowlist becomes Text; an unusable name is dropped; Email keeps its label and its type.'
+		);
+	}
+
+	public function test_an_emptied_table_still_requires_email(): void {
+		$this->stub_option( array( 'required_form_fields' => array() ) );
+
+		$this->assertSame(
+			array( array( 'name' => 'email', 'label' => 'Email', 'type' => 'email' ) ),
+			SettingsReader::required_form_fields(),
+			'Removing name and cpf_rf in the admin is allowed; Email is not.'
+		);
+	}
+
+	public function test_an_install_without_the_table_derives_fields_from_its_old_tag_list(): void {
+		$this->stub_option( array( 'required_certificate_tags' => "{{auth_code}}\n{{nome}}\n{{curso}}\n{{qr_code:size=90}}\n{{print_date}}" ) );
+
+		$this->assertSame(
+			array( 'name', 'cpf_rf', 'email', 'curso' ),
+			array_column( SettingsReader::required_form_fields(), 'name' ),
+			'Generated tags, QR codes and the nome alias call for no new field.'
 		);
 	}
 

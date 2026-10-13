@@ -77,13 +77,16 @@
         if ($explicit && $explicit.length) {
             return $explicit;
         }
-        // `.ffc-toggle` wraps `<input>` + `<span.ffc-toggle-track>` + label
+        // `.ffc-control-toggle` wraps `<input>` + `<span.ffc-control-toggle-track>` + label
         // text. Injecting the badge between the input and the track kills
-        // the `input:checked + .ffc-toggle-track` CSS rule that recolors
+        // the `input:checked + .ffc-control-toggle-track` CSS rule that recolors
         // the track on toggle-on — so the toggle visually stays "off"
         // even after the save succeeds. Anchor the badge AFTER the
         // wrapping label instead so the track stays adjacent.
-        var $anchor = $field.closest('.ffc-toggle');
+        // A steps (#1745) or segmented (#1750) control is one field made of
+        // one radio per option: its badge goes after the whole control, once.
+        // Inside it the badge would also break `input:checked + label`.
+        var $anchor = $field.closest('.ffc-control-toggle, .ffc-control-steps, .ffc-control-segmented');
         if (!$anchor.length) {
             $anchor = $field;
         }
@@ -346,6 +349,10 @@
             }
             var key      = $input.attr(attr);
             var isMulti  = $input.attr('data-ffc-autosave-multi') !== undefined;
+            // A radio group saves as one field (#1745): the first radio is the
+            // anchor, the group feeds its change handler, and the value read is
+            // the checked member's.
+            var isRadio  = $input.is(':radio');
             if (!key) {
                 return;
             }
@@ -355,7 +362,7 @@
             // call). Siblings still get marked bound so this loop skips
             // them on the next pass, but their changes are funneled
             // through the anchor's change handler via config.$group.
-            if (isMulti) {
+            if (isMulti || isRadio) {
                 if (multiBound[key]) {
                     $input.data('ffcAutoSaveBound', true);
                     return;
@@ -372,6 +379,11 @@
             var confirmOff = $input.attr('data-ffc-confirm-off');
             if (confirmOff) {
                 config.confirmOff = confirmOff;
+            }
+            if (isRadio) {
+                var $radios = $('[' + attr + '="' + key + '"]:radio');
+                $radios.not($input).data('ffcAutoSaveBound', true);
+                config.$group = $radios;
             }
             if (isMulti) {
                 var $group = $('[' + attr + '="' + key + '"][data-ffc-autosave-multi]');

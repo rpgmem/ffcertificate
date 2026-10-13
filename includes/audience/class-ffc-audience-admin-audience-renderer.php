@@ -411,7 +411,7 @@ final class AudienceAdminAudienceRenderer {
 							<?php endforeach; ?>
 						</select>
 						<?php
-						// Toggle switches (.ffc-toggle). The .ffc-field-{required,active,sensitive}
+						// Toggle switches (.ffc-control-toggle). The .ffc-field-{required,active,sensitive}
 						// classes stay on the inner <input> (input_class) because
 						// ffc-custom-fields-admin.js serialises each row via those selectors.
 						// Unique ids via the {{data.index}} mustache so cloned rows don't collide.

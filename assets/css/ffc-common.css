@@ -380,6 +380,15 @@
     background-color: var(--ffc-bg);
 }
 
+/* What the user agent paints itself: scrollbars, the date picker's popup and
+   an unstyled control. Without this they stay light on the dark canvas — the
+   Documentation tab's navigation column and every code block scrolled with a
+   white bar. Admin only: on a public page `<html>` is the theme's, and its
+   scrollbars are not ours to recolour. */
+:root.ffc-dark-mode:has(> body.wp-admin) {
+    color-scheme: dark;
+}
+
 :root.ffc-dark-mode .wrap h1,
 :root.ffc-dark-mode .wrap h2,
 :root.ffc-dark-mode .wrap h3,
@@ -440,6 +449,15 @@
 :root.ffc-dark-mode textarea:focus {
     border-color: var(--ffc-border-focus);
     box-shadow: 0 0 0 1px var(--ffc-border-focus);
+}
+
+/* Core paints checkboxes and radios `#fff`; the check mark and the dot are
+   core's blue, which reads on the dark ground too. */
+:root.ffc-dark-mode input[type="checkbox"],
+:root.ffc-dark-mode input[type="radio"] {
+    color: var(--ffc-text);
+    background-color: var(--ffc-bg-alt);
+    border-color: var(--ffc-text-muted);
 }
 
 /* A disabled control must still read as text, not as the background. */
@@ -527,6 +545,170 @@
     color: var(--ffc-text-light);
     background: var(--ffc-bg);
     border-color: var(--ffc-border-light);
+}
+
+/* The Publish box's footer on a plugin post type's editor: core paints it
+   `#f6f7f7`, and its red "Move to Trash" sat at low contrast on the dark
+   card around it, as it did in a list row's actions. */
+:root.ffc-dark-mode #major-publishing-actions {
+    background: var(--ffc-bg-alt);
+    border-top-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .submitdelete {
+    color: var(--ffc-danger);
+}
+
+/* A list row's "Edit | Trash" separators, and the Screen Options toggle above
+   a list: core greys and whites that sat on the dark canvas. */
+:root.ffc-dark-mode .row-actions {
+    color: var(--ffc-text-muted);
+}
+
+:root.ffc-dark-mode #screen-meta,
+:root.ffc-dark-mode #screen-meta-links .show-settings {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border);
+}
+
+/* Links inside a notice: core reads its admin-colour variable darkened, which
+   measured 1,87:1 on the dark notice. */
+:root.ffc-dark-mode .notice a,
+:root.ffc-dark-mode div.error a,
+:root.ffc-dark-mode div.updated a {
+    color: var(--ffc-primary);
+}
+
+/* Links. Core's `a { color: #2271b1 }` measured 1,87–2,65:1 on the dark
+   card: sortable column headers, links inside descriptions, the documentation.
+   `:where()` keeps this at core's own specificity, so any component that
+   colours its links still wins. */
+:where(:root.ffc-dark-mode body.wp-admin) a {
+    color: var(--ffc-primary);
+}
+
+:where(:root.ffc-dark-mode body.wp-admin) a:hover,
+:where(:root.ffc-dark-mode body.wp-admin) a:focus {
+    color: var(--ffc-primary-hover);
+}
+
+/* "Add New" / "Export CSV" beside the page title: core paints it blue on a
+   light ground, 2,83:1 here. It takes the secondary button's look. */
+:root.ffc-dark-mode .page-title-action {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .page-title-action:hover,
+:root.ffc-dark-mode .page-title-action:focus {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border-focus);
+}
+
+/* A disabled primary button. Core declares its light ground with
+   `!important`, so only `!important` reaches it. */
+:root.ffc-dark-mode .button-primary:disabled,
+:root.ffc-dark-mode .button-primary.disabled,
+:root.ffc-dark-mode .button-primary[disabled] {
+    color: var(--ffc-text-light) !important;
+    background: var(--ffc-bg) !important;
+    border-color: var(--ffc-border-light) !important;
+}
+
+/* A native colour input's frame around the swatch. */
+:root.ffc-dark-mode input[type="color"] {
+    color: var(--ffc-text);
+    background-color: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+}
+
+/* The rich-text editor (`wp_editor`) used for e-mail bodies: its tabs,
+   toolbar and status bar are core chrome painted light. The text area inside
+   is an iframe holding the message itself, which stays a white document like
+   the e-mail it becomes. */
+:root.ffc-dark-mode .wp-switch-editor,
+:root.ffc-dark-mode .wp-editor-container,
+:root.ffc-dark-mode .quicktags-toolbar,
+:root.ffc-dark-mode .mce-panel,
+:root.ffc-dark-mode .mce-toolbar-grp,
+:root.ffc-dark-mode .mce-statusbar {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .html-active .switch-html,
+:root.ffc-dark-mode .tmce-active .switch-tmce {
+    background: var(--ffc-bg-card);
+}
+
+:root.ffc-dark-mode .mce-btn button,
+:root.ffc-dark-mode .mce-btn .mce-ico,
+:root.ffc-dark-mode .mce-path-item,
+:root.ffc-dark-mode .mce-wordcount {
+    color: var(--ffc-text);
+}
+
+:root.ffc-dark-mode .mce-btn:hover,
+:root.ffc-dark-mode .mce-btn.mce-active {
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border-focus);
+}
+
+/* The "Add title" placeholder over the post title field. */
+:root.ffc-dark-mode #titlediv #title-prompt-text {
+    color: var(--ffc-text-muted);
+}
+
+/* The file input's "Choose File" is drawn by the browser, not by core, so it
+   takes the secondary button's look by hand. */
+:root.ffc-dark-mode input[type="file"] {
+    color: var(--ffc-text);
+}
+
+:root.ffc-dark-mode input[type="file"]::file-selector-button {
+    margin-right: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    cursor: pointer;
+}
+
+:root.ffc-dark-mode input[type="file"]::file-selector-button:hover {
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border-focus);
+}
+
+/* A link-styled button ("Clear" beside an image picker) keeps core's
+   `#2271b1`, which is too dark to read on the dark card. Core's red
+   delete link keeps its own colour. */
+:root.ffc-dark-mode .button-link:not(.button-link-delete) {
+    color: var(--ffc-primary);
+}
+
+/* Core's colour picker. The swatch button is a `.button` and follows the rule
+   above, but its "Select Color" label is a span core paints `#f6f7f7` on its
+   own, so it stayed a light block on every picker (Email Model, the message
+   appearance). The popup is painted white by Iris. */
+:root.ffc-dark-mode .wp-picker-container .wp-color-result-text {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-left-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .wp-picker-container .wp-color-result:hover .wp-color-result-text,
+:root.ffc-dark-mode .wp-picker-container .wp-color-result:focus .wp-color-result-text {
+    background: var(--ffc-bg-card);
+}
+
+:root.ffc-dark-mode .wp-picker-container .iris-picker {
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border);
 }
 
 /* Tab strips. */
@@ -634,6 +816,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* A modal rendered with `hidden` stays hidden: `display: flex` above
+   outranks the user agent's `[hidden]` rule (#1731). */
+.ffc-shortcode .ffc-modal[hidden] {
+    display: none;
 }
 
 .ffc-shortcode .ffc-modal-backdrop {
@@ -1434,6 +1622,11 @@
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 2L4 14h7l-1 8 9-12h-7z'/%3E%3C/svg%3E");
 }
 
+:root {
+    --ffc-icon-mask-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");
+    --ffc-icon-mask-x: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E");
+}
+
 .ffc-svg-icon {
     color: var(--ffc-icon-tone, currentColor);
 }
@@ -1820,19 +2013,33 @@
 .ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: var(--ffc-radius-full); vertical-align: middle; background-color: var(--ffc-color, currentColor); }
 
 /* ==========================================================================
-   TOGGLE SWITCH — mobile-style ON/OFF for boolean settings.
-   Replaces native checkbox visuals while preserving the underlying input
-   for accessibility (screen readers, keyboard nav, form-POST semantics).
-   Markup contract:
-     <label class="ffc-toggle">
+   TOGGLE (#1748) — AdminUI::render_toggle(), the two-state member of the
+   ffc-control-* family (see CONTROLS below). Markup:
+     <label class="ffc-control-toggle">
          <input type="checkbox" name="..." value="1" checked>
-         <span class="ffc-toggle-track" aria-hidden="true"></span>
-         <span class="ffc-toggle-label">Field label text</span>
+         <span class="ffc-control-toggle-track" aria-hidden="true"></span>
+         <span class="ffc-control-toggle-label">Field label text</span>
      </label>
+   It shares the family's state language: a halo for hover and pressed, the
+   2px primary ring for keyboard focus, and a disabled state that greys
+   instead of fading. .ffc-control-toggle-mark adds a check or a cross on the
+   knob, so on and off do not rest on colour alone.
    ========================================================================== */
-.ffc-toggle,
-.form-table td .ffc-toggle,
-.form-table td fieldset .ffc-toggle {
+/* The family's shared hover / pressed halo. */
+.ffc-control-toggle,
+.ffc-control-steps,
+.ffc-control-segmented {
+    --ffc-control-halo: color-mix(in srgb, var(--ffc-primary) 18%, transparent);
+    --ffc-control-knob-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    /* The ink of a mark drawn on the toggle's knob. The knob is white in both
+       themes (see below), so its ink is fixed too: --ffc-primary lightens in
+       the dark theme and would fall under 3:1 on white (#1748). */
+    --ffc-control-knob-ink: #50575e;
+}
+
+.ffc-control-toggle,
+.form-table td .ffc-control-toggle,
+.form-table td fieldset .ffc-control-toggle {
     /* Multiple selectors win the specificity battle against WP admin's
        `.form-table td fieldset label { display: inline-block }` which
        would otherwise collapse the toggle and overlap the label text. */
@@ -1845,7 +2052,7 @@
     position: relative;
 }
 
-.ffc-toggle input[type="checkbox"] {
+.ffc-control-toggle input[type="checkbox"] {
     /* Visually hidden but reachable by keyboard + assistive tech. */
     position: absolute;
     opacity: 0;
@@ -1854,8 +2061,9 @@
     pointer-events: none;
 }
 
-.ffc-toggle-track {
+.ffc-control-toggle-track {
     position: relative;
+    isolation: isolate;
     flex: 0 0 auto;
     width: 38px;
     height: 22px;
@@ -1864,7 +2072,7 @@
     transition: background-color 0.15s ease;
 }
 
-.ffc-toggle-track::after {
+.ffc-control-toggle-track::after {
     content: "";
     position: absolute;
     top: 2px;
@@ -1876,36 +2084,589 @@
        theme the track is dark, and a knob in var(--ffc-bg-card) would vanish
        into it. Literal by decision, not by oversight (#1126 B). */
     background: #fff;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    transition: transform 0.15s ease;
+    box-shadow: var(--ffc-control-knob-shadow);
+    transition: transform 0.15s ease, width 0.15s ease, box-shadow 0.15s ease;
 }
 
-.ffc-toggle input[type="checkbox"]:checked + .ffc-toggle-track {
+.ffc-control-toggle input[type="checkbox"]:checked + .ffc-control-toggle-track {
     background: var(--ffc-primary);
 }
 
-.ffc-toggle input[type="checkbox"]:checked + .ffc-toggle-track::after {
+.ffc-control-toggle input[type="checkbox"]:checked + .ffc-control-toggle-track::after {
     transform: translateX(16px);
 }
 
-.ffc-toggle input[type="checkbox"]:focus-visible + .ffc-toggle-track {
+.ffc-control-toggle:hover input[type="checkbox"]:not(:disabled) + .ffc-control-toggle-track::after {
+    box-shadow: var(--ffc-control-knob-shadow), 0 0 0 7px var(--ffc-control-halo);
+}
+
+/* Pressed: the knob stretches towards where it is going. */
+.ffc-control-toggle:active input[type="checkbox"]:not(:disabled) + .ffc-control-toggle-track::after {
+    width: 22px;
+    box-shadow: var(--ffc-control-knob-shadow), 0 0 0 9px var(--ffc-control-halo);
+}
+
+.ffc-control-toggle:active input[type="checkbox"]:checked:not(:disabled) + .ffc-control-toggle-track::after {
+    transform: translateX(12px);
+}
+
+.ffc-control-toggle input[type="checkbox"]:focus-visible + .ffc-control-toggle-track {
     outline: 2px solid var(--ffc-primary);
     outline-offset: 2px;
 }
 
-.ffc-toggle input[type="checkbox"]:disabled + .ffc-toggle-track {
-    opacity: 0.5;
+/* Disabled: the colour leaves, nothing fades. */
+.ffc-control-toggle input[type="checkbox"]:disabled + .ffc-control-toggle-track {
+    background: var(--ffc-gray-300);
     cursor: not-allowed;
 }
 
-.ffc-toggle-label {
+.ffc-control-toggle input[type="checkbox"]:disabled:checked + .ffc-control-toggle-track {
+    background: var(--ffc-gray-400);
+}
+
+.ffc-control-toggle input[type="checkbox"]:disabled + .ffc-control-toggle-track::after {
+    box-shadow: none;
+}
+
+.ffc-control-toggle:has(input[type="checkbox"]:disabled) {
+    cursor: not-allowed;
+}
+
+.ffc-control-toggle:has(input[type="checkbox"]:disabled) .ffc-control-toggle-label {
+    color: var(--ffc-text-muted);
+}
+
+.ffc-control-toggle-label {
     color: inherit;
 }
 
+/* Mark: the glyph rides above the knob; its shape, not its colour, says on or off. */
+.ffc-control-toggle-mark .ffc-control-toggle-track::before {
+    content: "";
+    position: absolute;
+    /* Above the knob (::after, which paints later at z-index auto). */
+    z-index: var(--ffc-z-raised);
+    top: 6px;
+    left: 6px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--ffc-control-knob-ink);
+    -webkit-mask: var(--ffc-icon-mask-x) center / contain no-repeat;
+    mask: var(--ffc-icon-mask-x) center / contain no-repeat;
+    transition: transform 0.15s ease;
+}
+
+.ffc-control-toggle-mark input[type="checkbox"]:checked + .ffc-control-toggle-track::before {
+    -webkit-mask-image: var(--ffc-icon-mask-check);
+    mask-image: var(--ffc-icon-mask-check);
+    transform: translateX(16px);
+}
+
+.ffc-control-toggle-mark input[type="checkbox"]:disabled + .ffc-control-toggle-track::before {
+    background-color: var(--ffc-gray-400);
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .ffc-toggle-track,
-    .ffc-toggle-track::after {
+    .ffc-control-toggle-track,
+    .ffc-control-toggle-track::before,
+    .ffc-control-toggle-track::after {
         transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .ffc-control-toggle-mark .ffc-control-toggle-track::before {
+        forced-color-adjust: none;
+        background-color: CanvasText;
+    }
+}
+
+/* ==========================================================================
+   CONTROLS (#1745) — the .ffc-control-* family, drawn by AdminUI.
+   One state language for all of them: a halo (--ffc-control-halo) for hover
+   and pressed, the 2px primary ring for keyboard focus, and a disabled
+   state that takes the colour away instead of fading (OpacityContrastTest).
+   Fine tuning goes through the --ffc-control-* custom properties.
+
+   STEPS — AdminUI::render_steps(): an ORDERED scale of 3 to 11 values.
+   One native radio per stop, so it posts and works without a script; the
+   rail fills up to the chosen stop and that step's name is set in bold, so
+   colour is never the only signal. Palettes colour the fill and the thumb's
+   ring after the chosen step:
+     .ffc-control-steps-primary   the accent (the default)
+     .ffc-control-steps-severity  grey → amber → red
+     .ffc-control-steps-traffic   red → amber → green
+   A stop's data-tone overrides the palette for that step.
+   ========================================================================== */
+.ffc-control-steps {
+    --ffc-control-steps-rail: 6px;
+    --ffc-control-steps-dot: 8px;
+    --ffc-control-steps-thumb: 20px;
+    --ffc-control-steps-shape: var(--ffc-radius-full);
+    --ffc-control-steps-gap: 76px;
+    --ffc-control-steps-idle: var(--ffc-border);
+    --ffc-control-steps-rail-bg: var(--ffc-gray-300);
+    --ffc-control-steps-fill: var(--ffc-primary);
+
+    display: inline-block;
+    vertical-align: top;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.ffc-control-steps-track {
+    display: flex;
+}
+
+.ffc-control-steps-stop {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    width: var(--ffc-control-steps-gap);
+    text-align: center;
+    cursor: pointer;
+}
+
+/* Inside a .form-table, WordPress's `.form-table td fieldset label` makes
+   every label inline-block with a forced margin (!important). A stop is a
+   label in a fieldset, so it would lose its column and its mark would sit
+   left of the rail it belongs on. */
+.form-table td fieldset .ffc-control-steps-stop {
+    display: flex;
+    margin: 0 !important;
+}
+
+.ffc-control-steps-stop input {
+    /* Visually hidden but reachable by keyboard + assistive tech. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+}
+
+/* The rail segment leading to each stop from the one before it. */
+.ffc-control-steps-stop:not(:first-child)::before {
+    content: "";
+    position: absolute;
+    top: calc(var(--ffc-control-steps-thumb) / 2 - var(--ffc-control-steps-rail) / 2);
+    right: 50%;
+    width: 100%;
+    height: var(--ffc-control-steps-rail);
+    border-radius: var(--ffc-control-steps-rail);
+    background: var(--ffc-control-steps-rail-bg);
+}
+
+.ffc-control-steps-mark {
+    position: relative;
+    z-index: var(--ffc-z-raised);
+    display: grid;
+    place-items: center;
+    width: var(--ffc-control-steps-thumb);
+    height: var(--ffc-control-steps-thumb);
+}
+
+.ffc-control-steps-mark::after {
+    content: "";
+    width: var(--ffc-control-steps-dot);
+    height: var(--ffc-control-steps-dot);
+    border-radius: var(--ffc-control-steps-shape);
+    background: var(--ffc-bg-card);
+    box-shadow: inset 0 0 0 2px var(--ffc-control-steps-idle);
+    transition: width 0.15s ease, height 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.ffc-control-steps-label {
+    padding: 0 var(--ffc-spacing-3xs);
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-xs);
+    line-height: 1.25;
+}
+
+/* Filled: every stop up to the chosen one, and the rail leading to it. */
+.ffc-control-steps-stop:has(~ .ffc-control-steps-stop input:checked)::before,
+.ffc-control-steps-stop:has(input:checked)::before {
+    background: var(--ffc-control-steps-fill);
+}
+
+.ffc-control-steps-stop:has(~ .ffc-control-steps-stop input:checked) .ffc-control-steps-mark::after {
+    background: var(--ffc-control-steps-fill);
+    box-shadow: none;
+}
+
+/* Chosen: the thumb, the card's colour inside a ring of the step's tone. */
+.ffc-control-steps-stop:has(input:checked) .ffc-control-steps-mark::after {
+    width: var(--ffc-control-steps-thumb);
+    height: var(--ffc-control-steps-thumb);
+    background: var(--ffc-bg-card);
+    box-shadow: inset 0 0 0 3px var(--ffc-control-steps-fill), var(--ffc-shadow-sm);
+}
+
+.ffc-control-steps-stop:has(input:checked) .ffc-control-steps-label {
+    color: var(--ffc-text);
+    font-weight: 600;
+}
+
+.ffc-control-steps-stop:hover:not(:has(input:checked)) .ffc-control-steps-mark::after {
+    box-shadow: inset 0 0 0 2px var(--ffc-control-steps-fill);
+}
+
+.ffc-control-steps-stop:has(input:checked):hover .ffc-control-steps-mark::after {
+    box-shadow: inset 0 0 0 3px var(--ffc-control-steps-fill), 0 0 0 8px var(--ffc-control-halo);
+}
+
+.ffc-control-steps-stop:has(input:focus-visible) .ffc-control-steps-mark::after {
+    box-shadow: inset 0 0 0 3px var(--ffc-control-steps-fill), 0 0 0 2px var(--ffc-bg-card), 0 0 0 4px var(--ffc-primary);
+}
+
+.ffc-control-steps-stop:has(input:checked):active .ffc-control-steps-mark::after {
+    box-shadow: inset 0 0 0 3px var(--ffc-control-steps-fill), 0 0 0 12px var(--ffc-control-halo);
+}
+
+/* Palettes and tones. :where() keeps each at one class, so a state such as
+   disabled always outranks the colour of the chosen step. */
+.ffc-control-steps-severity:where(:has(.ffc-control-steps-stop:first-child input:checked)) {
+    --ffc-control-steps-fill: var(--ffc-gray-600);
+}
+
+.ffc-control-steps-severity:where(:has(.ffc-control-steps-stop:not(:first-child):not(:last-child) input:checked)),
+.ffc-control-steps-traffic:where(:has(.ffc-control-steps-stop:not(:first-child):not(:last-child) input:checked)) {
+    --ffc-control-steps-fill: var(--ffc-warning);
+}
+
+.ffc-control-steps-severity:where(:has(.ffc-control-steps-stop:last-child input:checked)),
+.ffc-control-steps-traffic:where(:has(.ffc-control-steps-stop:first-child input:checked)) {
+    --ffc-control-steps-fill: var(--ffc-danger);
+}
+
+.ffc-control-steps-traffic:where(:has(.ffc-control-steps-stop:last-child input:checked)) {
+    --ffc-control-steps-fill: var(--ffc-success);
+}
+
+.ffc-control-steps:where(:has([data-tone="neutral"] input:checked)) {
+    --ffc-control-steps-fill: var(--ffc-gray-600);
+}
+
+.ffc-control-steps:where(:has([data-tone="primary"] input:checked)) {
+    --ffc-control-steps-fill: var(--ffc-primary);
+}
+
+.ffc-control-steps:where(:has([data-tone="info"] input:checked)) {
+    --ffc-control-steps-fill: var(--ffc-info);
+}
+
+.ffc-control-steps:where(:has([data-tone="success"] input:checked)) {
+    --ffc-control-steps-fill: var(--ffc-success);
+}
+
+.ffc-control-steps:where(:has([data-tone="warning"] input:checked)) {
+    --ffc-control-steps-fill: var(--ffc-warning);
+}
+
+.ffc-control-steps:where(:has([data-tone="danger"] input:checked)) {
+    --ffc-control-steps-fill: var(--ffc-danger);
+}
+
+/* Sizes, shape, width. */
+.ffc-control-steps-sm {
+    --ffc-control-steps-rail: 4px;
+    --ffc-control-steps-dot: 6px;
+    --ffc-control-steps-thumb: 16px;
+    --ffc-control-steps-gap: 60px;
+}
+
+.ffc-control-steps-lg {
+    --ffc-control-steps-rail: 8px;
+    --ffc-control-steps-dot: 10px;
+    --ffc-control-steps-thumb: 26px;
+    --ffc-control-steps-gap: 96px;
+}
+
+.ffc-control-steps-many {
+    --ffc-control-steps-gap: 56px;
+}
+
+.ffc-control-steps-square {
+    --ffc-control-steps-shape: var(--ffc-radius-sm);
+}
+
+.ffc-control-steps-fluid {
+    display: block;
+}
+
+.ffc-control-steps-fluid .ffc-control-steps-stop {
+    flex: 1 1 0;
+    width: auto;
+}
+
+/* labels: selected — the other names stay for screen readers only. */
+.ffc-control-steps-labels-selected .ffc-control-steps-stop:not(:has(input:checked)) .ffc-control-steps-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.ffc-control-steps-labels-selected .ffc-control-steps-stop:has(input:checked) .ffc-control-steps-label {
+    white-space: nowrap;
+}
+
+/* Disabled: the colour leaves, nothing fades. */
+.ffc-control-steps:disabled {
+    --ffc-control-steps-fill: var(--ffc-gray-400);
+    --ffc-control-steps-idle: var(--ffc-gray-300);
+}
+
+.ffc-control-steps:disabled .ffc-control-steps-stop {
+    cursor: not-allowed;
+}
+
+.ffc-control-steps:disabled .ffc-control-steps-label {
+    color: var(--ffc-text-muted);
+}
+
+/* Only the chosen step's description shows. */
+.ffc-control-steps-desc {
+    display: none;
+    margin-top: var(--ffc-spacing-xs);
+}
+
+.ffc-control-steps:has(.ffc-control-steps-stop:nth-child(1) input:checked) .ffc-control-steps-desc[data-step="1"],
+.ffc-control-steps:has(.ffc-control-steps-stop:nth-child(2) input:checked) .ffc-control-steps-desc[data-step="2"],
+.ffc-control-steps:has(.ffc-control-steps-stop:nth-child(3) input:checked) .ffc-control-steps-desc[data-step="3"],
+.ffc-control-steps:has(.ffc-control-steps-stop:nth-child(4) input:checked) .ffc-control-steps-desc[data-step="4"],
+.ffc-control-steps:has(.ffc-control-steps-stop:nth-child(5) input:checked) .ffc-control-steps-desc[data-step="5"],
+.ffc-control-steps:has(.ffc-control-steps-stop:nth-child(6) input:checked) .ffc-control-steps-desc[data-step="6"],
+.ffc-control-steps:has(.ffc-control-steps-stop:nth-child(7) input:checked) .ffc-control-steps-desc[data-step="7"],
+.ffc-control-steps:has(.ffc-control-steps-stop:nth-child(8) input:checked) .ffc-control-steps-desc[data-step="8"],
+.ffc-control-steps:has(.ffc-control-steps-stop:nth-child(9) input:checked) .ffc-control-steps-desc[data-step="9"],
+.ffc-control-steps:has(.ffc-control-steps-stop:nth-child(10) input:checked) .ffc-control-steps-desc[data-step="10"],
+.ffc-control-steps:has(.ffc-control-steps-stop:nth-child(11) input:checked) .ffc-control-steps-desc[data-step="11"] {
+    display: block;
+}
+
+/* A phone: the stops share the width, and a long scale names only the
+   chosen step. */
+@media (max-width: 480px) {
+    .ffc-control-steps {
+        display: block;
+    }
+
+    .ffc-control-steps .ffc-control-steps-stop {
+        flex: 1 1 0;
+        width: auto;
+    }
+
+    .ffc-control-steps-many .ffc-control-steps-stop:not(:has(input:checked)) .ffc-control-steps-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .ffc-control-steps-many .ffc-control-steps-stop:has(input:checked) .ffc-control-steps-label {
+        white-space: nowrap;
+    }
+}
+
+/* ==========================================================================
+   SEGMENTED (#1750) — AdminUI::render_segmented(): 2 to 6 choices with NO
+   order between them, joined in one pill. One native radio per segment, so
+   it posts and works without a script. The chosen segment is filled with
+   the accent and set in bold, so colour is never the only signal.
+   ========================================================================== */
+.ffc-control-segmented {
+    --ffc-control-segmented-pad-y: var(--ffc-spacing-2xs);
+    --ffc-control-segmented-pad-x: var(--ffc-spacing-lg);
+    --ffc-control-segmented-font: var(--ffc-font-size-sm);
+    --ffc-control-segmented-shape: var(--ffc-radius-pill);
+
+    display: inline-block;
+    vertical-align: top;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.ffc-control-segmented-track {
+    display: inline-flex;
+    gap: var(--ffc-spacing-3xs);
+    padding: var(--ffc-spacing-3xs);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-control-segmented-shape);
+    background: var(--ffc-gray-100);
+}
+
+.ffc-control-segmented-option {
+    position: relative;
+    display: flex;
+    cursor: pointer;
+}
+
+/* The same WordPress rule as for the steps stops above. */
+.form-table td fieldset .ffc-control-segmented-option {
+    display: flex;
+    margin: 0 !important;
+}
+
+.ffc-control-segmented-option input {
+    /* Visually hidden but reachable by keyboard + assistive tech. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
+.ffc-control-segmented-label {
+    flex: 1 1 auto;
+    padding: var(--ffc-control-segmented-pad-y) var(--ffc-control-segmented-pad-x);
+    border-radius: var(--ffc-control-segmented-shape);
+    color: var(--ffc-text);
+    font-size: var(--ffc-control-segmented-font);
+    line-height: 1.4;
+    text-align: center;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ffc-control-segmented-option:hover input:not(:checked) + .ffc-control-segmented-label {
+    background: var(--ffc-control-halo);
+}
+
+.ffc-control-segmented-option input:checked + .ffc-control-segmented-label {
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
+    font-weight: 600;
+    box-shadow: var(--ffc-shadow-sm);
+}
+
+.ffc-control-segmented-option:active input:checked + .ffc-control-segmented-label {
+    box-shadow: 0 0 0 4px var(--ffc-control-halo);
+}
+
+.ffc-control-segmented-option input:focus-visible + .ffc-control-segmented-label {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: 2px;
+}
+
+/* Sizes and width. */
+.ffc-control-segmented-sm {
+    --ffc-control-segmented-pad-y: var(--ffc-spacing-3xs);
+    --ffc-control-segmented-pad-x: var(--ffc-spacing-sm);
+    --ffc-control-segmented-font: var(--ffc-font-size-xs);
+}
+
+.ffc-control-segmented-lg {
+    --ffc-control-segmented-pad-y: var(--ffc-spacing-xs);
+    --ffc-control-segmented-pad-x: var(--ffc-spacing-xl);
+    --ffc-control-segmented-font: var(--ffc-font-size-base);
+}
+
+.ffc-control-segmented-fluid {
+    display: block;
+}
+
+.ffc-control-segmented-fluid .ffc-control-segmented-track {
+    display: flex;
+}
+
+.ffc-control-segmented-fluid .ffc-control-segmented-option {
+    flex: 1 1 0;
+}
+
+/* Disabled: the colour leaves, nothing fades. */
+.ffc-control-segmented:disabled .ffc-control-segmented-option {
+    cursor: not-allowed;
+}
+
+.ffc-control-segmented:disabled .ffc-control-segmented-option input:checked + .ffc-control-segmented-label {
+    background: var(--ffc-gray-200);
+    color: var(--ffc-text-muted);
+    box-shadow: inset 0 0 0 1px var(--ffc-gray-300);
+}
+
+/* Only the chosen option's description shows. */
+.ffc-control-segmented-desc {
+    display: none;
+    margin-top: var(--ffc-spacing-xs);
+}
+
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(1) input:checked) .ffc-control-segmented-desc[data-option="1"],
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(2) input:checked) .ffc-control-segmented-desc[data-option="2"],
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(3) input:checked) .ffc-control-segmented-desc[data-option="3"],
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(4) input:checked) .ffc-control-segmented-desc[data-option="4"],
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(5) input:checked) .ffc-control-segmented-desc[data-option="5"],
+.ffc-control-segmented:has(.ffc-control-segmented-option:nth-child(6) input:checked) .ffc-control-segmented-desc[data-option="6"] {
+    display: block;
+}
+
+/* A phone: the segments share the width and may wrap their names. */
+@media (max-width: 480px) {
+    .ffc-control-segmented {
+        display: block;
+    }
+
+    .ffc-control-segmented .ffc-control-segmented-track {
+        display: flex;
+    }
+
+    .ffc-control-segmented .ffc-control-segmented-option {
+        flex: 1 1 0;
+    }
+
+    .ffc-control-segmented .ffc-control-segmented-label {
+        white-space: normal;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-control-segmented-label {
+        transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .ffc-control-segmented-option input:checked + .ffc-control-segmented-label {
+        forced-color-adjust: none;
+        background: Highlight;
+        color: HighlightText;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-control-steps-mark::after {
+        transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .ffc-control-steps-mark::after {
+        forced-color-adjust: none;
+        background: Canvas;
+        box-shadow: inset 0 0 0 2px CanvasText;
+    }
+
+    .ffc-control-steps-stop:has(~ .ffc-control-steps-stop input:checked) .ffc-control-steps-mark::after,
+    .ffc-control-steps-stop:has(input:checked) .ffc-control-steps-mark::after {
+        background: Highlight;
+        box-shadow: none;
+    }
+
+    .ffc-control-steps-stop:not(:first-child)::before {
+        forced-color-adjust: none;
+        background: CanvasText;
     }
 }
 
@@ -1950,7 +2711,7 @@
     gap: var(--ffc-spacing-2xs);
 }
 
-.ffc-features-cell .ffc-toggle {
+.ffc-features-cell .ffc-control-toggle {
     margin: 0;
 }
 
@@ -2067,7 +2828,10 @@
     .ffc-btn-success,
     :root.ffc-dark-mode .button,
     :root.ffc-dark-mode .button-secondary,
-    :root.ffc-dark-mode .button.disabled {
+    :root.ffc-dark-mode .button.disabled,
+    :root.ffc-dark-mode .button-primary.disabled,
+    :root.ffc-dark-mode .button-primary[disabled],
+    :root.ffc-dark-mode .mce-btn.mce-active {
         border: 1px solid ButtonText;
     }
 
@@ -2085,4 +2849,10 @@
     .ffc-status-pending {
         border: 1px solid CanvasText;
     }
+}
+
+/* The asterisk beside a required admin field. Core's `.required` red measured
+   2,03:1 on the dark card; the danger token is tuned for both themes. */
+.ffc-admin-page .ffc-required {
+    color: var(--ffc-danger);
 }

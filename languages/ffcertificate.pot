@@ -986,10 +986,6 @@ msgstr ""
 msgid "A manual resend replaces that member's automatic reminder — it does not add to it."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:50
-msgid "A new form starts with three fields, which are also the minimal set most templates rely on:"
-msgstr ""
-
 #: templates/emails/reregistration-invitation.php:26
 msgid "A new reregistration campaign has been opened for your group."
 msgstr ""
@@ -2654,12 +2650,8 @@ msgstr ""
 msgid "Authenticity:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-general.php:212
-msgid "Auto (follow Dark Mode above)"
-msgstr ""
 
-#: includes/settings/views/ffc-tab-general.php:197
-msgid "Auto (follow OS)"
+msgid "Auto"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:182
@@ -3837,10 +3829,6 @@ msgstr ""
 msgid "Caption (optional)"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:638
-msgid "Caption (optional):"
-msgstr ""
-
 #: includes/settings/views/documentation/config-advanced.php:26
 msgid "Categories"
 msgstr ""
@@ -3873,10 +3861,6 @@ msgstr ""
 
 #: templates/certificate-preview.php:38 templates/submission-success.php:41
 msgid "Certificate Details"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-advanced.php:169
-msgid "Certificate Editor"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:163 includes/settings/tabs/class-ffc-tab-email-texts.php:406
@@ -4616,10 +4600,6 @@ msgstr ""
 msgid "Content (supports <b>, <i>, <a>, <p>, <ul>, <ol>):"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:631
-msgid "Content:"
-msgstr ""
-
 #: includes/admin/class-ffc-admin-activity-log-page.php:109 includes/admin/class-ffc-activity-log-export-source.php:179 includes/admin/views/ffc-admin-activity-log.php:114
 msgid "Context"
 msgstr ""
@@ -4934,10 +4914,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:386
 msgid "CPF + CAPTCHA validated."
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:149
-msgid "CPF / ID"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:603
@@ -5430,8 +5406,7 @@ msgstr ""
 msgid "Danger Zone."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:184
-msgid "Dark (VS Code style)"
+msgid "Dark"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:191 includes/settings/views/documentation/config-general.php:30
@@ -5520,10 +5495,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-audiences.php:39
 msgid "Date picker (YYYY-MM-DD)"
-msgstr ""
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:39
-msgid "Date picker."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:185
@@ -6446,10 +6417,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-audiences.php:40
 msgid "Dropdown with predefined options"
-msgstr ""
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:41
-msgid "Dropdown — fill the Options field (one choice per comma). Can carry quiz points."
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:244 includes/admin/class-ffc-cpt.php:140 includes/self-scheduling/class-ffc-self-scheduling-cpt.php:176
@@ -7602,16 +7569,8 @@ msgstr ""
 msgid "Every visitor solves a proof of work in the browser. Nothing is sent to any third party."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:294 includes/admin/class-ffc-admin-assets-manager.php:642
-msgid "Ex: 0, 10, 0"
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:241
 msgid "ex: course_name"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:289
-msgid "Ex: Option 1, Option 2, Option 3"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:137
@@ -8263,10 +8222,6 @@ msgstr ""
 msgid "Field not found."
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:608
-msgid "Field Type:"
-msgstr ""
-
 #: includes/settings/views/documentation/forms-dynamic-fields.php:27
 msgid "Field types"
 msgstr ""
@@ -8277,10 +8232,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:443
 msgid "field_key (auto)"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-assets-manager.php:612
-msgid "field_name"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:297 includes/reregistration/class-ffc-reregistration-custom-fields-page.php:55
@@ -9384,10 +9335,6 @@ msgstr ""
 msgid "https://github.com/rpgmem/ffcertificate"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:637
-msgid "https://www.youtube.com/watch?v=... or image URL"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-geolocation.php:391
 msgid "Hybrid — allow only when the user denied or the browser lacks support"
 msgstr ""
@@ -10167,10 +10114,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:524
 msgid "Label (optional)"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-assets-manager.php:609
-msgid "Label:"
 msgstr ""
 
 #: templates/public/recruitment/pagination.php:42
@@ -11008,10 +10951,6 @@ msgstr ""
 msgid "Maximum number of people who can wait per slot (0 = unlimited)."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-quiz.php:37
-msgid "Maximum points available — sum of each scored field's highest option value"
-msgstr ""
-
 #: includes/frontend/submission/class-ffc-submission-persister.php:122
 msgid "Maximum quiz attempts reached for this CPF/RF."
 msgstr ""
@@ -11034,10 +10973,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:280
 msgid "Media URL (YouTube, Vimeo, image, or audio):"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-assets-manager.php:636
-msgid "Media URL:"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-qr-codes.php:55
@@ -11157,10 +11092,6 @@ msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-migrations.php:63
 msgid "Migrations view file not found."
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:168
-msgid "Minimal fields (Tag):"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:592
@@ -11351,10 +11282,6 @@ msgstr ""
 msgid "Multi-line text input"
 msgstr ""
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:40
-msgid "Multi-line text."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-emails.php:113
 msgid "Multipart:"
 msgstr ""
@@ -11393,10 +11320,6 @@ msgstr ""
 
 #: templates/admin/recruitment/notice-edit/classification-filters-form.php:38
 msgid "Name (substring)"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-assets-manager.php:611
-msgid "Name (variable):"
 msgstr ""
 
 #. prompt asking for a name when saving the current layout as a reusable template
@@ -12103,10 +12026,6 @@ msgstr ""
 msgid "Numeric input"
 msgstr ""
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:38
-msgid "Numeric input."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-tokens.php:66
 msgid "Numeric submission ID"
 msgstr ""
@@ -12191,9 +12110,6 @@ msgstr ""
 msgid "on"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-general.php:196
-msgid "On (always dark)"
-msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:60
 msgid "on activation, on focus, on page load or on submit. Verifying on load spends the work before anyone decides to submit, and a challenge started too early can expire while the form is still being filled in."
@@ -12285,10 +12201,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/reference-security.php:32
 msgid "One shared password everyone must type to submit."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-advanced.php:199
-msgid "One tag per line (with braces). The form editor blocks saving a certificate layout that is missing any of these. {{auth_code}} is always required — certificate verification depends on it."
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:32
@@ -12463,10 +12375,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:447 includes/audience/class-ffc-audience-admin-audience-renderer.php:608
 msgid "Options (one per line)"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:287
-msgid "Options (separate with commas):"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php:614 includes/settings/views/documentation/reference-qr-codes.php:53
@@ -13168,18 +13076,6 @@ msgstr ""
 msgid "Point your domain's nameservers to the ones Cloudflare gives you (at your registrar)."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-quiz.php:32
-msgid "Points earned — sum of the point values of the options the participant selected"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:292
-msgid "Points per option (same order, separate with commas):"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-assets-manager.php:641
-msgid "Points per option:"
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:334
 msgid "Pop-ups are blocked in this browser. Tap the button below to open the PDF — then use the share icon to save or print."
 msgstr ""
@@ -13775,10 +13671,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:82 includes/admin/class-ffc-admin-assets-manager.php:624
 msgid "Radio Buttons"
-msgstr ""
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:42
-msgid "Radio buttons — fill the Options field. Can carry quiz points."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-certificates.php:57
@@ -14491,10 +14383,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:279
 msgid "Required only if using ipinfo.io service. Free tier: 50,000 requests/month."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-assets-manager.php:613
-msgid "Required:"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:262
@@ -15784,10 +15672,6 @@ msgstr ""
 msgid "Separate combined CPF/RF column into individual CPF and RF columns"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:615
-msgid "Separate with commas"
-msgstr ""
-
 #: includes/admin/class-ffc-admin-conditional-assets.php:206 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:183 includes/audience/class-ffc-audience-shortcode.php:813
 msgid "September"
 msgstr ""
@@ -16219,10 +16103,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-audiences.php:36
 msgid "Single-line text input"
-msgstr ""
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:36
-msgid "Single-line text."
 msgstr ""
 
 #: includes/settings/views/documentation/overview.php:35
@@ -17087,14 +16967,6 @@ msgstr ""
 msgid "Text color"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-assets-manager.php:618
-msgid "Text Field"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-assets-manager.php:632
-msgid "Text to display. Supports <b>, <i>, <a>."
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:80 includes/admin/class-ffc-admin-assets-manager.php:621 includes/reregistration/class-ffc-custom-field-reader.php:82
 msgid "Textarea"
 msgstr ""
@@ -17531,14 +17403,6 @@ msgstr ""
 msgid "the parent half only (e.g. the Division)."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:53
-msgid "the participant's email (required); used to deliver the certificate."
-msgstr ""
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:52
-msgid "the participant's full name (required)."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-emails.php:37
 msgid "the per-email subject + body editor for every plugin email, plus a read-only \"All plugin emails\" directory."
 msgstr ""
@@ -17697,10 +17561,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:22
 msgid "The three modes"
-msgstr ""
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:49
-msgid "The three seed fields"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:35
@@ -18250,8 +18110,7 @@ msgstr ""
 msgid "Time"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:226
-msgid "Time applies to each day individually"
+msgid "Each day"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:212
@@ -18304,8 +18163,7 @@ msgstr ""
 msgid "Time slot already booked for this environment."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:217
-msgid "Time spans across dates"
+msgid "Across dates"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-cache.php:218
@@ -18352,10 +18210,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:229 templates/admin/url-shortener/short-urls-page.php:132 templates/admin/url-shortener/short-urls-page.php:374
 msgid "Title (optional)"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-assets-manager.php:633
-msgid "Title (optional):"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:686
@@ -19236,10 +19090,6 @@ msgstr ""
 msgid "Validation Options:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:171
-msgid "Validation rules for the Certificate HTML editor. Its colour theme is on the General tab, next to Dark Mode."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-documentation.php:84 includes/settings/views/documentation/feature-certificates.php:28 includes/settings/views/documentation/reference-validation-url.php:17 includes/settings/views/documentation/forms-email.php:33
 msgid "Validation URL"
 msgstr ""
@@ -19818,10 +19668,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:226
 msgid "When enabled, published submissions older than this many days are permanently deleted by the daily cleanup. Off by default — turning it on will delete existing submissions older than the window on the next run."
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-quiz-metabox.php:60
-msgid "When enabled, radio and select fields can have point values per option. The form is scored on submission."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:721
@@ -23087,6 +22933,12 @@ msgstr ""
 msgid "Upgrade notice."
 msgstr ""
 
+msgid "View details."
+msgstr ""
+
+msgid "The \"View details\" modal shows the plugin's banner and the tabs a WordPress.org plugin has: description, installation, FAQ, changelog and screenshots, taken from the offered release's readme. The screenshots load from GitHub when the modal opens; ratings and active installs are not shown, because only WordPress.org has them."
+msgstr ""
+
 msgid "Settings → Scheduled Tasks lists the background tasks the plugin runs through WP-Cron — cleanups, reminders, cache warming, date messages and the like — and helps you keep them running on time."
 msgstr ""
 
@@ -23279,25 +23131,16 @@ msgstr ""
 msgid "New wrong RFs keep arriving while the RF check digit setting is off."
 msgstr ""
 
-msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Advanced → Required Certificate Tags. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too."
-msgstr ""
-
 msgid "On the Geolocation tab of the form editor's \"Certificate Form Configuration\" box, choose the area source for GPS and IP validation:"
 msgstr ""
 
 msgid "Turning a form into a quiz"
 msgstr ""
 
-msgid "Enable it on the Quiz tab of the form editor's \"Certificate Form Configuration\" box, then give each scored field its points per option on the Fields tab. Only radio and select fields are scored."
-msgstr ""
-
 msgid "minimum percentage to pass (default 70; 0 means no minimum)."
 msgstr ""
 
 msgid "retries allowed per CPF/RF (0 = unlimited)."
-msgstr ""
-
-msgid "show the score after submission (on by default) and show which answers were correct or incorrect."
 msgstr ""
 
 msgid "An attempt below the passing score is kept as a \"Quiz: Retry\" submission while attempts remain, and as \"Quiz: Failed\" once they run out; no certificate is issued for either."
@@ -23336,13 +23179,7 @@ msgstr ""
 msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails."
 msgstr ""
 
-msgid "Checkbox — fill the Options field. Not scored in quiz mode."
-msgstr ""
-
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
-msgstr ""
-
-msgid "A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF). The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate \"CPF field type\" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked."
 msgstr ""
 
 msgid "Each form has its own Email tab (\"Email Configuration\") in the form editor's \"Certificate Form Configuration\" box, controlling the message sent to the participant on submission, plus an optional admin notification."
@@ -23385,9 +23222,6 @@ msgid "moves the close time later on the scheduled close day, after the form has
 msgstr ""
 
 msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
-msgstr ""
-
-msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed). The search box matches a submission id, an auth code, or an exact email, CPF or RF. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
 msgstr ""
 
 msgid "The edit screen lets you correct the participant email and the form's custom-field values, and link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
@@ -23838,9 +23672,6 @@ msgid "A form with no end date never releases the CSV. Downloads are also capped
 msgstr ""
 
 msgid "Value submitted with every entry (the visitor cannot change it):"
-msgstr ""
-
-msgid "Value submitted with every entry:"
 msgstr ""
 
 msgid "Hidden field — no visible control; every entry submits the fixed value set on the field's Value input (the server uses that value, never one sent by the browser)."
@@ -25129,7 +24960,11 @@ msgid "The site theme's"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-public-design.php:107
-msgid "The system font, as in the admin screens"
+msgid "The plugin's (the system font)"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "Arial"
 msgstr ""
 
 #: includes/settings/views/documentation/config-public-design.php:18
@@ -25145,7 +24980,7 @@ msgid "The colours apply to the light theme only. With Dark Mode on, the plugin 
 msgstr ""
 
 #: includes/settings/views/documentation/config-public-design.php:25
-msgid "The corner radius of fields and buttons (0 makes them square), the widest a form or verification card grows (its fields are 150 px narrower), and either the site theme's font or the system font of the admin screens. These apply in both themes."
+msgid "The corner radius of fields and buttons (0 makes them square), the widest a form or verification card grows (its fields are 150 px narrower), and the font: the site theme's (the default), the plugin's system font, or Arial, the same three choices as Email Signature Generator and Institutional Email. These apply in both themes."
 msgstr ""
 
 #: includes/settings/views/documentation/config-public-design.php:27
@@ -25164,4 +24999,836 @@ msgstr ""
 #: includes/admin/class-ffc-settings-save-handler.php:494
 #, php-format
 msgid "The design was saved, but some colours are hard to read: %s"
+msgstr ""
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Screenshots"
+msgstr ""
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Previous screenshot"
+msgstr ""
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Next screenshot"
+msgstr ""
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Zoom in"
+msgstr ""
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Zoom out"
+msgstr ""
+
+#: includes/settings/views/documentation/operations-updates.php
+msgid "In your language, screenshots in place."
+msgstr ""
+
+#: includes/settings/views/documentation/operations-updates.php
+msgid "The tabs and the banner are shown in your language when the plugin ships a translation of them; the changelog stays in English. A screenshot opens larger without leaving the window: the arrows move between them, and the wheel, a pinch or a click zooms in."
+msgstr ""
+
+#. 1: field label, 2: most characters.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:168
+#, php-format
+msgid "%1$s accepts up to %2$s characters."
+msgstr ""
+
+#. 1: field label, 2: decimal places allowed.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:190
+#, php-format
+msgid "%1$s accepts up to %2$s decimal places."
+msgstr ""
+
+#. 1: field label, 2: the accepted range, as a sentence.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:224
+#, php-format
+msgid "%1$s is out of range. %2$s"
+msgstr ""
+
+#. 1: field label, 2: fewest characters.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:164
+#, php-format
+msgid "%1$s needs at least %2$s characters."
+msgstr ""
+
+#. 1: options ticked, 2: most options allowed.
+#: includes/frontend/class-ffc-frontend.php:218
+#, php-format
+msgid "%1$s of %2$s selected."
+msgstr ""
+
+#. 1: field label, 2: most options the participant may tick.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:143
+#, php-format
+msgid "%1$s: choose up to %2$s option."
+msgid_plural "%1$s: choose up to %2$s options."
+msgstr[0] ""
+msgstr[1] ""
+
+#. %s: field label.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:135
+#, php-format
+msgid "%s has an answer that is not one of its options."
+msgstr ""
+
+#. %s: field label.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:99
+#, php-format
+msgid "%s has an invalid answer."
+msgstr ""
+
+#. %s: field label.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:205
+#, php-format
+msgid "%s must be a valid date."
+msgstr ""
+
+#. %s: field label.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:188
+#, php-format
+msgid "%s must be a whole number."
+msgstr ""
+
+#. %s: highest accepted number.
+#: includes/frontend/class-ffc-form-field-renderer.php:291
+#, php-format
+msgid "%s or less."
+msgstr ""
+
+#. %s: lowest accepted number.
+#: includes/frontend/class-ffc-form-field-renderer.php:284
+#, php-format
+msgid "%s or more."
+msgstr ""
+
+#. %s: field label.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:85
+#, php-format
+msgid "%s: choose at least one option."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:412
+msgid "A date picked from a calendar, with an optional range."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:413
+msgid "A drop-down list: the participant picks one option."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:418
+msgid "A fixed value saved with every submission. The participant does not see it."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:411
+msgid "A number, with an optional range and decimal places."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:417
+msgid "A video, image or audio shown on the form. Collects nothing."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:308
+msgid "Add option"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:410
+msgid "An email address, checked for format."
+msgstr ""
+
+#. %s: fewest characters.
+#: includes/frontend/class-ffc-form-field-renderer.php:266
+#, php-format
+msgid "At least %s characters."
+msgstr ""
+
+#. 1: fewest characters, 2: most characters.
+#: includes/frontend/class-ffc-form-field-renderer.php:262
+#, php-format
+msgid "Between %1$s and %2$s characters."
+msgstr ""
+
+#. 1: lowest accepted value, 2: highest accepted value.
+#: includes/frontend/class-ffc-form-field-renderer.php:277
+#, php-format
+msgid "Between %1$s and %2$s."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:220
+msgid "Choose at least one option."
+msgstr ""
+
+#. %s: most options the participant may tick.
+#: includes/frontend/class-ffc-form-field-renderer.php:248
+#, php-format
+msgid "Choose up to %s option."
+msgid_plural "Choose up to %s options."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:367
+msgid "Decimal places"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:379
+msgid "Earliest date"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:323
+msgid "Empty means no limit. Once it is reached, the other boxes are disabled."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:374
+msgid "Empty means no limit. The participant sees the range."
+msgstr ""
+
+#. 1: longest single-line text answer, 2: longest textarea answer.
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:348
+#, php-format
+msgid "Empty means no minimum, and the server ceiling for the maximum: %1$s characters for Text, %2$s for Textarea. The participant sees the limits you set."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:414
+msgid "Every option visible: the participant picks exactly one."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:415
+msgid "Every option visible: the participant ticks one or more. \"Required\" means at least one."
+msgstr ""
+
+#. %s: earliest accepted date.
+#: includes/frontend/class-ffc-form-field-renderer.php:282
+#, php-format
+msgid "From %s."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:383
+msgid "Latest date"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:363
+msgid "Maximum"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:340
+msgid "Maximum characters"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:321
+msgid "Maximum selections"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:359
+msgid "Minimum"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:336
+msgid "Minimum characters"
+msgstr ""
+
+#. %s: longest answer, in characters.
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:402
+#, php-format
+msgid "One line, up to %s characters. For names, roles, codes."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:303
+msgid "Option"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:297
+msgid "Options (one per row):"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:304
+msgid "Remove option"
+msgstr ""
+
+#. %s: longest answer, in characters.
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:407
+#, php-format
+msgid "Several lines, up to %s characters. For explanations and comments."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:316
+msgid "Shuffle the options for each participant"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:416
+msgid "Text shown on the form. Collects nothing."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:219
+msgid "Untick one to choose another."
+msgstr ""
+
+#. %s: latest accepted date.
+#: includes/frontend/class-ffc-form-field-renderer.php:289
+#, php-format
+msgid "Until %s."
+msgstr ""
+
+#. %s: most characters.
+#: includes/frontend/class-ffc-form-field-renderer.php:269
+#, php-format
+msgid "Up to %s characters."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:36
+msgid "Single-line text, up to 255 characters — for names, roles, codes. Optional minimum and maximum length."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:38
+msgid "Numeric input. Optional minimum, maximum and decimal places (whole numbers by default)."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:39
+msgid "Date picker. Optional earliest and latest date."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:40
+msgid "Multi-line text, up to 2,000 characters — for explanations and comments. Optional minimum and maximum length."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:41
+msgid "Dropdown — one option per row. Can carry quiz points."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:42
+msgid "Radio buttons — one option per row; the participant picks exactly one. Can carry quiz points."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:43
+msgid "Checkboxes — one option per row; the participant ticks one or more, up to an optional maximum. \"Required\" means at least one. Not scored in quiz mode."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:50
+msgid "Options and limits"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:52
+msgid "Options are edited one per row, so an option may contain a comma. Drag a row to reorder it; Enter in an option adds the next one. A form saved before keeps working and is converted on its next save."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:53
+msgid "\"Shuffle the options for each participant\" puts a choice field's options in a random order in the browser, so a cached page still shows each participant a different order."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:54
+msgid "The participant sees the limits you set — \"Between 50 and 2,000 characters.\", \"Choose up to 3 options.\", \"Between 01/01/1800 and 31/12/1999.\" — and a live character counter under text fields."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:55
+msgid "The server checks every rule again on submit — a required answer, the length, the range, the number of options ticked and that each answer is one of the options — and refuses the submission listing every problem at once. The browser is a courtesy, never the guard."
+msgstr ""
+
+#. 1: field label, 2: fewest characters.
+#: includes/frontend/submission/class-ffc-field-rules-guard.php:107
+#, php-format
+msgid "%1$s: enter the full name — at least two words and %2$s characters."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-certificates.php:63
+msgid "Certificates settings view file not found."
+msgstr ""
+
+#: includes/frontend/submission/class-ffc-field-sanitizer.php:115
+msgid "Enter a valid email address."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:221
+msgid "Enter the first and last name."
+msgstr ""
+
+#: includes/frontend/class-ffc-form-field-renderer.php:268
+msgid "First and last name."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ui.php:351
+msgid "Settings → Certificates"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:25
+msgid "What every certificate form must carry. The certificate HTML editor's colour theme is on the General tab, next to Dark Mode."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:61
+msgid "the participant's full name (required): at least two words and 4 characters, checked in the browser and on the server."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:62
+msgid "the participant's email (required); used to deliver the certificate. An address that is not valid is refused as such, not as a missing one."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:72
+msgid "A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF); the browser masks it and blocks the submit while the number is invalid. The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate \"CPF field type\" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:23
+msgid "\"Correct option(s)\": tick the correct options beside them; radio and select score when a correct option is chosen, a checkbox only when every correct option is ticked and no other. \"Points per option\": give each option its points; a checkbox adds the boxes ticked, never below zero, so a wrong box can be worth negative points."
+msgstr ""
+
+#. 1: questions answered right, 2: questions scored.
+#: includes/frontend/submission/class-ffc-submission-persister.php:227
+#, php-format
+msgid "%1$s of %2$s question answered correctly."
+msgid_plural "%1$s of %2$s questions answered correctly."
+msgstr[0] ""
+msgstr[1] ""
+
+#. 1: field label, 2: number of correct options.
+#: includes/admin/class-ffc-form-editor-save-handler.php:230
+#, php-format
+msgid "%1$s: the maximum selections was raised to %2$s, the number of correct options."
+msgstr ""
+
+#. %s: field label.
+#: includes/admin/class-ffc-form-editor-save-handler.php:240
+#, php-format
+msgid "%s: no correct answer is set, so the question is not scored."
+msgstr ""
+
+#. %s: field label.
+#: includes/admin/class-ffc-form-editor-save-handler.php:223
+#, php-format
+msgid "%s: no option is marked correct, so the question is not scored."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:27
+msgid "A form saved before these options keeps scoring as it did: radio and select by their points per option. A question set to score that cannot be marked — no option marked correct, or no correct range — is reported when the form is saved and left out of the score. A checkbox whose maximum selections is below its number of correct options has the maximum raised to fit."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:477
+msgid "An answer within the range, bounds included, earns the points. Set both bounds to the same value for one exact answer; leave one empty for an open range."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:456
+msgid "Correct from"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:444
+msgid "Correct option(s)"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:21
+msgid "Enable it on the Quiz tab of the form editor's \"Certificate Form Configuration\" box. Each field on the Fields tab then shows \"Score this question\"; a question left off is out of the count and of the points the percentage is taken from."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:476
+msgid "Give each option its points beside it. A checkbox adds the boxes ticked, never below zero; a wrong box can be worth negative points."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:442
+msgid "How to score"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:54
+msgid "Maximum points available across the scored questions"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:451
+msgid "No points"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:25
+msgid "Number and date"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:438
+msgid "Off: the question is left out of the count and of the points the percentage is taken from."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:322
+msgid "Points"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:49
+msgid "Points earned across the scored questions"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:445
+msgid "Points per option"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:452
+msgid "Points when answered"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:64
+msgid "Questions answered correctly as a whole"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:69
+msgid "Questions scored"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-save-handler.php:765
+msgid "Quiz scoring:"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:23
+msgid "Radio, select and checkbox"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:433
+msgid "Score this question"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:24
+msgid "Text and textarea"
+msgstr ""
+
+#. %d: number of options marked correct.
+#: includes/admin/class-ffc-admin-assets-manager.php:627
+#, php-format
+msgid "The maximum selections is below the number of correct options (%d)."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:475
+msgid "Tick the correct option(s) beside each option. A checkbox scores only when every correct option is ticked and no other."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:60
+msgid "When enabled, each field on the Fields tab can be scored: by its correct option(s), by points per option, when answered, or by a correct range. The form is scored on submission."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:25
+msgid "a correct range, bounds included; the same value in both bounds is one exact answer, and an empty bound leaves the range open."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:324
+msgid "pts"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:31
+msgid "show the score after submission (on by default) and show which answers were correct or incorrect: the message says how many questions were answered correctly, and each scored question is marked Correct or Incorrect. The right answer itself is never shown."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:343
+msgctxt "quiz answer"
+msgid "Correct"
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:343
+msgctxt "quiz answer"
+msgid "Incorrect"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ui.php:345
+msgid "(when the form has an Event Schedule)"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:59
+msgid "A new form starts with the fields listed under Settings → Certificates → Required Form Fields, with the label and type given there. By default they are:"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:66
+msgid "A required field is drawn with an amber border and a \"Required field\" badge: it is always required, its variable name and type cannot change and it cannot be removed; only its label can. A form missing one shows a warning naming it, with an \"Add the required fields\" button that adds them."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:125
+msgid "Add required field"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:172
+msgid "Add the required fields"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:36
+msgid "Field name"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:92
+msgid "Fields every certificate form must have. A new form starts with them; in the form editor their name, type and required flag are locked, and only the label can change. Email is always required: the certificate is sent to it."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:81
+msgid "One tag per line (with braces). Every certificate layout must contain them. {{auth_code}} is always required — certificate verification depends on it. {{schedule}} is required only of a form that has an Event Schedule."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:58
+msgid "Required Form Fields"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-assets-manager.php:628
+msgid "Required field"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:159
+msgid "Required fields (Tag):"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-save-handler.php:794
+msgid "The Fields tab can add them: “Add the required fields”."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:128
+msgid "The certificate layout prints a field through its name in braces, such as {{cpf_rf}}. A name takes lowercase letters, digits and underscores."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php:34
+msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Certificates → Required Certificate Tags. {{auth_code}} cannot be removed, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The fields every form must have are a separate list on the same tab, Required Form Fields: by default name, cpf_rf and email, each with its label and type; email cannot be removed."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:166
+msgid "This form lacks required fields:"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-save-handler.php:794
+msgid "Warning! The form lacks these required fields:"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:103
+msgid "Leaving the Window"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:110
+msgid "Reset the quiz when the participant leaves the window"
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php:424
+msgid "Start again"
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php:411
+msgid "Stay on this page while you answer."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:574
+msgid "Times the quiz window was left"
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php:418
+msgid "Your answers were cleared"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:24
+msgid "\"No points\", \"Points when answered\", which respects the minimum length the field sets, or \"Manual grading\", where a person gives the answer from 0 to its points."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:215
+msgid "(no answer)"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:520
+msgid "A person grades the answer, from 0 to the points. A submission with such an answer waits as \"Awaiting Grading\"; the certificate, or the result, is emailed once it is graded."
+msgstr ""
+
+#: includes/settings/views/documentation/submissions-list.php:30
+msgid "A quiz attempt awaiting grading opens with a \"Grade open answers\" card above the record: each open answer, a points field from 0 to what the question is worth, and what the automatic questions already earned. Saving the grades decides the attempt — a pass issues the document, a result below the passing score becomes Retry or Failed — and emails the participant the result. It needs the \"Grade quiz answers\" capability."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:395
+msgid "Answers graded: the attempt is below the passing score, and the participant was told the result."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:392
+msgid "Answers graded: the attempt passed and the document link was sent to the participant."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:402
+msgid "Give every open answer a grade."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:199
+msgid "Grade open answers"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:188
+msgid "Grade quiz answers"
+msgstr ""
+
+#: includes/settings/views/documentation/submissions-list.php:46
+msgid "Grade the open answers of a quiz attempt awaiting grading, from the submission edit screen."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:189
+msgid "Grade the open answers of a quiz attempt awaiting grading, which issues the certificate or records the attempt as not passed (#1732)."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:495
+msgid "Manual grading"
+msgstr ""
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:288
+msgid "No attempts are left."
+msgstr ""
+
+#: includes/admin/class-ffc-submissions-list.php:627
+msgid "Nothing to grade"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:237
+msgid "Quiz Graded"
+msgstr ""
+
+#: includes/admin/class-ffc-submissions-list.php:627
+msgid "Quiz attempts with open answers waiting for a grade appear here."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:171
+msgid "Quiz graded: not passed"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:167
+msgid "Quiz graded: passed"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:428
+msgid "Quiz grading result"
+msgstr ""
+
+#: includes/admin/class-ffc-submissions-list.php:310
+msgid "Quiz: Awaiting Grading"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:229
+msgid "Save grades and send the result"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:231
+msgid "Saving decides the attempt: a pass issues the document, and the participant is emailed the result either way."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:429
+msgid "Sent to the person when their open answers are graded — one text for a pass, with the document link, and one for a result below the passing score; global text in the hub above."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:398
+msgid "That attempt is not waiting for grading any more."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:203
+#, php-format
+msgid "The automatically scored questions earned %1$d of %2$d points. The passing score is %3$d%%."
+msgstr ""
+
+#: includes/settings/views/documentation/submissions-list.php:23
+msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed, Awaiting Grading). The search box matches a submission id, an auth code, or an exact email, CPF or RF. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
+msgstr ""
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:291
+msgid "You can submit the form again to try once more."
+msgstr ""
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:100
+msgid "You do not have permission to grade quiz answers."
+msgstr ""
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:294
+#, php-format
+msgid "You have %d attempt left: submit the form again to use it."
+msgid_plural "You have %d attempts left: submit the form again to use them."
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/emails/quiz-graded-passed.php:24
+msgid "Your answers to {{form_title}} were graded and you passed."
+msgstr ""
+
+#: templates/emails/quiz-graded-not-passed.php:22
+msgid "Your answers to {{form_title}} were graded."
+msgstr ""
+
+#: templates/emails/quiz-graded-not-passed.php:20
+msgid "Your answers were graded"
+msgstr ""
+
+#: templates/emails/quiz-graded-not-passed.php:19
+msgid "Your answers were graded: {{form_title}}"
+msgstr ""
+
+#: includes/frontend/submission/class-ffc-success-responder.php:121
+msgid "Your answers were received. A person will grade the open answers; the result, and the certificate if you pass, will be sent to your email."
+msgstr ""
+
+#: includes/frontend/submission/class-ffc-submission-persister.php:123
+msgid "Your previous answers are still being graded. The result will be sent to your email."
+msgstr ""
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:278
+msgid "Your score did not reach the passing score."
+msgstr ""
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:276
+#, php-format
+msgid "Your score was %d%%, below the passing score."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:33
+msgid "an attempt with an open answer graded by a person shows no result: it is stored as \"Quiz: Awaiting Grading\", the participant is told the result will be emailed, and no certificate exists yet. While it waits, the same CPF/RF cannot start another attempt. Grading it on the submission edit screen decides it and emails the participant: the document link on a pass; otherwise the result, with the score only when the form shows it, and how many attempts are left."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:221
+#, php-format
+msgid "of %d"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:120
+msgid "Also when another window takes the focus, such as two windows side by side or another program. A loss shorter than the grace set on Settings → Certificates does not count."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:118
+msgid "Answers are never cleared."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:114
+msgid "Moderate"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:87
+msgid "Quiz focus-loss grace (ms)"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:115
+msgid "Strict"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:119
+msgid "Switching to another tab or minimising the browser clears the scored answers."
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php:435
+msgid "Switching to another tab or minimising the browser clears your answers, and the number of times you leave is recorded with your submission."
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php:433
+msgid "Switching to another tab, minimising the browser or clicking another window clears your answers, and the number of times you leave is recorded with your submission."
+msgstr ""
+
+#: includes/admin/class-ffc-form-meta-ajax-endpoint.php:214
+msgid "That value is not one of the choices."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:126
+msgid "The participant is warned before starting. On return the scored answers are cleared and Start again reloads the page, so shuffled options are shuffled again. Leaving does not count as an attempt, and how many times it happened is recorded on the submission. A deterrent, not a lock: another device or a browser without JavaScript is not stopped."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php:35
+msgid "The same tab holds the quiz focus-loss grace: how long, in milliseconds, a quiz window set to Strict may lose the focus before it counts as leaving (default 1000, up to 10000; 0 counts every loss)."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:92
+msgid "Used by quizzes set to Strict on leaving the window: a loss of focus counts only when it lasts longer than this, so a system notification or a password manager does not clear the answers. 0 counts every loss."
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php:447
+msgid "You left this page while answering the quiz, so the answers were cleared. Leaving does not count as an attempt. Start again reloads the quiz."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:32
+msgid "a three-step scale: Off (the default), Moderate or Strict. Moderate clears the scored answers when the participant switches to another tab or minimises the browser; Strict also clears them when another window takes the focus, such as two windows side by side, unless the focus comes back within the grace set on Settings → Certificates (1000 ms by default; a click inside an embedded video does not count). The form warns the participant before they start; once they have started, leaving clears the scored answers (name, CPF/RF and the other fields stay) and a dialog explains why on return. Its Start again button reloads the page, so options marked to shuffle are shuffled again, and personal fields the browser does not restore must be typed again. Leaving does not count as an attempt; the number of times it happened is stored with the submission and shown on its edit screen as \"Times the quiz window was left\". It is a deterrent, not a lock: another device, or a browser without JavaScript, is not stopped, and the count is reported by the browser."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php:624
+msgid "Title and message"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php:625
+msgid "Message only"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:465
+msgid "GPS only"
 msgstr ""

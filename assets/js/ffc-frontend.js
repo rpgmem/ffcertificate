@@ -541,6 +541,7 @@
                     }
                     if (err && err.fromServer) {
                         FFC.Frontend.UI.showFormError($form, err.message || ffc_ajax.strings.error || 'Error occurred');
+                        markQuizResults($form, err.data && err.data.quiz ? err.data.quiz.results : null);
                         if (err.data && err.data.refresh_captcha) {
                             FFC.Frontend.UI.refreshCaptcha($form, err.data);
                         }
@@ -549,6 +550,35 @@
                     }
                     $submitBtn.prop('disabled', false).text(originalBtnText);
                 });
+        });
+    }
+
+    /**
+     * Mark each scored question right or wrong after a quiz attempt, when
+     * the form shows it (#1730). Names the verdict, never the answer.
+     *
+     * @param {jQuery} $form
+     * @param {{fields: Object<string, boolean>}|null} results
+     */
+    function markQuizResults($form, results) {
+        $form.find('.ffc-quiz-verdict').remove();
+        $form.find('.ffc-quiz-right, .ffc-quiz-wrong').removeClass('ffc-quiz-right ffc-quiz-wrong');
+        if (!results || !results.fields) {
+            return;
+        }
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        Object.keys(results.fields).forEach(function(name) {
+            var $input = $form.find('[name="' + name + '"], [name="' + name + '[]"]').first();
+            var $field = $input.closest('.ffc-form-field');
+            if (!$field.length) {
+                return;
+            }
+            var right = results.fields[name] === true;
+            $field.addClass(right ? 'ffc-quiz-right' : 'ffc-quiz-wrong');
+            $('<p class="ffc-quiz-verdict"></p>')
+                .addClass(right ? 'ffc-icon-checkmark' : 'ffc-icon-cross')
+                .text(right ? (strings.quizCorrect || 'Correct') : (strings.quizIncorrect || 'Incorrect'))
+                .appendTo($field);
         });
     }
 

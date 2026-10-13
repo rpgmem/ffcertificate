@@ -35,7 +35,7 @@ class TabUrlShortener extends SettingsTab {
 	}
 
 	/**
-	 * Enqueue autosave infra so the two `.ffc-toggle` switches on this tab
+	 * Enqueue autosave infra so the two `.ffc-control-toggle` switches on this tab
 	 * (url_shortener_enabled / url_shortener_auto_create) bind to the
 	 * incremental settings AJAX endpoint.
 	 *

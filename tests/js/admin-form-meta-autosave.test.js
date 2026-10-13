@@ -66,7 +66,7 @@ function boot() {
 
 function mountToggle(key, checked) {
 	document.body.innerHTML = `
-		<label class="ffc-toggle">
+		<label class="ffc-control-toggle">
 			<input type="checkbox"
 				id="t-${key}"
 				name="ffc_config[${key}]"
@@ -205,7 +205,7 @@ describe('form-meta autosave — the badge', () => {
 		expect(window.$('.ffc-autosave-badge').text()).toBe('Net error');
 	});
 
-	it('anchors the badge to the field when there is no .ffc-toggle wrapper', async () => {
+	it('anchors the badge to the field when there is no .ffc-control-toggle wrapper', async () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: {} } }));
 		document.body.innerHTML = `
 			<div id="bare">

@@ -18,7 +18,7 @@
     /**
      * Initialize global FFC namespace
      */
-    window.FFC = window.FFC || {
+    var core = {
         
         /**
          * Plugin version
@@ -529,11 +529,27 @@
             this.config.debug = false;
         }
     };
-    
+
+    // A script printed before this one may already have created the
+    // namespace for its own module (`window.FFC = window.FFC || {}`).
+    // Keep what it put there, but always install the core API: skipping
+    // it because the name was taken left FFC.request undefined and every
+    // form submission dead (#1739).
+    var prior = window.FFC;
+    if (prior && typeof prior === 'object') {
+        Object.keys(prior).forEach(function(key) {
+            if (!Object.prototype.hasOwnProperty.call(core, key)) {
+                core[key] = prior[key];
+            }
+        });
+    }
+    window.FFC = core;
+
     /**
-     * Module registry for tracking loaded modules
+     * Module registry for tracking loaded modules. A module registered
+     * before the core loaded keeps its entry.
      */
-    window.FFC._modules = [];
+    window.FFC._modules = Array.isArray(window.FFC._modules) ? window.FFC._modules : [];
     
     /**
      * Register a module

@@ -30,6 +30,7 @@ class AdminAssetsManagerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
 
 		// pcov does not record lines for files first autoloaded mid-test-method,
 		// so the extracted conditional-assets class's coverage would attribute to

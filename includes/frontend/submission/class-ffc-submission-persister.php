@@ -22,6 +22,8 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend\Submission;
 
 use FreeFormCertificate\Core\ArrayValue;
+use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Core\SubmissionStatus;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -32,6 +34,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Submission persistence + reprint/quiz resolution stage.
  */
 class SubmissionPersister {
+
+	/**
+	 * Highest window-leave count a submission records (#1731).
+	 */
+	public const MAX_FOCUS_LOSSES = 999;
 
 	/**
 	 * Submission handler.
@@ -76,6 +83,7 @@ class SubmissionPersister {
 		$form_post_title = $form_post ? (string) $form_post->post_title : '';
 		$is_reprint      = false;
 		$quiz_score      = null;
+		$awaiting        = false;
 
 		if ( $is_quiz ) {
 			// Calculate quiz score.
@@ -89,9 +97,36 @@ class SubmissionPersister {
 			$submission_data['_quiz_max_score'] = $quiz_score['max_score'];
 			$submission_data['_quiz_percent']   = $quiz_score['percent'];
 			$submission_data['_quiz_passed']    = $passed ? '1' : '0';
+			// Read by `{{correct_count}}` / `{{question_count}}` (#1730).
+			$submission_data['_quiz_correct_count']  = $quiz_score['correct_count'];
+			$submission_data['_quiz_question_count'] = $quiz_score['question_count'];
+			// How many times the participant left the window (#1731). The
+			// browser counts it, so it is a record, not evidence: it is kept
+			// only when the form asks for it, and capped.
+			if ( \FreeFormCertificate\Core\QuizLeaveLevel::OFF !== \FreeFormCertificate\Core\QuizLeaveLevel::of( $form_config ) ) {
+				$submission_data['_quiz_focus_losses'] = min( self::MAX_FOCUS_LOSSES, RequestInput::get_post_int( 'ffc_quiz_focus_losses' ) );
+			}
+
+			// An open answer a person grades holds the result back (#1732).
+			$awaiting_grading = array() !== $quiz_score['pending'];
+			$awaiting         = $awaiting_grading;
+			if ( $awaiting_grading ) {
+				$submission_data['_quiz_pending'] = $quiz_score['pending'];
+			}
 
 			// Find existing quiz submission for this CPF + form.
 			$existing = $this->find_quiz_submission( $form_id, $val_cpf );
+
+			// While an attempt waits to be graded, its result is not known, so
+			// neither is whether another attempt is needed (#1732).
+			if ( $existing && SubmissionStatus::QUIZ_PENDING === $existing->status ) {
+				throw new SubmissionRejected(
+					array(
+						'message' => __( 'Your previous answers are still being graded. The result will be sent to your email.', 'ffcertificate' ),
+						'quiz'    => array( 'awaiting_grading' => true ),
+					)
+				);
+			}
 
 			// If already passed (status=publish), treat as reprint.
 			if ( $existing && 'publish' === $existing->status ) {
@@ -127,7 +162,9 @@ class SubmissionPersister {
 				}
 
 				// Determine status.
-				if ( $passed ) {
+				if ( $awaiting_grading ) {
+					$quiz_status = SubmissionStatus::QUIZ_PENDING;
+				} elseif ( $passed ) {
 					$quiz_status = 'publish';
 				} elseif ( $max_attempts > 0 && $attempt_number >= $max_attempts ) {
 					$quiz_status = 'quiz_failed';
@@ -192,8 +229,9 @@ class SubmissionPersister {
 					$real_submission_date = current_time( 'mysql' );
 				}
 
-				// If not passed, return quiz feedback (no certificate).
-				if ( ! $passed ) {
+				// If not passed, return quiz feedback (no certificate). An
+				// attempt awaiting grading has no result yet (#1732).
+				if ( ! $passed && ! $awaiting_grading ) {
 					$remaining  = ( $max_attempts > 0 ) ? max( 0, $max_attempts - $attempt_number ) : -1;
 					$show_score = ( $form_config['quiz_show_score'] ?? '1' ) === '1';
 
@@ -217,6 +255,16 @@ class SubmissionPersister {
 						}
 					}
 
+					$shown = self::shown_results( $form_config, $quiz_score );
+					if ( null !== $shown ) {
+						$msg .= ' ' . sprintf(
+							/* translators: 1: questions answered right, 2: questions scored. */
+							_n( '%1$s of %2$s question answered correctly.', '%1$s of %2$s questions answered correctly.', $shown['question_count'], 'ffcertificate' ),
+							number_format_i18n( $shown['correct_count'] ),
+							number_format_i18n( $shown['question_count'] )
+						);
+					}
+
 					throw new SubmissionRejected(
 						array(
 							'message' => $msg,
@@ -228,6 +276,7 @@ class SubmissionPersister {
 								'attempt'   => $attempt_number,
 								'remaining' => $remaining,
 								'status'    => $quiz_status,
+								'results'   => $shown,
 							),
 						)
 					);
@@ -305,54 +354,43 @@ class SubmissionPersister {
 		$ctx->is_reprint           = $is_reprint;
 		$ctx->is_quiz              = $is_quiz;
 		$ctx->quiz_score           = $quiz_score;
+		$ctx->awaiting_grading     = $awaiting && ! $is_reprint;
 	}
 
 	/**
-	 * Calculate quiz score based on field points
+	 * Which questions were answered right, when the form shows it (#1730).
+	 *
+	 * Names the question and whether it was right — never the right
+	 * answer, which a participant with attempts left would simply copy.
+	 *
+	 * @param array<string, mixed> $form_config Form configuration.
+	 * @param array<string, mixed> $quiz_score  Score, as {@see QuizScorer::score()} returns it.
+	 * @return array{correct_count: int, question_count: int, fields: array<string, bool>}|null
+	 */
+	public static function shown_results( array $form_config, array $quiz_score ): ?array {
+		if ( '1' !== ArrayValue::string( $form_config, 'quiz_show_correct', '0' ) ) {
+			return null;
+		}
+		$fields = array();
+		foreach ( is_array( $quiz_score['results'] ?? null ) ? $quiz_score['results'] : array() as $name => $right ) {
+			$fields[ (string) $name ] = true === $right;
+		}
+		return array(
+			'correct_count'  => ArrayValue::int( $quiz_score, 'correct_count', 0 ),
+			'question_count' => ArrayValue::int( $quiz_score, 'question_count', 0 ),
+			'fields'         => $fields,
+		);
+	}
+
+	/**
+	 * Calculate the quiz score of a submission (#1730: {@see QuizScorer}).
 	 *
 	 * @param array<int, array<string, mixed>> $fields_config Form fields configuration.
 	 * @param array<string, mixed>             $submission_data User's submitted data.
-	 * @return array{score: int, max_score: int, percent: int}
+	 * @return array{score: int, max_score: int, percent: int, correct_count: int, question_count: int, results: array<string, bool>, pending: list<string>}
 	 */
 	public function calculate_quiz_score( array $fields_config, array $submission_data ): array {
-		$score     = 0;
-		$max_score = 0;
-
-		foreach ( $fields_config as $field ) {
-			$type       = ArrayValue::string( $field, 'type' );
-			$points_str = ArrayValue::string( $field, 'points' );
-
-			// Only radio/select fields with points participate in scoring.
-			if ( empty( $points_str ) || ! in_array( $type, array( 'radio', 'select' ), true ) ) {
-				continue;
-			}
-
-			$options = array_map( 'trim', explode( ',', ArrayValue::string( $field, 'options' ) ) );
-			$points  = array_map( 'intval', array_map( 'trim', explode( ',', $points_str ) ) );
-
-			// Max score: highest point value for this field.
-			$max_score += max( $points );
-
-			// User's answer.
-			$name       = ArrayValue::string( $field, 'name' );
-			$user_value = trim( ArrayValue::string( $submission_data, $name ) );
-
-			// Find matching option index and get its points.
-			foreach ( $options as $i => $opt ) {
-				if ( trim( $opt ) === $user_value && isset( $points[ $i ] ) ) {
-					$score += $points[ $i ];
-					break;
-				}
-			}
-		}
-
-		$percent = $max_score > 0 ? (int) round( ( $score / $max_score ) * 100 ) : 0;
-
-		return array(
-			'score'     => $score,
-			'max_score' => $max_score,
-			'percent'   => $percent,
-		);
+		return ( new QuizScorer() )->score( $fields_config, $submission_data );
 	}
 
 	/**

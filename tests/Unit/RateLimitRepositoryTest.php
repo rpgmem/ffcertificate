@@ -283,28 +283,30 @@ class RateLimitRepositoryTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_get_window_start_minute(): void {
-		$this->assertSame( gmdate( 'Y-m-d H:i:00' ), RateLimitRepository::get_window_start( 'minute' ) );
+		$this->assertClockBound( static fn(): string => gmdate( 'Y-m-d H:i:00' ), static fn(): string => RateLimitRepository::get_window_start( 'minute' ) );
 	}
 
 	public function test_get_window_start_hour(): void {
-		$this->assertSame( gmdate( 'Y-m-d H:00:00' ), RateLimitRepository::get_window_start( 'hour' ) );
+		$this->assertClockBound( static fn(): string => gmdate( 'Y-m-d H:00:00' ), static fn(): string => RateLimitRepository::get_window_start( 'hour' ) );
 	}
 
 	public function test_get_window_start_day(): void {
-		$this->assertSame( gmdate( 'Y-m-d 00:00:00' ), RateLimitRepository::get_window_start( 'day' ) );
+		$this->assertClockBound( static fn(): string => gmdate( 'Y-m-d 00:00:00' ), static fn(): string => RateLimitRepository::get_window_start( 'day' ) );
 	}
 
 	public function test_get_window_start_week_is_monday(): void {
-		$expected = gmdate( 'Y-m-d 00:00:00', strtotime( 'monday this week' ) );
-		$this->assertSame( $expected, RateLimitRepository::get_window_start( 'week' ) );
+		$this->assertClockBound(
+			static fn(): string => gmdate( 'Y-m-d 00:00:00', (int) strtotime( 'monday this week' ) ),
+			static fn(): string => RateLimitRepository::get_window_start( 'week' )
+		);
 	}
 
 	public function test_get_window_start_month(): void {
-		$this->assertSame( gmdate( 'Y-m-01 00:00:00' ), RateLimitRepository::get_window_start( 'month' ) );
+		$this->assertClockBound( static fn(): string => gmdate( 'Y-m-01 00:00:00' ), static fn(): string => RateLimitRepository::get_window_start( 'month' ) );
 	}
 
 	public function test_get_window_start_year(): void {
-		$this->assertSame( gmdate( 'Y-01-01 00:00:00' ), RateLimitRepository::get_window_start( 'year' ) );
+		$this->assertClockBound( static fn(): string => gmdate( 'Y-01-01 00:00:00' ), static fn(): string => RateLimitRepository::get_window_start( 'year' ) );
 	}
 
 	public function test_get_window_start_default(): void {
@@ -318,32 +320,51 @@ class RateLimitRepositoryTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_get_window_end_minute(): void {
-		$this->assertSame( gmdate( 'Y-m-d H:i:59' ), RateLimitRepository::get_window_end( 'minute' ) );
+		$this->assertClockBound( static fn(): string => gmdate( 'Y-m-d H:i:59' ), static fn(): string => RateLimitRepository::get_window_end( 'minute' ) );
 	}
 
 	public function test_get_window_end_hour(): void {
-		$this->assertSame( gmdate( 'Y-m-d H:59:59' ), RateLimitRepository::get_window_end( 'hour' ) );
+		$this->assertClockBound( static fn(): string => gmdate( 'Y-m-d H:59:59' ), static fn(): string => RateLimitRepository::get_window_end( 'hour' ) );
 	}
 
 	public function test_get_window_end_day(): void {
-		$this->assertSame( gmdate( 'Y-m-d 23:59:59' ), RateLimitRepository::get_window_end( 'day' ) );
+		$this->assertClockBound( static fn(): string => gmdate( 'Y-m-d 23:59:59' ), static fn(): string => RateLimitRepository::get_window_end( 'day' ) );
 	}
 
 	public function test_get_window_end_week_is_sunday(): void {
-		$expected = gmdate( 'Y-m-d 23:59:59', strtotime( 'sunday this week' ) );
-		$this->assertSame( $expected, RateLimitRepository::get_window_end( 'week' ) );
+		$this->assertClockBound(
+			static fn(): string => gmdate( 'Y-m-d 23:59:59', (int) strtotime( 'sunday this week' ) ),
+			static fn(): string => RateLimitRepository::get_window_end( 'week' )
+		);
 	}
 
 	public function test_get_window_end_month(): void {
-		$this->assertSame( gmdate( 'Y-m-t 23:59:59' ), RateLimitRepository::get_window_end( 'month' ) );
+		$this->assertClockBound( static fn(): string => gmdate( 'Y-m-t 23:59:59' ), static fn(): string => RateLimitRepository::get_window_end( 'month' ) );
 	}
 
 	public function test_get_window_end_year(): void {
-		$this->assertSame( gmdate( 'Y-12-31 23:59:59' ), RateLimitRepository::get_window_end( 'year' ) );
+		$this->assertClockBound( static fn(): string => gmdate( 'Y-12-31 23:59:59' ), static fn(): string => RateLimitRepository::get_window_end( 'year' ) );
 	}
 
 	public function test_get_window_end_default(): void {
 		$result = RateLimitRepository::get_window_end( 'something_else' );
 		$this->assertMatchesRegularExpression( '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $result );
+	}
+
+	/**
+	 * Asserts a value the code derives from the clock, read on both sides.
+	 *
+	 * The window functions snap the current time to a minute, hour, day,
+	 * week, month or year. An expectation read once, before or after the
+	 * call, fails when the clock crosses that boundary between the two
+	 * reads (#1719), so it is read before and after and either is accepted.
+	 *
+	 * @param callable(): string $expected The expectation, recomputed from the clock.
+	 * @param callable(): string $actual   The call under test.
+	 */
+	private function assertClockBound( callable $expected, callable $actual ): void {
+		$before = $expected();
+		$value  = $actual();
+		$this->assertContains( $value, array( $before, $expected() ) );
 	}
 }

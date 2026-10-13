@@ -37,7 +37,7 @@ class TabRateLimit extends SettingsTab {
 
 	/**
 	 * Enqueue auto-save infrastructure when this tab is active. Powers
-	 * the `.ffc-toggle` switches for the per-group feature flags
+	 * the `.ffc-control-toggle` switches for the per-group feature flags
 	 * (ip/email/cpf/global/device "enabled" + their satellites).
 	 *
 	 * @param string $hook Current admin page hook.

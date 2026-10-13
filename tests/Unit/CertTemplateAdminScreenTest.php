@@ -19,6 +19,8 @@ class CertTemplateAdminScreenTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// SettingsReader reads the required certificate tags (#1734).
+		Functions\when( 'get_option' )->justReturn( array() );
 		class_exists( '\\FreeFormCertificate\\Admin\\CertTemplateAdminScreen' );
 
 		Functions\when( '__' )->returnArg();
@@ -320,7 +322,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 		);
 
 		$this->assertStringContainsString( 'name="ffc_template_visible"', $html );
-		$this->assertStringContainsString( 'ffc-toggle', $html );
+		$this->assertStringContainsString( 'ffc-control-toggle', $html );
 	}
 
 	public function test_save_edit_metabox_persists_html_and_visibility(): void {
@@ -784,6 +786,13 @@ class CertTemplateAdminScreenTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_localize_script' )->justReturn( true );
+		$styles = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $handle ) use ( &$styles ) {
+				$styles[] = $handle;
+			}
+		);
+		Functions\when( 'get_option' )->justReturn( array( 'dark_mode' => 'on' ) );
 
 		// Wrong hook → never reaches the screen check, no enqueue.
 		( new CertTemplateAdminScreen() )->enqueue_preview_assets( 'post.php' );
@@ -796,6 +805,11 @@ class CertTemplateAdminScreenTest extends TestCase {
 
 		( new CertTemplateAdminScreen() )->enqueue_preview_assets( 'edit.php' );
 		$this->assertContains( 'ffc-cert-template-preview', $enqueued );
+
+		// The list is a post screen AdminAssetsManager never reaches, so it
+		// brings the palette and the dark-mode toggle itself.
+		$this->assertContains( 'ffc-common', $styles );
+		$this->assertContains( 'ffc-dark-mode', $enqueued );
 	}
 
 	public function test_enqueue_edit_assets_mounts_code_editor_on_edit_screen(): void {
@@ -811,7 +825,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 		);
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'wp_enqueue_code_editor' )->justReturn( array( 'codemirror' => array() ) );
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_option' )->justReturn( array( 'dark_mode' => 'on' ) );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'absint' )->alias( static fn( $v ) => (int) $v );
 		Functions\when( 'get_post_meta' )->justReturn( '' ); // is_default → editable
@@ -832,6 +846,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 		Functions\when( 'get_current_screen' )->justReturn( $screen );
 		( new CertTemplateAdminScreen() )->enqueue_edit_assets();
 		$this->assertContains( 'ffc-admin-code-editor', $scripts );
+		$this->assertContains( 'ffc-dark-mode', $scripts );
 	}
 
 	// ==================================================================

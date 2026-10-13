@@ -86,6 +86,168 @@
     color: var(--ffc-primary);
 }
 
+/* A field a required certificate tag calls for (#1734): another colour,
+   a badge naming why, and a name that cannot change. */
+.ffc-field-row.ffc-field-row-required-tag {
+    border-left-color: var(--ffc-warning);
+}
+
+.ffc-required-tag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    margin-left: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-field-row-required-tag input[readonly] {
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
+}
+
+@media (forced-colors: active) {
+    /* The badge and the locked name paint only a ground, which forced-colors
+       discards: the badge keeps a contour, the locked name keeps its field. */
+    .ffc-required-tag-badge,
+    .ffc-field-row-required-tag input[readonly] {
+        border: 1px solid CanvasText;
+    }
+}
+
+.ffc-type-desc {
+    margin: var(--ffc-spacing-sm) 0 0;
+}
+
+/* One row per option (#1729): drag handle, text, remove. */
+.ffc-choice-list {
+    list-style: none;
+    margin: 0 0 var(--ffc-spacing-sm);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-xs);
+}
+
+/* A flex row rather than a grid: the quiz controls (#1730) come and go
+   between the text and the remove button. */
+.ffc-choice-row {
+    display: flex;
+    gap: var(--ffc-spacing-sm);
+    align-items: center;
+    margin: 0;
+}
+
+.ffc-choice-handle {
+    flex: 0 0 20px;
+    cursor: move;
+    color: var(--ffc-text-muted);
+}
+
+.ffc-choice-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.ffc-choice-quiz {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    white-space: nowrap;
+}
+
+/* The field's quiz settings (#1730): set apart from the field's own. */
+.ffc-field-quiz {
+    margin-top: var(--ffc-spacing-lg);
+    padding-top: var(--ffc-spacing-md);
+    border-top: 1px dashed var(--ffc-border);
+}
+
+.ffc-field-quiz-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+}
+
+.ffc-field-quiz-body .ffc-quiz-help {
+    flex-basis: 100%;
+    margin: 0;
+}
+
+.ffc-choice-remove {
+    flex: 0 0 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    color: var(--ffc-danger);
+}
+
+.ffc-field-settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
+    margin-top: var(--ffc-spacing-lg);
+}
+
+.ffc-field-setting {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+}
+
+.ffc-field-type-menu {
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    box-shadow: var(--ffc-shadow-md);
+    min-width: 200px;
+    z-index: var(--ffc-z-overlay);
+}
+
+.ffc-field-type-menu .ffc-menu-header {
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+    font-weight: 600;
+    border-bottom: 1px solid var(--ffc-border-light);
+}
+
+.ffc-field-type-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: var(--ffc-spacing-xs) 0;
+}
+
+.ffc-field-type-menu li {
+    margin: 0;
+}
+
+.ffc-field-type-option {
+    display: block;
+    width: 100%;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+    border: 0;
+    background: transparent;
+    color: var(--ffc-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ffc-field-type-option:hover,
+.ffc-field-type-option:focus-visible {
+    background: var(--ffc-bg-alt);
+}
+
 .ffc-builder-actions {
     margin-top: var(--ffc-spacing-2xl);
     padding: var(--ffc-spacing-md);
@@ -277,6 +439,12 @@
 
 .ffc-sort-handle:hover {
     color: var(--ffc-primary);
+}
+
+/* The row's title sits inside the handle but is text, not the grip: it reads
+   the text colour, which the muted grip grey is not in the dark theme. */
+.ffc-sort-handle .ffc-field-title {
+    color: var(--ffc-text);
 }
 
 .ffc-remove-field {
@@ -694,12 +862,6 @@
 /* Text transform */
 .ffc-uppercase {
     text-transform: uppercase;
-}
-
-/* Time description indent */
-.ffc-time-description {
-    margin-left: var(--ffc-spacing-2xl);
-    margin-top: var(--ffc-spacing-2xs);
 }
 
 /* List style */

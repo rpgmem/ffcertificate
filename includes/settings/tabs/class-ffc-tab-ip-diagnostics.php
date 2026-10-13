@@ -56,7 +56,7 @@ class TabIpDiagnostics extends SettingsTab {
 
 	/**
 	 * Enqueue the auto-save infrastructure when this tab is active — powers the
-	 * `shadow_logging` `.ffc-toggle` switch.
+	 * `shadow_logging` `.ffc-control-toggle` switch.
 	 *
 	 * @param string $hook Current admin page hook.
 	 */
@@ -631,7 +631,7 @@ class TabIpDiagnostics extends SettingsTab {
 		echo '</p></div>';
 		echo '</td></tr>';
 
-		// Shadow logging — a `.ffc-toggle` with autosave (allowlisted key
+		// Shadow logging — a `.ffc-control-toggle` with autosave (allowlisted key
 		// `shadow_logging`). Kept a NAMED field in this form so the form Save
 		// also writes its current state: autosave + form-save stay consistent,
 		// never clobber (the settings-autosave invariant, see CLAUDE.md).

@@ -37,7 +37,7 @@ class TabUserAccess extends SettingsTab {
 	}
 
 	/**
-	 * Enqueue autosave infra so the three `.ffc-toggle` switches on this tab
+	 * Enqueue autosave infra so the three `.ffc-control-toggle` switches on this tab
 	 * (block_wp_admin / bypass_for_admins / allow_admin_bar) bind to the
 	 * incremental settings AJAX endpoint via their `user_access_*` allowlist keys.
 	 *

@@ -105,6 +105,15 @@ class SettingsAjaxEndpointTest extends TestCase {
 		$this->assertFalse( SettingsAjaxEndpoint::sanitize_value( array( 'on' ), 'bool' ) );
 	}
 
+	public function test_sanitize_value_enum_keeps_a_listed_value_and_refuses_the_rest(): void {
+		$entry = array( 'options' => array( '0', '1', '2' ) );
+		$this->assertSame( '2', SettingsAjaxEndpoint::sanitize_value( '2', 'enum', $entry ) );
+		$this->assertSame( '1', SettingsAjaxEndpoint::sanitize_value( 1, 'enum', $entry ) );
+		$this->assertNull( SettingsAjaxEndpoint::sanitize_value( '3', 'enum', $entry ) );
+		$this->assertNull( SettingsAjaxEndpoint::sanitize_value( array( '1' ), 'enum', $entry ) );
+		$this->assertNull( SettingsAjaxEndpoint::sanitize_value( '1', 'enum' ), 'No list, no value.' );
+	}
+
 	public function test_sanitize_value_unknown_type_returns_null(): void {
 		$this->assertNull( SettingsAjaxEndpoint::sanitize_value( '1', 'unknown' ) );
 	}

@@ -7,7 +7,33 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.38.0] (2026-10-12)
+## [6.39.0] (2026-10-13)
+
+### Added
+
+- **The plugin has an icon on Dashboard → Updates and in the plugin list** (#1712). A certificate with a seal, white on blue, replaces WordPress's grey placeholder, read from the installed copy. `assets/img/brand/` also ships black, white, dark-screen and no-background variants, each as SVG and as 128 px and 256 px PNG.
+- **"View details" shows a banner, the readme's tabs and screenshots in place, in Portuguese too** (#1714, #1716). Description, Installation, FAQ, Screenshots and Other notes come from the offered release's `readme.txt` (or `languages/readme-pt_BR.txt` for a pt_BR viewer), the changelog renders its Markdown, and a screenshot opens in an overlay with arrows, swipe and zoom.
+- **Choice fields take one option per row, and every field can carry limits** (#1729). Options may contain commas and can be shuffled per participant; a checkbox can cap how many are ticked; text and textarea take a length range (server ceilings 255 and 2,000) with a live counter; number and date take a range. A "Checkbox" field now renders as a group of boxes instead of one text box, and the server enforces every field's rules, not only the browser.
+- **Quiz questions are scored per field** (#1730). Each field can be scored or left out: choices by correct option(s), a checkbox only on the exact set, or by points per option; text when answered; number and date by a correct range. "Show which answers were correct" now works, with new tokens `{{correct_count}}` and `{{question_count}}`; existing forms score as before.
+- **A quiz can clear its answers when the participant leaves** (#1731, #1745). Leaving the Window is Off / Moderate / Strict: Moderate reacts to switching tabs, Strict also to a second window side by side, after a grace set on Settings → Certificates. The form warns first, Start again reloads and reshuffles, and the count is shown on the submission. A deterrent, not a lock.
+- **Open quiz answers can be graded by a person** (#1732). A manually graded text question holds the attempt as "Awaiting Grading"; grading it on the edit screen issues the certificate or records Retry/Failed and emails the result. New capability `ffc_grade_certificates`, seeded from `ffc_edit_certificates`.
+
+### Changed
+
+- **Required tags and required fields have their own Settings → Certificates tab** (#1734, #1741, #1736). The layout tags moved from Advanced, one per line, and the layout and template screens list them instead of a fixed three. Apart from them, the fields every form needs (default `name`, `cpf_rf`, `email`) have a label and a locked type: new forms start with them, the editor adds missing ones, and they are badged, always required and cannot be removed.
+- **Settings use one family of controls** (#1745, #1748, #1750). An on/off is a toggle (`.ffc-control-toggle`, with a hover halo, a greyed disabled state and an optional check / cross mark); an ordered scale is a steps rail (the geofence display modes, the private-calendar displays, the IP API fallback); a short unordered choice is a segmented row (Dark Mode, Code Editor Theme, Time Behavior). Stored values are unchanged.
+- **Form fields follow the form's font, and Public Design offers Arial** (#1727). Fields, selects and buttons inherit the font the labels use instead of the browser's; the font is the theme's (default), the plugin's system font or Arial, as in Email Signature Generator and Institutional Email.
+- **Tests and translation files are steadier** (#1719, #1721, #1718). Clock-reading tests no longer fail when a run crosses a boundary, the compiled `.l10n.php` is `wp i18n make-php`'s shape byte for byte, and a `readme.txt` change carries its pt_BR copy in the same PR.
+
+### Fixed
+
+- **Dark mode reaches what core paints on its own** (#1723, #1725). Admin screens declare `color-scheme: dark`; links, notices, buttons, the colour picker, checkboxes, the Publish box, row actions and Screen Options follow the palette, and Personal Calendars and Certificate templates, WordPress post screens the toggle never reached, turn dark with their e-mail editor.
+- **The standard fields validate as they claim** (#1734). An invalid CPF/RF blocks the submit and its message stays until corrected; an invalid email says so instead of "Email address is required."; a name needs at least two words and 4 characters, in the browser and on the server.
+- **A certificate form submits again** (#1739). A script printed before `ffc-core.js` that created the `FFC` namespace made the core skip its own API, so every submit failed on `FFC.request is not a function`.
+- **A quiz attempt that did not pass is no longer a certificate** (#1744). It was saved as issued and its link emailed before the result was known, and its code verified; the email, verification, the REST lookup and the user dashboard now skip it.
+- **The dashboard's notification toggles can be reached by keyboard** (#1748). They used a second toggle that hid its checkbox with `display: none`; they now use the plugin's one toggle.
+
+## [6.38.0] (2026-10-12) — `529e80a1`
 
 The licence moves to AGPLv3 or later. Identity resolution names each number in "One address, several people" and can consolidate a candidate imported twice, the recruitment CSV import honours the RF check digit, and a manage-only role reaches the Reregistration screen. Behind the screens, tests now cover error paths across the plugin and the PHP coverage floor rises to 90%.
 

@@ -55,6 +55,20 @@ class RequiredNumericInputTest extends TestCase {
 		// limit", and the booking guard reads a missing limit as unlimited.
 		'includes/audience/class-ffc-audience-admin-calendar.php::schedule_future_days'              => 'empty means no limit',
 
+		// The certificate field builder's per-field limits (#1729): every one
+		// says "Empty means no limit", and `FormField` reads an empty value as
+		// the type's own ceiling (or no bound). The name carries the row index,
+		// which the scan blanks with the PHP block that prints it.
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::ffc_fields[ ][max_select]'        => 'empty means no limit',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::ffc_fields[ ][min_length]'        => 'empty means no minimum',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::ffc_fields[ ][max_length]'        => 'empty means the server ceiling',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::ffc_fields[ ][min]'               => 'empty means no lower bound',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::ffc_fields[ ][max]'               => 'empty means no upper bound',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::ffc_fields[ ][choice_points][]'   => 'empty means the option is worth 0 points (#1730)',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::[quiz_answer_min]'                => 'empty means no lowest correct answer (#1730)',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::[quiz_answer_max]'                => 'empty means no highest correct answer (#1730)',
+		'includes/admin/class-ffc-form-editor-builder-metabox.php::[quiz_points]'                    => 'empty means the default of 1 point (#1730)',
+
 		// 2. Not a form field. `ffc_qty_codes` has no `name` — it is the
 		// argument to the "Generate Tickets" AJAX button — and it sits inside
 		// a `.ffc-collapsed-target` block. A `required` here would block

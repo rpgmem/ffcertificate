@@ -175,6 +175,7 @@ class Settings {
 		$tab_classes = array(
 			'general'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
 			'public_design'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabPublicDesign',
+			'certificates'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabCertificates',
 			'templates'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabTemplates',
 			'reregistration'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabReregistration',
 			'modulos'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
@@ -280,6 +281,7 @@ class Settings {
 			'cleanup_enabled'            => false,
 			'validate_rf_check_digit'    => false,
 			'cleanup_days'               => 365,
+			'quiz_focus_grace_ms'        => 1000,
 			'smtp_mode'                  => 'wp',
 			'smtp_host'                  => '',
 			'smtp_port'                  => 587,

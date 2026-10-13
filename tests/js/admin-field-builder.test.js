@@ -1,331 +1,395 @@
 // Tests for `assets/js/ffc-admin-field-builder.js`.
 //
-// Public surface: window.FFC.Admin.FieldBuilder.{init, addField, updateJSON}.
-// Sprint N of #175.
+// Public surface: window.FFC.Admin.FieldBuilder.{init, addField, applyType}.
+// A new row is a copy of the server-rendered template row (#1729), so the
+// fixture below mirrors the classes and `ffc_fields[TEMPLATE]` names
+// `FormEditorBuilderMetabox::render_field_row()` prints.
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+function row(index) {
+	return `
+	<div class="ffc-field-row" data-index="${index}">
+		<div class="ffc-field-row-header">
+			<span class="ffc-sort-handle"><span class="ffc-field-title"><strong>Field</strong></span></span>
+			<button type="button" class="ffc-remove-field">Remove</button>
+		</div>
+		<div class="ffc-field-row-grid">
+			<input type="text" name="ffc_fields[${index}][label]" class="ffc-label-input">
+			<div class="ffc-standard-row"><input type="text" name="ffc_fields[${index}][name]"></div>
+			<select name="ffc_fields[${index}][type]" class="ffc-field-type-selector">
+				<option value="text">Text</option><option value="textarea">Textarea</option>
+				<option value="radio">Radio</option><option value="checkbox">Checkbox</option>
+				<option value="number">Number</option><option value="date">Date</option>
+				<option value="info">Info</option><option value="embed">Embed</option>
+				<option value="hidden">Hidden</option>
+			</select>
+			<label for="ffc_field_required_${index}"><input type="checkbox" id="ffc_field_required_${index}" name="ffc_fields[${index}][required]" class="ffc-field-required"></label>
+		</div>
+		<p class="ffc-type-desc"></p>
+		<div class="ffc-content-field ffc-hidden"></div>
+		<div class="ffc-embed-field ffc-hidden"></div>
+		<div class="ffc-hidden-value-field ffc-hidden"></div>
+		<div class="ffc-options-field ffc-hidden">
+			<ol class="ffc-choice-list">
+				<li class="ffc-choice-row"><span class="ffc-choice-handle"></span><input type="text" name="ffc_fields[${index}][choices][]" class="ffc-choice-input" value=""><input type="hidden" name="ffc_fields[${index}][choice_correct][]" value="0" class="ffc-choice-correct-value"><label class="ffc-choice-quiz ffc-choice-correct" data-ffc-quiz-mode="correct"><input type="checkbox" class="ffc-choice-correct-input"></label><label class="ffc-choice-quiz ffc-choice-points" data-ffc-quiz-mode="points"><input type="number" name="ffc_fields[${index}][choice_points][]" class="ffc-choice-points-input" value=""></label><button type="button" class="ffc-choice-remove">x</button></li>
+			</ol>
+			<button type="button" class="ffc-choice-add">Add option</button>
+			<label class="ffc-hidden" data-ffc-types="checkbox"><input type="number" name="ffc_fields[${index}][max_select]"></label>
+		</div>
+		<div class="ffc-field-settings" data-ffc-types="text textarea"></div>
+		<div class="ffc-field-settings ffc-hidden" data-ffc-types="number"></div>
+		<div class="ffc-field-settings ffc-hidden" data-ffc-types="date"></div>
+		<div class="ffc-field-quiz ffc-hidden" data-ffc-quiz-types="select radio checkbox text textarea number date">
+			<div class="ffc-field-quiz-head"><input type="checkbox" class="ffc-quiz-scored" name="ffc_fields[${index}][quiz_scored]" value="1"></div>
+			<div class="ffc-field-quiz-body">
+				<select class="ffc-quiz-mode" name="ffc_fields[${index}][quiz_mode]"><option value="correct">Correct</option><option value="points">Points</option></select>
+				<select class="ffc-quiz-text" name="ffc_fields[${index}][quiz_text]"><option value="none">None</option><option value="answered">Answered</option><option value="manual">Manual</option></select>
+				<label class="ffc-quiz-points-setting"><input type="number" name="ffc_fields[${index}][quiz_points]"></label>
+				<p data-ffc-quiz-help="correct"></p><p data-ffc-quiz-help="points"></p><p data-ffc-quiz-help="range"></p><p data-ffc-quiz-help="manual"></p>
+			</div>
+		</div>
+	</div>`;
+}
+
+function page(savedRows, extra) {
+	document.body.innerHTML = (extra || '') + `
+		<input type="checkbox" id="ffc_quiz_enabled">
+		<div id="ffc-fields-container">${(savedRows || []).map(row).join('')}</div>
+		<button type="button" class="ffc-add-field">Add New Field</button>
+		<div class="ffc-field-template ffc-hidden">${row('TEMPLATE')}</div>
+	`;
+}
+
 beforeAll(() => {
 	window.ffc_ajax = {
-		ajax_url: '/wp-admin/admin-ajax.php',
-		nonce: 'test-nonce',
-		strings: {
-			remove: 'Remove',
-			fieldType: 'Field Type:',
-			label: 'Label:',
-			fieldLabel: 'Field Label',
-			nameVariable: 'Name:',
-			fieldName: 'field_name',
-			required: 'Required:',
-			options: 'Options:',
-			separateWithCommas: 'Separate with commas',
-			content: 'Content:',
-			contentPlaceholder: 'Display text',
-			titleOptional: 'Title:',
-			embedUrl: 'URL:',
-			embedUrlPlaceholder: 'https://...',
-			captionOptional: 'Caption:',
+		strings: { chooseFieldType: 'Choose Field Type:', confirmDeleteField: 'Remove this field?' },
+		fieldTypes: [
+			{ value: 'checkbox', label: 'Checkbox' },
+			{ value: 'text', label: 'Text' },
+			{ value: 'textarea', label: 'Textarea' },
+		],
+		fieldTypeDescriptions: {
+			text: 'One line.',
+			checkbox: 'Tick one or more.',
+			info: 'Collects nothing.',
 		},
 	};
+	window.$.fx.off = true;
 	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-admin-field-builder.js');
 });
 
-beforeEach(() => {
-	document.body.innerHTML = `
-		<div id="ffc-fields-container"></div>
-		<input type="hidden" id="ffc-form-fields-json" />
-	`;
-});
-
 const FB = () => window.FFC.Admin.FieldBuilder;
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+function initOn(savedRows) {
+	page(savedRows);
+	FB().init();
+}
 
 describe('FFC.Admin.FieldBuilder public API', () => {
-	it('exposes init / addField / updateJSON', () => {
+	it('exposes init / addField / applyType', () => {
 		expect(typeof FB().init).toBe('function');
 		expect(typeof FB().addField).toBe('function');
-		expect(typeof FB().updateJSON).toBe('function');
+		expect(typeof FB().applyType).toBe('function');
 	});
 });
 
-describe('FFC.Admin.FieldBuilder.addField', () => {
-	it("appends a .ffc-field-row to #ffc-fields-container for type='text'", () => {
+describe('FieldBuilder.addField — copies the server template', () => {
+	beforeEach(() => initOn([0, 1]));
+
+	it('appends a row whose names, ids and labels carry a fresh index', () => {
+		const $row = FB().addField('text');
+		expect($row).not.toBeNull();
+		const el = $row[0];
+		expect(el.getAttribute('data-index')).toBe('2');
+		expect(el.querySelector('[name="ffc_fields[2][label]"]')).not.toBeNull();
+		expect(el.querySelector('[name="ffc_fields[2][choices][]"]')).not.toBeNull();
+		expect(el.querySelector('#ffc_field_required_2')).not.toBeNull();
+		expect(el.querySelector('label[for="ffc_field_required_2"]')).not.toBeNull();
+		expect(el.outerHTML).not.toContain('TEMPLATE');
+	});
+
+	it('never reuses an index, even after the highest row is removed', () => {
 		FB().addField('text');
-		const rows = document.querySelectorAll('#ffc-fields-container .ffc-field-row');
-		expect(rows.length).toBe(1);
-		// Header strong contains the uppercased type.
-		expect(rows[0].querySelector('.ffc-field-title strong').textContent).toBe('TEXT');
+		$$('#ffc-fields-container .ffc-field-row').pop().remove();
+		const $row = FB().addField('text');
+		expect($row[0].getAttribute('data-index')).toBe('3');
 	});
 
-	it("appends an info-style row with the content textarea visible", () => {
-		FB().addField('info');
-		const row = document.querySelector('#ffc-fields-container .ffc-field-row');
-		const contentRow = row.querySelector('.ffc-content-row');
-		// Info rows show the content textarea (no inline display:none).
-		expect(contentRow.style.display).not.toBe('none');
-		// Standard rows are hidden for display-only fields.
-		const standardRows = row.querySelectorAll('.ffc-standard-row');
-		standardRows.forEach((r) => expect(r.style.display).toBe('none'));
+	it('selects the chosen type and shows only what belongs to it', () => {
+		const el = FB().addField('checkbox')[0];
+		expect(el.querySelector('.ffc-field-type-selector').value).toBe('checkbox');
+		expect(el.querySelector('.ffc-options-field').classList.contains('ffc-hidden')).toBe(false);
+		expect(el.querySelector('[data-ffc-types="checkbox"]').classList.contains('ffc-hidden')).toBe(false);
+		expect(el.querySelector('[data-ffc-types="text textarea"]').classList.contains('ffc-hidden')).toBe(true);
+		expect(el.querySelector('.ffc-type-desc').textContent).toBe('Tick one or more.');
 	});
 
-	it("appends an embed-style row with the URL input visible", () => {
-		FB().addField('embed');
-		const row = document.querySelector('#ffc-fields-container .ffc-field-row');
-		const embedRow = row.querySelector('.ffc-embed-row');
-		expect(embedRow.style.display).not.toBe('none');
-		// Content row hidden for embed.
-		expect(row.querySelector('.ffc-content-row').style.display).toBe('none');
+	it('leaves the template itself untouched', () => {
+		FB().addField('radio');
+		expect($('.ffc-field-template [name="ffc_fields[TEMPLATE][label]"]')).not.toBeNull();
 	});
 
-	it("appends a hidden-style row with its fixed-value input visible (#1574)", () => {
-		FB().addField('hidden');
-		const row = document.querySelector('#ffc-fields-container .ffc-field-row');
-		const valueRow = row.querySelector('.ffc-hidden-value-row');
-		expect(valueRow.style.display).not.toBe('none');
-		expect(valueRow.querySelector('input').getAttribute('name')).toMatch(/\[default_value\]$/);
-	});
-
-	it('hides the fixed-value input for any other type', () => {
-		FB().addField('text');
-		const row = document.querySelector('#ffc-fields-container .ffc-field-row');
-		expect(row.querySelector('.ffc-hidden-value-row').style.display).toBe('none');
-	});
-
-	it('carries the fixed value into the JSON', () => {
-		FB().addField('hidden');
-		document.querySelector('.ffc-field-default-value').value = '2026-A';
-		FB().updateJSON();
-		const parsed = JSON.parse(document.getElementById('ffc-form-fields-json').value);
-		expect(parsed[0].default_value).toBe('2026-A');
-	});
-
-	it('writes the new field into the hidden JSON input', () => {
-		FB().addField('text');
-		const json = document.getElementById('ffc-form-fields-json').value;
-		const parsed = JSON.parse(json);
-		expect(parsed.length).toBe(1);
-		expect(parsed[0].type).toBe('text');
-	});
-
-	it('increments an internal counter — multiple fields land with unique indices', () => {
-		FB().addField('text');
-		FB().addField('email');
-		FB().addField('select');
-		const rows = document.querySelectorAll('#ffc-fields-container .ffc-field-row');
-		expect(rows.length).toBe(3);
-		// data-index values should be different.
-		const indices = Array.from(rows).map((r) => r.getAttribute('data-index'));
-		expect(new Set(indices).size).toBe(3);
-	});
-
-	it('selects the correct option in the .ffc-field-type dropdown for the requested type', () => {
-		FB().addField('select');
-		const dropdown = document.querySelector('#ffc-fields-container .ffc-field-row .ffc-field-type');
-		expect(dropdown.value).toBe('select');
+	it('returns null when the page carries no template', () => {
+		document.querySelector('.ffc-field-template').remove();
+		expect(FB().addField('text')).toBeNull();
 	});
 });
 
-describe('FFC.Admin.FieldBuilder.updateJSON', () => {
-	it('reads the form values from each row and serialises them as JSON', () => {
-		FB().addField('text');
-		FB().addField('email');
+describe('FieldBuilder.applyType', () => {
+	beforeEach(() => initOn([0]));
 
-		// Fill out fields.
-		const rows = document.querySelectorAll('#ffc-fields-container .ffc-field-row');
-		rows[0].querySelector('.ffc-field-label').value = 'Name';
-		rows[0].querySelector('.ffc-field-name').value = 'name';
-		rows[1].querySelector('.ffc-field-label').value = 'Email';
-		rows[1].querySelector('.ffc-field-name').value = 'email';
-
-		FB().updateJSON();
-		const parsed = JSON.parse(document.getElementById('ffc-form-fields-json').value);
-		expect(parsed.length).toBe(2);
-		expect(parsed[0].label).toBe('Name');
-		expect(parsed[0].name).toBe('name');
-		expect(parsed[1].label).toBe('Email');
-		expect(parsed[1].name).toBe('email');
+	it('shows the content block and hides the standard row for an info block', () => {
+		const $row = window.$('#ffc-fields-container .ffc-field-row');
+		FB().applyType($row, 'info');
+		expect($row.find('.ffc-content-field').hasClass('ffc-hidden')).toBe(false);
+		expect($row.find('.ffc-standard-row').hasClass('ffc-hidden')).toBe(true);
+		expect($row.find('.ffc-type-desc').text()).toBe('Collects nothing.');
 	});
 
-	it('captures the `required` checkbox state', () => {
-		FB().addField('text');
-		document.querySelector('.ffc-field-required').checked = true;
-		FB().updateJSON();
-		const parsed = JSON.parse(document.getElementById('ffc-form-fields-json').value);
-		expect(parsed[0].required).toBe(true);
+	it('shows the quiz block only while quiz mode is on and for a field that collects an answer', () => {
+		const $row = window.$('#ffc-fields-container .ffc-field-row');
+		FB().applyType($row, 'radio');
+		expect($row.find('.ffc-field-quiz').hasClass('ffc-hidden')).toBe(true);
+		$('#ffc_quiz_enabled').checked = true;
+		FB().applyType($row, 'radio');
+		expect($row.find('.ffc-field-quiz').hasClass('ffc-hidden')).toBe(false);
+		FB().applyType($row, 'info');
+		expect($row.find('.ffc-field-quiz').hasClass('ffc-hidden')).toBe(true);
 	});
 
-	it('emits an empty array when no rows are present', () => {
-		// Container exists but no fields.
-		FB().updateJSON();
-		expect(document.getElementById('ffc-form-fields-json').value).toBe('[]');
+	it('switches the range block between number and date', () => {
+		const $row = window.$('#ffc-fields-container .ffc-field-row');
+		FB().applyType($row, 'date');
+		expect($row.find('[data-ffc-types="date"]').hasClass('ffc-hidden')).toBe(false);
+		expect($row.find('[data-ffc-types="number"]').hasClass('ffc-hidden')).toBe(true);
 	});
 
-	it('falls back to input[name=ffc_form_fields] when #ffc-form-fields-json is absent', () => {
-		document.body.innerHTML = `
-			<div id="ffc-fields-container"></div>
-			<input type="hidden" name="ffc_form_fields" />
-		`;
-		FB().addField('text');
-		FB().updateJSON();
-		const fallback = document.querySelector('input[name="ffc_form_fields"]');
-		const parsed = JSON.parse(fallback.value);
-		expect(parsed.length).toBe(1);
-		expect(parsed[0].type).toBe('text');
+	it('reacts to the type select changing', () => {
+		const select = $('#ffc-fields-container .ffc-field-type-selector');
+		select.value = 'checkbox';
+		window.$(select).trigger('change');
+		expect($('#ffc-fields-container .ffc-options-field').classList.contains('ffc-hidden')).toBe(false);
 	});
 });
 
-describe('FFC.Admin.FieldBuilder.init — document delegates', () => {
+describe('FieldBuilder — option rows', () => {
+	beforeEach(() => initOn([0]));
+
+	it('adds an empty option row on "Add option"', () => {
+		$('#ffc-fields-container .ffc-choice-input').value = 'A';
+		$('#ffc-fields-container .ffc-choice-add').click();
+		const inputs = $$('#ffc-fields-container .ffc-choice-input');
+		expect(inputs.map((i) => i.value)).toEqual(['A', '']);
+		expect(inputs[1].getAttribute('name')).toBe('ffc_fields[0][choices][]');
+	});
+
+	it('removes an option row, but only empties the last one', () => {
+		$('#ffc-fields-container .ffc-choice-add').click();
+		const inputs = $$('#ffc-fields-container .ffc-choice-input');
+		inputs[0].value = 'A';
+		inputs[1].value = 'B';
+		$$('#ffc-fields-container .ffc-choice-remove')[0].click();
+		expect($$('#ffc-fields-container .ffc-choice-input').map((i) => i.value)).toEqual(['B']);
+		$('#ffc-fields-container .ffc-choice-remove').click();
+		expect($$('#ffc-fields-container .ffc-choice-input').map((i) => i.value)).toEqual(['']);
+	});
+
+	it('Enter in an option adds the next row after it instead of submitting', () => {
+		$('#ffc-fields-container .ffc-choice-add').click();
+		const inputs = $$('#ffc-fields-container .ffc-choice-input');
+		inputs[0].value = 'A';
+		inputs[1].value = 'C';
+		const event = window.$.Event('keydown', { key: 'Enter' });
+		window.$(inputs[0]).trigger(event);
+		expect(event.isDefaultPrevented()).toBe(true);
+		expect($$('#ffc-fields-container .ffc-choice-input').map((i) => i.value)).toEqual(['A', '', 'C']);
+	});
+});
+
+describe('FieldBuilder — removing a field', () => {
+	beforeEach(() => initOn([0, 1]));
+
+	it('removes the row once confirmed', () => {
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+		$('#ffc-fields-container .ffc-remove-field').click();
+		expect($$('#ffc-fields-container .ffc-field-row').length).toBe(1);
+		confirm.mockRestore();
+	});
+
+	it('keeps the row when the confirmation is declined', () => {
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		$('#ffc-fields-container .ffc-remove-field').click();
+		expect($$('#ffc-fields-container .ffc-field-row').length).toBe(2);
+		confirm.mockRestore();
+	});
+});
+
+describe('FieldBuilder — type menu (.ffc-add-field)', () => {
+	beforeEach(() => initOn([]));
+
+	it('lists every localized type as a button and adds the chosen one', () => {
+		$('.ffc-add-field').click();
+		const options = $$('.ffc-field-type-menu .ffc-field-type-option');
+		expect(options.map((b) => b.getAttribute('data-type'))).toEqual(['checkbox', 'text', 'textarea']);
+		expect(options.every((b) => b.tagName === 'BUTTON')).toBe(true);
+		options[1].click();
+		expect($$('#ffc-fields-container .ffc-field-row').length).toBe(1);
+		expect($('#ffc-fields-container .ffc-field-type-selector').value).toBe('text');
+		expect($('.ffc-field-type-menu')).toBeNull();
+	});
+
+	it('opens only one menu at a time', () => {
+		$('.ffc-add-field').click();
+		$('.ffc-add-field').click();
+		expect($$('.ffc-field-type-menu').length).toBe(1);
+	});
+});
+
+describe('FieldBuilder — quiz (#1730)', () => {
 	beforeEach(() => {
-		window.$.fx.off = true;
-		FB().init();
+		initOn([0]);
+		$('#ffc_quiz_enabled').checked = true;
+		const select = $('#ffc-fields-container .ffc-field-type-selector');
+		select.value = 'checkbox';
+		window.$(select).trigger('change');
 	});
 
-	it('returns early when #ffc-fields-container is absent', () => {
-		document.body.innerHTML = '<div id="other"></div>';
-		// Should not throw; nothing wired against the missing container.
-		expect(() => FB().init()).not.toThrow();
+	const row = () => window.$('#ffc-fields-container .ffc-field-row');
+
+	it('shows the per-option control of the chosen mode once the question is scored', () => {
+		expect(row().find('.ffc-field-quiz-body').hasClass('ffc-hidden')).toBe(true);
+		const scored = $('#ffc-fields-container .ffc-quiz-scored');
+		scored.checked = true;
+		window.$(scored).trigger('change');
+		expect(row().find('.ffc-field-quiz-body').hasClass('ffc-hidden')).toBe(false);
+		expect(row().find('.ffc-choice-correct').hasClass('ffc-hidden')).toBe(false);
+		expect(row().find('.ffc-choice-points').hasClass('ffc-hidden')).toBe(true);
+
+		const mode = $('#ffc-fields-container .ffc-quiz-mode');
+		mode.value = 'points';
+		window.$(mode).trigger('change');
+		expect(row().find('.ffc-choice-correct').hasClass('ffc-hidden')).toBe(true);
+		expect(row().find('.ffc-choice-points').hasClass('ffc-hidden')).toBe(false);
+		expect(row().find('.ffc-quiz-points-setting').hasClass('ffc-hidden')).toBe(true, 'Points per option: no question-wide points.');
 	});
 
-	it('wires the .ffc-remove-field click that fades and removes the row + updates JSON', async () => {
-		// The handler asks for confirmation before removing — stub
-		// window.confirm to accept.
-		const confirmStub = vi.spyOn(window, 'confirm').mockReturnValue(true);
-		FB().addField('text');
-		document.querySelector('.ffc-remove-field').click();
-		await new Promise((r) => setTimeout(r, 50));
-		expect(document.querySelectorAll('#ffc-fields-container .ffc-field-row').length).toBe(0);
-		confirmStub.mockRestore();
+	it('explains manual grading only for an open answer graded by a person (#1732)', () => {
+		const select = $('#ffc-fields-container .ffc-field-type-selector');
+		select.value = 'textarea';
+		window.$(select).trigger('change');
+		const scored = $('#ffc-fields-container .ffc-quiz-scored');
+		scored.checked = true;
+		window.$(scored).trigger('change');
+		const help = () => row().find('[data-ffc-quiz-help="manual"]').hasClass('ffc-hidden');
+		expect(help()).toBe(true);
+
+		const text = $('#ffc-fields-container .ffc-quiz-text');
+		text.value = 'manual';
+		window.$(text).trigger('change');
+		expect(help()).toBe(false);
+
+		select.value = 'number';
+		window.$(select).trigger('change');
+		expect(help()).toBe(true);
 	});
 
-	it('keeps the row when confirm is declined', () => {
-		const confirmStub = vi.spyOn(window, 'confirm').mockReturnValue(false);
-		FB().addField('text');
-		document.querySelector('.ffc-remove-field').click();
-		expect(document.querySelectorAll('#ffc-fields-container .ffc-field-row').length).toBe(1);
-		confirmStub.mockRestore();
+	it('posts the correct mark through the aligned hidden value', () => {
+		const box = $('#ffc-fields-container .ffc-choice-correct-input');
+		box.checked = true;
+		window.$(box).trigger('change');
+		expect($('#ffc-fields-container .ffc-choice-correct-value').value).toBe('1');
 	});
 
-	it('updates JSON on change/input within the container', () => {
-		FB().addField('text');
-		const label = document.querySelector('.ffc-field-label');
-		label.value = 'Changed';
-		window.$(label).trigger('input');
-		const parsed = JSON.parse(document.getElementById('ffc-form-fields-json').value);
-		expect(parsed[0].label).toBe('Changed');
+	it('starts a new option unmarked and without points', () => {
+		const box = $('#ffc-fields-container .ffc-choice-correct-input');
+		box.checked = true;
+		window.$(box).trigger('change');
+		$('#ffc-fields-container .ffc-choice-points-input').value = '5';
+		$('#ffc-fields-container .ffc-choice-add').click();
+		const added = $$('#ffc-fields-container .ffc-choice-row')[1];
+		expect(added.querySelector('.ffc-choice-correct-value').value).toBe('0');
+		expect(added.querySelector('.ffc-choice-correct-input').checked).toBe(false);
+		expect(added.querySelector('.ffc-choice-points-input').value).toBe('');
 	});
 
-	it('toggles JS-built rows when .ffc-field-type changes to info/embed/select', () => {
-		FB().addField('text');
-		const row = document.querySelector('.ffc-field-row');
-		const sel = row.querySelector('.ffc-field-type');
-
-		sel.value = 'info';
-		window.$(sel).trigger('change');
-		expect(row.querySelector('.ffc-content-row').style.display).not.toBe('none');
-		expect(row.querySelector('.ffc-standard-row').style.display).toBe('none');
-
-		sel.value = 'embed';
-		window.$(sel).trigger('change');
-		expect(row.querySelector('.ffc-embed-row').style.display).not.toBe('none');
-
-		sel.value = 'select';
-		window.$(sel).trigger('change');
-		// Options field becomes visible for select/radio/checkbox.
-		const opts = row.querySelector('.ffc-options-field');
-		if (opts) {
-			expect(opts.style.display).not.toBe('none');
-		}
+	it('refuses a maximum selections below the number of correct options', () => {
+		const scored = $('#ffc-fields-container .ffc-quiz-scored');
+		scored.checked = true;
+		window.$(scored).trigger('change');
+		$('#ffc-fields-container .ffc-choice-add').click();
+		$$('#ffc-fields-container .ffc-choice-correct-input').forEach((box) => {
+			box.checked = true;
+			window.$(box).trigger('change');
+		});
+		const max = $('#ffc-fields-container input[name$="[max_select]"]');
+		max.value = '1';
+		window.$(max).trigger('input');
+		expect(max.validationMessage).not.toBe('');
+		max.value = '2';
+		window.$(max).trigger('input');
+		expect(max.validationMessage).toBe('');
 	});
 
-	it('toggles PHP-rendered rows via .ffc-field-type-selector using ffc-hidden classes', () => {
-		document.body.innerHTML = `
-			<div id="ffc-fields-container">
-				<div class="ffc-field-row">
-					<select class="ffc-field-type-selector">
-						<option value="text">text</option>
-						<option value="info">info</option>
-						<option value="embed">embed</option>
-						<option value="select">select</option>
-					</select>
-					<div class="ffc-content-field"></div>
-					<div class="ffc-embed-field"></div>
-					<div class="ffc-standard-row"></div>
-					<div class="ffc-options-field"></div>
-				</div>
-			</div>
-			<input type="hidden" id="ffc-form-fields-json" />
-		`;
-		// Re-init so the .on() bindings attach to this fresh container element.
-		FB().init();
-		const row = document.querySelector('.ffc-field-row');
-		const sel = row.querySelector('.ffc-field-type-selector');
-
-		sel.value = 'info';
-		window.$(sel).trigger('change');
-		expect(row.querySelector('.ffc-content-field').classList.contains('ffc-hidden')).toBe(false);
-		expect(row.querySelector('.ffc-standard-row').classList.contains('ffc-hidden')).toBe(true);
-
-		sel.value = 'embed';
-		window.$(sel).trigger('change');
-		expect(row.querySelector('.ffc-embed-field').classList.contains('ffc-hidden')).toBe(false);
-
-		sel.value = 'select';
-		window.$(sel).trigger('change');
-		expect(row.querySelector('.ffc-options-field').classList.contains('ffc-hidden')).toBe(false);
-
-		sel.value = 'text';
-		window.$(sel).trigger('change');
-		expect(row.querySelector('.ffc-options-field').classList.contains('ffc-hidden')).toBe(true);
+	it('follows the quiz master toggle', () => {
+		const master = $('#ffc_quiz_enabled');
+		master.checked = false;
+		window.$(master).trigger('change');
+		expect(row().find('.ffc-field-quiz').hasClass('ffc-hidden')).toBe(true);
 	});
 });
 
-describe('FFC.Admin.FieldBuilder — field type menu (.ffc-add-field click)', () => {
+describe('Add the required fields (#1741)', () => {
+	const missing = [
+		{ name: 'name', label: 'Full Name', type: 'text' },
+		{ name: 'email', label: 'Email', type: 'email' },
+	];
+
+	function notice(json) {
+		return `<div class="notice ffc-required-fields-missing"><button type="button" class="ffc-add-required-fields" data-ffc-required-fields='${json}'>Add</button></div>`;
+	}
+
 	beforeEach(() => {
-		window.$.fx.off = true;
-		document.body.innerHTML = `
-			<button class="ffc-add-field">Add</button>
-			<div id="ffc-fields-container"></div>
-			<input type="hidden" id="ffc-form-fields-json" />
-		`;
+		window.ffc_ajax.strings.requiredField = 'Required field';
+		page([0], notice(JSON.stringify(missing)));
 		FB().init();
 	});
 
-	it('opens a field-type menu listing every field type and adds the chosen type', () => {
-		document.querySelector('.ffc-add-field').click();
-		const menu = document.querySelector('.ffc-field-type-menu');
-		expect(menu).not.toBeNull();
-		const items = menu.querySelectorAll('li');
-		expect(items.length).toBeGreaterThan(0);
+	it('adds one locked row per missing field and drops the notice', () => {
+		window.$('.ffc-add-required-fields').trigger('click');
 
-		// Clicking an item adds that field and removes the menu.
-		const textItem = Array.from(items).find((li) => li.getAttribute('data-type') === 'text');
-		textItem.click();
-		expect(document.querySelectorAll('#ffc-fields-container .ffc-field-row').length).toBe(1);
-		expect(document.querySelector('.ffc-field-type-menu')).toBeNull();
+		const rows = $$('#ffc-fields-container .ffc-field-row');
+		expect(rows).toHaveLength(3);
+		expect($('.ffc-required-fields-missing')).toBeNull();
+
+		const email = rows[2];
+		expect(email.classList.contains('ffc-field-row-required-tag')).toBe(true);
+		expect(email.querySelector('[name="ffc_fields[2][name]"]').value).toBe('email');
+		expect(email.querySelector('[name="ffc_fields[2][name]"]').readOnly).toBe(true);
+		expect(email.querySelector('[name="ffc_fields[2][label]"]').value).toBe('Email');
+
+		const select = email.querySelector('.ffc-field-type-selector');
+		expect(select.disabled).toBe(true);
+		expect(select.hasAttribute('name')).toBe(false);
+		expect(email.querySelector('input[type="hidden"][name="ffc_fields[2][type]"]').value).toBe('email');
+
+		expect(email.querySelector('.ffc-field-required').checked).toBe(true);
+		expect(email.querySelector('.ffc-remove-field').disabled).toBe(true);
+		expect(email.querySelector('.ffc-required-tag-badge').textContent).toContain('Required field');
+		expect(email.querySelector('.ffc-required-tag-badge').id).toBe('ffc_field_lock_2');
 	});
 
-	it('removes a pre-existing menu before opening a new one', () => {
-		document.querySelector('.ffc-add-field').click();
-		document.querySelector('.ffc-add-field').click();
-		expect(document.querySelectorAll('.ffc-field-type-menu').length).toBe(1);
+	it('ignores a payload it cannot read', () => {
+		page([0], notice('not json'));
+		FB().init();
+		window.$('.ffc-add-required-fields').trigger('click');
+		expect($$('#ffc-fields-container .ffc-field-row')).toHaveLength(1);
 	});
 
-	it('closes the menu on the deferred outside click', async () => {
-		document.querySelector('.ffc-add-field').click();
-		expect(document.querySelector('.ffc-field-type-menu')).not.toBeNull();
-		// The script defers wiring the document.one('click') by 100ms.
-		await new Promise((r) => setTimeout(r, 150));
-		document.body.click();
-		expect(document.querySelector('.ffc-field-type-menu')).toBeNull();
-	});
-});
-
-describe('FFC.Admin.FieldBuilder.updateJSON — missing JSON field', () => {
-	it('warns when no JSON field exists', () => {
-		document.body.innerHTML = '<div id="ffc-fields-container"></div>';
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-		FB().updateJSON();
-		expect(warn).toHaveBeenCalledWith('[FFC] JSON field not found');
-		warn.mockRestore();
+	it('is exposed for callers', () => {
+		expect(typeof FB().addRequiredFields).toBe('function');
 	});
 });

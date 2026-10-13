@@ -261,6 +261,38 @@ describe('frontend.handleFormSubmission', () => {
 		expect(document.querySelector('form.ffc-submission-form').textContent).toContain('Custom failure');
 	});
 
+	it('marks each scored question right or wrong after a quiz attempt (#1730)', async () => {
+		document.body.innerHTML = `
+			<form class="ffc-submission-form">
+				<input type="hidden" name="form_id" value="42" />
+				<div class="ffc-form-field"><input type="text" name="q1" value="a" /></div>
+				<fieldset class="ffc-form-field"><input type="checkbox" name="q2[]" value="x" checked /></fieldset>
+				<button type="submit">Send</button>
+			</form>
+		`;
+		const $form = window.$('form.ffc-submission-form');
+		const reply = {
+			success: false,
+			data: { message: 'Score: 50%.', quiz: { results: { fields: { q1: true, q2: false }, correct_count: 1, question_count: 2 } } },
+		};
+		mockAjax((opts) => { opts.success(reply); return {}; });
+		$form.trigger('submit');
+		await flush();
+
+		const fields = document.querySelectorAll('.ffc-form-field');
+		expect(fields[0].classList.contains('ffc-quiz-right')).toBe(true);
+		expect(fields[1].classList.contains('ffc-quiz-wrong')).toBe(true);
+		expect(fields[1].querySelector('.ffc-quiz-verdict').textContent).toBe('Incorrect');
+
+		// The next attempt starts clean: a reply without results removes the marks.
+		vi.restoreAllMocks();
+		mockAjax((opts) => { opts.success({ success: false, data: { message: 'Again' } }); return {}; });
+		$form.trigger('submit');
+		await flush();
+		expect(document.querySelectorAll('.ffc-quiz-verdict').length).toBe(0);
+		expect(document.querySelectorAll('.ffc-quiz-right, .ffc-quiz-wrong').length).toBe(0);
+	});
+
 	it('on success: refresh_captcha branch hits FFC.Frontend.UI.refreshCaptcha', async () => {
 		const $form = setupForm();
 		// Add the captcha bits the UI helper expects.

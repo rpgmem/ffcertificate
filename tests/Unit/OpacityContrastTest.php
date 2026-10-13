@@ -79,8 +79,8 @@ final class OpacityContrastTest extends TestCase {
 			'.ffc-loading'                                            => 'loading state, transient',
 			'.ffc-form button[type="submit"]:disabled'                => 'inactive component, exempt under SC 1.4.3',
 			'.ffc-btn:disabled'                                       => 'inactive component, exempt under SC 1.4.3',
-			'.ffc-toggle input[type="checkbox"]'                      => 'opacity: 0 — the real input is invisible under the drawn track',
-			'.ffc-toggle input[type="checkbox"]:disabled + .ffc-toggle-track' => 'inactive component, exempt under SC 1.4.3',
+			'.ffc-control-toggle input[type="checkbox"]'                      => 'opacity: 0 — the real input is invisible under the drawn track',
+			'.ffc-control-steps-stop input'                           => 'opacity: 0 — the real radios are invisible under the drawn stops',
 			'#ffc-activity-log-table.ffc-loading'                     => 'loading state, transient',
 		),
 		'ffc-custom-fields-admin.css'     => array(
@@ -98,6 +98,9 @@ final class OpacityContrastTest extends TestCase {
 		),
 		'ffc-reregistration-frontend.css' => array(
 			'.ffc-rereg-header-subtitle' => 'header subtitle: measured in #1185, 17.58:1 light and 10.10:1 dark with the fade included',
+		),
+		'ffc-screenshots.css'             => array(
+			'.ffc-shots-button:disabled' => 'inactive component (a zoom button at its bound), exempt under SC 1.4.3',
 		),
 		'ffc-url-shortener-admin.css'     => array(
 			'.ffc-shorturl-toast' => 'opacity: 0 — the toast only appears through animation',

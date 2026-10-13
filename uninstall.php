@@ -289,6 +289,7 @@ $ffcertificate_options = array(
 	'ffc_email_templates_cap_v1',
 	'ffc_export_caps_granted_v1',
 	'ffc_false_caps_stripped_v1',
+	'ffc_grade_cap_v1',
 	'ffc_identities_cap_v1',
 	'ffc_identity_verbs_cap_v1',
 	'ffc_import_caps_granted_v1',

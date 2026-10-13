@@ -55,13 +55,6 @@
    ========================================================================== */
 
 /**
- * Margin top utilities
- */
-.ffc-mt-2xs {
-    margin-top: var(--ffc-spacing-2xs);
-}
-
-/**
  * Margin bottom utilities
  */
 .ffc-mb-2xs {

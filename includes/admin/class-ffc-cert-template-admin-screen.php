@@ -595,6 +595,8 @@ class CertTemplateAdminScreen {
 			return;
 		}
 
+		self::enqueue_theme();
+
 		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			self::PREVIEW_HANDLE,
@@ -614,6 +616,20 @@ class CertTemplateAdminScreen {
 	}
 
 	/**
+	 * The palette and the dark-mode toggle, on the template list and editor.
+	 *
+	 * Both are screens WordPress draws for a plugin post type, so
+	 * `AdminAssetsManager` (which only knows `?page=ffc-*` and the form post
+	 * type) never reached them, and they stayed light in dark mode.
+	 *
+	 * @return void
+	 */
+	private static function enqueue_theme(): void {
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+	}
+
+	/**
 	 * Enqueue the shared CodeMirror HTML editor on the template edit screen.
 	 *
 	 * Mirrors what the form editor does for its layout box, so the two HTML
@@ -627,6 +643,8 @@ class CertTemplateAdminScreen {
 		if ( ! $screen instanceof \WP_Screen || 'post' !== $screen->base || CertTemplateCpt::POST_TYPE !== $screen->post_type ) {
 			return;
 		}
+
+		self::enqueue_theme();
 
 		$post_id    = RequestInput::get_get_int( 'post' );
 		$is_default = $post_id > 0 && CertTemplateReader::is_default( $post_id );
@@ -772,7 +790,7 @@ class CertTemplateAdminScreen {
 			<?php elseif ( $is_record ) : ?>
 				<?php esc_html_e( 'Common tags:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{cpf_rf}}</code>, <code>{{custom_fields_section}}</code>, <code>{{termo_ciencia}}</code>, <code>{{submitted_at}}</code>.
 			<?php else : ?>
-				<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
+				<?php echo \FreeFormCertificate\Admin\AdminUI::get_required_tags_line(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where it is built. ?>
 			<?php endif; ?>
 		</p>
 
@@ -812,10 +830,10 @@ class CertTemplateAdminScreen {
 			$toggle_help  = __( 'When on, this template appears in the certificate form editor’s “Load” dropdown.', 'ffcertificate' );
 		}
 		?>
-		<label class="ffc-toggle">
+		<label class="ffc-control-toggle">
 			<input type="checkbox" id="ffc_template_visible" name="ffc_template_visible" value="1" <?php checked( $visible ); ?>>
-			<span class="ffc-toggle-track" aria-hidden="true"></span>
-			<span class="ffc-toggle-label"><?php echo esc_html( $toggle_label ); ?></span>
+			<span class="ffc-control-toggle-track" aria-hidden="true"></span>
+			<span class="ffc-control-toggle-label"><?php echo esc_html( $toggle_label ); ?></span>
 		</label>
 		<span id="ffc_template_visible_status" class="ffc-autosave-status" role="status" aria-live="polite"></span>
 		<p class="description">

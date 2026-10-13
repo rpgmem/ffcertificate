@@ -47,6 +47,11 @@ class SuccessResponder {
 	 * @param SubmissionContext $ctx Submission context.
 	 */
 	public function apply( SubmissionContext $ctx ): void {
+		if ( $ctx->awaiting_grading ) {
+			$ctx->response = self::awaiting_grading_response();
+			return;
+		}
+
 		$form_config = $ctx->form_config;
 		$is_reprint  = $ctx->is_reprint;
 		$is_quiz     = $ctx->is_quiz;
@@ -67,6 +72,16 @@ class SuccessResponder {
 				/* translators: %d: quiz score percentage */
 				? sprintf( __( 'Congratulations! Score: %d%%. Certificate generated.', 'ffcertificate' ), $quiz_score['percent'] )
 				: __( 'Congratulations! Quiz passed. Certificate generated.', 'ffcertificate' );
+
+			$shown = SubmissionPersister::shown_results( $form_config, $quiz_score );
+			if ( null !== $shown ) {
+				$msg .= ' ' . sprintf(
+					/* translators: 1: questions answered right, 2: questions scored. */
+					_n( '%1$s of %2$s question answered correctly.', '%1$s of %2$s questions answered correctly.', $shown['question_count'], 'ffcertificate' ),
+					number_format_i18n( $shown['correct_count'] ),
+					number_format_i18n( $shown['question_count'] )
+				);
+			}
 		}
 
 		$response = array(
@@ -94,5 +109,21 @@ class SuccessResponder {
 		}
 
 		$ctx->response = $response;
+	}
+
+	/**
+	 * The response to an attempt a person has still to grade (#1732): it
+	 * replaces the form, like a certificate does, but carries no PDF.
+	 *
+	 * @return array{message: string, pdf_data: null, html: string, quiz: array{pending: true}}
+	 */
+	public static function awaiting_grading_response(): array {
+		$msg = __( 'Your answers were received. A person will grade the open answers; the result, and the certificate if you pass, will be sent to your email.', 'ffcertificate' );
+		return array(
+			'message'  => $msg,
+			'pdf_data' => null,
+			'html'     => '<div class="ffc-form-info-block ffc-quiz-awaiting-grading" role="status"><p>' . esc_html( $msg ) . '</p></div>',
+			'quiz'     => array( 'pending' => true ),
+		);
 	}
 }

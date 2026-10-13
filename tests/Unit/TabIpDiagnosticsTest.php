@@ -138,7 +138,7 @@ class TabIpDiagnosticsTest extends TestCase {
 		$this->assertStringContainsString( 'name="ffc_ip_strategy"', $html );
 		$this->assertStringContainsString( 'name="ffc_ip_trusted_proxy_mode"', $html );
 		$this->assertStringContainsString( 'name="ffc_ip_custom_proxies"', $html );
-		// shadow_logging is a .ffc-toggle autosave switch (kept in-form).
+		// shadow_logging is a .ffc-control-toggle autosave switch (kept in-form).
 		$this->assertStringContainsString( 'data-ffc-autosave-key="shadow_logging"', $html );
 		$this->assertStringContainsString( 'name="ffc_ip_shadow_logging"', $html );
 	}

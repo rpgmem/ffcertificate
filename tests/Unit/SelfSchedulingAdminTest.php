@@ -147,8 +147,18 @@ class SelfSchedulingAdminTest extends TestCase {
 			$enqueued_styles[] = func_get_arg( 0 );
 		} );
 
+		$enqueued_scripts = array();
+		Functions\when( 'wp_enqueue_script' )->alias( function () use ( &$enqueued_scripts ) {
+			$enqueued_scripts[] = func_get_arg( 0 );
+		} );
+		Functions\when( 'get_option' )->justReturn( array( 'dark_mode' => 'on' ) );
+
 		$admin = new SelfSchedulingAdmin();
 		$admin->enqueue_admin_assets( 'edit.php' );
+
+		// The calendar list and editor are post screens AdminAssetsManager
+		// never reaches, so the dark-mode toggle is enqueued here.
+		$this->assertContains( 'ffc-dark-mode', $enqueued_scripts );
 
 		// The screen now loads only the status-badge stylesheet — the empty
 		// ffc-calendar-admin.js stub + its dead localize were removed in the
@@ -168,6 +178,8 @@ class SelfSchedulingAdminTest extends TestCase {
 		Functions\when( 'wp_enqueue_style' )->alias( function () use ( &$enqueued_styles ) {
 			$enqueued_styles[] = func_get_arg( 0 );
 		} );
+
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		$admin = new SelfSchedulingAdmin();
 		$admin->enqueue_admin_assets( 'admin_page_ffc-appointments' );
