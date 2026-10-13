@@ -21,6 +21,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **Dark mode reaches what core paints on its own** (#1723). Admin screens declare `color-scheme: dark` (scrollbars, the time picker's clock, the file button). Links, notice links, "Add New", disabled primary buttons, the colour picker, checkboxes, radios, the Publish box footer, row actions, Screen Options and the booking details title follow the palette. Quick Navigation no longer scrolls sideways; the submissions ID column is narrower.
+- **Personal Calendars and Certificate templates follow dark mode** (#1725). Their lists and editors are WordPress post screens the toggle never reached, so they stayed light; the rich-text e-mail editor's tabs and toolbar now read the palette too.
 
 ## [6.38.0] (2026-10-12) — `529e80a1`
 

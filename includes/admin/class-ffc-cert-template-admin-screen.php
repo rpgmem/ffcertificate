@@ -595,6 +595,8 @@ class CertTemplateAdminScreen {
 			return;
 		}
 
+		self::enqueue_theme();
+
 		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			self::PREVIEW_HANDLE,
@@ -614,6 +616,20 @@ class CertTemplateAdminScreen {
 	}
 
 	/**
+	 * The palette and the dark-mode toggle, on the template list and editor.
+	 *
+	 * Both are screens WordPress draws for a plugin post type, so
+	 * `AdminAssetsManager` (which only knows `?page=ffc-*` and the form post
+	 * type) never reached them, and they stayed light in dark mode.
+	 *
+	 * @return void
+	 */
+	private static function enqueue_theme(): void {
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+	}
+
+	/**
 	 * Enqueue the shared CodeMirror HTML editor on the template edit screen.
 	 *
 	 * Mirrors what the form editor does for its layout box, so the two HTML
@@ -627,6 +643,8 @@ class CertTemplateAdminScreen {
 		if ( ! $screen instanceof \WP_Screen || 'post' !== $screen->base || CertTemplateCpt::POST_TYPE !== $screen->post_type ) {
 			return;
 		}
+
+		self::enqueue_theme();
 
 		$post_id    = RequestInput::get_get_int( 'post' );
 		$is_default = $post_id > 0 && CertTemplateReader::is_default( $post_id );

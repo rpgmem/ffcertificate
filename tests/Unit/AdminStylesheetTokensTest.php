@@ -530,8 +530,9 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// every `is_ffc_page()` screen, and these all run on one.
 		'includes/admin/class-ffc-admin-activity-log-page.php::enqueue_scripts()' => 'AdminAssetsManager already enqueues the toggle on this screen',
 		'includes/admin/class-ffc-role-capability-editor.php::enqueue()' => 'likewise',
-		'includes/self-scheduling/class-ffc-self-scheduling-editor.php::enqueue_scripts()' => 'likewise',
-		'includes/self-scheduling/class-ffc-self-scheduling-admin.php::enqueue_admin_assets()' => 'likewise',
+		// The calendar editor is a post screen, not `is_ffc_page()`: its toggle
+		// comes from SelfSchedulingAdmin, which matches the same post type.
+		'includes/self-scheduling/class-ffc-self-scheduling-editor.php::enqueue_scripts()' => 'SelfSchedulingAdmin::enqueue_admin_assets() enqueues the toggle on this screen',
 		'includes/url-shortener/class-ffc-url-shortener-admin-page.php::enqueue_assets()' => 'likewise',
 		'includes/recruitment/class-ffc-recruitment-admin-assets-manager.php::maybe_enqueue()' => 'likewise',
 

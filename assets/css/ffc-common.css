@@ -625,6 +625,44 @@
     border-color: var(--ffc-border);
 }
 
+/* The rich-text editor (`wp_editor`) used for e-mail bodies: its tabs,
+   toolbar and status bar are core chrome painted light. The text area inside
+   is an iframe holding the message itself, which stays a white document like
+   the e-mail it becomes. */
+:root.ffc-dark-mode .wp-switch-editor,
+:root.ffc-dark-mode .wp-editor-container,
+:root.ffc-dark-mode .quicktags-toolbar,
+:root.ffc-dark-mode .mce-panel,
+:root.ffc-dark-mode .mce-toolbar-grp,
+:root.ffc-dark-mode .mce-statusbar {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .html-active .switch-html,
+:root.ffc-dark-mode .tmce-active .switch-tmce {
+    background: var(--ffc-bg-card);
+}
+
+:root.ffc-dark-mode .mce-btn button,
+:root.ffc-dark-mode .mce-btn .mce-ico,
+:root.ffc-dark-mode .mce-path-item,
+:root.ffc-dark-mode .mce-wordcount {
+    color: var(--ffc-text);
+}
+
+:root.ffc-dark-mode .mce-btn:hover,
+:root.ffc-dark-mode .mce-btn.mce-active {
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border-focus);
+}
+
+/* The "Add title" placeholder over the post title field. */
+:root.ffc-dark-mode #titlediv #title-prompt-text {
+    color: var(--ffc-text-muted);
+}
+
 /* The file input's "Choose File" is drawn by the browser, not by core, so it
    takes the secondary button's look by hand. */
 :root.ffc-dark-mode input[type="file"] {

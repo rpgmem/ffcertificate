@@ -67,6 +67,8 @@ final class ClassNamingIdiomTest extends TestCase {
 		'postbox'     => 'core metabox (`postbox`, `postbox-header`)',
 		'tablenav'    => 'core list-table navigation bar',
 		'button'      => 'core button (`button`, `button-primary`, `button-secondary`)',
+		'mce-'        => 'TinyMCE, the editor `wp_editor()` loads',
+		'switch-'     => 'core editor tabs (`switch-tmce`, `switch-html`)',
 	);
 
 	/**
@@ -86,6 +88,7 @@ final class ClassNamingIdiomTest extends TestCase {
 		'error'            => 'core admin notice (`div.error`) — not to be confused with a state of ours, which is `has-error`',
 		'form-table'       => 'core admin form table',
 		'hndle'            => 'core metabox title',
+		'html-active'      => 'core wp_editor state: the Code tab is showing',
 		'howto'            => 'core instruction text',
 		'inside'           => 'core metabox body',
 		'iris-picker'      => 'the popup of core\'s colour picker, emitted by the bundled Iris script',
@@ -96,7 +99,9 @@ final class ClassNamingIdiomTest extends TestCase {
 		'show-settings' => 'core Screen Options toggle above a list',
 		'page-title-action' => 'core "Add New" button beside a screen title',
 		'spinner'          => 'core loading indicator',
+		'quicktags-toolbar' => 'core wp_editor Code-tab toolbar',
 		'striped'          => 'core list-table modifier',
+		'tmce-active'      => 'core wp_editor state: the Visual tab is showing',
 		'submitdelete'     => 'core "Move to Trash" link in the Publish box',
 		'subsubsub'        => 'core list-table top filters',
 		'tablenav-pages'   => 'core list-table pagination',
