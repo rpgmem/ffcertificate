@@ -7582,10 +7582,6 @@ msgstr ""
 msgid "Every visitor solves a proof of work in the browser. Nothing is sent to any third party."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:294 includes/admin/class-ffc-admin-assets-manager.php:642
-msgid "Ex: 0, 10, 0"
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:241
 msgid "ex: course_name"
 msgstr ""
@@ -10968,10 +10964,6 @@ msgstr ""
 msgid "Maximum number of people who can wait per slot (0 = unlimited)."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-quiz.php:37
-msgid "Maximum points available — sum of each scored field's highest option value"
-msgstr ""
-
 #: includes/frontend/submission/class-ffc-submission-persister.php:122
 msgid "Maximum quiz attempts reached for this CPF/RF."
 msgstr ""
@@ -13102,18 +13094,6 @@ msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:678
 msgid "Point your domain's nameservers to the ones Cloudflare gives you (at your registrar)."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-quiz.php:32
-msgid "Points earned — sum of the point values of the options the participant selected"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:292
-msgid "Points per option (same order, separate with commas):"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-assets-manager.php:641
-msgid "Points per option:"
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:334
@@ -19716,10 +19696,6 @@ msgstr ""
 msgid "When enabled, published submissions older than this many days are permanently deleted by the daily cleanup. Off by default — turning it on will delete existing submissions older than the window on the next run."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-quiz-metabox.php:60
-msgid "When enabled, radio and select fields can have point values per option. The form is scored on submission."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:721
 msgid "When enabled, the calendar will only be visible during the configured working hours. Outside those hours, a message will be displayed instead."
 msgstr ""
@@ -23187,16 +23163,10 @@ msgstr ""
 msgid "Turning a form into a quiz"
 msgstr ""
 
-msgid "Enable it on the Quiz tab of the form editor's \"Certificate Form Configuration\" box, then give each scored field its points per option on the Fields tab. Only radio and select fields are scored."
-msgstr ""
-
 msgid "minimum percentage to pass (default 70; 0 means no minimum)."
 msgstr ""
 
 msgid "retries allowed per CPF/RF (0 = unlimited)."
-msgstr ""
-
-msgid "show the score after submission (on by default) and show which answers were correct or incorrect."
 msgstr ""
 
 msgid "An attempt below the passing score is kept as a \"Quiz: Retry\" submission while attempts remain, and as \"Quiz: Failed\" once they run out; no certificate is issued for either."
@@ -25446,4 +25416,158 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-certificates.php:34
 msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Certificates → Required Certificate Tags; the form editor also requires a field for each tag the participant fills in, and locks it. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:23
+msgid "\"Correct option(s)\": tick the correct options beside them; radio and select score when a correct option is chosen, a checkbox only when every correct option is ticked and no other. \"Points per option\": give each option its points; a checkbox adds the boxes ticked, never below zero, so a wrong box can be worth negative points."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:24
+msgid "\"No points\", or \"Points when answered\", which respects the minimum length the field sets."
+msgstr ""
+
+#. 1: questions answered right, 2: questions scored.
+#: includes/frontend/submission/class-ffc-submission-persister.php:227
+#, php-format
+msgid "%1$s of %2$s question answered correctly."
+msgid_plural "%1$s of %2$s questions answered correctly."
+msgstr[0] ""
+msgstr[1] ""
+
+#. 1: field label, 2: number of correct options.
+#: includes/admin/class-ffc-form-editor-save-handler.php:230
+#, php-format
+msgid "%1$s: the maximum selections was raised to %2$s, the number of correct options."
+msgstr ""
+
+#. %s: field label.
+#: includes/admin/class-ffc-form-editor-save-handler.php:240
+#, php-format
+msgid "%s: no correct answer is set, so the question is not scored."
+msgstr ""
+
+#. %s: field label.
+#: includes/admin/class-ffc-form-editor-save-handler.php:223
+#, php-format
+msgid "%s: no option is marked correct, so the question is not scored."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:27
+msgid "A form saved before these options keeps scoring as it did: radio and select by their points per option. A question set to score that cannot be marked — no option marked correct, or no correct range — is reported when the form is saved and left out of the score. A checkbox whose maximum selections is below its number of correct options has the maximum raised to fit."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:477
+msgid "An answer within the range, bounds included, earns the points. Set both bounds to the same value for one exact answer; leave one empty for an open range."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:456
+msgid "Correct from"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:444
+msgid "Correct option(s)"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:21
+msgid "Enable it on the Quiz tab of the form editor's \"Certificate Form Configuration\" box. Each field on the Fields tab then shows \"Score this question\"; a question left off is out of the count and of the points the percentage is taken from."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:476
+msgid "Give each option its points beside it. A checkbox adds the boxes ticked, never below zero; a wrong box can be worth negative points."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:442
+msgid "How to score"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:54
+msgid "Maximum points available across the scored questions"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:451
+msgid "No points"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:25
+msgid "Number and date"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:438
+msgid "Off: the question is left out of the count and of the points the percentage is taken from."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:322
+msgid "Points"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:49
+msgid "Points earned across the scored questions"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:445
+msgid "Points per option"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:452
+msgid "Points when answered"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:64
+msgid "Questions answered correctly as a whole"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:69
+msgid "Questions scored"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-save-handler.php:765
+msgid "Quiz scoring:"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:23
+msgid "Radio, select and checkbox"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:433
+msgid "Score this question"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:24
+msgid "Text and textarea"
+msgstr ""
+
+#. %d: number of options marked correct.
+#: includes/admin/class-ffc-admin-assets-manager.php:627
+#, php-format
+msgid "The maximum selections is below the number of correct options (%d)."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:475
+msgid "Tick the correct option(s) beside each option. A checkbox scores only when every correct option is ticked and no other."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:60
+msgid "When enabled, each field on the Fields tab can be scored: by its correct option(s), by points per option, when answered, or by a correct range. The form is scored on submission."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:25
+msgid "a correct range, bounds included; the same value in both bounds is one exact answer, and an empty bound leaves the range open."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:324
+msgid "pts"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:31
+msgid "show the score after submission (on by default) and show which answers were correct or incorrect: the message says how many questions were answered correctly, and each scored question is marked Correct or Incorrect. The right answer itself is never shown."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:343
+msgctxt "quiz answer"
+msgid "Correct"
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:343
+msgctxt "quiz answer"
+msgid "Incorrect"
 msgstr ""

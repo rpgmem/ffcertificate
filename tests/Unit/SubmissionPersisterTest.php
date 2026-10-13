@@ -574,6 +574,43 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( 0, $result['percent'] );
 	}
 
+	/**
+	 * #1730 — the per-question verdict leaves only when the form shows it,
+	 * and carries the verdict, never the right answer.
+	 */
+	public function test_shown_results_follow_the_show_correct_setting(): void {
+		$score = array(
+			'correct_count'  => 1,
+			'question_count' => 2,
+			'results'        => array( 'q1' => true, 'q2' => false ),
+		);
+
+		$this->assertNull( SubmissionPersister::shown_results( array( 'quiz_show_correct' => '0' ), $score ) );
+		$this->assertNull( SubmissionPersister::shown_results( array(), $score ), 'Off unless the form turns it on.' );
+		$this->assertSame(
+			array(
+				'correct_count'  => 1,
+				'question_count' => 2,
+				'fields'         => array( 'q1' => true, 'q2' => false ),
+			),
+			SubmissionPersister::shown_results( array( 'quiz_show_correct' => '1' ), $score )
+		);
+	}
+
+	public function test_calculate_quiz_score_returns_the_counts(): void {
+		$persister = new SubmissionPersister( $this->handlerWithRepo() );
+		$result    = $persister->calculate_quiz_score(
+			array(
+				array( 'type' => 'radio', 'name' => 'q1', 'options' => 'A,B', 'points' => '5,0' ),
+				array( 'type' => 'radio', 'name' => 'q2', 'options' => 'A,B', 'points' => '5,0' ),
+			),
+			array( 'q1' => 'A', 'q2' => 'B' )
+		);
+
+		$this->assertSame( 1, $result['correct_count'] );
+		$this->assertSame( 2, $result['question_count'] );
+	}
+
 	// =====================================================================
 	// find_quiz_submission
 	// =====================================================================

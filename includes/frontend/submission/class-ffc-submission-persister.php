@@ -332,7 +332,7 @@ class SubmissionPersister {
 	 * @return array{correct_count: int, question_count: int, fields: array<string, bool>}|null
 	 */
 	public static function shown_results( array $form_config, array $quiz_score ): ?array {
-		if ( '1' !== (string) ( $form_config['quiz_show_correct'] ?? '0' ) ) {
+		if ( '1' !== ArrayValue::string( $form_config, 'quiz_show_correct', '0' ) ) {
 			return null;
 		}
 		$fields = array();

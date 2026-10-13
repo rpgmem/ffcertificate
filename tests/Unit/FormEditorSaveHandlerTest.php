@@ -300,6 +300,60 @@ class FormEditorSaveHandlerTest extends TestCase {
 	}
 
 	/**
+	 * #1730 — the option rows store their points and correct marks, a
+	 * checkbox cannot cap its selections below its correct options, and a
+	 * scored question that cannot be marked is reported.
+	 */
+	public function test_save_fields_meta_stores_the_quiz_and_fits_the_question(): void {
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		$_POST['ffc_fields'] = array(
+			array(
+				'label'          => 'Pick two',
+				'name'           => 'q1',
+				'type'           => 'checkbox',
+				'choices'        => array( 'A', 'B', 'C' ),
+				'choice_points'  => array( '', '', '' ),
+				'choice_correct' => array( '1', '0', '1' ),
+				'max_select'     => '1',
+				'quiz_block'     => '1',
+				'quiz_scored'    => '1',
+				'quiz_mode'      => 'correct',
+			),
+			array(
+				'label'      => 'Year',
+				'name'       => 'q2',
+				'type'       => 'number',
+				'quiz_block' => '1',
+				'quiz_scored' => '1',
+			),
+			array(
+				'name'          => 'q3',
+				'type'          => 'radio',
+				'choices'       => array( 'X', 'Y' ),
+				'choice_points' => array( '10', '0' ),
+				'quiz_block'    => '1',
+				'quiz_scored'   => '1',
+				'quiz_mode'     => 'points',
+			),
+		);
+
+		$out = $this->capture_meta_writes( 'save_fields_meta' );
+		unset( $_POST['ffc_fields'] );
+
+		$fields = $out['written']['_ffc_form_fields'];
+		$this->assertSame( array( 'A', 'C' ), $fields[0]['correct'] );
+		$this->assertSame( '2', $fields[0]['max_select'], 'Raised to the number of correct options.' );
+		$this->assertSame( '10,0', $fields[2]['points'], 'The points string is rebuilt from the option rows.' );
+		$this->assertSame(
+			array(
+				'Pick two: the maximum selections was raised to 2, the number of correct options.',
+				'Year: no correct answer is set, so the question is not scored.',
+			),
+			$out['transients']['ffc_save_quiz_warning_7']
+		);
+	}
+
+	/**
 	 * #1084 — `sanitize_textarea_field( (string) array() )` is the literal
 	 * `Array` plus a PHP warning, and that string was stored as the
 	 * per-form device-limit message. An unusable value now reads as empty,

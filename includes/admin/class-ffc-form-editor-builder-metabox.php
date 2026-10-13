@@ -316,7 +316,7 @@ class FormEditorBuilderMetabox {
 							<input type="hidden" name="ffc_fields[<?php echo esc_attr( $index ); ?>][choice_correct][]" value="<?php echo $is_correct ? '1' : '0'; ?>" class="ffc-choice-correct-value">
 							<label class="ffc-choice-quiz ffc-choice-correct" data-ffc-quiz-mode="correct">
 								<input type="checkbox" class="ffc-choice-correct-input"<?php checked( $is_correct ); ?>>
-								<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
+								<?php echo esc_html( _x( 'Correct', 'quiz answer', 'ffcertificate' ) ); ?>
 							</label>
 							<label class="ffc-choice-quiz ffc-choice-points" data-ffc-quiz-mode="points">
 								<span class="screen-reader-text"><?php esc_html_e( 'Points', 'ffcertificate' ); ?></span>

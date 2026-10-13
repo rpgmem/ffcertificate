@@ -37,6 +37,7 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
@@ -48,7 +49,7 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
-		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'checked' )->alias( static fn( $c, $cur = true, $echo = true ) => (string) $c === (string) $cur ? ( $echo ? print( ' checked' ) : ' checked' ) : '' );
 
 		$this->metabox = new FormEditorBuilderMetabox();
 	}
@@ -118,6 +119,34 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 		// #1574: the value a hidden field submits is editable in the row.
 		$this->assertMatchesRegularExpression( '/<div class="ffc-hidden-value-field">/', $html, 'Visible for a hidden field.' );
 		$this->assertStringContainsString( 'name="ffc_fields[0][default_value]" value="2026-A"', $html );
+	}
+
+	/**
+	 * #1730 — each option row carries its correct mark and points, aligned,
+	 * and every field carries its quiz block.
+	 */
+	public function test_option_rows_carry_their_correct_mark_and_points(): void {
+		$html = $this->render(
+			array(
+				array(
+					'name'        => 'q',
+					'type'        => 'radio',
+					'choices'     => array( 'A', 'B' ),
+					'points'      => '0,7',
+					'correct'     => array( 'B' ),
+					'quiz_scored' => '1',
+					'quiz_mode'   => 'correct',
+				),
+			)
+		);
+
+		$this->assertSame( 2, preg_match_all( '/name="ffc_fields\[0\]\[choice_correct\]\[\]" value="([01])"/', $html, $marks ) );
+		$this->assertSame( array( '0', '1' ), $marks[1], 'The mark follows its option.' );
+		$this->assertSame( 2, preg_match_all( '/name="ffc_fields\[0\]\[choice_points\]\[\]" value="(\d*)"/', $html, $points ) );
+		$this->assertSame( array( '0', '7' ), $points[1] );
+		$this->assertStringContainsString( 'name="ffc_fields[0][quiz_block]" value="1"', $html );
+		$this->assertMatchesRegularExpression( '/id="ffc_field_quiz_scored_0"[^>]*checked/', $html );
+		$this->assertStringNotContainsString( 'ffc-quiz-points ffc-hidden', $html, 'The old comma-separated points input is gone.' );
 	}
 
 	/**

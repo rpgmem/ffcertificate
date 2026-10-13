@@ -77,14 +77,14 @@
             $(this).toggleClass('ffc-hidden', types.indexOf(type) === -1);
         });
         $row.find('.ffc-type-desc').text(typeDescription(type));
-        applyQuiz($row);
+        applyQuiz($row, type);
     }
 
     /**
      * Show the quiz settings a row's type and choices call for (#1730).
      */
-    function applyQuiz($row) {
-        var type = String($row.find('.ffc-field-type-selector').val() || '');
+    function applyQuiz($row, type) {
+        type = type || String($row.find('.ffc-field-type-selector').val() || '');
         var $block = $row.find('.ffc-field-quiz');
         var scorable = String($block.attr('data-ffc-quiz-types') || '').split(' ').indexOf(type) !== -1;
         var on = quizOn() && scorable;
@@ -99,6 +99,9 @@
             $(this).toggleClass('ffc-hidden', !(scored && isChoice && $(this).attr('data-ffc-quiz-mode') === mode));
         });
         $block.find('.ffc-quiz-points-setting').toggleClass('ffc-hidden', (isChoice && mode === 'points') || textNone);
+        $block.find('[data-ffc-types]').each(function() {
+            $(this).toggleClass('ffc-hidden', String($(this).attr('data-ffc-types')).split(' ').indexOf(type) === -1);
+        });
         $block.find('[data-ffc-quiz-help="correct"]').toggleClass('ffc-hidden', !(isChoice && mode === 'correct'));
         $block.find('[data-ffc-quiz-help="points"]').toggleClass('ffc-hidden', !(isChoice && mode === 'points'));
         $block.find('[data-ffc-quiz-help="range"]').toggleClass('ffc-hidden', RANGE_TYPES.indexOf(type) === -1);

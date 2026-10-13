@@ -340,8 +340,8 @@ class Frontend {
 						'error'                  => __( 'Error occurred', 'ffcertificate' ),
 						'fillRequired'           => __( 'Please fill all required fields', 'ffcertificate' ),
 						// Per-question verdict after a quiz attempt (#1730).
-						'quizCorrect'            => __( 'Correct', 'ffcertificate' ),
-						'quizIncorrect'          => __( 'Incorrect', 'ffcertificate' ),
+						'quizCorrect'            => _x( 'Correct', 'quiz answer', 'ffcertificate' ),
+						'quizIncorrect'          => _x( 'Incorrect', 'quiz answer', 'ffcertificate' ),
 
 						// Rate Limiting.
 						'wait'                   => __( 'Wait...', 'ffcertificate' ),
