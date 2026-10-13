@@ -79,7 +79,7 @@ final class RadiusAndLayerTokensTest extends TestCase {
 		'ffc-recruitment-public.css'     => 1,
 		// Screenshot viewer (#1716): no ffc-common in core's modal.
 		'ffc-screenshots.css'            => 1,
-		'ffc-user-dashboard.css'         => 2,
+		'ffc-user-dashboard.css'         => 1,
 		'ffc-user-permissions.css'       => 6,
 	);
 
