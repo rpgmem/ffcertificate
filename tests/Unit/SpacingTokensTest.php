@@ -111,6 +111,9 @@ final class SpacingTokensTest extends TestCase {
 		'ffc-progress-overlay.css'         => 1,
 		'ffc-recruitment-admin.css'        => 2,
 		'ffc-reregistration-admin.css'     => 5,
+		// The screenshot viewer (#1716) loads in core's modal without
+		// ffc-common, so it cannot read the ladder.
+		'ffc-screenshots.css'              => 4,
 		'ffc-url-shortener-admin.css'      => 1,
 		'ffc-user-dashboard.css'           => 7,
 		'ffc-user-permissions.css'         => 14,

@@ -25171,3 +25171,31 @@ msgstr ""
 #, php-format
 msgid "The design was saved, but some colours are hard to read: %s"
 msgstr ""
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Screenshots"
+msgstr ""
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Previous screenshot"
+msgstr ""
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Next screenshot"
+msgstr ""
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Zoom in"
+msgstr ""
+
+#: includes/integrations/class-ffc-screenshot-viewer.php
+msgid "Zoom out"
+msgstr ""
+
+#: includes/settings/views/documentation/operations-updates.php
+msgid "In your language, screenshots in place."
+msgstr ""
+
+#: includes/settings/views/documentation/operations-updates.php
+msgid "The tabs and the banner are shown in your language when the plugin ships a translation of them; the changelog stays in English. A screenshot opens larger without leaving the window: the arrows move between them, and the wheel, a pinch or a click zooms in."
+msgstr ""

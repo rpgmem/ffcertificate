@@ -390,6 +390,10 @@ class Loader {
 		// is_admin(): the update scan runs in cron, outside the admin context.
 		\FreeFormCertificate\Integrations\GithubUpdater::init();
 
+		// Screenshot viewer in that update's "View details" modal. Its hook
+		// only fires in wp-admin, so it needs no is_admin() gate of its own.
+		\FreeFormCertificate\Integrations\ScreenshotViewer::init();
+
 		// Challenge endpoint for the ALTCHA strategy. Registered
 		// unconditionally: the strategy can be switched at any moment, and a
 		// handler that only exists while its provider is selected leaves the
