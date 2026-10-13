@@ -23087,6 +23087,12 @@ msgstr ""
 msgid "Upgrade notice."
 msgstr ""
 
+msgid "View details."
+msgstr ""
+
+msgid "The \"View details\" modal shows the plugin's banner and the tabs a WordPress.org plugin has: description, installation, FAQ, changelog and screenshots, taken from the offered release's readme. The screenshots load from GitHub when the modal opens; ratings and active installs are not shown, because only WordPress.org has them."
+msgstr ""
+
 msgid "Settings → Scheduled Tasks lists the background tasks the plugin runs through WP-Cron — cleanups, reminders, cache warming, date messages and the like — and helps you keep them running on time."
 msgstr ""
 

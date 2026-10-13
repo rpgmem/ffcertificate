@@ -23171,6 +23171,12 @@ msgstr "O WP-Cron só roda quando o site recebe visitas — instale a linha de c
 msgid "Upgrade notice."
 msgstr "Aviso de atualização."
 
+msgid "View details."
+msgstr "Ver detalhes."
+
+msgid "The \"View details\" modal shows the plugin's banner and the tabs a WordPress.org plugin has: description, installation, FAQ, changelog and screenshots, taken from the offered release's readme. The screenshots load from GitHub when the modal opens; ratings and active installs are not shown, because only WordPress.org has them."
+msgstr "A janela \"Ver detalhes\" mostra o banner do plugin e as abas que um plugin do WordPress.org tem: descrição, instalação, perguntas frequentes, registro de alterações e telas, tiradas do readme da versão oferecida. As telas são carregadas do GitHub quando a janela abre; avaliações e instalações ativas não aparecem, porque só o WordPress.org as tem."
+
 msgid "Settings → Scheduled Tasks lists the background tasks the plugin runs through WP-Cron — cleanups, reminders, cache warming, date messages and the like — and helps you keep them running on time."
 msgstr "Configurações → Tarefas Agendadas lista as tarefas em segundo plano que o plugin executa pelo WP-Cron — limpezas, lembretes, aquecimento de cache, mensagens por data e afins — e ajuda a mantê-las rodando no horário."
 
