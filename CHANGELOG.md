@@ -13,6 +13,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"View details" shows a banner and the readme's tabs** (#1714). Description, Installation, FAQ, Screenshots and Other notes come from the offered release's `readme.txt`, and the changelog renders its Markdown instead of printing it raw.
 - **"View details" speaks Portuguese and opens screenshots in place** (#1716). The tabs and banner follow the viewer's language when the plugin ships a translation (`languages/readme-pt_BR.txt`), and a screenshot opens in an overlay with arrows, swipe and zoom instead of a new tab.
 
+### Changed
+
+- **Clock-reading tests no longer fail when a run crosses a boundary** (#1719). The rate-limit window, dashboard midnight and export-filename tests read the clock before and after the call; the issue holds the audit of every clock-reading test. A `readme.txt` change now carries its pt_BR copy in the same PR (#1718).
+
 ## [6.38.0] (2026-10-12) — `529e80a1`
 
 The licence moves to AGPLv3 or later. Identity resolution names each number in "One address, several people" and can consolidate a candidate imported twice, the recruitment CSV import honours the RF check digit, and a manage-only role reaches the Reregistration screen. Behind the screens, tests now cover error paths across the plugin and the PHP coverage floor rises to 90%.

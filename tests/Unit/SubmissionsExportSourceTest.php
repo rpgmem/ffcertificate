@@ -420,11 +420,19 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 	public function test_filename_names_one_form_several_or_all(): void {
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 		Functions\when( 'get_the_title' )->justReturn( 'Workshop: Day 1' );
-		$date = gmdate( 'Y-m-d' );
+		// The date is read before and after the calls and either is accepted:
+		// a single read fails when the run crosses midnight UTC (#1719).
+		$before = gmdate( 'Y-m-d' );
+		$names  = array(
+			$this->source->filename( array( 'form_ids' => array( 5 ), 'status' => 'publish' ), array() ),
+			$this->source->filename( array( 'form_ids' => array( 5, 6, 7 ), 'status' => 'publish' ), array() ),
+			$this->source->filename( array( 'form_ids' => null, 'status' => 'publish' ), array() ),
+		);
+		$after  = gmdate( 'Y-m-d' );
 
-		$this->assertSame( "workshop-day-1-{$date}.csv", $this->source->filename( array( 'form_ids' => array( 5 ), 'status' => 'publish' ), array() ) );
-		$this->assertSame( "3-forms-{$date}.csv", $this->source->filename( array( 'form_ids' => array( 5, 6, 7 ), 'status' => 'publish' ), array() ) );
-		$this->assertSame( "all-forms-{$date}.csv", $this->source->filename( array( 'form_ids' => null, 'status' => 'publish' ), array() ) );
+		foreach ( array( 'workshop-day-1', '3-forms', 'all-forms' ) as $i => $stem ) {
+			$this->assertContains( $names[ $i ], array( "{$stem}-{$before}.csv", "{$stem}-{$after}.csv" ) );
+		}
 	}
 
 	public function test_fetch_page_reads_a_keyset_batch_through_the_filter(): void {
