@@ -33,6 +33,7 @@ class SuccessResponderTest extends TestCase {
 		class_exists( '\FreeFormCertificate\Frontend\Submission\SuccessResponder' );
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
 		// sprintf-style translator passthrough already handled by __ returnArg.
 
 		// Static HTML renderer is mocked — return a sentinel regardless of args.
@@ -59,6 +60,21 @@ class SuccessResponderTest extends TestCase {
 		$this->assertSame( 'Success!', $ctx->response['message'] );
 		$this->assertSame( '<div class="ffc-success">OK</div>', $ctx->response['html'] );
 		$this->assertArrayNotHasKey( 'quiz', $ctx->response );
+	}
+
+	public function test_an_attempt_awaiting_grading_says_so_and_carries_no_pdf(): void {
+		$ctx                   = new SubmissionContext();
+		$ctx->form_config      = array( 'success_message' => 'Custom' );
+		$ctx->is_quiz          = true;
+		$ctx->awaiting_grading = true;
+		$ctx->pdf_data         = array( 'filename' => 'x.pdf' );
+
+		$this->responder()->apply( $ctx );
+
+		$this->assertNull( $ctx->response['pdf_data'] );
+		$this->assertSame( array( 'pending' => true ), $ctx->response['quiz'] );
+		$this->assertStringContainsString( 'A person will grade the open answers', $ctx->response['message'] );
+		$this->assertStringContainsString( 'class="ffc-form-info-block ffc-quiz-awaiting-grading" role="status"', $ctx->response['html'] );
 	}
 
 	public function test_custom_success_message_used_and_trimmed(): void {

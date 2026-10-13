@@ -45,18 +45,24 @@ final class SubmissionStatus {
 	public const QUIZ_FAILED = 'quiz_failed';
 
 	/**
-	 * Quiz statuses that are a record of an attempt, not a certificate.
+	 * A quiz attempt with an open answer a person has still to grade (#1732).
+	 */
+	public const QUIZ_PENDING = 'quiz_pending';
+
+	/**
+	 * Quiz statuses that are a record of an attempt, not a certificate:
+	 * one that did not pass, and one still awaiting grading.
 	 *
 	 * @var array<int, string>
 	 */
-	public const UNPASSED_QUIZ = array( self::QUIZ_IN_PROGRESS, self::QUIZ_FAILED );
+	public const UNPASSED_QUIZ = array( self::QUIZ_IN_PROGRESS, self::QUIZ_FAILED, self::QUIZ_PENDING );
 
 	/**
 	 * Statuses no participant-facing surface may treat as a certificate.
 	 *
 	 * @var array<int, string>
 	 */
-	public const NOT_A_CERTIFICATE = array( self::TRASH, self::QUIZ_IN_PROGRESS, self::QUIZ_FAILED );
+	public const NOT_A_CERTIFICATE = array( self::TRASH, self::QUIZ_IN_PROGRESS, self::QUIZ_FAILED, self::QUIZ_PENDING );
 
 	/**
 	 * Whether a submission row is a quiz attempt that did not pass.

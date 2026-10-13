@@ -105,6 +105,7 @@
         $block.find('[data-ffc-quiz-help="correct"]').toggleClass('ffc-hidden', !(isChoice && mode === 'correct'));
         $block.find('[data-ffc-quiz-help="points"]').toggleClass('ffc-hidden', !(isChoice && mode === 'points'));
         $block.find('[data-ffc-quiz-help="range"]').toggleClass('ffc-hidden', RANGE_TYPES.indexOf(type) === -1);
+        $block.find('[data-ffc-quiz-help="manual"]').toggleClass('ffc-hidden', !(TEXT_TYPES.indexOf(type) !== -1 && $block.find('.ffc-quiz-text').val() === 'manual'));
         checkMaxSelect($row);
     }
 

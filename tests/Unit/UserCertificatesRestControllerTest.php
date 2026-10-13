@@ -191,7 +191,7 @@ class UserCertificatesRestControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		$this->wpdb->shouldReceive( 'prepare' )
 			->once()
-			->with( Mockery::pattern( '/status NOT IN \(%s, %s, %s\)/' ), Mockery::any(), Mockery::any(), 5, 'trash', 'quiz_in_progress', 'quiz_failed' )
+			->with( Mockery::pattern( '/status NOT IN \(%s, %s, %s, %s\)/' ), Mockery::any(), Mockery::any(), 5, 'trash', 'quiz_in_progress', 'quiz_failed', 'quiz_pending' )
 			->andReturn( 'SQL' );
 		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 

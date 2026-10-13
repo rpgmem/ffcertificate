@@ -59,6 +59,19 @@ class PdfStageTest extends TestCase {
 		$this->assertSame( 'BASE64', $ctx->pdf_data['content'] );
 	}
 
+	public function test_an_attempt_awaiting_grading_gets_no_pdf(): void {
+		$pdf = Mockery::mock( 'overload:\FreeFormCertificate\Generators\PdfGenerator' );
+		$pdf->shouldReceive( 'generate_pdf_data' )->never();
+
+		$ctx                   = new SubmissionContext();
+		$ctx->submission_id    = 7;
+		$ctx->awaiting_grading = true;
+
+		( new PdfStage( Mockery::mock( SubmissionHandler::class ) ) )->apply( $ctx );
+
+		$this->assertNull( $ctx->pdf_data );
+	}
+
 	public function test_rejects_when_generator_returns_wp_error(): void {
 		$error = new \WP_Error( 'pdf_failed', 'Could not render PDF.' );
 

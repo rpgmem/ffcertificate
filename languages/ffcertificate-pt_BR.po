@@ -23318,9 +23318,6 @@ msgstr "adia o horário de fechamento no dia previsto para o encerramento, depoi
 msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
 msgstr "A página /valid (shortcode [ffc_verification]) também oferece uma consulta manual: qualquer pessoa pode digitar o código de autenticação de um certificado para confirmar que ele é autêntico e ver seu status. A mesma consulta e o link mágico também verificam comprovantes de agendamento e fichas de recadastramento pelos seus próprios códigos e links. Esse caminho é protegido por nonce, honeypot + o captcha configurado e limitação de taxa por IP."
 
-msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed). The search box matches a submission id, an auth code, or an exact email, CPF or RF. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
-msgstr "A tabela exibe o ID, o formulário, o e-mail, uma breve prévia de campos não sensíveis, o status e a data. É possível filtrar por um ou mais formulários e alternar entre Publicado, Lixeira e os estados do quiz (Tentando, Reprovado). A caixa de busca encontra um ID de submissão, um código de autenticação ou um e-mail, CPF ou RF exato. Colunas com dados pessoais são descriptografadas apenas para a exibição na linha; a prévia nunca inclui e-mail, CPF/RF ou código de autenticação."
-
 msgid "The edit screen lets you correct the participant email and the form's custom-field values, and link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed)."
 msgstr "A tela de edição permite corrigir o e-mail do participante e os valores dos campos personalizados do formulário, além de vincular, desvincular ou trocar o usuário do WordPress. O status de consentimento da LGPD é exibido apenas para consulta. Os campos de identidade e integridade são somente leitura: ID da submissão, data, status, token de link mágico, IP, CPF/RF e código de autenticação (garantindo que um certificado nunca possa ser redirecionado silenciosamente)."
 
@@ -25466,10 +25463,6 @@ msgstr "Um campo chamado cpf_rf é validado no envio como documento brasileiro: 
 msgid "\"Correct option(s)\": tick the correct options beside them; radio and select score when a correct option is chosen, a checkbox only when every correct option is ticked and no other. \"Points per option\": give each option its points; a checkbox adds the boxes ticked, never below zero, so a wrong box can be worth negative points."
 msgstr "\"Alternativa(s) correta(s)\": marque as alternativas corretas ao lado delas; rádio e lista pontuam quando uma alternativa correta é escolhida, e a caixa de seleção só quando todas as corretas são marcadas e nenhuma outra. \"Pontos por alternativa\": dê a cada alternativa os seus pontos; a caixa de seleção soma as caixas marcadas, nunca abaixo de zero, então uma caixa errada pode valer pontos negativos."
 
-#: includes/settings/views/documentation/feature-quiz.php:24
-msgid "\"No points\", or \"Points when answered\", which respects the minimum length the field sets."
-msgstr "\"Sem pontos\", ou \"Pontos quando respondida\", que respeita o mínimo de caracteres definido no campo."
-
 #. 1: questions answered right, 2: questions scored.
 #: includes/frontend/submission/class-ffc-submission-persister.php:227
 #, php-format
@@ -25719,3 +25712,165 @@ msgstr "Suas respostas foram apagadas"
 #: includes/settings/views/documentation/feature-quiz.php:32
 msgid "off by default. When on, the form warns the participant before they start; once they have started filling in the form, switching to another tab or minimising the browser clears the scored answers (name, CPF/RF and the other fields stay) and a dialog explains why on return. Leaving does not count as an attempt; the number of times it happened is stored with the submission and shown on its edit screen as \"Times the quiz window was left\". It is a deterrent, not a lock: another device, or a browser without JavaScript, is not stopped, and the count is reported by the browser."
 msgstr "desligado por padrão. Quando ligado, o formulário avisa o participante antes de começar; depois que ele começa a preencher, trocar para outra aba ou minimizar o navegador apaga as respostas pontuadas (nome, CPF/RF e os demais campos permanecem) e uma janela explica o motivo ao voltar. Sair não conta como tentativa; o número de vezes fica gravado na submissão e aparece na tela de edição como \"Saídas da janela do quiz\". É um desestímulo, não um bloqueio: outro dispositivo, ou um navegador sem JavaScript, não é impedido, e a contagem é informada pelo navegador."
+
+#: includes/settings/views/documentation/feature-quiz.php:24
+msgid "\"No points\", \"Points when answered\", which respects the minimum length the field sets, or \"Manual grading\", where a person gives the answer from 0 to its points."
+msgstr "\"Sem pontos\", \"Pontos quando respondida\", que respeita o tamanho mínimo definido no campo, ou \"Correção manual\", em que uma pessoa dá à resposta de 0 até os seus pontos."
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:215
+msgid "(no answer)"
+msgstr "(sem resposta)"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:520
+msgid "A person grades the answer, from 0 to the points. A submission with such an answer waits as \"Awaiting Grading\"; the certificate, or the result, is emailed once it is graded."
+msgstr "Uma pessoa corrige a resposta, de 0 até os pontos. Um envio com essa resposta fica como \"Aguardando correção\"; o certificado, ou o resultado, é enviado por e-mail depois da correção."
+
+#: includes/settings/views/documentation/submissions-list.php:30
+msgid "A quiz attempt awaiting grading opens with a \"Grade open answers\" card above the record: each open answer, a points field from 0 to what the question is worth, and what the automatic questions already earned. Saving the grades decides the attempt — a pass issues the document, a result below the passing score becomes Retry or Failed — and emails the participant the result. It needs the \"Grade quiz answers\" capability."
+msgstr "Uma tentativa de quiz aguardando correção abre com um card \"Corrigir respostas abertas\" acima do registro: cada resposta aberta, um campo de pontos de 0 até o valor da questão e o que as questões automáticas já somaram. Salvar as notas decide a tentativa — uma aprovação emite o documento, um resultado abaixo da nota de aprovação vira Tentando ou Reprovado — e envia o resultado ao participante por e-mail. Requer a capacidade \"Corrigir respostas de quiz\"."
+
+#: includes/admin/class-ffc-admin.php:395
+msgid "Answers graded: the attempt is below the passing score, and the participant was told the result."
+msgstr "Respostas corrigidas: a tentativa ficou abaixo da nota de aprovação e o participante foi informado do resultado."
+
+#: includes/admin/class-ffc-admin.php:392
+msgid "Answers graded: the attempt passed and the document link was sent to the participant."
+msgstr "Respostas corrigidas: a tentativa foi aprovada e o link do documento foi enviado ao participante."
+
+#: includes/admin/class-ffc-admin.php:402
+msgid "Give every open answer a grade."
+msgstr "Dê uma nota a cada resposta aberta."
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:199
+msgid "Grade open answers"
+msgstr "Corrigir respostas abertas"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:188
+msgid "Grade quiz answers"
+msgstr "Corrigir respostas de quiz"
+
+#: includes/settings/views/documentation/submissions-list.php:46
+msgid "Grade the open answers of a quiz attempt awaiting grading, from the submission edit screen."
+msgstr "Corrigir as respostas abertas de uma tentativa de quiz aguardando correção, na tela de edição do envio."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:189
+msgid "Grade the open answers of a quiz attempt awaiting grading, which issues the certificate or records the attempt as not passed (#1732)."
+msgstr "Corrigir as respostas abertas de uma tentativa de quiz aguardando correção, o que emite o certificado ou registra a tentativa como não aprovada (#1732)."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:495
+msgid "Manual grading"
+msgstr "Correção manual"
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:288
+msgid "No attempts are left."
+msgstr "Não restam tentativas."
+
+#: includes/admin/class-ffc-submissions-list.php:627
+msgid "Nothing to grade"
+msgstr "Nada para corrigir"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:237
+msgid "Quiz Graded"
+msgstr "Quiz corrigido"
+
+#: includes/admin/class-ffc-submissions-list.php:627
+msgid "Quiz attempts with open answers waiting for a grade appear here."
+msgstr "Tentativas de quiz com respostas abertas aguardando nota aparecem aqui."
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:171
+msgid "Quiz graded: not passed"
+msgstr "Quiz corrigido: não aprovado"
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:167
+msgid "Quiz graded: passed"
+msgstr "Quiz corrigido: aprovado"
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:428
+msgid "Quiz grading result"
+msgstr "Resultado da correção do quiz"
+
+#: includes/admin/class-ffc-submissions-list.php:310
+msgid "Quiz: Awaiting Grading"
+msgstr "Quiz: Aguardando correção"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:229
+msgid "Save grades and send the result"
+msgstr "Salvar notas e enviar o resultado"
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:231
+msgid "Saving decides the attempt: a pass issues the document, and the participant is emailed the result either way."
+msgstr "Salvar decide a tentativa: uma aprovação emite o documento, e o participante recebe o resultado por e-mail em qualquer caso."
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:429
+msgid "Sent to the person when their open answers are graded — one text for a pass, with the document link, and one for a result below the passing score; global text in the hub above."
+msgstr "Enviado à pessoa quando suas respostas abertas são corrigidas — um texto para aprovação, com o link do documento, e outro para resultado abaixo da nota de aprovação; texto global no editor acima."
+
+#: includes/admin/class-ffc-admin.php:398
+msgid "That attempt is not waiting for grading any more."
+msgstr "Essa tentativa não está mais aguardando correção."
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:203
+#, php-format
+msgid "The automatically scored questions earned %1$d of %2$d points. The passing score is %3$d%%."
+msgstr "As questões corrigidas automaticamente somaram %1$d de %2$d pontos. A nota de aprovação é %3$d%%."
+
+#: includes/settings/views/documentation/submissions-list.php:23
+msgid "The table shows the id, form, email, a short preview of non-sensitive fields, status and date. You can filter by one or more forms and switch between Published, Trash, and the quiz states (Retry, Failed, Awaiting Grading). The search box matches a submission id, an auth code, or an exact email, CPF or RF. Personal columns are decrypted only for the row display; the preview never includes email, CPF/RF or the auth code."
+msgstr "A tabela exibe o ID, o formulário, o e-mail, uma breve prévia de campos não sensíveis, o status e a data. É possível filtrar por um ou mais formulários e alternar entre Publicado, Lixeira e os estados do quiz (Tentando, Reprovado, Aguardando correção). A caixa de busca encontra um ID de submissão, um código de autenticação ou um e-mail, CPF ou RF exato. Colunas com dados pessoais são descriptografadas apenas para a exibição na linha; a prévia nunca inclui e-mail, CPF/RF ou código de autenticação."
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:291
+msgid "You can submit the form again to try once more."
+msgstr "Você pode enviar o formulário novamente para tentar outra vez."
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:100
+msgid "You do not have permission to grade quiz answers."
+msgstr "Você não tem permissão para corrigir respostas de quiz."
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:294
+#, php-format
+msgid "You have %d attempt left: submit the form again to use it."
+msgid_plural "You have %d attempts left: submit the form again to use them."
+msgstr[0] "Você tem %d tentativa restante: envie o formulário novamente para usá-la."
+msgstr[1] "Você tem %d tentativas restantes: envie o formulário novamente para usá-las."
+
+#: templates/emails/quiz-graded-passed.php:24
+msgid "Your answers to {{form_title}} were graded and you passed."
+msgstr "Suas respostas em {{form_title}} foram corrigidas e você foi aprovado."
+
+#: templates/emails/quiz-graded-not-passed.php:22
+msgid "Your answers to {{form_title}} were graded."
+msgstr "Suas respostas em {{form_title}} foram corrigidas."
+
+#: templates/emails/quiz-graded-not-passed.php:20
+msgid "Your answers were graded"
+msgstr "Suas respostas foram corrigidas"
+
+#: templates/emails/quiz-graded-not-passed.php:19
+msgid "Your answers were graded: {{form_title}}"
+msgstr "Suas respostas foram corrigidas: {{form_title}}"
+
+#: includes/frontend/submission/class-ffc-success-responder.php:121
+msgid "Your answers were received. A person will grade the open answers; the result, and the certificate if you pass, will be sent to your email."
+msgstr "Suas respostas foram recebidas. Uma pessoa vai corrigir as respostas abertas; o resultado, e o certificado se você for aprovado, será enviado para o seu e-mail."
+
+#: includes/frontend/submission/class-ffc-submission-persister.php:123
+msgid "Your previous answers are still being graded. The result will be sent to your email."
+msgstr "Suas respostas anteriores ainda estão sendo corrigidas. O resultado será enviado para o seu e-mail."
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:278
+msgid "Your score did not reach the passing score."
+msgstr "Sua nota não atingiu a nota de aprovação."
+
+#: includes/admin/class-ffc-quiz-grading-handler.php:276
+#, php-format
+msgid "Your score was %d%%, below the passing score."
+msgstr "Sua nota foi %d%%, abaixo da nota de aprovação."
+
+#: includes/settings/views/documentation/feature-quiz.php:33
+msgid "an attempt with an open answer graded by a person shows no result: it is stored as \"Quiz: Awaiting Grading\", the participant is told the result will be emailed, and no certificate exists yet. While it waits, the same CPF/RF cannot start another attempt. Grading it on the submission edit screen decides it and emails the participant: the document link on a pass; otherwise the result, with the score only when the form shows it, and how many attempts are left."
+msgstr "uma tentativa com uma resposta aberta corrigida por uma pessoa não mostra resultado: ela fica como \"Quiz: Aguardando correção\", o participante é avisado de que o resultado será enviado por e-mail e ainda não existe certificado. Enquanto ela aguarda, o mesmo CPF/RF não pode começar outra tentativa. Corrigi-la na tela de edição do envio a decide e envia o resultado ao participante: o link do documento na aprovação; caso contrário, o resultado, com a nota apenas quando o formulário a exibe, e quantas tentativas restam."
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:221
+#, php-format
+msgid "of %d"
+msgstr "de %d"

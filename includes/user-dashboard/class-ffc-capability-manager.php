@@ -150,6 +150,12 @@ class CapabilityManager {
 		// certificates without holding `manage_options`.
 		'ffc_edit_certificates',
 
+		// Quiz grading cap (#1732). Gates the grading of open quiz answers
+		// on an attempt awaiting grading, which issues or refuses the
+		// certificate -- a decision, not a typo fix, so not folded into
+		// `ffc_edit_certificates`.
+		'ffc_grade_certificates',
+
 		// REST-API authentication caps (6.4.1). Granted to external
 		// integrators authenticating via WordPress Application Passwords
 		// (Basic Auth) so they can read form definitions through
@@ -814,18 +820,18 @@ class CapabilityManager {
 			),
 			'ffc_certificates_operator'   => array(
 				'label' => __( 'FFC Certificates - Operator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_certificates', 'ffc_edit_certificates' ),
+				'caps'  => array( 'ffc_view_certificates', 'ffc_edit_certificates', 'ffc_grade_certificates' ),
 			),
 			'ffc_certificates_manager'    => array(
 				'label' => __( 'FFC Certificates - Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ),
+				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_grade_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ),
 			),
 			// Admin tier (#739 §3.3): same domain caps as the manager, but the
 			// PII policy treats this role as *unmasked* (plaintext, no reveal
 			// click / audit noise) — the highest-trust certificates role.
 			'ffc_certificates_admin'      => array(
 				'label' => __( 'FFC Certificates - Administrator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ),
+				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_grade_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ),
 			),
 
 			// ── Appointments (self-scheduling bookings) ──────────────────

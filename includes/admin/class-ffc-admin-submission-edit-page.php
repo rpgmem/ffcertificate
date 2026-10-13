@@ -27,6 +27,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AdminSubmissionEditPage {
 
 	/**
+	 * Answer keys the edit form neither shows nor posts, carried over from
+	 * the stored answers on save: the grading records of a quiz attempt
+	 * (#1732), which are lists the text fields of this form would flatten.
+	 * The save rebuilds the answers from the POST, so without this they would
+	 * be lost by any save.
+	 *
+	 * @var array<int, string>
+	 */
+	private const PRESERVED_KEYS = array( '_quiz_pending', '_quiz_grades' );
+
+	/**
 	 * Submission handler instance
 	 *
 	 * @var \FreeFormCertificate\Submissions\SubmissionHandler
@@ -141,6 +152,7 @@ class AdminSubmissionEditPage {
 				<div class="ffc-edit-layout">
 					<div class="ffc-edit-main">
 						<?php
+						$this->render_grading_card();
 						$this->render_participant_data_section();
 						$this->render_dynamic_fields();
 						$this->render_system_info_section();
@@ -156,7 +168,85 @@ class AdminSubmissionEditPage {
 					</div>
 				</div>
 			</form>
+			<?php $this->render_grading_form(); ?>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Whether this attempt waits for grading and the current user may grade it.
+	 */
+	private function shows_grading(): bool {
+		return \FreeFormCertificate\Core\SubmissionStatus::QUIZ_PENDING === ( $this->sub_array['status'] ?? '' )
+			&& QuizGradingHandler::current_user_can_grade();
+	}
+
+	/**
+	 * Main column: the open answers waiting for a grade (#1732).
+	 *
+	 * Its inputs belong to the grading form printed after the edit form, through
+	 * their `form` attribute: forms cannot nest, and the edit form's save must
+	 * not decide a result.
+	 */
+	private function render_grading_card(): void {
+		if ( ! $this->shows_grading() ) {
+			return;
+		}
+		$pending = QuizGrading::pending_questions( $this->data, (array) $this->fields );
+		$config  = get_post_meta( (int) $this->sub_array['form_id'], '_ffc_form_config', true );
+		$passing = \FreeFormCertificate\Core\ArrayValue::int( is_array( $config ) ? $config : array(), 'quiz_passing_score', 70 );
+
+		self::card_open( __( 'Grade open answers', 'ffcertificate' ), 'edit' );
+		echo '<p class="description">' . esc_html(
+			sprintf(
+				/* translators: 1: points earned by the automatically scored questions, 2: maximum points, 3: passing percentage */
+				__( 'The automatically scored questions earned %1$d of %2$d points. The passing score is %3$d%%.', 'ffcertificate' ),
+				\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_score', 0 ),
+				\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_max_score', 0 ),
+				$passing
+			)
+		) . '</p>';
+
+		foreach ( $pending as $name => $question ) {
+			$id = 'ffc-grade-' . sanitize_key( $name );
+			?>
+			<div class="ffc-grade-question">
+				<p><strong><?php echo esc_html( $question['label'] ); ?></strong></p>
+				<blockquote class="ffc-grade-answer"><?php echo '' !== $question['answer'] ? nl2br( esc_html( $question['answer'] ) ) : esc_html__( '(no answer)', 'ffcertificate' ); ?></blockquote>
+				<p>
+					<label for="<?php echo esc_attr( $id ); ?>"><?php esc_html_e( 'Points', 'ffcertificate' ); ?></label>
+					<input type="number" id="<?php echo esc_attr( $id ); ?>" name="ffc_grade[<?php echo esc_attr( $name ); ?>]" form="ffc-grade-form" min="0" max="<?php echo esc_attr( (string) $question['worth'] ); ?>" step="1" required class="small-text">
+					<?php
+					/* translators: %d: points the question is worth */
+					echo esc_html( sprintf( __( 'of %d', 'ffcertificate' ), $question['worth'] ) );
+					?>
+				</p>
+			</div>
+			<?php
+		}
+		?>
+		<p class="ffc-edit-actions">
+			<button type="submit" form="ffc-grade-form" class="button button-primary"><?php esc_html_e( 'Save grades and send the result', 'ffcertificate' ); ?></button>
+		</p>
+		<p class="description"><?php esc_html_e( 'Saving decides the attempt: a pass issues the document, and the participant is emailed the result either way.', 'ffcertificate' ); ?></p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * The grading form the card's inputs post through, outside the edit form.
+	 */
+	private function render_grading_form(): void {
+		if ( ! $this->shows_grading() ) {
+			return;
+		}
+		$id = (int) $this->sub_array['id'];
+		?>
+		<form id="ffc-grade-form" method="POST" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="<?php echo esc_attr( QuizGradingHandler::ACTION ); ?>">
+			<input type="hidden" name="submission_id" value="<?php echo esc_attr( (string) $id ); ?>">
+			<?php wp_nonce_field( QuizGradingHandler::nonce_action( $id ) ); ?>
+		</form>
 		<?php
 	}
 
@@ -579,8 +669,9 @@ class AdminSubmissionEditPage {
 		$editable  = '';
 		$protected = '';
 		foreach ( $this->data as $k => $v ) {
-			// Skip old tracking fields (now in columns).
-			if ( 'is_edited' === $k || 'edited_at' === $k ) {
+			// Skip old tracking fields (now in columns), and the grading
+			// records, which are lists a text field would flatten (#1732).
+			if ( 'is_edited' === $k || 'edited_at' === $k || in_array( $k, self::PRESERVED_KEYS, true ) ) {
 				continue;
 			}
 
@@ -677,6 +768,8 @@ class AdminSubmissionEditPage {
 			$clean_data[ $sanitized_key ] = $sanitized_value;
 		}
 
+		$clean_data = array_merge( $clean_data, $this->preserved_answers( $id ) );
+
 		// Process user link change (simplified: value is user ID, empty string, or __keep__).
 		$linked_user_id = \FreeFormCertificate\Core\RequestInput::get_post_string( 'linked_user_id', '__keep__' );
 
@@ -704,5 +797,20 @@ class AdminSubmissionEditPage {
 
 		wp_safe_redirect( admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions&msg=updated' ) );
 		exit;
+	}
+
+	/**
+	 * The stored answers under {@see self::PRESERVED_KEYS}.
+	 *
+	 * @param int $id Submission ID.
+	 * @return array<string, mixed>
+	 */
+	private function preserved_answers( int $id ): array {
+		$sub = $this->submission_handler->get_submission( $id );
+		if ( ! is_array( $sub ) || ! is_string( $sub['data'] ?? null ) ) {
+			return array();
+		}
+		$stored = json_decode( $sub['data'], true );
+		return is_array( $stored ) ? array_intersect_key( $stored, array_flip( self::PRESERVED_KEYS ) ) : array();
 	}
 }

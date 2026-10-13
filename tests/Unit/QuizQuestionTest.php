@@ -114,7 +114,8 @@ class QuizQuestionTest extends TestCase {
 
 	public function test_a_text_answer_mode_is_bounded(): void {
 		$this->assertSame( 'answered', QuizQuestion::sanitize( array( 'quiz_block' => '1', 'quiz_text' => 'answered' ), 'text', array() )['quiz_text'] );
-		$this->assertSame( 'none', QuizQuestion::sanitize( array( 'quiz_block' => '1', 'quiz_text' => 'manual' ), 'textarea', array() )['quiz_text'], 'Manual grading is not delivered yet.' );
+		$this->assertSame( 'manual', QuizQuestion::sanitize( array( 'quiz_block' => '1', 'quiz_text' => 'manual' ), 'textarea', array() )['quiz_text'], 'Manual grading (#1732).' );
+		$this->assertSame( 'none', QuizQuestion::sanitize( array( 'quiz_block' => '1', 'quiz_text' => 'magic' ), 'text', array() )['quiz_text'] );
 	}
 
 	public function test_a_display_field_gains_no_quiz_keys(): void {
@@ -129,5 +130,14 @@ class QuizQuestionTest extends TestCase {
 	public function test_option_points_pad_to_the_options(): void {
 		$this->assertSame( array( 3, 0, 0 ), QuizQuestion::option_points( array( 'choices' => array( 'A', 'B', 'C' ), 'points' => '3' ) ) );
 		$this->assertSame( array(), QuizQuestion::option_points( array( 'choices' => array( 'A' ) ) ) );
+	}
+
+	public function test_a_manually_graded_field_is_scored_and_manual(): void {
+		$manual = array( 'type' => 'textarea', 'name' => 'essay', 'quiz_scored' => '1', 'quiz_text' => 'manual', 'quiz_points' => '5' );
+
+		$this->assertTrue( QuizQuestion::is_scored( $manual ) );
+		$this->assertTrue( QuizQuestion::is_manual( $manual ) );
+		$this->assertFalse( QuizQuestion::is_manual( array( 'quiz_scored' => '0' ) + $manual ), 'A question left out is not graded.' );
+		$this->assertFalse( QuizQuestion::is_manual( array( 'type' => 'radio' ) + $manual ), 'Only an open answer is graded by a person.' );
 	}
 }

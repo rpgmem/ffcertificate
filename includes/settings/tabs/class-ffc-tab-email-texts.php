@@ -163,6 +163,14 @@ class TabEmailTexts extends SettingsTab {
 				'label'  => __( 'Certificate email to the user', 'ffcertificate' ),
 				'tokens' => array( 'name', 'form_title', 'date', 'auth_code', 'validation_url' ),
 			),
+			'quiz-graded-passed'            => array(
+				'label'  => __( 'Quiz graded: passed', 'ffcertificate' ),
+				'tokens' => array( 'name', 'form_title', 'percent', 'auth_code', 'validation_url' ),
+			),
+			'quiz-graded-not-passed'        => array(
+				'label'  => __( 'Quiz graded: not passed', 'ffcertificate' ),
+				'tokens' => array( 'name', 'form_title', 'percent', 'result_line', 'attempts_line' ),
+			),
 			'selfscheduling-confirmation'   => array(
 				'label'  => __( 'Appointment booking confirmation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'status_message', 'status_label', 'user_notes_block', 'receipt_button', 'cancel_button' ),
@@ -305,7 +313,7 @@ class TabEmailTexts extends SettingsTab {
 	 */
 	private static function email_hub_groups(): array {
 		return array(
-			__( 'Certificates', 'ffcertificate' )       => array( 'certificate-user' ),
+			__( 'Certificates', 'ffcertificate' )       => array( 'certificate-user', 'quiz-graded-passed', 'quiz-graded-not-passed' ),
 			__( 'Personal Calendars', 'ffcertificate' ) => array(
 				'selfscheduling-confirmation',
 				'appointment-approval',
@@ -413,6 +421,12 @@ class TabEmailTexts extends SettingsTab {
 					array(
 						'label'   => __( 'Certificate email to the user', 'ffcertificate' ),
 						'purpose' => __( 'Sent to the person after they submit a form — global text in the hub above, with an optional per-form custom version.', 'ffcertificate' ),
+						'type'    => 'global',
+						'url'     => $hub_url,
+					),
+					array(
+						'label'   => __( 'Quiz grading result', 'ffcertificate' ),
+						'purpose' => __( 'Sent to the person when their open answers are graded — one text for a pass, with the document link, and one for a result below the passing score; global text in the hub above.', 'ffcertificate' ),
 						'type'    => 'global',
 						'url'     => $hub_url,
 					),

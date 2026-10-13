@@ -67,6 +67,13 @@ class AdminLoader {
 	protected ?IdentityResolutionPage $identity_resolution_page = null;
 
 	/**
+	 * Quiz grading request handler -- held to keep the instance alive for its hook.
+	 *
+	 * @var QuizGradingHandler|null
+	 */
+	protected ?QuizGradingHandler $quiz_grading_handler = null;
+
+	/**
 	 * Inject the shared submission handler the Admin screens depend on.
 	 *
 	 * @param SubmissionHandler $submission_handler Shared handler the Admin screens depend on.
@@ -123,5 +130,9 @@ class AdminLoader {
 		// has to outlive this call.
 		$this->identity_resolution_page = new IdentityResolutionPage();
 		$this->identity_resolution_page->init();
+
+		// Grading posts to admin-post.php, where `is_admin()` holds (#1732).
+		$this->quiz_grading_handler = new QuizGradingHandler( $this->submission_handler );
+		$this->quiz_grading_handler->init();
 	}
 }

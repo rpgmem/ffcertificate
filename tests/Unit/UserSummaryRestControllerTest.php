@@ -186,7 +186,7 @@ class UserSummaryRestControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' === $cap );
 		$this->wpdb->shouldReceive( 'prepare' )
 			->once()
-			->with( Mockery::pattern( '/status NOT IN \(%s, %s, %s\)/' ), Mockery::any(), 5, 'trash', 'quiz_in_progress', 'quiz_failed' )
+			->with( Mockery::pattern( '/status NOT IN \(%s, %s, %s, %s\)/' ), Mockery::any(), 5, 'trash', 'quiz_in_progress', 'quiz_failed', 'quiz_pending' )
 			->andReturn( 'SQL' );
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '2' );
 

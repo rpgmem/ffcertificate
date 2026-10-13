@@ -392,6 +392,100 @@ class SubmissionPersisterTest extends TestCase {
 		}
 	}
 
+	/**
+	 * #1732 — an open answer a person grades holds the result back: the
+	 * attempt is stored awaiting grading, with no feedback and no certificate.
+	 */
+	public function test_quiz_with_an_open_answer_waits_for_grading(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		$handler = $this->handlerWithRepo( $repo );
+		$handler->shouldReceive( 'process_submission' )->once()->andReturn( 902 );
+		$repo->shouldReceive( 'updateStatus' )->once()->with( 902, 'quiz_pending' );
+
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
+		$enc->shouldReceive( 'is_configured' )->andReturn( false )->byDefault();
+
+		$fields   = $this->quizFieldsConfig();
+		$fields[] = array(
+			'type'        => 'textarea',
+			'name'        => 'essay',
+			'quiz_scored' => '1',
+			'quiz_text'   => 'manual',
+			'quiz_points' => '10',
+		);
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+					'quiz_max_attempts'  => 3,
+				),
+				'fields_config'   => $fields,
+				'submission_data' => array(
+					'q1'    => 'A',
+					'essay' => 'An answer.',
+				),
+			)
+		);
+
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+
+		$this->assertTrue( $ctx->awaiting_grading );
+		$this->assertSame( 902, $ctx->submission_id );
+		$this->assertSame( array( 'essay' ), $ctx->submission_data['_quiz_pending'] );
+		$this->assertSame( 20, $ctx->submission_data['_quiz_max_score'], 'The open answer counts in the maximum from the start.' );
+		$this->assertSame( 10, $ctx->submission_data['_quiz_score'] );
+	}
+
+	public function test_quiz_refuses_a_new_attempt_while_the_last_awaits_grading(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+
+		$existing = (object) array(
+			'id'              => '80',
+			'status'          => 'quiz_pending',
+			'data'            => json_encode( array( '_quiz_attempt' => 1 ) ),
+			'submission_date' => '2026-01-01 00:00:00',
+			'auth_code'       => '',
+		);
+
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
+		$enc->shouldReceive( 'is_configured' )->andReturn( true )->byDefault();
+		$enc->shouldReceive( 'hash' )->andReturn( 'hh' )->byDefault();
+
+		$srepo = Mockery::mock( 'alias:FreeFormCertificate\\Repositories\\SubmissionRepository' );
+		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
+
+		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
+		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '51817842080' );
+		$ds->shouldReceive( 'classify_cpf_rf' )->andReturn( 'cpf' );
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $existing );
+
+		$handler = $this->bareHandler();
+		$handler->shouldReceive( 'process_submission' )->never();
+
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'A' ),
+			)
+		);
+
+		try {
+			( new SubmissionPersister( $handler ) )->apply( $ctx );
+			$this->fail( 'Expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertTrue( $e->get_payload()['quiz']['awaiting_grading'] );
+		}
+	}
+
 	public function test_quiz_attempts_exhausted_throws_before_insert(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 

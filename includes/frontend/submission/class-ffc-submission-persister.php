@@ -23,6 +23,7 @@ namespace FreeFormCertificate\Frontend\Submission;
 
 use FreeFormCertificate\Core\ArrayValue;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Core\SubmissionStatus;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -82,6 +83,7 @@ class SubmissionPersister {
 		$form_post_title = $form_post ? (string) $form_post->post_title : '';
 		$is_reprint      = false;
 		$quiz_score      = null;
+		$awaiting        = false;
 
 		if ( $is_quiz ) {
 			// Calculate quiz score.
@@ -105,8 +107,26 @@ class SubmissionPersister {
 				$submission_data['_quiz_focus_losses'] = min( self::MAX_FOCUS_LOSSES, RequestInput::get_post_int( 'ffc_quiz_focus_losses' ) );
 			}
 
+			// An open answer a person grades holds the result back (#1732).
+			$awaiting_grading = array() !== $quiz_score['pending'];
+			$awaiting         = $awaiting_grading;
+			if ( $awaiting_grading ) {
+				$submission_data['_quiz_pending'] = $quiz_score['pending'];
+			}
+
 			// Find existing quiz submission for this CPF + form.
 			$existing = $this->find_quiz_submission( $form_id, $val_cpf );
+
+			// While an attempt waits to be graded, its result is not known, so
+			// neither is whether another attempt is needed (#1732).
+			if ( $existing && SubmissionStatus::QUIZ_PENDING === $existing->status ) {
+				throw new SubmissionRejected(
+					array(
+						'message' => __( 'Your previous answers are still being graded. The result will be sent to your email.', 'ffcertificate' ),
+						'quiz'    => array( 'awaiting_grading' => true ),
+					)
+				);
+			}
 
 			// If already passed (status=publish), treat as reprint.
 			if ( $existing && 'publish' === $existing->status ) {
@@ -142,7 +162,9 @@ class SubmissionPersister {
 				}
 
 				// Determine status.
-				if ( $passed ) {
+				if ( $awaiting_grading ) {
+					$quiz_status = SubmissionStatus::QUIZ_PENDING;
+				} elseif ( $passed ) {
 					$quiz_status = 'publish';
 				} elseif ( $max_attempts > 0 && $attempt_number >= $max_attempts ) {
 					$quiz_status = 'quiz_failed';
@@ -207,8 +229,9 @@ class SubmissionPersister {
 					$real_submission_date = current_time( 'mysql' );
 				}
 
-				// If not passed, return quiz feedback (no certificate).
-				if ( ! $passed ) {
+				// If not passed, return quiz feedback (no certificate). An
+				// attempt awaiting grading has no result yet (#1732).
+				if ( ! $passed && ! $awaiting_grading ) {
 					$remaining  = ( $max_attempts > 0 ) ? max( 0, $max_attempts - $attempt_number ) : -1;
 					$show_score = ( $form_config['quiz_show_score'] ?? '1' ) === '1';
 
@@ -331,6 +354,7 @@ class SubmissionPersister {
 		$ctx->is_reprint           = $is_reprint;
 		$ctx->is_quiz              = $is_quiz;
 		$ctx->quiz_score           = $quiz_score;
+		$ctx->awaiting_grading     = $awaiting && ! $is_reprint;
 	}
 
 	/**
@@ -363,7 +387,7 @@ class SubmissionPersister {
 	 *
 	 * @param array<int, array<string, mixed>> $fields_config Form fields configuration.
 	 * @param array<string, mixed>             $submission_data User's submitted data.
-	 * @return array{score: int, max_score: int, percent: int, correct_count: int, question_count: int, results: array<string, bool>}
+	 * @return array{score: int, max_score: int, percent: int, correct_count: int, question_count: int, results: array<string, bool>, pending: list<string>}
 	 */
 	public function calculate_quiz_score( array $fields_config, array $submission_data ): array {
 		return ( new QuizScorer() )->score( $fields_config, $submission_data );

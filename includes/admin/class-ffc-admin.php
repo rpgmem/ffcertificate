@@ -388,6 +388,20 @@ class Admin {
 			case 'updated':
 				$text = __( 'Submission updated successfully.', 'ffcertificate' );
 				break;
+			case 'quiz_graded_passed':
+				$text = __( 'Answers graded: the attempt passed and the document link was sent to the participant.', 'ffcertificate' );
+				break;
+			case 'quiz_graded_not_passed':
+				$text = __( 'Answers graded: the attempt is below the passing score, and the participant was told the result.', 'ffcertificate' );
+				break;
+			case 'quiz_grade_stale':
+				$text = __( 'That attempt is not waiting for grading any more.', 'ffcertificate' );
+				$type = 'error';
+				break;
+			case 'quiz_grade_incomplete':
+				$text = __( 'Give every open answer a grade.', 'ffcertificate' );
+				$type = 'error';
+				break;
 			case 'migration_success':
 				$migrated       = RequestInput::get_get_int( 'migrated' );
 				$migration_name = isset( $_GET['migration_name'] ) ? sanitize_text_field( urldecode( wp_unslash( $_GET['migration_name'] ) ) ) : __( 'Migration', 'ffcertificate' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
