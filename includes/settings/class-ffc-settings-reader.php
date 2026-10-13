@@ -195,7 +195,9 @@ final class SettingsReader {
 		if ( is_array( $raw ) ) {
 			$lines = $raw;
 		} else {
-			$lines = preg_split( '/[\r\n,]+/', (string) $raw );
+			// A tag never contains a space, so whitespace separates too:
+			// the Save button stored the list on one line until #1736.
+			$lines = preg_split( '/[\s,]+/', (string) $raw );
 			if ( false === $lines ) {
 				$lines = array();
 			}
