@@ -2232,6 +2232,15 @@
     cursor: pointer;
 }
 
+/* Inside a .form-table, WordPress's `.form-table td fieldset label` makes
+   every label inline-block with a forced margin (!important). A stop is a
+   label in a fieldset, so it would lose its column and its mark would sit
+   left of the rail it belongs on. */
+.form-table td fieldset .ffc-control-steps-stop {
+    display: flex;
+    margin: 0 !important;
+}
+
 .ffc-control-steps-stop input {
     /* Visually hidden but reachable by keyboard + assistive tech. */
     position: absolute;
@@ -2502,6 +2511,12 @@
     position: relative;
     display: flex;
     cursor: pointer;
+}
+
+/* The same WordPress rule as for the steps stops above. */
+.form-table td fieldset .ffc-control-segmented-option {
+    display: flex;
+    margin: 0 !important;
 }
 
 .ffc-control-segmented-option input {

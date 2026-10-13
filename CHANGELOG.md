@@ -39,6 +39,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A certificate form submits again** (#1739). A script printed before `ffc-core.js` that created the `FFC` namespace made the core skip its own API, so every submit failed on `FFC.request is not a function`; the core now installs its API and keeps what was already there.
 - **A quiz attempt that did not pass is no longer a certificate** (#1744). The first attempt was saved as issued and its certificate link emailed before its result was known; its code also verified. The email, verification by code or link, the REST lookup and the user dashboard now skip it.
 - **The dashboard's notification toggles can be reached by keyboard** (#1748). They used a second toggle that hid its checkbox with `display: none`; they now use the plugin's one toggle.
+- **The steps control lines up inside a settings table** (#1750). WordPress makes every label in a `.form-table` fieldset inline-block, which pushed each stop's mark to the left of its rail; the stops and the segmented options now outrank that rule.
 
 ## [6.38.0] (2026-10-12) — `529e80a1`
 
