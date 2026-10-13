@@ -380,6 +380,15 @@
     background-color: var(--ffc-bg);
 }
 
+/* What the user agent paints itself: scrollbars, the date picker's popup and
+   an unstyled control. Without this they stay light on the dark canvas — the
+   Documentation tab's navigation column and every code block scrolled with a
+   white bar. Admin only: on a public page `<html>` is the theme's, and its
+   scrollbars are not ours to recolour. */
+:root.ffc-dark-mode:has(> body.wp-admin) {
+    color-scheme: dark;
+}
+
 :root.ffc-dark-mode .wrap h1,
 :root.ffc-dark-mode .wrap h2,
 :root.ffc-dark-mode .wrap h3,
@@ -440,6 +449,15 @@
 :root.ffc-dark-mode textarea:focus {
     border-color: var(--ffc-border-focus);
     box-shadow: 0 0 0 1px var(--ffc-border-focus);
+}
+
+/* Core paints checkboxes and radios `#fff`; the check mark and the dot are
+   core's blue, which reads on the dark ground too. */
+:root.ffc-dark-mode input[type="checkbox"],
+:root.ffc-dark-mode input[type="radio"] {
+    color: var(--ffc-text);
+    background-color: var(--ffc-bg-alt);
+    border-color: var(--ffc-text-muted);
 }
 
 /* A disabled control must still read as text, not as the background. */
@@ -527,6 +545,132 @@
     color: var(--ffc-text-light);
     background: var(--ffc-bg);
     border-color: var(--ffc-border-light);
+}
+
+/* The Publish box's footer on a plugin post type's editor: core paints it
+   `#f6f7f7`, and its red "Move to Trash" sat at low contrast on the dark
+   card around it, as it did in a list row's actions. */
+:root.ffc-dark-mode #major-publishing-actions {
+    background: var(--ffc-bg-alt);
+    border-top-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .submitdelete {
+    color: var(--ffc-danger);
+}
+
+/* A list row's "Edit | Trash" separators, and the Screen Options toggle above
+   a list: core greys and whites that sat on the dark canvas. */
+:root.ffc-dark-mode .row-actions {
+    color: var(--ffc-text-muted);
+}
+
+:root.ffc-dark-mode #screen-meta,
+:root.ffc-dark-mode #screen-meta-links .show-settings {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border);
+}
+
+/* Links inside a notice: core reads its admin-colour variable darkened, which
+   measured 1,87:1 on the dark notice. */
+:root.ffc-dark-mode .notice a,
+:root.ffc-dark-mode div.error a,
+:root.ffc-dark-mode div.updated a {
+    color: var(--ffc-primary);
+}
+
+/* Links. Core's `a { color: #2271b1 }` measured 1,87–2,65:1 on the dark
+   card: sortable column headers, links inside descriptions, the documentation.
+   `:where()` keeps this at core's own specificity, so any component that
+   colours its links still wins. */
+:where(:root.ffc-dark-mode body.wp-admin) a {
+    color: var(--ffc-primary);
+}
+
+:where(:root.ffc-dark-mode body.wp-admin) a:hover,
+:where(:root.ffc-dark-mode body.wp-admin) a:focus {
+    color: var(--ffc-primary-hover);
+}
+
+/* "Add New" / "Export CSV" beside the page title: core paints it blue on a
+   light ground, 2,83:1 here. It takes the secondary button's look. */
+:root.ffc-dark-mode .page-title-action {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .page-title-action:hover,
+:root.ffc-dark-mode .page-title-action:focus {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border-focus);
+}
+
+/* A disabled primary button. Core declares its light ground with
+   `!important`, so only `!important` reaches it. */
+:root.ffc-dark-mode .button-primary:disabled,
+:root.ffc-dark-mode .button-primary.disabled,
+:root.ffc-dark-mode .button-primary[disabled] {
+    color: var(--ffc-text-light) !important;
+    background: var(--ffc-bg) !important;
+    border-color: var(--ffc-border-light) !important;
+}
+
+/* A native colour input's frame around the swatch. */
+:root.ffc-dark-mode input[type="color"] {
+    color: var(--ffc-text);
+    background-color: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+}
+
+/* The file input's "Choose File" is drawn by the browser, not by core, so it
+   takes the secondary button's look by hand. */
+:root.ffc-dark-mode input[type="file"] {
+    color: var(--ffc-text);
+}
+
+:root.ffc-dark-mode input[type="file"]::file-selector-button {
+    margin-right: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    cursor: pointer;
+}
+
+:root.ffc-dark-mode input[type="file"]::file-selector-button:hover {
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border-focus);
+}
+
+/* A link-styled button ("Clear" beside an image picker) keeps core's
+   `#2271b1`, which is too dark to read on the dark card. Core's red
+   delete link keeps its own colour. */
+:root.ffc-dark-mode .button-link:not(.button-link-delete) {
+    color: var(--ffc-primary);
+}
+
+/* Core's colour picker. The swatch button is a `.button` and follows the rule
+   above, but its "Select Color" label is a span core paints `#f6f7f7` on its
+   own, so it stayed a light block on every picker (Email Model, the message
+   appearance). The popup is painted white by Iris. */
+:root.ffc-dark-mode .wp-picker-container .wp-color-result-text {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-left-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .wp-picker-container .wp-color-result:hover .wp-color-result-text,
+:root.ffc-dark-mode .wp-picker-container .wp-color-result:focus .wp-color-result-text {
+    background: var(--ffc-bg-card);
+}
+
+:root.ffc-dark-mode .wp-picker-container .iris-picker {
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border);
 }
 
 /* Tab strips. */
@@ -2067,7 +2211,9 @@
     .ffc-btn-success,
     :root.ffc-dark-mode .button,
     :root.ffc-dark-mode .button-secondary,
-    :root.ffc-dark-mode .button.disabled {
+    :root.ffc-dark-mode .button.disabled,
+    :root.ffc-dark-mode .button-primary.disabled,
+    :root.ffc-dark-mode .button-primary[disabled] {
         border: 1px solid ButtonText;
     }
 
@@ -2085,4 +2231,10 @@
     .ffc-status-pending {
         border: 1px solid CanvasText;
     }
+}
+
+/* The asterisk beside a required admin field. Core's `.required` red measured
+   2,03:1 on the dark card; the danger token is tuned for both themes. */
+.ffc-admin-page .ffc-required {
+    color: var(--ffc-danger);
 }
