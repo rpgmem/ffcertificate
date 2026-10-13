@@ -128,96 +128,154 @@ class AdminUI {
 	}
 
 	/**
-	 * Palettes a three-position switch can wear (#1745), passed as `palette`.
-	 * Each colours the knob through the `ffc-tri-toggle-<palette>` class.
+	 * Palettes a steps control can wear (#1745), passed as `palette`. Each
+	 * colours the filled rail and the thumb's ring after the chosen step.
 	 *
+	 * - `primary`: the accent at every step -- for a scale where no end is
+	 *   worse than the other (the default).
 	 * - `severity`: grey, amber, red -- the further right, the harsher.
-	 * - `traffic`: red, amber, green -- a traffic light, for a scale where
-	 *   the right-hand end is the good one.
+	 * - `traffic`: red, amber, green -- for a scale whose right-hand end is
+	 *   the good one.
 	 */
-	public const TRI_PALETTES = array( 'severity', 'traffic' );
+	public const STEPS_PALETTES = array( 'primary', 'severity', 'traffic' );
 
 	/**
-	 * Render a three-position switch: a track and a knob whose position and
-	 * colour say which of three ordered values is chosen (#1745).
+	 * Tones one step can name in `tones`, overriding the palette for it.
+	 */
+	public const STEPS_TONES = array( 'neutral', 'primary', 'info', 'success', 'warning', 'danger' );
+
+	/**
+	 * Fewest and most options a steps control draws. Outside them a select
+	 * is printed instead: two values are a toggle, and past eleven the stops
+	 * are too close to read.
+	 */
+	public const STEPS_MIN = 3;
+	public const STEPS_MAX = 11;
+
+	/**
+	 * Past this many stops the control tightens and, on a phone, shows only
+	 * the chosen step's name.
+	 */
+	private const STEPS_MANY = 5;
+
+	/**
+	 * Render a steps control: a rail with one stop per value of an ordered
+	 * scale, filled up to the chosen one (#1745).
 	 *
-	 * Underneath are three native radios, so the arrow keys, screen readers
-	 * and forced colours work, and the form posts the value without any
-	 * script. The chosen value's name and its description sit beside the
-	 * switch and are swapped by CSS alone. Use it for an ordered scale --
-	 * off, moderate, strict -- not for three unrelated choices, which a
-	 * position and a colour would misrepresent.
+	 * Underneath are native radios, one per stop, so the arrow keys, screen
+	 * readers and forced colours work, and the form posts the value without
+	 * any script. Use it for an ORDERED scale of 3 to 11 values -- off,
+	 * moderate, strict -- never for unrelated choices, which a rail and a
+	 * fill would misrepresent. With 2 values use {@see self::render_toggle()}.
 	 *
 	 * For autosave pass `data-ffc-autosave-key` (or `-form-key`) in `data`:
 	 * it lands on each radio, and the widget saves the group as one field.
 	 *
-	 * @param array<string, mixed> $args Render arguments -- `name` (required),
-	 *                                    `options` (required: exactly three
-	 *                                    value => label pairs, mildest first),
-	 *                                    `value` (the chosen value; the first
-	 *                                    option when it is not one of them),
-	 *                                    `id` (optional base id, derived from
-	 *                                    `name`), `legend` (optional group
-	 *                                    name read by screen readers),
-	 *                                    `palette` (optional, a
-	 *                                    {@see self::TRI_PALETTES} key, default
-	 *                                    `severity`), `descriptions` (optional
-	 *                                    value => text), `disabled` (optional
-	 *                                    bool), `data` (optional data-*
-	 *                                    attributes on each radio).
+	 * @param array<string, mixed> $args Render arguments:
+	 *   - `name` (string, required) and `options` (array, required: value =>
+	 *     label, mildest first, 3 to 11 of them);
+	 *   - `value` (the chosen value) and `default` (shown when `value` is not
+	 *     one of the options; the first option otherwise);
+	 *   - `id` (base id, derived from `name`) and `legend` (the group's name,
+	 *     read by screen readers);
+	 *   - `descriptions` (value => text; the chosen one shows under the rail);
+	 *   - `labels`: `all` (default) or `selected` -- every step's name under
+	 *     its stop, or only the chosen one's (the others stay for screen
+	 *     readers);
+	 *   - `palette`: a {@see self::STEPS_PALETTES} key, default `primary`;
+	 *   - `tones` (value => a {@see self::STEPS_TONES} key), overriding the
+	 *     palette for those steps;
+	 *   - `size`: `sm`, `md` (default) or `lg`; `shape`: `round` (default) or
+	 *     `square`; `fluid` (bool): the stops share the row's width;
+	 *   - `disabled` (bool) and `data` (data-* attributes on each radio).
 	 */
-	public static function render_tri_toggle( array $args ): void {
+	public static function render_steps( array $args ): void {
 		$name    = is_string( $args['name'] ?? null ) ? $args['name'] : '';
 		$options = is_array( $args['options'] ?? null ) ? $args['options'] : array();
-		if ( '' === $name || 3 !== count( $options ) ) {
+		if ( '' === $name || array() === $options ) {
 			return;
 		}
 		$values  = array_map( 'strval', array_keys( $options ) );
+		$default = (string) ( $args['default'] ?? '' );
+		$default = in_array( $default, $values, true ) ? $default : $values[0];
 		$value   = (string) ( $args['value'] ?? '' );
-		$value   = in_array( $value, $values, true ) ? $value : $values[0];
+		$value   = in_array( $value, $values, true ) ? $value : $default;
 		$base_id = is_string( $args['id'] ?? null ) && '' !== $args['id'] ? $args['id'] : trim( (string) preg_replace( '/[^a-z0-9_-]+/i', '-', $name ), '-' );
-		$palette = in_array( $args['palette'] ?? null, self::TRI_PALETTES, true ) ? (string) $args['palette'] : self::TRI_PALETTES[0];
-		$legend  = is_string( $args['legend'] ?? null ) ? $args['legend'] : '';
-		$descs   = is_array( $args['descriptions'] ?? null ) ? $args['descriptions'] : array();
 		$data    = is_array( $args['data'] ?? null ) ? $args['data'] : array();
 
 		$data_attrs = '';
 		foreach ( $data as $k => $v ) {
 			$data_attrs .= ' data-' . esc_attr( (string) $k ) . '="' . esc_attr( (string) $v ) . '"';
 		}
+		$disabled = ! empty( $args['disabled'] ) ? ' disabled' : '';
 
-		printf( '<fieldset class="ffc-tri-toggle ffc-tri-toggle-%s">', esc_attr( $palette ) );
+		$count = count( $values );
+		if ( $count < self::STEPS_MIN || $count > self::STEPS_MAX ) {
+			_doing_it_wrong(
+				__METHOD__,
+				// A message to the developer, read under WP_DEBUG: English, untranslated, like core's own.
+				esc_html(
+					sprintf(
+						'A steps control takes %2$d to %3$d ordered options; %1$d were given, so a select is printed instead. Use AdminUI::render_toggle() for two values and a select for more than %3$d.',
+						$count,
+						self::STEPS_MIN,
+						self::STEPS_MAX
+					)
+				),
+				'6.39.0'
+			);
+			printf( '<select id="%1$s" name="%2$s"%3$s%4$s>', esc_attr( $base_id ), esc_attr( $name ), $disabled, $data_attrs ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literals and pre-escaped attributes.
+			foreach ( $values as $v ) {
+				printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $v ), selected( $v, $value, false ), esc_html( (string) $options[ $v ] ) );
+			}
+			echo '</select>';
+			return;
+		}
+
+		$palette = in_array( $args['palette'] ?? null, self::STEPS_PALETTES, true ) ? (string) $args['palette'] : self::STEPS_PALETTES[0];
+		$tones   = is_array( $args['tones'] ?? null ) ? $args['tones'] : array();
+		$descs   = is_array( $args['descriptions'] ?? null ) ? $args['descriptions'] : array();
+		$legend  = is_string( $args['legend'] ?? null ) ? $args['legend'] : '';
+
+		$classes = array( 'ffc-control-steps', sprintf( 'ffc-control-steps-%s', $palette ) );
+		if ( in_array( $args['size'] ?? null, array( 'sm', 'lg' ), true ) ) {
+			$classes[] = sprintf( 'ffc-control-steps-%s', (string) $args['size'] );
+		}
+		if ( 'square' === ( $args['shape'] ?? null ) ) {
+			$classes[] = 'ffc-control-steps-square';
+		}
+		if ( ! empty( $args['fluid'] ) ) {
+			$classes[] = 'ffc-control-steps-fluid';
+		}
+		if ( 'selected' === ( $args['labels'] ?? null ) ) {
+			$classes[] = 'ffc-control-steps-labels-selected';
+		}
+		if ( $count > self::STEPS_MANY ) {
+			$classes[] = 'ffc-control-steps-many';
+		}
+
+		printf( '<fieldset class="%1$s"%2$s>', esc_attr( implode( ' ', $classes ) ), $disabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a literal.
 		if ( '' !== $legend ) {
 			echo '<legend class="screen-reader-text">' . esc_html( $legend ) . '</legend>';
 		}
+		echo '<span class="ffc-control-steps-track">';
 		foreach ( $values as $i => $v ) {
+			$tone = $tones[ $v ] ?? null;
 			printf(
-				'<input type="radio" class="ffc-tri-toggle-input" id="%1$s" name="%2$s" value="%3$s"%4$s%5$s%6$s>',
+				'<label class="ffc-control-steps-stop"%1$s><input type="radio" id="%2$s" name="%3$s" value="%4$s"%5$s%6$s><span class="ffc-control-steps-mark" aria-hidden="true"></span><span class="ffc-control-steps-label">%7$s</span></label>',
+				in_array( $tone, self::STEPS_TONES, true ) ? ' data-tone="' . esc_attr( (string) $tone ) . '"' : '',
 				esc_attr( $base_id . '-' . ( $i + 1 ) ),
 				esc_attr( $name ),
 				esc_attr( $v ),
 				$v === $value ? ' checked' : '',
-				! empty( $args['disabled'] ) ? ' disabled' : '',
-				$data_attrs // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above.
-			);
-		}
-		echo '<span class="ffc-tri-toggle-track">';
-		foreach ( $values as $i => $v ) {
-			printf(
-				'<label class="ffc-tri-toggle-stop" for="%1$s"><span class="screen-reader-text">%2$s</span></label>',
-				esc_attr( $base_id . '-' . ( $i + 1 ) ),
+				$data_attrs, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above.
 				esc_html( (string) $options[ $v ] )
 			);
-		}
-		echo '<span class="ffc-tri-toggle-knob" aria-hidden="true"></span></span>';
-		echo '<span class="ffc-tri-toggle-value" aria-hidden="true">';
-		foreach ( $values as $i => $v ) {
-			printf( '<span class="ffc-tri-toggle-at-%1$d">%2$s</span>', (int) $i + 1, esc_html( (string) $options[ $v ] ) );
 		}
 		echo '</span>';
 		foreach ( $values as $i => $v ) {
 			if ( isset( $descs[ $v ] ) && '' !== (string) $descs[ $v ] ) {
-				printf( '<span class="description ffc-tri-toggle-desc ffc-tri-toggle-at-%1$d">%2$s</span>', (int) $i + 1, esc_html( (string) $descs[ $v ] ) );
+				printf( '<span class="description ffc-control-steps-desc" data-step="%1$d">%2$s</span>', (int) $i + 1, esc_html( (string) $descs[ $v ] ) );
 			}
 		}
 		echo '</fieldset>';

@@ -16,7 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Quiz questions are scored per field** (#1730). Each field can be scored or left out; choices by correct option(s), a checkbox only on the exact set, or by points per option; text when answered; number and date by a correct range. "Show which answers were correct" now works. New tokens `{{correct_count}}` and `{{question_count}}`; existing forms score as before.
 - **A quiz can clear its answers when the participant leaves the window** (#1731). Off by default; the form warns first, switching tabs clears the scored answers and a dialog says why. It is not an attempt; the count is stored and shown on the submission. A deterrent, not a lock.
 - **Open quiz answers can be graded by a person** (#1732). A manually graded text question holds the attempt as "Awaiting Grading"; grading it on the edit screen issues the certificate or records Retry/Failed and emails the result. New capability `ffc_grade_certificates`, seeded from `ffc_edit_certificates`.
-- **A quiz can also reset when its window loses the focus** (#1745). Leaving the Window is Off / Moderate / Strict; Strict catches two windows side by side, after a grace set on Settings → Certificates. Start again reloads, reshuffling options. Built on a reusable three-position switch with autosave.
+- **A quiz can also reset when its window loses the focus** (#1745). Leaving the Window is Off / Moderate / Strict; Strict catches two windows side by side, after a grace set on Settings → Certificates. Start again reloads, reshuffling options. Built on a reusable steps control (`ffc-control-*`) with autosave.
 
 ### Changed
 

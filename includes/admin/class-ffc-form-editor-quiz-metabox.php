@@ -103,7 +103,7 @@ class FormEditorQuizMetabox {
 				<th><label><?php esc_html_e( 'Leaving the Window', 'ffcertificate' ); ?></label></th>
 				<td>
 					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_tri_toggle(
+					\FreeFormCertificate\Admin\AdminUI::render_steps(
 						array(
 							'name'         => 'ffc_config[quiz_reset_on_leave]',
 							'id'           => 'ffc_quiz_reset_on_leave',
@@ -119,6 +119,7 @@ class FormEditorQuizMetabox {
 								\FreeFormCertificate\Core\QuizLeaveLevel::MODERATE => __( 'Switching to another tab or minimising the browser clears the scored answers.', 'ffcertificate' ),
 								\FreeFormCertificate\Core\QuizLeaveLevel::STRICT   => __( 'Also when another window takes the focus, such as two windows side by side or another program. A loss shorter than the grace set on Settings → Certificates does not count.', 'ffcertificate' ),
 							),
+							'palette'      => 'severity',
 							'data'         => array( 'ffc-autosave-form-key' => 'quiz_reset_on_leave' ),
 						)
 					);

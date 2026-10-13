@@ -65,7 +65,7 @@ class FormEditorQuizMetaboxTest extends TestCase {
 		$junk   = $this->render( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => 'on' ) );
 
 		$this->assertSame( 3, substr_count( $off, 'name="ffc_config[quiz_reset_on_leave]"' ), 'Off, Moderate and Strict are three radios of one field (#1745).' );
-		$this->assertStringContainsString( 'class="ffc-tri-toggle ffc-tri-toggle-severity"', $off );
+		$this->assertStringContainsString( 'class="ffc-control-steps ffc-control-steps-severity"', $off );
 		$this->assertStringContainsString( 'data-ffc-autosave-form-key="quiz_reset_on_leave"', $off );
 
 		$this->assertMatchesRegularExpression( '/value="0" checked/', $off );

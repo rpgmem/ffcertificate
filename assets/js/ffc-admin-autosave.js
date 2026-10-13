@@ -83,9 +83,9 @@
         // the track on toggle-on — so the toggle visually stays "off"
         // even after the save succeeds. Anchor the badge AFTER the
         // wrapping label instead so the track stays adjacent.
-        // A three-position switch (#1745) is one field made of three radios:
+        // A steps control (#1745) is one field made of one radio per step:
         // its badge goes after the whole control, once.
-        var $anchor = $field.closest('.ffc-toggle, .ffc-tri-toggle');
+        var $anchor = $field.closest('.ffc-toggle, .ffc-control-steps');
         if (!$anchor.length) {
             $anchor = $field;
         }

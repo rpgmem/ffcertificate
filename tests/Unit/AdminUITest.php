@@ -333,12 +333,12 @@ class AdminUITest extends TestCase {
 	}
 
 	// ==================================================================
-	// Three-position switch (#1745)
+	// Steps control (#1745)
 	// ==================================================================
 
-	private function tri( array $args ): string {
+	private function steps( array $args ): string {
 		ob_start();
-		AdminUI::render_tri_toggle(
+		AdminUI::render_steps(
 			$args + array(
 				'name'    => 'cfg[level]',
 				'options' => array(
@@ -351,51 +351,118 @@ class AdminUITest extends TestCase {
 		return (string) ob_get_clean();
 	}
 
-	public function test_tri_toggle_is_three_radios_of_one_field_with_their_labels(): void {
-		$html = $this->tri( array( 'value' => '1', 'id' => 'lvl', 'legend' => 'Reset level' ) );
+	public function test_steps_is_one_radio_per_stop_with_its_visible_name(): void {
+		$html = $this->steps( array( 'value' => '1', 'id' => 'lvl', 'legend' => 'Reset level' ) );
 
 		$this->assertSame( 3, substr_count( $html, 'type="radio"' ) );
 		$this->assertSame( 3, substr_count( $html, 'name="cfg[level]"' ) );
 		$this->assertStringContainsString( '<legend class="screen-reader-text">Reset level</legend>', $html );
 		$this->assertStringContainsString( 'id="lvl-2" name="cfg[level]" value="1" checked', $html );
 		$this->assertSame( 1, substr_count( $html, ' checked' ) );
-		$this->assertStringContainsString( '<label class="ffc-tri-toggle-stop" for="lvl-3"><span class="screen-reader-text">Strict</span></label>', $html );
-		$this->assertStringContainsString( '<span class="ffc-tri-toggle-value" aria-hidden="true"><span class="ffc-tri-toggle-at-1">Off</span><span class="ffc-tri-toggle-at-2">Moderate</span><span class="ffc-tri-toggle-at-3">Strict</span></span>', $html );
+		$this->assertStringContainsString( '<label class="ffc-control-steps-stop"><input type="radio" id="lvl-3" name="cfg[level]" value="2"><span class="ffc-control-steps-mark" aria-hidden="true"></span><span class="ffc-control-steps-label">Strict</span></label>', $html );
 	}
 
-	public function test_tri_toggle_palette_defaults_to_severity_and_takes_traffic(): void {
-		$this->assertStringContainsString( 'class="ffc-tri-toggle ffc-tri-toggle-severity"', $this->tri( array() ) );
-		$this->assertStringContainsString( 'class="ffc-tri-toggle ffc-tri-toggle-traffic"', $this->tri( array( 'palette' => 'traffic' ) ) );
-		$this->assertStringContainsString( 'class="ffc-tri-toggle ffc-tri-toggle-severity"', $this->tri( array( 'palette' => 'neon' ) ), 'An unknown palette falls back rather than printing a class nothing styles.' );
+	public function test_steps_palette_defaults_to_primary_and_takes_the_others(): void {
+		$this->assertStringContainsString( 'class="ffc-control-steps ffc-control-steps-primary"', $this->steps( array() ) );
+		$this->assertStringContainsString( 'class="ffc-control-steps ffc-control-steps-severity"', $this->steps( array( 'palette' => 'severity' ) ) );
+		$this->assertStringContainsString( 'class="ffc-control-steps ffc-control-steps-traffic"', $this->steps( array( 'palette' => 'traffic' ) ) );
+		$this->assertStringContainsString( 'class="ffc-control-steps ffc-control-steps-primary"', $this->steps( array( 'palette' => 'neon' ) ), 'An unknown palette falls back rather than printing a class nothing styles.' );
 	}
 
-	public function test_tri_toggle_checks_the_first_option_when_the_value_is_not_one(): void {
-		$html = $this->tri( array( 'value' => 'x' ) );
-		$this->assertStringContainsString( 'value="0" checked', $html );
+	public function test_steps_layout_parameters_become_classes(): void {
+		$html = $this->steps(
+			array(
+				'size'   => 'lg',
+				'shape'  => 'square',
+				'fluid'  => true,
+				'labels' => 'selected',
+			)
+		);
+		$this->assertStringContainsString( 'class="ffc-control-steps ffc-control-steps-primary ffc-control-steps-lg ffc-control-steps-square ffc-control-steps-fluid ffc-control-steps-labels-selected"', $html );
+		$this->assertStringContainsString( 'class="ffc-control-steps ffc-control-steps-primary"', $this->steps( array( 'size' => 'xl', 'shape' => 'star', 'labels' => 'none' ) ), 'Unknown values add nothing.' );
 	}
 
-	public function test_tri_toggle_carries_data_and_disabled_on_every_radio(): void {
-		$html = $this->tri(
+	public function test_steps_marks_a_long_scale(): void {
+		$options = array_combine( range( 1, 6 ), array( 'a', 'b', 'c', 'd', 'e', 'f' ) );
+		$this->assertStringContainsString( 'ffc-control-steps-many', $this->steps( array( 'options' => $options ) ) );
+		$this->assertStringNotContainsString( 'ffc-control-steps-many', $this->steps( array() ) );
+	}
+
+	public function test_steps_tones_name_a_stop_and_ignore_unknown_ones(): void {
+		$html = $this->steps( array( 'tones' => array( '0' => 'info', '2' => 'lilac' ) ) );
+		$this->assertSame( 1, substr_count( $html, 'data-tone=' ) );
+		$this->assertStringContainsString( '<label class="ffc-control-steps-stop" data-tone="info"><input type="radio" id="cfg-level-1"', $html );
+	}
+
+	public function test_steps_checks_the_default_and_then_the_first_when_the_value_is_not_one(): void {
+		$this->assertStringContainsString( 'value="0" checked', $this->steps( array( 'value' => 'x' ) ) );
+		$this->assertStringContainsString( 'value="1" checked', $this->steps( array( 'value' => 'x', 'default' => '1' ) ), 'A stored value the scale does not know shows the default, as the select it replaced did.' );
+		$this->assertStringContainsString( 'value="0" checked', $this->steps( array( 'value' => 'x', 'default' => 'y' ) ), 'A default outside the options falls back to the first.' );
+		$this->assertStringContainsString( 'value="2" checked', $this->steps( array( 'value' => '2', 'default' => '1' ) ) );
+	}
+
+	public function test_steps_carries_data_on_every_radio_and_disables_the_group(): void {
+		$html = $this->steps(
 			array(
 				'disabled' => true,
 				'data'     => array( 'ffc-autosave-form-key' => 'level' ),
 			)
 		);
-		$this->assertSame( 3, substr_count( $html, ' disabled data-ffc-autosave-form-key="level"' ) );
+		$this->assertSame( 3, substr_count( $html, ' data-ffc-autosave-form-key="level"' ) );
+		$this->assertStringContainsString( 'ffc-control-steps-primary" disabled>', $html, 'A disabled fieldset disables every radio in it.' );
 	}
 
-	public function test_tri_toggle_prints_a_description_per_value_given(): void {
-		$html = $this->tri( array( 'descriptions' => array( '2' => 'Also the focus.' ) ) );
-		$this->assertStringContainsString( '<span class="description ffc-tri-toggle-desc ffc-tri-toggle-at-3">Also the focus.</span>', $html );
-		$this->assertSame( 1, substr_count( $html, 'ffc-tri-toggle-desc' ) );
+	public function test_steps_prints_a_description_per_value_given_tied_to_its_stop(): void {
+		$html = $this->steps( array( 'descriptions' => array( '2' => 'Also the focus.' ) ) );
+		$this->assertStringContainsString( '<span class="description ffc-control-steps-desc" data-step="3">Also the focus.</span>', $html );
+		$this->assertSame( 1, substr_count( $html, 'ffc-control-steps-desc' ) );
 	}
 
-	public function test_tri_toggle_needs_a_name_and_exactly_three_options(): void {
-		$this->assertSame( '', $this->tri( array( 'name' => '' ) ) );
-		$this->assertSame( '', $this->tri( array( 'options' => array( '0' => 'Off', '1' => 'On' ) ) ) );
+	public function test_steps_needs_a_name_and_options(): void {
+		$this->assertSame( '', $this->steps( array( 'name' => '' ) ) );
+		$this->assertSame( '', $this->steps( array( 'options' => array() ) ) );
 	}
 
-	public function test_tri_toggle_derives_an_id_from_the_name(): void {
-		$this->assertStringContainsString( 'id="cfg-level-1"', $this->tri( array() ) );
+	public function test_steps_derives_an_id_from_the_name(): void {
+		$this->assertStringContainsString( 'id="cfg-level-1"', $this->steps( array() ) );
+	}
+
+	/**
+	 * Out of range the field still works, as a select, and the developer is
+	 * told which control fits.
+	 */
+	public function test_steps_out_of_range_prints_a_select_and_tells_the_developer(): void {
+		$notices = array();
+		Functions\when( '_doing_it_wrong' )->alias(
+			static function ( $fn, $message ) use ( &$notices ) {
+				$notices[] = $message;
+			}
+		);
+		Functions\when( 'selected' )->alias( static fn( $a, $b, $echo = true ) => (string) $a === (string) $b ? ' selected=\'selected\'' : '' );
+
+		$two = $this->steps(
+			array(
+				'value'   => '1',
+				'options' => array(
+					'0' => 'Off',
+					'1' => 'On',
+				),
+			)
+		);
+		$this->assertStringContainsString( '<select id="cfg-level" name="cfg[level]">', $two );
+		$this->assertStringContainsString( '<option value="1" selected=\'selected\'>On</option>', $two );
+		$this->assertStringNotContainsString( 'ffc-control-steps', $two );
+
+		$twelve = $this->steps( array( 'options' => array_combine( range( 1, 12 ), range( 1, 12 ) ) ) );
+		$this->assertSame( 12, substr_count( $twelve, '<option ' ) );
+
+		$this->assertCount( 2, $notices );
+		$this->assertStringContainsString( '2 were given', $notices[0] );
+		$this->assertStringContainsString( 'render_toggle()', $notices[0] );
+		$this->assertStringContainsString( '12 were given', $notices[1] );
+
+		$notices = array();
+		$this->steps( array( 'options' => array_combine( range( 1, 11 ), range( 1, 11 ) ) ) );
+		$this->assertSame( array(), $notices, 'Eleven is still a steps control.' );
 	}
 }

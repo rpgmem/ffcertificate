@@ -203,14 +203,16 @@ final class DarkModeCssTest extends TestCase {
 			// them already failed before the conversion: --ffc-danger as text on
 			// a card (4.29:1 in dark) and the white label of the .ffc-btn-success
 			// button (3.35:1 in light). No guard measured that.
-			// The three-position switch (#1745): each knob colour of both
-			// palettes against the track it sits on, and the track's edge
-			// against the card. Graphics, so the 3:1 floor.
-			array( '--ffc-gray-600', '--ffc-bg-card', 3.0, 'the switch knob at its first severity stop' ),
-			array( '--ffc-warning', '--ffc-bg-card', 3.0, 'the switch knob at its middle stop' ),
-			array( '--ffc-danger', '--ffc-bg-card', 3.0, 'the switch knob at red' ),
-			array( '--ffc-success', '--ffc-bg-card', 3.0, 'the switch knob at green' ),
-			array( '--ffc-border', '--ffc-bg-card', 3.0, 'the switch track edge on a card' ),
+			// The steps control (#1745): every colour the filled rail and the
+			// thumb's ring can take against the card, and an idle stop's ring.
+			// Graphics, so the 3:1 floor.
+			array( '--ffc-primary', '--ffc-bg-card', 3.0, 'a steps fill, primary palette' ),
+			array( '--ffc-gray-600', '--ffc-bg-card', 3.0, 'a steps fill at the first severity stop' ),
+			array( '--ffc-warning', '--ffc-bg-card', 3.0, 'a steps fill at a middle stop' ),
+			array( '--ffc-danger', '--ffc-bg-card', 3.0, 'a steps fill at red' ),
+			array( '--ffc-success', '--ffc-bg-card', 3.0, 'a steps fill at green' ),
+			array( '--ffc-info', '--ffc-bg-card', 3.0, 'a steps fill in the info tone' ),
+			array( '--ffc-border', '--ffc-bg-card', 3.0, 'an idle stop on a card' ),
 			array( '--ffc-text-secondary', '--ffc-bg-alt', 4.5, 'neutral status badge' ),
 			array( '--ffc-text-muted', '--ffc-bg-alt', 4.5, 'closed status badge' ),
 			array( '--ffc-text-secondary', '--ffc-bg-card', 4.5, 'a label inside the modal' ),
