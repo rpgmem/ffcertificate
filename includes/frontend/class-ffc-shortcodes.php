@@ -211,6 +211,9 @@ class Shortcodes {
 			$schedule_exception_cookie = '';
 		}
 
+		$form_config = get_post_meta( $form_id, '_ffc_form_config', true );
+		$quiz_leave  = $this->quiz_leave_questions( is_array( $form_config ) ? $form_config : array(), $fields );
+
 		ob_start();
 		?>
 		<div class="<?php echo esc_attr( $wrapper_class ); ?>" id="ffc-form-<?php echo esc_attr( (string) $form_id ); ?>">
@@ -232,8 +235,11 @@ class Shortcodes {
 					</p>
 				</div>
 			<?php endif; ?>
-			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>">
+			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>"<?php echo null !== $quiz_leave ? ' data-ffc-quiz-leave="' . esc_attr( (string) wp_json_encode( $quiz_leave ) ) . '"' : ''; ?>>
 				<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form_id ); ?>">
+				<?php if ( null !== $quiz_leave ) : ?>
+					<?php $this->render_quiz_leave_notice( $form_id ); ?>
+				<?php endif; ?>
 				<?php if ( null !== $schedule_exception && '' !== $schedule_exception_cookie ) : ?>
 					<input type="hidden" name="ffc_schedule_exception_token" value="<?php echo esc_attr( $schedule_exception_cookie ); ?>">
 				<?php endif; ?>
@@ -251,7 +257,6 @@ class Shortcodes {
 				?>
 
 				<?php
-				$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
 				$restrictions = isset( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
 
 				// Password field (if active).
@@ -363,6 +368,64 @@ class Shortcodes {
 		<?php
 		$form_html = ob_get_clean();
 		return $form_html ? $form_html : '';
+	}
+
+	/**
+	 * The scored questions a "leave the window" reset clears, or null when
+	 * the form does not reset (#1731).
+	 *
+	 * Only the answers are cleared: the name, the CPF/RF and every other
+	 * field the quiz does not score are the participant's, not the quiz's.
+	 *
+	 * @param array<array-key, mixed>          $form_config Form configuration.
+	 * @param array<int, array<string, mixed>> $fields      Form fields.
+	 * @return list<string>|null
+	 */
+	private function quiz_leave_questions( array $form_config, array $fields ): ?array {
+		if ( '1' !== ( $form_config['quiz_enabled'] ?? '' ) || '1' !== ( $form_config['quiz_reset_on_leave'] ?? '' ) ) {
+			return null;
+		}
+		$names = array();
+		foreach ( $fields as $field ) {
+			if ( \FreeFormCertificate\Core\QuizQuestion::is_scored( $field ) && is_scalar( $field['name'] ?? null ) ) {
+				$names[] = (string) $field['name'];
+			}
+		}
+		return $names;
+	}
+
+	/**
+	 * The notice a reset quiz shows before the participant starts, the
+	 * leave counter it posts, and the dialog it opens on return (#1731).
+	 *
+	 * The dialog is markup rather than a script string, so it is translated
+	 * where every other string of the form is.
+	 *
+	 * @param int $form_id Form ID.
+	 */
+	private function render_quiz_leave_notice( int $form_id ): void {
+		$title_id = 'ffc-quiz-leave-title-' . $form_id;
+		$text_id  = 'ffc-quiz-leave-text-' . $form_id;
+		?>
+		<div class="ffc-form-info-block ffc-quiz-leave-notice" role="note">
+			<p><strong><?php esc_html_e( 'Stay on this page while you answer.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Switching to another tab or window clears your answers, and the number of times you leave is recorded with your submission.', 'ffcertificate' ); ?></p>
+		</div>
+		<input type="hidden" name="ffc_quiz_focus_losses" value="0" class="ffc-quiz-focus-losses">
+		<div class="ffc-modal ffc-quiz-leave-overlay" role="alertdialog" aria-modal="true" aria-labelledby="<?php echo esc_attr( $title_id ); ?>" aria-describedby="<?php echo esc_attr( $text_id ); ?>" hidden>
+			<div class="ffc-modal-backdrop"></div>
+			<div class="ffc-modal-content">
+				<div class="ffc-modal-header">
+					<h3 id="<?php echo esc_attr( $title_id ); ?>"><?php esc_html_e( 'Your answers were cleared', 'ffcertificate' ); ?></h3>
+				</div>
+				<div class="ffc-modal-body">
+					<p id="<?php echo esc_attr( $text_id ); ?>"><?php esc_html_e( 'You left this page while answering the quiz, so the answers were cleared. Leaving does not count as an attempt.', 'ffcertificate' ); ?></p>
+				</div>
+				<div class="ffc-modal-footer">
+					<button type="button" class="ffc-submit-btn ffc-quiz-leave-restart"><?php esc_html_e( 'Start again', 'ffcertificate' ); ?></button>
+				</div>
+			</div>
+		</div>
+		<?php
 	}
 
 	/**

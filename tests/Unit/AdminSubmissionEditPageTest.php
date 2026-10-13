@@ -626,6 +626,23 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$msg = $this->capture( fn () => $this->page()->handle_save() );
 		$this->assertStringStartsWith( 'REDIRECT:', $msg );
 	}
+	/**
+	 * #1731 — the window-leave count reads as a labelled fact, not an answer
+	 * to edit, and is still posted so a save keeps it.
+	 */
+	public function test_render_shows_the_window_leave_count_as_a_protected_fact(): void {
+		$row = $this->submission_row( array( 'data' => wp_json_encode_local( array( '_quiz_focus_losses' => 3 ) ) ) );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $row );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<dt class="ffc-facts__label">Times the quiz window was left</dt>', $html );
+		$this->assertStringContainsString( '<input type="hidden" name="data[_quiz_focus_losses]" value="3">', $html );
+		$this->assertStringNotContainsString( 'type="text" id="ffc-edit-data-_quiz_focus_losses"', $html );
+	}
+
 	public function test_render_reads_protected_fields_as_text_and_still_posts_them(): void {
 		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
 

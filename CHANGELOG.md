@@ -14,6 +14,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"View details" speaks Portuguese and opens screenshots in place** (#1716). The tabs and banner follow the viewer's language when the plugin ships a translation (`languages/readme-pt_BR.txt`), and a screenshot opens in an overlay with arrows, swipe and zoom instead of a new tab.
 - **Choice fields take one option per row, and every field can carry limits** (#1729). Options may contain commas; a choice field can shuffle its options per participant; a checkbox can cap how many are ticked; text and textarea take a minimum and maximum length (server ceilings 255 and 2,000) with a live counter; number and date take a range. The participant sees each limit, and the editor says what each type is for.
 - **Quiz questions are scored per field** (#1730). Each field can be scored or left out; choices by correct option(s), a checkbox only on the exact set, or by points per option; text when answered; number and date by a correct range. "Show which answers were correct" now works. New tokens `{{correct_count}}` and `{{question_count}}`; existing forms score as before.
+- **A quiz can clear its answers when the participant leaves the window** (#1731). Off by default; the form warns first, switching tabs clears the scored answers and a dialog says why. It is not an attempt; the count is stored and shown on the submission. A deterrent, not a lock.
 
 ### Changed
 

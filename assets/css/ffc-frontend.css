@@ -2395,3 +2395,17 @@ details.ffc-consent-description > p {
         border: 1px solid CanvasText;
     }
 }
+
+/* Quiz "leave the window" dialog (#1731). It reuses the shared modal; the
+   theme's paragraph size would otherwise dwarf the dialog's own title. */
+.ffc-shortcode .ffc-quiz-leave-overlay .ffc-modal-header h3 {
+    font-weight: 600;
+    color: var(--ffc-text);
+}
+
+.ffc-shortcode .ffc-quiz-leave-overlay .ffc-modal-body p {
+    margin: 0;
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
+    color: var(--ffc-text);
+}

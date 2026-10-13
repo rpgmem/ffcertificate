@@ -303,6 +303,58 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( '1', $ctx->submission_data['_quiz_passed'] );
 	}
 
+	/**
+	 * #1731 — a reset quiz records how many times the window was left,
+	 * capped; a quiz without the reset records nothing.
+	 *
+	 * @dataProvider provider_focus_losses
+	 */
+	public function test_quiz_records_the_window_leave_count_only_when_reset( string $reset, $posted, ?int $expected ): void {
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Quiz' ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_unslash' )->returnArg();
+		$_POST['ffc_quiz_focus_losses'] = $posted;
+
+		$handler = $this->handlerWithRepo();
+		$handler->shouldReceive( 'process_submission' )->once()->andReturn( 901 );
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
+		$enc->shouldReceive( 'is_configured' )->andReturn( false )->byDefault();
+
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'        => '1',
+					'quiz_passing_score'  => 70,
+					'quiz_max_attempts'   => 0,
+					'quiz_reset_on_leave' => $reset,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'A' ),
+			)
+		);
+
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+		unset( $_POST['ffc_quiz_focus_losses'] );
+
+		if ( null === $expected ) {
+			$this->assertArrayNotHasKey( '_quiz_focus_losses', $ctx->submission_data );
+		} else {
+			$this->assertSame( $expected, $ctx->submission_data['_quiz_focus_losses'] );
+		}
+	}
+
+	/**
+	 * @return array<string, array{string, mixed, ?int}>
+	 */
+	public static function provider_focus_losses(): array {
+		return array(
+			'reset on, two exits'      => array( '1', '2', 2 ),
+			'reset on, capped'         => array( '1', '5000', SubmissionPersister::MAX_FOCUS_LOSSES ),
+			'reset on, not a number'   => array( '1', array( 'x' ), 0 ),
+			'reset off, nothing kept'  => array( '0', '3', null ),
+		);
+	}
+
 	public function test_quiz_failing_in_progress_throws_feedback(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'is_wp_error' )->justReturn( false );

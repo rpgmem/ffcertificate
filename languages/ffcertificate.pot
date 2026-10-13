@@ -25595,3 +25595,43 @@ msgstr ""
 #: includes/admin/class-ffc-form-editor-save-handler.php:794
 msgid "Warning! The form lacks these required fields:"
 msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:103
+msgid "Leaving the Window"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:110
+msgid "Reset the quiz when the participant leaves the window"
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php:424
+msgid "Start again"
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php:411
+msgid "Stay on this page while you answer."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:114
+msgid "Switching tabs or minimising the browser clears the answers; the participant is warned before starting and told why on return. Leaving does not count as an attempt, and how many times it happened is recorded on the submission. A deterrent, not a lock: another device or a browser without JavaScript is not stopped."
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php:411
+msgid "Switching to another tab or window clears your answers, and the number of times you leave is recorded with your submission."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:574
+msgid "Times the quiz window was left"
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php:421
+msgid "You left this page while answering the quiz, so the answers were cleared. Leaving does not count as an attempt."
+msgstr ""
+
+#: includes/frontend/class-ffc-shortcodes.php:418
+msgid "Your answers were cleared"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-quiz.php:32
+msgid "off by default. When on, the form warns the participant before they start; once they have started filling in the form, switching to another tab or minimising the browser clears the scored answers (name, CPF/RF and the other fields stay) and a dialog explains why on return. Leaving does not count as an attempt; the number of times it happened is stored with the submission and shown on its edit screen as \"Times the quiz window was left\". It is a deterrent, not a lock: another device, or a browser without JavaScript, is not stopped, and the count is reported by the browser."
+msgstr ""

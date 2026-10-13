@@ -567,8 +567,12 @@ class AdminSubmissionEditPage {
 	 * field left out of the POST would be deleted.
 	 */
 	private function render_dynamic_fields(): void {
-		// Protected fields (read-only within JSON).
-		$protected_json_fields = array( 'auth_code', 'fill_date', 'ticket' );
+		// Protected fields (read-only within JSON). The window-leave count
+		// is the browser's record of the attempt, not an answer (#1731).
+		$protected_json_fields = array( 'auth_code', 'fill_date', 'ticket', '_quiz_focus_losses' );
+		$internal_labels       = array(
+			'_quiz_focus_losses' => __( 'Times the quiz window was left', 'ffcertificate' ),
+		);
 
 		self::card_open( __( 'Form answers', 'ffcertificate' ), 'list' );
 
@@ -581,7 +585,7 @@ class AdminSubmissionEditPage {
 			}
 
 			// Get field label.
-			$lbl = $k;
+			$lbl = $internal_labels[ $k ] ?? $k;
 			foreach ( (array) $this->fields as $f ) {
 				if ( isset( $f['name'] ) && $f['name'] === $k ) {
 					$lbl = $f['label'];

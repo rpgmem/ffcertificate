@@ -22,6 +22,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend\Submission;
 
 use FreeFormCertificate\Core\ArrayValue;
+use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -32,6 +33,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Submission persistence + reprint/quiz resolution stage.
  */
 class SubmissionPersister {
+
+	/**
+	 * Highest window-leave count a submission records (#1731).
+	 */
+	public const MAX_FOCUS_LOSSES = 999;
 
 	/**
 	 * Submission handler.
@@ -92,6 +98,12 @@ class SubmissionPersister {
 			// Read by `{{correct_count}}` / `{{question_count}}` (#1730).
 			$submission_data['_quiz_correct_count']  = $quiz_score['correct_count'];
 			$submission_data['_quiz_question_count'] = $quiz_score['question_count'];
+			// How many times the participant left the window (#1731). The
+			// browser counts it, so it is a record, not evidence: it is kept
+			// only when the form asks for it, and capped.
+			if ( '1' === ArrayValue::string( $form_config, 'quiz_reset_on_leave', '0' ) ) {
+				$submission_data['_quiz_focus_losses'] = min( self::MAX_FOCUS_LOSSES, RequestInput::get_post_int( 'ffc_quiz_focus_losses' ) );
+			}
 
 			// Find existing quiz submission for this CPF + form.
 			$existing = $this->find_quiz_submission( $form_id, $val_cpf );

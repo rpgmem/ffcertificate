@@ -25679,3 +25679,43 @@ msgstr "Faltam campos obrigatórios neste formulário:"
 #: includes/admin/class-ffc-form-editor-save-handler.php:794
 msgid "Warning! The form lacks these required fields:"
 msgstr "Atenção! Faltam estes campos obrigatórios no formulário:"
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:103
+msgid "Leaving the Window"
+msgstr "Saída da Janela"
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:110
+msgid "Reset the quiz when the participant leaves the window"
+msgstr "Reiniciar o quiz quando o participante sair da janela"
+
+#: includes/frontend/class-ffc-shortcodes.php:424
+msgid "Start again"
+msgstr "Recomeçar"
+
+#: includes/frontend/class-ffc-shortcodes.php:411
+msgid "Stay on this page while you answer."
+msgstr "Permaneça nesta página enquanto responde."
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:114
+msgid "Switching tabs or minimising the browser clears the answers; the participant is warned before starting and told why on return. Leaving does not count as an attempt, and how many times it happened is recorded on the submission. A deterrent, not a lock: another device or a browser without JavaScript is not stopped."
+msgstr "Trocar de aba ou minimizar o navegador apaga as respostas; o participante é avisado antes de começar e, ao voltar, é informado do motivo. Sair não conta como tentativa, e quantas vezes isso aconteceu fica registrado na submissão. É um desestímulo, não um bloqueio: outro dispositivo ou um navegador sem JavaScript não é impedido."
+
+#: includes/frontend/class-ffc-shortcodes.php:411
+msgid "Switching to another tab or window clears your answers, and the number of times you leave is recorded with your submission."
+msgstr "Trocar para outra aba ou janela apaga suas respostas, e o número de vezes que você sair fica registrado com a sua submissão."
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:574
+msgid "Times the quiz window was left"
+msgstr "Saídas da janela do quiz"
+
+#: includes/frontend/class-ffc-shortcodes.php:421
+msgid "You left this page while answering the quiz, so the answers were cleared. Leaving does not count as an attempt."
+msgstr "Você saiu desta página enquanto respondia ao quiz, por isso as respostas foram apagadas. Sair não conta como tentativa."
+
+#: includes/frontend/class-ffc-shortcodes.php:418
+msgid "Your answers were cleared"
+msgstr "Suas respostas foram apagadas"
+
+#: includes/settings/views/documentation/feature-quiz.php:32
+msgid "off by default. When on, the form warns the participant before they start; once they have started filling in the form, switching to another tab or minimising the browser clears the scored answers (name, CPF/RF and the other fields stay) and a dialog explains why on return. Leaving does not count as an attempt; the number of times it happened is stored with the submission and shown on its edit screen as \"Times the quiz window was left\". It is a deterrent, not a lock: another device, or a browser without JavaScript, is not stopped, and the count is reported by the browser."
+msgstr "desligado por padrão. Quando ligado, o formulário avisa o participante antes de começar; depois que ele começa a preencher, trocar para outra aba ou minimizar o navegador apaga as respostas pontuadas (nome, CPF/RF e os demais campos permanecem) e uma janela explica o motivo ao voltar. Sair não conta como tentativa; o número de vezes fica gravado na submissão e aparece na tela de edição como \"Saídas da janela do quiz\". É um desestímulo, não um bloqueio: outro dispositivo, ou um navegador sem JavaScript, não é impedido, e a contagem é informada pelo navegador."

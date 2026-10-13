@@ -818,6 +818,12 @@
     justify-content: center;
 }
 
+/* A modal rendered with `hidden` stays hidden: `display: flex` above
+   outranks the user agent's `[hidden]` rule (#1731). */
+.ffc-shortcode .ffc-modal[hidden] {
+    display: none;
+}
+
 .ffc-shortcode .ffc-modal-backdrop {
     position: absolute;
     top: 0;
