@@ -291,8 +291,11 @@
     border-bottom: 1px solid var(--ffc-border);
 }
 
+/* The modal is appended to <body>, outside `.wrap`, so the heading would take
+   core's near-black `h3` instead of the theme's text colour. */
 .ffc-admin-modal-header h3 {
     margin: 0;
+    color: var(--ffc-text);
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
 }
