@@ -148,16 +148,23 @@ class FormEditorSaveHandler {
 				continue;
 			}
 
-			$type   = sanitize_key( ArrayValue::string( $field, 'type' ) );
+			$type = sanitize_key( ArrayValue::string( $field, 'type' ) );
+			// A required field keeps the type Settings → Certificates gives
+			// it, whatever the request says: the editor locks the select, an
+			// edited page could still post another (#1741).
+			$required_row = FormEditorSaveValidator::required_field( sanitize_key( ArrayValue::string( $field, 'name' ) ) );
+			if ( null !== $required_row ) {
+				$type = $required_row['type'];
+			}
 			$limits = \FreeFormCertificate\Core\FormField::sanitize_limits( $field, $type );
 
 			$row = array(
 				'label'         => sanitize_text_field( ArrayValue::string( $field, 'label' ) ),
 				'name'          => sanitize_key( ArrayValue::string( $field, 'name' ) ),
 				'type'          => $type,
-				// A field a required certificate tag calls for is always
-				// required: the editor disables its toggle (#1734).
-				'required'      => isset( $field['required'] ) || FormEditorSaveValidator::is_required_field( sanitize_key( ArrayValue::string( $field, 'name' ) ) ) ? '1' : '',
+				// A required field is always required: the editor disables
+				// its toggle (#1734).
+				'required'      => isset( $field['required'] ) || null !== $required_row ? '1' : '',
 				'content'       => wp_kses_post( ArrayValue::string( $field, 'content' ) ),
 				'embed_url'     => esc_url_raw( ArrayValue::string( $field, 'embed_url' ) ),
 				'points'        => sanitize_text_field( ArrayValue::string( $field, 'points' ) ),
@@ -784,7 +791,7 @@ class FormEditorSaveHandler {
 			delete_transient( 'ffc_save_fields_error_' . get_current_user_id() );
 			ob_start();
 			?>
-			<p><strong><?php esc_html_e( 'Warning! These required certificate tags have no field in the form:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $missing_fields, 'is_scalar' ) ) ) ); ?></code>. <?php esc_html_e( 'Add a field whose variable name is the tag without braces.', 'ffcertificate' ); ?></p>
+			<p><strong><?php esc_html_e( 'Warning! The form lacks these required fields:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $missing_fields, 'is_scalar' ) ) ) ); ?></code>. <?php esc_html_e( 'The Fields tab can add them: “Add the required fields”.', 'ffcertificate' ); ?></p>
 			<?php
 			wp_admin_notice(
 				(string) ob_get_clean(),

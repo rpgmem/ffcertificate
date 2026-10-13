@@ -220,6 +220,46 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( "{{auth_code}}\n{{name}}", $result['required_certificate_tags'] );
 	}
 
+	/**
+	 * #1741 — the required-field table is stored from the raw POST: one
+	 * row per usable name, a type from the allowlist, no generated tag.
+	 */
+	public function test_certificates_tab_stores_the_required_field_table(): void {
+		$_POST['_ffc_tab']     = 'certificates';
+		$_POST['ffc_settings'] = array(
+			'required_form_fields' => array(
+				array( 'name' => 'cpf_rf', 'label' => 'CPF / RF', 'type' => 'text' ),
+				array( 'name' => 'birth-date', 'label' => '', 'type' => 'date' ),
+				array( 'name' => 'cpf_rf', 'label' => 'Duplicate', 'type' => 'number' ),
+				array( 'name' => 'auth_code', 'label' => 'Generated', 'type' => 'text' ),
+				array( 'name' => 'course', 'label' => 'Course', 'type' => 'select' ),
+				array( 'name' => '', 'label' => 'Empty', 'type' => 'text' ),
+				'not a row',
+			),
+		);
+
+		$result = $this->invoke( 'save_general_settings', array( array(), array() ) );
+
+		$this->assertSame(
+			array(
+				array( 'name' => 'cpf_rf', 'label' => 'CPF / RF', 'type' => 'text' ),
+				array( 'name' => 'birth_date', 'label' => 'birth_date', 'type' => 'date' ),
+				array( 'name' => 'course', 'label' => 'Course', 'type' => 'text' ),
+			),
+			$result['required_form_fields']
+		);
+	}
+
+	public function test_a_certificates_save_without_the_table_leaves_it_alone(): void {
+		$_POST['_ffc_tab']     = 'certificates';
+		$_POST['ffc_settings'] = array( 'required_certificate_tags' => '{{auth_code}}' );
+		$stored                = array( array( 'name' => 'name', 'label' => 'Name', 'type' => 'text' ) );
+
+		$result = $this->invoke( 'save_general_settings', array( array( 'required_form_fields' => $stored ), array() ) );
+
+		$this->assertSame( $stored, $result['required_form_fields'] );
+	}
+
 	public function test_general_dark_mode_valid_values_accepted(): void {
 		foreach ( array( 'off', 'on', 'auto' ) as $mode ) {
 			$result = $this->invoke( 'save_general_settings', array( array(), array( 'dark_mode' => $mode ) ) );

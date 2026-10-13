@@ -40,6 +40,7 @@ return array(
 	'main_address',
 	'public_csv_sync_max_rows',
 	'required_certificate_tags',
+	'required_form_fields',
 	'url_shortener_auto_create',
 	'url_shortener_code_length',
 	'url_shortener_enabled',

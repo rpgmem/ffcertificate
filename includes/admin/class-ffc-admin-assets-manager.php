@@ -625,6 +625,7 @@ class AdminAssetsManager {
 				'chooseFieldType'         => __( 'Choose Field Type:', 'ffcertificate' ),
 				/* translators: %d: number of options marked correct. */
 				'maxSelectBelowCorrect'   => __( 'The maximum selections is below the number of correct options (%d).', 'ffcertificate' ),
+				'requiredField'           => __( 'Required field', 'ffcertificate' ),
 
 				// Template Manager.
 				'selectTemplate'          => __( 'Select a Template', 'ffcertificate' ),

@@ -986,10 +986,6 @@ msgstr ""
 msgid "A manual resend replaces that member's automatic reminder — it does not add to it."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:50
-msgid "A new form starts with three fields, which are also the minimal set most templates rely on:"
-msgstr ""
-
 #: templates/emails/reregistration-invitation.php:26
 msgid "A new reregistration campaign has been opened for your group."
 msgstr ""
@@ -4922,10 +4918,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:386
 msgid "CPF + CAPTCHA validated."
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:149
-msgid "CPF / ID"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:603
@@ -11105,10 +11097,6 @@ msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-migrations.php:63
 msgid "Migrations view file not found."
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:168
-msgid "Minimal fields (Tag):"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:592
@@ -17581,10 +17569,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:22
 msgid "The three modes"
-msgstr ""
-
-#: includes/settings/views/documentation/forms-dynamic-fields.php:49
-msgid "The three seed fields"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:35
@@ -25358,10 +25342,6 @@ msgstr ""
 msgid "%1$s: enter the full name — at least two words and %2$s characters."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-save-handler.php:700
-msgid "Add a field whose variable name is the tag without braces."
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-certificates.php:63
 msgid "Certificates settings view file not found."
 msgstr ""
@@ -25378,24 +25358,12 @@ msgstr ""
 msgid "First and last name."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:227
-msgid "Required certificate tag"
-msgstr ""
-
 #: includes/admin/class-ffc-admin-ui.php:351
 msgid "Settings → Certificates"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-save-handler.php:700
-msgid "Warning! These required certificate tags have no field in the form:"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-certificates.php:25
 msgid "What every certificate form must carry. The certificate HTML editor's colour theme is on the General tab, next to Dark Mode."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-certificates.php:36
-msgid "One tag per line (with braces). Every certificate layout must contain them, and every form must have a field for each one the participant fills in; the form editor highlights those fields and does not let them be renamed or removed. {{auth_code}} is always required — certificate verification depends on it — and the plugin generates it, so it needs no field."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:61
@@ -25406,16 +25374,8 @@ msgstr ""
 msgid "the participant's email (required); used to deliver the certificate. An address that is not valid is refused as such, not as a missing one."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:66
-msgid "A field whose tag is a required certificate tag (Settings → Certificates) is drawn with an amber border and a \"Required certificate tag\" badge: it is always required, its variable name cannot change and it cannot be removed. Saving a form that has no field for one of those tags shows a warning naming it."
-msgstr ""
-
 #: includes/settings/views/documentation/forms-dynamic-fields.php:72
 msgid "A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF); the browser masks it and blocks the submit while the number is invalid. The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate \"CPF field type\" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-certificates.php:34
-msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Certificates → Required Certificate Tags; the form editor also requires a field for each tag the participant fills in, and locks it. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-quiz.php:23
@@ -25570,4 +25530,68 @@ msgstr ""
 #: includes/frontend/class-ffc-frontend.php:343
 msgctxt "quiz answer"
 msgid "Incorrect"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ui.php:345
+msgid "(when the form has an Event Schedule)"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:59
+msgid "A new form starts with the fields listed under Settings → Certificates → Required Form Fields, with the label and type given there. By default they are:"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:66
+msgid "A required field is drawn with an amber border and a \"Required field\" badge: it is always required, its variable name and type cannot change and it cannot be removed; only its label can. A form missing one shows a warning naming it, with an \"Add the required fields\" button that adds them."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:125
+msgid "Add required field"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:172
+msgid "Add the required fields"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:36
+msgid "Field name"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:92
+msgid "Fields every certificate form must have. A new form starts with them; in the form editor their name, type and required flag are locked, and only the label can change. Email is always required: the certificate is sent to it."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:81
+msgid "One tag per line (with braces). Every certificate layout must contain them. {{auth_code}} is always required — certificate verification depends on it. {{schedule}} is required only of a form that has an Event Schedule."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:58
+msgid "Required Form Fields"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-assets-manager.php:628
+msgid "Required field"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:159
+msgid "Required fields (Tag):"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-save-handler.php:794
+msgid "The Fields tab can add them: “Add the required fields”."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:128
+msgid "The certificate layout prints a field through its name in braces, such as {{cpf_rf}}. A name takes lowercase letters, digits and underscores."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php:34
+msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Certificates → Required Certificate Tags. {{auth_code}} cannot be removed, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The fields every form must have are a separate list on the same tab, Required Form Fields: by default name, cpf_rf and email, each with its label and type; email cannot be removed."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:166
+msgid "This form lacks required fields:"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-save-handler.php:794
+msgid "Warning! The form lacks these required fields:"
 msgstr ""

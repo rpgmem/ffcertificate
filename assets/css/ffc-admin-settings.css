@@ -1384,3 +1384,17 @@ html:has(.ffc-settings-back-to-top) {
 .widefat tfoot .ffc-location-new-field {
     padding: 0 var(--ffc-spacing-lg);
 }
+
+/* Settings → Certificates → Required Form Fields (#1741): the inputs fill
+   their cells instead of `.regular-text`'s fixed width, which pushed the
+   Type and Remove columns past the card. */
+.ffc-required-fields-table input[type="text"],
+.ffc-required-fields-table select {
+    width: 100%;
+    max-width: none;
+}
+
+.ffc-required-fields-table td:last-child {
+    width: 1%;
+    white-space: nowrap;
+}
