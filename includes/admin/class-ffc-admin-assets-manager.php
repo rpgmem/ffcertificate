@@ -620,12 +620,11 @@ class AdminAssetsManager {
 				'serverError'             => __( 'Server error (Status: %d)', 'ffcertificate' ),
 
 				// Field Builder — the rows themselves are copied from the
-				// server-rendered template, so only the menu needs words.
+				// server-rendered template, so only the menu and the quiz
+				// check need words.
 				'chooseFieldType'         => __( 'Choose Field Type:', 'ffcertificate' ),
-
-				// Quiz Mode.
-				'quizPoints'              => __( 'Points per option:', 'ffcertificate' ),
-				'quizPointsPlaceholder'   => __( 'Ex: 0, 10, 0', 'ffcertificate' ),
+				/* translators: %d: number of options marked correct. */
+				'maxSelectBelowCorrect'   => __( 'The maximum selections is below the number of correct options (%d).', 'ffcertificate' ),
 
 				// Template Manager.
 				'selectTemplate'          => __( 'Select a Template', 'ffcertificate' ),

@@ -89,6 +89,9 @@ class SubmissionPersister {
 			$submission_data['_quiz_max_score'] = $quiz_score['max_score'];
 			$submission_data['_quiz_percent']   = $quiz_score['percent'];
 			$submission_data['_quiz_passed']    = $passed ? '1' : '0';
+			// Read by `{{correct_count}}` / `{{question_count}}` (#1730).
+			$submission_data['_quiz_correct_count']  = $quiz_score['correct_count'];
+			$submission_data['_quiz_question_count'] = $quiz_score['question_count'];
 
 			// Find existing quiz submission for this CPF + form.
 			$existing = $this->find_quiz_submission( $form_id, $val_cpf );
@@ -217,6 +220,16 @@ class SubmissionPersister {
 						}
 					}
 
+					$shown = self::shown_results( $form_config, $quiz_score );
+					if ( null !== $shown ) {
+						$msg .= ' ' . sprintf(
+							/* translators: 1: questions answered right, 2: questions scored. */
+							_n( '%1$s of %2$s question answered correctly.', '%1$s of %2$s questions answered correctly.', $shown['question_count'], 'ffcertificate' ),
+							number_format_i18n( $shown['correct_count'] ),
+							number_format_i18n( $shown['question_count'] )
+						);
+					}
+
 					throw new SubmissionRejected(
 						array(
 							'message' => $msg,
@@ -228,6 +241,7 @@ class SubmissionPersister {
 								'attempt'   => $attempt_number,
 								'remaining' => $remaining,
 								'status'    => $quiz_status,
+								'results'   => $shown,
 							),
 						)
 					);
@@ -308,51 +322,39 @@ class SubmissionPersister {
 	}
 
 	/**
-	 * Calculate quiz score based on field points
+	 * Which questions were answered right, when the form shows it (#1730).
+	 *
+	 * Names the question and whether it was right — never the right
+	 * answer, which a participant with attempts left would simply copy.
+	 *
+	 * @param array<string, mixed> $form_config Form configuration.
+	 * @param array<string, mixed> $quiz_score  Score, as {@see QuizScorer::score()} returns it.
+	 * @return array{correct_count: int, question_count: int, fields: array<string, bool>}|null
+	 */
+	public static function shown_results( array $form_config, array $quiz_score ): ?array {
+		if ( '1' !== ArrayValue::string( $form_config, 'quiz_show_correct', '0' ) ) {
+			return null;
+		}
+		$fields = array();
+		foreach ( is_array( $quiz_score['results'] ?? null ) ? $quiz_score['results'] : array() as $name => $right ) {
+			$fields[ (string) $name ] = true === $right;
+		}
+		return array(
+			'correct_count'  => ArrayValue::int( $quiz_score, 'correct_count', 0 ),
+			'question_count' => ArrayValue::int( $quiz_score, 'question_count', 0 ),
+			'fields'         => $fields,
+		);
+	}
+
+	/**
+	 * Calculate the quiz score of a submission (#1730: {@see QuizScorer}).
 	 *
 	 * @param array<int, array<string, mixed>> $fields_config Form fields configuration.
 	 * @param array<string, mixed>             $submission_data User's submitted data.
-	 * @return array{score: int, max_score: int, percent: int}
+	 * @return array{score: int, max_score: int, percent: int, correct_count: int, question_count: int, results: array<string, bool>}
 	 */
 	public function calculate_quiz_score( array $fields_config, array $submission_data ): array {
-		$score     = 0;
-		$max_score = 0;
-
-		foreach ( $fields_config as $field ) {
-			$type       = ArrayValue::string( $field, 'type' );
-			$points_str = ArrayValue::string( $field, 'points' );
-
-			// Only radio/select fields with points participate in scoring.
-			if ( empty( $points_str ) || ! in_array( $type, array( 'radio', 'select' ), true ) ) {
-				continue;
-			}
-
-			$options = \FreeFormCertificate\Core\FormField::choices( $field );
-			$points  = array_map( 'intval', array_map( 'trim', explode( ',', $points_str ) ) );
-
-			// Max score: highest point value for this field.
-			$max_score += max( $points );
-
-			// User's answer.
-			$name       = ArrayValue::string( $field, 'name' );
-			$user_value = trim( ArrayValue::string( $submission_data, $name ) );
-
-			// Find matching option index and get its points.
-			foreach ( $options as $i => $opt ) {
-				if ( trim( $opt ) === $user_value && isset( $points[ $i ] ) ) {
-					$score += $points[ $i ];
-					break;
-				}
-			}
-		}
-
-		$percent = $max_score > 0 ? (int) round( ( $score / $max_score ) * 100 ) : 0;
-
-		return array(
-			'score'     => $score,
-			'max_score' => $max_score,
-			'percent'   => $percent,
-		);
+		return ( new QuizScorer() )->score( $fields_config, $submission_data );
 	}
 
 	/**

@@ -93,7 +93,8 @@ class PdfHtmlRenderer {
 			$data['email'] = $data['user_email'];
 		}
 
-		// Quiz score aliases: map {{score}}, {{max_score}}, {{score_percent}} to internal keys.
+		// Quiz score aliases: map {{score}}, {{max_score}}, {{score_percent}},
+		// {{correct_count}} and {{question_count}} (#1730) to internal keys.
 		if ( isset( $data['_quiz_score'] ) ) {
 			$data['score'] = $data['_quiz_score'];
 		}
@@ -102,6 +103,12 @@ class PdfHtmlRenderer {
 		}
 		if ( isset( $data['_quiz_percent'] ) ) {
 			$data['score_percent'] = $data['_quiz_percent'];
+		}
+		if ( isset( $data['_quiz_correct_count'] ) ) {
+			$data['correct_count'] = $data['_quiz_correct_count'];
+		}
+		if ( isset( $data['_quiz_question_count'] ) ) {
+			$data['question_count'] = $data['_quiz_question_count'];
 		}
 
 		// Replace field placeholders with formatted values.

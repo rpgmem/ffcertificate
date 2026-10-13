@@ -32,15 +32,23 @@ function row(index) {
 		<div class="ffc-hidden-value-field ffc-hidden"></div>
 		<div class="ffc-options-field ffc-hidden">
 			<ol class="ffc-choice-list">
-				<li class="ffc-choice-row"><span class="ffc-choice-handle"></span><input type="text" name="ffc_fields[${index}][choices][]" class="ffc-choice-input" value=""><button type="button" class="ffc-choice-remove">x</button></li>
+				<li class="ffc-choice-row"><span class="ffc-choice-handle"></span><input type="text" name="ffc_fields[${index}][choices][]" class="ffc-choice-input" value=""><input type="hidden" name="ffc_fields[${index}][choice_correct][]" value="0" class="ffc-choice-correct-value"><label class="ffc-choice-quiz ffc-choice-correct" data-ffc-quiz-mode="correct"><input type="checkbox" class="ffc-choice-correct-input"></label><label class="ffc-choice-quiz ffc-choice-points" data-ffc-quiz-mode="points"><input type="number" name="ffc_fields[${index}][choice_points][]" class="ffc-choice-points-input" value=""></label><button type="button" class="ffc-choice-remove">x</button></li>
 			</ol>
 			<button type="button" class="ffc-choice-add">Add option</button>
 			<label class="ffc-hidden" data-ffc-types="checkbox"><input type="number" name="ffc_fields[${index}][max_select]"></label>
-			<div class="ffc-quiz-points ffc-hidden"></div>
 		</div>
 		<div class="ffc-field-settings" data-ffc-types="text textarea"></div>
 		<div class="ffc-field-settings ffc-hidden" data-ffc-types="number"></div>
 		<div class="ffc-field-settings ffc-hidden" data-ffc-types="date"></div>
+		<div class="ffc-field-quiz ffc-hidden" data-ffc-quiz-types="select radio checkbox text textarea number date">
+			<div class="ffc-field-quiz-head"><input type="checkbox" class="ffc-quiz-scored" name="ffc_fields[${index}][quiz_scored]" value="1"></div>
+			<div class="ffc-field-quiz-body">
+				<select class="ffc-quiz-mode" name="ffc_fields[${index}][quiz_mode]"><option value="correct">Correct</option><option value="points">Points</option></select>
+				<select class="ffc-quiz-text" name="ffc_fields[${index}][quiz_text]"><option value="none">None</option><option value="answered">Answered</option></select>
+				<label class="ffc-quiz-points-setting"><input type="number" name="ffc_fields[${index}][quiz_points]"></label>
+				<p data-ffc-quiz-help="correct"></p><p data-ffc-quiz-help="points"></p><p data-ffc-quiz-help="range"></p>
+			</div>
+		</div>
 	</div>`;
 }
 
@@ -142,13 +150,15 @@ describe('FieldBuilder.applyType', () => {
 		expect($row.find('.ffc-type-desc').text()).toBe('Collects nothing.');
 	});
 
-	it('shows the quiz points of a choice field only while quiz mode is on', () => {
+	it('shows the quiz block only while quiz mode is on and for a field that collects an answer', () => {
 		const $row = window.$('#ffc-fields-container .ffc-field-row');
 		FB().applyType($row, 'radio');
-		expect($row.find('.ffc-quiz-points').hasClass('ffc-hidden')).toBe(true);
+		expect($row.find('.ffc-field-quiz').hasClass('ffc-hidden')).toBe(true);
 		$('#ffc_quiz_enabled').checked = true;
 		FB().applyType($row, 'radio');
-		expect($row.find('.ffc-quiz-points').hasClass('ffc-hidden')).toBe(false);
+		expect($row.find('.ffc-field-quiz').hasClass('ffc-hidden')).toBe(false);
+		FB().applyType($row, 'info');
+		expect($row.find('.ffc-field-quiz').hasClass('ffc-hidden')).toBe(true);
 	});
 
 	it('switches the range block between number and date', () => {
@@ -236,5 +246,78 @@ describe('FieldBuilder — type menu (.ffc-add-field)', () => {
 		$('.ffc-add-field').click();
 		$('.ffc-add-field').click();
 		expect($$('.ffc-field-type-menu').length).toBe(1);
+	});
+});
+
+describe('FieldBuilder — quiz (#1730)', () => {
+	beforeEach(() => {
+		initOn([0]);
+		$('#ffc_quiz_enabled').checked = true;
+		const select = $('#ffc-fields-container .ffc-field-type-selector');
+		select.value = 'checkbox';
+		window.$(select).trigger('change');
+	});
+
+	const row = () => window.$('#ffc-fields-container .ffc-field-row');
+
+	it('shows the per-option control of the chosen mode once the question is scored', () => {
+		expect(row().find('.ffc-field-quiz-body').hasClass('ffc-hidden')).toBe(true);
+		const scored = $('#ffc-fields-container .ffc-quiz-scored');
+		scored.checked = true;
+		window.$(scored).trigger('change');
+		expect(row().find('.ffc-field-quiz-body').hasClass('ffc-hidden')).toBe(false);
+		expect(row().find('.ffc-choice-correct').hasClass('ffc-hidden')).toBe(false);
+		expect(row().find('.ffc-choice-points').hasClass('ffc-hidden')).toBe(true);
+
+		const mode = $('#ffc-fields-container .ffc-quiz-mode');
+		mode.value = 'points';
+		window.$(mode).trigger('change');
+		expect(row().find('.ffc-choice-correct').hasClass('ffc-hidden')).toBe(true);
+		expect(row().find('.ffc-choice-points').hasClass('ffc-hidden')).toBe(false);
+		expect(row().find('.ffc-quiz-points-setting').hasClass('ffc-hidden')).toBe(true, 'Points per option: no question-wide points.');
+	});
+
+	it('posts the correct mark through the aligned hidden value', () => {
+		const box = $('#ffc-fields-container .ffc-choice-correct-input');
+		box.checked = true;
+		window.$(box).trigger('change');
+		expect($('#ffc-fields-container .ffc-choice-correct-value').value).toBe('1');
+	});
+
+	it('starts a new option unmarked and without points', () => {
+		const box = $('#ffc-fields-container .ffc-choice-correct-input');
+		box.checked = true;
+		window.$(box).trigger('change');
+		$('#ffc-fields-container .ffc-choice-points-input').value = '5';
+		$('#ffc-fields-container .ffc-choice-add').click();
+		const added = $$('#ffc-fields-container .ffc-choice-row')[1];
+		expect(added.querySelector('.ffc-choice-correct-value').value).toBe('0');
+		expect(added.querySelector('.ffc-choice-correct-input').checked).toBe(false);
+		expect(added.querySelector('.ffc-choice-points-input').value).toBe('');
+	});
+
+	it('refuses a maximum selections below the number of correct options', () => {
+		const scored = $('#ffc-fields-container .ffc-quiz-scored');
+		scored.checked = true;
+		window.$(scored).trigger('change');
+		$('#ffc-fields-container .ffc-choice-add').click();
+		$$('#ffc-fields-container .ffc-choice-correct-input').forEach((box) => {
+			box.checked = true;
+			window.$(box).trigger('change');
+		});
+		const max = $('#ffc-fields-container input[name$="[max_select]"]');
+		max.value = '1';
+		window.$(max).trigger('input');
+		expect(max.validationMessage).not.toBe('');
+		max.value = '2';
+		window.$(max).trigger('input');
+		expect(max.validationMessage).toBe('');
+	});
+
+	it('follows the quiz master toggle', () => {
+		const master = $('#ffc_quiz_enabled');
+		master.checked = false;
+		window.$(master).trigger('change');
+		expect(row().find('.ffc-field-quiz').hasClass('ffc-hidden')).toBe(true);
 	});
 });

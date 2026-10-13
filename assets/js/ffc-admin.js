@@ -235,12 +235,8 @@
             if (window.FFC && window.FFC.setRequiredWithin) {
                 window.FFC.setRequiredWithin($('.ffc-quiz-setting'), on);
             }
-            $('.ffc-options-field').each(function() {
-                var $opts = $(this);
-                if (!$opts.hasClass('ffc-hidden')) {
-                    $opts.find('.ffc-quiz-points').toggleClass('ffc-hidden', !on);
-                }
-            });
+            // The per-field quiz settings belong to the field builder,
+            // which listens to the same toggle (#1730).
         }
         $('#ffc_quiz_enabled').on('change', function() {
             toggleQuizUI($(this).is(':checked'));

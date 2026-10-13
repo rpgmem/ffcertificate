@@ -180,6 +180,25 @@
     color: var(--ffc-warning-text);
 }
 
+/* Per-question verdict after a quiz attempt (#1730): the word carries the
+   meaning, the colour and the icon only repeat it. */
+.ffc-shortcode .ffc-quiz-verdict {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    margin: var(--ffc-spacing-xs) 0 0;
+    font-size: var(--ffc-font-size-sm);
+    font-weight: 600;
+}
+
+.ffc-shortcode .ffc-quiz-right .ffc-quiz-verdict {
+    color: var(--ffc-success-text);
+}
+
+.ffc-shortcode .ffc-quiz-wrong .ffc-quiz-verdict {
+    color: var(--ffc-danger-text);
+}
+
 /* ============================================
    INFO BLOCK - v4.9.0
    ============================================ */

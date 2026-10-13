@@ -19,6 +19,8 @@
     'use strict';
 
     var CHOICE_TYPES = ['select', 'radio', 'checkbox'];
+    var TEXT_TYPES = ['text', 'textarea'];
+    var RANGE_TYPES = ['number', 'date'];
 
     var fieldCounter = 0;
 
@@ -70,12 +72,70 @@
         $row.find('.ffc-hidden-value-field').toggleClass('ffc-hidden', type !== 'hidden');
         $row.find('.ffc-standard-row').toggleClass('ffc-hidden', isInfo || isEmbed);
         $row.find('.ffc-options-field').toggleClass('ffc-hidden', !isChoice);
-        $row.find('.ffc-quiz-points').toggleClass('ffc-hidden', !(isChoice && quizOn()));
         $row.find('[data-ffc-types]').each(function() {
             var types = String($(this).attr('data-ffc-types')).split(' ');
             $(this).toggleClass('ffc-hidden', types.indexOf(type) === -1);
         });
         $row.find('.ffc-type-desc').text(typeDescription(type));
+        applyQuiz($row, type);
+    }
+
+    /**
+     * Show the quiz settings a row's type and choices call for (#1730).
+     */
+    function applyQuiz($row, type) {
+        type = type || String($row.find('.ffc-field-type-selector').val() || '');
+        var $block = $row.find('.ffc-field-quiz');
+        var scorable = String($block.attr('data-ffc-quiz-types') || '').split(' ').indexOf(type) !== -1;
+        var on = quizOn() && scorable;
+        var scored = on && $block.find('.ffc-quiz-scored').is(':checked');
+        var isChoice = CHOICE_TYPES.indexOf(type) !== -1;
+        var mode = isChoice ? String($block.find('.ffc-quiz-mode').val()) : '';
+        var textNone = TEXT_TYPES.indexOf(type) !== -1 && $block.find('.ffc-quiz-text').val() === 'none';
+
+        $block.toggleClass('ffc-hidden', !on);
+        $block.find('.ffc-field-quiz-body').toggleClass('ffc-hidden', !scored);
+        $row.find('.ffc-choice-quiz').each(function() {
+            $(this).toggleClass('ffc-hidden', !(scored && isChoice && $(this).attr('data-ffc-quiz-mode') === mode));
+        });
+        $block.find('.ffc-quiz-points-setting').toggleClass('ffc-hidden', (isChoice && mode === 'points') || textNone);
+        $block.find('[data-ffc-types]').each(function() {
+            $(this).toggleClass('ffc-hidden', String($(this).attr('data-ffc-types')).split(' ').indexOf(type) === -1);
+        });
+        $block.find('[data-ffc-quiz-help="correct"]').toggleClass('ffc-hidden', !(isChoice && mode === 'correct'));
+        $block.find('[data-ffc-quiz-help="points"]').toggleClass('ffc-hidden', !(isChoice && mode === 'points'));
+        $block.find('[data-ffc-quiz-help="range"]').toggleClass('ffc-hidden', RANGE_TYPES.indexOf(type) === -1);
+        checkMaxSelect($row);
+    }
+
+    /**
+     * A checkbox scored by its correct options cannot cap the selections
+     * below how many are correct: nobody could answer it right.
+     */
+    function checkMaxSelect($row) {
+        var $max = $row.find('input[name$="[max_select]"]');
+        if (!$max.length || !$max[0].setCustomValidity) {
+            return;
+        }
+        var type = String($row.find('.ffc-field-type-selector').val() || '');
+        var limit = parseInt($max.val(), 10);
+        var correct = $row.find('.ffc-choice-correct-value').filter(function() {
+            return this.value === '1';
+        }).length;
+        var applies = type === 'checkbox' && quizOn() &&
+            $row.find('.ffc-quiz-scored').is(':checked') &&
+            $row.find('.ffc-quiz-mode').val() === 'correct';
+        var message = '';
+        if (applies && limit > 0 && limit < correct) {
+            message = (strings().maxSelectBelowCorrect || 'The maximum selections is below the number of correct options (%d).').replace('%d', String(correct));
+        }
+        $max[0].setCustomValidity(message);
+    }
+
+    function refreshQuiz() {
+        $('#ffc-fields-container .ffc-field-row').each(function() {
+            applyQuiz($(this));
+        });
     }
 
     // A number above every index already on the page, so a new row's
@@ -98,8 +158,15 @@
         }
         var $row = $first.clone();
         $row.find('.ffc-choice-input').val(value || '');
+        resetChoiceQuiz($row);
         $list.append($row);
         return $row;
+    }
+
+    function resetChoiceQuiz($choice) {
+        $choice.find('.ffc-choice-correct-value').val('0');
+        $choice.find('.ffc-choice-correct-input').prop('checked', false);
+        $choice.find('.ffc-choice-points-input').val('');
     }
 
     function makeChoicesSortable($scope) {
@@ -150,12 +217,33 @@
         $container.on('click', '.ffc-choice-remove', function(e) {
             e.preventDefault();
             var $choice = $(this).closest('.ffc-choice-row');
+            var $fieldRow = $choice.closest('.ffc-field-row');
             if ($choice.siblings('.ffc-choice-row').length) {
                 $choice.remove();
             } else {
                 $choice.find('.ffc-choice-input').val('');
+                resetChoiceQuiz($choice);
             }
+            checkMaxSelect($fieldRow);
         });
+
+        // The visible box drives the aligned 0/1 the server reads.
+        $container.on('change', '.ffc-choice-correct-input', function() {
+            $(this).closest('.ffc-choice-row').find('.ffc-choice-correct-value').val(this.checked ? '1' : '0');
+            checkMaxSelect($(this).closest('.ffc-field-row'));
+        });
+
+        $container.on('change', '.ffc-quiz-scored, .ffc-quiz-mode, .ffc-quiz-text', function() {
+            applyQuiz($(this).closest('.ffc-field-row'));
+        });
+
+        $container.on('input change', 'input[name$="[max_select]"]', function() {
+            checkMaxSelect($(this).closest('.ffc-field-row'));
+        });
+
+        $(document).off('change.ffcFieldBuilder');
+        $(document).on('change.ffcFieldBuilder', '#ffc_quiz_enabled', refreshQuiz);
+        refreshQuiz();
 
         // Enter in an option adds the next one instead of submitting the post.
         $container.on('keydown', '.ffc-choice-input', function(e) {
@@ -253,7 +341,8 @@
     window.FFC.Admin.FieldBuilder = {
         init: initFormBuilder,
         addField: addFieldToBuilder,
-        applyType: applyType
+        applyType: applyType,
+        refreshQuiz: refreshQuiz
     };
 
     if (FFC && FFC.registerModule) {

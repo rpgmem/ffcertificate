@@ -7586,10 +7586,6 @@ msgstr "Todos os registros agora estão criptografados com a nova chave. Remova 
 msgid "Every visitor solves a proof of work in the browser. Nothing is sent to any third party."
 msgstr "Cada visitante resolve uma prova de trabalho no navegador. Nada é enviado a terceiros."
 
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:294 includes/admin/class-ffc-admin-assets-manager.php:642
-msgid "Ex: 0, 10, 0"
-msgstr "Ex: 0, 10, 0"
-
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:241
 msgid "ex: course_name"
 msgstr "ex: nome_do_curso"
@@ -10987,10 +10983,6 @@ msgstr "Número máximo de pessoas por vaga (1 = exclusivo)"
 msgid "Maximum number of people who can wait per slot (0 = unlimited)."
 msgstr "Número máximo de pessoas que podem aguardar por horário (0 = ilimitado)."
 
-#: includes/settings/views/documentation/feature-quiz.php:37
-msgid "Maximum points available — sum of each scored field's highest option value"
-msgstr "Pontuação máxima disponível — soma do maior valor de opção de cada campo pontuado"
-
 #: includes/frontend/submission/class-ffc-submission-persister.php:122
 msgid "Maximum quiz attempts reached for this CPF/RF."
 msgstr "Número máximo de tentativas do quiz atingido para este CPF/RF."
@@ -13129,18 +13121,6 @@ msgstr "além da DSL de link de URL de validação — p. ex."
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:678
 msgid "Point your domain's nameservers to the ones Cloudflare gives you (at your registrar)."
 msgstr "Aponte os servidores de nome (nameservers) do seu domínio para aqueles fornecidos pela Cloudflare (no seu registrador)."
-
-#: includes/settings/views/documentation/feature-quiz.php:32
-msgid "Points earned — sum of the point values of the options the participant selected"
-msgstr "Pontos obtidos — soma dos valores de pontos das opções que o participante selecionou"
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:292
-msgid "Points per option (same order, separate with commas):"
-msgstr "Pontos por opção (mesma ordem, separe com vírgulas):"
-
-#: includes/admin/class-ffc-admin-assets-manager.php:641
-msgid "Points per option:"
-msgstr "Pontos por opção:"
 
 #: includes/frontend/class-ffc-frontend.php:334
 msgid "Pop-ups are blocked in this browser. Tap the button below to open the PDF — then use the share icon to save or print."
@@ -19773,10 +19753,6 @@ msgstr "Quando ativada, essa opção seleciona automaticamente esse local para v
 msgid "When enabled, published submissions older than this many days are permanently deleted by the daily cleanup. Off by default — turning it on will delete existing submissions older than the window on the next run."
 msgstr "Quando ativado, as submissões publicadas com mais dias do que o especificado são excluídas permanentemente durante a limpeza diária. Desativado por padrão — ativá-lo fará com que as submissões existentes que ultrapassem esse período sejam excluídas na próxima execução."
 
-#: includes/admin/class-ffc-form-editor-quiz-metabox.php:60
-msgid "When enabled, radio and select fields can have point values per option. The form is scored on submission."
-msgstr "Quando ativado, campos de rádio e seleção podem ter valores de pontos por opção. O formulário é pontuado ao enviar."
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:721
 msgid "When enabled, the calendar will only be visible during the configured working hours. Outside those hours, a message will be displayed instead."
 msgstr "Quando ativado, o calendário ficará visível apenas durante o horário de trabalho configurado. Fora desse horário, uma mensagem será exibida."
@@ -23271,17 +23247,11 @@ msgstr "Na aba Geolocalização da caixa \"Configuração do Formulário de Cert
 msgid "Turning a form into a quiz"
 msgstr "Transformando um formulário em quiz"
 
-msgid "Enable it on the Quiz tab of the form editor's \"Certificate Form Configuration\" box, then give each scored field its points per option on the Fields tab. Only radio and select fields are scored."
-msgstr "Ative-o na aba Quiz da caixa \"Configuração do Formulário de Certificado\" do editor de formulários e, em seguida, defina os pontos por opção de cada campo pontuado na aba Campos. Apenas campos de botões de seleção única e de caixa de seleção suspensa são pontuados."
-
 msgid "minimum percentage to pass (default 70; 0 means no minimum)."
 msgstr "percentual mínimo para aprovação (padrão 70; 0 significa sem mínimo)."
 
 msgid "retries allowed per CPF/RF (0 = unlimited)."
 msgstr "tentativas permitidas por CPF/RF (0 = ilimitadas)."
-
-msgid "show the score after submission (on by default) and show which answers were correct or incorrect."
-msgstr "mostrar a pontuação após o envio (ativado por padrão) e mostrar quais respostas estavam corretas ou incorretas."
 
 msgid "An attempt below the passing score is kept as a \"Quiz: Retry\" submission while attempts remain, and as \"Quiz: Failed\" once they run out; no certificate is issued for either."
 msgstr "Uma tentativa abaixo da nota de aprovação é mantida como submissão \"Quiz: Tentando\" enquanto restarem tentativas, e como \"Quiz: Reprovado\" quando elas se esgotam; nenhum certificado é emitido em nenhum dos dois casos."
@@ -25531,3 +25501,157 @@ msgstr "Um campo chamado cpf_rf é validado no envio como documento brasileiro: 
 #: includes/settings/views/documentation/feature-certificates.php:34
 msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Certificates → Required Certificate Tags; the form editor also requires a field for each tag the participant fills in, and locks it. Once an Event Schedule is filled on the Time tab, {{schedule}} becomes required too."
 msgstr "O editor de formulários recusa salvar um layout de certificado sem uma etiqueta obrigatória — por padrão {{auth_code}}, {{name}} e {{cpf_rf}}, configuráveis em Configurações → Certificados → Etiquetas de Certificado Obrigatórias; o editor também exige um campo para cada etiqueta que o participante preenche, e o trava. Quando um Horário do evento é preenchido na aba Horário, {{schedule}} também passa a ser obrigatória."
+
+#: includes/settings/views/documentation/feature-quiz.php:23
+msgid "\"Correct option(s)\": tick the correct options beside them; radio and select score when a correct option is chosen, a checkbox only when every correct option is ticked and no other. \"Points per option\": give each option its points; a checkbox adds the boxes ticked, never below zero, so a wrong box can be worth negative points."
+msgstr "\"Alternativa(s) correta(s)\": marque as alternativas corretas ao lado delas; rádio e lista pontuam quando uma alternativa correta é escolhida, e a caixa de seleção só quando todas as corretas são marcadas e nenhuma outra. \"Pontos por alternativa\": dê a cada alternativa os seus pontos; a caixa de seleção soma as caixas marcadas, nunca abaixo de zero, então uma caixa errada pode valer pontos negativos."
+
+#: includes/settings/views/documentation/feature-quiz.php:24
+msgid "\"No points\", or \"Points when answered\", which respects the minimum length the field sets."
+msgstr "\"Sem pontos\", ou \"Pontos quando respondida\", que respeita o mínimo de caracteres definido no campo."
+
+#. 1: questions answered right, 2: questions scored.
+#: includes/frontend/submission/class-ffc-submission-persister.php:227
+#, php-format
+msgid "%1$s of %2$s question answered correctly."
+msgid_plural "%1$s of %2$s questions answered correctly."
+msgstr[0] "%1$s de %2$s questão respondida corretamente."
+msgstr[1] "%1$s de %2$s questões respondidas corretamente."
+
+#. 1: field label, 2: number of correct options.
+#: includes/admin/class-ffc-form-editor-save-handler.php:230
+#, php-format
+msgid "%1$s: the maximum selections was raised to %2$s, the number of correct options."
+msgstr "%1$s: o máximo de seleções foi elevado para %2$s, o número de alternativas corretas."
+
+#. %s: field label.
+#: includes/admin/class-ffc-form-editor-save-handler.php:240
+#, php-format
+msgid "%s: no correct answer is set, so the question is not scored."
+msgstr "%s: nenhuma resposta correta definida, então a questão não é pontuada."
+
+#. %s: field label.
+#: includes/admin/class-ffc-form-editor-save-handler.php:223
+#, php-format
+msgid "%s: no option is marked correct, so the question is not scored."
+msgstr "%s: nenhuma alternativa marcada como correta, então a questão não é pontuada."
+
+#: includes/settings/views/documentation/feature-quiz.php:27
+msgid "A form saved before these options keeps scoring as it did: radio and select by their points per option. A question set to score that cannot be marked — no option marked correct, or no correct range — is reported when the form is saved and left out of the score. A checkbox whose maximum selections is below its number of correct options has the maximum raised to fit."
+msgstr "Um formulário salvo antes destas opções continua pontuando como antes: rádio e lista pelos pontos de cada alternativa. Uma questão configurada para pontuar que não pode ser corrigida — nenhuma alternativa marcada como correta, ou nenhuma faixa correta — é avisada ao salvar o formulário e fica fora da pontuação. Uma caixa de seleção cujo máximo de seleções seja menor que o número de alternativas corretas tem o máximo elevado para caber."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:477
+msgid "An answer within the range, bounds included, earns the points. Set both bounds to the same value for one exact answer; leave one empty for an open range."
+msgstr "Uma resposta dentro da faixa, limites incluídos, ganha os pontos. Use o mesmo valor nos dois limites para uma única resposta exata; deixe um vazio para uma faixa aberta."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:456
+msgid "Correct from"
+msgstr "Correta de"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:444
+msgid "Correct option(s)"
+msgstr "Alternativa(s) correta(s)"
+
+#: includes/settings/views/documentation/feature-quiz.php:21
+msgid "Enable it on the Quiz tab of the form editor's \"Certificate Form Configuration\" box. Each field on the Fields tab then shows \"Score this question\"; a question left off is out of the count and of the points the percentage is taken from."
+msgstr "Ative-o na aba Quiz da caixa \"Configuração do formulário de certificado\" do editor. Cada campo da aba Campos passa a mostrar \"Pontuar esta questão\"; uma questão desligada fica fora da contagem e dos pontos sobre os quais a porcentagem é calculada."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:476
+msgid "Give each option its points beside it. A checkbox adds the boxes ticked, never below zero; a wrong box can be worth negative points."
+msgstr "Dê a cada alternativa os seus pontos ao lado dela. A caixa de seleção soma as caixas marcadas, nunca abaixo de zero; uma caixa errada pode valer pontos negativos."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:442
+msgid "How to score"
+msgstr "Como pontuar"
+
+#: includes/settings/views/documentation/feature-quiz.php:54
+msgid "Maximum points available across the scored questions"
+msgstr "Pontuação máxima possível nas questões pontuadas"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:451
+msgid "No points"
+msgstr "Sem pontos"
+
+#: includes/settings/views/documentation/feature-quiz.php:25
+msgid "Number and date"
+msgstr "Número e data"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:438
+msgid "Off: the question is left out of the count and of the points the percentage is taken from."
+msgstr "Desligado: a questão fica fora da contagem e dos pontos sobre os quais a porcentagem é calculada."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:322
+msgid "Points"
+msgstr "Pontos"
+
+#: includes/settings/views/documentation/feature-quiz.php:49
+msgid "Points earned across the scored questions"
+msgstr "Pontos obtidos nas questões pontuadas"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:445
+msgid "Points per option"
+msgstr "Pontos por alternativa"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:452
+msgid "Points when answered"
+msgstr "Pontos quando respondida"
+
+#: includes/settings/views/documentation/feature-quiz.php:64
+msgid "Questions answered correctly as a whole"
+msgstr "Questões respondidas corretamente por inteiro"
+
+#: includes/settings/views/documentation/feature-quiz.php:69
+msgid "Questions scored"
+msgstr "Questões pontuadas"
+
+#: includes/admin/class-ffc-form-editor-save-handler.php:765
+msgid "Quiz scoring:"
+msgstr "Pontuação do quiz:"
+
+#: includes/settings/views/documentation/feature-quiz.php:23
+msgid "Radio, select and checkbox"
+msgstr "Rádio, lista e caixa de seleção"
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:433
+msgid "Score this question"
+msgstr "Pontuar esta questão"
+
+#: includes/settings/views/documentation/feature-quiz.php:24
+msgid "Text and textarea"
+msgstr "Texto e área de texto"
+
+#. %d: number of options marked correct.
+#: includes/admin/class-ffc-admin-assets-manager.php:627
+#, php-format
+msgid "The maximum selections is below the number of correct options (%d)."
+msgstr "O máximo de seleções é menor que o número de alternativas corretas (%d)."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:475
+msgid "Tick the correct option(s) beside each option. A checkbox scores only when every correct option is ticked and no other."
+msgstr "Marque a(s) alternativa(s) correta(s) ao lado de cada alternativa. A caixa de seleção só pontua quando todas as corretas são marcadas e nenhuma outra."
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:60
+msgid "When enabled, each field on the Fields tab can be scored: by its correct option(s), by points per option, when answered, or by a correct range. The form is scored on submission."
+msgstr "Quando ativado, cada campo da aba Campos pode ser pontuado: pela(s) alternativa(s) correta(s), por pontos por alternativa, quando respondido ou por uma faixa correta. O formulário é pontuado no envio."
+
+#: includes/settings/views/documentation/feature-quiz.php:25
+msgid "a correct range, bounds included; the same value in both bounds is one exact answer, and an empty bound leaves the range open."
+msgstr "uma faixa correta, limites incluídos; o mesmo valor nos dois limites é uma única resposta exata, e um limite vazio deixa a faixa aberta."
+
+#: includes/admin/class-ffc-form-editor-builder-metabox.php:324
+msgid "pts"
+msgstr "pts"
+
+#: includes/settings/views/documentation/feature-quiz.php:31
+msgid "show the score after submission (on by default) and show which answers were correct or incorrect: the message says how many questions were answered correctly, and each scored question is marked Correct or Incorrect. The right answer itself is never shown."
+msgstr "mostrar a pontuação após o envio (ligado por padrão) e mostrar quais respostas estavam corretas ou incorretas: a mensagem diz quantas questões foram respondidas corretamente, e cada questão pontuada é marcada como Correta ou Incorreta. A resposta certa nunca é mostrada."
+
+#: includes/frontend/class-ffc-frontend.php:343
+msgctxt "quiz answer"
+msgid "Correct"
+msgstr "Correta"
+
+#: includes/frontend/class-ffc-frontend.php:343
+msgctxt "quiz answer"
+msgid "Incorrect"
+msgstr "Incorreta"

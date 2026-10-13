@@ -313,9 +313,6 @@ describe('admin quiz mode toggle', () => {
 				setting
 				<input type="number" id="quiz_passing_score" value="70" min="0" max="100" required>
 			</div>
-			<div class="ffc-options-field">
-				<span class="ffc-quiz-points ffc-hidden">points</span>
-			</div>
 		`;
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 		loadScript('assets/js/ffc-batched-export.js');
@@ -323,12 +320,13 @@ describe('admin quiz mode toggle', () => {
 		await new Promise((r) => setTimeout(r, 0));
 	});
 
-	it('enabling shows quiz settings and points', async () => {
+	// The per-field quiz settings belong to the field builder since #1730,
+	// which listens to the same toggle; admin-field-builder.test.js covers them.
+	it('enabling shows the quiz settings', async () => {
 		window.$('#ffc_quiz_enabled').prop('checked', true).trigger('change');
 		await flush();
 
 		expect(window.$('.ffc-quiz-setting').hasClass('ffc-hidden')).toBe(false);
-		expect(window.$('.ffc-quiz-points').hasClass('ffc-hidden')).toBe(false);
 	});
 
 	it('disabling hides them again', async () => {
@@ -336,7 +334,6 @@ describe('admin quiz mode toggle', () => {
 		await flush();
 
 		expect(window.$('.ffc-quiz-setting').hasClass('ffc-hidden')).toBe(true);
-		expect(window.$('.ffc-quiz-points').hasClass('ffc-hidden')).toBe(true);
 	});
 
 	it('carries required with the visibility (#1117)', async () => {

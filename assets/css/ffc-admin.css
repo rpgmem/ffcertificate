@@ -133,25 +133,56 @@
     gap: var(--ffc-spacing-xs);
 }
 
+/* A flex row rather than a grid: the quiz controls (#1730) come and go
+   between the text and the remove button. */
 .ffc-choice-row {
-    display: grid;
-    grid-template-columns: 20px minmax(0, 1fr) 32px;
+    display: flex;
     gap: var(--ffc-spacing-sm);
     align-items: center;
     margin: 0;
 }
 
 .ffc-choice-handle {
+    flex: 0 0 20px;
     cursor: move;
     color: var(--ffc-text-muted);
 }
 
 .ffc-choice-input {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
     box-sizing: border-box;
 }
 
+.ffc-choice-quiz {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    white-space: nowrap;
+}
+
+/* The field's quiz settings (#1730): set apart from the field's own. */
+.ffc-field-quiz {
+    margin-top: var(--ffc-spacing-lg);
+    padding-top: var(--ffc-spacing-md);
+    border-top: 1px dashed var(--ffc-border);
+}
+
+.ffc-field-quiz-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+}
+
+.ffc-field-quiz-body .ffc-quiz-help {
+    flex-basis: 100%;
+    margin: 0;
+}
+
 .ffc-choice-remove {
+    flex: 0 0 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;

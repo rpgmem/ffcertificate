@@ -132,7 +132,8 @@ class FormEditorSaveHandler {
 			return;
 		}
 
-		$clean_fields = array();
+		$clean_fields  = array();
+		$quiz_warnings = array();
 		foreach ( $rows as $index => $field ) {
 			// A row that is not an array is not a row. The `empty()` chain
 			// below already skipped it — `empty( $string['label'] )` is
@@ -147,9 +148,10 @@ class FormEditorSaveHandler {
 				continue;
 			}
 
-			$type = sanitize_key( ArrayValue::string( $field, 'type' ) );
+			$type   = sanitize_key( ArrayValue::string( $field, 'type' ) );
+			$limits = \FreeFormCertificate\Core\FormField::sanitize_limits( $field, $type );
 
-			$clean_fields[] = array(
+			$row = array(
 				'label'         => sanitize_text_field( ArrayValue::string( $field, 'label' ) ),
 				'name'          => sanitize_key( ArrayValue::string( $field, 'name' ) ),
 				'type'          => $type,
@@ -165,9 +167,26 @@ class FormEditorSaveHandler {
 				'default_value' => 'hidden' === $type
 					? sanitize_text_field( ArrayValue::string( $field, 'default_value' ) )
 					: '',
-			) + \FreeFormCertificate\Core\FormField::sanitize_limits( $field, $type );
+			);
+			// The quiz half overrides the base `points`: it rebuilds the
+			// string from the option rows (#1730).
+			$row = array_merge(
+				$row,
+				$limits,
+				\FreeFormCertificate\Core\QuizQuestion::sanitize( $field, $type, isset( $limits['choices'] ) && is_array( $limits['choices'] ) ? $limits['choices'] : array() )
+			);
+
+			$quiz_warning = $this->fit_quiz_question( $row );
+			if ( null !== $quiz_warning ) {
+				$quiz_warnings[] = $quiz_warning;
+			}
+			$clean_fields[] = $row;
 		}
 		update_post_meta( $post_id, '_ffc_form_fields', $clean_fields );
+
+		if ( array() !== $quiz_warnings ) {
+			set_transient( 'ffc_save_quiz_warning_' . get_current_user_id(), $quiz_warnings, 45 );
+		}
 
 		// Non-blocking, like the layout check: the fields save, and the
 		// editor says which required tag has no field to fill it (#1734).
@@ -175,6 +194,52 @@ class FormEditorSaveHandler {
 		if ( array() !== $missing_fields ) {
 			set_transient( 'ffc_save_fields_error_' . get_current_user_id(), $missing_fields, 45 );
 		}
+	}
+
+	/**
+	 * Make a quiz question consistent with itself, and say what was changed
+	 * or what cannot be marked (#1730).
+	 *
+	 * A checkbox whose maximum selections is below its number of correct
+	 * options could never be answered right; the maximum is raised to fit.
+	 * A question set to score that cannot be marked — no correct option, or
+	 * a number or date without a correct value — is reported, not refused:
+	 * the scorer leaves it out, so it never lowers a percentage.
+	 *
+	 * @param array<string, mixed> $row Clean field row, adjusted in place.
+	 * @return string|null Warning, or null.
+	 */
+	private function fit_quiz_question( array &$row ): ?string {
+		if ( '1' !== (string) ( $row['quiz_scored'] ?? '' ) ) {
+			return null;
+		}
+		$type  = (string) ( $row['type'] ?? '' );
+		$label = '' !== (string) ( $row['label'] ?? '' ) ? (string) $row['label'] : (string) ( $row['name'] ?? '' );
+
+		if ( in_array( $type, \FreeFormCertificate\Core\FormField::CHOICE_TYPES, true ) && \FreeFormCertificate\Core\QuizQuestion::MODE_CORRECT === ( $row['quiz_mode'] ?? '' ) ) {
+			$correct = count( \FreeFormCertificate\Core\QuizQuestion::correct( $row ) );
+			if ( 0 === $correct ) {
+				/* translators: %s: field label. */
+				return sprintf( __( '%s: no option is marked correct, so the question is not scored.', 'ffcertificate' ), $label );
+			}
+			$max = absint( (string) ( $row['max_select'] ?? '' ) );
+			if ( 'checkbox' === $type && $max > 0 && $max < $correct ) {
+				$row['max_select'] = (string) $correct;
+				return sprintf(
+					/* translators: 1: field label, 2: number of correct options. */
+					__( '%1$s: the maximum selections was raised to %2$s, the number of correct options.', 'ffcertificate' ),
+					$label,
+					number_format_i18n( $correct )
+				);
+			}
+			return null;
+		}
+
+		if ( in_array( $type, \FreeFormCertificate\Core\FormField::RANGE_TYPES, true ) && ! \FreeFormCertificate\Core\QuizQuestion::is_scored( $row ) ) {
+			/* translators: %s: field label. */
+			return sprintf( __( '%s: no correct answer is set, so the question is not scored.', 'ffcertificate' ), $label );
+		}
+		return null;
 	}
 
 	/**
@@ -686,6 +751,28 @@ class FormEditorSaveHandler {
 				(string) ob_get_clean(),
 				array(
 					'type'           => 'error',
+					'dismissible'    => true,
+					'paragraph_wrap' => false,
+				)
+			);
+		}
+
+		$quiz_warnings = get_transient( 'ffc_save_quiz_warning_' . get_current_user_id() );
+		if ( is_array( $quiz_warnings ) && ! empty( $quiz_warnings ) ) {
+			delete_transient( 'ffc_save_quiz_warning_' . get_current_user_id() );
+			ob_start();
+			?>
+			<p><strong><?php esc_html_e( 'Quiz scoring:', 'ffcertificate' ); ?></strong></p>
+			<ul class="ffc-list-disc">
+				<?php foreach ( array_filter( $quiz_warnings, 'is_scalar' ) as $quiz_warning ) : ?>
+					<li><?php echo esc_html( (string) $quiz_warning ); ?></li>
+				<?php endforeach; ?>
+			</ul>
+			<?php
+			wp_admin_notice(
+				(string) ob_get_clean(),
+				array(
+					'type'           => 'warning',
 					'dismissible'    => true,
 					'paragraph_wrap' => false,
 				)

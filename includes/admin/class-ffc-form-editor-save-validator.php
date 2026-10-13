@@ -57,6 +57,8 @@ class FormEditorSaveValidator {
 		'score',
 		'max_score',
 		'score_percent',
+		'correct_count',
+		'question_count',
 	);
 
 	/**

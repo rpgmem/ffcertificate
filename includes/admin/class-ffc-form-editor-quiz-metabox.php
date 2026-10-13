@@ -57,7 +57,7 @@ class FormEditorQuizMetabox {
 						)
 					);
 					?>
-					<p class="description"><?php esc_html_e( 'When enabled, radio and select fields can have point values per option. The form is scored on submission.', 'ffcertificate' ); ?></p>
+					<p class="description"><?php esc_html_e( 'When enabled, each field on the Fields tab can be scored: by its correct option(s), by points per option, when answered, or by a correct range. The form is scored on submission.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<tr class="ffc-quiz-setting<?php echo $quiz_enabled ? '' : ' ffc-hidden'; ?>">
