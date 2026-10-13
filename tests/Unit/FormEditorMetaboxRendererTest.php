@@ -33,6 +33,7 @@ class FormEditorMetaboxRendererTest extends TestCase {
 		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
