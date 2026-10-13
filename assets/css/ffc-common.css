@@ -2251,7 +2251,8 @@
     :root.ffc-dark-mode .button-secondary,
     :root.ffc-dark-mode .button.disabled,
     :root.ffc-dark-mode .button-primary.disabled,
-    :root.ffc-dark-mode .button-primary[disabled] {
+    :root.ffc-dark-mode .button-primary[disabled],
+    :root.ffc-dark-mode .mce-btn.mce-active {
         border: 1px solid ButtonText;
     }
 
