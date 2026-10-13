@@ -82,6 +82,17 @@ $ffcertificate_field_row = static function ( string $index, array $row, array $t
 					</p>
 				</td>
 			</tr>
+			<tr>
+				<th scope="row">
+					<label for="quiz_focus_grace_ms"><?php esc_html_e( 'Quiz focus-loss grace (ms)', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<input type="number" name="ffc_settings[quiz_focus_grace_ms]" id="quiz_focus_grace_ms" value="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\SettingsReader::quiz_focus_grace_ms() ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Core\QuizLeaveLevel::GRACE_MIN_MS ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Core\QuizLeaveLevel::GRACE_MAX_MS ); ?>" step="100" class="small-text" data-ffc-autosave-key="quiz_focus_grace_ms" required>
+					<p class="description">
+						<?php esc_html_e( 'Used by quizzes set to Strict on leaving the window: a loss of focus counts only when it lasts longer than this, so a system notification or a password manager does not clear the answers. 0 counts every loss.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
 		</tbody>
 	</table>
 </div>

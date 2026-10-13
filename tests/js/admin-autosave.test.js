@@ -233,6 +233,32 @@ describe('FFC admin-autosave — bootAutoSaveFields page-init', () => {
 		spy.mockRestore();
 	});
 
+	it('saves a steps control as one field with one badge (#1745)', () => {
+		vi.useFakeTimers();
+		document.body.innerHTML = `
+			<form>
+				<fieldset class="ffc-control-steps ffc-control-steps-severity">
+					<span class="ffc-control-steps-track">
+						<label class="ffc-control-steps-stop"><input type="radio" name="lvl" id="l1" value="0" data-ffc-autosave-key="quiz_level" checked></label>
+						<label class="ffc-control-steps-stop"><input type="radio" name="lvl" id="l2" value="1" data-ffc-autosave-key="quiz_level"></label>
+						<label class="ffc-control-steps-stop"><input type="radio" name="lvl" id="l3" value="2" data-ffc-autosave-key="quiz_level"></label>
+					</span>
+				</fieldset>
+			</form>`;
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+
+		window.FFC.Admin.bootAutoSaveFields();
+		window.$('#l3').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1].value).toBe('2');
+		expect(document.querySelectorAll('.ffc-autosave-badge')).toHaveLength(1);
+		expect(document.querySelector('.ffc-control-steps').nextElementSibling.classList.contains('ffc-autosave-badge')).toBe(true);
+		postSpy.mockRestore();
+		vi.useRealTimers();
+	});
+
 	it('skips inputs that have already been wired (idempotent re-scan)', () => {
 		document.body.innerHTML = `
 			<input type="checkbox" data-ffc-autosave-key="cache_enabled">

@@ -103,7 +103,7 @@ class SubmissionPersister {
 			// How many times the participant left the window (#1731). The
 			// browser counts it, so it is a record, not evidence: it is kept
 			// only when the form asks for it, and capped.
-			if ( '1' === ArrayValue::string( $form_config, 'quiz_reset_on_leave', '0' ) ) {
+			if ( \FreeFormCertificate\Core\QuizLeaveLevel::OFF !== \FreeFormCertificate\Core\QuizLeaveLevel::of( $form_config ) ) {
 				$submission_data['_quiz_focus_losses'] = min( self::MAX_FOCUS_LOSSES, RequestInput::get_post_int( 'ffc_quiz_focus_losses' ) );
 			}
 

@@ -83,7 +83,9 @@
         // the track on toggle-on — so the toggle visually stays "off"
         // even after the save succeeds. Anchor the badge AFTER the
         // wrapping label instead so the track stays adjacent.
-        var $anchor = $field.closest('.ffc-toggle');
+        // A steps control (#1745) is one field made of one radio per step:
+        // its badge goes after the whole control, once.
+        var $anchor = $field.closest('.ffc-toggle, .ffc-control-steps');
         if (!$anchor.length) {
             $anchor = $field;
         }
@@ -346,6 +348,10 @@
             }
             var key      = $input.attr(attr);
             var isMulti  = $input.attr('data-ffc-autosave-multi') !== undefined;
+            // A radio group saves as one field (#1745): the first radio is the
+            // anchor, the group feeds its change handler, and the value read is
+            // the checked member's.
+            var isRadio  = $input.is(':radio');
             if (!key) {
                 return;
             }
@@ -355,7 +361,7 @@
             // call). Siblings still get marked bound so this loop skips
             // them on the next pass, but their changes are funneled
             // through the anchor's change handler via config.$group.
-            if (isMulti) {
+            if (isMulti || isRadio) {
                 if (multiBound[key]) {
                     $input.data('ffcAutoSaveBound', true);
                     return;
@@ -372,6 +378,11 @@
             var confirmOff = $input.attr('data-ffc-confirm-off');
             if (confirmOff) {
                 config.confirmOff = confirmOff;
+            }
+            if (isRadio) {
+                var $radios = $('[' + attr + '="' + key + '"]:radio');
+                $radios.not($input).data('ffcAutoSaveBound', true);
+                config.$group = $radios;
             }
             if (isMulti) {
                 var $group = $('[' + attr + '="' + key + '"][data-ffc-autosave-multi]');

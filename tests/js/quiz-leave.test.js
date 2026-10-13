@@ -1,13 +1,13 @@
 // Tests for `assets/js/ffc-quiz-leave.js` (#1731): leaving the window
 // clears the scored answers, counts the exit and opens the dialog.
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
-function page(questions) {
+function page(questions, attrs = '', id = 7) {
 	document.body.innerHTML = `
 		<div class="ffc-shortcode">
-			<form class="ffc-submission-form" id="ffc-form-element-7" data-ffc-quiz-leave='${JSON.stringify(questions)}'>
-				<input type="hidden" name="form_id" value="7">
+			<form class="ffc-submission-form" id="ffc-form-element-${id}" data-ffc-quiz-leave='${JSON.stringify(questions)}' ${attrs}>
+				<input type="hidden" name="form_id" value="${id}">
 				<input type="hidden" name="ffc_quiz_focus_losses" value="0" class="ffc-quiz-focus-losses">
 				<input type="text" name="name" id="name" value="Maria da Silva">
 				<label><input type="radio" name="q1" value="A"> A</label>
@@ -68,8 +68,14 @@ describe('leaving a reset quiz', () => {
 		expect(overlay.hidden).toBe(false);
 		expect(document.activeElement).toBe(overlay.querySelector('.ffc-quiz-leave-restart'));
 
+		// Start again reloads, so shuffled options are shuffled again (#1745),
+		// and the unload that follows is not another departure.
+		const reload = vi.spyOn(window.ffcQuizLeave, 'reload').mockImplementation(() => {});
 		overlay.querySelector('.ffc-quiz-leave-restart').click();
-		expect(overlay.hidden).toBe(true);
+		expect(reload).toHaveBeenCalledTimes(1);
+		setVisibility('hidden');
+		expect(form.querySelector('.ffc-quiz-focus-losses').value).toBe('1');
+		reload.mockRestore();
 	});
 
 	it('does nothing before the participant starts', () => {
@@ -130,5 +136,106 @@ describe('leaving a reset quiz', () => {
 		const form = page(['q1']);
 		window.ffcQuizLeave.init();
 		expect(form.getAttribute('data-ffc-quiz-leave-bound')).toBe('1');
+	});
+});
+
+describe('the strict level (#1745)', () => {
+	// Each test its own form id: a listener left by an earlier test stops on
+	// the next event and forgets the count stored under its own id.
+	let nextId = 100;
+	const strict = (grace) => page(['q1', 'q4'], `data-ffc-quiz-leave-level="2" data-ffc-quiz-leave-grace="${grace}"`, nextId++);
+	const losses = (form) => form.querySelector('.ffc-quiz-focus-losses').value;
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('counts a lost focus that outlasts the grace, and clears on return', () => {
+		const form = strict(1000);
+		window.ffcQuizLeave.watch(form);
+		answer(form);
+
+		window.dispatchEvent(new Event('blur'));
+		vi.advanceTimersByTime(1001);
+		expect(losses(form)).toBe('1');
+
+		window.dispatchEvent(new Event('focus'));
+		expect(form.querySelector('[name="q4"]').value).toBe('');
+		expect(form.querySelector('.ffc-quiz-leave-overlay').hidden).toBe(false);
+	});
+
+	it('ignores a lost focus shorter than the grace', () => {
+		const form = strict(1000);
+		window.ffcQuizLeave.watch(form);
+		answer(form);
+
+		window.dispatchEvent(new Event('blur'));
+		vi.advanceTimersByTime(500);
+		window.dispatchEvent(new Event('focus'));
+		vi.advanceTimersByTime(2000);
+
+		expect(losses(form)).toBe('0');
+		expect(form.querySelector('[name="q4"]').value).toBe('An answer');
+	});
+
+	it('counts every loss at once when the grace is zero', () => {
+		const form = strict(0);
+		window.ffcQuizLeave.watch(form);
+		answer(form);
+
+		window.dispatchEvent(new Event('blur'));
+		expect(losses(form)).toBe('1');
+	});
+
+	it('ignores the focus moving into a frame of the page', () => {
+		const form = strict(0);
+		const frame = document.createElement('iframe');
+		form.appendChild(frame);
+		window.ffcQuizLeave.watch(form);
+		answer(form);
+
+		vi.spyOn(document, 'activeElement', 'get').mockReturnValue(frame);
+		window.dispatchEvent(new Event('blur'));
+		vi.restoreAllMocks();
+
+		expect(losses(form)).toBe('0');
+	});
+
+	it('counts one departure when the tab also hides', () => {
+		const form = strict(1000);
+		window.ffcQuizLeave.watch(form);
+		answer(form);
+
+		window.dispatchEvent(new Event('blur'));
+		setVisibility('hidden');
+		vi.advanceTimersByTime(5000);
+		expect(losses(form)).toBe('1');
+
+		setVisibility('visible');
+		window.dispatchEvent(new Event('focus'));
+		expect(form.querySelector('.ffc-quiz-leave-overlay').hidden).toBe(false);
+	});
+
+	it('does nothing before the participant starts', () => {
+		const form = strict(0);
+		window.ffcQuizLeave.watch(form);
+
+		window.dispatchEvent(new Event('blur'));
+		window.dispatchEvent(new Event('focus'));
+		expect(losses(form)).toBe('0');
+	});
+
+	it('leaves the window alone at the moderate level', () => {
+		const form = page(['q1'], 'data-ffc-quiz-leave-level="1"', nextId++);
+		window.ffcQuizLeave.watch(form);
+		answer(form);
+
+		window.dispatchEvent(new Event('blur'));
+		vi.advanceTimersByTime(5000);
+		expect(losses(form)).toBe('0');
 	});
 });

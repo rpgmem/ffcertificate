@@ -408,6 +408,24 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/class="ffc-modal ffc-quiz-leave-overlay" role="alertdialog" aria-modal="true"[^>]*hidden>/', $html );
 	}
 
+	/**
+	 * #1745 — the level reaches the script, and only Strict carries the
+	 * grace a lost focus must outlast, read from the global setting.
+	 */
+	public function test_the_level_and_the_strict_grace_reach_the_script(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'ffc_settings' === $key ? array( 'quiz_focus_grace_ms' => 1500 ) : $default );
+
+		$moderate = $this->render_quiz_form( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => '1' ) );
+		$strict   = $this->render_quiz_form( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => '2' ) );
+
+		$this->assertStringContainsString( 'data-ffc-quiz-leave-level="1"', $moderate );
+		$this->assertStringNotContainsString( 'data-ffc-quiz-leave-grace', $moderate );
+		$this->assertStringNotContainsString( 'clicking another window', $moderate );
+
+		$this->assertStringContainsString( 'data-ffc-quiz-leave-level="2" data-ffc-quiz-leave-grace="1500"', $strict );
+		$this->assertStringContainsString( 'clicking another window clears your answers', $strict, 'The participant is told what Strict watches.' );
+	}
+
 	public function test_a_quiz_without_the_reset_and_a_plain_form_carry_none_of_it(): void {
 		foreach ( array( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => '0' ), array( 'quiz_enabled' => '0', 'quiz_reset_on_leave' => '1' ) ) as $config ) {
 			$html = $this->render_quiz_form( $config );

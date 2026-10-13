@@ -796,6 +796,25 @@ Every icon the plugin draws comes from `Core\Icons`: a 24×24 stroke drawing in 
 - **An area wears one icon and one name everywhere, the admin menu included** (#1640, #1641). `Core\PluginAreas` maps each plugin area to its menu item, its registry class and its translated name, and the WordPress menu, the documentation tree and Settings → Modules all read it; `PluginAreasAgreementTest` holds them together. It is its own class rather than a map inside `Icons` because it now carries names too — a name that encodes a neighbour's scope (see the opening of this file). The canonical names are the menu's: Certificates, Scheduling (its two modules Personal Calendars and Audience Calendars), Reregistration, Recruitment, Short URLs, Date Messages, FFC Settings. A module name is Title Case where it names the area (menu, headings, tabs, groups); a label describing a kind of message or option stays sentence case like its neighbours. **A path a reader is sent to — "Settings → *Tab*" — must name a tab that exists**: `SettingsPathReferenceTest` reads every translatable string, so renaming a tab fails CI until each path to it is rewritten. The menus register with the icon `'none'` and `Icons::menu_stylesheet()`, attached to core's `admin-menu` sheet on every screen, draws the registry mask in `currentColor`, so the icon takes the colour WordPress gives the item for the scheme, hover, current page and folded menu, and `LinkText` in forced colours. **Not a base64 SVG `icon_url`**: core's svg-painter recolours `fill`, and the registry draws strokes, so the icon would keep one colour whatever the scheme. A new top-level menu joins `AREAS` and registers with `'none'`.
 - **Dashicons stay only where they are WordPress chrome the registry does not draw** — the separator labels printed into `#adminmenu` — and nowhere else. `DashiconsChromeOnlyTest` freezes the allowed files with an exact count and a reason each. Tab lists that a filter can extend (Scheduling settings, Recruitment, the form editor) name a registry class and go through `Icons::tab_class()`, which still draws a bare dashicon slug a third-party tab passes, so opening the list to plugins did not break when the plugin's own tabs moved.
 
+### Controls (one family — #1745)
+
+A setting that picks among a few values is drawn by a control from the `ffc-control-*` family, chosen by what the values ARE, never by how they look:
+
+| Values | Control | Helper |
+| --- | --- | --- |
+| two (on/off) | toggle | `AdminUI::render_toggle()` |
+| an ORDERED scale of 3 to 11 | steps | `AdminUI::render_steps()` |
+| 2 to 6 with no order | segmented | `AdminUI::render_segmented()` (planned) |
+| anything else | a `<select>` | — |
+
+- **The toggle still wears its pre-family class**, `.ffc-toggle`; moving it and every screen that prints it to `ffc-control-toggle` is planned, in the PR that gives it the shared states.
+- **Order is the test for steps.** A rail and a fill say "more of the same thing"; three unrelated choices on a rail lie about their relation. Off → Moderate → Strict is a scale; Dark / Light / Auto is not.
+- **Out of range is handled, not refused.** `render_steps()` given fewer or more options than it draws prints a select, so the field still works, and calls `_doing_it_wrong()` naming the control that fits — which surfaces under `WP_DEBUG`, where the developer is.
+- **Every control is native inputs plus CSS.** Radios or a checkbox carry the value, so the form posts without a script, the arrow keys and screen readers work, and autosave (`data-ffc-autosave-key` / `-form-key` on the inputs) saves the group as one field with no change to the widget.
+- **Parameters for what varies, custom properties for fine tuning.** Palette, size, shape, width and which labels show are parameters that become classes; anything finer is a `--ffc-control-*` property set by a module class or inline. A palette or tone colours through tokens only and stays inside `:where()`, so a state such as disabled always wins over the colour of the chosen value.
+- **One state language.** Hover and pressed draw a halo (`--ffc-control-halo`), keyboard focus the 2px primary ring, and disabled takes the colour away instead of fading — `opacity` would multiply down the contrast `DarkModeCssTest` measures.
+- **The name is the family's, not the screen's or the count's** (the rule at the top of this file). The steps control began as a "three-position switch" and was renamed before it shipped because "three" stopped being true the day the limit became eleven.
+
 ### Theme (one palette, one root class — #1126)
 
 Every colour the plugin paints comes from a `var(--ffc-*)` token declared in `assets/css/ffc-common.css`. The dark theme is that same sheet's `:root.ffc-dark-mode` block redefining part of the tokens — **the dark theme is the light theme overridden, never a second set**, which is why `DarkModeCssTest::palette('dark')` merges the two before measuring. `AssetHelper::enqueue_dark_mode()` puts the class on `<html>`, reading `ffc_settings['dark_mode']` (`off` / `on` / `auto`).

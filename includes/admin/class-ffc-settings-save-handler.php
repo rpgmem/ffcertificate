@@ -202,6 +202,12 @@ class SettingsSaveHandler {
 			$clean['required_form_fields'] = self::sanitize_required_form_fields( $raw_settings['required_form_fields'] );
 		}
 
+		// The Strict quiz level's grace (#1745). An emptied field is not 0:
+		// it keeps the stored value, as every bounded number here does.
+		if ( 'certificates' === $ffc_tab && isset( $raw_settings['quiz_focus_grace_ms'] ) && is_scalar( $raw_settings['quiz_focus_grace_ms'] ) && '' !== trim( (string) $raw_settings['quiz_focus_grace_ms'] ) ) {
+			$clean['quiz_focus_grace_ms'] = \FreeFormCertificate\Core\QuizLeaveLevel::clamp_grace( absint( $raw_settings['quiz_focus_grace_ms'] ) );
+		}
+
 		if ( 'advanced' === $ffc_tab ) {
 			$clean['enable_activity_log'] = isset( $new['enable_activity_log'] ) ? 1 : 0;
 

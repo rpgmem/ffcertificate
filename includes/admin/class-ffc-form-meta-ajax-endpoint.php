@@ -65,7 +65,10 @@ class FormMetaAjaxEndpoint {
 	 *
 	 * Adding a new auto-saveable toggle is a single-line append here.
 	 *
-	 * @return array<string, array{meta: string, path: array<int,string>}>
+	 *   - 'type'    — optional; 'enum' with an 'options' list for a radio
+	 *                 group (#1745). Absent means a '1' / '0' toggle.
+	 *
+	 * @return array<string, array{meta: string, path: array<int,string>, type?: string, options?: array<int, string>}>
 	 */
 	public static function allowlist(): array {
 		return array(
@@ -115,6 +118,13 @@ class FormMetaAjaxEndpoint {
 			'quiz_enabled'                        => array(
 				'meta' => '_ffc_form_config',
 				'path' => array( 'quiz_enabled' ),
+			),
+			// Off / Moderate / Strict (#1745) -- a radio group, not a toggle.
+			'quiz_reset_on_leave'                 => array(
+				'meta'    => '_ffc_form_config',
+				'path'    => array( 'quiz_reset_on_leave' ),
+				'type'    => 'enum',
+				'options' => \FreeFormCertificate\Core\QuizLeaveLevel::LEVELS,
 			),
 			'restriction_password'                => array(
 				'meta' => '_ffc_form_config',
@@ -189,16 +199,25 @@ class FormMetaAjaxEndpoint {
 			wp_send_json_error( array( 'message' => __( 'This toggle is not exposed for incremental updates.', 'ffcertificate' ) ), 403 );
 		}
 
-		// Normalise to '1' / '0' string — the rest of the plugin reads
-		// these toggles via `'1' === (string) $meta`, so we persist the
-		// canonical string form. `sanitize_value` returns a native bool;
-		// cast it to the canonical string here.
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised on the next line by SettingsAjaxEndpoint::sanitize_value() against the allowlisted type.
+		// A toggle normalises to the '1' / '0' string -- the rest of the
+		// plugin reads these via `'1' === (string) $meta` -- and
+		// `sanitize_value` returns a native bool, cast below.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised below by SettingsAjaxEndpoint::sanitize_value() against the allowlisted type.
 		$raw_value = isset( $_POST['value'] ) ? wp_unslash( $_POST['value'] ) : '';
-		$value     = SettingsAjaxEndpoint::sanitize_value( $raw_value, 'bool' ) ? '1' : '0';
+		$entry     = $allowlist[ $key ];
 
-		$entry = $allowlist[ $key ];
-		$path  = $entry['path'];
+		// A toggle is a bool stored as '1' / '0'; a radio group (#1745)
+		// carries a closed list and stores the chosen member as is.
+		if ( 'enum' === ( $entry['type'] ?? 'bool' ) ) {
+			$value = SettingsAjaxEndpoint::sanitize_value( $raw_value, 'enum', $entry );
+			if ( null === $value ) {
+				wp_send_json_error( array( 'message' => __( 'That value is not one of the choices.', 'ffcertificate' ) ), 400 );
+			}
+		} else {
+			$value = SettingsAjaxEndpoint::sanitize_value( $raw_value, 'bool' ) ? '1' : '0';
+		}
+
+		$path = $entry['path'];
 
 		if ( empty( $path ) ) {
 			update_post_meta( $post_id, $entry['meta'], $value );

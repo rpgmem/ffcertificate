@@ -25689,29 +25689,13 @@ msgstr "Recomeçar"
 msgid "Stay on this page while you answer."
 msgstr "Permaneça nesta página enquanto responde."
 
-#: includes/admin/class-ffc-form-editor-quiz-metabox.php:114
-msgid "Switching tabs or minimising the browser clears the answers; the participant is warned before starting and told why on return. Leaving does not count as an attempt, and how many times it happened is recorded on the submission. A deterrent, not a lock: another device or a browser without JavaScript is not stopped."
-msgstr "Trocar de aba ou minimizar o navegador apaga as respostas; o participante é avisado antes de começar e, ao voltar, é informado do motivo. Sair não conta como tentativa, e quantas vezes isso aconteceu fica registrado na submissão. É um desestímulo, não um bloqueio: outro dispositivo ou um navegador sem JavaScript não é impedido."
-
-#: includes/frontend/class-ffc-shortcodes.php:411
-msgid "Switching to another tab or window clears your answers, and the number of times you leave is recorded with your submission."
-msgstr "Trocar para outra aba ou janela apaga suas respostas, e o número de vezes que você sair fica registrado com a sua submissão."
-
 #: includes/admin/class-ffc-admin-submission-edit-page.php:574
 msgid "Times the quiz window was left"
 msgstr "Saídas da janela do quiz"
 
-#: includes/frontend/class-ffc-shortcodes.php:421
-msgid "You left this page while answering the quiz, so the answers were cleared. Leaving does not count as an attempt."
-msgstr "Você saiu desta página enquanto respondia ao quiz, por isso as respostas foram apagadas. Sair não conta como tentativa."
-
 #: includes/frontend/class-ffc-shortcodes.php:418
 msgid "Your answers were cleared"
 msgstr "Suas respostas foram apagadas"
-
-#: includes/settings/views/documentation/feature-quiz.php:32
-msgid "off by default. When on, the form warns the participant before they start; once they have started filling in the form, switching to another tab or minimising the browser clears the scored answers (name, CPF/RF and the other fields stay) and a dialog explains why on return. Leaving does not count as an attempt; the number of times it happened is stored with the submission and shown on its edit screen as \"Times the quiz window was left\". It is a deterrent, not a lock: another device, or a browser without JavaScript, is not stopped, and the count is reported by the browser."
-msgstr "desligado por padrão. Quando ligado, o formulário avisa o participante antes de começar; depois que ele começa a preencher, trocar para outra aba ou minimizar o navegador apaga as respostas pontuadas (nome, CPF/RF e os demais campos permanecem) e uma janela explica o motivo ao voltar. Sair não conta como tentativa; o número de vezes fica gravado na submissão e aparece na tela de edição como \"Saídas da janela do quiz\". É um desestímulo, não um bloqueio: outro dispositivo, ou um navegador sem JavaScript, não é impedido, e a contagem é informada pelo navegador."
 
 #: includes/settings/views/documentation/feature-quiz.php:24
 msgid "\"No points\", \"Points when answered\", which respects the minimum length the field sets, or \"Manual grading\", where a person gives the answer from 0 to its points."
@@ -25874,3 +25858,59 @@ msgstr "uma tentativa com uma resposta aberta corrigida por uma pessoa não most
 #, php-format
 msgid "of %d"
 msgstr "de %d"
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:120
+msgid "Also when another window takes the focus, such as two windows side by side or another program. A loss shorter than the grace set on Settings → Certificates does not count."
+msgstr "Também quando outra janela recebe o foco, como duas janelas lado a lado ou outro programa. Uma perda mais curta que a tolerância definida em Configurações → Certificados não conta."
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:118
+msgid "Answers are never cleared."
+msgstr "As respostas nunca são apagadas."
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:114
+msgid "Moderate"
+msgstr "Moderado"
+
+#: includes/settings/views/ffc-tab-certificates.php:87
+msgid "Quiz focus-loss grace (ms)"
+msgstr "Tolerância à perda de foco do quiz (ms)"
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:115
+msgid "Strict"
+msgstr "Restritivo"
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:119
+msgid "Switching to another tab or minimising the browser clears the scored answers."
+msgstr "Trocar de aba ou minimizar o navegador apaga as respostas pontuadas."
+
+#: includes/frontend/class-ffc-shortcodes.php:435
+msgid "Switching to another tab or minimising the browser clears your answers, and the number of times you leave is recorded with your submission."
+msgstr "Trocar de aba ou minimizar o navegador apaga suas respostas, e o número de vezes que você sair é registrado com o seu envio."
+
+#: includes/frontend/class-ffc-shortcodes.php:433
+msgid "Switching to another tab, minimising the browser or clicking another window clears your answers, and the number of times you leave is recorded with your submission."
+msgstr "Trocar de aba, minimizar o navegador ou clicar em outra janela apaga suas respostas, e o número de vezes que você sair é registrado com o seu envio."
+
+#: includes/admin/class-ffc-form-meta-ajax-endpoint.php:214
+msgid "That value is not one of the choices."
+msgstr "Esse valor não é uma das opções."
+
+#: includes/admin/class-ffc-form-editor-quiz-metabox.php:126
+msgid "The participant is warned before starting. On return the scored answers are cleared and Start again reloads the page, so shuffled options are shuffled again. Leaving does not count as an attempt, and how many times it happened is recorded on the submission. A deterrent, not a lock: another device or a browser without JavaScript is not stopped."
+msgstr "O participante é avisado antes de começar. Na volta, as respostas pontuadas são apagadas e Recomeçar recarrega a página, para que as opções embaralhadas sejam embaralhadas de novo. Sair não conta como tentativa, e quantas vezes isso aconteceu é registrado no envio. É uma dissuasão, não uma trava: outro dispositivo ou um navegador sem JavaScript não são impedidos."
+
+#: includes/settings/views/documentation/feature-certificates.php:35
+msgid "The same tab holds the quiz focus-loss grace: how long, in milliseconds, a quiz window set to Strict may lose the focus before it counts as leaving (default 1000, up to 10000; 0 counts every loss)."
+msgstr "A mesma aba guarda a tolerância à perda de foco do quiz: por quanto tempo, em milissegundos, a janela de um quiz no nível Restritivo pode perder o foco antes de contar como saída (padrão 1000, até 10000; 0 conta toda perda)."
+
+#: includes/settings/views/ffc-tab-certificates.php:92
+msgid "Used by quizzes set to Strict on leaving the window: a loss of focus counts only when it lasts longer than this, so a system notification or a password manager does not clear the answers. 0 counts every loss."
+msgstr "Usada pelos quizzes no nível Restritivo ao sair da janela: uma perda de foco só conta quando dura mais que isto, para que uma notificação do sistema ou um gerenciador de senhas não apague as respostas. 0 conta toda perda."
+
+#: includes/frontend/class-ffc-shortcodes.php:447
+msgid "You left this page while answering the quiz, so the answers were cleared. Leaving does not count as an attempt. Start again reloads the quiz."
+msgstr "Você saiu desta página enquanto respondia o quiz, então as respostas foram apagadas. Sair não conta como tentativa. Recomeçar recarrega o quiz."
+
+#: includes/settings/views/documentation/feature-quiz.php:32
+msgid "a three-step scale: Off (the default), Moderate or Strict. Moderate clears the scored answers when the participant switches to another tab or minimises the browser; Strict also clears them when another window takes the focus, such as two windows side by side, unless the focus comes back within the grace set on Settings → Certificates (1000 ms by default; a click inside an embedded video does not count). The form warns the participant before they start; once they have started, leaving clears the scored answers (name, CPF/RF and the other fields stay) and a dialog explains why on return. Its Start again button reloads the page, so options marked to shuffle are shuffled again, and personal fields the browser does not restore must be typed again. Leaving does not count as an attempt; the number of times it happened is stored with the submission and shown on its edit screen as \"Times the quiz window was left\". It is a deterrent, not a lock: another device, or a browser without JavaScript, is not stopped, and the count is reported by the browser."
+msgstr "uma escala de três passos: Desligado (padrão), Moderado ou Restritivo. Moderado apaga as respostas pontuadas quando o participante troca de aba ou minimiza o navegador; Restritivo também as apaga quando outra janela recebe o foco, como duas janelas lado a lado, a menos que o foco volte dentro da tolerância definida em Configurações → Certificados (1000 ms por padrão; um clique dentro de um vídeo incorporado não conta). O formulário avisa o participante antes de começar; depois que ele começa, sair apaga as respostas pontuadas (nome, CPF/RF e os outros campos ficam) e um diálogo explica o motivo na volta. O botão Recomeçar recarrega a página, para que as opções marcadas para embaralhar sejam embaralhadas de novo, e os campos pessoais que o navegador não restaurar precisam ser digitados de novo. Sair não conta como tentativa; o número de vezes que isso aconteceu é guardado com o envio e mostrado na tela de edição como \"Saídas da janela do quiz\". É uma dissuasão, não uma trava: outro dispositivo ou um navegador sem JavaScript não são impedidos, e a contagem é informada pelo navegador."
