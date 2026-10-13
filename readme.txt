@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.3
-Stable tag: 6.38.0
+Stable tag: 6.39.0
 Requires PHP: 8.3
 License: AGPLv3 or later
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
@@ -22,7 +22,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 * **Client-Side PDF Generation** - Certificates rendered in the browser with html2canvas and jsPDF, from reusable Document Templates with background images.
 * **Magic Links** - One-click certificate access through a unique link carrying a random 32-character token, sent by e-mail.
 * **Verification** - Authenticity check by authentication code or magic link, on the `/valid` page created at activation.
-* **Quiz Mode** - Scored forms with `{{score}}`, `{{max_score}}` and `{{score_percent}}` tokens.
+* **Quiz Mode** - Scored forms, each field scored on its own (choices, points, ranges), with `{{score}}`, `{{max_score}}`, `{{score_percent}}`, `{{correct_count}}` and `{{question_count}}` tokens. Open answers can be graded by a person, and a quiz can reset when the participant leaves the window.
 
 = QR Codes =
 
@@ -270,8 +270,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.38.0 =
-⚠ The licence is now AGPLv3 or later: reuse and forks stay free, and a modified copy offered as a service must publish its source. Identity resolution names each number, and the recruitment CSV import checks the RF digit.
+= 6.39.0 =
+Quizzes score per field, can be graded by hand and can reset when the participant leaves the window. Choice fields take one option per row with limits, required certificate fields get their own tab, and the plugin gains an icon and a "View details" screen.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one
