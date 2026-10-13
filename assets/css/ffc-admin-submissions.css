@@ -92,6 +92,12 @@
    TABLE IMPROVEMENTS
    ========================================================================== */
 
+/* The ID column holds up to six digits and the sort arrow. Without a width
+   the fixed table layout gave it the same share as the text columns. */
+.ffc-table-responsive table.wp-list-table .column-id {
+    width: 6.5em;
+}
+
 .ffc-table-responsive td.column-actions {
     white-space: normal;
     padding: var(--ffc-spacing-lg) var(--ffc-spacing-md);

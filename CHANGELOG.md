@@ -19,7 +19,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- **Dark mode reaches the colour picker, scrollbars, time pickers and radios** (#1723). The picker's label and popup, `.button-link` and checkboxes follow the palette, and admin screens declare `color-scheme: dark`, so native parts stop painting light. Quick Navigation no longer scrolls sideways, and the Geolocation "Add new location" fields get their padding back.
+- **Dark mode reaches what core paints on its own** (#1723). Admin screens declare `color-scheme: dark` (scrollbars, the time picker's clock, the file button). Links, notice links, "Add New", disabled primary buttons, the colour picker, checkboxes, radios, the Publish box footer, row actions and Screen Options follow the palette. Quick Navigation no longer scrolls sideways; the submissions ID column is narrower.
 
 ## [6.38.0] (2026-10-12) — `529e80a1`
 

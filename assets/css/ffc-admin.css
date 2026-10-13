@@ -279,6 +279,12 @@
     color: var(--ffc-primary);
 }
 
+/* The row's title sits inside the handle but is text, not the grip: it reads
+   the text colour, which the muted grip grey is not in the dark theme. */
+.ffc-sort-handle .ffc-field-title {
+    color: var(--ffc-text);
+}
+
 .ffc-remove-field {
     color: var(--ffc-danger);
     cursor: pointer;
