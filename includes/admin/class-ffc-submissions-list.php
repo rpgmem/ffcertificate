@@ -305,6 +305,9 @@ class SubmissionsList extends \WP_List_Table {
 				return '<span class="ffc-badge ffc-badge-warning">' . esc_html__( 'Quiz: Retry', 'ffcertificate' ) . $score_html . '</span>';
 			case 'quiz_failed':
 				return '<span class="ffc-badge ffc-badge-danger">' . esc_html__( 'Quiz: Failed', 'ffcertificate' ) . $score_html . '</span>';
+			case 'quiz_pending':
+				// No score yet: the open answers are not graded (#1732).
+				return '<span class="ffc-badge ffc-badge-info">' . esc_html__( 'Quiz: Awaiting Grading', 'ffcertificate' ) . '</span>';
 			default:
 				return '<span class="ffc-badge">' . esc_html( $status ) . '</span>';
 		}
@@ -559,6 +562,14 @@ class SubmissionsList extends \WP_List_Table {
 				__( 'Quiz: Failed', 'ffcertificate' ),
 				$counts['quiz_failed']
 			),
+			// A count cached before #1732 has no key for it yet.
+			'quiz_pending'     => sprintf(
+				'<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
+				add_query_arg( 'status', 'quiz_pending' ),
+				( 'quiz_pending' === $current ? 'current' : '' ),
+				__( 'Quiz: Awaiting Grading', 'ffcertificate' ),
+				$counts['quiz_pending'] ?? 0
+			),
 		);
 	}
 
@@ -586,6 +597,7 @@ class SubmissionsList extends \WP_List_Table {
 			'trash'            => __( 'Trash', 'ffcertificate' ),
 			'quiz_in_progress' => __( 'Quiz: Retry', 'ffcertificate' ),
 			'quiz_failed'      => __( 'Quiz: Failed', 'ffcertificate' ),
+			'quiz_pending'     => __( 'Quiz: Awaiting Grading', 'ffcertificate' ),
 		);
 		$status = $this->query_state['status'];
 		$view   = $views[ $status ] ?? $views['publish'];
@@ -612,6 +624,7 @@ class SubmissionsList extends \WP_List_Table {
 			'trash'            => array( 'delete', __( 'Trash is empty', 'ffcertificate' ), __( 'Submissions moved to the trash appear here until they are restored or deleted permanently.', 'ffcertificate' ) ),
 			'quiz_in_progress' => array( 'sync', __( 'No quiz retries', 'ffcertificate' ), __( 'Participants who failed a quiz and may still try again appear here.', 'ffcertificate' ) ),
 			'quiz_failed'      => array( 'error', __( 'No failed quiz attempts', 'ffcertificate' ), __( 'Participants who used every quiz attempt without passing appear here.', 'ffcertificate' ) ),
+			'quiz_pending'     => array( 'clock', __( 'Nothing to grade', 'ffcertificate' ), __( 'Quiz attempts with open answers waiting for a grade appear here.', 'ffcertificate' ) ),
 		);
 		$case  = $empty[ $status ] ?? $empty['publish'];
 

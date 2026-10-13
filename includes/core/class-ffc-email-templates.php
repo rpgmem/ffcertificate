@@ -43,6 +43,8 @@ final class EmailTemplates {
 		'audience-booking',
 		'audience-cancellation',
 		'certificate-user',
+		'quiz-graded-passed',
+		'quiz-graded-not-passed',
 		'recruitment-convocation',
 		'selfscheduling-confirmation',
 		'appointment-approval',

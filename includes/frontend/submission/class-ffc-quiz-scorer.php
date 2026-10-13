@@ -8,6 +8,10 @@
  * feedback. A question {@see QuizQuestion::is_scored()} leaves out counts in
  * neither.
  *
+ * A question a person grades (#1732) is worth its points like any other, but
+ * earns nothing until its grade is supplied: until then it is listed under
+ * `pending` and counts in neither the results nor the correct answers.
+ *
  * @package FreeFormCertificate\Frontend\Submission
  * @since 6.39.0
  */
@@ -26,21 +30,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Computes score, maximum, percentage and per-question results.
  *
- * @phpstan-type QuizResult array{score: int, max_score: int, percent: int, correct_count: int, question_count: int, results: array<string, bool>}
+ * @phpstan-type QuizResult array{score: int, max_score: int, percent: int, correct_count: int, question_count: int, results: array<string, bool>, pending: list<string>}
  */
 final class QuizScorer {
 
 	/**
 	 * Score one submission.
 	 *
-	 * @param array<int, array<string, mixed>> $fields_config Form fields configuration.
+	 * @param array<int, array<string, mixed>> $fields_config   Form fields configuration.
 	 * @param array<string, mixed>             $submission_data Sanitized answers.
+	 * @param array<string, int>               $grades          Points a person gave each manually graded question.
 	 * @return QuizResult
 	 */
-	public function score( array $fields_config, array $submission_data ): array {
+	public function score( array $fields_config, array $submission_data, array $grades = array() ): array {
 		$score   = 0;
 		$max     = 0;
 		$results = array();
+		$pending = array();
 
 		foreach ( $fields_config as $field ) {
 			if ( ! QuizQuestion::is_scored( $field ) ) {
@@ -48,6 +54,19 @@ final class QuizScorer {
 			}
 			$name = is_scalar( $field['name'] ?? null ) ? (string) $field['name'] : '';
 			if ( '' === $name ) {
+				continue;
+			}
+
+			if ( QuizQuestion::is_manual( $field ) ) {
+				$worth = QuizQuestion::points( $field );
+				$max  += $worth;
+				if ( ! array_key_exists( $name, $grades ) ) {
+					$pending[] = $name;
+					continue;
+				}
+				$earned           = min( $worth, max( 0, $grades[ $name ] ) );
+				$score           += $earned;
+				$results[ $name ] = $worth > 0 && $earned >= $worth;
 				continue;
 			}
 
@@ -65,6 +84,7 @@ final class QuizScorer {
 			'correct_count'  => count( array_filter( $results ) ),
 			'question_count' => count( $results ),
 			'results'        => $results,
+			'pending'        => $pending,
 		);
 	}
 

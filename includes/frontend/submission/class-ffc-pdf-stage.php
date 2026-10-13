@@ -47,6 +47,10 @@ class PdfStage {
 	 * @throws SubmissionRejected When PDF generation returns a WP_Error.
 	 */
 	public function apply( SubmissionContext $ctx ): void {
+		// An attempt awaiting grading is not a certificate yet (#1732).
+		if ( $ctx->awaiting_grading ) {
+			return;
+		}
 		$pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
 		$pdf_data      = $pdf_generator->generate_pdf_data(
 			$ctx->submission_id,

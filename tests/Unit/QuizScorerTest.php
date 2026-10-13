@@ -184,4 +184,37 @@ class QuizScorerTest extends TestCase {
 		$this->assertSame( 0, $result['percent'] );
 		$this->assertSame( 0, $result['question_count'] );
 	}
+
+	/**
+	 * #1732 — a manually graded question is worth its points, earns none
+	 * until graded, and is reported as pending meanwhile.
+	 */
+	public function test_a_manual_question_is_pending_until_graded(): void {
+		$fields = array(
+			$this->choice( 'radio', array( 'quiz_scored' => '1', 'quiz_mode' => 'correct', 'correct' => array( 'A' ) ) ),
+			array( 'type' => 'textarea', 'name' => 'essay', 'quiz_scored' => '1', 'quiz_text' => 'manual', 'quiz_points' => '4' ),
+		);
+
+		$pending = $this->scorer->score( $fields, array( 'q' => 'A', 'essay' => 'My answer' ) );
+		$this->assertSame( array( 'essay' ), $pending['pending'] );
+		$this->assertSame( 1, $pending['score'] );
+		$this->assertSame( 5, $pending['max_score'], 'The ungraded question still counts toward the maximum.' );
+		$this->assertSame( array( 'q' => true ), $pending['results'], 'A pending question is neither right nor wrong yet.' );
+
+		$graded = $this->scorer->score( $fields, array( 'q' => 'A', 'essay' => 'My answer' ), array( 'essay' => 3 ) );
+		$this->assertSame( array(), $graded['pending'] );
+		$this->assertSame( 4, $graded['score'] );
+		$this->assertSame( 80, $graded['percent'] );
+		$this->assertFalse( $graded['results']['essay'], 'Below full marks is not right as a whole.' );
+
+		$full = $this->scorer->score( $fields, array( 'q' => 'A' ), array( 'essay' => 99 ) );
+		$this->assertSame( 5, $full['score'], 'A grade above the points is capped.' );
+		$this->assertTrue( $full['results']['essay'] );
+
+		$this->assertSame( 1, $this->scorer->score( $fields, array( 'q' => 'A' ), array( 'essay' => -3 ) )['score'], 'A negative grade is zero.' );
+	}
+
+	public function test_a_quiz_without_manual_questions_has_nothing_pending(): void {
+		$this->assertSame( array(), $this->scorer->score( array( array( 'type' => 'text', 'name' => 't' ) ), array() )['pending'] );
+	}
 }

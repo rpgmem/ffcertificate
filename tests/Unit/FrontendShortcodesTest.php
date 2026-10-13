@@ -372,6 +372,50 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertStringContainsString( 'type="password"', $html );
 	}
 
+	/**
+	 * #1731 — a quiz that resets when the window is left says so, lists its
+	 * scored questions for the script, and carries the counter and dialog.
+	 */
+	private function render_quiz_form( array $config ): string {
+		Functions\when( 'shortcode_atts' )->alias( static fn( $defaults, $atts ) => array_merge( $defaults, $atts ) );
+		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Quiz' ) );
+		Functions\when( 'wp_rand' )->justReturn( 1 );
+		Functions\when( 'wp_hash' )->justReturn( 'h' );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) use ( $config ) {
+				if ( '_ffc_form_fields' === $key ) {
+					return array(
+						array( 'type' => 'text', 'name' => 'name', 'label' => 'Name', 'required' => true ),
+						array( 'type' => 'radio', 'name' => 'q1', 'label' => 'Q1', 'choices' => array( 'A', 'B' ), 'quiz_scored' => '1', 'quiz_mode' => 'correct', 'correct' => array( 'A' ) ),
+						array( 'type' => 'text', 'name' => 'q2', 'label' => 'Q2', 'quiz_scored' => '0' ),
+					);
+				}
+				return '_ffc_form_config' === $key ? $config : '';
+			}
+		);
+		return $this->shortcodes->render_form( array( 'id' => 5 ) );
+	}
+
+	public function test_a_reset_quiz_warns_lists_its_questions_and_carries_the_dialog(): void {
+		$html = $this->render_quiz_form( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => '1' ) );
+
+		// `esc_attr` is an identity stub here, so the JSON arrives unencoded.
+		$this->assertStringContainsString( 'data-ffc-quiz-leave="["q1"]"', $html, 'Only the scored question is cleared.' );
+		$this->assertStringContainsString( 'ffc-quiz-leave-notice', $html );
+		$this->assertStringContainsString( 'name="ffc_quiz_focus_losses"', $html );
+		$this->assertMatchesRegularExpression( '/class="ffc-modal ffc-quiz-leave-overlay" role="alertdialog" aria-modal="true"[^>]*hidden>/', $html );
+	}
+
+	public function test_a_quiz_without_the_reset_and_a_plain_form_carry_none_of_it(): void {
+		foreach ( array( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => '0' ), array( 'quiz_enabled' => '0', 'quiz_reset_on_leave' => '1' ) ) as $config ) {
+			$html = $this->render_quiz_form( $config );
+			$this->assertStringNotContainsString( 'data-ffc-quiz-leave', $html );
+			$this->assertStringNotContainsString( 'ffc_quiz_focus_losses', $html );
+		}
+	}
+
 	// ==================================================================
 	// render_form() — with ticket restriction
 	// ==================================================================

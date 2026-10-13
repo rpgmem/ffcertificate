@@ -820,6 +820,7 @@ class SubmissionReader extends AbstractRepository {
 			'trash'            => isset( $results['trash'] ) ? (int) $results['trash']->count : 0,
 			'quiz_in_progress' => isset( $results['quiz_in_progress'] ) ? (int) $results['quiz_in_progress']->count : 0,
 			'quiz_failed'      => isset( $results['quiz_failed'] ) ? (int) $results['quiz_failed']->count : 0,
+			'quiz_pending'     => isset( $results['quiz_pending'] ) ? (int) $results['quiz_pending']->count : 0,
 		);
 
 		\set_transient( self::COUNT_CACHE_KEY, $counts, self::COUNT_CACHE_TTL );

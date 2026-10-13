@@ -182,6 +182,22 @@ class UserCertificatesRestControllerTest extends TestCase {
 		$this->assertEmpty( $result['certificates'] );
 	}
 
+	/**
+	 * #1744 — the list leaves out trash and quiz attempts that did not pass,
+	 * through prepared placeholders.
+	 */
+	public function test_get_user_certificates_hides_statuses_that_are_not_certificates(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->wpdb->shouldReceive( 'prepare' )
+			->once()
+			->with( Mockery::pattern( '/status NOT IN \(%s, %s, %s, %s\)/' ), Mockery::any(), Mockery::any(), 5, 'trash', 'quiz_in_progress', 'quiz_failed', 'quiz_pending' )
+			->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		( new UserCertificatesRestController( 'ffc/v1' ) )->get_user_certificates( $this->make_request() );
+	}
+
 	public function test_get_user_certificates_returns_formatted_certificate_data(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( true );

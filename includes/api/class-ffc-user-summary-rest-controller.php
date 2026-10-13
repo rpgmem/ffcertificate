@@ -82,14 +82,19 @@ class UserSummaryRestController {
 			// Count certificates.
 			if ( $this->user_has_capability( 'ffc_view_own_certificates', $user_id, $ctx['is_view_as'] ) ) {
 				$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
+				// Counted as the certificate list lists them (#1744).
+				$hidden = \FreeFormCertificate\Core\SubmissionStatus::NOT_A_CERTIFICATE;
+				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list is `%s` repeated once per hidden status, so the sniff cannot count it.
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Counts one user's rows in the plugin's own submissions table for the REST summary; the response is built once per request.
 				$summary['total_certificates'] = (int) $wpdb->get_var(
 					$wpdb->prepare(
-						"SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'trash'",
+						'SELECT COUNT(*) FROM %i WHERE user_id = %d AND status NOT IN (' . implode( ', ', array_fill( 0, count( $hidden ), '%s' ) ) . ')',
 						$table,
-						$user_id
+						$user_id,
+						...$hidden
 					)
 				);
+				// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 			}
 
 			// Next appointment.

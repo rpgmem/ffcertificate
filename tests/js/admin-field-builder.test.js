@@ -44,9 +44,9 @@ function row(index) {
 			<div class="ffc-field-quiz-head"><input type="checkbox" class="ffc-quiz-scored" name="ffc_fields[${index}][quiz_scored]" value="1"></div>
 			<div class="ffc-field-quiz-body">
 				<select class="ffc-quiz-mode" name="ffc_fields[${index}][quiz_mode]"><option value="correct">Correct</option><option value="points">Points</option></select>
-				<select class="ffc-quiz-text" name="ffc_fields[${index}][quiz_text]"><option value="none">None</option><option value="answered">Answered</option></select>
+				<select class="ffc-quiz-text" name="ffc_fields[${index}][quiz_text]"><option value="none">None</option><option value="answered">Answered</option><option value="manual">Manual</option></select>
 				<label class="ffc-quiz-points-setting"><input type="number" name="ffc_fields[${index}][quiz_points]"></label>
-				<p data-ffc-quiz-help="correct"></p><p data-ffc-quiz-help="points"></p><p data-ffc-quiz-help="range"></p>
+				<p data-ffc-quiz-help="correct"></p><p data-ffc-quiz-help="points"></p><p data-ffc-quiz-help="range"></p><p data-ffc-quiz-help="manual"></p>
 			</div>
 		</div>
 	</div>`;
@@ -275,6 +275,26 @@ describe('FieldBuilder — quiz (#1730)', () => {
 		expect(row().find('.ffc-choice-correct').hasClass('ffc-hidden')).toBe(true);
 		expect(row().find('.ffc-choice-points').hasClass('ffc-hidden')).toBe(false);
 		expect(row().find('.ffc-quiz-points-setting').hasClass('ffc-hidden')).toBe(true, 'Points per option: no question-wide points.');
+	});
+
+	it('explains manual grading only for an open answer graded by a person (#1732)', () => {
+		const select = $('#ffc-fields-container .ffc-field-type-selector');
+		select.value = 'textarea';
+		window.$(select).trigger('change');
+		const scored = $('#ffc-fields-container .ffc-quiz-scored');
+		scored.checked = true;
+		window.$(scored).trigger('change');
+		const help = () => row().find('[data-ffc-quiz-help="manual"]').hasClass('ffc-hidden');
+		expect(help()).toBe(true);
+
+		const text = $('#ffc-fields-container .ffc-quiz-text');
+		text.value = 'manual';
+		window.$(text).trigger('change');
+		expect(help()).toBe(false);
+
+		select.value = 'number';
+		window.$(select).trigger('change');
+		expect(help()).toBe(true);
 	});
 
 	it('posts the correct mark through the aligned hidden value', () => {

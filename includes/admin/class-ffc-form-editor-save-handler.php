@@ -316,8 +316,9 @@ class FormEditorSaveHandler {
 				$clean_config['generated_codes_list'] = sanitize_textarea_field( ArrayValue::string( $config, 'generated_codes_list' ) );
 			}
 
-			// Quiz / Evaluation Mode — 1 master toggle, 4 sub-options
-			// (passing_score / max_attempts / show_score / show_correct).
+			// Quiz / Evaluation Mode — 1 master toggle, 5 sub-options
+			// (passing_score / max_attempts / show_score / show_correct /
+			// reset_on_leave).
 			$quiz_enabled                 = isset( $config['quiz_enabled'] ) ? '1' : '0';
 			$clean_config['quiz_enabled'] = $quiz_enabled;
 			if ( '1' === $quiz_enabled ) {
@@ -325,6 +326,8 @@ class FormEditorSaveHandler {
 				$clean_config['quiz_max_attempts']  = absint( ArrayValue::int( $config, 'quiz_max_attempts', 0 ) );
 				$clean_config['quiz_show_score']    = isset( $config['quiz_show_score'] ) ? '1' : '0';
 				$clean_config['quiz_show_correct']  = isset( $config['quiz_show_correct'] ) ? '1' : '0';
+				// Clear the answers when the participant leaves the window (#1731).
+				$clean_config['quiz_reset_on_leave'] = isset( $config['quiz_reset_on_leave'] ) ? '1' : '0';
 			}
 
 			// Tag Validation (server-side backstop): warn if the layout is

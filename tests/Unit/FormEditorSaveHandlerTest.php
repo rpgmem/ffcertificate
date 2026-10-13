@@ -1605,6 +1605,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 				'quiz_passing_score'   => '80',
 				'quiz_max_attempts'    => '3',
 				'quiz_show_score'      => '1',
+				'quiz_reset_on_leave'  => '1',
 			),
 		);
 		$this->handler->save_form_data( 10 );
@@ -1619,6 +1620,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertSame( 3, $config['quiz_max_attempts'] );
 		$this->assertSame( '1', $config['quiz_show_score'] );
 		$this->assertSame( '0', $config['quiz_show_correct'] );
+		$this->assertSame( '1', $config['quiz_reset_on_leave'], 'The leave-the-window reset is stored (#1731).' );
 	}
 
 	public function test_a_layout_missing_tags_or_pointing_at_html_leaves_both_warnings(): void {

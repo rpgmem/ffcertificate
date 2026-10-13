@@ -956,6 +956,33 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Source-to-target map for the quiz grading cap (#1732).
+	 *
+	 * @since 6.39.0
+	 * @return array<string, array<int, string>>
+	 */
+	public static function grade_cap_grant_map(): array {
+		return array(
+			'ffc_edit_certificates' => array( 'ffc_grade_certificates' ),
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_grade_certificates` onto every user
+	 * and role already holding `ffc_edit_certificates`: whoever could open a
+	 * submission to fix it can grade it, until an administrator says not.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_grade_cap_v1` option.
+	 *
+	 * @since 6.39.0
+	 * @return array<string, int> Per-target-cap count of users seeded.
+	 */
+	public static function migrate_grade_cap_grant(): array {
+		return self::seed_caps( self::grade_cap_grant_map() );
+	}
+
+	/**
 	 * Seed every target capability onto whoever already holds its source.
 	 *
 	 * ONE BODY, BECAUSE THERE WERE ALREADY TWO IDENTICAL ONES

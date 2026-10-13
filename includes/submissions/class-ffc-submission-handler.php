@@ -432,6 +432,13 @@ class SubmissionHandler {
 			return;
 		}
 
+		// A quiz attempt is inserted as a certificate and lowered to its
+		// result right after, before this fires: one that did not pass must
+		// not be emailed its certificate link (#1744).
+		if ( \FreeFormCertificate\Core\SubmissionStatus::is_unpassed_quiz( $submission ) ) {
+			return;
+		}
+
 		$form_id     = isset( $submission['form_id'] ) ? (int) $submission['form_id'] : 0;
 		$user_email  = isset( $submission['email'] ) ? (string) $submission['email'] : '';
 		$magic_token = isset( $submission['magic_token'] ) ? (string) $submission['magic_token'] : '';

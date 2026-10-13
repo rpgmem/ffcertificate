@@ -58,6 +58,15 @@ class FormEditorQuizMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-quiz-setting ffc-hidden', $html );
 	}
 
+	public function test_render_offers_the_leave_the_window_reset(): void {
+		$off = $this->render( array( 'quiz_enabled' => '1' ) );
+		$on  = $this->render( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => '1' ) );
+
+		$this->assertStringContainsString( 'name="ffc_config[quiz_reset_on_leave]"', $off );
+		$this->assertMatchesRegularExpression( '/name="ffc_config\[quiz_reset_on_leave\]"[^>]*checked/', $on );
+		$this->assertDoesNotMatchRegularExpression( '/name="ffc_config\[quiz_reset_on_leave\]"[^>]*checked/', $off );
+	}
+
 	public function test_render_uncollapses_quiz_settings_when_enabled(): void {
 		$html = $this->render( array( 'quiz_enabled' => '1' ) );
 

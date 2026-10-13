@@ -100,6 +100,8 @@ class AdminSubmissionEditPageTest extends TestCase {
 		);
 
 		$this->handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
+		// The save reads the stored answers back to carry the grading records (#1732).
+		$this->handler->shouldReceive( 'get_submission' )->andReturn( null )->byDefault();
 
 		// Static collaborator alias mocks (sensible defaults; overridable per test).
 		$this->caps = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
@@ -626,6 +628,119 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$msg = $this->capture( fn () => $this->page()->handle_save() );
 		$this->assertStringStartsWith( 'REDIRECT:', $msg );
 	}
+	/**
+	 * #1731 — the window-leave count reads as a labelled fact, not an answer
+	 * to edit, and is still posted so a save keeps it.
+	 */
+	public function test_render_shows_the_window_leave_count_as_a_protected_fact(): void {
+		$row = $this->submission_row( array( 'data' => wp_json_encode_local( array( '_quiz_focus_losses' => 3 ) ) ) );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $row );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<dt class="ffc-facts__label">Times the quiz window was left</dt>', $html );
+		$this->assertStringContainsString( '<input type="hidden" name="data[_quiz_focus_losses]" value="3">', $html );
+		$this->assertStringNotContainsString( 'type="text" id="ffc-edit-data-_quiz_focus_losses"', $html );
+	}
+
+	/**
+	 * #1732 — the grading records are lists a text field would flatten, so
+	 * the form neither shows nor posts them, and a save carries them over.
+	 */
+	public function test_handle_save_carries_the_grading_records_over(): void {
+		$_POST['ffc_save_edit'] = '1';
+		$_POST['submission_id'] = '42';
+		$_POST['data']          = array( 'curso' => 'PHP' );
+		$stored                 = array(
+			'curso'         => 'Old',
+			'_quiz_pending' => array( 'essay' ),
+			'_quiz_grades'  => array( 'q1' => 2 ),
+		);
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( (array) $this->submission_row( array( 'data' => wp_json_encode_local( $stored ) ) ) );
+
+		$this->handler->shouldReceive( 'update_submission' )->once()->with(
+			42,
+			'',
+			array(
+				'curso'         => 'PHP',
+				'_quiz_pending' => array( 'essay' ),
+				'_quiz_grades'  => array( 'q1' => 2 ),
+			)
+		);
+
+		$this->assertStringStartsWith( 'REDIRECT:', $this->capture( fn () => $this->page()->handle_save() ) );
+	}
+
+	public function test_render_shows_the_grading_card_for_an_attempt_awaiting_grading(): void {
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) {
+				if ( '_ffc_form_fields' === $key ) {
+					return array(
+						array(
+							'type'        => 'textarea',
+							'name'        => 'essay',
+							'label'       => 'Explain why',
+							'quiz_scored' => '1',
+							'quiz_text'   => 'manual',
+							'quiz_points' => '4',
+						),
+					);
+				}
+				return array( 'quiz_passing_score' => '70' );
+			}
+		);
+		$data = array(
+			'essay'           => 'Because <b>so</b>.',
+			'_quiz_score'     => 6,
+			'_quiz_max_score' => 10,
+			'_quiz_pending'   => array( 'essay' ),
+		);
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn(
+			$this->submission_row(
+				array(
+					'status' => 'quiz_pending',
+					'data'   => wp_json_encode_local( $data ),
+				)
+			)
+		);
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Grade open answers', $html );
+		$this->assertStringContainsString( 'earned 6 of 10 points. The passing score is 70%.', $html );
+		$this->assertStringContainsString( 'name="ffc_grade[essay]" form="ffc-grade-form" min="0" max="4" step="1" required', $html );
+		$this->assertStringContainsString( '<form id="ffc-grade-form" method="POST" action="admin-post.php">', $html );
+		$this->assertStringContainsString( 'name="action" value="ffc_grade_submission"', $html );
+		$this->assertSame( 1, substr_count( $html, '<form id="ffc-grade-form"' ), 'The grading form is not nested in the edit form.' );
+		$this->assertGreaterThan( strpos( $html, '</form>' ), strpos( $html, '<form id="ffc-grade-form"' ), 'It is printed after the edit form closes.' );
+		$this->assertStringNotContainsString( 'name="data[_quiz_pending]"', $html );
+	}
+
+	public function test_render_hides_the_grading_card_from_a_user_who_cannot_grade(): void {
+		$this->caps->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_grade_certificates' )->andReturn( false );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'status' => 'quiz_pending' ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'ffc-grade-form', $html );
+	}
+
+	public function test_render_has_no_grading_card_once_the_attempt_is_decided(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'ffc-grade-form', $html );
+	}
+
 	public function test_render_reads_protected_fields_as_text_and_still_posts_them(): void {
 		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
 

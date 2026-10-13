@@ -492,6 +492,7 @@ class FormEditorBuilderMetabox {
 					<select name="<?php echo esc_attr( $base ); ?>[quiz_text]" class="ffc-quiz-text">
 						<option value="<?php echo esc_attr( QuizQuestion::TEXT_NONE ); ?>" <?php selected( $text, QuizQuestion::TEXT_NONE ); ?>><?php esc_html_e( 'No points', 'ffcertificate' ); ?></option>
 						<option value="<?php echo esc_attr( QuizQuestion::TEXT_ANSWERED ); ?>" <?php selected( $text, QuizQuestion::TEXT_ANSWERED ); ?>><?php esc_html_e( 'Points when answered', 'ffcertificate' ); ?></option>
+						<option value="<?php echo esc_attr( QuizQuestion::TEXT_MANUAL ); ?>" <?php selected( $text, QuizQuestion::TEXT_MANUAL ); ?>><?php esc_html_e( 'Manual grading', 'ffcertificate' ); ?></option>
 					</select>
 				</label>
 				<label class="ffc-field-setting" data-ffc-types="number">
@@ -516,6 +517,7 @@ class FormEditorBuilderMetabox {
 				</label>
 				<p class="description ffc-quiz-help" data-ffc-quiz-help="correct"><?php esc_html_e( 'Tick the correct option(s) beside each option. A checkbox scores only when every correct option is ticked and no other.', 'ffcertificate' ); ?></p>
 				<p class="description ffc-quiz-help" data-ffc-quiz-help="points"><?php esc_html_e( 'Give each option its points beside it. A checkbox adds the boxes ticked, never below zero; a wrong box can be worth negative points.', 'ffcertificate' ); ?></p>
+				<p class="description ffc-quiz-help" data-ffc-quiz-help="manual"><?php esc_html_e( 'A person grades the answer, from 0 to the points. A submission with such an answer waits as "Awaiting Grading"; the certificate, or the result, is emailed once it is graded.', 'ffcertificate' ); ?></p>
 				<p class="description ffc-quiz-help" data-ffc-quiz-help="range"><?php esc_html_e( 'An answer within the range, bounds included, earns the points. Set both bounds to the same value for one exact answer; leave one empty for an open range.', 'ffcertificate' ); ?></p>
 			</div>
 		</div>

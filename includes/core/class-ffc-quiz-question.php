@@ -48,6 +48,11 @@ final class QuizQuestion {
 	public const TEXT_ANSWERED = 'answered';
 
 	/**
+	 * Text answer graded by a person, up to the question's points (#1732).
+	 */
+	public const TEXT_MANUAL = 'manual';
+
+	/**
 	 * Points a question is worth when nothing else was configured.
 	 */
 	public const DEFAULT_POINTS = 1;
@@ -96,7 +101,7 @@ final class QuizQuestion {
 				: array() !== self::option_points( $field );
 		}
 		if ( in_array( $type, FormField::LENGTH_TYPES, true ) ) {
-			return self::TEXT_ANSWERED === self::text_mode( $field );
+			return self::TEXT_NONE !== self::text_mode( $field );
 		}
 		return '' !== self::answer_min( $field ) || '' !== self::answer_max( $field );
 	}
@@ -173,7 +178,19 @@ final class QuizQuestion {
 	 * @param array<array-key, mixed> $field Stored field.
 	 */
 	public static function text_mode( array $field ): string {
-		return self::TEXT_ANSWERED === ArrayValue::string( $field, 'quiz_text' ) ? self::TEXT_ANSWERED : self::TEXT_NONE;
+		$mode = ArrayValue::string( $field, 'quiz_text' );
+		return in_array( $mode, array( self::TEXT_ANSWERED, self::TEXT_MANUAL ), true ) ? $mode : self::TEXT_NONE;
+	}
+
+	/**
+	 * Whether a person grades the field's answer (#1732).
+	 *
+	 * @param array<array-key, mixed> $field Stored field.
+	 */
+	public static function is_manual( array $field ): bool {
+		return in_array( FormField::type( $field ), FormField::LENGTH_TYPES, true )
+			&& self::TEXT_MANUAL === self::text_mode( $field )
+			&& self::is_scored( $field );
 	}
 
 	/**
@@ -251,7 +268,8 @@ final class QuizQuestion {
 		if ( in_array( $type, FormField::CHOICE_TYPES, true ) ) {
 			$clean['quiz_mode'] = self::MODE_CORRECT === ArrayValue::string( $row, 'quiz_mode' ) ? self::MODE_CORRECT : self::MODE_POINTS;
 		} elseif ( in_array( $type, FormField::LENGTH_TYPES, true ) ) {
-			$clean['quiz_text'] = self::TEXT_ANSWERED === ArrayValue::string( $row, 'quiz_text' ) ? self::TEXT_ANSWERED : self::TEXT_NONE;
+			$text               = ArrayValue::string( $row, 'quiz_text' );
+			$clean['quiz_text'] = in_array( $text, array( self::TEXT_ANSWERED, self::TEXT_MANUAL ), true ) ? $text : self::TEXT_NONE;
 		} else {
 			// Like the field's own range, a row carries a number and a date
 			// answer block, so the date inputs post under their own keys.

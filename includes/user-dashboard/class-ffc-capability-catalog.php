@@ -184,6 +184,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Edit submission data on issued certificates', 'ffcertificate' ),
 						'description' => __( 'Fix typos on already-issued certificates without holding manage_options.', 'ffcertificate' ),
 					),
+					'ffc_grade_certificates'    => array(
+						'label'       => __( 'Grade quiz answers', 'ffcertificate' ),
+						'description' => __( 'Grade the open answers of a quiz attempt awaiting grading, which issues the certificate or records the attempt as not passed (#1732).', 'ffcertificate' ),
+					),
 					'ffc_export_certificates'   => array(
 						'label'       => __( 'Export certificates', 'ffcertificate' ),
 						'description' => __( 'Download bulk certificate exports.', 'ffcertificate' ),

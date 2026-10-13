@@ -41,6 +41,7 @@ class FormEditorQuizMetabox {
 		$quiz_max_attempts  = $config['quiz_max_attempts'] ?? '0';
 		$quiz_show_score    = ( $config['quiz_show_score'] ?? '1' ) === '1';
 		$quiz_show_correct  = ( $config['quiz_show_correct'] ?? '0' ) === '1';
+		$quiz_reset_leave   = ( $config['quiz_reset_on_leave'] ?? '0' ) === '1';
 		?>
 		<table class="form-table">
 			<tr>
@@ -96,6 +97,21 @@ class FormEditorQuizMetabox {
 						)
 					);
 					?>
+				</td>
+			</tr>
+			<tr class="ffc-quiz-setting<?php echo $quiz_enabled ? '' : ' ffc-hidden'; ?>">
+				<th><label><?php esc_html_e( 'Leaving the Window', 'ffcertificate' ); ?></label></th>
+				<td>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_config[quiz_reset_on_leave]',
+							'checked' => (bool) $quiz_reset_leave,
+							'label'   => __( 'Reset the quiz when the participant leaves the window', 'ffcertificate' ),
+						)
+					);
+					?>
+					<p class="description"><?php esc_html_e( 'Switching tabs or minimising the browser clears the answers; the participant is warned before starting and told why on return. Leaving does not count as an attempt, and how many times it happened is recorded on the submission. A deterrent, not a lock: another device or a browser without JavaScript is not stopped.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 		</table>
