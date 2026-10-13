@@ -70,7 +70,7 @@ final class RecruitmentAdminAssetsManager {
 		$css_ver = file_exists( $css_path ) ? (string) filemtime( $css_path ) : FFC_VERSION;
 		$js_ver  = file_exists( $js_path ) ? (string) filemtime( $js_path ) : FFC_VERSION;
 
-		// ffc-common.css carries the .ffc-toggle switch styles used by the
+		// ffc-common.css carries the .ffc-control-toggle switch styles used by the
 		// notice/reason editors (render_toggle); load it as a dependency.
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_style(

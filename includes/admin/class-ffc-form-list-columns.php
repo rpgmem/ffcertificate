@@ -265,7 +265,7 @@ class FormListColumns {
 	/**
 	 * Render the three feature toggles for one row.
 	 *
-	 * Each toggle keeps the markup contract `.ffc-toggle` expects — the
+	 * Each toggle keeps the markup contract `.ffc-control-toggle` expects — the
 	 * underlying checkbox carries the `data-ffc-form-id` /
 	 * `data-ffc-feature` attributes the JS handler reads on change.
 	 *

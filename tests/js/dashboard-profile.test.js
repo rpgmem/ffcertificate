@@ -146,6 +146,19 @@ describe('FFCDashboard.panels.profile.render', () => {
 		expect(document.querySelector('#ffc-tabpanel-profile #ffc-audience-join-section')).not.toBeNull();
 	});
 
+	it('draws the notification toggles with the plugin\'s one toggle, focusable (#1748)', () => {
+		panel().render(makeProfile());
+		const toggle = document.querySelector('#ffc-tabpanel-profile .ffc-notif-toggle');
+		expect(toggle).not.toBeNull();
+		const label = toggle.closest('label');
+		expect(label.classList.contains('ffc-control-toggle')).toBe(true);
+		expect(label.querySelector('.ffc-control-toggle-track').getAttribute('aria-hidden')).toBe('true');
+		expect(label.querySelector('.ffc-control-toggle-label').textContent).not.toBe('');
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-toggle-switch')).toBeNull();
+		toggle.focus();
+		expect(document.activeElement).toBe(toggle);
+	});
+
 	it('stores the profile on the panel state', () => {
 		const profile = makeProfile({ display_name: 'João' });
 		panel().render(profile);

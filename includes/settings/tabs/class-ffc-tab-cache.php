@@ -38,7 +38,7 @@ class TabCache extends SettingsTab {
 
 	/**
 	 * Enqueue auto-save infrastructure when this tab is active so the
-	 * `.ffc-toggle` switches in the view persist inline via the
+	 * `.ffc-control-toggle` switches in the view persist inline via the
 	 * `ffc_update_setting` endpoint.
 	 *
 	 * @param string $hook Current admin page hook.

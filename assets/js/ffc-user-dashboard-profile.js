@@ -40,10 +40,11 @@
         var has = Object.prototype.hasOwnProperty.call(prefs, key);
         var on = defaultOn ? (!has || prefs[key] !== false) : !!prefs[key];
         var checked = on ? ' checked' : '';
-        return '<label class="ffc-toggle-label">' +
+        // The plugin's one toggle (#1748): the checkbox stays focusable.
+        return '<label class="ffc-control-toggle">' +
             '<input type="checkbox" class="ffc-notif-toggle" data-key="' + key + '"' + checked + ' />' +
-            '<span class="ffc-toggle-switch"></span>' +
-            '<span>' + label + '</span></label>';
+            '<span class="ffc-control-toggle-track" aria-hidden="true"></span>' +
+            '<span class="ffc-control-toggle-label">' + label + '</span></label>';
     }
 
     function showEditForm() {

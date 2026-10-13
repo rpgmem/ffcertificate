@@ -128,4 +128,13 @@ class IconsTest extends TestCase {
 		$this->assertDoesNotMatchRegularExpression( '/url\("(?!data:)/', $css, 'every url() is an inline data URI' );
 		$this->assertDoesNotMatchRegularExpression( '/[<>#]/', preg_replace( '/^\/\*.*\*\/$/m', '', $css ), 'the data URIs are percent-encoded' );
 	}
+
+	public function test_every_mask_variable_names_a_drawing_and_is_emitted(): void {
+		$css = Icons::stylesheet();
+		foreach ( Icons::MASKS as $name ) {
+			$this->assertTrue( Icons::has( $name ), "{$name} is a drawing in the registry" );
+			$this->assertStringContainsString( '--ffc-icon-mask-' . $name . ': url("data:image/svg+xml,', $css );
+		}
+		$this->assertNotEmpty( Icons::MASKS );
+	}
 }

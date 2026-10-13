@@ -42,7 +42,7 @@ class TabModulos extends SettingsTab {
 	}
 
 	/**
-	 * Enqueue the settings-autosave infra so the per-module `.ffc-toggle`
+	 * Enqueue the settings-autosave infra so the per-module `.ffc-control-toggle`
 	 * switches bind to the incremental settings AJAX endpoint.
 	 *
 	 * @param string $hook Current admin page hook.

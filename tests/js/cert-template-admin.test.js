@@ -43,7 +43,7 @@ function mount(cfg, { withTitle = true, checked = true } = {}) {
 	window.ffcCertTemplateAdmin = cfg;
 	document.body.innerHTML = `
 		${withTitle ? '<input type="text" id="title" value="Model 1">' : ''}
-		<label class="ffc-toggle">
+		<label class="ffc-control-toggle">
 			<input type="checkbox" id="ffc_template_visible" name="ffc_template_visible" value="1" ${checked ? 'checked' : ''}>
 		</label>
 		<span id="ffc_template_visible_status" class="ffc-autosave-status"></span>

@@ -1622,6 +1622,11 @@
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 2L4 14h7l-1 8 9-12h-7z'/%3E%3C/svg%3E");
 }
 
+:root {
+    --ffc-icon-mask-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E");
+    --ffc-icon-mask-x: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E");
+}
+
 .ffc-svg-icon {
     color: var(--ffc-icon-tone, currentColor);
 }
@@ -2008,19 +2013,32 @@
 .ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: var(--ffc-radius-full); vertical-align: middle; background-color: var(--ffc-color, currentColor); }
 
 /* ==========================================================================
-   TOGGLE SWITCH — mobile-style ON/OFF for boolean settings.
-   Replaces native checkbox visuals while preserving the underlying input
-   for accessibility (screen readers, keyboard nav, form-POST semantics).
-   Markup contract:
-     <label class="ffc-toggle">
+   TOGGLE (#1748) — AdminUI::render_toggle(), the two-state member of the
+   ffc-control-* family (see CONTROLS below). Markup:
+     <label class="ffc-control-toggle">
          <input type="checkbox" name="..." value="1" checked>
-         <span class="ffc-toggle-track" aria-hidden="true"></span>
-         <span class="ffc-toggle-label">Field label text</span>
+         <span class="ffc-control-toggle-track" aria-hidden="true"></span>
+         <span class="ffc-control-toggle-label">Field label text</span>
      </label>
+   It shares the family's state language: a halo for hover and pressed, the
+   2px primary ring for keyboard focus, and a disabled state that greys
+   instead of fading. .ffc-control-toggle-mark adds a check or a cross on the
+   knob, so on and off do not rest on colour alone.
    ========================================================================== */
-.ffc-toggle,
-.form-table td .ffc-toggle,
-.form-table td fieldset .ffc-toggle {
+/* The family's shared hover / pressed halo. */
+.ffc-control-toggle,
+.ffc-control-steps {
+    --ffc-control-halo: color-mix(in srgb, var(--ffc-primary) 18%, transparent);
+    --ffc-control-knob-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    /* The ink of a mark drawn on the toggle's knob. The knob is white in both
+       themes (see below), so its ink is fixed too: --ffc-primary lightens in
+       the dark theme and would fall under 3:1 on white (#1748). */
+    --ffc-control-knob-ink: #50575e;
+}
+
+.ffc-control-toggle,
+.form-table td .ffc-control-toggle,
+.form-table td fieldset .ffc-control-toggle {
     /* Multiple selectors win the specificity battle against WP admin's
        `.form-table td fieldset label { display: inline-block }` which
        would otherwise collapse the toggle and overlap the label text. */
@@ -2033,7 +2051,7 @@
     position: relative;
 }
 
-.ffc-toggle input[type="checkbox"] {
+.ffc-control-toggle input[type="checkbox"] {
     /* Visually hidden but reachable by keyboard + assistive tech. */
     position: absolute;
     opacity: 0;
@@ -2042,8 +2060,9 @@
     pointer-events: none;
 }
 
-.ffc-toggle-track {
+.ffc-control-toggle-track {
     position: relative;
+    isolation: isolate;
     flex: 0 0 auto;
     width: 38px;
     height: 22px;
@@ -2052,7 +2071,7 @@
     transition: background-color 0.15s ease;
 }
 
-.ffc-toggle-track::after {
+.ffc-control-toggle-track::after {
     content: "";
     position: absolute;
     top: 2px;
@@ -2064,36 +2083,101 @@
        theme the track is dark, and a knob in var(--ffc-bg-card) would vanish
        into it. Literal by decision, not by oversight (#1126 B). */
     background: #fff;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    transition: transform 0.15s ease;
+    box-shadow: var(--ffc-control-knob-shadow);
+    transition: transform 0.15s ease, width 0.15s ease, box-shadow 0.15s ease;
 }
 
-.ffc-toggle input[type="checkbox"]:checked + .ffc-toggle-track {
+.ffc-control-toggle input[type="checkbox"]:checked + .ffc-control-toggle-track {
     background: var(--ffc-primary);
 }
 
-.ffc-toggle input[type="checkbox"]:checked + .ffc-toggle-track::after {
+.ffc-control-toggle input[type="checkbox"]:checked + .ffc-control-toggle-track::after {
     transform: translateX(16px);
 }
 
-.ffc-toggle input[type="checkbox"]:focus-visible + .ffc-toggle-track {
+.ffc-control-toggle:hover input[type="checkbox"]:not(:disabled) + .ffc-control-toggle-track::after {
+    box-shadow: var(--ffc-control-knob-shadow), 0 0 0 7px var(--ffc-control-halo);
+}
+
+/* Pressed: the knob stretches towards where it is going. */
+.ffc-control-toggle:active input[type="checkbox"]:not(:disabled) + .ffc-control-toggle-track::after {
+    width: 22px;
+    box-shadow: var(--ffc-control-knob-shadow), 0 0 0 9px var(--ffc-control-halo);
+}
+
+.ffc-control-toggle:active input[type="checkbox"]:checked:not(:disabled) + .ffc-control-toggle-track::after {
+    transform: translateX(12px);
+}
+
+.ffc-control-toggle input[type="checkbox"]:focus-visible + .ffc-control-toggle-track {
     outline: 2px solid var(--ffc-primary);
     outline-offset: 2px;
 }
 
-.ffc-toggle input[type="checkbox"]:disabled + .ffc-toggle-track {
-    opacity: 0.5;
+/* Disabled: the colour leaves, nothing fades. */
+.ffc-control-toggle input[type="checkbox"]:disabled + .ffc-control-toggle-track {
+    background: var(--ffc-gray-300);
     cursor: not-allowed;
 }
 
-.ffc-toggle-label {
+.ffc-control-toggle input[type="checkbox"]:disabled:checked + .ffc-control-toggle-track {
+    background: var(--ffc-gray-400);
+}
+
+.ffc-control-toggle input[type="checkbox"]:disabled + .ffc-control-toggle-track::after {
+    box-shadow: none;
+}
+
+.ffc-control-toggle:has(input[type="checkbox"]:disabled) {
+    cursor: not-allowed;
+}
+
+.ffc-control-toggle:has(input[type="checkbox"]:disabled) .ffc-control-toggle-label {
+    color: var(--ffc-text-muted);
+}
+
+.ffc-control-toggle-label {
     color: inherit;
 }
 
+/* Mark: the glyph rides above the knob; its shape, not its colour, says on or off. */
+.ffc-control-toggle-mark .ffc-control-toggle-track::before {
+    content: "";
+    position: absolute;
+    /* Above the knob (::after, which paints later at z-index auto). */
+    z-index: var(--ffc-z-raised);
+    top: 6px;
+    left: 6px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--ffc-control-knob-ink);
+    -webkit-mask: var(--ffc-icon-mask-x) center / contain no-repeat;
+    mask: var(--ffc-icon-mask-x) center / contain no-repeat;
+    transition: transform 0.15s ease;
+}
+
+.ffc-control-toggle-mark input[type="checkbox"]:checked + .ffc-control-toggle-track::before {
+    -webkit-mask-image: var(--ffc-icon-mask-check);
+    mask-image: var(--ffc-icon-mask-check);
+    transform: translateX(16px);
+}
+
+.ffc-control-toggle-mark input[type="checkbox"]:disabled + .ffc-control-toggle-track::before {
+    background-color: var(--ffc-gray-400);
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .ffc-toggle-track,
-    .ffc-toggle-track::after {
+    .ffc-control-toggle-track,
+    .ffc-control-toggle-track::before,
+    .ffc-control-toggle-track::after {
         transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .ffc-control-toggle-mark .ffc-control-toggle-track::before {
+        forced-color-adjust: none;
+        background-color: CanvasText;
     }
 }
 
@@ -2115,7 +2199,6 @@
    A stop's data-tone overrides the palette for that step.
    ========================================================================== */
 .ffc-control-steps {
-    --ffc-control-halo: color-mix(in srgb, var(--ffc-primary) 18%, transparent);
     --ffc-control-steps-rail: 6px;
     --ffc-control-steps-dot: 8px;
     --ffc-control-steps-thumb: 20px;
@@ -2451,7 +2534,7 @@
     gap: var(--ffc-spacing-2xs);
 }
 
-.ffc-features-cell .ffc-toggle {
+.ffc-features-cell .ffc-control-toggle {
     margin: 0;
 }
 

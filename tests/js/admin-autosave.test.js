@@ -302,17 +302,17 @@ describe('FFC admin-autosave — bootAutoSaveFields page-init', () => {
 		spy.mockRestore();
 	});
 
-	it('anchors the badge after the .ffc-toggle wrapper, not between input and track', async () => {
+	it('anchors the badge after the .ffc-control-toggle wrapper, not between input and track', async () => {
 		// Regression test for the user-reported bug where toggle change
 		// "didn't save" — actually saved fine, but the badge injected
-		// between <input> and <span.ffc-toggle-track> broke the CSS
-		// `input:checked + .ffc-toggle-track` sibling rule, so the
+		// between <input> and <span.ffc-control-toggle-track> broke the CSS
+		// `input:checked + .ffc-control-toggle-track` sibling rule, so the
 		// track never recoloured and the toggle visually stayed off.
 		document.body.innerHTML = `
-			<label class="ffc-toggle" for="t">
+			<label class="ffc-control-toggle" for="t">
 				<input type="checkbox" id="t" />
-				<span class="ffc-toggle-track"></span>
-				<span class="ffc-toggle-label">Test</span>
+				<span class="ffc-control-toggle-track"></span>
+				<span class="ffc-control-toggle-label">Test</span>
 			</label>
 		`;
 		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
@@ -328,14 +328,14 @@ describe('FFC admin-autosave — bootAutoSaveFields page-init', () => {
 		// Track must still be the immediate next sibling of the input.
 		const input = document.getElementById('t');
 		expect(input.nextElementSibling).not.toBeNull();
-		expect(input.nextElementSibling.className).toBe('ffc-toggle-track');
+		expect(input.nextElementSibling.className).toBe('ffc-control-toggle-track');
 
 		// Badge must exist and live outside the label.
 		const badge = document.querySelector('.ffc-autosave-badge');
 		expect(badge).not.toBeNull();
 		expect(badge.parentElement).toBe(document.body);
-		// Anchored right after the wrapping .ffc-toggle label.
-		const label = document.querySelector('.ffc-toggle');
+		// Anchored right after the wrapping .ffc-control-toggle label.
+		const label = document.querySelector('.ffc-control-toggle');
 		expect(label.nextElementSibling).toBe(badge);
 	});
 

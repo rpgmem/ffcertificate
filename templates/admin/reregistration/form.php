@@ -102,7 +102,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<?php
 						// Plain <div> wrapper rather than <fieldset> — WP admin's
 						// `.form-table td fieldset label { display: inline-block }`
-						// rule was overriding `.ffc-toggle { display: inline-flex }`
+						// rule was overriding `.ffc-control-toggle { display: inline-flex }`
 						// and rendering the toggle track over the label text.
 						?>
 						<div class="ffc-rereg-email-toggles">
