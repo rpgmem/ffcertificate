@@ -1623,6 +1623,28 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertSame( '1', $config['quiz_reset_on_leave'], 'The leave-the-window reset is stored (#1731).' );
 	}
 
+	/**
+	 * #1745 — the leave level is a closed list: Strict is kept, anything
+	 * that is not a level is stored as Off.
+	 */
+	public function test_the_quiz_leave_level_is_kept_or_falls_to_off(): void {
+		foreach ( array( '2' => '2', 'on' => '0' ) as $posted => $stored ) {
+			$bag     = $this->stub_for_save();
+			$written = &$bag[0];
+			Functions\when( 'get_post_meta' )->justReturn( '' );
+			$_POST = array(
+				'ffc_form_nonce' => 'ok',
+				'ffc_config'     => array(
+					'quiz_enabled'        => '1',
+					'quiz_reset_on_leave' => $posted,
+				),
+			);
+			$this->handler->save_form_data( 10 );
+			$this->assertSame( $stored, $written['_ffc_form_config']['quiz_reset_on_leave'], "posted {$posted}" );
+			unset( $written );
+		}
+	}
+
 	public function test_a_layout_missing_tags_or_pointing_at_html_leaves_both_warnings(): void {
 		$bag       = $this->stub_for_save();
 		$written   = &$bag[0];

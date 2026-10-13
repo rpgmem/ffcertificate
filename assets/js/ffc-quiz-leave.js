@@ -1,14 +1,23 @@
 /**
- * FFC quiz — clear the answers when the participant leaves the window (#1731).
+ * FFC quiz — clear the answers when the participant leaves the window
+ * (#1731, #1745).
  *
  * A form carrying `data-ffc-quiz-leave` (a JSON list of the scored question
- * names) watches `visibilitychange`, not `blur`: a system notification, a
- * screen reader or a click inside an embedded video blurs the window without
- * the person leaving it. Once the participant has started, leaving the page:
+ * names) watches the participant once they have started. Two levels, read
+ * from `data-ffc-quiz-leave-level`:
  *
- * - counts one exit in the hidden `ffc_quiz_focus_losses` input, kept in
- *   sessionStorage so a reload does not reset it;
- * - on return, clears the scored answers and opens the dialog that says why.
+ * - Moderate (`1`): `visibilitychange` to hidden — another tab, a minimised
+ *   browser. Not `blur`: a system notification, a screen reader or a click
+ *   inside an embedded video blurs the window without the person leaving it.
+ * - Strict (`2`): also the window's `blur`, so two windows side by side are
+ *   caught. A blur counts only when the focus stays away longer than
+ *   `data-ffc-quiz-leave-grace` milliseconds, and never when the focus moved
+ *   into an iframe of the page itself (a video, the ALTCHA widget).
+ *
+ * Each departure counts once in the hidden `ffc_quiz_focus_losses` input,
+ * kept in sessionStorage so a reload does not reset it. On return the scored
+ * answers are cleared and a dialog says why; its "Start again" reloads the
+ * page, so options marked to shuffle are shuffled again.
  *
  * Only the scored answers are cleared; the name, the CPF/RF and the other
  * fields are the participant's. It is a deterrent, not a lock: another device
@@ -21,6 +30,9 @@
     'use strict';
 
     var STORAGE_PREFIX = 'ffc_quiz_leaves_';
+    var STRICT = '2';
+
+    var api = {};
 
     function storageKey(form) {
         var id = form.querySelector('input[name="form_id"]');
@@ -57,6 +69,11 @@
         }
     }
 
+    function grace(form) {
+        var n = parseInt(form.getAttribute('data-ffc-quiz-leave-grace'), 10);
+        return isNaN(n) || n < 0 ? 0 : n;
+    }
+
     /**
      * Clear one question's answer, whatever its control.
      */
@@ -89,16 +106,21 @@
         }
     }
 
-    function closeDialog(form) {
-        var overlay = form.querySelector('.ffc-quiz-leave-overlay');
-        if (overlay) {
-            overlay.hidden = true;
-        }
-        var first = form.querySelector('input:not([type="hidden"]), select, textarea');
-        if (first) {
-            first.focus();
-        }
+    /**
+     * Whether the focus went into a frame of this page rather than away
+     * from it: the window blurs in both cases.
+     */
+    function focusIsInPageFrame() {
+        var active = document.activeElement;
+        return !!active && active.tagName === 'IFRAME';
     }
+
+    /**
+     * Reload the page. A property of the API so a test can observe it.
+     */
+    api.reload = function() {
+        window.location.reload();
+    };
 
     /**
      * Watch one form. Returns the visibility handler, for tests.
@@ -109,8 +131,12 @@
         }
         form.setAttribute('data-ffc-quiz-leave-bound', '1');
 
+        var strict = form.getAttribute('data-ffc-quiz-leave-level') === STRICT;
+        var graceMs = grace(form);
         var started = false;
         var left = false;
+        var reloading = false;
+        var blurTimer = null;
         writeCount(form, readCount(form));
 
         form.addEventListener('input', function() {
@@ -123,38 +149,107 @@
         var restart = form.querySelector('.ffc-quiz-leave-restart');
         if (restart) {
             restart.addEventListener('click', function() {
-                closeDialog(form);
+                // Unloading hides the page: that is not a departure.
+                reloading = true;
+                api.reload();
             });
+        }
+
+        function cancelBlur() {
+            if (blurTimer !== null) {
+                window.clearTimeout(blurTimer);
+                blurTimer = null;
+                return true;
+            }
+            return false;
+        }
+
+        function depart() {
+            cancelBlur();
+            if (!started || left || reloading) {
+                return;
+            }
+            left = true;
+            writeCount(form, readCount(form) + 1);
+        }
+
+        function comeBack() {
+            if (!left) {
+                return;
+            }
+            left = false;
+            questions(form).forEach(function(name) {
+                clearQuestion(form, name);
+            });
+            openDialog(form);
+        }
+
+        function detached() {
+            if (document.documentElement.contains(form)) {
+                return false;
+            }
+            stop();
+            return true;
+        }
+
+        function onBlur() {
+            if (detached()) {
+                return;
+            }
+            if (!started || left || reloading || focusIsInPageFrame()) {
+                return;
+            }
+            cancelBlur();
+            if (graceMs === 0) {
+                depart();
+                return;
+            }
+            blurTimer = window.setTimeout(function() {
+                blurTimer = null;
+                depart();
+            }, graceMs);
+        }
+
+        function onFocus() {
+            if (detached()) {
+                return;
+            }
+            // Back within the grace: the loss does not count.
+            if (cancelBlur()) {
+                return;
+            }
+            comeBack();
+        }
+
+        function stop() {
+            cancelBlur();
+            document.removeEventListener('visibilitychange', onVisibility);
+            window.removeEventListener('blur', onBlur);
+            window.removeEventListener('focus', onFocus);
+            try {
+                window.sessionStorage.removeItem(storageKey(form));
+            } catch (e) {
+                // Nothing to clean up without storage.
+            }
         }
 
         function onVisibility() {
             // A submitted form is replaced by the result; stop watching it.
-            if (!document.documentElement.contains(form)) {
-                document.removeEventListener('visibilitychange', onVisibility);
-                try {
-                    window.sessionStorage.removeItem(storageKey(form));
-                } catch (e) {
-                    // Nothing to clean up without storage.
-                }
+            if (detached()) {
                 return;
             }
             if (document.visibilityState === 'hidden') {
-                if (started) {
-                    left = true;
-                    writeCount(form, readCount(form) + 1);
-                }
+                depart();
                 return;
             }
-            if (left) {
-                left = false;
-                questions(form).forEach(function(name) {
-                    clearQuestion(form, name);
-                });
-                openDialog(form);
-            }
+            comeBack();
         }
 
         document.addEventListener('visibilitychange', onVisibility);
+        if (strict) {
+            window.addEventListener('blur', onBlur);
+            window.addEventListener('focus', onFocus);
+        }
         return onVisibility;
     }
 
@@ -163,7 +258,9 @@
     }
 
     // Not on window.FFC: this file may load before ffc-core.js (#1739).
-    window.ffcQuizLeave = { init: init, watch: watch };
+    api.init = init;
+    api.watch = watch;
+    window.ffcQuizLeave = api;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

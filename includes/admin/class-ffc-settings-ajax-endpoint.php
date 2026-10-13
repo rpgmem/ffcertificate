@@ -333,6 +333,14 @@ class SettingsAjaxEndpoint {
 				'string',
 				array( 'as' => 'multiline_text' ),
 			),
+			// Certificates tab — the Strict quiz level's grace (#1745).
+			'quiz_focus_grace_ms'         => array(
+				'int',
+				array(
+					'min' => \FreeFormCertificate\Core\QuizLeaveLevel::GRACE_MIN_MS,
+					'max' => \FreeFormCertificate\Core\QuizLeaveLevel::GRACE_MAX_MS,
+				),
+			),
 			'public_csv_sync_max_rows'    => array(
 				'int',
 				array(
@@ -584,6 +592,9 @@ class SettingsAjaxEndpoint {
 		}
 
 		$value = self::sanitize_value( $raw_value, $entry['type'] ?? 'bool', $entry );
+		if ( null === $value ) {
+			wp_send_json_error( array( 'message' => __( 'That value is not one of the choices.', 'ffcertificate' ) ), 400 );
+		}
 
 		// Optional bool inversion — the SMTP tab's "Ativar envios" toggle is
 		// stored on disk as `disable_all_emails` for historical reasons, so the
@@ -643,6 +654,9 @@ class SettingsAjaxEndpoint {
 	 *   - 'string' — defaults to `sanitize_text_field`. The `$entry['as']`
 	 *                key can switch behaviour: 'url' → `esc_url_raw`,
 	 *                'multiline_text' → `sanitize_textarea_field`.
+	 *   - 'enum'   — one of `$entry['options']`, compared as strings; anything
+	 *                else returns null, which the handlers refuse with a 400
+	 *                (#1745). For a radio group whose values are a closed list.
 	 *
 	 * @param mixed                $raw   Raw POST value (already wp_unslash'd).
 	 * @param string               $type  Allowlist entry type.
@@ -707,6 +721,10 @@ class SettingsAjaxEndpoint {
 					$values = array_values( array_intersect( $entry['options'], $values ) );
 				}
 				return $values;
+
+			case 'enum':
+				$options = isset( $entry['options'] ) && is_array( $entry['options'] ) ? array_map( 'strval', $entry['options'] ) : array();
+				return is_scalar( $raw ) && in_array( (string) $raw, $options, true ) ? (string) $raw : null;
 
 			default:
 				return null;

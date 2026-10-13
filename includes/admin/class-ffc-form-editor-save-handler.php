@@ -326,8 +326,9 @@ class FormEditorSaveHandler {
 				$clean_config['quiz_max_attempts']  = absint( ArrayValue::int( $config, 'quiz_max_attempts', 0 ) );
 				$clean_config['quiz_show_score']    = isset( $config['quiz_show_score'] ) ? '1' : '0';
 				$clean_config['quiz_show_correct']  = isset( $config['quiz_show_correct'] ) ? '1' : '0';
-				// Clear the answers when the participant leaves the window (#1731).
-				$clean_config['quiz_reset_on_leave'] = isset( $config['quiz_reset_on_leave'] ) ? '1' : '0';
+				// Clear the answers when the participant leaves the window
+				// (#1731): Off / Moderate / Strict since #1745.
+				$clean_config['quiz_reset_on_leave'] = \FreeFormCertificate\Core\QuizLeaveLevel::sanitize( $config['quiz_reset_on_leave'] ?? '0' );
 			}
 
 			// Tag Validation (server-side backstop): warn if the layout is

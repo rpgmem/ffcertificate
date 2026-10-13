@@ -58,13 +58,20 @@ class FormEditorQuizMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-quiz-setting ffc-hidden', $html );
 	}
 
-	public function test_render_offers_the_leave_the_window_reset(): void {
-		$off = $this->render( array( 'quiz_enabled' => '1' ) );
-		$on  = $this->render( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => '1' ) );
+	public function test_render_offers_the_leave_the_window_levels(): void {
+		$off    = $this->render( array( 'quiz_enabled' => '1' ) );
+		$legacy = $this->render( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => '1' ) );
+		$strict = $this->render( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => '2' ) );
+		$junk   = $this->render( array( 'quiz_enabled' => '1', 'quiz_reset_on_leave' => 'on' ) );
 
-		$this->assertStringContainsString( 'name="ffc_config[quiz_reset_on_leave]"', $off );
-		$this->assertMatchesRegularExpression( '/name="ffc_config\[quiz_reset_on_leave\]"[^>]*checked/', $on );
-		$this->assertDoesNotMatchRegularExpression( '/name="ffc_config\[quiz_reset_on_leave\]"[^>]*checked/', $off );
+		$this->assertSame( 3, substr_count( $off, 'name="ffc_config[quiz_reset_on_leave]"' ), 'Off, Moderate and Strict are three radios of one field (#1745).' );
+		$this->assertStringContainsString( 'class="ffc-tri-toggle ffc-tri-toggle-severity"', $off );
+		$this->assertStringContainsString( 'data-ffc-autosave-form-key="quiz_reset_on_leave"', $off );
+
+		$this->assertMatchesRegularExpression( '/value="0" checked/', $off );
+		$this->assertMatchesRegularExpression( '/value="1" checked/', $legacy, 'A form saved with the old toggle on reads as Moderate, its behaviour then.' );
+		$this->assertMatchesRegularExpression( '/value="2" checked/', $strict );
+		$this->assertMatchesRegularExpression( '/value="0" checked/', $junk, 'A value that is not a level reads as Off.' );
 	}
 
 	public function test_render_uncollapses_quiz_settings_when_enabled(): void {

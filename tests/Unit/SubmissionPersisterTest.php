@@ -352,6 +352,7 @@ class SubmissionPersisterTest extends TestCase {
 			'reset on, capped'         => array( '1', '5000', SubmissionPersister::MAX_FOCUS_LOSSES ),
 			'reset on, not a number'   => array( '1', array( 'x' ), 0 ),
 			'reset off, nothing kept'  => array( '0', '3', null ),
+			'strict, kept too (#1745)' => array( '2', '4', 4 ),
 		);
 	}
 

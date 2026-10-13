@@ -213,6 +213,7 @@ class Shortcodes {
 
 		$form_config = get_post_meta( $form_id, '_ffc_form_config', true );
 		$quiz_leave  = $this->quiz_leave_questions( is_array( $form_config ) ? $form_config : array(), $fields );
+		$leave_level = \FreeFormCertificate\Core\QuizLeaveLevel::of( is_array( $form_config ) ? $form_config : array() );
 
 		ob_start();
 		?>
@@ -235,10 +236,10 @@ class Shortcodes {
 					</p>
 				</div>
 			<?php endif; ?>
-			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>"<?php echo null !== $quiz_leave ? ' data-ffc-quiz-leave="' . esc_attr( (string) wp_json_encode( $quiz_leave ) ) . '"' : ''; ?>>
+			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>"<?php echo null !== $quiz_leave ? $this->quiz_leave_attributes( $quiz_leave, $leave_level ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped in quiz_leave_attributes(). ?>>
 				<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form_id ); ?>">
 				<?php if ( null !== $quiz_leave ) : ?>
-					<?php $this->render_quiz_leave_notice( $form_id ); ?>
+					<?php $this->render_quiz_leave_notice( $form_id, $leave_level ); ?>
 				<?php endif; ?>
 				<?php if ( null !== $schedule_exception && '' !== $schedule_exception_cookie ) : ?>
 					<input type="hidden" name="ffc_schedule_exception_token" value="<?php echo esc_attr( $schedule_exception_cookie ); ?>">
@@ -382,7 +383,7 @@ class Shortcodes {
 	 * @return list<string>|null
 	 */
 	private function quiz_leave_questions( array $form_config, array $fields ): ?array {
-		if ( '1' !== ( $form_config['quiz_enabled'] ?? '' ) || '1' !== ( $form_config['quiz_reset_on_leave'] ?? '' ) ) {
+		if ( \FreeFormCertificate\Core\QuizLeaveLevel::OFF === \FreeFormCertificate\Core\QuizLeaveLevel::of( $form_config ) ) {
 			return null;
 		}
 		$names = array();
@@ -395,20 +396,46 @@ class Shortcodes {
 	}
 
 	/**
+	 * The attributes that tell `ffc-quiz-leave.js` what to watch (#1731,
+	 * #1745): the scored questions, the level, and at Strict the grace a
+	 * lost focus must outlast.
+	 *
+	 * @param array  $questions Scored question names.
+	 * @param string $level     A {@see \FreeFormCertificate\Core\QuizLeaveLevel} value.
+	 * @phpstan-param list<string> $questions
+	 * @return string Escaped attributes, each with its leading space.
+	 */
+	private function quiz_leave_attributes( array $questions, string $level ): string {
+		$attrs = ' data-ffc-quiz-leave="' . esc_attr( (string) wp_json_encode( $questions ) ) . '"'
+			. ' data-ffc-quiz-leave-level="' . esc_attr( $level ) . '"';
+		if ( \FreeFormCertificate\Core\QuizLeaveLevel::STRICT === $level ) {
+			$attrs .= ' data-ffc-quiz-leave-grace="' . esc_attr( (string) \FreeFormCertificate\Settings\SettingsReader::quiz_focus_grace_ms() ) . '"';
+		}
+		return $attrs;
+	}
+
+	/**
 	 * The notice a reset quiz shows before the participant starts, the
 	 * leave counter it posts, and the dialog it opens on return (#1731).
 	 *
 	 * The dialog is markup rather than a script string, so it is translated
 	 * where every other string of the form is.
 	 *
-	 * @param int $form_id Form ID.
+	 * @param int    $form_id Form ID.
+	 * @param string $level   A {@see \FreeFormCertificate\Core\QuizLeaveLevel} value.
 	 */
-	private function render_quiz_leave_notice( int $form_id ): void {
+	private function render_quiz_leave_notice( int $form_id, string $level ): void {
 		$title_id = 'ffc-quiz-leave-title-' . $form_id;
 		$text_id  = 'ffc-quiz-leave-text-' . $form_id;
 		?>
 		<div class="ffc-form-info-block ffc-quiz-leave-notice" role="note">
-			<p><strong><?php esc_html_e( 'Stay on this page while you answer.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Switching to another tab or window clears your answers, and the number of times you leave is recorded with your submission.', 'ffcertificate' ); ?></p>
+			<p><strong><?php esc_html_e( 'Stay on this page while you answer.', 'ffcertificate' ); ?></strong>
+			<?php if ( \FreeFormCertificate\Core\QuizLeaveLevel::STRICT === $level ) : ?>
+				<?php esc_html_e( 'Switching to another tab, minimising the browser or clicking another window clears your answers, and the number of times you leave is recorded with your submission.', 'ffcertificate' ); ?>
+			<?php else : ?>
+				<?php esc_html_e( 'Switching to another tab or minimising the browser clears your answers, and the number of times you leave is recorded with your submission.', 'ffcertificate' ); ?>
+			<?php endif; ?>
+			</p>
 		</div>
 		<input type="hidden" name="ffc_quiz_focus_losses" value="0" class="ffc-quiz-focus-losses">
 		<div class="ffc-modal ffc-quiz-leave-overlay" role="alertdialog" aria-modal="true" aria-labelledby="<?php echo esc_attr( $title_id ); ?>" aria-describedby="<?php echo esc_attr( $text_id ); ?>" hidden>
@@ -418,7 +445,7 @@ class Shortcodes {
 					<h3 id="<?php echo esc_attr( $title_id ); ?>"><?php esc_html_e( 'Your answers were cleared', 'ffcertificate' ); ?></h3>
 				</div>
 				<div class="ffc-modal-body">
-					<p id="<?php echo esc_attr( $text_id ); ?>"><?php esc_html_e( 'You left this page while answering the quiz, so the answers were cleared. Leaving does not count as an attempt.', 'ffcertificate' ); ?></p>
+					<p id="<?php echo esc_attr( $text_id ); ?>"><?php esc_html_e( 'You left this page while answering the quiz, so the answers were cleared. Leaving does not count as an attempt. Start again reloads the quiz.', 'ffcertificate' ); ?></p>
 				</div>
 				<div class="ffc-modal-footer">
 					<button type="button" class="ffc-submit-btn ffc-quiz-leave-restart"><?php esc_html_e( 'Start again', 'ffcertificate' ); ?></button>

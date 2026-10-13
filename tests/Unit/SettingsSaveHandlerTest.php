@@ -211,6 +211,23 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( "{{auth_code}}\r\n{{name}}\r\n{{curso}}", $result['required_certificate_tags'] );
 	}
 
+	/**
+	 * #1745 — the Strict quiz level's grace is clamped, and an emptied field
+	 * keeps the stored value instead of saving 0.
+	 */
+	public function test_certificates_tab_stores_the_quiz_grace_clamped_and_skips_empty(): void {
+		$_POST['_ffc_tab'] = 'certificates';
+
+		$_POST['ffc_settings'] = array( 'quiz_focus_grace_ms' => '2500' );
+		$this->assertSame( 2500, $this->invoke( 'save_general_settings', array( array(), array() ) )['quiz_focus_grace_ms'] );
+
+		$_POST['ffc_settings'] = array( 'quiz_focus_grace_ms' => '99999' );
+		$this->assertSame( 10000, $this->invoke( 'save_general_settings', array( array(), array() ) )['quiz_focus_grace_ms'] );
+
+		$_POST['ffc_settings'] = array( 'quiz_focus_grace_ms' => '' );
+		$this->assertSame( 700, $this->invoke( 'save_general_settings', array( array( 'quiz_focus_grace_ms' => 700 ), array() ) )['quiz_focus_grace_ms'] );
+	}
+
 	public function test_another_tab_leaves_the_required_tags_alone(): void {
 		$_POST['_ffc_tab']     = 'general';
 		$_POST['ffc_settings'] = array( 'required_certificate_tags' => '{{x}}' );

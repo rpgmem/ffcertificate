@@ -514,6 +514,16 @@ final class SettingsReader {
 		return self::get_int( 'public_csv_sync_max_rows', 5000 );
 	}
 
+	/**
+	 * How long a quiz window may lose the focus before the Strict level
+	 * counts it as leaving, in milliseconds (#1745). Clamped to
+	 * {@see \FreeFormCertificate\Core\QuizLeaveLevel}'s bounds; the default is
+	 * its GRACE_DEFAULT_MS, written as a literal so the defaults guard can read it.
+	 */
+	public static function quiz_focus_grace_ms(): int {
+		return \FreeFormCertificate\Core\QuizLeaveLevel::clamp_grace( self::get_int( 'quiz_focus_grace_ms', 1000 ) );
+	}
+
 	/** Default pixel size for generated QR codes. */
 	public static function qr_default_size(): int {
 		return self::get_int( 'qr_default_size', 200 );

@@ -2098,6 +2098,144 @@
 }
 
 /* ==========================================================================
+   THREE-POSITION SWITCH (#1745) — AdminUI::render_tri_toggle().
+   Three native radios drive a knob through sibling selectors, so the
+   control posts and works without a script. The knob's position and colour
+   say the level; the level's name beside it says it in words, so colour is
+   never the only signal. Palettes:
+     .ffc-tri-toggle-severity  grey → amber → red   (the default)
+     .ffc-tri-toggle-traffic   red → amber → green
+   ========================================================================== */
+.ffc-tri-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-md);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+
+.ffc-tri-toggle-input {
+    /* Visually hidden but reachable by keyboard + assistive tech. */
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+    pointer-events: none;
+}
+
+.ffc-tri-toggle-track {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 84px;
+    height: 30px;
+    border-radius: 15px;
+    background: var(--ffc-bg-card);
+    box-shadow: inset 0 0 0 1px var(--ffc-border);
+}
+
+/* Each third of the track is the label of one radio: clicking it chooses. */
+.ffc-tri-toggle-stop {
+    flex: 1 1 0;
+    cursor: pointer;
+}
+
+.ffc-tri-toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--ffc-radius-full);
+    background: var(--ffc-tri-knob);
+    box-shadow: var(--ffc-shadow-sm);
+    pointer-events: none;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.ffc-tri-toggle-input:nth-of-type(2):checked ~ .ffc-tri-toggle-track .ffc-tri-toggle-knob {
+    transform: translateX(27px);
+}
+
+.ffc-tri-toggle-input:nth-of-type(3):checked ~ .ffc-tri-toggle-track .ffc-tri-toggle-knob {
+    transform: translateX(54px);
+}
+
+.ffc-tri-toggle-severity .ffc-tri-toggle-input:nth-of-type(1):checked ~ .ffc-tri-toggle-track {
+    --ffc-tri-knob: var(--ffc-gray-600);
+}
+
+.ffc-tri-toggle-severity .ffc-tri-toggle-input:nth-of-type(2):checked ~ .ffc-tri-toggle-track,
+.ffc-tri-toggle-traffic .ffc-tri-toggle-input:nth-of-type(2):checked ~ .ffc-tri-toggle-track {
+    --ffc-tri-knob: var(--ffc-warning);
+}
+
+.ffc-tri-toggle-severity .ffc-tri-toggle-input:nth-of-type(3):checked ~ .ffc-tri-toggle-track,
+.ffc-tri-toggle-traffic .ffc-tri-toggle-input:nth-of-type(1):checked ~ .ffc-tri-toggle-track {
+    --ffc-tri-knob: var(--ffc-danger);
+}
+
+.ffc-tri-toggle-traffic .ffc-tri-toggle-input:nth-of-type(3):checked ~ .ffc-tri-toggle-track {
+    --ffc-tri-knob: var(--ffc-success);
+}
+
+.ffc-tri-toggle-input:focus-visible ~ .ffc-tri-toggle-track {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: 2px;
+}
+
+.ffc-tri-toggle-input:disabled ~ .ffc-tri-toggle-track .ffc-tri-toggle-stop {
+    cursor: not-allowed;
+}
+
+.ffc-tri-toggle-value {
+    min-width: 7em;
+    font-weight: 600;
+}
+
+/* Only the chosen level's name and description show. */
+.ffc-tri-toggle-value > span,
+.ffc-tri-toggle-desc {
+    display: none;
+}
+
+.ffc-tri-toggle-desc {
+    flex: 1 0 100%;
+}
+
+.ffc-tri-toggle-input:nth-of-type(1):checked ~ .ffc-tri-toggle-value .ffc-tri-toggle-at-1,
+.ffc-tri-toggle-input:nth-of-type(2):checked ~ .ffc-tri-toggle-value .ffc-tri-toggle-at-2,
+.ffc-tri-toggle-input:nth-of-type(3):checked ~ .ffc-tri-toggle-value .ffc-tri-toggle-at-3 {
+    display: inline;
+}
+
+.ffc-tri-toggle-input:nth-of-type(1):checked ~ .ffc-tri-toggle-desc.ffc-tri-toggle-at-1,
+.ffc-tri-toggle-input:nth-of-type(2):checked ~ .ffc-tri-toggle-desc.ffc-tri-toggle-at-2,
+.ffc-tri-toggle-input:nth-of-type(3):checked ~ .ffc-tri-toggle-desc.ffc-tri-toggle-at-3 {
+    display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-tri-toggle-knob {
+        transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .ffc-tri-toggle-track {
+        border: 1px solid CanvasText;
+    }
+
+    .ffc-tri-toggle-knob {
+        background: Highlight;
+    }
+}
+
+/* ==========================================================================
    AUTO-SAVE BADGE — companion to FFC.Admin.autoSaveField.
    Renders next to a field showing the live save state.
    ========================================================================== */

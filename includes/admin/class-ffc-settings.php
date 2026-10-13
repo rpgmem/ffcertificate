@@ -281,6 +281,7 @@ class Settings {
 			'cleanup_enabled'            => false,
 			'validate_rf_check_digit'    => false,
 			'cleanup_days'               => 365,
+			'quiz_focus_grace_ms'        => 1000,
 			'smtp_mode'                  => 'wp',
 			'smtp_host'                  => '',
 			'smtp_port'                  => 587,

@@ -331,4 +331,71 @@ class AdminUITest extends TestCase {
 		$this->assertStringNotContainsString( '<a ', AdminUI::get_stat_card( array( 'label' => 'Calendars', 'url' => '/x' ) ) );
 		$this->assertStringNotContainsString( '<a ', AdminUI::get_stat_card( array( 'label' => 'Calendars', 'link' => 'Manage' ) ) );
 	}
+
+	// ==================================================================
+	// Three-position switch (#1745)
+	// ==================================================================
+
+	private function tri( array $args ): string {
+		ob_start();
+		AdminUI::render_tri_toggle(
+			$args + array(
+				'name'    => 'cfg[level]',
+				'options' => array(
+					'0' => 'Off',
+					'1' => 'Moderate',
+					'2' => 'Strict',
+				),
+			)
+		);
+		return (string) ob_get_clean();
+	}
+
+	public function test_tri_toggle_is_three_radios_of_one_field_with_their_labels(): void {
+		$html = $this->tri( array( 'value' => '1', 'id' => 'lvl', 'legend' => 'Reset level' ) );
+
+		$this->assertSame( 3, substr_count( $html, 'type="radio"' ) );
+		$this->assertSame( 3, substr_count( $html, 'name="cfg[level]"' ) );
+		$this->assertStringContainsString( '<legend class="screen-reader-text">Reset level</legend>', $html );
+		$this->assertStringContainsString( 'id="lvl-2" name="cfg[level]" value="1" checked', $html );
+		$this->assertSame( 1, substr_count( $html, ' checked' ) );
+		$this->assertStringContainsString( '<label class="ffc-tri-toggle-stop" for="lvl-3"><span class="screen-reader-text">Strict</span></label>', $html );
+		$this->assertStringContainsString( '<span class="ffc-tri-toggle-value" aria-hidden="true"><span class="ffc-tri-toggle-at-1">Off</span><span class="ffc-tri-toggle-at-2">Moderate</span><span class="ffc-tri-toggle-at-3">Strict</span></span>', $html );
+	}
+
+	public function test_tri_toggle_palette_defaults_to_severity_and_takes_traffic(): void {
+		$this->assertStringContainsString( 'class="ffc-tri-toggle ffc-tri-toggle-severity"', $this->tri( array() ) );
+		$this->assertStringContainsString( 'class="ffc-tri-toggle ffc-tri-toggle-traffic"', $this->tri( array( 'palette' => 'traffic' ) ) );
+		$this->assertStringContainsString( 'class="ffc-tri-toggle ffc-tri-toggle-severity"', $this->tri( array( 'palette' => 'neon' ) ), 'An unknown palette falls back rather than printing a class nothing styles.' );
+	}
+
+	public function test_tri_toggle_checks_the_first_option_when_the_value_is_not_one(): void {
+		$html = $this->tri( array( 'value' => 'x' ) );
+		$this->assertStringContainsString( 'value="0" checked', $html );
+	}
+
+	public function test_tri_toggle_carries_data_and_disabled_on_every_radio(): void {
+		$html = $this->tri(
+			array(
+				'disabled' => true,
+				'data'     => array( 'ffc-autosave-form-key' => 'level' ),
+			)
+		);
+		$this->assertSame( 3, substr_count( $html, ' disabled data-ffc-autosave-form-key="level"' ) );
+	}
+
+	public function test_tri_toggle_prints_a_description_per_value_given(): void {
+		$html = $this->tri( array( 'descriptions' => array( '2' => 'Also the focus.' ) ) );
+		$this->assertStringContainsString( '<span class="description ffc-tri-toggle-desc ffc-tri-toggle-at-3">Also the focus.</span>', $html );
+		$this->assertSame( 1, substr_count( $html, 'ffc-tri-toggle-desc' ) );
+	}
+
+	public function test_tri_toggle_needs_a_name_and_exactly_three_options(): void {
+		$this->assertSame( '', $this->tri( array( 'name' => '' ) ) );
+		$this->assertSame( '', $this->tri( array( 'options' => array( '0' => 'Off', '1' => 'On' ) ) ) );
+	}
+
+	public function test_tri_toggle_derives_an_id_from_the_name(): void {
+		$this->assertStringContainsString( 'id="cfg-level-1"', $this->tri( array() ) );
+	}
 }

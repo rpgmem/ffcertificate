@@ -41,7 +41,7 @@ class FormEditorQuizMetabox {
 		$quiz_max_attempts  = $config['quiz_max_attempts'] ?? '0';
 		$quiz_show_score    = ( $config['quiz_show_score'] ?? '1' ) === '1';
 		$quiz_show_correct  = ( $config['quiz_show_correct'] ?? '0' ) === '1';
-		$quiz_reset_leave   = ( $config['quiz_reset_on_leave'] ?? '0' ) === '1';
+		$quiz_leave_level   = \FreeFormCertificate\Core\QuizLeaveLevel::sanitize( $config['quiz_reset_on_leave'] ?? '0' );
 		?>
 		<table class="form-table">
 			<tr>
@@ -103,15 +103,27 @@ class FormEditorQuizMetabox {
 				<th><label><?php esc_html_e( 'Leaving the Window', 'ffcertificate' ); ?></label></th>
 				<td>
 					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					\FreeFormCertificate\Admin\AdminUI::render_tri_toggle(
 						array(
-							'name'    => 'ffc_config[quiz_reset_on_leave]',
-							'checked' => (bool) $quiz_reset_leave,
-							'label'   => __( 'Reset the quiz when the participant leaves the window', 'ffcertificate' ),
+							'name'         => 'ffc_config[quiz_reset_on_leave]',
+							'id'           => 'ffc_quiz_reset_on_leave',
+							'legend'       => __( 'Reset the quiz when the participant leaves the window', 'ffcertificate' ),
+							'value'        => $quiz_leave_level,
+							'options'      => array(
+								\FreeFormCertificate\Core\QuizLeaveLevel::OFF      => __( 'Off', 'ffcertificate' ),
+								\FreeFormCertificate\Core\QuizLeaveLevel::MODERATE => __( 'Moderate', 'ffcertificate' ),
+								\FreeFormCertificate\Core\QuizLeaveLevel::STRICT   => __( 'Strict', 'ffcertificate' ),
+							),
+							'descriptions' => array(
+								\FreeFormCertificate\Core\QuizLeaveLevel::OFF      => __( 'Answers are never cleared.', 'ffcertificate' ),
+								\FreeFormCertificate\Core\QuizLeaveLevel::MODERATE => __( 'Switching to another tab or minimising the browser clears the scored answers.', 'ffcertificate' ),
+								\FreeFormCertificate\Core\QuizLeaveLevel::STRICT   => __( 'Also when another window takes the focus, such as two windows side by side or another program. A loss shorter than the grace set on Settings → Certificates does not count.', 'ffcertificate' ),
+							),
+							'data'         => array( 'ffc-autosave-form-key' => 'quiz_reset_on_leave' ),
 						)
 					);
 					?>
-					<p class="description"><?php esc_html_e( 'Switching tabs or minimising the browser clears the answers; the participant is warned before starting and told why on return. Leaving does not count as an attempt, and how many times it happened is recorded on the submission. A deterrent, not a lock: another device or a browser without JavaScript is not stopped.', 'ffcertificate' ); ?></p>
+					<p class="description"><?php esc_html_e( 'The participant is warned before starting. On return the scored answers are cleared and Start again reloads the page, so shuffled options are shuffled again. Leaving does not count as an attempt, and how many times it happened is recorded on the submission. A deterrent, not a lock: another device or a browser without JavaScript is not stopped.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 		</table>

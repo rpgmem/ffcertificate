@@ -164,6 +164,39 @@ class FormMetaAjaxEndpointTest extends TestCase {
 		$this->assertSame( '0', $this->meta_store[42]['_ffc_form_config']['send_user_email'] );
 	}
 
+	/**
+	 * #1745 — the quiz leave level is a radio group: its chosen member is
+	 * stored as is, and a value outside the list is refused, not coerced.
+	 */
+	public function test_radio_group_stores_the_chosen_level(): void {
+		$_POST = array(
+			'post_id' => 42,
+			'key'     => 'quiz_reset_on_leave',
+			'value'   => '2',
+			'nonce'   => 'n',
+		);
+
+		$this->dispatch();
+
+		$this->assertTrue( $this->responses[0]['ok'] );
+		$this->assertSame( '2', $this->meta_store[42]['_ffc_form_config']['quiz_reset_on_leave'] );
+	}
+
+	public function test_radio_group_refuses_a_value_outside_the_list(): void {
+		$_POST = array(
+			'post_id' => 42,
+			'key'     => 'quiz_reset_on_leave',
+			'value'   => '1; DROP',
+			'nonce'   => 'n',
+		);
+
+		$this->dispatch();
+
+		$this->assertFalse( $this->responses[0]['ok'] );
+		$this->assertSame( 400, $this->responses[0]['status'] );
+		$this->assertArrayNotHasKey( 42, $this->meta_store, 'Nothing is written for a refused value.' );
+	}
+
 	public function test_rejects_invalid_post_id(): void {
 		$_POST = array(
 			'post_id' => 0,
@@ -247,9 +280,10 @@ class FormMetaAjaxEndpointTest extends TestCase {
 		$this->assertSame( '1', $this->meta_store[42]['_ffc_form_config']['send_admin_email'] );
 	}
 
-	public function test_allowlist_covers_16_toggles(): void {
+	public function test_allowlist_covers_16_toggles_and_one_radio_group(): void {
 		$allowlist = FormMetaAjaxEndpoint::allowlist();
-		$this->assertSame( 16, count( $allowlist ) );
+		$this->assertSame( 17, count( $allowlist ) );
+		$this->assertSame( 'enum', $allowlist['quiz_reset_on_leave']['type'] ?? null, 'The quiz leave level (#1745) is a closed list, not a toggle.' );
 		$this->assertArrayHasKey(
 			'send_admin_email',
 			$allowlist,
