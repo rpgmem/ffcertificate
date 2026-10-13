@@ -104,7 +104,8 @@ $ffc_colors = array(
 				<td>
 					<fieldset>
 						<label><input type="radio" name="<?php echo esc_attr( $ffc_name( 'font' ) ); ?>" value="theme" <?php checked( $ffc_design->font, 'theme' ); ?>> <?php esc_html_e( 'The site theme\'s', 'ffcertificate' ); ?></label><br>
-						<label><input type="radio" name="<?php echo esc_attr( $ffc_name( 'font' ) ); ?>" value="plugin" <?php checked( $ffc_design->font, 'plugin' ); ?>> <?php esc_html_e( 'The system font, as in the admin screens', 'ffcertificate' ); ?></label>
+						<label><input type="radio" name="<?php echo esc_attr( $ffc_name( 'font' ) ); ?>" value="plugin" <?php checked( $ffc_design->font, 'plugin' ); ?>> <?php esc_html_e( 'The plugin\'s (the system font)', 'ffcertificate' ); ?></label><br>
+						<label><input type="radio" name="<?php echo esc_attr( $ffc_name( 'font' ) ); ?>" value="arial" <?php checked( $ffc_design->font, 'arial' ); ?>> <?php esc_html_e( 'Arial', 'ffcertificate' ); ?></label>
 					</fieldset>
 				</td>
 			</tr>
