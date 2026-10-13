@@ -62,6 +62,33 @@ class GithubUpdater {
 	private const CACHE_TTL = 43200;
 
 	/**
+	 * The screenshots the readme's `== Screenshots ==` captions describe, in
+	 * caption order, under `docs/screenshots/` in the repository.
+	 *
+	 * They are served from GitHub at the release tag rather than shipped in
+	 * the zip. `PluginDetailsAssetsTest` holds this list to the folder and to
+	 * the number of captions.
+	 *
+	 * @since 6.39.0
+	 */
+	public const SCREENSHOTS = array(
+		'01-certificates-dashboard.png',
+		'02-form-builder.png',
+		'03-certificate-preview.png',
+		'04-submissions.png',
+		'05-public-form.png',
+		'06-certificate-verification.png',
+		'07-booking-calendar.png',
+		'08-appointments.png',
+		'09-room-calendar.png',
+		'10-date-message-preview.png',
+		'11-qr-generator.png',
+		'12-short-urls.png',
+		'13-dark-mode.png',
+		'14-user-dashboard.png',
+	);
+
+	/**
 	 * Guard so the hooks register only once.
 	 *
 	 * @var bool
@@ -178,11 +205,72 @@ class GithubUpdater {
 		$info->last_updated  = $release['published_at'];
 		$info->download_link = $release['package'];
 		$info->icons         = self::icons();
-		$info->sections      = array(
-			'changelog' => wpautop( esc_html( $release['changelog'] ) ),
-		);
+		$info->banners       = self::banners();
+		$info->sections      = self::sections( $release );
 
 		return $info;
+	}
+
+	/**
+	 * The modal's tabs: the offered release's readme, plus its notes as the
+	 * changelog.
+	 *
+	 * The readme is the one fetched with the release, so the tabs describe the
+	 * version being offered; a payload cached before it was kept falls back to
+	 * the installed copy. The release notes are Markdown, rendered rather than
+	 * printed raw.
+	 *
+	 * @since 6.39.0
+	 * @param array<string, string> $release Parsed release payload.
+	 * @return array<string, string>
+	 */
+	private static function sections( array $release ): array {
+		$repo   = (string) apply_filters( 'ffc_github_updater_repo', self::REPO );
+		$readme = '' !== ( $release['readme'] ?? '' ) ? $release['readme'] : self::installed_readme();
+		$tag    = 'v' . $release['version'];
+
+		$shots = array();
+		foreach ( self::SCREENSHOTS as $file ) {
+			$shots[] = sprintf( 'https://raw.githubusercontent.com/%s/%s/docs/screenshots/%s', $repo, rawurlencode( $tag ), $file );
+		}
+
+		$tabs = ReadmeSections::fromReadme( $readme, $repo, $shots );
+		if ( '' !== trim( $release['changelog'] ) ) {
+			$tabs['changelog'] = ReadmeSections::toHtml( $release['changelog'], $repo );
+		}
+
+		$ordered = array();
+		foreach ( array( 'description', 'installation', 'faq', 'changelog', 'screenshots', 'other_notes' ) as $key ) {
+			if ( isset( $tabs[ $key ] ) ) {
+				$ordered[ $key ] = wp_kses_post( $tabs[ $key ] );
+			}
+		}
+		return $ordered;
+	}
+
+	/**
+	 * The installed copy's `readme.txt`, or an empty string.
+	 *
+	 * @since 6.39.0
+	 */
+	private static function installed_readme(): string {
+		$file = FFC_PLUGIN_DIR . 'readme.txt';
+		return is_readable( $file ) ? (string) file_get_contents( $file ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a file this plugin ships, not a remote resource.
+	}
+
+	/**
+	 * The banner at the top of the "View details" modal, from the installed
+	 * copy for the same reason as the icon.
+	 *
+	 * @since 6.39.0
+	 * @return array{low: string, high: string}
+	 */
+	private static function banners(): array {
+		$base = FFC_PLUGIN_URL . 'assets/img/brand/';
+		return array(
+			'low'  => $base . 'banner-772x250.png',
+			'high' => $base . 'banner-1544x500.png',
+		);
 	}
 
 	/**
@@ -467,7 +555,7 @@ class GithubUpdater {
 	 *
 	 * @param string $repo `owner/repo`.
 	 * @param string $tag  Release tag, e.g. `v6.34.0`.
-	 * @return array{requires: string, tested: string, requires_php: string, upgrade_notice: string}
+	 * @return array{requires: string, tested: string, requires_php: string, upgrade_notice: string, readme: string}
 	 */
 	private static function fetch_release_readme( string $repo, string $tag ): array {
 		$empty = array(
@@ -475,6 +563,7 @@ class GithubUpdater {
 			'tested'         => '',
 			'requires_php'   => '',
 			'upgrade_notice' => '',
+			'readme'         => '',
 		);
 
 		$response = wp_remote_get(
@@ -497,7 +586,7 @@ class GithubUpdater {
 			return $empty;
 		}
 
-		return self::readme_metadata( $body );
+		return self::readme_metadata( $body ) + array( 'readme' => $body );
 	}
 
 	/**
@@ -619,6 +708,8 @@ class GithubUpdater {
 			'tested'         => (string) ( $raw['tested'] ?? '' ),
 			'requires_php'   => (string) ( $raw['requires_php'] ?? '' ),
 			'upgrade_notice' => (string) ( $raw['upgrade_notice'] ?? '' ),
+			// The release's whole readme, for the "View details" tabs.
+			'readme'         => (string) ( $raw['readme'] ?? '' ),
 		);
 	}
 
