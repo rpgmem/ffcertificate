@@ -25219,8 +25219,12 @@ msgid "The site theme's"
 msgstr "A do tema do site"
 
 #: includes/settings/views/ffc-tab-public-design.php:107
-msgid "The system font, as in the admin screens"
-msgstr "A fonte do sistema, como nas telas do painel"
+msgid "The plugin's (the system font)"
+msgstr "A do plugin (fonte do sistema)"
+
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "Arial"
+msgstr "Arial"
 
 #: includes/settings/views/documentation/config-public-design.php:18
 msgid "Settings → Public Design sets the look of every screen visitors see: forms, certificate verification, the CSV download, geofenced content, scheduling, audiences, the user dashboard and recruitment. It is off by default, and the screens keep the plugin's own look until it is switched on."
@@ -25235,8 +25239,8 @@ msgid "The colours apply to the light theme only. With Dark Mode on, the plugin 
 msgstr "As cores valem só para o tema claro. Com o Modo Escuro ligado, o plugin mantém a própria paleta escura, porque uma cor escolhida para uma página branca costuma ficar ilegível numa escura."
 
 #: includes/settings/views/documentation/config-public-design.php:25
-msgid "The corner radius of fields and buttons (0 makes them square), the widest a form or verification card grows (its fields are 150 px narrower), and either the site theme's font or the system font of the admin screens. These apply in both themes."
-msgstr "O raio dos cantos de campos e botões (0 os deixa retos), a largura máxima de um cartão de formulário ou de verificação (os campos ficam 150 px mais estreitos) e a fonte do tema do site ou a fonte do sistema das telas do painel. Esses valem nos dois temas."
+msgid "The corner radius of fields and buttons (0 makes them square), the widest a form or verification card grows (its fields are 150 px narrower), and the font: the site theme's (the default), the plugin's system font, or Arial, the same three choices as Email Signature Generator and Institutional Email. These apply in both themes."
+msgstr "O raio dos cantos de campos e botões (0 os deixa quadrados), a largura máxima de um formulário ou cartão de verificação (seus campos ficam 150 px mais estreitos) e a fonte: a do tema do site (padrão), a fonte do sistema do plugin ou Arial, as mesmas três opções do Email Signature Generator e do Institutional Email. Valem nos dois temas."
 
 #: includes/settings/views/documentation/config-public-design.php:27
 msgid "Cached pages"

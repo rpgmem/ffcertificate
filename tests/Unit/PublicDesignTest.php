@@ -136,6 +136,22 @@ class PublicDesignTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/--ffc-primary-hover:#ffdf40;/', $css, 'The hover moves away from the text colour, so the button text stays readable.' );
 	}
 
+	public function test_arial_is_the_third_font(): void {
+		$css = ( new PublicDesign( array( 'enabled' => '1', 'font' => 'arial' ) ) )->css();
+		$this->assertStringContainsString( 'font-family:arial,sans-serif;', $css );
+		$this->assertSame( array( 'theme', 'plugin', 'arial' ), PublicDesign::FONTS, 'The same three choices as the family\'s other plugins, the theme\'s first.' );
+	}
+
+	/**
+	 * The font the design picks reaches the fields and buttons too. A control
+	 * does not inherit `font-family`, so without this rule the labels follow
+	 * the choice and the fields beside them stay in the browser's font.
+	 */
+	public function test_form_controls_inherit_the_forms_font(): void {
+		$css = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-frontend.css' );
+		$this->assertMatchesRegularExpression( '/\.ffc-shortcode :is\(input, select, textarea, button\) \{\s*font-family: inherit;\s*\}/', $css );
+	}
+
 	public function test_the_theme_font_adds_no_font_rule(): void {
 		$css = ( new PublicDesign( array( 'enabled' => '1' ) ) )->css();
 		$this->assertStringNotContainsString( 'font-family', $css );

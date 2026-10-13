@@ -25135,7 +25135,11 @@ msgid "The site theme's"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-public-design.php:107
-msgid "The system font, as in the admin screens"
+msgid "The plugin's (the system font)"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "Arial"
 msgstr ""
 
 #: includes/settings/views/documentation/config-public-design.php:18
@@ -25151,7 +25155,7 @@ msgid "The colours apply to the light theme only. With Dark Mode on, the plugin 
 msgstr ""
 
 #: includes/settings/views/documentation/config-public-design.php:25
-msgid "The corner radius of fields and buttons (0 makes them square), the widest a form or verification card grows (its fields are 150 px narrower), and either the site theme's font or the system font of the admin screens. These apply in both themes."
+msgid "The corner radius of fields and buttons (0 makes them square), the widest a form or verification card grows (its fields are 150 px narrower), and the font: the site theme's (the default), the plugin's system font, or Arial, the same three choices as Email Signature Generator and Institutional Email. These apply in both themes."
 msgstr ""
 
 #: includes/settings/views/documentation/config-public-design.php:27
