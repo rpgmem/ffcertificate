@@ -605,9 +605,10 @@ class SettingsSaveHandler {
 		$clean['captcha_altcha_type'] = CaptchaSettings::one_of( $new['captcha_altcha_type'] ?? '', CaptchaSettings::types(), 'checkbox' );
 		$clean['captcha_altcha_auto'] = CaptchaSettings::one_of( $new['captcha_altcha_auto'] ?? '', CaptchaSettings::auto_modes(), 'off' );
 
-		// Checkboxes: absent from the POST means unchecked.
-		$clean['captcha_altcha_hide_logo']   = empty( $new['captcha_altcha_hide_logo'] ) ? 0 : 1;
-		$clean['captcha_altcha_hide_footer'] = empty( $new['captcha_altcha_hide_footer'] ) ? 0 : 1;
+		// Toggles worded as what is shown (#1758), over keys that still store
+		// what is hidden: absent from the POST means off, which means hidden.
+		$clean['captcha_altcha_hide_logo']   = empty( $new['captcha_altcha_show_logo'] ) ? 1 : 0;
+		$clean['captcha_altcha_hide_footer'] = empty( $new['captcha_altcha_show_footer'] ) ? 1 : 0;
 
 		return $clean;
 	}

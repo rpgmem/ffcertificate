@@ -32,7 +32,13 @@ class StepsControlAdoptionTest extends TestCase {
 			"'ffc_aud_private_display_mode'" => array( 'show_title_message', 'show_message', 'hide' ),
 		),
 		'includes/settings/views/ffc-tab-geolocation.php'           => array(
-			"'api_fallback'" => array( 'allow', 'gps_only', 'block' ),
+			"'api_fallback'"        => array( 'allow', 'gps_only', 'block' ),
+			// The three presets; `custom` is the "Customize per case" toggle (#1758).
+			"'gps_fallback_preset'" => array( 'tolerant', 'hybrid', 'strict' ),
+		),
+		'includes/settings/views/ffc-tab-cache.php'                 => array(
+			// The four values the select offered (#1758).
+			"'ffc_settings[cache_expiration]'" => array( '900', '1800', '3600', '86400' ),
 		),
 	);
 
@@ -47,6 +53,8 @@ class StepsControlAdoptionTest extends TestCase {
 		'ffc_ss_private_display_mode',
 		'ffc_aud_private_display_mode',
 		'api_fallback',
+		'gps_fallback_preset',
+		'ffc_settings[cache_expiration]',
 	);
 
 	private static function source( string $relative ): string {
