@@ -55,9 +55,8 @@ class AudienceAdminImport {
 	 */
 	public function render_content(): void {
 		$audiences = AudienceReader::get_hierarchical();
+		// Notices are printed once by the Settings page that hosts this tab.
 		?>
-		<?php settings_errors( 'ffc_audience' ); ?>
-
 			<?php
 			// Import and export are both on the screen (#1631): a second row of
 			// tabs inside the vertical tabs hid half of it behind a click, and
@@ -137,7 +136,7 @@ class AudienceAdminImport {
 					<div class="ffc-sample-csv">
 						<h4><?php esc_html_e( 'Sample CSV Format', 'ffcertificate' ); ?></h4>
 						<pre><?php echo esc_html( AudienceCsvImporter::get_sample_csv( 'members' ) ); ?></pre>
-						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-import&download_sample=members' ), 'download_sample' ) ); ?>" class="button">
+						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=import&download_sample=members' ), 'download_sample' ) ); ?>" class="button">
 							<?php esc_html_e( 'Download Sample', 'ffcertificate' ); ?>
 						</a>
 					</div>
@@ -174,7 +173,7 @@ class AudienceAdminImport {
 					<div class="ffc-sample-csv">
 						<h4><?php esc_html_e( 'Sample CSV Format', 'ffcertificate' ); ?></h4>
 						<pre><?php echo esc_html( AudienceCsvImporter::get_sample_csv( 'audiences' ) ); ?></pre>
-						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-import&download_sample=audiences' ), 'download_sample' ) ); ?>" class="button">
+						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=import&download_sample=audiences' ), 'download_sample' ) ); ?>" class="button">
 							<?php esc_html_e( 'Download Sample', 'ffcertificate' ); ?>
 						</a>
 					</div>

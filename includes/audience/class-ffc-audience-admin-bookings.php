@@ -222,9 +222,12 @@ class AudienceAdminBookings {
 								<td><?php echo esc_html( wp_trim_words( $booking->description, 10 ) ); ?></td>
 								<td>
 									<?php
+									// Keys are the `booking_type` enum stored in the
+									// table (`audience` / `individual`); the labels
+									// match the booking modal's.
 									$type_labels = array(
-										'audience' => __( 'Audience', 'ffcertificate' ),
-										'custom'   => __( 'Custom Users', 'ffcertificate' ),
+										'audience'   => __( 'Audience', 'ffcertificate' ),
+										'individual' => __( 'Custom Users', 'ffcertificate' ),
 									);
 									echo esc_html( $type_labels[ $booking->booking_type ] ?? $booking->booking_type );
 									?>
