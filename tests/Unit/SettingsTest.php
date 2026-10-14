@@ -749,7 +749,7 @@ class SettingsTest extends TestCase {
 		$html = $this->render_settings_page_html();
 
 		$this->assertStringContainsString( '<fieldset disabled', $html, 'View-only render must wrap the tab body in a disabled fieldset.' );
-		$this->assertStringContainsString( 'ffc-settings-readonly-lock', $html );
+		$this->assertStringContainsString( 'ffc-readonly-lock', $html );
 		$this->assertStringContainsString( 'Read-only', $html, 'A read-only banner must be shown.' );
 	}
 
@@ -760,7 +760,7 @@ class SettingsTest extends TestCase {
 		$html = $this->render_settings_page_html();
 
 		$this->assertStringNotContainsString( '<fieldset disabled', $html );
-		$this->assertStringNotContainsString( 'ffc-settings-readonly-lock', $html );
+		$this->assertStringNotContainsString( 'ffc-readonly-lock', $html );
 	}
 
 	// ==================================================================

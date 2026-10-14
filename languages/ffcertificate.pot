@@ -24347,6 +24347,9 @@ msgstr ""
 msgid "view the Scheduling menu and audience pages."
 msgstr ""
 
+msgid "On its own it opens them read-only: the calendar, environment and audience edit forms and the members screen show their fields disabled, with no Save, Add or Remove, under a read-only notice."
+msgstr ""
+
 msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."
 msgstr ""
 

@@ -231,9 +231,11 @@
     color: var(--ffc-text-muted);
 }
 
-/* Read-only lock (#1777): a screen opened by a view-only user wraps its form
-   fields in `<fieldset disabled>`, which makes every control inert. Strip the
-   default fieldset chrome so the read-only render keeps the editable layout. */
+/* Read-only lock (#1777, #1779): a screen opened by a view-only user wraps its
+   form fields in `<fieldset disabled>`, which makes every control inert. Strip
+   the default fieldset chrome so the read-only render keeps the editable
+   layout. The one class for every such screen: the audience edit forms,
+   Settings and the recruitment settings tab. */
 .ffc-readonly-lock {
     min-width: 0;
     margin: 0;
