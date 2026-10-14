@@ -40,7 +40,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'Each schedule independently notifies affected users on booking and cancellation, and can attach an ICS calendar invite. Two opt-in admin toggles (off by default) also notify a recipient list (comma-separated; blank falls back to the site admin) on new bookings and cancellations.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Admin pages', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Besides the calendars, environments and audiences, the Scheduling menu has a Dashboard and an Audience Bookings list of every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The Scheduling menu lists Dashboard, Personal Calendars, Appointments, Audience Calendars, Audiences, Audience Bookings and Settings. A new personal calendar is added with the Add New button of Personal Calendars or the Dashboard\'s quick action.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar\'s row opens that calendar\'s environments.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Audience Bookings lists every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Import / export', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members.', 'ffcertificate' ); ?></p>

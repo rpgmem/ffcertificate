@@ -31,12 +31,66 @@ class AudienceAdminCalendar {
 	private string $menu_slug;
 
 	/**
+	 * The Environments screen, rendered as this page's second view (#1761).
+	 *
+	 * @var AudienceAdminEnvironment|null
+	 */
+	private ?AudienceAdminEnvironment $environment;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param string $menu_slug The menu slug prefix.
+	 * @param string                        $menu_slug   The menu slug prefix.
+	 * @param AudienceAdminEnvironment|null $environment The Environments view, when the page hosts it.
 	 */
-	public function __construct( string $menu_slug ) {
-		$this->menu_slug = $menu_slug;
+	public function __construct( string $menu_slug, ?AudienceAdminEnvironment $environment = null ) {
+		$this->menu_slug   = $menu_slug;
+		$this->environment = $environment;
+	}
+
+	/**
+	 * Whether this request shows the Environments view.
+	 *
+	 * @return bool
+	 */
+	private function is_environments_view(): bool {
+		return null !== $this->environment && $this->environment->is_own_request();
+	}
+
+	/**
+	 * Print the switch between the page's two views, Calendars and
+	 * Environments (#1761).
+	 *
+	 * WordPress's own view links (`ul.subsubsub`, the idiom the submissions
+	 * list prints through `get_views()`), so the switch reads as the screen's
+	 * views and the dark theme already paints it.
+	 *
+	 * @param string $menu_slug The menu slug prefix.
+	 * @param string $current   `list` for Calendars, AudienceAdminEnvironment::VIEW for Environments.
+	 * @return void
+	 */
+	public static function render_view_switch( string $menu_slug, string $current ): void {
+		$views = array(
+			'list'                         => array(
+				'label' => __( 'Calendars', 'ffcertificate' ),
+				'url'   => admin_url( 'admin.php?page=' . $menu_slug . '-calendars' ),
+			),
+			AudienceAdminEnvironment::VIEW => array(
+				'label' => AudienceScheduleRepository::get_environment_label(),
+				'url'   => AudienceAdminEnvironment::view_url( $menu_slug ),
+			),
+		);
+		$last  = array_key_last( $views );
+		?>
+		<ul class="subsubsub">
+			<?php foreach ( $views as $key => $view ) : ?>
+				<li>
+					<a href="<?php echo esc_url( $view['url'] ); ?>"<?php echo $key === $current ? ' class="current" aria-current="page"' : ''; ?>><?php echo esc_html( $view['label'] ); ?></a><?php echo $key !== $last ? ' |' : ''; ?>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<div class="clear"></div>
+		<?php
 	}
 
 	/**
@@ -54,13 +108,19 @@ class AudienceAdminCalendar {
 		?>
 		<div class="wrap ffc-admin-page ffc-page-scheduling-calendars <?php echo $boxed ? 'ffc-boxed' : ''; ?>">
 			<?php
-			switch ( $action ) {
-				case 'new':
-				case 'edit':
-					$this->render_form( $id );
-					break;
-				default:
-					$this->render_list();
+			if ( null !== $this->environment && $this->is_environments_view() ) {
+				// The second view of this page (#1761); its add/edit form is
+				// boxed by the same `action` rule as the calendar's.
+				$this->environment->render_view();
+			} else {
+				switch ( $action ) {
+					case 'new':
+					case 'edit':
+						$this->render_form( $id );
+						break;
+					default:
+						$this->render_list();
+				}
 			}
 			?>
 		</div>
@@ -87,6 +147,12 @@ class AudienceAdminCalendar {
 		<hr class="wp-header-end">
 
 		<?php settings_errors( 'ffc_audience' ); ?>
+
+		<?php
+		if ( null !== $this->environment ) {
+			self::render_view_switch( $this->menu_slug, 'list' );
+		}
+		?>
 
 		<table class="wp-list-table widefat fixed striped">
 			<thead>
@@ -134,7 +200,10 @@ class AudienceAdminCalendar {
 							<td class="column-visibility">
 								<?php echo 'public' === $schedule->visibility ? esc_html__( 'Public', 'ffcertificate' ) : esc_html__( 'Private', 'ffcertificate' ); ?>
 							</td>
-							<td class="column-environments"><?php echo esc_html( (string) $env_count ); ?></td>
+							<td class="column-environments">
+								<?php // The count opens this calendar's environments (#1761). ?>
+								<a href="<?php echo esc_url( AudienceAdminEnvironment::view_url( $this->menu_slug, '&schedule_id=' . $schedule->id ) ); ?>"><?php echo esc_html( (string) $env_count ); ?></a>
+							</td>
 							<td class="column-status">
 								<span class="ffc-audience-status ffc-audience-status-<?php echo esc_attr( $schedule->status ); ?>">
 									<?php echo $is_active ? esc_html__( 'Active', 'ffcertificate' ) : esc_html__( 'Inactive', 'ffcertificate' ); ?>
@@ -677,8 +746,10 @@ class AudienceAdminCalendar {
 
 		// The coordinator calls this on every `ffc-scheduling*` screen, and
 		// `?message=` / `action=delete` mean something else on the siblings
-		// (#1771): act only on the calendars screen.
-		if ( RequestInput::get_get_string( 'page' ) !== $this->menu_slug . '-calendars' ) {
+		// (#1771): act only on the calendars screen. The Environments view
+		// shares this page (#1761), and its `message`, `action=deactivate`
+		// and `action=delete` are AudienceAdminEnvironment's.
+		if ( RequestInput::get_get_string( 'page' ) !== $this->menu_slug . '-calendars' || $this->is_environments_view() ) {
 			return;
 		}
 

@@ -15380,10 +15380,6 @@ msgstr "As submissões selecionadas retornaram aos rascunhos."
 msgid "Selected time is outside working hours."
 msgstr "O horário selecionado está fora do horário de funcionamento."
 
-#: includes/audience/class-ffc-audience-admin-page.php:299
-msgid "Self"
-msgstr "Pessoal"
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:523
 msgid "Self-service"
 msgstr "Autosserviço"
@@ -23159,8 +23155,14 @@ msgstr "Um público-alvo é um grupo nomeado de membros, com uma cor, um status 
 msgid "Admin pages"
 msgstr "Páginas administrativas"
 
-msgid "Besides the calendars, environments and audiences, the Scheduling menu has a Dashboard and an Audience Bookings list of every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
-msgstr "Além dos calendários, ambientes e públicos-alvo, o menu Agendamento tem um Painel e a lista Agendamentos de Público-alvo, com todos os agendamentos (exportável em CSV com ffc_export_audiences). Os feriados globais, definidos na aba Agendamento → Configurações → Geral, bloqueiam agendamentos nessas datas."
+msgid "The Scheduling menu lists Dashboard, Personal Calendars, Appointments, Audience Calendars, Audiences, Audience Bookings and Settings. A new personal calendar is added with the Add New button of Personal Calendars or the Dashboard's quick action."
+msgstr "O menu Agendamento lista Painel, Calendários Pessoais, Agendamentos, Calendários de Público-alvo, Públicos-alvo, Agendamentos de Público-alvo e Configurações. Um novo calendário pessoal é adicionado pelo botão Adicionar Novo de Calendários Pessoais ou pela ação rápida do Painel."
+
+msgid "Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar's row opens that calendar's environments."
+msgstr "Calendários de Público-alvo tem duas visões, alternadas pelos links abaixo do título: Calendários e Ambientes (com o nome que você dá aos ambientes). A contagem de ambientes na linha de um calendário abre os ambientes desse calendário."
+
+msgid "Audience Bookings lists every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
+msgstr "Agendamentos de Público-alvo lista todos os agendamentos (exportável em CSV com ffc_export_audiences). Os feriados globais, definidos na aba Agendamento → Configurações → Geral, bloqueiam agendamentos nessas datas."
 
 msgid "The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
 msgstr "A aba Agendamento → Configurações → Importar e Exportar importa e exporta públicos-alvo (nome, cor, pai) e membros (e-mail, nome, público-alvo) em CSV, criando opcionalmente usuários do WordPress para os membros importados."
