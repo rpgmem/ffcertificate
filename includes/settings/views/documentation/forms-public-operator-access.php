@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'The per-form link', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'When enabled, each form gets its own secret hash. The operator opens a page carrying the', 'ffcertificate' ); ?> <code>[ffc_csv_download]</code> <?php esc_html_e( 'shortcode with the form id and hash in the query string:', 'ffcertificate' ); ?></p>
 	<pre><code>https://example.com/operator-page/?form_id=123&amp;hash=&lt;secret&gt;</code></pre>
-	<p><?php esc_html_e( 'The hash is the only credential — treat the link as a password. Set the base page under Settings → General ("CSV Download Page URL") so the editor shows the full link instead of just the query string. The hash is regenerated on demand ("Regenerate hash on save") and is deliberately NOT copied when a form is duplicated. A separate option resets the download counter to zero on save.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The hash is the only credential — treat the link as a password. Set the base page under Settings → General ("CSV Download Page URL") so the editor shows the full link instead of just the query string. The hash is generated the moment Public Operator Access is switched on, and is deliberately NOT copied when a form is duplicated. Two buttons act at once, without saving the form: "Regenerate hash" (the link already shared stops working) and "Reset counter" (the download counter goes back to zero).', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'What the operator can do', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Each capability is an independent per-form toggle:', 'ffcertificate' ); ?></p>
@@ -50,7 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 
 	<h4><?php esc_html_e( 'CPF gate on the CSV', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'The CSV can additionally require the operator to prove a CPF before it releases. Modes:', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The CSV can additionally require the operator to prove a CPF before it releases. The modes form a scale from the loosest to the strictest, and a form that never chose one uses audit:', 'ffcertificate' ); ?></p>
 	<ul>
 		<li><code>none</code> — <?php esc_html_e( 'no CPF check.', 'ffcertificate' ); ?></li>
 		<li><code>audit</code> — <?php esc_html_e( 'ask for a CPF and log it, but never block.', 'ffcertificate' ); ?></li>

@@ -112,7 +112,8 @@
                 if ($codesField.length) {
                     var currentCodes = $codesField.val();
                     var newCodes = currentCodes ? currentCodes + '\n' + data.codes : data.codes;
-                    $codesField.val(newCodes);
+                    // Programmatic, so say it: the form editor's tab dot reads the field (#1755).
+                    $codesField.val(newCodes).trigger('input');
                     var successMsg = strings.ticketsGeneratedSuccess || 'tickets generated successfully!';
                     $status.text('✓ ' + quantity + ' ' + successMsg).css('color', 'green');
                     setTimeout(function () { $status.text(''); }, 5000);
@@ -273,8 +274,12 @@
 
         function isOn() {
             if (typeof expected !== 'undefined' && expected !== null && expected !== '') {
-                // Select-driven gate: compare current value.
-                return String($master.val()) === String(expected);
+                // Value-driven gate: a select's value, or the checked radio
+                // of a steps / segmented group (whose fieldset carries the id).
+                var current = $master.is('fieldset')
+                    ? $master.find('input[type="radio"]:checked').val()
+                    : $master.val();
+                return String(current) === String(expected);
             }
             // Checkbox-driven gate: use checked state. Master may be a
             // hidden+checkbox pair (WP admin toggle widget); .is(':checked')
@@ -301,6 +306,62 @@
             $master.on('input', sync);
         }
         sync();
+    });
+
+    // =========================================================================
+    // Public Operator Access (#1755). Regenerating the hash and resetting the
+    // counter act at once, through their own AJAX action, instead of waiting
+    // for the next save. Enabling the master toggle autosaves, and its first
+    // enable generates the hash on the server: the response carries the new
+    // link and the CPF mode, which are written into the page here.
+    // =========================================================================
+    function showOperatorLink(link) {
+        if (!link) { return; }
+        $('#ffc_csv_public_link').val(link);
+        $('.ffc-csv-public-share').removeClass('ffc-hidden');
+        $('.ffc-csv-public-nohash').addClass('ffc-hidden');
+    }
+
+    $(document).on('click', '.ffc-csv-public-action', function (e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var confirmText = String($btn.data('confirm') || '');
+        if (confirmText && !window.confirm(confirmText)) {
+            return;
+        }
+        var $status = $btn.closest('.ffc-csv-public-actions').find('.ffc-csv-public-action-status');
+        $btn.prop('disabled', true);
+        window.FFC.request('ffc_csv_public_action',
+            { post_id: $btn.data('post-id'), op: $btn.data('op') },
+            { nonce: String($btn.data('nonce') || '') })
+            .then(function (data) {
+                if (data && data.share_link) {
+                    showOperatorLink(data.share_link);
+                }
+                if (data && typeof data.count !== 'undefined') {
+                    $('.ffc-csv-public-count').text(String(data.count));
+                }
+                $status.text(String($btn.data('done') || ''));
+            })
+            .catch(function (err) {
+                $status.text((err && err.message) ? err.message : '');
+            })
+            .then(function () {
+                $btn.prop('disabled', false);
+            });
+    });
+
+    document.addEventListener('ffc:setting-saved', function (e) {
+        var detail = (e && e.detail) || {};
+        if (detail.key !== 'csv_public_enabled' || !detail.response) {
+            return;
+        }
+        showOperatorLink(detail.response.share_link);
+        if (detail.response.cpf_mode) {
+            $('#ffc_csv_public_cpf_mode input[type="radio"]').filter(function () {
+                return this.value === detail.response.cpf_mode;
+            }).prop('checked', true); // Already stored: no change event, so no second save.
+        }
     });
 
     // =========================================================================

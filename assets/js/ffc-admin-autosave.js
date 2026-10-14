@@ -132,13 +132,16 @@
      *
      * @param {string}          key   The allowlisted setting key that was saved.
      * @param {string|string[]} value The value that reached the server.
+     * @param {Object}          [response] What the endpoint returned, for a
+     *                          save whose server side changed more than the
+     *                          field (the operator access hash, #1755).
      */
-    function announceSaved(key, value) {
+    function announceSaved(key, value, response) {
         if (typeof window.CustomEvent !== 'function') {
             return;
         }
         document.dispatchEvent(new window.CustomEvent('ffc:setting-saved', {
-            detail: { key: key, value: value },
+            detail: { key: key, value: value, response: response || {} },
         }));
     }
 
@@ -246,10 +249,10 @@
                 payload.nonce = autosaveCfg.nonce;
             }
             window.FFC.request(config.action || 'ffc_update_setting', payload, config.request)
-                .then(function () {
+                .then(function (data) {
                     setBadgeState($badge, 'saved', saved);
                     lingerTimer = setTimeout(function () { hideBadge($badge); }, SAVED_LINGER);
-                    announceSaved(config.key, value);
+                    announceSaved(config.key, value, data);
                 })
                 .catch(function (err) {
                     setBadgeState($badge, 'error', (err && err.message) ? err.message : errorTxt);

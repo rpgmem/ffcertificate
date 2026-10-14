@@ -1743,11 +1743,11 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->handler->save_form_data( 10 );
 
 		$this->assertMatchesRegularExpression( '/^[0-9a-f]{32}$/', $written['_ffc_csv_public_hash'] );
-		$this->assertSame( 0, $written['_ffc_csv_public_count'] );
+		$this->assertArrayNotHasKey( '_ffc_csv_public_count', $written, 'Resetting the counter is a button since #1755; the save ignores the old field.' );
 		$this->assertSame( 'audit', $written['_ffc_csv_public_cpf_mode'], 'a just-enabled download always logs who pulled it' );
 	}
 
-	public function test_regenerate_replaces_an_existing_hash_and_an_unknown_mode_reads_as_none(): void {
+	public function test_save_keeps_an_existing_hash_and_an_unknown_mode_reads_as_none(): void {
 		$bag     = $this->stub_for_save();
 		$written = &$bag[0];
 		Functions\when( 'get_post_meta' )->alias(
@@ -1769,8 +1769,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 		);
 		$this->handler->save_form_data( 10 );
 
-		$this->assertNotSame( 'oldhash', $written['_ffc_csv_public_hash'] );
-		$this->assertSame( 32, strlen( $written['_ffc_csv_public_hash'] ) );
+		$this->assertArrayNotHasKey( '_ffc_csv_public_hash', $written, 'Regenerating is a button since #1755; a posted regenerate_hash no longer replaces the hash on save.' );
 		$this->assertSame( 'none', $written['_ffc_csv_public_cpf_mode'], 'already enabled: an explicit none is respected' );
 		$this->assertArrayNotHasKey( '_ffc_csv_public_count', $written );
 	}

@@ -176,7 +176,11 @@ class FormEditorGeofenceMetabox {
 									'id'      => 'ffc_geofence_datetime_enabled',
 									'checked' => '1' === (string) $datetime_enabled,
 									'label'   => __( 'Restrict form access by date and time', 'ffcertificate' ),
-									'data'    => array( 'ffc-autosave-form-key' => 'geofence_datetime_enabled' ),
+									'data'    => array(
+										'ffc-autosave-form-key' => 'geofence_datetime_enabled',
+										// On with no date and no time, the window restricts nothing (#1755).
+										'ffc-requires' => '#ffc_geofence_date_start, #ffc_geofence_date_end, [name="ffc_geofence[time_start]"], [name="ffc_geofence[time_end]"]',
+									),
 								)
 							);
 							?>
@@ -327,11 +331,21 @@ class FormEditorGeofenceMetabox {
 					<tr>
 						<th><label for="ffc_geofence_schedule_default_mode"><?php esc_html_e( 'Default Modal Mode', 'ffcertificate' ); ?></label></th>
 						<td>
-							<select id="ffc_geofence_schedule_default_mode" name="ffc_geofence[schedule_default_mode]">
-								<option value="now" <?php selected( $schedule_default_mode, 'now' ); ?>><?php esc_html_e( 'Now — pre-fill end time with the current moment', 'ffcertificate' ); ?></option>
-								<option value="manual" <?php selected( $schedule_default_mode, 'manual' ); ?>><?php esc_html_e( 'Manual — let the operator type both ends', 'ffcertificate' ); ?></option>
-							</select>
-							<p class="description"><?php esc_html_e( 'Which mode the operator exception modal opens in by default. Operators can flip the toggle on a per-exception basis.', 'ffcertificate' ); ?></p>
+							<?php // Two values, so a toggle (#1755): checked posts `now`, the hidden input before it `manual`. ?>
+							<input type="hidden" name="ffc_geofence[schedule_default_mode]" value="manual">
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[schedule_default_mode]',
+									'id'      => 'ffc_geofence_schedule_default_mode',
+									'value'   => 'now',
+									'checked' => 'now' === $schedule_default_mode,
+									'label'   => __( 'Open on the current time', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-form-key' => 'geofence_schedule_default_mode' ),
+								)
+							);
+							?>
+							<p class="description"><?php esc_html_e( 'On: the operator exception modal opens with the end time filled in with the current moment. Off: the operator types both ends. Operators can flip it on each exception.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
 					</tbody>
@@ -431,27 +445,38 @@ class FormEditorGeofenceMetabox {
 				<tr>
 					<th><label><?php esc_html_e( 'Validation Methods', 'ffcertificate' ); ?></label></th>
 					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'ffc_geofence[geo_gps_enabled]',
-								'checked' => '1' === (string) $geo_gps_enabled,
-								'label'   => __( 'GPS (Browser geolocation)', 'ffcertificate' ),
-							)
-						);
-						?>
-						<br>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'     => 'ffc_geofence[geo_ip_enabled]',
-								'id'       => 'ffc_geofence_geo_ip_enabled',
-								'checked'  => '1' === (string) $geo_ip_enabled,
-								'disabled' => ! $global_ip_api_enabled,
-								'label'    => __( 'IP Address (backend validation)', 'ffcertificate' ),
-							)
-						);
-						?>
+						<div class="ffc-restriction-label">
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[geo_gps_enabled]',
+									'id'      => 'ffc_geofence_geo_gps_enabled',
+									'checked' => '1' === (string) $geo_gps_enabled,
+									'label'   => __( 'GPS (Browser geolocation)', 'ffcertificate' ),
+									'data'    => array(
+										'ffc-autosave-form-key' => 'geofence_geo_gps_enabled',
+										// GPS with no allowed area admits no one (#1755). Only the
+										// source on screen counts: the other is `.ffc-hidden`.
+										'ffc-requires' => '[name="ffc_geofence[geo_area_location_ids][]"], [name="ffc_geofence[geo_areas]"]',
+									),
+								)
+							);
+							?>
+						</div>
+						<div class="ffc-restriction-label">
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'     => 'ffc_geofence[geo_ip_enabled]',
+									'id'       => 'ffc_geofence_geo_ip_enabled',
+									'checked'  => '1' === (string) $geo_ip_enabled,
+									'disabled' => ! $global_ip_api_enabled,
+									'label'    => __( 'IP Address (backend validation)', 'ffcertificate' ),
+									'data'     => array( 'ffc-autosave-form-key' => 'geofence_geo_ip_enabled' ),
+								)
+							);
+							?>
+						</div>
 						<?php if ( ! $global_ip_api_enabled ) : ?>
 							<p class="description ffc-text-warning ffc-icon-warning">
 								<?php
