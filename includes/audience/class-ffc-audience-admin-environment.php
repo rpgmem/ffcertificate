@@ -118,19 +118,21 @@ class AudienceAdminEnvironment {
 
 		<?php settings_errors( 'ffc_audience' ); ?>
 
-		<!-- Filter form -->
-		<form method="get" class="ffc-filter-form">
-			<input type="hidden" name="page" value="<?php echo esc_attr( $this->menu_slug . '-environments' ); ?>">
-			<select name="schedule_id">
-				<option value=""><?php esc_html_e( 'All Calendars', 'ffcertificate' ); ?></option>
-				<?php foreach ( $schedules as $schedule ) : ?>
-					<option value="<?php echo esc_attr( (string) $schedule->id ); ?>" <?php selected( $filter_schedule, $schedule->id ); ?>>
-						<?php echo esc_html( $schedule->name ); ?>
-					</option>
-				<?php endforeach; ?>
-			</select>
-			<?php submit_button( __( 'Filter', 'ffcertificate' ), 'secondary', 'filter', false ); ?>
-		</form>
+		<!-- Filters: one row in the table navigation, as on the other lists (#1761) -->
+		<div class="tablenav top">
+			<form method="get">
+				<input type="hidden" name="page" value="<?php echo esc_attr( $this->menu_slug . '-environments' ); ?>">
+				<select name="schedule_id">
+					<option value=""><?php esc_html_e( 'All Calendars', 'ffcertificate' ); ?></option>
+					<?php foreach ( $schedules as $schedule ) : ?>
+						<option value="<?php echo esc_attr( (string) $schedule->id ); ?>" <?php selected( $filter_schedule, $schedule->id ); ?>>
+							<?php echo esc_html( $schedule->name ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+				<?php submit_button( __( 'Filter', 'ffcertificate' ), 'secondary', 'filter', false ); ?>
+			</form>
+		</div>
 
 		<table class="wp-list-table widefat fixed striped ffc-environments-table">
 			<thead>

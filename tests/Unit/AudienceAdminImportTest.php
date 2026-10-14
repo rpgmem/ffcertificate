@@ -105,7 +105,9 @@ class AudienceAdminImportTest extends TestCase {
 		// no second row of tabs to hide one of them.
 		$this->assertStringContainsString( '<h2 class="ffc-icon-upload">Import Members</h2>', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-download">Export Members</h2>', $output );
-		$this->assertSame( 2, substr_count( $output, '<div class="ffc-import-sections">' ) );
+		// Each section is the shared card, two rows of two (#1761).
+		$this->assertSame( 2, substr_count( $output, '<div class="ffc-import-export-cards">' ) );
+		$this->assertSame( 4, substr_count( $output, '<div class="card">' ) );
 		$this->assertStringNotContainsString( 'nav-tab', $output );
 		$this->assertStringNotContainsString( 'display: none', $output );
 	}
