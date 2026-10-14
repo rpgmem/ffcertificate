@@ -13226,10 +13226,6 @@ msgstr ""
 msgid "Preview affected posts"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:923
-msgid "Preview Calendar"
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:515
 msgid "Preview Certificate"
 msgstr ""

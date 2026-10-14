@@ -16,6 +16,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Record edit screens save their switches at once** (#1757). On an existing calendar, audience, campaign, notice, reason or Date Messages rule, a toggle saves as it flips, through one `ffc_update_record` endpoint each module registers its fields with; a campaign's status still waits for Save. Calendar visibility is a toggle and new calendars start public; the recruitment send mode is steps and autosaves; a rule's text position is segmented and its width steps; upload fields share one styled control.
 - **The submission edit screen masks the IP and draws one section style** (#1760). The IP under System Information and under the consent starts masked, with the same audited Reveal as email and CPF; each Reveal sits beside its value; every record section uses the consent's collapsible section.
 
+### Fixed
+
+- **Personal calendars admin gaps** (#1770). Duplicate copies the custom blocks; the Appointments list sorts by every sortable column and labels, filters and cancels waitlisted rows; the dead Preview Calendar link and the export's unread date filters are gone.
+
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
 ### Added

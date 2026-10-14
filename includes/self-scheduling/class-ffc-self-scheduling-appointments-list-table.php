@@ -33,6 +33,23 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 class AppointmentsListTable extends \WP_List_Table {
 
 	/**
+	 * Request `orderby` value → column the query orders by (#1770).
+	 *
+	 * The allowlist for the request: a value not listed here falls back to
+	 * the default order, so nothing from the URL reaches the ORDER BY. The
+	 * keys are the values `get_sortable_columns()` puts in the header links.
+	 *
+	 * @var array<string, string>
+	 */
+	private const ORDER_COLUMNS = array(
+		'id'               => 'id',
+		'calendar_id'      => 'calendar_id',
+		'appointment_date' => 'appointment_date',
+		'status'           => 'status',
+		'created_at'       => 'created_at',
+	);
+
+	/**
 	 * Appointment repository.
 	 *
 	 * @var \FreeFormCertificate\Repositories\AppointmentRepository
@@ -147,7 +164,12 @@ class AppointmentsListTable extends \WP_List_Table {
 			);
 		}
 
-		if ( $ffc_can_edit_appt && in_array( $item['status'], array( 'pending', 'confirmed' ), true ) ) {
+		// A waitlisted entry can leave the queue the same way (#1770): the cancel
+		// handler accepts any status, and the waitlist promoter promotes nobody
+		// when the cancelled row was itself `waitlist`. It is NOT offered Confirm:
+		// `confirm()` does not recount the slot, so confirming a queued entry would
+		// overbook it — promotion is the only way out of the queue into the slot.
+		if ( $ffc_can_edit_appt && in_array( $item['status'], array( 'pending', 'confirmed', 'waitlist' ), true ) ) {
 			$cancel_url        = wp_nonce_url(
 				add_query_arg(
 					array(
@@ -283,6 +305,7 @@ class AppointmentsListTable extends \WP_List_Table {
 			'cancelled' => '<span class="ffc-appointment-status ffc-appointment-status-cancelled">' . __( 'Cancelled', 'ffcertificate' ) . '</span>',
 			'completed' => '<span class="ffc-appointment-status ffc-appointment-status-completed">' . __( 'Completed', 'ffcertificate' ) . '</span>',
 			'no_show'   => '<span class="ffc-appointment-status ffc-appointment-status-noshow">' . __( 'No Show', 'ffcertificate' ) . '</span>',
+			'waitlist'  => '<span class="ffc-appointment-status ffc-appointment-status-waitlist">' . __( 'Waitlist', 'ffcertificate' ) . '</span>',
 		);
 
 		return $status_labels[ $item['status'] ] ?? esc_html( $item['status'] );
@@ -310,7 +333,9 @@ class AppointmentsListTable extends \WP_List_Table {
 		}
 
 		// Get items.
-		$items       = $this->appointment_repository->findAll( $conditions, 'created_at', 'DESC', $per_page, $offset );
+		list( $order_by, $order ) = $this->resolve_order();
+
+		$items       = $this->appointment_repository->findAll( $conditions, $order_by, $order, $per_page, $offset );
 		$total_items = $this->appointment_repository->count( $conditions );
 
 		$this->items = $items;
@@ -328,6 +353,25 @@ class AppointmentsListTable extends \WP_List_Table {
 			array(), // Hidden columns.
 			$this->get_sortable_columns(),
 		);
+	}
+
+	/**
+	 * The ORDER BY column and direction the request asks for (#1770).
+	 *
+	 * `orderby` is resolved through `ORDER_COLUMNS`; anything else — absent,
+	 * unknown, or a column name the list does not sort by — gives the default
+	 * `created_at DESC`. The direction collapses to `ASC` / `DESC`.
+	 *
+	 * @return array{0: string, 1: string}
+	 */
+	private function resolve_order(): array {
+		$requested = RequestInput::get_get_string( 'orderby' );
+		if ( ! isset( self::ORDER_COLUMNS[ $requested ] ) ) {
+			return array( 'created_at', 'DESC' );
+		}
+
+		$order = 'asc' === strtolower( RequestInput::get_get_string( 'order' ) ) ? 'ASC' : 'DESC';
+		return array( self::ORDER_COLUMNS[ $requested ], $order );
 	}
 
 	/**
@@ -364,6 +408,7 @@ class AppointmentsListTable extends \WP_List_Table {
 			<option value="cancelled" <?php selected( $status, 'cancelled' ); ?>><?php esc_html_e( 'Cancelled', 'ffcertificate' ); ?></option>
 			<option value="completed" <?php selected( $status, 'completed' ); ?>><?php esc_html_e( 'Completed', 'ffcertificate' ); ?></option>
 			<option value="no_show" <?php selected( $status, 'no_show' ); ?>><?php esc_html_e( 'No Show', 'ffcertificate' ); ?></option>
+			<option value="waitlist" <?php selected( $status, 'waitlist' ); ?>><?php esc_html_e( 'Waitlist', 'ffcertificate' ); ?></option>
 		</select>
 
 		<?php submit_button( __( 'Filter', 'ffcertificate' ), '', 'filter_action', false ); ?>

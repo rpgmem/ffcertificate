@@ -448,6 +448,21 @@ class SelfSchedulingEditorTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-copy-target="#ffc-calendar-shortcode"', $output );
 	}
 
+	public function test_render_shortcode_metabox_prints_no_dead_preview_link(): void {
+		$post = Mockery::mock( 'WP_Post' );
+		$post->ID = 42;
+		$post->post_status = 'publish';
+
+		$editor = new SelfSchedulingEditor();
+		ob_start();
+		$editor->render_shortcode_metabox( $post );
+		$output = ob_get_clean();
+
+		// Nothing handles `calendar_preview`, and a live calendar would book for real (#1770).
+		$this->assertStringNotContainsString( 'calendar_preview', $output );
+		$this->assertStringNotContainsString( 'Preview Calendar', $output );
+	}
+
 	// ==================================================================
 	// render_shortcode_metabox() — draft
 	// ==================================================================
