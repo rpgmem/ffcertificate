@@ -10,8 +10,10 @@ use PHPUnit\Framework\TestCase;
  *
  * The plugin draws its own components from `Core\Icons`, and since #1640 its
  * admin-menu icons too (`AdminMenuIcons`). A dashicon is right only where it
- * is WordPress chrome the registry does not draw: the separator labels the
- * scheduling menu prints into `#adminmenu`. Everything else was replaced, screen by screen, and this
+ * is WordPress chrome the registry does not draw: a tab a third-party filter
+ * contributes with a dashicon slug (`Icons::tab_class()`). The scheduling
+ * menu's separator labels were the other such place until #1761 removed the
+ * separators. Everything else was replaced, screen by screen, and this
  * freezes the result: a file that gains a dashicon fails, and so does one on
  * the list that loses its last (drop it from the list to lock the win in).
  *
@@ -28,8 +30,7 @@ class DashiconsChromeOnlyTest extends TestCase {
 	 * @var array<string, array{0: int, 1: string}>
 	 */
 	private const ALLOWED = array(
-		'includes/audience/class-ffc-audience-admin-page.php' => array( 3, 'the admin-menu separator labels printed into #adminmenu, which is WordPress chrome' ),
-		'includes/core/class-ffc-icons.php'                   => array( 2, 'Icons::tab_class(): a filter-contributed tab that still names a dashicon keeps drawing as one' ),
+		'includes/core/class-ffc-icons.php' => array( 2, 'Icons::tab_class(): a filter-contributed tab that still names a dashicon keeps drawing as one' ),
 	);
 
 	private static function root(): string {
@@ -75,6 +76,6 @@ class DashiconsChromeOnlyTest extends TestCase {
 
 	public function test_the_scan_counts_what_it_reads(): void {
 		$this->assertSame( 0, substr_count( "<span class=\"ffc-icon-copy\"></span>", 'dashicons' ) );
-		$this->assertArrayHasKey( 'includes/audience/class-ffc-audience-admin-page.php', self::scan(), 'the scan did not reach a nested module directory' );
+		$this->assertArrayHasKey( 'includes/core/class-ffc-icons.php', self::scan(), 'the scan did not reach a nested module directory' );
 	}
 }

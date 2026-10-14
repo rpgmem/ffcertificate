@@ -295,6 +295,17 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertStringContainsString( 'id="ffc_aud_private_display_mode-2" name="ffc_aud_private_display_mode" value="show_message" checked', $html, 'The default is the middle position.' );
 	}
 
+	public function test_audience_tab_environments_button_opens_the_environments_view(): void {
+		// #1761: Environments is a view of Audience Calendars.
+		$_GET['tab'] = 'audience';
+		Functions\when( 'admin_url' )->returnArg();
+
+		$html = $this->render( $this->page() );
+
+		$this->assertMatchesRegularExpression( '/<a href="admin\.php\?page=ffc-scheduling-calendars&view=environments" class="button">\s*Environments\s*<\/a>/', $html );
+		$this->assertStringNotContainsString( 'ffc-scheduling-environments', $html );
+	}
+
 	public function test_render_page_import_tab_delegates_to_the_import_page(): void {
 		$_GET['tab'] = 'import';
 		$import      = \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class );

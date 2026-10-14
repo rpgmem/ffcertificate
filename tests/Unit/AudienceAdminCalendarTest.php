@@ -533,4 +533,119 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->expectExceptionMessage( 'message=holiday_deleted' );
 		$page->handle_actions();
 	}
+
+	// ==================================================================
+	// #1761 — Environments as the page's second view
+	// ==================================================================
+
+	/**
+	 * The page as the coordinator builds it: hosting the Environments view.
+	 */
+	private function page_with_environments(): AudienceAdminCalendar {
+		return new AudienceAdminCalendar( 'ffc-scheduling', new \FreeFormCertificate\Audience\AudienceAdminEnvironment( 'ffc-scheduling' ) );
+	}
+
+	public function test_calendars_list_prints_the_view_switch_and_links_each_count(): void {
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'esc_attr_e' )->justReturn( null );
+		$_GET      = array( 'page' => 'ffc-scheduling-calendars' );
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn(
+			array( (object) array( 'id' => 4, 'name' => 'Rooms Cal', 'description' => '', 'visibility' => 'public', 'status' => 'active' ) )
+		);
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'count' )->with( array( 'schedule_id' => 4 ) )->andReturn( 3 );
+
+		ob_start();
+		$this->page_with_environments()->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="wrap ffc-admin-page ffc-page-scheduling-calendars ">', $output );
+		$this->assertMatchesRegularExpression( '/<ul class="subsubsub">.*href="admin\.php\?page=ffc-scheduling-calendars" class="current" aria-current="page">Calendars<\/a> \|.*href="admin\.php\?page=ffc-scheduling-calendars&view=environments">Rooms<\/a>/s', $output );
+		$this->assertMatchesRegularExpression( '/<td class="column-environments">\s*<a href="admin\.php\?page=ffc-scheduling-calendars&view=environments&schedule_id=4">3<\/a>/', $output );
+		$this->assertStringNotContainsString( 'ffc-environments-table', $output );
+	}
+
+	/**
+	 * Requests that show the Environments view: the view itself, and the
+	 * previous slug when it is rendered (a POST from a form opened before
+	 * the move; a GET is redirected before it renders).
+	 *
+	 * @return array<string, array{0: array<string, string>}>
+	 */
+	public function environments_requests(): array {
+		return array(
+			'Environments view' => array( array( 'page' => 'ffc-scheduling-calendars', 'view' => 'environments' ) ),
+			'previous slug'     => array( array( 'page' => 'ffc-scheduling-environments' ) ),
+		);
+	}
+
+	/**
+	 * @dataProvider environments_requests
+	 *
+	 * @param array<string, string> $location The page (and view) of the request.
+	 */
+	public function test_environments_list_renders_inside_the_calendars_wrap( array $location ): void {
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( null );
+		$_GET = $location;
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->andReturn( array() );
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array() );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+
+		ob_start();
+		$this->page_with_environments()->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="wrap ffc-admin-page ffc-page-scheduling-calendars ">', $output );
+		$this->assertStringContainsString( 'ffc-environments-table', $output );
+		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments" class="current" aria-current="page">Environments</a>', $output );
+		$this->assertSame( 1, substr_count( $output, 'class="wrap' ), 'one wrap: the view prints none of its own' );
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+	}
+
+	public function test_environment_form_is_a_boxed_screen_of_the_calendars_page(): void {
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( null );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		$_GET = array(
+			'page'   => 'ffc-scheduling-calendars',
+			'view'   => 'environments',
+			'action' => 'new',
+		);
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Cal' ) ) );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
+
+		ob_start();
+		$this->page_with_environments()->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="wrap ffc-admin-page ffc-page-scheduling-calendars ffc-boxed">', $output );
+		$this->assertStringContainsString( 'name="ffc_action" value="save_environment"', $output );
+		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments">&larr;', $output, 'Back goes to the view' );
+		$this->assertStringNotContainsString( 'schedule_name', $output, 'the calendar form is not drawn' );
+	}
+
+	public function test_handle_actions_leaves_the_environments_view_to_its_handler(): void {
+		// `action=deactivate`, `id` and `message` mean an environment here.
+		$_GET    = array(
+			'page'     => 'ffc-scheduling-calendars',
+			'view'     => 'environments',
+			'action'   => 'deactivate',
+			'id'       => '5',
+			'_wpnonce' => 'n',
+			'message'  => 'deleted',
+		);
+		$nonces  = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_verify_nonce', 1 );
+		$notices = \FreeFormCertificate\Tests\Support\CallLog::record( 'add_settings_error', true );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' )->shouldNotReceive( 'update' );
+
+		$this->page_with_environments()->handle_actions();
+		$this->assertSame( 0, $nonces->count(), 'no calendar action was attempted' );
+		$this->assertSame( 0, $notices->count(), 'no calendar notice was raised' );
+	}
 }

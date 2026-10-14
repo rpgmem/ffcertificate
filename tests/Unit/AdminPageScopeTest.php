@@ -94,7 +94,9 @@ class AdminPageScopeTest extends TestCase {
 		// call the SAME `render_dashboard_page()`. A screen with two addresses is
 		// still one screen: the class names the screen, by the submenu's slug.
 		'ffc-page-scheduling-dashboard'   => 'ffc-scheduling-dashboard',
-		'ffc-page-scheduling-environments' => 'ffc-scheduling-environments',
+		// No `ffc-page-scheduling-environments` since #1761: Environments is a
+		// view of the calendars screen and renders inside its wrap, and the
+		// previous slug only redirects there.
 		'ffc-page-scheduling-settings'    => 'ffc-scheduling-settings',
 		'ffc-page-recruitment'            => 'ffc-recruitment',
 		'ffc-page-reregistration'         => 'ffc-reregistration',
