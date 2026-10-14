@@ -37,6 +37,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
+	<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Notice lifecycle', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A notice moves through these statuses; the public shortcode exposes the classification from preliminary onward:', 'ffcertificate' ); ?></p>
 	<table class="widefat striped">

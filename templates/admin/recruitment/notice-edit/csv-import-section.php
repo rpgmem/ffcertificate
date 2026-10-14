@@ -54,7 +54,7 @@ if ( 'preliminary' === $status ) {
 echo '</td></tr>';
 
 echo '<tr><th><label for="ffc-edit-csv-file">' . esc_html__( 'CSV file', 'ffcertificate' ) . '</label></th><td>';
-echo '<input id="ffc-edit-csv-file" name="csv_file" type="file" accept=".csv,text/csv" required>';
+echo '<input class="ffc-file-input" id="ffc-edit-csv-file" name="csv_file" type="file" accept=".csv,text/csv" required>';
 echo '</td></tr>';
 
 echo '</tbody></table>';

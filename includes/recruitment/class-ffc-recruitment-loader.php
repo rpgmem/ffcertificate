@@ -50,6 +50,11 @@ final class RecruitmentLoader {
 		RecruitmentReasonEditPage::register();
 		RecruitmentAdjutancyEditPage::register();
 
+		// Record autosave for the notice and reason edit screens (#1757).
+		if ( is_admin() ) {
+			RecruitmentRecordAutosave::register();
+		}
+
 		// NOTE: schema creation/migration (`RecruitmentActivator::create_tables`
 		// / `maybe_migrate`) and the recruitment-manager role registration are
 		// orchestrator-level lifecycle, NOT module bootstrap — they moved to

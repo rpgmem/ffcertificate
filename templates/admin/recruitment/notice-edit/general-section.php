@@ -68,6 +68,7 @@ echo '<tr><th>' . esc_html__( 'Preliminary reasons', 'ffcertificate' ) . '</th><
 		'id'      => 'ffc-notice-pcc-preview_reason',
 		'checked' => $preview_checked,
 		'label'   => __( 'Show preliminary reasons publicly on this notice', 'ffcertificate' ),
+		'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'recruitment_notice', (int) $notice->id, 'preview_reason' ),
 	)
 );
 echo '<p class="description">' . esc_html__( 'When on, the public shortcode will render the reason label next to the preliminary status badge. Off by default per notice — operators decide all-or-nothing per edital.', 'ffcertificate' ) . '</p>';

@@ -1959,10 +1959,6 @@ msgstr "ALTCHA, com o desafio matemático como alternativa de contingência"
 msgid "Always use inline styles"
 msgstr "Sempre use estilos embutidos"
 
-#: templates/admin/recruitment/admin-page/settings-tab.php:50
-msgid "Always — send the convocation email on every call"
-msgstr "Sempre — envie o e-mail de convocação para cada chamada."
-
 #: includes/settings/views/documentation/operations-troubleshooting.php:106
 msgid "An admin cannot see a plugin menu"
 msgstr "Um administrador não consegue ver o menu de um plugin."
@@ -2444,10 +2440,6 @@ msgstr "Assim que a página carregar"
 #: includes/settings/views/documentation/forms-public-operator-access.php:56
 msgid "ask for a CPF and log it, but never block."
 msgstr "solicite o CPF e registre-o, mas nunca bloqueie."
-
-#: templates/admin/recruitment/admin-page/settings-tab.php:52
-msgid "Ask — decide per call via a \"Notify by email\" checkbox on the call action"
-msgstr "Perguntar — decidir a cada chamada por meio de uma caixa de seleção \"Notificar por e-mail\" na ação de chamada."
 
 #: includes/settings/views/documentation/feature-record.php:71
 msgid "Assigned unit"
@@ -11395,10 +11387,6 @@ msgstr "Nunca clicado e criado a mais de"
 #: includes/settings/views/ffc-tab-advanced.php:395
 msgid "Never enables actual data logging, only operation status."
 msgstr "Nunca ativa o registro de dados reais, apenas o status de operação."
-
-#: templates/admin/recruitment/admin-page/settings-tab.php:51
-msgid "Never — do not send automatically"
-msgstr "Nunca — não enviar automaticamente"
 
 #: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:871
 msgid "New adjutancy is the same as the current one."
@@ -25958,3 +25946,79 @@ msgstr "Ative a campanha — uma submissão é criada na hora para cada membro d
 #: templates/admin/reregistration/form.php
 msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
 msgstr "Envia o convite agora, sem esperar a execução diária, a quem ainda não recebeu. Clicar duas vezes não envia nada na segunda. Se o prazo foi prorrogado, também alcança todos que não concluíram."
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "Unknown record type."
+msgstr "Tipo de registro desconhecido."
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "You do not have permission to change this record."
+msgstr "Você não tem permissão para alterar este registro."
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "That record no longer exists."
+msgstr "Esse registro não existe mais."
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "This field cannot be saved here."
+msgstr "Este campo não pode ser salvo aqui."
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The calendar could not be saved."
+msgstr "Não foi possível salvar o calendário."
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Self-join is set on the parent audience."
+msgstr "A auto-adesão é definida no público pai."
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The audience could not be saved."
+msgstr "Não foi possível salvar o público."
+
+#: includes/reregistration/class-ffc-reregistration-record-autosave.php
+msgid "The campaign could not be saved."
+msgstr "Não foi possível salvar a campanha."
+
+#: includes/recruitment/class-ffc-recruitment-record-autosave.php
+msgid "The notice could not be saved."
+msgstr "Não foi possível salvar o edital."
+
+#: includes/recruitment/class-ffc-recruitment-record-autosave.php
+msgid "The reason could not be saved."
+msgstr "Não foi possível salvar o motivo."
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Never"
+msgstr "Nunca"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Ask"
+msgstr "Perguntar"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Always"
+msgstr "Sempre"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Calling a candidate never sends the convocation email."
+msgstr "Convocar um candidato nunca envia o e-mail de convocação."
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Each call asks, through a \"Notify by email\" checkbox on the call action."
+msgstr "Cada convocação pergunta, por uma caixa \"Notificar por e-mail\" na ação de convocar."
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Every call sends the convocation email."
+msgstr "Toda convocação envia o e-mail de convocação."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created."
+msgstr "Em um registro que já existe, um interruptor salva no momento em que você o aciona, sem o botão Salvar. Um registro novo mantém o botão Salvar até ser criado."
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "The status is the exception: it changes only on Save."
+msgstr "O status é a exceção: ele só muda ao Salvar."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A new calendar starts public."
+msgstr "Um calendário novo começa público."

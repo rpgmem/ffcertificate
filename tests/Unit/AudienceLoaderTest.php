@@ -150,10 +150,10 @@ class AudienceLoaderTest extends TestCase {
 			->atLeast()->once();
 		Functions\expect('wp_enqueue_script')
 			->atLeast()->once();
-		// Two wp_localize_script calls now: ffcAudienceAdmin (original)
-		// + ffcAdminAutosave (added when autosave infra was wired into the
-		// audience admin enqueue path).
-		Functions\expect('wp_localize_script')->twice();
+		// Three wp_localize_script calls now: ffcAudienceAdmin (original),
+		// ffcAdminAutosave (the settings autosave) and ffcRecordAutosave
+		// (the per-record autosave, #1757).
+		Functions\expect('wp_localize_script')->times(3);
 		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
 		Functions\when('rest_url')->justReturn('https://example.com/wp-json/ffc/v1/audience/');
 		Functions\when('wp_create_nonce')->justReturn('test-nonce');
@@ -276,7 +276,7 @@ class AudienceLoaderTest extends TestCase {
 		$this->assertContains('ffc-division-sector-editor', $log['scripts']);
 		$this->assertContains('ffc-custom-fields-admin', $log['scripts']);
 		$this->assertNotContains('ffc-batched-export', $log['scripts']);
-		$this->assertSame(array('ffcDivisionSectorEditor', 'ffcAudienceAdmin', 'ffcAdminAutosave'), $log['localized']);
+		$this->assertSame(array('ffcDivisionSectorEditor', 'ffcAudienceAdmin', 'ffcAdminAutosave', 'ffcRecordAutosave'), $log['localized']);
 	}
 
 	/**
@@ -297,7 +297,7 @@ class AudienceLoaderTest extends TestCase {
 		$this->assertContains('ffc-batched-export', $log['scripts']);
 		$this->assertContains('ffc-progress-overlay', $log['styles']);
 		$this->assertNotContains('ffc-custom-fields-admin', $log['scripts']);
-		$this->assertSame(array('ffcAudienceAdmin', 'ffcAdminAutosave'), $log['localized']);
+		$this->assertSame(array('ffcAudienceAdmin', 'ffcAdminAutosave', 'ffcRecordAutosave'), $log['localized']);
 	}
 
 	// ==================================================================

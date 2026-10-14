@@ -230,6 +230,16 @@ class SettingsAjaxEndpoint {
 			'preview_reason_required_appeal_granted',
 			'audit_pii_reveals',
 		);
+		// The convocation send mode, on the same tab (#1757). Gated by the
+		// tab's own capability, the one its Save button checks.
+		$allowlist['recruitment_email_mode'] = array(
+			'option'  => 'ffc_recruitment_settings',
+			'path'    => array( 'email_mode' ),
+			'type'    => 'enum',
+			'options' => array( 'never', 'ask', 'always' ),
+			'cap'     => 'ffc_manage_recruitment_settings',
+		);
+
 		foreach ( $recruitment_bools as $field ) {
 			$allowlist[ 'recruitment_' . $field ] = array(
 				'option' => 'ffc_recruitment_settings',

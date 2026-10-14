@@ -240,7 +240,7 @@ class ReregistrationAdminPageTest extends TestCase {
 
 		$this->assertSame( array( 'ffc-common' ), $log['registered'] );
 		$this->assertContains( 'ffc-reregistration-import', $log['scripts'] );
-		$this->assertSame( array( 'ffcReregistrationAdmin', 'ffcReregImport' ), $log['localized'] );
+		$this->assertSame( array( 'ffcRecordAutosave', 'ffcReregistrationAdmin', 'ffcReregImport' ), $log['localized'] );
 		$this->assertNotContains( 'jspdf', $log['scripts'] );
 	}
 

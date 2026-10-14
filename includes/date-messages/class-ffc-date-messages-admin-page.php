@@ -212,6 +212,9 @@ final class DateMessagesAdminPage {
 		// The rule editor's audience picker is the shared component (#1648).
 		\FreeFormCertificate\Audience\AudienceTransferList::enqueue();
 
+		// The rule's toggles and appearance save per record (#1757).
+		\FreeFormCertificate\Core\RecordAutosave::enqueue();
+
 		$defaults = MessageBuilder::defaults();
 		wp_enqueue_script(
 			'ffc-email-restore-default',
