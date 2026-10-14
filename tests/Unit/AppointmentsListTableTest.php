@@ -120,11 +120,12 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertStringContainsString( '#7', $html );
 		$this->assertStringContainsString( 'Confirm', $html );
 		$this->assertStringContainsString( 'ffc-appointment-cancel', $html );
-		$this->assertStringContainsString( 'View', $html );
+		$this->assertStringContainsString( '>View<', $html, 'A manager is offered the manage-gated detail view.' );
+		$this->assertStringContainsString( 'appointment=7', $html );
 		$this->assertStringContainsString( 'https://example.com/magic', $html );
 	}
 
-	public function test_column_id_readonly_cancelled_shows_only_view(): void {
+	public function test_column_id_readonly_cancelled_shows_no_row_action(): void {
 		Functions\when( 'current_user_can' )->justReturn( false ); // read-only viewer.
 		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
 
@@ -134,7 +135,10 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertStringContainsString( '#9', $html );
 		$this->assertStringNotContainsString( 'Confirm', $html );
 		$this->assertStringNotContainsString( 'ffc-appointment-cancel', $html );
-		$this->assertStringContainsString( 'View', $html );
+		// The detail view requires ffc_manage_appointments, so a read-only
+		// viewer is not offered it (#1769).
+		$this->assertStringNotContainsString( '>View<', $html );
+		$this->assertStringNotContainsString( 'appointment=9', $html );
 		$this->assertStringNotContainsString( 'View Receipt', $html ); // cancelled → no receipt.
 	}
 

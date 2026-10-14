@@ -173,6 +173,60 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertStringContainsString( 'Cal One', $output );
 	}
 
+	/**
+	 * Row actions by tier (#1769): Edit / Deactivate need
+	 * `ffc_manage_audiences`, Delete needs `ffc_delete_audiences`.
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool, 2: bool}>
+	 */
+	public function row_action_tiers(): array {
+		return array(
+			'view-only tier'       => array( array( 'ffc_view_audiences' ), false, false ),
+			'manage tier'          => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true, false ),
+			'manage + delete tier' => array( array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences' ), true, true ),
+		);
+	}
+
+	/**
+	 * Grant exactly the given capabilities.
+	 *
+	 * @param list<string> $caps Capabilities held.
+	 */
+	private function grant( array $caps ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+	}
+
+	/**
+	 * @dataProvider row_action_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_manage Whether Edit / Deactivate render.
+	 * @param bool         $can_delete Whether Delete renders.
+	 */
+	public function test_row_actions_render_only_for_the_cap_their_handler_checks( array $caps, bool $can_manage, bool $can_delete ): void {
+		$this->grant( $caps );
+		Functions\when( 'esc_attr__' )->returnArg();
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->andReturn(
+			array(
+				(object) array( 'id' => 1, 'name' => 'Active Room', 'schedule_id' => 1, 'status' => 'active', 'color' => '#fff', 'description' => '' ),
+				(object) array( 'id' => 2, 'name' => 'Inactive Room', 'schedule_id' => 1, 'status' => 'inactive', 'color' => '#000', 'description' => '' ),
+			)
+		);
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Cal One' ) ) );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+
+		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Active Room', $output, 'The rows render for every tier.' );
+		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'Edit</a>' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'Deactivate' ) );
+		$this->assertSame( $can_delete, str_contains( $output, 'Delete' ) );
+	}
+
 	public function test_render_list_filters_by_schedule(): void {
 		$_GET['schedule_id'] = '3';
 		Functions\when( 'esc_html__' )->returnArg();

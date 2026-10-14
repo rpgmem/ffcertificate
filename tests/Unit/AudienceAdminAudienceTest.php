@@ -189,6 +189,60 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertStringContainsString( 'Delete', $output );
 	}
 
+	/**
+	 * Row actions by tier (#1769): Edit / Deactivate need
+	 * `ffc_manage_audiences`, Delete needs `ffc_delete_audiences`.
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool, 2: bool}>
+	 */
+	public function row_action_tiers(): array {
+		return array(
+			'view-only tier'       => array( array( 'ffc_view_audiences' ), false, false ),
+			'manage tier'          => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true, false ),
+			'manage + delete tier' => array( array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences' ), true, true ),
+		);
+	}
+
+	/**
+	 * Grant exactly the given capabilities.
+	 *
+	 * @param list<string> $caps Capabilities held.
+	 */
+	private function grant( array $caps ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+	}
+
+	/**
+	 * @dataProvider row_action_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_manage Whether Edit / Deactivate render.
+	 * @param bool         $can_delete Whether Delete renders.
+	 */
+	public function test_row_actions_render_only_for_the_cap_their_handler_checks( array $caps, bool $can_manage, bool $can_delete ): void {
+		$this->grant( $caps );
+		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
+		$child  = (object) array( 'id' => 2, 'name' => 'Child Aud', 'color' => '#00ff00', 'status' => 'inactive', 'children' => array() );
+		$parent = (object) array( 'id' => 1, 'name' => 'Parent Aud', 'color' => '#ff0000', 'status' => 'active', 'children' => array( $child ) );
+		$repo   = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_hierarchical' )->andReturn( array( $parent ) );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 1 );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		// Members stays for every tier: its screen opens on the menu's own
+		// `ffc_view_audiences`.
+		$this->assertSame( 2, substr_count( $output, 'Members</a>' ) );
+		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'Edit</a>' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'Deactivate' ) );
+		$this->assertSame( $can_delete, str_contains( $output, 'Delete' ) );
+	}
+
 	// ==================================================================
 	// render_form()
 	// ==================================================================
