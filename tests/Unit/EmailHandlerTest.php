@@ -54,6 +54,8 @@ class EmailHandlerTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+		// MailQueue::is_active() also reads the network plugin list (#1758).
+		Functions\when( 'get_site_option' )->justReturn( array() );
 		// Default for the shared chrome's footer tokens (some tests override).
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
 		Functions\when( 'site_url' )->alias( function ( $path = '' ) {
@@ -128,6 +130,31 @@ class EmailHandlerTest extends TestCase {
 		$this->assertSame( 'ssl', $phpmailer->SMTPSecure );
 		$this->assertSame( 'noreply@example.com', $phpmailer->From );
 		$this->assertSame( 'My App', $phpmailer->FromName );
+	}
+
+	public function test_configure_custom_smtp_leaves_phpmailer_alone_while_total_mail_queue_is_active(): void {
+		// Total Mail Queue manages delivery (#1758): WP default is used, and the
+		// stored custom SMTP applies again once it is deactivated.
+		Functions\when( 'get_option' )->alias(
+			static function ( $key ) {
+				if ( 'active_plugins' === $key ) {
+					return array( 'total-mail-queue/total-mail-queue.php' );
+				}
+				return array(
+					'smtp_mode' => 'custom',
+					'smtp_host' => 'smtp.example.com',
+				);
+			}
+		);
+
+		$phpmailer = Mockery::mock( 'PHPMailer\PHPMailer\PHPMailer' );
+		$phpmailer->shouldNotReceive( 'isSMTP' );
+		$phpmailer->Host = '';
+
+		$handler = new EmailHandler();
+		$handler->configure_custom_smtp( $phpmailer );
+
+		$this->assertSame( '', $phpmailer->Host );
 	}
 
 	// ==================================================================

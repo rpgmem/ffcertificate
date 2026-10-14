@@ -2462,6 +2462,20 @@
     color: var(--ffc-text-muted);
 }
 
+/* One stop the site cannot run right now (`disabled_options`): it stays
+   named, but takes no colour and refuses the pointer. */
+.ffc-control-steps-stop:has(input:disabled) {
+    cursor: not-allowed;
+}
+
+.ffc-control-steps-stop:has(input:disabled) .ffc-control-steps-mark::after {
+    box-shadow: inset 0 0 0 2px var(--ffc-gray-300);
+}
+
+.ffc-control-steps-stop:has(input:disabled) .ffc-control-steps-label {
+    text-decoration: line-through;
+}
+
 /* Only the chosen step's description shows. */
 .ffc-control-steps-desc {
     display: none;
@@ -2778,35 +2792,6 @@
     opacity: 0.55;
     pointer-events: none;
     transition: opacity 0.15s ease;
-}
-
-/* ── Captcha settings: mode chooser (#1053) ─────────────────────────
-   Each mode carries a consequence rather than a preference, so the note
-   sits with its option instead of in a paragraph above the group. */
-.ffc-captcha-mode {
-    margin: 0 0 var(--ffc-spacing-xl);
-    max-width: 46em;
-}
-
-.ffc-captcha-mode-summary,
-.ffc-captcha-mode-note {
-    display: block;
-    /* Indented under the radio so the note reads as belonging to its option. */
-    margin-left: var(--ffc-spacing-3xl);
-}
-
-.ffc-captcha-mode-note {
-    margin-top: var(--ffc-spacing-2xs);
-    padding-left: var(--ffc-spacing-md);
-    border-left: 3px solid transparent;
-}
-
-.ffc-captcha-mode-note--warning {
-    border-left-color: var(--ffc-warning-border);
-}
-
-.ffc-captcha-mode-note--info {
-    border-left-color: var(--ffc-info-border);
 }
 
 /* ==========================================================================

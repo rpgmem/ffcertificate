@@ -45,6 +45,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><strong><?php esc_html_e( 'WordPress default:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'uses the server\'s PHP mail(). Simple, but frequently flagged as spam.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Custom SMTP (recommended):', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'authenticate against a real provider (host, port, user, password, TLS). The "Popular SMTP Providers" box lists common presets and appears when Custom SMTP is selected.', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'While the total-mail-queue plugin is active it manages delivery: the choice is locked to WordPress default, and the one saved here applies again when it is deactivated.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-example">

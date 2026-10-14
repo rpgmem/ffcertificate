@@ -186,4 +186,54 @@ class TabIpDiagnosticsTest extends TestCase {
 		$html                   = $this->render_to_string();
 		$this->assertStringNotContainsString( 'Recommended', $html );
 	}
+
+	public function test_the_active_strategy_is_a_toggle_that_is_on_for_secure(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'strategy' => 'secure' ) );
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$html                   = $this->render_to_string();
+
+		$this->assertStringContainsString( 'Active strategy', $html );
+		$this->assertStringNotContainsString( 'Effective strategy', $html );
+		$this->assertStringContainsString( '<input type="checkbox" id="ffc_ip_strategy" name="ffc_ip_strategy" value="secure" checked>', $html );
+	}
+
+	public function test_the_active_strategy_toggle_is_off_for_legacy(): void {
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$html                   = $this->render_to_string();
+
+		$this->assertStringContainsString( '<input type="checkbox" id="ffc_ip_strategy" name="ffc_ip_strategy" value="secure">', $html );
+	}
+
+	public function test_a_strategy_toggle_left_off_saves_legacy(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		$captured = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$captured ) {
+				$captured = $value;
+				return true;
+			}
+		);
+
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$_POST                  = array(
+			'ffc_save_ip_diagnostics'   => '1',
+			'ffc_ip_trusted_proxy_mode' => 'auto',
+		);
+
+		$this->render_to_string();
+
+		$this->assertSame( 'legacy', $captured['strategy'] );
+	}
+
+	public function test_the_custom_cidr_row_shows_only_in_the_custom_mode(): void {
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$html                   = $this->render_to_string();
+		$this->assertStringContainsString( '<fieldset id="ffc_ip_trusted_proxy_mode">', $html );
+		$this->assertStringContainsString( '<tr class="ffc-collapsed-target ffc-collapsed" data-ffc-master="ffc_ip_trusted_proxy_mode" data-ffc-master-value="custom">', $html );
+
+		Functions\when( 'get_option' )->justReturn( array( 'trusted_proxy_mode' => 'custom' ) );
+		$html = $this->render_to_string();
+		$this->assertStringContainsString( '<tr class="ffc-collapsed-target" data-ffc-master="ffc_ip_trusted_proxy_mode" data-ffc-master-value="custom">', $html );
+	}
 }

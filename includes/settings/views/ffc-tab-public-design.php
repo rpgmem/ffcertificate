@@ -102,11 +102,27 @@ $ffc_colors = array(
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Font', 'ffcertificate' ); ?></th>
 				<td>
-					<fieldset>
-						<label><input type="radio" name="<?php echo esc_attr( $ffc_name( 'font' ) ); ?>" value="theme" <?php checked( $ffc_design->font, 'theme' ); ?>> <?php esc_html_e( 'The site theme\'s', 'ffcertificate' ); ?></label><br>
-						<label><input type="radio" name="<?php echo esc_attr( $ffc_name( 'font' ) ); ?>" value="plugin" <?php checked( $ffc_design->font, 'plugin' ); ?>> <?php esc_html_e( 'The plugin\'s (the system font)', 'ffcertificate' ); ?></label><br>
-						<label><input type="radio" name="<?php echo esc_attr( $ffc_name( 'font' ) ); ?>" value="arial" <?php checked( $ffc_design->font, 'arial' ); ?>> <?php esc_html_e( 'Arial', 'ffcertificate' ); ?></label>
-					</fieldset>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_segmented(
+						array(
+							'name'         => $ffc_name( 'font' ),
+							'id'           => 'ffc_public_design_font',
+							'value'        => $ffc_design->font,
+							'default'      => PublicDesign::DEFAULTS['font'],
+							'legend'       => __( 'Font', 'ffcertificate' ),
+							'options'      => array(
+								'theme'  => __( 'Theme', 'ffcertificate' ),
+								'plugin' => __( 'Plugin', 'ffcertificate' ),
+								'arial'  => __( 'Arial', 'ffcertificate' ),
+							),
+							'descriptions' => array(
+								'theme'  => __( 'The site theme\'s font.', 'ffcertificate' ),
+								'plugin' => __( 'The plugin\'s font (the system font).', 'ffcertificate' ),
+								'arial'  => __( 'Arial, on every device.', 'ffcertificate' ),
+							),
+						)
+					);
+					?>
 				</td>
 			</tr>
 		</tbody>

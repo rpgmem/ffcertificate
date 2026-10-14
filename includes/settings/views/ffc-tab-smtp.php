@@ -20,6 +20,15 @@ if ( '' === $ffcertificate_smtp_mode ) {
 	$ffcertificate_smtp_mode = 'wp';
 }
 
+// While Total Mail Queue is active it owns delivery, so the choice is
+// locked to WP Default (#1758): the radios render disabled and post
+// nothing, which keeps the stored value for when it is deactivated, and
+// EmailHandler::configure_custom_smtp() leaves PHPMailer alone meanwhile.
+$ffcertificate_mail_queue = \FreeFormCertificate\Integrations\MailQueue::is_active();
+if ( $ffcertificate_mail_queue ) {
+	$ffcertificate_smtp_mode = 'wp';
+}
+
 // The toggle UI now reads "Enable email sending" (positive framing),
 // but the historical storage slot is `disable_all_emails`. Compute the
 // inverted view value once so the rest of the template stays simple.
@@ -133,7 +142,18 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 						<label><?php esc_html_e( 'Mode', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<fieldset id="smtp-mode-options">
+						<?php if ( $ffcertificate_mail_queue ) : ?>
+							<?php
+							wp_admin_notice(
+								esc_html__( 'Total Mail Queue is active and manages email delivery, so WP Default is used. The choice saved here is kept and applies again when Total Mail Queue is deactivated.', 'ffcertificate' ),
+								array(
+									'type'               => 'info',
+									'additional_classes' => array( 'inline' ),
+								)
+							);
+							?>
+						<?php endif; ?>
+						<fieldset id="smtp-mode-options"<?php disabled( $ffcertificate_mail_queue ); ?>>
 							<label>
 								<input type="radio" name="ffc_settings[smtp_mode]" value="wp" <?php checked( 'wp', $ffcertificate_smtp_mode ); ?>>
 								<strong><?php esc_html_e( 'WP Default (PHPMail)', 'ffcertificate' ); ?></strong>
@@ -259,7 +279,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 	</div>
 </div>
 
-<?php if ( ! \FreeFormCertificate\Integrations\MailQueue::is_active() ) : ?>
+<?php if ( ! $ffcertificate_mail_queue ) : ?>
 <div class="card" id="ffc-mailqueue-recommendation">
 	<h2 class="ffc-icon-bulb"><?php esc_html_e( 'Recommended for reliable delivery', 'ffcertificate' ); ?></h2>
 	<p><?php esc_html_e( 'For queued sending with automatic retries and true multipart (HTML + plain-text) delivery, install the total-mail-queue plugin. Every email this plugin sends already goes through wp_mail(), so it is picked up automatically once activated — no extra configuration.', 'ffcertificate' ); ?></p>
