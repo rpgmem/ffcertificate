@@ -87,6 +87,12 @@
         // one radio per option: its badge goes after the whole control, once.
         // Inside it the badge would also break `input:checked + label`.
         var $anchor = $field.closest('.ffc-control-toggle, .ffc-control-steps, .ffc-control-segmented');
+        // A table saved as one field (#1759) is marked on its rows
+        // container, where a <span> sibling is not valid: the badge goes
+        // after the table.
+        if (!$anchor.length && $field.is('tbody')) {
+            $anchor = $field.closest('table');
+        }
         if (!$anchor.length) {
             $anchor = $field;
         }
@@ -215,10 +221,22 @@
          * It was written twice while the form-meta path was its own handler.
          * That is what #1116 converged: one copy now covers both endpoints.
          *
+         * A container saved as one field (a table, #1759) has no validity of
+         * its own, so it is as valid as the controls inside it.
+         *
          * @returns {boolean} True when the field may be saved.
          */
         function isSaveable() {
             var el = $field[0];
+            if (el && typeof el.checkValidity !== 'function') {
+                $field.find('input, select, textarea').each(function () {
+                    if (typeof this.checkValidity === 'function' && !this.checkValidity()) {
+                        el = this;
+                        return false;
+                    }
+                    return true;
+                });
+            }
             if (!el || typeof el.checkValidity !== 'function' || el.checkValidity()) {
                 return true;
             }
@@ -425,6 +443,12 @@
                 var $radios = $('[' + attr + '="' + key + '"]:radio');
                 $radios.not($input).data('ffcAutoSaveBound', true);
                 config.$group = $radios;
+            }
+            // A field whose value no single control holds -- a whole table
+            // (#1759) -- registers its reader under its key before boot.
+            var transforms = window.FFC.Admin.autoSaveTransforms || {};
+            if (typeof transforms[key] === 'function') {
+                config.transform = transforms[key];
             }
             if (isMulti) {
                 var $group = $('[' + attr + '="' + key + '"][data-ffc-autosave-multi]');

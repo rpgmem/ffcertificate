@@ -39,7 +39,7 @@ class TabCertificates extends SettingsTab {
 	}
 
 	/**
-	 * Load the autosave widget and the required-field table script.
+	 * Load the autosave widget and the "Required data" table script.
 	 *
 	 * @param string $hook Current admin page hook.
 	 */
@@ -47,15 +47,17 @@ class TabCertificates extends SettingsTab {
 		if ( ! $this->should_enqueue_on( $hook ) ) {
 			return;
 		}
+		$this->enqueue_autosave_infra();
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		// After the autosave widget: the table registers its reader with
+		// the widget before the widget boots (#1759).
 		wp_enqueue_script(
 			'ffc-certificate-settings',
 			FFC_PLUGIN_URL . "assets/js/ffc-certificate-settings{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-admin-autosave' ),
 			FFC_VERSION,
 			true
 		);
-		$this->enqueue_autosave_infra();
 	}
 
 	/**

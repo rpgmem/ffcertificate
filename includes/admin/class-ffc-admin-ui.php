@@ -78,7 +78,10 @@ class AdminUI {
 	 *                                    data-* attributes on the input), `mark`
 	 *                                    (optional bool, draws a check or a cross
 	 *                                    on the knob so on and off do not rest on
-	 *                                    colour alone; #1748).
+	 *                                    colour alone; #1748), `aria_label`
+	 *                                    (optional string, names the checkbox
+	 *                                    when no visible label does, as in a
+	 *                                    table cell under a column header).
 	 */
 	public static function render_toggle( array $args ): void {
 		$name = $args['name'] ?? '';
@@ -106,6 +109,10 @@ class AdminUI {
 		}
 
 		$input_class_attr = '' !== $input_class ? ' class="' . esc_attr( $input_class ) . '"' : '';
+		$aria_label       = trim( (string) ( $args['aria_label'] ?? '' ) );
+		if ( '' !== $aria_label ) {
+			$data_attrs .= ' aria-label="' . esc_attr( $aria_label ) . '"';
+		}
 
 		printf(
 			'<label class="%1$s" for="%2$s"%3$s>',
