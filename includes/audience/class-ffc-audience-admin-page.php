@@ -235,6 +235,10 @@ class AudienceAdminPage {
 	 * (`page=ffc-scheduling-settings&tab=import`), so old bookmarks /
 	 * docs / dashboard links keep working after the submenu was removed.
 	 *
+	 * Every other query arg rides along (#1771), so an old bookmarked
+	 * `&download_sample=…&_wpnonce=…` still reaches its handler instead of
+	 * landing on the tab with the request dropped.
+	 *
 	 * @return void
 	 */
 	public function redirect_legacy_import_url(): void {
@@ -242,16 +246,18 @@ class AudienceAdminPage {
 			return;
 		}
 
-		wp_safe_redirect(
-			add_query_arg(
-				array(
-					'page' => self::MENU_SLUG . '-settings',
-					'tab'  => 'import',
-				),
-				admin_url( 'admin.php' )
-			),
-			301
-		);
+		$args = array();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A redirect carrying the query string forward; the destination handler verifies its own nonce.
+		foreach ( wp_unslash( $_GET ) as $key => $value ) {
+			if ( ! is_string( $key ) || ! is_scalar( $value ) ) {
+				continue;
+			}
+			$args[ sanitize_key( $key ) ] = rawurlencode( sanitize_text_field( (string) $value ) );
+		}
+		$args['page'] = self::MENU_SLUG . '-settings';
+		$args['tab']  = 'import';
+
+		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ), 301 );
 		exit;
 	}
 

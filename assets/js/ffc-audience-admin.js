@@ -34,6 +34,13 @@
                 inputs.prop('disabled', $(this).is(':checked'));
             });
 
+            // Colour picker: keep the hex text printed beside it in step
+            // (environment edit screen, the "Multiple Audiences" badge colour
+            // in Settings → Audience Calendars).
+            $(document).on('input change', 'input[type="color"]', function() {
+                $(this).siblings('.ffc-color-input-value, .ffc-color-value').text(this.value);
+            });
+
             // User search (audience group member management)
             this.initUserSearch();
 
@@ -225,7 +232,7 @@
                         }
 
                         if (b.status === 'cancelled' && b.cancel_reason) {
-                            html += '<tr><th>' + esc(strings.cancelReason || 'Cancel Reason') + '</th><td>' + esc(b.cancel_reason) + '</td></tr>';
+                            html += '<tr><th>' + esc(strings.cancelReasonLabel || 'Cancel Reason') + '</th><td>' + esc(b.cancel_reason) + '</td></tr>';
                         }
 
                         html += '</tbody></table>';

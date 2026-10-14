@@ -38,6 +38,7 @@ beforeAll(() => {
 			bookingDetails: 'Booking Details',
 			confirmCancel: 'Cancel booking?',
 			cancelReason: 'Reason?',
+			cancelReasonLabel: 'Cancel Reason',
 			cancelled: 'Cancelled',
 			active: 'Active',
 			audience: 'Audience',
@@ -117,6 +118,48 @@ describe('audience-admin — day row time toggle', () => {
 		await flush();
 
 		expect(window.$('input[type="time"]').prop('disabled')).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
+// bindEvents — hex text beside a colour picker (#1771)
+// ----------------------------------------------------------------------
+
+describe('audience-admin — colour picker hex text', () => {
+	it('updates the environment screen text while a colour is picked', async () => {
+		document.body.innerHTML = `
+			<div>
+				<input type="color" name="environment_color" class="ffc-color-input" value="#3788d8">
+				<span class="description ffc-color-input-value">#3788d8</span>
+			</div>
+		`;
+		await reload();
+
+		window.$('input[type="color"]').val('#ff0000').trigger('input');
+		await flush();
+
+		expect(window.$('.ffc-color-input-value').text()).toBe('#ff0000');
+	});
+
+	it('updates the "Multiple Audiences" badge colour text on change', async () => {
+		document.body.innerHTML = `
+			<div>
+				<input type="color" name="ffc_aud_multiple_audiences_color" value="#666666">
+				<span class="ffc-color-value">#666666</span>
+			</div>
+			<div>
+				<span class="ffc-color-value">#000000</span>
+			</div>
+		`;
+		await reload();
+
+		window.$('input[type="color"]').val('#00ff00').trigger('change');
+		await flush();
+
+		const $values = window.$('.ffc-color-value');
+		expect($values.eq(0).text()).toBe('#00ff00');
+		// Only the picker's own sibling moves.
+		expect($values.eq(1).text()).toBe('#000000');
 	});
 });
 
@@ -366,6 +409,12 @@ describe('audience-admin — booking actions', () => {
 
 		expect(window.$('#ffc-booking-modal').text()).toContain('Bad weather');
 		expect(window.$('#ffc-booking-modal').text()).toContain('Cancelled');
+		// The row label is the localized `cancelReasonLabel`, never the
+		// `cancelReason` prompt text (#1771).
+		const $th = window.$('#ffc-booking-modal th').filter(function () {
+			return window.$(this).next('td').text() === 'Bad weather';
+		});
+		expect($th.text()).toBe('Cancel Reason');
 	});
 
 	it('on view AJAX response.success=false: shows the error message in the modal body', async () => {
