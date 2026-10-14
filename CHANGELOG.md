@@ -34,6 +34,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Audience admin screens keep their notices and hours** (#1771). Calendar notices no longer appear on sibling screens, Settings shows its saved and holiday notices on every tab, a closed day keeps its hours, an empty time stores 08:00/18:00, and an inactive calendar stays selectable.
 - **Audience admin labels and controls match** (#1771). Individual bookings read "Custom Users", the modal labels the cancel reason, an added permission row draws toggles, the hex beside a colour picker follows it, Working Hours hides the format select, and Download Sample works again.
+- **The forms manager can duplicate forms and act on Document Templates** (#1781). Form Duplicate now takes `ffc_manage_forms` instead of the site-admin capability, and the role is no longer redirected off Duplicate, the template visibility toggle, duplicate, export and restore defaults.
+- **Role allow-lists match what each role can open** (#1782). Recruitment opens for `ffc_manage_recruitment` without the view capability, so the Recruitment Manager reaches it; entries a role could never open are gone, and a test now refuses them.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
