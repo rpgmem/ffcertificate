@@ -582,4 +582,214 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->expectExceptionMessage( 'message=holiday_deleted' );
 		$page->handle_actions();
 	}
+
+	// ==================================================================
+	// #1761 — Environments as the page's second view
+	// ==================================================================
+
+	/**
+	 * The page as the coordinator builds it: hosting the Environments view.
+	 */
+	private function page_with_environments(): AudienceAdminCalendar {
+		return new AudienceAdminCalendar( 'ffc-scheduling', new \FreeFormCertificate\Audience\AudienceAdminEnvironment( 'ffc-scheduling' ) );
+	}
+
+	public function test_calendars_list_prints_the_view_switch_and_links_each_count(): void {
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'esc_attr_e' )->justReturn( null );
+		$_GET      = array( 'page' => 'ffc-scheduling-calendars' );
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn(
+			array( (object) array( 'id' => 4, 'name' => 'Rooms Cal', 'description' => '', 'visibility' => 'public', 'status' => 'active' ) )
+		);
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'count' )->with( array( 'schedule_id' => 4 ) )->andReturn( 3 );
+
+		ob_start();
+		$this->page_with_environments()->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="wrap ffc-admin-page ffc-page-scheduling-calendars ">', $output );
+		$this->assertMatchesRegularExpression( '/<ul class="subsubsub">.*href="admin\.php\?page=ffc-scheduling-calendars" class="current" aria-current="page">Calendars<\/a> \|.*href="admin\.php\?page=ffc-scheduling-calendars&view=environments">Rooms<\/a>/s', $output );
+		$this->assertMatchesRegularExpression( '/<td class="column-environments">\s*<a href="admin\.php\?page=ffc-scheduling-calendars&view=environments&schedule_id=4">3<\/a>/', $output );
+		$this->assertStringNotContainsString( 'ffc-environments-table', $output );
+	}
+
+	/**
+	 * Requests that show the Environments view: the view itself, and the
+	 * previous slug when it is rendered (a POST from a form opened before
+	 * the move; a GET is redirected before it renders).
+	 *
+	 * @return array<string, array{0: array<string, string>}>
+	 */
+	public function environments_requests(): array {
+		return array(
+			'Environments view' => array( array( 'page' => 'ffc-scheduling-calendars', 'view' => 'environments' ) ),
+			'previous slug'     => array( array( 'page' => 'ffc-scheduling-environments' ) ),
+		);
+	}
+
+	/**
+	 * @dataProvider environments_requests
+	 *
+	 * @param array<string, string> $location The page (and view) of the request.
+	 */
+	public function test_environments_list_renders_inside_the_calendars_wrap( array $location ): void {
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( null );
+		$_GET = $location;
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->andReturn( array() );
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array() );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+
+		ob_start();
+		$this->page_with_environments()->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="wrap ffc-admin-page ffc-page-scheduling-calendars ">', $output );
+		$this->assertStringContainsString( 'ffc-environments-table', $output );
+		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments" class="current" aria-current="page">Environments</a>', $output );
+		$this->assertSame( 1, substr_count( $output, 'class="wrap' ), 'one wrap: the view prints none of its own' );
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+	}
+
+	public function test_environment_form_is_a_boxed_screen_of_the_calendars_page(): void {
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( null );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		$_GET = array(
+			'page'   => 'ffc-scheduling-calendars',
+			'view'   => 'environments',
+			'action' => 'new',
+		);
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Cal' ) ) );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
+
+		ob_start();
+		$this->page_with_environments()->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="wrap ffc-admin-page ffc-page-scheduling-calendars ffc-boxed">', $output );
+		$this->assertStringContainsString( 'name="ffc_action" value="save_environment"', $output );
+		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments">&larr;', $output, 'Back goes to the view' );
+		$this->assertStringNotContainsString( 'schedule_name', $output, 'the calendar form is not drawn' );
+	}
+
+	public function test_handle_actions_leaves_the_environments_view_to_its_handler(): void {
+		// `action=deactivate`, `id` and `message` mean an environment here.
+		$_GET    = array(
+			'page'     => 'ffc-scheduling-calendars',
+			'view'     => 'environments',
+			'action'   => 'deactivate',
+			'id'       => '5',
+			'_wpnonce' => 'n',
+			'message'  => 'deleted',
+		);
+		$nonces  = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_verify_nonce', 1 );
+		$notices = \FreeFormCertificate\Tests\Support\CallLog::record( 'add_settings_error', true );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' )->shouldNotReceive( 'update' );
+
+		$this->page_with_environments()->handle_actions();
+		$this->assertSame( 0, $nonces->count(), 'no calendar action was attempted' );
+		$this->assertSame( 0, $notices->count(), 'no calendar notice was raised' );
+	}
+
+	/**
+	 * Edit-screen tiers (#1777): view-only renders read-only, manage edits.
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public function edit_screen_tiers(): array {
+		return array(
+			'view-only tier' => array( array( 'ffc_view_audiences' ), false ),
+			'manage tier'    => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true ),
+		);
+	}
+
+	/**
+	 * Record each submit button as a marker carrying its label.
+	 */
+	private function capture_submit_buttons(): void {
+		Functions\when( 'submit_button' )->alias(
+			static function ( $text = null ) {
+				echo '[submit:' . $text . ']';
+			}
+		);
+	}
+
+	/**
+	 * @dataProvider edit_screen_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_manage Whether the screen is editable.
+	 */
+	public function test_edit_form_renders_read_only_without_manage( array $caps, bool $can_manage ): void {
+		$this->grant( $caps );
+		$this->capture_submit_buttons();
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '5';
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'get_userdata' )->alias(
+			static fn( $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
+		);
+
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
+			(object) array( 'id' => 5, 'name' => 'Cal Five', 'status' => 'active', 'visibility' => 'public' )
+		);
+		$schedRepo->shouldReceive( 'get_all_permissions' )->with( 5 )->andReturn(
+			array( (object) array( 'user_id' => 7, 'can_book' => '1', 'can_cancel_others' => '0', 'can_override_conflicts' => '1' ) )
+		);
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_holidays' )->with( 5 )->andReturn(
+			array( (object) array( 'id' => 3, 'holiday_date' => '2026-12-25', 'description' => 'Christmas' ) )
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )->shouldReceive( 'format_wallclock_date' )->andReturn( '25/12/2026' );
+
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		// Every tier sees the record, its grants and its holidays.
+		$this->assertStringContainsString( 'Cal Five', $output );
+		$this->assertStringContainsString( 'User7', $output );
+		$this->assertStringContainsString( 'Christmas', $output );
+
+		// The calendar form: fields locked and no save without manage.
+		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '[submit:Update Calendar]' ) );
+		if ( ! $can_manage ) {
+			$open  = (int) strpos( $output, '<fieldset disabled' );
+			$close = (int) strpos( $output, '</fieldset>' );
+			foreach ( array( 'name="schedule_name"', 'name="schedule_visibility"', 'name="schedule_notify_booking"', 'name="schedule_admin_emails"', 'name="schedule_status"' ) as $field ) {
+				$at = (int) strpos( $output, $field );
+				$this->assertTrue( $at > $open && $at < $close, $field . ' sits inside the lock' );
+			}
+		}
+
+		// User Access & Permissions: no search, add, toggle wiring or Remove.
+		foreach ( array( 'id="ffc-user-search"', 'id="ffc-add-user-btn"', 'id="ffc-permissions-table"', 'ffc-perm-toggle', 'ffc-remove-user-btn' ) as $control ) {
+			$this->assertSame( $can_manage, str_contains( $output, $control ), $control );
+		}
+		$this->assertSame( ! $can_manage, str_contains( $output, 'ffc-permissions-read-only' ) );
+		if ( ! $can_manage ) {
+			$this->assertSame( 3, preg_match_all( '/name="ffc_perm_7_[a-z_]+" value="1"( checked)? disabled/', $output ), 'each grant is a disabled toggle' );
+			$this->assertSame( 2, preg_match_all( '/name="ffc_perm_7_[a-z_]+" value="1" checked disabled/', $output ), 'the stored grants stay visible' );
+		}
+
+		// Holidays: no add form and no Delete.
+		$this->assertSame( $can_manage, str_contains( $output, 'ffc-holiday-form' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '[submit:Add Holiday]' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'Delete this holiday?' ) );
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+	}
 }

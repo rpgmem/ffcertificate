@@ -37,13 +37,13 @@ class PluginAreasAgreementTest extends TestCase {
 	 * @var array<string, array{0: string, 1: string}>
 	 */
 	private const REGISTRARS = array(
-		'certificates'   => array( 'includes/admin/class-ffc-cpt.php', "register_post_type( 'ffc_form'" ),
+		'certificates'   => array( 'includes/admin/class-ffc-cpt.php', 'register_post_type( self::POST_TYPE' ),
 		'scheduling'     => array( 'includes/audience/class-ffc-audience-admin-page.php', "MENU_SLUG = 'ffc-scheduling'" ),
 		'reregistration' => array( 'includes/reregistration/class-ffc-reregistration-admin.php', "MENU_SLUG = 'ffc-reregistration'" ),
 		'recruitment'    => array( 'includes/recruitment/class-ffc-recruitment-admin-page.php', "PAGE_SLUG = 'ffc-recruitment'" ),
 		'url_shortener'  => array( 'includes/url-shortener/class-ffc-url-shortener-admin-page.php', "'ffc-short-urls'," ),
 		'date_messages'  => array( 'includes/date-messages/class-ffc-date-messages-admin-page.php', "MENU_SLUG = 'ffc-date-messages'" ),
-		'settings'       => array( 'includes/admin/class-ffc-settings.php', "'ffc-settings'," ),
+		'settings'       => array( 'includes/admin/class-ffc-settings.php', "MENU_SLUG = 'ffc-settings'" ),
 	);
 
 	protected function setUp(): void {
@@ -77,7 +77,7 @@ class PluginAreasAgreementTest extends TestCase {
 			$source = self::read( self::REGISTRARS[ $area ][0] );
 			$this->assertStringContainsString( self::REGISTRARS[ $area ][1], $source, $area . ': the registrar no longer owns that slug' );
 
-			$slug = 'certificates' === $area ? 'ffc_form' : (string) preg_replace( "/^.*'([^']+)',?$/", '$1', self::REGISTRARS[ $area ][1] );
+			$slug = 'certificates' === $area ? \FreeFormCertificate\Admin\CPT::POST_TYPE : (string) preg_replace( "/^.*'([^']+)',?$/", '$1', self::REGISTRARS[ $area ][1] );
 			$id   = 'certificates' === $area ? 'menu-posts-' . $slug : 'toplevel_page_' . $slug;
 			$this->assertSame( $id, $entry['menu'], $area . ': the menu item id WordPress prints for that slug' );
 		}

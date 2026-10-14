@@ -177,13 +177,12 @@ class AdminMenuVisibilitySchedulingTest extends TestCase {
 		$checked   = 0;
 
 		foreach ( $this->policy() as $role => $policy ) {
-			if ( ! preg_match( '/^ffc_(appointments|calendars|audiences)_|^ffc_readonly$/', $role ) ) {
+			// ffc_readonly spans every area; AdminMenuVisibilityReachTest checks
+			// its entries, and every other role's, against all registrations.
+			if ( ! preg_match( '/^ffc_(appointments|calendars|audiences)_/', $role ) ) {
 				continue;
 			}
 			foreach ( $policy['allowed_pages'] as $entry ) {
-				if ( in_array( $entry, array( 'ffc-settings', 'ffc-recruitment' ), true ) ) {
-					continue; // ffc_readonly's non-Scheduling screens.
-				}
 				++$checked;
 				$this->assertContains( $entry, $screens, "{$role} allows {$entry}, which nothing registers." );
 			}

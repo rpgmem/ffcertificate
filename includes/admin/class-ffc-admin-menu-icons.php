@@ -31,7 +31,7 @@ final class AdminMenuIcons {
 	 * `admin_enqueue_scripts` at the default priority runs before
 	 * `admin_print_styles` prints the core `admin-menu` sheet, so the inline
 	 * style lands with it. The menu is drawn on every admin screen, so there
-	 * is no screen gate — the same reason `print_menu_separator_css()` uses.
+	 * is no screen gate.
 	 *
 	 * @return void
 	 */

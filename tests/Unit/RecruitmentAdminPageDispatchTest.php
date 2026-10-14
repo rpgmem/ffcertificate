@@ -128,6 +128,25 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 	// render_page() — access gate
 	// ------------------------------------------------------------------
 
+	public function test_render_page_opens_for_the_manage_tier_without_the_view_cap(): void {
+		// 3-state (#1782): manage implies view. The 6.0.0 Recruitment Manager
+		// role is created with `ffc_manage_recruitment` alone.
+		$this->granted = array( 'ffc_manage_recruitment' );
+		$_GET          = array();
+
+		$this->render();
+
+		$this->assertArrayHasKey( 'render_notices_tab', $this->renderCalls );
+		$this->assertTrue( RecruitmentAdminPage::can_view() );
+	}
+
+	public function test_can_view_needs_the_view_or_the_manage_cap(): void {
+		$this->granted = array( 'ffc_view_recruitment' );
+		$this->assertTrue( RecruitmentAdminPage::can_view() );
+		$this->granted = array( 'ffc_view_recruitment_settings', 'ffc_call_recruitment' );
+		$this->assertFalse( RecruitmentAdminPage::can_view() );
+	}
+
 	public function test_render_page_denies_without_view_cap(): void {
 		$this->granted = array(); // no caps
 		$this->expectException( \RuntimeException::class );
@@ -320,6 +339,7 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 				$filterAdded = true;
 			}
 		);
+		Functions\when( 'current_user_can' )->justReturn( false );
 
 		global $submenu;
 		$submenu = array( RecruitmentAdminPage::PAGE_SLUG => array( array( 'auto-generated' ) ) );
@@ -331,5 +351,56 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 		$this->assertTrue( $filterAdded, 'submenu_file highlight filter wired' );
 		// The auto-generated duplicate first row was cleared.
 		$this->assertSame( array(), $submenu[ RecruitmentAdminPage::PAGE_SLUG ] );
+	}
+
+	/**
+	 * The capability each menu entry is registered with, for a user holding `$caps`.
+	 *
+	 * @param list<string> $caps Capabilities `current_user_can()` grants.
+	 * @return array<string, string> Menu slug => capability.
+	 */
+	private function menu_caps_for( array $caps ): array {
+		$registered = array();
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ): bool => in_array( $cap, $caps, true ) );
+		Functions\when( 'add_menu_page' )->alias(
+			static function ( $page_title, $menu_title, $cap, $slug ) use ( &$registered ): void {
+				$registered[ 'menu:' . $slug ] = $cap;
+			}
+		);
+		Functions\when( 'add_submenu_page' )->alias(
+			static function ( $parent, $page_title, $menu_title, $cap, $slug ) use ( &$registered ): void {
+				$registered[ $slug ] = $cap;
+			}
+		);
+		Functions\when( 'add_filter' )->justReturn( true );
+		RecruitmentAdminPage::register_menu();
+		return $registered;
+	}
+
+	public function test_register_menu_names_the_manage_cap_for_a_manage_only_user(): void {
+		// 3-state (#1782): WordPress gates a menu on one capability, so a user
+		// holding manage without view gets the menu registered under manage.
+		$caps = $this->menu_caps_for( array( 'ffc_manage_recruitment' ) );
+
+		$this->assertSame( 'ffc_manage_recruitment', $caps[ 'menu:' . RecruitmentAdminPage::PAGE_SLUG ] );
+		$this->assertSame( 'ffc_manage_recruitment', $caps[ RecruitmentAdminPage::PAGE_SLUG ] );
+		$this->assertSame( 'ffc_manage_recruitment', $caps[ RecruitmentAdminPage::PAGE_SLUG . '&tab=candidates' ] );
+		$this->assertSame( 'ffc_view_recruitment_settings', $caps[ RecruitmentAdminPage::PAGE_SLUG . '&tab=settings' ] );
+	}
+
+	public function test_register_menu_names_the_view_cap_whenever_the_user_holds_it(): void {
+		foreach ( array( array(), array( 'ffc_view_recruitment' ), array( 'ffc_view_recruitment', 'ffc_manage_recruitment' ) ) as $held ) {
+			$caps = $this->menu_caps_for( $held );
+			$this->assertSame( 'ffc_view_recruitment', $caps[ 'menu:' . RecruitmentAdminPage::PAGE_SLUG ] );
+			$this->assertSame( 'ffc_view_recruitment', $caps[ RecruitmentAdminPage::PAGE_SLUG ] );
+		}
+	}
+
+	public function test_register_menu_names_the_settings_manage_cap_for_a_settings_manage_only_user(): void {
+		$caps = $this->menu_caps_for( array( 'ffc_view_recruitment', 'ffc_manage_recruitment_settings' ) );
+		$this->assertSame( 'ffc_manage_recruitment_settings', $caps[ RecruitmentAdminPage::PAGE_SLUG . '&tab=settings' ] );
+
+		$caps = $this->menu_caps_for( array( 'ffc_view_recruitment', 'ffc_view_recruitment_settings', 'ffc_manage_recruitment_settings' ) );
+		$this->assertSame( 'ffc_view_recruitment_settings', $caps[ RecruitmentAdminPage::PAGE_SLUG . '&tab=settings' ] );
 	}
 }

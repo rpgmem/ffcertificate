@@ -13675,6 +13675,13 @@ msgstr ""
 msgid "Read-only — you can view these settings but do not have permission to change them."
 msgstr ""
 
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:215
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:719
+#: includes/audience/class-ffc-audience-admin-calendar.php:198
+#: includes/audience/class-ffc-audience-admin-environment.php:283
+msgid "Read-only — you can view this page but do not have permission to change it."
+msgstr ""
+
 #: templates/admin/recruitment/admin-page/settings-tab.php:30
 msgid "Read-only — you do not have permission to change recruitment settings."
 msgstr ""
@@ -15323,10 +15330,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:160
 msgid "Selected time is outside working hours."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-page.php:299
-msgid "Self"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:523
@@ -23068,7 +23071,13 @@ msgstr ""
 msgid "Admin pages"
 msgstr ""
 
-msgid "Besides the calendars, environments and audiences, the Scheduling menu has a Dashboard and an Audience Bookings list of every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
+msgid "The Scheduling menu lists Dashboard, Personal Calendars, Appointments, Audience Calendars, Audiences, Audience Bookings and Settings. A new personal calendar is added with the Add New button of Personal Calendars or the Dashboard's quick action."
+msgstr ""
+
+msgid "Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar's row opens that calendar's environments."
+msgstr ""
+
+msgid "Audience Bookings lists every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
 msgstr ""
 
 msgid "The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
@@ -24341,6 +24350,9 @@ msgid "view the list and download QR codes."
 msgstr ""
 
 msgid "view the Scheduling menu and audience pages."
+msgstr ""
+
+msgid "On its own it opens them read-only: the calendar, environment and audience edit forms and the members screen show their fields disabled, with no Save, Add or Remove, under a read-only notice."
 msgstr ""
 
 msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."

@@ -17,11 +17,15 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The submission edit screen masks the IP and draws one section style** (#1760). The IP under System Information and under the consent starts masked, with the same audited Reveal as email and CPF; each Reveal sits beside its value; every record section uses the consent's collapsible section.
 - **Settings use the control that fits each choice** (#1758). Steps for captcha mode, GPS fallback and cache expiry; toggles for the IP strategy and ALTCHA display; SMTP locks to WP default while Total Mail Queue is active. New installs start on ALTCHA (on HTTPS) and a 15-minute cache.
 - **What a certificate requires is one table** (#1759). Settings → Certificates → Required data replaces Required Certificate Tags and Required Form Fields: each row has a name, label, type and a switch each for the form and the certificate HTML, and saves as it changes. A one-shot migration builds it from both.
+- **The Scheduling menu has seven rows** (#1761). The Self / Audience separators, their icons and the New Personal Calendar row leave; Environments becomes a view of Audience Calendars, whose environment count links to it. The old Environments URL redirects there with every query argument.
+- **One read-only fieldset class across admin screens** (#1779). Settings and the recruitment settings tab now use `.ffc-readonly-lock`, like the audience screens; the duplicate rule is gone, and the recruitment fieldset loses its default border. The audiences documentation says what a view-only user sees.
 - **The personal calendar editor is one box with vertical tabs** (#1761). The four stacked boxes and the Occupancy Report become tabs in the form editor's pattern, with dots on Cancellation and Administrator bypass. Every field, default and save path is unchanged.
 
 ### Fixed
 
 - **Scheduling operator roles reach their screens and see only actions they can use** (#1769). The role allow-list named pages that do not exist; row actions and cleanup buttons now follow their handler's capability, and Duplicate needs `ffc_manage_calendars`, not `ffc_manage_appointments`.
+- **The read-only role reaches every screen it can view** (#1776). FFC Read-Only now opens Certificates, Submissions, Document Templates, Reregistration, Short URLs and Date Messages; certificate roles land on the Certificates Dashboard; forms roles reach Document Templates. Every allow-list entry is checked against the registrations.
+- **Audience screens render read-only for view-only users** (#1777). Without `ffc_manage_audiences`, the calendar, environment and audience edit forms lock their fields and drop Save; user access, holidays and members drop their add and remove controls.
 
 ### Fixed
 
@@ -31,6 +35,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Audience admin screens keep their notices and hours** (#1771). Calendar notices no longer appear on sibling screens, Settings shows its saved and holiday notices on every tab, a closed day keeps its hours, an empty time stores 08:00/18:00, and an inactive calendar stays selectable.
 - **Audience admin labels and controls match** (#1771). Individual bookings read "Custom Users", the modal labels the cancel reason, an added permission row draws toggles, the hex beside a colour picker follows it, Working Hours hides the format select, and Download Sample works again.
+- **The forms manager can duplicate forms and act on Document Templates** (#1781). Form Duplicate now takes `ffc_manage_forms` instead of the site-admin capability, and the role is no longer redirected off Duplicate, the template visibility toggle, duplicate, export and restore defaults.
+- **Role allow-lists match what each role can open** (#1782). Recruitment opens for `ffc_manage_recruitment` without the view capability, so the Recruitment Manager reaches it; entries a role could never open are gone, and a test now refuses them.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
