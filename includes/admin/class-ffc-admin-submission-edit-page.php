@@ -66,6 +66,22 @@ class AdminSubmissionEditPage {
 	private $fields;
 
 	/**
+	 * Whether the current user may reveal this submission's PII, resolved
+	 * once per render by {@see self::reveal_context()}.
+	 *
+	 * @var bool|null
+	 */
+	private $can_reveal = null;
+
+	/**
+	 * The `ffc_reveal_pii_nonce` the reveal buttons carry, or '' when the
+	 * user may not reveal.
+	 *
+	 * @var string
+	 */
+	private $reveal_nonce = '';
+
+	/**
 	 * Constructor
 	 *
 	 * @param SubmissionHandler $handler Submission handler instance.
@@ -284,6 +300,74 @@ class AdminSubmissionEditPage {
 	}
 
 	/**
+	 * Resolve, once per render, whether the current user may reveal this
+	 * submission's PII, and the nonce the reveal buttons carry. One gate for
+	 * every masked value on the screen: email, CPF/RF and both IP displays.
+	 */
+	private function reveal_context(): bool {
+		if ( null === $this->can_reveal ) {
+			$this->can_reveal   = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
+				'ffc_view_certificates_pii',
+				'ffc_certificates_admin',
+				(int) ( $this->sub_array['user_id'] ?? 0 )
+			);
+			$this->reveal_nonce = $this->can_reveal ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';
+		}
+		return $this->can_reveal;
+	}
+
+	/**
+	 * The audited "Reveal" button for one masked field, or '' when the user
+	 * may not reveal. Every reveal button on the screen comes from here, so
+	 * they share one size and one gate.
+	 *
+	 * @param string $field Field the endpoint reveals: email, cpf, rf or ip.
+	 * @return string Escaped HTML.
+	 */
+	private function reveal_button( string $field ): string {
+		if ( ! $this->reveal_context() ) {
+			return '';
+		}
+		return sprintf(
+			'<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="%1$s" data-submission-id="%2$s" data-nonce="%3$s">%4$s</button>',
+			esc_attr( $field ),
+			esc_attr( (string) ( $this->sub_array['id'] ?? 0 ) ),
+			esc_attr( $this->reveal_nonce ),
+			esc_html__( 'Reveal', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * A masked, read-only value on the row of its reveal button.
+	 *
+	 * The shared reveal script writes the clear value into the input it finds
+	 * by `data-ffc-pii-field` inside the button's `.ffc-pii-row`, so the value
+	 * stays an input, read-only and drawn as text.
+	 *
+	 * @param string $field  Field the endpoint reveals.
+	 * @param string $masked The masked value.
+	 * @param string $label  Accessible name of the value.
+	 * @return string Escaped HTML.
+	 */
+	private function masked_value_row( string $field, string $masked, string $label ): string {
+		return sprintf(
+			'<span class="ffc-pii-row"><input type="text" value="%1$s" class="ffc-input-readonly ffc-edit-plain" data-ffc-pii-field="%2$s" readonly aria-label="%3$s">%4$s</span>',
+			esc_attr( $masked ),
+			esc_attr( $field ),
+			esc_attr( $label ),
+			$this->reveal_button( $field )
+		);
+	}
+
+	/**
+	 * The stored IP the submission and its consent were recorded from,
+	 * already decrypted by the handler. One value, shown in two sections.
+	 */
+	private function stored_ip(): string {
+		return (string) ( $this->sub_array['user_ip'] ?? '' );
+	}
+
+	/**
 	 * Side panel: save and cancel.
 	 */
 	private function render_actions_card(): void {
@@ -377,14 +461,21 @@ class AdminSubmissionEditPage {
 	/**
 	 * Render system information section
 	 *
-	 * Displays ID, date, status, magic token, user IP.
+	 * Displays ID, date, status, magic token, user IP. The IP starts masked,
+	 * behind the same audited Reveal as email and CPF/RF (#1760).
 	 */
 	private function render_system_info_section(): void {
 		$formatted_date = isset( $this->sub_array['submission_date'] )
 			? \FreeFormCertificate\Core\DateFormatter::format_datetime( $this->sub_array['submission_date'] )
 			: __( 'Unknown', 'ffcertificate' );
 
-		self::card_open( __( 'System Information', 'ffcertificate' ), 'info' );
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title' => __( 'System Information', 'ffcertificate' ),
+				'icon'  => 'info',
+				'open'  => true,
+			)
+		);
 		echo '<dl class="ffc-facts">';
 		self::fact( __( 'Submission ID', 'ffcertificate' ), (string) $this->sub_array['id'] );
 		self::fact( __( 'Submission Date', 'ffcertificate' ), (string) $formatted_date );
@@ -392,14 +483,17 @@ class AdminSubmissionEditPage {
 		if ( ! empty( $this->sub_array['magic_token'] ) ) {
 			self::fact( __( 'Magic Link Token', 'ffcertificate' ), (string) $this->sub_array['magic_token'] );
 		}
-		if ( ! empty( $this->sub_array['user_ip'] ) ) {
-			self::fact(
-				__( 'User IP', 'ffcertificate' ),
-				(string) $this->sub_array['user_ip'],
-				empty( $this->sub_array['user_ip_encrypted'] ) ? '' : __( 'This IP is encrypted in the database.', 'ffcertificate' )
+		$ip = $this->stored_ip();
+		if ( '' !== $ip ) {
+			printf(
+				'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s%3$s</dd>',
+				esc_html__( 'User IP', 'ffcertificate' ),
+				$this->masked_value_row( 'ip', \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $ip ), __( 'User IP', 'ffcertificate' ) ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- masked_value_row() escapes every value.
+				empty( $this->sub_array['user_ip_encrypted'] ) ? '' : '<span class="description ffc-edit-note ffc-icon-lock">' . esc_html__( 'This IP is encrypted in the database.', 'ffcertificate' ) . '</span>'
 			);
 		}
-		echo '</dl></div>';
+		echo '</dl>';
+		\FreeFormCertificate\Admin\AdminUI::render_section_close();
 	}
 
 	/**
@@ -516,7 +610,7 @@ class AdminSubmissionEditPage {
 		$consent_date = ! empty( $this->sub_array['consent_date'] )
 			? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $this->sub_array['consent_date'] )
 			: '';
-		$consent_ip   = \FreeFormCertificate\Core\Encryption::decrypt_field( $this->sub_array, 'user_ip' );
+		$consent_ip   = $this->stored_ip();
 
 		\FreeFormCertificate\Admin\AdminUI::render_section_open(
 			array(
@@ -541,12 +635,10 @@ class AdminSubmissionEditPage {
 					</p>
 				<?php endif; ?>
 
-				<?php if ( $consent_ip ) : ?>
-					<p class="description">
-						<?php
-						/* translators: %s: IP address */
-						echo esc_html( sprintf( __( 'IP: %s', 'ffcertificate' ), $consent_ip ) );
-						?>
+				<?php if ( '' !== $consent_ip ) : ?>
+					<p class="description ffc-consent-ip">
+						<?php esc_html_e( 'IP:', 'ffcertificate' ); ?>
+						<?php echo $this->masked_value_row( 'ip', \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $consent_ip ), __( 'Consent IP', 'ffcertificate' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- masked_value_row() escapes every value. ?>
 					</p>
 				<?php endif; ?>
 
@@ -575,60 +667,45 @@ class AdminSubmissionEditPage {
 	 * and a user who may see it fetches it through the audited "Reveal" button,
 	 * so every disclosure on this screen leaves an Activity Log entry. The
 	 * email becomes editable only once revealed; left masked, its input is
-	 * disabled, is not posted, and the save keeps the stored address.
+	 * disabled, is not posted, and the save keeps the stored address. Each
+	 * Reveal sits on its value's row (#1760).
 	 */
 	private function render_participant_data_section(): void {
-		$ffc_can_reveal   = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
-			'ffc_view_certificates_pii',
-			'ffc_certificates_admin',
-			(int) ( $this->sub_array['user_id'] ?? 0 )
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title' => __( 'Participant Data', 'ffcertificate' ),
+				'icon'  => 'user',
+				'open'  => true,
+			)
 		);
-		$ffc_reveal_nonce = $ffc_can_reveal ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';
-		$ffc_record_id    = (string) ( $this->sub_array['id'] ?? 0 );
-
-		self::card_open( __( 'Participant Data', 'ffcertificate' ), 'user' );
+		$ffc_email = (string) $this->sub_array['email'];
 		?>
-		<p class="ffc-edit-field">
+		<div class="ffc-edit-field">
 			<label for="user_email"><?php esc_html_e( 'Email', 'ffcertificate' ); ?> *</label>
-			<input type="email" name="user_email" id="user_email" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $this->sub_array['email'] ) ); ?>" class="regular-text" data-ffc-pii-field="email" data-ffc-pii-editable="1" disabled required>
-			<?php if ( $ffc_can_reveal && '' !== (string) $this->sub_array['email'] ) : ?>
-				<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye"
-					data-field="email"
-					data-submission-id="<?php echo esc_attr( $ffc_record_id ); ?>"
-					data-nonce="<?php echo esc_attr( $ffc_reveal_nonce ); ?>">
-					<?php esc_html_e( 'Reveal', 'ffcertificate' ); ?>
-				</button>
+			<span class="ffc-pii-row">
+				<input type="email" name="user_email" id="user_email" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::mask_email( $ffc_email ) ); ?>" class="regular-text" data-ffc-pii-field="email" data-ffc-pii-editable="1" disabled required>
+				<?php echo '' !== $ffc_email ? $this->reveal_button( 'email' ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- reveal_button() escapes every value. ?>
+			</span>
+			<?php if ( $this->reveal_context() && '' !== $ffc_email ) : ?>
 				<span class="description ffc-edit-note ffc-pii-reveal-hint"><?php esc_html_e( 'Reveal the email to edit it.', 'ffcertificate' ); ?></span>
 			<?php endif; ?>
 			<?php if ( ! empty( $this->sub_array['email_encrypted'] ) ) : ?>
 				<span class="description ffc-edit-note ffc-icon-lock"><?php esc_html_e( 'This email is encrypted in the database.', 'ffcertificate' ); ?></span>
 			<?php endif; ?>
-		</p>
+		</div>
 		<dl class="ffc-facts">
 		<?php
 		if ( ! empty( $this->sub_array['cpf_rf'] ) ) :
 			$ffc_is_rf       = ! empty( $this->sub_array['rf'] );
 			$ffc_pii_field   = $ffc_is_rf ? 'rf' : 'cpf';
+			$ffc_pii_label   = $ffc_is_rf ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' );
 			$ffc_pii_display = $ffc_is_rf
 				? \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $this->sub_array['cpf_rf'] )
 				: \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $this->sub_array['cpf_rf'] );
 			?>
-			<dt class="ffc-facts__label"><?php echo esc_html( $ffc_is_rf ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' ) ); ?></dt>
+			<dt class="ffc-facts__label"><?php echo esc_html( $ffc_pii_label ); ?></dt>
 			<dd class="ffc-facts__value">
-				<?php
-				// The shared reveal script writes the clear value into the
-				// input it finds by data-ffc-pii-field, so the value stays an
-				// input — read-only and drawn as text.
-				?>
-				<input type="text" value="<?php echo esc_attr( $ffc_pii_display ); ?>" class="ffc-input-readonly ffc-edit-plain" data-ffc-pii-field="<?php echo esc_attr( $ffc_pii_field ); ?>" readonly aria-label="<?php echo esc_attr( $ffc_is_rf ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' ) ); ?>">
-				<?php if ( $ffc_can_reveal ) : ?>
-					<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye"
-						data-field="<?php echo esc_attr( $ffc_pii_field ); ?>"
-						data-submission-id="<?php echo esc_attr( $ffc_record_id ); ?>"
-						data-nonce="<?php echo esc_attr( $ffc_reveal_nonce ); ?>">
-						<?php esc_html_e( 'Reveal', 'ffcertificate' ); ?>
-					</button>
-				<?php endif; ?>
+				<?php echo $this->masked_value_row( $ffc_pii_field, $ffc_pii_display, $ffc_pii_label ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- masked_value_row() escapes every value. ?>
 				<?php if ( ! empty( $this->sub_array['cpf_encrypted'] ) || ! empty( $this->sub_array['rf_encrypted'] ) ) : ?>
 					<span class="description ffc-edit-note ffc-icon-lock"><?php esc_html_e( 'This identifier is encrypted in the database.', 'ffcertificate' ); ?></span>
 				<?php endif; ?>
@@ -644,8 +721,8 @@ class AdminSubmissionEditPage {
 		}
 		?>
 		</dl>
-		</div>
 		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_section_close();
 	}
 
 	/**
@@ -664,7 +741,13 @@ class AdminSubmissionEditPage {
 			'_quiz_focus_losses' => __( 'Times the quiz window was left', 'ffcertificate' ),
 		);
 
-		self::card_open( __( 'Form answers', 'ffcertificate' ), 'list' );
+		\FreeFormCertificate\Admin\AdminUI::render_section_open(
+			array(
+				'title' => __( 'Form answers', 'ffcertificate' ),
+				'icon'  => 'list',
+				'open'  => true,
+			)
+		);
 
 		$editable  = '';
 		$protected = '';
@@ -714,7 +797,7 @@ class AdminSubmissionEditPage {
 		if ( '' !== $protected ) {
 			echo '<dl class="ffc-facts ffc-edit-protected">' . $protected . '</dl>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped where the markup is built above.
 		}
-		echo '</div>';
+		\FreeFormCertificate\Admin\AdminUI::render_section_close();
 	}
 
 	/**
