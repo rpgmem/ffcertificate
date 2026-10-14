@@ -507,7 +507,7 @@ class AdminUITest extends TestCase {
 	public function test_segmented_is_one_radio_per_option_with_its_visible_name(): void {
 		$html = $this->segmented( array( 'value' => 'on', 'id' => 'thm', 'legend' => 'Theme' ) );
 
-		$this->assertStringContainsString( '<fieldset class="ffc-control-segmented">', $html );
+		$this->assertStringContainsString( '<fieldset id="thm" class="ffc-control-segmented">', $html );
 		$this->assertSame( 3, substr_count( $html, 'type="radio"' ) );
 		$this->assertSame( 3, substr_count( $html, 'name="cfg[theme]"' ) );
 		$this->assertStringContainsString( '<legend class="screen-reader-text">Theme</legend>', $html );
@@ -519,7 +519,7 @@ class AdminUITest extends TestCase {
 	public function test_segmented_layout_parameters_become_classes(): void {
 		$this->assertStringContainsString( 'class="ffc-control-segmented ffc-control-segmented-sm ffc-control-segmented-fluid"', $this->segmented( array( 'size' => 'sm', 'fluid' => true ) ) );
 		$this->assertStringContainsString( 'class="ffc-control-segmented ffc-control-segmented-lg"', $this->segmented( array( 'size' => 'lg' ) ) );
-		$this->assertStringContainsString( '<fieldset class="ffc-control-segmented">', $this->segmented( array( 'size' => 'xl' ) ), 'An unknown size adds nothing.' );
+		$this->assertStringContainsString( '<fieldset id="cfg-theme" class="ffc-control-segmented">', $this->segmented( array( 'size' => 'xl' ) ), 'An unknown size adds nothing.' );
 	}
 
 	public function test_segmented_checks_the_default_and_then_the_first_when_the_value_is_not_one(): void {
@@ -536,7 +536,7 @@ class AdminUITest extends TestCase {
 			)
 		);
 		$this->assertSame( 3, substr_count( $html, ' data-ffc-autosave-key="dark_mode"' ) );
-		$this->assertStringContainsString( '<fieldset class="ffc-control-segmented" disabled>', $html, 'A disabled fieldset disables every radio in it.' );
+		$this->assertStringContainsString( '<fieldset id="cfg-theme" class="ffc-control-segmented" disabled>', $html, 'A disabled fieldset disables every radio in it.' );
 	}
 
 	public function test_segmented_prints_a_description_per_value_given_tied_to_its_option(): void {

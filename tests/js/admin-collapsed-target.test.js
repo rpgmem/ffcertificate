@@ -152,4 +152,27 @@ describe('ffc-admin: collapsed targets carry `required` with their visibility (#
 		expect(document.getElementById('must').required).toBe(true);
 		expect(document.getElementById('may').required).toBe(false, 'a field that was never required stays optional');
 	});
+
+	it('reads the checked radio of a steps / segmented group by its fieldset id (#1755)', () => {
+		document.body.innerHTML = `
+			<fieldset id="mode" class="ffc-control-steps">
+				<input type="radio" name="m" value="audit" checked>
+				<input type="radio" name="m" value="whitelist">
+			</fieldset>
+			<div class="ffc-collapsed-target"
+				data-ffc-master="mode"
+				data-ffc-master-value="whitelist"></div>
+		`;
+		flushReady();
+
+		const $ = window.jQuery;
+		const target = document.querySelector('.ffc-collapsed-target');
+		expect(target.classList.contains('ffc-collapsed')).toBe(true);
+
+		$('#mode input[value="whitelist"]').prop('checked', true).trigger('change');
+		expect(target.classList.contains('ffc-collapsed')).toBe(false);
+
+		$('#mode input[value="audit"]').prop('checked', true).trigger('change');
+		expect(target.classList.contains('ffc-collapsed')).toBe(true);
+	});
 });

@@ -17,11 +17,12 @@
  *     others are paths into an array meta
  *     (`_ffc_form_config[quiz_enabled]` or
  *     `_ffc_form_config[restrictions][password]`).
- *   - Side effects: the master toggle `_ffc_csv_public_enabled` is
- *     intentionally NOT on the allowlist. Enabling it for the first
- *     time generates a hash + upgrades cpf_mode; that flow stays
- *     gated behind the full save handler. Auto-save covers the
- *     simple toggles where flipping the flag is the entire write.
+ *   - Side effects: a toggle whose first enable does more than flip a
+ *     flag names an `on_enable` callback, run after the write when the
+ *     stored value goes from anything else to '1'. The master toggle
+ *     `_ffc_csv_public_enabled` is the one case: its first enable
+ *     generates the access hash and upgrades the CPF mode, the same
+ *     work the full save handler does (#1755).
  *
  * @package FreeFormCertificate\Admin
  * @since   6.6.0
@@ -66,17 +67,32 @@ class FormMetaAjaxEndpoint {
 	 * Adding a new auto-saveable toggle is a single-line append here.
 	 *
 	 *   - 'type'    — optional; 'enum' with an 'options' list for a radio
-	 *                 group (#1745). Absent means a '1' / '0' toggle.
+	 *                 group (#1745), or 'map' with a 'map' of '1' / '0' to
+	 *                 the two stored values, for a toggle that stands for a
+	 *                 two-value setting (#1755). Absent means a '1' / '0'
+	 *                 toggle.
+	 *   - 'on_enable' — optional static method (`Class::method`) taking the
+	 *                 post id, run when a toggle is switched on from any
+	 *                 other stored state; what it returns joins the response.
 	 *
-	 * @return array<string, array{meta: string, path: array<int,string>, type?: string, options?: array<int, string>}>
+	 * @return array<string, array{meta: string, path: array<int,string>, type?: string, options?: array<int, string>, map?: array<int, string>, on_enable?: string}>
 	 */
 	public static function allowlist(): array {
 		return array(
-			// Public Operator Access — 3 operator-feature sub-toggles.
-			// The master `_ffc_csv_public_enabled` is excluded: enabling
-			// it for the first time generates a hash and bumps cpf_mode
-			// from 'none' to 'audit'; those side effects stay in the
-			// full save handler so the page reload always picks them up.
+			// Public Operator Access. Enabling the master for the first
+			// time generates the hash and bumps cpf_mode from 'none' to
+			// 'audit', so it carries the same work the save handler does.
+			'csv_public_enabled'                  => array(
+				'meta'      => '_ffc_csv_public_enabled',
+				'path'      => array(),
+				'on_enable' => FormPublicCsvActions::class . '::on_enable',
+			),
+			'csv_public_cpf_mode'                 => array(
+				'meta'    => '_ffc_csv_public_cpf_mode',
+				'path'    => array(),
+				'type'    => 'enum',
+				'options' => FormPublicCsvActions::CPF_MODES,
+			),
 			'csv_public_preview_enabled'          => array(
 				'meta' => '_ffc_csv_public_preview_enabled',
 				'path' => array(),
@@ -119,6 +135,14 @@ class FormMetaAjaxEndpoint {
 				'meta' => '_ffc_form_config',
 				'path' => array( 'quiz_enabled' ),
 			),
+			'quiz_show_score'                     => array(
+				'meta' => '_ffc_form_config',
+				'path' => array( 'quiz_show_score' ),
+			),
+			'quiz_show_correct'                   => array(
+				'meta' => '_ffc_form_config',
+				'path' => array( 'quiz_show_correct' ),
+			),
 			// Off / Moderate / Strict (#1745) -- a radio group, not a toggle.
 			'quiz_reset_on_leave'                 => array(
 				'meta'    => '_ffc_form_config',
@@ -151,6 +175,24 @@ class FormMetaAjaxEndpoint {
 			'geofence_geo_enabled'                => array(
 				'meta' => '_ffc_geofence_config',
 				'path' => array( 'geo_enabled' ),
+			),
+			'geofence_geo_gps_enabled'            => array(
+				'meta' => '_ffc_geofence_config',
+				'path' => array( 'geo_gps_enabled' ),
+			),
+			'geofence_geo_ip_enabled'             => array(
+				'meta' => '_ffc_geofence_config',
+				'path' => array( 'geo_ip_enabled' ),
+			),
+			// On = the operator modal opens on the current time.
+			'geofence_schedule_default_mode'      => array(
+				'meta' => '_ffc_geofence_config',
+				'path' => array( 'schedule_default_mode' ),
+				'type' => 'map',
+				'map'  => array(
+					1 => 'now',
+					0 => 'manual',
+				),
 			),
 			'geofence_geo_ip_areas_permissive'    => array(
 				'meta' => '_ffc_geofence_config',
@@ -208,18 +250,25 @@ class FormMetaAjaxEndpoint {
 
 		// A toggle is a bool stored as '1' / '0'; a radio group (#1745)
 		// carries a closed list and stores the chosen member as is.
-		if ( 'enum' === ( $entry['type'] ?? 'bool' ) ) {
+		$type = $entry['type'] ?? 'bool';
+		if ( 'enum' === $type ) {
 			$value = SettingsAjaxEndpoint::sanitize_value( $raw_value, 'enum', $entry );
 			if ( null === $value ) {
 				wp_send_json_error( array( 'message' => __( 'That value is not one of the choices.', 'ffcertificate' ) ), 400 );
 			}
+		} elseif ( 'map' === $type ) {
+			$map   = $entry['map'] ?? array();
+			$value = (string) ( $map[ SettingsAjaxEndpoint::sanitize_value( $raw_value, 'bool' ) ? 1 : 0 ] ?? '' );
 		} else {
 			$value = SettingsAjaxEndpoint::sanitize_value( $raw_value, 'bool' ) ? '1' : '0';
 		}
 
-		$path = $entry['path'];
+		$path     = $entry['path'];
+		$previous = '';
 
 		if ( empty( $path ) ) {
+			$stored   = get_post_meta( $post_id, $entry['meta'], true );
+			$previous = is_scalar( $stored ) ? (string) $stored : '';
 			update_post_meta( $post_id, $entry['meta'], $value );
 		} else {
 			$meta_value = get_post_meta( $post_id, $entry['meta'], true );
@@ -230,12 +279,16 @@ class FormMetaAjaxEndpoint {
 			update_post_meta( $post_id, $entry['meta'], $meta_value );
 		}
 
-		wp_send_json_success(
-			array(
-				'key'   => $key,
-				'value' => $value,
-			)
+		$response  = array(
+			'key'   => $key,
+			'value' => $value,
 		);
+		$on_enable = $entry['on_enable'] ?? '';
+		if ( '1' === $value && '1' !== $previous && is_callable( $on_enable ) ) {
+			$response = array_merge( $response, (array) call_user_func( $on_enable, $post_id ) );
+		}
+
+		wp_send_json_success( $response );
 	}
 
 	/**

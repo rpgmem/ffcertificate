@@ -1202,6 +1202,12 @@ p.ffc-datetime-order-error {
 	background: var(--ffc-success);
 }
 
+/* On, but a field the feature needs is still empty (#1755). */
+.ffc-form-tabs__tab.is-pending .ffc-form-tabs__state {
+	border-color: var(--ffc-warning);
+	background: var(--ffc-warning);
+}
+
 .ffc-form-tabs__tab.has-error .ffc-form-tabs__state {
 	display: none;
 }

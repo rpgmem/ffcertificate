@@ -974,10 +974,6 @@ msgstr ""
 msgid "A full administrator (manage_options) always sees every FFC menu"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:270
-msgid "A hash will be generated automatically when you enable Public Operator Access above and save the form."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:231
 msgid "A justification is required to proceed."
 msgstr ""
@@ -2602,10 +2598,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:382
 msgid "Audit summary"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:340
-msgid "Audit — require CPF, but do not match against any list"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-conditional-assets.php:205 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:182 includes/audience/class-ffc-audience-shortcode.php:812
@@ -10777,10 +10769,6 @@ msgstr ""
 msgid "Mandatory Tags:"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:312
-msgid "Manual — let the operator type both ends"
-msgstr ""
-
 #: includes/settings/views/documentation/feature-url-shortener.php:25
 msgid "Manually"
 msgstr ""
@@ -10931,12 +10919,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:676
 msgid "Maximum number of blocks a single user may book in this custom calendar (0 = no limit). Waitlisted bookings count toward the limit."
-msgstr ""
-
-#. 1: current count, 2: effective limit (per-form or inherited global)
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:238
-#, php-format
-msgid "Maximum number of CSV downloads allowed via the public page. Current usage: %1$d of %2$d."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:362
@@ -11843,10 +11825,6 @@ msgstr ""
 msgid "No writable fields were supplied for this candidate update."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:339
-msgid "No — only Form ID + Hash"
-msgstr ""
-
 #: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:120
 msgid "None"
 msgstr ""
@@ -12004,10 +11982,6 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:528
 msgid "now"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:311
-msgid "Now — pre-fill end time with the current moment"
 msgstr ""
 
 #: includes/migrations/class-ffc-migration-registry.php:89
@@ -12485,10 +12459,6 @@ msgstr ""
 msgid "Own data only:"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:342
-msgid "Owner — CPF must match the form author"
-msgstr ""
-
 #: templates/admin/settings/email-model-box.php:31 templates/admin/settings/email-model-box.php:41 templates/admin/settings/email-model-box.php:52
 msgid "Padding (px)"
 msgstr ""
@@ -12555,10 +12525,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-booking-export-source.php:204
 msgid "Participants"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:341
-msgid "Participants — CPF must match a submission"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-quiz-metabox.php:64
@@ -14033,10 +13999,6 @@ msgstr ""
 msgid "Regenerate"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:307
-msgid "Regenerate hash on save (invalidates the current link)."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-url-shortener.php:28
 msgid "Regenerating a link issues a new code and retires the old one."
 msgstr ""
@@ -14511,10 +14473,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:987
 msgid "Reset ID counter to 1"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:318
-msgid "Reset the download counter to zero on save."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:587
@@ -17103,10 +17061,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:58
 msgid "the CPF must match the form author's account CPF."
-msgstr ""
-
-#: includes/settings/views/documentation/forms-public-operator-access.php:53
-msgid "The CSV can additionally require the operator to prove a CPF before it releases. Modes:"
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:502
@@ -19784,10 +19738,6 @@ msgstr ""
 msgid "Which record template the reregistration PDF uses is chosen in Settings → Reregistration."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:314
-msgid "Which mode the operator exception modal opens in by default. Operators can flip the toggle on a per-exception basis."
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-templates.php:208
 msgid "Which receipt template each scheduling mode uses is chosen in Scheduling → Settings → Receipt."
 msgstr ""
@@ -19810,10 +19760,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:457
 msgid "Whitelist"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:343
-msgid "Whitelist — CPF must be in the list below"
 msgstr ""
 
 #: templates/admin/recruitment/candidate-edit/history-section.php:39
@@ -23193,9 +23139,6 @@ msgstr ""
 msgid "Public Operator Access (formerly \"Public CSV Download\") lets a trusted operator who does NOT have a WordPress login interact with a single form through a secret, per-form link. It is enabled on the Operator tab (\"Public Operator Access\") of the form editor's \"Certificate Form Configuration\" box."
 msgstr ""
 
-msgid "The hash is the only credential — treat the link as a password. Set the base page under Settings → General (\"CSV Download Page URL\") so the editor shows the full link instead of just the query string. The hash is regenerated on demand (\"Regenerate hash on save\") and is deliberately NOT copied when a form is duplicated. A separate option resets the download counter to zero on save."
-msgstr ""
-
 msgid "The CPF gate is checked again when the operator uses Start Form Early or Postpone Close."
 msgstr ""
 
@@ -24687,9 +24630,6 @@ msgstr ""
 msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."
 msgstr ""
 
-msgid "In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes."
-msgstr ""
-
 msgid "Certificates → Dashboard opens with a summary row (forms in the month shown, submissions today and over the last 7 days, GeoFence windows open now) above a calendar of forms by GeoFence start date, or by publication date when a form has none. Picking a day lists its forms beside the calendar. It needs ffc_view_certificates."
 msgstr ""
 
@@ -25824,6 +25764,95 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:465
 msgid "GPS only"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:297
+msgid "A hash is generated as soon as Public Operator Access is enabled above."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:366
+msgid "Audit"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:341
+msgid "Both act at once, without saving the form. Regenerating invalidates the link already shared."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:335
+msgid "Counter reset."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:325
+msgid "Generate a new hash? The current link stops working at once."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-metabox-renderer.php:245
+msgid "Incomplete"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:263
+#, php-format
+msgid "Maximum number of CSV downloads allowed via the public page. Current usage: %1$s of %2$d."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:326
+msgid "New hash generated."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php:348
+msgid "On: the operator exception modal opens with the end time filled in with the current moment. Off: the operator types both ends. Operators can flip it on each exception."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:372
+msgid "Only Form ID + Hash."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php:343
+msgid "Open on the current time"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:368
+msgid "Owner"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:327
+msgid "Regenerate hash"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:373
+msgid "Require a CPF, without matching it against any list."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:336
+msgid "Reset counter"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:334
+msgid "Reset the download counter to zero?"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:376
+msgid "The CPF must be in the list below."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:374
+msgid "The CPF must match a submission."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:375
+msgid "The CPF must match the form author."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-public-operator-access.php
+msgid "The hash is the only credential — treat the link as a password. Set the base page under Settings → General (\"CSV Download Page URL\") so the editor shows the full link instead of just the query string. The hash is generated the moment Public Operator Access is switched on, and is deliberately NOT copied when a form is duplicated. Two buttons act at once, without saving the form: \"Regenerate hash\" (the link already shared stops working) and \"Reset counter\" (the download counter goes back to zero)."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-public-operator-access.php
+msgid "The CSV can additionally require the operator to prove a CPF before it releases. The modes form a scale from the loosest to the strictest, and a form that never chose one uses audit:"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches: hollow when off, green when on, and amber while something switched on still lacks the field it needs (a password, a list, the tickets, a date or time, an allowed area for GPS) or, when Settings → Certificates requires {{schedule}}, while the event schedule is empty. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:20

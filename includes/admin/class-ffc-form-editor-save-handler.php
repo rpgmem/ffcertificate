@@ -597,24 +597,11 @@ class FormEditorSaveHandler {
 					update_post_meta( $post_id, '_ffc_csv_public_limit', absint( $limit_raw ) );
 				}
 
-				// Hash handling: auto-generate on first enable, or regenerate on request.
-				$stored_hash    = get_post_meta( $post_id, '_ffc_csv_public_hash', true );
-				$current_hash   = is_scalar( $stored_hash ) ? (string) $stored_hash : '';
-				$regenerate     = ! empty( $public_raw['regenerate_hash'] );
-				$needs_new_hash = $regenerate || '' === $current_hash;
-
-				if ( $needs_new_hash ) {
-					try {
-						$new_hash = bin2hex( random_bytes( 16 ) );
-					} catch ( \Exception $e ) {
-						$new_hash = wp_generate_password( 32, false, false );
-					}
-					update_post_meta( $post_id, '_ffc_csv_public_hash', $new_hash );
-				}
-
-				// Counter reset (explicit opt-in).
-				if ( ! empty( $public_raw['reset_counter'] ) ) {
-					update_post_meta( $post_id, '_ffc_csv_public_count', 0 );
+				// Hash: generated when there is none. Regenerating it and
+				// resetting the counter are buttons on the Operator tab, which
+				// act at once instead of on the next save (#1755).
+				if ( '' === FormPublicCsvActions::hash( $post_id ) ) {
+					FormPublicCsvActions::regenerate_hash( $post_id );
 				}
 
 				// CPF gate mode for the public download. On the very first
@@ -623,7 +610,7 @@ class FormEditorSaveHandler {
 				// so newly-enabled public downloads always log who pulled
 				// them. On subsequent saves, respect the user's explicit
 				// choice — including 'none' if they actively pick it.
-				$valid_modes = array( 'none', 'audit', 'participants', 'owner', 'whitelist' );
+				$valid_modes = FormPublicCsvActions::CPF_MODES;
 				$mode_raw    = sanitize_key( ArrayValue::string( $public_raw, 'cpf_mode', 'none' ) );
 				if ( ! in_array( $mode_raw, $valid_modes, true ) ) {
 					$mode_raw = 'none';

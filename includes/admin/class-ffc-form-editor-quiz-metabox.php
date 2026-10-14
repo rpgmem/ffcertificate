@@ -78,25 +78,32 @@ class FormEditorQuizMetabox {
 			<tr class="ffc-quiz-setting<?php echo $quiz_enabled ? '' : ' ffc-hidden'; ?>">
 				<th><label><?php esc_html_e( 'Display Options', 'ffcertificate' ); ?></label></th>
 				<td>
-					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_toggle(
-						array(
-							'name'    => 'ffc_config[quiz_show_score]',
-							'checked' => (bool) $quiz_show_score,
-							'label'   => __( 'Show score after submission', 'ffcertificate' ),
-						)
-					);
-					?>
-					<br>
-					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_toggle(
-						array(
-							'name'    => 'ffc_config[quiz_show_correct]',
-							'checked' => (bool) $quiz_show_correct,
-							'label'   => __( 'Show which answers were correct/incorrect', 'ffcertificate' ),
-						)
-					);
-					?>
+					<div class="ffc-restriction-label">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_config[quiz_show_score]',
+								'id'      => 'ffc_config_quiz_show_score',
+								'checked' => (bool) $quiz_show_score,
+								'label'   => __( 'Show score after submission', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-form-key' => 'quiz_show_score' ),
+							)
+						);
+						?>
+					</div>
+					<div class="ffc-restriction-label">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_config[quiz_show_correct]',
+								'id'      => 'ffc_config_quiz_show_correct',
+								'checked' => (bool) $quiz_show_correct,
+								'label'   => __( 'Show which answers were correct/incorrect', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-form-key' => 'quiz_show_correct' ),
+							)
+						);
+						?>
+					</div>
 				</td>
 			</tr>
 			<tr class="ffc-quiz-setting<?php echo $quiz_enabled ? '' : ' ffc-hidden'; ?>">

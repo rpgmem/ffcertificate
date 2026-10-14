@@ -45,6 +45,7 @@ class FormEditorPublicCsvDownloadMetaboxTest extends TestCase {
 		Functions\when( 'home_url' )->alias( function ( $path = '' ) { return 'https://example.com' . $path; } );
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce-123' );
 
 		Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
 			return $this->meta_values[ $key ] ?? '';
@@ -94,6 +95,55 @@ class FormEditorPublicCsvDownloadMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'ffc_csv_public[download_enabled]', $html );
 		$this->assertStringContainsString( 'ffc_csv_public[start_early_enabled]', $html );
 		$this->assertStringContainsString( 'ffc_csv_public[extend_end_enabled]', $html );
+	}
+
+	public function test_master_toggle_autosaves(): void {
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/id="ffc_csv_public_enabled"[^>]*data-ffc-autosave-form-key="csv_public_enabled"/', $html );
+	}
+
+	public function test_regenerate_and_reset_are_immediate_buttons_not_save_toggles(): void {
+		$html = $this->render();
+
+		$this->assertStringNotContainsString( 'ffc_csv_public[regenerate_hash]', $html );
+		$this->assertStringNotContainsString( 'ffc_csv_public[reset_counter]', $html );
+		$this->assertMatchesRegularExpression( '/class="[^"]*ffc-csv-public-action[^"]*"\s+data-op="regenerate"\s+data-post-id="88"\s+data-nonce="nonce-123"/', $html );
+		$this->assertMatchesRegularExpression( '/data-op="reset"\s+data-post-id="88"/', $html );
+		$this->assertStringContainsString( 'class="ffc-csv-public-count">0</span>', $html );
+	}
+
+	public function test_without_a_hash_the_link_box_is_hidden_and_the_note_shown(): void {
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'ffc-csv-public-share ffc-hidden', $html );
+		$this->assertMatchesRegularExpression( '/ffc-csv-public-nohash"/', $html );
+	}
+
+	public function test_with_a_hash_the_link_is_shown(): void {
+		$this->meta_values['_ffc_csv_public_hash'] = 'abc123';
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'value="?form_id=88&hash=abc123"', $html );
+		$this->assertStringContainsString( 'ffc-csv-public-nohash ffc-hidden', $html );
+		$this->assertStringNotContainsString( 'ffc-csv-public-share ffc-hidden', $html );
+	}
+
+	public function test_cpf_mode_is_a_steps_control_defaulting_to_audit(): void {
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<fieldset id="ffc_csv_public_cpf_mode" class="ffc-control-steps', $html );
+		$this->assertMatchesRegularExpression( '/value="audit" checked data-ffc-autosave-form-key="csv_public_cpf_mode"/', $html );
+		$this->assertStringNotContainsString( '<select name="ffc_csv_public[cpf_mode]"', $html );
+	}
+
+	public function test_cpf_mode_keeps_an_explicit_none(): void {
+		$this->meta_values['_ffc_csv_public_cpf_mode'] = 'none';
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/value="none" checked/', $html );
 	}
 
 	public function test_render_emits_the_master_present_sentinel(): void {
@@ -170,7 +220,7 @@ class FormEditorPublicCsvDownloadMetaboxTest extends TestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( '<span class="ffc-global-default">1</span>', $html );
-		$this->assertStringContainsString( 'Current usage: 0 of 1.', $html );
+		$this->assertStringContainsString( 'Current usage: <span class="ffc-csv-public-count">0</span> of 1.', $html );
 	}
 
 	public function test_render_without_an_end_date_warns_and_with_one_does_not(): void {

@@ -9,6 +9,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **A form editor tab reads as pending while a feature it switched on is incomplete** (#1755). The dot turns amber when a restriction lacks its password, list or tickets, the date window has no date or time, GPS has no allowed area, or `{{schedule}}` is required and the event schedule is empty; green only once filled.
+- **Operator access acts at once** (#1755). The master toggle autosaves and its first enable generates the hash; Regenerate hash and Reset counter are buttons instead of save-time toggles; the CPF mode is a steps scale defaulting to audit; Default Modal Mode is a toggle. The quiz display, GPS and IP toggles autosave.
 - **A form field is titled by its type, and the type no longer changes** (#1756). The builder row says "Email" or "Checkbox" instead of "Field"; the type is picked once from Add New Field, and the save keeps the stored type of a field it already has, matched by name, so stored answers never change type.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`

@@ -182,6 +182,10 @@ class FormEditorEmailMetabox {
 		</div><!-- /.ffc-collapsed-target -->
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_section_close();
+		// An empty recipient falls back to the site admin email, so the field
+		// shows it as the placeholder rather than reading as unset.
+		$site_admin_email = get_option( 'admin_email', '' );
+		$site_admin_email = is_string( $site_admin_email ) ? $site_admin_email : '';
 		\FreeFormCertificate\Admin\AdminUI::render_section_open(
 			array(
 				'title'  => __( 'Notify the administrator', 'ffcertificate' ),
@@ -219,7 +223,7 @@ class FormEditorEmailMetabox {
 			<tr>
 				<th><label for="ffc_config_email_admin"><?php esc_html_e( 'Admin Recipient(s)', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="text" name="ffc_config[email_admin]" id="ffc_config_email_admin" value="<?php echo esc_attr( $email_admin ); ?>" class="ffc-w100">
+					<input type="text" name="ffc_config[email_admin]" id="ffc_config_email_admin" value="<?php echo esc_attr( $email_admin ); ?>" class="ffc-w100" placeholder="<?php echo esc_attr( $site_admin_email ); ?>">
 					<p class="description">
 						<?php esc_html_e( 'Comma-separated email addresses. Leave empty to use the site admin email.', 'ffcertificate' ); ?>
 					</p>

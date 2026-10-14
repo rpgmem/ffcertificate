@@ -107,6 +107,7 @@ class AdminLoader {
 		SettingsAjaxEndpoint::init();
 		QrDesignPreviewAjaxEndpoint::init();
 		FormMetaAjaxEndpoint::init();
+		FormPublicCsvActions::init();
 		LocationsAjaxEndpoint::init();
 		CacheActionsAjaxEndpoint::init();
 		FormFeaturesAjaxEndpoint::init();

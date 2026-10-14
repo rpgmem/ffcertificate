@@ -248,7 +248,9 @@ class AdminUI {
 			$classes[] = 'ffc-control-steps-many';
 		}
 
-		printf( '<fieldset class="%1$s"%2$s>', esc_attr( implode( ' ', $classes ) ), $disabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $disabled is a literal attribute or empty.
+		// The group carries the base id, so a block can collapse on the
+		// chosen value (`data-ffc-master` + `data-ffc-master-value`).
+		printf( '<fieldset id="%1$s" class="%2$s"%3$s>', esc_attr( $base_id ), esc_attr( implode( ' ', $classes ) ), $disabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $disabled is a literal attribute or empty.
 		if ( '' !== $legend ) {
 			echo '<legend class="screen-reader-text">' . esc_html( $legend ) . '</legend>';
 		}
@@ -353,7 +355,9 @@ class AdminUI {
 			$classes[] = 'ffc-control-segmented-fluid';
 		}
 
-		printf( '<fieldset class="%1$s"%2$s>', esc_attr( implode( ' ', $classes ) ), $disabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $disabled is a literal attribute or empty.
+		// The group carries the base id, so a block can collapse on the
+		// chosen value (`data-ffc-master` + `data-ffc-master-value`).
+		printf( '<fieldset id="%1$s" class="%2$s"%3$s>', esc_attr( $base_id ), esc_attr( implode( ' ', $classes ) ), $disabled ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $disabled is a literal attribute or empty.
 		if ( '' !== $legend ) {
 			echo '<legend class="screen-reader-text">' . esc_html( $legend ) . '</legend>';
 		}
