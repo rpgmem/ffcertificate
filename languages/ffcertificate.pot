@@ -768,10 +768,6 @@ msgstr ""
 msgid "1 hour"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:215
-msgid "1 hour (default)"
-msgstr ""
-
 #: includes/security/class-ffc-rate-limit-checker.php:669
 msgid "1 minute"
 msgstr ""
@@ -784,24 +780,12 @@ msgstr ""
 msgid "1 week"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:213
-msgid "15 minutes"
-msgstr ""
-
-#: includes/settings/views/documentation/config-cache.php:32
-msgid "15 minutes, 30 minutes, 1 hour (default) or 1 day."
-msgstr ""
-
 #: includes/security/class-ffc-email-limiter.php:64 includes/security/class-ffc-ip-limiter.php:78 includes/settings/views/ffc-tab-cache.php:216
 msgid "24 hours"
 msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:33
 msgid "3/day, 10/week, 30/month"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:214
-msgid "30 minutes"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:67
@@ -1008,10 +992,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:657
 msgid "A plugin update or deploy will delete these files and break the images. Use the \"Insert Image\" button to add them from the Media Library instead, or run"
-msgstr ""
-
-#: includes/settings/views/documentation/config-geolocation.php:45
-msgid "a preset (tolerant / hybrid / strict) or a custom per-case allow/block matrix (permission denied, no API, position unavailable, timeout, safety timer)."
 msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:42
@@ -1954,10 +1934,6 @@ msgstr ""
 msgid "ALTCHA widget options"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-captcha.php:42 includes/settings/views/documentation/config-captcha.php:40
-msgid "ALTCHA, with the math challenge as fallback"
-msgstr ""
-
 #: includes/settings/views/documentation/operations-troubleshooting.php:61
 msgid "Always use inline styles"
 msgstr ""
@@ -2096,14 +2072,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:187
 msgid "Applies to the Certificate HTML editor on the form edit screen. \"Auto\" mirrors the admin Dark Mode setting (General tab); fresh installs default to Dark."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-general.php:217
-msgid "Applies to the Certificate HTML editor on the form edit screen. \"Auto\" mirrors the Dark Mode setting above; fresh installs default to Dark."
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:612
-msgid "Applies when the secure strategy is effective."
 msgstr ""
 
 #: templates/admin/reregistration/submissions.php:85
@@ -2482,10 +2450,6 @@ msgstr ""
 
 #: templates/admin/recruitment/notice-edit/adjutancies-section.php:53
 msgid "Attach"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-captcha.php:201 includes/settings/views/documentation/config-captcha.php:61
-msgid "Attribution"
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:54 includes/audience/class-ffc-audience-admin-bookings.php:221 includes/audience/class-ffc-audience-admin-import.php:203 includes/audience/class-ffc-audience-loader.php:427 includes/audience/class-ffc-audience-booking-export-source.php:273 includes/audience/class-ffc-audience-admin-page.php:300 includes/audience/class-ffc-audience-admin-settings.php:78 templates/admin/reregistration/list.php:53 includes/settings/views/ffc-tab-advanced.php:494
@@ -4310,10 +4274,6 @@ msgstr ""
 msgid "Code"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:177
-msgid "Code Editor Theme"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-url-shortener.php:73
 msgid "Code Length"
 msgstr ""
@@ -5346,10 +5306,6 @@ msgstr ""
 msgid "Custom Users"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:397
-msgid "Custom — choose case by case"
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:335
 msgid "Custom — specific date/time blocks, each with its own number of vacancies"
 msgstr ""
@@ -5396,9 +5352,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:72
 msgid "Danger Zone."
-msgstr ""
-
-msgid "Dark"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:191 includes/settings/views/documentation/config-general.php:30
@@ -5622,10 +5575,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:178 includes/settings/views/documentation/feature-url-shortener.php:60
 msgid "Default"
-msgstr ""
-
-#: includes/settings/views/documentation/config-captcha.php:34
-msgid "default"
 msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:131
@@ -6665,18 +6614,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:169
 msgid "Editor Preferences"
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:597
-msgid "Effective strategy"
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:541
-msgid "Effective strategy: Legacy"
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:540
-msgid "Effective strategy: Secure"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-tokens.php:116
@@ -9099,18 +9036,6 @@ msgstr ""
 msgid "Hide form completely"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-captcha.php:211
-msgid "Hide the \"Protected by ALTCHA\" footer"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-captcha.php:207
-msgid "Hide the ALTCHA logo"
-msgstr ""
-
-#: includes/settings/views/documentation/config-captcha.php:61
-msgid "hide the logo and/or the \"Protected by ALTCHA\" footer."
-msgstr ""
-
 #: includes/settings/views/documentation/config-modules.php:32
 msgid "Hides the certificate admin and stops public form submissions. While off, the daily expired-ticket cleanup is paused (unredeemed ticket codes of ended forms are not purged until it is re-enabled)."
 msgstr ""
@@ -9321,10 +9246,6 @@ msgstr ""
 
 #. URI of the plugin
 msgid "https://github.com/rpgmem/ffcertificate"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:391
-msgid "Hybrid — allow only when the user denied or the browser lacks support"
 msgstr ""
 
 #. %s: value
@@ -10192,10 +10113,6 @@ msgstr ""
 msgid "Left"
 msgstr ""
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:600
-msgid "Legacy (current behaviour, spoofable) — the effective default until you switch"
-msgstr ""
-
 #: includes/admin/class-ffc-admin-activity-log-page.php:311
 msgid "Legacy Columns Dropped"
 msgstr ""
@@ -10226,10 +10143,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:366
 msgid "LGPD Consent Status"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-advanced.php:183
-msgid "Light"
 msgstr ""
 
 #: includes/settings/views/documentation/operations-updates.php:27
@@ -10835,10 +10748,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:293
 msgid "Match threshold (N of 13)"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-captcha.php:36 includes/settings/views/documentation/config-captcha.php:34
-msgid "Math challenge only"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:327
@@ -15188,10 +15097,6 @@ msgstr ""
 msgid "seconds"
 msgstr ""
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:598
-msgid "Secure (trusted-proxy model) — real client behind Cloudflare / a configured proxy, unspoofable (recommended)"
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:545
 msgid "Secure does not trust the forged header for this request."
 msgstr ""
@@ -16352,10 +16257,6 @@ msgstr ""
 msgid "Street address"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:394
-msgid "Strict — block access on every failure"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-rate-limit.php:357
 msgid "Strong"
 msgstr ""
@@ -16683,10 +16584,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:756
 msgid "Switch off Public Operator Access (and its sub-features) on published forms whose collection period ended more than the grace window ago. The access token and other settings are preserved, so access can be re-enabled later if needed."
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:122
-msgid "Switch the effective strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers."
 msgstr ""
 
 #: includes/settings/views/documentation/operations-maintenance.php:40
@@ -18226,10 +18123,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-email.php:33
 msgid "Tokens available in the body:"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:388
-msgid "Tolerant — allow access on every failure"
 msgstr ""
 
 #: includes/frontend/class-ffc-verification-handler.php:707
@@ -19772,10 +19665,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:122
 msgid "Why no captcha / geofence / per-IP limit here?"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-captcha.php:204
-msgid "Widget attribution"
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-field-options.php:143
@@ -22770,9 +22659,6 @@ msgstr ""
 msgid "or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Date Messages, Developer)."
 msgstr ""
 
-msgid "Colours of the certificate HTML editor on the form screen: Auto (follows Dark Mode), Light or Dark. New installs default to Dark."
-msgstr ""
-
 msgid "Off by default. When switched on, the daily cleanup permanently deletes published submissions older than the \"Delete after (days)\" window (default 365)."
 msgstr ""
 
@@ -24870,14 +24756,6 @@ msgstr ""
 msgid "The widest a form or verification card grows; its fields are 150 px narrower. On a narrower screen it fills the space it has. Default: %1$d px, from %2$d to %3$d."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-public-design.php:106
-msgid "The site theme's"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-public-design.php:107
-msgid "The plugin's (the system font)"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-public-design.php
 msgid "Arial"
 msgstr ""
@@ -25873,4 +25751,168 @@ msgstr ""
 
 #: templates/admin/reregistration/form.php
 msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-captcha.php:233
+msgid "\"Protected by ALTCHA\" footer"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php:226
+msgid "1 h"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php:224
+msgid "15 min"
+msgstr ""
+
+#: includes/settings/views/documentation/config-cache.php:34
+msgid "15 minutes, 30 minutes, 1 hour or 24 hours. A new install starts at 15 minutes; an install that never saved the tab keeps 1 hour."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php:227
+msgid "24 h"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php:225
+msgid "30 min"
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:40 includes/settings/views/ffc-tab-captcha.php:41
+msgid "ALTCHA + Math"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-captcha.php:222
+msgid "ALTCHA logo"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:606
+msgid "Active strategy"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:547
+msgid "Active strategy: Legacy"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:546
+msgid "Active strategy: Secure"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:406
+msgid "Allow access on every failure."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:407
+msgid "Allow only when the user denied or the browser lacks support."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:240
+msgid "Always dark."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:239
+msgid "Always light."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:248
+msgid "Applies to the Certificate HTML editor on the form edit screen. On is the default."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:631
+msgid "Applies when the secure strategy is active."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:121
+msgid "Arial, on every device."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:408
+msgid "Block access on every failure."
+msgstr ""
+
+#: includes/settings/views/documentation/config-general.php:33
+msgid "Colours of the certificate HTML editor on the form screen: Off (always light), On (always dark) or Auto (follows Dark Mode). On is the default."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:424
+msgid "Customize per case"
+msgstr ""
+
+#: includes/settings/views/documentation/config-general.php:33 includes/settings/views/ffc-tab-general.php:219 includes/settings/views/ffc-tab-general.php:232
+msgid "Dark Mode in the Code Editor"
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:62 includes/settings/views/ffc-tab-captcha.php:209
+msgid "Display"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:241
+msgid "Follows the Dark Mode setting above."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:402
+msgid "Hybrid"
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:46 includes/settings/views/ffc-tab-captcha.php:46
+msgid "Math"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:616
+msgid "On: the real client behind Cloudflare or a configured proxy, which cannot be spoofed (recommended). Off: Legacy, the current behaviour, which trusts forwarded headers and can be spoofed; it stays the default until you switch."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:115
+msgid "Plugin"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:613
+msgid "Secure (trusted-proxy model)"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:127
+msgid "Switch the active strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers."
+msgstr ""
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:23
+msgid "The Active strategy toggle switches between the two: on is Secure, off is Legacy."
+msgstr ""
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:28
+msgid "The Custom proxy CIDRs field appears only in the Custom mode, the only one that reads it."
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:53
+msgid "The mode is a scale, from the strongest on the left to the one that reaches every visitor on the right. A new install starts on ALTCHA only when the site is served over HTTPS and on Math otherwise; an existing install keeps the mode it has, and one that never saved the tab stays on Math."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:120
+msgid "The plugin's font (the system font)."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:119
+msgid "The site theme's font."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:114
+msgid "Theme"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:401
+msgid "Tolerant"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-smtp.php:148
+msgid "Total Mail Queue is active and manages email delivery, so WP Default is used. The choice saved here is kept and applies again when Total Mail Queue is deactivated."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-emails.php:48
+msgid "While the total-mail-queue plugin is active it manages delivery: the choice is locked to WordPress default, and the one saved here applies again when it is deactivated."
+msgstr ""
+
+#: includes/settings/views/documentation/config-geolocation.php:46
+msgid "a scale of three presets, from Tolerant (allow on every failure) through Hybrid to Strict (block on every failure). Turn on \"Customize per case\" to set allow or block for each case instead: permission denied, no API, position unavailable, timeout, safety timer."
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:62
+msgid "whether the widget shows the ALTCHA logo and the \"Protected by ALTCHA\" footer. A new install shows the logo and hides the footer."
 msgstr ""

@@ -20,11 +20,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'Settings → IP Diagnostics decides how the plugin works out a visitor\'s IP address. That one choice governs every IP read in the plugin: the activity log, IP geolocation, rate limiting, the geofence and the public listing throttle.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Resolution strategy', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'The Active strategy toggle switches between the two: on is Secure, off is Legacy.', 'ffcertificate' ); ?></p>
 	<ul>
 		<li><strong><?php esc_html_e( 'Legacy', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the effective default. It trusts client-supplied headers such as X-Forwarded-For, so a forged header can spoof the address.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Secure (recommended)', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'a trusted-proxy model: a forwarded header is honoured only when the request really comes from Cloudflare or a proxy you trust, so the real client is found and cannot be forged.', 'ffcertificate' ); ?></li>
 	</ul>
-	<p><?php esc_html_e( 'With the secure strategy, the trusted-proxy mode says whom to believe: Auto (detect Cloudflare or a known proxy, else use the direct connection — recommended), Cloudflare, Custom (your own proxy CIDRs, one per line — never Cloudflare\'s, which are kept up to date automatically) or Direct (ignore every forwarded header).', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'With the secure strategy, the trusted-proxy mode says whom to believe: Auto (detect Cloudflare or a known proxy, else use the direct connection — recommended), Cloudflare, Custom (your own proxy CIDRs, one per line — never Cloudflare\'s, which are kept up to date automatically) or Direct (ignore every forwarded header).', 'ffcertificate' ); ?> <?php esc_html_e( 'The Custom proxy CIDRs field appears only in the Custom mode, the only one that reads it.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'What the tab shows', 'ffcertificate' ); ?></h4>

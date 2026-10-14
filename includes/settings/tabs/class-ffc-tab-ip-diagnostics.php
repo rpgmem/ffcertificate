@@ -124,7 +124,7 @@ class TabIpDiagnostics extends SettingsTab {
 
 		echo '<div class="notice notice-warning inline"><p>';
 		echo '<strong>' . esc_html__( 'Recommended:', 'ffcertificate' ) . '</strong> ';
-		echo esc_html__( 'Switch the effective strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers.', 'ffcertificate' );
+		echo esc_html__( 'Switch the active strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers.', 'ffcertificate' );
 		echo '</p></div>';
 	}
 
@@ -543,8 +543,8 @@ class TabIpDiagnostics extends SettingsTab {
 
 		$mode_secure = ClientIpResolver::MODE_SECURE === $d['mode'];
 		$mode_badge  = $mode_secure
-			? '<span class="ffc-text-success ffc-icon-checkmark">' . esc_html__( 'Effective strategy: Secure', 'ffcertificate' ) . '</span>'
-			: '<span class="ffc-text-warning ffc-icon-warning">' . esc_html__( 'Effective strategy: Legacy', 'ffcertificate' ) . '</span>';
+			? '<span class="ffc-text-success ffc-icon-checkmark">' . esc_html__( 'Active strategy: Secure', 'ffcertificate' ) . '</span>'
+			: '<span class="ffc-text-warning ffc-icon-warning">' . esc_html__( 'Active strategy: Legacy', 'ffcertificate' ) . '</span>';
 
 		$explain = ( $leaks && $immune )
 			? esc_html__( 'A forged X-Forwarded-For would fool the Legacy strategy (rate-limit, geofence, activity log). Secure discards it.', 'ffcertificate' )
@@ -599,16 +599,27 @@ class TabIpDiagnostics extends SettingsTab {
 		wp_nonce_field( 'ffc_ip_diagnostics_nonce' );
 		echo '<table class="form-table" role="presentation"><tbody>';
 
-		// Effective strategy. Inputs are echoed directly (never through
-		// render_field_row, whose wp_kses_post strips form controls).
-		echo '<tr><th scope="row">' . esc_html__( 'Effective strategy', 'ffcertificate' ) . '</th><td>';
-		$this->echo_radio( 'ffc_ip_strategy', IpDiagnosticsSettingsReader::STRATEGY_SECURE, $strategy, __( 'Secure (trusted-proxy model) — real client behind Cloudflare / a configured proxy, unspoofable (recommended)', 'ffcertificate' ) );
-		echo '<br>';
-		$this->echo_radio( 'ffc_ip_strategy', IpDiagnosticsSettingsReader::STRATEGY_LEGACY, $strategy, __( 'Legacy (current behaviour, spoofable) — the effective default until you switch', 'ffcertificate' ) );
+		// Active strategy: a toggle, on = Secure, off = Legacy (#1758). Off
+		// posts nothing, which save_settings() reads as Legacy. Inputs are
+		// echoed directly (never through render_field_row, whose
+		// wp_kses_post strips form controls).
+		echo '<tr><th scope="row">' . esc_html__( 'Active strategy', 'ffcertificate' ) . '</th><td>';
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'ffc_ip_strategy',
+				'id'      => 'ffc_ip_strategy',
+				'value'   => IpDiagnosticsSettingsReader::STRATEGY_SECURE,
+				'checked' => IpDiagnosticsSettingsReader::STRATEGY_SECURE === $strategy,
+				'label'   => __( 'Secure (trusted-proxy model)', 'ffcertificate' ),
+			)
+		);
+		echo '<p class="description">' . esc_html__( 'On: the real client behind Cloudflare or a configured proxy, which cannot be spoofed (recommended). Off: Legacy, the current behaviour, which trusts forwarded headers and can be spoofed; it stays the default until you switch.', 'ffcertificate' ) . '</p>';
 		echo '</td></tr>';
 
-		// Trusted-proxy configuration.
+		// Trusted-proxy configuration. The fieldset carries the id the
+		// Custom CIDR row below collapses on (ffc-admin.js).
 		echo '<tr><th scope="row">' . esc_html__( 'Trusted-proxy configuration', 'ffcertificate' ) . '</th><td>';
+		echo '<fieldset id="ffc_ip_trusted_proxy_mode"><legend class="screen-reader-text">' . esc_html__( 'Trusted-proxy configuration', 'ffcertificate' ) . '</legend>';
 		$this->echo_radio( 'ffc_ip_trusted_proxy_mode', IpDiagnosticsSettingsReader::PROXY_AUTO, $proxy_mode, __( 'Auto — detect Cloudflare / known proxy, else use REMOTE_ADDR (recommended)', 'ffcertificate' ) );
 		echo '<br>';
 		$this->echo_radio( 'ffc_ip_trusted_proxy_mode', IpDiagnosticsSettingsReader::PROXY_CLOUDFLARE, $proxy_mode, __( 'Cloudflare — trust the Cloudflare edge ranges', 'ffcertificate' ) );
@@ -616,11 +627,16 @@ class TabIpDiagnostics extends SettingsTab {
 		$this->echo_radio( 'ffc_ip_trusted_proxy_mode', IpDiagnosticsSettingsReader::PROXY_CUSTOM, $proxy_mode, __( 'Custom — trust the proxy CIDRs below', 'ffcertificate' ) );
 		echo '<br>';
 		$this->echo_radio( 'ffc_ip_trusted_proxy_mode', IpDiagnosticsSettingsReader::PROXY_DIRECT, $proxy_mode, __( 'Direct — ignore every forwarded header', 'ffcertificate' ) );
-		echo '<p class="description">' . esc_html__( 'Applies when the secure strategy is effective.', 'ffcertificate' ) . '</p>';
+		echo '</fieldset>';
+		echo '<p class="description">' . esc_html__( 'Applies when the secure strategy is active.', 'ffcertificate' ) . '</p>';
 		echo '</td></tr>';
 
-		// Custom CIDRs.
-		echo '<tr><th scope="row">' . esc_html__( 'Custom proxy CIDRs', 'ffcertificate' ) . '</th><td>';
+		// Custom CIDRs: read only in the Custom mode
+		// (IpResolverSettingsBridge::filter_trusted_proxies()), so shown only
+		// then (#1758). Collapsed server-side, so it is right without a script.
+		$custom_row_class = 'ffc-collapsed-target' . ( IpDiagnosticsSettingsReader::PROXY_CUSTOM === $proxy_mode ? '' : ' ffc-collapsed' );
+		echo '<tr class="' . esc_attr( $custom_row_class ) . '" data-ffc-master="ffc_ip_trusted_proxy_mode" data-ffc-master-value="' . esc_attr( IpDiagnosticsSettingsReader::PROXY_CUSTOM ) . '">';
+		echo '<th scope="row">' . esc_html__( 'Custom proxy CIDRs', 'ffcertificate' ) . '</th><td>';
 		echo '<textarea name="ffc_ip_custom_proxies" rows="4" cols="40" class="large-text code" placeholder="10.0.0.0/8">' . esc_textarea( $custom ) . '</textarea>';
 		echo '<p class="description">' . esc_html__( 'One CIDR or IP per line. Used only with the Custom mode above.', 'ffcertificate' ) . '</p>';
 		// (#920 ①) Steer admins away from the common mistake of pasting the

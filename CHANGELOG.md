@@ -13,6 +13,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Operator access acts at once** (#1755). The master toggle autosaves and its first enable generates the hash; Regenerate hash and Reset counter are buttons instead of save-time toggles; the CPF mode is a steps scale defaulting to audit; Default Modal Mode is a toggle. The quiz display, GPS and IP toggles autosave.
 - **A form field is titled by its type, and the type no longer changes** (#1756). The builder row says "Email" or "Checkbox" instead of "Field"; the type is picked once from Add New Field, and the save keeps the stored type of a field it already has, matched by name, so stored answers never change type.
 - ⚠ **Activating a reregistration campaign no longer mails the invitations** (#1762). The daily reregistration run sends them, in batches of 50, to everyone not yet invited; the edit screen says when that run is, so a mistaken activation can be undone first. The Send invitations button still sends at once.
+- **Settings use the control that fits each choice** (#1758). Steps for captcha mode, GPS fallback and cache expiry; toggles for the IP strategy and ALTCHA display; SMTP locks to WP default while Total Mail Queue is active. New installs start on ALTCHA (on HTTPS) and a 15-minute cache.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
