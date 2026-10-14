@@ -50,9 +50,17 @@ class EmailHandler {
 	/**
 	 * Configure custom SMTP settings
 	 *
+	 * Skipped while Total Mail Queue is active (#1758): it manages delivery,
+	 * so the plugin sends with WordPress's default, and the stored SMTP
+	 * choice applies again once the queue plugin is deactivated.
+	 *
 	 * @param PHPMailer $phpmailer PHPMailer instance.
 	 */
 	public function configure_custom_smtp( $phpmailer ): void {
+		if ( MailQueue::is_active() ) {
+			return;
+		}
+
 		$settings = \FreeFormCertificate\Settings\SettingsReader::all();
 
 		if ( isset( $settings['smtp_mode'] ) && 'custom' === $settings['smtp_mode'] ) {

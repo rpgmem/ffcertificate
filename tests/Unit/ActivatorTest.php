@@ -380,4 +380,69 @@ class ActivatorTest extends TestCase {
 			);
 		}
 	}
+
+	// ==================================================================
+	// seed_fresh_install_settings() — new-install defaults (#1758)
+	// ==================================================================
+
+	private function seed(): void {
+		$method = new \ReflectionMethod( Activator::class, 'seed_fresh_install_settings' );
+		$method->setAccessible( true );
+		$method->invoke( null );
+	}
+
+	public function test_a_new_install_is_seeded_with_its_own_defaults(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'is_ssl' )->justReturn( true );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url, $part = -1 ) => parse_url( (string) $url, $part ) );
+		$added = array();
+		Functions\when( 'add_option' )->alias(
+			static function ( $key, $value ) use ( &$added ): bool {
+				$added[ $key ] = $value;
+				return true;
+			}
+		);
+
+		$this->seed();
+
+		$this->assertSame(
+			array(
+				'ffc_settings' => array(
+					'captcha_provider'           => 'altcha',
+					'captcha_altcha_hide_footer' => 1,
+					'cache_expiration'           => 900,
+				),
+			),
+			$added
+		);
+	}
+
+	public function test_a_new_install_without_https_is_seeded_with_the_math_challenge(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'is_ssl' )->justReturn( false );
+		Functions\when( 'home_url' )->justReturn( 'http://example.com' );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url, $part = -1 ) => parse_url( (string) $url, $part ) );
+		$added = array();
+		Functions\when( 'add_option' )->alias(
+			static function ( $key, $value ) use ( &$added ): bool {
+				$added[ $key ] = $value;
+				return true;
+			}
+		);
+
+		$this->seed();
+
+		$this->assertSame( 'math', $added['ffc_settings']['captcha_provider'] );
+	}
+
+	public function test_an_existing_install_keeps_every_setting_it_has(): void {
+		// Even an empty array means the option exists: something saved it.
+		Functions\when( 'get_option' )->justReturn( array() );
+		$log = CallLog::record( 'add_option', true );
+
+		$this->seed();
+
+		$this->assertSame( 0, $log->count() );
+	}
 }

@@ -528,7 +528,13 @@ describe('url-shortener — designed QR rasterising', () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { data: 'PHN2Zy8+', filename: 'qr-abc.png', mime: 'image/png', rasterize: true } } }));
 
 		window.$('.ffc-download-qr').trigger('click');
-		await new Promise((r) => setTimeout(r, 5));
+		// Wait for the outcome rather than a fixed delay: the image stub
+		// resolves on a timer, and a loaded CI runner can take longer than
+		// any fixed sleep short enough to keep the suite fast.
+		await vi.waitFor(() => {
+			expect(blobs.length).toBeGreaterThan(0);
+			expect(window.$('.ffc-download-qr').prop('disabled')).toBe(false);
+		}, { timeout: 2000, interval: 5 });
 
 		// Every earlier test re-loaded the script, so several delegated
 		// handlers answer one click; each must have saved the PNG.

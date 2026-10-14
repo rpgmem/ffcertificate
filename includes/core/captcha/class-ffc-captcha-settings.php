@@ -331,6 +331,23 @@ class CaptchaSettings {
 	}
 
 	/**
+	 * The mode a NEW install starts with (#1758).
+	 *
+	 * ALTCHA only when the site is served over HTTPS -- the widget refuses an
+	 * insecure context, so offering it elsewhere would lock every visitor out
+	 * -- and the math challenge otherwise. Read once, by the activation that
+	 * creates the settings; an existing install keeps what it has, and one
+	 * that never saved the tab keeps reading the math fallback.
+	 *
+	 * @return string A provider id.
+	 */
+	public static function fresh_install_provider(): string {
+		$secure = is_ssl() || 'https' === wp_parse_url( home_url(), PHP_URL_SCHEME );
+
+		return $secure ? AltchaCaptcha::ID : MathCaptcha::ID;
+	}
+
+	/**
 	 * Return a value when it is allowed, else the fallback.
 	 *
 	 * @param mixed              $value    Raw value.
