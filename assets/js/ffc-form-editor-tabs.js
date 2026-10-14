@@ -291,9 +291,18 @@
 			};
 			var syncs = [];
 
+			// `querySelectorAll`, never `$( selector )`: the selector comes from
+			// an attribute, and jQuery would build HTML from a string that
+			// starts with `<`. An invalid selector matches nothing.
 			function filled( selector ) {
 				var found = false;
-				$( selector ).each( function () {
+				var nodes;
+				try {
+					nodes = document.querySelectorAll( selector );
+				} catch ( e ) {
+					return false;
+				}
+				$( nodes ).each( function () {
 					var $f = $( this );
 					if ( $f.closest( '.ffc-hidden' ).length ) {
 						return;

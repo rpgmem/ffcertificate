@@ -492,6 +492,17 @@ describe('FFC.FormEditorTabs — pending state (#1755)', () => {
 		expect(tab('email').hasClass('is-pending')).toBe(true);
 	});
 
+	it('treats a requirement as a selector, never as markup', () => {
+		buildTabs();
+		document.getElementById('ffc-tabnav-email').setAttribute('data-ffc-tab-masters', 'm-x');
+		const master = Object.assign(document.createElement('input'), { type: 'checkbox', id: 'm-x', checked: true });
+		master.setAttribute('data-ffc-requires', '<img id="injected" src="x">');
+		panel('email').append(master);
+		window.FFC.FormEditorTabs.init();
+		expect(document.getElementById('injected')).toBeNull();
+		expect(tab('email').hasClass('is-pending')).toBe(true);
+	});
+
 	it('reads as pending on a tab need even with every toggle off', async () => {
 		buildTabs();
 		const time = document.getElementById('ffc-tabnav-geolocation');
