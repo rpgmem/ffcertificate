@@ -6832,10 +6832,6 @@ msgstr "Os e-mails estão desativados globalmente, então o e-mail de teste não
 msgid "Emails not arriving"
 msgstr "E-mails não estão chegando"
 
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:214
-msgid "Embed"
-msgstr "Incorporar"
-
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:85 includes/admin/class-ffc-admin-assets-manager.php:627
 msgid "Embed (Media)"
 msgstr "Incorporar (Mídia)"
@@ -23206,9 +23202,6 @@ msgstr "O PDF do certificado que um formulário emite no envio (o tipo padrão).
 msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change →\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
 msgstr "Uma visão geral somente leitura, \"Atribuições atuais\", na aba Modelos de documento, mostra qual modelo do acervo os comprovantes de agendamento (Regular e Personalizado) e a ficha de recadastramento estão usando no momento, com um link \"Alterar →\" para as configurações do próprio recurso. Cada linha aparece apenas para usuários que podem visualizar aquele recurso, e os certificados não têm linha porque cada formulário escolhe o seu. A visão geral é apenas informativa — os controles de seleção (e suas permissões) continuam em cada recurso."
 
-msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails."
-msgstr "Os campos de entrada de um formulário são definidos na aba Campos (\"Construtor de Formulários (Campos)\") da caixa \"Configuração do Formulário de Certificado\" do editor de formulários — uma lista ordenável de campos. Cada campo tem um Nome da variável (etiqueta); essa etiqueta é a chave interna que se torna um {{token}} no PDF do certificado e nos e-mails."
-
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
 msgstr "Campos de nome (chaves como name, nome, nome_completo, full_name ou participante) são normalizados no envio para a capitalização correta, mantendo em minúsculas conectivos como \"da\" e \"de\"."
 
@@ -25945,3 +25938,7 @@ msgstr "O CSV também pode exigir que o operador comprove o CPF antes de liberar
 #: includes/settings/views/documentation/feature-certificates.php
 msgid "In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches: hollow when off, green when on, and amber while something switched on still lacks the field it needs (a password, a list, the tickets, a date or time, an allowed area for GPS) or, when Settings → Certificates requires {{schedule}}, while the event schedule is empty. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes."
 msgstr "No editor de formulário, cada aba se abre em seções recolhíveis cujo indicador mostra Ligado/Desligado, ou o agendamento, quando fechadas, e cada aba tem um ponto que acompanha seus interruptores: vazado quando desligado, verde quando ligado e âmbar enquanto algo ligado ainda não tem o campo de que precisa (uma senha, uma lista, os ingressos, uma data ou um horário, uma área permitida para o GPS) ou, quando Configurações → Certificados exige {{schedule}}, enquanto o horário do evento estiver vazio. Uma caixa de resumo na barra lateral mostra o que o formulário salvo faz, o shortcode tem um botão Copiar e os locais cadastrados de uma cerca geográfica são escolhidos por caixas de seleção."
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:20
+msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails. Each field is titled by its type, chosen once from the Add New Field menu; to change a type, remove the field and add it again, because the answers already stored under it hold values of the old type."
+msgstr "Os campos de entrada de um formulário são definidos na aba Campos (\"Construtor de Formulários (Campos)\") da caixa \"Configuração do Formulário de Certificado\" do editor de formulários — uma lista ordenável de campos. Cada campo tem um Nome da variável (etiqueta); essa etiqueta é a chave interna que se torna um {{token}} no PDF do certificado e nos e-mails. Cada campo é intitulado pelo seu tipo, escolhido uma única vez no menu Adicionar Novo Campo; para mudar um tipo, remova o campo e adicione-o de novo, porque as respostas já gravadas nele guardam valores do tipo antigo."

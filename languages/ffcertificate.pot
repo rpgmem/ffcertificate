@@ -6823,10 +6823,6 @@ msgstr ""
 msgid "Emails not arriving"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:214
-msgid "Embed"
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:85 includes/admin/class-ffc-admin-assets-manager.php:627
 msgid "Embed (Media)"
 msgstr ""
@@ -23122,9 +23118,6 @@ msgstr ""
 msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change →\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
 msgstr ""
 
-msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails."
-msgstr ""
-
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
 msgstr ""
 
@@ -25860,4 +25853,8 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-certificates.php
 msgid "In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches: hollow when off, green when on, and amber while something switched on still lacks the field it needs (a password, a list, the tickets, a date or time, an allowed area for GPS) or, when Settings → Certificates requires {{schedule}}, while the event schedule is empty. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:20
+msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails. Each field is titled by its type, chosen once from the Add New Field menu; to change a type, remove the field and add it again, because the answers already stored under it hold values of the old type."
 msgstr ""
