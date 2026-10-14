@@ -24433,6 +24433,9 @@ msgstr "Visualize a lista e baixe os QR Codes."
 msgid "view the Scheduling menu and audience pages."
 msgstr "visualize o menu de agendamento e as páginas de público-alvo."
 
+msgid "On its own it opens them read-only: the calendar, environment and audience edit forms and the members screen show their fields disabled, with no Save, Add or Remove, under a read-only notice."
+msgstr "Sozinha, ela as abre somente para leitura: os formulários de edição de calendário, ambiente e público-alvo e a tela de membros mostram os campos desabilitados, sem Salvar, Adicionar ou Remover, sob um aviso de somente leitura."
+
 msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."
 msgstr "Quando ativada, essa configuração é herdada por todos os públicos-alvo descendentes. Os usuários podem participar de até 2 grupos filhos."
 

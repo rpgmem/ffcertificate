@@ -754,7 +754,7 @@ class Settings {
 					// handlers + AJAX endpoints already gate on `ffc_manage_settings`
 					// server-side; this just stops the UI from looking editable.
 					if ( ! $ffc_settings_can_edit ) {
-						echo '<fieldset disabled class="ffc-settings-readonly-lock">';
+						echo '<fieldset disabled class="ffc-readonly-lock">';
 					}
 					// $active_tab is resolved to a visible tab above (the set is
 					// guaranteed non-empty by the early-return at the top), so it is
