@@ -518,6 +518,12 @@ class Loader {
 		// WP-Cron never runs with is_admin() true.
 		\FreeFormCertificate\Core\ScheduledTasks::init();
 
+		// Build the "Required data" table from the two settings it replaces
+		// (#1759). One-shot and option-flagged like the `ensure_*` migrations
+		// below, but on `init`: the default labels it may write are
+		// translated, and translations load too early before `init`.
+		add_action( 'init', array( \FreeFormCertificate\Settings\RequiredData::class, 'maybe_migrate' ), 5 );
+
 		$this->ensure_admin_capabilities();
 		$this->ensure_admin_role_assigned();
 		$this->ensure_taxonomy_renamed();

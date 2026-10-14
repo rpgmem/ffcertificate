@@ -337,12 +337,6 @@ class SettingsAjaxEndpoint {
 				'string',
 				array(),
 			),
-			// Newline/comma list of required {{tags}} for PDF layouts —
-			// read by SettingsReader::required_certificate_tags().
-			'required_certificate_tags'   => array(
-				'string',
-				array( 'as' => 'multiline_text' ),
-			),
 			// Certificates tab — the Strict quiz level's grace (#1745).
 			'quiz_focus_grace_ms'         => array(
 				'int',
@@ -403,6 +397,16 @@ class SettingsAjaxEndpoint {
 				),
 			),
 			'qr_default_error_level'      => array( 'string', array() ),
+		);
+
+		// Certificates tab — the "Required data" table (#1759), saved as a
+		// whole: one field holds every row, so adding, removing or editing a
+		// row is one write and the rows cannot be saved half-way. It
+		// replaces `required_certificate_tags` and `required_form_fields`,
+		// which nothing writes any more.
+		$flat_typed['required_data'] = array(
+			'table',
+			array( 'sanitize' => array( \FreeFormCertificate\Settings\RequiredData::class, 'sanitize_json' ) ),
 		);
 
 		foreach ( $flat_typed as $key => list( $type, $extra ) ) {
@@ -603,7 +607,10 @@ class SettingsAjaxEndpoint {
 
 		$value = self::sanitize_value( $raw_value, $entry['type'] ?? 'bool', $entry );
 		if ( null === $value ) {
-			wp_send_json_error( array( 'message' => __( 'That value is not one of the choices.', 'ffcertificate' ) ), 400 );
+			$message = 'table' === ( $entry['type'] ?? 'bool' )
+				? __( 'The table could not be read. Reload the page and try again.', 'ffcertificate' )
+				: __( 'That value is not one of the choices.', 'ffcertificate' );
+			wp_send_json_error( array( 'message' => $message ), 400 );
 		}
 
 		// Optional bool inversion — the SMTP tab's "Ativar envios" toggle is
@@ -667,6 +674,8 @@ class SettingsAjaxEndpoint {
 	 *   - 'enum'   — one of `$entry['options']`, compared as strings; anything
 	 *                else returns null, which the handlers refuse with a 400
 	 *                (#1745). For a radio group whose values are a closed list.
+	 *   - 'table'  — a whole table as one value, passed to the callable in
+	 *                `$entry['sanitize']`; its null is a refusal (#1759).
 	 *
 	 * @param mixed                $raw   Raw POST value (already wp_unslash'd).
 	 * @param string               $type  Allowlist entry type.
@@ -735,6 +744,15 @@ class SettingsAjaxEndpoint {
 			case 'enum':
 				$options = isset( $entry['options'] ) && is_array( $entry['options'] ) ? array_map( 'strval', $entry['options'] ) : array();
 				return is_scalar( $raw ) && in_array( (string) $raw, $options, true ) ? (string) $raw : null;
+
+			case 'table':
+				// A whole table posted as one JSON value, decoded and checked
+				// by the entry's own `sanitize` callable. Null from it is a
+				// refusal, which the handler answers with a 400.
+				if ( ! isset( $entry['sanitize'] ) || ! is_callable( $entry['sanitize'] ) ) {
+					return null;
+				}
+				return call_user_func( $entry['sanitize'], $raw );
 
 			default:
 				return null;

@@ -28,6 +28,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Audience\AudienceAdminPage;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -39,6 +40,30 @@ if ( ! defined( 'ABSPATH' ) ) {
  * for FFC operator roles.
  */
 final class AdminMenuVisibility {
+
+	/**
+	 * `?page=` of the Appointments list, registered by
+	 * `SelfScheduling\SelfSchedulingAdmin::add_submenu_pages()`.
+	 */
+	public const APPOINTMENTS_PAGE = 'ffc-appointments';
+
+	/**
+	 * Post type of the Personal Calendars, registered by
+	 * `SelfScheduling\SelfSchedulingCPT::register_calendar_cpt()`.
+	 */
+	public const PERSONAL_CALENDAR_POST_TYPE = 'ffc_self_scheduling';
+
+	/**
+	 * `admin_action_*` the Personal Calendars "Duplicate" row action posts to.
+	 */
+	public const DUPLICATE_CALENDAR_ACTION = 'ffc_duplicate_calendar';
+
+	/**
+	 * Suffixes `AudienceAdminPage::add_admin_menus()` appends to its menu slug.
+	 *
+	 * @var list<string>
+	 */
+	public const AUDIENCE_SCREEN_SUFFIXES = array( 'dashboard', 'calendars', 'environments', 'audiences', 'bookings', 'settings' );
 
 	/**
 	 * Per-role visibility policy. Each entry is consumed at three
@@ -75,6 +100,17 @@ final class AdminMenuVisibility {
 			'users.php',
 		);
 		$shared_admin_bar_nodes = array( 'new-content', 'comments' );
+
+		// The Scheduling screens (#1769). The audience half is derived from
+		// the menu's own slug; the self-scheduling half is literal, because
+		// naming SelfScheduling here would add an Admin → SelfScheduling
+		// edge (AdminMenuVisibilitySchedulingTest holds the literals to the
+		// registrations).
+		$personal_calendars = 'edit.php?post_type=' . self::PERSONAL_CALENDAR_POST_TYPE;
+		$audience_screens   = array( AudienceAdminPage::MENU_SLUG );
+		foreach ( self::AUDIENCE_SCREEN_SUFFIXES as $suffix ) {
+			$audience_screens[] = AudienceAdminPage::MENU_SLUG . '-' . $suffix;
+		}
 
 		return array(
 			// Certificates ladder.
@@ -115,60 +151,66 @@ final class AdminMenuVisibility {
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Appointments ladder.
+			// Appointments ladder. Every tier holds `ffc_view_appointments`
+			// and nothing on the calendars or audiences side, so the
+			// Appointments list (and its detail view, same slug) is the
+			// whole Scheduling surface its capabilities open.
 			'ffc_appointments_viewer'     => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => self::APPOINTMENTS_PAGE,
+				'allowed_pages'        => array( self::APPOINTMENTS_PAGE ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_appointments_operator'   => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => self::APPOINTMENTS_PAGE,
+				'allowed_pages'        => array( self::APPOINTMENTS_PAGE ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_appointments_admin'      => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => self::APPOINTMENTS_PAGE,
+				'allowed_pages'        => array( self::APPOINTMENTS_PAGE ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_appointments_manager'    => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => self::APPOINTMENTS_PAGE,
+				'allowed_pages'        => array( self::APPOINTMENTS_PAGE ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Calendars (self-scheduling structure).
+			// Calendars (self-scheduling structure): the Personal Calendars
+			// post type. Its list entry also opens `post.php` / `post-new.php`
+			// for that post type (see block_url_access()).
 			'ffc_calendars_viewer'        => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => $personal_calendars,
+				'allowed_pages'        => array( $personal_calendars ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_calendars_manager'       => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => $personal_calendars,
+				'allowed_pages'        => array( $personal_calendars, 'admin.php?action=' . self::DUPLICATE_CALENDAR_ACTION ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Audiences ladder.
+			// Audiences ladder: every screen under the Scheduling menu that is
+			// gated on `ffc_view_audiences`.
 			'ffc_audiences_viewer'        => array(
-				'landing_page'         => 'ffc-scheduling',
-				'allowed_pages'        => array( 'ffc-scheduling', 'ffc-audiences', 'ffc-environments', 'ffc-aud-import', 'ffc-aud-settings' ),
+				'landing_page'         => AudienceAdminPage::MENU_SLUG,
+				'allowed_pages'        => $audience_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_audiences_operator'      => array(
-				'landing_page'         => 'ffc-scheduling',
-				'allowed_pages'        => array( 'ffc-scheduling', 'ffc-audiences', 'ffc-environments', 'ffc-aud-import', 'ffc-aud-settings' ),
+				'landing_page'         => AudienceAdminPage::MENU_SLUG,
+				'allowed_pages'        => $audience_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_audiences_manager'       => array(
-				'landing_page'         => 'ffc-scheduling',
-				'allowed_pages'        => array( 'ffc-scheduling', 'ffc-audiences', 'ffc-environments', 'ffc-aud-import', 'ffc-aud-settings' ),
+				'landing_page'         => AudienceAdminPage::MENU_SLUG,
+				'allowed_pages'        => $audience_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
@@ -194,7 +236,10 @@ final class AdminMenuVisibility {
 			// Cross-domain read-only.
 			'ffc_readonly'                => array(
 				'landing_page'         => 'admin.php?page=ffc-settings&tab=activity_log',
-				'allowed_pages'        => array( 'ffc-settings', 'ffc-recruitment' ),
+				'allowed_pages'        => array_merge(
+					array( 'ffc-settings', 'ffc-recruitment', self::APPOINTMENTS_PAGE, $personal_calendars ),
+					$audience_screens
+				),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
@@ -323,6 +368,13 @@ final class AdminMenuVisibility {
 		// `admin.php?page=…` — check the page slug against the allow-list.
 		if ( 'admin.php' === $current_page ) {
 			$page = RequestInput::get_get_key( 'page' );
+			// `admin.php?action=…` with no page dispatches `admin_action_*`
+			// (the calendar "Duplicate" row action); only an action the
+			// role lists passes, and the handler checks its own capability.
+			$action = RequestInput::get_get_key( 'action' );
+			if ( '' === $page && '' !== $action && in_array( 'admin.php?action=' . $action, $policy['allowed_pages'], true ) ) {
+				return;
+			}
 			foreach ( $policy['allowed_pages'] as $allowed ) {
 				if ( $page === $allowed || 'admin.php?page=' . $page === $allowed ) {
 					return;
@@ -343,6 +395,27 @@ final class AdminMenuVisibility {
 			foreach ( $policy['allowed_pages'] as $allowed ) {
 				if ( $current_page === $allowed || str_starts_with( $candidate, $allowed ) ) {
 					return;
+				}
+				// A post type's list (`edit.php?post_type=X`) opens every screen
+				// of that post type: the list whatever order its filters put in
+				// the query string, `post-new.php?post_type=X`, and `post.php`
+				// for a post of type X — read from `?post=` on a GET and from
+				// `post_ID` on the editor's save POST (#1769).
+				if ( ! str_starts_with( $allowed, 'edit.php?post_type=' ) ) {
+					continue;
+				}
+				$post_type = substr( $allowed, strlen( 'edit.php?post_type=' ) );
+				if ( in_array( $current_page, array( 'edit.php', 'post-new.php' ), true ) && RequestInput::get_get_key( 'post_type' ) === $post_type ) {
+					return;
+				}
+				if ( 'post.php' === $current_page ) {
+					$post_id = RequestInput::get_get_int( 'post' );
+					if ( 0 === $post_id ) {
+						$post_id = RequestInput::get_post_int( 'post_ID' );
+					}
+					if ( $post_id > 0 && get_post_type( $post_id ) === $post_type ) {
+						return;
+					}
 				}
 			}
 		}

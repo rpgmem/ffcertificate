@@ -190,18 +190,22 @@ class AppointmentsListTable extends \WP_List_Table {
 		}
 
 		// View link: uses just appointment=X (no action parameter to avoid admin_action_view dispatch).
-		$view_url        = add_query_arg(
-			array(
-				'page'        => $ffc_page_slug,
-				'appointment' => $item['id'],
-			),
-			admin_url( 'admin.php' )
-		);
-		$actions['view'] = sprintf(
-			'<a href="%s">%s</a>',
-			esc_url( $view_url ),
-			__( 'View', 'ffcertificate' )
-		);
+		// The detail view is manage-gated (views/appointments-list.php), so a
+		// read-only viewer is not offered a link it would be refused (#1769).
+		if ( $ffc_can_edit_appt ) {
+			$view_url        = add_query_arg(
+				array(
+					'page'        => $ffc_page_slug,
+					'appointment' => $item['id'],
+				),
+				admin_url( 'admin.php' )
+			);
+			$actions['view'] = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( $view_url ),
+				__( 'View', 'ffcertificate' )
+			);
+		}
 
 		// Add receipt link (magic link to /valid/ page) - not for cancelled appointments.
 		$item_status = $item['status'] ?? 'pending';

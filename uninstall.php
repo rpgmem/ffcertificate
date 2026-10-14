@@ -306,6 +306,7 @@ $ffcertificate_options = array(
 	'ffc_rbac_roles_renamed_v1',
 	'ffc_reasons_caps_wired_v1',
 	'ffc_recruitment_email_hub_v1',
+	'ffc_required_data_v1',
 	'ffc_settings_split_caps_v1',
 	'ffc_taxonomy_caps_renamed_v1',
 	'ffc_url_shortener_export_cap_v1',

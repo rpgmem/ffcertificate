@@ -164,7 +164,9 @@ class SelfSchedulingCPT {
 			return $actions;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+		// Duplicating creates a calendar, so it takes the post type's write
+		// cap — the same one handle_calendar_duplication() checks (#1769).
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_calendars' ) ) {
 			return $actions;
 		}
 
@@ -184,7 +186,7 @@ class SelfSchedulingCPT {
 	 * @return void
 	 */
 	public function handle_calendar_duplication(): void {
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_calendars' ) ) {
 			\FreeFormCertificate\Core\Debug::log_self_scheduling(
 				'Unauthorized calendar duplication attempt',
 				array(

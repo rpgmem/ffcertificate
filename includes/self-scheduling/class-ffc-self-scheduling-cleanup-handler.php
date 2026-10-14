@@ -191,6 +191,8 @@ class SelfSchedulingCleanupHandler {
 			)
 		);
 
+		$can_delete = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_appointments' );
+
 		wp_nonce_field( 'ffc_cleanup_appointments_nonce', 'ffc_cleanup_appointments_nonce' );
 		?>
 		<div class="ffc-cleanup-appointments">
@@ -219,7 +221,11 @@ class SelfSchedulingCleanupHandler {
 				</table>
 			</div>
 
-			<?php if ( $count_all > 0 ) : ?>
+			<?php
+			// Without the cap handle_cleanup_appointments() checks, the box
+			// shows the counts and no delete buttons (#1769).
+			if ( $count_all > 0 && $can_delete ) :
+				?>
 				<div class="ffc-cleanup-actions">
 					<p><strong><?php esc_html_e( 'Delete appointments:', 'ffcertificate' ); ?></strong></p>
 
@@ -276,7 +282,7 @@ class SelfSchedulingCleanupHandler {
 				<p class="description ffc-cleanup-warning">
 					<span class="ffc-icon-warning"></span><?php esc_html_e( 'Warning: This action is permanent and cannot be undone!', 'ffcertificate' ); ?>
 				</p>
-			<?php else : ?>
+			<?php elseif ( 0 === $count_all ) : ?>
 				<p><?php esc_html_e( 'No appointments to clean up.', 'ffcertificate' ); ?></p>
 			<?php endif; ?>
 		</div>

@@ -204,6 +204,11 @@ class AudienceAdminBookings {
 							}
 						}
 						?>
+						<?php
+						// View and Cancel call AJAX handlers gated on
+						// `ffc_manage_audiences` (AudienceAjaxController, #1769).
+						$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+						?>
 						<?php foreach ( $bookings as $booking ) : ?>
 							<?php
 							$creator_name = $creators_map[ (int) $booking->created_by ] ?? __( 'Unknown', 'ffcertificate' );
@@ -231,14 +236,16 @@ class AudienceAdminBookings {
 								</td>
 								<td><?php echo esc_html( $creator_name ); ?></td>
 								<td>
-									<a href="#" class="ffc-view-booking" data-booking-id="<?php echo esc_attr( $booking->id ); ?>">
-										<?php esc_html_e( 'View', 'ffcertificate' ); ?>
-									</a>
-									<?php if ( 'active' === $booking->status ) : ?>
-										|
-										<a href="#" class="ffc-cancel-booking ffc-delete-link" data-booking-id="<?php echo esc_attr( $booking->id ); ?>">
-											<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
+									<?php if ( $can_manage ) : ?>
+										<a href="#" class="ffc-view-booking" data-booking-id="<?php echo esc_attr( $booking->id ); ?>">
+											<?php esc_html_e( 'View', 'ffcertificate' ); ?>
 										</a>
+										<?php if ( 'active' === $booking->status ) : ?>
+											|
+											<a href="#" class="ffc-cancel-booking ffc-delete-link" data-booking-id="<?php echo esc_attr( $booking->id ); ?>">
+												<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
+											</a>
+										<?php endif; ?>
 									<?php endif; ?>
 								</td>
 							</tr>

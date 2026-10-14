@@ -135,6 +135,65 @@ class SelfSchedulingCPTTest extends TestCase {
 		$this->assertStringContainsString( 'Duplicate', $result['duplicate'] );
 	}
 
+	/**
+	 * Duplicating creates a calendar, so the link and its handler both take
+	 * the post type's write cap, never the bookings' one (#1769).
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public function duplicate_tiers(): array {
+		return array(
+			'calendars view-only tier'      => array( array( 'ffc_view_calendars' ), false ),
+			'appointments manage tier only' => array( array( 'ffc_view_calendars', 'ffc_manage_appointments' ), false ),
+			'calendars manage tier'         => array( array( 'ffc_view_calendars', 'ffc_manage_calendars' ), true ),
+		);
+	}
+
+	/**
+	 * @dataProvider duplicate_tiers
+	 *
+	 * @param list<string> $caps    Capabilities held.
+	 * @param bool         $allowed Whether the tier may duplicate.
+	 */
+	public function test_duplicate_link_renders_only_for_the_calendars_write_cap( array $caps, bool $allowed ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+
+		$cpt    = new SelfSchedulingCPT();
+		$result = $cpt->add_duplicate_link( array( 'edit' => 'Edit' ), (object) array( 'post_type' => 'ffc_self_scheduling', 'ID' => 1 ) );
+
+		$this->assertSame( $allowed, isset( $result['duplicate'] ) );
+	}
+
+	/**
+	 * Separate process for the reason test_handle_calendar_duplication_dies_without_permission() gives.
+	 *
+	 * @dataProvider duplicate_tiers
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 *
+	 * @param list<string> $caps    Capabilities held.
+	 * @param bool         $allowed Whether the tier may duplicate.
+	 */
+	public function test_duplication_handler_checks_the_same_cap_as_the_link( array $caps, bool $allowed ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'wp_die' )->alias(
+			static function (): void {
+				throw new \RuntimeException( 'refused' );
+			}
+		);
+		// The nonce check is the step after the capability gate.
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				throw new \RuntimeException( 'passed the capability gate' );
+			}
+		);
+
+		$cpt = new SelfSchedulingCPT();
+		$this->expectExceptionMessage( $allowed ? 'passed the capability gate' : 'refused' );
+		$cpt->handle_calendar_duplication();
+	}
+
 	// ==================================================================
 	// handle_calendar_duplication() — no permission
 	// ==================================================================
