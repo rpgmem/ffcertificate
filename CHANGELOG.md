@@ -22,6 +22,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **Scheduling operator roles reach their screens and see only actions they can use** (#1769). The role allow-list named pages that do not exist; row actions and cleanup buttons now follow their handler's capability, and Duplicate needs `ffc_manage_calendars`, not `ffc_manage_appointments`.
+- **The read-only role reaches every screen it can view** (#1776). FFC Read-Only now opens Certificates, Submissions, Document Templates, Reregistration, Short URLs and Date Messages; certificate roles land on the Certificates Dashboard; forms roles reach Document Templates. Every allow-list entry is checked against the registrations.
 - **Audience screens render read-only for view-only users** (#1777). Without `ffc_manage_audiences`, the calendar, environment and audience edit forms lock their fields and drop Save; user access, holidays and members drop their add and remove controls.
 
 ### Fixed
