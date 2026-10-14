@@ -15494,10 +15494,6 @@ msgstr ""
 msgid "Send Email to User?"
 msgstr ""
 
-#: templates/admin/reregistration/form.php:93
-msgid "Send invitation email when activated"
-msgstr ""
-
 #: templates/admin/reregistration/form.php:165
 msgid "Send invitations"
 msgstr ""
@@ -15566,10 +15562,6 @@ msgstr ""
 msgid "Sending…"
 msgstr ""
 
-#: templates/admin/reregistration/form.php:162
-msgid "Sends the invitation to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
-msgstr ""
-
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:436 includes/audience/class-ffc-audience-admin-audience-renderer.php:573
 msgid "Sensitive"
 msgstr ""
@@ -15608,10 +15600,6 @@ msgstr ""
 
 #: includes/core/class-ffc-email-template-options.php:93
 msgid "Sent by {{site_title}}"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-reregistration.php:39
-msgid "sent to all members when the campaign is activated."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:407
@@ -21861,9 +21849,6 @@ msgstr ""
 msgid "Expired ticket cleanup"
 msgstr ""
 
-msgid "Reregistration expiry and automated reminders"
-msgstr ""
-
 msgid "Appointment reminder scan"
 msgstr ""
 
@@ -24219,9 +24204,6 @@ msgstr ""
 msgid "Acknowledgment notice (\"Termo de Ciência\") HTML — editable per-audience in the Reregistration Fields section, with a shipped default fallback."
 msgstr ""
 
-msgid "Activate the campaign — a submission is created for every audience member and invitation emails go out."
-msgstr ""
-
 msgid "Administrators can schedule activities for audiences (groups) in configured environments."
 msgstr ""
 
@@ -25857,4 +25839,38 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:20
 msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails. Each field is titled by its type, chosen once from the Add New Field menu; to change a type, remove the field and add it again, because the answers already stored under it hold values of the old type."
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Reregistration expiry, invitations and automated reminders"
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Reregistration invitation batch (one per batch)"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "No invitation was sent yet. They go out with the daily reregistration run, which is not scheduled on this site right now; check Settings → Scheduled Tasks."
+msgstr ""
+
+#. translators: %s: date and time of the next daily run
+#: includes/reregistration/class-ffc-reregistration-admin.php
+#, php-format
+msgid "No invitation was sent yet. They go out with the next daily reregistration run, on %s, in batches. Until then you can still change or deactivate the campaign."
+msgstr ""
+
+#: templates/admin/reregistration/form.php
+msgid "Send invitation email (daily run after activation)"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. Members who join later get theirs on the following run. The Send invitations button sends them right away."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "Activate the campaign — a submission is created for every audience member at once. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is."
+msgstr ""
+
+#: templates/admin/reregistration/form.php
+msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
 msgstr ""

@@ -119,6 +119,10 @@ final class ScheduledTasks {
 			'recurrence' => self::SINGLE,
 			'module'     => 'reregistration',
 		),
+		'ffc_reregistration_invitation_batch'         => array(
+			'recurrence' => self::SINGLE,
+			'module'     => 'reregistration',
+		),
 		'ffc_date_messages_daily'                     => array(
 			'recurrence' => 'daily',
 			'module'     => 'date_messages',
@@ -168,7 +172,7 @@ final class ScheduledTasks {
 			case 'ffc_daily_expired_tickets_cleanup':
 				return __( 'Expired ticket cleanup', 'ffcertificate' );
 			case 'ffcertificate_reregistration_expire_hook':
-				return __( 'Reregistration expiry and automated reminders', 'ffcertificate' );
+				return __( 'Reregistration expiry, invitations and automated reminders', 'ffcertificate' );
 			case 'ffcertificate_self_scheduling_reminder_scan':
 				return __( 'Appointment reminder scan', 'ffcertificate' );
 			case 'ffc_cloudflare_cidr_refresh':
@@ -179,6 +183,8 @@ final class ScheduledTasks {
 				return __( 'Submission processing (one per submission)', 'ffcertificate' );
 			case 'ffc_reregistration_reminder_batch':
 				return __( 'Reregistration reminder batch (one per batch)', 'ffcertificate' );
+			case 'ffc_reregistration_invitation_batch':
+				return __( 'Reregistration invitation batch (one per batch)', 'ffcertificate' );
 			case 'ffc_date_messages_daily':
 				return __( 'Date messages (birthdays and other dates)', 'ffcertificate' );
 			case 'ffc_date_messages_batch':

@@ -584,12 +584,19 @@ class ReregistrationSubmissionReader {
 	 * stays `pending` and would be invited again on every run, and somebody who
 	 * started and stalled is never re-invited even when the deadline moves.
 	 *
+	 * The cursor and the limit serve the daily batch (#1762), in the shape
+	 * {@see self::get_awaiting_reminder()} already has: a keyset on `id`, so a
+	 * row whose send failed is stepped past instead of being read again on the
+	 * same run.
+	 *
 	 * @param int      $reregistration_id Campaign ID.
 	 * @param int|null $extended_at       Unix seconds of the last deadline
 	 *                                    extension, or null when there is none.
+	 * @param int      $after_id          Keyset cursor: only rows with an `id` greater than this.
+	 * @param int      $limit             Page size; `0` means no limit.
 	 * @return list<ReregistrationSubmissionRow>
 	 */
-	public static function get_awaiting_invitation( int $reregistration_id, ?int $extended_at = null ): array {
+	public static function get_awaiting_invitation( int $reregistration_id, ?int $extended_at = null, int $after_id = 0, int $limit = 0 ): array {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
@@ -605,11 +612,25 @@ class ReregistrationSubmissionReader {
 
 		$clause = implode( ' OR ', $where );
 
+		// Cursor and limit come after the clauses because that is where their
+		// placeholders sit in the SQL; `prepare()` substitutes in order.
+		$cursor_sql = '';
+		if ( $after_id > 0 ) {
+			$cursor_sql = ' AND id > %d';
+			$values[]   = $after_id;
+		}
+
+		$limit_sql = '';
+		if ( $limit > 0 ) {
+			$limit_sql = ' LIMIT %d';
+			$values[]  = $limit;
+		}
+
 		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The sniff counts the literal's placeholders and does not know `prepare()` accepts a single array of arguments, which is how the table, the id and the statuses arrive.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A read immediately before the write that changes the same rows; a cached answer would resend email.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE reregistration_id = %d AND ( {$clause} )",
+				"SELECT * FROM %i WHERE reregistration_id = %d AND ( {$clause} ){$cursor_sql} ORDER BY id ASC{$limit_sql}",
 				$values
 			)
 		);

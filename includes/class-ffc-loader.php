@@ -1071,6 +1071,10 @@ class Loader {
 		if ( SettingsReader::module_enabled( 'reregistration' ) ) {
 			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
 			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
+			// Invitations wait for this run since #1762, instead of going out
+			// the moment a campaign is activated. After `expire_overdue`, so a
+			// campaign that has just closed is not swept.
+			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_pending_invitations' ) );
 
 			// Continuation of a reminder batch (#1232 step 2). It needs `2`
 			// accepted arguments: the payload carries the campaign id and the
@@ -1078,6 +1082,7 @@ class Loader {
 			// above -- an event already enqueued when the module is turned off
 			// fires as a no-op and resumes when it comes back.
 			add_action( ReregistrationEmailHandler::REMINDER_BATCH_HOOK, array( ReregistrationEmailHandler::class, 'send_reminder_batch' ), 10, 2 );
+			add_action( ReregistrationEmailHandler::INVITATION_BATCH_HOOK, array( ReregistrationEmailHandler::class, 'send_invitation_batch' ), 10, 2 );
 		}
 		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
 			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );

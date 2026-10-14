@@ -85,7 +85,18 @@ class ReregistrationEmailHandler {
 	private const INVITATION_RECORDED_STATUSES = array( 'submitted', 'approved' );
 
 	/**
-	 * Send invitation emails to whoever is still awaiting one.
+	 * The single event that continues an invitation batch (#1762).
+	 *
+	 * Registered in `Loader` beside {@see self::REMINDER_BATCH_HOOK}, for the
+	 * same reason: cron registration is orchestrator lifecycle.
+	 *
+	 * @var string
+	 */
+	public const INVITATION_BATCH_HOOK = 'ffc_reregistration_invitation_batch';
+
+	/**
+	 * Send invitation emails to whoever is still awaiting one -- every one of
+	 * them, in this request. The manual *Send invitations* button.
 	 *
 	 * **Idempotent by construction** (#1190): it asks
 	 * {@see ReregistrationSubmissionReader::get_awaiting_invitation()} who is
@@ -98,34 +109,129 @@ class ReregistrationEmailHandler {
 	 * A deadline that moved forward re-opens the door for whoever has not
 	 * finished; see that method and `UNFINISHED_STATUSES` for who that is.
 	 *
+	 * Activating a campaign no longer calls this (#1762): the invitations go
+	 * out with the daily run, through {@see self::run_pending_invitations()},
+	 * so an operator who activates a campaign by mistake has until that run
+	 * to take it back.
+	 *
 	 * @param int $reregistration_id Reregistration ID.
 	 * @return int Number of emails sent.
 	 */
 	public static function send_invitations( int $reregistration_id ): int {
+		return self::dispatch_invitations( $reregistration_id, 0, 0 )['sent'];
+	}
+
+	/**
+	 * The daily invitation sweep (#1762): every active campaign that sends
+	 * invitations gets its first batch now, and a full batch schedules the
+	 * next one.
+	 *
+	 * Hooked on `ffcertificate_reregistration_expire_hook` AFTER
+	 * `expire_overdue`, so a campaign that has just closed is not swept.
+	 *
+	 * @return void
+	 */
+	public static function run_pending_invitations(): void {
 		if ( self::emails_disabled() ) {
-			return 0;
+			return;
+		}
+
+		global $wpdb;
+		$table = ReregistrationRepository::get_table_name();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cron sweep over the plugin's own ffc_* table; a cached list could miss a campaign activated since.
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT id FROM %i WHERE status = 'active' AND email_invitation_enabled = 1 ORDER BY id ASC",
+				$table
+			)
+		);
+
+		if ( empty( $ids ) ) {
+			return;
+		}
+
+		foreach ( $ids as $id ) {
+			self::send_invitation_batch( (int) $id, 0 );
+		}
+	}
+
+	/**
+	 * One page of a campaign's invitations, then the next page scheduled when
+	 * this one was full -- the reminder batch's shape
+	 * ({@see self::send_reminder_batch()}), with the same size and delay.
+	 *
+	 * @param int $reregistration_id The campaign ID.
+	 * @param int $after_id          Cursor: only rows with an `id` greater than this.
+	 * @return void
+	 */
+	public static function send_invitation_batch( int $reregistration_id, int $after_id = 0 ): void {
+		$result = self::dispatch_invitations( $reregistration_id, $after_id, self::REMINDER_BATCH_SIZE );
+
+		if ( $result['seen'] < self::REMINDER_BATCH_SIZE ) {
+			return;
+		}
+
+		$args = array( $reregistration_id, $result['last_id'] );
+
+		// Two cron runs over the same campaign would otherwise enqueue the
+		// same continuation twice.
+		if ( wp_next_scheduled( self::INVITATION_BATCH_HOOK, $args ) ) {
+			return;
+		}
+
+		wp_schedule_single_event( time() + self::REMINDER_BATCH_DELAY, self::INVITATION_BATCH_HOOK, $args );
+	}
+
+	/**
+	 * The invitation dispatch, shared by the manual button and the daily batch.
+	 *
+	 * `seen` and `last_id` are what the batch needs to decide whether to go on:
+	 * a full page on which some sends failed still has queue ahead of it. The
+	 * cursor advances past a failed send, so that row waits for the next day's
+	 * run instead of being read again on this one -- the counter-not-predicate
+	 * rule of `CLAUDE.md` "Batched migrations".
+	 *
+	 * @param int $reregistration_id The campaign ID.
+	 * @param int $after_id          Keyset cursor.
+	 * @param int $limit             Page size; `0` means no limit.
+	 * @return array{sent: int, seen: int, last_id: int}
+	 */
+	private static function dispatch_invitations( int $reregistration_id, int $after_id, int $limit ): array {
+		$empty = array(
+			'sent'    => 0,
+			'seen'    => 0,
+			'last_id' => $after_id,
+		);
+
+		if ( self::emails_disabled() ) {
+			return $empty;
 		}
 
 		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
 		if ( ! $rereg || empty( $rereg->email_invitation_enabled ) ) {
-			return 0;
+			return $empty;
+		}
+
+		$template = self::effective_template( 'reregistration-invitation' );
+		if ( ! $template ) {
+			return $empty;
 		}
 
 		$extended_at = isset( $rereg->deadline_extended_at ) ? (int) $rereg->deadline_extended_at : 0;
 
 		$submissions = ReregistrationSubmissionReader::get_awaiting_invitation(
 			$reregistration_id,
-			$extended_at > 0 ? $extended_at : null
+			$extended_at > 0 ? $extended_at : null,
+			$after_id,
+			$limit
 		);
 
-		$template = self::effective_template( 'reregistration-invitation' );
-		if ( ! $template ) {
-			return 0;
-		}
-
-		$count  = 0;
-		$mailed = array();
+		$count   = 0;
+		$last_id = $after_id;
 		foreach ( $submissions as $sub ) {
+			$last_id = (int) $sub->id;
+
 			// The password-setting link is issued PER USER and per send
 			// (#1212). Issuing rotates the key, so the last email is always the
 			// one that counts -- which is the right behaviour for a resent
@@ -144,14 +250,14 @@ class ReregistrationEmailHandler {
 			$extra = array_merge( $extra, self::invitation_status_vars( (string) $sub->status ) );
 
 			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template, $extra ) ) {
+				// Stamped at once, not at the end of the loop: on wp-cron a
+				// timeout partway through would otherwise leave everyone
+				// already mailed unstamped, and the next run would resend. A
+				// send that failed stays unstamped, so the next run retries it.
+				ReregistrationSubmissionWriter::mark_invited( array( (int) $sub->id ) );
 				++$count;
-				$mailed[] = (int) $sub->id;
 			}
 		}
-
-		// Only the ones that actually went out. A send that failed leaves the
-		// row unstamped, so the next run tries it again instead of burying it.
-		ReregistrationSubmissionWriter::mark_invited( $mailed );
 
 		// Activity log.
 		self::log(
@@ -163,7 +269,11 @@ class ReregistrationEmailHandler {
 			)
 		);
 
-		return $count;
+		return array(
+			'sent'    => $count,
+			'seen'    => count( $submissions ),
+			'last_id' => $last_id,
+		);
 	}
 
 	/**

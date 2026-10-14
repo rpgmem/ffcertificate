@@ -1419,7 +1419,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	 * @param int|null $extended_at Deadline extension, or null.
 	 * @return array{sql: string, values: array<int, mixed>}
 	 */
-	private function capture_awaiting_query(?int $extended_at): array {
+	private function capture_awaiting_query(?int $extended_at, int $after_id = 0, int $limit = 0): array {
 		$captured = array( 'sql' => '', 'values' => array() );
 
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () use (&$captured) {
@@ -1432,9 +1432,27 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		});
 		$this->wpdb->shouldReceive('get_results')->andReturn(array());
 
-		ReregistrationSubmissionReader::get_awaiting_invitation(7, $extended_at);
+		ReregistrationSubmissionReader::get_awaiting_invitation(7, $extended_at, $after_id, $limit);
 
 		return $captured;
+	}
+
+	/**
+	 * The daily batch (#1762) pages through the queue by `id`: the cursor and
+	 * the limit land in the SQL and in the values, after the clause, in order.
+	 */
+	public function test_get_awaiting_invitation_pages_by_id_when_asked(): void {
+		$captured = $this->capture_awaiting_query(1780000000, 40, 50);
+
+		$this->assertStringContainsString('AND id > %d ORDER BY id ASC LIMIT %d', $captured['sql']);
+		$this->assertSame(array(40, 50), array_slice($captured['values'], -2));
+	}
+
+	public function test_get_awaiting_invitation_without_a_page_reads_every_row(): void {
+		$captured = $this->capture_awaiting_query(null);
+
+		$this->assertStringNotContainsString('id >', $captured['sql']);
+		$this->assertStringNotContainsString('LIMIT', $captured['sql']);
 	}
 
 	/**
