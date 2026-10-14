@@ -71,6 +71,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'name'    => 'rereg_auto_approve',
 								'checked' => ! empty( $item->auto_approve ),
 								'label'   => __( 'Auto-approve submissions (no manual review needed)', 'ffcertificate' ),
+								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'reregistration', $id, 'auto_approve' ),
 							)
 						);
 						?>
@@ -113,6 +114,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 										'name'    => 'rereg_email_invitation',
 										'checked' => ! empty( $item->email_invitation_enabled ),
 										'label'   => __( 'Send invitation email (daily run after activation)', 'ffcertificate' ),
+										'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'reregistration', $id, 'email_invitation_enabled' ),
 									)
 								);
 								?>
@@ -124,6 +126,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 										'name'    => 'rereg_email_reminder',
 										'checked' => ! empty( $item->email_reminder_enabled ),
 										'label'   => __( 'Send reminder email before deadline', 'ffcertificate' ),
+										'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'reregistration', $id, 'email_reminder_enabled' ),
 									)
 								);
 								?>
@@ -135,6 +138,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 										'name'    => 'rereg_email_confirmation',
 										'checked' => ! empty( $item->email_confirmation_enabled ),
 										'label'   => __( 'Send confirmation email after submission', 'ffcertificate' ),
+										'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'reregistration', $id, 'email_confirmation_enabled' ),
 									)
 								);
 								?>

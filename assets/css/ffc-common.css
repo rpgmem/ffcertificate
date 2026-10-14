@@ -663,6 +663,36 @@
     color: var(--ffc-text-muted);
 }
 
+/* One file control for every upload field (#1757): the browser draws the
+   "Choose File" part, so it takes the secondary button's look here. The
+   dark rule below overrides the colours on purpose. */
+.ffc-file-input {
+    max-width: 100%;
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-file-input::file-selector-button {
+    min-height: 30px;
+    margin-right: var(--ffc-spacing-sm);
+    padding: 0 var(--ffc-spacing-sm);
+    color: var(--ffc-primary);
+    font: inherit;
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-primary);
+    border-radius: var(--ffc-radius-sm);
+    cursor: pointer;
+}
+
+.ffc-file-input::file-selector-button:hover {
+    color: var(--ffc-primary-hover);
+    border-color: var(--ffc-primary-hover);
+}
+
+.ffc-file-input:focus-visible {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: 2px;
+}
+
 /* The file input's "Choose File" is drawn by the browser, not by core, so it
    takes the secondary button's look by hand. */
 :root.ffc-dark-mode input[type="file"] {

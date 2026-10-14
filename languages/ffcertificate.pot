@@ -1962,10 +1962,6 @@ msgstr ""
 msgid "Always use inline styles"
 msgstr ""
 
-#: templates/admin/recruitment/admin-page/settings-tab.php:50
-msgid "Always — send the convocation email on every call"
-msgstr ""
-
 #: includes/settings/views/documentation/operations-troubleshooting.php:106
 msgid "An admin cannot see a plugin menu"
 msgstr ""
@@ -2442,10 +2438,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:56
 msgid "ask for a CPF and log it, but never block."
-msgstr ""
-
-#: templates/admin/recruitment/admin-page/settings-tab.php:52
-msgid "Ask — decide per call via a \"Notify by email\" checkbox on the call action"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-record.php:71
@@ -11375,10 +11367,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:395
 msgid "Never enables actual data logging, only operation status."
-msgstr ""
-
-#: templates/admin/recruitment/admin-page/settings-tab.php:51
-msgid "Never — do not send automatically"
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:871
@@ -25873,4 +25861,80 @@ msgstr ""
 
 #: templates/admin/reregistration/form.php
 msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "Unknown record type."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "You do not have permission to change this record."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "That record no longer exists."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "This field cannot be saved here."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The calendar could not be saved."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Self-join is set on the parent audience."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The audience could not be saved."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-record-autosave.php
+msgid "The campaign could not be saved."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-record-autosave.php
+msgid "The notice could not be saved."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-record-autosave.php
+msgid "The reason could not be saved."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Never"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Ask"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Always"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Calling a candidate never sends the convocation email."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Each call asks, through a \"Notify by email\" checkbox on the call action."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Every call sends the convocation email."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "The status is the exception: it changes only on Save."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A new calendar starts public."
 msgstr ""

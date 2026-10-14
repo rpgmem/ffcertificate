@@ -23,7 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed): an audience can let users join or leave its child groups from their dashboard, with a cap on how many child groups one user may join, and its descendants inherit the setting. Audiences also carry the custom fields used by reregistration.', 'ffcertificate' ); ?> <a href="#feature-audiences"><?php esc_html_e( 'See Audience Custom Fields', 'ffcertificate' ); ?></a>.</p>
 
 	<h4><?php esc_html_e( 'Schedules & environments', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'A schedule is a bookable calendar; inside it, each environment is a space (room/resource) with its own weekly working hours (default 08:00–18:00, per-day closable) and color. A schedule controls visibility, how far ahead bookings are allowed, per-user booking permissions, and the notification settings below.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A schedule is a bookable calendar; inside it, each environment is a space (room/resource) with its own weekly working hours (default 08:00–18:00, per-day closable) and color. A schedule controls visibility, how far ahead bookings are allowed, per-user booking permissions, and the notification settings below.', 'ffcertificate' ); ?> <?php esc_html_e( 'A new calendar starts public.', 'ffcertificate' ); ?></p>
+	<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-note">
 		<p>

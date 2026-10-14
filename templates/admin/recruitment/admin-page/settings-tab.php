@@ -46,17 +46,30 @@ echo '<h2 class="ffc-icon-email">' . esc_html__( 'Email template', 'ffcertificat
 echo '<table class="form-table"><tbody>';
 
 // Convocation send mode (#794).
-$email_mode  = (string) $settings['email_mode'];
-$email_modes = array(
-	\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_ALWAYS => __( 'Always — send the convocation email on every call', 'ffcertificate' ),
-	\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_NEVER  => __( 'Never — do not send automatically', 'ffcertificate' ),
-	\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_ASK    => __( 'Ask — decide per call via a "Notify by email" checkbox on the call action', 'ffcertificate' ),
+$email_mode = (string) $settings['email_mode'];
+// An ordered scale, from never sending to always sending, so steps (#1757).
+echo '<tr><th>' . esc_html__( 'Send mode', 'ffcertificate' ) . '</th><td>';
+\FreeFormCertificate\Admin\AdminUI::render_steps(
+	array(
+		'name'         => $opt . '[email_mode]',
+		'id'           => 'ffc-recruitment-email-mode',
+		'legend'       => __( 'Send mode', 'ffcertificate' ),
+		'options'      => array(
+			\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_NEVER  => __( 'Never', 'ffcertificate' ),
+			\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_ASK    => __( 'Ask', 'ffcertificate' ),
+			\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_ALWAYS => __( 'Always', 'ffcertificate' ),
+		),
+		'descriptions' => array(
+			\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_NEVER  => __( 'Calling a candidate never sends the convocation email.', 'ffcertificate' ),
+			\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_ASK    => __( 'Each call asks, through a "Notify by email" checkbox on the call action.', 'ffcertificate' ),
+			\FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_ALWAYS => __( 'Every call sends the convocation email.', 'ffcertificate' ),
+		),
+		'value'        => $email_mode,
+		'default'      => \FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher::MODE_ALWAYS,
+		'disabled'     => ! $can_edit,
+		'data'         => array( 'ffc-autosave-key' => 'recruitment_email_mode' ),
+	)
 );
-echo '<tr><th>' . esc_html__( 'Send mode', 'ffcertificate' ) . '</th><td><fieldset>';
-foreach ( $email_modes as $mode_val => $mode_label ) {
-	echo '<label class="ffc-radio-option"><input type="radio" name="' . esc_attr( $opt ) . '[email_mode]" value="' . esc_attr( (string) $mode_val ) . '" ' . checked( $email_mode, $mode_val, false ) . '> ' . esc_html( $mode_label ) . '</label>';
-}
-echo '</fieldset>';
 echo '<p class="description">' . esc_html__( 'Controls whether calling a candidate sends the convocation email. The global "disable all emails" switch always wins.', 'ffcertificate' ) . '</p>';
 echo '</td></tr>';
 
