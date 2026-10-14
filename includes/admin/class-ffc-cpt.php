@@ -31,12 +31,17 @@ class CPT {
 	public const POST_TYPE = 'ffc_form';
 
 	/**
+	 * The `admin_action_{$action}` slug the form "Duplicate" links post to.
+	 */
+	public const DUPLICATE_ACTION = 'ffc_duplicate_form';
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		add_action( 'init', array( $this, 'register_form_cpt' ) );
 		add_filter( 'post_row_actions', array( $this, 'add_duplicate_link' ), 10, 2 );
-		add_action( 'admin_action_ffc_duplicate_form', array( $this, 'handle_form_duplication' ) );
+		add_action( 'admin_action_' . self::DUPLICATE_ACTION, array( $this, 'handle_form_duplication' ) );
 		add_action( 'post_submitbox_misc_actions', array( $this, 'render_duplicate_submitbox_link' ) );
 		add_filter( 'views_edit-ffc_form', array( $this, 'translate_views' ) );
 	}
@@ -133,12 +138,12 @@ class CPT {
 			return $actions;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
 			return $actions;
 		}
 
 		$url = wp_nonce_url(
-			admin_url( 'admin.php?action=ffc_duplicate_form&post=' . $post->ID ),
+			admin_url( 'admin.php?action=' . self::DUPLICATE_ACTION . '&post=' . $post->ID ),
 			'ffc_duplicate_form_nonce'
 		);
 
@@ -164,7 +169,7 @@ class CPT {
 		if ( ! $post || 'ffc_form' !== $post->post_type ) {
 			return;
 		}
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
 			return;
 		}
 		// New (auto-draft) posts have nothing meaningful to copy yet — the
@@ -174,7 +179,7 @@ class CPT {
 		}
 
 		$url = wp_nonce_url(
-			admin_url( 'admin.php?action=ffc_duplicate_form&post=' . $post->ID ),
+			admin_url( 'admin.php?action=' . self::DUPLICATE_ACTION . '&post=' . $post->ID ),
 			'ffc_duplicate_form_nonce'
 		);
 		?>
@@ -191,7 +196,9 @@ class CPT {
 	 * Handles the duplication process when the action is triggered
 	 */
 	public function handle_form_duplication(): void {
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_manage() ) {
+		// Duplicating creates a form, so it takes the post type's write cap,
+		// the same one the row action and the submit-box link check (#1781).
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
 			\FreeFormCertificate\Core\Debug::log_admin(
 				'Unauthorized form duplication attempt',
 				array(

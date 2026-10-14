@@ -46,7 +46,7 @@ class CptTest extends TestCase {
 		// Utils alias mock
 		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
 		$this->caps_mock  = Mockery::mock( 'alias:\FreeFormCertificate\Core\Capabilities' );
-		$this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
+		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_manage_forms' )->andReturn( true )->byDefault();
 		$this->utils_mock->shouldReceive( 'debug_log' )->byDefault();
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' )->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault()
 			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
@@ -195,7 +195,7 @@ class CptTest extends TestCase {
 	}
 
 	public function test_add_duplicate_link_returns_unmodified_actions_when_user_cannot_manage(): void {
-		$this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( false );
+		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_manage_forms' )->andReturn( false );
 
 		$post = (object) array(
 			'ID'        => 1,
@@ -250,7 +250,7 @@ class CptTest extends TestCase {
 	}
 
 	public function test_render_duplicate_submitbox_link_outputs_nothing_when_user_cannot_manage(): void {
-		$this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( false );
+		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_manage_forms' )->andReturn( false );
 
 		ob_start();
 		( new CPT() )->render_duplicate_submitbox_link( $this->make_post( 'ffc_form' ) );
@@ -283,7 +283,7 @@ class CptTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_form_duplication_dies_when_user_cannot_manage(): void {
-		$this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( false );
+		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_manage_forms' )->andReturn( false );
 
 		Functions\when( 'wp_die' )->alias( function ( $message ) {
 			throw new \RuntimeException( 'wp_die: ' . $message );

@@ -131,10 +131,20 @@ final class AdminMenuVisibility {
 		// `edit.php?post_type=ffc_form&page=…` form; the certificate roles hold
 		// no forms capability, so they land on the Dashboard instead.
 		$forms_list          = 'edit.php?post_type=' . CPT::POST_TYPE;
-		$certificate_screens = array( CertificatesDashboard::MENU_SLUG, $forms_list, Admin::SUBMISSIONS_PAGE, Settings::MENU_SLUG );
+		$certificate_screens = array( CertificatesDashboard::MENU_SLUG, $forms_list, Admin::SUBMISSIONS_PAGE );
 		// The forms side: the forms' list (and its editor), the Document
 		// Templates list and their read-only sample-data preview.
-		$form_screens = array( $forms_list, 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE, 'admin.php?action=' . CertTemplateAdminScreen::PREVIEW_ACTION, Settings::MENU_SLUG );
+		$form_screens = array( $forms_list, 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE, 'admin.php?action=' . CertTemplateAdminScreen::PREVIEW_ACTION );
+		// The forms' write actions, page-less `admin.php?action=…` URLs whose
+		// handlers all check `ffc_manage_forms` (#1781): form Duplicate and
+		// the Document Templates row and toolbar actions.
+		$form_write_actions = array(
+			'admin.php?action=' . CPT::DUPLICATE_ACTION,
+			'admin.php?action=' . CertTemplateAdminScreen::TOGGLE_ACTION,
+			'admin.php?action=' . CertTemplateAdminScreen::DUPLICATE_ACTION,
+			'admin.php?action=' . CertTemplateAdminScreen::EXPORT_ACTION,
+			'admin.php?action=' . CertTemplateAdminScreen::RESTORE_ACTION,
+		);
 
 		return array(
 			// Certificates ladder.
@@ -171,7 +181,7 @@ final class AdminMenuVisibility {
 			),
 			'ffc_forms_manager'           => array(
 				'landing_page'         => $forms_list,
-				'allowed_pages'        => $form_screens,
+				'allowed_pages'        => array_merge( $form_screens, $form_write_actions ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
@@ -238,16 +248,17 @@ final class AdminMenuVisibility {
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Reregistration ladder.
+			// Reregistration ladder. Custom Fields is registered under
+			// `ffc_manage_reregistration`, so only the manager lists it (#1782).
 			'ffc_reregistration_viewer'   => array(
 				'landing_page'         => ReregistrationAdmin::MENU_SLUG,
-				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG, ReregistrationAdmin::CUSTOM_FIELDS_SLUG ),
+				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_reregistration_operator' => array(
 				'landing_page'         => ReregistrationAdmin::MENU_SLUG,
-				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG, ReregistrationAdmin::CUSTOM_FIELDS_SLUG ),
+				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
@@ -266,7 +277,7 @@ final class AdminMenuVisibility {
 						array_merge(
 							$certificate_screens,
 							$form_screens,
-							array( ReregistrationAdmin::MENU_SLUG, RecruitmentAdminPage::PAGE_SLUG, self::APPOINTMENTS_PAGE, $personal_calendars, self::SHORT_URLS_PAGE, self::DATE_MESSAGES_PAGE ),
+							array( Settings::MENU_SLUG, ReregistrationAdmin::MENU_SLUG, RecruitmentAdminPage::PAGE_SLUG, self::APPOINTMENTS_PAGE, $personal_calendars, self::SHORT_URLS_PAGE, self::DATE_MESSAGES_PAGE ),
 							$audience_screens
 						)
 					)
@@ -274,7 +285,8 @@ final class AdminMenuVisibility {
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Recruitment ladder (every tier shares the recruitment landing).
+			// Recruitment ladder (every tier shares the recruitment landing; its
+			// settings are a tab of that screen, not FFC Settings, #1782).
 			'ffc_recruitment_viewer'      => array(
 				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
 				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG ),
@@ -289,13 +301,13 @@ final class AdminMenuVisibility {
 			),
 			'ffc_recruitment_manager'     => array(
 				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
-				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG, Settings::MENU_SLUG ),
+				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_recruitment_admin'       => array(
 				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
-				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG, Settings::MENU_SLUG ),
+				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
@@ -400,7 +412,8 @@ final class AdminMenuVisibility {
 		if ( 'admin.php' === $current_page ) {
 			$page = RequestInput::get_get_key( 'page' );
 			// `admin.php?action=…` with no page dispatches `admin_action_*`
-			// (the calendar "Duplicate" row action); only an action the
+			// (the calendar and form "Duplicate" row actions, the Document
+			// Templates actions); only an action the
 			// role lists passes, and the handler checks its own capability.
 			$action = RequestInput::get_get_key( 'action' );
 			if ( '' === $page && '' !== $action && in_array( 'admin.php?action=' . $action, $policy['allowed_pages'], true ) ) {
