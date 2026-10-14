@@ -447,9 +447,67 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/<input type="email" name="user_email"[^>]*data-ffc-pii-editable="1" disabled required>/', $html, 'the masked email is not posted until revealed' );
 		$this->assertStringContainsString( 'data-field="email"', $html );
 		$this->assertStringContainsString( 'data-field="cpf"', $html );
-		$this->assertSame( 2, substr_count( $html, 'class="button button-small ffc-reveal-pii' ) );
+		// Email, CPF and the IP under System Information and under the consent.
+		$this->assertSame( 4, substr_count( $html, 'class="button button-small ffc-reveal-pii' ) );
 		$this->assertStringContainsString( 'data-submission-id="42"', $html );
 		$this->assertStringContainsString( 'Reveal the email to edit it.', $html );
+	}
+
+	public function test_render_puts_each_reveal_button_on_its_value_row(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		// The email and the CPF: the masked value and its button share one row (#1760).
+		$this->assertMatchesRegularExpression( '#<span class="ffc-pii-row">\s*<input type="email" name="user_email"[^>]*>\s*<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="email"#', $html );
+		$this->assertMatchesRegularExpression( '#<span class="ffc-pii-row"><input type="text" value="518\.\*\*\*\.\*\*\*-80"[^>]*data-ffc-pii-field="cpf"[^>]*><button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="cpf"#', $html );
+	}
+
+	public function test_render_masks_both_ip_displays_behind_reveal(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'user_ip' => '203.0.113.7' ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( '203.0.113.7', $html, 'the clear IP never sits in the page' );
+		$this->assertSame( 2, substr_count( $html, 'value="203.0.***.***"' ), 'System Information and the consent both show the masked IP' );
+		$this->assertSame( 2, preg_match_all( '#data-ffc-pii-field="ip" readonly aria-label="[^"]+"><button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="ip"#', $html ) );
+		$this->assertStringContainsString( 'This IP is encrypted in the database.', $html );
+	}
+
+	public function test_render_without_the_pii_capability_shows_the_ip_masked_with_no_reveal(): void {
+		Functions\when( 'user_can' )->justReturn( false );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'user_ip' => '2001:db8::1' ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( '2001:db8::1', $html );
+		$this->assertSame( 2, substr_count( $html, 'value="2001:db8:0:0:****:****:****:****"' ) );
+		$this->assertStringNotContainsString( 'data-field="ip"', $html );
+	}
+
+	public function test_render_draws_every_record_section_as_the_shared_section(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		// Participant Data, Form answers and System Information open; consent closed.
+		$this->assertSame( 3, substr_count( $html, '<details class="ffc-section" open data-ffc-section>' ) );
+		$this->assertSame( 1, substr_count( $html, '<details class="ffc-section" data-ffc-section>' ) );
+		foreach ( array( 'Participant Data', 'Form answers', 'System Information', 'LGPD Consent Status' ) as $title ) {
+			$this->assertMatchesRegularExpression( '#<span class="ffc-section__icon"><svg[^>]*>.*?</svg></span><span class="ffc-section__text"><span class="ffc-section__title">' . preg_quote( $title, '#' ) . '</span>#s', $html, $title . ' has the section icon heading' );
+		}
+		// The record sections no longer use the card heading; only the side panel does.
+		$this->assertStringNotContainsString( 'ffc-edit-card__title ffc-icon-info', $html );
+		$this->assertStringNotContainsString( 'ffc-edit-card__title ffc-icon-list', $html );
+		$this->assertSame( 1, substr_count( $html, 'ffc-edit-card__title ffc-icon-user' ), 'only the Linked User card keeps the user icon card' );
 	}
 
 	public function test_render_without_the_pii_capability_masks_and_offers_no_reveal(): void {

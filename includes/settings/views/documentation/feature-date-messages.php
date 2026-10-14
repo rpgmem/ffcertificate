@@ -47,6 +47,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</table>
 	<p><?php esc_html_e( 'Rules can be edited, duplicated, activated or deactivated and deleted from the Rules tab. Deleting a rule keeps what it already sent in the history.', 'ffcertificate' ); ?></p>
 
+	<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Who receives a message', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'For each person whose date falls on the day, the first matching decision wins: outside the audience, opted out, no valid e-mail, already sent, otherwise will receive. Each person gets a rule\'s message once per occurrence of their date, however often the run repeats. People born on 29 February are reached on 28 February in a common year. The year of birth is never shown; {{age}} is computed from it.', 'ffcertificate' ); ?></p>
 	<p class="description"><?php esc_html_e( 'A birth date given before the profile field existed reaches the profile through a migration card in Settings → Data Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends.', 'ffcertificate' ); ?></p>

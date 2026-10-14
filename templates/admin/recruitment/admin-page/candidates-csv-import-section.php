@@ -66,7 +66,7 @@ echo '<p class="description" id="ffc-cand-import-target-help">' . esc_html__( 'P
 echo '</td></tr>';
 
 echo '<tr><th><label for="ffc-cand-csv-file">' . esc_html__( 'CSV file', 'ffcertificate' ) . '</label></th><td>';
-echo '<input id="ffc-cand-csv-file" name="csv_file" type="file" accept=".csv,text/csv" required>';
+echo '<input class="ffc-file-input" id="ffc-cand-csv-file" name="csv_file" type="file" accept=".csv,text/csv" required>';
 echo '</td></tr>';
 
 echo '</tbody></table>';

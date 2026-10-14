@@ -59,9 +59,26 @@
     margin-top: var(--ffc-spacing-3xs);
 }
 
+/*
+ * A masked value and its Reveal button on one row (#1760): the email, the
+ * CPF/RF and both IP displays, so every Reveal sits beside its value and
+ * keeps its own width.
+ */
+.ffc-pii-row {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    max-width: 100%;
+}
+
+.ffc-pii-row .ffc-reveal-pii {
+    flex: none;
+}
+
 /* A read-only value the reveal script still writes into, drawn as text. */
 /* Specific enough to beat core's and the dark theme's input rules. */
-.ffc-edit-card .ffc-facts__value input.ffc-edit-plain {
+.ffc-edit-submission-form .ffc-pii-row input.ffc-edit-plain {
     width: auto;
     min-width: 12em;
     min-height: 0;

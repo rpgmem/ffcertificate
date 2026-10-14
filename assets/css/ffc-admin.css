@@ -1303,12 +1303,6 @@ p.ffc-datetime-order-error {
     background-color: var(--ffc-color);
 }
 
-/* Block radio option in a fieldset (repeated per choice). */
-.ffc-radio-option {
-    display: block;
-    margin-bottom: var(--ffc-spacing-2xs);
-}
-
 /* ==========================================================================
    ACCESSIBILITY — HIGH CONTRAST (forced-colors)
    Gives a border back to whatever had only a background. No effect outside

@@ -1935,10 +1935,6 @@ msgstr "Opções do widget ALTCHA"
 msgid "Always use inline styles"
 msgstr "Sempre use estilos embutidos"
 
-#: templates/admin/recruitment/admin-page/settings-tab.php:50
-msgid "Always — send the convocation email on every call"
-msgstr "Sempre — envie o e-mail de convocação para cada chamada."
-
 #: includes/settings/views/documentation/operations-troubleshooting.php:106
 msgid "An admin cannot see a plugin menu"
 msgstr "Um administrador não consegue ver o menu de um plugin."
@@ -2412,10 +2408,6 @@ msgstr "Assim que a página carregar"
 #: includes/settings/views/documentation/forms-public-operator-access.php:56
 msgid "ask for a CPF and log it, but never block."
 msgstr "solicite o CPF e registre-o, mas nunca bloqueie."
-
-#: templates/admin/recruitment/admin-page/settings-tab.php:52
-msgid "Ask — decide per call via a \"Notify by email\" checkbox on the call action"
-msgstr "Perguntar — decidir a cada chamada por meio de uma caixa de seleção \"Notificar por e-mail\" na ação de chamada."
 
 #: includes/settings/views/documentation/feature-record.php:71
 msgid "Assigned unit"
@@ -9880,12 +9872,6 @@ msgstr "ip-api.com (gratuito, ~45 requisições/min, sem chave) ou ipinfo.io (re
 msgid "IP:"
 msgstr "IP:"
 
-#. %s: IP address
-#: includes/admin/class-ffc-admin-submission-edit-page.php:391
-#, php-format
-msgid "IP: %s"
-msgstr "IP: %s"
-
 #: templates/submission-success.php:110
 msgid "iPhone / iPad: after the PDF opens, tap Share → \"Save to Files\" to keep it on your device."
 msgstr "iPhone / iPad: depois de abrir o PDF, toque em Compartilhar → \"Salvar em Arquivos\" para mantê-lo no seu dispositivo."
@@ -11304,10 +11290,6 @@ msgstr "Nunca clicado e criado a mais de"
 #: includes/settings/views/ffc-tab-advanced.php:395
 msgid "Never enables actual data logging, only operation status."
 msgstr "Nunca ativa o registro de dados reais, apenas o status de operação."
-
-#: templates/admin/recruitment/admin-page/settings-tab.php:51
-msgid "Never — do not send automatically"
-msgstr "Nunca — não enviar automaticamente"
 
 #: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:871
 msgid "New adjutancy is the same as the current one."
@@ -23124,8 +23106,8 @@ msgstr "Exporte as submissões atuais (filtradas) para CSV em segundo plano. A e
 msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form)."
 msgstr "Enviar para a lixeira / restaurar e ações em massa, incluindo \"Mova para o formulário…\" (oferecida quando a lista está filtrada por um único formulário)."
 
-msgid "Reveal the decrypted CPF / RF / email on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
-msgstr "Revelar sob demanda o CPF / RF / e-mail descriptografados em vez dos valores mascarados; cada revelação é auditada. Sem ela, a lista e a tela de edição permanecem mascaradas, independentemente de outras permissões do operador. O PDF do certificado não é mascarado: ele imprime o CPF/RF formatado com pontuação."
+msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
+msgstr "Revelar sob demanda o CPF / RF / e-mail descriptografados, e o IP na tela de edição, em vez dos valores mascarados; cada revelação é auditada. Sem ela, a lista e a tela de edição permanecem mascaradas, independentemente de outras permissões do operador. O PDF do certificado não é mascarado: ele imprime o CPF/RF formatado com pontuação."
 
 msgid "Minimum interval between bookings"
 msgstr "Intervalo mínimo entre agendamentos"
@@ -24576,8 +24558,8 @@ msgstr "Os atributos que o placeholder {{qr_code}} pode definir por conta própr
 msgid "Reveal the email to edit it."
 msgstr "Revele o e-mail para editá-lo."
 
-msgid "On the edit screen the CPF/RF and the email start masked for everyone, administrators included. An operator who may see them uses Reveal to fetch the value, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
-msgstr "Na tela de edição, o CPF/RF e o e-mail começam mascarados para todos, inclusive administradores. Quem tem permissão para vê-los usa Revelar para buscar o valor, e cada revelação grava uma entrada no Log de Atividades enquanto ele estiver ligado. O e-mail só pode ser editado depois de revelado; salvar sem revelá-lo mantém o endereço gravado."
+msgid "On the edit screen the CPF/RF, the email and the IP start masked for everyone, administrators included. The IP is the address the submission and its consent were recorded from, so it is masked both under System Information and under the consent status. An operator who may see them uses the Reveal button beside each value to fetch it, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
+msgstr "Na tela de edição, o CPF/RF, o e-mail e o IP começam mascarados para todos, inclusive administradores. O IP é o endereço de onde o envio e o seu consentimento foram registrados, por isso aparece mascarado tanto em Informações do sistema quanto no status do consentimento. Quem tem permissão para vê-los usa o botão Revelar ao lado de cada valor para buscá-lo, e cada revelação grava uma entrada no Log de Atividades enquanto ele estiver ligado. O e-mail só pode ser editado depois de revelado; salvar sem revelá-lo mantém o endereço gravado."
 
 msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."
 msgstr "Administradores (manage_options) possuem todas as permissões acima e, assim como a função de administrador de certificados, veem os dados pessoais sem máscara na lista, sem a etapa de revelação; a tela de edição também os mascara para eles. Veja Capacidades e Funções."
@@ -25836,6 +25818,82 @@ msgstr "Ative a campanha — uma submissão é criada na hora para cada membro d
 #: templates/admin/reregistration/form.php
 msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
 msgstr "Envia o convite agora, sem esperar a execução diária, a quem ainda não recebeu. Clicar duas vezes não envia nada na segunda. Se o prazo foi prorrogado, também alcança todos que não concluíram."
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "Unknown record type."
+msgstr "Tipo de registro desconhecido."
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "You do not have permission to change this record."
+msgstr "Você não tem permissão para alterar este registro."
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "That record no longer exists."
+msgstr "Esse registro não existe mais."
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "This field cannot be saved here."
+msgstr "Este campo não pode ser salvo aqui."
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The calendar could not be saved."
+msgstr "Não foi possível salvar o calendário."
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Self-join is set on the parent audience."
+msgstr "A auto-adesão é definida no público pai."
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The audience could not be saved."
+msgstr "Não foi possível salvar o público."
+
+#: includes/reregistration/class-ffc-reregistration-record-autosave.php
+msgid "The campaign could not be saved."
+msgstr "Não foi possível salvar a campanha."
+
+#: includes/recruitment/class-ffc-recruitment-record-autosave.php
+msgid "The notice could not be saved."
+msgstr "Não foi possível salvar o edital."
+
+#: includes/recruitment/class-ffc-recruitment-record-autosave.php
+msgid "The reason could not be saved."
+msgstr "Não foi possível salvar o motivo."
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Never"
+msgstr "Nunca"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Ask"
+msgstr "Perguntar"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Always"
+msgstr "Sempre"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Calling a candidate never sends the convocation email."
+msgstr "Convocar um candidato nunca envia o e-mail de convocação."
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Each call asks, through a \"Notify by email\" checkbox on the call action."
+msgstr "Cada convocação pergunta, por uma caixa \"Notificar por e-mail\" na ação de convocar."
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Every call sends the convocation email."
+msgstr "Toda convocação envia o e-mail de convocação."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created."
+msgstr "Em um registro que já existe, um interruptor salva no momento em que você o aciona, sem o botão Salvar. Um registro novo mantém o botão Salvar até ser criado."
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "The status is the exception: it changes only on Save."
+msgstr "O status é a exceção: ele só muda ao Salvar."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A new calendar starts public."
+msgstr "Um calendário novo começa público."
 
 #: includes/settings/views/ffc-tab-captcha.php:233
 msgid "\"Protected by ALTCHA\" footer"

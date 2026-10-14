@@ -556,6 +556,32 @@ class DocumentFormatterTest extends TestCase {
 	}
 
 	// ==================================================================
+	// mask_ip (#1760)
+	// ==================================================================
+
+	public function test_mask_ip_keeps_the_first_two_ipv4_octets(): void {
+		$this->assertSame('203.0.***.***', DocumentFormatter::mask_ip('203.0.113.7'));
+	}
+
+	public function test_mask_ip_keeps_the_ipv6_network_half(): void {
+		$this->assertSame('2001:db8:85a3:0:****:****:****:****', DocumentFormatter::mask_ip('2001:0db8:85a3:0000:0000:8a2e:0370:7334'));
+	}
+
+	public function test_mask_ip_expands_a_compressed_ipv6_address_first(): void {
+		$this->assertSame('2001:db8:0:0:****:****:****:****', DocumentFormatter::mask_ip('2001:db8::1'));
+		$this->assertSame('0:0:0:0:****:****:****:****', DocumentFormatter::mask_ip('::1'));
+	}
+
+	public function test_mask_ip_masks_a_value_that_is_not_an_ip_whole(): void {
+		$this->assertSame('***', DocumentFormatter::mask_ip('not-an-ip'));
+	}
+
+	public function test_mask_ip_returns_empty_for_empty_input(): void {
+		$this->assertSame('', DocumentFormatter::mask_ip(''));
+		$this->assertSame('', DocumentFormatter::mask_ip('  '));
+	}
+
+	// ==================================================================
 	// mask_field_value — shared per-key PII masker (#838)
 	// ==================================================================
 

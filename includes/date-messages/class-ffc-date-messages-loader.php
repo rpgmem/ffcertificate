@@ -46,5 +46,7 @@ class DateMessagesLoader {
 		$this->admin_page->init();
 
 		DateMessagesAjaxEndpoint::init();
+		// Record autosave for the rule edit screen (#1757).
+		DateMessagesRecordAutosave::register();
 	}
 }

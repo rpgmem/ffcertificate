@@ -263,6 +263,7 @@ final class AudienceAdminAudienceRenderer {
 								'value'   => 'active',
 								'checked' => 'active' === (string) ( $audience->status ?? 'active' ),
 								'label'   => __( 'Active', 'ffcertificate' ),
+								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience', $id, 'status' ),
 							)
 						);
 						?>
@@ -295,6 +296,7 @@ final class AudienceAdminAudienceRenderer {
 									'id'      => 'audience_self_join',
 									'checked' => $is_self_join,
 									'label'   => __( 'Users can join/leave child groups from their dashboard', 'ffcertificate' ),
+									'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience', $id, 'allow_self_join' ),
 								)
 							);
 							?>

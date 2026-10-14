@@ -424,6 +424,45 @@ class DocumentFormatter {
 	}
 
 	/**
+	 * Mask an IP address for privacy (#1760).
+	 *
+	 * IPv4 keeps its first two octets (`192.168.***.***`); IPv6 keeps its
+	 * first four groups, the network half, and masks the interface half
+	 * (`2001:db8:85a3:0:****:****:****:****`). A compressed IPv6 address is
+	 * expanded first, so the four groups kept are always the leading ones.
+	 * A value that is not an IP is masked whole rather than returned, so a
+	 * malformed stored value never reaches the page in clear.
+	 *
+	 * @since 6.40.0
+	 * @param string $ip IP address.
+	 * @return string Masked IP, or '' for an empty input.
+	 */
+	public static function mask_ip( string $ip ): string {
+		$ip = trim( $ip );
+		if ( '' === $ip ) {
+			return '';
+		}
+
+		if ( false !== filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
+			$octets = explode( '.', $ip );
+			return $octets[0] . '.' . $octets[1] . '.***.***';
+		}
+
+		if ( false !== filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
+			$packed = inet_pton( $ip );
+			if ( false !== $packed && 16 === strlen( $packed ) ) {
+				$groups = array_map(
+					static fn( string $pair ): string => dechex( (int) hexdec( $pair ) ),
+					str_split( bin2hex( $packed ), 4 )
+				);
+				return implode( ':', array_slice( $groups, 0, 4 ) ) . ':****:****:****:****';
+			}
+		}
+
+		return '***';
+	}
+
+	/**
 	 * Mask one form-field value by its key, for surfaces that must not leak the
 	 * PII collected inside a submission's `data` blob (the public `/valid`
 	 * verification page and the `/verify` REST endpoint). Returns the raw masked

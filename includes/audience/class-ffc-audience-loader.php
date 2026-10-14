@@ -116,6 +116,9 @@ class AudienceLoader {
 	 * @return void
 	 */
 	private function init_admin(): void {
+		// Record autosave for the calendar and audience edit screens (#1757).
+		AudienceRecordAutosave::register();
+
 		// Load admin page handler.
 		if ( class_exists( '\FreeFormCertificate\Audience\AudienceAdminPage' ) ) {
 			$this->admin_page = new AudienceAdminPage();
@@ -349,6 +352,8 @@ class AudienceLoader {
 				'strings' => \FreeFormCertificate\Admin\AdminUI::autosave_strings(),
 			)
 		);
+		// The calendar and audience edit screens save their toggles per record (#1757).
+		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 	}
 
 	/**

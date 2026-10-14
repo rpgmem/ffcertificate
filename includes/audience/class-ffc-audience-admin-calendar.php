@@ -247,14 +247,20 @@ class AudienceAdminCalendar {
 						<label for="schedule_visibility"><?php esc_html_e( 'Visibility', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<select name="schedule_visibility" id="schedule_visibility">
-							<option value="private" <?php selected( $schedule->visibility ?? 'private', 'private' ); ?>>
-								<?php esc_html_e( 'Private', 'ffcertificate' ); ?>
-							</option>
-							<option value="public" <?php selected( $schedule->visibility ?? '', 'public' ); ?>>
-								<?php esc_html_e( 'Public', 'ffcertificate' ); ?>
-							</option>
-						</select>
+						<input type="hidden" name="schedule_visibility" value="private">
+						<?php
+						// New calendars start public (#1757); a stored value is left as it is.
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'schedule_visibility',
+								'id'      => 'schedule_visibility',
+								'value'   => 'public',
+								'checked' => 'public' === (string) ( $schedule->visibility ?? 'public' ),
+								'label'   => __( 'Public', 'ffcertificate' ),
+								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'visibility' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Public: visible to everyone. Private: only visible to logged-in users who belong to an audience group. Scheduling is always restricted to authorized members.', 'ffcertificate' ); ?>
 						</p>
@@ -284,6 +290,7 @@ class AudienceAdminCalendar {
 										'name'    => 'schedule_notify_booking',
 										'checked' => 1 === (int) ( $schedule->notify_on_booking ?? 1 ),
 										'label'   => __( 'Send email on new booking', 'ffcertificate' ),
+										'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'notify_on_booking' ),
 									)
 								);
 								?>
@@ -295,6 +302,7 @@ class AudienceAdminCalendar {
 										'name'    => 'schedule_notify_cancel',
 										'checked' => 1 === (int) ( $schedule->notify_on_cancellation ?? 1 ),
 										'label'   => __( 'Send email on cancellation', 'ffcertificate' ),
+										'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'notify_on_cancellation' ),
 									)
 								);
 								?>
@@ -306,6 +314,7 @@ class AudienceAdminCalendar {
 										'name'    => 'schedule_include_ics',
 										'checked' => 1 === (int) ( $schedule->include_ics ?? 0 ),
 										'label'   => __( 'Include .ics calendar file in emails', 'ffcertificate' ),
+										'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'include_ics' ),
 									)
 								);
 								?>
@@ -317,6 +326,7 @@ class AudienceAdminCalendar {
 										'name'    => 'schedule_notify_admin_booking',
 										'checked' => 1 === (int) ( $schedule->notify_admin_on_booking ?? 0 ),
 										'label'   => __( 'Also notify admin on new booking', 'ffcertificate' ),
+										'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'notify_admin_on_booking' ),
 									)
 								);
 								?>
@@ -328,6 +338,7 @@ class AudienceAdminCalendar {
 										'name'    => 'schedule_notify_admin_cancel',
 										'checked' => 1 === (int) ( $schedule->notify_admin_on_cancellation ?? 0 ),
 										'label'   => __( 'Also notify admin on cancellation', 'ffcertificate' ),
+										'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'notify_admin_on_cancellation' ),
 									)
 								);
 								?>
@@ -349,6 +360,7 @@ class AudienceAdminCalendar {
 								'name'    => 'schedule_show_event_list',
 								'checked' => 1 === (int) ( $schedule->show_event_list ?? 0 ),
 								'label'   => __( 'Show event list alongside the calendar', 'ffcertificate' ),
+								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'show_event_list' ),
 							)
 						);
 						?>
@@ -413,6 +425,7 @@ class AudienceAdminCalendar {
 								'name'    => 'schedule_is_isolated',
 								'checked' => 1 === (int) ( $schedule->is_isolated ?? 0 ),
 								'label'   => __( 'Ignore conflicts from other calendars', 'ffcertificate' ),
+								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'is_isolated' ),
 							)
 						);
 						?>
@@ -435,6 +448,7 @@ class AudienceAdminCalendar {
 								'value'   => 'active',
 								'checked' => 'active' === (string) ( $schedule->status ?? 'active' ),
 								'label'   => __( 'Active', 'ffcertificate' ),
+								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'status' ),
 							)
 						);
 						?>
@@ -649,7 +663,7 @@ class AudienceAdminCalendar {
 				'name'                         => RequestInput::get_post_string( 'schedule_name' ),
 				'description'                  => isset( $_POST['schedule_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['schedule_description'] ) ) : '',
 				'environment_label'            => isset( $_POST['schedule_environment_label'] ) ? sanitize_text_field( wp_unslash( $_POST['schedule_environment_label'] ) ) : null,
-				'visibility'                   => RequestInput::get_post_string( 'schedule_visibility', 'private' ),
+				'visibility'                   => 'public' === RequestInput::get_post_string( 'schedule_visibility', 'private' ) ? 'public' : 'private',
 				'future_days_limit'            => isset( $_POST['schedule_future_days'] ) && '' !== $_POST['schedule_future_days'] ? absint( $_POST['schedule_future_days'] ) : null,
 				'notify_on_booking'            => isset( $_POST['schedule_notify_booking'] ) ? 1 : 0,
 				'notify_on_cancellation'       => isset( $_POST['schedule_notify_cancel'] ) ? 1 : 0,

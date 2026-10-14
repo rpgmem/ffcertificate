@@ -322,6 +322,36 @@
     }
 
     /**
+     * Configuration for the per-record variant (#1757), or null when this
+     * screen has none.
+     *
+     * One nonce covers every record on the screen; which record a field
+     * belongs to rides on the field itself, as `data-ffc-autosave-record`
+     * (`entity:id`), and {@link bootVariant} reads it per field.
+     *
+     * @returns {Object|null}
+     */
+    function recordBase() {
+        var cfg = window.ffcRecordAutosave;
+        if (!cfg || !cfg.ajaxUrl) {
+            return null;
+        }
+        return {
+            action:  cfg.action || 'ffc_update_record',
+            request: { nonce: cfg.nonce, ajaxUrl: cfg.ajaxUrl },
+            strings: cfg.strings || {},
+            payloadFrom: function ($input) {
+                var parts = String($input.attr('data-ffc-autosave-record') || '').split(':');
+                var id = parseInt(parts[1], 10);
+                if (parts.length !== 2 || !parts[0] || !(id > 0)) {
+                    return null;
+                }
+                return { entity: parts[0], id: id };
+            },
+        };
+    }
+
+    /**
      * Configuration for the settings variant.
      *
      * Only strings — the nonce is read at save time from the same
@@ -375,6 +405,14 @@
             $input.data('ffcAutoSaveBound', true);
 
             var config = $.extend({ key: key }, base || {});
+            if (config.payloadFrom) {
+                var extra = config.payloadFrom($input);
+                delete config.payloadFrom;
+                if (!extra) {
+                    return;
+                }
+                config.payload = $.extend({}, config.payload || {}, extra);
+            }
             var debounceAttr = $input.attr('data-ffc-autosave-debounce');
             if (debounceAttr && !isNaN(parseInt(debounceAttr, 10))) {
                 config.debounce = parseInt(debounceAttr, 10);
@@ -403,9 +441,11 @@
     /**
      * Scan the DOM for autosave-tagged inputs and wire each one.
      *
-     * Two attributes, one widget (#1116): `data-ffc-autosave-key` saves a
-     * WP option through `ffc_update_setting`, `data-ffc-autosave-form-key`
-     * saves per-post meta through `ffc_update_form_meta`. They were two
+     * Three attributes, one widget (#1116, #1757): `data-ffc-autosave-key`
+     * saves a WP option through `ffc_update_setting`,
+     * `data-ffc-autosave-form-key` saves per-post meta through
+     * `ffc_update_form_meta`, and `data-ffc-autosave-record-key` saves one
+     * column of a record through `ffc_update_record`. They were two
      * independent implementations until the validity guard of #1114 had to
      * be written twice to reach both.
      *
@@ -419,6 +459,10 @@
         var formMeta = formMetaBase();
         if (formMeta) {
             bootVariant('data-ffc-autosave-form-key', formMeta);
+        }
+        var record = recordBase();
+        if (record) {
+            bootVariant('data-ffc-autosave-record-key', record);
         }
     }
     window.FFC.Admin.bootAutoSaveFields = bootAutoSaveFields;

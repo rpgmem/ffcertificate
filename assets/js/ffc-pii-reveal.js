@@ -8,14 +8,17 @@
  * `reveal` / `masked` tiers.
  *
  * Each reveal button carries:
- *   - data-field           cpf | rf | email
+ *   - data-field           cpf | rf | email | ip
  *   - data-type            submission | appointment (defaults to submission)
  *   - data-submission-id   the record ID
  *   - data-nonce           the ffc_reveal_pii_nonce
  *
  * On success the value replaces either an `[data-ffc-pii-field]` input (the
  * submission edit page) or a `.ffc-pii-value[data-field]` text node (the
- * appointment detail page), and the button is removed. An input marked
+ * appointment detail page), and the button is removed. The value is looked
+ * up in the button's own `.ffc-pii-row` first, so two displays of one field
+ * on a screen (the submission IP, under System Information and under the
+ * consent) are revealed one at a time (#1760). An input marked
  * `data-ffc-pii-editable` (the submission email) is enabled once it holds the
  * clear value, so it is edited and posted only after a reveal (#1655).
  */
@@ -34,7 +37,9 @@ jQuery(document).ready(function ($) {
         var $btn = $(this);
         var field = $btn.data('field');
         var type = $btn.data('type') || 'submission';
-        var $cell = $btn.closest('td, dd, .ffc-edit-field');
+        var $row = $btn.closest('.ffc-pii-row');
+        var $field = $btn.closest('td, dd, .ffc-edit-field');
+        var $cell = $row.length ? $row : $field;
         var $input = $cell.find('[data-ffc-pii-field="' + field + '"]');
         var $text = $cell.find('.ffc-pii-value[data-field="' + field + '"]');
 
@@ -51,7 +56,7 @@ jQuery(document).ready(function ($) {
                         $input.val(data.value);
                         if ($input.is('[data-ffc-pii-editable]')) {
                             $input.prop('disabled', false).trigger('focus');
-                            $cell.find('.ffc-pii-reveal-hint').remove();
+                            $field.find('.ffc-pii-reveal-hint').remove();
                         }
                     } else if ($text.length) {
                         $text.text(data.value);

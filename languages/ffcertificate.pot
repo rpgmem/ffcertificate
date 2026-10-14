@@ -1938,10 +1938,6 @@ msgstr ""
 msgid "Always use inline styles"
 msgstr ""
 
-#: templates/admin/recruitment/admin-page/settings-tab.php:50
-msgid "Always — send the convocation email on every call"
-msgstr ""
-
 #: includes/settings/views/documentation/operations-troubleshooting.php:106
 msgid "An admin cannot see a plugin menu"
 msgstr ""
@@ -2410,10 +2406,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:56
 msgid "ask for a CPF and log it, but never block."
-msgstr ""
-
-#: templates/admin/recruitment/admin-page/settings-tab.php:52
-msgid "Ask — decide per call via a \"Notify by email\" checkbox on the call action"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-record.php:71
@@ -9863,12 +9855,6 @@ msgstr ""
 msgid "IP:"
 msgstr ""
 
-#. %s: IP address
-#: includes/admin/class-ffc-admin-submission-edit-page.php:391
-#, php-format
-msgid "IP: %s"
-msgstr ""
-
 #: templates/submission-success.php:110
 msgid "iPhone / iPad: after the PDF opens, tap Share → \"Save to Files\" to keep it on your device."
 msgstr ""
@@ -11284,10 +11270,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:395
 msgid "Never enables actual data logging, only operation status."
-msgstr ""
-
-#: templates/admin/recruitment/admin-page/settings-tab.php:51
-msgid "Never — do not send automatically"
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:871
@@ -23040,7 +23022,7 @@ msgstr ""
 msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form)."
 msgstr ""
 
-msgid "Reveal the decrypted CPF / RF / email on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
+msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
 msgstr ""
 
 msgid "Minimum interval between bookings"
@@ -24492,7 +24474,7 @@ msgstr ""
 msgid "Reveal the email to edit it."
 msgstr ""
 
-msgid "On the edit screen the CPF/RF and the email start masked for everyone, administrators included. An operator who may see them uses Reveal to fetch the value, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
+msgid "On the edit screen the CPF/RF, the email and the IP start masked for everyone, administrators included. The IP is the address the submission and its consent were recorded from, so it is masked both under System Information and under the consent status. An operator who may see them uses the Reveal button beside each value to fetch it, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
 msgstr ""
 
 msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."
@@ -25751,6 +25733,82 @@ msgstr ""
 
 #: templates/admin/reregistration/form.php
 msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "Unknown record type."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "You do not have permission to change this record."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "That record no longer exists."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "This field cannot be saved here."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The calendar could not be saved."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Self-join is set on the parent audience."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The audience could not be saved."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-record-autosave.php
+msgid "The campaign could not be saved."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-record-autosave.php
+msgid "The notice could not be saved."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-record-autosave.php
+msgid "The reason could not be saved."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Never"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Ask"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Always"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Calling a candidate never sends the convocation email."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Each call asks, through a \"Notify by email\" checkbox on the call action."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Every call sends the convocation email."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "The status is the exception: it changes only on Save."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A new calendar starts public."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-captcha.php:233

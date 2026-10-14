@@ -297,6 +297,8 @@ final class RecruitmentAdminAssetsManager {
 				'strings' => \FreeFormCertificate\Admin\AdminUI::autosave_strings(),
 			)
 		);
+		// The notice and reason edit screens save their toggles per record (#1757).
+		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 
 		// Localize the REST root + nonce so the JS can post against the
 		// recruitment endpoints without an inline `<script>` block.

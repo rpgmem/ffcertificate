@@ -146,6 +146,8 @@ final class RecruitmentReasonEditPage {
 					'value'   => $key,
 					'checked' => $checked,
 					'label'   => $label,
+					// One field for the four boxes: the widget posts the ticked set (#1757).
+					'data'    => $id > 0 ? array_merge( \FreeFormCertificate\Core\RecordAutosave::attrs( 'recruitment_reason', $id, 'applies_to' ), array( 'ffc-autosave-multi' => '1' ) ) : array(),
 				)
 			);
 		}

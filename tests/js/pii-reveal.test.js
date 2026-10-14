@@ -82,6 +82,50 @@ describe('ffc-pii-reveal', () => {
 		expect(window.$('form').serialize()).toBe('user_email=me%40x.com');
 	});
 
+	it('reveals the email from its row and drops the hint outside the row (#1760)', async () => {
+		document.body.innerHTML = `<form><div class="ffc-edit-field">
+			<span class="ffc-pii-row">
+				<input type="email" name="user_email" data-ffc-pii-field="email" data-ffc-pii-editable="1" value="m***@x.com" disabled />
+				<button class="ffc-reveal-pii" data-field="email" data-submission-id="12" data-nonce="n">Reveal</button>
+			</span>
+			<span class="ffc-pii-reveal-hint">Reveal the email to edit it.</span>
+		</div></form>`;
+		window.FFC.request = vi.fn(() => Promise.resolve({ field: 'email', value: 'me@x.com' }));
+
+		await load();
+		window.$('.ffc-reveal-pii').trigger('click');
+		await flush();
+
+		expect(window.$('[data-ffc-pii-field="email"]').prop('disabled')).toBe(false);
+		expect(window.$('.ffc-pii-reveal-hint').length).toBe(0);
+		expect(window.$('form').serialize()).toBe('user_email=me%40x.com');
+	});
+
+	it('reveals only the IP display whose button was clicked (#1760)', async () => {
+		document.body.innerHTML = `<dl><dd><span class="ffc-pii-row">
+			<input data-ffc-pii-field="ip" value="203.0.***.***" readonly />
+			<button class="ffc-reveal-pii" data-field="ip" data-submission-id="12" data-nonce="n">Reveal</button>
+		</span></dd></dl>
+		<p class="description">IP: <span class="ffc-pii-row" id="consent">
+			<input data-ffc-pii-field="ip" value="203.0.***.***" readonly />
+			<button class="ffc-reveal-pii" data-field="ip" data-submission-id="12" data-nonce="n">Reveal</button>
+		</span></p>`;
+		window.FFC.request = vi.fn(() => Promise.resolve({ field: 'ip', value: '203.0.113.7' }));
+
+		await load();
+		window.$('#consent .ffc-reveal-pii').trigger('click');
+		await flush();
+
+		expect(window.FFC.request).toHaveBeenCalledWith(
+			'ffc_reveal_pii',
+			{ submission_id: 12, field: 'ip', type: 'submission' },
+			{ nonce: 'n' }
+		);
+		expect(window.$('#consent [data-ffc-pii-field="ip"]').val()).toBe('203.0.113.7');
+		expect(window.$('dd [data-ffc-pii-field="ip"]').val()).toBe('203.0.***.***');
+		expect(window.$('dd .ffc-reveal-pii').length).toBe(1);
+	});
+
 	it('leaves the editable input disabled when the reveal fails', async () => {
 		document.body.innerHTML = `<p class="ffc-edit-field">
 			<input type="email" name="user_email" data-ffc-pii-field="email" data-ffc-pii-editable="1" value="m***@x.com" disabled />

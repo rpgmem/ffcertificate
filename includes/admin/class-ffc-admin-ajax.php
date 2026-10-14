@@ -63,7 +63,7 @@ class AdminAjax {
 	 * @param string $type Record type ('submission' | 'appointment').
 	 * @param int    $id   Record ID.
 	 * @return array<string, mixed>|null Decrypted row (with `cpf` / `rf` /
-	 *                                   `email` / `user_id` keys), or null when
+	 *                                   `email` / `user_ip` / `user_id` keys), or null when
 	 *                                   the record is missing.
 	 */
 	private function load_pii_record( string $type, int $id ): ?array {
@@ -85,9 +85,10 @@ class AdminAjax {
 	}
 
 	/**
-	 * Reveal one decrypted PII field (CPF / RF / email) of a certificate
+	 * Reveal one decrypted PII field (CPF / RF / email / IP) of a certificate
 	 * submission or self-scheduling appointment, gated by the #739 §3.3 PII
-	 * policy and audited.
+	 * policy and audited. The IP is the stored `user_ip`, the address the
+	 * submission and its LGPD consent were recorded from (#1760).
 	 *
 	 * The admin surfaces (submission edit page + list, appointment detail +
 	 * list) render the masked value only; the plaintext is fetched here on
@@ -119,7 +120,7 @@ class AdminAjax {
 
 		$id    = $this->get_post_int( 'submission_id' );
 		$field = $this->get_post_param( 'field' );
-		if ( ! in_array( $field, array( 'cpf', 'rf', 'email' ), true ) ) {
+		if ( ! in_array( $field, array( 'cpf', 'rf', 'email', 'ip' ), true ) ) {
 			wp_send_json_error( array( 'message' => __( 'Unsupported field.', 'ffcertificate' ) ) );
 		}
 		if ( $id <= 0 ) {
@@ -149,6 +150,9 @@ class AdminAjax {
 				break;
 			case 'rf':
 				$display = \FreeFormCertificate\Core\DocumentFormatter::format_rf( (string) ( $record['rf'] ?? '' ) );
+				break;
+			case 'ip':
+				$display = (string) ( $record['user_ip'] ?? '' );
 				break;
 			default:
 				$display = (string) ( $record['email'] ?? '' );
