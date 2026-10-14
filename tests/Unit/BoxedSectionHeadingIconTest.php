@@ -48,7 +48,8 @@ class BoxedSectionHeadingIconTest extends TestCase {
 	 * Files whose heading carries its icon in a way a class scan cannot read.
 	 */
 	private const ICON_NOT_IN_CLASS = array(
-		'includes/admin/class-ffc-form-editor-metabox-renderer.php' => 'the icon is a child span (`ffc-form-tabs__icon`) of the panel title',
+		// AdminUI::render_vertical_tabs(), shared by the form and calendar editors since #1761.
+		'includes/admin/class-ffc-admin-ui.php'                     => 'the icon is a child span (`ffc-form-tabs__icon`) of the panel title',
 		'templates/admin/date-messages/page.php'                    => 'the class is the tab\'s icon, read from a static map',
 	);
 

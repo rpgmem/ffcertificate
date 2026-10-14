@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="card">
 	<h3 id="feature-self-scheduling" class="ffc-icon-calendar"><?php esc_html_e( 'Personal Calendars', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in four boxes: Calendar Configuration, Working Hours & Availability, Booking Rules & Restrictions, and Email Notifications.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in one Calendar Configuration box, split into tabs: Calendar, Slots & hours, Booking window, Cancellation, Approval & waitlist, Who can see and book, Administrator bypass, and Emails. A dot on the Cancellation and Administrator bypass tabs shows whether each is on.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Schedule type: regular or custom', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A calendar uses one of two availability models:', 'ffcertificate' ); ?></p>
@@ -38,7 +38,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<tbody>
 			<tr><td><strong><?php esc_html_e( 'Slot duration / interval', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Appointment length (default 30 min) and an optional break between slots (regular mode).', 'ffcertificate' ); ?></td></tr>
 			<tr><td><strong><?php esc_html_e( 'Capacity per slot', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'How many bookings a single slot accepts (default 1). An optional daily cap limits bookings per day. Custom-mode blocks carry their own per-block capacity.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><strong><?php esc_html_e( 'Per-user block cap', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy Report meta box shows each block\'s live booked / capacity, occupancy % and waitlist length.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Per-user block cap', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy tab, shown once a custom calendar is saved, lists each block\'s live booked / capacity, occupancy % and waitlist length.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><strong><?php esc_html_e( 'Working hours', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Per-weekday availability (default Mon–Fri 09:00–17:00) — regular mode.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><strong><?php esc_html_e( 'Waitlist', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'When enabled, a full slot/block lets users join a queue (with an optional waitlist capacity) instead of being turned away. Off by default.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><strong><?php esc_html_e( 'Advance booking window', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Minimum notice (hours) and how far ahead bookings are allowed (default 30 days).', 'ffcertificate' ); ?></td></tr>
