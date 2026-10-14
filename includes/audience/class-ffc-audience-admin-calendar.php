@@ -189,6 +189,46 @@ class AudienceAdminCalendar {
 		// on `ffc_manage_audiences`. Without it the screen renders read-only.
 		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
 
+		// The vertical tabs (#1761). The last three need a saved calendar, as
+		// their sections did before the tabs.
+		$tabs = array(
+			array(
+				'key'   => 'general',
+				'label' => __( 'General', 'ffcertificate' ),
+				'icon'  => 'calendar',
+			),
+			array(
+				'key'   => 'notifications',
+				'label' => __( 'Notifications', 'ffcertificate' ),
+				'icon'  => 'email',
+			),
+			array(
+				'key'   => 'event-list',
+				'label' => __( 'Event list & badges', 'ffcertificate' ),
+				'icon'  => 'list',
+			),
+		);
+		if ( $id > 0 ) {
+			$tabs[] = array(
+				'key'   => 'environments',
+				'label' => AudienceScheduleRepository::get_environment_label( $id ),
+				'icon'  => 'building',
+			);
+			$tabs[] = array(
+				'key'   => 'user-access',
+				'label' => __( 'User access', 'ffcertificate' ),
+				'icon'  => 'users',
+			);
+			$tabs[] = array(
+				'key'   => 'closed-dates',
+				'label' => __( 'Closed dates', 'ffcertificate' ),
+				'icon'  => 'lock',
+			);
+		}
+		// A holiday added or deleted lands back on its own tab.
+		$on_holidays = 'add_holiday' === RequestInput::get_post_string( 'ffc_action' )
+			|| 'holiday_deleted' === RequestInput::get_get_string( 'message' );
+		$active      = AudienceEditorTabs::active( array_column( $tabs, 'key' ), $on_holidays ? 'closed-dates' : 'general' );
 		?>
 		<h1><?php echo esc_html( $page_title ); ?></h1>
 		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Calendars', 'ffcertificate' ); ?></a>
@@ -198,9 +238,11 @@ class AudienceAdminCalendar {
 			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
 		<?php endif; ?>
 
-		<div class="card">
-		<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></h2>
-		<form method="post" action="" class="ffc-form">
+		<div class="ffc-aud-editor">
+		<div class="ffc-aud-editor__main">
+		<?php AudienceEditorTabs::open( $tabs, $active ); ?>
+		<?php // One form across the first three tabs: the tabs only show and hide its panels, so one Save posts every field. ?>
+		<form method="post" action="" class="ffc-form" id="ffc-schedule-form">
 			<?php wp_nonce_field( 'save_schedule', 'ffc_schedule_nonce' ); ?>
 			<input type="hidden" name="schedule_id" value="<?php echo esc_attr( (string) $id ); ?>">
 			<input type="hidden" name="ffc_action" value="save_schedule">
@@ -209,6 +251,7 @@ class AudienceAdminCalendar {
 				<?php // A disabled fieldset disables every control inside it, the autosave toggles included. ?>
 				<fieldset disabled class="ffc-readonly-lock">
 			<?php endif; ?>
+			<?php AudienceEditorTabs::panel_open( $tabs[0], $active ); ?>
 			<table class="form-table" role="presentation"><tbody>
 				<?php if ( $id > 0 ) : ?>
 				<tr>
@@ -217,17 +260,6 @@ class AudienceAdminCalendar {
 					</th>
 					<td>
 						<code><?php echo esc_html( (string) $id ); ?></code>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">
-						<label><?php esc_html_e( 'Shortcode', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<code>[ffc_audience schedule_id="<?php echo esc_attr( (string) $id ); ?>"]</code>
-						<p class="description">
-							<?php esc_html_e( 'Use this shortcode to display the calendar on any page or post.', 'ffcertificate' ); ?>
-						</p>
 					</td>
 				</tr>
 				<?php endif; ?>
@@ -297,6 +329,48 @@ class AudienceAdminCalendar {
 						</p>
 					</td>
 				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Isolated Calendar', 'ffcertificate' ); ?></th>
+					<td>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'schedule_is_isolated',
+								'checked' => 1 === (int) ( $schedule->is_isolated ?? 0 ),
+								'label'   => __( 'Ignore conflicts from other calendars', 'ffcertificate' ),
+								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'is_isolated' ),
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'When enabled, audience same-day and user overlap checks only consider bookings within this calendar. Environment conflicts are always per-environment regardless of this setting.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="schedule_status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="hidden" name="schedule_status" value="inactive">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'schedule_status',
+								'id'      => 'schedule_status',
+								'value'   => 'active',
+								'checked' => 'active' === (string) ( $schedule->status ?? 'active' ),
+								'label'   => __( 'Active', 'ffcertificate' ),
+								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'status' ),
+							)
+						);
+						?>
+					</td>
+				</tr>
+			</tbody></table>
+			<?php AudienceEditorTabs::panel_close(); ?>
+			<?php AudienceEditorTabs::panel_open( $tabs[1], $active ); ?>
+			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></th>
 					<td>
@@ -370,6 +444,10 @@ class AudienceAdminCalendar {
 						</div>
 					</td>
 				</tr>
+			</tbody></table>
+			<?php AudienceEditorTabs::panel_close(); ?>
+			<?php AudienceEditorTabs::panel_open( $tabs[2], $active ); ?>
+			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Event List', 'ffcertificate' ); ?></th>
 					<td>
@@ -435,56 +513,19 @@ class AudienceAdminCalendar {
 						</p>
 					</td>
 				</tr>
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Isolated Calendar', 'ffcertificate' ); ?></th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'schedule_is_isolated',
-								'checked' => 1 === (int) ( $schedule->is_isolated ?? 0 ),
-								'label'   => __( 'Ignore conflicts from other calendars', 'ffcertificate' ),
-								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'is_isolated' ),
-							)
-						);
-						?>
-						<p class="description">
-							<?php esc_html_e( 'When enabled, audience same-day and user overlap checks only consider bookings within this calendar. Environment conflicts are always per-environment regardless of this setting.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">
-						<label for="schedule_status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<input type="hidden" name="schedule_status" value="inactive">
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'schedule_status',
-								'id'      => 'schedule_status',
-								'value'   => 'active',
-								'checked' => 'active' === (string) ( $schedule->status ?? 'active' ),
-								'label'   => __( 'Active', 'ffcertificate' ),
-								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'status' ),
-							)
-						);
-						?>
-					</td>
-				</tr>
 			</tbody></table>
+			<?php AudienceEditorTabs::panel_close(); ?>
 			<?php if ( ! $can_manage ) : ?>
 				</fieldset>
-			<?php else : ?>
-				<?php submit_button( $id > 0 ? __( 'Update Calendar', 'ffcertificate' ) : __( 'Create Calendar', 'ffcertificate' ) ); ?>
 			<?php endif; ?>
 		</form>
-		</div>
 
 		<?php if ( $id > 0 ) : ?>
-			<div class="card">
-			<h2 class="ffc-icon-users"><?php esc_html_e( 'User Access & Permissions', 'ffcertificate' ); ?></h2>
+			<?php AudienceEditorTabs::panel_open( $tabs[3], $active ); ?>
+			<?php ( new AudienceAdminEnvironment( $this->menu_slug ) )->render_calendar_tab( $id ); ?>
+			<?php AudienceEditorTabs::panel_close(); ?>
+
+			<?php AudienceEditorTabs::panel_open( $tabs[4], $active ); ?>
 			<p class="description">
 				<?php esc_html_e( 'Manage which users have access to this calendar and what they can do. For private calendars, only listed users can see and book. For public calendars, these permissions control who can book and cancel.', 'ffcertificate' ); ?>
 			</p>
@@ -544,10 +585,9 @@ class AudienceAdminCalendar {
 			<?php endif; ?>
 
 			<?php // Calendar permissions logic in ffc-audience-admin.js. ?>
-			</div>
+			<?php AudienceEditorTabs::panel_close(); ?>
 
-			<div class="card">
-			<h2 class="ffc-icon-lock"><?php esc_html_e( 'Holidays / Closed Dates', 'ffcertificate' ); ?></h2>
+			<?php AudienceEditorTabs::panel_open( $tabs[5], $active ); ?>
 			<p class="description"><?php esc_html_e( 'Add specific dates when the calendar will be closed (holidays, maintenance, etc.).', 'ffcertificate' ); ?></p>
 
 			<?php if ( $can_manage ) : ?>
@@ -611,8 +651,30 @@ class AudienceAdminCalendar {
 			<?php else : ?>
 				<p><em><?php esc_html_e( 'No holidays defined yet.', 'ffcertificate' ); ?></em></p>
 			<?php endif; ?>
-			</div>
+			<?php AudienceEditorTabs::panel_close(); ?>
 		<?php endif; ?>
+		<?php AudienceEditorTabs::close(); ?>
+		</div>
+
+		<div class="ffc-aud-editor__side">
+			<?php if ( $can_manage ) : ?>
+			<div class="card">
+				<h2 class="ffc-icon-checkmark"><?php esc_html_e( 'Save', 'ffcertificate' ); ?></h2>
+				<?php // Outside the form it posts, so it names the form. ?>
+				<?php submit_button( $id > 0 ? __( 'Update Calendar', 'ffcertificate' ) : __( 'Create Calendar', 'ffcertificate' ), 'primary', 'submit', true, array( 'form' => 'ffc-schedule-form' ) ); ?>
+			</div>
+			<?php endif; ?>
+			<?php if ( $id > 0 ) : ?>
+			<div class="card">
+				<h2 class="ffc-icon-code"><?php esc_html_e( 'Shortcode', 'ffcertificate' ); ?></h2>
+				<code>[ffc_audience schedule_id="<?php echo esc_attr( (string) $id ); ?>"]</code>
+				<p class="description">
+					<?php esc_html_e( 'Use this shortcode to display the calendar on any page or post.', 'ffcertificate' ); ?>
+				</p>
+			</div>
+			<?php endif; ?>
+		</div>
+		</div>
 
 		<!-- Styles in ffc-audience-admin.css -->
 		<?php

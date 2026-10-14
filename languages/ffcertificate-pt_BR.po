@@ -9089,9 +9089,9 @@ msgstr "Feriado adicionado com sucesso."
 msgid "Holiday deleted successfully."
 msgstr "Feriado excluído com sucesso."
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:547
-msgid "Holidays / Closed Dates"
-msgstr "Feriados / Datas Fechadas"
+#: includes/audience/class-ffc-audience-admin-calendar.php:225
+msgid "Closed dates"
+msgstr "Datas fechadas"
 
 #: templates/admin/audience/general-tab.php:59
 msgid "Holidays added here will block bookings across all calendars in both scheduling systems. Use per-calendar blocked dates for calendar-specific closures."
@@ -10901,11 +10901,11 @@ msgstr "Os membros têm reservas sobrepostas."
 msgid "Members"
 msgstr "Membros"
 
-#. %s: audience name
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:682
+#. translators: %d: number of members, as the audiences list counts them
 #, php-format
-msgid "Members of %s"
-msgstr "Membros de %s"
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:207
+msgid "Members (%d)"
+msgstr "Membros (%d)"
 
 #: includes/settings/views/documentation/feature-reregistration.php:30
 msgid "Members see a banner on their dashboard and fill in the form there."
@@ -14319,9 +14319,9 @@ msgstr "Recadastramento excluído com sucesso."
 msgid "Reregistration record"
 msgstr "Ficha de recadastramento"
 
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:357
-msgid "Reregistration Fields"
-msgstr "Campos de Recadastramento"
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:213
+msgid "Reregistration fields"
+msgstr "Campos de recadastramento"
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:195
 msgid "Reregistration invitation"
@@ -18723,9 +18723,9 @@ msgstr "Usuário #%d (excluído)"
 msgid "User Access"
 msgstr "Acesso do Usuário"
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:446
-msgid "User Access & Permissions"
-msgstr "Acesso de Usuário & Permissões "
+#: includes/audience/class-ffc-audience-admin-calendar.php:220
+msgid "User access"
+msgstr "Acesso de usuários"
 
 #: includes/admin/class-ffc-settings-save-handler.php:570 includes/settings/tabs/class-ffc-tab-user-access.php:106
 msgid "User Access settings saved successfully."
@@ -23144,11 +23144,13 @@ msgstr "ver os calendários somente para leitura, ou criá-los, editá-los, publ
 msgid "view or manage the appointments booked on those calendars."
 msgstr "ver ou gerenciar os agendamentos feitos nesses calendários."
 
-msgid "Go to Scheduling → Audiences, edit an audience, and use its Reregistration Fields section"
-msgstr "Acesse Agendamento → Públicos-alvo, edite um público-alvo e use a seção Campos de Recadastramento"
+#: includes/settings/views/documentation/feature-audiences.php:62
+msgid "Go to Scheduling → Audiences, edit an audience, and open its Reregistration fields tab"
+msgstr "Acesse Agendamento → Públicos-alvo, edite um público-alvo e abra a aba Campos de recadastramento"
 
-msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the section is hidden."
-msgstr "Ver as definições dos campos exige ffc_view_custom_fields e editá-las exige ffc_manage_custom_fields; sem nenhuma das duas, a seção fica oculta."
+#: includes/settings/views/documentation/feature-audiences.php:67
+msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the tab is hidden."
+msgstr "Ver as definições dos campos exige ffc_view_custom_fields e editá-las exige ffc_manage_custom_fields; sem nenhuma das duas, a aba fica oculta."
 
 msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data; fields mapped to a profile key (such as CPF, RF, RG or birth date) are also written, encrypted, to the plugin user profile."
 msgstr "As definições dos campos são armazenadas na tabela ffc_custom_fields. Os dados do usuário são armazenados como JSON em wp_usermeta, na chave ffc_custom_fields_data; os campos mapeados para uma chave de perfil (como CPF, RF, RG ou data de nascimento) também são gravados, criptografados, no perfil de usuário do plugin."
@@ -26079,3 +26081,19 @@ msgstr "uma escala de três predefinições, de Tolerante (permite em qualquer f
 #: includes/settings/views/documentation/config-captcha.php:62
 msgid "whether the widget shows the ALTCHA logo and the \"Protected by ALTCHA\" footer. A new install shows the logo and hides the footer."
 msgstr "se o widget mostra o logotipo do ALTCHA e o rodapé \"Protegido pelo ALTCHA\". Uma instalação nova mostra o logotipo e oculta o rodapé."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:208
+msgid "Event list & badges"
+msgstr "Lista de eventos e selos"
+
+#: includes/settings/views/documentation/scheduling-audiences.php:29
+msgid "The editors"
+msgstr "Os editores"
+
+#: includes/settings/views/documentation/scheduling-audiences.php:30
+msgid "A calendar is edited in vertical tabs: General, Notifications and Event list & badges, then, once the calendar is saved, its environments (the Environments list of that calendar), User access and Closed dates. One Save button beside the tabs saves the first three together; the shortcode sits beside it."
+msgstr "Um calendário é editado em abas verticais: Geral, Notificações e Lista de eventos e selos e, depois que o calendário é salvo, seus ambientes (a lista de Ambientes desse calendário), Acesso de usuários e Datas fechadas. Um único botão Salvar ao lado das abas salva as três primeiras juntas; o shortcode fica ao lado dele."
+
+#: includes/settings/views/documentation/scheduling-audiences.php:31
+msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
+msgstr "Um público-alvo é editado em três abas: Público-alvo, Membros (adicionar e remover membros) e Campos de recadastramento. A contagem de membros na lista de públicos-alvo abre a aba Membros."

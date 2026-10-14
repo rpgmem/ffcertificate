@@ -45,6 +45,33 @@
 		} );
 	}
 
+	/**
+	 * Re-initialise a TinyMCE editor (`wp_editor`) that started inside a
+	 * hidden panel and came up without a height, the way TinyMCE does when
+	 * its iframe is measured at `display:none` (#1761: the acknowledgment
+	 * notice in the audience editor's Reregistration fields tab). The editor
+	 * keeps its id, so its textarea and every script reading it are the same.
+	 *
+	 * @param {jQuery} $panel
+	 */
+	function refreshRichEditors( $panel ) {
+		var mce = window.tinymce;
+		if ( ! mce || typeof mce.get !== 'function' ) {
+			return;
+		}
+		$panel.find( 'textarea.wp-editor-area' ).each( function () {
+			var editor = mce.get( this.id );
+			if ( ! editor || ( typeof editor.isHidden === 'function' && editor.isHidden() ) ) {
+				return;
+			}
+			var frame = typeof editor.getContainer === 'function' ? editor.getContainer() : null;
+			if ( frame && 0 === frame.offsetHeight ) {
+				mce.execCommand( 'mceRemoveEditor', false, this.id );
+				mce.execCommand( 'mceAddEditor', false, this.id );
+			}
+		} );
+	}
+
 	function setupContainer( $container ) {
 		var $tabs = $container.find( '.ffc-form-tabs__tab' );
 		if ( ! $tabs.length ) {
@@ -82,6 +109,7 @@
 						$tab.trigger( 'focus' );
 					}
 					refreshCodeEditors( $panel );
+					refreshRichEditors( $panel );
 				}
 			} );
 
@@ -385,9 +413,11 @@
 		setupStateDots();
 		setupInvalidReveal();
 
-		// Initial paint: honour a deep-link hash, else keep the first tab
-		// (already marked active server-side). Don't rewrite the hash on load.
-		var initialKey = keyFromHash() || tabKey( $tabs.first() );
+		// Initial paint: honour a deep-link hash, else keep the tab the server
+		// marked active (the audience editors open the tab a save or a
+		// `?tab=` names, #1761), else the first. Don't rewrite the hash on load.
+		var $marked    = $tabs.filter( '.is-active' ).first();
+		var initialKey = keyFromHash() || tabKey( $marked.length ? $marked : $tabs.first() );
 		activate( initialKey, { focus: false, updateHash: false } );
 
 		// A failed save overrides the initial tab so the operator lands on

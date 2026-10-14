@@ -535,3 +535,144 @@ describe('FFC.FormEditorTabs — a rejected control opens its tab (#1614)', () =
 		expect(panel('geolocation').hasClass('is-active')).toBe(true);
 	});
 });
+
+// The audience calendar editor (#1761): the same component, with one form
+// spanning the first panels, a Save button outside it that names the form,
+// and panels the server may open on something other than the first tab.
+function buildAudienceCalendarEditor(activeKey = 'general') {
+	const keys = ['general', 'notifications', 'event-list', 'closed-dates'];
+	const nav = keys
+		.map((key) => {
+			const on = key === activeKey;
+			return (
+				`<li class="ffc-form-tabs__nav-item" role="presentation"><a href="#ffc-tab-${key}" id="ffc-tabnav-${key}" ` +
+				`class="ffc-form-tabs__tab${on ? ' is-active' : ''}" role="tab" aria-controls="ffc-tabpanel-${key}" ` +
+				`aria-selected="${on ? 'true' : 'false'}" tabindex="${on ? '0' : '-1'}">${key}</a></li>`
+			);
+		})
+		.join('');
+	const section = (key, body) =>
+		`<section id="ffc-tabpanel-${key}" class="ffc-form-tabs__panel${key === activeKey ? ' is-active' : ''}" role="tabpanel">${body}</section>`;
+	document.body.innerHTML =
+		`<div class="ffc-aud-editor"><div class="ffc-aud-editor__main">` +
+		`<div class="ffc-aud-editor__tabs ffc-form-tabs" data-ffc-form-tabs><ul class="ffc-form-tabs__nav">${nav}</ul>` +
+		`<div class="ffc-form-tabs__panels">` +
+		`<form id="ffc-schedule-form" method="post" action="">` +
+		section('general', '<input name="schedule_name" id="schedule_name" required>') +
+		section('notifications', '<input name="schedule_admin_emails" id="schedule_admin_emails">') +
+		section('event-list', '<input type="number" name="schedule_future_days" id="schedule_future_days" min="1" max="365">') +
+		`</form>` +
+		section('closed-dates', '<form class="ffc-holiday-form"><input type="date" name="holiday_date" required></form>') +
+		`</div></div></div>` +
+		`<div class="ffc-aud-editor__side"><div class="card"><input type="submit" name="submit" form="ffc-schedule-form" value="Update Calendar"></div></div>` +
+		`</div>`;
+}
+
+describe('FFC.FormEditorTabs — audience editors (#1761)', () => {
+	it('opens the tab the server marked active when there is no hash', () => {
+		buildAudienceCalendarEditor('closed-dates');
+		window.FFC.FormEditorTabs.init();
+
+		expect(tab('closed-dates').attr('aria-selected')).toBe('true');
+		expect(panel('closed-dates').hasClass('is-active')).toBe(true);
+		expect(panel('general').hasClass('is-active')).toBe(false);
+	});
+
+	it('still lets a deep-link hash win over the server-marked tab', () => {
+		buildAudienceCalendarEditor('closed-dates');
+		window.history.replaceState(null, '', '#ffc-tab-notifications');
+		window.FFC.FormEditorTabs.init();
+
+		expect(panel('notifications').hasClass('is-active')).toBe(true);
+		expect(panel('closed-dates').hasClass('is-active')).toBe(false);
+	});
+
+	it('switches between panels inside and outside the one form', () => {
+		buildAudienceCalendarEditor();
+		window.FFC.FormEditorTabs.init();
+
+		tab('closed-dates').trigger('click');
+		expect(panel('closed-dates').hasClass('is-active')).toBe(true);
+		expect(panel('general').hasClass('is-active')).toBe(false);
+		expect(window.location.hash).toBe('#ffc-tab-closed-dates');
+
+		tab('event-list').trigger('click');
+		expect(panel('event-list').hasClass('is-active')).toBe(true);
+		expect(panel('closed-dates').hasClass('is-active')).toBe(false);
+	});
+
+	it('keeps every field of the form in it whichever tab is open, so one Save posts them all', () => {
+		buildAudienceCalendarEditor();
+		window.FFC.FormEditorTabs.init();
+		tab('closed-dates').trigger('click');
+
+		const form = document.getElementById('ffc-schedule-form');
+		const names = Array.from(new FormData(form).keys());
+		expect(names).toEqual(['schedule_name', 'schedule_admin_emails', 'schedule_future_days']);
+		const save = document.querySelector('input[name="submit"]');
+		expect(save.form).toBe(form);
+	});
+
+	it('reveals the hidden tab of an invalid field when the side Save submits the form', () => {
+		buildAudienceCalendarEditor();
+		window.FFC.FormEditorTabs.init();
+		window.$('#schedule_name').val('Cal');
+		window.$('#schedule_future_days').val('999');
+		tab('closed-dates').trigger('click');
+
+		// What the browser does when the side button submits the form it names.
+		const valid = document.getElementById('ffc-schedule-form').checkValidity();
+
+		expect(valid).toBe(false);
+		expect(panel('event-list').hasClass('is-active')).toBe(true);
+		expect(tab('event-list').attr('aria-selected')).toBe('true');
+	});
+
+	it('re-initialises a TinyMCE editor that came up without a height in a hidden panel', () => {
+		buildAudienceCalendarEditor();
+		panel('notifications').append(
+			Object.assign(document.createElement('textarea'), { id: 'ffc_termo_12', className: 'wp-editor-area' })
+		);
+		const container = document.createElement('div');
+		const editor = { isHidden: () => false, getContainer: () => container };
+		const execCommand = vi.fn();
+		window.tinymce = { get: vi.fn((id) => (id === 'ffc_termo_12' ? editor : null)), execCommand };
+		try {
+			window.FFC.FormEditorTabs.init();
+			expect(execCommand).not.toHaveBeenCalled();
+
+			tab('notifications').trigger('click');
+
+			// jsdom has no layout, so the container measures 0 like a hidden one.
+			expect(execCommand.mock.calls).toEqual([
+				['mceRemoveEditor', false, 'ffc_termo_12'],
+				['mceAddEditor', false, 'ffc_termo_12'],
+			]);
+		} finally {
+			delete window.tinymce;
+		}
+	});
+
+	it('leaves a TinyMCE editor alone when it is in text mode or already measured', () => {
+		buildAudienceCalendarEditor();
+		panel('notifications').append(
+			Object.assign(document.createElement('textarea'), { id: 'a', className: 'wp-editor-area' }),
+			Object.assign(document.createElement('textarea'), { id: 'b', className: 'wp-editor-area' })
+		);
+		const measured = document.createElement('div');
+		Object.defineProperty(measured, 'offsetHeight', { value: 300 });
+		const editors = {
+			a: { isHidden: () => true, getContainer: () => document.createElement('div') },
+			b: { isHidden: () => false, getContainer: () => measured },
+		};
+		const execCommand = vi.fn();
+		window.tinymce = { get: (id) => editors[id], execCommand };
+		try {
+			window.FFC.FormEditorTabs.init();
+			tab('notifications').trigger('click');
+			expect(execCommand).not.toHaveBeenCalled();
+		} finally {
+			delete window.tinymce;
+		}
+	});
+});

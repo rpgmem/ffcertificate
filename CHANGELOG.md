@@ -17,6 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The submission edit screen masks the IP and draws one section style** (#1760). The IP under System Information and under the consent starts masked, with the same audited Reveal as email and CPF; each Reveal sits beside its value; every record section uses the consent's collapsible section.
 - **Settings use the control that fits each choice** (#1758). Steps for captcha mode, GPS fallback and cache expiry; toggles for the IP strategy and ALTCHA display; SMTP locks to WP default while Total Mail Queue is active. New installs start on ALTCHA (on HTTPS) and a 15-minute cache.
 - **What a certificate requires is one table** (#1759). Settings → Certificates → Required data replaces Required Certificate Tags and Required Form Fields: each row has a name, label, type and a switch each for the form and the certificate HTML, and saves as it changes. A one-shot migration builds it from both.
+- **Audience calendar and audience editors use vertical tabs** (#1761). Calendar: General, Notifications, Event list & badges, Environments, User access, Closed dates, with Save and Shortcode beside them. Audience: Audience, Members, Reregistration fields; the members URL opens Members. No field or action changed.
 
 ### Fixed
 

@@ -588,3 +588,46 @@
     margin-left: var(--ffc-spacing-sm);
     color: var(--ffc-text-muted);
 }
+
+/* ==========================================================================
+   EDITORS IN VERTICAL TABS (#1761)
+   The audience calendar and audience editors draw the form editor's tab
+   component (`.ffc-form-tabs`, in ffc-admin.css) inside a box of their own,
+   with the Save and Shortcode cards in a side column. The component's
+   negative margins fit a metabox's inset, which this box does not have.
+   ========================================================================== */
+
+.ffc-aud-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: var(--ffc-spacing-2xl);
+    align-items: start;
+    margin-top: var(--ffc-spacing-xl);
+}
+
+.ffc-aud-editor__main {
+    min-width: 0;
+}
+
+.ffc-boxed .ffc-aud-editor__tabs {
+    margin: var(--ffc-spacing-xl) 0 0;
+    overflow: hidden;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    box-shadow: var(--ffc-shadow-sm);
+}
+
+.ffc-aud-editor .ffc-aud-editor__tabs {
+    margin-top: 0;
+}
+
+.ffc-aud-editor__side .card {
+    min-width: 0;
+}
+
+@media screen and (max-width: 960px) {
+    .ffc-aud-editor {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

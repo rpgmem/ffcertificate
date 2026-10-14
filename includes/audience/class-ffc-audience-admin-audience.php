@@ -64,7 +64,8 @@ class AudienceAdminAudience {
 					AudienceAdminAudienceRenderer::render_form( $this->menu_slug, $id );
 					break;
 				case 'members':
-					AudienceAdminAudienceRenderer::render_members( $this->menu_slug, $id );
+					// The members screen is the editor's Members tab (#1761); its URL opens it.
+					AudienceAdminAudienceRenderer::render_form( $this->menu_slug, $id, 'members' );
 					break;
 				default:
 					AudienceAdminAudienceRenderer::render_list( $this->menu_slug );

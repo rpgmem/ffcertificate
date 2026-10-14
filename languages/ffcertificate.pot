@@ -9078,8 +9078,8 @@ msgstr ""
 msgid "Holiday deleted successfully."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:547
-msgid "Holidays / Closed Dates"
+#: includes/audience/class-ffc-audience-admin-calendar.php:225
+msgid "Closed dates"
 msgstr ""
 
 #: templates/admin/audience/general-tab.php:59
@@ -10882,10 +10882,10 @@ msgstr ""
 msgid "Members"
 msgstr ""
 
-#. %s: audience name
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:682
+#. translators: %d: number of members, as the audiences list counts them
 #, php-format
-msgid "Members of %s"
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:207
+msgid "Members (%d)"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:30
@@ -14283,8 +14283,8 @@ msgstr ""
 msgid "Reregistration record"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:357
-msgid "Reregistration Fields"
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:213
+msgid "Reregistration fields"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:195
@@ -18666,8 +18666,8 @@ msgstr ""
 msgid "User Access"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:446
-msgid "User Access & Permissions"
+#: includes/audience/class-ffc-audience-admin-calendar.php:220
+msgid "User access"
 msgstr ""
 
 #: includes/admin/class-ffc-settings-save-handler.php:570 includes/settings/tabs/class-ffc-tab-user-access.php:106
@@ -23060,10 +23060,12 @@ msgstr ""
 msgid "view or manage the appointments booked on those calendars."
 msgstr ""
 
-msgid "Go to Scheduling → Audiences, edit an audience, and use its Reregistration Fields section"
+#: includes/settings/views/documentation/feature-audiences.php:62
+msgid "Go to Scheduling → Audiences, edit an audience, and open its Reregistration fields tab"
 msgstr ""
 
-msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the section is hidden."
+#: includes/settings/views/documentation/feature-audiences.php:67
+msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the tab is hidden."
 msgstr ""
 
 msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data; fields mapped to a profile key (such as CPF, RF, RG or birth date) are also written, encrypted, to the plugin user profile."
@@ -25994,4 +25996,20 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:62
 msgid "whether the widget shows the ALTCHA logo and the \"Protected by ALTCHA\" footer. A new install shows the logo and hides the footer."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:208
+msgid "Event list & badges"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:29
+msgid "The editors"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:30
+msgid "A calendar is edited in vertical tabs: General, Notifications and Event list & badges, then, once the calendar is saved, its environments (the Environments list of that calendar), User access and Closed dates. One Save button beside the tabs saves the first three together; the shortcode sits beside it."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:31
+msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
 msgstr ""
