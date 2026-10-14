@@ -103,7 +103,7 @@ describe('FFC.Admin.autoSaveField', () => {
 	it('announces ffc:setting-saved on document after a successful save', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" />';
 		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
-			success: true, data: {},
+			success: true, data: { share_link: '?x' },
 		})));
 		const seen = [];
 		const onSaved = (e) => seen.push(e.detail);
@@ -116,7 +116,9 @@ describe('FFC.Admin.autoSaveField', () => {
 		await Promise.resolve();
 
 		document.removeEventListener('ffc:setting-saved', onSaved);
-		expect(seen).toEqual([{ key: 'dark_mode', value: '1' }]);
+		// The response rides along for a save whose server side did more than
+		// write the field (the operator access hash, #1755).
+		expect(seen).toEqual([{ key: 'dark_mode', value: '1', response: { share_link: '?x' } }]);
 	});
 
 	it('stays silent when the save fails', async () => {

@@ -44,6 +44,7 @@ class AdminLoaderTest extends TestCase {
 		'SettingsAjaxEndpoint',
 		'QrDesignPreviewAjaxEndpoint',
 		'FormMetaAjaxEndpoint',
+		'FormPublicCsvActions',
 		'LocationsAjaxEndpoint',
 		'CacheActionsAjaxEndpoint',
 		'FormFeaturesAjaxEndpoint',

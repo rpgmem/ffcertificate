@@ -239,21 +239,23 @@ class FormEditorMetaboxRenderer {
 		echo '<div class="ffc-form-tabs" data-ffc-form-tabs>';
 
 		printf(
-			'<ul class="ffc-form-tabs__nav" role="tablist" aria-orientation="vertical" data-ffc-state-on="%s" data-ffc-state-off="%s">',
+			'<ul class="ffc-form-tabs__nav" role="tablist" aria-orientation="vertical" data-ffc-state-on="%s" data-ffc-state-off="%s" data-ffc-state-pending="%s">',
 			esc_attr__( 'On', 'ffcertificate' ),
-			esc_attr__( 'Off', 'ffcertificate' )
+			esc_attr__( 'Off', 'ffcertificate' ),
+			esc_attr__( 'Incomplete', 'ffcertificate' )
 		);
 		$first = true;
 		foreach ( $tabs as $tab ) {
 			printf(
-				'<li class="ffc-form-tabs__nav-item" role="presentation"><a href="#ffc-tab-%1$s" id="ffc-tabnav-%1$s" class="ffc-form-tabs__tab%2$s" role="tab" aria-controls="ffc-tabpanel-%1$s" aria-selected="%3$s" tabindex="%4$s"%7$s><span class="ffc-form-tabs__icon %5$s" aria-hidden="true"></span><span class="ffc-form-tabs__label">%6$s</span></a></li>',
+				'<li class="ffc-form-tabs__nav-item" role="presentation"><a href="#ffc-tab-%1$s" id="ffc-tabnav-%1$s" class="ffc-form-tabs__tab%2$s" role="tab" aria-controls="ffc-tabpanel-%1$s" aria-selected="%3$s" tabindex="%4$s"%7$s%8$s><span class="ffc-form-tabs__icon %5$s" aria-hidden="true"></span><span class="ffc-form-tabs__label">%6$s</span></a></li>',
 				esc_attr( $tab['key'] ),
 				$first ? ' is-active' : '',
 				$first ? 'true' : 'false',
 				$first ? '0' : '-1',
 				esc_attr( \FreeFormCertificate\Core\Icons::tab_class( $tab['icon'] ) ),
 				esc_html( $tab['label'] ),
-				array() === $tab['masters'] ? '' : ' data-ffc-tab-masters="' . esc_attr( implode( ' ', $tab['masters'] ) ) . '"'
+				array() === $tab['masters'] ? '' : ' data-ffc-tab-masters="' . esc_attr( implode( ' ', $tab['masters'] ) ) . '"',
+				'' === $tab['needs'] ? '' : ' data-ffc-tab-needs="' . esc_attr( $tab['needs'] ) . '"'
 			);
 			$first = false;
 		}
@@ -291,10 +293,14 @@ class FormEditorMetaboxRenderer {
 	 * uses quiz mode or a time window reads off the nav without opening each
 	 * tab. Layout and Fields have no master — every form has both.
 	 *
-	 * @return array<int, array{key: string, icon: string, label: string, title: string, masters: array<int, string>}>
+	 * `needs` names fields the tab cannot do without whatever its toggles say:
+	 * while every one of them is empty the dot reads as pending (#1755). A
+	 * toggle that needs a field says so itself, with `data-ffc-requires`.
+	 *
+	 * @return array<int, array{key: string, icon: string, label: string, title: string, masters: array<int, string>, needs: string}>
 	 */
 	private static function tab_definitions(): array {
-		return array(
+		$tabs = array(
 			array(
 				'key'     => 'layout',
 				'icon'    => 'ffc-icon-file',
@@ -352,6 +358,25 @@ class FormEditorMetaboxRenderer {
 				'masters' => array( 'ffc_csv_public_enabled' ),
 			),
 		);
+
+		foreach ( $tabs as $i => $tab ) {
+			$tabs[ $i ]['needs'] = 'time' === $tab['key'] ? self::schedule_needs() : '';
+		}
+		return $tabs;
+	}
+
+	/**
+	 * The Event Schedule fields, when Settings → Certificates requires the
+	 * `{{schedule}}` tag: a certificate printed without them leaves the tag
+	 * empty, so the Time tab reads as pending until one is filled.
+	 *
+	 * @return string A selector list, or an empty string when the tag is not required.
+	 */
+	private static function schedule_needs(): string {
+		if ( ! in_array( '{{schedule}}', \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags(), true ) ) {
+			return '';
+		}
+		return '[name="ffc_geofence[class_time_start]"], [name="ffc_geofence[class_time_end]"]';
 	}
 
 	/**

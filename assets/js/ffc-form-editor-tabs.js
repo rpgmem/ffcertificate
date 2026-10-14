@@ -267,15 +267,45 @@
 		}
 
 		/**
-		 * Draw an on/off dot on every tab whose feature has a master toggle
-		 * (`data-ffc-tab-masters`), kept in step with the toggles. A tab is
-		 * on when any of its masters is checked. The state is also written
-		 * as screen-reader text, so it is not carried by colour alone.
+		 * Draw a state dot on every tab whose feature has a master toggle
+		 * (`data-ffc-tab-masters`), kept in step with the page. A tab is on
+		 * when any of its masters is checked, and pending (#1755) when the
+		 * feature is on but a field it needs is empty:
+		 *
+		 * - a checked toggle in the panel names the fields it needs with
+		 *   `data-ffc-requires` (a selector list), and at least one of them
+		 *   must be filled;
+		 * - the tab itself may name fields it always needs, with
+		 *   `data-ffc-tab-needs`, and then reads as pending even when off.
+		 *
+		 * A field inside an `.ffc-hidden` block does not count: that is the
+		 * source the admin did not pick. The state is also written as
+		 * screen-reader text, so it is not carried by colour alone.
 		 */
 		function setupStateDots() {
 			var $nav = $container.find( '.ffc-form-tabs__nav' );
-			var onText  = String( $nav.attr( 'data-ffc-state-on' ) || 'On' );
-			var offText = String( $nav.attr( 'data-ffc-state-off' ) || 'Off' );
+			var text = {
+				on: String( $nav.attr( 'data-ffc-state-on' ) || 'On' ),
+				off: String( $nav.attr( 'data-ffc-state-off' ) || 'Off' ),
+				pending: String( $nav.attr( 'data-ffc-state-pending' ) || 'Incomplete' ),
+			};
+			var syncs = [];
+
+			function filled( selector ) {
+				var found = false;
+				$( selector ).each( function () {
+					var $f = $( this );
+					if ( $f.closest( '.ffc-hidden' ).length ) {
+						return;
+					}
+					if ( $f.is( ':checkbox, :radio' ) ? $f.is( ':checked' ) : '' !== String( $f.val() || '' ).trim() ) {
+						found = true;
+						return false;
+					}
+				} );
+				return found;
+			}
+
 			$tabs.each( function () {
 				var $tab = $( this );
 				var ids  = String( $tab.attr( 'data-ffc-tab-masters' ) || '' ).split( /\s+/ ).filter( Boolean );
@@ -285,16 +315,46 @@
 				if ( ! $masters.length || $tab.find( '.ffc-form-tabs__state' ).length ) {
 					return;
 				}
+				var $panel = $( '#' + $tab.attr( 'aria-controls' ) );
+				var needs  = String( $tab.attr( 'data-ffc-tab-needs' ) || '' );
 				var $dot = $( '<span class="ffc-form-tabs__state" aria-hidden="true"></span>' );
 				var $sr  = $( '<span class="screen-reader-text"></span>' );
 				$tab.append( $dot, $sr );
 				function sync() {
 					var on = $masters.filter( ':checked' ).length > 0;
-					$tab.toggleClass( 'is-on', on ).toggleClass( 'is-off', ! on );
-					$sr.text( ' (' + ( on ? onText : offText ) + ')' );
+					var pending = '' !== needs && ! filled( needs );
+					if ( on && ! pending ) {
+						$panel.find( '[data-ffc-requires]:checked' ).each( function () {
+							if ( ! filled( String( $( this ).attr( 'data-ffc-requires' ) ) ) ) {
+								pending = true;
+								return false;
+							}
+						} );
+					}
+					var state = pending ? 'pending' : ( on ? 'on' : 'off' );
+					$tab.toggleClass( 'is-on', 'on' === state )
+						.toggleClass( 'is-off', 'off' === state )
+						.toggleClass( 'is-pending', 'pending' === state );
+					$sr.text( ' (' + text[ state ] + ')' );
 				}
 				$masters.on( 'change', sync );
+				syncs.push( sync );
 				sync();
+			} );
+
+			// Any field can move a dot -- a toggle, a list typed into, a
+			// location ticked -- so listen once, on the whole container. The
+			// sync waits a tick: the handler that shows the picked area source
+			// is delegated on `document`, which hears the event after us.
+			if ( ! syncs.length ) {
+				return; // A second init found every dot drawn; the listener is already bound.
+			}
+			$container.on( 'input change', function () {
+				setTimeout( function () {
+					syncs.forEach( function ( sync ) {
+						sync();
+					} );
+				}, 0 );
 			} );
 		}
 

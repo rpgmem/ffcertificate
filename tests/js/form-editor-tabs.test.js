@@ -447,6 +447,69 @@ describe('FFC.FormEditorTabs — feature state dots (#1614)', () => {
 	});
 });
 
+describe('FFC.FormEditorTabs — pending state (#1755)', () => {
+	const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+	function withRequirement() {
+		buildTabs();
+		const nav = document.querySelector('.ffc-form-tabs__nav');
+		nav.setAttribute('data-ffc-state-pending', 'Incompleto');
+		document.getElementById('ffc-tabnav-email').setAttribute('data-ffc-tab-masters', 'm-pass');
+		const master = Object.assign(document.createElement('input'), { type: 'checkbox', id: 'm-pass', checked: true });
+		master.setAttribute('data-ffc-requires', '#pass-value');
+		const field = Object.assign(document.createElement('input'), { type: 'text', id: 'pass-value' });
+		panel('email').append(master, field);
+		window.FFC.FormEditorTabs.init();
+	}
+
+	it('reads as pending while a checked toggle lacks its field, and on once it is filled', async () => {
+		withRequirement();
+		expect(tab('email').hasClass('is-pending')).toBe(true);
+		expect(tab('email').hasClass('is-on')).toBe(false);
+		expect(tab('email').find('.screen-reader-text').text()).toBe(' (Incompleto)');
+
+		window.$('#pass-value').val('PASS2025').trigger('input');
+		await tick();
+		expect(tab('email').hasClass('is-pending')).toBe(false);
+		expect(tab('email').hasClass('is-on')).toBe(true);
+	});
+
+	it('ignores a requirement of a toggle that is off', () => {
+		withRequirement();
+		window.$('#m-pass').prop('checked', false).trigger('change');
+		expect(tab('email').hasClass('is-off')).toBe(true);
+	});
+
+	it('does not count a filled field inside an .ffc-hidden block', async () => {
+		withRequirement();
+		const hidden = document.createElement('div');
+		hidden.className = 'ffc-hidden';
+		hidden.append(Object.assign(document.createElement('textarea'), { className: 'other', value: 'x' }));
+		panel('email').append(hidden);
+		document.getElementById('m-pass').setAttribute('data-ffc-requires', '#pass-value, .other');
+		window.$('#m-pass').trigger('change');
+		await tick();
+		expect(tab('email').hasClass('is-pending')).toBe(true);
+	});
+
+	it('reads as pending on a tab need even with every toggle off', async () => {
+		buildTabs();
+		const time = document.getElementById('ffc-tabnav-geolocation');
+		time.setAttribute('data-ffc-tab-masters', 'm-time');
+		time.setAttribute('data-ffc-tab-needs', '#sched-start');
+		panel('geolocation').append(
+			Object.assign(document.createElement('input'), { type: 'checkbox', id: 'm-time' }),
+			Object.assign(document.createElement('input'), { type: 'time', id: 'sched-start' })
+		);
+		window.FFC.FormEditorTabs.init();
+		expect(tab('geolocation').hasClass('is-pending')).toBe(true);
+
+		window.$('#sched-start').val('09:00').trigger('change');
+		await tick();
+		expect(tab('geolocation').hasClass('is-off')).toBe(true);
+	});
+});
+
 describe('FFC.FormEditorTabs — a rejected control opens its tab (#1614)', () => {
 	it('activates the inactive tab that holds an invalid control', () => {
 		buildTabs();

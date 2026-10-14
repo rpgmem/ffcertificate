@@ -255,15 +255,106 @@ class FormMetaAjaxEndpointTest extends TestCase {
 		$this->assertSame( 403, $this->responses[0]['status'] );
 	}
 
-	public function test_master_csv_public_enabled_NOT_on_allowlist(): void {
-		// Explicit guard: the master `_ffc_csv_public_enabled` flips
-		// were intentionally excluded from auto-save because enabling
-		// the feature for the first time generates a hash and bumps
-		// cpf_mode. Auto-saving the flag alone would leave the form
-		// half-configured. Codified here so a future refactor cannot
-		// silently re-enable it.
-		$allowlist = FormMetaAjaxEndpoint::allowlist();
-		$this->assertArrayNotHasKey( 'csv_public_enabled', $allowlist );
+	public function test_master_csv_public_enabled_first_enable_generates_hash_and_upgrades_cpf_mode(): void {
+		// The master toggle autosaves since #1755, and its first enable does the
+		// work the full save does: a hash, and `audit` in place of an unset mode.
+		Functions\when( 'get_option' )->justReturn( array() );
+		$_POST = array(
+			'post_id' => 42,
+			'key'     => 'csv_public_enabled',
+			'value'   => '1',
+			'nonce'   => 'n',
+		);
+
+		$this->dispatch();
+
+		$this->assertTrue( $this->responses[0]['ok'] );
+		$this->assertSame( '1', $this->meta_store[42]['_ffc_csv_public_enabled'] );
+		$hash = $this->meta_store[42]['_ffc_csv_public_hash'] ?? '';
+		$this->assertSame( 32, strlen( $hash ), 'A first enable generates the access hash.' );
+		$this->assertSame( 'audit', $this->meta_store[42]['_ffc_csv_public_cpf_mode'] );
+		$this->assertSame( '?form_id=42&hash=' . $hash, $this->responses[0]['data']['share_link'] );
+		$this->assertSame( 'audit', $this->responses[0]['data']['cpf_mode'] );
+	}
+
+	public function test_master_csv_public_enabled_keeps_an_existing_hash_and_mode(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
+		$this->meta_store[42] = array(
+			'_ffc_csv_public_enabled'  => '0',
+			'_ffc_csv_public_hash'     => 'kept',
+			'_ffc_csv_public_cpf_mode' => 'owner',
+		);
+		$_POST = array(
+			'post_id' => 42,
+			'key'     => 'csv_public_enabled',
+			'value'   => '1',
+			'nonce'   => 'n',
+		);
+
+		$this->dispatch();
+
+		$this->assertSame( 'kept', $this->meta_store[42]['_ffc_csv_public_hash'] );
+		$this->assertSame( 'owner', $this->meta_store[42]['_ffc_csv_public_cpf_mode'] );
+	}
+
+	public function test_master_csv_public_enabled_already_on_runs_nothing_more(): void {
+		$this->meta_store[42] = array( '_ffc_csv_public_enabled' => '1' );
+		$_POST = array(
+			'post_id' => 42,
+			'key'     => 'csv_public_enabled',
+			'value'   => '1',
+			'nonce'   => 'n',
+		);
+
+		$this->dispatch();
+
+		$this->assertArrayNotHasKey( '_ffc_csv_public_hash', $this->meta_store[42], 'No transition, no side effect.' );
+		$this->assertArrayNotHasKey( 'share_link', $this->responses[0]['data'] );
+	}
+
+	public function test_master_csv_public_disable_runs_no_side_effect(): void {
+		$this->meta_store[42] = array( '_ffc_csv_public_enabled' => '1' );
+		$_POST = array(
+			'post_id' => 42,
+			'key'     => 'csv_public_enabled',
+			'value'   => '0',
+			'nonce'   => 'n',
+		);
+
+		$this->dispatch();
+
+		$this->assertSame( '0', $this->meta_store[42]['_ffc_csv_public_enabled'] );
+		$this->assertArrayNotHasKey( '_ffc_csv_public_hash', $this->meta_store[42] );
+	}
+
+	public function test_map_toggle_stores_the_mapped_value(): void {
+		$_POST = array(
+			'post_id' => 42,
+			'key'     => 'geofence_schedule_default_mode',
+			'value'   => '0',
+			'nonce'   => 'n',
+		);
+		$this->dispatch();
+		$this->assertSame( 'manual', $this->meta_store[42]['_ffc_geofence_config']['schedule_default_mode'] );
+
+		$this->responses = array();
+		$_POST['value']  = '1';
+		$this->dispatch();
+		$this->assertSame( 'now', $this->meta_store[42]['_ffc_geofence_config']['schedule_default_mode'] );
+	}
+
+	public function test_cpf_mode_rejects_a_value_outside_the_list(): void {
+		$_POST = array(
+			'post_id' => 42,
+			'key'     => 'csv_public_cpf_mode',
+			'value'   => 'everyone',
+			'nonce'   => 'n',
+		);
+
+		$this->dispatch();
+
+		$this->assertFalse( $this->responses[0]['ok'] );
+		$this->assertSame( 400, $this->responses[0]['status'] );
 	}
 
 	public function test_send_admin_email_autosaves(): void {
@@ -280,9 +371,14 @@ class FormMetaAjaxEndpointTest extends TestCase {
 		$this->assertSame( '1', $this->meta_store[42]['_ffc_form_config']['send_admin_email'] );
 	}
 
-	public function test_allowlist_covers_16_toggles_and_one_radio_group(): void {
+	public function test_allowlist_covers_21_toggles_two_radio_groups_and_one_mapped_toggle(): void {
 		$allowlist = FormMetaAjaxEndpoint::allowlist();
-		$this->assertSame( 17, count( $allowlist ) );
+		$this->assertSame( 24, count( $allowlist ) );
+		$this->assertSame( 'map', $allowlist['geofence_schedule_default_mode']['type'] ?? null );
+		$this->assertSame( 'enum', $allowlist['csv_public_cpf_mode']['type'] ?? null );
+		foreach ( array( 'quiz_show_score', 'quiz_show_correct', 'geofence_geo_gps_enabled', 'geofence_geo_ip_enabled', 'csv_public_enabled' ) as $key ) {
+			$this->assertArrayHasKey( $key, $allowlist, "#1755: '$key' autosaves." );
+		}
 		$this->assertSame( 'enum', $allowlist['quiz_reset_on_leave']['type'] ?? null, 'The quiz leave level (#1745) is a closed list, not a toggle.' );
 		$this->assertArrayHasKey(
 			'send_admin_email',
