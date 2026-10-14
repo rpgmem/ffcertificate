@@ -422,19 +422,26 @@ class ReregistrationAdminTest extends TestCase {
 	 * `create_for_audience_members()` skips a user who already has a
 	 * submission — so everyone from the previous cycle stayed at `expired`.
 	 *
-	 * The ORDER is what is pinned here, not just the call. Reopening has to
-	 * run BEFORE `send_invitations()`, which queries `status = 'pending'`:
-	 * reversed, the invitation email stays silent exactly as it was.
+	 * The ORDER is what is pinned here, not just the call: reopen, then seed.
+	 * Since #1762 nothing is mailed here -- the daily run sends the
+	 * invitations -- and the redirect asks the screen to say so.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
 	public function test_handle_save_reopens_expired_submissions_when_reactivating(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			function ( $url ) use ( &$redirect ) {
+				$redirect = $url;
+				throw new \RuntimeException( 'redirected' );
+			}
+		);
 
-		$_POST['ffc_action']        = 'save_reregistration';
-		$_POST['reregistration_id'] = 9;
+		$_POST['ffc_action']             = 'save_reregistration';
+		$_POST['reregistration_id']      = 9;
+		$_POST['rereg_email_invitation'] = '1';
 
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
@@ -478,12 +485,7 @@ class ReregistrationAdminTest extends TestCase {
 			);
 
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )
-			->shouldReceive( 'send_invitations' )->once()->andReturnUsing(
-				function () use ( &$calls ) {
-					$calls[] = 'invite';
-					return 0;
-				}
-			);
+			->shouldNotReceive( 'send_invitations' );
 
 		$admin = new ReregistrationAdmin();
 		try {
@@ -492,11 +494,8 @@ class ReregistrationAdminTest extends TestCase {
 			unset( $e );
 		}
 
-		$this->assertSame(
-			array( 'reopen', 'seed', 'invite' ),
-			$calls,
-			'Reopening must precede the invitation, which only queries pending.'
-		);
+		$this->assertSame( array( 'reopen', 'seed' ), $calls, 'Reopening must precede the seeding.' );
+		$this->assertStringContainsString( '&message=updated&invitations=scheduled', $redirect );
 	}
 
 	/**
@@ -540,7 +539,13 @@ class ReregistrationAdminTest extends TestCase {
 	 */
 	public function test_handle_save_creates_active_campaign_and_redirects(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+		$redirect = '';
+		Functions\when( 'wp_safe_redirect' )->alias(
+			function ( $url ) use ( &$redirect ) {
+				$redirect = $url;
+				throw new \RuntimeException( 'redirected' );
+			}
+		);
 
 		$_POST['ffc_action']         = 'save_reregistration';
 		$_POST['reregistration_id']  = 0;
@@ -572,13 +577,19 @@ class ReregistrationAdminTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' )
 			->shouldReceive( 'create_for_audience_members' )->once()->with( 55, array( 3, 4 ) );
 
+		// Invitations off: the campaign is created and seeded, nothing is
+		// mailed (#1762), and there is nothing to announce.
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )
-			->shouldReceive( 'send_invitations' )->once()->with( 55 )->andReturn( 0 );
+			->shouldNotReceive( 'send_invitations' );
 
 		$admin = new ReregistrationAdmin();
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirected' );
-		$this->invoke_private( $admin, 'handle_save' );
+		try {
+			$this->invoke_private( $admin, 'handle_save' );
+		} catch ( \RuntimeException $e ) {
+			unset( $e );
+		}
+
+		$this->assertStringEndsWith( '&id=55&message=created', $redirect );
 	}
 
 	/**

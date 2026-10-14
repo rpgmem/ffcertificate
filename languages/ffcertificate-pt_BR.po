@@ -15546,10 +15546,6 @@ msgstr "Enviar e-mail para o usuário:"
 msgid "Send Email to User?"
 msgstr "Enviar E-mail ao Usuário?"
 
-#: templates/admin/reregistration/form.php:93
-msgid "Send invitation email when activated"
-msgstr "Enviar e-mail de convite quando ativado"
-
 #: templates/admin/reregistration/form.php:165
 msgid "Send invitations"
 msgstr "Enviar convites"
@@ -15618,10 +15614,6 @@ msgstr "Envie um e-mail de boas-vindas quando um novo usuário do WordPress for 
 msgid "Sending…"
 msgstr "Enviando…"
 
-#: templates/admin/reregistration/form.php:162
-msgid "Sends the invitation to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
-msgstr "Envia o convite a quem ainda não recebeu. Pressionar duas vezes não envia nada na segunda. Se o prazo foi estendido, alcança também todos os que não concluíram."
-
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:436 includes/audience/class-ffc-audience-admin-audience-renderer.php:573
 msgid "Sensitive"
 msgstr "Confidencial"
@@ -15661,10 +15653,6 @@ msgstr "enviado automaticamente quando o prazo está a N dias do fim (padrão: 7
 #: includes/core/class-ffc-email-template-options.php:93
 msgid "Sent by {{site_title}}"
 msgstr "Enviado por {{site_title}}"
-
-#: includes/settings/views/documentation/feature-reregistration.php:39
-msgid "sent to all members when the campaign is activated."
-msgstr "enviado a todos os membros quando a campanha for ativada."
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:407
 msgid "Sent to the person after they submit a form — global text in the hub above, with an optional per-form custom version."
@@ -21949,9 +21937,6 @@ msgstr "Limpeza diária (submissões, exportações, sessões expiradas, log de 
 msgid "Expired ticket cleanup"
 msgstr "Limpeza de tickets expirados"
 
-msgid "Reregistration expiry and automated reminders"
-msgstr "Expiração do recadastramento e lembretes automáticos"
-
 msgid "Appointment reminder scan"
 msgstr "Varredura de lembretes de agendamento"
 
@@ -24310,9 +24295,6 @@ msgstr "Uma campanha de recadastramento coleta informações atualizadas de memb
 msgid "Acknowledgment notice (\"Termo de Ciência\") HTML — editable per-audience in the Reregistration Fields section, with a shipped default fallback."
 msgstr "Aviso de reconhecimento (\"Termo de Ciência\") HTML — editável por público-alvo na seção Campos de Recadastramento, com um modelo padrão fornecido como alternativa."
 
-msgid "Activate the campaign — a submission is created for every audience member and invitation emails go out."
-msgstr "Ative a campanha — uma submissão é criada para cada membro do público-alvo e e-mails de convite são enviados."
-
 msgid "Administrators can schedule activities for audiences (groups) in configured environments."
 msgstr "Os administradores podem agendar atividades para públicos-alvo (grupos) em ambientes configurados."
 
@@ -25945,3 +25927,37 @@ msgstr "O CSV também pode exigir que o operador comprove o CPF antes de liberar
 #: includes/settings/views/documentation/feature-certificates.php
 msgid "In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches: hollow when off, green when on, and amber while something switched on still lacks the field it needs (a password, a list, the tickets, a date or time, an allowed area for GPS) or, when Settings → Certificates requires {{schedule}}, while the event schedule is empty. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes."
 msgstr "No editor de formulário, cada aba se abre em seções recolhíveis cujo indicador mostra Ligado/Desligado, ou o agendamento, quando fechadas, e cada aba tem um ponto que acompanha seus interruptores: vazado quando desligado, verde quando ligado e âmbar enquanto algo ligado ainda não tem o campo de que precisa (uma senha, uma lista, os ingressos, uma data ou um horário, uma área permitida para o GPS) ou, quando Configurações → Certificados exige {{schedule}}, enquanto o horário do evento estiver vazio. Uma caixa de resumo na barra lateral mostra o que o formulário salvo faz, o shortcode tem um botão Copiar e os locais cadastrados de uma cerca geográfica são escolhidos por caixas de seleção."
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Reregistration expiry, invitations and automated reminders"
+msgstr "Expiração do recadastramento, convites e lembretes automáticos"
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Reregistration invitation batch (one per batch)"
+msgstr "Lote de convites do recadastramento (um por lote)"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "No invitation was sent yet. They go out with the daily reregistration run, which is not scheduled on this site right now; check Settings → Scheduled Tasks."
+msgstr "Nenhum convite foi enviado ainda. Eles saem com a execução diária do recadastramento, que não está agendada neste site agora; verifique Configurações → Tarefas Agendadas."
+
+#. translators: %s: date and time of the next daily run
+#: includes/reregistration/class-ffc-reregistration-admin.php
+#, php-format
+msgid "No invitation was sent yet. They go out with the next daily reregistration run, on %s, in batches. Until then you can still change or deactivate the campaign."
+msgstr "Nenhum convite foi enviado ainda. Eles saem na próxima execução diária do recadastramento, em %s, em lotes. Até lá você ainda pode alterar ou desativar a campanha."
+
+#: templates/admin/reregistration/form.php
+msgid "Send invitation email (daily run after activation)"
+msgstr "Enviar e-mail de convite (execução diária após a ativação)"
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. Members who join later get theirs on the following run. The Send invitations button sends them right away."
+msgstr "enviado pela execução diária a cada membro que ainda não recebeu, a partir da primeira execução após a ativação da campanha. Membros que entram depois recebem o seu na execução seguinte. O botão Enviar convites envia na hora."
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "Activate the campaign — a submission is created for every audience member at once. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is."
+msgstr "Ative a campanha — uma submissão é criada na hora para cada membro do público. Os e-mails de convite não são enviados nesse momento: eles saem na próxima execução diária, em lotes, de modo que uma campanha ativada por engano ainda pode ser desativada antes de alguém receber. A tela informa quando será essa execução."
+
+#: templates/admin/reregistration/form.php
+msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
+msgstr "Envia o convite agora, sem esperar a execução diária, a quem ainda não recebeu. Clicar duas vezes não envia nada na segunda. Se o prazo foi prorrogado, também alcança todos que não concluíram."

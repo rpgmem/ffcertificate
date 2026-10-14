@@ -33,6 +33,7 @@ class Deactivator {
 		// A pending reminder batch would otherwise fire into code that is no
 		// longer loaded (#1538 -- it was cleared nowhere).
 		wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
+		wp_clear_scheduled_hook( 'ffc_reregistration_invitation_batch' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();
 		\FreeFormCertificate\DateMessages\DateMessagesCron::unschedule();

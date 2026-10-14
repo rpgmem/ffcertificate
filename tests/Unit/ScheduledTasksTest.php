@@ -151,6 +151,7 @@ class ScheduledTasksTest extends TestCase {
 			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK,
 			\FreeFormCertificate\Submissions\SubmissionHandler::ASYNC_PIPELINE_HOOK,
 			\FreeFormCertificate\Reregistration\ReregistrationEmailHandler::REMINDER_BATCH_HOOK,
+			\FreeFormCertificate\Reregistration\ReregistrationEmailHandler::INVITATION_BATCH_HOOK,
 			\FreeFormCertificate\DateMessages\DateMessagesCron::CRON_HOOK,
 			\FreeFormCertificate\DateMessages\Runner::BATCH_HOOK,
 			\FreeFormCertificate\DateMessages\Digest::HOOK,
@@ -286,10 +287,11 @@ class ScheduledTasksTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'ffc_process_submission_async'      => 3,
-				'ffc_reregistration_reminder_batch' => 0,
-				'ffc_date_messages_batch'           => 0,
-				'ffc_date_messages_digest'          => 0,
+				'ffc_process_submission_async'        => 3,
+				'ffc_reregistration_reminder_batch'   => 0,
+				'ffc_reregistration_invitation_batch' => 0,
+				'ffc_date_messages_batch'             => 0,
+				'ffc_date_messages_digest'            => 0,
 			),
 			ScheduledTasks::pending_singles( $crons )
 		);

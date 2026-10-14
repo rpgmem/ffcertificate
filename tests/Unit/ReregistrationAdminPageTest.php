@@ -294,6 +294,46 @@ class ReregistrationAdminPageTest extends TestCase {
 		$this->assertSame( array(), $notices );
 	}
 
+	/**
+	 * After an activation the screen says nobody was mailed yet and names the
+	 * daily run that will do it (#1762).
+	 */
+	public function test_handle_actions_announces_the_next_daily_run_after_activation(): void {
+		$this->grant( array( 'ffc_manage_reregistration' ) );
+		$_GET['page']        = 'ffc-reregistration';
+		$_GET['invitations'] = 'scheduled';
+		$notices             = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $message, $type ) use ( &$notices ) {
+				$notices[] = array( $code, $message, $type );
+			}
+		);
+		Functions\when( 'wp_next_scheduled' )->alias( static fn( $hook ) => 'ffcertificate_reregistration_expire_hook' === $hook ? 1800000000 : false );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
+			->shouldReceive( 'format_datetime' )->once()->with( 1800000000 )->andReturn( '15/01/2027 03:00' );
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionActions' )->shouldIgnoreMissing();
+
+		( new ReregistrationAdmin() )->handle_actions();
+
+		$this->assertCount( 1, $notices );
+		$this->assertSame( 'ffc_invitations_scheduled', $notices[0][0] );
+		$this->assertStringContainsString( 'on 15/01/2027 03:00', $notices[0][1] );
+		$this->assertSame( 'info', $notices[0][2] );
+	}
+
+	/**
+	 * With the daily event missing, the notice says so instead of naming a
+	 * time nobody scheduled.
+	 */
+	public function test_the_invitations_notice_says_when_the_daily_run_is_not_scheduled(): void {
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+
+		$message = ReregistrationAdmin::invitations_scheduled_message();
+
+		$this->assertStringContainsString( 'not scheduled', $message );
+		$this->assertStringContainsString( 'Settings → Scheduled Tasks', $message );
+	}
+
 	// ==================================================================
 	// handle_save() — status transitions
 	// ==================================================================
@@ -319,7 +359,7 @@ class ReregistrationAdminPageTest extends TestCase {
 		);
 	}
 
-	public function test_saving_a_draft_campaign_as_active_reopens_seeds_and_invites_in_order(): void {
+	public function test_saving_a_draft_campaign_as_active_reopens_and_seeds_in_order_without_mailing(): void {
 		$this->postSave( 9, 'active', array( 'rereg_auto_approve' => '1', 'rereg_email_reminder' => '1' ) );
 		$order = array();
 		$repo  = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
@@ -334,12 +374,12 @@ class ReregistrationAdminPageTest extends TestCase {
 		$repo->shouldReceive( 'reopen_expired_submissions' )->once()->with( 9 )->andReturnUsing( function () use ( &$order ) { $order[] = 'reopen'; return 0; } );
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' )
 			->shouldReceive( 'create_for_audience_members' )->once()->with( 9, array( 4, 5 ) )->andReturnUsing( function () use ( &$order ) { $order[] = 'seed'; return 0; } );
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )
-			->shouldReceive( 'send_invitations' )->once()->with( 9 )->andReturnUsing( function () use ( &$order ) { $order[] = 'invite'; return 0; } );
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )->shouldNotReceive( 'send_invitations' );
 
 		$this->invoke( new ReregistrationAdmin(), 'handle_save' );
 
-		$this->assertSame( array( 'reopen', 'seed', 'invite' ), $order );
+		// Invitations are off in this post, so there is nothing to announce.
+		$this->assertSame( array( 'reopen', 'seed' ), $order );
 		$this->assertSame( array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=edit&id=9&message=updated' ), $this->redirects );
 	}
 
@@ -357,20 +397,19 @@ class ReregistrationAdminPageTest extends TestCase {
 		$this->assertCount( 1, $this->redirects );
 	}
 
-	public function test_creating_an_active_campaign_seeds_and_invites(): void {
-		$this->postSave( 0, 'active' );
+	public function test_creating_an_active_campaign_seeds_and_announces_the_daily_invitations(): void {
+		$this->postSave( 0, 'active', array( 'rereg_email_invitation' => '1' ) );
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
 		$repo->shouldNotReceive( 'get_by_id' );
 		$repo->shouldReceive( 'create' )->once()->andReturn( 41 );
 		$repo->shouldReceive( 'set_audience_ids' )->once()->with( 41, array( 4, 5 ) );
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' )
 			->shouldReceive( 'create_for_audience_members' )->once()->with( 41, array( 4, 5 ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )
-			->shouldReceive( 'send_invitations' )->once()->with( 41 );
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )->shouldNotReceive( 'send_invitations' );
 
 		$this->invoke( new ReregistrationAdmin(), 'handle_save' );
 
-		$this->assertSame( array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=edit&id=41&message=created' ), $this->redirects );
+		$this->assertSame( array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=edit&id=41&message=created&invitations=scheduled' ), $this->redirects );
 	}
 
 	public function test_a_failed_create_neither_links_audiences_nor_redirects(): void {

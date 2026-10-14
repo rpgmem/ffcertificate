@@ -112,7 +112,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 									array(
 										'name'    => 'rereg_email_invitation',
 										'checked' => ! empty( $item->email_invitation_enabled ),
-										'label'   => __( 'Send invitation email when activated', 'ffcertificate' ),
+										'label'   => __( 'Send invitation email (daily run after activation)', 'ffcertificate' ),
 									)
 								);
 								?>
@@ -181,7 +181,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<h2 class="ffc-icon-send"><?php esc_html_e( 'Invitations', 'ffcertificate' ); ?></h2>
 			<div class="inside">
 				<p class="description">
-					<?php esc_html_e( 'Sends the invitation to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished.', 'ffcertificate' ); ?>
+					<?php esc_html_e( 'Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished.', 'ffcertificate' ); ?>
 				</p>
 				<button type="button" class="button button-secondary" id="ffc-rereg-send-invitations" data-rereg-id="<?php echo esc_attr( (string) $id ); ?>">
 					<?php esc_html_e( 'Send invitations', 'ffcertificate' ); ?>
