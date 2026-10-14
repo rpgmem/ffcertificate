@@ -53,7 +53,7 @@ beforeAll(() => {
 						<td colspan="11">
 							<div class="ffc-field-options-container"><textarea class="ffc-field-choices"></textarea></div>
 							<textarea class="ffc-field-help"></textarea>
-							<div class="ffc-field-detail-row">
+							<div class="ffc-field-validation-container">
 								<select class="ffc-field-format"><option value="">-</option><option value="custom_regex">regex</option></select>
 								<input type="text" class="ffc-field-regex" style="display:none">
 								<input type="text" class="ffc-field-regex-msg" style="display:none">
@@ -97,7 +97,7 @@ beforeEach(async () => {
 						<td colspan="11">
 							<div class="ffc-field-options-container" style="display:none"><textarea class="ffc-field-choices"></textarea></div>
 							<textarea class="ffc-field-help"></textarea>
-							<div class="ffc-field-detail-row">
+							<div class="ffc-field-validation-container">
 								<select class="ffc-field-format"><option value="">-</option><option value="custom_regex">regex</option></select>
 								<input type="text" class="ffc-field-regex" style="display:none">
 								<input type="text" class="ffc-field-regex-msg" style="display:none">
@@ -426,8 +426,15 @@ describe('custom-fields-admin — row UI handlers', () => {
 	it('onFieldTypeChange hides the format row for working_hours type', async () => {
 		window.$('.ffc-field-type').val('working_hours').trigger('change');
 		await flush();
-		// The .ffc-field-detail-row containing .ffc-field-format hides.
-		expect(window.$('.ffc-field-format').closest('.ffc-field-detail-row').css('display')).toBe('none');
+		// The fixture mirrors the renderer's markup: the format select sits in
+		// .ffc-field-validation-container. It used to hide a
+		// .ffc-field-detail-row that the renderer never prints, so the format
+		// select stayed visible (#1771).
+		expect(window.$('.ffc-field-validation-container').css('display')).toBe('none');
+
+		window.$('.ffc-field-type').val('text').trigger('change');
+		await flush();
+		expect(window.$('.ffc-field-validation-container').css('display')).not.toBe('none');
 	});
 
 	it('onFormatChange shows regex inputs only when format=custom_regex', async () => {

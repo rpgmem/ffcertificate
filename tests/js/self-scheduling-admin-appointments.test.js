@@ -114,11 +114,11 @@ describe('ffc-self-scheduling-admin-appointments — batched CSV export (#772)',
 		expect(arg.type).toBe('appointments');
 		expect(arg.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
 		expect(arg.nonce).toBe('export-nonce');
+		// Exactly the list's two filters: it has no date filter, so the export
+		// sends no date keys the button could never fill (#1770).
 		expect(arg.startData).toEqual({
 			calendar_id: '3',
 			status: 'confirmed',
-			start_date: '',
-			end_date: '',
 		});
 		// Progress is now driven by the shared overlay (#786): the caller passes
 		// overlay:true + the button, not per-call callbacks.
