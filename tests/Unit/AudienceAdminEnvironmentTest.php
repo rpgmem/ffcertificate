@@ -128,16 +128,18 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	}
 
 	// ==================================================================
-	// render_page() — default list
+	// render_view() — default list
 	// ==================================================================
 
-	public function test_render_page_renders_list_by_default(): void {
+	public function test_render_view_renders_list_by_default(): void {
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();
-		$page->render_page();
-		$output = ob_get_clean();
+		$page->render_view();
+		$output = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'wrap', $output );
+		$this->assertStringContainsString( 'ffc-environments-table', $output );
+		// The hosting page prints the wrap (#1761), never the view.
+		$this->assertStringNotContainsString( 'class="wrap', $output );
 	}
 
 	// ==================================================================
@@ -167,7 +169,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();
-		$page->render_page();
+		$page->render_view();
 		$output = ob_get_clean();
 
 		// Alpha (Cal One) sorts before Zeta (Cal Two).
@@ -220,7 +222,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();
-		$page->render_page();
+		$page->render_view();
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Active Room', $output, 'The rows render for every tier.' );
@@ -239,10 +241,12 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
 		$schedRepo->shouldReceive( 'get_all' )->andReturn( array() );
 		$schedRepo->shouldReceive( 'get_environment_label' )->with( 3 )->andReturn( 'Rooms' );
+		// The view switch names the views with the default label (#1761).
+		$schedRepo->shouldReceive( 'get_environment_label' )->withNoArgs()->andReturn( 'Environments' );
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();
-		$page->render_page();
+		$page->render_view();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Rooms', $output );
@@ -266,7 +270,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();
-		$page->render_page();
+		$page->render_view();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Cal', $output );
@@ -301,14 +305,14 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		ob_start();
-		$page->render_page();
+		$page->render_view();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'My Room', $output );
 		$this->assertStringContainsString( '#abcdef', $output );
 
 		// #1627: the form sits in one box headed by the calendar's own label.
-		$this->assertStringContainsString( 'ffc-page-scheduling-environments ffc-boxed', $output );
+		// The `.ffc-boxed` wrap is the hosting calendars page's (#1761).
 		$this->assertMatchesRegularExpression( '/<div class="card">\s*<h2 class="ffc-icon-building">Room<\/h2>/', $output );
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
 		unset( $_GET['action'], $_GET['id'] );
@@ -327,13 +331,13 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'Environment not found' );
-		// render_page() echoes the admin page wrapper before it detects the
-		// missing record and calls wp_die(); capture and discard that output
-		// so the markup doesn't leak into PHPUnit's stdout (the assertion is
-		// on the wp_die exception, not the buffer).
+		// The view may echo markup before it detects the missing record and
+		// calls wp_die(); capture and discard that output so the markup
+		// doesn't leak into PHPUnit's stdout (the assertion is on the wp_die
+		// exception, not the buffer).
 		ob_start();
 		try {
-			$page->render_page();
+			$page->render_view();
 		} finally {
 			ob_end_clean();
 			unset( $_GET['action'], $_GET['id'] );
@@ -445,7 +449,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 		ob_start();
 		try {
-			( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_page();
+			( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
 		} finally {
 			$output = (string) ob_get_clean();
 			unset( $_GET['action'], $_GET['id'] );
@@ -662,5 +666,326 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'permission to delete' );
 		$page->handle_actions();
+	}
+
+	// ==================================================================
+	// #1761 — the screen is a view of Audience Calendars
+	// ==================================================================
+
+	/**
+	 * Where an environment request can arrive: the view on the calendars
+	 * page, and the previous slug (still registered, hidden).
+	 *
+	 * @return array<string, array{0: array<string, string>}>
+	 */
+	public function locations(): array {
+		return array(
+			'Environments view' => array( array( 'page' => 'ffc-scheduling-calendars', 'view' => 'environments' ) ),
+			'previous slug'     => array( array( 'page' => 'ffc-scheduling-environments' ) ),
+		);
+	}
+
+	public function test_view_url_names_the_calendars_page_and_the_view(): void {
+		Functions\when( 'admin_url' )->returnArg();
+		$this->assertSame( 'admin.php?page=ffc-scheduling-calendars&view=environments', AudienceAdminEnvironment::view_url( 'ffc-scheduling' ) );
+		$this->assertSame( 'admin.php?page=ffc-scheduling-calendars&view=environments&action=new', AudienceAdminEnvironment::view_url( 'ffc-scheduling', '&action=new' ) );
+	}
+
+	/**
+	 * @dataProvider locations
+	 *
+	 * @param array<string, string> $location The page (and view) of the request.
+	 */
+	public function test_is_own_request_at_either_location( array $location ): void {
+		$_GET = $location;
+		$this->assertTrue( ( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->is_own_request() );
+	}
+
+	public function test_is_not_own_request_on_the_calendars_view_or_a_sibling(): void {
+		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
+		$_GET = array( 'page' => 'ffc-scheduling-calendars' );
+		$this->assertFalse( $page->is_own_request(), 'the Calendars view' );
+		$_GET = array(
+			'page' => 'ffc-scheduling-audiences',
+			'view' => 'environments',
+		);
+		$this->assertFalse( $page->is_own_request(), 'a sibling page carrying the view' );
+	}
+
+	/**
+	 * @dataProvider locations
+	 *
+	 * @param array<string, string> $location The page (and view) of the request.
+	 */
+	public function test_deactivate_works_from_either_location_and_lands_on_the_view( array $location ): void {
+		$_GET = $location + array(
+			'action'   => 'deactivate',
+			'id'       => '8',
+			'_wpnonce' => 'n',
+		);
+		Functions\expect( 'wp_verify_nonce' )->once()->with( 'n', 'deactivate_environment_8' )->andReturn( 1 );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
+
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'update' )->once()->with( 8, array( 'status' => 'inactive' ) )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirect:admin.php?page=ffc-scheduling-calendars&view=environments&message=deactivated' );
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+	}
+
+	/**
+	 * @dataProvider locations
+	 *
+	 * @param array<string, string> $location The page (and view) of the request.
+	 */
+	public function test_delete_works_from_either_location_and_lands_on_the_view( array $location ): void {
+		$_GET = $location + array(
+			'action'   => 'delete',
+			'id'       => '9',
+			'_wpnonce' => 'n',
+		);
+		Functions\expect( 'wp_verify_nonce' )->once()->with( 'n', 'delete_environment_9' )->andReturn( 1 );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
+
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'status' => 'inactive' ) );
+		$envRepo->shouldReceive( 'delete' )->once()->with( 9 )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirect:admin.php?page=ffc-scheduling-calendars&view=environments&message=deleted' );
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+	}
+
+	/**
+	 * @dataProvider locations
+	 *
+	 * @param array<string, string> $location The page (and view) of the request.
+	 */
+	public function test_create_works_from_either_location_and_opens_the_new_record_in_the_view( array $location ): void {
+		$_GET  = $location + array( 'action' => 'new' );
+		$_POST = array(
+			'ffc_action'            => 'save_environment',
+			'ffc_environment_nonce' => 'n',
+			'environment_id'        => '0',
+			'environment_schedule'  => '3',
+			'environment_name'      => 'New Env',
+			'environment_status'    => 'active',
+		);
+		Functions\expect( 'wp_verify_nonce' )->once()->with( 'n', 'save_environment' )->andReturn( 1 );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
+
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'create' )->once()->with( Mockery::on( static fn( $data ) => 3 === $data['schedule_id'] && 'New Env' === $data['name'] ) )->andReturn( 42 );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirect:admin.php?page=ffc-scheduling-calendars&view=environments&action=edit&id=42&message=created' );
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+	}
+
+	/**
+	 * @dataProvider locations
+	 *
+	 * @param array<string, string> $location The page (and view) of the request.
+	 */
+	public function test_update_works_from_either_location( array $location ): void {
+		$_GET  = $location + array(
+			'action' => 'edit',
+			'id'     => '5',
+		);
+		$_POST = array(
+			'ffc_action'            => 'save_environment',
+			'ffc_environment_nonce' => 'n',
+			'environment_id'        => '5',
+			'environment_schedule'  => '2',
+			'environment_name'      => 'Edited',
+			'environment_status'    => 'inactive',
+		);
+		Functions\expect( 'wp_verify_nonce' )->once()->with( 'n', 'save_environment' )->andReturn( 1 );
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $message ) use ( &$notices ) {
+				$notices[] = $message;
+				return true;
+			}
+		);
+
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'update' )->once()->with( 5, Mockery::on( static fn( $data ) => 'Edited' === $data['name'] && 'inactive' === $data['status'] ) )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' )->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
+
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+		$this->assertSame( array( 'Room updated successfully.' ), $notices );
+	}
+
+	/**
+	 * @dataProvider locations
+	 *
+	 * @param array<string, string> $location The page (and view) of the request.
+	 */
+	public function test_redirect_feedback_shows_at_either_location( array $location ): void {
+		$_GET    = $location + array( 'message' => 'deleted' );
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $message ) use ( &$notices ) {
+				$notices[] = $message;
+				return true;
+			}
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' )->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
+
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+		$this->assertSame( array( 'Room deleted successfully.' ), $notices );
+	}
+
+	public function test_actions_are_left_alone_on_the_calendars_view(): void {
+		// The calendars list shares the page; its `action=deactivate` and
+		// `message` belong to AudienceAdminCalendar.
+		$_GET = array(
+			'page'     => 'ffc-scheduling-calendars',
+			'action'   => 'deactivate',
+			'id'       => '8',
+			'_wpnonce' => 'n',
+			'message'  => 'deleted',
+		);
+		$nonces  = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_verify_nonce', 1 );
+		$notices = \FreeFormCertificate\Tests\Support\CallLog::record( 'add_settings_error', true );
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldNotReceive( 'update' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+		$this->assertSame( 0, $nonces->count(), 'no environment action was attempted' );
+		$this->assertSame( 0, $notices->count(), 'no environment notice was raised' );
+	}
+
+	public function test_the_list_links_and_filter_point_at_the_view(): void {
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'wp_nonce_url' )->alias( static fn( $url, $action ) => $url . '&_wpnonce=' . $action );
+		$buttons = array();
+		Functions\when( 'submit_button' )->alias(
+			static function ( $text, $type, $name ) use ( &$buttons ) {
+				$buttons[] = array( $text, $type, $name );
+			}
+		);
+		$_GET = array(
+			'page'        => 'ffc-scheduling-calendars',
+			'view'        => 'environments',
+			'schedule_id' => '1',
+		);
+
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->with( array( 'schedule_id' => 1 ) )->andReturn(
+			array(
+				(object) array( 'id' => 1, 'name' => 'Active Room', 'schedule_id' => 1, 'status' => 'active', 'color' => '#fff', 'description' => '' ),
+				(object) array( 'id' => 2, 'name' => 'Inactive Room', 'schedule_id' => 1, 'status' => 'inactive', 'color' => '#000', 'description' => '' ),
+			)
+		);
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 1, 'name' => 'Cal One' ), (object) array( 'id' => 2, 'name' => 'Cal Two' ) ) );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+
+		ob_start();
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
+		$output = (string) ob_get_clean();
+
+		$view = 'admin.php?page=ffc-scheduling-calendars&view=environments';
+		$this->assertStringContainsString( 'href="' . $view . '&action=new" class="page-title-action"', $output );
+		$this->assertSame( 2, substr_count( $output, 'href="' . $view . '&action=edit&id=1"' ), 'the name link and the Edit action' );
+		$this->assertStringContainsString( 'href="' . $view . '&action=deactivate&id=1&_wpnonce=deactivate_environment_1"', $output );
+		$this->assertStringContainsString( 'href="' . $view . '&action=delete&id=2&_wpnonce=delete_environment_2"', $output );
+		$this->assertStringNotContainsString( 'ffc-scheduling-environments', $output, 'no link is left on the previous slug' );
+
+		// The filter: a GET form that stays on the view, the calendar select and its Filter button.
+		$this->assertMatchesRegularExpression( '/<form method="get" class="ffc-filter-form">\s*<input type="hidden" name="page" value="ffc-scheduling-calendars">\s*<input type="hidden" name="view" value="environments">\s*<select name="schedule_id">/', $output );
+		$this->assertStringContainsString( '<option value="">All Calendars</option>', $output );
+		$this->assertSame( array( array( 'Filter', 'secondary', 'filter' ) ), $buttons );
+
+		// The same columns as before the move.
+		preg_match_all( '/<th scope="col" class="(column-[a-z]+)">/', $output, $columns );
+		$this->assertSame( array( 'column-color', 'column-name', 'column-calendar', 'column-status', 'column-actions' ), $columns[1] );
+
+		// The view switch, with Environments current.
+		$this->assertMatchesRegularExpression( '/<ul class="subsubsub">.*href="admin\.php\?page=ffc-scheduling-calendars">Calendars<\/a>.*href="' . preg_quote( $view, '/' ) . '" class="current" aria-current="page">Environments<\/a>/s', $output );
+	}
+
+	/**
+	 * Edit-screen tiers (#1777): view-only renders read-only, manage edits.
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public function edit_screen_tiers(): array {
+		return array(
+			'view-only tier' => array( array( 'ffc_view_audiences' ), false ),
+			'manage tier'    => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true ),
+		);
+	}
+
+	/**
+	 * Record each submit button as a marker carrying its label.
+	 */
+	private function capture_submit_buttons(): void {
+		Functions\when( 'submit_button' )->alias(
+			static function ( $text = null ) {
+				echo '[submit:' . $text . ']';
+			}
+		);
+	}
+
+	/**
+	 * @dataProvider edit_screen_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_manage Whether the screen is editable.
+	 */
+	public function test_edit_form_renders_read_only_without_manage( array $caps, bool $can_manage ): void {
+		$this->grant( $caps );
+		$this->capture_submit_buttons();
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '7';
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_by_id' )->with( 7 )->andReturn(
+			(object) array(
+				'id'            => 7,
+				'schedule_id'   => 2,
+				'name'          => 'My Room',
+				'description'   => 'desc',
+				'color'         => '#abcdef',
+				'status'        => 'active',
+				'working_hours' => '',
+			)
+		);
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 2, 'name' => 'Cal', 'status' => 'active' ) ) );
+		$schedRepo->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 2, 'name' => 'Cal', 'status' => 'active' ) );
+
+		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
+		ob_start();
+		$page->render_view();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'My Room', $output, 'every tier sees the record' );
+		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '[submit:Update Room]' ) );
+		if ( ! $can_manage ) {
+			$open  = (int) strpos( $output, '<fieldset disabled' );
+			$close = (int) strpos( $output, '</fieldset>' );
+			foreach ( array( 'name="environment_schedule"', 'name="environment_name"', 'name="working_hours[sun][closed]"', 'name="environment_status"' ) as $field ) {
+				$at = (int) strpos( $output, $field );
+				$this->assertTrue( $at > $open && $at < $close, $field . ' sits inside the lock' );
+			}
+		}
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
 	}
 }
