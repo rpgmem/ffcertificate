@@ -13675,6 +13675,13 @@ msgstr ""
 msgid "Read-only — you can view these settings but do not have permission to change them."
 msgstr ""
 
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:215
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:719
+#: includes/audience/class-ffc-audience-admin-calendar.php:198
+#: includes/audience/class-ffc-audience-admin-environment.php:283
+msgid "Read-only — you can view this page but do not have permission to change it."
+msgstr ""
+
 #: templates/admin/recruitment/admin-page/settings-tab.php:30
 msgid "Read-only — you do not have permission to change recruitment settings."
 msgstr ""
