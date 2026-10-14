@@ -533,4 +533,99 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->expectExceptionMessage( 'message=holiday_deleted' );
 		$page->handle_actions();
 	}
+
+	/**
+	 * Edit-screen tiers (#1777): view-only renders read-only, manage edits.
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public function edit_screen_tiers(): array {
+		return array(
+			'view-only tier' => array( array( 'ffc_view_audiences' ), false ),
+			'manage tier'    => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true ),
+		);
+	}
+
+	/**
+	 * Record each submit button as a marker carrying its label.
+	 */
+	private function capture_submit_buttons(): void {
+		Functions\when( 'submit_button' )->alias(
+			static function ( $text = null ) {
+				echo '[submit:' . $text . ']';
+			}
+		);
+	}
+
+	/**
+	 * @dataProvider edit_screen_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_manage Whether the screen is editable.
+	 */
+	public function test_edit_form_renders_read_only_without_manage( array $caps, bool $can_manage ): void {
+		$this->grant( $caps );
+		$this->capture_submit_buttons();
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '5';
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'get_userdata' )->alias(
+			static fn( $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
+		);
+
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
+			(object) array( 'id' => 5, 'name' => 'Cal Five', 'status' => 'active', 'visibility' => 'public' )
+		);
+		$schedRepo->shouldReceive( 'get_all_permissions' )->with( 5 )->andReturn(
+			array( (object) array( 'user_id' => 7, 'can_book' => '1', 'can_cancel_others' => '0', 'can_override_conflicts' => '1' ) )
+		);
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_holidays' )->with( 5 )->andReturn(
+			array( (object) array( 'id' => 3, 'holiday_date' => '2026-12-25', 'description' => 'Christmas' ) )
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )->shouldReceive( 'format_wallclock_date' )->andReturn( '25/12/2026' );
+
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		// Every tier sees the record, its grants and its holidays.
+		$this->assertStringContainsString( 'Cal Five', $output );
+		$this->assertStringContainsString( 'User7', $output );
+		$this->assertStringContainsString( 'Christmas', $output );
+
+		// The calendar form: fields locked and no save without manage.
+		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '[submit:Update Calendar]' ) );
+		if ( ! $can_manage ) {
+			$open  = (int) strpos( $output, '<fieldset disabled' );
+			$close = (int) strpos( $output, '</fieldset>' );
+			foreach ( array( 'name="schedule_name"', 'name="schedule_visibility"', 'name="schedule_notify_booking"', 'name="schedule_admin_emails"', 'name="schedule_status"' ) as $field ) {
+				$at = (int) strpos( $output, $field );
+				$this->assertTrue( $at > $open && $at < $close, $field . ' sits inside the lock' );
+			}
+		}
+
+		// User Access & Permissions: no search, add, toggle wiring or Remove.
+		foreach ( array( 'id="ffc-user-search"', 'id="ffc-add-user-btn"', 'id="ffc-permissions-table"', 'ffc-perm-toggle', 'ffc-remove-user-btn' ) as $control ) {
+			$this->assertSame( $can_manage, str_contains( $output, $control ), $control );
+		}
+		$this->assertSame( ! $can_manage, str_contains( $output, 'ffc-permissions-read-only' ) );
+		if ( ! $can_manage ) {
+			$this->assertSame( 3, preg_match_all( '/name="ffc_perm_7_[a-z_]+" value="1"( checked)? disabled/', $output ), 'each grant is a disabled toggle' );
+			$this->assertSame( 2, preg_match_all( '/name="ffc_perm_7_[a-z_]+" value="1" checked disabled/', $output ), 'the stored grants stay visible' );
+		}
+
+		// Holidays: no add form and no Delete.
+		$this->assertSame( $can_manage, str_contains( $output, 'ffc-holiday-form' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '[submit:Add Holiday]' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'Delete this holiday?' ) );
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+	}
 }

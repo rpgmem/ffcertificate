@@ -235,6 +235,9 @@ class AudienceAdminEnvironment {
 	 */
 	private function render_form( int $id ): void {
 		$environment = null;
+		// 3-state (#1777): the screen opens on `ffc_view_audiences`, the save on
+		// `ffc_manage_audiences`. Without it the form renders read-only.
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
 
 		// Get the schedule for dynamic label.
 		$schedule_id = 0;
@@ -276,6 +279,9 @@ class AudienceAdminEnvironment {
 		</a>
 
 		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php if ( ! $can_manage ) : ?>
+			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
+		<?php endif; ?>
 
 		<?php // The heading is the calendar's own label for an environment ("Room", "Service"). ?>
 		<div class="card">
@@ -285,6 +291,10 @@ class AudienceAdminEnvironment {
 			<input type="hidden" name="environment_id" value="<?php echo esc_attr( (string) $id ); ?>">
 			<input type="hidden" name="ffc_action" value="save_environment">
 
+			<?php if ( ! $can_manage ) : ?>
+				<?php // A disabled fieldset disables every control inside it. ?>
+				<fieldset disabled class="ffc-readonly-lock">
+			<?php endif; ?>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
@@ -394,16 +404,19 @@ class AudienceAdminEnvironment {
 					</td>
 				</tr>
 			</tbody></table>
-
-			<?php
-			submit_button(
-				$id > 0
-				/* translators: %s: environment label (singular, e.g. "Room") */
-				? sprintf( __( 'Update %s', 'ffcertificate' ), $env_label_singular )
-				/* translators: %s: environment label (singular, e.g. "Room") */
-				: sprintf( __( 'Create %s', 'ffcertificate' ), $env_label_singular )
-			);
-			?>
+			<?php if ( ! $can_manage ) : ?>
+				</fieldset>
+			<?php else : ?>
+				<?php
+				submit_button(
+					$id > 0
+					/* translators: %s: environment label (singular, e.g. "Room") */
+					? sprintf( __( 'Update %s', 'ffcertificate' ), $env_label_singular )
+					/* translators: %s: environment label (singular, e.g. "Room") */
+					: sprintf( __( 'Create %s', 'ffcertificate' ), $env_label_singular )
+				);
+				?>
+			<?php endif; ?>
 		</form>
 		</div>
 
