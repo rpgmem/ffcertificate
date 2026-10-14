@@ -33,6 +33,17 @@ class AudienceAdminEnvironment {
 	public const VIEW = 'environments';
 
 	/**
+	 * Opening time a day takes when its field is left empty — the default
+	 * the Working Hours description names.
+	 */
+	private const DEFAULT_START = '08:00';
+
+	/**
+	 * Closing time a day takes when its field is left empty.
+	 */
+	private const DEFAULT_END = '18:00';
+
+	/**
 	 * Menu slug used to build admin URLs.
 	 *
 	 * @var string
@@ -296,6 +307,18 @@ class AudienceAdminEnvironment {
 		$schedules = AudienceScheduleRepository::get_all( array( 'status' => 'active' ) );
 		$back_url  = self::view_url( $this->menu_slug );
 
+		// The select lists active calendars only, so an environment whose
+		// calendar was deactivated would show "Select a calendar" and the
+		// required check would block its save (#1771). Keep its own calendar
+		// in the list, labelled as inactive.
+		$listed_ids = array_map( static fn( $schedule ) => (int) $schedule->id, $schedules );
+		if ( $schedule_id > 0 && ! in_array( $schedule_id, $listed_ids, true ) ) {
+			$current_schedule = AudienceScheduleRepository::get_by_id( $schedule_id );
+			if ( $current_schedule ) {
+				$schedules[] = $current_schedule;
+			}
+		}
+
 		// Parse working hours.
 		$working_hours = array();
 		if ( $environment && $environment->working_hours ) {
@@ -330,9 +353,15 @@ class AudienceAdminEnvironment {
 					<td>
 						<select name="environment_schedule" id="environment_schedule" required>
 							<option value=""><?php esc_html_e( 'Select a calendar', 'ffcertificate' ); ?></option>
-							<?php foreach ( $schedules as $schedule ) : ?>
+							<?php
+							foreach ( $schedules as $schedule ) :
+								$schedule_label = 'active' === (string) ( $schedule->status ?? 'active' )
+									? (string) $schedule->name
+									/* translators: %s: calendar name */
+									: sprintf( __( '%s (inactive)', 'ffcertificate' ), (string) $schedule->name );
+								?>
 								<option value="<?php echo esc_attr( (string) $schedule->id ); ?>" <?php selected( $environment->schedule_id ?? '', $schedule->id ); ?>>
-									<?php echo esc_html( $schedule->name ); ?>
+									<?php echo esc_html( $schedule_label ); ?>
 								</option>
 							<?php endforeach; ?>
 						</select>
@@ -387,8 +416,8 @@ class AudienceAdminEnvironment {
 							);
 							foreach ( $days as $key => $label ) :
 								$closed = isset( $working_hours[ $key ]['closed'] ) && $working_hours[ $key ]['closed'];
-								$start  = $working_hours[ $key ]['start'] ?? '08:00';
-								$end    = $working_hours[ $key ]['end'] ?? '18:00';
+								$start  = $working_hours[ $key ]['start'] ?? self::DEFAULT_START;
+								$end    = $working_hours[ $key ]['end'] ?? self::DEFAULT_END;
 								?>
 								<div class="ffc-day-row">
 									<label class="ffc-day-label"><?php echo esc_html( $label ); ?></label>
@@ -450,12 +479,36 @@ class AudienceAdminEnvironment {
 	}
 
 	/**
+	 * The working hours stored for an environment, keyed by day.
+	 *
+	 * @param int $id Environment ID (0 for a new one, which has none).
+	 * @return array<string, mixed>
+	 */
+	private function stored_working_hours( int $id ): array {
+		if ( $id <= 0 ) {
+			return array();
+		}
+		$environment = AudienceEnvironmentRepository::get_by_id( $id );
+		if ( ! $environment || empty( $environment->working_hours ) ) {
+			return array();
+		}
+		$hours = json_decode( $environment->working_hours, true );
+		return is_array( $hours ) ? $hours : array();
+	}
+
+	/**
 	 * Handle environment actions (save, delete)
 	 *
 	 * @return void
 	 */
 	public function handle_actions(): void {
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			return;
+		}
+
+		// The coordinator calls this on every `ffc-scheduling*` screen (#1771):
+		// act only on this one — the Environments view, or its legacy slug (#1761).
+		if ( ! $this->is_own_request() ) {
 			return;
 		}
 
@@ -486,14 +539,30 @@ class AudienceAdminEnvironment {
 
 			// Process working hours.
 			$working_hours = array();
+			$stored_hours  = null;
 			if ( isset( $_POST['working_hours'] ) && is_array( $_POST['working_hours'] ) ) {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The array is iterated, not consumed: wp_unslash() is applied to the array and every leaf is sanitized inside the loop with sanitize_key()/sanitize_text_field().
 				foreach ( wp_unslash( $_POST['working_hours'] ) as $day => $hours ) {
-					$day                   = sanitize_key( $day );
+					$day   = sanitize_key( $day );
+					$times = array();
+					foreach ( array( 'start', 'end' ) as $edge ) {
+						if ( isset( $hours[ $edge ] ) ) {
+							$times[ $edge ] = sanitize_text_field( $hours[ $edge ] );
+							continue;
+						}
+						// A closed day's time inputs are disabled, so the
+						// browser does not post them: keep what is stored
+						// rather than reset the day to the default (#1771).
+						if ( null === $stored_hours ) {
+							$stored_hours = $this->stored_working_hours( $id );
+						}
+						$times[ $edge ] = (string) ( $stored_hours[ $day ][ $edge ] ?? '' );
+					}
 					$working_hours[ $day ] = array(
 						'closed' => isset( $hours['closed'] ) ? true : false,
-						'start'  => isset( $hours['start'] ) ? sanitize_text_field( $hours['start'] ) : '08:00',
-						'end'    => isset( $hours['end'] ) ? sanitize_text_field( $hours['end'] ) : '18:00',
+						// An empty time means the documented default.
+						'start'  => '' !== $times['start'] ? $times['start'] : self::DEFAULT_START,
+						'end'    => '' !== $times['end'] ? $times['end'] : self::DEFAULT_END,
 					);
 				}
 			}

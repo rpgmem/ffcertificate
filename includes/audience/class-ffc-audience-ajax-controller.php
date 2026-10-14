@@ -282,26 +282,15 @@ final class AudienceAjaxController {
 			}
 
 			ob_start();
-			?>
-			<tr data-user-id="<?php echo esc_attr( (string) $user_id ); ?>">
-				<td>
-					<strong><?php echo esc_html( $user->display_name ); ?></strong>
-					<br><span class="description"><?php echo esc_html( $user->user_email ); ?></span>
-				</td>
-				<td>
-					<input type="checkbox" class="ffc-perm-toggle" data-perm="can_book" checked>
-				</td>
-				<td>
-					<input type="checkbox" class="ffc-perm-toggle" data-perm="can_cancel_others">
-				</td>
-				<td>
-					<input type="checkbox" class="ffc-perm-toggle" data-perm="can_override_conflicts">
-				</td>
-				<td>
-					<button type="button" class="button button-small button-link-delete ffc-remove-user-btn"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
-				</td>
-			</tr>
-			<?php
+			AudienceAdminCalendar::render_permission_row(
+				(object) array(
+					'user_id'                => $user_id,
+					'can_book'               => 1,
+					'can_cancel_others'      => 0,
+					'can_override_conflicts' => 0,
+				),
+				$user
+			);
 			$html = ob_get_clean();
 
 			wp_send_json_success( array( 'html' => $html ) );

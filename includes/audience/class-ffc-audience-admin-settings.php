@@ -108,6 +108,13 @@ class AudienceAdminSettings {
 		<div class="wrap ffc-admin-page ffc-page-scheduling-settings ffc-settings-wrap">
 			<h1><?php esc_html_e( 'Scheduling Settings', 'ffcertificate' ); ?></h1>
 
+			<?php
+			// The one place this screen prints its notices, for every tab (#1771):
+			// the save handlers and `?message=` queue them under `ffc_audience`,
+			// and a second call would print each one twice.
+			settings_errors( 'ffc_audience' );
+			?>
+
 			<div class="ffc-settings-tabs">
 				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
 					<?php foreach ( $tabs as $tab_id => $tab ) : ?>
@@ -295,6 +302,19 @@ class AudienceAdminSettings {
 	 * @return void
 	 */
 	public function handle_global_holiday_actions(): void {
+		// Feedback for the redirects below. Scoped to this screen: the
+		// calendars screen uses `holiday_deleted` for its own holidays (#1771).
+		if ( RequestInput::get_get_string( 'page' ) === $this->menu_slug . '-settings' && isset( $_GET['message'] ) ) {
+			$messages = array(
+				'holiday_added'   => __( 'Holiday added successfully.', 'ffcertificate' ),
+				'holiday_deleted' => __( 'Holiday deleted successfully.', 'ffcertificate' ),
+			);
+			$message  = RequestInput::get_get_string( 'message' );
+			if ( isset( $messages[ $message ] ) ) {
+				add_settings_error( 'ffc_audience', 'ffc_message', $messages[ $message ], 'success' );
+			}
+		}
+
 		// Add global holiday (POST).
 		if ( isset( $_POST['ffc_action'] ) && 'add_global_holiday' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_global_holiday_nonce'] ) ||

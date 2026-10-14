@@ -342,6 +342,93 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertStringContainsString( '<span class="ffc-settings-tabs__label">Receipt</span>', $html );
 	}
 
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function every_tab(): array {
+		return array(
+			'general'         => array( 'general' ),
+			'self-scheduling' => array( 'self-scheduling' ),
+			'audience'        => array( 'audience' ),
+			'import'          => array( 'import' ),
+			'extension tab'   => array( 'receipt' ),
+		);
+	}
+
+	/**
+	 * @dataProvider every_tab
+	 */
+	public function test_render_page_prints_the_notices_once_on_every_tab( string $tab ): void {
+		// Only the Import & Export tab printed `ffc_audience` notices, so the
+		// "… settings saved." and `?message=holiday_*` feedback of the other
+		// tabs never showed (#1771).
+		$_GET['tab'] = $tab;
+		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
+		\Brain\Monkey\Filters\expectApplied( 'ffc_scheduling_settings_tabs' )->andReturnUsing(
+			static function ( $tabs ) {
+				$tabs['receipt'] = array( 'label' => 'Receipt', 'icon' => 'ffc-icon-file' );
+				return $tabs;
+			}
+		);
+		$calls = array();
+		Functions\when( 'settings_errors' )->alias(
+			static function ( ...$args ) use ( &$calls ) {
+				$calls[] = $args;
+			}
+		);
+
+		$this->render( $this->page() );
+
+		$this->assertSame( array( array( 'ffc_audience' ) ), $calls );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function holiday_messages(): array {
+		return array(
+			'added'   => array( 'holiday_added', 'Holiday added successfully.' ),
+			'deleted' => array( 'holiday_deleted', 'Holiday deleted successfully.' ),
+		);
+	}
+
+	/**
+	 * @dataProvider holiday_messages
+	 */
+	public function test_global_holiday_redirect_message_becomes_a_notice( string $message, string $text ): void {
+		$_POST   = array();
+		$_GET    = array( 'page' => 'ffc-scheduling-settings', 'tab' => 'general', 'message' => $message );
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $msg, $type ) use ( &$notices ) {
+				$notices[] = array( $setting, $msg, $type );
+				return true;
+			}
+		);
+
+		try {
+			$this->page()->handle_global_holiday_actions();
+		} finally {
+			$_GET = array();
+		}
+
+		$this->assertSame( array( array( 'ffc_audience', $text, 'success' ) ), $notices );
+	}
+
+	public function test_global_holiday_message_is_ignored_on_another_screen(): void {
+		$_POST = array();
+		$_GET  = array( 'page' => 'ffc-scheduling-calendars', 'message' => 'holiday_deleted' );
+		$log   = CallLog::record( 'add_settings_error', true );
+
+		try {
+			$this->page()->handle_global_holiday_actions();
+		} finally {
+			$_GET = array();
+		}
+
+		$this->assertSame( 0, $log->count() );
+	}
+
 	// ==================================================================
 	// handle_visibility_settings() — the three forms
 	// ==================================================================

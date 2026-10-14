@@ -22,6 +22,8 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// handle_actions() acts only on its own screen (#1771).
+		$_GET['page'] = 'ffc-scheduling-environments';
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -408,6 +410,155 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		$page->handle_actions();
 		$this->assertTrue( true );
+	}
+
+	public function test_render_form_keeps_an_inactive_calendar_selected(): void {
+		// The select listed active calendars only, so an environment on a
+		// deactivated calendar showed "Select a calendar" and could not be
+		// saved past the required check (#1771).
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '7';
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->alias(
+			static function ( $a, $b ) {
+				echo (string) $a === (string) $b ? ' selected="selected"' : '';
+			}
+		);
+
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_by_id' )->with( 7 )->andReturn(
+			(object) array(
+				'id'            => 7,
+				'schedule_id'   => 4,
+				'name'          => 'Old Room',
+				'description'   => '',
+				'color'         => '#abcdef',
+				'status'        => 'active',
+				'working_hours' => '',
+			)
+		);
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn(
+			array( (object) array( 'id' => 2, 'name' => 'Live Cal', 'status' => 'active' ) )
+		);
+		$schedRepo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn(
+			(object) array( 'id' => 4, 'name' => 'Archived Cal', 'status' => 'inactive' )
+		);
+
+		ob_start();
+		try {
+			( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
+		} finally {
+			$output = (string) ob_get_clean();
+			unset( $_GET['action'], $_GET['id'] );
+		}
+
+		$this->assertMatchesRegularExpression( '#<option value="4"\s+selected="selected">\s*Archived Cal \(inactive\)\s*</option>#', $output );
+		$this->assertMatchesRegularExpression( '#<option value="2"\s*>\s*Live Cal\s*</option>#', $output );
+	}
+
+	/**
+	 * Run a save of environment 5 with the given working hours and return
+	 * what reached the repository.
+	 *
+	 * @param array<string, array<string, string>> $posted Posted `working_hours`.
+	 * @param string                               $stored Stored `working_hours` JSON.
+	 * @return array<string, mixed>
+	 */
+	private function save_working_hours( array $posted, string $stored ): array {
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'add_settings_error' )->justReturn( true );
+		$_POST = array(
+			'ffc_action'            => 'save_environment',
+			'ffc_environment_nonce' => 'n',
+			'environment_id'        => '5',
+			'environment_schedule'  => '2',
+			'environment_name'      => 'Room',
+			'working_hours'         => $posted,
+		);
+
+		$saved   = array();
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'working_hours' => $stored ) );
+		$envRepo->shouldReceive( 'update' )->once()->andReturnUsing(
+			static function ( $id, $data ) use ( &$saved ) {
+				$saved = $data['working_hours'];
+				return true;
+			}
+		);
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environment' );
+
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+		$_POST = array();
+		return $saved;
+	}
+
+	public function test_save_keeps_the_stored_times_of_a_closed_day(): void {
+		// A closed day's time inputs are disabled, so only `closed` is posted;
+		// the save used to reset the day to 08:00-18:00 (#1771).
+		$saved = $this->save_working_hours(
+			array(
+				'mon' => array( 'closed' => '1' ),
+				'tue' => array( 'start' => '10:00', 'end' => '16:00' ),
+			),
+			(string) json_encode(
+				array(
+					'mon' => array( 'closed' => false, 'start' => '07:30', 'end' => '12:15' ),
+					'tue' => array( 'closed' => false, 'start' => '09:00', 'end' => '17:00' ),
+				)
+			)
+		);
+
+		$this->assertSame(
+			array(
+				'mon' => array( 'closed' => true, 'start' => '07:30', 'end' => '12:15' ),
+				'tue' => array( 'closed' => false, 'start' => '10:00', 'end' => '16:00' ),
+			),
+			$saved
+		);
+	}
+
+	public function test_save_stores_the_default_for_an_empty_time(): void {
+		// The field says "Leave times empty to use default (08:00 - 18:00)",
+		// and an empty string is what was stored (#1771).
+		$saved = $this->save_working_hours(
+			array(
+				'wed' => array( 'start' => '', 'end' => '' ),
+				'thu' => array( 'closed' => '1' ),
+			),
+			''
+		);
+
+		$this->assertSame(
+			array(
+				'wed' => array( 'closed' => false, 'start' => '08:00', 'end' => '18:00' ),
+				'thu' => array( 'closed' => true, 'start' => '08:00', 'end' => '18:00' ),
+			),
+			$saved
+		);
+	}
+
+	public function test_handle_actions_does_not_save_on_another_screen(): void {
+		// The coordinator runs this handler on every ffc-scheduling* screen;
+		// the save branch was the one that did not check which (#1771).
+		$_GET['page'] = 'ffc-scheduling-settings';
+		$nonce        = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_verify_nonce', 1 );
+		$_POST        = array(
+			'ffc_action'            => 'save_environment',
+			'ffc_environment_nonce' => 'n',
+			'environment_id'        => '5',
+		);
+
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldNotReceive( 'update' );
+		$envRepo->shouldNotReceive( 'create' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+		$this->assertSame( 0, $nonce->count() );
 	}
 
 	public function test_handle_actions_save_aborts_on_bad_nonce(): void {

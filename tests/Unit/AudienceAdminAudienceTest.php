@@ -23,6 +23,8 @@ class AudienceAdminAudienceTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// handle_actions() acts only on its own screen (#1771).
+		$_GET['page'] = 'ffc-scheduling-audiences';
 
 		// pcov does not record lines for files first autoloaded mid-test-method,
 		// so the extracted renderer's coverage would attribute to nothing.
@@ -637,7 +639,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_actions_removes_member_and_redirects(): void {
-		$_GET = array( 'remove_user' => '7', 'id' => '5', '_wpnonce' => 'n' );
+		$_GET = array( 'page' => 'ffc-scheduling-audiences', 'remove_user' => '7', 'id' => '5', '_wpnonce' => 'n' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
@@ -650,6 +652,21 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'message=member_removed' );
 		$page->handle_actions();
+	}
+
+	public function test_handle_actions_ignores_a_remove_member_request_on_another_screen(): void {
+		// The coordinator runs this handler on every ffc-scheduling* screen;
+		// `remove_user` was the one action it performed without checking
+		// which screen it was on (#1771).
+		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'remove_user' => '7', 'id' => '5', '_wpnonce' => 'n' );
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo_w->shouldNotReceive( 'remove_member' );
+
+		( new AudienceAdminAudience( 'ffc-scheduling' ) )->handle_actions();
+		$this->addToAssertionCount( 1 );
 	}
 
 	// ==================================================================

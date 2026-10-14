@@ -260,7 +260,7 @@
         $row.find('.ffc-field-groups-container').toggle(isDependent);
         $row.find('.ffc-field-html-container').toggle(isAcknowledgment);
         // Hide format validation for types that don't support it
-        $row.find('.ffc-field-format').closest('.ffc-field-detail-row').toggle(!isWorkingHours);
+        $row.find('.ffc-field-validation-container').toggle(!isWorkingHours);
     }
 
     /**

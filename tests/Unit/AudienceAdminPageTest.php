@@ -382,6 +382,52 @@ class AudienceAdminPageTest extends TestCase {
 		$this->assertFalse( $redirected );
 	}
 
+	public function test_redirect_legacy_import_url_keeps_the_query_args(): void {
+		// The old Import page's "Download Sample" link carried the request in
+		// its query string; a redirect that rebuilt the URL from `page` and
+		// `tab` alone dropped `download_sample` and `_wpnonce`, so the sample
+		// was never sent (#1771).
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( array $args, string $url ): string {
+				$pairs = array();
+				foreach ( $args as $k => $v ) {
+					$pairs[] = $k . '=' . $v;
+				}
+				return $url . '?' . implode( '&', $pairs );
+			}
+		);
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( $url, $status ) {
+				throw new \RuntimeException( $status . ' ' . $url );
+			}
+		);
+		$_GET = array(
+			'page'            => 'ffc-scheduling-import',
+			'download_sample' => 'members',
+			'_wpnonce'        => 'abc123',
+		);
+
+		$location = '';
+		try {
+			( new AudienceAdminPage() )->redirect_legacy_import_url();
+		} catch ( \RuntimeException $e ) {
+			$location = $e->getMessage();
+		} finally {
+			$_GET = array();
+		}
+
+		$this->assertStringStartsWith( '301 https://example.com/wp-admin/admin.php?', $location );
+		$this->assertStringContainsString( 'page=ffc-scheduling-settings', $location );
+		$this->assertStringContainsString( 'tab=import', $location );
+		$this->assertStringContainsString( 'download_sample=members', $location );
+		$this->assertStringContainsString( '_wpnonce=abc123', $location );
+		$this->assertStringNotContainsString( 'ffc-scheduling-import', $location );
+	}
+
 	// ==================================================================
 	// handle_form_submissions() skips non-scheduling pages
 	// ==================================================================
