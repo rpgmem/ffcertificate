@@ -93,6 +93,11 @@ final class AudienceAdminAudienceRenderer {
 		$edit_url    = admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=edit&id=' . $audience->id );
 		$members_url = admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=members&id=' . $audience->id );
 		$is_active   = ( 'active' === $audience->status );
+		// Edit / Deactivate / Delete render only for the caps
+		// AudienceAdminAudience::handle_actions() checks; Members stays, since
+		// the members screen opens on the menu's own `ffc_view_audiences` (#1769).
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+		$can_delete = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' );
 
 		if ( $is_active ) {
 			$deactivate_url = wp_nonce_url(
@@ -130,14 +135,16 @@ final class AudienceAdminAudienceRenderer {
 				</span>
 			</td>
 			<td class="column-actions">
-				<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
-				<a href="<?php echo esc_url( $members_url ); ?>"><?php esc_html_e( 'Members', 'ffcertificate' ); ?></a> |
-				<?php if ( $is_active ) : ?>
-					<a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to deactivate this audience?', 'ffcertificate' ); ?>');">
+				<?php if ( $can_manage ) : ?>
+					<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
+				<?php endif; ?>
+				<a href="<?php echo esc_url( $members_url ); ?>"><?php esc_html_e( 'Members', 'ffcertificate' ); ?></a>
+				<?php if ( $is_active && $can_manage ) : ?>
+					| <a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to deactivate this audience?', 'ffcertificate' ); ?>');">
 						<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
 					</a>
-				<?php else : ?>
-					<a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this audience?', 'ffcertificate' ); ?>');">
+				<?php elseif ( ! $is_active && $can_delete ) : ?>
+					| <a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this audience?', 'ffcertificate' ); ?>');">
 						<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
 					</a>
 				<?php endif; ?>
