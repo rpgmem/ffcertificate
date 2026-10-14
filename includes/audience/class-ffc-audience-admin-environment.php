@@ -513,7 +513,7 @@ class AudienceAdminEnvironment {
 		}
 
 		// Show feedback for redirect-based actions.
-		if ( isset( $_GET['message'] ) && $this->is_own_request() ) {
+		if ( isset( $_GET['message'] ) ) {
 			$msg      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'message' );
 			$label    = AudienceScheduleRepository::get_environment_label( 0, true );
 			$messages = array(
@@ -594,7 +594,7 @@ class AudienceAdminEnvironment {
 		}
 
 		// Handle deactivate (active items get deactivated instead of deleted).
-		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) && $this->is_own_request() ) {
+		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'deactivate_environment_' . $id ) ) {
 				AudienceEnvironmentRepository::update( $id, array( 'status' => 'inactive' ) );
@@ -604,7 +604,7 @@ class AudienceAdminEnvironment {
 		}
 
 		// Handle delete (only inactive items can be permanently deleted).
-		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && $this->is_own_request() ) {
+		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) ) {
 			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
 				wp_die( esc_html__( 'You do not have permission to delete environments.', 'ffcertificate' ) );
 			}
