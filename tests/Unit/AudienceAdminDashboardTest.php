@@ -101,4 +101,19 @@ class AudienceAdminDashboardTest extends TestCase {
 		}
 		$this->assertStringNotContainsString( 'ffc-audience-stat-card', $output );
 	}
+
+	public function test_environment_links_open_the_environments_view(): void {
+		// #1761: Environments is a view of Audience Calendars.
+		Functions\when( 'admin_url' )->returnArg();
+		$page = new AudienceAdminDashboard( 'ffc-scheduling' );
+		ob_start();
+		$page->render_dashboard_page();
+		$output = (string) ob_get_clean();
+
+		$view = 'admin.php?page=ffc-scheduling-calendars&view=environments';
+		$this->assertStringContainsString( 'href="' . $view . '"', $output, 'the Active environments card' );
+		$this->assertStringContainsString( 'href="' . $view . '&action=new"', $output, 'the Add quick action' );
+		$this->assertStringContainsString( 'href="post-new.php?post_type=ffc_self_scheduling"', $output, 'New Personal Calendar stays a quick action' );
+		$this->assertStringNotContainsString( 'ffc-scheduling-environments', $output );
+	}
 }

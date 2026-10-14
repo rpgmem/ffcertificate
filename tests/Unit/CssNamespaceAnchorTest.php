@@ -18,9 +18,10 @@ use PHPUnit\Framework\TestCase;
  * A rule like `.button::before { content: '\f123' }` reaches ANY button on the
  * screen, not only ours. The radius is small today because the sheet loads on
  * two pages only — but that is **enqueue luck, not design**, and enqueueing
- * changes: `AudienceAdminPage::print_menu_separator_css()` exists precisely
+ * changes: `AudienceAdminPage::print_menu_separator_css()` existed precisely
  * because one rule had to leave `ffc-audience-admin.css` when its target started
- * appearing on screens where that sheet does not load.
+ * appearing on screens where that sheet does not load (the separators it
+ * styled left the menu in #1761).
  *
  * The guard freezes the anchorless selectors that exist, per sheet and per text,
  * and **only shrinks**: a new anchorless selector fails, and a baselined
@@ -53,7 +54,7 @@ use PHPUnit\Framework\TestCase;
  *    measuring, or the number describes the pattern instead of the CSS.
  *
  * What it does NOT see: inline CSS printed from PHP
- * (`print_menu_separator_css()`, the appointment receipt) and the `style=""`
+ * (`Icons::menu_stylesheet()`, the appointment receipt) and the `style=""`
  * attribute. It scans the sheets in `assets/css/` only. Nor does it see
  * duplication — the same scan found 19 `ffc-*` classes declared bare in more
  * than one sheet (`.ffc-status-badge` in five), which is a component without a

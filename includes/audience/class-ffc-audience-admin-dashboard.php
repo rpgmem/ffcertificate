@@ -116,7 +116,7 @@ class AudienceAdminDashboard {
 						'label' => sprintf( __( 'Active %s', 'ffcertificate' ), AudienceScheduleRepository::get_environment_label() ),
 						'value' => (int) $audience_stats['environments'],
 						'icon'  => 'building',
-						'url'   => admin_url( 'admin.php?page=' . $this->menu_slug . '-environments' ),
+						'url'   => AudienceAdminEnvironment::view_url( $this->menu_slug ),
 						'link'  => __( 'Manage', 'ffcertificate' ),
 					)
 				);
@@ -150,7 +150,7 @@ class AudienceAdminDashboard {
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&action=new' ) ); ?>" class="button button-primary ffc-icon-plus">
 					<?php esc_html_e( 'New Audience Calendar', 'ffcertificate' ); ?>
 				</a>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&action=new' ) ); ?>" class="button ffc-icon-plus">
+				<a href="<?php echo esc_url( AudienceAdminEnvironment::view_url( $this->menu_slug, '&action=new' ) ); ?>" class="button ffc-icon-plus">
 					<?php
 					/* translators: %s: environment label (singular) */
 					printf( esc_html__( 'Add %s', 'ffcertificate' ), esc_html( AudienceScheduleRepository::get_environment_label( null, true ) ) );

@@ -98,12 +98,11 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// - translucent veils over whatever colour sits underneath;
 		// - the white paper of the certificate preview;
 		// - the categorical hue scale of the capability groups, one per group;
-		// - `#adminmenu`, which follows the user's own wp-admin colour scheme;
 		// - two vendor brand colours and one code-sample theme.
 		'ffc-admin.css'                 => 3,
 		'ffc-admin-settings.css'        => 5,
 		'ffc-audience.css'              => 2,
-		'ffc-audience-admin.css'        => 4,
+		'ffc-audience-admin.css'        => 1,
 		'ffc-frontend.css'              => 4,
 		'ffc-user-dashboard.css'        => 1,
 		'ffc-user-permissions.css'      => 13,
