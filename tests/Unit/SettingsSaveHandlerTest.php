@@ -145,18 +145,48 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 1000000, $high['captcha_altcha_complexity'] );
 	}
 
-	public function test_unchecked_attribution_boxes_read_as_off(): void {
-		// A checkbox absent from the POST is unchecked, not unchanged — the
-		// only way to turn one off is for its absence to mean zero.
+	public function test_display_toggles_that_are_off_hide_the_logo_and_footer(): void {
+		// The toggles say what is SHOWN (#1758) while the keys store what is
+		// hidden. A toggle absent from the POST is off, so that part is hidden.
 		Functions\when( 'is_ssl' )->justReturn( true );
 
 		$result = $this->save_captcha(
 			array( 'captcha_provider' => 'math' ),
+			array( 'captcha_altcha_hide_logo' => 0, 'captcha_altcha_hide_footer' => 0 )
+		);
+
+		$this->assertSame( 1, $result['captcha_altcha_hide_logo'] );
+		$this->assertSame( 1, $result['captcha_altcha_hide_footer'] );
+	}
+
+	public function test_display_toggles_that_are_on_show_the_logo_and_footer(): void {
+		Functions\when( 'is_ssl' )->justReturn( true );
+
+		$result = $this->save_captcha(
+			array(
+				'captcha_provider'           => 'math',
+				'captcha_altcha_show_logo'   => '1',
+				'captcha_altcha_show_footer' => '1',
+			),
 			array( 'captcha_altcha_hide_logo' => 1, 'captcha_altcha_hide_footer' => 1 )
 		);
 
 		$this->assertSame( 0, $result['captcha_altcha_hide_logo'] );
 		$this->assertSame( 0, $result['captcha_altcha_hide_footer'] );
+	}
+
+	public function test_display_toggles_are_independent(): void {
+		Functions\when( 'is_ssl' )->justReturn( true );
+
+		$result = $this->save_captcha(
+			array(
+				'captcha_provider'         => 'math',
+				'captcha_altcha_show_logo' => '1',
+			)
+		);
+
+		$this->assertSame( 0, $result['captcha_altcha_hide_logo'] );
+		$this->assertSame( 1, $result['captcha_altcha_hide_footer'] );
 	}
 
 	public function test_widget_attributes_are_validated_against_the_allowed_sets(): void {

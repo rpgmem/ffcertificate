@@ -62,6 +62,11 @@ class PluginActivationSmokeTest extends IntegrationTestCase {
 		Functions\when( 'wp_update_post' )->justReturn( 4242 );
 		Functions\when( 'update_post_meta' )->justReturn( true );
 		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		// A fresh activation seeds the new-install settings (#1758), whose
+		// captcha mode reads the scheme of the request and of home_url().
+		Functions\when( 'is_ssl' )->justReturn( false );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url, $component = -1 ) => parse_url( (string) $url, $component ) );
 	}
 
 	/**
@@ -80,6 +85,11 @@ class PluginActivationSmokeTest extends IntegrationTestCase {
 
 		// The public /valid verification page is provisioned + recorded.
 		$this->assertSame( 4242, $this->options['ffc_verification_page_id'] ?? null );
+
+		// A fresh install starts with its own defaults (#1758); home_url() is
+		// https here, so the captcha starts on ALTCHA only.
+		$this->assertSame( 'altcha', $this->options['ffc_settings']['captcha_provider'] ?? null );
+		$this->assertSame( 900, $this->options['ffc_settings']['cache_expiration'] ?? null );
 	}
 
 	/**

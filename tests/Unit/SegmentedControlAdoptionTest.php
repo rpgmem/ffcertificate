@@ -23,7 +23,12 @@ class SegmentedControlAdoptionTest extends TestCase {
 	private const ADOPTED = array(
 		'includes/settings/views/ffc-tab-general.php'               => array(
 			'ffc_settings[dark_mode]'         => array( array( 'off', 'on', 'auto' ), 'off', 'dark_mode' ),
-			'ffc_settings[code_editor_theme]' => array( array( 'auto', 'light', 'dark' ), 'dark', 'code_editor_theme' ),
+			// Off / On / Auto, like Dark Mode above it (#1758); the stored values did not change.
+			'ffc_settings[code_editor_theme]' => array( array( 'light', 'dark', 'auto' ), 'dark', 'code_editor_theme' ),
+		),
+		'includes/settings/views/ffc-tab-public-design.php'         => array(
+			// The font has no order (#1758), and saves with the form.
+			"\$ffc_name( 'font' )" => array( array( 'theme', 'plugin', 'arial' ), null, null ),
 		),
 		'includes/admin/class-ffc-form-editor-geofence-metabox.php' => array(
 			'ffc_geofence[time_mode]' => array( array( 'span', 'daily' ), 'daily', null ),
@@ -40,11 +45,10 @@ class SegmentedControlAdoptionTest extends TestCase {
 	 * The render_segmented() call that names the field.
 	 */
 	private static function call_for( string $src, string $name ): string {
-		$pos = strpos( $src, "'name'    => '{$name}'" );
-		if ( false === $pos ) {
-			$pos = strpos( $src, "'name'         => '{$name}'" );
-		}
-		self::assertNotFalse( $pos, "{$name} is passed to a control" );
+		$quoted = preg_quote( $name, '/' );
+		$found  = preg_match( "/'name'\s*=>\s*(?:'{$quoted}'|{$quoted})/", $src, $m, PREG_OFFSET_CAPTURE );
+		self::assertSame( 1, $found, "{$name} is passed to a control" );
+		$pos = (int) $m[0][1];
 		$start = strrpos( substr( $src, 0, $pos ), 'render_' );
 		self::assertNotFalse( $start );
 		$end = strpos( $src, "\n\t\t\t\t\t\t);", $pos );
@@ -64,7 +68,9 @@ class SegmentedControlAdoptionTest extends TestCase {
 				$this->assertNotEmpty( $m, "{$file}: {$name} has options" );
 				preg_match_all( "/^\s*'([a-z_]+)'\s*=>/m", $m[1], $keys );
 				$this->assertSame( $values, $keys[1], "{$file}: {$name} posts exactly the values its save path accepts" );
-				$this->assertMatchesRegularExpression( "/'default'\s*=>\s*'" . preg_quote( $default, '/' ) . "'/", $call, "{$file}: {$name} keeps its default" );
+				if ( null !== $default ) {
+					$this->assertMatchesRegularExpression( "/'default'\s*=>\s*'" . preg_quote( $default, '/' ) . "'/", $call, "{$file}: {$name} keeps its default" );
+				}
 				if ( null !== $autosave ) {
 					$this->assertStringContainsString( "'ffc-autosave-key' => '{$autosave}'", $call, "{$file}: {$name} still autosaves" );
 				}

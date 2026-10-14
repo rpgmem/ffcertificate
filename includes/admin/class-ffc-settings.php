@@ -346,7 +346,9 @@ class Settings {
 			'time_format_pdf'            => '',
 			'time_format_pdf_custom'     => '',
 			'cache_enabled'              => 1,      // Default: ON.
-			'cache_expiration'           => 3600,   // 1 hour
+			// 1 hour is what an install that never saved the Cache tab reads; a
+			// new install is seeded with 15 minutes (Activator, #1758).
+			'cache_expiration'           => 3600,
 			'cache_auto_warm'            => 0,      // Default: OFF.
 			'public_csv_default_limit'   => 1,    // Default limit for public CSV downloads.
 			'obsolete_shortcode_days'    => 90,   // Grace window (days) for obsolete shortcode cleanup.
@@ -359,10 +361,11 @@ class Settings {
 			// Window of the invitation's password-set link, in hours (#1212).
 			// Clamped to 1..720 on read and on save by `PasswordInvite`.
 			'invite_password_link_hours' => 48,
-			// Captcha (#1053). `math` on upgrade and on a fresh install: the
-			// arithmetic challenge is the only one that runs without
-			// JavaScript and without a secure context, so it is the choice
-			// that cannot lock anyone out of a form they could use before.
+			// Captcha (#1053). `math` on upgrade: the arithmetic challenge is
+			// the only one that runs without JavaScript and without a secure
+			// context, so it is the choice that cannot lock anyone out of a
+			// form they could use before. A NEW install is seeded instead
+			// (Activator, #1758): ALTCHA only on HTTPS, math otherwise.
 			'captcha_provider'           => 'math', // 'math' | 'altcha' | 'both'.
 			// Work factor for the ALTCHA proof of work — the upper bound of
 			// the secret number the solver has to find, so expected work is
@@ -372,6 +375,7 @@ class Settings {
 			'captcha_altcha_type'        => 'checkbox', // 'checkbox' | 'switch'.
 			'captcha_altcha_auto'        => 'off', // 'off' | 'onfocus' | 'onload' | 'onsubmit'.
 			'captcha_altcha_hide_logo'   => 0,
+			// Shown on upgrade; a new install starts with it hidden (#1758).
 			'captcha_altcha_hide_footer' => 0,
 			// #1123. Read since the "Access granted" email was written, but
 			// never written by anything, so `get_bool()` returned false on

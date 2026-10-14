@@ -295,8 +295,13 @@ class TabGeolocation extends SettingsTab {
 
 		// GPS fallback: preset + per-case matrix. For tolerant/hybrid/
 		// strict presets the cases snap to the preset defaults; for the
-		// 'custom' preset each case is read from POST and validated.
-		$preset_raw = sanitize_key( wp_unslash( $_POST['gps_fallback_preset'] ?? '' ) );
+		// 'custom' preset each case is read from POST and validated. The
+		// screen posts `custom` as its own "Customize per case" toggle
+		// (#1758), whose steps are then disabled and post nothing; a
+		// `gps_fallback_preset=custom` is still accepted.
+		$preset_raw = isset( $_POST['gps_fallback_custom'] )
+			? 'custom'
+			: sanitize_key( wp_unslash( $_POST['gps_fallback_preset'] ?? '' ) );
 		$preset     = in_array( $preset_raw, array( 'tolerant', 'hybrid', 'strict', 'custom' ), true )
 			? $preset_raw
 			: 'hybrid';

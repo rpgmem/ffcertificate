@@ -43,7 +43,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Fallback behavior', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Decide what happens when location cannot be determined:', 'ffcertificate' ); ?></p>
 	<ul>
-		<li><strong><?php esc_html_e( 'When GPS fails', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'a preset (tolerant / hybrid / strict) or a custom per-case allow/block matrix (permission denied, no API, position unavailable, timeout, safety timer).', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'When GPS fails', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'a scale of three presets, from Tolerant (allow on every failure) through Hybrid to Strict (block on every failure). Turn on "Customize per case" to set allow or block for each case instead: permission denied, no API, position unavailable, timeout, safety timer.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'When the IP API fails', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'allow, block, or fall back to GPS only.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'When both fail', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'allow or block (default block).', 'ffcertificate' ); ?></li>
 	</ul>

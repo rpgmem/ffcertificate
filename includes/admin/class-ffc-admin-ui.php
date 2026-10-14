@@ -197,7 +197,10 @@ class AdminUI {
 	 *     palette for those steps;
 	 *   - `size`: `sm`, `md` (default) or `lg`; `shape`: `round` (default) or
 	 *     `square`; `fluid` (bool): the stops share the row's width;
-	 *   - `disabled` (bool) and `data` (data-* attributes on each radio).
+	 *   - `disabled` (bool) and `data` (data-* attributes on each radio);
+	 *   - `disabled_options` (list of values): those stops stay drawn, named
+	 *     and described, but cannot be chosen -- a value the site cannot run
+	 *     right now, such as a mode that needs HTTPS (#1758).
 	 */
 	public static function render_steps( array $args ): void {
 		$name    = is_string( $args['name'] ?? null ) ? $args['name'] : '';
@@ -237,6 +240,7 @@ class AdminUI {
 		$tones   = is_array( $args['tones'] ?? null ) ? $args['tones'] : array();
 		$descs   = is_array( $args['descriptions'] ?? null ) ? $args['descriptions'] : array();
 		$legend  = is_string( $args['legend'] ?? null ) ? $args['legend'] : '';
+		$blocked = is_array( $args['disabled_options'] ?? null ) ? array_map( 'strval', $args['disabled_options'] ) : array();
 
 		$classes = array( 'ffc-control-steps', sprintf( 'ffc-control-steps-%s', $palette ) );
 		if ( in_array( $args['size'] ?? null, array( 'sm', 'lg' ), true ) ) {
@@ -265,14 +269,15 @@ class AdminUI {
 		foreach ( $values as $i => $v ) {
 			$tone = $tones[ $v ] ?? null;
 			printf(
-				'<label class="ffc-control-steps-stop"%1$s><input type="radio" id="%2$s" name="%3$s" value="%4$s"%5$s%6$s><span class="ffc-control-steps-mark" aria-hidden="true"></span><span class="ffc-control-steps-label">%7$s</span></label>',
+				'<label class="ffc-control-steps-stop"%1$s><input type="radio" id="%2$s" name="%3$s" value="%4$s"%5$s%6$s%8$s><span class="ffc-control-steps-mark" aria-hidden="true"></span><span class="ffc-control-steps-label">%7$s</span></label>',
 				in_array( $tone, self::STEPS_TONES, true ) ? ' data-tone="' . esc_attr( (string) $tone ) . '"' : '',
 				esc_attr( $base_id . '-' . ( $i + 1 ) ),
 				esc_attr( $name ),
 				esc_attr( $v ),
 				$v === $value ? ' checked' : '',
 				$data, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped by control_data_attrs().
-				esc_html( (string) $options[ $v ] )
+				esc_html( (string) $options[ $v ] ),
+				in_array( $v, $blocked, true ) ? ' disabled' : ''
 			);
 		}
 		echo '</span>';
