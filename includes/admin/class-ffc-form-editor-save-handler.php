@@ -121,6 +121,31 @@ class FormEditorSaveHandler {
 	}
 
 	/**
+	 * The type of every named field the form already stores, by name.
+	 *
+	 * @param int $post_id The post ID.
+	 * @return array<string, string> name => type.
+	 */
+	private static function stored_field_types( int $post_id ): array {
+		$stored = get_post_meta( $post_id, '_ffc_form_fields', true );
+		$types  = array();
+		if ( ! is_array( $stored ) ) {
+			return $types;
+		}
+		foreach ( $stored as $field ) {
+			if ( ! is_array( $field ) ) {
+				continue;
+			}
+			$name = is_scalar( $field['name'] ?? null ) ? (string) $field['name'] : '';
+			$type = is_scalar( $field['type'] ?? null ) ? (string) $field['type'] : '';
+			if ( '' !== $name && '' !== $type && ! isset( $types[ $name ] ) ) {
+				$types[ $name ] = $type;
+			}
+		}
+		return $types;
+	}
+
+	/**
 	 * Persist the form-fields meta (`_ffc_form_fields`).
 	 *
 	 * @param int $post_id The post ID.
@@ -134,6 +159,7 @@ class FormEditorSaveHandler {
 
 		$clean_fields  = array();
 		$quiz_warnings = array();
+		$stored_types  = self::stored_field_types( $post_id );
 		foreach ( $rows as $index => $field ) {
 			// A row that is not an array is not a row. The `empty()` chain
 			// below already skipped it — `empty( $string['label'] )` is
@@ -149,10 +175,17 @@ class FormEditorSaveHandler {
 			}
 
 			$type = sanitize_key( ArrayValue::string( $field, 'type' ) );
+			$name = sanitize_key( ArrayValue::string( $field, 'name' ) );
+			// A field the form already has keeps its type (#1756): the editor
+			// no longer offers the choice, and the submissions stored under it
+			// hold values of that type. Matched by name, because a row's index
+			// moves when rows are sorted or removed.
+			if ( '' !== $name && isset( $stored_types[ $name ] ) ) {
+				$type = $stored_types[ $name ];
+			}
 			// A required field keeps the type Settings → Certificates gives
-			// it, whatever the request says: the editor locks the select, an
-			// edited page could still post another (#1741).
-			$required_row = FormEditorSaveValidator::required_field( sanitize_key( ArrayValue::string( $field, 'name' ) ) );
+			// it, whatever the request says (#1741).
+			$required_row = FormEditorSaveValidator::required_field( $name );
 			if ( null !== $required_row ) {
 				$type = $required_row['type'];
 			}
@@ -160,7 +193,7 @@ class FormEditorSaveHandler {
 
 			$row = array(
 				'label'         => sanitize_text_field( ArrayValue::string( $field, 'label' ) ),
-				'name'          => sanitize_key( ArrayValue::string( $field, 'name' ) ),
+				'name'          => $name,
 				'type'          => $type,
 				// A required field is always required: the editor disables
 				// its toggle (#1734).

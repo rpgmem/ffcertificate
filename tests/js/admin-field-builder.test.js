@@ -17,13 +17,7 @@ function row(index) {
 		<div class="ffc-field-row-grid">
 			<input type="text" name="ffc_fields[${index}][label]" class="ffc-label-input">
 			<div class="ffc-standard-row"><input type="text" name="ffc_fields[${index}][name]"></div>
-			<select name="ffc_fields[${index}][type]" class="ffc-field-type-selector">
-				<option value="text">Text</option><option value="textarea">Textarea</option>
-				<option value="radio">Radio</option><option value="checkbox">Checkbox</option>
-				<option value="number">Number</option><option value="date">Date</option>
-				<option value="info">Info</option><option value="embed">Embed</option>
-				<option value="hidden">Hidden</option>
-			</select>
+			<input type="hidden" name="ffc_fields[${index}][type]" class="ffc-field-type-selector" value="text">
 			<label for="ffc_field_required_${index}"><input type="checkbox" id="ffc_field_required_${index}" name="ffc_fields[${index}][required]" class="ffc-field-required"></label>
 		</div>
 		<p class="ffc-type-desc"></p>
@@ -89,6 +83,14 @@ function initOn(savedRows) {
 	FB().init();
 }
 
+// The type is fixed once a row exists (#1756); a test that needs a row of
+// another type sets it the way the server would have rendered it.
+function setType(type, index = 0) {
+	const $row = window.$(`#ffc-fields-container .ffc-field-row[data-index="${index}"]`);
+	$row.find('.ffc-field-type-selector').val(type);
+	FB().applyType($row, type);
+}
+
 describe('FFC.Admin.FieldBuilder public API', () => {
 	it('exposes init / addField / applyType', () => {
 		expect(typeof FB().init).toBe('function');
@@ -119,9 +121,10 @@ describe('FieldBuilder.addField — copies the server template', () => {
 		expect($row[0].getAttribute('data-index')).toBe('3');
 	});
 
-	it('selects the chosen type and shows only what belongs to it', () => {
+	it('carries the chosen type, titles the row with it, and shows only what belongs to it', () => {
 		const el = FB().addField('checkbox')[0];
 		expect(el.querySelector('.ffc-field-type-selector').value).toBe('checkbox');
+		expect(el.querySelector('.ffc-field-title strong').textContent).toBe('Checkbox');
 		expect(el.querySelector('.ffc-options-field').classList.contains('ffc-hidden')).toBe(false);
 		expect(el.querySelector('[data-ffc-types="checkbox"]').classList.contains('ffc-hidden')).toBe(false);
 		expect(el.querySelector('[data-ffc-types="text textarea"]').classList.contains('ffc-hidden')).toBe(true);
@@ -168,11 +171,11 @@ describe('FieldBuilder.applyType', () => {
 		expect($row.find('[data-ffc-types="number"]').hasClass('ffc-hidden')).toBe(true);
 	});
 
-	it('reacts to the type select changing', () => {
-		const select = $('#ffc-fields-container .ffc-field-type-selector');
-		select.value = 'checkbox';
-		window.$(select).trigger('change');
-		expect($('#ffc-fields-container .ffc-options-field').classList.contains('ffc-hidden')).toBe(false);
+	it('offers no way to change the type of a row (#1756)', () => {
+		const type = $('#ffc-fields-container .ffc-field-type-selector');
+		expect(type.tagName).toBe('INPUT');
+		expect(type.type).toBe('hidden');
+		expect($('#ffc-fields-container select[name$="[type]"]')).toBeNull();
 	});
 });
 
@@ -253,9 +256,7 @@ describe('FieldBuilder — quiz (#1730)', () => {
 	beforeEach(() => {
 		initOn([0]);
 		$('#ffc_quiz_enabled').checked = true;
-		const select = $('#ffc-fields-container .ffc-field-type-selector');
-		select.value = 'checkbox';
-		window.$(select).trigger('change');
+		setType('checkbox');
 	});
 
 	const row = () => window.$('#ffc-fields-container .ffc-field-row');
@@ -278,9 +279,7 @@ describe('FieldBuilder — quiz (#1730)', () => {
 	});
 
 	it('explains manual grading only for an open answer graded by a person (#1732)', () => {
-		const select = $('#ffc-fields-container .ffc-field-type-selector');
-		select.value = 'textarea';
-		window.$(select).trigger('change');
+		setType('textarea');
 		const scored = $('#ffc-fields-container .ffc-quiz-scored');
 		scored.checked = true;
 		window.$(scored).trigger('change');
@@ -292,8 +291,7 @@ describe('FieldBuilder — quiz (#1730)', () => {
 		window.$(text).trigger('change');
 		expect(help()).toBe(false);
 
-		select.value = 'number';
-		window.$(select).trigger('change');
+		setType('number');
 		expect(help()).toBe(true);
 	});
 
@@ -371,10 +369,9 @@ describe('Add the required fields (#1741)', () => {
 		expect(email.querySelector('[name="ffc_fields[2][name]"]').readOnly).toBe(true);
 		expect(email.querySelector('[name="ffc_fields[2][label]"]').value).toBe('Email');
 
-		const select = email.querySelector('.ffc-field-type-selector');
-		expect(select.disabled).toBe(true);
-		expect(select.hasAttribute('name')).toBe(false);
 		expect(email.querySelector('input[type="hidden"][name="ffc_fields[2][type]"]').value).toBe('email');
+		expect(email.querySelectorAll('[name="ffc_fields[2][type]"]')).toHaveLength(1);
+		expect(email.querySelector('.ffc-field-title strong').textContent).toBe('email', 'A type the menu does not list keeps its slug as the title.');
 
 		expect(email.querySelector('.ffc-field-required').checked).toBe(true);
 		expect(email.querySelector('.ffc-remove-field').disabled).toBe(true);
