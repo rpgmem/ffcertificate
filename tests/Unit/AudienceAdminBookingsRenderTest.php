@@ -160,4 +160,23 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		// Table still renders the row.
 		$this->assertStringContainsString( 'data-booking-id="101"', $output );
 	}
+
+	public function test_individual_booking_type_shows_the_modal_label(): void {
+		$booking                = $this->active_booking();
+		$booking->booking_type  = 'individual';
+		$this->mock_repositories( array( $booking ), false );
+		$this->mock_export_cap( false );
+
+		Functions\when( 'get_users' )->justReturn( array() );
+
+		$page = new AudienceAdminBookings( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = ob_get_clean();
+
+		// The stored enum is `individual`; the list must label it the way the
+		// booking modal does, never echo the raw word.
+		$this->assertMatchesRegularExpression( '#<td>\s*Custom Users\s*</td>#', $output );
+		$this->assertDoesNotMatchRegularExpression( '#<td>\s*individual\s*</td>#', $output );
+	}
 }

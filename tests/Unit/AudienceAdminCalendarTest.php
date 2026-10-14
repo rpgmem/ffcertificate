@@ -22,6 +22,8 @@ class AudienceAdminCalendarTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// handle_actions() acts only on its own screen (#1771).
+		$_GET['page'] = 'ffc-scheduling-calendars';
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -123,6 +125,53 @@ class AudienceAdminCalendarTest extends TestCase {
 		$page->handle_actions();
 
 		$this->assertNotEmpty( $notices, 'handle_actions() surfaced no feedback message' );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function sibling_screen_messages(): array {
+		return array(
+			'environments created'  => array( 'ffc-scheduling-environments', 'created' ),
+			'audiences deleted'     => array( 'ffc-scheduling-audiences', 'deleted' ),
+			'settings holiday'      => array( 'ffc-scheduling-settings', 'holiday_deleted' ),
+			'settings deactivated'  => array( 'ffc-scheduling-settings', 'deactivated' ),
+		);
+	}
+
+	/**
+	 * @dataProvider sibling_screen_messages
+	 */
+	public function test_handle_actions_shows_no_calendar_notice_on_a_sibling_screen( string $screen, string $message ): void {
+		// The coordinator runs this handler on every ffc-scheduling* screen,
+		// so "Calendar … successfully." and "Holiday deleted successfully."
+		// leaked onto Environments, Audiences and Settings (#1771).
+		$_GET['page']    = $screen;
+		$_GET['message'] = $message;
+		$log             = \FreeFormCertificate\Tests\Support\CallLog::record( 'add_settings_error', true );
+
+		( new AudienceAdminCalendar( 'ffc-scheduling' ) )->handle_actions();
+
+		$this->assertSame( 0, $log->count() );
+	}
+
+	public function test_handle_actions_ignores_a_sibling_screens_delete(): void {
+		// An inactive environment's or audience's Delete link is
+		// `action=delete&id=N` too; the calendar handler must not treat it as
+		// a calendar deletion — nor refuse it with the calendar's wp_die().
+		$_GET = array( 'page' => 'ffc-scheduling-audiences', 'action' => 'delete', 'id' => '5', '_wpnonce' => 'n' );
+		Functions\when( 'current_user_can' )->alias(
+			static fn( $cap ) => 'ffc_manage_audiences' === $cap
+		);
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		$die = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_die' );
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldNotReceive( 'get_by_id' );
+		$schedRepo->shouldNotReceive( 'delete' );
+
+		( new AudienceAdminCalendar( 'ffc-scheduling' ) )->handle_actions();
+
+		$this->assertSame( 0, $die->count() );
 	}
 
 	// ==================================================================
@@ -397,7 +446,7 @@ class AudienceAdminCalendarTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_actions_deactivates_calendar(): void {
-		$_GET = array( 'action' => 'deactivate', 'id' => '5', '_wpnonce' => 'n' );
+		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'action' => 'deactivate', 'id' => '5', '_wpnonce' => 'n' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
@@ -412,7 +461,7 @@ class AudienceAdminCalendarTest extends TestCase {
 	}
 
 	public function test_handle_actions_deletes_inactive_calendar(): void {
-		$_GET = array( 'action' => 'delete', 'id' => '5', '_wpnonce' => 'n' );
+		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'action' => 'delete', 'id' => '5', '_wpnonce' => 'n' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
@@ -428,7 +477,7 @@ class AudienceAdminCalendarTest extends TestCase {
 	}
 
 	public function test_handle_actions_delete_denied_without_cap(): void {
-		$_GET = array( 'action' => 'delete', 'id' => '5' );
+		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'action' => 'delete', 'id' => '5' );
 		Functions\when( 'current_user_can' )->alias(
 			static fn( $cap ) => 'ffc_manage_audiences' === $cap
 		);
@@ -467,7 +516,7 @@ class AudienceAdminCalendarTest extends TestCase {
 	}
 
 	public function test_handle_actions_deletes_holiday_and_redirects(): void {
-		$_GET = array( 'delete_holiday' => '3', 'id' => '5', '_wpnonce' => 'n' );
+		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'delete_holiday' => '3', 'id' => '5', '_wpnonce' => 'n' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );

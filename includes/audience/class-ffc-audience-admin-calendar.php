@@ -509,51 +509,7 @@ class AudienceAdminCalendar {
 								continue;
 							}
 							?>
-							<tr data-user-id="<?php echo esc_attr( $perm->user_id ); ?>">
-								<td>
-									<strong><?php echo esc_html( $user->display_name ); ?></strong>
-									<br><span class="description"><?php echo esc_html( $user->user_email ); ?></span>
-								</td>
-								<td>
-									<?php
-									\FreeFormCertificate\Admin\AdminUI::render_toggle(
-										array(
-											'name'        => 'ffc_perm_' . (string) $perm->user_id . '_can_book',
-											'input_class' => 'ffc-perm-toggle',
-											'data'        => array( 'perm' => 'can_book' ),
-											'checked'     => ! empty( $perm->can_book ),
-										)
-									);
-									?>
-								</td>
-								<td>
-									<?php
-									\FreeFormCertificate\Admin\AdminUI::render_toggle(
-										array(
-											'name'        => 'ffc_perm_' . (string) $perm->user_id . '_can_cancel_others',
-											'input_class' => 'ffc-perm-toggle',
-											'data'        => array( 'perm' => 'can_cancel_others' ),
-											'checked'     => ! empty( $perm->can_cancel_others ),
-										)
-									);
-									?>
-								</td>
-								<td>
-									<?php
-									\FreeFormCertificate\Admin\AdminUI::render_toggle(
-										array(
-											'name'        => 'ffc_perm_' . (string) $perm->user_id . '_can_override_conflicts',
-											'input_class' => 'ffc-perm-toggle',
-											'data'        => array( 'perm' => 'can_override_conflicts' ),
-											'checked'     => ! empty( $perm->can_override_conflicts ),
-										)
-									);
-									?>
-								</td>
-								<td>
-									<button type="button" class="button button-small button-link-delete ffc-remove-user-btn"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
-								</td>
-							</tr>
+							<?php self::render_permission_row( $perm, $user ); ?>
 						<?php endforeach; ?>
 					<?php endif; ?>
 				</tbody>
@@ -629,12 +585,66 @@ class AudienceAdminCalendar {
 	}
 
 	/**
+	 * Print one row of the "User Access & Permissions" table.
+	 *
+	 * The single renderer for both the initial page render and the row the
+	 * `ffc_audience_add_user_permission` AJAX handler returns, so a row added
+	 * without a reload draws the same toggles (#1771).
+	 *
+	 * @param object $perm Permission row: `user_id`, `can_book`, `can_cancel_others`, `can_override_conflicts`.
+	 * @param object $user The WordPress user (`display_name`, `user_email`).
+	 * @phpstan-param object{user_id: int|numeric-string, can_book: int|numeric-string, can_cancel_others: int|numeric-string, can_override_conflicts: int|numeric-string} $perm
+	 * @phpstan-param object{display_name: string, user_email: string} $user
+	 * @return void
+	 */
+	public static function render_permission_row( object $perm, object $user ): void {
+		$user_id = (string) $perm->user_id;
+		$columns = array(
+			'can_book'               => $perm->can_book,
+			'can_cancel_others'      => $perm->can_cancel_others,
+			'can_override_conflicts' => $perm->can_override_conflicts,
+		);
+		?>
+		<tr data-user-id="<?php echo esc_attr( $user_id ); ?>">
+			<td>
+				<strong><?php echo esc_html( $user->display_name ); ?></strong>
+				<br><span class="description"><?php echo esc_html( $user->user_email ); ?></span>
+			</td>
+			<?php foreach ( $columns as $column => $granted ) : ?>
+				<td>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'        => 'ffc_perm_' . $user_id . '_' . $column,
+							'input_class' => 'ffc-perm-toggle',
+							'data'        => array( 'perm' => $column ),
+							'checked'     => ! empty( $granted ),
+						)
+					);
+					?>
+				</td>
+			<?php endforeach; ?>
+			<td>
+				<button type="button" class="button button-small button-link-delete ffc-remove-user-btn"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
+			</td>
+		</tr>
+		<?php
+	}
+
+	/**
 	 * Handle calendar actions (save, delete)
 	 *
 	 * @return void
 	 */
 	public function handle_actions(): void {
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			return;
+		}
+
+		// The coordinator calls this on every `ffc-scheduling*` screen, and
+		// `?message=` / `action=delete` mean something else on the siblings
+		// (#1771): act only on the calendars screen.
+		if ( RequestInput::get_get_string( 'page' ) !== $this->menu_slug . '-calendars' ) {
 			return;
 		}
 
