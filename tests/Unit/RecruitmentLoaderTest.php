@@ -29,6 +29,8 @@ class RecruitmentLoaderTest extends TestCase {
 		Monkey\setUp();
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'add_filter' )->justReturn( true );
+		// Outside wp-admin, so the record autosave stays unregistered.
+		Functions\when( 'is_admin' )->justReturn( false );
 	}
 
 	protected function tearDown(): void {

@@ -520,7 +520,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertSame( array(), $styles );
 
 		( new DateMessagesAdminPage() )->enqueue( 'ffc_form_page_ffc-date-messages' );
-		$this->assertSame( array( 'ffc-date-messages-admin', 'ffc-audience-transfer-list', 'ffc-email-restore-default' ), $scripts );
+		$this->assertSame( array( 'ffc-date-messages-admin', 'ffc-audience-transfer-list', 'ffc-core', 'ffc-admin-js', 'ffc-admin-autosave', 'ffc-email-restore-default' ), $scripts, 'the last three are the record autosave (#1757)' );
 		$this->assertSame( array( 'ffc-admin-settings', 'wp-color-picker', 'ffc-audience-transfer-list' ), $styles, 'the vertical tab layout lives in that sheet; the body appearance colours use core\'s picker; the rule editor\'s audience picker brings its own' );
 		$this->assertSame( 1, $media, 'the background image comes from the Media Library' );
 		$this->assertSame( 'nonce-ffc_date_messages_message_preview', $localized['ffcDateMessages']['messageNonce'] );

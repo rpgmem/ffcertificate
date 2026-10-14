@@ -42,6 +42,9 @@ class ReregistrationLoader {
 		if ( is_admin() ) {
 			( new ReregistrationAdmin() )->init();
 
+			// Record autosave for the campaign edit screen (#1757).
+			ReregistrationRecordAutosave::register();
+
 			// CSV export — register the batched source with the shared registry
 			// (#772); the unified dispatcher (wired in Loader) routes
 			// `type=reregistration` start/batch/download requests to it. Runs
