@@ -80,7 +80,7 @@ class CertTemplateAdminScreen {
 	/**
 	 * The `admin_action_{$action}` slug for the sample-data preview page.
 	 */
-	private const PREVIEW_ACTION = 'ffc_preview_cert_template';
+	public const PREVIEW_ACTION = 'ffc_preview_cert_template';
 
 	/**
 	 * Script handle for the preview overlay.
