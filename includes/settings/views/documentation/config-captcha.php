@@ -50,7 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</tbody>
 	</table>
-	<p><?php esc_html_e( 'The mode is a scale, from the strongest on the left to the one that reaches every visitor on the right. A new install starts on ALTCHA only when the site is served over HTTPS and on Math otherwise; an existing install keeps the mode it has, and one that never saved the tab stays on Math.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The mode is a scale, from the one that reaches every visitor on the left to the strongest on the right. A new install starts on ALTCHA only when the site is served over HTTPS and on Math otherwise; an existing install keeps the mode it has, and one that never saved the tab stays on Math.', 'ffcertificate' ); ?></p>
 	<p class="description"><?php esc_html_e( 'Whichever mode is in force, the token is signed with a key derived from this site, expires, and is accepted once — a captured answer cannot be replayed.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'ALTCHA widget options', 'ffcertificate' ); ?></h4>

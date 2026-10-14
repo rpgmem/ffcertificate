@@ -25940,7 +25940,7 @@ msgid "The Custom proxy CIDRs field appears only in the Custom mode, the only on
 msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:53
-msgid "The mode is a scale, from the strongest on the left to the one that reaches every visitor on the right. A new install starts on ALTCHA only when the site is served over HTTPS and on Math otherwise; an existing install keeps the mode it has, and one that never saved the tab stays on Math."
+msgid "The mode is a scale, from the one that reaches every visitor on the left to the strongest on the right. A new install starts on ALTCHA only when the site is served over HTTPS and on Math otherwise; an existing install keeps the mode it has, and one that never saved the tab stays on Math."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-public-design.php:120

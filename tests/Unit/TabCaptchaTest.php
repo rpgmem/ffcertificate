@@ -132,13 +132,13 @@ class TabCaptchaTest extends TestCase {
 		$this->assertStringContainsString( 'name="_ffc_tab" value="captcha"', $html );
 		$this->assertStringContainsString( 'ALTCHA + Math', $html );
 		$this->assertStringContainsString( 'This is reach, not strength.', $html );
-		// Steps, left to right ALTCHA only, ALTCHA + Math, Math (#1758); without
+		// Steps, left to right Math, ALTCHA + Math, ALTCHA only (#1758); without
 		// HTTPS the ALTCHA-only stop is drawn but cannot be chosen.
 		$this->assertStringContainsString( 'class="ffc-control-steps ffc-control-steps-traffic"', $html );
 		$this->assertStringContainsString( 'name="ffc_settings[captcha_provider]" value="altcha" disabled>', $html );
 		$this->assertStringContainsString( 'name="ffc_settings[captcha_provider]" value="both" checked>', $html );
-		$this->assertLessThan( strpos( $html, 'value="math"' ), strpos( $html, 'value="both"' ) );
-		$this->assertLessThan( strpos( $html, 'value="both"' ), strpos( $html, 'value="altcha"' ) );
+		$this->assertLessThan( strpos( $html, 'value="both"' ), strpos( $html, 'value="math"' ) );
+		$this->assertLessThan( strpos( $html, 'value="altcha"' ), strpos( $html, 'value="both"' ) );
 		// Display: on means shown, so stored hide_* = 0 renders both on.
 		$this->assertStringContainsString( 'name="ffc_settings[captcha_altcha_show_logo]" value="1" checked>', $html );
 		$this->assertStringContainsString( 'name="ffc_settings[captcha_altcha_show_footer]" value="1" checked>', $html );

@@ -32,20 +32,20 @@ $ffc_is_ssl      = is_ssl();
  * would be read once and forgotten.
  */
 $ffc_modes = array(
-	AltchaCaptcha::ID    => array(
-		'label'   => __( 'ALTCHA only', 'ffcertificate' ),
-		'summary' => __( 'Every visitor solves a proof of work in the browser. Nothing is sent to any third party.', 'ffcertificate' ),
-		'warning' => __( 'Requires JavaScript and HTTPS. A visitor with JavaScript disabled cannot submit the form at all — acceptable when the audience is known, such as staff filling in forms on a workstation.', 'ffcertificate' ),
+	MathCaptcha::ID      => array(
+		'label'   => __( 'Math', 'ffcertificate' ),
+		'summary' => __( 'An arithmetic question the visitor answers. Works everywhere — no JavaScript, no HTTPS required.', 'ffcertificate' ),
+		'warning' => __( 'Weakest option against automation: the answer space is small, so a script that solves arithmetic gets through. Signed, expiring and single-use tokens stop a captured answer from being replayed, but they do not make the question harder.', 'ffcertificate' ),
 	),
 	CompositeCaptcha::ID => array(
 		'label'   => __( 'ALTCHA + Math', 'ffcertificate' ),
 		'summary' => __( 'Visitors with JavaScript solve a proof of work; everyone else answers the arithmetic question.', 'ffcertificate' ),
 		'warning' => __( 'This is reach, not strength. The server accepts either proof, so an attacker simply picks the cheaper one — the effective security equals the math challenge alone. Choose it when some of your visitors cannot run the widget.', 'ffcertificate' ),
 	),
-	MathCaptcha::ID      => array(
-		'label'   => __( 'Math', 'ffcertificate' ),
-		'summary' => __( 'An arithmetic question the visitor answers. Works everywhere — no JavaScript, no HTTPS required.', 'ffcertificate' ),
-		'warning' => __( 'Weakest option against automation: the answer space is small, so a script that solves arithmetic gets through. Signed, expiring and single-use tokens stop a captured answer from being replayed, but they do not make the question harder.', 'ffcertificate' ),
+	AltchaCaptcha::ID    => array(
+		'label'   => __( 'ALTCHA only', 'ffcertificate' ),
+		'summary' => __( 'Every visitor solves a proof of work in the browser. Nothing is sent to any third party.', 'ffcertificate' ),
+		'warning' => __( 'Requires JavaScript and HTTPS. A visitor with JavaScript disabled cannot submit the form at all — acceptable when the audience is known, such as staff filling in forms on a workstation.', 'ffcertificate' ),
 	),
 );
 ?>
@@ -81,8 +81,8 @@ $ffc_modes = array(
 				<td>
 					<?php
 					/*
-					 * Steps from the strongest to the one with the widest reach
-					 * (#1758). Each step's consequence is its description, so the
+					 * Steps from the weakest to the strongest, so the traffic palette
+					 * reads red, amber, green (#1758). Each step's consequence is its description, so the
 					 * warning still travels with the option. The ALTCHA-only stop
 					 * is disabled without HTTPS; the save handler refuses it too.
 					 */

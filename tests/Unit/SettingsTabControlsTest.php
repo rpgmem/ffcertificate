@@ -23,16 +23,16 @@ class SettingsTabControlsTest extends TestCase {
 		return (string) file_get_contents( $path );
 	}
 
-	public function test_the_captcha_mode_is_traffic_steps_from_altcha_only_to_math(): void {
+	public function test_the_captcha_mode_is_traffic_steps_from_math_to_altcha_only(): void {
 		$src = self::source( 'includes/settings/views/ffc-tab-captcha.php' );
 
 		$this->assertStringContainsString( 'render_steps(', $src );
 		$this->assertStringContainsString( "'name'             => 'ffc_settings[captcha_provider]'", $src );
 		$this->assertStringContainsString( "'palette'          => 'traffic'", $src );
 		$this->assertMatchesRegularExpression(
-			'/\$ffc_modes = array\(\s*AltchaCaptcha::ID\s*=>.*?CompositeCaptcha::ID\s*=>.*?MathCaptcha::ID\s*=>/s',
+			'/\$ffc_modes = array\(\s*MathCaptcha::ID\s*=>.*?CompositeCaptcha::ID\s*=>.*?AltchaCaptcha::ID\s*=>/s',
 			$src,
-			'Left to right: ALTCHA only, ALTCHA + Math, Math.'
+			'Left to right: Math (red), ALTCHA + Math (amber), ALTCHA only (green).'
 		);
 		$this->assertStringNotContainsString( 'type="radio"', $src, 'No stacked radio is left for the mode.' );
 	}

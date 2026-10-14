@@ -26024,8 +26024,8 @@ msgid "The Custom proxy CIDRs field appears only in the Custom mode, the only on
 msgstr "O campo CIDRs de proxy personalizados aparece apenas no modo Personalizado, o único que o lê."
 
 #: includes/settings/views/documentation/config-captcha.php:53
-msgid "The mode is a scale, from the strongest on the left to the one that reaches every visitor on the right. A new install starts on ALTCHA only when the site is served over HTTPS and on Math otherwise; an existing install keeps the mode it has, and one that never saved the tab stays on Math."
-msgstr "O modo é uma escala, do mais forte à esquerda até o que alcança todos os visitantes à direita. Uma instalação nova começa em Apenas ALTCHA quando o site é servido por HTTPS e em Matemática caso contrário; uma instalação existente mantém o modo que tem, e uma que nunca salvou a aba continua em Matemática."
+msgid "The mode is a scale, from the one that reaches every visitor on the left to the strongest on the right. A new install starts on ALTCHA only when the site is served over HTTPS and on Math otherwise; an existing install keeps the mode it has, and one that never saved the tab stays on Math."
+msgstr "O modo é uma escala, do que alcança todos os visitantes à esquerda até o mais forte à direita. Uma instalação nova começa em Apenas ALTCHA quando o site é servido por HTTPS e em Matemática caso contrário; uma instalação existente mantém o modo que tem, e uma que nunca salvou a aba continua em Matemática."
 
 #: includes/settings/views/ffc-tab-public-design.php:120
 msgid "The plugin's font (the system font)."
