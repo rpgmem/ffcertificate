@@ -44,6 +44,11 @@ class ReregistrationAdmin {
 	public const MENU_SLUG = 'ffc-reregistration';
 
 	/**
+	 * `?page=` of the Custom Fields submenu.
+	 */
+	public const CUSTOM_FIELDS_SLUG = 'ffc-custom-fields';
+
+	/**
 	 * Required capability.
 	 */
 	private const CAPABILITY = 'ffc_manage_reregistration';
@@ -169,7 +174,7 @@ class ReregistrationAdmin {
 			__( 'Custom Fields', 'ffcertificate' ),
 			__( 'Custom Fields', 'ffcertificate' ),
 			self::CAPABILITY,
-			'ffc-custom-fields',
+			self::CUSTOM_FIELDS_SLUG,
 			array( ReregistrationCustomFieldsPage::class, 'render' )
 		);
 	}

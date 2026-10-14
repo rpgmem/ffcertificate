@@ -26,6 +26,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CPT {
 
 	/**
+	 * The certificate forms' post type.
+	 */
+	public const POST_TYPE = 'ffc_form';
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -112,7 +117,7 @@ class CPT {
 			'rewrite'         => array( 'slug' => 'ffc-form' ),
 		);
 
-		register_post_type( 'ffc_form', $args );
+		register_post_type( self::POST_TYPE, $args );
 	}
 
 	/**
