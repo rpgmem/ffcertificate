@@ -472,6 +472,12 @@ msgstr "%s desativado com sucesso."
 msgid "%s deleted successfully."
 msgstr "%s excluído com sucesso."
 
+#. %s: calendar name
+#: includes/audience/class-ffc-audience-admin-environment.php:318
+#, php-format
+msgid "%s (inactive)"
+msgstr "%s (inativo)"
+
 #. %s: field label
 #: includes/reregistration/class-ffc-custom-field-validator.php:191
 #, php-format

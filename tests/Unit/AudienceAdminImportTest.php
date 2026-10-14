@@ -110,6 +110,48 @@ class AudienceAdminImportTest extends TestCase {
 		$this->assertStringNotContainsString( 'display: none', $output );
 	}
 
+	public function test_download_sample_links_point_at_the_settings_tab(): void {
+		// The legacy `page=ffc-scheduling-import` is 301-redirected before any
+		// handler runs, so a link there never reached the download (#1771).
+		$urls = array();
+		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+		Functions\when( 'wp_nonce_url' )->alias(
+			static function ( $url, $action ) use ( &$urls ) {
+				$urls[] = array( $url, $action );
+				return $url . '&_wpnonce=n';
+			}
+		);
+
+		$page = new AudienceAdminImport( 'ffc-scheduling' );
+		ob_start();
+		$page->render_content();
+		ob_end_clean();
+
+		$samples = array_values(
+			array_filter( $urls, static fn( $u ) => false !== strpos( $u[0], 'download_sample=' ) )
+		);
+		$this->assertSame(
+			array(
+				array( 'https://example.com/wp-admin/admin.php?page=ffc-scheduling-settings&tab=import&download_sample=members', 'download_sample' ),
+				array( 'https://example.com/wp-admin/admin.php?page=ffc-scheduling-settings&tab=import&download_sample=audiences', 'download_sample' ),
+			),
+			$samples
+		);
+	}
+
+	public function test_render_content_leaves_the_notices_to_the_hosting_settings_page(): void {
+		// The Settings page prints `ffc_audience` notices once for every tab;
+		// printing them here too would show each one twice (#1771).
+		$log = CallLog::record( 'settings_errors', '' );
+
+		$page = new AudienceAdminImport( 'ffc-scheduling' );
+		ob_start();
+		$page->render_content();
+		ob_end_clean();
+
+		$this->assertSame( 0, $log->count() );
+	}
+
 	// ==================================================================
 	// handle_csv_import() — no action
 	// ==================================================================
