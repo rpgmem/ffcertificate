@@ -1082,9 +1082,11 @@ class SelfSchedulingEditor {
 					<input type="text" readonly id="ffc-calendar-shortcode" value="<?php echo esc_attr( '[ffc_self_scheduling id="' . $post->ID . '"]' ); ?>" onclick="this.select();" class="ffc-shortcode-input code" />
 					<button type="button" class="button ffc-copy-link ffc-icon-copy" data-ffc-copy-target="#ffc-calendar-shortcode"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
 				</div>
-
-				<p class="ffc-shortcode-preview-label"><strong><?php esc_html_e( 'Preview:', 'ffcertificate' ); ?></strong></p>
-				<p><a href="<?php echo esc_url( add_query_arg( 'calendar_preview', $post->ID, home_url( '/' ) ) ); ?>" target="_blank" class="button button-secondary ffc-icon-eye"><?php esc_html_e( 'Preview Calendar', 'ffcertificate' ); ?></a></p>
+				<?php
+				// No "Preview Calendar" button (#1770): the link it printed was read by nothing,
+				// and the calendar is a live booking form, so a preview would create real
+				// appointments and send real e-mails. Place the shortcode on a draft page instead.
+				?>
 			<?php else : ?>
 				<p class="description"><?php esc_html_e( 'Publish this calendar to generate the shortcode.', 'ffcertificate' ); ?></p>
 			<?php endif; ?>

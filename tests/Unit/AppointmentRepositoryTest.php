@@ -228,6 +228,51 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->assertStringContainsString('OFFSET', $captured_sql);
 	}
 
+	/**
+	 * Every column the Appointments list sorts by must survive the ORDER BY
+	 * allowlist; a rejected one silently becomes an `id` sort (#1770).
+	 *
+	 * @dataProvider provide_list_sort_columns
+	 */
+	public function test_find_all_orders_by_each_list_sort_column( string $column ): void {
+		$captured_sql = '';
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
+			$captured_sql = func_get_args()[0];
+			return $captured_sql;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+		$this->repo->findAll([], $column, 'ASC', 20, 0);
+
+		$this->assertStringContainsString('ORDER BY ' . $column . ' ASC', $captured_sql);
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function provide_list_sort_columns(): array {
+		return [
+			'id'               => ['id'],
+			'calendar_id'      => ['calendar_id'],
+			'appointment_date' => ['appointment_date'],
+			'status'           => ['status'],
+			'created_at'       => ['created_at'],
+		];
+	}
+
+	public function test_find_all_rejects_an_unlisted_order_column(): void {
+		$captured_sql = '';
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
+			$captured_sql = func_get_args()[0];
+			return $captured_sql;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+		$this->repo->findAll([], 'email_encrypted', 'ASC', 20, 0);
+
+		$this->assertStringContainsString('ORDER BY id ASC', $captured_sql);
+	}
+
 	public function test_find_all_without_limit_omits_limit_clause(): void {
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {

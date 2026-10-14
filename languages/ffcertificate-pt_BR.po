@@ -13161,10 +13161,6 @@ msgstr "Visualizar"
 msgid "Preview affected posts"
 msgstr "Pré-visualização das postagens afetadas"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:923
-msgid "Preview Calendar"
-msgstr "Visualizar Calendário"
-
 #: includes/frontend/class-ffc-frontend.php:515
 msgid "Preview Certificate"
 msgstr "Previa do Certificado"

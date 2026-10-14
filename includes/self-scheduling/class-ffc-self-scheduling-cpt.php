@@ -261,6 +261,20 @@ class SelfSchedulingCPT {
 			$metadata_copied[] = 'email_config';
 		}
 
+		// Custom blocks (#1770). A block is a definition only (date, window,
+		// capacity, label); its occupancy is counted from the appointments
+		// table, so there is no booking-derived state to reset: the copy has no
+		// appointments, so every block starts empty. `decode()` normalises a
+		// legacy JSON string to the array the save handler writes, and
+		// `wp_slash()` offsets the unslash `update_post_meta()` applies, so a
+		// backslash in a label survives the copy.
+		$stored_slots = get_post_meta( $post_id, '_ffc_self_scheduling_custom_slots', true );
+		$custom_slots = CustomSlots::decode( is_array( $stored_slots ) || is_string( $stored_slots ) ? $stored_slots : null );
+		if ( ! empty( $custom_slots ) ) {
+			update_post_meta( $new_post_id, '_ffc_self_scheduling_custom_slots', wp_slash( $custom_slots ) );
+			$metadata_copied[] = 'custom_slots';
+		}
+
 		\FreeFormCertificate\Core\Debug::log_self_scheduling(
 			'Calendar duplicated successfully',
 			array(

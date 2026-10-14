@@ -22,6 +22,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Scheduling operator roles reach their screens and see only actions they can use** (#1769). The role allow-list named pages that do not exist; row actions and cleanup buttons now follow their handler's capability, and Duplicate needs `ffc_manage_calendars`, not `ffc_manage_appointments`.
 
+### Fixed
+
+- **Personal calendars admin gaps** (#1770). Duplicate copies the custom blocks; the Appointments list sorts by every sortable column and labels, filters and cancels waitlisted rows; the dead Preview Calendar link and the export's unread date filters are gone.
+
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
 ### Added

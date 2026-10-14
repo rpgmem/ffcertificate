@@ -331,6 +331,75 @@ class SelfSchedulingCPTTest extends TestCase {
 		$cpt->handle_calendar_duplication();
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_handle_calendar_duplication_copies_custom_blocks(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'get_post' )->justReturn(
+			(object) array( 'ID' => 5, 'post_type' => 'ffc_self_scheduling', 'post_title' => 'My Cal' )
+		);
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_insert_post' )->justReturn( 99 );
+		Functions\when( 'wp_slash' )->returnArg();
+
+		// A legacy JSON string with one malformed row: the copy stores the
+		// normalised array, the same shape the save handler writes (#1770).
+		$meta = array(
+			'_ffc_self_scheduling_config'       => array( 'schedule_type' => 'custom' ),
+			'_ffc_self_scheduling_custom_slots' => json_encode(
+				array(
+					array( 'date' => '2026-11-03', 'start' => '09:00', 'end' => '10:00', 'capacity' => 3, 'label' => 'Morning' ),
+					array( 'date' => '', 'start' => '11:00', 'end' => '12:00' ),
+				)
+			),
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			function ( $id, $key ) use ( $meta ) {
+				return 5 === $id ? ( $meta[ $key ] ?? '' ) : '';
+			}
+		);
+
+		$updated = array();
+		Functions\when( 'update_post_meta' )->alias(
+			function ( $id, $key, $val ) use ( &$updated ) {
+				$updated[ $id ][ $key ] = $val;
+				return true;
+			}
+		);
+
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' )
+			->shouldReceive( 'log_self_scheduling' )->andReturnNull();
+
+		Functions\when( 'wp_safe_redirect' )->alias(
+			function () {
+				throw new \RuntimeException( 'redirected' );
+			}
+		);
+
+		$_GET['post'] = '5';
+
+		$cpt = new SelfSchedulingCPT();
+		try {
+			$cpt->handle_calendar_duplication();
+			$this->fail( 'Expected the redirect.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirected', $e->getMessage() );
+		}
+
+		$this->assertSame(
+			array(
+				array( 'date' => '2026-11-03', 'start' => '09:00', 'end' => '10:00', 'capacity' => 3, 'label' => 'Morning' ),
+			),
+			$updated[99]['_ffc_self_scheduling_custom_slots'] ?? null,
+			'The copy must carry the original calendar\'s custom blocks.'
+		);
+		$this->assertArrayNotHasKey( 5, $updated, 'Duplicating must never write to the original calendar.' );
+	}
+
 	// ==================================================================
 	// handle_calendar_duplication() — insert failure dies with error
 	// ==================================================================
