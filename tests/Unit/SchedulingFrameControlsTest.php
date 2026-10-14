@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceAdminEnvironment;
 use FreeFormCertificate\Audience\AudienceAdminImport;
 use FreeFormCertificate\Tests\Support\ControlInventory;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * The Scheduling screens #1761 reframed offer the controls they offered before.
@@ -239,7 +240,7 @@ class SchedulingFrameControlsTest extends TestCase {
 					'name'             => 'Alice',
 					'email'            => 'alice@x.com',
 					'cpf'              => '51817842080',
-					'rf'               => '1234568',
+					'rf'               => Identifiers::RF_A,
 					'validation_code'  => 'CODE',
 					'created_at'       => '2026-05-01',
 					'custom_data'      => '{"field_a":"v","field_b":["x","y"]}',
