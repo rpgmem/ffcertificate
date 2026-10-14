@@ -60,7 +60,7 @@ class AppointmentsListTableTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['calendar_id'], $_GET['status'] );
+		unset( $_GET['calendar_id'], $_GET['status'], $_GET['orderby'], $_GET['order'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -120,11 +120,12 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertStringContainsString( '#7', $html );
 		$this->assertStringContainsString( 'Confirm', $html );
 		$this->assertStringContainsString( 'ffc-appointment-cancel', $html );
-		$this->assertStringContainsString( 'View', $html );
+		$this->assertStringContainsString( '>View<', $html, 'A manager is offered the manage-gated detail view.' );
+		$this->assertStringContainsString( 'appointment=7', $html );
 		$this->assertStringContainsString( 'https://example.com/magic', $html );
 	}
 
-	public function test_column_id_readonly_cancelled_shows_only_view(): void {
+	public function test_column_id_readonly_cancelled_shows_no_row_action(): void {
 		Functions\when( 'current_user_can' )->justReturn( false ); // read-only viewer.
 		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
 
@@ -134,7 +135,10 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertStringContainsString( '#9', $html );
 		$this->assertStringNotContainsString( 'Confirm', $html );
 		$this->assertStringNotContainsString( 'ffc-appointment-cancel', $html );
-		$this->assertStringContainsString( 'View', $html );
+		// The detail view requires ffc_manage_appointments, so a read-only
+		// viewer is not offered it (#1769).
+		$this->assertStringNotContainsString( '>View<', $html );
+		$this->assertStringNotContainsString( 'appointment=9', $html );
 		$this->assertStringNotContainsString( 'View Receipt', $html ); // cancelled → no receipt.
 	}
 
@@ -274,6 +278,145 @@ class AppointmentsListTableTest extends TestCase {
 
 		$this->assertSame( 9, $captured['calendar_id'] );
 		$this->assertSame( 'confirmed', $captured['status'] );
+	}
+
+	/**
+	 * ORDER BY column and direction the last prepare_items() handed to
+	 * findAll() (#1770).
+	 *
+	 * @var array<int, string>
+	 */
+	private $captured_order = array();
+
+	/**
+	 * Mock the repository and the request once, so prepare_items() can run
+	 * repeatedly in one test with a different query string each time.
+	 */
+	private function capture_order(): void {
+		$this->appt_repo->shouldReceive( 'findAll' )->andReturnUsing(
+			function ( $conditions, $order_by, $order ) {
+				$this->captured_order = array( $order_by, $order );
+				return array();
+			}
+		);
+
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
+	}
+
+	/**
+	 * Run prepare_items() under the given query string.
+	 *
+	 * @param array<string, string> $query Request query vars.
+	 * @return array<int, string>
+	 */
+	private function order_for( array $query ): array {
+		unset( $_GET['orderby'], $_GET['order'] );
+		foreach ( $query as $key => $value ) {
+			$_GET[ $key ] = $value;
+		}
+		$this->captured_order = array();
+
+		$table = new AppointmentsListTable();
+		$table->prepare_items();
+
+		return $this->captured_order;
+	}
+
+	public function test_prepare_items_default_order_is_created_at_desc(): void {
+		$this->capture_order();
+		$this->assertSame( array( 'created_at', 'DESC' ), $this->order_for( array() ) );
+	}
+
+	/**
+	 * Every sortable column the table declares must reach the query, in the
+	 * direction the header link asks for (#1770).
+	 */
+	public function test_prepare_items_sorts_by_every_declared_sortable_column(): void {
+		$this->capture_order();
+		$table   = new AppointmentsListTable();
+		$orderby = array_map(
+			static fn( $spec ) => $spec[0],
+			array_values( $table->get_sortable_columns() )
+		);
+
+		$this->assertNotEmpty( $orderby );
+		foreach ( $orderby as $column ) {
+			$this->assertSame(
+				array( $column, 'ASC' ),
+				$this->order_for( array( 'orderby' => $column, 'order' => 'asc' ) ),
+				"orderby={$column}&order=asc must sort by {$column} ASC."
+			);
+			$this->assertSame(
+				array( $column, 'DESC' ),
+				$this->order_for( array( 'orderby' => $column, 'order' => 'desc' ) ),
+				"orderby={$column}&order=desc must sort by {$column} DESC."
+			);
+		}
+	}
+
+	public function test_prepare_items_ignores_an_unlisted_orderby(): void {
+		$this->capture_order();
+		$this->assertSame(
+			array( 'created_at', 'DESC' ),
+			$this->order_for( array( 'orderby' => 'email_encrypted', 'order' => 'asc' ) )
+		);
+		$this->assertSame(
+			array( 'created_at', 'DESC' ),
+			$this->order_for( array( 'orderby' => 'id; DROP TABLE x', 'order' => 'asc' ) )
+		);
+	}
+
+	public function test_column_status_labels_waitlist(): void {
+		$table = new AppointmentsListTable();
+		$html  = $table->column_status( array( 'status' => 'waitlist' ) );
+
+		$this->assertStringContainsString( 'ffc-appointment-status-waitlist', $html );
+		$this->assertStringContainsString( '>Waitlist<', $html );
+	}
+
+	public function test_column_id_waitlist_editable_offers_cancel_but_not_confirm(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
+		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=' . $a );
+		Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' )
+			->shouldReceive( 'generate_magic_link' )->andReturn( 'https://example.com/magic' );
+
+		$table = new AppointmentsListTable();
+		$html  = $table->column_id( array( 'id' => 21, 'status' => 'waitlist', 'confirmation_token' => 'tok' ) );
+
+		$this->assertStringContainsString( 'ffc-appointment-cancel', $html );
+		$this->assertStringContainsString( 'ffc_cancel_appointment_21', $html );
+		// confirm() does not recount the slot, so it would overbook a full one.
+		$this->assertStringNotContainsString( 'Confirm', $html );
+	}
+
+	public function test_column_id_waitlist_readonly_offers_no_mutation(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' )
+			->shouldReceive( 'generate_magic_link' )->andReturn( 'https://example.com/magic' );
+
+		$table = new AppointmentsListTable();
+		$html  = $table->column_id( array( 'id' => 21, 'status' => 'waitlist', 'confirmation_token' => 'tok' ) );
+
+		$this->assertStringNotContainsString( 'ffc-appointment-cancel', $html );
+		$this->assertStringNotContainsString( 'Confirm', $html );
+	}
+
+	public function test_extra_tablenav_offers_waitlist_status_filter(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturn( '' )
+			->shouldReceive( 'get_get_int' )->andReturn( 0 );
+
+		$table = new AppointmentsListTable();
+
+		ob_start();
+		$this->call_protected( $table, 'extra_tablenav', array( 'top' ) );
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( '<option value="waitlist"', $out );
 	}
 
 	public function test_extra_tablenav_returns_early_when_not_top(): void {

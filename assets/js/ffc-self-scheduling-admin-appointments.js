@@ -53,11 +53,11 @@
 					downloading: s.exportDone,
 					error: s.error
 				},
+				// Only the two filters the list offers (#1770): it has no date
+				// filter, so the button carries no date attributes to read.
 				startData: {
 					calendar_id: btn.getAttribute('data-calendar_id') || '',
-					status:      btn.getAttribute('data-status') || '',
-					start_date:  btn.getAttribute('data-start_date') || '',
-					end_date:    btn.getAttribute('data-end_date') || ''
+					status:      btn.getAttribute('data-status') || ''
 				}
 			});
 		});

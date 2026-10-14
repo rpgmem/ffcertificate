@@ -13141,10 +13141,6 @@ msgstr ""
 msgid "Preview affected posts"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:923
-msgid "Preview Calendar"
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:515
 msgid "Preview Certificate"
 msgstr ""
@@ -14202,10 +14198,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:419 includes/audience/class-ffc-audience-admin-audience-renderer.php:555
 msgid "Required"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-advanced.php:193
-msgid "Required Certificate Tags"
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:32
@@ -25300,16 +25292,8 @@ msgstr ""
 msgid "(when the form has an Event Schedule)"
 msgstr ""
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:59
-msgid "A new form starts with the fields listed under Settings → Certificates → Required Form Fields, with the label and type given there. By default they are:"
-msgstr ""
-
 #: includes/settings/views/documentation/forms-dynamic-fields.php:66
 msgid "A required field is drawn with an amber border and a \"Required field\" badge: it is always required, its variable name and type cannot change and it cannot be removed; only its label can. A form missing one shows a warning naming it, with an \"Add the required fields\" button that adds them."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-certificates.php:125
-msgid "Add required field"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:172
@@ -25318,14 +25302,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-certificates.php:36
 msgid "Field name"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-certificates.php:92
-msgid "Fields every certificate form must have. A new form starts with them; in the form editor their name, type and required flag are locked, and only the label can change. Email is always required: the certificate is sent to it."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-certificates.php:81
-msgid "One tag per line (with braces). Every certificate layout must contain them. {{auth_code}} is always required — certificate verification depends on it. {{schedule}} is required only of a form that has an Event Schedule."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:58
@@ -25342,14 +25318,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:794
 msgid "The Fields tab can add them: “Add the required fields”."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-certificates.php:128
-msgid "The certificate layout prints a field through its name in braces, such as {{cpf_rf}}. A name takes lowercase letters, digits and underscores."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-certificates.php:34
-msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Certificates → Required Certificate Tags. {{auth_code}} cannot be removed, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The fields every form must have are a separate list on the same tab, Required Form Fields: by default name, cpf_rf and email, each with its label and type; email cannot be removed."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:166
@@ -25815,6 +25783,46 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "A new calendar starts public."
+msgstr ""
+
+#: includes/admin/class-ffc-settings-ajax-endpoint.php
+msgid "The table could not be read. Reload the page and try again."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "Filled in by the plugin"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "Required in the form"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "Required in the certificate HTML"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "Required data"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "What every certificate needs, in one table. Required in the form: a new form starts with the field, and in the form editor its name, type and required flag are locked; only the label can change. Required in the certificate HTML: every certificate layout must print the field through its name in braces, such as {{cpf_rf}}. Changes save as you make them."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "Add required data"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "A name takes lowercase letters, digits and underscores. Email is always required in the form: the certificate is sent to it. {{auth_code}} is always required in the certificate HTML: verification depends on it. A tag the plugin fills in itself, such as {{schedule}}, has no form field; {{schedule}} is asked only of a form that has an Event Schedule."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "What a certificate requires is one table, Settings → Certificates → Required data. Each row has a name, a label, a type and two switches. Required in the form: a new form starts with the field, and the form editor locks it and refuses a form without it. Required in the certificate HTML: the form editor refuses to save a layout that lacks the {{tag}}. By default name and cpf_rf are required in both, email in the form and {{auth_code}} and {{schedule}} in the HTML. Email cannot leave the form and {{auth_code}} cannot leave the HTML. A tag the plugin fills in itself, such as {{schedule}}, has the HTML switch only, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The table saves as you change it."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php
+msgid "A new form starts with every row of Settings → Certificates → Required data whose \"Required in the form\" switch is on, with the label and type given there. By default they are:"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-captcha.php:233

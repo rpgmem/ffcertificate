@@ -90,6 +90,9 @@ class AudienceAdminEnvironment {
 		}
 		$environments = AudienceEnvironmentRepository::get_all( $args );
 		$schedules    = AudienceScheduleRepository::get_all();
+		// Row actions render only for the cap handle_actions() checks (#1769).
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+		$can_delete = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' );
 
 		// Build schedule name map for sorting.
 		$schedule_name_map = array();
@@ -201,9 +204,11 @@ class AudienceAdminEnvironment {
 								</span>
 							</td>
 							<td class="column-actions">
-								<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
-								<?php if ( $is_active ) : ?>
-									<a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('
+								<?php if ( $can_manage ) : ?>
+									<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a>
+								<?php endif; ?>
+								<?php if ( $is_active && $can_manage ) : ?>
+									| <a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('
 									<?php
 										/* translators: %s: environment label (singular) */
 										printf( esc_attr__( 'Are you sure you want to deactivate this %s?', 'ffcertificate' ), esc_attr( $env_label_singular ) );
@@ -211,7 +216,8 @@ class AudienceAdminEnvironment {
 										');">
 										<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
 									</a>
-								<?php else : ?>
+								<?php elseif ( ! $is_active && $can_delete ) : ?>
+									<?php echo $can_manage ? '|' : ''; ?>
 									<a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('
 									<?php
 										/* translators: %s: environment label (singular) */

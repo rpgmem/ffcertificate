@@ -396,4 +396,40 @@ class SelfSchedulingCleanupHandlerTest extends TestCase {
 		$this->assertStringContainsString( 'Future:', $output );
 		$this->assertStringContainsString( 'Cancelled:', $output );
 	}
+
+	/**
+	 * The delete buttons need the cap handle_cleanup_appointments() checks;
+	 * without it the box keeps the counts and offers nothing to click (#1769).
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public function cleanup_tiers(): array {
+		return array(
+			'appointments view-only tier' => array( array( 'ffc_view_appointments', 'ffc_view_calendars' ), false ),
+			'appointments manage tier'    => array( array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_manage_calendars' ), false ),
+			'appointments delete tier'    => array( array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments' ), true ),
+		);
+	}
+
+	/**
+	 * @dataProvider cleanup_tiers
+	 *
+	 * @param list<string> $caps        Capabilities held.
+	 * @param bool         $sees_delete Whether the delete buttons render.
+	 */
+	public function test_render_cleanup_metabox_offers_delete_buttons_only_with_the_delete_cap( array $caps, bool $sees_delete ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( array( 'id' => 10, 'title' => 'Test Calendar' ) );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 15, 5, 7, 3 );
+
+		ob_start();
+		$this->handler->render_cleanup_metabox( (object) array( 'ID' => 42 ) );
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Total:', $output, 'The counts render for every tier.' );
+		$this->assertStringContainsString( '15', $output );
+		$this->assertSame( $sees_delete ? 4 : 0, substr_count( $output, 'ffc-cleanup-btn ' ) );
+		$this->assertSame( $sees_delete, str_contains( $output, 'ffc-cleanup-warning' ) );
+		$this->assertStringNotContainsString( 'No appointments to clean up.', $output );
+	}
 }

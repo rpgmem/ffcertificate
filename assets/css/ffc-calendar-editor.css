@@ -123,11 +123,6 @@
     min-width: 0;
 }
 
-/* Shortcode preview label */
-.ffc-shortcode-preview-label {
-    margin-top: var(--ffc-spacing-xl);
-}
-
 /* ==========================================================================
    CLEANUP METABOX (class-ffc-self-scheduling-cleanup-handler.php)
    ========================================================================== */

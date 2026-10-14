@@ -158,7 +158,43 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 
 		$this->assertStringNotContainsString( 'id="ffc-bookings-export-btn"', $output );
 		// Table still renders the row.
-		$this->assertStringContainsString( 'data-booking-id="101"', $output );
+		$this->assertStringContainsString( '<td>101</td>', $output );
+	}
+
+	/**
+	 * View and Cancel call AJAX handlers gated on `ffc_manage_audiences`, so
+	 * they render for that tier only (#1769).
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public function booking_action_tiers(): array {
+		return array(
+			'view-only tier' => array( array( 'ffc_view_audiences' ), false ),
+			'manage tier'    => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true ),
+		);
+	}
+
+	/**
+	 * @dataProvider booking_action_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $sees_links Whether View / Cancel render.
+	 */
+	public function test_view_and_cancel_render_only_for_the_manage_tier( array $caps, bool $sees_links ): void {
+		$this->mock_repositories( array( $this->active_booking() ), false );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )
+			->andReturnUsing( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+		Functions\when( 'get_users' )->justReturn( array() );
+
+		$page = new AudienceAdminBookings( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '<td>101</td>', $output, 'The row renders for both tiers.' );
+		$this->assertSame( $sees_links ? 1 : 0, substr_count( $output, 'ffc-view-booking' ) );
+		$this->assertSame( $sees_links ? 1 : 0, substr_count( $output, 'ffc-cancel-booking' ) );
 	}
 
 	public function test_individual_booking_type_shows_the_modal_label(): void {

@@ -217,6 +217,59 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringContainsString( 'Delete', $output );     // inactive calendar.
 	}
 
+	/**
+	 * Row actions by tier (#1769): Edit / Deactivate need
+	 * `ffc_manage_audiences`, Delete needs `ffc_delete_audiences`.
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool, 2: bool}>
+	 */
+	public function row_action_tiers(): array {
+		return array(
+			'view-only tier'       => array( array( 'ffc_view_audiences' ), false, false ),
+			'manage tier'          => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true, false ),
+			'manage + delete tier' => array( array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences' ), true, true ),
+		);
+	}
+
+	/**
+	 * Grant exactly the given capabilities.
+	 *
+	 * @param list<string> $caps Capabilities held.
+	 */
+	private function grant( array $caps ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+	}
+
+	/**
+	 * @dataProvider row_action_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_manage Whether Edit / Deactivate render.
+	 * @param bool         $can_delete Whether Delete renders.
+	 */
+	public function test_row_actions_render_only_for_the_cap_their_handler_checks( array $caps, bool $can_manage, bool $can_delete ): void {
+		$this->grant( $caps );
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn(
+			array(
+				(object) array( 'id' => 1, 'name' => 'Active Cal', 'description' => '', 'visibility' => 'public', 'status' => 'active' ),
+				(object) array( 'id' => 2, 'name' => 'Inactive Cal', 'description' => '', 'visibility' => 'private', 'status' => 'inactive' ),
+			)
+		);
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'count' )->andReturn( 0 );
+
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Active Cal', $output, 'The rows render for every tier.' );
+		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'Edit</a>' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'Deactivate' ) );
+		$this->assertSame( $can_delete, str_contains( $output, 'Delete' ) );
+	}
+
 	// ==================================================================
 	// render_form() — new + edit (full sections)
 	// ==================================================================

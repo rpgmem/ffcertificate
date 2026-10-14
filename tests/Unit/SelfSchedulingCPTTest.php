@@ -135,6 +135,65 @@ class SelfSchedulingCPTTest extends TestCase {
 		$this->assertStringContainsString( 'Duplicate', $result['duplicate'] );
 	}
 
+	/**
+	 * Duplicating creates a calendar, so the link and its handler both take
+	 * the post type's write cap, never the bookings' one (#1769).
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public function duplicate_tiers(): array {
+		return array(
+			'calendars view-only tier'      => array( array( 'ffc_view_calendars' ), false ),
+			'appointments manage tier only' => array( array( 'ffc_view_calendars', 'ffc_manage_appointments' ), false ),
+			'calendars manage tier'         => array( array( 'ffc_view_calendars', 'ffc_manage_calendars' ), true ),
+		);
+	}
+
+	/**
+	 * @dataProvider duplicate_tiers
+	 *
+	 * @param list<string> $caps    Capabilities held.
+	 * @param bool         $allowed Whether the tier may duplicate.
+	 */
+	public function test_duplicate_link_renders_only_for_the_calendars_write_cap( array $caps, bool $allowed ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+
+		$cpt    = new SelfSchedulingCPT();
+		$result = $cpt->add_duplicate_link( array( 'edit' => 'Edit' ), (object) array( 'post_type' => 'ffc_self_scheduling', 'ID' => 1 ) );
+
+		$this->assertSame( $allowed, isset( $result['duplicate'] ) );
+	}
+
+	/**
+	 * Separate process for the reason test_handle_calendar_duplication_dies_without_permission() gives.
+	 *
+	 * @dataProvider duplicate_tiers
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 *
+	 * @param list<string> $caps    Capabilities held.
+	 * @param bool         $allowed Whether the tier may duplicate.
+	 */
+	public function test_duplication_handler_checks_the_same_cap_as_the_link( array $caps, bool $allowed ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'wp_die' )->alias(
+			static function (): void {
+				throw new \RuntimeException( 'refused' );
+			}
+		);
+		// The nonce check is the step after the capability gate.
+		Functions\when( 'check_admin_referer' )->alias(
+			static function (): void {
+				throw new \RuntimeException( 'passed the capability gate' );
+			}
+		);
+
+		$cpt = new SelfSchedulingCPT();
+		$this->expectExceptionMessage( $allowed ? 'passed the capability gate' : 'refused' );
+		$cpt->handle_calendar_duplication();
+	}
+
 	// ==================================================================
 	// handle_calendar_duplication() — no permission
 	// ==================================================================
@@ -270,6 +329,75 @@ class SelfSchedulingCPTTest extends TestCase {
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'redirected' );
 		$cpt->handle_calendar_duplication();
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_handle_calendar_duplication_copies_custom_blocks(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'get_post' )->justReturn(
+			(object) array( 'ID' => 5, 'post_type' => 'ffc_self_scheduling', 'post_title' => 'My Cal' )
+		);
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'wp_insert_post' )->justReturn( 99 );
+		Functions\when( 'wp_slash' )->returnArg();
+
+		// A legacy JSON string with one malformed row: the copy stores the
+		// normalised array, the same shape the save handler writes (#1770).
+		$meta = array(
+			'_ffc_self_scheduling_config'       => array( 'schedule_type' => 'custom' ),
+			'_ffc_self_scheduling_custom_slots' => json_encode(
+				array(
+					array( 'date' => '2026-11-03', 'start' => '09:00', 'end' => '10:00', 'capacity' => 3, 'label' => 'Morning' ),
+					array( 'date' => '', 'start' => '11:00', 'end' => '12:00' ),
+				)
+			),
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			function ( $id, $key ) use ( $meta ) {
+				return 5 === $id ? ( $meta[ $key ] ?? '' ) : '';
+			}
+		);
+
+		$updated = array();
+		Functions\when( 'update_post_meta' )->alias(
+			function ( $id, $key, $val ) use ( &$updated ) {
+				$updated[ $id ][ $key ] = $val;
+				return true;
+			}
+		);
+
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' )
+			->shouldReceive( 'log_self_scheduling' )->andReturnNull();
+
+		Functions\when( 'wp_safe_redirect' )->alias(
+			function () {
+				throw new \RuntimeException( 'redirected' );
+			}
+		);
+
+		$_GET['post'] = '5';
+
+		$cpt = new SelfSchedulingCPT();
+		try {
+			$cpt->handle_calendar_duplication();
+			$this->fail( 'Expected the redirect.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirected', $e->getMessage() );
+		}
+
+		$this->assertSame(
+			array(
+				array( 'date' => '2026-11-03', 'start' => '09:00', 'end' => '10:00', 'capacity' => 3, 'label' => 'Morning' ),
+			),
+			$updated[99]['_ffc_self_scheduling_custom_slots'] ?? null,
+			'The copy must carry the original calendar\'s custom blocks.'
+		);
+		$this->assertArrayNotHasKey( 5, $updated, 'Duplicating must never write to the original calendar.' );
 	}
 
 	// ==================================================================

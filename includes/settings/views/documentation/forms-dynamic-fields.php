@@ -56,7 +56,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</ul>
 
 	<h4><?php esc_html_e( 'Required Form Fields', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'A new form starts with the fields listed under Settings → Certificates → Required Form Fields, with the label and type given there. By default they are:', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A new form starts with every row of Settings → Certificates → Required data whose "Required in the form" switch is on, with the label and type given there. By default they are:', 'ffcertificate' ); ?></p>
 	<ul>
 		<li><code>name</code> — <?php esc_html_e( 'the participant\'s full name (required): at least two words and 4 characters, checked in the browser and on the server.', 'ffcertificate' ); ?></li>
 		<li><code>email</code> — <?php esc_html_e( 'the participant\'s email (required); used to deliver the certificate. An address that is not valid is refused as such, not as a missing one.', 'ffcertificate' ); ?></li>

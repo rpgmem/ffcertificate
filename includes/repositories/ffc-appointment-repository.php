@@ -68,7 +68,18 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
-	 * Get cache group
+	 * Allowed ORDER BY columns: the generic set plus the two the Appointments
+	 * list sorts by (#1770). Without them `sanitize_order_column()` silently
+	 * turns a Calendar or Date sort into an `id` sort.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function get_allowed_order_columns(): array {
+		return array_merge( parent::get_allowed_order_columns(), array( 'calendar_id', 'appointment_date' ) );
+	}
+
+	/**
+	 * Get cache group.
 	 *
 	 * @return string
 	 */
