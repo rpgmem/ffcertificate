@@ -9934,12 +9934,6 @@ msgstr ""
 msgid "IP:"
 msgstr ""
 
-#. %s: IP address
-#: includes/admin/class-ffc-admin-submission-edit-page.php:391
-#, php-format
-msgid "IP: %s"
-msgstr ""
-
 #: templates/submission-success.php:110
 msgid "iPhone / iPad: after the PDF opens, tap Share → \"Save to Files\" to keep it on your device."
 msgstr ""
@@ -23142,7 +23136,7 @@ msgstr ""
 msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form)."
 msgstr ""
 
-msgid "Reveal the decrypted CPF / RF / email on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
+msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
 msgstr ""
 
 msgid "Minimum interval between bookings"
@@ -24594,7 +24588,7 @@ msgstr ""
 msgid "Reveal the email to edit it."
 msgstr ""
 
-msgid "On the edit screen the CPF/RF and the email start masked for everyone, administrators included. An operator who may see them uses Reveal to fetch the value, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
+msgid "On the edit screen the CPF/RF, the email and the IP start masked for everyone, administrators included. The IP is the address the submission and its consent were recorded from, so it is masked both under System Information and under the consent status. An operator who may see them uses the Reveal button beside each value to fetch it, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
 msgstr ""
 
 msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."

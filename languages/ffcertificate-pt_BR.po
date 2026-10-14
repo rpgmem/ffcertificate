@@ -9951,12 +9951,6 @@ msgstr "ip-api.com (gratuito, ~45 requisições/min, sem chave) ou ipinfo.io (re
 msgid "IP:"
 msgstr "IP:"
 
-#. %s: IP address
-#: includes/admin/class-ffc-admin-submission-edit-page.php:391
-#, php-format
-msgid "IP: %s"
-msgstr "IP: %s"
-
 #: templates/submission-success.php:110
 msgid "iPhone / iPad: after the PDF opens, tap Share → \"Save to Files\" to keep it on your device."
 msgstr "iPhone / iPad: depois de abrir o PDF, toque em Compartilhar → \"Salvar em Arquivos\" para mantê-lo no seu dispositivo."
@@ -23226,8 +23220,8 @@ msgstr "Exporte as submissões atuais (filtradas) para CSV em segundo plano. A e
 msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form)."
 msgstr "Enviar para a lixeira / restaurar e ações em massa, incluindo \"Mova para o formulário…\" (oferecida quando a lista está filtrada por um único formulário)."
 
-msgid "Reveal the decrypted CPF / RF / email on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
-msgstr "Revelar sob demanda o CPF / RF / e-mail descriptografados em vez dos valores mascarados; cada revelação é auditada. Sem ela, a lista e a tela de edição permanecem mascaradas, independentemente de outras permissões do operador. O PDF do certificado não é mascarado: ele imprime o CPF/RF formatado com pontuação."
+msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
+msgstr "Revelar sob demanda o CPF / RF / e-mail descriptografados, e o IP na tela de edição, em vez dos valores mascarados; cada revelação é auditada. Sem ela, a lista e a tela de edição permanecem mascaradas, independentemente de outras permissões do operador. O PDF do certificado não é mascarado: ele imprime o CPF/RF formatado com pontuação."
 
 msgid "Minimum interval between bookings"
 msgstr "Intervalo mínimo entre agendamentos"
@@ -24678,8 +24672,8 @@ msgstr "Os atributos que o placeholder {{qr_code}} pode definir por conta própr
 msgid "Reveal the email to edit it."
 msgstr "Revele o e-mail para editá-lo."
 
-msgid "On the edit screen the CPF/RF and the email start masked for everyone, administrators included. An operator who may see them uses Reveal to fetch the value, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
-msgstr "Na tela de edição, o CPF/RF e o e-mail começam mascarados para todos, inclusive administradores. Quem tem permissão para vê-los usa Revelar para buscar o valor, e cada revelação grava uma entrada no Log de Atividades enquanto ele estiver ligado. O e-mail só pode ser editado depois de revelado; salvar sem revelá-lo mantém o endereço gravado."
+msgid "On the edit screen the CPF/RF, the email and the IP start masked for everyone, administrators included. The IP is the address the submission and its consent were recorded from, so it is masked both under System Information and under the consent status. An operator who may see them uses the Reveal button beside each value to fetch it, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
+msgstr "Na tela de edição, o CPF/RF, o e-mail e o IP começam mascarados para todos, inclusive administradores. O IP é o endereço de onde o envio e o seu consentimento foram registrados, por isso aparece mascarado tanto em Informações do sistema quanto no status do consentimento. Quem tem permissão para vê-los usa o botão Revelar ao lado de cada valor para buscá-lo, e cada revelação grava uma entrada no Log de Atividades enquanto ele estiver ligado. O e-mail só pode ser editado depois de revelado; salvar sem revelá-lo mantém o endereço gravado."
 
 msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."
 msgstr "Administradores (manage_options) possuem todas as permissões acima e, assim como a função de administrador de certificados, veem os dados pessoais sem máscara na lista, sem a etapa de revelação; a tela de edição também os mascara para eles. Veja Capacidades e Funções."

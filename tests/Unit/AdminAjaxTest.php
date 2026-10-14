@@ -428,6 +428,60 @@ class AdminAjaxTest extends TestCase {
 		$ajax->reveal_pii();
 	}
 
+	public function test_reveal_pii_ip_returns_the_stored_ip_and_audits(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['submission_id'] = '5';
+		$_POST['field']         = 'ip';
+
+		$this->mock_submission(
+			array(
+				'user_ip' => '203.0.113.7',
+				'user_id' => 9,
+			)
+		);
+
+		$policy = $this->mock_pii_policy();
+		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+
+		// The IP reveal goes through the same audit as email and CPF (#1760).
+		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected AdminAjaxSuccessException' );
+		} catch ( AdminAjaxSuccessException $e ) {
+			$this->assertSame(
+				array(
+					'field' => 'ip',
+					'value' => '203.0.113.7',
+				),
+				$e->getData()
+			);
+		}
+	}
+
+	public function test_reveal_pii_ip_denied_for_masked_tier(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['submission_id'] = '5';
+		$_POST['field']         = 'ip';
+
+		$this->mock_submission(
+			array(
+				'user_ip' => '203.0.113.7',
+				'user_id' => 9,
+			)
+		);
+		$policy = $this->mock_pii_policy();
+		$policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/permission to reveal/' );
+		$ajax->reveal_pii();
+	}
+
 	/**
 	 * Overload-mock AppointmentRepository so findById returns a fixed row.
 	 *
