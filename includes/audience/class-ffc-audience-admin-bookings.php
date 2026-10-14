@@ -88,7 +88,7 @@ class AudienceAdminBookings {
 
 		?>
 		<div class="wrap ffc-admin-page ffc-page-scheduling-bookings">
-			<h1 class="wp-heading-inline"><?php esc_html_e( 'Bookings', 'ffcertificate' ); ?></h1>
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'Audience Bookings', 'ffcertificate' ); ?></h1>
 			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_audiences' ) ) : ?>
 				<?php
 				// Batched CSV export (#772): the button drives the shared
@@ -145,7 +145,7 @@ class AudienceAdminBookings {
 					</select>
 
 					<select name="status">
-						<option value=""><?php esc_html_e( 'All Status', 'ffcertificate' ); ?></option>
+						<option value=""><?php esc_html_e( 'All Statuses', 'ffcertificate' ); ?></option>
 						<option value="active" <?php selected( $status_filter, 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
 						<option value="cancelled" <?php selected( $status_filter, 'cancelled' ); ?>><?php esc_html_e( 'Cancelled', 'ffcertificate' ); ?></option>
 					</select>
@@ -162,15 +162,15 @@ class AudienceAdminBookings {
 			<table class="wp-list-table widefat fixed striped">
 				<thead>
 					<tr>
-						<th scope="col" class="manage-column"><?php esc_html_e( 'ID', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column"><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column"><?php echo esc_html( AudienceScheduleRepository::get_environment_label( null, true ) ); ?></th>
-						<th scope="col" class="manage-column"><?php esc_html_e( 'Description', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column"><?php esc_html_e( 'Type', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column"><?php esc_html_e( 'Created By', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+						<th scope="col" class="manage-column column-id"><?php esc_html_e( 'ID', 'ffcertificate' ); ?></th>
+						<th scope="col" class="manage-column column-date"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
+						<th scope="col" class="manage-column column-time"><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th>
+						<th scope="col" class="manage-column column-environment"><?php echo esc_html( AudienceScheduleRepository::get_environment_label( null, true ) ); ?></th>
+						<th scope="col" class="manage-column column-description"><?php esc_html_e( 'Description', 'ffcertificate' ); ?></th>
+						<th scope="col" class="manage-column column-type"><?php esc_html_e( 'Type', 'ffcertificate' ); ?></th>
+						<th scope="col" class="manage-column column-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
+						<th scope="col" class="manage-column column-created_by"><?php esc_html_e( 'Created By', 'ffcertificate' ); ?></th>
+						<th scope="col" class="manage-column column-actions"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>

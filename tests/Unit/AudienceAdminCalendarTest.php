@@ -188,6 +188,16 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-boxed', $output, 'the list stays a plain list-table screen' );
 	}
 
+	public function test_list_title_matches_the_menu_label(): void {
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = ob_get_clean();
+
+		// The submenu item reads "Audience Calendars" (#1787).
+		$this->assertStringContainsString( '<h1 class="wp-heading-inline">Audience Calendars</h1>', $output );
+	}
+
 	// ==================================================================
 	// render_list() — with calendars
 	// ==================================================================

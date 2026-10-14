@@ -78,7 +78,7 @@ class AudienceAdminCalendar {
 		$can_delete = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' );
 
 		?>
-		<h1 class="wp-heading-inline"><?php esc_html_e( 'Calendars', 'ffcertificate' ); ?></h1>
+		<h1 class="wp-heading-inline"><?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?></h1>
 		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
 		<a href="<?php echo esc_url( $add_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
 		<?php endif; ?>
