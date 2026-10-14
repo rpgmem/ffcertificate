@@ -70,7 +70,7 @@ class TabGeolocationTest extends TestCase {
 	protected function tearDown(): void {
 		unset( $_POST['ffc_save_geolocation'] );
 		unset( $_POST['ip_api_service'], $_POST['api_fallback'] );
-		unset( $_POST['gps_fallback'], $_POST['gps_fallback_preset'], $_POST['gps_fallback_cases'] );
+		unset( $_POST['gps_fallback'], $_POST['gps_fallback_preset'], $_POST['gps_fallback_cases'], $_POST['gps_fallback_custom'] );
 		unset( $_POST['both_fail_fallback'], $_POST['ip_api_enabled'], $_POST['ip_api_cascade'] );
 		unset( $_POST['ipinfo_api_key'], $_POST['ip_cache_enabled'], $_POST['ip_cache_ttl'] );
 		unset( $_POST['gps_cache_ttl'], $_POST['admin_bypass_datetime'], $_POST['admin_bypass_geo'] );
@@ -292,6 +292,63 @@ class TabGeolocationTest extends TestCase {
 			),
 			$captured_settings['gps_fallback_cases']
 		);
+	}
+
+	public function test_save_settings_the_customize_toggle_saves_the_custom_preset(): void {
+		// The screen posts `custom` as the "Customize per case" toggle
+		// (#1758); the steps are then disabled and post nothing.
+		$_POST['ip_api_service']      = 'ip-api';
+		$_POST['api_fallback']        = 'gps_only';
+		$_POST['both_fail_fallback']  = 'block';
+		$_POST['gps_fallback_custom'] = '1';
+		$_POST['gps_fallback_cases']  = array(
+			'permission_denied'    => 'block',
+			'no_api'               => 'allow',
+			'position_unavailable' => 'block',
+			'timeout'              => 'allow',
+			'safety_timer'         => 'block',
+		);
+
+		$captured_settings = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
+			if ( $key === 'ffc_geolocation_settings' ) {
+				$captured_settings = $value;
+			}
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertSame( 'custom', $captured_settings['gps_fallback_preset'] );
+		$this->assertSame( 'allow', $captured_settings['gps_fallback_cases']['no_api'] );
+		$this->assertSame( 'block', $captured_settings['gps_fallback_cases']['permission_denied'] );
+	}
+
+	public function test_save_settings_the_customize_toggle_off_saves_the_chosen_step(): void {
+		$_POST['ip_api_service']      = 'ip-api';
+		$_POST['api_fallback']        = 'gps_only';
+		$_POST['both_fail_fallback']  = 'block';
+		$_POST['gps_fallback_preset'] = 'tolerant';
+		$_POST['gps_fallback_cases']  = array( 'timeout' => 'block' );
+
+		$captured_settings = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
+			if ( $key === 'ffc_geolocation_settings' ) {
+				$captured_settings = $value;
+			}
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertSame( 'tolerant', $captured_settings['gps_fallback_preset'] );
+		$this->assertSame( TabGeolocation::preset_to_cases( 'tolerant' ), $captured_settings['gps_fallback_cases'], 'The grid is ignored unless the toggle is on.' );
 	}
 
 	public function test_save_settings_invalid_preset_falls_back_to_hybrid(): void {

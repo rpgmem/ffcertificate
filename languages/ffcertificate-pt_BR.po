@@ -772,10 +772,6 @@ msgstr "04 de janeiro de 2026"
 msgid "1 hour"
 msgstr "1 hora"
 
-#: includes/settings/views/ffc-tab-cache.php:215
-msgid "1 hour (default)"
-msgstr "1 hora (padrão)"
-
 #: includes/security/class-ffc-rate-limit-checker.php:669
 msgid "1 minute"
 msgstr "1 minuto"
@@ -788,14 +784,6 @@ msgstr "1 mês"
 msgid "1 week"
 msgstr "1 semana"
 
-#: includes/settings/views/ffc-tab-cache.php:213
-msgid "15 minutes"
-msgstr "15 minutos"
-
-#: includes/settings/views/documentation/config-cache.php:32
-msgid "15 minutes, 30 minutes, 1 hour (default) or 1 day."
-msgstr "15 minutos, 30 minutos, 1 hora (padrão) ou 1 dia."
-
 #: includes/security/class-ffc-email-limiter.php:64 includes/security/class-ffc-ip-limiter.php:78 includes/settings/views/ffc-tab-cache.php:216
 msgid "24 hours"
 msgstr "24 horas"
@@ -803,10 +791,6 @@ msgstr "24 horas"
 #: includes/settings/views/documentation/config-rate-limit.php:33
 msgid "3/day, 10/week, 30/month"
 msgstr "3/dia, 10/semana, 30/mês"
-
-#: includes/settings/views/ffc-tab-cache.php:214
-msgid "30 minutes"
-msgstr "30 minutos"
 
 #: includes/settings/views/documentation/feature-url-shortener.php:67
 msgid "302"
@@ -1014,10 +998,6 @@ msgstr "Um calendário pessoal agenda compromissos individuais em horários espe
 #: includes/admin/class-ffc-form-editor-save-handler.php:657
 msgid "A plugin update or deploy will delete these files and break the images. Use the \"Insert Image\" button to add them from the Media Library instead, or run"
 msgstr "Uma atualização ou implantação de plugin excluirá esses arquivos e quebrará as imagens. Em vez disso, use o botão \"Inserir imagem\" para adicioná-las a partir da Biblioteca de Mídia, ou execute"
-
-#: includes/settings/views/documentation/config-geolocation.php:45
-msgid "a preset (tolerant / hybrid / strict) or a custom per-case allow/block matrix (permission denied, no API, position unavailable, timeout, safety timer)."
-msgstr "uma configuração predefinida (tolerante / híbrida / rigorosa) ou uma matriz personalizada de permissão/bloqueio caso a caso (permissão negada, sem API, posição indisponível, tempo limite, temporizador de segurança)."
 
 #: includes/settings/views/documentation/config-rate-limit.php:42
 msgid "A privacy-respecting browser/device fingerprint caps submissions from the same device (off by default). It combines a cookie with a set of non-cookie signals (screen, timezone, canvas, WebGL, audio, fonts, …). A device matches when the cookie matches, or when enough signals match — the match threshold — with a minimum number of \"strong\" signals to corroborate."
@@ -1957,10 +1937,6 @@ msgstr "Widget ALTCHA"
 msgid "ALTCHA widget options"
 msgstr "Opções do widget ALTCHA"
 
-#: includes/settings/views/ffc-tab-captcha.php:42 includes/settings/views/documentation/config-captcha.php:40
-msgid "ALTCHA, with the math challenge as fallback"
-msgstr "ALTCHA, com o desafio matemático como alternativa de contingência"
-
 #: includes/settings/views/documentation/operations-troubleshooting.php:61
 msgid "Always use inline styles"
 msgstr "Sempre use estilos embutidos"
@@ -2097,14 +2073,6 @@ msgstr "Aplica-se aos dois modos de agendamento. Quando uma vaga é liberada (um
 #: includes/settings/views/ffc-tab-advanced.php:187
 msgid "Applies to the Certificate HTML editor on the form edit screen. \"Auto\" mirrors the admin Dark Mode setting (General tab); fresh installs default to Dark."
 msgstr "Aplica-se ao editor HTML do certificado na tela de edição do formulário. \"Automático\" espelha a configuração do Modo Escuro do administrador (guia Geral); novas instalações usam o Modo Escuro por padrão."
-
-#: includes/settings/views/ffc-tab-general.php:217
-msgid "Applies to the Certificate HTML editor on the form edit screen. \"Auto\" mirrors the Dark Mode setting above; fresh installs default to Dark."
-msgstr "Aplica-se ao editor HTML do certificado na tela de edição do formulário. \"Automático\" espelha a configuração de Modo Escuro acima; novas instalações usam o Modo Escuro por padrão."
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:612
-msgid "Applies when the secure strategy is effective."
-msgstr "Aplica-se quando a estratégia de segurança é eficaz."
 
 #: templates/admin/reregistration/submissions.php:85
 msgid "Apply"
@@ -2482,10 +2450,6 @@ msgstr "Atômico — qualquer conflito individual reverte todo o lote."
 #: templates/admin/recruitment/notice-edit/adjutancies-section.php:53
 msgid "Attach"
 msgstr "Agregar"
-
-#: includes/settings/views/ffc-tab-captcha.php:201 includes/settings/views/documentation/config-captcha.php:61
-msgid "Attribution"
-msgstr "Atribuição"
 
 #: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:54 includes/audience/class-ffc-audience-admin-bookings.php:221 includes/audience/class-ffc-audience-admin-import.php:203 includes/audience/class-ffc-audience-loader.php:427 includes/audience/class-ffc-audience-booking-export-source.php:273 includes/audience/class-ffc-audience-admin-page.php:300 includes/audience/class-ffc-audience-admin-settings.php:78 templates/admin/reregistration/list.php:53 includes/settings/views/ffc-tab-advanced.php:494
 msgid "Audience"
@@ -4308,10 +4272,6 @@ msgstr "grosseira (aproximadamente 1–50 km) — use um raio maior. A validaç�
 msgid "Code"
 msgstr "Código"
 
-#: includes/settings/views/ffc-tab-advanced.php:177
-msgid "Code Editor Theme"
-msgstr "Tema do Editor de Código"
-
 #: includes/settings/views/ffc-tab-url-shortener.php:73
 msgid "Code Length"
 msgstr "Comprimento do Código"
@@ -5351,10 +5311,6 @@ msgstr "SMTP personalizado (recomendado):"
 msgid "Custom Users"
 msgstr "Usuários Personalizados"
 
-#: includes/settings/views/ffc-tab-geolocation.php:397
-msgid "Custom — choose case by case"
-msgstr "Personalizado — escolha caso a caso"
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:335
 msgid "Custom — specific date/time blocks, each with its own number of vacancies"
 msgstr "Personalizado — blocos específicos de data/hora, cada um com seu próprio número de vagas"
@@ -5402,9 +5358,6 @@ msgstr "Zona de Perigo"
 #: includes/settings/views/documentation/config-advanced.php:72
 msgid "Danger Zone."
 msgstr "Zona de Perigo."
-
-msgid "Dark"
-msgstr "Escuro"
 
 #: includes/settings/views/ffc-tab-general.php:191 includes/settings/views/documentation/config-general.php:30
 msgid "Dark Mode"
@@ -5628,10 +5581,6 @@ msgstr "Falhas de Descriptografia Suprimidas"
 #: includes/admin/class-ffc-cert-template-admin-screen.php:178 includes/settings/views/documentation/feature-url-shortener.php:60
 msgid "Default"
 msgstr "Padrão"
-
-#: includes/settings/views/documentation/config-captcha.php:34
-msgid "default"
-msgstr "padrão"
 
 #: includes/settings/views/documentation/developer-hooks-api.php:131
 msgid "default 300"
@@ -6673,18 +6622,6 @@ msgstr "A edição aqui é controlada pela permissão específica `ffc_manage_em
 #: includes/settings/views/ffc-tab-advanced.php:169
 msgid "Editor Preferences"
 msgstr "Preferências do Editor"
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:597
-msgid "Effective strategy"
-msgstr "Estratégia eficaz"
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:541
-msgid "Effective strategy: Legacy"
-msgstr "Estratégia efetiva: Legado"
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:540
-msgid "Effective strategy: Secure"
-msgstr "Estratégia efetiva: Seguro"
 
 #: includes/settings/views/documentation/reference-tokens.php:116
 msgid "Effective wall-clock schedule range — the per-submission \"Entry/exit exception\" override wins (Geofence: Schedule Exception), then the form-level Class Schedule baseline (Geofence → Time → Class Schedule), then the form's Time Range, then empty."
@@ -9108,18 +9045,6 @@ msgstr "Esconder completamente"
 msgid "Hide form completely"
 msgstr "Ocultar formulário completamente"
 
-#: includes/settings/views/ffc-tab-captcha.php:211
-msgid "Hide the \"Protected by ALTCHA\" footer"
-msgstr "Ocultar o rodapé \"Protegido pelo ALTCHA\""
-
-#: includes/settings/views/ffc-tab-captcha.php:207
-msgid "Hide the ALTCHA logo"
-msgstr "Ocultar o logotipo do ALTCHA"
-
-#: includes/settings/views/documentation/config-captcha.php:61
-msgid "hide the logo and/or the \"Protected by ALTCHA\" footer."
-msgstr "oculte o logotipo e/ou o rodapé \"Protegido pelo ALTCHA\"."
-
 #: includes/settings/views/documentation/config-modules.php:32
 msgid "Hides the certificate admin and stops public form submissions. While off, the daily expired-ticket cleanup is paused (unredeemed ticket codes of ended forms are not purged until it is re-enabled)."
 msgstr "Oculta a administração de certificados e interrompe o envio de formulários públicos. Enquanto estiver desativado, a limpeza diária de tickets expirados é pausada (códigos de ticket não resgatados de formulários encerrados não são removidos até que a função seja reativada)."
@@ -9334,10 +9259,6 @@ msgstr "https://github.com/rpgmem"
 #. URI of the plugin
 msgid "https://github.com/rpgmem/ffcertificate"
 msgstr "https://github.com/rpgmem/ffcertificate"
-
-#: includes/settings/views/ffc-tab-geolocation.php:391
-msgid "Hybrid — allow only when the user denied or the browser lacks support"
-msgstr "Híbrido — permitir somente quando o usuário negar ou o navegador não for compatível."
 
 #. %s: value
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:639
@@ -10201,10 +10122,6 @@ msgstr "Sair da lista de espera"
 msgid "Left"
 msgstr "Esquerda"
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:600
-msgid "Legacy (current behaviour, spoofable) — the effective default until you switch"
-msgstr "Legado (comportamento atual, sujeito a falsificação) — o padrão vigente até que você faça a alteração."
-
 #: includes/admin/class-ffc-admin-activity-log-page.php:311
 msgid "Legacy Columns Dropped"
 msgstr "Colunas Legadas Removidas"
@@ -10236,10 +10153,6 @@ msgstr "Nível"
 #: includes/admin/class-ffc-admin-submission-edit-page.php:366
 msgid "LGPD Consent Status"
 msgstr "Status de Consentimento da LGPD"
-
-#: includes/settings/views/ffc-tab-advanced.php:183
-msgid "Light"
-msgstr "Claro"
 
 #: includes/settings/views/documentation/operations-updates.php:27
 msgid "Light on the network."
@@ -10847,10 +10760,6 @@ msgstr "Limiar de correspondência (3-12)"
 #: includes/settings/views/ffc-tab-rate-limit.php:293
 msgid "Match threshold (N of 13)"
 msgstr "Limiar de correspondência (N de 13)"
-
-#: includes/settings/views/ffc-tab-captcha.php:36 includes/settings/views/documentation/config-captcha.php:34
-msgid "Math challenge only"
-msgstr "Apenas desafio de matemática"
 
 #: includes/settings/views/ffc-tab-rate-limit.php:327
 msgid "Math precision probes (CPU/SO-specific IEEE-754 quirks)"
@@ -15220,10 +15129,6 @@ msgstr "Pesquisar..."
 msgid "seconds"
 msgstr "segundos"
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:598
-msgid "Secure (trusted-proxy model) — real client behind Cloudflare / a configured proxy, unspoofable (recommended)"
-msgstr "Seguro (modelo de proxy confiável) — cliente real atrás da Cloudflare / um proxy configurado, impossível de falsificar (recomendado)"
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:545
 #| msgid "The secure strategy does not trust the forged header for this request."
 msgid "Secure does not trust the forged header for this request."
@@ -16392,10 +16297,6 @@ msgstr "Armazena no banco de dados os QR Codes de certificado já gerados, para 
 msgid "Street address"
 msgstr "Endereço"
 
-#: includes/settings/views/ffc-tab-geolocation.php:394
-msgid "Strict — block access on every failure"
-msgstr "Rigoroso — bloquear o acesso em caso de falha"
-
 #: includes/settings/views/ffc-tab-rate-limit.php:357
 msgid "Strong"
 msgstr "Forte"
@@ -16725,10 +16626,6 @@ msgstr "Desative o Acesso Público do Operador (e seus sub-recursos) em formulá
 #: includes/settings/views/ffc-tab-migrations.php:756
 msgid "Switch off Public Operator Access (and its sub-features) on published forms whose collection period ended more than the grace window ago. The access token and other settings are preserved, so access can be re-enabled later if needed."
 msgstr "Desative o Acesso Público do Operador (e seus sub-recursos) em formulários publicados cujo período de coleta terminou há mais tempo do que o prazo de tolerância. O token de acesso e outras configurações são preservados, portanto, o acesso pode ser reativado posteriormente, se necessário."
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:122
-msgid "Switch the effective strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers."
-msgstr "Altere a estratégia para \"Seguro (modelo de proxy confiável)\" abaixo, para que cabeçalhos forjados não possam mais burlar a limitação de taxa (rate-limiting), o geofencing ou o registro de atividades. O ideal é também colocar o Cloudflare à frente deste site para garantir um IP de cliente que não possa ser falsificado (plano gratuito). A configuração padrão atual (\"Legado\") confia nos cabeçalhos fornecidos pelo cliente."
 
 #: includes/settings/views/documentation/operations-maintenance.php:40
 msgid "Switches off Public Operator Access (and its sub-features) on published forms whose collection period ended more than the grace window ago. The access token and other configuration are preserved, so access can be re-enabled later — only the behaviour is turned off."
@@ -18271,10 +18168,6 @@ msgstr "Tokens"
 #: includes/settings/views/documentation/forms-email.php:33
 msgid "Tokens available in the body:"
 msgstr "Tokens disponíveis no corpo:"
-
-#: includes/settings/views/ffc-tab-geolocation.php:388
-msgid "Tolerant — allow access on every failure"
-msgstr "Tolerante — permitir acesso em caso de falha"
 
 #: includes/frontend/class-ffc-verification-handler.php:707
 msgid "Too many attempts. Please try again in 1 minute."
@@ -19819,10 +19712,6 @@ msgstr "Por que ajuda: um cabeçalho `CF-Connecting-IP` infalsificável, além d
 #: includes/settings/views/documentation/developer-hooks-api.php:122
 msgid "Why no captcha / geofence / per-IP limit here?"
 msgstr "Por que não há captcha, geofencing ou limite por IP aqui?"
-
-#: includes/settings/views/ffc-tab-captcha.php:204
-msgid "Widget attribution"
-msgstr "Atribuição do widget"
 
 #: includes/reregistration/class-ffc-reregistration-field-options.php:143
 msgid "Widowed"
@@ -22842,9 +22731,6 @@ msgstr "Envie e-mails às pessoas em uma data do perfil delas, como o aniversár
 msgid "or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Date Messages, Developer)."
 msgstr "ou vá direto a qualquer área (Agendamento, Recadastramento, Recrutamento, URLs Curtas, Mensagens por Data, Desenvolvedor)."
 
-msgid "Colours of the certificate HTML editor on the form screen: Auto (follows Dark Mode), Light or Dark. New installs default to Dark."
-msgstr "Cores do editor HTML do certificado na tela do formulário: Automático (segue o Modo Escuro), Claro ou Escuro. Instalações novas usam Escuro por padrão."
-
 msgid "Off by default. When switched on, the daily cleanup permanently deletes published submissions older than the \"Delete after (days)\" window (default 365)."
 msgstr "Desativado por padrão. Quando ativado, a limpeza diária exclui permanentemente os envios publicados mais antigos que a janela \"Excluir após (dias)\" (padrão 365)."
 
@@ -24942,14 +24828,6 @@ msgstr "Largura do formulário"
 msgid "The widest a form or verification card grows; its fields are 150 px narrower. On a narrower screen it fills the space it has. Default: %1$d px, from %2$d to %3$d."
 msgstr "A largura máxima de um cartão de formulário ou de verificação; os campos ficam 150 px mais estreitos. Em uma tela mais estreita, ele ocupa o espaço disponível. Padrão: %1$d px, de %2$d a %3$d."
 
-#: includes/settings/views/ffc-tab-public-design.php:106
-msgid "The site theme's"
-msgstr "A do tema do site"
-
-#: includes/settings/views/ffc-tab-public-design.php:107
-msgid "The plugin's (the system font)"
-msgstr "A do plugin (fonte do sistema)"
-
 #: includes/settings/views/ffc-tab-public-design.php
 msgid "Arial"
 msgstr "Arial"
@@ -26022,3 +25900,167 @@ msgstr "O status é a exceção: ele só muda ao Salvar."
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "A new calendar starts public."
 msgstr "Um calendário novo começa público."
+
+#: includes/settings/views/ffc-tab-captcha.php:233
+msgid "\"Protected by ALTCHA\" footer"
+msgstr "Rodapé \"Protegido pelo ALTCHA\""
+
+#: includes/settings/views/ffc-tab-cache.php:226
+msgid "1 h"
+msgstr "1 h"
+
+#: includes/settings/views/ffc-tab-cache.php:224
+msgid "15 min"
+msgstr "15 min"
+
+#: includes/settings/views/documentation/config-cache.php:34
+msgid "15 minutes, 30 minutes, 1 hour or 24 hours. A new install starts at 15 minutes; an install that never saved the tab keeps 1 hour."
+msgstr "15 minutos, 30 minutos, 1 hora ou 24 horas. Uma instalação nova começa em 15 minutos; uma instalação que nunca salvou a aba mantém 1 hora."
+
+#: includes/settings/views/ffc-tab-cache.php:227
+msgid "24 h"
+msgstr "24 h"
+
+#: includes/settings/views/ffc-tab-cache.php:225
+msgid "30 min"
+msgstr "30 min"
+
+#: includes/settings/views/documentation/config-captcha.php:40 includes/settings/views/ffc-tab-captcha.php:41
+msgid "ALTCHA + Math"
+msgstr "ALTCHA + Matemática"
+
+#: includes/settings/views/ffc-tab-captcha.php:222
+msgid "ALTCHA logo"
+msgstr "Logotipo do ALTCHA"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:606
+msgid "Active strategy"
+msgstr "Estratégia ativa"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:547
+msgid "Active strategy: Legacy"
+msgstr "Estratégia ativa: Legado"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:546
+msgid "Active strategy: Secure"
+msgstr "Estratégia ativa: Seguro"
+
+#: includes/settings/views/ffc-tab-geolocation.php:406
+msgid "Allow access on every failure."
+msgstr "Permitir o acesso em qualquer falha."
+
+#: includes/settings/views/ffc-tab-geolocation.php:407
+msgid "Allow only when the user denied or the browser lacks support."
+msgstr "Permitir somente quando o usuário negar ou o navegador não for compatível."
+
+#: includes/settings/views/ffc-tab-general.php:240
+msgid "Always dark."
+msgstr "Sempre escuro."
+
+#: includes/settings/views/ffc-tab-general.php:239
+msgid "Always light."
+msgstr "Sempre claro."
+
+#: includes/settings/views/ffc-tab-general.php:248
+msgid "Applies to the Certificate HTML editor on the form edit screen. On is the default."
+msgstr "Aplica-se ao editor HTML do certificado na tela de edição do formulário. Ligado é o padrão."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:631
+msgid "Applies when the secure strategy is active."
+msgstr "Aplica-se quando a estratégia segura está ativa."
+
+#: includes/settings/views/ffc-tab-public-design.php:121
+msgid "Arial, on every device."
+msgstr "Arial, em todos os dispositivos."
+
+#: includes/settings/views/ffc-tab-geolocation.php:408
+msgid "Block access on every failure."
+msgstr "Bloquear o acesso em qualquer falha."
+
+#: includes/settings/views/documentation/config-general.php:33
+msgid "Colours of the certificate HTML editor on the form screen: Off (always light), On (always dark) or Auto (follows Dark Mode). On is the default."
+msgstr "Cores do editor HTML do certificado na tela do formulário: Desligado (sempre claro), Ligado (sempre escuro) ou Automático (segue o Modo Escuro). Ligado é o padrão."
+
+#: includes/settings/views/ffc-tab-geolocation.php:424
+msgid "Customize per case"
+msgstr "Personalizar por caso"
+
+#: includes/settings/views/documentation/config-general.php:33 includes/settings/views/ffc-tab-general.php:219 includes/settings/views/ffc-tab-general.php:232
+msgid "Dark Mode in the Code Editor"
+msgstr "Modo Escuro no Editor de Código"
+
+#: includes/settings/views/documentation/config-captcha.php:62 includes/settings/views/ffc-tab-captcha.php:209
+msgid "Display"
+msgstr "Exibição"
+
+#: includes/settings/views/ffc-tab-general.php:241
+msgid "Follows the Dark Mode setting above."
+msgstr "Segue a configuração de Modo Escuro acima."
+
+#: includes/settings/views/ffc-tab-geolocation.php:402
+msgid "Hybrid"
+msgstr "Híbrido"
+
+#: includes/settings/views/documentation/config-captcha.php:46 includes/settings/views/ffc-tab-captcha.php:46
+msgid "Math"
+msgstr "Matemática"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:616
+msgid "On: the real client behind Cloudflare or a configured proxy, which cannot be spoofed (recommended). Off: Legacy, the current behaviour, which trusts forwarded headers and can be spoofed; it stays the default until you switch."
+msgstr "Ligado: o cliente real atrás da Cloudflare ou de um proxy configurado, impossível de falsificar (recomendado). Desligado: Legado, o comportamento atual, que confia nos cabeçalhos encaminhados e pode ser falsificado; continua sendo o padrão até que você o altere."
+
+#: includes/settings/views/ffc-tab-public-design.php:115
+msgid "Plugin"
+msgstr "Plugin"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:613
+msgid "Secure (trusted-proxy model)"
+msgstr "Seguro (modelo de proxy confiável)"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:127
+msgid "Switch the active strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers."
+msgstr "Ative a estratégia \"Seguro (modelo de proxy confiável)\" abaixo, para que cabeçalhos forjados não possam mais burlar a limitação de taxa (rate-limiting), o geofencing ou o registro de atividades. O ideal é também colocar o Cloudflare à frente deste site para garantir um IP de cliente que não possa ser falsificado (plano gratuito). A configuração padrão atual (\"Legado\") confia nos cabeçalhos fornecidos pelo cliente."
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:23
+msgid "The Active strategy toggle switches between the two: on is Secure, off is Legacy."
+msgstr "A chave Estratégia ativa alterna entre as duas: ligada é Seguro, desligada é Legado."
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:28
+msgid "The Custom proxy CIDRs field appears only in the Custom mode, the only one that reads it."
+msgstr "O campo CIDRs de proxy personalizados aparece apenas no modo Personalizado, o único que o lê."
+
+#: includes/settings/views/documentation/config-captcha.php:53
+msgid "The mode is a scale, from the one that reaches every visitor on the left to the strongest on the right. A new install starts on ALTCHA only when the site is served over HTTPS and on Math otherwise; an existing install keeps the mode it has, and one that never saved the tab stays on Math."
+msgstr "O modo é uma escala, do que alcança todos os visitantes à esquerda até o mais forte à direita. Uma instalação nova começa em Apenas ALTCHA quando o site é servido por HTTPS e em Matemática caso contrário; uma instalação existente mantém o modo que tem, e uma que nunca salvou a aba continua em Matemática."
+
+#: includes/settings/views/ffc-tab-public-design.php:120
+msgid "The plugin's font (the system font)."
+msgstr "A fonte do plugin (a fonte do sistema)."
+
+#: includes/settings/views/ffc-tab-public-design.php:119
+msgid "The site theme's font."
+msgstr "A fonte do tema do site."
+
+#: includes/settings/views/ffc-tab-public-design.php:114
+msgid "Theme"
+msgstr "Tema"
+
+#: includes/settings/views/ffc-tab-geolocation.php:401
+msgid "Tolerant"
+msgstr "Tolerante"
+
+#: includes/settings/views/ffc-tab-smtp.php:148
+msgid "Total Mail Queue is active and manages email delivery, so WP Default is used. The choice saved here is kept and applies again when Total Mail Queue is deactivated."
+msgstr "O Total Mail Queue está ativo e gerencia a entrega de e-mails, por isso o padrão do WP é usado. A escolha salva aqui é mantida e volta a valer quando o Total Mail Queue for desativado."
+
+#: includes/settings/views/documentation/reference-emails.php:48
+msgid "While the total-mail-queue plugin is active it manages delivery: the choice is locked to WordPress default, and the one saved here applies again when it is deactivated."
+msgstr "Enquanto o plugin total-mail-queue estiver ativo, ele gerencia a entrega: a escolha fica travada no padrão do WordPress, e a salva aqui volta a valer quando ele for desativado."
+
+#: includes/settings/views/documentation/config-geolocation.php:46
+msgid "a scale of three presets, from Tolerant (allow on every failure) through Hybrid to Strict (block on every failure). Turn on \"Customize per case\" to set allow or block for each case instead: permission denied, no API, position unavailable, timeout, safety timer."
+msgstr "uma escala de três predefinições, de Tolerante (permite em qualquer falha), passando por Híbrido, até Rigoroso (bloqueia em qualquer falha). Ative \"Personalizar por caso\" para definir permitir ou bloquear em cada caso: permissão negada, sem API, posição indisponível, tempo limite, temporizador de segurança."
+
+#: includes/settings/views/documentation/config-captcha.php:62
+msgid "whether the widget shows the ALTCHA logo and the \"Protected by ALTCHA\" footer. A new install shows the logo and hides the footer."
+msgstr "se o widget mostra o logotipo do ALTCHA e o rodapé \"Protegido pelo ALTCHA\". Uma instalação nova mostra o logotipo e oculta o rodapé."

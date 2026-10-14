@@ -206,15 +206,30 @@ if ( $ffcertificate_cf_behind ) :
 
 				<tr data-ffc-section="cache-enabled">
 					<th scope="row">
-						<label for="cache_expiration"><?php esc_html_e( 'Expiration Time', 'ffcertificate' ); ?></label>
+						<?php esc_html_e( 'Expiration Time', 'ffcertificate' ); ?>
 					</th>
 					<td>
-						<select name="ffc_settings[cache_expiration]" id="cache_expiration" class="regular-text" data-ffc-autosave-key="cache_expiration">
-							<option value="900" <?php selected( $ffcertificate_get_option( 'cache_expiration' ), 900 ); ?>><?php esc_html_e( '15 minutes', 'ffcertificate' ); ?></option>
-							<option value="1800" <?php selected( $ffcertificate_get_option( 'cache_expiration' ), 1800 ); ?>><?php esc_html_e( '30 minutes', 'ffcertificate' ); ?></option>
-							<option value="3600" <?php selected( $ffcertificate_get_option( 'cache_expiration' ), 3600 ); ?>><?php esc_html_e( '1 hour (default)', 'ffcertificate' ); ?></option>
-							<option value="86400" <?php selected( $ffcertificate_get_option( 'cache_expiration' ), 86400 ); ?>><?php esc_html_e( '24 hours', 'ffcertificate' ); ?></option>
-						</select>
+						<?php
+						// An ordered scale of the four values the select offered
+						// (#1758). A new install starts at 15 minutes (Activator);
+						// one that never saved this tab keeps reading 1 hour.
+						\FreeFormCertificate\Admin\AdminUI::render_steps(
+							array(
+								'name'    => 'ffc_settings[cache_expiration]',
+								'id'      => 'cache_expiration',
+								'value'   => (string) $ffcertificate_get_option( 'cache_expiration' ),
+								'default' => '3600',
+								'legend'  => __( 'Expiration Time', 'ffcertificate' ),
+								'options' => array(
+									'900'   => __( '15 min', 'ffcertificate' ),
+									'1800'  => __( '30 min', 'ffcertificate' ),
+									'3600'  => __( '1 h', 'ffcertificate' ),
+									'86400' => __( '24 h', 'ffcertificate' ),
+								),
+								'data'    => array( 'ffc-autosave-key' => 'cache_expiration' ),
+							)
+						);
+						?>
 						<p class="description"><?php esc_html_e( 'Time the data remains in cache before being updated.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>

@@ -431,6 +431,15 @@ class AdminUITest extends TestCase {
 		$this->assertStringContainsString( 'ffc-control-steps-primary" disabled>', $html, 'A disabled fieldset disables every radio in it.' );
 	}
 
+	public function test_steps_disables_only_the_stops_named_in_disabled_options(): void {
+		// A value the site cannot run right now stays on the rail (#1758).
+		$html = $this->steps( array( 'disabled_options' => array( 2, 'nope' ) ) );
+		$this->assertSame( 1, substr_count( $html, ' disabled>' ) );
+		$this->assertStringContainsString( 'id="cfg-level-3" name="cfg[level]" value="2" disabled>', $html );
+		$this->assertStringContainsString( 'class="ffc-control-steps ffc-control-steps-primary">', $html, 'The group itself stays enabled.' );
+		$this->assertStringNotContainsString( ' disabled', $this->steps( array() ) );
+	}
+
 	public function test_steps_prints_a_description_per_value_given_tied_to_its_stop(): void {
 		$html = $this->steps( array( 'descriptions' => array( '2' => 'Also the focus.' ) ) );
 		$this->assertStringContainsString( '<span class="description ffc-control-steps-desc" data-step="3">Also the focus.</span>', $html );

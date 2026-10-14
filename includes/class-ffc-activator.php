@@ -28,6 +28,7 @@ class Activator {
 	 * Activate.
 	 */
 	public static function activate(): void {
+		self::seed_fresh_install_settings();
 		self::create_submissions_table();
 		self::create_activity_log_table();
 		self::add_columns();
@@ -99,6 +100,34 @@ class Activator {
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::schedule();
 
 		flush_rewrite_rules();
+	}
+
+	/**
+	 * Write the settings whose default differs on a NEW install (#1758).
+	 *
+	 * Runs only when `ffc_settings` does not exist yet, so an install that
+	 * has ever saved a setting keeps every value it has. The read-side
+	 * fallbacks stay what they were, which is what an existing install that
+	 * never saved a tab keeps reading; these are the defaults a site starts
+	 * with from now on:
+	 *
+	 * - the captcha mode: ALTCHA only on HTTPS, the math challenge otherwise;
+	 * - the "Protected by ALTCHA" footer: hidden;
+	 * - the form cache: 15 minutes.
+	 */
+	private static function seed_fresh_install_settings(): void {
+		if ( false !== get_option( 'ffc_settings', false ) ) {
+			return;
+		}
+
+		add_option(
+			'ffc_settings',
+			array(
+				'captcha_provider'           => \FreeFormCertificate\Core\Captcha\CaptchaSettings::fresh_install_provider(),
+				'captcha_altcha_hide_footer' => 1,
+				'cache_expiration'           => 900,
+			)
+		);
 	}
 
 	/**
