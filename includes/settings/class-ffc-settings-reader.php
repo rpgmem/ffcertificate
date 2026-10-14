@@ -218,14 +218,39 @@ final class SettingsReader {
 	/**
 	 * Certificate-layout tags that every form's PDF layout must contain.
 	 *
-	 * Configured in Settings → Certificates as a newline/comma list of `{{tag}}`
-	 * tokens; defaults to the historical trio when nothing is saved.
+	 * Every row of the "Required data" table on Settings → Certificates
+	 * whose HTML switch is on (#1759). Until that table is built, the
+	 * legacy tag list is read instead ({@see self::legacy_certificate_tags()}).
 	 * `{{auth_code}}` is always required (certificate verification breaks
-	 * without it) and is force-injected even if removed from the saved list.
+	 * without it) and is force-injected even if removed.
 	 *
-	 * @return array<int, string> Unique `{{tag}}` tokens, `{{auth_code}}` first.
+	 * @return array<int, string> Unique `{{tag}}` tokens.
 	 */
 	public static function required_certificate_tags(): array {
+		$table = RequiredData::stored();
+		if ( null === $table ) {
+			return self::legacy_certificate_tags();
+		}
+		$tags = array( '{{' . RequiredData::LOCKED_TAG . '}}' );
+		foreach ( $table as $row ) {
+			if ( $row['html'] ) {
+				$tags[] = '{{' . $row['name'] . '}}';
+			}
+		}
+		return array_values( array_unique( $tags ) );
+	}
+
+	/**
+	 * The tag list as the pre-#1759 `required_certificate_tags` setting
+	 * gives it: a newline/comma list of `{{tag}}` tokens, the historical
+	 * defaults when nothing is saved, `{{auth_code}}` force-injected first.
+	 *
+	 * Read only until the "Required data" table is built, and by the
+	 * migration that builds it ({@see RequiredData::from_legacy()}).
+	 *
+	 * @return array<int, string> Unique `{{tag}}` tokens.
+	 */
+	public static function legacy_certificate_tags(): array {
 		$raw = self::get( 'required_certificate_tags', '' );
 		if ( is_array( $raw ) ) {
 			$lines = $raw;
@@ -262,15 +287,44 @@ final class SettingsReader {
 	 * Fields every certificate form must have (#1741): variable name,
 	 * default label and type.
 	 *
-	 * Configured in Settings → Certificates. `email` is always required:
-	 * the submission needs it and the certificate is sent to it, so it is
-	 * force-injected, as an Email field, even if removed from the saved
-	 * table. An install that never saved the table keeps the fields its
-	 * old tag list required, as Text fields.
+	 * Every row of the "Required data" table on Settings → Certificates
+	 * whose form switch is on (#1759). Until that table is built, the
+	 * legacy field table is read instead ({@see self::legacy_form_fields()}).
+	 * `email` is always required: the submission needs it and the
+	 * certificate is sent to it, so it is force-injected, as an Email
+	 * field, even if removed.
 	 *
 	 * @return array<int, array{name: string, label: string, type: string}>
 	 */
 	public static function required_form_fields(): array {
+		$table = RequiredData::stored();
+		if ( null === $table ) {
+			return self::legacy_form_fields();
+		}
+		$rows = array();
+		foreach ( $table as $row ) {
+			if ( $row['form'] ) {
+				$rows[ $row['name'] ] = array(
+					'name'  => $row['name'],
+					'label' => $row['label'],
+					'type'  => $row['type'],
+				);
+			}
+		}
+		return self::with_email( $rows );
+	}
+
+	/**
+	 * The field table as the pre-#1759 `required_form_fields` setting gives
+	 * it. An install that never saved that table keeps the fields its old
+	 * tag list required, as Text fields.
+	 *
+	 * Read only until the "Required data" table is built, and by the
+	 * migration that builds it ({@see RequiredData::from_legacy()}).
+	 *
+	 * @return array<int, array{name: string, label: string, type: string}>
+	 */
+	public static function legacy_form_fields(): array {
 		$saved = self::get( 'required_form_fields' );
 		$rows  = array();
 
@@ -296,6 +350,17 @@ final class SettingsReader {
 			}
 		}
 
+		return self::with_email( $rows );
+	}
+
+	/**
+	 * Force the Email field into a field table, keeping its label and place
+	 * when the table has it and appending it otherwise.
+	 *
+	 * @param array<string, array{name: string, label: string, type: string}> $rows Rows keyed by name.
+	 * @return array<int, array{name: string, label: string, type: string}>
+	 */
+	private static function with_email( array $rows ): array {
 		$email         = $rows['email'] ?? array( 'label' => __( 'Email', 'ffcertificate' ) );
 		$rows['email'] = array(
 			'name'  => 'email',

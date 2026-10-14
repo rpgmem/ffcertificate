@@ -16,6 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Record edit screens save their switches at once** (#1757). On an existing calendar, audience, campaign, notice, reason or Date Messages rule, a toggle saves as it flips, through one `ffc_update_record` endpoint each module registers its fields with; a campaign's status still waits for Save. Calendar visibility is a toggle and new calendars start public; the recruitment send mode is steps and autosaves; a rule's text position is segmented and its width steps; upload fields share one styled control.
 - **The submission edit screen masks the IP and draws one section style** (#1760). The IP under System Information and under the consent starts masked, with the same audited Reveal as email and CPF; each Reveal sits beside its value; every record section uses the consent's collapsible section.
 - **Settings use the control that fits each choice** (#1758). Steps for captcha mode, GPS fallback and cache expiry; toggles for the IP strategy and ALTCHA display; SMTP locks to WP default while Total Mail Queue is active. New installs start on ALTCHA (on HTTPS) and a 15-minute cache.
+- **What a certificate requires is one table** (#1759). Settings → Certificates → Required data replaces Required Certificate Tags and Required Form Fields: each row has a name, label, type and a switch each for the form and the certificate HTML, and saves as it changes. A one-shot migration builds it from both.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
