@@ -30,6 +30,8 @@ namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Audience\AudienceAdminPage;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Recruitment\RecruitmentAdminPage;
+use FreeFormCertificate\Reregistration\ReregistrationAdmin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -64,6 +66,18 @@ final class AdminMenuVisibility {
 	 * @var list<string>
 	 */
 	public const AUDIENCE_SCREEN_SUFFIXES = array( 'dashboard', 'calendars', 'environments', 'audiences', 'bookings', 'settings' );
+
+	/**
+	 * `?page=` of the Short URLs list, registered by
+	 * `UrlShortener\UrlShortenerAdminPage::register_menu()`.
+	 */
+	public const SHORT_URLS_PAGE = 'ffc-short-urls';
+
+	/**
+	 * `?page=` of the Date Messages screen, registered by
+	 * `DateMessages\DateMessagesAdminPage::register_menu()`.
+	 */
+	public const DATE_MESSAGES_PAGE = 'ffc-date-messages';
 
 	/**
 	 * Per-role visibility policy. Each entry is consumed at three
@@ -112,42 +126,52 @@ final class AdminMenuVisibility {
 			$audience_screens[] = AudienceAdminPage::MENU_SLUG . '-' . $suffix;
 		}
 
+		// The Certificates screens (#1776). The forms' list is also the parent
+		// of the Dashboard and Submissions submenus, whose menu links take the
+		// `edit.php?post_type=ffc_form&page=…` form; the certificate roles hold
+		// no forms capability, so they land on the Dashboard instead.
+		$forms_list          = 'edit.php?post_type=' . CPT::POST_TYPE;
+		$certificate_screens = array( CertificatesDashboard::MENU_SLUG, $forms_list, Admin::SUBMISSIONS_PAGE, Settings::MENU_SLUG );
+		// The forms side: the forms' list (and its editor), the Document
+		// Templates list and their read-only sample-data preview.
+		$form_screens = array( $forms_list, 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE, 'admin.php?action=' . CertTemplateAdminScreen::PREVIEW_ACTION, Settings::MENU_SLUG );
+
 		return array(
 			// Certificates ladder.
 			'ffc_certificates_viewer'     => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
+				'landing_page'         => CertificatesDashboard::MENU_SLUG,
+				'allowed_pages'        => $certificate_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_certificates_operator'   => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
+				'landing_page'         => CertificatesDashboard::MENU_SLUG,
+				'allowed_pages'        => $certificate_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_certificates_manager'    => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
+				'landing_page'         => CertificatesDashboard::MENU_SLUG,
+				'allowed_pages'        => $certificate_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_certificates_admin'      => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
+				'landing_page'         => CertificatesDashboard::MENU_SLUG,
+				'allowed_pages'        => $certificate_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			// Forms (certificate-form structure).
 			'ffc_forms_viewer'            => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-settings' ),
+				'landing_page'         => $forms_list,
+				'allowed_pages'        => $form_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_forms_manager'           => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-settings' ),
+				'landing_page'         => $forms_list,
+				'allowed_pages'        => $form_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
@@ -216,55 +240,62 @@ final class AdminMenuVisibility {
 			),
 			// Reregistration ladder.
 			'ffc_reregistration_viewer'   => array(
-				'landing_page'         => 'ffc-reregistration',
-				'allowed_pages'        => array( 'ffc-reregistration', 'ffc-custom-fields' ),
+				'landing_page'         => ReregistrationAdmin::MENU_SLUG,
+				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG, ReregistrationAdmin::CUSTOM_FIELDS_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_reregistration_operator' => array(
-				'landing_page'         => 'ffc-reregistration',
-				'allowed_pages'        => array( 'ffc-reregistration', 'ffc-custom-fields' ),
+				'landing_page'         => ReregistrationAdmin::MENU_SLUG,
+				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG, ReregistrationAdmin::CUSTOM_FIELDS_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_reregistration_manager'  => array(
-				'landing_page'         => 'ffc-reregistration',
-				'allowed_pages'        => array( 'ffc-reregistration', 'ffc-custom-fields' ),
+				'landing_page'         => ReregistrationAdmin::MENU_SLUG,
+				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG, ReregistrationAdmin::CUSTOM_FIELDS_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Cross-domain read-only.
+			// Cross-domain read-only: every screen one of its view caps opens
+			// (#1776). Writes stay with each handler's own capability check.
 			'ffc_readonly'                => array(
-				'landing_page'         => 'admin.php?page=ffc-settings&tab=activity_log',
-				'allowed_pages'        => array_merge(
-					array( 'ffc-settings', 'ffc-recruitment', self::APPOINTMENTS_PAGE, $personal_calendars ),
-					$audience_screens
+				'landing_page'         => 'admin.php?page=' . Settings::MENU_SLUG . '&tab=activity_log',
+				'allowed_pages'        => array_values(
+					array_unique(
+						array_merge(
+							$certificate_screens,
+							$form_screens,
+							array( ReregistrationAdmin::MENU_SLUG, RecruitmentAdminPage::PAGE_SLUG, self::APPOINTMENTS_PAGE, $personal_calendars, self::SHORT_URLS_PAGE, self::DATE_MESSAGES_PAGE ),
+							$audience_screens
+						)
+					)
 				),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			// Recruitment ladder (every tier shares the recruitment landing).
 			'ffc_recruitment_viewer'      => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment' ),
+				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
+				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_recruitment_operator'    => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment' ),
+				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
+				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_recruitment_manager'     => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment', 'ffc-settings' ),
+				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
+				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG, Settings::MENU_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_recruitment_admin'       => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment', 'ffc-settings' ),
+				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
+				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG, Settings::MENU_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),

@@ -18,6 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Handles calendar admin pages (list, form, actions).
+ *
+ * @phpstan-import-type SchedulePermissionRow from AudienceScheduleRepository
  */
 class AudienceAdminCalendar {
 
@@ -251,12 +253,19 @@ class AudienceAdminCalendar {
 		}
 
 		$back_url = admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars' );
+		// 3-state (#1777): the screen opens on `ffc_view_audiences`, and every
+		// write on it — the save, the permission AJAX, the holidays — is gated
+		// on `ffc_manage_audiences`. Without it the screen renders read-only.
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
 
 		?>
 		<h1><?php echo esc_html( $page_title ); ?></h1>
 		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Calendars', 'ffcertificate' ); ?></a>
 
 		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php if ( ! $can_manage ) : ?>
+			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
+		<?php endif; ?>
 
 		<div class="card">
 		<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></h2>
@@ -265,6 +274,10 @@ class AudienceAdminCalendar {
 			<input type="hidden" name="schedule_id" value="<?php echo esc_attr( (string) $id ); ?>">
 			<input type="hidden" name="ffc_action" value="save_schedule">
 
+			<?php if ( ! $can_manage ) : ?>
+				<?php // A disabled fieldset disables every control inside it, the autosave toggles included. ?>
+				<fieldset disabled class="ffc-readonly-lock">
+			<?php endif; ?>
 			<table class="form-table" role="presentation"><tbody>
 				<?php if ( $id > 0 ) : ?>
 				<tr>
@@ -530,8 +543,11 @@ class AudienceAdminCalendar {
 					</td>
 				</tr>
 			</tbody></table>
-
-			<?php submit_button( $id > 0 ? __( 'Update Calendar', 'ffcertificate' ) : __( 'Create Calendar', 'ffcertificate' ) ); ?>
+			<?php if ( ! $can_manage ) : ?>
+				</fieldset>
+			<?php else : ?>
+				<?php submit_button( $id > 0 ? __( 'Update Calendar', 'ffcertificate' ) : __( 'Create Calendar', 'ffcertificate' ) ); ?>
+			<?php endif; ?>
 		</form>
 		</div>
 
@@ -542,6 +558,7 @@ class AudienceAdminCalendar {
 				<?php esc_html_e( 'Manage which users have access to this calendar and what they can do. For private calendars, only listed users can see and book. For public calendars, these permissions control who can book and cancel.', 'ffcertificate' ); ?>
 			</p>
 
+			<?php if ( $can_manage ) : ?>
 			<div class="ffc-user-access-add ffc-aud-panel">
 				<div class="ffc-aud-flex-end">
 					<div class="ffc-aud-flex-250">
@@ -557,10 +574,14 @@ class AudienceAdminCalendar {
 				</div>
 				<input type="hidden" id="ffc-selected-user-id" value="">
 			</div>
+			<?php endif; ?>
 
 			<?php
 			$permissions = AudienceScheduleRepository::get_all_permissions( $id );
-			?>
+			if ( ! $can_manage ) :
+				self::render_permissions_read_only( $permissions );
+			else :
+				?>
 			<table class="wp-list-table widefat fixed striped" id="ffc-permissions-table" data-schedule-id="<?php echo esc_attr( (string) $id ); ?>">
 				<thead>
 					<tr>
@@ -589,6 +610,7 @@ class AudienceAdminCalendar {
 					<?php endif; ?>
 				</tbody>
 			</table>
+			<?php endif; ?>
 
 			<?php // Calendar permissions logic in ffc-audience-admin.js. ?>
 			</div>
@@ -597,6 +619,7 @@ class AudienceAdminCalendar {
 			<h2 class="ffc-icon-lock"><?php esc_html_e( 'Holidays / Closed Dates', 'ffcertificate' ); ?></h2>
 			<p class="description"><?php esc_html_e( 'Add specific dates when the calendar will be closed (holidays, maintenance, etc.).', 'ffcertificate' ); ?></p>
 
+			<?php if ( $can_manage ) : ?>
 			<form method="post" action="" class="ffc-holiday-form ffc-aud-panel">
 				<?php wp_nonce_field( 'add_holiday', 'ffc_holiday_nonce' ); ?>
 				<input type="hidden" name="schedule_id" value="<?php echo esc_attr( (string) $id ); ?>">
@@ -616,6 +639,7 @@ class AudienceAdminCalendar {
 					</div>
 				</div>
 			</form>
+			<?php endif; ?>
 
 			<?php
 			$holidays = AudienceEnvironmentRepository::get_holidays( $id );
@@ -626,7 +650,9 @@ class AudienceAdminCalendar {
 					<tr>
 						<th class="ffc-aud-w-150"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
 						<th><?php esc_html_e( 'Description', 'ffcertificate' ); ?></th>
+						<?php if ( $can_manage ) : ?>
 						<th class="ffc-aud-w-100"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+						<?php endif; ?>
 					</tr>
 				</thead>
 				<tbody>
@@ -634,6 +660,7 @@ class AudienceAdminCalendar {
 						<tr>
 							<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $holiday->holiday_date ) ); ?></td>
 							<td><?php echo esc_html( $holiday->description ? $holiday->description : '—' ); ?></td>
+							<?php if ( $can_manage ) : ?>
 							<td>
 								<?php
 								$delete_url = wp_nonce_url(
@@ -645,6 +672,7 @@ class AudienceAdminCalendar {
 									<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
 								</a>
 							</td>
+							<?php endif; ?>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
@@ -839,5 +867,75 @@ class AudienceAdminCalendar {
 				exit;
 			}
 		}
+	}
+
+	/**
+	 * Print the "User Access & Permissions" table for a viewer without
+	 * `ffc_manage_audiences` (#1777): the same grants, as disabled toggles,
+	 * with no Remove column. The table carries no `ffc-permissions-table` id,
+	 * so the permission script never binds to it.
+	 *
+	 * @param array<int, object> $permissions Rows from AudienceScheduleRepository::get_all_permissions().
+	 * @phpstan-param list<SchedulePermissionRow> $permissions
+	 * @return void
+	 */
+	private static function render_permissions_read_only( array $permissions ): void {
+		$columns = array(
+			'can_book'               => __( 'Can Book', 'ffcertificate' ),
+			'can_cancel_others'      => __( 'Cancel Others', 'ffcertificate' ),
+			'can_override_conflicts' => __( 'Override Conflicts', 'ffcertificate' ),
+		);
+		?>
+		<table class="wp-list-table widefat fixed striped ffc-permissions-read-only">
+			<thead>
+				<tr>
+					<th class="ffc-aud-w-30pct"><?php esc_html_e( 'User', 'ffcertificate' ); ?></th>
+					<?php foreach ( $columns as $label ) : ?>
+						<th class="ffc-aud-w-15pct"><?php echo esc_html( $label ); ?></th>
+					<?php endforeach; ?>
+				</tr>
+			</thead>
+			<tbody>
+				<?php if ( empty( $permissions ) ) : ?>
+					<tr>
+						<td colspan="4"><em><?php esc_html_e( 'No users have been granted access yet.', 'ffcertificate' ); ?></em></td>
+					</tr>
+				<?php endif; ?>
+				<?php
+				foreach ( $permissions as $perm ) :
+					$user = get_userdata( (int) $perm->user_id );
+					if ( ! $user ) {
+						continue;
+					}
+					$granted = array(
+						'can_book'               => $perm->can_book,
+						'can_cancel_others'      => $perm->can_cancel_others,
+						'can_override_conflicts' => $perm->can_override_conflicts,
+					);
+					?>
+					<tr>
+						<td>
+							<strong><?php echo esc_html( $user->display_name ); ?></strong>
+							<br><span class="description"><?php echo esc_html( $user->user_email ); ?></span>
+						</td>
+						<?php foreach ( $columns as $column => $label ) : ?>
+							<td>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'       => 'ffc_perm_' . (string) $perm->user_id . '_' . $column,
+										'checked'    => ! empty( $granted[ $column ] ),
+										'disabled'   => true,
+										'aria_label' => $label,
+									)
+								);
+								?>
+							</td>
+						<?php endforeach; ?>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<?php
 	}
 }

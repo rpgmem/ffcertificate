@@ -230,3 +230,13 @@
     margin-bottom: var(--ffc-spacing-xl);
     color: var(--ffc-text-muted);
 }
+
+/* Read-only lock (#1777): a screen opened by a view-only user wraps its form
+   fields in `<fieldset disabled>`, which makes every control inert. Strip the
+   default fieldset chrome so the read-only render keeps the editable layout. */
+.ffc-readonly-lock {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}

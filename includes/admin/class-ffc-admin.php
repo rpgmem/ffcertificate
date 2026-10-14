@@ -30,6 +30,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Admin {
 
 	/**
+	 * `?page=` of the Submissions list, a submenu of the forms' post type.
+	 */
+	public const SUBMISSIONS_PAGE = 'ffc-submissions';
+
+	/**
 	 * Submission handler.
 	 *
 	 * @var \FreeFormCertificate\Submissions\SubmissionHandler
@@ -123,7 +128,7 @@ class Admin {
 			__( 'Submissions', 'ffcertificate' ),
 			__( 'Submissions', 'ffcertificate' ),
 			'ffc_view_certificates',
-			'ffc-submissions',
+			self::SUBMISSIONS_PAGE,
 			array( $this, 'display_submissions_page' )
 		);
 	}
