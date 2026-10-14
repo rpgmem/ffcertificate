@@ -210,6 +210,42 @@ class FormEditorSaveHandlerTest extends TestCase {
 	}
 
 	/**
+	 * #1756 — a field the form already stores keeps its type, matched by
+	 * name: the editor offers no type select, and an edited request cannot
+	 * turn stored answers into another type. A new name takes the posted type.
+	 */
+	public function test_save_fields_meta_keeps_the_stored_type_of_an_existing_field(): void {
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => '_ffc_form_fields' === $key
+				? array(
+					array( 'name' => 'course', 'type' => 'radio' ),
+					'not-a-row',
+					array( 'type' => 'info' ),
+				)
+				: ''
+		);
+		$_POST['ffc_fields'] = array(
+			array(
+				'label' => 'Course',
+				'name'  => 'course',
+				'type'  => 'text',
+			),
+			array(
+				'label' => 'Notes',
+				'name'  => 'notes',
+				'type'  => 'textarea',
+			),
+		);
+
+		$out = $this->capture_meta_writes( 'save_fields_meta' );
+		unset( $_POST['ffc_fields'] );
+
+		$fields = $out['written']['_ffc_form_fields'];
+		$this->assertSame( 'radio', $fields[0]['type'], 'The stored type wins over the posted one.' );
+		$this->assertSame( 'textarea', $fields[1]['type'], 'A field the form does not store yet takes the posted type.' );
+	}
+
+	/**
 	 * #1574 — a hidden field's value was never stored, so it always
 	 * submitted an empty one. It is kept for that type only.
 	 */

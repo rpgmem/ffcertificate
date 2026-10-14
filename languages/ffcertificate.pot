@@ -6831,10 +6831,6 @@ msgstr ""
 msgid "Emails not arriving"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:214
-msgid "Embed"
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:85 includes/admin/class-ffc-admin-assets-manager.php:627
 msgid "Embed (Media)"
 msgstr ""
@@ -23176,9 +23172,6 @@ msgstr ""
 msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change →\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
 msgstr ""
 
-msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails."
-msgstr ""
-
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
 msgstr ""
 
@@ -25831,4 +25824,8 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:465
 msgid "GPS only"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:20
+msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails. Each field is titled by its type, chosen once from the Add New Field menu; to change a type, remove the field and add it again, because the answers already stored under it hold values of the old type."
 msgstr ""

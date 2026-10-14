@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **A form field is titled by its type, and the type no longer changes** (#1756). The builder row says "Email" or "Checkbox" instead of "Field"; the type is picked once from Add New Field, and the save keeps the stored type of a field it already has, matched by name, so stored answers never change type.
+
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
 ### Added
