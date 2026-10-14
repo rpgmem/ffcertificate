@@ -472,6 +472,12 @@ msgstr "%s desativado com sucesso."
 msgid "%s deleted successfully."
 msgstr "%s excluído com sucesso."
 
+#. %s: calendar name
+#: includes/audience/class-ffc-audience-admin-environment.php:318
+#, php-format
+msgid "%s (inactive)"
+msgstr "%s (inativo)"
+
 #. %s: field label
 #: includes/reregistration/class-ffc-custom-field-validator.php:191
 #, php-format
@@ -13160,10 +13166,6 @@ msgstr "Visualizar"
 #: includes/settings/views/ffc-tab-migrations.php:375
 msgid "Preview affected posts"
 msgstr "Pré-visualização das postagens afetadas"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:923
-msgid "Preview Calendar"
-msgstr "Visualizar Calendário"
 
 #: includes/frontend/class-ffc-frontend.php:515
 msgid "Preview Certificate"

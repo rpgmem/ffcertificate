@@ -443,6 +443,31 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'jane@e.com', $this->responses[0]['data']['html'] );
 	}
 
+	public function test_add_user_permission_row_uses_the_toggle_markup_of_the_page(): void {
+		$this->mockUtils();
+		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7' );
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5 ) );
+		$repo->shouldReceive( 'get_user_permissions' )->with( 5, 7 )->andReturn( null );
+		$repo->shouldReceive( 'set_user_permissions' )->andReturn( true );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 7, 'display_name' => 'Jane', 'user_email' => 'jane@e.com' ) );
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_add_user_permission() );
+
+		$html = $this->responses[0]['data']['html'];
+		// A row added by AJAX draws the same toggles as the initial render
+		// (#1771): three AdminUI toggles, can_book on and the other two off.
+		$this->assertSame( 3, substr_count( $html, 'class="ffc-control-toggle"' ) );
+		$this->assertSame( 3, substr_count( $html, 'ffc-control-toggle-track' ) );
+		$this->assertStringContainsString( 'name="ffc_perm_7_can_book" value="1" checked class="ffc-perm-toggle" data-perm="can_book"', $html );
+		$this->assertStringContainsString( 'name="ffc_perm_7_can_cancel_others" value="1" class="ffc-perm-toggle" data-perm="can_cancel_others"', $html );
+		$this->assertStringContainsString( 'name="ffc_perm_7_can_override_conflicts" value="1" class="ffc-perm-toggle" data-perm="can_override_conflicts"', $html );
+	}
+
 	// ── update_user_permission ─────────────────────────────────────────
 
 	public function test_update_user_permission_rejects_missing_params(): void {

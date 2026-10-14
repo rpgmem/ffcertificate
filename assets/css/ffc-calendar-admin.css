@@ -49,6 +49,11 @@
     color: var(--ffc-warning-text);
 }
 
+.ffc-appointment-status-waitlist {
+    background: var(--ffc-accent-bg);
+    color: var(--ffc-accent-text);
+}
+
 /* ==========================================================================
    ACCESSIBILITY — HIGH CONTRAST (forced-colors)
    Gives a border back to whatever had only a background. No effect outside
@@ -62,7 +67,8 @@
     .ffc-appointment-status-completed,
     .ffc-appointment-status-confirmed,
     .ffc-appointment-status-noshow,
-    .ffc-appointment-status-pending {
+    .ffc-appointment-status-pending,
+    .ffc-appointment-status-waitlist {
         border: 1px solid CanvasText;
     }
 }

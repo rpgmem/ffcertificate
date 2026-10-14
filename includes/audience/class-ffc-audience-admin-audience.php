@@ -84,6 +84,12 @@ class AudienceAdminAudience {
 			return;
 		}
 
+		// The coordinator calls this on every `ffc-scheduling*` screen (#1771):
+		// act only on this one.
+		if ( RequestInput::get_get_string( 'page' ) !== $this->menu_slug . '-audiences' ) {
+			return;
+		}
+
 		// Show feedback for redirect-based actions.
 		if ( isset( $_GET['message'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
 			$msg      = RequestInput::get_get_string( 'message' );
