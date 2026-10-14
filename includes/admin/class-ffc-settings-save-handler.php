@@ -187,19 +187,21 @@ class SettingsSaveHandler {
 		// v4.6.16: Activity Log + Debug moved to Advanced tab.
 		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
 
-		// The required-tag list moved to its own tab (#1734). It also
-		// autosaves; this keeps the tab's Save button writing what is shown.
-		// `$new` went through sanitize_text_field(), which turns the line
-		// breaks into spaces, so the textarea is read raw and sanitised as
-		// a textarea (#1736).
+		// The "Required data" table (#1759). It also autosaves as a whole;
+		// this keeps the tab's Save button writing what is shown. The rows
+		// are read raw, since `$new` went through sanitize_text_field(). The
+		// Email and {{auth_code}} rows are always rendered, so a table that is
+		// not posted at all was not on the page. A row left out is unchecked,
+		// not unchanged: its switches are absent from the POST.
 		$raw_settings = \FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'ffc_settings' );
-		if ( 'certificates' === $ffc_tab && isset( $raw_settings['required_certificate_tags'] ) && is_string( $raw_settings['required_certificate_tags'] ) ) {
-			$clean['required_certificate_tags'] = sanitize_textarea_field( $raw_settings['required_certificate_tags'] );
-		}
-		// The required-field table (#1741). The Email row is always rendered,
-		// so a table that is not posted at all was not on the page.
-		if ( 'certificates' === $ffc_tab && isset( $raw_settings['required_form_fields'] ) && is_array( $raw_settings['required_form_fields'] ) ) {
-			$clean['required_form_fields'] = self::sanitize_required_form_fields( $raw_settings['required_form_fields'] );
+		if ( 'certificates' === $ffc_tab && isset( $raw_settings['required_data'] ) && is_array( $raw_settings['required_data'] ) ) {
+			$table = \FreeFormCertificate\Settings\RequiredData::sanitize( array_values( array_filter( $raw_settings['required_data'], 'is_array' ) ) );
+			if ( null !== $table ) {
+				$clean['required_data'] = $table;
+				// The table replaces the two settings it was built from; once
+				// it is saved nothing reads them, so they leave with the save.
+				unset( $clean['required_form_fields'], $clean['required_certificate_tags'] );
+			}
 		}
 
 		// The Strict quiz level's grace (#1745). An emptied field is not 0:
@@ -734,38 +736,5 @@ class SettingsSaveHandler {
 			? __( 'Data deleted and counter reset successfully.', 'ffcertificate' )
 			: __( 'Data deleted successfully.', 'ffcertificate' );
 		add_settings_error( 'ffc_settings', 'ffc_data_deleted', $message, 'updated' );
-	}
-
-	/**
-	 * The posted required-field table as it is stored (#1741).
-	 *
-	 * A row needs a variable name the form can use; a duplicate name keeps
-	 * the first row, a type outside the allowlist becomes Text, and a tag
-	 * the plugin fills in itself cannot be a field. Email is not added here:
-	 * the reader forces it, so a stored table never has to carry it.
-	 *
-	 * @param array<array-key, mixed> $rows Raw posted rows.
-	 * @return array<int, array{name: string, label: string, type: string}>
-	 */
-	public static function sanitize_required_form_fields( array $rows ): array {
-		$clean = array();
-		foreach ( $rows as $row ) {
-			if ( ! is_array( $row ) ) {
-				continue;
-			}
-			$name = sanitize_key( \FreeFormCertificate\Core\ArrayValue::string( $row, 'name' ) );
-			$name = str_replace( '-', '_', $name );
-			if ( '' === $name || isset( $clean[ $name ] ) || in_array( $name, \FreeFormCertificate\Settings\SettingsReader::GENERATED_TAGS, true ) ) {
-				continue;
-			}
-			$type           = sanitize_key( \FreeFormCertificate\Core\ArrayValue::string( $row, 'type', 'text' ) );
-			$label          = sanitize_text_field( \FreeFormCertificate\Core\ArrayValue::string( $row, 'label' ) );
-			$clean[ $name ] = array(
-				'name'  => $name,
-				'label' => '' !== $label ? $label : $name,
-				'type'  => in_array( $type, \FreeFormCertificate\Settings\SettingsReader::REQUIRED_FIELD_TYPES, true ) ? $type : 'text',
-			);
-		}
-		return array_values( $clean );
 	}
 }

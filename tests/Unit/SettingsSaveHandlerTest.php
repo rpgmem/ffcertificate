@@ -196,20 +196,6 @@ class SettingsSaveHandlerTest extends TestCase {
 	// save_general_settings()
 	// ==================================================================
 
-	/**
-	 * #1736 — the Save button stored the required tags on one line: the
-	 * sanitised `$new` had already turned the line breaks into spaces.
-	 */
-	public function test_certificates_tab_keeps_the_tags_one_per_line(): void {
-		$_POST['_ffc_tab']     = 'certificates';
-		$_POST['ffc_settings'] = array( 'required_certificate_tags' => "{{auth_code}}\r\n{{name}}\r\n{{curso}}" );
-		// What `get_post_array()` hands the section: line breaks collapsed.
-		$new = array( 'required_certificate_tags' => '{{auth_code}} {{name}} {{curso}}' );
-
-		$result = $this->invoke( 'save_general_settings', array( array(), $new ) );
-
-		$this->assertSame( "{{auth_code}}\r\n{{name}}\r\n{{curso}}", $result['required_certificate_tags'] );
-	}
 
 	/**
 	 * #1745 — the Strict quiz level's grace is clamped, and an emptied field
@@ -228,28 +214,30 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 700, $this->invoke( 'save_general_settings', array( array( 'quiz_focus_grace_ms' => 700 ), array() ) )['quiz_focus_grace_ms'] );
 	}
 
-	public function test_another_tab_leaves_the_required_tags_alone(): void {
+	public function test_another_tab_leaves_the_required_data_alone(): void {
 		$_POST['_ffc_tab']     = 'general';
-		$_POST['ffc_settings'] = array( 'required_certificate_tags' => '{{x}}' );
+		$_POST['ffc_settings'] = array( 'required_data' => array( array( 'name' => 'x' ) ) );
+		$stored                = array( array( 'name' => 'name', 'label' => 'Name', 'type' => 'text', 'form' => true, 'html' => true ) );
 
-		$result = $this->invoke( 'save_general_settings', array( array( 'required_certificate_tags' => "{{auth_code}}\n{{name}}" ), array() ) );
+		$result = $this->invoke( 'save_general_settings', array( array( 'required_data' => $stored ), array() ) );
 
-		$this->assertSame( "{{auth_code}}\n{{name}}", $result['required_certificate_tags'] );
+		$this->assertSame( $stored, $result['required_data'] );
 	}
 
 	/**
-	 * #1741 — the required-field table is stored from the raw POST: one
-	 * row per usable name, a type from the allowlist, no generated tag.
+	 * #1759 — the "Required data" table is stored from the raw POST: one row
+	 * per usable name, a type from the allowlist, an absent switch read as
+	 * off, and the two locked rows always present.
 	 */
-	public function test_certificates_tab_stores_the_required_field_table(): void {
+	public function test_certificates_tab_stores_the_required_data_table(): void {
 		$_POST['_ffc_tab']     = 'certificates';
 		$_POST['ffc_settings'] = array(
-			'required_form_fields' => array(
-				array( 'name' => 'cpf_rf', 'label' => 'CPF / RF', 'type' => 'text' ),
-				array( 'name' => 'birth-date', 'label' => '', 'type' => 'date' ),
+			'required_data' => array(
+				array( 'name' => 'cpf_rf', 'label' => 'CPF / RF', 'type' => 'text', 'form' => '1', 'html' => '1' ),
+				array( 'name' => 'birth-date', 'label' => '', 'type' => 'date', 'form' => '1' ),
 				array( 'name' => 'cpf_rf', 'label' => 'Duplicate', 'type' => 'number' ),
-				array( 'name' => 'auth_code', 'label' => 'Generated', 'type' => 'text' ),
-				array( 'name' => 'course', 'label' => 'Course', 'type' => 'select' ),
+				array( 'name' => 'schedule', 'label' => 'schedule', 'type' => 'text', 'form' => '1', 'html' => '1' ),
+				array( 'name' => 'course', 'label' => 'Course', 'type' => 'select', 'html' => '1' ),
 				array( 'name' => '', 'label' => 'Empty', 'type' => 'text' ),
 				'not a row',
 			),
@@ -259,22 +247,45 @@ class SettingsSaveHandlerTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				array( 'name' => 'cpf_rf', 'label' => 'CPF / RF', 'type' => 'text' ),
-				array( 'name' => 'birth_date', 'label' => 'birth_date', 'type' => 'date' ),
-				array( 'name' => 'course', 'label' => 'Course', 'type' => 'text' ),
+				array( 'name' => 'cpf_rf', 'label' => 'CPF / RF', 'type' => 'text', 'form' => true, 'html' => true ),
+				array( 'name' => 'birth_date', 'label' => 'birth_date', 'type' => 'date', 'form' => true, 'html' => false ),
+				array( 'name' => 'schedule', 'label' => 'schedule', 'type' => 'text', 'form' => false, 'html' => true ),
+				array( 'name' => 'course', 'label' => 'Course', 'type' => 'text', 'form' => false, 'html' => true ),
+				array( 'name' => 'email', 'label' => 'Email', 'type' => 'email', 'form' => true, 'html' => false ),
+				array( 'name' => 'auth_code', 'label' => 'auth_code', 'type' => 'text', 'form' => false, 'html' => true ),
 			),
-			$result['required_form_fields']
+			$result['required_data']
 		);
+	}
+
+	public function test_a_saved_table_drops_the_two_settings_it_replaces(): void {
+		$_POST['_ffc_tab']     = 'certificates';
+		$_POST['ffc_settings'] = array( 'required_data' => array( array( 'name' => 'name', 'form' => '1' ) ) );
+
+		$result = $this->invoke(
+			'save_general_settings',
+			array(
+				array(
+					'required_certificate_tags' => '{{auth_code}}',
+					'required_form_fields'      => array(),
+				),
+				array(),
+			)
+		);
+
+		$this->assertArrayHasKey( 'required_data', $result );
+		$this->assertArrayNotHasKey( 'required_certificate_tags', $result );
+		$this->assertArrayNotHasKey( 'required_form_fields', $result );
 	}
 
 	public function test_a_certificates_save_without_the_table_leaves_it_alone(): void {
 		$_POST['_ffc_tab']     = 'certificates';
-		$_POST['ffc_settings'] = array( 'required_certificate_tags' => '{{auth_code}}' );
-		$stored                = array( array( 'name' => 'name', 'label' => 'Name', 'type' => 'text' ) );
+		$_POST['ffc_settings'] = array( 'quiz_focus_grace_ms' => '1000' );
+		$stored                = array( array( 'name' => 'name', 'label' => 'Name', 'type' => 'text', 'form' => true, 'html' => true ) );
 
-		$result = $this->invoke( 'save_general_settings', array( array( 'required_form_fields' => $stored ), array() ) );
+		$result = $this->invoke( 'save_general_settings', array( array( 'required_data' => $stored ), array() ) );
 
-		$this->assertSame( $stored, $result['required_form_fields'] );
+		$this->assertSame( $stored, $result['required_data'] );
 	}
 
 	public function test_general_dark_mode_valid_values_accepted(): void {

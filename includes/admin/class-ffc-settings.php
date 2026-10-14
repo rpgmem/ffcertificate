@@ -282,6 +282,11 @@ class Settings {
 			'validate_rf_check_digit'    => false,
 			'cleanup_days'               => 365,
 			'quiz_focus_grace_ms'        => 1000,
+			// The "Required data" table on Settings → Certificates (#1759).
+			// Empty reads as "not built yet": RequiredData::maybe_migrate()
+			// builds it from the two legacy keys, and until then the readers
+			// fall back to them, so nothing is required by an empty default.
+			'required_data'              => array(),
 			'smtp_mode'                  => 'wp',
 			'smtp_host'                  => '',
 			'smtp_port'                  => 587,
