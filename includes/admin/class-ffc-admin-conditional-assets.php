@@ -97,15 +97,18 @@ class AdminConditionalAssets {
 			$this->enqueue_submission_edit_assets();
 		}
 
-		// Appointment detail page — shared masked-PII reveal handler (#739 §3.3).
-		if ( $this->is_appointment_detail_page() ) {
+		// Appointments list and detail view — shared masked-PII reveal handler
+		// (#739 §3.3); the list's email column carries reveal buttons (#1822).
+		if ( $this->is_appointments_page() ) {
 			$this->enqueue_pii_reveal_assets( $s );
 		}
 
 		// Submissions list page (when filtered by a single form): "Move to form…" modal.
+		// Its email column carries reveal buttons too (#1822).
 		if ( $this->is_submissions_list_page() ) {
 			$this->enqueue_move_submissions_assets();
 			$this->enqueue_submissions_bulk_assets();
+			$this->enqueue_pii_reveal_assets( $s );
 		}
 
 		// Certificates Dashboard (calendar view).
@@ -418,8 +421,9 @@ class AdminConditionalAssets {
 	}
 
 	/**
-	 * Enqueue the shared masked-PII reveal script (#739 §3.3). Used on both the
-	 * submission edit page and the appointment detail page; `ffc-core` (which
+	 * Enqueue the shared masked-PII reveal script (#739 §3.3). Used on the
+	 * submission edit page and list and on the appointments list and detail
+	 * view; each reveal button carries its own nonce, and `ffc-core` (which
 	 * provides `FFC.request`) is already enqueued on every FFC admin screen.
 	 *
 	 * @param string $s Asset minification suffix.
@@ -453,13 +457,14 @@ class AdminConditionalAssets {
 	}
 
 	/**
-	 * Check if current page is the appointment detail view (the single-record
-	 * screen that renders masked CPF / RF / email with reveal controls).
+	 * Check if current page is the appointments screen: the list, whose email
+	 * column carries reveal buttons (#1822), or the detail view of one record
+	 * (`&appointment=`), which renders masked CPF / RF / email with reveal
+	 * controls.
 	 *
 	 * @return bool
 	 */
-	private function is_appointment_detail_page(): bool {
-		return 'ffc-appointments' === RequestInput::get_get_key( 'page' )
-			&& RequestInput::has_get( 'appointment' );
+	private function is_appointments_page(): bool {
+		return 'ffc-appointments' === RequestInput::get_get_key( 'page' );
 	}
 }

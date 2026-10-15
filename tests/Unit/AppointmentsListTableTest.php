@@ -11,6 +11,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\AppointmentsListTable;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Tests for the self-scheduling appointments WP_List_Table.
@@ -191,45 +192,87 @@ class AppointmentsListTableTest extends TestCase {
 	}
 
 	/**
-	 * Alias-mock Core\PiiAccessPolicy with its TIER_* constants mapped and
-	 * resolve() pinned to the given tier.
+	 * Put the current user (id 7) in one tier of the real PiiAccessPolicy for
+	 * the appointments domain, through the WordPress functions it reads, and
+	 * stub the email decryption, the mask and the nonce around column_email().
 	 *
-	 * @param string $tier Tier resolve() should return.
-	 * @return void
+	 * @param string $tier unmasked (manage_options) | admin_role
+	 *                     (ffc_appointments_admin) | reveal (the PII cap) | masked.
+	 * @param string $email Decrypted address decrypt_field() returns.
 	 */
-	private function mockPiiPolicy( string $tier ): void {
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Core\PiiAccessPolicy' => array(
-					'TIER_UNMASKED' => 'unmasked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_MASKED'   => 'masked',
-				),
-			)
+	private function driveEmailColumn( string $tier, string $email = 'a@b.com' ): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'get_user_by' )->justReturn(
+			(object) array( 'roles' => 'admin_role' === $tier ? array( 'ffc_appointments_admin' ) : array( 'ffc_appointments_viewer' ) )
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-			->shouldReceive( 'resolve' )->andReturn( $tier );
-	}
+		Functions\when( 'user_can' )->alias(
+			static function ( $uid, $cap ) use ( $tier ) {
+				if ( 'manage_options' === $cap ) {
+					return 'unmasked' === $tier;
+				}
+				return 'ffc_view_appointments_pii' === $cap && 'reveal' === $tier;
+			}
+		);
+		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
 
-	public function test_column_email_unmasked_tier_shows_plaintext(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'decrypt_field' )->andReturn( 'a@b.com', '' );
-		$this->mockPiiPolicy( 'unmasked' );
-
-		$table = new AppointmentsListTable();
-		$this->assertSame( 'a@b.com', $table->column_email( array( 'email_encrypted' => 'X' ) ) );
-		$this->assertSame( '-', $table->column_email( array() ) );
-	}
-
-	public function test_column_email_masked_tier_masks(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'decrypt_field' )->andReturn( 'a@b.com' );
-		$this->mockPiiPolicy( 'masked' );
+			->shouldReceive( 'decrypt_field' )->andReturn( $email );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
 			->shouldReceive( 'mask_email' )->andReturnUsing( fn( $e ) => 'MASKED:' . (string) $e );
+	}
 
+	private function emailCellFor( string $tier ): string {
+		$this->driveEmailColumn( $tier );
 		$table = new AppointmentsListTable();
-		$this->assertSame( 'MASKED:a@b.com', $table->column_email( array( 'email_encrypted' => 'X' ) ) );
+		return $table->column_email( array( 'id' => 42, 'user_id' => 99, 'email_encrypted' => 'X' ) );
+	}
+
+	private function assertMaskedWithReveal( string $out ): void {
+		$this->assertStringNotContainsString( 'a@b.com', str_replace( 'MASKED:a@b.com', '', $out ), 'The clear address must not reach the list HTML.' );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringContainsString( 'class="button button-small ffc-reveal-pii ffc-icon-eye"', $out );
+		$this->assertStringContainsString( 'data-type="appointment" data-field="email" data-submission-id="42" data-nonce="test_nonce"', $out );
+	}
+
+	public function test_column_email_unmasked_tier_is_masked_with_reveal_button(): void {
+		$this->assertMaskedWithReveal( $this->emailCellFor( 'unmasked' ) );
+	}
+
+	public function test_column_email_appointments_admin_role_is_masked_with_reveal_button(): void {
+		$this->assertMaskedWithReveal( $this->emailCellFor( 'admin_role' ) );
+	}
+
+	public function test_column_email_reveal_tier_is_masked_with_reveal_button(): void {
+		$this->assertMaskedWithReveal( $this->emailCellFor( 'reveal' ) );
+	}
+
+	public function test_column_email_masked_tier_masks_without_button(): void {
+		$out = $this->emailCellFor( 'masked' );
+		$this->assertSame( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
+	}
+
+	public function test_column_email_owner_gets_reveal_button(): void {
+		$this->driveEmailColumn( 'masked' );
+		$table = new AppointmentsListTable();
+		$this->assertMaskedWithReveal( $table->column_email( array( 'id' => 42, 'user_id' => 7, 'email_encrypted' => 'X' ) ) );
+	}
+
+	public function test_column_email_empty_renders_dash_without_button(): void {
+		$this->driveEmailColumn( 'unmasked', '' );
+		$table = new AppointmentsListTable();
+		$this->assertSame( '-', $table->column_email( array( 'id' => 42 ) ) );
+	}
+
+	public function test_reveal_nonce_is_created_once_per_render(): void {
+		$this->driveEmailColumn( 'unmasked' );
+		$nonces = CallLog::record( 'wp_create_nonce', 'test_nonce' );
+		$table  = new AppointmentsListTable();
+
+		$table->column_email( array( 'id' => 1, 'email_encrypted' => 'X' ) );
+		$table->column_email( array( 'id' => 2, 'email_encrypted' => 'Y' ) );
+
+		$this->assertSame( 1, $nonces->count() );
 	}
 
 	public function test_column_time_formats_range(): void {

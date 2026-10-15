@@ -162,6 +162,34 @@ describe('ffc-pii-reveal', () => {
 		expect(window.$('.ffc-reveal-pii').length).toBe(0);
 	});
 
+	it('reveals only the clicked row of a list table (#1822)', async () => {
+		document.body.innerHTML = `<table class="wp-list-table"><tbody>
+			<tr id="r1"><td class="column-id">1</td><td class="email column-email">
+				<span class="ffc-pii-value" data-field="email">a***@x.com</span>
+				<button class="ffc-reveal-pii" data-type="submission" data-field="email" data-submission-id="1" data-nonce="n">Reveal</button>
+			</td></tr>
+			<tr id="r2"><td class="column-id">2</td><td class="email column-email">
+				<span class="ffc-pii-value" data-field="email">b***@x.com</span>
+				<button class="ffc-reveal-pii" data-type="submission" data-field="email" data-submission-id="2" data-nonce="n">Reveal</button>
+			</td></tr>
+		</tbody></table>`;
+		window.FFC.request = vi.fn(() => Promise.resolve({ field: 'email', value: 'bob@x.com' }));
+
+		await load();
+		window.$('#r2 .ffc-reveal-pii').trigger('click');
+		await flush();
+
+		expect(window.FFC.request).toHaveBeenCalledWith(
+			'ffc_reveal_pii',
+			{ submission_id: 2, field: 'email', type: 'submission' },
+			{ nonce: 'n' }
+		);
+		expect(window.$('#r2 .ffc-pii-value').text()).toBe('bob@x.com');
+		expect(window.$('#r1 .ffc-pii-value').text()).toBe('a***@x.com');
+		expect(window.$('#r1 .ffc-reveal-pii').length).toBe(1);
+		expect(window.$('#r2 .ffc-reveal-pii').length).toBe(0);
+	});
+
 	it('defaults type to submission when data-type is absent', async () => {
 		document.body.innerHTML = `<table><tr><td>
 			<span class="ffc-pii-value" data-field="rf">1*.***.***</span>

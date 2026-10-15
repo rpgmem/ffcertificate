@@ -22,11 +22,13 @@
  * WHAT THIS CANNOT SEE. Only actions written as a string literal in the first
  * argument of `ActivityLog::log()`. An action assembled at runtime
  * (`'prefix_' . $x`) is invisible here, and so is one that only ever arrives
- * through a filter. It also cannot judge whether a label reads well or is
+ * through a filter. The one config-driven writer, the PII reveal endpoint,
+ * is read separately from its own map (#1820). It also cannot judge whether a label reads well or is
  * translated correctly — only that one exists.
  *
  * Dependency-free on purpose — no WordPress, no Brain\Monkey — like the module
- * boundary, AJAX wiring and settings-default guards. It reads source text only.
+ * boundary, AJAX wiring and settings-default guards. It reads source text,
+ * plus the reveal map through reflection, which calls no WordPress function.
  *
  * @package FreeFormCertificate\Tests\Unit
  */
@@ -121,6 +123,33 @@ final class ActivityLogActionLabelsTest extends TestCase {
 	}
 
 	/**
+	 * Audit actions the PII reveal endpoint writes, one per reveal type (#1820).
+	 *
+	 * `AdminAjax::reveal_pii()` logs `$config['audit_action']`, a variable, so
+	 * the literal scan above never sees these keys: `appointment_pii_revealed`
+	 * shipped without a label exactly that way. They are read from the real
+	 * `pii_reveal_configs()` through reflection — the map is a plain array
+	 * with no WordPress call, and the constructor (which registers hooks) is
+	 * skipped — so a reveal type added to the map is covered the moment it
+	 * exists, whatever its name.
+	 *
+	 * @return array<string, string> Reveal type => audit action.
+	 */
+	private static function reveal_audit_actions(): array {
+		$class   = new \ReflectionClass( \FreeFormCertificate\Admin\AdminAjax::class );
+		$method  = $class->getMethod( 'pii_reveal_configs' );
+		$method->setAccessible( true );
+		$configs = $method->invoke( $class->newInstanceWithoutConstructor() );
+
+		$actions = array();
+		foreach ( $configs as $type => $config ) {
+			$actions[ $type ] = (string) ( $config['audit_action'] ?? '' );
+		}
+
+		return $actions;
+	}
+
+	/**
 	 * Action keys that have a translated label.
 	 *
 	 * @return array<int, string>
@@ -152,7 +181,7 @@ final class ActivityLogActionLabelsTest extends TestCase {
 	}
 
 	public function test_every_known_action_has_a_translated_label(): void {
-		$known    = array_unique( array_merge( self::written_actions(), self::categorised_actions() ) );
+		$known    = array_unique( array_merge( self::written_actions(), self::categorised_actions(), array_values( self::reveal_audit_actions() ) ) );
 		$labelled = self::labelled_actions();
 
 		sort( $known );
@@ -166,6 +195,47 @@ final class ActivityLogActionLabelsTest extends TestCase {
 			. "\n\nWithout one they render through ucwords(), which is untranslated English in every\n"
 			. 'locale, across the log table, the per-action summary and the CSV export.'
 		);
+	}
+
+	/**
+	 * A reveal type audits under its own action, and that action has a label
+	 * (#1820). Stated apart from the test above so the failure names the
+	 * reveal type, which is what a reader adding one needs to see.
+	 */
+	public function test_every_pii_reveal_audit_action_has_a_translated_label(): void {
+		$labelled = self::labelled_actions();
+
+		$missing = array();
+		foreach ( self::reveal_audit_actions() as $type => $action ) {
+			if ( '' === $action || ! in_array( $action, $labelled, true ) ) {
+				$missing[] = $type . ' => ' . ( '' === $action ? '(no audit_action)' : $action );
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$missing,
+			"These AdminAjax::pii_reveal_configs() reveal types audit under an action with no entry in\n"
+			. "AdminActivityLogPage::get_action_label():\n\n  "
+			. implode( "\n  ", $missing )
+		);
+	}
+
+	/**
+	 * The reflection read must see every reveal type the source declares.
+	 * Recounted by a different route — the `'audit_action'` keys in the file's
+	 * text — so a refactor that moved the map out of `pii_reveal_configs()`
+	 * fails here instead of leaving the guard reading a shorter list.
+	 */
+	public function test_the_reveal_config_read_matches_the_source(): void {
+		$actions = self::reveal_audit_actions();
+		$source  = (string) file_get_contents( self::root() . '/includes/admin/class-ffc-admin-ajax.php' );
+
+		$recount = preg_match_all( "/'audit_action'\s*=>/", $source );
+
+		$this->assertGreaterThan( 0, $recount, 'Found no audit_action key in AdminAjax — the recount pattern no longer matches.' );
+		$this->assertSame( $recount, count( $actions ), 'pii_reveal_configs() returned a different number of reveal types than the source declares.' );
+		$this->assertArrayHasKey( 'submission', $actions, 'The oldest reveal type is missing from the reflection read.' );
 	}
 
 	/**

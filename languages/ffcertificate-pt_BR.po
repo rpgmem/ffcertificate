@@ -16379,6 +16379,9 @@ msgstr "Submissão Movida Para Outro Formulário"
 msgid "Submission not found."
 msgstr "Envio não encontrado."
 
+msgid "Appointment Personal Data Revealed"
+msgstr "Dados Pessoais do Agendamento Revelados"
+
 #: includes/admin/class-ffc-admin-activity-log-page.php:253
 msgid "Submission Personal Data Revealed"
 msgstr "Dados Pessoais da Submissão Reveledas"
@@ -20759,8 +20762,8 @@ msgid "load answers from a spreadsheet. Separate from manage on purpose: it writ
 msgstr "carrega respostas de uma planilha. Separada de gerenciar de propósito: grava dados pessoais de pessoas que nunca abriram o formulário."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:66
-msgid "reveal the decrypted CPF / RF / e-mail on an appointment, which is audited. Without it those values stay masked, even for an operator who can manage appointments."
-msgstr "revela o CPF / RF / e-mail decifrado num agendamento, o que é auditado. Sem ela, esses valores continuam mascarados, mesmo para um operador que pode gerenciar agendamentos."
+msgid "reveal the decrypted CPF / RF / e-mail on an appointment, and the e-mail in the appointments list, with the Reveal button; every reveal is audited. Without it those values stay masked, even for an operator who can manage appointments. The list masks the e-mail for administrators and the appointments admin role too; they reveal it the same way."
+msgstr "revela o CPF / RF / e-mail decifrado num agendamento, e o e-mail na lista de agendamentos, com o botão Revelar; toda revelação é auditada. Sem ela, esses valores continuam mascarados, mesmo para um operador que pode gerenciar agendamentos. A lista mascara o e-mail também para administradores e para a função de administrador de agendamentos; eles o revelam da mesma forma."
 
 #: includes/settings/views/documentation/feature-reregistration.php:104
 msgid "rows that will be written."
@@ -24567,8 +24570,8 @@ msgstr "Revele o e-mail para editá-lo."
 msgid "On the edit screen the CPF/RF, the email and the IP start masked for everyone, administrators included. The IP is the address the submission and its consent were recorded from, so it is masked both under System Information and under the consent status. An operator who may see them uses the Reveal button beside each value to fetch it, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
 msgstr "Na tela de edição, o CPF/RF, o e-mail e o IP começam mascarados para todos, inclusive administradores. O IP é o endereço de onde o envio e o seu consentimento foram registrados, por isso aparece mascarado tanto em Informações do sistema quanto no status do consentimento. Quem tem permissão para vê-los usa o botão Revelar ao lado de cada valor para buscá-lo, e cada revelação grava uma entrada no Log de Atividades enquanto ele estiver ligado. O e-mail só pode ser editado depois de revelado; salvar sem revelá-lo mantém o endereço gravado."
 
-msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."
-msgstr "Administradores (manage_options) possuem todas as permissões acima e, assim como a função de administrador de certificados, veem os dados pessoais sem máscara na lista, sem a etapa de revelação; a tela de edição também os mascara para eles. Veja Capacidades e Funções."
+msgid "Administrators (manage_options) hold all of the above. Personal data starts masked for everyone, on the list and on the edit screen alike: administrators and the certificates admin role reveal a value with the Reveal button, as a holder of ffc_view_certificates_pii does, and every reveal is audited. See Capabilities & Roles."
+msgstr "Administradores (manage_options) possuem todas as permissões acima. Os dados pessoais começam mascarados para todos, na lista e na tela de edição: administradores e a função de administrador de certificados revelam um valor com o botão Revelar, como faz quem possui ffc_view_certificates_pii, e toda revelação é auditada. Veja Capacidades e Funções."
 
 msgid "Certificates → Dashboard opens with a summary row (forms in the month shown, submissions today and over the last 7 days, GeoFence windows open now) above a calendar of forms by GeoFence start date, or by publication date when a form has none. Picking a day lists its forms beside the calendar. It needs ffc_view_certificates."
 msgstr "Certificados → Painel abre com uma linha de resumo (formulários no mês exibido, submissões de hoje e dos últimos 7 dias, janelas de GeoFence abertas agora) acima de um calendário de formulários pela data de início da GeoFence, ou pela data de publicação quando o formulário não tem uma. Escolher um dia lista seus formulários ao lado do calendário. Requer ffc_view_certificates."

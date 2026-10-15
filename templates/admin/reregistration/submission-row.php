@@ -2,10 +2,12 @@
 /**
  * Template: Reregistration admin — Submission row.
  *
- * Extracted verbatim from the matching ReregistrationAdminRenderer method
- * (rpgmem/ffcertificate#563 coverage hygiene); markup byte-identical. The
- * renderer prepares the locals and includes this file (method params + locals
- * + self:: sibling renderers resolve in the including method scope).
+ * Extracted from the matching ReregistrationAdminRenderer method
+ * (rpgmem/ffcertificate#563 coverage hygiene). The markup has changed since
+ * (the icon set, the Record label), so it is no longer a copy of that
+ * method's output and is edited here. The renderer prepares the locals and
+ * includes this file (method params + locals + self:: sibling renderers
+ * resolve in the including method scope).
  *
  * @package FreeFormCertificate\Reregistration
  * @since   6.12.0

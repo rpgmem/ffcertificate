@@ -78,7 +78,8 @@ class AdminConditionalAssetsTest extends TestCase {
 			$_GET['page'],
 			$_GET['tab'],
 			$_GET['action'],
-			$_GET['filter_form_id']
+			$_GET['filter_form_id'],
+			$_GET['appointment']
 		);
 		Monkey\tearDown();
 		parent::tearDown();
@@ -198,6 +199,47 @@ class AdminConditionalAssetsTest extends TestCase {
 		$this->assertNotContains( 'ffc-admin-move-submissions', $this->scripts );
 		// But bulk assets still load.
 		$this->assertContains( 'ffc-admin-submissions-bulk', $this->scripts );
+	}
+
+	// ==================================================================
+	// Shared PII reveal script on the list screens (#1822).
+	// ==================================================================
+
+	public function test_submissions_list_enqueues_pii_reveal_script(): void {
+		$_GET['page'] = 'ffc-submissions';
+
+		$assets = new AdminConditionalAssets();
+		$assets->enqueue_conditional_assets();
+
+		$this->assertContains( 'ffc-pii-reveal', $this->scripts );
+	}
+
+	public function test_appointments_list_enqueues_pii_reveal_script(): void {
+		$_GET['page'] = 'ffc-appointments';
+
+		$assets = new AdminConditionalAssets();
+		$assets->enqueue_conditional_assets();
+
+		$this->assertContains( 'ffc-pii-reveal', $this->scripts );
+	}
+
+	public function test_appointment_detail_still_enqueues_pii_reveal_script(): void {
+		$_GET['page']        = 'ffc-appointments';
+		$_GET['appointment'] = '5';
+
+		$assets = new AdminConditionalAssets();
+		$assets->enqueue_conditional_assets();
+
+		$this->assertContains( 'ffc-pii-reveal', $this->scripts );
+	}
+
+	public function test_other_scheduling_screen_does_not_enqueue_pii_reveal_script(): void {
+		$_GET['page'] = 'ffc-scheduling-settings';
+
+		$assets = new AdminConditionalAssets();
+		$assets->enqueue_conditional_assets();
+
+		$this->assertNotContains( 'ffc-pii-reveal', $this->scripts );
 	}
 
 	public function test_submission_edit_subpage_is_not_treated_as_list_page(): void {

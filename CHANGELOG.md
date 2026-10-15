@@ -52,6 +52,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests no longer redefine bootstrap constants** (#1809). 71 dead `define()` calls left 34 unit tests, among them `FFC_PLUGIN_DIR` set to `/tmp` paths the code never read; `BootstrapConstantRedefinitionTest` reads the bootstrap's own list and refuses a test that redefines one.
 - **Six settings-tab tests run the tab's own `render()`** (#1811). They asserted a copy; every tab now resolves its view through `SettingsTab::view_path()`, which tests override, `SettingsViewPathSeamTest` refuses an inline path, and temporary views go in `tearDown()`.
 
+### Security
+
+- **The submission and appointment lists mask the email for everyone** (#1822, #1820). Administrators and the domain admin role no longer get the address in the HTML; whoever may reveal it gets an audited Reveal button per row. Appointment reveals have an Activity Log label, and the label guard reads the reveal map.
+
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
 ### Added
