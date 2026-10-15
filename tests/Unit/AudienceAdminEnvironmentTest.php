@@ -903,7 +903,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-scheduling-environments', $output, 'no link is left on the previous slug' );
 
 		// The filter: a GET form that stays on the view, the calendar select and its Filter button.
-		$this->assertMatchesRegularExpression( '/<form method="get" class="ffc-filter-form">\s*<input type="hidden" name="page" value="ffc-scheduling-calendars">\s*<input type="hidden" name="view" value="environments">\s*<select name="schedule_id">/', $output );
+		$this->assertMatchesRegularExpression( '/<div class="tablenav top">\s*<form method="get">\s*<input type="hidden" name="page" value="ffc-scheduling-calendars">\s*<input type="hidden" name="view" value="environments">\s*<select name="schedule_id">/', $output );
 		$this->assertStringContainsString( '<option value="">All Calendars</option>', $output );
 		$this->assertSame( array( array( 'Filter', 'secondary', 'filter' ) ), $buttons );
 

@@ -77,14 +77,6 @@
     color: var(--ffc-danger-text);
 }
 
-/* Filter Form */
-.ffc-filter-form {
-    margin: var(--ffc-spacing-xl) 0;
-    display: flex;
-    gap: var(--ffc-spacing-md);
-    align-items: center;
-}
-
 /* Form Styles */
 .ffc-form .ffc-required {
     color: var(--ffc-danger);
@@ -326,25 +318,22 @@
     padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
 }
 
-/* Import Page */
-.ffc-import-sections {
+/* Import & Export (#1761): each section is the shared `.card` of
+   ffc-admin-components.css, laid two by two. The row spaces its cards with the
+   gap, so a card in it drops the bottom margin a stacked card keeps and core's
+   `.card` top margin, which would sit inside the gap. */
+.ffc-import-export-cards {
     display: flex;
     flex-wrap: wrap;
     gap: 30px;
     margin-top: var(--ffc-spacing-2xl);
 }
 
-.ffc-import-section {
-    background: var(--ffc-bg-card);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-2xl);
+.ffc-settings-wrap .ffc-import-export-cards > .card {
     flex: 1;
     min-width: 400px;
-}
-
-.ffc-import-section h2 {
     margin-top: 0;
+    margin-bottom: 0;
 }
 
 .ffc-sample-csv {
@@ -381,7 +370,7 @@
         display: none;
     }
 
-    .ffc-import-section {
+    .ffc-settings-wrap .ffc-import-export-cards > .card {
         min-width: 0;
     }
 }

@@ -31,7 +31,6 @@ class BoxedSectionHeadingIconTest extends TestCase {
 		'includes/admin/class-ffc-admin-user-capabilities.php'          => 'profile / user-edit: a WordPress core screen',
 		'includes/admin/class-ffc-admin-user-columns.php'               => 'users.php: a WordPress core screen',
 		'includes/admin/class-ffc-admin-user-custom-fields.php'         => 'profile / user-edit: a WordPress core screen',
-		'includes/self-scheduling/views/appointments-list.php'          => 'the details dialog borrows the core postbox header',
 		// Not wp-admin at all: the public site, e-mail bodies, the PDF, and
 		// the text WordPress's privacy guide prints.
 		'includes/audience/class-ffc-audience-notification-handler.php' => 'an e-mail body',
