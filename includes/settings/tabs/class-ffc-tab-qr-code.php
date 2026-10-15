@@ -96,7 +96,7 @@ class TabQrCode extends SettingsTab {
 	 * Render.
 	 */
 	public function render(): void {
-		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-qr-code.php';
+		$view_file = $this->view_path( 'ffc-tab-qr-code.php' );
 
 		if ( file_exists( $view_file ) ) {
 			$settings = $this;

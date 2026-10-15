@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Audience calendars and environments list their shortcode** (#1814). A Shortcode column with the forms list's copy button; an environment's is tied to its calendar. The copy script is `ffc-copy-shortcode.js`, and `ffc-form-list-copy-shortcode` remains a deprecated handle alias until 6.41.0.
+
 ### Changed
 
 - **A form editor tab reads as pending while a feature it switched on is incomplete** (#1755). The dot turns amber when a restriction lacks its password, list or tickets, the date window has no date or time, GPS has no allowed area, or `{{schedule}}` is required and the event schedule is empty; green only once filled.
@@ -50,6 +54,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **One writer for the test `upgrade.php` stub** (#1803). `tests/Support/UpgradeStub.php`, called by the bootstrap, writes it and always declares `dbDelta()`; four activator tests that could write an empty copy no longer do, and `UpgradeStubOwnerTest` refuses another writer under `tests/`.
 - **Tests no longer claim to run against `/tmp/`** (#1806). 37 unit tests dropped an `ABSPATH` define the bootstrap had already made, and two template tests dropped a fixture under the shared `/tmp/ffc_test_dir` that nothing read: they render the shipped templates.
 - **Tests no longer redefine bootstrap constants** (#1809). 71 dead `define()` calls left 34 unit tests, among them `FFC_PLUGIN_DIR` set to `/tmp` paths the code never read; `BootstrapConstantRedefinitionTest` reads the bootstrap's own list and refuses a test that redefines one.
+- **Six settings-tab tests run the tab's own `render()`** (#1811). They asserted a copy; every tab now resolves its view through `SettingsTab::view_path()`, which tests override, `SettingsViewPathSeamTest` refuses an inline path, and temporary views go in `tearDown()`.
+- **The appointment detail masks CPF, RF and email for every viewer** (#1813). The appointments admin role and site admins no longer get the clear value in the page: like the submission edit screen, anyone who may reveal sees the masked value and a Reveal button, and each reveal is audited.
 
 ### Security
 

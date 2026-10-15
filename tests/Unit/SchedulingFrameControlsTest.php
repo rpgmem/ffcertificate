@@ -182,9 +182,11 @@ class SchedulingFrameControlsTest extends TestCase {
 				'option value=2',
 				'input id=filter name=filter type=submit value=Filter',
 				'a href=' . $page . '&action=edit&id=4',
+				'button data-shortcode=[ffc_audience schedule_id= type=button',
 				'a href=' . $page . '&action=edit&id=4',
 				'a href=' . $page . '&action=deactivate&id=4&_wpnonce=nonce-deactivate_environment_4 onclick=return confirm(\' Are you sure you want to deactivate this environments? \');',
 				'a href=' . $page . '&action=edit&id=5',
+				'button data-shortcode=[ffc_audience schedule_id= type=button',
 				'a href=' . $page . '&action=edit&id=5',
 				'a href=' . $page . '&action=delete&id=5&_wpnonce=nonce-delete_environment_5 onclick=return confirm(\' Are you sure you want to permanently delete this environments? \');',
 			),
@@ -219,12 +221,11 @@ class SchedulingFrameControlsTest extends TestCase {
 			)
 		);
 		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-			->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+			->shouldReceive( 'can_reveal' )->andReturn( true );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
 			->shouldReceive( 'mask_email' )->andReturn( 'a***@x.com' )
 			->shouldReceive( 'mask_cpf' )->andReturn( '***.***.**1-01' )
 			->shouldReceive( 'mask_rf' )->andReturn( '**.***.**8' )
-			->shouldReceive( 'format_document' )->andReturn( 'PLAIN' )
 			->shouldReceive( 'format_auth_code' )->andReturn( 'A-CODE' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'decrypt_appointment' )->andReturnUsing( static fn( $a ) => $a );

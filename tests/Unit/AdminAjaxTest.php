@@ -421,7 +421,8 @@ class AdminAjaxTest extends TestCase {
 		$df->shouldReceive( 'format_cpf' )->andReturn( '123.456.789-01' );
 
 		// Every served reveal reaches the audit (#1655): the unmasked tier
-		// only calls here from the submission edit page, which masks for it.
+		// calls here from the submission edit page and the appointment detail
+		// page, which mask for it.
 		// The log is kept switched off, so the call proves the path and
 		// honours the switch without a DB write.
 		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
@@ -530,6 +531,42 @@ class AdminAjaxTest extends TestCase {
 				array(
 					'field' => 'cpf',
 					'value' => '123.456.789-01',
+				),
+				$e->getData()
+			);
+		}
+	}
+
+	public function test_reveal_pii_appointment_unmasked_tier_returns_value_and_audits(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = 'appointment';
+		$_POST['submission_id'] = '7';
+		$_POST['field']         = 'email';
+
+		$this->mock_appointment(
+			array(
+				'email'   => 'alice@example.com',
+				'user_id' => 3,
+			)
+		);
+
+		$policy = $this->mock_pii_policy();
+		$policy->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
+
+		// The appointment detail page masks for the unmasked tier too (#1813),
+		// so this call is how that tier sees the value, and it is audited.
+		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected AdminAjaxSuccessException' );
+		} catch ( AdminAjaxSuccessException $e ) {
+			$this->assertSame(
+				array(
+					'field' => 'email',
+					'value' => 'alice@example.com',
 				),
 				$e->getData()
 			);

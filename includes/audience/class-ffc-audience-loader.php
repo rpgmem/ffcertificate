@@ -232,6 +232,13 @@ class AudienceLoader {
 
 		// The calendar and audience editors are vertical tabs (#1761).
 		AudienceEditorTabs::maybe_enqueue( $page, \FreeFormCertificate\Core\RequestInput::get_get_string( 'action' ) );
+
+		// The calendar and environment lists — and the calendar editor's
+		// Environments tab — print the shortcode copy button (#1814). Its
+		// styles live in ffc-admin.css, which every `?page=ffc-*` screen loads.
+		if ( 'ffc-scheduling-calendars' === $page ) {
+			\FreeFormCertificate\Admin\AdminUI::enqueue_shortcode_copy();
+		}
 		if ( 'ffc-scheduling-audiences' === $page ) {
 			wp_enqueue_script( 'jquery-ui-sortable' );
 

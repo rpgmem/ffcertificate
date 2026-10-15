@@ -55,7 +55,7 @@ class TabUserAccess extends SettingsTab {
 	 */
 	public function render(): void {
 		// Include view file.
-		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-user-access.php';
+		$view_file = $this->view_path( 'ffc-tab-user-access.php' );
 
 		if ( file_exists( $view_file ) ) {
 			// Make variables available to view.

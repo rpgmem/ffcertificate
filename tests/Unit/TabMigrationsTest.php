@@ -18,6 +18,12 @@ class TabMigrationsTest extends TestCase {
 
 	private TabMigrations $tab;
 
+	/**
+	 * Temporary view directory a test created, removed in tearDown() so a
+	 * failing assertion cannot leave it behind.
+	 */
+	private ?string $tmp_dir = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -52,6 +58,12 @@ class TabMigrationsTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( null !== $this->tmp_dir && is_dir( $this->tmp_dir ) ) {
+			foreach ( (array) glob( $this->tmp_dir . '/*' ) as $file ) {
+				unlink( (string) $file );
+			}
+			rmdir( $this->tmp_dir );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -435,25 +447,49 @@ class TabMigrationsTest extends TestCase {
 		);
 	}
 
-	public function test_render_error_when_view_missing(): void {
-		$tab = new class() extends TabMigrations {
-			public function render(): void {
-				$view_file = '/tmp/nonexistent_ffc/ffc-tab-migrations.php';
-				if ( file_exists( $view_file ) ) {
-					include $view_file;
-				} else {
-					echo '<div class="notice notice-error"><p>';
-					echo esc_html__( 'Migrations view file not found.', 'ffcertificate' );
-					echo '</p></div>';
-				}
+	/**
+	 * The tab under test with only its view directory redirected, through the
+	 * `view_path()` seam: render() is the product's own (#1811).
+	 *
+	 * @param string $views_dir Directory the tab reads its view from.
+	 * @return TabMigrations
+	 */
+	private function tab_with_views_in( string $views_dir ): TabMigrations {
+		return new class( $views_dir ) extends TabMigrations {
+			private string $views_dir;
+			public function __construct( string $views_dir ) {
+				$this->views_dir = $views_dir;
+				parent::__construct();
+			}
+			protected function view_path( string $file ): string {
+				return $this->views_dir . '/' . $file;
 			}
 		};
+	}
+
+	public function test_render_error_when_view_missing(): void {
+		$tab = $this->tab_with_views_in( sys_get_temp_dir() . '/ffc_test_no_such_view_dir_' . getmypid() );
 
 		ob_start();
 		$tab->render();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( 'not found', $output );
+		$this->assertStringContainsString( 'notice notice-error', $output );
+		$this->assertStringContainsString( 'Migrations view file not found.', $output );
+	}
+
+	public function test_render_includes_view_when_file_exists(): void {
+		$this->tmp_dir = sys_get_temp_dir() . '/ffc_test_views_mig_' . getmypid();
+		if ( ! is_dir( $this->tmp_dir ) ) {
+			mkdir( $this->tmp_dir, 0777, true );
+		}
+		file_put_contents( $this->tmp_dir . '/ffc-tab-migrations.php', '<?php echo "migrations-view-rendered";' );
+
+		ob_start();
+		$this->tab_with_views_in( $this->tmp_dir )->render();
+		$output = ob_get_clean();
+
+		$this->assertSame( 'migrations-view-rendered', $output );
 	}
 
 }

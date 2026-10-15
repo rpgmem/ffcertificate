@@ -281,7 +281,7 @@ class TabGeolocation extends SettingsTab {
 		}
 
 		$settings = $this->get_settings();
-		include FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-geolocation.php';
+		include $this->view_path( 'ffc-tab-geolocation.php' );
 	}
 
 	/**

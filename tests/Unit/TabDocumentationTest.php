@@ -18,6 +18,12 @@ class TabDocumentationTest extends TestCase {
 
 	private TabDocumentation $tab;
 
+	/**
+	 * Temporary view directory a test created, removed in tearDown() so a
+	 * failing assertion cannot leave it behind.
+	 */
+	private ?string $tmp_dir = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -36,11 +42,22 @@ class TabDocumentationTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
+		// `SettingsTab` requires `ABSPATH . 'wp-includes/formatting.php'` when
+		// `wp_kses_post` is undefined, and the test ABSPATH has no such file:
+		// without this stub the file only passed after an earlier test had
+		// taught Patchwork the function (same reason as TabMigrationsTest).
+		Functions\when( 'wp_kses_post' )->returnArg();
 
 		$this->tab = new TabDocumentation();
 	}
 
 	protected function tearDown(): void {
+		if ( null !== $this->tmp_dir && is_dir( $this->tmp_dir ) ) {
+			foreach ( (array) glob( $this->tmp_dir . '/*' ) as $file ) {
+				unlink( (string) $file );
+			}
+			rmdir( $this->tmp_dir );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -61,25 +78,49 @@ class TabDocumentationTest extends TestCase {
 		$this->assertSame( 90, $this->tab->get_order() );
 	}
 
-	public function test_render_error_when_view_missing(): void {
-		$tab = new class() extends TabDocumentation {
-			public function render(): void {
-				$view_file = '/tmp/nonexistent_ffc/ffc-tab-documentation.php';
-				if ( file_exists( $view_file ) ) {
-					include $view_file;
-				} else {
-					echo '<div class="notice notice-error"><p>';
-					echo esc_html__( 'Documentation view file not found.', 'ffcertificate' );
-					echo '</p></div>';
-				}
+	/**
+	 * The tab under test with only its view directory redirected, through the
+	 * `view_path()` seam: render() is the product's own (#1811).
+	 *
+	 * @param string $views_dir Directory the tab reads its view from.
+	 * @return TabDocumentation
+	 */
+	private function tab_with_views_in( string $views_dir ): TabDocumentation {
+		return new class( $views_dir ) extends TabDocumentation {
+			private string $views_dir;
+			public function __construct( string $views_dir ) {
+				$this->views_dir = $views_dir;
+				parent::__construct();
+			}
+			protected function view_path( string $file ): string {
+				return $this->views_dir . '/' . $file;
 			}
 		};
+	}
+
+	public function test_render_error_when_view_missing(): void {
+		$tab = $this->tab_with_views_in( sys_get_temp_dir() . '/ffc_test_no_such_view_dir_' . getmypid() );
 
 		ob_start();
 		$tab->render();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( 'not found', $output );
+		$this->assertStringContainsString( 'notice notice-error', $output );
+		$this->assertStringContainsString( 'Documentation view file not found.', $output );
+	}
+
+	public function test_render_includes_view_when_file_exists(): void {
+		$this->tmp_dir = sys_get_temp_dir() . '/ffc_test_views_doc_' . getmypid();
+		if ( ! is_dir( $this->tmp_dir ) ) {
+			mkdir( $this->tmp_dir, 0777, true );
+		}
+		file_put_contents( $this->tmp_dir . '/ffc-tab-documentation.php', '<?php echo "documentation-view-rendered";' );
+
+		ob_start();
+		$this->tab_with_views_in( $this->tmp_dir )->render();
+		$output = ob_get_clean();
+
+		$this->assertSame( 'documentation-view-rendered', $output );
 	}
 
 

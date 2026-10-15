@@ -1,6 +1,7 @@
-// Tests for `assets/js/ffc-form-list-copy-shortcode.js`.
+// Tests for `assets/js/ffc-copy-shortcode.js`.
 //
-// Copy-to-clipboard handler for the forms list-table shortcode buttons,
+// Copy-to-clipboard handler for the list-table shortcode buttons (the forms
+// list and the audience calendar and environment lists, #1814),
 // extracted from an inline <script> in class-ffc-form-list-columns.php
 // (Item 10 of the frontend audit). In jsdom `document.readyState` is
 // 'complete', so the script's readyState guard runs init() synchronously
@@ -8,7 +9,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
-const SCRIPT = 'assets/js/ffc-form-list-copy-shortcode.js';
+const SCRIPT = 'assets/js/ffc-copy-shortcode.js';
 
 function installButtons() {
 	document.body.innerHTML = `
@@ -22,7 +23,7 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-describe('ffc-form-list-copy-shortcode', () => {
+describe('ffc-copy-shortcode', () => {
 	it('copies the shortcode via the Clipboard API on click', () => {
 		installButtons();
 		const writeText = vi.fn();

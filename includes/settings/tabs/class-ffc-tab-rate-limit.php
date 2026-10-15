@@ -201,7 +201,7 @@ class TabRateLimit extends SettingsTab {
 		}
 
 		$settings = $this->get_settings();
-		include FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-rate-limit.php';
+		include $this->view_path( 'ffc-tab-rate-limit.php' );
 	}
 
 	/**

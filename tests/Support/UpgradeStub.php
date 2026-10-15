@@ -25,6 +25,20 @@ namespace FreeFormCertificate\Tests\Support;
  * behind by an older checkout — the empty one included — cannot survive into
  * the run. The no-op is declared only if nothing declared `dbDelta` first,
  * which is what lets a test's own `Functions\when( 'dbDelta' )` take effect.
+ *
+ * The file lives under the bootstrap's fixed `ABSPATH` (`/tmp/wordpress/`),
+ * shared by every run on the machine, and that is deliberate (#1811). It is
+ * the only file anything creates there: `includes/` requires other files
+ * under `ABSPATH` (`formatting.php`, `class-wp-list-table.php`, …) only
+ * behind a guard the tests satisfy by stubbing, and the tests read the
+ * constant as an opaque string. Concurrent runs cannot corrupt it either:
+ * they write the same bytes, a reader sees a whole file because the write
+ * goes through a rename in the same directory, and a run from another
+ * checkout whose stub differs still declares the same no-op `dbDelta()`.
+ * A per-run `ABSPATH` would buy nothing for that and cost a directory per
+ * isolated test, because a test in a separate process re-runs the
+ * bootstrap. A directory another user owns makes `ensure()` throw, so the
+ * one failure the shared path can cause is loud.
  */
 final class UpgradeStub {
 

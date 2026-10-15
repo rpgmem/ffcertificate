@@ -173,6 +173,46 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertStringContainsString( 'Cal One', $output );
 	}
 
+	public function test_render_list_prints_each_environments_shortcode_pinned_to_its_calendar(): void {
+		// Real escaping, so the test sees what the browser would.
+		$escape = static fn( $text ) => htmlspecialchars( (string) $text, ENT_QUOTES );
+		Functions\when( 'esc_html' )->alias( $escape );
+		Functions\when( 'esc_attr' )->alias( $escape );
+		Functions\when( 'esc_attr__' )->returnArg();
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->andReturn(
+			array( (object) array( 'id' => 9, 'name' => 'Room A', 'schedule_id' => 3, 'status' => 'active', 'color' => '#fff', 'description' => '' ) )
+		);
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 3, 'name' => 'Cal Three' ) ) );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+
+		ob_start();
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
+		$output = (string) ob_get_clean();
+
+		// #1814: the same column as the calendar list.
+		$this->assertStringContainsString( '<th scope="col" class="column-shortcode">Shortcode</th>', $output );
+		$this->assertMatchesRegularExpression(
+			'#<td class="column-shortcode">\s*<span class="ffc-shortcode-cell"><code class="ffc-shortcode-code">\[ffc_audience schedule_id=&quot;3&quot; environment_id=&quot;9&quot;\]</code>'
+			. '<button type="button" class="ffc-copy-shortcode" data-shortcode="\[ffc_audience schedule_id=&quot;3&quot; environment_id=&quot;9&quot;\]" title="Copy shortcode" aria-label="Copy shortcode">#',
+			$output
+		);
+	}
+
+	public function test_empty_environment_list_spans_every_column(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->andReturn( array() );
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array() );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+
+		ob_start();
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
+		$output = (string) ob_get_clean();
+
+		$this->assertSame( 6, substr_count( $output, '<th scope="col"' ) );
+		$this->assertStringContainsString( '<td colspan="6">', $output );
+	}
+
 	/**
 	 * Row actions by tier (#1769): Edit / Deactivate need
 	 * `ffc_manage_audiences`, Delete needs `ffc_delete_audiences`.
@@ -1049,9 +1089,9 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertStringContainsString( '<option value="">All Calendars</option>', $output );
 		$this->assertSame( array( array( 'Filter', 'secondary', 'filter' ) ), $buttons );
 
-		// The same columns as before the move.
+		// The same columns as before the move, plus the shortcode (#1814).
 		preg_match_all( '/<th scope="col" class="(column-[a-z]+)">/', $output, $columns );
-		$this->assertSame( array( 'column-color', 'column-name', 'column-calendar', 'column-status', 'column-actions' ), $columns[1] );
+		$this->assertSame( array( 'column-color', 'column-name', 'column-shortcode', 'column-calendar', 'column-status', 'column-actions' ), $columns[1] );
 
 		// The view switch, with Environments current.
 		$this->assertMatchesRegularExpression( '/<ul class="subsubsub">.*href="admin\.php\?page=ffc-scheduling-calendars">Calendars<\/a>.*href="' . preg_quote( $view, '/' ) . '" class="current" aria-current="page">Environments<\/a>/s', $output );
