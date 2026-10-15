@@ -19,6 +19,12 @@ class AudienceAdminCalendarTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var Mockery\MockInterface Alias mock of Core\PiiAccessPolicy. */
+	private $policy;
+
+	/** @var bool What the policy answers for a listed account (#1824). */
+	private $can_reveal = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -52,6 +58,14 @@ class AudienceAdminCalendarTest extends TestCase {
 		} );
 		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
+
+		// The account email is masked (#1824). Whether a row gets a Reveal
+		// button is the policy's answer, set per test through
+		// $this->can_reveal; the tiers themselves are AudienceAccountEmailTest's.
+		Functions\when( 'is_email' )->justReturn( true );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'reveal-nonce' );
+		$this->policy = Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
+		$this->policy->shouldReceive( 'can_reveal' )->andReturnUsing( fn() => $this->can_reveal )->byDefault();
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -912,5 +926,71 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringContainsString( '[submit:Create Calendar|submit|form=ffc-schedule-form]', $output, 'the side button posts the calendar form' );
 		$this->assertStringNotContainsString( 'ffc-icon-code', $output, 'no shortcode before the calendar exists' );
 		$this->assertStringNotContainsString( 'Calendar ID', $output );
+	}
+
+	/**
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public static function user_access_reveal_tiers(): array {
+		return array(
+			'manage table, may reveal'    => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true ),
+			'manage table, masked tier'   => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), false ),
+			'read-only table, may reveal' => array( array( 'ffc_view_audiences' ), true ),
+			'read-only table, masked'     => array( array( 'ffc_view_audiences' ), false ),
+		);
+	}
+
+	/**
+	 * Both User access tables mask each account email for every tier and
+	 * draw the audited Reveal button only for a viewer the policy lets
+	 * reveal, asking with the appointments gate and the user as owner (#1824).
+	 *
+	 * @dataProvider user_access_reveal_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_reveal What the policy answers.
+	 */
+	public function test_user_access_rows_mask_the_account_email_at_every_tier( array $caps, bool $can_reveal ): void {
+		$this->grant( $caps );
+		$this->can_reveal = $can_reveal;
+		$this->policy->shouldReceive( 'can_reveal' )
+			->with( 'ffc_view_appointments_pii', 'ffc_appointments_admin', 7 )
+			->andReturnUsing( fn() => $this->can_reveal );
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '5';
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'get_userdata' )->alias(
+			static fn( $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => 'person' . $id . '@e.com' )
+		);
+
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
+			(object) array( 'id' => 5, 'name' => 'Cal Five', 'status' => 'active', 'visibility' => 'public' )
+		);
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
+		$schedRepo->shouldReceive( 'get_all_permissions' )->with( 5 )->andReturn(
+			array( (object) array( 'user_id' => 7, 'can_book' => '1', 'can_cancel_others' => '0', 'can_override_conflicts' => '0' ) )
+		);
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_all' )->andReturn( array() );
+		$envRepo->shouldReceive( 'get_holidays' )->andReturn( array() );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )->shouldReceive( 'format_wallclock_date' )->andReturn( '' );
+
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'User7', $output );
+		$this->assertStringNotContainsString( 'person7@e.com', $output, 'no tier receives the clear address' );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">p***@e.com</span>', $output );
+		$this->assertSame(
+			$can_reveal ? 1 : 0,
+			substr_count( $output, '<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="audience_account" data-field="email" data-submission-id="7" data-nonce="reveal-nonce">Reveal</button>' )
+		);
+		$this->assertSame( $can_reveal ? 1 : 0, substr_count( $output, 'ffc-reveal-pii' ) );
 	}
 }

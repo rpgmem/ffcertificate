@@ -55,6 +55,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Security
 
 - **The submission and appointment lists mask the email for everyone** (#1822, #1820). Administrators and the domain admin role no longer get the address in the HTML; whoever may reveal it gets an audited Reveal button per row. Appointment reveals have an Activity Log label, and the label guard reads the reveal map.
+- **Account emails on the submission edit page and the audience screens are masked** (#1824). The linked user's email and each person on the Members and User access tabs get an audited Reveal button; audiences have no PII capability, so revealing there follows `ffc_view_appointments_pii`.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 

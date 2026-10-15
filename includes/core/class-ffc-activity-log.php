@@ -141,6 +141,11 @@ class ActivityLog {
 			'privacy_data_erased'                => 'users',
 			'privacy_request_created'            => 'users',
 
+			// An audience screen's account-email reveal (#1824) sits with the
+			// appointment reveals; without a prefix of its own it would fall
+			// back to `submissions`.
+			'audience_account_email_revealed'    => 'scheduling',
+
 			'settings_changed'                   => 'system',
 			'access_denied'                      => 'system',
 			'ip_geolocation_debug'               => 'system',

@@ -14504,7 +14504,7 @@ msgid "Reveal the decrypted CPF / RF / email on a submission (audited). Without 
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:246
-msgid "Reveal the decrypted CPF / RF / email on an appointment (audited). Without it the values stay masked (#739)."
+msgid "Reveal the decrypted CPF / RF / email on an appointment, and the account email on the audience screens (audited). Without it the values stay masked (#739, #1824)."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php:82
@@ -16329,6 +16329,9 @@ msgid "Submission not found."
 msgstr ""
 
 msgid "Appointment Personal Data Revealed"
+msgstr ""
+
+msgid "Audience Account Email Revealed"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:253
@@ -26019,4 +26022,13 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php:31
 msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
+msgstr ""
+
+msgid "The linked user's account email in the side panel is masked the same way, with its own Reveal button and the same audit."
+msgstr ""
+
+msgid "It also reveals the account email of the people on the audience Members and User access tabs."
+msgstr ""
+
+msgid "The Members tab and a calendar's User access tab show each person's account email masked, for everyone. Audiences have no personal-data capability of their own, so revealing it follows the appointments one: administrators, the appointments admin role and holders of ffc_view_appointments_pii get a Reveal button, and every reveal writes an Activity Log entry. The audience roles alone see the email masked."
 msgstr ""

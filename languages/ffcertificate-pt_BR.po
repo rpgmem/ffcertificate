@@ -14541,8 +14541,8 @@ msgid "Reveal the decrypted CPF / RF / email on a submission (audited). Without 
 msgstr "Exiba o CPF, o RF ou o e-mail descriptografados em uma submissão (auditada). Sem isso, os valores permanecem mascarados."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:246
-msgid "Reveal the decrypted CPF / RF / email on an appointment (audited). Without it the values stay masked (#739)."
-msgstr "Exiba o CPF, RF ou e-mail descriptografado em um agendamento (auditado). Sem isso, os valores permanecem mascarados."
+msgid "Reveal the decrypted CPF / RF / email on an appointment, and the account email on the audience screens (audited). Without it the values stay masked (#739, #1824)."
+msgstr "Exiba o CPF, RF ou e-mail descriptografado em um agendamento, e o e-mail da conta nas telas de público-alvo (auditado). Sem isso, os valores permanecem mascarados."
 
 #: includes/settings/views/documentation/feature-recruitment.php:82
 #| msgid "reveal unmasked personal data (CPF/RF/email) — without it, those columns stay masked."
@@ -16381,6 +16381,9 @@ msgstr "Envio não encontrado."
 
 msgid "Appointment Personal Data Revealed"
 msgstr "Dados Pessoais do Agendamento Revelados"
+
+msgid "Audience Account Email Revealed"
+msgstr "E-mail da Conta de Público-alvo Revelado"
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:253
 msgid "Submission Personal Data Revealed"
@@ -26103,3 +26106,12 @@ msgstr "O botão Adicionar Novo da aba Ambientes abre o formulário de ambiente 
 #: includes/settings/views/documentation/scheduling-audiences.php:31
 msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
 msgstr "Um público-alvo é editado em três abas: Público-alvo, Membros (adicionar e remover membros) e Campos de recadastramento. A contagem de membros na lista de públicos-alvo abre a aba Membros."
+
+msgid "The linked user's account email in the side panel is masked the same way, with its own Reveal button and the same audit."
+msgstr "O e-mail da conta do usuário vinculado, no painel lateral, é mascarado da mesma forma, com seu próprio botão Revelar e a mesma auditoria."
+
+msgid "It also reveals the account email of the people on the audience Members and User access tabs."
+msgstr "Também revela o e-mail da conta das pessoas nas abas Membros e Acesso de usuários do público-alvo."
+
+msgid "The Members tab and a calendar's User access tab show each person's account email masked, for everyone. Audiences have no personal-data capability of their own, so revealing it follows the appointments one: administrators, the appointments admin role and holders of ffc_view_appointments_pii get a Reveal button, and every reveal writes an Activity Log entry. The audience roles alone see the email masked."
+msgstr "A aba Membros e a aba Acesso de usuários de um calendário mostram o e-mail da conta de cada pessoa mascarado, para todos. Públicos-alvo não têm uma capacidade própria para dados pessoais, então a revelação segue a de agendamentos: administradores, a função de administrador de agendamentos e quem possui ffc_view_appointments_pii recebem um botão Revelar, e cada revelação grava uma entrada no Log de Atividades. As funções de público-alvo, sozinhas, veem o e-mail mascarado."

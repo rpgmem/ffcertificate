@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminAjax;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Tests for AdminAjax: constructor hook registration and the search_user
@@ -551,6 +552,213 @@ class AdminAjaxTest extends TestCase {
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessageMatches( '/permission to reveal/' );
+		$ajax->reveal_pii();
+	}
+
+	// ==================================================================
+	// Account emails (#1824): the linked account of a submission and the
+	// people on the audience screens.
+	// ==================================================================
+
+	/**
+	 * Alias-mock the policy and ActivityLog together (one constants map
+	 * serves both) and expect exactly one audit row for the reveal.
+	 *
+	 * @param string $action    Expected audit action.
+	 * @param string $field     Expected field_key.
+	 * @param int    $object_id Expected object id.
+	 * @return \Mockery\MockInterface The policy mock.
+	 */
+	private function mock_policy_and_audit( string $action, string $field, int $object_id ) {
+		Mockery::getConfiguration()->setConstantsMap(
+			array(
+				'FreeFormCertificate\Core\PiiAccessPolicy' => array(
+					'TIER_MASKED'   => 'masked',
+					'TIER_REVEAL'   => 'reveal',
+					'TIER_UNMASKED' => 'unmasked',
+				),
+				'FreeFormCertificate\Core\ActivityLog'     => array(
+					'LEVEL_INFO' => 'info',
+				),
+			)
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 4 );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
+			->shouldReceive( 'log' )
+			->once()
+			->with( $action, 'info', array( 'field_key' => $field ), 4, $object_id );
+		return Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
+	}
+
+	public function test_reveal_pii_account_email_returns_the_linked_accounts_email_and_audits(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['submission_id'] = '5';
+		$_POST['field']         = 'account_email';
+
+		$this->mock_submission(
+			array(
+				'email'   => 'typed@x.com',
+				'user_id' => 9,
+			)
+		);
+		Functions\when( 'get_userdata' )->alias(
+			static fn( $id ) => 9 === $id ? (object) array( 'ID' => 9, 'user_email' => 'account@x.com' ) : false
+		);
+
+		$policy = $this->mock_policy_and_audit( 'submission_pii_revealed', 'account_email', 5 );
+		// The submission's own gate, with its linked account as owner.
+		$policy->shouldReceive( 'resolve' )
+			->with( 'ffc_view_certificates_pii', 'ffc_certificates_admin', 9 )
+			->andReturn( 'reveal' );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected AdminAjaxSuccessException' );
+		} catch ( AdminAjaxSuccessException $e ) {
+			$this->assertSame(
+				array(
+					'field' => 'account_email',
+					'value' => 'account@x.com',
+				),
+				$e->getData(),
+				'the account email, not the email typed on the submission'
+			);
+		}
+	}
+
+	public function test_reveal_pii_account_email_denied_for_masked_tier(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['submission_id'] = '5';
+		$_POST['field']         = 'account_email';
+
+		$this->mock_submission( array( 'user_id' => 9 ) );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 9, 'user_email' => 'account@x.com' ) );
+		$policy = $this->mock_pii_policy();
+		$policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/permission to reveal/' );
+		$ajax->reveal_pii();
+	}
+
+	public function test_reveal_pii_account_email_of_an_unlinked_submission_has_no_value(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['submission_id'] = '5';
+		$_POST['field']         = 'account_email';
+
+		$this->mock_submission( array( 'email' => 'typed@x.com' ) );
+		$policy = $this->mock_pii_policy();
+		$policy->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/No value to reveal/' );
+		$ajax->reveal_pii();
+	}
+
+	public function test_reveal_pii_account_email_is_a_submission_field_only(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = 'appointment';
+		$_POST['submission_id'] = '7';
+		$_POST['field']         = 'account_email';
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/Unsupported field/' );
+		$ajax->reveal_pii();
+	}
+
+	/**
+	 * The listed-account check of the audience type.
+	 *
+	 * @param bool $listed Whether the account is on an audience screen.
+	 * @return void
+	 */
+	private function mock_audience_listing( bool $listed ): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'is_member_of_any' )->andReturn( $listed );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' )
+			->shouldReceive( 'has_any_permission' )->andReturn( false );
+	}
+
+	public function test_reveal_pii_audience_account_returns_the_email_and_audits_under_its_own_action(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = 'audience_account';
+		$_POST['submission_id'] = '7';
+		$_POST['field']         = 'email';
+
+		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_view_audiences' )->once()->andReturn( true );
+		$this->mock_audience_listing( true );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 7, 'user_email' => 'member@x.com' ) );
+
+		$policy = $this->mock_policy_and_audit( 'audience_account_email_revealed', 'email', 7 );
+		// The appointments gate, with the listed account as owner.
+		$policy->shouldReceive( 'resolve' )
+			->with( 'ffc_view_appointments_pii', 'ffc_appointments_admin', 7 )
+			->andReturn( 'reveal' );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected AdminAjaxSuccessException' );
+		} catch ( AdminAjaxSuccessException $e ) {
+			$this->assertSame(
+				array(
+					'field' => 'email',
+					'value' => 'member@x.com',
+				),
+				$e->getData()
+			);
+		}
+	}
+
+	public function test_reveal_pii_audience_account_denied_for_masked_tier(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = 'audience_account';
+		$_POST['submission_id'] = '7';
+		$_POST['field']         = 'email';
+
+		$this->mock_audience_listing( true );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 7, 'user_email' => 'member@x.com' ) );
+		$policy = $this->mock_pii_policy();
+		$policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/permission to reveal/' );
+		$ajax->reveal_pii();
+	}
+
+	public function test_reveal_pii_audience_account_refuses_an_account_no_audience_screen_lists(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = 'audience_account';
+		$_POST['submission_id'] = '1';
+		$_POST['field']         = 'email';
+
+		$this->mock_audience_listing( false );
+		$log = CallLog::record( 'get_userdata', false );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected a 404' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'Record not found', $e->getMessage() );
+		}
+		$this->assertSame( 0, $log->count(), 'the account is not even loaded' );
+	}
+
+	public function test_reveal_pii_audience_account_serves_only_the_email(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = 'audience_account';
+		$_POST['submission_id'] = '7';
+		$_POST['field']         = 'cpf';
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/Unsupported field/' );
 		$ajax->reveal_pii();
 	}
 }

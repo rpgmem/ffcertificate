@@ -29,6 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'The editors', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A calendar is edited in vertical tabs: General, Notifications and Event list & badges, then, once the calendar is saved, its environments (the Environments list of that calendar), User access and Closed dates. One Save button beside the tabs saves the first three together; the shortcode sits beside it.', 'ffcertificate' ); ?> <?php esc_html_e( 'Add New on the Environments tab opens the environment form with that calendar already chosen.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The Members tab and a calendar\'s User access tab show each person\'s account email masked, for everyone. Audiences have no personal-data capability of their own, so revealing it follows the appointments one: administrators, the appointments admin role and holders of ffc_view_appointments_pii get a Reveal button, and every reveal writes an Activity Log entry. The audience roles alone see the email masked.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-note">
 		<p>
