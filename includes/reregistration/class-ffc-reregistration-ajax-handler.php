@@ -64,6 +64,19 @@ final class ReregistrationAjaxHandler {
 	}
 
 	/**
+	 * Whether the current user may generate a submission's Record PDF.
+	 *
+	 * The one check behind both {@see self::ajax_generate_record()} and the
+	 * Record button on the submissions list, so the list never offers a
+	 * button the endpoint then refuses (#1815).
+	 *
+	 * @return bool
+	 */
+	public static function can_generate_record(): bool {
+		return current_user_can( self::CAPABILITY );
+	}
+
+	/**
 	 * AJAX: Generate record PDF data for a submission.
 	 *
 	 * @return void
@@ -71,7 +84,7 @@ final class ReregistrationAjaxHandler {
 	public function ajax_generate_record(): void {
 		check_ajax_referer( 'ffc_generate_ficha', 'nonce' );
 
-		if ( ! current_user_can( self::CAPABILITY ) ) {
+		if ( ! self::can_generate_record() ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
 		}
 

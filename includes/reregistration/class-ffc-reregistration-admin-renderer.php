@@ -252,6 +252,9 @@ final class ReregistrationAdminRenderer {
 		$email_masked   = self::mask_email( (string) ( $sub->user_email ?? '' ) );
 		$reveal_nonce   = $can_reveal_pii ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';
 
+		// The Record button asks the endpoint's own question (#1815).
+		$can_generate_record = ReregistrationAjaxHandler::can_generate_record();
+
 		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/submission-row.php';
 	}
 

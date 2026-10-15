@@ -62,7 +62,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<?php esc_html_e( 'View Details', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
-				<?php if ( in_array( $sub->status, array( 'submitted', 'approved' ), true ) ) : ?>
+				<?php if ( $can_generate_record && in_array( $sub->status, array( 'submitted', 'approved' ), true ) ) : ?>
 					<button type="button" class="button button-small ffc-record-btn" data-submission-id="<?php echo esc_attr( $sub->id ); ?>">
 						<span class="ffc-icon-file ffc-rereg-icon" aria-hidden="true"></span>
 						<?php esc_html_e( 'Record', 'ffcertificate' ); ?>

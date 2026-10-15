@@ -64,6 +64,9 @@ class ReregistrationAdminRendererTest extends TestCase {
 		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'is_email' )->alias( static fn ( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'wp_create_nonce' )->alias( static fn ( $action ) => 'nonce:' . $action );
+		// No capability by default: a view-only user, whom the Record PDF
+		// endpoint refuses.
+		Functions\when( 'current_user_can' )->justReturn( false );
 
 		\Mockery::getConfiguration()->setConstantsMap(
 			array(
@@ -365,7 +368,7 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'maria@example.org', $html, 'The list never prints the email in clear (#1815).' );
 		$this->assertStringContainsString( 'm***@example.org', $html );
 		$this->assertStringNotContainsString( 'return_to_draft', $html, 'A viewer cannot send it back.' );
-		$this->assertStringContainsString( 'ffc-record-btn', $html );
+		$this->assertStringNotContainsString( 'ffc-record-btn', $html, 'A viewer the Record endpoint refuses is not offered the button (#1815).' );
 	}
 
 	// ==================================================================
@@ -454,6 +457,24 @@ class ReregistrationAdminRendererTest extends TestCase {
 
 		$this->assertStringNotContainsString( 'ffc-pii-value', $html );
 		$this->assertStringNotContainsString( 'ffc-reveal-pii', $html );
+	}
+
+	public function test_the_record_button_is_drawn_for_a_manager(): void {
+		$this->submissionReader();
+		Functions\when( 'current_user_can' )->alias( static fn ( $cap ) => 'ffc_manage_reregistration' === $cap );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, true ) );
+
+		$this->assertStringContainsString( 'ffc-record-btn', $html );
+	}
+
+	public function test_the_record_button_is_not_drawn_for_a_view_only_user(): void {
+		$this->submissionReader();
+		Functions\when( 'current_user_can' )->alias( static fn ( $cap ) => 'ffc_view_reregistration' === $cap );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, false ) );
+
+		$this->assertStringNotContainsString( 'ffc-record-btn', $html );
 	}
 
 	public function test_render_submission_row_for_a_submitted_entry_offers_review_actions(): void {
