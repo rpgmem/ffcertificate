@@ -53,7 +53,7 @@ class TabPublicDesign extends SettingsTab {
 	 * Render.
 	 */
 	public function render(): void {
-		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-public-design.php';
+		$view_file = $this->view_path( 'ffc-tab-public-design.php' );
 
 		if ( file_exists( $view_file ) ) {
 			include $view_file;
