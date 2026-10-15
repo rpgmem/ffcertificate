@@ -42,15 +42,8 @@ class UserDashboardActivatorTest extends TestCase {
 		class_exists( '\FreeFormCertificate\UserDashboard\UserDashboardActivator' );
 		class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' );
 
-		// A stub upgrade.php for the require_once in each table method.
-		$upgrade_dir = ABSPATH . 'wp-admin/includes';
-		if ( ! is_dir( $upgrade_dir ) ) {
-			mkdir( $upgrade_dir, 0755, true );
-		}
-		$upgrade_file = $upgrade_dir . '/upgrade.php';
-		if ( ! file_exists( $upgrade_file ) ) {
-			file_put_contents( $upgrade_file, "<?php\n// Stub for unit tests.\n" );
-		}
+		// ABSPATH and the upgrade.php each table method requires come from
+		// the bootstrap (tests/Support/UpgradeStub.php, #1803).
 
 		global $wpdb;
 		$wpdb                   = Mockery::mock( 'wpdb' )->makePartial();

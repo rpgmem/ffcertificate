@@ -34,15 +34,8 @@ class UrlShortenerActivatorTest extends TestCase {
 
 		$this->wpdb = $wpdb;
 
-		// Ensure the upgrade.php stub file exists for require_once in create_tables()
-		$upgrade_dir = ABSPATH . 'wp-admin/includes';
-		if ( ! is_dir( $upgrade_dir ) ) {
-			mkdir( $upgrade_dir, 0755, true );
-		}
-		$upgrade_file = $upgrade_dir . '/upgrade.php';
-		if ( ! file_exists( $upgrade_file ) ) {
-			file_put_contents( $upgrade_file, "<?php\n// Stub for unit tests.\n" );
-		}
+		// ABSPATH and the upgrade.php create_tables() requires come from the
+		// bootstrap (tests/Support/UpgradeStub.php, #1803).
 
 		// This activator's chain became guarded by `FFC_VERSION` (#1231), so it
 		// reads and writes a version option. The value returned here is
