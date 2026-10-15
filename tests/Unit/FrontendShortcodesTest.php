@@ -73,10 +73,6 @@ class FrontendShortcodesTest extends TestCase {
 			}
 		);
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		$this->shortcodes = new Shortcodes();
 	}
 
@@ -204,24 +200,14 @@ class FrontendShortcodesTest extends TestCase {
 	public function test_render_verification_page_includes_template_when_no_token(): void {
 		unset( $_GET['token'] );
 
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', '/tmp/ffc_test_dir/' );
-		}
-
-		// Create a minimal template file
-		@mkdir( '/tmp/ffc_test_dir/templates', 0777, true );
-		file_put_contents( '/tmp/ffc_test_dir/templates/verification-page.php', '<div class="ffc-verification-form">FORM</div>' );
-
+		// `tests/bootstrap.php` points FFC_PLUGIN_DIR at the repository, so
+		// this renders the shipped `templates/verification-page.php`.
 		Functions\when( 'wp_rand' )->justReturn( 2 );
 		Functions\when( 'wp_hash' )->justReturn( 'hash' );
 
 		$html = $this->shortcodes->render_verification_page( array() );
 
 		$this->assertStringContainsString( 'ffc-verification-form', $html );
-
-		// Cleanup
-		@unlink( '/tmp/ffc_test_dir/templates/verification-page.php' );
-		@rmdir( '/tmp/ffc_test_dir/templates' );
 	}
 
 	// ==================================================================

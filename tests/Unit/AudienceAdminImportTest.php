@@ -63,10 +63,6 @@ class AudienceAdminImportTest extends TestCase {
 		// doesn't fatal under Brain\Monkey.
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';

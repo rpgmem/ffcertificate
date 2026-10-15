@@ -39,9 +39,6 @@ class ReregistrationCustomFieldsPageTest extends TestCase {
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/admin.php' );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 	}
 
 	protected function tearDown(): void {

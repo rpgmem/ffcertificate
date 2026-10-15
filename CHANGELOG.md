@@ -48,6 +48,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience member counts agree with the members table** (#1795). The audiences list, the editor's Members tab and the "Current Members" heading all count only member rows whose WordPress user still exists, which are the rows the table renders.
 - **`ActivityLogTest` no longer depends on test order** (#1798). `create_table()` always runs `dbDelta()`, so the class stubs it in `setUp()`; one test had reached the bootstrap no-op, which fails with "not defined nor mocked" once a stubbing class runs first.
 - **One writer for the test `upgrade.php` stub** (#1803). `tests/Support/UpgradeStub.php`, called by the bootstrap, writes it and always declares `dbDelta()`; four activator tests that could write an empty copy no longer do, and `UpgradeStubOwnerTest` refuses another writer under `tests/`.
+- **Tests no longer claim to run against `/tmp/`** (#1806). 37 unit tests dropped an `ABSPATH` define the bootstrap had already made, and two template tests dropped a fixture under the shared `/tmp/ffc_test_dir` that nothing read: they render the shipped templates.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 

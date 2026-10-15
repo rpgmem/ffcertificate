@@ -51,9 +51,6 @@ class SelfSchedulingCPTTest extends TestCase {
 		Functions\when( 'wp_safe_redirect' )->justReturn( true );
 		Functions\when( 'wp_is_post_revision' )->justReturn( false );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 	}
 
 	protected function tearDown(): void {

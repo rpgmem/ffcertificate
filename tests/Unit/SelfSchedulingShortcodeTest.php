@@ -69,9 +69,6 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		Functions\when( 'nocache_headers' )->justReturn( null );
 		Functions\when( 'do_action' )->justReturn( null );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
 			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
 		}

@@ -50,10 +50,6 @@ class AudienceAdminBookingsTest extends TestCase {
 		// real capability API.
 		Functions\when( 'current_user_can' )->justReturn( false );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';

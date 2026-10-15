@@ -50,10 +50,6 @@ class VerificationResponseRendererTest extends TestCase {
 			return false !== filter_var( (string) $email, FILTER_VALIDATE_EMAIL );
 		} );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		$this->renderer = new VerificationResponseRenderer();
 	}
 
@@ -311,20 +307,8 @@ class VerificationResponseRendererTest extends TestCase {
 	// ==================================================================
 
 	public function test_format_verification_response_renders_certificate(): void {
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', '/tmp/ffc_test_dir/' );
-		}
-
-		// Create a minimal template
-		@mkdir( '/tmp/ffc_test_dir/templates', 0777, true );
-		file_put_contents(
-			'/tmp/ffc_test_dir/templates/certificate-preview.php',
-			'<div class="ffc-certificate-preview">'
-			. '<span class="ffc-auth-code"><?php echo esc_html( $display_code ); ?></span>'
-			. '<span class="ffc-form-title"><?php echo esc_html( $form_title ); ?></span>'
-			. '</div>'
-		);
-
+		// `tests/bootstrap.php` points FFC_PLUGIN_DIR at the repository, so
+		// this renders the shipped `templates/certificate-preview.php`.
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Certificate' ) );
 
 		$submission = (object) array(
@@ -341,9 +325,6 @@ class VerificationResponseRendererTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-certificate-preview', $html );
 		$this->assertStringContainsString( 'My Certificate', $html );
-
-		// Cleanup
-		@unlink( '/tmp/ffc_test_dir/templates/certificate-preview.php' );
 	}
 
 	// ==================================================================

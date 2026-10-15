@@ -63,9 +63,6 @@ class ReregistrationFormTemplateTest extends TestCase {
 		$wpdb->shouldReceive( 'get_col' )->andReturn( array() );
 		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
 			define( 'FFC_PLUGIN_DIR', dirname( __DIR__, 2 ) . '/' );
 		}

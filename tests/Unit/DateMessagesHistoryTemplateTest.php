@@ -32,9 +32,6 @@ class DateMessagesHistoryTemplateTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 		foreach ( array( '__', 'esc_html', 'esc_attr', 'esc_url' ) as $fn ) {
 			Functions\when( $fn )->returnArg();
 		}

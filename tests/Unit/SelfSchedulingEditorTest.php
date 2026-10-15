@@ -65,9 +65,6 @@ class SelfSchedulingEditorTest extends TestCase {
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
 			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
 		}

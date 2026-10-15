@@ -45,10 +45,6 @@ class SubmissionsListTest extends TestCase {
 		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
 		Functions\when( 'get_option' )->justReturn( 'Y-m-d H:i' );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		// SubmissionsList extends WP_List_Table which needs $wpdb.
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();

@@ -52,9 +52,6 @@ class ReregistrationAdminTest extends TestCase {
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'get_option' )->justReturn( 'Y-m-d' );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
 			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
 		}
