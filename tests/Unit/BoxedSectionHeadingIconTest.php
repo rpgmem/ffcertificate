@@ -31,7 +31,6 @@ class BoxedSectionHeadingIconTest extends TestCase {
 		'includes/admin/class-ffc-admin-user-capabilities.php'          => 'profile / user-edit: a WordPress core screen',
 		'includes/admin/class-ffc-admin-user-columns.php'               => 'users.php: a WordPress core screen',
 		'includes/admin/class-ffc-admin-user-custom-fields.php'         => 'profile / user-edit: a WordPress core screen',
-		'includes/self-scheduling/views/appointments-list.php'          => 'the details dialog borrows the core postbox header',
 		// Not wp-admin at all: the public site, e-mail bodies, the PDF, and
 		// the text WordPress's privacy guide prints.
 		'includes/audience/class-ffc-audience-notification-handler.php' => 'an e-mail body',
@@ -48,7 +47,8 @@ class BoxedSectionHeadingIconTest extends TestCase {
 	 * Files whose heading carries its icon in a way a class scan cannot read.
 	 */
 	private const ICON_NOT_IN_CLASS = array(
-		'includes/admin/class-ffc-form-editor-metabox-renderer.php' => 'the icon is a child span (`ffc-form-tabs__icon`) of the panel title',
+		// AdminUI::render_vertical_tabs(), shared by the form and calendar editors since #1761.
+		'includes/admin/class-ffc-admin-ui.php'                     => 'the icon is a child span (`ffc-form-tabs__icon`) of the panel title',
 		'templates/admin/date-messages/page.php'                    => 'the class is the tab\'s icon, read from a static map',
 	);
 

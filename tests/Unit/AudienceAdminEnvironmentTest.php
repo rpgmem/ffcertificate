@@ -903,7 +903,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-scheduling-environments', $output, 'no link is left on the previous slug' );
 
 		// The filter: a GET form that stays on the view, the calendar select and its Filter button.
-		$this->assertMatchesRegularExpression( '/<form method="get" class="ffc-filter-form">\s*<input type="hidden" name="page" value="ffc-scheduling-calendars">\s*<input type="hidden" name="view" value="environments">\s*<select name="schedule_id">/', $output );
+		$this->assertMatchesRegularExpression( '/<div class="tablenav top">\s*<form method="get">\s*<input type="hidden" name="page" value="ffc-scheduling-calendars">\s*<input type="hidden" name="view" value="environments">\s*<select name="schedule_id">/', $output );
 		$this->assertStringContainsString( '<option value="">All Calendars</option>', $output );
 		$this->assertSame( array( array( 'Filter', 'secondary', 'filter' ) ), $buttons );
 
@@ -913,5 +913,79 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 		// The view switch, with Environments current.
 		$this->assertMatchesRegularExpression( '/<ul class="subsubsub">.*href="admin\.php\?page=ffc-scheduling-calendars">Calendars<\/a>.*href="' . preg_quote( $view, '/' ) . '" class="current" aria-current="page">Environments<\/a>/s', $output );
+	}
+
+	/**
+	 * Edit-screen tiers (#1777): view-only renders read-only, manage edits.
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public function edit_screen_tiers(): array {
+		return array(
+			'view-only tier' => array( array( 'ffc_view_audiences' ), false ),
+			'manage tier'    => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true ),
+		);
+	}
+
+	/**
+	 * Record each submit button as a marker carrying its label.
+	 */
+	private function capture_submit_buttons(): void {
+		Functions\when( 'submit_button' )->alias(
+			static function ( $text = null ) {
+				echo '[submit:' . $text . ']';
+			}
+		);
+	}
+
+	/**
+	 * @dataProvider edit_screen_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_manage Whether the screen is editable.
+	 */
+	public function test_edit_form_renders_read_only_without_manage( array $caps, bool $can_manage ): void {
+		$this->grant( $caps );
+		$this->capture_submit_buttons();
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '7';
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_by_id' )->with( 7 )->andReturn(
+			(object) array(
+				'id'            => 7,
+				'schedule_id'   => 2,
+				'name'          => 'My Room',
+				'description'   => 'desc',
+				'color'         => '#abcdef',
+				'status'        => 'active',
+				'working_hours' => '',
+			)
+		);
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array( (object) array( 'id' => 2, 'name' => 'Cal', 'status' => 'active' ) ) );
+		$schedRepo->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 2, 'name' => 'Cal', 'status' => 'active' ) );
+
+		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
+		ob_start();
+		$page->render_view();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'My Room', $output, 'every tier sees the record' );
+		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '[submit:Update Room]' ) );
+		if ( ! $can_manage ) {
+			$open  = (int) strpos( $output, '<fieldset disabled' );
+			$close = (int) strpos( $output, '</fieldset>' );
+			foreach ( array( 'name="environment_schedule"', 'name="environment_name"', 'name="working_hours[sun][closed]"', 'name="environment_status"' ) as $field ) {
+				$at = (int) strpos( $output, $field );
+				$this->assertTrue( $at > $open && $at < $close, $field . ' sits inside the lock' );
+			}
+		}
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
 	}
 }

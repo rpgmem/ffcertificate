@@ -188,6 +188,16 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-boxed', $output, 'the list stays a plain list-table screen' );
 	}
 
+	public function test_list_title_matches_the_menu_label(): void {
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = ob_get_clean();
+
+		// The submenu item reads "Audience Calendars" (#1787).
+		$this->assertStringContainsString( '<h1 class="wp-heading-inline">Audience Calendars</h1>', $output );
+	}
+
 	// ==================================================================
 	// render_list() — with calendars
 	// ==================================================================
@@ -324,11 +334,13 @@ class AudienceAdminCalendarTest extends TestCase {
 				'status'                 => 'active',
 			)
 		);
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
 		$schedRepo->shouldReceive( 'get_all_permissions' )->with( 5 )->andReturn(
 			array( (object) array( 'user_id' => 7, 'can_book' => 1, 'can_cancel_others' => 0, 'can_override_conflicts' => 1 ) )
 		);
 
 		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_all' )->andReturn( array() ); // The Environments tab (#1761).
 		$envRepo->shouldReceive( 'get_holidays' )->with( 5 )->andReturn(
 			array( (object) array( 'id' => 3, 'holiday_date' => '2026-12-25', 'description' => 'Christmas' ) )
 		);
@@ -346,12 +358,32 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringContainsString( 'Christmas', $output );
 		$this->assertStringContainsString( '25/12/2026', $output );
 
-		// #1627: a boxed screen, one `.card` per section, each heading with its icon.
+		// #1761: a boxed screen of vertical tabs, each panel titled with its
+		// icon, and the Save and Shortcode cards beside them.
 		$this->assertStringContainsString( 'ffc-page-scheduling-calendars ffc-boxed', $output );
-		foreach ( array( 'ffc-icon-calendar">Calendar', 'ffc-icon-users">User Access &amp; Permissions', 'ffc-icon-lock">Holidays / Closed Dates' ) as $heading ) {
-			$this->assertMatchesRegularExpression( '/<div class="card">\s*<h2 class="' . preg_quote( $heading, '/' ) . '/', str_replace( 'User Access & Permissions', 'User Access &amp; Permissions', $output ) );
+		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
+		$this->assertSame( array( 'general', 'notifications', 'event-list', 'environments', 'user-access', 'closed-dates' ), $panels[1] );
+		preg_match_all( '/<a href="#ffc-tab-([a-z-]+)" id="ffc-tabnav-\1"/', $output, $nav );
+		$this->assertSame( $panels[1], $nav[1], 'one tab per panel, in order' );
+		foreach ( array( 'calendar">General', 'email">Notifications', 'list">Event list & badges', 'building">Rooms', 'users">User access', 'lock">Closed dates' ) as $title ) {
+			$this->assertStringContainsString( '<h2 class="ffc-form-tabs__panel-title ffc-icon-' . $title . '</h2>', $output );
+		}
+		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-form-tabs__panel is-active"', $output, 'General opens first' );
+		$this->assertMatchesRegularExpression( '/<div class="ffc-aud-editor__side">\s*<div class="card">\s*<h2 class="ffc-icon-checkmark">Save<\/h2>/', $output );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-code">Shortcode</h2>', $output );
+
+		// One form across the first three panels; the other three outside it.
+		$form_open  = (int) strpos( $output, '<form method="post" action="" class="ffc-form" id="ffc-schedule-form">' );
+		$form_close = (int) strpos( $output, '</form>', $form_open );
+		foreach ( array( 'general', 'notifications', 'event-list' ) as $inside ) {
+			$at = (int) strpos( $output, 'id="ffc-tabpanel-' . $inside . '"' );
+			$this->assertTrue( $at > $form_open && $at < $form_close, $inside . ' sits inside the calendar form' );
+		}
+		foreach ( array( 'environments', 'user-access', 'closed-dates' ) as $outside ) {
+			$this->assertGreaterThan( $form_close, (int) strpos( $output, 'id="ffc-tabpanel-' . $outside . '"' ), $outside . ' sits after it' );
 		}
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+		$this->assertSame( substr_count( $output, '<section' ), substr_count( $output, '</section>' ), 'every panel is closed' );
 		$this->assertStringNotContainsString( '<hr>', $output, 'boxes replace the separators' );
 		unset( $_GET['action'], $_GET['id'] );
 	}
@@ -368,9 +400,11 @@ class AudienceAdminCalendarTest extends TestCase {
 		$schedRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
 			(object) array( 'id' => 5, 'name' => 'Empty Cal', 'status' => 'active' )
 		);
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
 		$schedRepo->shouldReceive( 'get_all_permissions' )->with( 5 )->andReturn( array() );
 
 		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_all' )->andReturn( array() ); // The Environments tab (#1761).
 		$envRepo->shouldReceive( 'get_holidays' )->with( 5 )->andReturn( array() );
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
@@ -696,5 +730,191 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->page_with_environments()->handle_actions();
 		$this->assertSame( 0, $nonces->count(), 'no calendar action was attempted' );
 		$this->assertSame( 0, $notices->count(), 'no calendar notice was raised' );
+	}
+
+	/**
+	 * Edit-screen tiers (#1777): view-only renders read-only, manage edits.
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public function edit_screen_tiers(): array {
+		return array(
+			'view-only tier' => array( array( 'ffc_view_audiences' ), false ),
+			'manage tier'    => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true ),
+		);
+	}
+
+	/**
+	 * Record each submit button as a marker carrying its label.
+	 */
+	private function capture_submit_buttons(): void {
+		Functions\when( 'submit_button' )->alias(
+			static function ( $text = null ) {
+				echo '[submit:' . $text . ']';
+			}
+		);
+	}
+
+	/**
+	 * @dataProvider edit_screen_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_manage Whether the screen is editable.
+	 */
+	public function test_edit_form_renders_read_only_without_manage( array $caps, bool $can_manage ): void {
+		$this->grant( $caps );
+		$this->capture_submit_buttons();
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '5';
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'get_userdata' )->alias(
+			static fn( $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
+		);
+
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
+			(object) array( 'id' => 5, 'name' => 'Cal Five', 'status' => 'active', 'visibility' => 'public' )
+		);
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
+		$schedRepo->shouldReceive( 'get_all_permissions' )->with( 5 )->andReturn(
+			array( (object) array( 'user_id' => 7, 'can_book' => '1', 'can_cancel_others' => '0', 'can_override_conflicts' => '1' ) )
+		);
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_all' )->andReturn( array() ); // The Environments tab (#1761).
+		$envRepo->shouldReceive( 'get_holidays' )->with( 5 )->andReturn(
+			array( (object) array( 'id' => 3, 'holiday_date' => '2026-12-25', 'description' => 'Christmas' ) )
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )->shouldReceive( 'format_wallclock_date' )->andReturn( '25/12/2026' );
+
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		// Every tier sees the record, its grants and its holidays.
+		$this->assertStringContainsString( 'Cal Five', $output );
+		$this->assertStringContainsString( 'User7', $output );
+		$this->assertStringContainsString( 'Christmas', $output );
+
+		// The calendar form: fields locked and no save without manage.
+		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '[submit:Update Calendar]' ) );
+		if ( ! $can_manage ) {
+			$open  = (int) strpos( $output, '<fieldset disabled' );
+			$close = (int) strpos( $output, '</fieldset>' );
+			foreach ( array( 'name="schedule_name"', 'name="schedule_visibility"', 'name="schedule_notify_booking"', 'name="schedule_admin_emails"', 'name="schedule_status"' ) as $field ) {
+				$at = (int) strpos( $output, $field );
+				$this->assertTrue( $at > $open && $at < $close, $field . ' sits inside the lock' );
+			}
+		}
+
+		// User Access & Permissions: no search, add, toggle wiring or Remove.
+		foreach ( array( 'id="ffc-user-search"', 'id="ffc-add-user-btn"', 'id="ffc-permissions-table"', 'ffc-perm-toggle', 'ffc-remove-user-btn' ) as $control ) {
+			$this->assertSame( $can_manage, str_contains( $output, $control ), $control );
+		}
+		$this->assertSame( ! $can_manage, str_contains( $output, 'ffc-permissions-read-only' ) );
+		if ( ! $can_manage ) {
+			$this->assertSame( 3, preg_match_all( '/name="ffc_perm_7_[a-z_]+" value="1"( checked)? disabled/', $output ), 'each grant is a disabled toggle' );
+			$this->assertSame( 2, preg_match_all( '/name="ffc_perm_7_[a-z_]+" value="1" checked disabled/', $output ), 'the stored grants stay visible' );
+		}
+
+		// Holidays: no add form and no Delete.
+		$this->assertSame( $can_manage, str_contains( $output, 'ffc-holiday-form' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '[submit:Add Holiday]' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'Delete this holiday?' ) );
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+
+		// The Save card (#1761) exists only where the button did.
+		$this->assertSame( $can_manage, str_contains( $output, '<h2 class="ffc-icon-checkmark">Save</h2>' ) );
+		if ( ! $can_manage ) {
+			// The lock spans the three panels of the calendar form.
+			$open  = (int) strpos( $output, '<fieldset disabled' );
+			$close = (int) strpos( $output, '</fieldset>' );
+			foreach ( array( 'general', 'notifications', 'event-list' ) as $panel ) {
+				$at = (int) strpos( $output, 'id="ffc-tabpanel-' . $panel . '"' );
+				$this->assertTrue( $at > $open && $at < $close, $panel . ' sits inside the lock' );
+			}
+		}
+	}
+
+	/**
+	 * Which tab the editor opens: `?tab=` when it names a tab, Closed dates
+	 * after a holiday is added or deleted, else General.
+	 *
+	 * @return array<string, array{0: array<string, string>, 1: array<string, string>, 2: string}>
+	 */
+	public function opening_tabs(): array {
+		return array(
+			'plain edit URL'           => array( array(), array(), 'general' ),
+			'?tab= names a tab'        => array( array( 'tab' => 'user-access' ), array(), 'user-access' ),
+			'?tab= names no tab'       => array( array( 'tab' => 'nope' ), array(), 'general' ),
+			'holiday deleted redirect' => array( array( 'message' => 'holiday_deleted' ), array(), 'closed-dates' ),
+			'add-holiday POST'         => array( array(), array( 'ffc_action' => 'add_holiday' ), 'closed-dates' ),
+			'save POST'                => array( array(), array( 'ffc_action' => 'save_schedule' ), 'general' ),
+		);
+	}
+
+	/**
+	 * @dataProvider opening_tabs
+	 *
+	 * @param array<string, string> $get    Query arguments.
+	 * @param array<string, string> $post   Posted fields.
+	 * @param string                $opened Tab expected open.
+	 */
+	public function test_editor_opens_the_tab_the_request_names( array $get, array $post, string $opened ): void {
+		$_GET  = array_merge( array( 'page' => 'ffc-scheduling-calendars', 'action' => 'edit', 'id' => '5' ), $get );
+		$_POST = $post;
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'esc_attr__' )->returnArg();
+		$sched = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$sched->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 5, 'name' => 'Cal', 'status' => 'active' ) );
+		$sched->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+		$sched->shouldReceive( 'get_all_permissions' )->andReturn( array() );
+		$env = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$env->shouldReceive( 'get_all' )->andReturn( array() );
+		$env->shouldReceive( 'get_holidays' )->andReturn( array() );
+
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+		$_POST  = array();
+
+		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)" class="ffc-form-tabs__panel is-active"/', $output, $open );
+		$this->assertSame( array( $opened ), $open[1] );
+		preg_match_all( '/aria-selected="true"/', $output, $selected );
+		$this->assertCount( 1, $selected[0], 'one tab selected' );
+	}
+
+	public function test_new_calendar_has_the_three_form_tabs_and_a_save_card(): void {
+		$_GET['action'] = 'new';
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'submit_button' )->alias(
+			static function ( $text = null, $type = 'primary', $name = 'submit', $wrap = true, $other = null ) {
+				echo '[submit:' . $text . '|' . $name . '|form=' . ( is_array( $other ) ? ( $other['form'] ?? '' ) : '' ) . ']';
+			}
+		);
+		$sched = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$sched->shouldNotReceive( 'get_environment_label' );
+
+		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
+		$this->assertSame( array( 'general', 'notifications', 'event-list' ), $panels[1], 'the sections that need a saved calendar wait for one' );
+		$this->assertStringContainsString( 'id="ffc-schedule-form"', $output );
+		$this->assertStringContainsString( '[submit:Create Calendar|submit|form=ffc-schedule-form]', $output, 'the side button posts the calendar form' );
+		$this->assertStringNotContainsString( 'ffc-icon-code', $output, 'no shortcode before the calendar exists' );
+		$this->assertStringNotContainsString( 'Calendar ID', $output );
 	}
 }

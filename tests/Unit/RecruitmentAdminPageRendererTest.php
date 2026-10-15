@@ -242,7 +242,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_settings_tab() );
 
 		$this->assertStringContainsString( 'Read-only', $out );
-		$this->assertStringContainsString( 'fieldset disabled', $out );
+		$this->assertStringContainsString( '<fieldset disabled class="ffc-readonly-lock">', $out );
 		$this->assertStringNotContainsString( '<button>save</button>', $out );
 	}
 
