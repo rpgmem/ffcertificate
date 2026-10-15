@@ -504,6 +504,44 @@ class AudienceAdminAudienceTest extends TestCase {
 		unset( $_GET['action'], $_GET['id'] );
 	}
 
+	public function test_members_tab_and_heading_count_only_the_rows_the_table_renders(): void {
+		// User 9 was deleted but its member row survived: the table skips it,
+		// and the tab label and the card heading both read the count the
+		// audiences list shows, which skips it too (#1795).
+		$_GET['action'] = 'members';
+		$_GET['id']     = '5';
+		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
+		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'get_user_by' )->alias(
+			static fn( $field, $id ) => 9 === $id ? false : (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
+		);
+		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
+		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
+		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_children' )->andReturn( array() );
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
+		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp' ) );
+		$repo->shouldReceive( 'get_members' )->with( 5 )->andReturn( array( 7, 8, 9 ) );
+		$repo->shouldReceive( 'get_member_count' )->with( 5 )->andReturn( 2 );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'Members (2)', $output, 'the tab label' );
+		$this->assertStringContainsString( 'Current Members (2)', $output, 'the card heading' );
+		$this->assertStringNotContainsString( '(3)', $output, 'the orphan row is counted nowhere' );
+		$this->assertSame( 2, substr_count( $output, '@e.com' ), 'the table renders the two users that exist' );
+		unset( $_GET['action'], $_GET['id'] );
+	}
+
 	/**
 	 * Which tab the editor opens: `?tab=` when it names a tab, the Members
 	 * tab after a member is added or removed, else Audience.
