@@ -64,7 +64,7 @@ class TabCertificates extends SettingsTab {
 	 * Render the tab.
 	 */
 	public function render(): void {
-		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-certificates.php';
+		$view_file = $this->view_path( 'ffc-tab-certificates.php' );
 
 		if ( file_exists( $view_file ) ) {
 			include $view_file;
