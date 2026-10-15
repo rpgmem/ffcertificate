@@ -219,7 +219,7 @@ class FormEditorMetaboxRendererTest extends TestCase {
 		$this->assertStringContainsString( 'aria-selected="false"', $output );
 
 		// Registry icons are present in the nav and in each panel title.
-		$this->assertStringContainsString( 'ffc-form-tabs__icon ffc-icon-file', $output );
+		$this->assertStringContainsString( 'ffc-vtabs__icon ffc-icon-file', $output );
 		$this->assertStringNotContainsString( 'dashicons', $output );
 	}
 

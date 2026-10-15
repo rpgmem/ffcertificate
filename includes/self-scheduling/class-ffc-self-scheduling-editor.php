@@ -111,7 +111,7 @@ class SelfSchedulingEditor {
 
 		// The vertical tabs the settings are split into (#1761) and the
 		// collapsible `.ffc-section` the Emails tab still holds (#1629), both
-		// components of this sheet. The tab script is the form editor's: it
+		// components of this sheet. The tab script is the shared one: it
 		// switches panels, draws the state dots, and opens the tab holding a
 		// field the browser rejects; the sections script does the same for a
 		// closed section and keeps its chips live.
@@ -121,13 +121,7 @@ class SelfSchedulingEditor {
 			array( 'ffc-common' ),
 			FFC_VERSION
 		);
-		wp_enqueue_script(
-			'ffc-form-editor-tabs',
-			FFC_PLUGIN_URL . "assets/js/ffc-form-editor-tabs{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		AdminUI::enqueue_vertical_tabs();
 		wp_enqueue_script(
 			'ffc-admin-sections',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-sections{$s}.js",

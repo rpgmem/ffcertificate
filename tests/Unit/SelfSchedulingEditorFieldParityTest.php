@@ -295,7 +295,7 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 		$html = $this->render_normal_column();
 
 		$this->assertSame( 1, substr_count( $html, 'name="ffc_self_scheduling_config_nonce"' ) );
-		$this->assertSame( 1, substr_count( $html, 'data-ffc-form-tabs' ) );
+		$this->assertSame( 1, substr_count( $html, 'data-ffc-vtabs' ) );
 
 		$keys = array( 'calendar', 'slots', 'window', 'cancellation', 'approval', 'access', 'bypass', 'emails' );
 		if ( array() !== $meta ) {

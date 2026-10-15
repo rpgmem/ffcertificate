@@ -836,7 +836,7 @@
 
 /* ==========================================================================
    VERTICAL TABS — WooCommerce "Product data" style.
-   Mirrors the certificate form-editor tabs pattern (.ffc-form-tabs__*),
+   Mirrors the shared vertical-tab component (.ffc-vtabs__*),
    keeping the page-reload save model: only the active tab renders in the
    DOM; clicking a tab follows the `?tab=<id>` link.
    ========================================================================== */
