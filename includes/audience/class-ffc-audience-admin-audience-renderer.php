@@ -197,7 +197,7 @@ final class AudienceAdminAudienceRenderer {
 			array(
 				'key'   => 'audience',
 				'label' => __( 'Audience', 'ffcertificate' ),
-				'icon'  => 'users',
+				'icon'  => 'ffc-icon-users',
 			),
 		);
 		if ( $id > 0 ) {
@@ -205,13 +205,13 @@ final class AudienceAdminAudienceRenderer {
 				'key'   => 'members',
 				/* translators: %d: number of members, as the audiences list counts them */
 				'label' => sprintf( __( 'Members (%d)', 'ffcertificate' ), AudienceReader::get_member_count( $id ) ),
-				'icon'  => 'user-check',
+				'icon'  => 'ffc-icon-user-check',
 			);
 			if ( self::can_view_custom_fields() ) {
 				$tabs[] = array(
 					'key'   => 'fields',
 					'label' => __( 'Reregistration fields', 'ffcertificate' ),
-					'icon'  => 'clipboard',
+					'icon'  => 'ffc-icon-clipboard',
 				);
 			}
 		}

@@ -264,34 +264,34 @@ class AudienceAdminCalendar {
 			array(
 				'key'   => 'general',
 				'label' => __( 'General', 'ffcertificate' ),
-				'icon'  => 'calendar',
+				'icon'  => 'ffc-icon-calendar',
 			),
 			array(
 				'key'   => 'notifications',
 				'label' => __( 'Notifications', 'ffcertificate' ),
-				'icon'  => 'email',
+				'icon'  => 'ffc-icon-email',
 			),
 			array(
 				'key'   => 'event-list',
 				'label' => __( 'Event list & badges', 'ffcertificate' ),
-				'icon'  => 'list',
+				'icon'  => 'ffc-icon-list',
 			),
 		);
 		if ( $id > 0 ) {
 			$tabs[] = array(
 				'key'   => 'environments',
 				'label' => AudienceScheduleRepository::get_environment_label( $id ),
-				'icon'  => 'building',
+				'icon'  => 'ffc-icon-building',
 			);
 			$tabs[] = array(
 				'key'   => 'user-access',
 				'label' => __( 'User access', 'ffcertificate' ),
-				'icon'  => 'users',
+				'icon'  => 'ffc-icon-users',
 			);
 			$tabs[] = array(
 				'key'   => 'closed-dates',
 				'label' => __( 'Closed dates', 'ffcertificate' ),
-				'icon'  => 'lock',
+				'icon'  => 'ffc-icon-lock',
 			);
 		}
 		// A holiday added or deleted lands back on its own tab.

@@ -249,19 +249,20 @@
  * An editor that splits its settings into tabs renders them inside one
  * wrapper metabox (AdminUI::render_vertical_tabs()): a vertical nav on the
  * left and stacked panels on the right. The certificate form editor drew it
- * first; the personal calendar editor shares it (#1761), which is why it
- * lives here rather than in ffc-admin.css, a sheet that screen does not load.
- * Panel hiding is gated on `.is-ready`, which ffc-form-editor-tabs.js adds
+ * first; the personal calendar, audience calendar and audience editors share
+ * it (#1761), which is why it lives here rather than in ffc-admin.css, and
+ * why it is named for the family rather than for the first screen (#1788).
+ * Panel hiding is gated on `.is-ready`, which ffc-vertical-tabs.js adds
  * once it wires the tab behaviour — so without JS the screen degrades to
  * fully-visible stacked panels (the pre-tabs layout).
  * ========================================================================= */
-.ffc-form-tabs {
+.ffc-vtabs {
     display: flex;
     align-items: flex-start;
     margin: 0 -12px -12px;
 }
 
-.ffc-form-tabs__nav {
+.ffc-vtabs__nav {
     flex: 0 0 200px;
     margin: 0;
     padding: 0;
@@ -270,11 +271,11 @@
     border-right: 1px solid var(--ffc-border-light);
 }
 
-.ffc-form-tabs__nav-item {
+.ffc-vtabs__nav-item {
     margin: 0;
 }
 
-.ffc-form-tabs__tab {
+.ffc-vtabs__tab {
     display: flex;
     align-items: center;
     gap: var(--ffc-spacing-sm);
@@ -287,51 +288,51 @@
     border-bottom: 1px solid var(--ffc-border-light);
 }
 
-.ffc-form-tabs__tab:hover {
+.ffc-vtabs__tab:hover {
     background: var(--ffc-bg-card);
     color: var(--ffc-link-hover);
 }
 
-.ffc-form-tabs__tab:focus {
+.ffc-vtabs__tab:focus {
     color: var(--ffc-link-hover);
     box-shadow: none;
 }
 
-.ffc-form-tabs__tab:focus-visible {
+.ffc-vtabs__tab:focus-visible {
     outline: 2px solid var(--ffc-primary);
     outline-offset: -2px;
 }
 
-.ffc-form-tabs__tab .ffc-form-tabs__icon {
+.ffc-vtabs__tab .ffc-vtabs__icon {
     flex: 0 0 auto;
     font-size: var(--ffc-font-size-lg);
     color: var(--ffc-text-muted);
 }
 
-.ffc-form-tabs__icon::before {
+.ffc-vtabs__icon::before {
     margin-right: 0;
 }
 
-.ffc-form-tabs__tab.is-active {
+.ffc-vtabs__tab.is-active {
     background: var(--ffc-bg-card);
     color: var(--ffc-primary);
     border-left-color: var(--ffc-primary);
 }
 
-.ffc-form-tabs__tab.is-active .ffc-form-tabs__icon {
+.ffc-vtabs__tab.is-active .ffc-vtabs__icon {
     color: var(--ffc-primary);
 }
 
 /* Validation-error signalling — wired on in a later sprint. */
-.ffc-form-tabs__tab.has-error {
+.ffc-vtabs__tab.has-error {
     color: var(--ffc-danger);
 }
 
-.ffc-form-tabs__tab.has-error .ffc-form-tabs__icon {
+.ffc-vtabs__tab.has-error .ffc-vtabs__icon {
     color: var(--ffc-danger);
 }
 
-.ffc-form-tabs__error-dot {
+.ffc-vtabs__error-dot {
     width: 8px;
     height: 8px;
     margin-left: auto;
@@ -344,7 +345,7 @@
  * filled one while it is on. The tab also carries the state as screen-reader
  * text, so the colour is never the only signal. An error dot replaces it.
  */
-.ffc-form-tabs__state {
+.ffc-vtabs__state {
     flex: 0 0 auto;
     width: 8px;
     height: 8px;
@@ -354,28 +355,28 @@
     box-sizing: border-box;
 }
 
-.ffc-form-tabs__tab.is-on .ffc-form-tabs__state {
+.ffc-vtabs__tab.is-on .ffc-vtabs__state {
     border-color: var(--ffc-success);
     background: var(--ffc-success);
 }
 
 /* On, but a field the feature needs is still empty (#1755). */
-.ffc-form-tabs__tab.is-pending .ffc-form-tabs__state {
+.ffc-vtabs__tab.is-pending .ffc-vtabs__state {
     border-color: var(--ffc-warning);
     background: var(--ffc-warning);
 }
 
-.ffc-form-tabs__tab.has-error .ffc-form-tabs__state {
+.ffc-vtabs__tab.has-error .ffc-vtabs__state {
     display: none;
 }
 
-.ffc-form-tabs__panels {
+.ffc-vtabs__panels {
     flex: 1 1 auto;
     min-width: 0;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xl) var(--ffc-spacing-xl);
 }
 
-.ffc-form-tabs__panel-title {
+.ffc-vtabs__panel-title {
     display: flex;
     align-items: center;
     gap: var(--ffc-spacing-sm);
@@ -387,42 +388,42 @@
     border-bottom: 2px solid var(--ffc-primary);
 }
 
-.ffc-form-tabs__panel-title .ffc-form-tabs__icon {
+.ffc-vtabs__panel-title .ffc-vtabs__icon {
     flex: 0 0 auto;
     color: var(--ffc-primary);
 }
 
 /* Client-side required-tag save-guard banner (prepended to the Layout panel). */
-.ffc-form-tabs__required-warning {
+.ffc-vtabs__required-warning {
     margin: 0 0 var(--ffc-spacing-xl);
 }
 
-.ffc-form-tabs__required-warning code {
+.ffc-vtabs__required-warning code {
     background: var(--ffc-bg-alt);
 }
 
 /* Panel hiding only kicks in once JS marks the container ready. */
-.ffc-form-tabs.is-ready .ffc-form-tabs__panel {
+.ffc-vtabs.is-ready .ffc-vtabs__panel {
     display: none;
 }
 
-.ffc-form-tabs.is-ready .ffc-form-tabs__panel.is-active {
+.ffc-vtabs.is-ready .ffc-vtabs__panel.is-active {
     display: block;
 }
 
 /* No-JS fallback: divide the stacked panels so they read as sections. */
-.ffc-form-tabs:not(.is-ready) .ffc-form-tabs__panel + .ffc-form-tabs__panel {
+.ffc-vtabs:not(.is-ready) .ffc-vtabs__panel + .ffc-vtabs__panel {
     margin-top: var(--ffc-spacing-xl);
     border-top: 1px solid var(--ffc-border-light);
 }
 
 /* Narrow screens: nav wraps above the panels as a horizontal strip. */
 @media screen and (max-width: 782px) {
-    .ffc-form-tabs {
+    .ffc-vtabs {
         flex-direction: column;
     }
 
-    .ffc-form-tabs__nav {
+    .ffc-vtabs__nav {
         display: flex;
         flex: 1 1 auto;
         flex-wrap: wrap;
@@ -430,12 +431,12 @@
         border-bottom: 1px solid var(--ffc-border-light);
     }
 
-    .ffc-form-tabs__tab {
+    .ffc-vtabs__tab {
         border-left: none;
         border-bottom: 3px solid transparent;
     }
 
-    .ffc-form-tabs__tab.is-active {
+    .ffc-vtabs__tab.is-active {
         border-left: none;
         border-bottom-color: var(--ffc-primary);
     }

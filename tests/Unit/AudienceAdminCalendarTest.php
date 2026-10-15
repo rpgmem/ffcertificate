@@ -365,10 +365,10 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertSame( array( 'general', 'notifications', 'event-list', 'environments', 'user-access', 'closed-dates' ), $panels[1] );
 		preg_match_all( '/<a href="#ffc-tab-([a-z-]+)" id="ffc-tabnav-\1"/', $output, $nav );
 		$this->assertSame( $panels[1], $nav[1], 'one tab per panel, in order' );
-		foreach ( array( 'calendar">General', 'email">Notifications', 'list">Event list & badges', 'building">Rooms', 'users">User access', 'lock">Closed dates' ) as $title ) {
-			$this->assertStringContainsString( '<h2 class="ffc-form-tabs__panel-title ffc-icon-' . $title . '</h2>', $output );
+		foreach ( array( 'calendar" aria-hidden="true"></span>General', 'email" aria-hidden="true"></span>Notifications', 'list" aria-hidden="true"></span>Event list & badges', 'building" aria-hidden="true"></span>Rooms', 'users" aria-hidden="true"></span>User access', 'lock" aria-hidden="true"></span>Closed dates' ) as $title ) {
+			$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-' . $title . '</h2>', $output );
 		}
-		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-form-tabs__panel is-active"', $output, 'General opens first' );
+		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-vtabs__panel is-active"', $output, 'General opens first' );
 		$this->assertMatchesRegularExpression( '/<div class="ffc-aud-editor__side">\s*<div class="card">\s*<h2 class="ffc-icon-checkmark">Save<\/h2>/', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-code">Shortcode</h2>', $output );
 
@@ -886,7 +886,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		$output = (string) ob_get_clean();
 		$_POST  = array();
 
-		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)" class="ffc-form-tabs__panel is-active"/', $output, $open );
+		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)" class="ffc-vtabs__panel is-active"/', $output, $open );
 		$this->assertSame( array( $opened ), $open[1] );
 		preg_match_all( '/aria-selected="true"/', $output, $selected );
 		$this->assertCount( 1, $selected[0], 'one tab selected' );

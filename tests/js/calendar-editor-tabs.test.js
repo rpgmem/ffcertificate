@@ -1,7 +1,7 @@
 // The personal calendar editor in vertical tabs (#1761).
 //
-// The editor reuses the form editor's tab component
-// (`ffc-form-editor-tabs.js`), so these tests drive the three scripts the
+// The editor reuses the shared vertical-tab component
+// (`ffc-vertical-tabs.js`), so these tests drive the three scripts the
 // screen loads together -- the tabs, the collapsible sections the Emails tab
 // still holds, and the calendar editor's own behaviours -- over markup in the
 // shape `SelfSchedulingEditor::render_box_config()` prints through
@@ -76,23 +76,23 @@ function buildEditor() {
 	const nav = TABS.map((t, i) => {
 		const active = i === 0;
 		return (
-			`<li class="ffc-form-tabs__nav-item" role="presentation">` +
-			`<a href="#ffc-tab-${t.key}" id="ffc-tabnav-${t.key}" class="ffc-form-tabs__tab${active ? ' is-active' : ''}" role="tab" ` +
+			`<li class="ffc-vtabs__nav-item" role="presentation">` +
+			`<a href="#ffc-tab-${t.key}" id="ffc-tabnav-${t.key}" class="ffc-vtabs__tab${active ? ' is-active' : ''}" role="tab" ` +
 			`aria-controls="ffc-tabpanel-${t.key}" aria-selected="${active}" tabindex="${active ? 0 : -1}"` +
 			(t.masters ? ` data-ffc-tab-masters="${t.masters}"` : '') +
-			`><span class="ffc-form-tabs__label">${t.label}</span></a></li>`
+			`><span class="ffc-vtabs__label">${t.label}</span></a></li>`
 		);
 	}).join('');
 	const panels = TABS.map((t, i) =>
-		`<section id="ffc-tabpanel-${t.key}" class="ffc-form-tabs__panel${i === 0 ? ' is-active' : ''}" role="tabpanel" aria-labelledby="ffc-tabnav-${t.key}" tabindex="0">` +
-		`<h2 class="ffc-form-tabs__panel-title">${t.label}</h2>${BODIES[t.key]}</section>`
+		`<section id="ffc-tabpanel-${t.key}" class="ffc-vtabs__panel${i === 0 ? ' is-active' : ''}" role="tabpanel" aria-labelledby="ffc-tabnav-${t.key}" tabindex="0">` +
+		`<h2 class="ffc-vtabs__panel-title">${t.label}</h2>${BODIES[t.key]}</section>`
 	).join('');
 
 	return (
 		`<form id="post"><input type="hidden" name="ffc_self_scheduling_config_nonce" value="n" />` +
-		`<div class="ffc-form-tabs" data-ffc-form-tabs>` +
-		`<ul class="ffc-form-tabs__nav" role="tablist" aria-orientation="vertical" data-ffc-state-on="On" data-ffc-state-off="Off" data-ffc-state-pending="Incomplete">${nav}</ul>` +
-		`<div class="ffc-form-tabs__panels">${panels}</div></div></form>`
+		`<div class="ffc-vtabs" data-ffc-vtabs>` +
+		`<ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical" data-ffc-state-on="On" data-ffc-state-off="Off" data-ffc-state-pending="Incomplete">${nav}</ul>` +
+		`<div class="ffc-vtabs__panels">${panels}</div></div></form>`
 	);
 }
 
@@ -110,7 +110,7 @@ beforeAll(async () => {
 	window.history.replaceState(null, '', window.location.pathname);
 	document.body.innerHTML = buildEditor();
 	loadScript('assets/js/ffc-core.js');
-	loadScript('assets/js/ffc-form-editor-tabs.js');
+	loadScript('assets/js/ffc-vertical-tabs.js');
 	loadScript('assets/js/ffc-admin-sections.js');
 	loadScript('assets/js/ffc-calendar-editor.js');
 	await new Promise((r) => setTimeout(r, 0));
@@ -122,9 +122,9 @@ beforeEach(() => {
 
 describe('the calendar editor in vertical tabs (#1761)', () => {
 	it('starts on the Calendar tab with the panels hidden behind it', () => {
-		expect($('.ffc-form-tabs').hasClass('is-ready')).toBe(true);
+		expect($('.ffc-vtabs').hasClass('is-ready')).toBe(true);
 		expect($('#ffc-tabpanel-calendar').hasClass('is-active')).toBe(true);
-		expect($('.ffc-form-tabs__panel.is-active')).toHaveLength(1);
+		expect($('.ffc-vtabs__panel.is-active')).toHaveLength(1);
 	});
 
 	it('switches to the tab that is clicked', () => {
@@ -137,7 +137,7 @@ describe('the calendar editor in vertical tabs (#1761)', () => {
 	});
 
 	it('draws a dot on Cancellation and Administrator bypass only, following their toggles', () => {
-		expect($('.ffc-form-tabs__state')).toHaveLength(2);
+		expect($('.ffc-vtabs__state')).toHaveLength(2);
 		expect($('#ffc-tabnav-cancellation').hasClass('is-on')).toBe(true);
 		expect($('#ffc-tabnav-bypass').hasClass('is-off')).toBe(true);
 

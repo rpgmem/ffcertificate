@@ -173,7 +173,7 @@ class SchedulingFrameControlsTest extends TestCase {
 		$page = 'https://example.com/wp-admin/admin.php?page=ffc-scheduling-calendars&view=environments';
 		$this->assertSame(
 			array(
-				'a href=' . $page . '&action=new',
+				'a href=' . $page . '&action=new&schedule_id=1',
 				'a href=https://example.com/wp-admin/admin.php?page=ffc-scheduling-calendars',
 				'a href=' . $page,
 				'form method=get',

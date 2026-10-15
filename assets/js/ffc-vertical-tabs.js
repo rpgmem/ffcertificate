@@ -1,10 +1,12 @@
 /**
- * FFC — vertical-tab behaviour for the certificate form editor.
+ * FFC — vertical tabs (`.ffc-vtabs`), the shared tab component of the admin
+ * editors: the certificate form editor, the personal calendar editor, and the
+ * audience calendar and audience editors.
  *
- * Progressive enhancement for the `[data-ffc-form-tabs]` container rendered
- * by FormEditorMetaboxRenderer::render_tabbed_container(). On init it adds
- * the `is-ready` class (which lets the CSS hide inactive panels), wires the
- * WAI-ARIA tablist interaction (click + roving-tabindex arrow keys), and
+ * Progressive enhancement for the `[data-ffc-vtabs]` container printed by
+ * `AdminUI::render_vertical_tabs()` or its streaming primitives. On init it
+ * adds the `is-ready` class (which lets the CSS hide inactive panels), wires
+ * the WAI-ARIA tablist interaction (click + roving-tabindex arrow keys), and
  * keeps the active tab in sync with a `#ffc-tab-<key>` URL hash so a panel
  * can be deep-linked and survives reload / back-forward.
  *
@@ -73,7 +75,7 @@
 	}
 
 	function setupContainer( $container ) {
-		var $tabs = $container.find( '.ffc-form-tabs__tab' );
+		var $tabs = $container.find( '.ffc-vtabs__tab' );
 		if ( ! $tabs.length ) {
 			return;
 		}
@@ -177,7 +179,7 @@
 
 		// Reflect external hash changes (back/forward, deep links) onto the
 		// active tab without rewriting the hash again.
-		$( window ).on( 'hashchange.ffcFormTabs', function () {
+		$( window ).on( 'hashchange.ffcVerticalTabs', function () {
 			var key = keyFromHash();
 			if ( key ) {
 				activate( key, { focus: false, updateHash: false } );
@@ -204,8 +206,8 @@
 				}
 				flagged = true;
 				$tab.addClass( 'has-error' );
-				if ( ! $tab.find( '.ffc-form-tabs__error-dot' ).length ) {
-					$tab.append( '<span class="ffc-form-tabs__error-dot" aria-hidden="true"></span>' );
+				if ( ! $tab.find( '.ffc-vtabs__error-dot' ).length ) {
+					$tab.append( '<span class="ffc-vtabs__error-dot" aria-hidden="true"></span>' );
 				}
 			} );
 			if ( flagged ) {
@@ -216,7 +218,7 @@
 
 		/** Remove the required-tag warning banner, if present. */
 		function removeRequiredWarning() {
-			$container.find( '.ffc-form-tabs__required-warning' ).remove();
+			$container.find( '.ffc-vtabs__required-warning' ).remove();
 		}
 
 		/**
@@ -232,7 +234,7 @@
 			if ( ! $panel.length ) {
 				return;
 			}
-			var $warn = $( '<div class="ffc-form-tabs__required-warning notice notice-error" role="alert"></div>' );
+			var $warn = $( '<div class="ffc-vtabs__required-warning notice notice-error" role="alert"></div>' );
 			$warn.append( $( '<p></p>' ).append(
 				$( '<strong></strong>' ).text( cfg.message || 'Missing required tags:' )
 			) );
@@ -311,7 +313,7 @@
 		 * screen-reader text, so it is not carried by colour alone.
 		 */
 		function setupStateDots() {
-			var $nav = $container.find( '.ffc-form-tabs__nav' );
+			var $nav = $container.find( '.ffc-vtabs__nav' );
 			var text = {
 				on: String( $nav.attr( 'data-ffc-state-on' ) || 'On' ),
 				off: String( $nav.attr( 'data-ffc-state-off' ) || 'Off' ),
@@ -349,12 +351,12 @@
 				var $masters = $( ids.map( function ( id ) {
 					return document.getElementById( id );
 				} ).filter( Boolean ) );
-				if ( ! $masters.length || $tab.find( '.ffc-form-tabs__state' ).length ) {
+				if ( ! $masters.length || $tab.find( '.ffc-vtabs__state' ).length ) {
 					return;
 				}
 				var $panel = $( '#' + $tab.attr( 'aria-controls' ) );
 				var needs  = String( $tab.attr( 'data-ffc-tab-needs' ) || '' );
-				var $dot = $( '<span class="ffc-form-tabs__state" aria-hidden="true"></span>' );
+				var $dot = $( '<span class="ffc-vtabs__state" aria-hidden="true"></span>' );
 				var $sr  = $( '<span class="screen-reader-text"></span>' );
 				$tab.append( $dot, $sr );
 				function sync() {
@@ -403,7 +405,7 @@
 		 */
 		function setupInvalidReveal() {
 			$container[ 0 ].addEventListener( 'invalid', function ( e ) {
-				var panel = e.target && e.target.closest ? e.target.closest( '.ffc-form-tabs__panel' ) : null;
+				var panel = e.target && e.target.closest ? e.target.closest( '.ffc-vtabs__panel' ) : null;
 				if ( panel && ! panel.classList.contains( 'is-active' ) ) {
 					activate( panel.id.replace( PANEL_PREFIX, '' ), { focus: false, updateHash: false } );
 				}
@@ -429,14 +431,18 @@
 	}
 
 	function initTabs( root ) {
-		var $containers = root ? $( root ) : $( '[data-ffc-form-tabs]' );
+		var $containers = root ? $( root ) : $( '[data-ffc-vtabs]' );
 		$containers.each( function () {
 			setupContainer( $( this ) );
 		} );
 	}
 
 	window.FFC = window.FFC || {};
-	window.FFC.FormEditorTabs = { init: initTabs };
+	window.FFC.VerticalTabs = { init: initTabs };
+	// Deprecated alias: the name this object had while the component served
+	// only the certificate form editor (#1788). Nothing in the plugin reads it.
+	// @removal 6.41.0 -- a third-party script may still call it.
+	window.FFC.FormEditorTabs = window.FFC.VerticalTabs;
 
 	$( function () {
 		initTabs();

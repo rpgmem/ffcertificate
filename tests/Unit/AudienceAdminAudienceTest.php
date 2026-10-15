@@ -299,11 +299,11 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/<div class="wrap ffc-admin-page ffc-page-scheduling-audiences ffc-boxed">/', $output );
 		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
 		$this->assertSame( array( 'audience', 'members', 'fields' ), $panels[1] );
-		$this->assertStringContainsString( '<h2 class="ffc-form-tabs__panel-title ffc-icon-users">Audience</h2>', $output );
-		$this->assertStringContainsString( '<h2 class="ffc-form-tabs__panel-title ffc-icon-user-check">Members (2)</h2>', $output );
-		$this->assertStringContainsString( '<span class="ffc-form-tabs__label">Members (2)</span>', $output, 'the tab carries the count the list shows' );
-		$this->assertStringContainsString( '<h2 class="ffc-form-tabs__panel-title ffc-icon-clipboard">Reregistration fields</h2>', $output );
-		$this->assertStringContainsString( '<section id="ffc-tabpanel-audience" class="ffc-form-tabs__panel is-active"', $output, 'the edit URL opens Audience' );
+		$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-users" aria-hidden="true"></span>Audience</h2>', $output );
+		$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-user-check" aria-hidden="true"></span>Members (2)</h2>', $output );
+		$this->assertStringContainsString( '<span class="ffc-vtabs__label">Members (2)</span>', $output, 'the tab carries the count the list shows' );
+		$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-clipboard" aria-hidden="true"></span>Reregistration fields</h2>', $output );
+		$this->assertStringContainsString( '<section id="ffc-tabpanel-audience" class="ffc-vtabs__panel is-active"', $output, 'the edit URL opens Audience' );
 		$this->assertSame( 2, substr_count( $output, '<div class="card">' ) );
 		$this->assertSame( substr_count( $output, '<section' ), substr_count( $output, '</section>' ), 'every panel is closed' );
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
@@ -498,8 +498,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertStringContainsString( '<h2 class="ffc-icon-plus">', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-users">', $output );
 		// The old members URL opens the editor on its Members tab.
-		$this->assertStringContainsString( '<section id="ffc-tabpanel-members" class="ffc-form-tabs__panel is-active"', $output );
-		$this->assertStringContainsString( 'id="ffc-tabnav-members" class="ffc-form-tabs__tab is-active" role="tab" aria-controls="ffc-tabpanel-members" aria-selected="true"', $output );
+		$this->assertStringContainsString( '<section id="ffc-tabpanel-members" class="ffc-vtabs__panel is-active"', $output );
+		$this->assertStringContainsString( 'id="ffc-tabnav-members" class="ffc-vtabs__tab is-active" role="tab" aria-controls="ffc-tabpanel-members" aria-selected="true"', $output );
 		$this->assertStringContainsString( 'name="audience_name"', $output, 'the Audience tab is there too' );
 		unset( $_GET['action'], $_GET['id'] );
 	}
@@ -592,7 +592,7 @@ class AudienceAdminAudienceTest extends TestCase {
 		$output = (string) ob_get_clean();
 		$_POST  = array();
 
-		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)" class="ffc-form-tabs__panel is-active"/', $output, $open );
+		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)" class="ffc-vtabs__panel is-active"/', $output, $open );
 		$this->assertSame( array( $opened ), $open[1] );
 		preg_match_all( '/aria-selected="true"/', $output, $selected );
 		$this->assertCount( 1, $selected[0], 'one tab selected' );
