@@ -48,11 +48,8 @@ class ReregistrationActivatorTest extends TestCase {
 		} )->byDefault();
 		$this->wpdb = $wpdb;
 
-		// Ensure ABSPATH + upgrade.php stub exist for the require_once in
+		// Ensure the upgrade.php stub exists for the require_once in
 		// each create_*_table() method.
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/wordpress/' );
-		}
 		$upgrade_dir = ABSPATH . 'wp-admin/includes';
 		if ( ! is_dir( $upgrade_dir ) ) {
 			mkdir( $upgrade_dir, 0755, true );

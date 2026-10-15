@@ -70,9 +70,6 @@ class SchedulingFrameControlsTest extends TestCase {
 			}
 		);
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 	}
 
 	protected function tearDown(): void {

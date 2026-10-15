@@ -53,10 +53,6 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';

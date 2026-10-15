@@ -32,9 +32,6 @@ class AppointmentReceiptHandlerTest extends TestCase {
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 	}
 
 	protected function tearDown(): void {

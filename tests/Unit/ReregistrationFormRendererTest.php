@@ -50,9 +50,6 @@ class ReregistrationFormRendererTest extends TestCase {
 		if ( ! defined( 'ARRAY_A' ) ) {
 			define( 'ARRAY_A', 'ARRAY_A' );
 		}
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();

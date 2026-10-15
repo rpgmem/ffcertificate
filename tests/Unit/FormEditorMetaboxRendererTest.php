@@ -85,9 +85,6 @@ class FormEditorMetaboxRendererTest extends TestCase {
 		// button data; stub it alongside the enqueue.
 		Functions\when( 'wp_localize_script' )->justReturn( null );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
 			define( 'FFC_PLUGIN_DIR', '/tmp/ffc_test/' );
 		}

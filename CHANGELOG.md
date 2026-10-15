@@ -47,6 +47,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The bootstrap smoke tests no longer depend on test order** (#1793). They boot an established install whose tables exist and schemas are current, so no chain reaches `dbDelta()`, which an earlier test's stub had left defined and throwing.
 - **Audience member counts agree with the members table** (#1795). The audiences list, the editor's Members tab and the "Current Members" heading all count only member rows whose WordPress user still exists, which are the rows the table renders.
 - **`ActivityLogTest` no longer depends on test order** (#1798). `create_table()` always runs `dbDelta()`, so the class stubs it in `setUp()`; one test had reached the bootstrap no-op, which fails with "not defined nor mocked" once a stubbing class runs first.
+- **Tests no longer claim to run against `/tmp/`** (#1806). 37 unit tests dropped an `ABSPATH` define the bootstrap had already made, and two template tests dropped a fixture under the shared `/tmp/ffc_test_dir` that nothing read: they render the shipped templates.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 

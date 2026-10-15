@@ -47,10 +47,6 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 		);
 		class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentReasonEditPage' );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();

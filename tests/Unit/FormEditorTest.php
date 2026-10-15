@@ -40,9 +40,6 @@ class FormEditorTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_transient' )->justReturn( false );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
 			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
 		}

@@ -42,9 +42,6 @@ class AudienceEditorTabsTest extends TestCase {
 		// namespace (CLAUDE.md "Test infrastructure").
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 	}
 
 	protected function tearDown(): void {

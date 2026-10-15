@@ -42,10 +42,7 @@ class UserDashboardActivatorTest extends TestCase {
 		class_exists( '\FreeFormCertificate\UserDashboard\UserDashboardActivator' );
 		class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' );
 
-		// ABSPATH + a stub upgrade.php for the require_once in each table method.
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/wordpress/' );
-		}
+		// A stub upgrade.php for the require_once in each table method.
 		$upgrade_dir = ABSPATH . 'wp-admin/includes';
 		if ( ! is_dir( $upgrade_dir ) ) {
 			mkdir( $upgrade_dir, 0755, true );

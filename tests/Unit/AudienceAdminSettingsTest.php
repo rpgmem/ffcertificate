@@ -66,10 +66,6 @@ class AudienceAdminSettingsTest extends TestCase {
 		$counts = (object) array( 'publish' => 2, 'draft' => 0, 'trash' => 0 );
 		Functions\when( 'wp_count_posts' )->justReturn( $counts );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';

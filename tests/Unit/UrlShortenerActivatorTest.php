@@ -35,9 +35,6 @@ class UrlShortenerActivatorTest extends TestCase {
 		$this->wpdb = $wpdb;
 
 		// Ensure the upgrade.php stub file exists for require_once in create_tables()
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/wordpress/' );
-		}
 		$upgrade_dir = ABSPATH . 'wp-admin/includes';
 		if ( ! is_dir( $upgrade_dir ) ) {
 			mkdir( $upgrade_dir, 0755, true );
