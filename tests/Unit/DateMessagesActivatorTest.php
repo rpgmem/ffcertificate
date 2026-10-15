@@ -41,14 +41,8 @@ class DateMessagesActivatorTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $q, ...$a ) => $q . '|' . implode( ',', $a ) );
 
-		$upgrade_dir = ABSPATH . 'wp-admin/includes';
-		if ( ! is_dir( $upgrade_dir ) ) {
-			mkdir( $upgrade_dir, 0755, true );
-		}
-		if ( ! file_exists( $upgrade_dir . '/upgrade.php' ) ) {
-			file_put_contents( $upgrade_dir . '/upgrade.php', "<?php\n// Stub for unit tests.\n" );
-		}
-
+		// The upgrade.php the activator requires is written by the bootstrap
+		// (tests/Support/UpgradeStub.php, #1803).
 		$this->deltas = array();
 		Functions\when( 'dbDelta' )->alias(
 			function ( $sql ) {

@@ -48,19 +48,8 @@ class ReregistrationActivatorTest extends TestCase {
 		} )->byDefault();
 		$this->wpdb = $wpdb;
 
-		// Ensure ABSPATH + upgrade.php stub exist for the require_once in
-		// each create_*_table() method.
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/wordpress/' );
-		}
-		$upgrade_dir = ABSPATH . 'wp-admin/includes';
-		if ( ! is_dir( $upgrade_dir ) ) {
-			mkdir( $upgrade_dir, 0755, true );
-		}
-		$upgrade_file = $upgrade_dir . '/upgrade.php';
-		if ( ! file_exists( $upgrade_file ) ) {
-			file_put_contents( $upgrade_file, "<?php\n// Stub for unit tests.\n" );
-		}
+		// ABSPATH and the upgrade.php each create_*_table() method requires
+		// come from the bootstrap (tests/Support/UpgradeStub.php, #1803).
 	}
 
 	protected function tearDown(): void {

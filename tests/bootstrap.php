@@ -320,20 +320,10 @@ if ( ! class_exists( 'WP_User' ) ) {
 	}
 }
 
-// Create stub for wp-admin/includes/upgrade.php used by activators.
-// The activator classes call require_once ABSPATH . 'wp-admin/includes/upgrade.php'
-// which needs to exist (even as a no-op) so the require_once doesn't fatal.
-$wp_admin_upgrade_dir = ABSPATH . 'wp-admin/includes';
-if ( ! is_dir( $wp_admin_upgrade_dir ) ) {
-	mkdir( $wp_admin_upgrade_dir, 0777, true );
-}
-$wp_admin_upgrade_file = $wp_admin_upgrade_dir . '/upgrade.php';
-if ( ! file_exists( $wp_admin_upgrade_file ) ) {
-	file_put_contents(
-		$wp_admin_upgrade_file,
-		"<?php\n// Stub for unit tests.\nif ( ! function_exists( 'dbDelta' ) ) {\n    function dbDelta( \$queries = '', \$execute = true ) { return array(); }\n}\n"
-	);
-}
+// The activator classes call require_once ABSPATH . 'wp-admin/includes/upgrade.php',
+// so the file has to exist and declare dbDelta(). UpgradeStub is its only
+// writer (#1803); no test writes it.
+\FreeFormCertificate\Tests\Support\UpgradeStub::ensure( ABSPATH );
 
 // Stub WP_List_Table for tests that extend it (e.g. SubmissionsList).
 // The real class lives in wp-admin/includes/class-wp-list-table.php and is
