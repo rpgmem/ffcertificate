@@ -301,25 +301,29 @@ final class CapabilityCatalog {
 				'label' => __( 'Reregistration', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_reregistration'   => array(
+					'ffc_view_reregistration'     => array(
 						'label'       => __( 'View reregistration campaigns', 'ffcertificate' ),
 						'description' => __( 'Read-only access to the Reregistration admin page.', 'ffcertificate' ),
 					),
-					'ffc_manage_reregistration' => array(
+					'ffc_manage_reregistration'   => array(
 						'label'       => __( 'Manage reregistration campaigns', 'ffcertificate' ),
 						'description' => __( 'Access the Reregistration admin page.', 'ffcertificate' ),
 					),
-					'ffc_export_reregistration' => array(
+					'ffc_export_reregistration'   => array(
 						'label'       => __( 'Export reregistration submissions', 'ffcertificate' ),
 						'description' => __( 'Download a campaign\'s submissions as CSV.', 'ffcertificate' ),
 					),
-					'ffc_import_reregistration' => array(
+					'ffc_import_reregistration'   => array(
 						'label'       => __( 'Import reregistration submissions', 'ffcertificate' ),
 						'description' => __( 'Bulk-load a campaign\'s answers from CSV, creating the users a row needs.', 'ffcertificate' ),
 					),
-					'ffc_delete_reregistration' => array(
+					'ffc_delete_reregistration'   => array(
 						'label'       => __( 'Delete reregistration campaigns', 'ffcertificate' ),
 						'description' => __( 'Delete campaigns and their submissions (cascade).', 'ffcertificate' ),
+					),
+					'ffc_view_reregistration_pii' => array(
+						'label'       => __( 'Reveal reregistration PII', 'ffcertificate' ),
+						'description' => __( 'Reveal a submitter\'s email and open a submission\'s details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed (#1815).', 'ffcertificate' ),
 					),
 				),
 			),

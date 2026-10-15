@@ -57,6 +57,16 @@ class ReregistrationAdminRendererTest extends TestCase {
 		Functions\when( 'wp_die' )->alias( function ( $message ) {
 			throw new \RuntimeException( 'wp_die: ' . $message );
 		} );
+		// PII policy (#1815): a logged-in viewer with no PII cap and no role,
+		// i.e. the masked tier, unless a test says otherwise.
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'user_can' )->justReturn( false );
+		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'is_email' )->alias( static fn ( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
+		Functions\when( 'wp_create_nonce' )->alias( static fn ( $action ) => 'nonce:' . $action );
+		// No capability by default: a view-only user, whom the Record PDF
+		// endpoint refuses.
+		Functions\when( 'current_user_can' )->justReturn( false );
 
 		\Mockery::getConfiguration()->setConstantsMap(
 			array(
@@ -355,9 +365,128 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, false ) );
 
 		$this->assertStringNotContainsString( 'name="bulk_action"', $html );
-		$this->assertStringContainsString( 'maria@example.org', $html );
+		$this->assertStringNotContainsString( 'maria@example.org', $html, 'The list never prints the email in clear (#1815).' );
+		$this->assertStringContainsString( 'm***@example.org', $html );
 		$this->assertStringNotContainsString( 'return_to_draft', $html, 'A viewer cannot send it back.' );
+		$this->assertStringNotContainsString( 'ffc-record-btn', $html, 'A viewer the Record endpoint refuses is not offered the button (#1815).' );
+	}
+
+	// ==================================================================
+	// render_submission_row() — PII tiers (#1815)
+	// ==================================================================
+
+	private function piiRow(): object {
+		return (object) array(
+			'id'           => 31,
+			'user_id'      => 42,
+			'status'       => 'approved',
+			'user_name'    => 'Maria',
+			'user_email'   => 'maria@example.org',
+			'submitted_at' => 1767225600,
+			'reviewed_at'  => null,
+			'notes'        => '',
+		);
+	}
+
+	public function test_masked_tier_sees_the_masked_email_without_reveal_or_details(): void {
+		$this->submissionReader();
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, false ) );
+
+		$this->assertStringNotContainsString( 'maria@example.org', $html );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">m***@example.org</span>', $html );
+		$this->assertStringNotContainsString( 'ffc-reveal-pii', $html );
+		$this->assertStringNotContainsString( 'ffc-view-details-btn', $html, 'A viewer who cannot open the details is not offered them.' );
+	}
+
+	public function test_reveal_tier_gets_the_masked_email_a_reveal_button_and_the_details(): void {
+		$this->submissionReader();
+		Functions\when( 'user_can' )->alias( static fn ( $uid, $cap ) => 'ffc_view_reregistration_pii' === $cap );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, false ) );
+
+		$this->assertStringNotContainsString( 'maria@example.org', $html );
+		$this->assertStringContainsString( 'm***@example.org', $html );
+		$this->assertStringContainsString(
+			'<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="reregistration" data-field="email" data-submission-id="31" data-nonce="nonce:ffc_reveal_pii_nonce">Reveal</button>',
+			$html
+		);
+		$this->assertStringContainsString( 'ffc-view-details-btn', $html );
+	}
+
+	public function test_unmasked_tier_still_gets_a_masked_email_with_reveal(): void {
+		$this->submissionReader();
+		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'ffc_reregistration_admin' ) ) );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, true ) );
+
+		$this->assertStringNotContainsString( 'maria@example.org', $html, 'Even the unmasked tier fetches the clear value through the audited endpoint.' );
+		$this->assertStringContainsString( 'm***@example.org', $html );
+		$this->assertStringContainsString( 'data-type="reregistration"', $html );
+		$this->assertStringContainsString( 'ffc-view-details-btn', $html );
+	}
+
+	public function test_ffc_administrator_is_the_reveal_tier_as_in_the_other_domains(): void {
+		$this->submissionReader();
+		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'ffc_administrator' ) ) );
+		Functions\when( 'user_can' )->alias( static fn ( $uid, $cap ) => 'manage_options' !== $cap );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, true ) );
+
+		$this->assertStringNotContainsString( 'maria@example.org', $html );
+		$this->assertStringContainsString( 'ffc-reveal-pii', $html );
+		$this->assertStringContainsString( 'ffc-view-details-btn', $html );
+	}
+
+	public function test_the_submitter_viewing_their_own_row_is_the_reveal_tier(): void {
+		$this->submissionReader();
+		Functions\when( 'get_current_user_id' )->justReturn( 42 );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, false ) );
+
+		$this->assertStringContainsString( 'ffc-reveal-pii', $html );
+		$this->assertStringNotContainsString( 'maria@example.org', $html );
+	}
+
+	public function test_a_value_the_masker_does_not_recognise_is_hidden_whole(): void {
+		$this->submissionReader();
+		$row             = $this->piiRow();
+		$row->user_email = 'not-an-address';
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $row, 7, false ) );
+
+		$this->assertStringNotContainsString( 'not-an-address', $html );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">***</span>', $html );
+	}
+
+	public function test_a_row_without_an_email_shows_a_dash_and_no_reveal(): void {
+		$this->submissionReader();
+		Functions\when( 'user_can' )->justReturn( true );
+		$row             = $this->piiRow();
+		$row->user_email = null;
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $row, 7, false ) );
+
+		$this->assertStringNotContainsString( 'ffc-pii-value', $html );
+		$this->assertStringNotContainsString( 'ffc-reveal-pii', $html );
+	}
+
+	public function test_the_record_button_is_drawn_for_a_manager(): void {
+		$this->submissionReader();
+		Functions\when( 'current_user_can' )->alias( static fn ( $cap ) => 'ffc_manage_reregistration' === $cap );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, true ) );
+
 		$this->assertStringContainsString( 'ffc-record-btn', $html );
+	}
+
+	public function test_the_record_button_is_not_drawn_for_a_view_only_user(): void {
+		$this->submissionReader();
+		Functions\when( 'current_user_can' )->alias( static fn ( $cap ) => 'ffc_view_reregistration' === $cap );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, false ) );
+
+		$this->assertStringNotContainsString( 'ffc-record-btn', $html );
 	}
 
 	public function test_render_submission_row_for_a_submitted_entry_offers_review_actions(): void {

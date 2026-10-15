@@ -2,15 +2,15 @@
  * FFC PII Reveal
  *
  * Shared "Reveal" click handler for masked CPF / RF / email fields on the
- * certificate-submission and self-scheduling-appointment admin surfaces
- * (#739 §3.3). The plaintext is fetched on demand through the audited
- * `ffc_reveal_pii` endpoint so it never sits in the initial page HTML for the
- * `reveal` / `masked` tiers.
+ * certificate-submission, self-scheduling-appointment and reregistration
+ * admin surfaces (#739 §3.3, #1815). The plaintext is fetched on demand
+ * through the audited `ffc_reveal_pii` endpoint so it never sits in the
+ * initial page HTML for the `reveal` / `masked` tiers.
  *
  * Each reveal button carries:
  *   - data-field           cpf | rf | email | ip | account_email
- *   - data-type            submission | appointment | audience_account
- *                          (defaults to submission)
+ *   - data-type            submission | appointment | reregistration |
+ *                          audience_account (defaults to submission)
  *   - data-submission-id   the record ID (the account ID for audience_account)
  *   - data-nonce           the ffc_reveal_pii_nonce
  *

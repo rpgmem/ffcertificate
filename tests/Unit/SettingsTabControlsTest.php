@@ -54,10 +54,11 @@ class SettingsTabControlsTest extends TestCase {
 
 		$this->assertStringContainsString( "esc_html_e( 'Display', 'ffcertificate' )", $src );
 		$this->assertStringNotContainsString( "'Attribution'", $src );
-		$this->assertStringContainsString( "'name'    => 'ffc_settings[captcha_altcha_show_logo]'", $src );
-		$this->assertStringContainsString( "'name'    => 'ffc_settings[captcha_altcha_show_footer]'", $src );
-		$this->assertStringContainsString( "'checked' => 1 !== \$ffc_hide_logo", $src );
-		$this->assertStringContainsString( "'checked' => 1 !== \$ffc_hide_footer", $src );
+		// Whitespace-tolerant: the array alignment moves when a key is added.
+		$this->assertMatchesRegularExpression( "/'name'\\s+=> 'ffc_settings\\[captcha_altcha_show_logo\\]'/", $src );
+		$this->assertMatchesRegularExpression( "/'name'\\s+=> 'ffc_settings\\[captcha_altcha_show_footer\\]'/", $src );
+		$this->assertMatchesRegularExpression( "/'checked'\\s+=> 1 !== \\\$ffc_hide_logo/", $src );
+		$this->assertMatchesRegularExpression( "/'checked'\\s+=> 1 !== \\\$ffc_hide_footer/", $src );
 		$this->assertStringNotContainsString( 'name="ffc_settings[captcha_altcha_hide_', $src, 'The stored keys are no longer posted directly.' );
 	}
 

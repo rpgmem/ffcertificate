@@ -115,6 +115,42 @@ class AdminUITest extends TestCase {
 		$this->assertStringNotContainsString( 'title=', $html );
 	}
 
+	public function test_no_description_leaves_the_bare_label(): void {
+		$html = $this->capture( array( 'name' => 'k', 'label' => 'My toggle' ) );
+		$this->assertStringStartsWith( '<label class="ffc-control-toggle"', $html );
+		$this->assertStringNotContainsString( 'ffc-control-toggle-field', $html );
+		$this->assertStringNotContainsString( 'aria-describedby', $html );
+		$this->assertStringNotContainsString( 'class="description"', $html );
+	}
+
+	/**
+	 * A description wraps the toggle and its sentence in one block and ties
+	 * the sentence to the checkbox (#1816).
+	 */
+	public function test_description_wraps_the_toggle_and_describes_the_checkbox(): void {
+		$html = $this->capture(
+			array(
+				'name'        => 'opt[k]',
+				'id'          => 'k_id',
+				'label'       => 'My toggle',
+				'description' => 'What changes.',
+			)
+		);
+		$this->assertSame(
+			'<div class="ffc-control-toggle-field"><label class="ffc-control-toggle" for="k_id">'
+			. '<input type="checkbox" id="k_id" name="opt[k]" value="1" aria-describedby="k_id-description">'
+			. '<span class="ffc-control-toggle-track" aria-hidden="true"></span>'
+			. '<span class="ffc-control-toggle-label">My toggle</span></label>'
+			. '<p class="description" id="k_id-description">What changes.</p></div>',
+			$html
+		);
+	}
+
+	public function test_blank_description_is_ignored(): void {
+		$html = $this->capture( array( 'name' => 'k', 'description' => '   ' ) );
+		$this->assertStringNotContainsString( 'ffc-control-toggle-field', $html );
+	}
+
 	public function test_get_toggle_returns_markup_instead_of_echoing(): void {
 		ob_start();
 		$returned = AdminUI::get_toggle( array( 'name' => 'k', 'label' => 'My toggle' ) );
@@ -621,6 +657,52 @@ class AdminUITest extends TestCase {
 			$registered,
 			'The handle the script had before #1788 must stay a source-less alias until its removal release.'
 		);
+	}
+
+	public function test_shortcode_copy_enqueue_keeps_the_old_handle_as_an_alias(): void {
+		$enqueued   = array();
+		$registered = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$enqueued ) {
+				$enqueued[] = array( $handle, $src, $deps );
+			}
+		);
+		Functions\when( 'wp_register_script' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$registered ) {
+				$registered[] = array( $handle, $src, $deps );
+			}
+		);
+
+		AdminUI::enqueue_shortcode_copy();
+
+		$this->assertCount( 1, $enqueued );
+		$this->assertSame( AdminUI::SHORTCODE_COPY_HANDLE, $enqueued[0][0] );
+		$this->assertStringContainsString( 'assets/js/ffc-copy-shortcode', $enqueued[0][1] );
+		$this->assertSame(
+			array( array( 'ffc-form-list-copy-shortcode', false, array( 'ffc-copy-shortcode' ) ) ),
+			$registered,
+			'The handle the script had before #1814 must stay a source-less alias until its removal release.'
+		);
+	}
+
+	public function test_render_shortcode_copy_escapes_the_shortcode_and_labels_the_button(): void {
+		$escape = static fn( $text ) => htmlspecialchars( (string) $text, ENT_QUOTES );
+		Functions\when( 'esc_html' )->alias( $escape );
+		Functions\when( 'esc_attr' )->alias( $escape );
+		Functions\when( '__' )->justReturn( 'Copy shortcode' );
+
+		ob_start();
+		AdminUI::render_shortcode_copy( '[ffc_audience schedule_id="7"]' );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<span class="ffc-shortcode-cell">', $html );
+		$this->assertStringContainsString( '<code class="ffc-shortcode-code">[ffc_audience schedule_id=&quot;7&quot;]</code>', $html );
+		$this->assertStringContainsString( 'data-shortcode="[ffc_audience schedule_id=&quot;7&quot;]"', $html );
+		$this->assertStringContainsString( '<button type="button" class="ffc-copy-shortcode"', $html );
+		$this->assertStringContainsString( 'aria-label="Copy shortcode"', $html, 'An icon-only button needs an accessible name.' );
+		$this->assertStringContainsString( 'title="Copy shortcode"', $html );
+		$this->assertStringContainsString( '<span class="ffc-icon-copy" aria-hidden="true"></span>', $html );
+		$this->assertStringNotContainsString( 'schedule_id="7"', $html, 'The raw quotes must never reach the markup.' );
 	}
 
 	public function test_render_vertical_tabs_prints_what_the_streaming_primitives_print(): void {

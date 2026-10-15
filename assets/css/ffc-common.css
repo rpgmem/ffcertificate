@@ -2197,6 +2197,28 @@
     background-color: var(--ffc-gray-400);
 }
 
+/* Several toggles stacked in one cell (#1816): the container owns the rhythm,
+   so no screen spaces them with a <br /> or a margin of its own. A column of
+   flex items, because the base rule above keeps each toggle inline-flex at a
+   specificity a descendant override would have to fight; `flex-start` keeps
+   each one at its natural width. A toggle that carries a description
+   (render_toggle()'s `description`) is a block of two lines, so a stack of
+   those takes a wider gap to keep each pair visibly its own. */
+.ffc-control-toggle-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-sm);
+}
+
+.ffc-control-toggle-stack:has(> .ffc-control-toggle-field) {
+    gap: var(--ffc-spacing-lg);
+}
+
+.ffc-control-toggle-field .description {
+    margin: var(--ffc-spacing-2xs) 0 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .ffc-control-toggle-track,
     .ffc-control-toggle-track::before,

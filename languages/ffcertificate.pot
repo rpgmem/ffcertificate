@@ -4630,7 +4630,7 @@ msgstr ""
 msgid "Copy link"
 msgstr ""
 
-#: includes/admin/class-ffc-form-list-columns.php:210
+#: includes/admin/class-ffc-admin-ui.php:658
 msgid "Copy shortcode"
 msgstr ""
 
@@ -25868,6 +25868,14 @@ msgstr ""
 msgid "ALTCHA + Math"
 msgstr ""
 
+#: includes/settings/views/ffc-tab-captcha.php:225
+msgid "On: the widget on the public form shows the ALTCHA logo beside the challenge. Off: the logo is hidden and only the challenge remains."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-captcha.php:234
+msgid "On: a \"Protected by ALTCHA\" line linking to altcha.org appears at the bottom of the widget. Off: the line is hidden. The challenge works the same either way."
+msgstr ""
+
 #: includes/settings/views/ffc-tab-captcha.php:222
 msgid "ALTCHA logo"
 msgstr ""
@@ -26031,4 +26039,40 @@ msgid "It also reveals the account email of the people on the audience Members a
 msgstr ""
 
 msgid "The Members tab and a calendar's User access tab show each person's account email masked, for everyone. Audiences have no personal-data capability of their own, so revealing it follows the appointments one: administrators, the appointments admin role and holders of ffc_view_appointments_pii get a Reveal button, and every reveal writes an Activity Log entry. The audience roles alone see the email masked."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:41
+msgid "The Shortcode column of Audience Calendars shows each calendar's shortcode with a copy button, and the Environments view shows each environment's, tied to its calendar."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:325
+msgid "Reveal reregistration PII"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:326
+msgid "Reveal a submitter's email and open a submission's details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed (#1815)."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-ajax-handler.php:127
+msgid "You do not have permission to view this submission's personal data."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:291
+msgid "Reregistration Personal Data Revealed"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:292
+msgid "Reregistration Details Viewed"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:152
+msgid "reveal a submitter's email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:154
+msgid "On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand. Every reveal and every opening of View Details writes an activity-log entry, whoever opens it. The FFC Reregistration - Administrator role and WordPress administrators hold the unmasked tier, as the certificates and appointments administrator roles do."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:895
+msgid "FFC Reregistration - Administrator"
 msgstr ""

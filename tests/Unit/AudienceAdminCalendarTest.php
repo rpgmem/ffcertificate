@@ -237,6 +237,45 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringContainsString( 'Delete', $output );     // inactive calendar.
 	}
 
+	public function test_render_list_prints_each_calendars_shortcode_with_a_copy_button(): void {
+		// Real escaping, so the test sees what the browser would.
+		$escape = static fn( $text ) => htmlspecialchars( (string) $text, ENT_QUOTES );
+		Functions\when( 'esc_html' )->alias( $escape );
+		Functions\when( 'esc_attr' )->alias( $escape );
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn(
+			array( (object) array( 'id' => 7, 'name' => 'Rooms Cal', 'description' => '', 'visibility' => 'public', 'status' => 'active' ) )
+		);
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'count' )->andReturn( 0 );
+
+		ob_start();
+		( new AudienceAdminCalendar( 'ffc-scheduling' ) )->render_page();
+		$output = (string) ob_get_clean();
+
+		// #1814: the column the forms list has, drawn by the same helper.
+		$this->assertStringContainsString( '<th scope="col" class="column-shortcode">Shortcode</th>', $output );
+		$this->assertLessThan( strpos( $output, 'class="column-visibility"' ), strpos( $output, 'class="column-shortcode"' ), 'the shortcode follows the name' );
+		$this->assertMatchesRegularExpression(
+			'#<td class="column-shortcode">\s*<span class="ffc-shortcode-cell"><code class="ffc-shortcode-code">\[ffc_audience schedule_id=&quot;7&quot;\]</code>'
+			. '<button type="button" class="ffc-copy-shortcode" data-shortcode="\[ffc_audience schedule_id=&quot;7&quot;\]" title="Copy shortcode" aria-label="Copy shortcode">#',
+			$output
+		);
+	}
+
+	public function test_empty_calendar_list_spans_every_column(): void {
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array() );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
+
+		ob_start();
+		( new AudienceAdminCalendar( 'ffc-scheduling' ) )->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertSame( 6, substr_count( $output, '<th scope="col"' ) );
+		$this->assertStringContainsString( '<td colspan="6">No calendars found.</td>', $output );
+	}
+
 	/**
 	 * Row actions by tier (#1769): Edit / Deactivate need
 	 * `ffc_manage_audiences`, Delete needs `ffc_delete_audiences`.
@@ -381,6 +420,12 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-vtabs__panel is-active"', $output, 'General opens first' );
 		$this->assertMatchesRegularExpression( '/<div class="ffc-aud-editor__side">\s*<div class="card">\s*<h2 class="ffc-icon-checkmark">Save<\/h2>/', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-code">Shortcode</h2>', $output );
+		// The card draws the list column's cell, copy button included (#1814).
+		$this->assertMatchesRegularExpression(
+			'#<h2 class="ffc-icon-code">Shortcode</h2>\s*<span class="ffc-shortcode-cell"><code class="ffc-shortcode-code">\[ffc_audience schedule_id="5"\]</code>'
+			. '<button type="button" class="ffc-copy-shortcode" data-shortcode="\[ffc_audience schedule_id="5"\]" title="Copy shortcode" aria-label="Copy shortcode">#',
+			$output
+		);
 
 		// One form across the first three panels; the other three outside it.
 		$form_open  = (int) strpos( $output, '<form method="post" action="" class="ffc-form" id="ffc-schedule-form">' );

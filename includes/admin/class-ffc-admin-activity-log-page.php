@@ -290,6 +290,8 @@ class AdminActivityLogPage {
 			'reregistration_submitted'                     => __( 'Reregistration Submitted', 'ffcertificate' ),
 			'reregistration_invitations_sent'              => __( 'Reregistration Invitations Sent', 'ffcertificate' ),
 			'reregistration_reminders_sent'                => __( 'Reregistration Reminders Sent', 'ffcertificate' ),
+			'reregistration_pii_revealed'                  => __( 'Reregistration Personal Data Revealed', 'ffcertificate' ),
+			'reregistration_details_viewed'                => __( 'Reregistration Details Viewed', 'ffcertificate' ),
 			'custom_field_sensitive_demotion_refused'      => __( 'Sensitive Field Demotion Refused', 'ffcertificate' ),
 
 			// Recruitment.

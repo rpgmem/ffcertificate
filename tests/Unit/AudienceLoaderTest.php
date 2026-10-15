@@ -286,6 +286,30 @@ class AudienceLoaderTest extends TestCase {
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
+	public function test_enqueue_admin_assets_on_the_calendars_page_loads_the_shortcode_copy(): void {
+		$log          = $this->recordAdminEnqueues(true);
+		$registered   = array();
+		$_GET['page'] = 'ffc-scheduling-calendars';
+		Functions\when('wp_register_script')->alias(static function ($handle, $src = '', $deps = array()) use (&$registered) {
+			$registered[] = array($handle, $src, $deps);
+		});
+
+		AudienceLoader::get_instance()->enqueue_admin_assets('scheduling_page_ffc-scheduling-calendars');
+		unset($_GET['page']);
+
+		// The calendar and environment lists print the shortcode copy button (#1814).
+		$this->assertContains('ffc-copy-shortcode', $log['scripts']);
+		$this->assertContains(array('ffc-form-list-copy-shortcode', false, array('ffc-copy-shortcode')), $registered);
+		$this->assertNotContains('ffc-batched-export', $log['scripts']);
+	}
+
+	/**
+	 * Runs alone: it stubs `wp_style_is`, which a `function_exists()` guard in the
+	 * loader checks, and a definition left behind would change later tests.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_enqueue_admin_assets_on_the_bookings_page_loads_the_batched_export(): void {
 		$log          = $this->recordAdminEnqueues(true);
 		$_GET['page'] = 'ffc-scheduling-bookings';
@@ -297,6 +321,7 @@ class AudienceLoaderTest extends TestCase {
 		$this->assertContains('ffc-batched-export', $log['scripts']);
 		$this->assertContains('ffc-progress-overlay', $log['styles']);
 		$this->assertNotContains('ffc-custom-fields-admin', $log['scripts']);
+		$this->assertNotContains('ffc-copy-shortcode', $log['scripts'], 'Only the calendars page prints a shortcode copy button.');
 		$this->assertSame(array('ffcAudienceAdmin', 'ffcAdminAutosave', 'ffcRecordAutosave'), $log['localized']);
 	}
 

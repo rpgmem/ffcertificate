@@ -1030,7 +1030,7 @@ class SelfSchedulingEditor {
 			<tr>
 				<th><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></th>
 				<td>
-					<div class="ffc-email-toggles">
+					<div class="ffc-control-toggle-stack">
 						<?php
 						AdminUI::render_toggle(
 							array(
