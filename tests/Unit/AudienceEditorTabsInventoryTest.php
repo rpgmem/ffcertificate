@@ -27,8 +27,9 @@ use FreeFormCertificate\Audience\AudienceAdminEnvironment;
  *
  * The screens merged: the Members tab is what `action=members` rendered,
  * and the Environments tab is the Environments list filtered to the
- * calendar, rendered live from that page (which did not change), minus its
- * filter form — the tab is already filtered.
+ * calendar, rendered live from the Environments view (which did not change),
+ * minus its filter form and its Calendars / Environments view switch — the
+ * tab is already filtered, and it sits inside the calendar.
  *
  * @covers \FreeFormCertificate\Audience\AudienceAdminCalendar
  * @covers \FreeFormCertificate\Audience\AudienceAdminAudience
@@ -213,18 +214,15 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 	 */
 	private function render( string $page_slug, array $get ): string {
 		$_GET = array_merge( array( 'page' => $page_slug ), $get );
-		switch ( $page_slug ) {
-			case 'ffc-scheduling-calendars':
-				$page = new AudienceAdminCalendar( 'ffc-scheduling' );
-				break;
-			case 'ffc-scheduling-audiences':
-				$page = new AudienceAdminAudience( 'ffc-scheduling' );
-				break;
-			default:
-				$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
-		}
 		ob_start();
-		$page->render_page();
+		if ( AudienceAdminEnvironment::VIEW === ( $get['view'] ?? '' ) ) {
+			// The Environments view of the calendars page (#1783), without the page's wrap.
+			( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
+		} elseif ( 'ffc-scheduling-audiences' === $page_slug ) {
+			( new AudienceAdminAudience( 'ffc-scheduling' ) )->render_page();
+		} else {
+			( new AudienceAdminCalendar( 'ffc-scheduling' ) )->render_page();
+		}
 		return (string) ob_get_clean();
 	}
 
@@ -401,18 +399,22 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		$fixture = self::fixture();
 
 		// The Environments tab is the Environments list of this calendar,
-		// rendered by that page, less the filter form the tab does not need.
+		// rendered by that view, less the filter form and the Calendars /
+		// Environments view switch (#1783) the tab does not need: it is
+		// already filtered, and it sits inside the calendar.
+		$view = 'href:https://example.com/wp-admin/admin.php?page=ffc-scheduling-calendars&view=environments';
 		$list = array_values(
 			array_filter(
-				self::inventory( $this->render( 'ffc-scheduling-environments', array( 'schedule_id' => '5' ) ) ),
-				static fn( string $item ): bool => ! str_contains( $item, 'get-filter' )
+				self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'view' => 'environments', 'schedule_id' => '5' ) ) ),
+				static fn( string $item ): bool => ! str_contains( $item, 'get-filter' ) && $view !== $item
 			)
 		);
 
 		$after = self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'action' => 'edit', 'id' => '5' ) ) );
 		$this->assertSame( self::union( $fixture[ 'calendar-edit-' . $tier ], $list ), self::without_tab_markup( $after ) );
-		$this->assertContains( 'href:https://example.com/wp-admin/admin.php?page=ffc-scheduling-environments&action=edit&id=1', $after, 'an environment of this calendar is listed' );
-		$this->assertNotContains( 'href:https://example.com/wp-admin/admin.php?page=ffc-scheduling-environments&action=edit&id=4', $after, 'another calendar\'s environment is not' );
+		$this->assertContains( $view . '&action=edit&id=1', $after, 'an environment of this calendar is listed' );
+		$this->assertNotContains( $view . '&action=edit&id=4', $after, 'another calendar\'s environment is not' );
+		$this->assertSame( array(), preg_grep( '/page=ffc-scheduling-environments/', $after ), 'no link is left on the previous slug' );
 
 		$after_new = self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'action' => 'new' ) ) );
 		$this->assertSame( $fixture[ 'calendar-new-' . $tier ], self::without_tab_markup( $after_new ) );
