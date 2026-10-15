@@ -146,7 +146,12 @@ class AudienceAdminEnvironment {
 				return strnatcasecmp( $a->name, $b->name );
 			}
 		);
-		$add_url = self::view_url( $this->menu_slug, '&action=new' );
+		// Add New carries the calendar filter the list applies, so the form
+		// opens on that calendar (#1801); render_form() validates it.
+		$add_url = self::view_url(
+			$this->menu_slug,
+			'&action=new' . ( $filter_schedule > 0 ? '&schedule_id=' . (int) $filter_schedule : '' )
+		);
 
 		// Dynamic label: use filtered schedule's label or default.
 		$env_label = $filter_schedule > 0
