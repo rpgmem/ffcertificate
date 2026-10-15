@@ -246,6 +246,8 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 		Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionDetailsRenderer' )
 			->shouldReceive( 'build_submission_details_html' )->once()
 			->with( $submission, $fields, array( 'cpf' => '529.982.247-25' ) )->andReturn( '<dl>details</dl>' );
+		// A site admin's open is audited like any other (#1815).
+		$this->activityLog()->shouldReceive( 'log' )->once()->andReturn( true );
 
 		$this->invoke( new ReregistrationAjaxHandler(), 'ajax_view_submission_details' );
 
@@ -360,17 +362,20 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 	}
 
 	/**
-	 * The unmasked tier (the reregistration admin role) opens the details with
-	 * no audit row, as it sees PII elsewhere without one.
+	 * The unmasked tier (the reregistration admin role) is audited too: the
+	 * modal decrypts the whole record, and every reveal served is logged,
+	 * whatever the tier, as `ffc_reveal_pii` does (#1655).
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_view_details_opens_for_the_unmasked_tier_without_an_audit(): void {
+	public function test_view_details_opens_for_the_unmasked_tier_and_audits(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'ffc_reregistration_admin' ) ) );
 		$this->stubDetailsRequest( true );
-		$this->activityLog()->shouldReceive( 'log' )->never();
+		$this->activityLog()->shouldReceive( 'log' )->once()
+			->with( 'reregistration_details_viewed', 'info', array( 'reregistration_id' => 3 ), 9, 15 )
+			->andReturn( true );
 
 		$this->invoke( new ReregistrationAjaxHandler(), 'ajax_view_submission_details' );
 

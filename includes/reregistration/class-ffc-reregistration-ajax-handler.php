@@ -111,8 +111,8 @@ final class ReregistrationAjaxHandler {
 	 *
 	 * Gated by the PII policy rather than the manage cap (#1815): a viewer of
 	 * the list may open it only when the policy lets them reveal, the masked
-	 * tier gets a 403, and a `reveal`-tier open writes an audit row — the
-	 * same rule as every other reveal of the module's PII.
+	 * tier gets a 403, and every open served writes an audit row, at every
+	 * tier — the same rule as `ffc_reveal_pii`.
 	 *
 	 * @return void
 	 */
@@ -155,15 +155,16 @@ final class ReregistrationAjaxHandler {
 
 		$html = $this->details_renderer->build_submission_details_html( $submission, $all_fields, $decrypted_values );
 
-		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier ) {
-			\FreeFormCertificate\Core\ActivityLog::log(
-				'reregistration_details_viewed',
-				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-				array( 'reregistration_id' => (int) $submission->reregistration_id ),
-				get_current_user_id(),
-				$submission_id
-			);
-		}
+		// Every open served is audited, whatever the tier: the modal decrypts
+		// the whole record, so it is a reveal, and `ffc_reveal_pii` audits
+		// every reveal it serves (#1655).
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'reregistration_details_viewed',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array( 'reregistration_id' => (int) $submission->reregistration_id ),
+			get_current_user_id(),
+			$submission_id
+		);
 
 		wp_send_json_success( array( 'html' => $html ) );
 	}
