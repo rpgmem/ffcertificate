@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Audience calendars and environments list their shortcode** (#1814). A Shortcode column with the forms list's copy button; an environment's is tied to its calendar. The copy script is `ffc-copy-shortcode.js`, and `ffc-form-list-copy-shortcode` remains a deprecated handle alias until 6.41.0.
+
 ### Changed
 
 - **A form editor tab reads as pending while a feature it switched on is incomplete** (#1755). The dot turns amber when a restriction lacks its password, list or tickets, the date window has no date or time, GPS has no allowed area, or `{{schedule}}` is required and the event schedule is empty; green only once filled.

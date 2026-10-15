@@ -242,6 +242,7 @@ class AudienceAdminEnvironment {
 				<tr>
 					<th scope="col" class="column-color"><?php esc_html_e( 'Color', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th>
+					<th scope="col" class="column-shortcode"><?php esc_html_e( 'Shortcode', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-calendar"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-actions"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
@@ -250,7 +251,7 @@ class AudienceAdminEnvironment {
 			<tbody>
 				<?php if ( empty( $environments ) ) : ?>
 					<tr>
-						<td colspan="5">
+						<td colspan="6">
 							<?php
 							/* translators: %s: environment label (e.g. "Environments", "Rooms") */
 							printf( esc_html__( 'No %s found.', 'ffcertificate' ), esc_html( mb_strtolower( $env_label ) ) );
@@ -288,6 +289,14 @@ class AudienceAdminEnvironment {
 								<?php if ( $env->description ) : ?>
 									<p class="description"><?php echo esc_html( wp_trim_words( $env->description, 15 ) ); ?></p>
 								<?php endif; ?>
+							</td>
+							<td class="column-shortcode">
+								<?php
+								// Pinned to its calendar: `environment_id` alone shows every
+								// calendar the visitor may see with this one preselected;
+								// the calendar id keeps it to the one it belongs to.
+								\FreeFormCertificate\Admin\AdminUI::render_shortcode_copy( '[ffc_audience schedule_id="' . (int) $env->schedule_id . '" environment_id="' . (int) $env->id . '"]' );
+								?>
 							</td>
 							<td class="column-calendar">
 								<?php echo esc_html( $schedule_name ); ?>

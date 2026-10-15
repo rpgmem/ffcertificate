@@ -4632,7 +4632,7 @@ msgstr "Falha na cópia"
 msgid "Copy link"
 msgstr "Copiar link"
 
-#: includes/admin/class-ffc-form-list-columns.php:210
+#: includes/admin/class-ffc-admin-ui.php:658
 msgid "Copy shortcode"
 msgstr "Copiar código curto"
 
@@ -26100,3 +26100,7 @@ msgstr "O botão Adicionar Novo da aba Ambientes abre o formulário de ambiente 
 #: includes/settings/views/documentation/scheduling-audiences.php:31
 msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
 msgstr "Um público-alvo é editado em três abas: Público-alvo, Membros (adicionar e remover membros) e Campos de recadastramento. A contagem de membros na lista de públicos-alvo abre a aba Membros."
+
+#: includes/settings/views/documentation/scheduling-audiences.php:41
+msgid "The Shortcode column of Audience Calendars shows each calendar's shortcode with a copy button, and the Environments view shows each environment's, tied to its calendar."
+msgstr "A coluna Código curto de Calendários de Público-alvo mostra o código curto de cada calendário com um botão de copiar, e a visão Ambientes mostra o de cada ambiente, vinculado ao seu calendário."

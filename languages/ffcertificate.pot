@@ -4630,7 +4630,7 @@ msgstr ""
 msgid "Copy link"
 msgstr ""
 
-#: includes/admin/class-ffc-form-list-columns.php:210
+#: includes/admin/class-ffc-admin-ui.php:658
 msgid "Copy shortcode"
 msgstr ""
 
@@ -26016,4 +26016,8 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php:31
 msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:41
+msgid "The Shortcode column of Audience Calendars shows each calendar's shortcode with a copy button, and the Environments view shows each environment's, tied to its calendar."
 msgstr ""
