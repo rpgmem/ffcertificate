@@ -993,7 +993,7 @@ msgid "A one-click link that downloads the participant's own certificate. The se
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:20
-msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in four boxes: Calendar Configuration, Working Hours & Availability, Booking Rules & Restrictions, and Email Notifications."
+msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in one Calendar Configuration box, split into tabs: Calendar, Slots & hours, Booking window, Cancellation, Approval & waitlist, Who can see and book, Administrator bypass, and Emails. A dot on the Cancellation and Administrator bypass tabs shows whether each is on."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:657
@@ -9078,8 +9078,8 @@ msgstr ""
 msgid "Holiday deleted successfully."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:547
-msgid "Holidays / Closed Dates"
+#: includes/audience/class-ffc-audience-admin-calendar.php:225
+msgid "Closed dates"
 msgstr ""
 
 #: templates/admin/audience/general-tab.php:59
@@ -10882,10 +10882,10 @@ msgstr ""
 msgid "Members"
 msgstr ""
 
-#. %s: audience name
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:682
+#. translators: %d: number of members, as the audiences list counts them
 #, php-format
-msgid "Members of %s"
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:207
+msgid "Members (%d)"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:30
@@ -11995,7 +11995,7 @@ msgid "On by default, but only unlocks after the form's end date has passed and 
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:41
-msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy Report meta box shows each block's live booked / capacity, occupancy % and waitlist length."
+msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy tab, shown once a custom calendar is saved, lists each block's live booked / capacity, occupancy % and waitlist length."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:713
@@ -13675,6 +13675,13 @@ msgstr ""
 msgid "Read-only — you can view these settings but do not have permission to change them."
 msgstr ""
 
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:215
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:719
+#: includes/audience/class-ffc-audience-admin-calendar.php:198
+#: includes/audience/class-ffc-audience-admin-environment.php:283
+msgid "Read-only — you can view this page but do not have permission to change it."
+msgstr ""
+
 #: templates/admin/recruitment/admin-page/settings-tab.php:30
 msgid "Read-only — you do not have permission to change recruitment settings."
 msgstr ""
@@ -14276,8 +14283,8 @@ msgstr ""
 msgid "Reregistration record"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:357
-msgid "Reregistration Fields"
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:213
+msgid "Reregistration fields"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:195
@@ -15323,10 +15330,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:160
 msgid "Selected time is outside working hours."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-page.php:299
-msgid "Self"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:523
@@ -18659,8 +18662,8 @@ msgstr ""
 msgid "User Access"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:446
-msgid "User Access & Permissions"
+#: includes/audience/class-ffc-audience-admin-calendar.php:220
+msgid "User access"
 msgstr ""
 
 #: includes/admin/class-ffc-settings-save-handler.php:570 includes/settings/tabs/class-ffc-tab-user-access.php:106
@@ -23053,10 +23056,12 @@ msgstr ""
 msgid "view or manage the appointments booked on those calendars."
 msgstr ""
 
-msgid "Go to Scheduling → Audiences, edit an audience, and use its Reregistration Fields section"
+#: includes/settings/views/documentation/feature-audiences.php:62
+msgid "Go to Scheduling → Audiences, edit an audience, and open its Reregistration fields tab"
 msgstr ""
 
-msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the section is hidden."
+#: includes/settings/views/documentation/feature-audiences.php:67
+msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the tab is hidden."
 msgstr ""
 
 msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data; fields mapped to a profile key (such as CPF, RF, RG or birth date) are also written, encrypted, to the plugin user profile."
@@ -23068,7 +23073,13 @@ msgstr ""
 msgid "Admin pages"
 msgstr ""
 
-msgid "Besides the calendars, environments and audiences, the Scheduling menu has a Dashboard and an Audience Bookings list of every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
+msgid "The Scheduling menu lists Dashboard, Personal Calendars, Appointments, Audience Calendars, Audiences, Audience Bookings and Settings. A new personal calendar is added with the Add New button of Personal Calendars or the Dashboard's quick action."
+msgstr ""
+
+msgid "Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar's row opens that calendar's environments."
+msgstr ""
+
+msgid "Audience Bookings lists every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
 msgstr ""
 
 msgid "The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
@@ -23800,7 +23811,10 @@ msgstr ""
 msgid "Approval and waitlist"
 msgstr ""
 
-msgid "Booking Rules & Restrictions"
+msgid "Slots & hours"
+msgstr ""
+
+msgid "Approval & waitlist"
 msgstr ""
 
 msgid "Booking slots"
@@ -24338,6 +24352,9 @@ msgid "view the list and download QR codes."
 msgstr ""
 
 msgid "view the Scheduling menu and audience pages."
+msgstr ""
+
+msgid "On its own it opens them read-only: the calendar, environment and audience edit forms and the members screen show their fields disabled, with no Save, Add or Remove, under a read-only notice."
 msgstr ""
 
 msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."
@@ -25987,4 +26004,20 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:62
 msgid "whether the widget shows the ALTCHA logo and the \"Protected by ALTCHA\" footer. A new install shows the logo and hides the footer."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:208
+msgid "Event list & badges"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:29
+msgid "The editors"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:30
+msgid "A calendar is edited in vertical tabs: General, Notifications and Event list & badges, then, once the calendar is saved, its environments (the Environments list of that calendar), User access and Closed dates. One Save button beside the tabs saves the first three together; the shortcode sits beside it."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:31
+msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
 msgstr ""

@@ -36,6 +36,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Settings {
 
 	/**
+	 * `?page=` of the Settings screen.
+	 */
+	public const MENU_SLUG = 'ffc-settings';
+
+	/**
 	 * Tabs.
 	 *
 	 * @var array<string, object>
@@ -242,7 +247,7 @@ class Settings {
 			// tied to `ffc_view_settings` alone (which would hide the page from
 			// operators who only hold a per-tab cap such as ffc_view_activity_log).
 			'ffc_view_settings_page',
-			'ffc-settings',
+			self::MENU_SLUG,
 			array( $this, 'display_settings_page' ),
 			'none' // Drawn from the icon registry by AdminMenuIcons (#1640).
 		);
@@ -749,7 +754,7 @@ class Settings {
 					// handlers + AJAX endpoints already gate on `ffc_manage_settings`
 					// server-side; this just stops the UI from looking editable.
 					if ( ! $ffc_settings_can_edit ) {
-						echo '<fieldset disabled class="ffc-settings-readonly-lock">';
+						echo '<fieldset disabled class="ffc-readonly-lock">';
 					}
 					// $active_tab is resolved to a visible tab above (the set is
 					// guaranteed non-empty by the early-return at the top), so it is

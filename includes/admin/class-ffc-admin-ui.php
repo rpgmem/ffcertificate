@@ -583,6 +583,75 @@ class AdminUI {
 	}
 
 	/**
+	 * Print a vertical-tab container (`.ffc-form-tabs`): a nav on the left
+	 * and one `<section role="tabpanel">` per tab on the right.
+	 *
+	 * One markup for every editor that splits its settings into tabs — the
+	 * certificate form editor and the personal calendar editor (#1761) — so
+	 * `ffc-form-editor-tabs.js` and the component's CSS serve both. Every
+	 * panel stays in the DOM (an inactive one is only `display:none` once the
+	 * script marks the container ready), so the post save reads every field,
+	 * and without the script the panels degrade to a stacked layout.
+	 *
+	 * Each tab is `key`, `icon` (a `.ffc-icon-*` class), `label` (terse, in
+	 * the nav), `title` (the panel heading), and optionally `masters` (ids of
+	 * the toggles that switch the tab's feature on, which draw the state dot)
+	 * and `needs` (a selector list of fields the tab cannot do without).
+	 *
+	 * @param array<int, array{key: string, icon: string, label: string, title: string, masters?: array<int, string>, needs?: string}> $tabs        Tabs, in display order; the first starts active.
+	 * @param callable(string): void                                                                                                   $render_body Prints a panel's body, given its tab key.
+	 */
+	public static function render_vertical_tabs( array $tabs, callable $render_body ): void {
+		echo '<div class="ffc-form-tabs" data-ffc-form-tabs>';
+
+		printf(
+			'<ul class="ffc-form-tabs__nav" role="tablist" aria-orientation="vertical" data-ffc-state-on="%s" data-ffc-state-off="%s" data-ffc-state-pending="%s">',
+			esc_attr__( 'On', 'ffcertificate' ),
+			esc_attr__( 'Off', 'ffcertificate' ),
+			esc_attr__( 'Incomplete', 'ffcertificate' )
+		);
+		$first = true;
+		foreach ( $tabs as $tab ) {
+			$masters = $tab['masters'] ?? array();
+			$needs   = $tab['needs'] ?? '';
+			printf(
+				'<li class="ffc-form-tabs__nav-item" role="presentation"><a href="#ffc-tab-%1$s" id="ffc-tabnav-%1$s" class="ffc-form-tabs__tab%2$s" role="tab" aria-controls="ffc-tabpanel-%1$s" aria-selected="%3$s" tabindex="%4$s"%7$s%8$s><span class="ffc-form-tabs__icon %5$s" aria-hidden="true"></span><span class="ffc-form-tabs__label">%6$s</span></a></li>',
+				esc_attr( $tab['key'] ),
+				$first ? ' is-active' : '',
+				$first ? 'true' : 'false',
+				$first ? '0' : '-1',
+				esc_attr( \FreeFormCertificate\Core\Icons::tab_class( $tab['icon'] ) ),
+				esc_html( $tab['label'] ),
+				array() === $masters ? '' : ' data-ffc-tab-masters="' . esc_attr( implode( ' ', $masters ) ) . '"',
+				'' === $needs ? '' : ' data-ffc-tab-needs="' . esc_attr( $needs ) . '"'
+			);
+			$first = false;
+		}
+		echo '</ul>';
+
+		echo '<div class="ffc-form-tabs__panels">';
+		$first = true;
+		foreach ( $tabs as $tab ) {
+			printf(
+				'<section id="ffc-tabpanel-%1$s" class="ffc-form-tabs__panel%2$s" role="tabpanel" aria-labelledby="ffc-tabnav-%1$s" tabindex="0">',
+				esc_attr( $tab['key'] ),
+				$first ? ' is-active' : ''
+			);
+			printf(
+				'<h2 class="ffc-form-tabs__panel-title"><span class="ffc-form-tabs__icon %1$s" aria-hidden="true"></span>%2$s</h2>',
+				esc_attr( \FreeFormCertificate\Core\Icons::tab_class( $tab['icon'] ) ),
+				esc_html( $tab['title'] )
+			);
+			$render_body( $tab['key'] );
+			echo '</section>';
+			$first = false;
+		}
+		echo '</div>';
+
+		echo '</div>';
+	}
+
+	/**
 	 * Markup for a stat card (`.ffc-stat-card`): an icon badge, a number and
 	 * what it counts. Lay several out in a `.ffc-stats` row.
 	 *

@@ -226,9 +226,6 @@
     text-overflow: ellipsis;
 }
 
-/* Menu Separators: loaded via admin_head hook in AudienceAdminPage::print_menu_separator_css()
- * (must be inline because menu is visible on ALL admin pages, not just scheduling pages) */
-
 /* Booking Status (non-prefixed -- used in bookings list) */
 .ffc-booking-status-active {
     color: var(--ffc-success);
@@ -378,59 +375,6 @@
     }
 }
 
-/* ==========================================================================
-   ADMIN MENU — Submenu separators & dashicon labels
-   Migrated from class-ffc-audience-admin-page.php (Sprint 2)
-
-   THE COLOURS HERE STAY LITERAL, on purpose (#1126). `#adminmenu` belongs to
-   WordPress and follows the *colour scheme* each user picks in their own
-   profile — nothing to do with the plugin's dark mode. Painting these
-   separators from the palette would make them fight the chosen scheme, and in
-   a light scheme `rgba(255,255,255,.1)` is still what core itself uses there.
-   ========================================================================== */
-#adminmenu .wp-submenu a[href^="#ffc-separator-"] {
-    pointer-events: none;
-    cursor: default;
-    color: #a7aaad !important;
-    font-size: var(--ffc-font-size-2xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-    margin-top: var(--ffc-spacing-xs);
-    padding-top: var(--ffc-spacing-sm);
-}
-#adminmenu .wp-submenu a[href^="#ffc-separator-"]:hover {
-    color: #a7aaad !important;
-    background: none !important;
-}
-#adminmenu .wp-submenu a[href^="#ffc-separator-"]::before {
-    font-family: dashicons;
-    font-size: var(--ffc-font-size-base);
-    margin-right: var(--ffc-spacing-2xs);
-    vertical-align: middle;
-    position: relative;
-    top: -1px;
-}
-#adminmenu .wp-submenu a[href="#ffc-separator-self"]::before {
-    content: "\f110";
-}
-#adminmenu .wp-submenu a[href="#ffc-separator-audience"]::before {
-    content: "\f307";
-}
-#adminmenu .wp-submenu a[href="#ffc-separator-tools"]::before {
-    content: "\f107";
-}
-#adminmenu .wp-submenu a[href$="ffc-scheduling-dashboard"]::before {
-    font-family: dashicons;
-    font-size: var(--ffc-font-size-base);
-    margin-right: var(--ffc-spacing-2xs);
-    vertical-align: middle;
-    position: relative;
-    top: -1px;
-    content: "\f226";
-}
-
 /* ── Extracted inline styles (frontend-audit Item 1) ──────────────────────
    Static inline style="" attributes moved out of the audience admin views
    (admin-calendar, admin-audience). Pure display:none initial-state toggles
@@ -576,4 +520,48 @@
 .ffc-color-value {
     margin-left: var(--ffc-spacing-sm);
     color: var(--ffc-text-muted);
+}
+
+/* ==========================================================================
+   EDITORS IN VERTICAL TABS (#1761)
+   The audience calendar and audience editors draw the form editor's tab
+   component (`.ffc-form-tabs`, in ffc-admin-components.css) inside a box
+   of their own, with the Save and Shortcode cards in a side column. The
+   component's negative margins fit a metabox's inset, which this box does
+   not have.
+   ========================================================================== */
+
+.ffc-aud-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: var(--ffc-spacing-2xl);
+    align-items: start;
+    margin-top: var(--ffc-spacing-xl);
+}
+
+.ffc-aud-editor__main {
+    min-width: 0;
+}
+
+.ffc-boxed .ffc-aud-editor__tabs {
+    margin: var(--ffc-spacing-xl) 0 0;
+    overflow: hidden;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    box-shadow: var(--ffc-shadow-sm);
+}
+
+.ffc-aud-editor .ffc-aud-editor__tabs {
+    margin-top: 0;
+}
+
+.ffc-aud-editor__side .card {
+    min-width: 0;
+}
+
+@media screen and (max-width: 960px) {
+    .ffc-aud-editor {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }

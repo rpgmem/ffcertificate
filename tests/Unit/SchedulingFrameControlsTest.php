@@ -167,15 +167,18 @@ class SchedulingFrameControlsTest extends TestCase {
 		$sched->shouldReceive( 'get_environment_label' )->andReturn( 'Environments' );
 
 		ob_start();
-		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_page();
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
 		$html = (string) ob_get_clean();
 
-		$page = 'https://example.com/wp-admin/admin.php?page=ffc-scheduling-environments';
+		$page = 'https://example.com/wp-admin/admin.php?page=ffc-scheduling-calendars&view=environments';
 		$this->assertSame(
 			array(
 				'a href=' . $page . '&action=new',
+				'a href=https://example.com/wp-admin/admin.php?page=ffc-scheduling-calendars',
+				'a href=' . $page,
 				'form method=get',
-				'input name=page type=hidden value=ffc-scheduling-environments',
+				'input name=page type=hidden value=ffc-scheduling-calendars',
+				'input name=view type=hidden value=environments',
 				'select name=schedule_id',
 				'option value=',
 				'option value=1',

@@ -59,12 +59,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'How It Works:', 'ffcertificate' ); ?></h4>
 		<ul>
-			<li><strong><?php esc_html_e( 'Step 1:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Go to Scheduling → Audiences, edit an audience, and use its Reregistration Fields section', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Step 1:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Go to Scheduling → Audiences, edit an audience, and open its Reregistration fields tab', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Step 2:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Add fields with labels, types, and validation rules', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Step 3:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Fields appear on user profiles and reregistration forms automatically', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Step 4:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Child audiences inherit fields from parent audiences', 'ffcertificate' ); ?></li>
 		</ul>
-		<p class="description"><?php esc_html_e( 'Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the section is hidden.', 'ffcertificate' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the tab is hidden.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-example">

@@ -13,20 +13,17 @@
  *   AudienceAdminSettings    – Settings tabs + global holidays
  *   AudienceAdminImport      – CSV import for members & audiences
  *
- * Self-Scheduling CPT items (All Calendars, Add New) and Appointments are
- * registered under the same menu by SelfSchedulingCPT and SelfSchedulingAdmin.
+ * The Personal Calendars list (a CPT) and Appointments are registered under
+ * the same menu by SelfSchedulingCPT and SelfSchedulingAdmin.
  *
- * Menu structure:
+ * Menu structure (#1761):
  * - Dashboard (overview of both systems)
- * - All Calendars (CPT - self-scheduling, auto-registered)
- * - Add New (CPT - self-scheduling, auto-registered)
+ * - Personal Calendars (CPT - self-scheduling, auto-registered)
  * - Appointments (self-scheduling, registered by SelfSchedulingAdmin)
- * - Audience Calendars
- * - Environments
+ * - Audience Calendars (two views: Calendars and Environments)
  * - Audiences
  * - Audience Bookings
- * - Import & Export
- * - Settings
+ * - Settings (hosts Import & Export as a tab)
  *
  * @package FreeFormCertificate\Audience
  * @since 4.5.0
@@ -111,29 +108,27 @@ class AudienceAdminPage {
 	public function init(): void {
 		// Instantiate sub-page handlers. Settings is constructed last and
 		// receives the AudienceAdminImport instance so its 4th tab can
-		// render the Import & Export body without a separate submenu.
+		// render the Import & Export body without a separate submenu. The
+		// calendar page receives the environment handler, whose screen is
+		// its second view (#1761).
 		$this->dashboard   = new AudienceAdminDashboard( self::MENU_SLUG );
-		$this->calendar    = new AudienceAdminCalendar( self::MENU_SLUG );
 		$this->environment = new AudienceAdminEnvironment( self::MENU_SLUG );
+		$this->calendar    = new AudienceAdminCalendar( self::MENU_SLUG, $this->environment );
 		$this->audience    = new AudienceAdminAudience( self::MENU_SLUG );
 		$this->bookings    = new AudienceAdminBookings( self::MENU_SLUG );
 		$this->import      = new AudienceAdminImport( self::MENU_SLUG );
 		$this->settings    = new AudienceAdminSettings( self::MENU_SLUG, $this->import );
 
 		add_action( 'admin_menu', array( $this, 'add_admin_menus' ), 20 );
-		add_action( 'admin_menu', array( $this, 'add_menu_separators' ), 99 );
-		// Register the separator styles on `admin_enqueue_scripts` (fires
-		// before `admin_print_styles`) rather than `admin_head` (fires after
-		// styles are already printed) — otherwise `wp_add_inline_style()`
-		// attaches to the `admin-menu` sheet too late and never outputs, so
-		// the separators lose their icons / non-clickable styling on every
-		// admin page where ffc-audience-admin.css is not loaded (e.g. the
-		// self-scheduling CPT screens). See #563 follow-up.
-		add_action( 'admin_enqueue_scripts', array( $this, 'print_menu_separator_css' ) );
+		add_action( 'admin_menu', array( $this, 'order_menu' ), 99 );
 		// Permanent redirect for the previous standalone Import URL — the
 		// page is now the `import` tab of ffc-scheduling-settings, but old
 		// bookmarks / docs / dashboard links should not 404.
 		add_action( 'admin_init', array( $this, 'redirect_legacy_import_url' ) );
+		// The Environments screen is now a view of Audience Calendars (#1761).
+		// Registered before handle_form_submissions so a GET is forwarded
+		// first; a POST to the old slug is still handled where it lands.
+		add_action( 'admin_init', array( $this, 'redirect_legacy_environments_url' ) );
 		add_action( 'admin_init', array( $this, 'handle_form_submissions' ) );
 	}
 
@@ -182,14 +177,19 @@ class AudienceAdminPage {
 			array( $this->calendar, 'render_page' )
 		);
 
-		// Submenu: Environments.
+		// Environments: a view of Audience Calendars since #1761, so it has no
+		// row of its own. The slug stays registered, hidden (no parent) and
+		// under the same capability, so `admin.php?page=ffc-scheduling-environments`
+		// still passes WordPress's page-access check and reaches
+		// redirect_legacy_environments_url(), and a POST from a form opened
+		// before the move is still saved and rendered.
 		add_submenu_page(
-			self::MENU_SLUG,
+			'',
 			__( 'Environments', 'ffcertificate' ),
 			__( 'Environments', 'ffcertificate' ),
 			'ffc_view_audiences',
 			self::MENU_SLUG . '-environments',
-			array( $this->environment, 'render_page' )
+			array( $this->calendar, 'render_page' )
 		);
 
 		// Submenu: Audiences.
@@ -262,14 +262,53 @@ class AudienceAdminPage {
 	}
 
 	/**
-	 * Insert visual separators between menu sections.
+	 * Redirect the previous Environments screen (`page=ffc-scheduling-environments`)
+	 * to its view inside Audience Calendars (`page=ffc-scheduling-calendars&view=environments`).
 	 *
-	 * Runs at priority 99 so all submenu items are already registered.
-	 * Inserts non-clickable separator labels before "Audience Calendars".
+	 * Every other query arg rides along — `action`, `id`, `schedule_id`,
+	 * `message` and the nonces — so a bookmarked list filter, an edit link or
+	 * a nonce'd Deactivate / Delete link lands where it is handled. A POST is
+	 * not redirected (a redirect drops its body): AudienceAdminEnvironment
+	 * accepts the old slug, so the save runs and the page renders the view.
 	 *
 	 * @return void
 	 */
-	public function add_menu_separators(): void {
+	public function redirect_legacy_environments_url(): void {
+		if ( self::MENU_SLUG . '-environments' !== RequestInput::get_get_key( 'page' ) ) {
+			return;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Only asks whether the request carries a body; nothing is read.
+		if ( ! empty( $_POST ) ) {
+			return;
+		}
+
+		$args = array();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A redirect carrying the query string forward; the destination handler verifies its own nonce.
+		foreach ( wp_unslash( $_GET ) as $key => $value ) {
+			if ( ! is_string( $key ) || ! is_scalar( $value ) ) {
+				continue;
+			}
+			$args[ sanitize_key( $key ) ] = rawurlencode( sanitize_text_field( (string) $value ) );
+		}
+		$args['page'] = self::MENU_SLUG . '-calendars';
+		$args['view'] = AudienceAdminEnvironment::VIEW;
+
+		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ), 301 );
+		exit;
+	}
+
+	/**
+	 * Put the Scheduling submenu in its order.
+	 *
+	 * Runs at priority 99, after every item is registered — the CPT list by
+	 * core, Appointments by SelfSchedulingAdmin at 25. Seven rows and no
+	 * section labels (#1761): the "Self" / "Audience" separators, and the
+	 * icon-font glyphs they and the Dashboard row drew, went with the
+	 * reorganisation.
+	 *
+	 * @return void
+	 */
+	public function order_menu(): void {
 		global $submenu;
 
 		if ( ! isset( $submenu[ self::MENU_SLUG ] ) ) {
@@ -282,88 +321,42 @@ class AudienceAdminPage {
 			$by_slug[ $item[2] ] = $item;
 		}
 
-		// Define the desired order with separators.
 		$ordered_slugs = array(
-			// Dashboard at top.
-			self::MENU_SLUG . '-dashboard',                          // Dashboard
-			// Self section.
-			'#ffc-separator-self',
-			'edit.php?post_type=ffc_self_scheduling',               // Personal Calendars.
-			'post-new.php?post_type=ffc_self_scheduling',           // New Personal Calendar.
-			'ffc-appointments',                                      // Appointments
-			// Audience section.
-			'#ffc-separator-audience',
-			self::MENU_SLUG . '-calendars',                          // Audience Calendars.
-			self::MENU_SLUG . '-environments',                       // Environments.
-			self::MENU_SLUG . '-audiences',                          // Audiences.
-			self::MENU_SLUG . '-bookings',                           // Audience Bookings.
-			self::MENU_SLUG . '-settings',                           // Settings (hosts Import & Export as a tab).
+			self::MENU_SLUG . '-dashboard',            // Dashboard.
+			'edit.php?post_type=ffc_self_scheduling', // Personal Calendars.
+			'ffc-appointments',                        // Appointments.
+			self::MENU_SLUG . '-calendars',            // Audience Calendars (and its Environments view).
+			self::MENU_SLUG . '-audiences',            // Audiences.
+			self::MENU_SLUG . '-bookings',             // Audience Bookings.
+			self::MENU_SLUG . '-settings',             // Settings (hosts Import & Export as a tab).
 		);
 
-		// Build separators.
-		$separators = array(
-			'#ffc-separator-self'     => array( __( 'Self', 'ffcertificate' ), 'manage_options', '#ffc-separator-self' ),
-			'#ffc-separator-audience' => array( __( 'Audience', 'ffcertificate' ), 'manage_options', '#ffc-separator-audience' ),
+		// Rows that stay off the menu even when something registers them:
+		// the auto-generated duplicate of the parent, and "New Personal
+		// Calendar", whose screen is reached from the list's Add New button
+		// and the Dashboard's quick action (#1761).
+		$dropped = array(
+			self::MENU_SLUG,
+			'post-new.php?post_type=ffc_self_scheduling',
 		);
 
-		// Rebuild submenu in the desired order.
 		$new_items = array();
 		foreach ( $ordered_slugs as $slug ) {
-			if ( isset( $separators[ $slug ] ) ) {
-				$new_items[] = $separators[ $slug ];
-			} elseif ( isset( $by_slug[ $slug ] ) ) {
+			if ( isset( $by_slug[ $slug ] ) ) {
 				$new_items[] = $by_slug[ $slug ];
 			}
 		}
 
 		// Append any remaining items not in our ordered list (safety net).
 		foreach ( $by_slug as $slug => $item ) {
-			if ( self::MENU_SLUG === $slug ) {
-				continue; // Skip the auto-generated parent duplicate.
+			if ( in_array( $slug, $dropped, true ) || in_array( $slug, $ordered_slugs, true ) ) {
+				continue;
 			}
-			if ( ! in_array( $slug, $ordered_slugs, true ) ) {
-				$new_items[] = $item;
-			}
+			$new_items[] = $item;
 		}
 
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentionally reordering WP's own $submenu array to control admin menu appearance.
 		$submenu[ self::MENU_SLUG ] = $new_items;
-	}
-
-	/**
-	 * Print CSS to style menu separators with dashicons
-	 *
-	 * Must remain inline — attached to the always-present core `admin-menu`
-	 * stylesheet on ALL admin pages, while ffc-audience-admin.css only loads
-	 * on scheduling pages. Registered on `admin_enqueue_scripts` (see the
-	 * constructor) so the inline style is added before the sheet is printed.
-	 *
-	 * @return void
-	 */
-	public function print_menu_separator_css(): void {
-		// Menu separator styles live in ffc-audience-admin.css, but that file only
-		// loads on scheduling pages. Attach the same rules to the always-present
-		// core 'admin-menu' stylesheet so the separators keep their icons and
-		// non-clickable styling on every admin page (including the self-scheduling
-		// CPT screens, which don't enqueue ffc-audience-admin.css).
-		wp_add_inline_style( 'admin-menu', $this->get_menu_separator_css() );
-	}
-
-	/**
-	 * Return the menu-separator CSS string.
-	 *
-	 * Kept as a method so it can be unit-tested if needed.
-	 *
-	 * @return string Minified CSS.
-	 */
-	private function get_menu_separator_css(): string {
-		return '#adminmenu .wp-submenu a[href^="#ffc-separator-"]{pointer-events:none;cursor:default;color:#a7aaad!important;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid rgba(255,255,255,.1);margin-top:6px;padding-top:8px}'
-			. '#adminmenu .wp-submenu a[href^="#ffc-separator-"]:hover{color:#a7aaad!important;background:none!important}'
-			. '#adminmenu .wp-submenu a[href^="#ffc-separator-"]::before{font-family:dashicons;font-size:14px;margin-right:4px;vertical-align:middle;position:relative;top:-1px}'
-			. '#adminmenu .wp-submenu a[href="#ffc-separator-self"]::before{content:"\f110"}'
-			. '#adminmenu .wp-submenu a[href="#ffc-separator-audience"]::before{content:"\f307"}'
-			. '#adminmenu .wp-submenu a[href="#ffc-separator-tools"]::before{content:"\f107"}'
-			. '#adminmenu .wp-submenu a[href$="ffc-scheduling-dashboard"]::before{font-family:dashicons;font-size:14px;margin-right:4px;vertical-align:middle;position:relative;top:-1px;content:"\f226"}';
 	}
 
 	/**
