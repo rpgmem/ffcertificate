@@ -229,6 +229,9 @@ class AudienceLoader {
 
 		// Custom fields CSS + JS (on audiences page).
 		$page = \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' );
+
+		// The calendar and audience editors are vertical tabs (#1761).
+		AudienceEditorTabs::maybe_enqueue( $page, \FreeFormCertificate\Core\RequestInput::get_get_string( 'action' ) );
 		if ( 'ffc-scheduling-audiences' === $page ) {
 			wp_enqueue_script( 'jquery-ui-sortable' );
 

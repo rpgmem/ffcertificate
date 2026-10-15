@@ -26,6 +26,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'A schedule is a bookable calendar; inside it, each environment is a space (room/resource) with its own weekly working hours (default 08:00–18:00, per-day closable) and color. A schedule controls visibility, how far ahead bookings are allowed, per-user booking permissions, and the notification settings below.', 'ffcertificate' ); ?> <?php esc_html_e( 'A new calendar starts public.', 'ffcertificate' ); ?></p>
 	<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?></p>
 
+	<h4><?php esc_html_e( 'The editors', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'A calendar is edited in vertical tabs: General, Notifications and Event list & badges, then, once the calendar is saved, its environments (the Environments list of that calendar), User access and Closed dates. One Save button beside the tabs saves the first three together; the shortcode sits beside it.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab.', 'ffcertificate' ); ?></p>
+
 	<div class="ffc-doc-note">
 		<p>
 			<strong class="ffc-icon-info"><?php esc_html_e( 'Free-form times, not fixed slots.', 'ffcertificate' ); ?></strong><br>
@@ -40,14 +44,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'Each schedule independently notifies affected users on booking and cancellation, and can attach an ICS calendar invite. Two opt-in admin toggles (off by default) also notify a recipient list (comma-separated; blank falls back to the site admin) on new bookings and cancellations.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Admin pages', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Besides the calendars, environments and audiences, the Scheduling menu has a Dashboard and an Audience Bookings list of every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The Scheduling menu lists Dashboard, Personal Calendars, Appointments, Audience Calendars, Audiences, Audience Bookings and Settings. A new personal calendar is added with the Add New button of Personal Calendars or the Dashboard\'s quick action.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar\'s row opens that calendar\'s environments.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Audience Bookings lists every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Import / export', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
 	<ul>
-		<li><code>ffc_view_audiences</code> — <?php esc_html_e( 'view the Scheduling menu and audience pages.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_view_audiences</code> — <?php esc_html_e( 'view the Scheduling menu and audience pages.', 'ffcertificate' ); ?> <?php esc_html_e( 'On its own it opens them read-only: the calendar, environment and audience edit forms and the members screen show their fields disabled, with no Save, Add or Remove, under a read-only notice.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_manage_audiences</code> — <?php esc_html_e( 'create audiences, schedules, environments and members.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_import_audiences</code> / <code>ffc_export_audiences</code> / <code>ffc_delete_audiences</code> — <?php esc_html_e( 'import, export, delete.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_view_own_audience_bookings</code> — <?php esc_html_e( 'the end-user cap; booking/cancel rights come from per-schedule permissions.', 'ffcertificate' ); ?></li>

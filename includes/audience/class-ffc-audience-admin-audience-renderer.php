@@ -163,15 +163,22 @@ final class AudienceAdminAudienceRenderer {
 	/**
 	 * Render audience form
 	 *
+	 * The editor is three vertical tabs (#1761): the audience itself, its
+	 * members (what `action=members` rendered as its own screen) and its
+	 * reregistration fields. Each tab keeps its own form or AJAX save.
+	 *
 	 * @param string $menu_slug The menu slug prefix.
 	 * @param int    $id        Audience ID (0 for new).
+	 * @param string $open_tab  Tab to open when `?tab=` names none: `members`
+	 *                          for the `action=members` URL.
 	 * @return void
 	 */
-	public static function render_form( string $menu_slug, int $id ): void {
+	public static function render_form( string $menu_slug, int $id, string $open_tab = 'audience' ): void {
 		$audience   = null;
 		$page_title = __( 'Add New Audience', 'ffcertificate' );
 
-		if ( $id > 0 ) {
+		// The members URL names a saved audience, as it did as its own screen.
+		if ( $id > 0 || 'members' === $open_tab ) {
 			$audience = AudienceReader::get_by_id( $id );
 			if ( ! $audience ) {
 				wp_die( esc_html__( 'Audience not found.', 'ffcertificate' ) );
@@ -181,6 +188,39 @@ final class AudienceAdminAudienceRenderer {
 
 		$possible_parents = AudienceReader::get_possible_parents( $id );
 		$back_url         = admin_url( 'admin.php?page=' . $menu_slug . '-audiences' );
+		// 3-state (#1777): the screen opens on `ffc_view_audiences`, the save on
+		// `ffc_manage_audiences`. Without it the form renders read-only; the
+		// fields section below keeps its own `ffc_manage_custom_fields` tier.
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+
+		$tabs = array(
+			array(
+				'key'   => 'audience',
+				'label' => __( 'Audience', 'ffcertificate' ),
+				'icon'  => 'users',
+			),
+		);
+		if ( $id > 0 ) {
+			$tabs[] = array(
+				'key'   => 'members',
+				/* translators: %d: number of members, as the audiences list counts them */
+				'label' => sprintf( __( 'Members (%d)', 'ffcertificate' ), AudienceReader::get_member_count( $id ) ),
+				'icon'  => 'user-check',
+			);
+			if ( self::can_view_custom_fields() ) {
+				$tabs[] = array(
+					'key'   => 'fields',
+					'label' => __( 'Reregistration fields', 'ffcertificate' ),
+					'icon'  => 'clipboard',
+				);
+			}
+		}
+		// A member added or removed lands back on the Members tab.
+		if ( 'add_members' === \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_action' )
+			|| 'member_removed' === \FreeFormCertificate\Core\RequestInput::get_get_string( 'message' ) ) {
+			$open_tab = 'members';
+		}
+		$active = AudienceEditorTabs::active( array_column( $tabs, 'key' ), $open_tab );
 
 		?>
 		<h1><?php echo esc_html( $page_title ); ?></h1>
@@ -207,14 +247,21 @@ final class AudienceAdminAudienceRenderer {
 		<?php endif; ?>
 
 		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php if ( ! $can_manage ) : ?>
+			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
+		<?php endif; ?>
 
+		<?php AudienceEditorTabs::open( $tabs, $active ); ?>
+		<?php AudienceEditorTabs::panel_open( $tabs[0], $active ); ?>
 		<form method="post" action="" class="ffc-form">
 			<?php wp_nonce_field( 'save_audience', 'ffc_audience_nonce' ); ?>
 			<input type="hidden" name="audience_id" value="<?php echo esc_attr( (string) $id ); ?>">
 			<input type="hidden" name="ffc_action" value="save_audience">
 
-			<div class="card">
-			<h2 class="ffc-icon-users"><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></h2>
+			<?php if ( ! $can_manage ) : ?>
+				<?php // A disabled fieldset disables every control inside it, the autosave toggles included. ?>
+				<fieldset disabled class="ffc-readonly-lock">
+			<?php endif; ?>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
@@ -312,19 +359,44 @@ final class AudienceAdminAudienceRenderer {
 					</td>
 				</tr>
 			</tbody></table>
-			</div>
+			<?php if ( ! $can_manage ) : ?>
+				</fieldset>
+			<?php endif; ?>
 
-			<?php submit_button( $id > 0 ? __( 'Update Audience', 'ffcertificate' ) : __( 'Create Audience', 'ffcertificate' ) ); ?>
+			<?php if ( $can_manage ) : ?>
+				<?php submit_button( $id > 0 ? __( 'Update Audience', 'ffcertificate' ) : __( 'Create Audience', 'ffcertificate' ) ); ?>
+			<?php endif; ?>
 		</form>
+		<?php AudienceEditorTabs::panel_close(); ?>
 
 		<?php if ( $id > 0 ) : ?>
-			<?php self::render_custom_fields_section( $id ); ?>
+			<?php AudienceEditorTabs::panel_open( $tabs[1], $active ); ?>
+			<?php self::render_members_tab( $menu_slug, $id, $can_manage ); ?>
+			<?php AudienceEditorTabs::panel_close(); ?>
+			<?php if ( isset( $tabs[2] ) ) : ?>
+				<?php AudienceEditorTabs::panel_open( $tabs[2], $active ); ?>
+				<?php self::render_custom_fields_section( $id ); ?>
+				<?php AudienceEditorTabs::panel_close(); ?>
+			<?php endif; ?>
 		<?php endif; ?>
+		<?php AudienceEditorTabs::close(); ?>
 		<?php
 	}
 
 	/**
-	 * Render custom fields management section
+	 * Whether the current user sees the reregistration fields: with the view
+	 * cap read-only, with the manage cap editable.
+	 *
+	 * @return bool
+	 */
+	private static function can_view_custom_fields(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_custom_fields' )
+			|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_custom_fields' );
+	}
+
+	/**
+	 * Render custom fields management section: the body of the Reregistration
+	 * fields tab, whose panel carries the heading.
 	 *
 	 * @param int $audience_id Audience ID.
 	 * @return void
@@ -333,8 +405,7 @@ final class AudienceAdminAudienceRenderer {
 		// 3-state model: hidden without view; read-only with view-only; editable
 		// with manage. The save/delete/replicate AJAX is gated server-side by
 		// ffc_manage_custom_fields regardless of what the UI renders.
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_custom_fields' )
-			&& ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_custom_fields' ) ) {
+		if ( ! self::can_view_custom_fields() ) {
 			return;
 		}
 		$can_edit_fields = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_custom_fields' );
@@ -365,8 +436,6 @@ final class AudienceAdminAudienceRenderer {
 		$has_children = ! empty( AudienceReader::get_children( $audience_id ) );
 
 		?>
-		<div class="card">
-		<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Reregistration Fields', 'ffcertificate' ); ?></h2>
 		<p class="description"><?php esc_html_e( 'Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use "+ Add Field" to create custom fields.', 'ffcertificate' ); ?></p>
 
 		<div id="ffc-custom-fields-container" data-audience-id="<?php echo esc_attr( (string) $audience_id ); ?>">
@@ -397,7 +466,6 @@ final class AudienceAdminAudienceRenderer {
 			<?php else : ?>
 			<p class="description"><em><?php esc_html_e( 'Read-only — you do not have permission to edit custom field definitions.', 'ffcertificate' ); ?></em></p>
 			<?php endif; ?>
-		</div>
 		</div>
 
 		<!-- Template for new field row (used by JS) -->
@@ -676,27 +744,21 @@ final class AudienceAdminAudienceRenderer {
 	}
 
 	/**
-	 * Render audience members page
+	 * Render the Members tab: what the `action=members` screen rendered before
+	 * it became a tab of the editor (#1761).
 	 *
-	 * @param string $menu_slug The menu slug prefix.
-	 * @param int    $id        Audience ID.
+	 * @param string $menu_slug  The menu slug prefix.
+	 * @param int    $id         Audience ID.
+	 * @param bool   $can_manage Whether members can be added and removed: the
+	 *                           screen opens on `ffc_view_audiences`, the writes
+	 *                           on `ffc_manage_audiences` (#1777).
 	 * @return void
 	 */
-	public static function render_members( string $menu_slug, int $id ): void {
-		$audience = AudienceReader::get_by_id( $id );
-		if ( ! $audience ) {
-			wp_die( esc_html__( 'Audience not found.', 'ffcertificate' ) );
-		}
-
-		$members  = AudienceReader::get_members( (int) $audience->id );
-		$back_url = admin_url( 'admin.php?page=' . $menu_slug . '-audiences' );
+	private static function render_members_tab( string $menu_slug, int $id, bool $can_manage ): void {
+		$members = AudienceReader::get_members( $id );
 
 		?>
-		<h1><?php /* translators: %s: audience name */ echo esc_html( sprintf( __( 'Members of %s', 'ffcertificate' ), $audience->name ) ); ?></h1>
-		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Audiences', 'ffcertificate' ); ?></a>
-
-		<?php settings_errors( 'ffc_audience' ); ?>
-
+		<?php if ( $can_manage ) : ?>
 		<div class="card">
 			<h2 class="ffc-icon-plus"><?php esc_html_e( 'Add Members', 'ffcertificate' ); ?></h2>
 			<form method="post" action="">
@@ -714,6 +776,7 @@ final class AudienceAdminAudienceRenderer {
 				<?php submit_button( __( 'Add Selected Members', 'ffcertificate' ), 'primary', 'add_members', false ); ?>
 			</form>
 		</div>
+		<?php endif; ?>
 
 		<div class="card">
 			<h2 class="ffc-icon-users"><?php esc_html_e( 'Current Members', 'ffcertificate' ); ?> (<?php echo count( $members ); ?>)</h2>
@@ -726,7 +789,9 @@ final class AudienceAdminAudienceRenderer {
 						<tr>
 							<th><?php esc_html_e( 'User', 'ffcertificate' ); ?></th>
 							<th><?php esc_html_e( 'Email', 'ffcertificate' ); ?></th>
+							<?php if ( $can_manage ) : ?>
 							<th class="column-actions"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+							<?php endif; ?>
 						</tr>
 					</thead>
 					<tbody>
@@ -742,11 +807,13 @@ final class AudienceAdminAudienceRenderer {
 								<tr>
 									<td><?php echo esc_html( $user->display_name ); ?></td>
 									<td><?php echo esc_html( $user->user_email ); ?></td>
+									<?php if ( $can_manage ) : ?>
 									<td class="column-actions">
 										<a href="<?php echo esc_url( $remove_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Remove this member?', 'ffcertificate' ); ?>');">
 											<?php esc_html_e( 'Remove', 'ffcertificate' ); ?>
 										</a>
 									</td>
+									<?php endif; ?>
 								</tr>
 							<?php endif; ?>
 						<?php endforeach; ?>

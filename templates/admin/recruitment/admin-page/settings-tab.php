@@ -35,7 +35,7 @@ echo '<form method="post" action="' . esc_url( admin_url( 'options.php' ) ) . '"
 settings_fields( RecruitmentSettings::OPTION_GROUP );
 if ( ! $can_edit ) {
 	// A disabled fieldset blocks every input + submission inside it.
-	echo '<fieldset disabled>';
+	echo '<fieldset disabled class="ffc-readonly-lock">';
 }
 
 $opt = RecruitmentSettings::OPTION_NAME;

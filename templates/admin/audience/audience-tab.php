@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars' ) ); ?>" class="button">
 								<?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?>
 							</a>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-environments' ) ); ?>" class="button">
+							<a href="<?php echo esc_url( \FreeFormCertificate\Audience\AudienceAdminEnvironment::view_url( $this->menu_slug ) ); ?>" class="button">
 								<?php esc_html_e( 'Environments', 'ffcertificate' ); ?>
 							</a>
 							<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences' ) ); ?>" class="button">

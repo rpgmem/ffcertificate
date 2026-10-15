@@ -991,9 +991,8 @@ msgid "A one-click link that downloads the participant's own certificate. The se
 msgstr "Um link de clique único que baixa o próprio certificado do participante. O token secreto é transmitido no fragmento de hash da URL (#token=…), de modo que o servidor nunca o registra nos logs. O token é a única credencial — não há login separado —, portanto, o link deve ser tratado como privado. Não há CAPTCHA, mas existe uma limitação de taxa de acesso por IP, e todos os acessos são registrados."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:20
-#| msgid "A personal calendar books one-on-one appointments in fixed time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in four boxes: Calendar Configuration, Working Hours & Availability, Booking Rules & Restrictions, and Email Notifications."
-msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in four boxes: Calendar Configuration, Working Hours & Availability, Booking Rules & Restrictions, and Email Notifications."
-msgstr "Um calendário pessoal agenda compromissos individuais em horários específicos (por exemplo, consultas). Cada calendário é criado no menu Agendamento → Calendários Pessoais e configurado em quatro seções: Configuração do Calendário, Horário de Trabalho e Disponibilidade, Regras e Restrições de Agendamento e Notificações por E-mail."
+msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in one Calendar Configuration box, split into tabs: Calendar, Slots & hours, Booking window, Cancellation, Approval & waitlist, Who can see and book, Administrator bypass, and Emails. A dot on the Cancellation and Administrator bypass tabs shows whether each is on."
+msgstr "Um calendário pessoal agenda compromissos individuais em horários específicos (por exemplo, consultas). Cada calendário é criado no menu Agendamento → Calendários Pessoais e configurado em uma única caixa, Configuração do Calendário, dividida em abas: Calendário, Vagas e horários, Janela de agendamento, Cancelamento, Aprovação e lista de espera, Quem pode ver e agendar, Burlar do administrador e E-mails. Um ponto nas abas Cancelamento e Burlar do administrador mostra se cada uma está ativa."
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:657
 msgid "A plugin update or deploy will delete these files and break the images. Use the \"Insert Image\" button to add them from the Media Library instead, or run"
@@ -9081,9 +9080,9 @@ msgstr "Feriado adicionado com sucesso."
 msgid "Holiday deleted successfully."
 msgstr "Feriado excluído com sucesso."
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:547
-msgid "Holidays / Closed Dates"
-msgstr "Feriados / Datas Fechadas"
+#: includes/audience/class-ffc-audience-admin-calendar.php:225
+msgid "Closed dates"
+msgstr "Datas fechadas"
 
 #: templates/admin/audience/general-tab.php:59
 msgid "Holidays added here will block bookings across all calendars in both scheduling systems. Use per-calendar blocked dates for calendar-specific closures."
@@ -10893,11 +10892,11 @@ msgstr "Os membros têm reservas sobrepostas."
 msgid "Members"
 msgstr "Membros"
 
-#. %s: audience name
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:682
+#. translators: %d: number of members, as the audiences list counts them
 #, php-format
-msgid "Members of %s"
-msgstr "Membros de %s"
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:207
+msgid "Members (%d)"
+msgstr "Membros (%d)"
 
 #: includes/settings/views/documentation/feature-reregistration.php:30
 msgid "Members see a banner on their dashboard and fill in the form there."
@@ -12007,8 +12006,8 @@ msgid "On by default, but only unlocks after the form's end date has passed and 
 msgstr "Ativado por padrão, mas só é desbloqueado após a data de término do formulário e enquanto houver cota de download disponível."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:41
-msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy Report meta box shows each block's live booked / capacity, occupancy % and waitlist length."
-msgstr "Em calendários personalizados, define-se o número máximo de blocos distintos que um usuário pode manter (max_blocks_per_user). O cálculo inclui reservas ativas e na lista de espera; 0 = sem limite. Uma meta-caixa de Relatório de Ocupação (somente leitura) exibe, para cada bloco: reservas confirmadas/capacidade, percentual de ocupação e tamanho da lista de espera."
+msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy tab, shown once a custom calendar is saved, lists each block's live booked / capacity, occupancy % and waitlist length."
+msgstr "Em calendários personalizados, define-se o número máximo de blocos distintos que um usuário pode manter (max_blocks_per_user). O cálculo inclui reservas ativas e na lista de espera; 0 = sem limite. Uma aba Ocupação (somente leitura), exibida depois que um calendário personalizado é salvo, mostra, para cada bloco: reservas confirmadas/capacidade, percentual de ocupação e tamanho da lista de espera."
 
 #: includes/frontend/class-ffc-frontend.php:713
 msgid "On desktop: click the padlock in the address bar → Site Settings → Location → Allow."
@@ -13697,6 +13696,13 @@ msgstr "Acesso somente leitura às definições de campos personalizados de usu�
 msgid "Read-only — you can view these settings but do not have permission to change them."
 msgstr "Somente leitura — você pode visualizar essas configurações, mas não tem permissão para alterá-las."
 
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:215
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:719
+#: includes/audience/class-ffc-audience-admin-calendar.php:198
+#: includes/audience/class-ffc-audience-admin-environment.php:283
+msgid "Read-only — you can view this page but do not have permission to change it."
+msgstr "Somente leitura — você pode visualizar esta página, mas não tem permissão para alterá-la."
+
 #: templates/admin/recruitment/admin-page/settings-tab.php:30
 msgid "Read-only — you do not have permission to change recruitment settings."
 msgstr "Somente leitura — você não tem permissão para alterar as configurações de recrutamento."
@@ -14304,9 +14310,9 @@ msgstr "Recadastramento excluído com sucesso."
 msgid "Reregistration record"
 msgstr "Ficha de recadastramento"
 
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:357
-msgid "Reregistration Fields"
-msgstr "Campos de Recadastramento"
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:213
+msgid "Reregistration fields"
+msgstr "Campos de recadastramento"
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:195
 msgid "Reregistration invitation"
@@ -15364,10 +15370,6 @@ msgstr "As submissões selecionadas retornaram aos rascunhos."
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:160
 msgid "Selected time is outside working hours."
 msgstr "O horário selecionado está fora do horário de funcionamento."
-
-#: includes/audience/class-ffc-audience-admin-page.php:299
-msgid "Self"
-msgstr "Pessoal"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:523
 msgid "Self-service"
@@ -18708,9 +18710,9 @@ msgstr "Usuário #%d (excluído)"
 msgid "User Access"
 msgstr "Acesso do Usuário"
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:446
-msgid "User Access & Permissions"
-msgstr "Acesso de Usuário & Permissões "
+#: includes/audience/class-ffc-audience-admin-calendar.php:220
+msgid "User access"
+msgstr "Acesso de usuários"
 
 #: includes/admin/class-ffc-settings-save-handler.php:570 includes/settings/tabs/class-ffc-tab-user-access.php:106
 msgid "User Access settings saved successfully."
@@ -23129,11 +23131,13 @@ msgstr "ver os calendários somente para leitura, ou criá-los, editá-los, publ
 msgid "view or manage the appointments booked on those calendars."
 msgstr "ver ou gerenciar os agendamentos feitos nesses calendários."
 
-msgid "Go to Scheduling → Audiences, edit an audience, and use its Reregistration Fields section"
-msgstr "Acesse Agendamento → Públicos-alvo, edite um público-alvo e use a seção Campos de Recadastramento"
+#: includes/settings/views/documentation/feature-audiences.php:62
+msgid "Go to Scheduling → Audiences, edit an audience, and open its Reregistration fields tab"
+msgstr "Acesse Agendamento → Públicos-alvo, edite um público-alvo e abra a aba Campos de recadastramento"
 
-msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the section is hidden."
-msgstr "Ver as definições dos campos exige ffc_view_custom_fields e editá-las exige ffc_manage_custom_fields; sem nenhuma das duas, a seção fica oculta."
+#: includes/settings/views/documentation/feature-audiences.php:67
+msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the tab is hidden."
+msgstr "Ver as definições dos campos exige ffc_view_custom_fields e editá-las exige ffc_manage_custom_fields; sem nenhuma das duas, a aba fica oculta."
 
 msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data; fields mapped to a profile key (such as CPF, RF, RG or birth date) are also written, encrypted, to the plugin user profile."
 msgstr "As definições dos campos são armazenadas na tabela ffc_custom_fields. Os dados do usuário são armazenados como JSON em wp_usermeta, na chave ffc_custom_fields_data; os campos mapeados para uma chave de perfil (como CPF, RF, RG ou data de nascimento) também são gravados, criptografados, no perfil de usuário do plugin."
@@ -23144,8 +23148,14 @@ msgstr "Um público-alvo é um grupo nomeado de membros, com uma cor, um status 
 msgid "Admin pages"
 msgstr "Páginas administrativas"
 
-msgid "Besides the calendars, environments and audiences, the Scheduling menu has a Dashboard and an Audience Bookings list of every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
-msgstr "Além dos calendários, ambientes e públicos-alvo, o menu Agendamento tem um Painel e a lista Agendamentos de Público-alvo, com todos os agendamentos (exportável em CSV com ffc_export_audiences). Os feriados globais, definidos na aba Agendamento → Configurações → Geral, bloqueiam agendamentos nessas datas."
+msgid "The Scheduling menu lists Dashboard, Personal Calendars, Appointments, Audience Calendars, Audiences, Audience Bookings and Settings. A new personal calendar is added with the Add New button of Personal Calendars or the Dashboard's quick action."
+msgstr "O menu Agendamento lista Painel, Calendários Pessoais, Agendamentos, Calendários de Público-alvo, Públicos-alvo, Agendamentos de Público-alvo e Configurações. Um novo calendário pessoal é adicionado pelo botão Adicionar Novo de Calendários Pessoais ou pela ação rápida do Painel."
+
+msgid "Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar's row opens that calendar's environments."
+msgstr "Calendários de Público-alvo tem duas visões, alternadas pelos links abaixo do título: Calendários e Ambientes (com o nome que você dá aos ambientes). A contagem de ambientes na linha de um calendário abre os ambientes desse calendário."
+
+msgid "Audience Bookings lists every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
+msgstr "Agendamentos de Público-alvo lista todos os agendamentos (exportável em CSV com ffc_export_audiences). Os feriados globais, definidos na aba Agendamento → Configurações → Geral, bloqueiam agendamentos nessas datas."
 
 msgid "The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
 msgstr "A aba Agendamento → Configurações → Importar e Exportar importa e exporta públicos-alvo (nome, cor, pai) e membros (e-mail, nome, público-alvo) em CSV, criando opcionalmente usuários do WordPress para os membros importados."
@@ -23876,8 +23886,11 @@ msgstr "Destinatários administradores"
 msgid "Approval and waitlist"
 msgstr "Aprovação e lista de espera"
 
-msgid "Booking Rules & Restrictions"
-msgstr "Regras e Restrições de Agendamento"
+msgid "Slots & hours"
+msgstr "Vagas e horários"
+
+msgid "Approval & waitlist"
+msgstr "Aprovação e lista de espera"
 
 msgid "Booking slots"
 msgstr "Horários de atendimento"
@@ -24415,6 +24428,9 @@ msgstr "Visualize a lista e baixe os QR Codes."
 
 msgid "view the Scheduling menu and audience pages."
 msgstr "visualize o menu de agendamento e as páginas de público-alvo."
+
+msgid "On its own it opens them read-only: the calendar, environment and audience edit forms and the members screen show their fields disabled, with no Save, Add or Remove, under a read-only notice."
+msgstr "Sozinha, ela as abre somente para leitura: os formulários de edição de calendário, ambiente e público-alvo e a tela de membros mostram os campos desabilitados, sem Salvar, Adicionar ou Remover, sob um aviso de somente leitura."
 
 msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."
 msgstr "Quando ativada, essa configuração é herdada por todos os públicos-alvo descendentes. Os usuários podem participar de até 2 grupos filhos."
@@ -26064,3 +26080,19 @@ msgstr "uma escala de três predefinições, de Tolerante (permite em qualquer f
 #: includes/settings/views/documentation/config-captcha.php:62
 msgid "whether the widget shows the ALTCHA logo and the \"Protected by ALTCHA\" footer. A new install shows the logo and hides the footer."
 msgstr "se o widget mostra o logotipo do ALTCHA e o rodapé \"Protegido pelo ALTCHA\". Uma instalação nova mostra o logotipo e oculta o rodapé."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:208
+msgid "Event list & badges"
+msgstr "Lista de eventos e selos"
+
+#: includes/settings/views/documentation/scheduling-audiences.php:29
+msgid "The editors"
+msgstr "Os editores"
+
+#: includes/settings/views/documentation/scheduling-audiences.php:30
+msgid "A calendar is edited in vertical tabs: General, Notifications and Event list & badges, then, once the calendar is saved, its environments (the Environments list of that calendar), User access and Closed dates. One Save button beside the tabs saves the first three together; the shortcode sits beside it."
+msgstr "Um calendário é editado em abas verticais: Geral, Notificações e Lista de eventos e selos e, depois que o calendário é salvo, seus ambientes (a lista de Ambientes desse calendário), Acesso de usuários e Datas fechadas. Um único botão Salvar ao lado das abas salva as três primeiras juntas; o shortcode fica ao lado dele."
+
+#: includes/settings/views/documentation/scheduling-audiences.php:31
+msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
+msgstr "Um público-alvo é editado em três abas: Público-alvo, Membros (adicionar e remover membros) e Campos de recadastramento. A contagem de membros na lista de públicos-alvo abre a aba Membros."
