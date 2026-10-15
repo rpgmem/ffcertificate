@@ -49,6 +49,14 @@ class ActivityLogTest extends TestCase {
 		Functions\when('get_current_user_id')->justReturn(1);
 		Functions\when('add_action')->justReturn(true);
 
+		// `create_table()` runs `dbDelta()` whether or not the table exists,
+		// so every test reaching it gets this stub rather than whichever
+		// `dbDelta` the process happens to hold: the bootstrap no-op when
+		// this class is the first to load `upgrade.php`, a Brain Monkey
+		// function that throws "not defined nor mocked" when a stubbing
+		// class ran first (#1798).
+		Functions\when('dbDelta')->justReturn([]);
+
 		// SensitiveFieldRegistry::contains_sensitive() is invoked from the
 		// encryption gate in ActivityLog::log(). Keep its cache miss path
 		// cheap by returning false from wp_cache_get (always) and making
@@ -729,9 +737,6 @@ class ActivityLogTest extends TestCase {
 		$this->wpdb->shouldReceive('get_charset_collate')
 			->andReturn('DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
 
-		// dbDelta requires wp-admin/includes/upgrade.php. Mock it.
-		Functions\when('dbDelta')->justReturn([]);
-
 		$this->wpdb->shouldReceive('prepare')
 			->with('SHOW COLUMNS FROM %i LIKE %s', 'wp_ffc_activity_log', \Mockery::any())
 			->andReturn('SHOW COLUMNS');
@@ -767,7 +772,6 @@ class ActivityLogTest extends TestCase {
 		$this->wpdb->shouldReceive('get_var')
 			->with('SHOW TABLES')
 			->andReturn('wp_ffc_activity_log');
-		Functions\when('dbDelta')->justReturn([]);
 
 		$this->wpdb->shouldReceive('prepare')
 			->with('SHOW COLUMNS FROM %i LIKE %s', 'wp_ffc_activity_log', \Mockery::any())
