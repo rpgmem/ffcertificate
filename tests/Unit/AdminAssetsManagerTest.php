@@ -250,6 +250,31 @@ class AdminAssetsManagerTest extends TestCase {
 		$this->assertTrue($media_called, 'wp_enqueue_media should be called for FFC menu pages');
 	}
 
+	public function test_enqueue_admin_assets_loads_the_shortcode_copy_styles_on_the_audience_calendars_page(): void {
+		global $post_type;
+		$post_type = null;
+
+		// The audience calendar and environment lists print the shortcode copy
+		// button, whose `.ffc-shortcode-cell` rules live in ffc-admin.css (#1814).
+		$_GET['page'] = 'ffc-scheduling-calendars';
+
+		$enqueued_styles = array();
+		Functions\when('wp_enqueue_media')->justReturn(true);
+		Functions\when('wp_enqueue_script')->justReturn(true);
+		Functions\when('wp_enqueue_style')->alias(function ($handle, $src = '') use (&$enqueued_styles) {
+			$enqueued_styles[ $handle ] = $src;
+		});
+		Functions\when('wp_localize_script')->justReturn(true);
+		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+		Functions\when('wp_create_nonce')->justReturn('test_nonce');
+
+		$manager = new AdminAssetsManager();
+		$manager->enqueue_admin_assets('scheduling_page_ffc-scheduling-calendars');
+
+		$this->assertArrayHasKey('ffc-admin-css', $enqueued_styles);
+		$this->assertStringContainsString('assets/css/ffc-admin', $enqueued_styles['ffc-admin-css']);
+	}
+
 	// ==================================================================
 	// Conditional assets - Settings page
 	// ==================================================================

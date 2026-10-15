@@ -983,6 +983,35 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Source-to-target map for the reregistration PII cap (#1815).
+	 *
+	 * @since 6.40.0
+	 * @return array<string, array<int, string>>
+	 */
+	public static function reregistration_pii_cap_grant_map(): array {
+		return array(
+			'ffc_manage_reregistration' => array( 'ffc_view_reregistration_pii' ),
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_view_reregistration_pii` onto every
+	 * user and role already holding `ffc_manage_reregistration`. Before #1815
+	 * the details modal, which decrypts CPF / RF / RG, was gated on the manage
+	 * cap; the PII cap now gates it, so whoever could open it keeps opening
+	 * it until an administrator says not.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_reregistration_pii_cap_v1` option.
+	 *
+	 * @since 6.40.0
+	 * @return array<string, int> Per-target-cap count of users seeded.
+	 */
+	public static function migrate_reregistration_pii_cap_grant(): array {
+		return self::seed_caps( self::reregistration_pii_cap_grant_map() );
+	}
+
+	/**
 	 * Seed every target capability onto whoever already holds its source.
 	 *
 	 * ONE BODY, BECAUSE THERE WERE ALREADY TWO IDENTICAL ONES

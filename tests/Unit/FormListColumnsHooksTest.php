@@ -113,6 +113,7 @@ class FormListColumnsHooksTest extends TestCase {
 			$enqueued[] = $h;
 		} );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
+		Functions\when( 'wp_register_script' )->justReturn( true );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce123' );
 
 		$helper = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
@@ -122,7 +123,7 @@ class FormListColumnsHooksTest extends TestCase {
 
 		$this->assertContains( 'ffc-core', $enqueued );
 		$this->assertContains( 'ffc-form-list-features', $enqueued );
-		$this->assertContains( 'ffc-form-list-copy-shortcode', $enqueued );
+		$this->assertContains( 'ffc-copy-shortcode', $enqueued );
 	}
 
 	// ------------------------------------------------------------------

@@ -81,7 +81,17 @@ class AdminUI {
 	 *                                    colour alone; #1748), `aria_label`
 	 *                                    (optional string, names the checkbox
 	 *                                    when no visible label does, as in a
-	 *                                    table cell under a column header).
+	 *                                    table cell under a column header),
+	 *                                    `description` (optional string, a short
+	 *                                    sentence printed as a `p.description`
+	 *                                    under the switch and tied to it by
+	 *                                    `aria-describedby`; the pair is wrapped
+	 *                                    in a `div.ffc-control-toggle-field`, so
+	 *                                    do not pass it from inside a `<p>`).
+	 *
+	 * Several toggles stacked in one cell go inside a
+	 * `div.ffc-control-toggle-stack`, which owns the spacing between them
+	 * (#1816) — never a `<br />` between calls.
 	 */
 	public static function render_toggle( array $args ): void {
 		$name = $args['name'] ?? '';
@@ -114,6 +124,13 @@ class AdminUI {
 			$data_attrs .= ' aria-label="' . esc_attr( $aria_label ) . '"';
 		}
 
+		$description    = trim( (string) ( $args['description'] ?? '' ) );
+		$description_id = $id . '-description';
+		if ( '' !== $description ) {
+			$data_attrs .= ' aria-describedby="' . esc_attr( $description_id ) . '"';
+			echo '<div class="ffc-control-toggle-field">';
+		}
+
 		printf(
 			'<label class="%1$s" for="%2$s"%3$s>',
 			esc_attr( $wrapper_class ),
@@ -135,6 +152,13 @@ class AdminUI {
 			echo '<span class="ffc-control-toggle-label">' . esc_html( $label ) . '</span>';
 		}
 		echo '</label>';
+		if ( '' !== $description ) {
+			printf(
+				'<p class="description" id="%1$s">%2$s</p></div>',
+				esc_attr( $description_id ),
+				esc_html( $description )
+			);
+		}
 	}
 
 	/**
@@ -610,6 +634,63 @@ class AdminUI {
 		);
 		// @removal 6.41.0 -- deprecated alias of the old handle (#1788).
 		wp_register_script( 'ffc-form-editor-tabs', false, array( self::VERTICAL_TABS_HANDLE ), FFC_VERSION, true );
+	}
+
+	/**
+	 * Script handle of the shortcode copy button (`assets/js/ffc-copy-shortcode.js`).
+	 */
+	public const SHORTCODE_COPY_HANDLE = 'ffc-copy-shortcode';
+
+	/**
+	 * Enqueue the script behind the shortcode copy button, for a screen that
+	 * prints {@see self::render_shortcode_copy()}.
+	 *
+	 * Also registers `ffc-form-list-copy-shortcode`, the handle the script
+	 * had while it served only the certificate forms list, as a deprecated
+	 * alias with no source of its own: a third-party script that names it as
+	 * a dependency still gets the button (#1814).
+	 *
+	 * @return void
+	 */
+	public static function enqueue_shortcode_copy(): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			self::SHORTCODE_COPY_HANDLE,
+			FFC_PLUGIN_URL . "assets/js/ffc-copy-shortcode{$s}.js",
+			array(),
+			FFC_VERSION,
+			true
+		);
+		// @removal 6.41.0 -- deprecated alias of the old handle (#1814).
+		wp_register_script( 'ffc-form-list-copy-shortcode', false, array( self::SHORTCODE_COPY_HANDLE ), FFC_VERSION, true );
+	}
+
+	/**
+	 * Print a shortcode with its copy button, the compact form a list-table
+	 * cell uses: the code, and an icon button that copies it.
+	 *
+	 * One markup for every list that shows a shortcode — the certificate
+	 * forms list, and the audience calendar and environment lists (#1814) —
+	 * so `ffc-copy-shortcode.js` and the `.ffc-shortcode-cell` rules in
+	 * `ffc-admin.css` serve them all. A screen that prints it calls
+	 * {@see self::enqueue_shortcode_copy()}.
+	 *
+	 * @param string $shortcode The shortcode, unescaped.
+	 * @return void
+	 */
+	public static function render_shortcode_copy( string $shortcode ): void {
+		$label = __( 'Copy shortcode', 'ffcertificate' );
+		printf(
+			'<span class="ffc-shortcode-cell">'
+			. '<code class="ffc-shortcode-code">%1$s</code>'
+			. '<button type="button" class="ffc-copy-shortcode" data-shortcode="%2$s" title="%3$s" aria-label="%3$s">'
+			. '<span class="ffc-icon-copy" aria-hidden="true"></span>'
+			. '</button>'
+			. '</span>',
+			esc_html( $shortcode ),
+			esc_attr( $shortcode ),
+			esc_attr( $label )
+		);
 	}
 
 	/**

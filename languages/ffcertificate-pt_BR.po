@@ -4632,7 +4632,7 @@ msgstr "Falha na cópia"
 msgid "Copy link"
 msgstr "Copiar link"
 
-#: includes/admin/class-ffc-form-list-columns.php:210
+#: includes/admin/class-ffc-admin-ui.php:658
 msgid "Copy shortcode"
 msgstr "Copiar código curto"
 
@@ -25948,6 +25948,14 @@ msgstr "30 min"
 msgid "ALTCHA + Math"
 msgstr "ALTCHA + Matemática"
 
+#: includes/settings/views/ffc-tab-captcha.php:225
+msgid "On: the widget on the public form shows the ALTCHA logo beside the challenge. Off: the logo is hidden and only the challenge remains."
+msgstr "Ligado: o widget no formulário público mostra o logotipo do ALTCHA ao lado do desafio. Desligado: o logotipo fica oculto e resta apenas o desafio."
+
+#: includes/settings/views/ffc-tab-captcha.php:234
+msgid "On: a \"Protected by ALTCHA\" line linking to altcha.org appears at the bottom of the widget. Off: the line is hidden. The challenge works the same either way."
+msgstr "Ligado: uma linha \"Protegido pelo ALTCHA\", com link para altcha.org, aparece na parte inferior do widget. Desligado: a linha fica oculta. O desafio funciona da mesma forma nos dois casos."
+
 #: includes/settings/views/ffc-tab-captcha.php:222
 msgid "ALTCHA logo"
 msgstr "Logotipo do ALTCHA"
@@ -26103,3 +26111,39 @@ msgstr "O botão Adicionar Novo da aba Ambientes abre o formulário de ambiente 
 #: includes/settings/views/documentation/scheduling-audiences.php:31
 msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
 msgstr "Um público-alvo é editado em três abas: Público-alvo, Membros (adicionar e remover membros) e Campos de recadastramento. A contagem de membros na lista de públicos-alvo abre a aba Membros."
+
+#: includes/settings/views/documentation/scheduling-audiences.php:41
+msgid "The Shortcode column of Audience Calendars shows each calendar's shortcode with a copy button, and the Environments view shows each environment's, tied to its calendar."
+msgstr "A coluna Código curto de Calendários de Público-alvo mostra o código curto de cada calendário com um botão de copiar, e a visão Ambientes mostra o de cada ambiente, vinculado ao seu calendário."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:325
+msgid "Reveal reregistration PII"
+msgstr "Revelar PII do recadastramento"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:326
+msgid "Reveal a submitter's email and open a submission's details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed (#1815)."
+msgstr "Exiba o e-mail de quem enviou e abra os detalhes de uma submissão, com CPF, RF e RG descriptografados (auditado). Sem isso, o e-mail permanece mascarado e os detalhes permanecem fechados."
+
+#: includes/reregistration/class-ffc-reregistration-ajax-handler.php:127
+msgid "You do not have permission to view this submission's personal data."
+msgstr "Você não tem permissão para ver os dados pessoais desta submissão."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:291
+msgid "Reregistration Personal Data Revealed"
+msgstr "Dados Pessoais do Recadastramento Revelados"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:292
+msgid "Reregistration Details Viewed"
+msgstr "Detalhes do Recadastramento Visualizados"
+
+#: includes/settings/views/documentation/feature-reregistration.php:152
+msgid "reveal a submitter's email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
+msgstr "revelar o e-mail de quem enviou na lista de submissões e abrir Ver Detalhes, que mostra CPF, RF e RG descriptografados. Sem ela, o e-mail permanece mascarado e Ver Detalhes não é oferecido, nem mesmo a quem gerencia campanhas. Quem já gerenciava recebeu a capacidade automaticamente na atualização."
+
+#: includes/settings/views/documentation/feature-reregistration.php:154
+msgid "On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand. Every reveal and every opening of View Details writes an activity-log entry, whoever opens it. The FFC Reregistration - Administrator role and WordPress administrators hold the unmasked tier, as the certificates and appointments administrator roles do."
+msgstr "Na lista de submissões o e-mail fica mascarado para todos, administradores incluídos; o botão Revelar o busca sob demanda. Cada revelação e cada abertura de Ver Detalhes grava uma entrada no registro de atividades, seja quem for que abra. A função FFC Recadastramento - Administrador e os administradores do WordPress têm o nível sem máscara, como as funções de administrador de certificados e de agendamentos."
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:895
+msgid "FFC Reregistration - Administrator"
+msgstr "FFC Recadastramento - Administrador"
