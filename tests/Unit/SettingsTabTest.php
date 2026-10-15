@@ -82,6 +82,10 @@ class SettingsTabTest extends TestCase {
 				return $this->should_enqueue_on( $hook );
 			}
 
+			public function public_view_path( string $file ): string {
+				return $this->view_path( $file );
+			}
+
 		};
 	}
 
@@ -100,6 +104,21 @@ class SettingsTabTest extends TestCase {
 		$this->assertSame( 'Test Tab', $this->tab->get_title() );
 		$this->assertSame( 'ffc-icon-test', $this->tab->get_icon() );
 		$this->assertSame( 42, $this->tab->get_order() );
+	}
+
+	// ==================================================================
+	// view_path()
+	// ==================================================================
+
+	/**
+	 * The seam the tab tests override must resolve to the shipped views, or
+	 * overriding it would test a path the product never takes (#1811).
+	 */
+	public function test_view_path_resolves_to_the_shipped_views_directory(): void {
+		$path = $this->tab->public_view_path( 'ffc-tab-smtp.php' );
+
+		$this->assertSame( FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-smtp.php', $path );
+		$this->assertFileExists( $path );
 	}
 
 	// ==================================================================

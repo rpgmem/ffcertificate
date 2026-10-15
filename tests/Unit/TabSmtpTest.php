@@ -24,6 +24,14 @@ class TabSmtpTest extends TestCase {
 	/** @var TabSMTP */
 	private $tab;
 
+	/**
+	 * Temporary view directory a test created, removed in tearDown() so a
+	 * failing assertion cannot leave it behind.
+	 *
+	 * @var string|null
+	 */
+	private $tmp_dir = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -53,6 +61,12 @@ class TabSmtpTest extends TestCase {
 
 	protected function tearDown(): void {
 		unset( $_GET['tab'], $_POST['ffc_save_email_bodies'], $_POST['ffc_email_bodies'] );
+		if ( null !== $this->tmp_dir && is_dir( $this->tmp_dir ) ) {
+			foreach ( (array) glob( $this->tmp_dir . '/*' ) as $file ) {
+				unlink( (string) $file );
+			}
+			rmdir( $this->tmp_dir );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -152,26 +166,28 @@ class TabSmtpTest extends TestCase {
 	// render() — view file missing (error branch)
 	// ==================================================================
 
-	public function test_render_outputs_error_when_view_file_missing(): void {
-		$tab = new class() extends TabSMTP {
-			protected function init(): void {
-				$this->tab_id = 'smtp';
-				$this->tab_title = 'SMTP';
-				$this->tab_icon = 'ffc-icon-email';
-				$this->tab_order = 20;
+	/**
+	 * The tab under test with only its view directory redirected, through the
+	 * `view_path()` seam: render() is the product's own (#1811).
+	 *
+	 * @param string $views_dir Directory the tab reads its view from.
+	 * @return TabSMTP
+	 */
+	private function tab_with_views_in( string $views_dir ): TabSMTP {
+		return new class( $views_dir ) extends TabSMTP {
+			private string $views_dir;
+			public function __construct( string $views_dir ) {
+				$this->views_dir = $views_dir;
+				parent::__construct();
 			}
-			public function render(): void {
-				$view_file = '/tmp/nonexistent_path_12345/ffc-tab-smtp.php';
-				if ( file_exists( $view_file ) ) {
-					$settings = $this;
-					include $view_file;
-				} else {
-					echo '<div class="notice notice-error"><p>';
-					echo esc_html__( 'SMTP settings view file not found.', 'ffcertificate' );
-					echo '</p></div>';
-				}
+			protected function view_path( string $file ): string {
+				return $this->views_dir . '/' . $file;
 			}
 		};
+	}
+
+	public function test_render_outputs_error_when_view_file_missing(): void {
+		$tab = $this->tab_with_views_in( sys_get_temp_dir() . '/ffc_test_no_such_view_dir_' . getmypid() );
 
 		ob_start();
 		$tab->render();
@@ -186,46 +202,23 @@ class TabSmtpTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_includes_view_when_file_exists(): void {
-		$tmp_dir  = sys_get_temp_dir() . '/ffc_test_views_smtp_' . getmypid();
-		$tmp_file = $tmp_dir . '/ffc-tab-smtp.php';
-
-		@mkdir( $tmp_dir, 0777, true );
-		file_put_contents( $tmp_file, '<?php echo "smtp-rendered"; ?>' );
-
-		$tab = new class( $tmp_dir ) extends TabSMTP {
-			private $dir;
-			public function __construct( string $dir ) {
-				$this->dir = $dir;
-				parent::__construct();
-			}
-			protected function init(): void {
-				$this->tab_id = 'smtp';
-				$this->tab_title = 'SMTP';
-				$this->tab_icon = 'ffc-icon-email';
-				$this->tab_order = 20;
-			}
-			public function render(): void {
-				$view_file = $this->dir . '/ffc-tab-smtp.php';
-				if ( file_exists( $view_file ) ) {
-					$settings = $this;
-					include $view_file;
-				} else {
-					echo '<div class="notice notice-error"><p>';
-					echo esc_html__( 'SMTP settings view file not found.', 'ffcertificate' );
-					echo '</p></div>';
-				}
-			}
-		};
+		$this->tmp_dir = sys_get_temp_dir() . '/ffc_test_views_smtp_' . getmypid();
+		if ( ! is_dir( $this->tmp_dir ) ) {
+			mkdir( $this->tmp_dir, 0777, true );
+		}
+		// The view reports what render() handed it: the shipped view reads
+		// `$settings->get_option()`, so `$settings` must be the tab itself.
+		file_put_contents(
+			$this->tmp_dir . '/ffc-tab-smtp.php',
+			'<?php echo ( $settings === $this ) ? "view-got-the-tab" : "view-got-something-else";'
+		);
 
 		ob_start();
-		$tab->render();
+		$this->tab_with_views_in( $this->tmp_dir )->render();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( 'smtp-rendered', $output );
+		$this->assertStringContainsString( 'view-got-the-tab', $output );
 		$this->assertStringNotContainsString( 'not found', $output );
-
-		@unlink( $tmp_file );
-		@rmdir( $tmp_dir );
 	}
 
 	// ==================================================================

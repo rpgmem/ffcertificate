@@ -179,6 +179,22 @@ abstract class SettingsTab {
 	}
 
 	/**
+	 * Absolute path of one of the shipped Settings views.
+	 *
+	 * The single place a tab's `render()` resolves its view, so a test can
+	 * point the real `render()` at a view of its own (or at none) by
+	 * overriding this method alone, instead of copying the body of
+	 * `render()` and asserting against the copy (#1811).
+	 *
+	 * @since 6.39.0
+	 * @param string $file The view's file name, e.g. `ffc-tab-smtp.php`.
+	 * @return string
+	 */
+	protected function view_path( string $file ): string {
+		return FFC_PLUGIN_DIR . 'includes/settings/views/' . $file;
+	}
+
+	/**
 	 * Render admin notice
 	 *
 	 * @param string $message Notice message.

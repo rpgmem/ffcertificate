@@ -50,6 +50,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **One writer for the test `upgrade.php` stub** (#1803). `tests/Support/UpgradeStub.php`, called by the bootstrap, writes it and always declares `dbDelta()`; four activator tests that could write an empty copy no longer do, and `UpgradeStubOwnerTest` refuses another writer under `tests/`.
 - **Tests no longer claim to run against `/tmp/`** (#1806). 37 unit tests dropped an `ABSPATH` define the bootstrap had already made, and two template tests dropped a fixture under the shared `/tmp/ffc_test_dir` that nothing read: they render the shipped templates.
 - **Tests no longer redefine bootstrap constants** (#1809). 71 dead `define()` calls left 34 unit tests, among them `FFC_PLUGIN_DIR` set to `/tmp` paths the code never read; `BootstrapConstantRedefinitionTest` reads the bootstrap's own list and refuses a test that redefines one.
+- **Six settings-tab tests run the tab's own `render()`** (#1811). They asserted a copy; every tab now resolves its view through `SettingsTab::view_path()`, which tests override, `SettingsViewPathSeamTest` refuses an inline path, and temporary views go in `tearDown()`.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
