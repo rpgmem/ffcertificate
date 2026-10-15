@@ -583,72 +583,170 @@ class AdminUI {
 	}
 
 	/**
-	 * Print a vertical-tab container (`.ffc-form-tabs`): a nav on the left
+	 * Script handle of the vertical tabs (`assets/js/ffc-vertical-tabs.js`).
+	 */
+	public const VERTICAL_TABS_HANDLE = 'ffc-vertical-tabs';
+
+	/**
+	 * Enqueue the vertical-tab script, for a screen that prints the
+	 * component.
+	 *
+	 * Also registers `ffc-form-editor-tabs`, the handle the script had while
+	 * it served only the certificate form editor, as a deprecated alias with
+	 * no source of its own: a third-party script that names it as a
+	 * dependency still gets the tabs (#1788). Every screen that draws the
+	 * tabs goes through here, so the alias exists wherever the script does.
+	 *
+	 * @return void
+	 */
+	public static function enqueue_vertical_tabs(): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			self::VERTICAL_TABS_HANDLE,
+			FFC_PLUGIN_URL . "assets/js/ffc-vertical-tabs{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		// @removal 6.41.0 -- deprecated alias of the old handle (#1788).
+		wp_register_script( 'ffc-form-editor-tabs', false, array( self::VERTICAL_TABS_HANDLE ), FFC_VERSION, true );
+	}
+
+	/**
+	 * Print a vertical-tab container (`.ffc-vtabs`): a nav on the left
 	 * and one `<section role="tabpanel">` per tab on the right.
 	 *
 	 * One markup for every editor that splits its settings into tabs — the
-	 * certificate form editor and the personal calendar editor (#1761) — so
-	 * `ffc-form-editor-tabs.js` and the component's CSS serve both. Every
-	 * panel stays in the DOM (an inactive one is only `display:none` once the
-	 * script marks the container ready), so the post save reads every field,
-	 * and without the script the panels degrade to a stacked layout.
+	 * certificate form editor, the personal calendar editor, and the audience
+	 * calendar and audience editors (#1761) — so `ffc-vertical-tabs.js` and
+	 * the component's CSS serve them all. Every panel stays in the DOM (an
+	 * inactive one is only `display:none` once the script marks the container
+	 * ready), so the post save reads every field, and without the script the
+	 * panels degrade to a stacked layout.
 	 *
-	 * Each tab is `key`, `icon` (a `.ffc-icon-*` class), `label` (terse, in
-	 * the nav), `title` (the panel heading), and optionally `masters` (ids of
-	 * the toggles that switch the tab's feature on, which draw the state dot)
-	 * and `needs` (a selector list of fields the tab cannot do without).
+	 * This prints every panel through a callback. A screen whose panels hold
+	 * forms of their own — one `<form>` spanning a run of panels, the next
+	 * panel holding another — prints the same markup with the streaming
+	 * primitives this uses: {@see self::vertical_tabs_open()},
+	 * {@see self::vertical_tab_panel_open()}, {@see self::vertical_tab_panel_close()}
+	 * and {@see self::vertical_tabs_close()}.
 	 *
-	 * @param array<int, array{key: string, icon: string, label: string, title: string, masters?: array<int, string>, needs?: string}> $tabs        Tabs, in display order; the first starts active.
-	 * @param callable(string): void                                                                                                   $render_body Prints a panel's body, given its tab key.
+	 * @param array<int, array{key: string, icon: string, label: string, title?: string, masters?: array<int, string>, needs?: string}> $tabs        Tabs, in display order; the first starts active.
+	 * @param callable(string): void                                                                                                    $render_body Prints a panel's body, given its tab key.
 	 */
 	public static function render_vertical_tabs( array $tabs, callable $render_body ): void {
-		echo '<div class="ffc-form-tabs" data-ffc-form-tabs>';
+		$active = (string) ( $tabs[0]['key'] ?? '' );
 
-		printf(
-			'<ul class="ffc-form-tabs__nav" role="tablist" aria-orientation="vertical" data-ffc-state-on="%s" data-ffc-state-off="%s" data-ffc-state-pending="%s">',
-			esc_attr__( 'On', 'ffcertificate' ),
-			esc_attr__( 'Off', 'ffcertificate' ),
-			esc_attr__( 'Incomplete', 'ffcertificate' )
-		);
-		$first = true;
+		self::vertical_tabs_open( $tabs, $active );
 		foreach ( $tabs as $tab ) {
-			$masters = $tab['masters'] ?? array();
-			$needs   = $tab['needs'] ?? '';
+			self::vertical_tab_panel_open( $tab, $active );
+			$render_body( $tab['key'] );
+			self::vertical_tab_panel_close();
+		}
+		self::vertical_tabs_close();
+	}
+
+	/**
+	 * Open a vertical-tab container: the tab strip, then the panels column.
+	 *
+	 * Each tab is `key`, `icon` (an `ffc-icon-*` class, resolved through
+	 * {@see \FreeFormCertificate\Core\Icons::tab_class()}), `label` (terse,
+	 * in the nav), optionally `title` (the panel heading; the label when
+	 * absent), `masters` (ids of the toggles that switch the tab's feature on,
+	 * which draw the state dot) and `needs` (a selector list of fields the tab
+	 * cannot do without). The state texts the dots read are printed only when
+	 * a tab draws one.
+	 *
+	 * @param array<int, array{key: string, icon: string, label: string, title?: string, masters?: array<int, string>, needs?: string}> $tabs        Tabs, in display order.
+	 * @param string                                                                                                                    $active      Key of the tab that starts open.
+	 * @param string                                                                                                                    $extra_class Further classes on the container, for a screen's own layout.
+	 * @return void
+	 */
+	public static function vertical_tabs_open( array $tabs, string $active, string $extra_class = '' ): void {
+		printf(
+			'<div class="%s" data-ffc-vtabs>',
+			esc_attr( '' === $extra_class ? 'ffc-vtabs' : $extra_class . ' ffc-vtabs' )
+		);
+
+		$has_state = false;
+		foreach ( $tabs as $tab ) {
+			if ( array() !== ( $tab['masters'] ?? array() ) || '' !== ( $tab['needs'] ?? '' ) ) {
+				$has_state = true;
+				break;
+			}
+		}
+		if ( $has_state ) {
 			printf(
-				'<li class="ffc-form-tabs__nav-item" role="presentation"><a href="#ffc-tab-%1$s" id="ffc-tabnav-%1$s" class="ffc-form-tabs__tab%2$s" role="tab" aria-controls="ffc-tabpanel-%1$s" aria-selected="%3$s" tabindex="%4$s"%7$s%8$s><span class="ffc-form-tabs__icon %5$s" aria-hidden="true"></span><span class="ffc-form-tabs__label">%6$s</span></a></li>',
+				'<ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical" data-ffc-state-on="%s" data-ffc-state-off="%s" data-ffc-state-pending="%s">',
+				esc_attr__( 'On', 'ffcertificate' ),
+				esc_attr__( 'Off', 'ffcertificate' ),
+				esc_attr__( 'Incomplete', 'ffcertificate' )
+			);
+		} else {
+			echo '<ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical">';
+		}
+
+		foreach ( $tabs as $tab ) {
+			$is_active = $tab['key'] === $active;
+			$masters   = $tab['masters'] ?? array();
+			$needs     = $tab['needs'] ?? '';
+			printf(
+				'<li class="ffc-vtabs__nav-item" role="presentation"><a href="#ffc-tab-%1$s" id="ffc-tabnav-%1$s" class="ffc-vtabs__tab%2$s" role="tab" aria-controls="ffc-tabpanel-%1$s" aria-selected="%3$s" tabindex="%4$s"%7$s%8$s><span class="ffc-vtabs__icon %5$s" aria-hidden="true"></span><span class="ffc-vtabs__label">%6$s</span></a></li>',
 				esc_attr( $tab['key'] ),
-				$first ? ' is-active' : '',
-				$first ? 'true' : 'false',
-				$first ? '0' : '-1',
+				$is_active ? ' is-active' : '',
+				$is_active ? 'true' : 'false',
+				$is_active ? '0' : '-1',
 				esc_attr( \FreeFormCertificate\Core\Icons::tab_class( $tab['icon'] ) ),
 				esc_html( $tab['label'] ),
 				array() === $masters ? '' : ' data-ffc-tab-masters="' . esc_attr( implode( ' ', $masters ) ) . '"',
 				'' === $needs ? '' : ' data-ffc-tab-needs="' . esc_attr( $needs ) . '"'
 			);
-			$first = false;
 		}
 		echo '</ul>';
 
-		echo '<div class="ffc-form-tabs__panels">';
-		$first = true;
-		foreach ( $tabs as $tab ) {
-			printf(
-				'<section id="ffc-tabpanel-%1$s" class="ffc-form-tabs__panel%2$s" role="tabpanel" aria-labelledby="ffc-tabnav-%1$s" tabindex="0">',
-				esc_attr( $tab['key'] ),
-				$first ? ' is-active' : ''
-			);
-			printf(
-				'<h2 class="ffc-form-tabs__panel-title"><span class="ffc-form-tabs__icon %1$s" aria-hidden="true"></span>%2$s</h2>',
-				esc_attr( \FreeFormCertificate\Core\Icons::tab_class( $tab['icon'] ) ),
-				esc_html( $tab['title'] )
-			);
-			$render_body( $tab['key'] );
-			echo '</section>';
-			$first = false;
-		}
-		echo '</div>';
+		echo '<div class="ffc-vtabs__panels">';
+	}
 
-		echo '</div>';
+	/**
+	 * Open one panel of a vertical-tab container, with its title.
+	 *
+	 * A panel is reached by its id (`ffc-tabpanel-<key>`), never by
+	 * position, which is what lets a `<form>` wrap a run of panels while the
+	 * next panel holds a form of its own.
+	 *
+	 * @param array{key: string, icon: string, label: string, title?: string} $tab    The tab.
+	 * @param string                                                          $active Key of the tab that starts open.
+	 * @return void
+	 */
+	public static function vertical_tab_panel_open( array $tab, string $active ): void {
+		printf(
+			'<section id="ffc-tabpanel-%1$s" class="ffc-vtabs__panel%2$s" role="tabpanel" aria-labelledby="ffc-tabnav-%1$s" tabindex="0">',
+			esc_attr( $tab['key'] ),
+			$tab['key'] === $active ? ' is-active' : ''
+		);
+		printf(
+			'<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon %1$s" aria-hidden="true"></span>%2$s</h2>',
+			esc_attr( \FreeFormCertificate\Core\Icons::tab_class( $tab['icon'] ) ),
+			esc_html( $tab['title'] ?? $tab['label'] )
+		);
+	}
+
+	/**
+	 * Close a panel opened with {@see self::vertical_tab_panel_open()}.
+	 *
+	 * @return void
+	 */
+	public static function vertical_tab_panel_close(): void {
+		echo '</section>';
+	}
+
+	/**
+	 * Close the panels column and the container.
+	 *
+	 * @return void
+	 */
+	public static function vertical_tabs_close(): void {
+		echo '</div></div>';
 	}
 
 	/**

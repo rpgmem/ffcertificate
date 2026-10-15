@@ -9,10 +9,12 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceEditorTabs;
 
 /**
- * The vertical tabs of the audience editors (#1761): the form editor's
- * component, so the markup must be the shape `ffc-form-editor-tabs.js` reads.
+ * The vertical tabs of the audience editors (#1761): the shared component,
+ * printed by `AdminUI`'s streaming primitives (#1788), so the markup must be
+ * the shape `ffc-vertical-tabs.js` reads.
  *
  * @covers \FreeFormCertificate\Audience\AudienceEditorTabs
+ * @covers \FreeFormCertificate\Admin\AdminUI
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -22,12 +24,12 @@ class AudienceEditorTabsTest extends TestCase {
 		array(
 			'key'   => 'general',
 			'label' => 'General',
-			'icon'  => 'calendar',
+			'icon'  => 'ffc-icon-calendar',
 		),
 		array(
 			'key'   => 'closed-dates',
 			'label' => 'Closed dates',
-			'icon'  => 'lock',
+			'icon'  => 'ffc-icon-lock',
 		),
 	);
 
@@ -62,7 +64,7 @@ class AudienceEditorTabsTest extends TestCase {
 		$this->assertSame( 'general', AudienceEditorTabs::active( $keys, 'general' ) );
 	}
 
-	public function test_markup_is_the_form_editor_component(): void {
+	public function test_markup_is_the_shared_component(): void {
 		ob_start();
 		AudienceEditorTabs::open( self::TABS, 'closed-dates' );
 		foreach ( self::TABS as $tab ) {
@@ -73,11 +75,11 @@ class AudienceEditorTabsTest extends TestCase {
 		AudienceEditorTabs::close();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringStartsWith( '<div class="ffc-aud-editor__tabs ffc-form-tabs" data-ffc-form-tabs><ul class="ffc-form-tabs__nav" role="tablist" aria-orientation="vertical">', $html );
-		$this->assertStringContainsString( '<a href="#ffc-tab-general" id="ffc-tabnav-general" class="ffc-form-tabs__tab" role="tab" aria-controls="ffc-tabpanel-general" aria-selected="false" tabindex="-1"><span class="ffc-form-tabs__icon ffc-icon-calendar" aria-hidden="true"></span><span class="ffc-form-tabs__label">General</span></a>', $html );
-		$this->assertStringContainsString( '<a href="#ffc-tab-closed-dates" id="ffc-tabnav-closed-dates" class="ffc-form-tabs__tab is-active" role="tab" aria-controls="ffc-tabpanel-closed-dates" aria-selected="true" tabindex="0">', $html );
-		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-form-tabs__panel" role="tabpanel" aria-labelledby="ffc-tabnav-general" tabindex="0"><h2 class="ffc-form-tabs__panel-title ffc-icon-calendar">General</h2>body-general</section>', $html );
-		$this->assertStringContainsString( '<section id="ffc-tabpanel-closed-dates" class="ffc-form-tabs__panel is-active"', $html );
+		$this->assertStringStartsWith( '<div class="ffc-aud-editor__tabs ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical">', $html );
+		$this->assertStringContainsString( '<a href="#ffc-tab-general" id="ffc-tabnav-general" class="ffc-vtabs__tab" role="tab" aria-controls="ffc-tabpanel-general" aria-selected="false" tabindex="-1"><span class="ffc-vtabs__icon ffc-icon-calendar" aria-hidden="true"></span><span class="ffc-vtabs__label">General</span></a>', $html );
+		$this->assertStringContainsString( '<a href="#ffc-tab-closed-dates" id="ffc-tabnav-closed-dates" class="ffc-vtabs__tab is-active" role="tab" aria-controls="ffc-tabpanel-closed-dates" aria-selected="true" tabindex="0">', $html );
+		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-vtabs__panel" role="tabpanel" aria-labelledby="ffc-tabnav-general" tabindex="0"><h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-calendar" aria-hidden="true"></span>General</h2>body-general</section>', $html );
+		$this->assertStringContainsString( '<section id="ffc-tabpanel-closed-dates" class="ffc-vtabs__panel is-active"', $html );
 		$this->assertStringEndsWith( '</section></div></div>', $html );
 		$this->assertSame( substr_count( $html, '<div' ), substr_count( $html, '</div>' ) );
 	}
@@ -103,21 +105,29 @@ class AudienceEditorTabsTest extends TestCase {
 	 * @dataProvider screens
 	 */
 	public function test_script_loads_on_the_editors_only( string $page, string $action, bool $loads ): void {
-		$enqueued = array();
+		$enqueued   = array();
+		$registered = array();
 		Functions\when( 'wp_enqueue_script' )->alias(
 			static function ( $handle, $src = '', $deps = array() ) use ( &$enqueued ) {
 				$enqueued[] = array( $handle, $src, $deps );
+			}
+		);
+		Functions\when( 'wp_register_script' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$registered ) {
+				$registered[] = array( $handle, $src, $deps );
 			}
 		);
 
 		$this->assertSame( $loads, AudienceEditorTabs::maybe_enqueue( $page, $action ) );
 		if ( $loads ) {
 			$this->assertCount( 1, $enqueued );
-			$this->assertSame( 'ffc-form-editor-tabs', $enqueued[0][0], 'the form editor\'s handle, so the two never load twice' );
-			$this->assertStringContainsString( 'assets/js/ffc-form-editor-tabs', $enqueued[0][1] );
+			$this->assertSame( 'ffc-vertical-tabs', $enqueued[0][0], 'the shared handle, so the editors never load it twice' );
+			$this->assertStringContainsString( 'assets/js/ffc-vertical-tabs', $enqueued[0][1] );
 			$this->assertSame( array( 'jquery' ), $enqueued[0][2] );
+			$this->assertSame( array( array( 'ffc-form-editor-tabs', false, array( 'ffc-vertical-tabs' ) ) ), $registered, 'the deprecated handle stays an alias wherever the script loads (#1788)' );
 		} else {
 			$this->assertSame( array(), $enqueued );
+			$this->assertSame( array(), $registered );
 		}
 	}
 }

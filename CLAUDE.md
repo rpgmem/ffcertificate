@@ -716,7 +716,7 @@ The previous section settles *how many sheets and why*; this one settles *how a 
 | | Level | Evidence |
 | --- | --- | --- |
 | **OOCSS** | partial | 108 occurrences (79 distinct) of the compound unit `.ffc-a.ffc-b` already split object from modifier (`.ffc-day.ffc-selected`). The **skin** half is not split: dozens of rules across the sheets declare one `background: var(--ffc-X-bg); color: var(--ffc-X-text)` pair and nothing else, each under its own name, with more carrying the pair inside a larger component — 57 and 37 when #1168 counted them (#1168) |
-| **BEM** | 5 islands, ~5% | 33 `__` elements + 24 `--` modifiers, all inside `ffc-settings-tabs`, `ffc-form-tabs`, `ffc-qr-modal`, `ffc-blocked-roles` and the autosave badges |
+| **BEM** | 5 islands, ~5% | 33 `__` elements + 24 `--` modifiers, all inside `ffc-settings-tabs`, `ffc-vtabs`, `ffc-qr-modal`, `ffc-blocked-roles` and the autosave badges |
 | **SMACSS** | state layer yes, layout layer absent | 14 `is-`/`has-` classes, and **every one appears compounded with an `ffc-` class, never bare** — which is why #1152 never saw them, and a bare `.is-open` would fail it today. Zero `l-`, zero `js-` |
 | **Atomic / utility-first** | exists, kept small on purpose | `ffc-admin-utilities.css`. It held 42 classes when this was measured, 9 of them screen components and 3 dead; #1171 moved the components to their owner sheets and deleted the dead ones, #1176 merged the margin utilities a moved step had made duplicates, and `UtilityScopeTest` now enforces one bare class per rule |
 

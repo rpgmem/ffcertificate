@@ -48,7 +48,7 @@ class BoxedSectionHeadingIconTest extends TestCase {
 	 */
 	private const ICON_NOT_IN_CLASS = array(
 		// AdminUI::render_vertical_tabs(), shared by the form and calendar editors since #1761.
-		'includes/admin/class-ffc-admin-ui.php'                     => 'the icon is a child span (`ffc-form-tabs__icon`) of the panel title',
+		'includes/admin/class-ffc-admin-ui.php'                     => 'the icon is a child span (`ffc-vtabs__icon`) of the panel title',
 		'templates/admin/date-messages/page.php'                    => 'the class is the tab\'s icon, read from a static map',
 	);
 

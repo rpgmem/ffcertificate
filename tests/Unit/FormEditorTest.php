@@ -30,6 +30,7 @@ class FormEditorTest extends TestCase {
 		Functions\when( 'add_meta_box' )->justReturn( true );
 		Functions\when( 'remove_meta_box' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_register_script' )->justReturn( true );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'wp_unslash' )->returnArg();
@@ -154,7 +155,7 @@ class FormEditorTest extends TestCase {
 		$editor->enqueue_scripts( 'post.php' );
 
 		$this->assertContains( 'ffc-geofence-admin', $enqueued );
-		$this->assertContains( 'ffc-form-editor-tabs', $enqueued );
+		$this->assertContains( 'ffc-vertical-tabs', $enqueued );
 	}
 
 	public function test_enqueue_scripts_localizes_error_tabs_when_save_failed(): void {
@@ -182,7 +183,7 @@ class FormEditorTest extends TestCase {
 		$editor->enqueue_scripts( 'post.php' );
 
 		$this->assertArrayHasKey( 'ffcFormTabsErrors', $localized );
-		$this->assertSame( 'ffc-form-editor-tabs', $localized['ffcFormTabsErrors']['handle'] );
+		$this->assertSame( 'ffc-vertical-tabs', $localized['ffcFormTabsErrors']['handle'] );
 		$this->assertSame( array( 'geolocation' ), $localized['ffcFormTabsErrors']['data'] );
 	}
 

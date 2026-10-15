@@ -36,6 +36,7 @@ class SelfSchedulingEditorTest extends TestCase {
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'add_meta_box' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_register_script' )->justReturn( true );
 		Functions\when( 'wp_enqueue_style' )->justReturn( true );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
@@ -181,7 +182,7 @@ class SelfSchedulingEditorTest extends TestCase {
 		$this->assertContains( 'ffc-calendar-editor', $styles );
 		// The vertical tabs (#1761) and the sections inside the Emails tab (#1629).
 		$this->assertContains( 'ffc-admin-components', $styles );
-		$this->assertContains( 'ffc-form-editor-tabs', $enqueued );
+		$this->assertContains( 'ffc-vertical-tabs', $enqueued );
 		$this->assertContains( 'ffc-admin-sections', $enqueued );
 	}
 
@@ -270,8 +271,8 @@ class SelfSchedulingEditorTest extends TestCase {
 	public function test_tabs_use_the_form_editor_component_and_registry_icons(): void {
 		$output = $this->render_config();
 
-		$this->assertStringContainsString( '<div class="ffc-form-tabs" data-ffc-form-tabs>', $output );
-		preg_match_all( '/<span class="ffc-form-tabs__icon ([^"]+)"/', $output, $m );
+		$this->assertStringContainsString( '<div class="ffc-vtabs" data-ffc-vtabs>', $output );
+		preg_match_all( '/<span class="ffc-vtabs__icon ([^"]+)"/', $output, $m );
 		// Each icon twice: in the nav and in the panel title.
 		$this->assertCount( 16, $m[1] );
 		foreach ( $m[1] as $class ) {

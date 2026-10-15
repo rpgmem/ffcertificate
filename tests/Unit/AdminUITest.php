@@ -596,4 +596,94 @@ class AdminUITest extends TestCase {
 		$this->segmented( array( 'options' => array_combine( range( 1, 6 ), range( 1, 6 ) ) ) );
 		$this->assertSame( array(), $notices, 'Two and six are still a segmented control.' );
 	}
+
+	public function test_vertical_tabs_enqueue_keeps_the_old_handle_as_an_alias(): void {
+		$enqueued   = array();
+		$registered = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$enqueued ) {
+				$enqueued[] = array( $handle, $src, $deps );
+			}
+		);
+		Functions\when( 'wp_register_script' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$registered ) {
+				$registered[] = array( $handle, $src, $deps );
+			}
+		);
+
+		AdminUI::enqueue_vertical_tabs();
+
+		$this->assertCount( 1, $enqueued );
+		$this->assertSame( 'ffc-vertical-tabs', $enqueued[0][0] );
+		$this->assertStringContainsString( 'assets/js/ffc-vertical-tabs', $enqueued[0][1] );
+		$this->assertSame(
+			array( array( 'ffc-form-editor-tabs', false, array( 'ffc-vertical-tabs' ) ) ),
+			$registered,
+			'The handle the script had before #1788 must stay a source-less alias until its removal release.'
+		);
+	}
+
+	public function test_render_vertical_tabs_prints_what_the_streaming_primitives_print(): void {
+		Functions\when( 'esc_attr__' )->returnArg();
+		$tabs = array(
+			array(
+				'key'     => 'general',
+				'icon'    => 'ffc-icon-settings',
+				'label'   => 'General',
+				'title'   => 'General settings',
+				'masters' => array(),
+			),
+			array(
+				'key'     => 'emails',
+				'icon'    => 'ffc-icon-email',
+				'label'   => 'Emails',
+				'title'   => 'Emails',
+				'masters' => array( 'send_mail' ),
+				'needs'   => '#to',
+			),
+		);
+
+		ob_start();
+		AdminUI::render_vertical_tabs(
+			$tabs,
+			static function ( string $key ): void {
+				echo 'body-' . $key;
+			}
+		);
+		$callback = (string) ob_get_clean();
+
+		ob_start();
+		AdminUI::vertical_tabs_open( $tabs, 'general' );
+		foreach ( $tabs as $tab ) {
+			AdminUI::vertical_tab_panel_open( $tab, 'general' );
+			echo 'body-' . $tab['key'];
+			AdminUI::vertical_tab_panel_close();
+		}
+		AdminUI::vertical_tabs_close();
+		$streamed = (string) ob_get_clean();
+
+		$this->assertSame( $callback, $streamed );
+		$this->assertStringStartsWith( '<div class="ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical" data-ffc-state-on="On" data-ffc-state-off="Off" data-ffc-state-pending="Incomplete">', $callback );
+		$this->assertStringContainsString( 'class="ffc-vtabs__tab" role="tab" aria-controls="ffc-tabpanel-emails" aria-selected="false" tabindex="-1" data-ffc-tab-masters="send_mail" data-ffc-tab-needs="#to">', $callback );
+		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-vtabs__panel is-active" role="tabpanel" aria-labelledby="ffc-tabnav-general" tabindex="0"><h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-settings" aria-hidden="true"></span>General settings</h2>body-general</section>', $callback );
+		$this->assertStringEndsWith( '</section></div></div>', $callback );
+	}
+
+	public function test_vertical_tabs_without_a_state_dot_print_no_state_texts(): void {
+		$tabs = array(
+			array(
+				'key'   => 'members',
+				'icon'  => 'ffc-icon-users',
+				'label' => 'Members',
+			),
+		);
+
+		ob_start();
+		AdminUI::vertical_tabs_open( $tabs, 'members', 'ffc-aud-editor__tabs' );
+		AdminUI::vertical_tab_panel_open( $tabs[0], 'members' );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringStartsWith( '<div class="ffc-aud-editor__tabs ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical"><li', $html );
+		$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-users" aria-hidden="true"></span>Members</h2>', $html, 'Without a title the panel heading is the label.' );
+	}
 }

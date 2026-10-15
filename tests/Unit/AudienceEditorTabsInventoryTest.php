@@ -365,7 +365,7 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		return array_values(
 			array_filter(
 				$items,
-				static fn( string $item ): bool => 1 !== preg_match( '/^(href:#ffc-tab-|id:ffc-tab(nav|panel)-|id:ffc-schedule-form$|data:data-ffc-form-tabs=)/', $item )
+				static fn( string $item ): bool => 1 !== preg_match( '/^(href:#ffc-tab-|id:ffc-tab(nav|panel)-|id:ffc-schedule-form$|data:data-ffc-vtabs=)/', $item )
 			)
 		);
 	}

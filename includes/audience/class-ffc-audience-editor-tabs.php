@@ -3,9 +3,12 @@
  * Audience Editor Tabs
  *
  * The vertical tabs of the audience calendar and audience editors (#1761),
- * drawn with the certificate form editor's component (`.ffc-form-tabs`,
- * driven by `ffc-form-editor-tabs.js`), so the three editors share one
- * markup, one stylesheet and one script.
+ * drawn with the shared vertical-tab component (`.ffc-vtabs`, driven by
+ * `ffc-vertical-tabs.js`) through the streaming primitives of
+ * {@see \FreeFormCertificate\Admin\AdminUI}, so every editor shares one
+ * markup, one stylesheet and one script. What stays here is what only these
+ * two screens need: which tab opens, the layout class of their box, and the
+ * screens that load the script.
  *
  * @package FreeFormCertificate\Audience
  */
@@ -14,6 +17,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Admin\AdminUI;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -30,14 +34,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * id (`ffc-tabpanel-<key>`), never by position, which is what lets one
  * `<form>` wrap a run of panels while the next panel holds a form of its own.
  *
+ * A tab's `icon` is an `ffc-icon-*` class, the form every vertical tab takes.
+ *
  * @phpstan-type EditorTab array{key: string, label: string, icon: string}
  */
 final class AudienceEditorTabs {
 
 	/**
-	 * Handle of the tab script, shared with the certificate form editor.
+	 * Handle of the tab script, shared with the other editors.
 	 */
-	public const SCRIPT_HANDLE = 'ffc-form-editor-tabs';
+	public const SCRIPT_HANDLE = AdminUI::VERTICAL_TABS_HANDLE;
 
 	/**
 	 * The tab to open: `?tab=`, when it names one of the tabs, else the
@@ -65,22 +71,7 @@ final class AudienceEditorTabs {
 	 * @return void
 	 */
 	public static function open( array $tabs, string $active ): void {
-		echo '<div class="ffc-aud-editor__tabs ffc-form-tabs" data-ffc-form-tabs>';
-		echo '<ul class="ffc-form-tabs__nav" role="tablist" aria-orientation="vertical">';
-		foreach ( $tabs as $tab ) {
-			$is_active = $tab['key'] === $active;
-			printf(
-				'<li class="ffc-form-tabs__nav-item" role="presentation"><a href="#ffc-tab-%1$s" id="ffc-tabnav-%1$s" class="ffc-form-tabs__tab%2$s" role="tab" aria-controls="ffc-tabpanel-%1$s" aria-selected="%3$s" tabindex="%4$s"><span class="ffc-form-tabs__icon ffc-icon-%5$s" aria-hidden="true"></span><span class="ffc-form-tabs__label">%6$s</span></a></li>',
-				esc_attr( $tab['key'] ),
-				$is_active ? ' is-active' : '',
-				$is_active ? 'true' : 'false',
-				$is_active ? '0' : '-1',
-				esc_attr( $tab['icon'] ),
-				esc_html( $tab['label'] )
-			);
-		}
-		echo '</ul>';
-		echo '<div class="ffc-form-tabs__panels">';
+		AdminUI::vertical_tabs_open( $tabs, $active, extra_class: 'ffc-aud-editor__tabs' );
 	}
 
 	/**
@@ -92,16 +83,7 @@ final class AudienceEditorTabs {
 	 * @return void
 	 */
 	public static function panel_open( array $tab, string $active ): void {
-		printf(
-			'<section id="ffc-tabpanel-%1$s" class="ffc-form-tabs__panel%2$s" role="tabpanel" aria-labelledby="ffc-tabnav-%1$s" tabindex="0">',
-			esc_attr( $tab['key'] ),
-			$tab['key'] === $active ? ' is-active' : ''
-		);
-		printf(
-			'<h2 class="ffc-form-tabs__panel-title ffc-icon-%1$s">%2$s</h2>',
-			esc_attr( $tab['icon'] ),
-			esc_html( $tab['label'] )
-		);
+		AdminUI::vertical_tab_panel_open( $tab, $active );
 	}
 
 	/**
@@ -110,7 +92,7 @@ final class AudienceEditorTabs {
 	 * @return void
 	 */
 	public static function panel_close(): void {
-		echo '</section>';
+		AdminUI::vertical_tab_panel_close();
 	}
 
 	/**
@@ -119,7 +101,7 @@ final class AudienceEditorTabs {
 	 * @return void
 	 */
 	public static function close(): void {
-		echo '</div></div>';
+		AdminUI::vertical_tabs_close();
 	}
 
 	/**
@@ -138,14 +120,7 @@ final class AudienceEditorTabs {
 		if ( ! isset( $editors[ $page ] ) || ! in_array( $action, $editors[ $page ], true ) ) {
 			return false;
 		}
-		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			self::SCRIPT_HANDLE,
-			FFC_PLUGIN_URL . "assets/js/ffc-form-editor-tabs{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		AdminUI::enqueue_vertical_tabs();
 		return true;
 	}
 }
