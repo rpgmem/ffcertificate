@@ -283,6 +283,7 @@ class AdminActivityLogPage {
 			// Scheduling.
 			'appointment_created'                          => __( 'Appointment Created', 'ffcertificate' ),
 			'appointment_cancelled'                        => __( 'Appointment Cancelled', 'ffcertificate' ),
+			'appointment_pii_revealed'                     => __( 'Appointment Personal Data Revealed', 'ffcertificate' ),
 
 			// Reregistration.
 			'reregistration_submitted'                     => __( 'Reregistration Submitted', 'ffcertificate' ),

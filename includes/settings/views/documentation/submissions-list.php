@@ -50,5 +50,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><code>ffc_view_certificates_pii</code></td><td><?php esc_html_e( 'Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation.', 'ffcertificate' ); ?></td></tr>
 		</tbody>
 	</table>
-	<p class="description"><?php esc_html_e( 'Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles.', 'ffcertificate' ); ?> <a href="#reference-capabilities"><?php esc_html_e( 'Capabilities & Roles', 'ffcertificate' ); ?></a>.</p>
+	<p class="description"><?php esc_html_e( 'Administrators (manage_options) hold all of the above. Personal data starts masked for everyone, on the list and on the edit screen alike: administrators and the certificates admin role reveal a value with the Reveal button, as a holder of ffc_view_certificates_pii does, and every reveal is audited. See Capabilities & Roles.', 'ffcertificate' ); ?> <a href="#reference-capabilities"><?php esc_html_e( 'Capabilities & Roles', 'ffcertificate' ); ?></a>.</p>
 </div>

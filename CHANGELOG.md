@@ -62,6 +62,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Reregistration PII has its own capability and admin role** (#1815). The list masks the email behind an audited Reveal button, and View Details opens only with the new `ffc_view_reregistration_pii`, auto-granted to current managers. The new `ffc_reregistration_admin` role sees it unmasked.
 
+### Security
+
+- **The submission and appointment lists mask the email for everyone** (#1822, #1820). Administrators and the domain admin role no longer get the address in the HTML; whoever may reveal it gets an audited Reveal button per row. Appointment reveals have an Activity Log label, and the label guard reads the reveal map.
+
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
 ### Added

@@ -16328,6 +16328,9 @@ msgstr ""
 msgid "Submission not found."
 msgstr ""
 
+msgid "Appointment Personal Data Revealed"
+msgstr ""
+
 #: includes/admin/class-ffc-admin-activity-log-page.php:253
 msgid "Submission Personal Data Revealed"
 msgstr ""
@@ -20676,7 +20679,7 @@ msgid "load answers from a spreadsheet. Separate from manage on purpose: it writ
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:66
-msgid "reveal the decrypted CPF / RF / e-mail on an appointment, which is audited. Without it those values stay masked, even for an operator who can manage appointments."
+msgid "reveal the decrypted CPF / RF / e-mail on an appointment, and the e-mail in the appointments list, with the Reveal button; every reveal is audited. Without it those values stay masked, even for an operator who can manage appointments. The list masks the e-mail for administrators and the appointments admin role too; they reveal it the same way."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:104
@@ -24484,7 +24487,7 @@ msgstr ""
 msgid "On the edit screen the CPF/RF, the email and the IP start masked for everyone, administrators included. The IP is the address the submission and its consent were recorded from, so it is masked both under System Information and under the consent status. An operator who may see them uses the Reveal button beside each value to fetch it, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
 msgstr ""
 
-msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."
+msgid "Administrators (manage_options) hold all of the above. Personal data starts masked for everyone, on the list and on the edit screen alike: administrators and the certificates admin role reveal a value with the Reveal button, as a holder of ffc_view_certificates_pii does, and every reveal is audited. See Capabilities & Roles."
 msgstr ""
 
 msgid "Certificates → Dashboard opens with a summary row (forms in the month shown, submissions today and over the last 7 days, GeoFence windows open now) above a calendar of forms by GeoFence start date, or by publication date when a form has none. Picking a day lists its forms beside the calendar. It needs ffc_view_certificates."

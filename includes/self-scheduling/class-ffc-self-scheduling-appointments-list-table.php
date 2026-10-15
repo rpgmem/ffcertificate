@@ -64,6 +64,13 @@ class AppointmentsListTable extends \WP_List_Table {
 	private $calendar_repository;
 
 	/**
+	 * The ffc_reveal_pii nonce, created on the first row that needs it.
+	 *
+	 * @var string|null
+	 */
+	private ?string $reveal_nonce = null;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -261,10 +268,11 @@ class AppointmentsListTable extends \WP_List_Table {
 	/**
 	 * Email column (with decryption support).
 	 *
-	 * Masked unless the viewer holds the appointments PII tier (#739 §3.3):
-	 * the domain `_admin` tier (and WP super-admins) see the plaintext address,
-	 * every other tier gets a masked one. Reveal is offered on the appointment
-	 * detail page, where each disclosure is audited.
+	 * The address is masked for every tier, the unmasked one included, as on
+	 * the appointment detail view (#1822): whoever may reveal it (the unmasked
+	 * and reveal tiers of #739 §3.3) gets a "Reveal" button that fetches the
+	 * clear value through the audited ffc_reveal_pii endpoint, so the
+	 * plaintext never sits in the list HTML.
 	 *
 	 * @param array<string, mixed> $item Row data.
 	 */
@@ -274,16 +282,38 @@ class AppointmentsListTable extends \WP_List_Table {
 			return '-';
 		}
 
-		$tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
+		$html = '<span class="ffc-pii-value" data-field="email">'
+			. esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $email ) )
+			. '</span>';
+
+		$can_reveal = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
 			'ffc_view_appointments_pii',
 			'ffc_appointments_admin',
 			isset( $item['user_id'] ) ? (int) $item['user_id'] : null
 		);
-		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED === $tier ) {
-			return esc_html( $email );
+		if ( ! $can_reveal ) {
+			return $html;
 		}
 
-		return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email ) );
+		return $html . sprintf(
+			' <button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="appointment" data-field="email" data-submission-id="%1$s" data-nonce="%2$s">%3$s</button>',
+			esc_attr( (string) ( $item['id'] ?? 0 ) ),
+			esc_attr( $this->reveal_nonce() ),
+			esc_html__( 'Reveal', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * The ffc_reveal_pii nonce the list's reveal buttons carry, created once
+	 * per render rather than once per row.
+	 *
+	 * @return string
+	 */
+	private function reveal_nonce(): string {
+		if ( null === $this->reveal_nonce ) {
+			$this->reveal_nonce = wp_create_nonce( 'ffc_reveal_pii_nonce' );
+		}
+		return $this->reveal_nonce;
 	}
 
 	/**

@@ -143,11 +143,10 @@ class AdminAjax {
 	 * list) render the masked value only; the plaintext is fetched here on
 	 * demand so it never sits in the initial HTML for the `reveal` / `masked`
 	 * tiers. Returns 403 for the masked tier. Every reveal served writes an
-	 * audit row, whatever the tier: the unmasked tier sees the clear value on
-	 * the list screens without calling here, so a call is always a deliberate
-	 * disclosure — and the submission edit page (#1655) and the appointment
-	 * detail page (#1813) mask for that tier too, which makes this the only
-	 * way it sees a value there. The `type`
+	 * audit row, whatever the tier, since a call is always a deliberate
+	 * disclosure: the submission edit page (#1655), the appointment detail
+	 * page (#1813) and the list screens (#1815, #1822) mask for the unmasked
+	 * tier too, which makes this the only way it sees a value there. The `type`
 	 * POST field selects the record domain (defaults to `submission` for
 	 * backward compatibility).
 	 *
