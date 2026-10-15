@@ -30,6 +30,8 @@ class PluginBootstrapSmokeTest extends IntegrationTestCase {
 		// Steady-state boot: the one-shot cap/role migrations are covered by
 		// their own unit tests; this smoke asserts bootstrap wiring only.
 		$this->seed_completed_migration_flags();
+		// Tables present: no chain reaches dbDelta, whatever ran before (#1793).
+		$this->use_established_install();
 	}
 
 	/**

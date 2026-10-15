@@ -42,6 +42,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The forms manager can duplicate forms and act on Document Templates** (#1781). Form Duplicate now takes `ffc_manage_forms` instead of the site-admin capability, and the role is no longer redirected off Duplicate, the template visibility toggle, duplicate, export and restore defaults.
 - **Role allow-lists match what each role can open** (#1782). Recruitment opens for `ffc_manage_recruitment` without the view capability, so the Recruitment Manager reaches it; entries a role could never open are gone, and a test now refuses them.
 - **Scheduling list labels match the menu** (#1787). The audience lists are titled "Audience Calendars" and "Audience Bookings", the bookings status filter reads "All Statuses", and its headers carry `column-*` classes so the shared column widths apply.
+- **The bootstrap smoke tests no longer depend on test order** (#1793). They boot an established install whose tables exist and schemas are current, so no chain reaches `dbDelta()`, which an earlier test's stub had left defined and throwing.
+- **Audience member counts agree with the members table** (#1795). The audiences list, the editor's Members tab and the "Current Members" heading all count only member rows whose WordPress user still exists, which are the rows the table renders.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 

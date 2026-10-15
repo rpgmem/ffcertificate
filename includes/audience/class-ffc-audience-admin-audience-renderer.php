@@ -756,6 +756,9 @@ final class AudienceAdminAudienceRenderer {
 	 */
 	private static function render_members_tab( string $menu_slug, int $id, bool $can_manage ): void {
 		$members = AudienceReader::get_members( $id );
+		// The same count as the tab label and the audiences list, which leaves
+		// out a row whose user is gone because the table below skips it (#1795).
+		$member_count = AudienceReader::get_member_count( $id );
 
 		?>
 		<?php if ( $can_manage ) : ?>
@@ -779,9 +782,9 @@ final class AudienceAdminAudienceRenderer {
 		<?php endif; ?>
 
 		<div class="card">
-			<h2 class="ffc-icon-users"><?php esc_html_e( 'Current Members', 'ffcertificate' ); ?> (<?php echo count( $members ); ?>)</h2>
+			<h2 class="ffc-icon-users"><?php esc_html_e( 'Current Members', 'ffcertificate' ); ?> (<?php echo (int) $member_count; ?>)</h2>
 
-			<?php if ( empty( $members ) ) : ?>
+			<?php if ( 0 === $member_count ) : ?>
 				<p><?php esc_html_e( 'No members yet.', 'ffcertificate' ); ?></p>
 			<?php else : ?>
 				<table class="wp-list-table widefat fixed striped">

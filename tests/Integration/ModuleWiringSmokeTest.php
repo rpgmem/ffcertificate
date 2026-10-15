@@ -36,6 +36,8 @@ class ModuleWiringSmokeTest extends IntegrationTestCase {
 		parent::setUp();
 		// Steady-state boot (the one-shot cap/role migrations are unit-tested).
 		$this->seed_completed_migration_flags();
+		// Tables present: no chain reaches dbDelta, whatever ran before (#1793).
+		$this->use_established_install();
 	}
 
 	/** True if any recorded add_filter() targets $hook. */
