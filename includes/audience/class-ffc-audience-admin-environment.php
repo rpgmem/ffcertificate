@@ -24,6 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * page's `wrap` by AudienceAdminCalendar. The previous slug
  * (`page=ffc-scheduling-environments`) stays registered as a hidden page and
  * redirects here; this class still accepts it, so a form posted to it saves.
+ *
+ * @phpstan-import-type EnvironmentRow from AudienceEnvironmentRepository
  */
 class AudienceAdminEnvironment {
 
@@ -124,9 +126,6 @@ class AudienceAdminEnvironment {
 		}
 		$environments = AudienceEnvironmentRepository::get_all( $args );
 		$schedules    = AudienceScheduleRepository::get_all();
-		// Row actions render only for the cap handle_actions() checks (#1769).
-		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
-		$can_delete = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' );
 
 		// Build schedule name map for sorting.
 		$schedule_name_map = array();
@@ -180,6 +179,56 @@ class AudienceAdminEnvironment {
 			<?php submit_button( __( 'Filter', 'ffcertificate' ), 'secondary', 'filter', false ); ?>
 		</form>
 
+		<?php
+		$this->render_table( $environments, $schedule_name_map, $env_label );
+		?>
+
+		<!-- Styles in ffc-audience-admin.css -->
+		<?php
+	}
+
+	/**
+	 * The Environments tab of one calendar's editor (#1761): the list this
+	 * page renders, filtered to the calendar, with its Add New. The rows link
+	 * to this page's own screens, so editing an environment works as it does
+	 * from the list.
+	 *
+	 * @param int $schedule_id Calendar id.
+	 * @return void
+	 */
+	public function render_calendar_tab( int $schedule_id ): void {
+		$environments = AudienceEnvironmentRepository::get_all( array( 'schedule_id' => $schedule_id ) );
+		$schedule     = AudienceScheduleRepository::get_by_id( $schedule_id );
+		$env_label    = AudienceScheduleRepository::get_environment_label( $schedule_id );
+		usort(
+			$environments,
+			static function ( $a, $b ) {
+				return strnatcasecmp( $a->name, $b->name );
+			}
+		);
+		$add_url = self::view_url( $this->menu_slug, '&action=new' );
+		?>
+		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
+		<p><a href="<?php echo esc_url( $add_url ); ?>" class="button"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a></p>
+		<?php endif; ?>
+		<?php
+		$this->render_table( $environments, array( $schedule_id => $schedule ? (string) $schedule->name : '' ), $env_label );
+	}
+
+	/**
+	 * The environments table, shared by the list and a calendar's tab.
+	 *
+	 * @param array<int, object> $environments      Rows, already in display order.
+	 * @param array<int, string> $schedule_name_map Calendar id => name.
+	 * @param string             $env_label         Plural label for the empty row.
+	 * @phpstan-param list<EnvironmentRow> $environments
+	 * @return void
+	 */
+	private function render_table( array $environments, array $schedule_name_map, string $env_label ): void {
+		// Row actions render only for the cap handle_actions() checks (#1769).
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+		$can_delete = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' );
+		?>
 		<table class="wp-list-table widefat fixed striped ffc-environments-table">
 			<thead>
 				<tr>
@@ -271,7 +320,6 @@ class AudienceAdminEnvironment {
 			</tbody>
 		</table>
 
-		<!-- Styles in ffc-audience-admin.css -->
 		<?php
 	}
 

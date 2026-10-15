@@ -26,6 +26,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'A schedule is a bookable calendar; inside it, each environment is a space (room/resource) with its own weekly working hours (default 08:00–18:00, per-day closable) and color. A schedule controls visibility, how far ahead bookings are allowed, per-user booking permissions, and the notification settings below.', 'ffcertificate' ); ?> <?php esc_html_e( 'A new calendar starts public.', 'ffcertificate' ); ?></p>
 	<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?></p>
 
+	<h4><?php esc_html_e( 'The editors', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'A calendar is edited in vertical tabs: General, Notifications and Event list & badges, then, once the calendar is saved, its environments (the Environments list of that calendar), User access and Closed dates. One Save button beside the tabs saves the first three together; the shortcode sits beside it.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab.', 'ffcertificate' ); ?></p>
+
 	<div class="ffc-doc-note">
 		<p>
 			<strong class="ffc-icon-info"><?php esc_html_e( 'Free-form times, not fixed slots.', 'ffcertificate' ); ?></strong><br>

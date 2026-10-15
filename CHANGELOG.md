@@ -20,6 +20,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The Scheduling menu has seven rows** (#1761). The Self / Audience separators, their icons and the New Personal Calendar row leave; Environments becomes a view of Audience Calendars, whose environment count links to it. The old Environments URL redirects there with every query argument.
 - **One read-only fieldset class across admin screens** (#1779). Settings and the recruitment settings tab now use `.ffc-readonly-lock`, like the audience screens; the duplicate rule is gone, and the recruitment fieldset loses its default border. The audiences documentation says what a view-only user sees.
 - **The personal calendar editor is one box with vertical tabs** (#1761). The four stacked boxes and the Occupancy Report become tabs in the form editor's pattern, with dots on Cancellation and Administrator bypass. Every field, default and save path is unchanged.
+- **Audience calendar and audience editors use vertical tabs** (#1761). Calendar: General, Notifications, Event list & badges, Environments, User access, Closed dates, with Save and Shortcode beside them. Audience: Audience, Members, Reregistration fields; the members URL opens Members. No field or action changed.
 
 ### Fixed
 
