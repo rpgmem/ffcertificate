@@ -38,7 +38,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 
 	<h4><?php esc_html_e( 'Booking flow', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Publish a calendar with the shortcode:', 'ffcertificate' ); ?> <code>[ffc_audience schedule_id="0" environment_id="0" view="month"]</code>. <?php esc_html_e( 'schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin\'s REST API and can target one or more audiences or an individual, and are cancelled with a required reason.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Publish a calendar with the shortcode:', 'ffcertificate' ); ?> <code>[ffc_audience schedule_id="0" environment_id="0" view="month"]</code>. <?php esc_html_e( 'schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin\'s REST API and can target one or more audiences or an individual, and are cancelled with a required reason.', 'ffcertificate' ); ?> <?php esc_html_e( 'The Shortcode column of Audience Calendars shows each calendar\'s shortcode with a copy button, and the Environments view shows each environment\'s, tied to its calendar.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Each schedule independently notifies affected users on booking and cancellation, and can attach an ICS calendar invite. Two opt-in admin toggles (off by default) also notify a recipient list (comma-separated; blank falls back to the site admin) on new bookings and cancellations.', 'ffcertificate' ); ?></p>

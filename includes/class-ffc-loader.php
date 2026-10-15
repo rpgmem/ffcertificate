@@ -536,6 +536,7 @@ class Loader {
 		$this->ensure_identities_cap_granted();
 		$this->ensure_identity_verbs_cap_granted();
 		$this->ensure_grade_cap_granted();
+		$this->ensure_reregistration_pii_cap_granted();
 		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_url_shortener_export_cap_granted();
@@ -732,6 +733,24 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_grade_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration seeding `ffc_view_reregistration_pii` (#1815) onto
+	 * every user and role already holding `ffc_manage_reregistration`.
+	 *
+	 * @since 6.40.0
+	 * @return void
+	 */
+	private function ensure_reregistration_pii_cap_granted(): void {
+		$flag = 'ffc_reregistration_pii_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_reregistration_pii_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}

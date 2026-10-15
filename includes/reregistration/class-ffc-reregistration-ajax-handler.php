@@ -38,6 +38,19 @@ final class ReregistrationAjaxHandler {
 	private const CAPABILITY = 'ffc_manage_reregistration';
 
 	/**
+	 * PII reveal capability (#1815). Read by the submissions list too, and
+	 * mirrored by the `reregistration` entry of `AdminAjax::pii_reveal_configs()`
+	 * (`PiiTierConsistencyTest` holds the two together).
+	 */
+	public const PII_CAPABILITY = 'ffc_view_reregistration_pii';
+
+	/**
+	 * Role granted the unmasked tier: the domain's admin role, as in the
+	 * certificates and appointments domains.
+	 */
+	public const PII_UNMASKED_ROLE = 'ffc_reregistration_admin';
+
+	/**
 	 * Submission details renderer (for the View Details modal).
 	 *
 	 * @var ReregistrationSubmissionDetailsRenderer
@@ -52,6 +65,19 @@ final class ReregistrationAjaxHandler {
 	}
 
 	/**
+	 * Whether the current user may generate a submission's Record PDF.
+	 *
+	 * The one check behind both {@see self::ajax_generate_record()} and the
+	 * Record button on the submissions list, so the list never offers a
+	 * button the endpoint then refuses (#1815).
+	 *
+	 * @return bool
+	 */
+	public static function can_generate_record(): bool {
+		return current_user_can( self::CAPABILITY );
+	}
+
+	/**
 	 * AJAX: Generate record PDF data for a submission.
 	 *
 	 * @return void
@@ -59,7 +85,7 @@ final class ReregistrationAjaxHandler {
 	public function ajax_generate_record(): void {
 		check_ajax_referer( 'ffc_generate_ficha', 'nonce' );
 
-		if ( ! current_user_can( self::CAPABILITY ) ) {
+		if ( ! self::can_generate_record() ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
 		}
 
@@ -83,13 +109,19 @@ final class ReregistrationAjaxHandler {
 	 * sensitive values (CPF/RF/RG) via RecordGenerator helpers and renders
 	 * them grouped by field_group with labels from wp_ffc_custom_fields.
 	 *
+	 * Gated by the PII policy rather than the manage cap (#1815): a viewer of
+	 * the list may open it only when the policy lets them reveal, the masked
+	 * tier gets a 403, and every open served writes an audit row, at every
+	 * tier — the same rule as `ffc_reveal_pii`.
+	 *
 	 * @return void
 	 */
 	public function ajax_view_submission_details(): void {
 		check_ajax_referer( 'ffc_view_submission_details', 'nonce' );
 
-		if ( ! current_user_can( self::CAPABILITY ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
+		// Surface gate: the details belong to the submissions list.
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_reregistration' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ), 403 );
 		}
 
 		$submission_id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
@@ -100,6 +132,13 @@ final class ReregistrationAjaxHandler {
 		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
 		if ( ! $submission ) {
 			wp_send_json_error( array( 'message' => __( 'Submission not found.', 'ffcertificate' ) ) );
+		}
+
+		$owner_id = isset( $submission->user_id ) ? (int) $submission->user_id : 0;
+		$owner    = $owner_id > 0 ? $owner_id : null;
+		$tier     = \FreeFormCertificate\Core\PiiAccessPolicy::resolve( self::PII_CAPABILITY, self::PII_UNMASKED_ROLE, $owner );
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === $tier ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to view this submission\'s personal data.', 'ffcertificate' ) ), 403 );
 		}
 
 		$rereg = ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
@@ -115,6 +154,17 @@ final class ReregistrationAjaxHandler {
 		$decrypted_values = RecordGenerator::decrypt_field_values( $all_fields, $raw_values );
 
 		$html = $this->details_renderer->build_submission_details_html( $submission, $all_fields, $decrypted_values );
+
+		// Every open served is audited, whatever the tier: the modal decrypts
+		// the whole record, so it is a reveal, and `ffc_reveal_pii` audits
+		// every reveal it serves (#1655).
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'reregistration_details_viewed',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array( 'reregistration_id' => (int) $submission->reregistration_id ),
+			get_current_user_id(),
+			$submission_id
+		);
 
 		wp_send_json_success( array( 'html' => $html ) );
 	}

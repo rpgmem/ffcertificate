@@ -102,6 +102,11 @@ class AdminConditionalAssets {
 			$this->enqueue_pii_reveal_assets( $s );
 		}
 
+		// Reregistration submissions list — the masked email's Reveal (#1815).
+		if ( $this->is_reregistration_submissions_page() ) {
+			$this->enqueue_pii_reveal_assets( $s );
+		}
+
 		// Submissions list page (when filtered by a single form): "Move to form…" modal.
 		if ( $this->is_submissions_list_page() ) {
 			$this->enqueue_move_submissions_assets();
@@ -418,8 +423,9 @@ class AdminConditionalAssets {
 	}
 
 	/**
-	 * Enqueue the shared masked-PII reveal script (#739 §3.3). Used on both the
-	 * submission edit page and the appointment detail page; `ffc-core` (which
+	 * Enqueue the shared masked-PII reveal script (#739 §3.3). Used on the
+	 * submission edit page, the appointment detail page and the reregistration
+	 * submissions list (#1815); `ffc-core` (which
 	 * provides `FFC.request`) is already enqueued on every FFC admin screen.
 	 *
 	 * @param string $s Asset minification suffix.
@@ -450,6 +456,18 @@ class AdminConditionalAssets {
 	private function is_submission_edit_page(): bool {
 		return 'ffc-submissions' === RequestInput::get_get_key( 'page' )
 			&& 'edit' === RequestInput::get_get_key( 'action' );
+	}
+
+	/**
+	 * Check if current page is a reregistration campaign's submissions list
+	 * (`page=ffc-reregistration&view=submissions`), whose email column is
+	 * masked with a reveal control (#1815).
+	 *
+	 * @return bool
+	 */
+	private function is_reregistration_submissions_page(): bool {
+		return 'ffc-reregistration' === RequestInput::get_get_key( 'page' )
+			&& 'submissions' === RequestInput::get_get_key( 'view' );
 	}
 
 	/**
