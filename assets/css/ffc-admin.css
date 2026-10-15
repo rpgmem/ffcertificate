@@ -1026,12 +1026,15 @@ td .ffc-restriction-label {
 }
 
 /* ==========================================================================
-   FORM LIST TABLE — Column widths & shortcode copy button
+   FORM LIST TABLE — Column widths
    Migrated from class-ffc-form-list-columns.php (Sprint 2)
    ========================================================================== */
 .column-ffc_form_id { width: 60px; text-align: center; }
 .column-ffc_shortcode { width: 240px; }
 .column-ffc_submissions { width: 100px; }
+
+/* Shortcode copy button — AdminUI::render_shortcode_copy(), printed by the
+   forms list and the audience calendar and environment lists (#1814). */
 .ffc-shortcode-cell { display: inline-flex; align-items: center; gap: var(--ffc-spacing-2xs); }
 .ffc-shortcode-code { font-size: var(--ffc-font-size-xs); padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs); user-select: all; }
 .ffc-copy-shortcode {

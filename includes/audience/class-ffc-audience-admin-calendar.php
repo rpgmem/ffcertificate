@@ -158,6 +158,7 @@ class AudienceAdminCalendar {
 			<thead>
 				<tr>
 					<th scope="col" class="column-name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th>
+					<th scope="col" class="column-shortcode"><?php esc_html_e( 'Shortcode', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-visibility"><?php esc_html_e( 'Visibility', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-environments"><?php echo esc_html( AudienceScheduleRepository::get_environment_label() ); ?></th>
 					<th scope="col" class="column-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
@@ -167,7 +168,7 @@ class AudienceAdminCalendar {
 			<tbody>
 				<?php if ( empty( $schedules ) ) : ?>
 					<tr>
-						<td colspan="5"><?php esc_html_e( 'No calendars found.', 'ffcertificate' ); ?></td>
+						<td colspan="6"><?php esc_html_e( 'No calendars found.', 'ffcertificate' ); ?></td>
 					</tr>
 				<?php else : ?>
 					<?php foreach ( $schedules as $schedule ) : ?>
@@ -196,6 +197,9 @@ class AudienceAdminCalendar {
 								<?php if ( $schedule->description ) : ?>
 									<p class="description"><?php echo esc_html( wp_trim_words( $schedule->description, 15 ) ); ?></p>
 								<?php endif; ?>
+							</td>
+							<td class="column-shortcode">
+								<?php \FreeFormCertificate\Admin\AdminUI::render_shortcode_copy( '[ffc_audience schedule_id="' . (int) $schedule->id . '"]' ); ?>
 							</td>
 							<td class="column-visibility">
 								<?php echo 'public' === $schedule->visibility ? esc_html__( 'Public', 'ffcertificate' ) : esc_html__( 'Private', 'ffcertificate' ); ?>

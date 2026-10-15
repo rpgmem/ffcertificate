@@ -68,6 +68,11 @@
     width: 200px;
 }
 
+/* Holds the shortcode and its copy button (#1814). */
+[class*="ffc-page-scheduling-"] .column-shortcode {
+    width: 300px;
+}
+
 /* Delete Link */
 .ffc-delete-link {
     color: var(--ffc-danger);
@@ -366,7 +371,8 @@
     [class*="ffc-page-scheduling-"] .column-visibility,
     [class*="ffc-page-scheduling-"] .column-environments,
     [class*="ffc-page-scheduling-"] .column-color,
-    [class*="ffc-page-scheduling-"] .column-members {
+    [class*="ffc-page-scheduling-"] .column-members,
+    [class*="ffc-page-scheduling-"] .column-shortcode {
         display: none;
     }
 
