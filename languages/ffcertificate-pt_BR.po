@@ -26093,6 +26093,10 @@ msgstr "Os editores"
 msgid "A calendar is edited in vertical tabs: General, Notifications and Event list & badges, then, once the calendar is saved, its environments (the Environments list of that calendar), User access and Closed dates. One Save button beside the tabs saves the first three together; the shortcode sits beside it."
 msgstr "Um calendário é editado em abas verticais: Geral, Notificações e Lista de eventos e selos e, depois que o calendário é salvo, seus ambientes (a lista de Ambientes desse calendário), Acesso de usuários e Datas fechadas. Um único botão Salvar ao lado das abas salva as três primeiras juntas; o shortcode fica ao lado dele."
 
+#: includes/settings/views/documentation/scheduling-audiences.php:30
+msgid "Add New on the Environments tab opens the environment form with that calendar already chosen."
+msgstr "O botão Adicionar Novo da aba Ambientes abre o formulário de ambiente com esse calendário já escolhido."
+
 #: includes/settings/views/documentation/scheduling-audiences.php:31
 msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
 msgstr "Um público-alvo é editado em três abas: Público-alvo, Membros (adicionar e remover membros) e Campos de recadastramento. A contagem de membros na lista de públicos-alvo abre a aba Membros."

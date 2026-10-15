@@ -460,6 +460,111 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	}
 
 	/**
+	 * Render the environment form for the given query, with `selected()`
+	 * printing its attribute and two active calendars listed.
+	 *
+	 * @param array<string, string> $get      Query arguments.
+	 * @param object|null           $existing The calendar get_by_id() answers, or null for none.
+	 */
+	private function render_form_for( array $get, ?object $existing ): string {
+		$_GET = array_merge( $_GET, $get );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->alias(
+			static function ( $a, $b ) {
+				echo (string) $a === (string) $b ? ' selected="selected"' : '';
+			}
+		);
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturnUsing(
+			static fn( $id = null, $singular = false ) => ( $id ? 'Room' : 'Environment' ) . ( $singular ? '' : 's' )
+		);
+		$schedRepo->shouldReceive( 'get_all' )->andReturn(
+			array(
+				(object) array( 'id' => 2, 'name' => 'Cal Two', 'status' => 'active' ),
+				(object) array( 'id' => 3, 'name' => 'Cal Three', 'status' => 'active' ),
+			)
+		);
+		$schedRepo->shouldReceive( 'get_by_id' )->andReturn( $existing );
+
+		ob_start();
+		try {
+			( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
+		} finally {
+			$output = (string) ob_get_clean();
+			unset( $_GET['schedule_id'] );
+		}
+		return $output;
+	}
+
+	public function test_render_form_new_preselects_the_requested_calendar(): void {
+		// The calendar editor's Environments tab opens Add New with its
+		// calendar (#1796).
+		$output = $this->render_form_for(
+			array( 'action' => 'new', 'schedule_id' => '3' ),
+			(object) array( 'id' => 3, 'name' => 'Cal Three', 'status' => 'active' )
+		);
+
+		$this->assertMatchesRegularExpression( '#<option value="3"\s+selected="selected">\s*Cal Three\s*</option>#', $output );
+		$this->assertMatchesRegularExpression( '#<option value="2"\s*>\s*Cal Two\s*</option>#', $output );
+		$this->assertMatchesRegularExpression( '#<option value=""\s*>\s*Select a calendar\s*</option>#', $output );
+		$this->assertStringContainsString( 'name="environment_id" value="0"', $output, 'the form still creates' );
+		$this->assertStringContainsString( '<h1>Add New Room</h1>', $output, 'the title takes the calendar\'s label' );
+	}
+
+	public function test_render_form_new_ignores_an_unknown_calendar(): void {
+		$output = $this->render_form_for( array( 'action' => 'new', 'schedule_id' => '99' ), null );
+
+		$this->assertStringNotContainsString( 'selected="selected"', $output );
+		$this->assertMatchesRegularExpression( '#<option value=""\s*>\s*Select a calendar\s*</option>#', $output );
+		$this->assertStringNotContainsString( 'value="99"', $output );
+		$this->assertStringContainsString( '<h1>Add New Environment</h1>', $output );
+	}
+
+	public function test_render_form_new_ignores_a_value_that_is_not_an_id(): void {
+		$output = $this->render_form_for( array( 'action' => 'new', 'schedule_id' => 'abc' ), (object) array( 'id' => 3, 'name' => 'Cal Three', 'status' => 'active' ) );
+
+		$this->assertStringNotContainsString( 'selected="selected"', $output );
+	}
+
+	public function test_render_form_edit_keeps_the_saved_calendar_over_the_query(): void {
+		$envRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$envRepo->shouldReceive( 'get_by_id' )->with( 7 )->andReturn(
+			(object) array(
+				'id'            => 7,
+				'schedule_id'   => 2,
+				'name'          => 'My Room',
+				'description'   => '',
+				'color'         => '#abcdef',
+				'status'        => 'active',
+				'working_hours' => '',
+			)
+		);
+
+		$output = $this->render_form_for(
+			array( 'action' => 'edit', 'id' => '7', 'schedule_id' => '3' ),
+			(object) array( 'id' => 3, 'name' => 'Cal Three', 'status' => 'active' )
+		);
+
+		$this->assertMatchesRegularExpression( '#<option value="2"\s+selected="selected">\s*Cal Two\s*</option>#', $output );
+		$this->assertMatchesRegularExpression( '#<option value="3"\s*>\s*Cal Three\s*</option>#', $output );
+	}
+
+	public function test_calendar_tab_add_new_carries_the_calendar(): void {
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->with( array( 'schedule_id' => 4 ) )->andReturn( array() );
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_by_id' )->with( 4 )->andReturn( (object) array( 'id' => 4, 'name' => 'Cal Four' ) );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
+
+		ob_start();
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_calendar_tab( 4 );
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments&action=new&schedule_id=4" class="button"', $output );
+	}
+
+	/**
 	 * Run a save of environment 5 with the given working hours and return
 	 * what reached the repository.
 	 *
