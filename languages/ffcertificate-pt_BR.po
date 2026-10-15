@@ -991,9 +991,8 @@ msgid "A one-click link that downloads the participant's own certificate. The se
 msgstr "Um link de clique único que baixa o próprio certificado do participante. O token secreto é transmitido no fragmento de hash da URL (#token=…), de modo que o servidor nunca o registra nos logs. O token é a única credencial — não há login separado —, portanto, o link deve ser tratado como privado. Não há CAPTCHA, mas existe uma limitação de taxa de acesso por IP, e todos os acessos são registrados."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:20
-#| msgid "A personal calendar books one-on-one appointments in fixed time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in four boxes: Calendar Configuration, Working Hours & Availability, Booking Rules & Restrictions, and Email Notifications."
-msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in four boxes: Calendar Configuration, Working Hours & Availability, Booking Rules & Restrictions, and Email Notifications."
-msgstr "Um calendário pessoal agenda compromissos individuais em horários específicos (por exemplo, consultas). Cada calendário é criado no menu Agendamento → Calendários Pessoais e configurado em quatro seções: Configuração do Calendário, Horário de Trabalho e Disponibilidade, Regras e Restrições de Agendamento e Notificações por E-mail."
+msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in one Calendar Configuration box, split into tabs: Calendar, Slots & hours, Booking window, Cancellation, Approval & waitlist, Who can see and book, Administrator bypass, and Emails. A dot on the Cancellation and Administrator bypass tabs shows whether each is on."
+msgstr "Um calendário pessoal agenda compromissos individuais em horários específicos (por exemplo, consultas). Cada calendário é criado no menu Agendamento → Calendários Pessoais e configurado em uma única caixa, Configuração do Calendário, dividida em abas: Calendário, Vagas e horários, Janela de agendamento, Cancelamento, Aprovação e lista de espera, Quem pode ver e agendar, Burlar do administrador e E-mails. Um ponto nas abas Cancelamento e Burlar do administrador mostra se cada uma está ativa."
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:657
 msgid "A plugin update or deploy will delete these files and break the images. Use the \"Insert Image\" button to add them from the Media Library instead, or run"
@@ -12015,8 +12014,8 @@ msgid "On by default, but only unlocks after the form's end date has passed and 
 msgstr "Ativado por padrão, mas só é desbloqueado após a data de término do formulário e enquanto houver cota de download disponível."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:41
-msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy Report meta box shows each block's live booked / capacity, occupancy % and waitlist length."
-msgstr "Em calendários personalizados, define-se o número máximo de blocos distintos que um usuário pode manter (max_blocks_per_user). O cálculo inclui reservas ativas e na lista de espera; 0 = sem limite. Uma meta-caixa de Relatório de Ocupação (somente leitura) exibe, para cada bloco: reservas confirmadas/capacidade, percentual de ocupação e tamanho da lista de espera."
+msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy tab, shown once a custom calendar is saved, lists each block's live booked / capacity, occupancy % and waitlist length."
+msgstr "Em calendários personalizados, define-se o número máximo de blocos distintos que um usuário pode manter (max_blocks_per_user). O cálculo inclui reservas ativas e na lista de espera; 0 = sem limite. Uma aba Ocupação (somente leitura), exibida depois que um calendário personalizado é salvo, mostra, para cada bloco: reservas confirmadas/capacidade, percentual de ocupação e tamanho da lista de espera."
 
 #: includes/frontend/class-ffc-frontend.php:713
 msgid "On desktop: click the padlock in the address bar → Site Settings → Location → Allow."
@@ -23893,8 +23892,11 @@ msgstr "Destinatários administradores"
 msgid "Approval and waitlist"
 msgstr "Aprovação e lista de espera"
 
-msgid "Booking Rules & Restrictions"
-msgstr "Regras e Restrições de Agendamento"
+msgid "Slots & hours"
+msgstr "Vagas e horários"
+
+msgid "Approval & waitlist"
+msgstr "Aprovação e lista de espera"
 
 msgid "Booking slots"
 msgstr "Horários de atendimento"

@@ -229,58 +229,19 @@ class FormEditorMetaboxRenderer {
 	 * container ready), so the post-save path and the `document`-delegated
 	 * form-meta autosave keep working unchanged. With JS disabled the
 	 * panels degrade to a stacked layout — the pre-tabs behaviour — so the
-	 * screen stays usable if the script fails to load.
+	 * screen stays usable if the script fails to load. The markup is
+	 * {@see AdminUI::render_vertical_tabs()}, shared with the personal
+	 * calendar editor (#1761).
 	 *
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_tabbed_container( WP_Post $post ): void {
-		$tabs = self::tab_definitions();
-
-		echo '<div class="ffc-form-tabs" data-ffc-form-tabs>';
-
-		printf(
-			'<ul class="ffc-form-tabs__nav" role="tablist" aria-orientation="vertical" data-ffc-state-on="%s" data-ffc-state-off="%s" data-ffc-state-pending="%s">',
-			esc_attr__( 'On', 'ffcertificate' ),
-			esc_attr__( 'Off', 'ffcertificate' ),
-			esc_attr__( 'Incomplete', 'ffcertificate' )
+		AdminUI::render_vertical_tabs(
+			self::tab_definitions(),
+			function ( string $key ) use ( $post ): void {
+				$this->render_panel_body( $key, $post );
+			}
 		);
-		$first = true;
-		foreach ( $tabs as $tab ) {
-			printf(
-				'<li class="ffc-form-tabs__nav-item" role="presentation"><a href="#ffc-tab-%1$s" id="ffc-tabnav-%1$s" class="ffc-form-tabs__tab%2$s" role="tab" aria-controls="ffc-tabpanel-%1$s" aria-selected="%3$s" tabindex="%4$s"%7$s%8$s><span class="ffc-form-tabs__icon %5$s" aria-hidden="true"></span><span class="ffc-form-tabs__label">%6$s</span></a></li>',
-				esc_attr( $tab['key'] ),
-				$first ? ' is-active' : '',
-				$first ? 'true' : 'false',
-				$first ? '0' : '-1',
-				esc_attr( \FreeFormCertificate\Core\Icons::tab_class( $tab['icon'] ) ),
-				esc_html( $tab['label'] ),
-				array() === $tab['masters'] ? '' : ' data-ffc-tab-masters="' . esc_attr( implode( ' ', $tab['masters'] ) ) . '"',
-				'' === $tab['needs'] ? '' : ' data-ffc-tab-needs="' . esc_attr( $tab['needs'] ) . '"'
-			);
-			$first = false;
-		}
-		echo '</ul>';
-
-		echo '<div class="ffc-form-tabs__panels">';
-		$first = true;
-		foreach ( $tabs as $tab ) {
-			printf(
-				'<section id="ffc-tabpanel-%1$s" class="ffc-form-tabs__panel%2$s" role="tabpanel" aria-labelledby="ffc-tabnav-%1$s" tabindex="0">',
-				esc_attr( $tab['key'] ),
-				$first ? ' is-active' : ''
-			);
-			printf(
-				'<h2 class="ffc-form-tabs__panel-title"><span class="ffc-form-tabs__icon %1$s" aria-hidden="true"></span>%2$s</h2>',
-				esc_attr( \FreeFormCertificate\Core\Icons::tab_class( $tab['icon'] ) ),
-				esc_html( $tab['title'] )
-			);
-			$this->render_panel_body( $tab['key'], $post );
-			echo '</section>';
-			$first = false;
-		}
-		echo '</div>';
-
-		echo '</div>';
 	}
 
 	/**
