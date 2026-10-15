@@ -221,12 +221,11 @@ class SchedulingFrameControlsTest extends TestCase {
 			)
 		);
 		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-			->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+			->shouldReceive( 'can_reveal' )->andReturn( true );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
 			->shouldReceive( 'mask_email' )->andReturn( 'a***@x.com' )
 			->shouldReceive( 'mask_cpf' )->andReturn( '***.***.**1-01' )
 			->shouldReceive( 'mask_rf' )->andReturn( '**.***.**8' )
-			->shouldReceive( 'format_document' )->andReturn( 'PLAIN' )
 			->shouldReceive( 'format_auth_code' )->andReturn( 'A-CODE' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'decrypt_appointment' )->andReturnUsing( static fn( $a ) => $a );
