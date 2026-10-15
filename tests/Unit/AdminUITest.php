@@ -115,6 +115,42 @@ class AdminUITest extends TestCase {
 		$this->assertStringNotContainsString( 'title=', $html );
 	}
 
+	public function test_no_description_leaves_the_bare_label(): void {
+		$html = $this->capture( array( 'name' => 'k', 'label' => 'My toggle' ) );
+		$this->assertStringStartsWith( '<label class="ffc-control-toggle"', $html );
+		$this->assertStringNotContainsString( 'ffc-control-toggle-field', $html );
+		$this->assertStringNotContainsString( 'aria-describedby', $html );
+		$this->assertStringNotContainsString( 'class="description"', $html );
+	}
+
+	/**
+	 * A description wraps the toggle and its sentence in one block and ties
+	 * the sentence to the checkbox (#1816).
+	 */
+	public function test_description_wraps_the_toggle_and_describes_the_checkbox(): void {
+		$html = $this->capture(
+			array(
+				'name'        => 'opt[k]',
+				'id'          => 'k_id',
+				'label'       => 'My toggle',
+				'description' => 'What changes.',
+			)
+		);
+		$this->assertSame(
+			'<div class="ffc-control-toggle-field"><label class="ffc-control-toggle" for="k_id">'
+			. '<input type="checkbox" id="k_id" name="opt[k]" value="1" aria-describedby="k_id-description">'
+			. '<span class="ffc-control-toggle-track" aria-hidden="true"></span>'
+			. '<span class="ffc-control-toggle-label">My toggle</span></label>'
+			. '<p class="description" id="k_id-description">What changes.</p></div>',
+			$html
+		);
+	}
+
+	public function test_blank_description_is_ignored(): void {
+		$html = $this->capture( array( 'name' => 'k', 'description' => '   ' ) );
+		$this->assertStringNotContainsString( 'ffc-control-toggle-field', $html );
+	}
+
 	public function test_get_toggle_returns_markup_instead_of_echoing(): void {
 		ob_start();
 		$returned = AdminUI::get_toggle( array( 'name' => 'k', 'label' => 'My toggle' ) );

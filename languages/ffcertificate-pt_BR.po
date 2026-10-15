@@ -25945,6 +25945,14 @@ msgstr "30 min"
 msgid "ALTCHA + Math"
 msgstr "ALTCHA + Matemática"
 
+#: includes/settings/views/ffc-tab-captcha.php:225
+msgid "On: the widget on the public form shows the ALTCHA logo beside the challenge. Off: the logo is hidden and only the challenge remains."
+msgstr "Ligado: o widget no formulário público mostra o logotipo do ALTCHA ao lado do desafio. Desligado: o logotipo fica oculto e resta apenas o desafio."
+
+#: includes/settings/views/ffc-tab-captcha.php:234
+msgid "On: a \"Protected by ALTCHA\" line linking to altcha.org appears at the bottom of the widget. Off: the line is hidden. The challenge works the same either way."
+msgstr "Ligado: uma linha \"Protegido pelo ALTCHA\", com link para altcha.org, aparece na parte inferior do widget. Desligado: a linha fica oculta. O desafio funciona da mesma forma nos dois casos."
+
 #: includes/settings/views/ffc-tab-captcha.php:222
 msgid "ALTCHA logo"
 msgstr "Logotipo do ALTCHA"

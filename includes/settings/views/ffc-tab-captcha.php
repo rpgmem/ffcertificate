@@ -208,32 +208,34 @@ $ffc_modes = array(
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Display', 'ffcertificate' ); ?></th>
 				<td>
+					<div class="ffc-control-toggle-stack">
 					<?php
 					/*
 					 * Worded as what is shown, so on means visible (#1758). The
 					 * stored keys still say what is hidden, so these post
 					 * `captcha_altcha_show_*` and the save handler inverts them.
+					 * Each description says what the visitor sees (#1816).
 					 */
 					\FreeFormCertificate\Admin\AdminUI::render_toggle(
 						array(
-							'name'    => 'ffc_settings[captcha_altcha_show_logo]',
-							'id'      => 'captcha_altcha_show_logo',
-							'checked' => 1 !== $ffc_hide_logo,
-							'label'   => __( 'ALTCHA logo', 'ffcertificate' ),
+							'name'        => 'ffc_settings[captcha_altcha_show_logo]',
+							'id'          => 'captcha_altcha_show_logo',
+							'checked'     => 1 !== $ffc_hide_logo,
+							'label'       => __( 'ALTCHA logo', 'ffcertificate' ),
+							'description' => __( 'On: the widget on the public form shows the ALTCHA logo beside the challenge. Off: the logo is hidden and only the challenge remains.', 'ffcertificate' ),
 						)
 					);
-					?>
-					<br />
-					<?php
 					\FreeFormCertificate\Admin\AdminUI::render_toggle(
 						array(
-							'name'    => 'ffc_settings[captcha_altcha_show_footer]',
-							'id'      => 'captcha_altcha_show_footer',
-							'checked' => 1 !== $ffc_hide_footer,
-							'label'   => __( '"Protected by ALTCHA" footer', 'ffcertificate' ),
+							'name'        => 'ffc_settings[captcha_altcha_show_footer]',
+							'id'          => 'captcha_altcha_show_footer',
+							'checked'     => 1 !== $ffc_hide_footer,
+							'label'       => __( '"Protected by ALTCHA" footer', 'ffcertificate' ),
+							'description' => __( 'On: a "Protected by ALTCHA" line linking to altcha.org appears at the bottom of the widget. Off: the line is hidden. The challenge works the same either way.', 'ffcertificate' ),
 						)
 					);
 					?>
+					</div>
 				</td>
 			</tr>
 			</tbody>

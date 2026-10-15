@@ -30,6 +30,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Add New on a calendar's Environments tab chooses that calendar** (#1796). The link carries the calendar id, and a new environment's form opens with it selected when the calendar exists; an unknown id is ignored and an existing environment keeps its saved calendar.
 - **Add New on the Environments list keeps its calendar filter** (#1801). With the list filtered to one calendar, its Add New carries that calendar, so the form opens with it chosen; with no filter the link is unchanged.
 - **The shared vertical tabs are named for the family** (#1788). `.ffc-form-tabs` is `.ffc-vtabs`, the script is `ffc-vertical-tabs.js` and the global `FFC.VerticalTabs`; the audience editors print through `AdminUI`'s tab primitives. `ffc-form-editor-tabs` and `FFC.FormEditorTabs` remain deprecated aliases until 6.41.0.
+- **Stacked toggles share one rhythm, and the captcha display toggles explain themselves** (#1816). `render_toggle()` takes a `description`; a `.ffc-control-toggle-stack` spaces toggles in one cell, replacing a `<br />` on the Captcha tab and the scheduling email toggles' own rule.
 
 ### Fixed
 
