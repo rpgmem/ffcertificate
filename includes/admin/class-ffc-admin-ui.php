@@ -81,7 +81,17 @@ class AdminUI {
 	 *                                    colour alone; #1748), `aria_label`
 	 *                                    (optional string, names the checkbox
 	 *                                    when no visible label does, as in a
-	 *                                    table cell under a column header).
+	 *                                    table cell under a column header),
+	 *                                    `description` (optional string, a short
+	 *                                    sentence printed as a `p.description`
+	 *                                    under the switch and tied to it by
+	 *                                    `aria-describedby`; the pair is wrapped
+	 *                                    in a `div.ffc-control-toggle-field`, so
+	 *                                    do not pass it from inside a `<p>`).
+	 *
+	 * Several toggles stacked in one cell go inside a
+	 * `div.ffc-control-toggle-stack`, which owns the spacing between them
+	 * (#1816) — never a `<br />` between calls.
 	 */
 	public static function render_toggle( array $args ): void {
 		$name = $args['name'] ?? '';
@@ -114,6 +124,13 @@ class AdminUI {
 			$data_attrs .= ' aria-label="' . esc_attr( $aria_label ) . '"';
 		}
 
+		$description    = trim( (string) ( $args['description'] ?? '' ) );
+		$description_id = $id . '-description';
+		if ( '' !== $description ) {
+			$data_attrs .= ' aria-describedby="' . esc_attr( $description_id ) . '"';
+			echo '<div class="ffc-control-toggle-field">';
+		}
+
 		printf(
 			'<label class="%1$s" for="%2$s"%3$s>',
 			esc_attr( $wrapper_class ),
@@ -135,6 +152,13 @@ class AdminUI {
 			echo '<span class="ffc-control-toggle-label">' . esc_html( $label ) . '</span>';
 		}
 		echo '</label>';
+		if ( '' !== $description ) {
+			printf(
+				'<p class="description" id="%1$s">%2$s</p></div>',
+				esc_attr( $description_id ),
+				esc_html( $description )
+			);
+		}
 	}
 
 	/**

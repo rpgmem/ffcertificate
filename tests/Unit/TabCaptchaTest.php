@@ -140,7 +140,44 @@ class TabCaptchaTest extends TestCase {
 		$this->assertLessThan( strpos( $html, 'value="both"' ), strpos( $html, 'value="math"' ) );
 		$this->assertLessThan( strpos( $html, 'value="altcha"' ), strpos( $html, 'value="both"' ) );
 		// Display: on means shown, so stored hide_* = 0 renders both on.
-		$this->assertStringContainsString( 'name="ffc_settings[captcha_altcha_show_logo]" value="1" checked>', $html );
-		$this->assertStringContainsString( 'name="ffc_settings[captcha_altcha_show_footer]" value="1" checked>', $html );
+		$this->assertStringContainsString( 'name="ffc_settings[captcha_altcha_show_logo]" value="1" checked aria-describedby="captcha_altcha_show_logo-description">', $html );
+		$this->assertStringContainsString( 'name="ffc_settings[captcha_altcha_show_footer]" value="1" checked aria-describedby="captcha_altcha_show_footer-description">', $html );
+	}
+
+	/**
+	 * The two Display toggles each say what the visitor sees, and sit in the
+	 * shared stack rather than behind a `<br />` (#1816).
+	 */
+	public function test_the_display_toggles_are_stacked_and_described(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'captcha_provider' => 'altcha' ) );
+		Functions\when( 'is_ssl' )->justReturn( true );
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'disabled' )->justReturn( '' );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( 'wp_admin_notice' )->justReturn( null );
+
+		ob_start();
+		$this->tab->render();
+		$html = (string) ob_get_clean();
+
+		$stack = strpos( $html, '<div class="ffc-control-toggle-stack">' );
+		$this->assertNotFalse( $stack, 'the Display cell is a toggle stack' );
+		$cell = substr( $html, $stack, (int) strpos( $html, '</td>', $stack ) - $stack );
+
+		$this->assertSame( 2, substr_count( $cell, '<div class="ffc-control-toggle-field">' ) );
+		$this->assertStringNotContainsString( '<br', $cell, 'the stack spaces the toggles, not a line break' );
+		$this->assertStringContainsString(
+			'<p class="description" id="captcha_altcha_show_logo-description">On: the widget on the public form shows the ALTCHA logo beside the challenge. Off: the logo is hidden and only the challenge remains.</p>',
+			$cell
+		);
+		$this->assertStringContainsString(
+			'<p class="description" id="captcha_altcha_show_footer-description">On: a "Protected by ALTCHA" line linking to altcha.org appears at the bottom of the widget. Off: the line is hidden. The challenge works the same either way.</p>',
+			$cell
+		);
 	}
 }

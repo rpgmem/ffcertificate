@@ -25862,6 +25862,14 @@ msgstr ""
 msgid "ALTCHA + Math"
 msgstr ""
 
+#: includes/settings/views/ffc-tab-captcha.php:225
+msgid "On: the widget on the public form shows the ALTCHA logo beside the challenge. Off: the logo is hidden and only the challenge remains."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-captcha.php:234
+msgid "On: a \"Protected by ALTCHA\" line linking to altcha.org appears at the bottom of the widget. Off: the line is hidden. The challenge works the same either way."
+msgstr ""
+
 #: includes/settings/views/ffc-tab-captcha.php:222
 msgid "ALTCHA logo"
 msgstr ""
