@@ -25,6 +25,14 @@ class TabRateLimitTest extends TestCase {
 	/** @var TabRateLimit */
 	private $tab;
 
+	/**
+	 * Temporary view directory a test created, removed in tearDown() so a
+	 * failing assertion cannot leave it behind.
+	 *
+	 * @var string|null
+	 */
+	private $tmp_dir = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -73,6 +81,12 @@ class TabRateLimitTest extends TestCase {
 		unset( $_POST['logging_enabled'], $_POST['logging_log_allowed'], $_POST['logging_log_blocked'] );
 		unset( $_POST['logging_retention_days'], $_POST['logging_max_logs'] );
 		unset( $_POST['ui_show_remaining'], $_POST['ui_show_wait_time'], $_POST['ui_countdown_timer'] );
+		if ( null !== $this->tmp_dir && is_dir( $this->tmp_dir ) ) {
+			foreach ( (array) glob( $this->tmp_dir . '/*' ) as $file ) {
+				unlink( (string) $file );
+			}
+			rmdir( $this->tmp_dir );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -107,40 +121,30 @@ class TabRateLimitTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_without_post_includes_view(): void {
-		// Stub wp_parse_args to merge like array_merge
-		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
-			return array_merge( $defaults, $args );
-		} );
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_option' )->justReturn( array( 'ip' => array( 'max_per_hour' => 42 ) ) );
 
-		// Create temp view file
-		$tmp_dir  = sys_get_temp_dir() . '/ffc_test_views_rate_' . getmypid();
-		$tmp_file = $tmp_dir . '/ffc-tab-rate-limit.php';
+		$this->tmp_dir = sys_get_temp_dir() . '/ffc_test_views_rate_' . getmypid();
+		if ( ! is_dir( $this->tmp_dir ) ) {
+			mkdir( $this->tmp_dir, 0777, true );
+		}
+		// The view reports what render() handed it: a stored leaf and a
+		// default the stored array does not carry, so `$settings` must be
+		// get_settings()'s merge, not the raw option.
+		file_put_contents(
+			$this->tmp_dir . '/ffc-tab-rate-limit.php',
+			'<?php echo "ip.max_per_hour=" . $settings["ip"]["max_per_hour"] . ";email.max_per_day=" . $settings["email"]["max_per_day"];'
+		);
 
-		@mkdir( $tmp_dir, 0777, true );
-		file_put_contents( $tmp_file, '<?php echo "rate-limit-rendered"; ?>' );
-
-		// Use a subclass that overrides FFC_PLUGIN_DIR path
-		$tab = new class( $tmp_dir ) extends TabRateLimit {
-			private $dir;
-			public function __construct( string $dir ) {
-				$this->dir = $dir;
+		// Only the view directory is redirected, through the `view_path()`
+		// seam; render() is the product's own (#1811).
+		$tab = new class( $this->tmp_dir ) extends TabRateLimit {
+			private string $views_dir;
+			public function __construct( string $views_dir ) {
+				$this->views_dir = $views_dir;
 				parent::__construct();
 			}
-			public function render(): void {
-				// Replicate original logic but use custom dir
-				if ( $_POST && isset( $_POST['ffc_save_rate_limit'] ) ) {
-					check_admin_referer( 'ffc_rate_limit_nonce' );
-					// save_settings() is private, so skip in this test subclass
-					echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved!', 'ffcertificate' ) . '</p></div>';
-				}
-
-				$defaults = array(
-					'ip' => array( 'enabled' => true ),
-					'email' => array( 'enabled' => true ),
-				);
-				$settings = wp_parse_args( get_option( 'ffc_rate_limit_settings', array() ), $defaults );
-				include $this->dir . '/ffc-tab-rate-limit.php';
+			protected function view_path( string $file ): string {
+				return $this->views_dir . '/' . $file;
 			}
 		};
 
@@ -148,76 +152,13 @@ class TabRateLimitTest extends TestCase {
 		$tab->render();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( 'rate-limit-rendered', $output );
-
-		@unlink( $tmp_file );
-		@rmdir( $tmp_dir );
+		$this->assertSame( 'ip.max_per_hour=42;email.max_per_day=3', $output );
 	}
 
-	// ==================================================================
-	// render() — with POST triggers save and shows success notice
-	// ==================================================================
-
-	public function test_render_with_post_shows_success_notice(): void {
-		$_POST['ffc_save_rate_limit'] = '1';
-		$_POST['ip_enabled'] = '1';
-		$_POST['ip_max_per_hour'] = '10';
-		$_POST['ip_max_per_day'] = '50';
-		$_POST['ip_cooldown_seconds'] = '30';
-		$_POST['ip_apply_to'] = 'all';
-		$_POST['ip_message'] = 'Limit reached.';
-
-		Functions\when( 'check_admin_referer' )->justReturn( true );
-		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
-			return array_merge( $defaults, $args );
-		} );
-		Functions\when( 'get_option' )->justReturn( array() );
-		Functions\when( 'update_option' )->justReturn( true );
-		Functions\when( 'absint' )->alias( function ( $val ) {
-			return abs( (int) $val );
-		} );
-		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'sanitize_text_field' )->returnArg();
-		Functions\when( 'sanitize_textarea_field' )->returnArg();
-
-		// Create temp view file
-		$tmp_dir  = sys_get_temp_dir() . '/ffc_test_views_rate2_' . getmypid();
-		$tmp_file = $tmp_dir . '/ffc-tab-rate-limit.php';
-
-		@mkdir( $tmp_dir, 0777, true );
-		file_put_contents( $tmp_file, '<?php echo "rate-view"; ?>' );
-
-		$tab = new class( $tmp_dir ) extends TabRateLimit {
-			private $dir;
-			public function __construct( string $dir ) {
-				$this->dir = $dir;
-				parent::__construct();
-			}
-			public function render(): void {
-				// phpcs:ignore WordPress.Security.NonceVerification.Missing
-				if ( $_POST && isset( $_POST['ffc_save_rate_limit'] ) ) {
-					check_admin_referer( 'ffc_rate_limit_nonce' );
-					update_option( 'ffc_rate_limit_settings', array( 'ip' => array( 'enabled' => true ) ) );
-					echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved!', 'ffcertificate' ) . '</p></div>';
-				}
-
-				$defaults = array( 'ip' => array( 'enabled' => true ) );
-				$settings = wp_parse_args( get_option( 'ffc_rate_limit_settings', array() ), $defaults );
-				include $this->dir . '/ffc-tab-rate-limit.php';
-			}
-		};
-
-		ob_start();
-		$tab->render();
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( 'notice-success', $output );
-		$this->assertStringContainsString( 'Settings saved!', $output );
-		$this->assertStringContainsString( 'rate-view', $output );
-
-		@unlink( $tmp_file );
-		@rmdir( $tmp_dir );
-	}
+	// The POST branch is exercised by the two real-render tests below, against
+	// the shipped view. A third test that re-implemented render() with its own
+	// save and notice was removed in #1811: it asserted against its own copy,
+	// so it stayed green whatever the product's render() did.
 
 	// ==================================================================
 	// render() — capability gate on the inline POST save (real render)
@@ -275,6 +216,7 @@ class TabRateLimitTest extends TestCase {
 
 		$this->assertTrue( $saved, 'Manage-capable user must persist rate-limit settings' );
 		$this->assertStringContainsString( 'Settings saved!', $output );
+		$this->assertStringContainsString( 'name="ffc_save_rate_limit"', $output, 'render() must go on to include the shipped view after saving' );
 	}
 
 	/**
