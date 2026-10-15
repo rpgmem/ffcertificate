@@ -1766,11 +1766,7 @@ msgstr "Todo o processo de renderização passa pelo auxiliar de datas do plugin
 msgid "All Schedules"
 msgstr "Todos os Agendamentos"
 
-#: includes/audience/class-ffc-audience-admin-bookings.php:148
-msgid "All Status"
-msgstr "Todos os Status"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:361 templates/admin/reregistration/submissions.php:53 templates/admin/reregistration/list.php:34
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:361 templates/admin/reregistration/submissions.php:53 templates/admin/reregistration/list.php:34 includes/audience/class-ffc-audience-admin-bookings.php:148
 msgid "All Statuses"
 msgstr "Todos os Status"
 
@@ -2478,11 +2474,11 @@ msgstr "Confirmação de agendamento de público-alvo"
 msgid "Audience booking lifecycle — default text edited globally in the hub above; a schedule may still set its own."
 msgstr "Ciclo de agendamento de público-alvo — texto padrão editado globalmente na caixa acima; um cronograma ainda pode definir o seu próprio."
 
-#: includes/audience/class-ffc-audience-admin-page.php:208 includes/audience/class-ffc-audience-admin-page.php:209
+#: includes/audience/class-ffc-audience-admin-page.php:208 includes/audience/class-ffc-audience-admin-page.php:209 includes/audience/class-ffc-audience-admin-bookings.php:91
 msgid "Audience Bookings"
 msgstr "Agendamentos de Público-alvo"
 
-#: includes/audience/class-ffc-audience-admin-page.php:178 includes/audience/class-ffc-audience-admin-page.php:179 templates/admin/audience/audience-tab.php:30 includes/settings/views/ffc-tab-documentation.php:266
+#: includes/audience/class-ffc-audience-admin-page.php:178 includes/audience/class-ffc-audience-admin-page.php:179 includes/audience/class-ffc-audience-admin-calendar.php:81 templates/admin/audience/audience-tab.php:30 includes/settings/views/ffc-tab-documentation.php:266
 msgid "Audience Calendars"
 msgstr "Calendários de Público-alvo"
 
@@ -3103,10 +3099,6 @@ msgstr "Mensagem de Restrição de Reserva"
 msgid "Booking Type"
 msgstr "Tipo de Reserva"
 
-#: includes/audience/class-ffc-audience-admin-bookings.php:91
-msgid "Bookings"
-msgstr "Reservas"
-
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:203 includes/audience/class-ffc-audience-admin-calendar.php:377 includes/audience/class-ffc-audience-shortcode.php:758
 msgid "bookings"
 msgstr "reservas"
@@ -3390,7 +3382,7 @@ msgstr "Cancelamento por exclusão de calendário"
 msgid "Calendar:"
 msgstr "Calendário:"
 
-#: includes/user-dashboard/class-ffc-capability-catalog.php:252 includes/audience/class-ffc-audience-admin-calendar.php:75
+#: includes/user-dashboard/class-ffc-capability-catalog.php:252
 msgid "Calendars"
 msgstr "Calendários"
 

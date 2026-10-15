@@ -1770,11 +1770,7 @@ msgstr ""
 msgid "All Schedules"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-bookings.php:148
-msgid "All Status"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:361 templates/admin/reregistration/submissions.php:53 templates/admin/reregistration/list.php:34
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:361 templates/admin/reregistration/submissions.php:53 templates/admin/reregistration/list.php:34 includes/audience/class-ffc-audience-admin-bookings.php:148
 msgid "All Statuses"
 msgstr ""
 
@@ -2478,11 +2474,11 @@ msgstr ""
 msgid "Audience booking lifecycle — default text edited globally in the hub above; a schedule may still set its own."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-page.php:208 includes/audience/class-ffc-audience-admin-page.php:209
+#: includes/audience/class-ffc-audience-admin-page.php:208 includes/audience/class-ffc-audience-admin-page.php:209 includes/audience/class-ffc-audience-admin-bookings.php:91
 msgid "Audience Bookings"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-page.php:178 includes/audience/class-ffc-audience-admin-page.php:179 templates/admin/audience/audience-tab.php:30 includes/settings/views/ffc-tab-documentation.php:266
+#: includes/audience/class-ffc-audience-admin-page.php:178 includes/audience/class-ffc-audience-admin-page.php:179 includes/audience/class-ffc-audience-admin-calendar.php:81 templates/admin/audience/audience-tab.php:30 includes/settings/views/ffc-tab-documentation.php:266
 msgid "Audience Calendars"
 msgstr ""
 
@@ -3108,10 +3104,6 @@ msgstr ""
 msgid "Booking Type"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-bookings.php:91
-msgid "Bookings"
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:203 includes/audience/class-ffc-audience-admin-calendar.php:377 includes/audience/class-ffc-audience-shortcode.php:758
 msgid "bookings"
 msgstr ""
@@ -3394,7 +3386,7 @@ msgstr ""
 msgid "Calendar:"
 msgstr ""
 
-#: includes/user-dashboard/class-ffc-capability-catalog.php:252 includes/audience/class-ffc-audience-admin-calendar.php:75
+#: includes/user-dashboard/class-ffc-capability-catalog.php:252
 msgid "Calendars"
 msgstr ""
 
