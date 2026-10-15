@@ -268,6 +268,12 @@ final class AdminMenuVisibility {
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
+			'ffc_reregistration_admin'    => array(
+				'landing_page'         => ReregistrationAdmin::MENU_SLUG,
+				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG, ReregistrationAdmin::CUSTOM_FIELDS_SLUG ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
 			// Cross-domain read-only: every screen one of its view caps opens
 			// (#1776). Writes stay with each handler's own capability check.
 			'ffc_readonly'                => array(

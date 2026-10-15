@@ -57,6 +57,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Six settings-tab tests run the tab's own `render()`** (#1811). They asserted a copy; every tab now resolves its view through `SettingsTab::view_path()`, which tests override, `SettingsViewPathSeamTest` refuses an inline path, and temporary views go in `tearDown()`.
 - **The appointment detail masks CPF, RF and email for every viewer** (#1813). The appointments admin role and site admins no longer get the clear value in the page: like the submission edit screen, anyone who may reveal sees the masked value and a Reveal button, and each reveal is audited.
 
+### Security
+
+- **Reregistration PII has its own capability and admin role** (#1815). The list masks the email behind an audited Reveal button, and View Details opens only with the new `ffc_view_reregistration_pii`, auto-granted to current managers. The new `ffc_reregistration_admin` role sees it unmasked.
+
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
 ### Added
