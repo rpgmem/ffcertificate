@@ -26010,6 +26010,10 @@ msgstr ""
 msgid "A calendar is edited in vertical tabs: General, Notifications and Event list & badges, then, once the calendar is saved, its environments (the Environments list of that calendar), User access and Closed dates. One Save button beside the tabs saves the first three together; the shortcode sits beside it."
 msgstr ""
 
+#: includes/settings/views/documentation/scheduling-audiences.php:30
+msgid "Add New on the Environments tab opens the environment form with that calendar already chosen."
+msgstr ""
+
 #: includes/settings/views/documentation/scheduling-audiences.php:31
 msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
 msgstr ""
