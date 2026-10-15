@@ -565,6 +565,47 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	}
 
 	/**
+	 * The list's own Add New carries the calendar filter it applies, and
+	 * nothing when no filter is active (#1801).
+	 *
+	 * @return array<string, array{0: array<string, string>, 1: string}>
+	 */
+	public function list_add_new_filters(): array {
+		return array(
+			'filtered'   => array( array( 'schedule_id' => '4' ), '&action=new&schedule_id=4' ),
+			'unfiltered' => array( array(), '&action=new' ),
+			'not an id'  => array( array( 'schedule_id' => 'abc' ), '&action=new' ),
+		);
+	}
+
+	/**
+	 * @dataProvider list_add_new_filters
+	 *
+	 * @param array<string, string> $get      Query arguments of the list.
+	 * @param string                $expected Query the Add New link ends with.
+	 */
+	public function test_list_add_new_carries_the_active_filter( array $get, string $expected ): void {
+		$_GET = array_merge( $_GET, $get );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )->shouldReceive( 'get_all' )->andReturn( array() );
+		$schedRepo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$schedRepo->shouldReceive( 'get_all' )->andReturn( array() );
+		$schedRepo->shouldReceive( 'get_environment_label' )->andReturn( 'Rooms' );
+
+		try {
+			ob_start();
+			( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
+			$output = (string) ob_get_clean();
+		} finally {
+			unset( $_GET['schedule_id'] );
+		}
+
+		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments' . $expected . '" class="page-title-action"', $output );
+	}
+
+	/**
 	 * Run a save of environment 5 with the given working hours and return
 	 * what reached the repository.
 	 *
@@ -1001,7 +1042,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$view = 'admin.php?page=ffc-scheduling-calendars&view=environments';
-		$this->assertStringContainsString( 'href="' . $view . '&action=new" class="page-title-action"', $output );
+		$this->assertStringContainsString( 'href="' . $view . '&action=new&schedule_id=1" class="page-title-action"', $output, 'the filtered list\'s Add New carries the calendar (#1801)' );
 		$this->assertSame( 2, substr_count( $output, 'href="' . $view . '&action=edit&id=1"' ), 'the name link and the Edit action' );
 		$this->assertStringContainsString( 'href="' . $view . '&action=deactivate&id=1&_wpnonce=deactivate_environment_1"', $output );
 		$this->assertStringContainsString( 'href="' . $view . '&action=delete&id=2&_wpnonce=delete_environment_2"', $output );

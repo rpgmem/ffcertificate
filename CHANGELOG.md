@@ -24,6 +24,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Scheduling lists, Appointments and Import & Export share the admin frame** (#1761). Import & Export's four sections are the shared card, two by two; the Environments filter sits in the table navigation; an appointment's details and custom fields are cards with icons. No control, column or action changed.
 - **"Admin bypass" reads naturally in Portuguese** (#1789). Every administrator and manager bypass label now says "Exceção para administradores" (or "gestores") instead of "Burlar do administrador" and its variants; the two legacy Scheduling redirects share one query-forwarding helper.
 - **Add New on a calendar's Environments tab chooses that calendar** (#1796). The link carries the calendar id, and a new environment's form opens with it selected when the calendar exists; an unknown id is ignored and an existing environment keeps its saved calendar.
+- **Add New on the Environments list keeps its calendar filter** (#1801). With the list filtered to one calendar, its Add New carries that calendar, so the form opens with it chosen; with no filter the link is unchanged.
 
 ### Fixed
 
