@@ -42,17 +42,25 @@ class AdminAjax {
 	 */
 	private function pii_reveal_configs(): array {
 		return array(
-			'submission'  => array(
+			'submission'     => array(
 				'surface_cap'  => 'ffc_view_certificates',
 				'pii_cap'      => 'ffc_view_certificates_pii',
 				'admin_role'   => 'ffc_certificates_admin',
 				'audit_action' => 'submission_pii_revealed',
 			),
-			'appointment' => array(
+			'appointment'    => array(
 				'surface_cap'  => 'ffc_view_appointments',
 				'pii_cap'      => 'ffc_view_appointments_pii',
 				'admin_role'   => 'ffc_appointments_admin',
 				'audit_action' => 'appointment_pii_revealed',
+			),
+			// #1815. The domain has no `_admin` role of its own, so its
+			// unmasked tier is the global FFC administrator.
+			'reregistration' => array(
+				'surface_cap'  => 'ffc_view_reregistration',
+				'pii_cap'      => 'ffc_view_reregistration_pii',
+				'admin_role'   => 'ffc_administrator',
+				'audit_action' => 'reregistration_pii_revealed',
 			),
 		);
 	}
@@ -60,13 +68,16 @@ class AdminAjax {
 	/**
 	 * Load and decrypt the record whose PII a reveal targets.
 	 *
-	 * @param string $type Record type ('submission' | 'appointment').
+	 * @param string $type Record type ('submission' | 'appointment' | 'reregistration').
 	 * @param int    $id   Record ID.
 	 * @return array<string, mixed>|null Decrypted row (with `cpf` / `rf` /
 	 *                                   `email` / `user_ip` / `user_id` keys), or null when
 	 *                                   the record is missing.
 	 */
 	private function load_pii_record( string $type, int $id ): ?array {
+		if ( 'reregistration' === $type ) {
+			return $this->load_reregistration_pii_record( $id );
+		}
 		if ( 'appointment' === $type ) {
 			$repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 			$row  = $repo->findById( $id );
@@ -85,8 +96,47 @@ class AdminAjax {
 	}
 
 	/**
+	 * Load the PII of a reregistration submission (#1815).
+	 *
+	 * The email is the submitter's account address (`user_email`), which is
+	 * what the submissions list shows; a submission stores no email column of
+	 * its own. CPF and RF come from the submission's `data` JSON, decrypted
+	 * when stored as an envelope. There is no IP on a reregistration.
+	 *
+	 * @param int $id Submission ID.
+	 * @return array<string, mixed>|null Row with `email` / `cpf` / `rf` /
+	 *                                   `user_id` keys, or null when missing.
+	 */
+	private function load_reregistration_pii_record( int $id ): ?array {
+		$sub = \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_by_id( $id );
+		if ( ! $sub ) {
+			return null;
+		}
+
+		$user_id = (int) $sub->user_id;
+		$user    = $user_id > 0 ? get_userdata( $user_id ) : false;
+
+		$data   = ! empty( $sub->data ) ? json_decode( (string) $sub->data, true ) : array();
+		$fields = is_array( $data ) && is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
+
+		$record = array(
+			'user_id' => $user_id,
+			'email'   => $user ? (string) $user->user_email : '',
+		);
+		foreach ( array( 'cpf', 'rf' ) as $key ) {
+			$value = isset( $fields[ $key ] ) && is_string( $fields[ $key ] ) ? $fields[ $key ] : '';
+			if ( '' !== $value && \FreeFormCertificate\Core\Encryption::looks_like_envelope( $value ) ) {
+				$value = (string) \FreeFormCertificate\Core\Encryption::decrypt( $value );
+			}
+			$record[ $key ] = $value;
+		}
+		return $record;
+	}
+
+	/**
 	 * Reveal one decrypted PII field (CPF / RF / email / IP) of a certificate
-	 * submission or self-scheduling appointment, gated by the #739 §3.3 PII
+	 * submission, self-scheduling appointment or reregistration submission
+	 * (#1815), gated by the #739 §3.3 PII
 	 * policy and audited. The IP is the stored `user_ip`, the address the
 	 * submission and its LGPD consent were recorded from (#1760).
 	 *

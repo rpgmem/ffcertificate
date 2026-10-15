@@ -38,6 +38,18 @@ final class ReregistrationAjaxHandler {
 	private const CAPABILITY = 'ffc_manage_reregistration';
 
 	/**
+	 * PII reveal capability (#1815). Mirrored by the `reregistration` entry
+	 * of `AdminAjax::pii_reveal_configs()` and by the submissions list.
+	 */
+	private const PII_CAPABILITY = 'ffc_view_reregistration_pii';
+
+	/**
+	 * Role granted the unmasked tier. The domain has no `_admin` role of its
+	 * own, so its admin tier is the global FFC administrator.
+	 */
+	private const PII_UNMASKED_ROLE = 'ffc_administrator';
+
+	/**
 	 * Submission details renderer (for the View Details modal).
 	 *
 	 * @var ReregistrationSubmissionDetailsRenderer
@@ -83,13 +95,19 @@ final class ReregistrationAjaxHandler {
 	 * sensitive values (CPF/RF/RG) via RecordGenerator helpers and renders
 	 * them grouped by field_group with labels from wp_ffc_custom_fields.
 	 *
+	 * Gated by the PII policy rather than the manage cap (#1815): a viewer of
+	 * the list may open it only when the policy lets them reveal, the masked
+	 * tier gets a 403, and a `reveal`-tier open writes an audit row — the
+	 * same rule as every other reveal of the module's PII.
+	 *
 	 * @return void
 	 */
 	public function ajax_view_submission_details(): void {
 		check_ajax_referer( 'ffc_view_submission_details', 'nonce' );
 
-		if ( ! current_user_can( self::CAPABILITY ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
+		// Surface gate: the details belong to the submissions list.
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_reregistration' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ), 403 );
 		}
 
 		$submission_id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
@@ -100,6 +118,13 @@ final class ReregistrationAjaxHandler {
 		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
 		if ( ! $submission ) {
 			wp_send_json_error( array( 'message' => __( 'Submission not found.', 'ffcertificate' ) ) );
+		}
+
+		$owner_id = isset( $submission->user_id ) ? (int) $submission->user_id : 0;
+		$owner    = $owner_id > 0 ? $owner_id : null;
+		$tier     = \FreeFormCertificate\Core\PiiAccessPolicy::resolve( self::PII_CAPABILITY, self::PII_UNMASKED_ROLE, $owner );
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === $tier ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to view this submission\'s personal data.', 'ffcertificate' ) ), 403 );
 		}
 
 		$rereg = ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
@@ -115,6 +140,16 @@ final class ReregistrationAjaxHandler {
 		$decrypted_values = RecordGenerator::decrypt_field_values( $all_fields, $raw_values );
 
 		$html = $this->details_renderer->build_submission_details_html( $submission, $all_fields, $decrypted_values );
+
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'reregistration_details_viewed',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array( 'reregistration_id' => (int) $submission->reregistration_id ),
+				get_current_user_id(),
+				$submission_id
+			);
+		}
 
 		wp_send_json_success( array( 'html' => $html ) );
 	}

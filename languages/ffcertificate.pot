@@ -26017,3 +26017,31 @@ msgstr ""
 #: includes/settings/views/documentation/scheduling-audiences.php:31
 msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
 msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:325
+msgid "Reveal reregistration PII"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:326
+msgid "Reveal a submitter's email and open a submission's details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed (#1815)."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-ajax-handler.php:127
+msgid "You do not have permission to view this submission's personal data."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:291
+msgid "Reregistration Personal Data Revealed"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:292
+msgid "Reregistration Details Viewed"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:152
+msgid "reveal a submitter's email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:154
+msgid "On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand and writes an activity-log entry. Opening View Details is logged too, except for the FFC Administrator role and WordPress administrators."
+msgstr ""

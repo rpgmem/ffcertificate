@@ -189,6 +189,14 @@ class CapabilityManager {
 		// role sees plaintext unmasked. Lives on the manager + admin tiers.
 		'ffc_view_certificates_pii',
 		'ffc_view_appointments_pii',
+		// Reregistration joins the carve (#1815): the submissions list printed
+		// the submitter's email in clear to every viewer, and its "View
+		// Details" modal decrypts CPF / RF / RG. Same reveal/unmasked split;
+		// the unmasked role is the global `ffc_administrator`, since the
+		// domain has no `_admin` role of its own. The one-shot
+		// `migrate_reregistration_pii_cap_grant()` seeds it onto every current
+		// `ffc_manage_reregistration` holder, so no manager loses the details.
+		'ffc_view_reregistration_pii',
 
 		// URL shortener domain (GAP B). Its own view/manage pair so the
 		// Short URLs admin page is delegable without manage_options.
@@ -878,7 +886,7 @@ class CapabilityManager {
 			),
 			'ffc_reregistration_manager'  => array(
 				'label' => __( 'FFC Reregistration - Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration', 'ffc_import_reregistration' ),
+				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration', 'ffc_import_reregistration', 'ffc_view_reregistration_pii' ),
 			),
 
 			// ── Calendars (self-scheduling structure) ────────────────────

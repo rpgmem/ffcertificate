@@ -32,6 +32,9 @@ class AdminAjaxTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/** @var Mockery\MockInterface Alias mock for Encryption */
+	private $encryption_mock;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -79,7 +82,8 @@ class AdminAjaxTest extends TestCase {
 
 		// Encryption alias mock — needed by search_user_by_cpf and the
 		// appointment reveal path (decrypt_appointment passes the row through).
-		$encryption_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
+		$encryption_mock       = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
+		$this->encryption_mock = $encryption_mock;
 		$encryption_mock->shouldReceive( 'hash' )->andReturn( 'hashed_value' )->byDefault();
 		$encryption_mock->shouldReceive( 'decrypt_appointment' )->andReturnUsing(
 			function ( $row ) {
@@ -551,6 +555,156 @@ class AdminAjaxTest extends TestCase {
 		$ajax = new AdminAjax();
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessageMatches( '/permission to reveal/' );
+		$ajax->reveal_pii();
+	}
+
+	// ==================================================================
+	// reveal_pii() — reregistration (#1815)
+	// ==================================================================
+
+	/**
+	 * Alias-mock the reregistration submission reader so get_by_id returns a
+	 * fixed row.
+	 *
+	 * @param object|null $row Submission row.
+	 * @return void
+	 */
+	private function mock_reregistration_submission( ?object $row ): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
+			->shouldReceive( 'get_by_id' )->with( 11 )->andReturn( $row );
+	}
+
+	public function test_reveal_pii_reregistration_email_comes_from_the_account_and_audits(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = 'reregistration';
+		$_POST['submission_id'] = '11';
+		$_POST['field']         = 'email';
+
+		$this->mock_reregistration_submission(
+			(object) array(
+				'id'      => '11',
+				'user_id' => '3',
+				'data'    => null,
+			)
+		);
+		Functions\when( 'get_userdata' )->alias(
+			static fn ( $id ) => 3 === $id ? (object) array( 'user_email' => 'maria@example.org' ) : false
+		);
+
+		$policy = $this->mock_pii_policy();
+		$policy->shouldReceive( 'resolve' )->once()
+			->with( 'ffc_view_reregistration_pii', 'ffc_administrator', 3 )->andReturn( 'reveal' );
+
+		// The audit runs through the real ActivityLog, switched off so it
+		// returns before any write; `once()` is what proves it was reached.
+		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected AdminAjaxSuccessException' );
+		} catch ( AdminAjaxSuccessException $e ) {
+			$this->assertSame(
+				array(
+					'field' => 'email',
+					'value' => 'maria@example.org',
+				),
+				$e->getData()
+			);
+		}
+	}
+
+	public function test_reveal_pii_reregistration_decrypts_the_cpf_from_the_data_json(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = 'reregistration';
+		$_POST['submission_id'] = '11';
+		$_POST['field']         = 'cpf';
+
+		$this->mock_reregistration_submission(
+			(object) array(
+				'id'      => '11',
+				'user_id' => '3',
+				'data'    => (string) json_encode( array( 'fields' => array( 'cpf' => 'ENVELOPE' ) ) ),
+			)
+		);
+		$this->encryption_mock->shouldReceive( 'looks_like_envelope' )->with( 'ENVELOPE' )->andReturn( true );
+		$this->encryption_mock->shouldReceive( 'decrypt' )->once()->with( 'ENVELOPE' )->andReturn( '51817842080' );
+
+		$this->mock_pii_policy()->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+
+		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
+			->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( '518.178.420-80' );
+		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+			->shouldReceive( 'activity_log_enabled' )->once()->andReturn( false );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected AdminAjaxSuccessException' );
+		} catch ( AdminAjaxSuccessException $e ) {
+			$this->assertSame(
+				array(
+					'field' => 'cpf',
+					'value' => '518.178.420-80',
+				),
+				$e->getData()
+			);
+		}
+	}
+
+	public function test_reveal_pii_reregistration_masked_tier_denied(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = 'reregistration';
+		$_POST['submission_id'] = '11';
+		$_POST['field']         = 'email';
+
+		$this->mock_reregistration_submission(
+			(object) array(
+				'id'      => '11',
+				'user_id' => '3',
+				'data'    => null,
+			)
+		);
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'user_email' => 'maria@example.org' ) );
+		$this->mock_pii_policy()->shouldReceive( 'resolve' )->andReturn( 'masked' );
+		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
+			->shouldReceive( 'activity_log_enabled' )->never();
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/permission to reveal/' );
+		$ajax->reveal_pii();
+	}
+
+	public function test_reveal_pii_reregistration_requires_the_surface_cap(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = 'reregistration';
+		$_POST['submission_id'] = '11';
+		$_POST['field']         = 'email';
+
+		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )
+			->with( 'ffc_view_reregistration' )->andReturn( false );
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
+			->shouldReceive( 'get_by_id' )->never();
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/You do not have permission\./' );
+		$ajax->reveal_pii();
+	}
+
+	public function test_reveal_pii_reregistration_reports_an_unknown_submission(): void {
+		$_POST['nonce']         = 'n';
+		$_POST['type']          = 'reregistration';
+		$_POST['submission_id'] = '11';
+		$_POST['field']         = 'email';
+
+		$this->mock_reregistration_submission( null );
+
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/Record not found/' );
 		$ajax->reveal_pii();
 	}
 }

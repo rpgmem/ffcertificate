@@ -26100,3 +26100,31 @@ msgstr "O botão Adicionar Novo da aba Ambientes abre o formulário de ambiente 
 #: includes/settings/views/documentation/scheduling-audiences.php:31
 msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
 msgstr "Um público-alvo é editado em três abas: Público-alvo, Membros (adicionar e remover membros) e Campos de recadastramento. A contagem de membros na lista de públicos-alvo abre a aba Membros."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:325
+msgid "Reveal reregistration PII"
+msgstr "Revelar PII do recadastramento"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:326
+msgid "Reveal a submitter's email and open a submission's details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed (#1815)."
+msgstr "Exiba o e-mail de quem enviou e abra os detalhes de uma submissão, com CPF, RF e RG descriptografados (auditado). Sem isso, o e-mail permanece mascarado e os detalhes permanecem fechados."
+
+#: includes/reregistration/class-ffc-reregistration-ajax-handler.php:127
+msgid "You do not have permission to view this submission's personal data."
+msgstr "Você não tem permissão para ver os dados pessoais desta submissão."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:291
+msgid "Reregistration Personal Data Revealed"
+msgstr "Dados Pessoais do Recadastramento Revelados"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:292
+msgid "Reregistration Details Viewed"
+msgstr "Detalhes do Recadastramento Visualizados"
+
+#: includes/settings/views/documentation/feature-reregistration.php:152
+msgid "reveal a submitter's email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
+msgstr "revelar o e-mail de quem enviou na lista de submissões e abrir Ver Detalhes, que mostra CPF, RF e RG descriptografados. Sem ela, o e-mail permanece mascarado e Ver Detalhes não é oferecido, nem mesmo a quem gerencia campanhas. Quem já gerenciava recebeu a capacidade automaticamente na atualização."
+
+#: includes/settings/views/documentation/feature-reregistration.php:154
+msgid "On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand and writes an activity-log entry. Opening View Details is logged too, except for the FFC Administrator role and WordPress administrators."
+msgstr "Na lista de submissões o e-mail fica mascarado para todos, administradores incluídos; o botão Revelar o busca sob demanda e grava uma entrada no registro de atividades. Abrir Ver Detalhes também é registrado, exceto para a função FFC Administrador e para administradores do WordPress."

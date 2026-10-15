@@ -51,6 +51,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Tests no longer claim to run against `/tmp/`** (#1806). 37 unit tests dropped an `ABSPATH` define the bootstrap had already made, and two template tests dropped a fixture under the shared `/tmp/ffc_test_dir` that nothing read: they render the shipped templates.
 - **Tests no longer redefine bootstrap constants** (#1809). 71 dead `define()` calls left 34 unit tests, among them `FFC_PLUGIN_DIR` set to `/tmp` paths the code never read; `BootstrapConstantRedefinitionTest` reads the bootstrap's own list and refuses a test that redefines one.
 
+### Security
+
+- **Reregistration PII has a capability of its own** (#1815). The submissions list masks the email, with a Reveal button, and View Details opens only for holders of the new `ffc_view_reregistration_pii`, audited. It is granted automatically to current `ffc_manage_reregistration` holders.
+
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 
 ### Added
