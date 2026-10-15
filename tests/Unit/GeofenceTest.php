@@ -28,10 +28,6 @@ class GeofenceTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'apply_filters' )->alias( function ( $hook, $value ) { return $value; } );
-
-		if ( ! defined( 'DAY_IN_SECONDS' ) ) {
-			define( 'DAY_IN_SECONDS', 86400 );
-		}
 	}
 
 	protected function tearDown(): void {

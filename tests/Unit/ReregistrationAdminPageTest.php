@@ -52,13 +52,6 @@ class ReregistrationAdminPageTest extends TestCase {
 			$redirects[] = $url;
 			throw new \RuntimeException( 'redirected' );
 		} );
-
-		if ( ! defined( 'FFC_HTML2CANVAS_VERSION' ) ) {
-			define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );
-		}
-		if ( ! defined( 'FFC_JSPDF_VERSION' ) ) {
-			define( 'FFC_JSPDF_VERSION', '4.2.1' );
-		}
 	}
 
 	protected function tearDown(): void {

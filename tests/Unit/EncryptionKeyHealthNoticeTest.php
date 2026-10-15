@@ -49,13 +49,6 @@ class EncryptionKeyHealthNoticeTest extends TestCase {
 			}
 		);
 
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.test/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '0.0.0-test' );
-		}
-
 		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )
 			->shouldReceive( 'asset_suffix' )->andReturn( '.min' )->byDefault();
 	}

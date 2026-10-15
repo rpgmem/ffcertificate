@@ -121,13 +121,6 @@ class AdminActivityLogPageTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_enqueue_scripts_enqueues_and_localizes_on_correct_hook(): void {
-		if (!defined('FFC_PLUGIN_URL')) {
-			define('FFC_PLUGIN_URL', 'http://example.test/wp-content/plugins/ffcertificate/');
-		}
-		if (!defined('FFC_VERSION')) {
-			define('FFC_VERSION', '9.9.9');
-		}
-
 		$asset_helper = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
 		$asset_helper->shouldReceive('asset_suffix')->andReturn('.min');
 		// enqueue_common_style() puts the token palette on the screen (#1126 B).
@@ -198,10 +191,6 @@ class AdminActivityLogPageTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_render_page_includes_view_when_enabled(): void {
-		if (!defined('FFC_PLUGIN_DIR')) {
-			define('FFC_PLUGIN_DIR', dirname(__DIR__, 2) . '/');
-		}
-
 		Mockery::mock('alias:\FreeFormCertificate\Settings\SettingsReader')
 			->shouldReceive('activity_log_enabled')->andReturn(true);
 

@@ -40,16 +40,6 @@ class FormEditorTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_transient' )->justReturn( false );
 
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '4.12.0' );
-		}
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', '/tmp/ffc_test/' );
-		}
-
 		$this->json_responses = array();
 		$responses = &$this->json_responses;
 

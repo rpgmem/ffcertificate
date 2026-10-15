@@ -20,20 +20,6 @@ class EncryptionTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
-		// Define WordPress encryption keys if not set.
-		if ( ! defined( 'SECURE_AUTH_KEY' ) ) {
-			define( 'SECURE_AUTH_KEY', 'test-secure-auth-key-1234567890abcdef' );
-		}
-		if ( ! defined( 'LOGGED_IN_KEY' ) ) {
-			define( 'LOGGED_IN_KEY', 'test-logged-in-key-1234567890abcdef' );
-		}
-		if ( ! defined( 'NONCE_KEY' ) ) {
-			define( 'NONCE_KEY', 'test-nonce-key-1234567890abcdef' );
-		}
-		if ( ! defined( 'AUTH_KEY' ) ) {
-			define( 'AUTH_KEY', 'test-auth-key-1234567890abcdef' );
-		}
-
 		// 6.2.0: Encryption error paths now log via `Debug::log_encryption()`,
 		// which reads `ffc_settings` to gate per-area. Stub get_option so the
 		// gate is reached without exploding.

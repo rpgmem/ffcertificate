@@ -446,9 +446,6 @@ class SettingsTest extends TestCase {
 	 * @return void
 	 */
 	private function arrange_url_cleanup_stubs(): void {
-		if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
-			define( 'MINUTE_IN_SECONDS', 60 );
-		}
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'update_option' )->justReturn( true );
@@ -545,9 +542,6 @@ class SettingsTest extends TestCase {
 	 * @return void
 	 */
 	private function arrange_pubaccess_stubs(): void {
-		if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
-			define( 'MINUTE_IN_SECONDS', 60 );
-		}
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'update_option' )->justReturn( true );
@@ -650,9 +644,6 @@ class SettingsTest extends TestCase {
 	}
 
 	public function test_handle_submission_audit_scans_and_redirects(): void {
-		if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
-			define( 'MINUTE_IN_SECONDS', 60 );
-		}
 		$_REQUEST['ffc_submission_audit'] = 'scan';
 		$_REQUEST['_wpnonce']             = 'ok';
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );

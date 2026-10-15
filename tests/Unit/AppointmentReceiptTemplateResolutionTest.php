@@ -21,9 +21,6 @@ class AppointmentReceiptTemplateResolutionTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		class_exists( '\\FreeFormCertificate\\Generators\\PdfHtmlRenderer' );
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
-		}
 	}
 
 	protected function tearDown(): void {

@@ -46,16 +46,6 @@ class HtmlRefsNoticeTest extends TestCase {
 			}
 		);
 
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.test/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '0.0.0-test' );
-		}
-		if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
-			define( 'HOUR_IN_SECONDS', 3600 );
-		}
-
 		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )
 			->shouldReceive( 'asset_suffix' )->andReturn( '.min' )->byDefault();
 	}

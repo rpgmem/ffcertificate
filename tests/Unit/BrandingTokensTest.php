@@ -19,9 +19,6 @@ class BrandingTokensTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		class_exists( '\\FreeFormCertificate\\Core\\BrandingTokens' );
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
 	}
 
 	protected function tearDown(): void {

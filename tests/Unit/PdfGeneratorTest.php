@@ -490,10 +490,6 @@ class PdfGeneratorTest extends TestCase {
 		$this->stub_html_funcs();
 		Functions\when( 'esc_url' )->returnArg();
 
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
-		}
-
 		$appointment = array(
 			'name'             => 'Carlos',
 			'appointment_date' => '2030-05-20',
@@ -520,10 +516,6 @@ class PdfGeneratorTest extends TestCase {
 		$this->stub_html_funcs();
 		Functions\when( 'esc_url' )->returnArg();
 
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
-		}
-
 		// No date/time/status/code → falls back to N/A labels, empty codes.
 		$result = $this->invoke( 'generate_appointment_pdf_data', array( array(), array() ) );
 
@@ -539,10 +531,6 @@ class PdfGeneratorTest extends TestCase {
 	public function test_generate_appointment_pdf_data_includes_confirmation_token(): void {
 		$this->stub_html_funcs();
 		Functions\when( 'esc_url' )->returnArg();
-
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
-		}
 
 		$appointment = array(
 			'name'               => 'Ana',
@@ -590,9 +578,6 @@ class PdfGeneratorTest extends TestCase {
 	/** Stub the WP funcs generate_pdf_data() itself calls beyond stub_html_funcs(). */
 	private function stub_generate_pdf_data_funcs(): void {
 		$this->stub_html_funcs();
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
-		}
 		Functions\when( 'wp_unslash' )->alias(
 			static function ( $v ) {
 				return is_string( $v ) ? stripslashes( $v ) : $v;
@@ -704,9 +689,6 @@ class PdfGeneratorTest extends TestCase {
 
 	public function test_generate_pdf_data_from_form_assembles_array_with_date(): void {
 		$this->stub_html_funcs();
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
-		}
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Frontend Form' ) );
 		Functions\when( 'get_post_meta' )->alias(
 			static function ( $id, $key ) {
@@ -736,9 +718,6 @@ class PdfGeneratorTest extends TestCase {
 
 	public function test_generate_pdf_data_from_form_without_date(): void {
 		$this->stub_html_funcs();
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', \dirname( __DIR__, 2 ) . '/' );
-		}
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'NoDate Form' ) );
 		Functions\when( 'get_post_meta' )->alias(
 			static function ( $id, $key ) {
