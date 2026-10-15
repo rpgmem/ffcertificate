@@ -499,12 +499,38 @@ class AudienceReader {
 	/**
 	 * Get member count for an audience
 	 *
+	 * Counts only member rows whose WordPress user still exists, because the
+	 * members table skips a row whose user is gone and every count of members
+	 * an operator sees has to agree with that table (#1795). `UserCleanup`
+	 * deletes the rows with the user, so an orphan is rare, but it is not
+	 * impossible (a deletion that bypassed the hook, an import of stale ids).
+	 *
+	 * The existence check goes through `get_users()` rather than a JOIN on
+	 * `wp_users`, which keeps this class on the plugin's own tables. `blog_id`
+	 * is 0 so a multisite member is counted the way `get_user_by()` finds
+	 * them, network-wide.
+	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $include_children Whether to include members of child audiences.
 	 * @return int
 	 */
 	public static function get_member_count( int $audience_id, bool $include_children = false ): int {
-		return count( self::get_members( $audience_id, $include_children ) );
+		$member_ids = self::get_members( $audience_id, $include_children );
+		if ( array() === $member_ids ) {
+			// An empty `include` means "no filter" to get_users(), not "nobody".
+			return 0;
+		}
+
+		$existing = get_users(
+			array(
+				'include'     => $member_ids,
+				'fields'      => 'ID',
+				'blog_id'     => 0,
+				'count_total' => false,
+			)
+		);
+
+		return count( $existing );
 	}
 
 	/**

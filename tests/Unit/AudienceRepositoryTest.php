@@ -1061,15 +1061,38 @@ class AudienceRepositoryTest extends TestCase {
 	public function test_get_member_count_returns_count_of_members(): void {
 		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
 		$this->wpdb->shouldReceive('get_col')->once()->andReturn(['10', '20', '30']);
+		Functions\when('get_users')->justReturn([10, 20, 30]);
 
 		$count = AudienceReader::get_member_count(1);
 
 		$this->assertSame(3, $count);
 	}
 
+	public function test_get_member_count_leaves_out_a_row_whose_user_is_gone(): void {
+		// User 20 was deleted without UserCleanup removing its member row: the
+		// members table skips it, so the count the list and the editor show
+		// must skip it too (#1795).
+		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_col')->once()->andReturn(['10', '20', '30']);
+		$asked = null;
+		Functions\when('get_users')->alias(function ($args) use (&$asked) {
+			$asked = $args;
+			return [10, 30];
+		});
+
+		$count = AudienceReader::get_member_count(1);
+
+		$this->assertSame(2, $count);
+		$this->assertSame([10, 20, 30], $asked['include'], 'every member row is checked against the users table');
+		$this->assertSame('ID', $asked['fields']);
+		$this->assertSame(0, $asked['blog_id'], 'a member is found network-wide, as get_user_by() finds them');
+	}
+
 	public function test_get_member_count_returns_zero_when_no_members(): void {
 		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
 		$this->wpdb->shouldReceive('get_col')->once()->andReturn([]);
+		// An empty `include` would mean "every user" to get_users().
+		Functions\expect('get_users')->never();
 
 		$count = AudienceReader::get_member_count(1);
 
@@ -1089,6 +1112,7 @@ class AudienceRepositoryTest extends TestCase {
 		});
 		// get_col for DISTINCT user_id
 		$this->wpdb->shouldReceive('get_col')->once()->andReturn(['10', '20', '30', '40']);
+		Functions\when('get_users')->alias(fn ($args) => $args['include']);
 
 		$count = AudienceReader::get_member_count(1, true);
 
