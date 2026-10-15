@@ -64,7 +64,7 @@ class DashiconsChromeOnlyTest extends TestCase {
 	public function test_dashicons_appear_only_as_wordpress_chrome(): void {
 		$expected = array_map( static fn( array $entry ): int => $entry[0], self::ALLOWED );
 		ksort( $expected );
-		$this->assertSame( $expected, self::scan(), 'draw our own components from Core\Icons; a dashicon belongs only to the admin menu (CLAUDE.md "Icons")' );
+		$this->assertSame( $expected, self::scan(), 'draw our own components from Core\Icons; a dashicon survives only where a third party supplies it (CLAUDE.md "Icons")' );
 	}
 
 	public function test_every_allowance_carries_a_reason(): void {

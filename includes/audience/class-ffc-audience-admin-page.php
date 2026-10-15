@@ -246,14 +246,7 @@ class AudienceAdminPage {
 			return;
 		}
 
-		$args = array();
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A redirect carrying the query string forward; the destination handler verifies its own nonce.
-		foreach ( wp_unslash( $_GET ) as $key => $value ) {
-			if ( ! is_string( $key ) || ! is_scalar( $value ) ) {
-				continue;
-			}
-			$args[ sanitize_key( $key ) ] = rawurlencode( sanitize_text_field( (string) $value ) );
-		}
+		$args         = self::forwarded_query_args();
 		$args['page'] = self::MENU_SLUG . '-settings';
 		$args['tab']  = 'import';
 
@@ -282,6 +275,24 @@ class AudienceAdminPage {
 			return;
 		}
 
+		$args         = self::forwarded_query_args();
+		$args['page'] = self::MENU_SLUG . '-calendars';
+		$args['view'] = AudienceAdminEnvironment::VIEW;
+
+		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ), 301 );
+		exit;
+	}
+
+	/**
+	 * The current query string, ready to ride along on a legacy-URL redirect.
+	 *
+	 * Scalar values only, each key sanitized and each value sanitized and
+	 * URL-encoded for `add_query_arg()`. The caller overwrites the keys that
+	 * name the destination (`page`, and `tab` or `view`).
+	 *
+	 * @return array<string, string>
+	 */
+	private static function forwarded_query_args(): array {
 		$args = array();
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- A redirect carrying the query string forward; the destination handler verifies its own nonce.
 		foreach ( wp_unslash( $_GET ) as $key => $value ) {
@@ -290,11 +301,7 @@ class AudienceAdminPage {
 			}
 			$args[ sanitize_key( $key ) ] = rawurlencode( sanitize_text_field( (string) $value ) );
 		}
-		$args['page'] = self::MENU_SLUG . '-calendars';
-		$args['view'] = AudienceAdminEnvironment::VIEW;
-
-		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ), 301 );
-		exit;
+		return $args;
 	}
 
 	/**

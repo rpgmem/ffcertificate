@@ -1521,27 +1521,27 @@ msgstr "Barra de Administração"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:741
 msgid "Admin Bypass"
-msgstr "Bypass de Administrador"
+msgstr "Exceção para administradores"
 
 #: includes/frontend/class-ffc-frontend.php:660
 msgid "Admin Bypass Mode Active"
-msgstr "Modo de bypass de Administrador Ativo"
+msgstr "Exceção para administradores ativa"
 
 #: includes/frontend/class-ffc-frontend.php:657
 msgid "Admin Bypass Mode Active - Geofence restrictions are disabled for administrators"
-msgstr "Modo de Desbloqueio Administrativo Ativo - As restrições de geocerca estão desativadas para administradores."
+msgstr "Exceção para administradores ativa - as restrições de geocerca estão desativadas para administradores"
 
 #: includes/settings/views/documentation/forms-geolocation.php:41
 msgid "Admin bypass."
-msgstr "Burlar do administrador."
+msgstr "Exceção para administradores."
 
 #: includes/frontend/class-ffc-frontend.php:658
 msgid "Admin Bypass: Date/Time restrictions are disabled for administrators"
-msgstr "Acesso Administrativo: As restrições de data/hora estão desativadas"
+msgstr "Exceção para administradores: as restrições de data/hora estão desativadas para administradores"
 
 #: includes/frontend/class-ffc-frontend.php:659
 msgid "Admin Bypass: Geolocation restrictions are disabled for administrators"
-msgstr "Acesso Administrativo: As restrições de geolocalização estão desativadas"
+msgstr "Exceção para administradores: as restrições de geolocalização estão desativadas para administradores"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:854
 msgid "Admin Email Addresses"
@@ -1593,11 +1593,11 @@ msgstr "Recursos de administração (wp-admin)"
 
 #: includes/settings/views/ffc-tab-geolocation.php:497
 msgid "Administrator Bypass"
-msgstr "Ignorar Administrador"
+msgstr "Exceção para administradores"
 
 #: includes/settings/views/documentation/config-geolocation.php:50
 msgid "Administrator bypass"
-msgstr "Burlar do administrador"
+msgstr "Exceção para administradores"
 
 #: includes/settings/views/documentation/config-rate-limit.php:47
 msgid "administrators / settings-managers are skipped."
@@ -10670,7 +10670,7 @@ msgstr "Gerencie quais usuários têm acesso a este calendário e o que eles pod
 
 #: includes/settings/views/documentation/config-rate-limit.php:47
 msgid "Manager bypass"
-msgstr "Burlar do gerente"
+msgstr "Exceção para gestores"
 
 #: includes/settings/views/documentation/feature-certificates.php:45
 msgid "Managing Locations:"
@@ -23114,7 +23114,7 @@ msgid "Optionally limit viewing the calendar, or only booking on it, to the conf
 msgstr "Opcionalmente, limita a visualização do calendário, ou apenas os agendamentos nele, ao horário de funcionamento configurado."
 
 msgid "Admin bypass"
-msgstr "Bypass de administrador"
+msgstr "Exceção para administradores"
 
 msgid "Per calendar: whether holders of manage_options or ffc_bypass_appointments may book outside the advance window, on blocked dates, outside working hours and past the daily/interval limits. Turn it off to apply every rule to administrators too."
 msgstr "Por calendário: define se quem possui manage_options ou ffc_bypass_appointments pode agendar fora da janela de antecedência, em datas bloqueadas, fora do horário de funcionamento e além dos limites diário e de intervalo. Desative para aplicar todas as regras também aos administradores."
@@ -24739,7 +24739,7 @@ msgid "Shows the content between the tags only to a visitor inside a date/time w
 msgstr "Mostra o conteúdo entre as tags apenas ao visitante dentro de uma janela de data/hora e/ou dentro de uma área, com as mesmas verificações de um formulário com geofence."
 
 msgid "The same building blocks protect page content: the [ffc_geofence] shortcode uses these locations, fallbacks and the administrator bypass."
-msgstr "Os mesmos recursos protegem conteúdo de páginas: o shortcode [ffc_geofence] usa estes locais, os fallbacks e o bypass de administrador."
+msgstr "Os mesmos recursos protegem conteúdo de páginas: o shortcode [ffc_geofence] usa estes locais, os fallbacks e a exceção para administradores."
 
 #: includes/core/class-ffc-public-design.php:248
 msgid "links on white"

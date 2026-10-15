@@ -22,6 +22,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The personal calendar editor is one box with vertical tabs** (#1761). The four stacked boxes and the Occupancy Report become tabs in the form editor's pattern, with dots on Cancellation and Administrator bypass. Every field, default and save path is unchanged.
 - **Audience calendar and audience editors use vertical tabs** (#1761). Calendar: General, Notifications, Event list & badges, Environments, User access, Closed dates, with Save and Shortcode beside them. Audience: Audience, Members, Reregistration fields; the members URL opens Members. No field or action changed.
 - **Scheduling lists, Appointments and Import & Export share the admin frame** (#1761). Import & Export's four sections are the shared card, two by two; the Environments filter sits in the table navigation; an appointment's details and custom fields are cards with icons. No control, column or action changed.
+- **"Admin bypass" reads naturally in Portuguese** (#1789). Every administrator and manager bypass label now says "Exceção para administradores" (or "gestores") instead of "Burlar do administrador" and its variants; the two legacy Scheduling redirects share one query-forwarding helper.
 
 ### Fixed
 
