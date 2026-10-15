@@ -740,7 +740,8 @@ class AudienceAdminCalendar {
 			<?php if ( $id > 0 ) : ?>
 			<div class="card">
 				<h2 class="ffc-icon-code"><?php esc_html_e( 'Shortcode', 'ffcertificate' ); ?></h2>
-				<code>[ffc_audience schedule_id="<?php echo esc_attr( (string) $id ); ?>"]</code>
+				<?php // The list's Shortcode column draws the same cell (#1814). ?>
+				<?php \FreeFormCertificate\Admin\AdminUI::render_shortcode_copy( '[ffc_audience schedule_id="' . $id . '"]' ); ?>
 				<p class="description">
 					<?php esc_html_e( 'Use this shortcode to display the calendar on any page or post.', 'ffcertificate' ); ?>
 				</p>

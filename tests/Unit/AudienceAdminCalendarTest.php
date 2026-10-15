@@ -406,6 +406,12 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-vtabs__panel is-active"', $output, 'General opens first' );
 		$this->assertMatchesRegularExpression( '/<div class="ffc-aud-editor__side">\s*<div class="card">\s*<h2 class="ffc-icon-checkmark">Save<\/h2>/', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-code">Shortcode</h2>', $output );
+		// The card draws the list column's cell, copy button included (#1814).
+		$this->assertMatchesRegularExpression(
+			'#<h2 class="ffc-icon-code">Shortcode</h2>\s*<span class="ffc-shortcode-cell"><code class="ffc-shortcode-code">\[ffc_audience schedule_id="5"\]</code>'
+			. '<button type="button" class="ffc-copy-shortcode" data-shortcode="\[ffc_audience schedule_id="5"\]" title="Copy shortcode" aria-label="Copy shortcode">#',
+			$output
+		);
 
 		// One form across the first three panels; the other three outside it.
 		$form_open  = (int) strpos( $output, '<form method="post" action="" class="ffc-form" id="ffc-schedule-form">' );
