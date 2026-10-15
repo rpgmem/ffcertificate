@@ -208,7 +208,8 @@ class AudienceAdminEnvironment {
 				return strnatcasecmp( $a->name, $b->name );
 			}
 		);
-		$add_url = self::view_url( $this->menu_slug, '&action=new' );
+		// Add New carries the calendar, so the form opens with it chosen (#1796).
+		$add_url = self::view_url( $this->menu_slug, '&action=new&schedule_id=' . $schedule_id );
 		?>
 		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
 		<p><a href="<?php echo esc_url( $add_url ); ?>" class="button"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a></p>
@@ -345,6 +346,8 @@ class AudienceAdminEnvironment {
 				wp_die( esc_html__( 'Environment not found.', 'ffcertificate' ) );
 			}
 			$schedule_id = (int) ( $environment->schedule_id ?? 0 );
+		} else {
+			$schedule_id = $this->requested_schedule_id();
 		}
 
 		$schedule_id_or_null = $schedule_id ? $schedule_id : null;
@@ -420,7 +423,7 @@ class AudienceAdminEnvironment {
 									/* translators: %s: calendar name */
 									: sprintf( __( '%s (inactive)', 'ffcertificate' ), (string) $schedule->name );
 								?>
-								<option value="<?php echo esc_attr( (string) $schedule->id ); ?>" <?php selected( $environment->schedule_id ?? '', $schedule->id ); ?>>
+								<option value="<?php echo esc_attr( (string) $schedule->id ); ?>" <?php selected( $schedule_id > 0 ? $schedule_id : '', $schedule->id ); ?>>
 									<?php echo esc_html( $schedule_label ); ?>
 								</option>
 							<?php endforeach; ?>
@@ -539,6 +542,24 @@ class AudienceAdminEnvironment {
 		<!-- Styles in ffc-audience-admin.css -->
 		<!-- Scripts in ffc-audience-admin.js -->
 		<?php
+	}
+
+	/**
+	 * The calendar a new environment opens with: the `schedule_id` the
+	 * calendar editor's Environments tab passes to Add New (#1796).
+	 *
+	 * The value comes from the URL, so it is honoured only when it names a
+	 * calendar that exists; anything else leaves the select on "Select a
+	 * calendar", as a plain Add New does.
+	 *
+	 * @return int Calendar id, or 0 when none is requested or it is unknown.
+	 */
+	private function requested_schedule_id(): int {
+		$requested = RequestInput::get_get_int( 'schedule_id' );
+		if ( $requested <= 0 ) {
+			return 0;
+		}
+		return AudienceScheduleRepository::get_by_id( $requested ) ? $requested : 0;
 	}
 
 	/**

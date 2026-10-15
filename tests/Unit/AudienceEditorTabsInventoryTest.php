@@ -402,16 +402,29 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		// rendered by that view, less the filter form and the Calendars /
 		// Environments view switch (#1783) the tab does not need: it is
 		// already filtered, and it sits inside the calendar.
+		// The one deliberate difference is the tab's Add New, which carries
+		// the calendar so the form opens with it chosen (#1796): the list's
+		// `&action=new` is expected there as `&action=new&schedule_id=5`.
+		// Rewritten here rather than regenerating the fixture, which records
+		// the screens as they stood before the tabs and holds no Environments
+		// link at all.
 		$view = 'href:https://example.com/wp-admin/admin.php?page=ffc-scheduling-calendars&view=environments';
-		$list = array_values(
-			array_filter(
-				self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'view' => 'environments', 'schedule_id' => '5' ) ) ),
-				static fn( string $item ): bool => ! str_contains( $item, 'get-filter' ) && $view !== $item
+		$list = array_map(
+			static fn( string $item ): string => $view . '&action=new' === $item ? $item . '&schedule_id=5' : $item,
+			array_values(
+				array_filter(
+					self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'view' => 'environments', 'schedule_id' => '5' ) ) ),
+					static fn( string $item ): bool => ! str_contains( $item, 'get-filter' ) && $view !== $item
+				)
 			)
 		);
 
 		$after = self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'action' => 'edit', 'id' => '5' ) ) );
 		$this->assertSame( self::union( $fixture[ 'calendar-edit-' . $tier ], $list ), self::without_tab_markup( $after ) );
+		if ( 'manage' === $tier ) {
+			$this->assertContains( $view . '&action=new&schedule_id=5', $after, 'the tab\'s Add New carries the calendar' );
+		}
+		$this->assertNotContains( $view . '&action=new', $after, 'no Add New without the calendar' );
 		$this->assertContains( $view . '&action=edit&id=1', $after, 'an environment of this calendar is listed' );
 		$this->assertNotContains( $view . '&action=edit&id=4', $after, 'another calendar\'s environment is not' );
 		$this->assertSame( array(), preg_grep( '/page=ffc-scheduling-environments/', $after ), 'no link is left on the previous slug' );
