@@ -53,7 +53,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Security
 
-- **Reregistration PII has a capability of its own** (#1815). The submissions list masks the email, with a Reveal button, and View Details opens only for holders of the new `ffc_view_reregistration_pii`, audited. It is granted automatically to current `ffc_manage_reregistration` holders.
+- **Reregistration PII has its own capability and admin role** (#1815). The list masks the email behind an audited Reveal button, and View Details opens only with the new `ffc_view_reregistration_pii`, auto-granted to current managers. The new `ffc_reregistration_admin` role sees it unmasked.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 

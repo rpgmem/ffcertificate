@@ -26126,5 +26126,9 @@ msgid "reveal a submitter's email on the submissions list and open View Details,
 msgstr "revelar o e-mail de quem enviou na lista de submissões e abrir Ver Detalhes, que mostra CPF, RF e RG descriptografados. Sem ela, o e-mail permanece mascarado e Ver Detalhes não é oferecido, nem mesmo a quem gerencia campanhas. Quem já gerenciava recebeu a capacidade automaticamente na atualização."
 
 #: includes/settings/views/documentation/feature-reregistration.php:154
-msgid "On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand and writes an activity-log entry. Opening View Details is logged too, except for the FFC Administrator role and WordPress administrators."
-msgstr "Na lista de submissões o e-mail fica mascarado para todos, administradores incluídos; o botão Revelar o busca sob demanda e grava uma entrada no registro de atividades. Abrir Ver Detalhes também é registrado, exceto para a função FFC Administrador e para administradores do WordPress."
+msgid "On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand and writes an activity-log entry. Opening View Details is logged too, except for the FFC Reregistration - Administrator role and WordPress administrators, which see personal data unmasked as the certificates and appointments administrator roles do."
+msgstr "Na lista de submissões o e-mail fica mascarado para todos, administradores incluídos; o botão Revelar o busca sob demanda e grava uma entrada no registro de atividades. Abrir Ver Detalhes também é registrado, exceto para a função FFC Recadastramento - Administrador e para administradores do WordPress, que veem os dados pessoais sem máscara, como as funções de administrador de certificados e de agendamentos."
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:895
+msgid "FFC Reregistration - Administrator"
+msgstr "FFC Recadastramento - Administrador"

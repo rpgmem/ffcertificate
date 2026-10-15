@@ -193,6 +193,7 @@ class CapabilityManagerTest extends TestCase {
 			'ffc_reregistration_viewer',
 			'ffc_reregistration_operator',
 			'ffc_reregistration_manager',
+			'ffc_reregistration_admin',
 			// Recruitment ladder.
 			'ffc_recruitment_viewer',
 			'ffc_recruitment_operator',
@@ -281,6 +282,11 @@ class CapabilityManagerTest extends TestCase {
 		$this->assertTrue( $created['ffc_reregistration_manager']['ffc_view_reregistration_pii'] );
 		$this->assertArrayNotHasKey( 'ffc_view_reregistration_pii', $created['ffc_reregistration_viewer'] );
 		$this->assertArrayNotHasKey( 'ffc_view_reregistration_pii', $created['ffc_reregistration_operator'] );
+		// …and the admin tier holds every reregistration cap, the manager's set.
+		$this->assertSame( $created['ffc_reregistration_manager'], $created['ffc_reregistration_admin'] );
+		foreach ( array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration', 'ffc_import_reregistration', 'ffc_view_reregistration_pii' ) as $cap ) {
+			$this->assertTrue( $created['ffc_reregistration_admin'][ $cap ], "ffc_reregistration_admin must grant {$cap}" );
+		}
 
 		// CPT-domain pairs: viewer holds the new view cap, manager adds manage.
 		$this->assertTrue( $created['ffc_forms_viewer']['ffc_view_forms'] );

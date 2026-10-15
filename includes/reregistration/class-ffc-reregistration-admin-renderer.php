@@ -244,8 +244,8 @@ final class ReregistrationAdminRenderer {
 		// modal it opens shows the decrypted CPF / RF / RG.
 		$owner_id       = isset( $sub->user_id ) ? (int) $sub->user_id : 0;
 		$pii_tier       = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
-			'ffc_view_reregistration_pii',
-			'ffc_administrator',
+			ReregistrationAjaxHandler::PII_CAPABILITY,
+			ReregistrationAjaxHandler::PII_UNMASKED_ROLE,
 			$owner_id > 0 ? $owner_id : null
 		);
 		$can_reveal_pii = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED !== $pii_tier;

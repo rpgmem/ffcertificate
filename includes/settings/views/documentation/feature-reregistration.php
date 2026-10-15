@@ -151,7 +151,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><code>ffc_import_reregistration</code> — <?php esc_html_e( 'load answers from a spreadsheet. Separate from manage on purpose: it writes personal data for people who never opened the form.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_view_reregistration_pii</code> — <?php esc_html_e( 'reveal a submitter\'s email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update.', 'ffcertificate' ); ?></li>
 		</ul>
-		<p class="description"><?php esc_html_e( 'On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand and writes an activity-log entry. Opening View Details is logged too, except for the FFC Administrator role and WordPress administrators.', 'ffcertificate' ); ?></p>
+		<p class="description"><?php esc_html_e( 'On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand and writes an activity-log entry. Opening View Details is logged too, except for the FFC Reregistration - Administrator role and WordPress administrators, which see personal data unmasked as the certificates and appointments administrator roles do.', 'ffcertificate' ); ?></p>
 		<p class="description"><?php esc_html_e( 'The member form itself is gated by login + audience membership, not a capability.', 'ffcertificate' ); ?></p>
 	</div>
 </div>

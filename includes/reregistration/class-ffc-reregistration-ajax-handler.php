@@ -38,16 +38,17 @@ final class ReregistrationAjaxHandler {
 	private const CAPABILITY = 'ffc_manage_reregistration';
 
 	/**
-	 * PII reveal capability (#1815). Mirrored by the `reregistration` entry
-	 * of `AdminAjax::pii_reveal_configs()` and by the submissions list.
+	 * PII reveal capability (#1815). Read by the submissions list too, and
+	 * mirrored by the `reregistration` entry of `AdminAjax::pii_reveal_configs()`
+	 * (`PiiTierConsistencyTest` holds the two together).
 	 */
-	private const PII_CAPABILITY = 'ffc_view_reregistration_pii';
+	public const PII_CAPABILITY = 'ffc_view_reregistration_pii';
 
 	/**
-	 * Role granted the unmasked tier. The domain has no `_admin` role of its
-	 * own, so its admin tier is the global FFC administrator.
+	 * Role granted the unmasked tier: the domain's admin role, as in the
+	 * certificates and appointments domains.
 	 */
-	private const PII_UNMASKED_ROLE = 'ffc_administrator';
+	public const PII_UNMASKED_ROLE = 'ffc_reregistration_admin';
 
 	/**
 	 * Submission details renderer (for the View Details modal).

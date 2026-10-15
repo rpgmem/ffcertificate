@@ -593,7 +593,7 @@ class AdminAjaxTest extends TestCase {
 
 		$policy = $this->mock_pii_policy();
 		$policy->shouldReceive( 'resolve' )->once()
-			->with( 'ffc_view_reregistration_pii', 'ffc_administrator', 3 )->andReturn( 'reveal' );
+			->with( 'ffc_view_reregistration_pii', 'ffc_reregistration_admin', 3 )->andReturn( 'reveal' );
 
 		// The audit runs through the real ActivityLog, switched off so it
 		// returns before any write; `once()` is what proves it was reached.

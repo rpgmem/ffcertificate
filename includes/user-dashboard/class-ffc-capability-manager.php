@@ -192,8 +192,7 @@ class CapabilityManager {
 		// Reregistration joins the carve (#1815): the submissions list printed
 		// the submitter's email in clear to every viewer, and its "View
 		// Details" modal decrypts CPF / RF / RG. Same reveal/unmasked split;
-		// the unmasked role is the global `ffc_administrator`, since the
-		// domain has no `_admin` role of its own. The one-shot
+		// the unmasked role is `ffc_reregistration_admin`. The one-shot
 		// `migrate_reregistration_pii_cap_grant()` seeds it onto every current
 		// `ffc_manage_reregistration` holder, so no manager loses the details.
 		'ffc_view_reregistration_pii',
@@ -777,7 +776,8 @@ class CapabilityManager {
 	 * The per-domain `admin` tier is the global `ffc_administrator` (all caps),
 	 * except where domain-scoped settings/PII caps make a dedicated `_admin`
 	 * distinct: recruitment (settings + reasons) ships one here; certificates
-	 * and appointments gain theirs with the PII carve (#739 §3.3). The two CPT
+	 * and appointments gain theirs with the PII carve (#739 §3.3), and
+	 * reregistration with its own (#1815). The two CPT
 	 * domains (calendars, forms) only own a `view`/`manage` pair, so they
 	 * materialize `viewer → manager` only.
 	 *
@@ -886,6 +886,13 @@ class CapabilityManager {
 			),
 			'ffc_reregistration_manager'  => array(
 				'label' => __( 'FFC Reregistration - Manager', 'ffcertificate' ),
+				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration', 'ffc_import_reregistration', 'ffc_view_reregistration_pii' ),
+			),
+			// Admin tier (#1815): same domain caps as the manager, but the PII
+			// policy treats this role as *unmasked*, like the certificates and
+			// appointments admins.
+			'ffc_reregistration_admin'    => array(
+				'label' => __( 'FFC Reregistration - Administrator', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration', 'ffc_import_reregistration', 'ffc_view_reregistration_pii' ),
 			),
 

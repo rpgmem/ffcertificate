@@ -26043,5 +26043,9 @@ msgid "reveal a submitter's email on the submissions list and open View Details,
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:154
-msgid "On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand and writes an activity-log entry. Opening View Details is logged too, except for the FFC Administrator role and WordPress administrators."
+msgid "On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand and writes an activity-log entry. Opening View Details is logged too, except for the FFC Reregistration - Administrator role and WordPress administrators, which see personal data unmasked as the certificates and appointments administrator roles do."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:895
+msgid "FFC Reregistration - Administrator"
 msgstr ""

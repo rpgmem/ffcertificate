@@ -419,6 +419,7 @@ foreach (
 		'ffc_reregistration_viewer',
 		'ffc_reregistration_operator',
 		'ffc_reregistration_manager',
+		'ffc_reregistration_admin',
 		// Recruitment ladder (manager removed above).
 		'ffc_recruitment_viewer',
 		'ffc_recruitment_operator',

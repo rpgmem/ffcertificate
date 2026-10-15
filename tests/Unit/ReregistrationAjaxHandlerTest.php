@@ -360,7 +360,7 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 	}
 
 	/**
-	 * The unmasked tier (the FFC administrator role) opens the details with
+	 * The unmasked tier (the reregistration admin role) opens the details with
 	 * no audit row, as it sees PII elsewhere without one.
 	 *
 	 * @runInSeparateProcess
@@ -368,7 +368,7 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 	 */
 	public function test_view_details_opens_for_the_unmasked_tier_without_an_audit(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'ffc_administrator' ) ) );
+		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'ffc_reregistration_admin' ) ) );
 		$this->stubDetailsRequest( true );
 		$this->activityLog()->shouldReceive( 'log' )->never();
 

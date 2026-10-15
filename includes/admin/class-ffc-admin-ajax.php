@@ -54,12 +54,11 @@ class AdminAjax {
 				'admin_role'   => 'ffc_appointments_admin',
 				'audit_action' => 'appointment_pii_revealed',
 			),
-			// #1815. The domain has no `_admin` role of its own, so its
-			// unmasked tier is the global FFC administrator.
+			// #1815.
 			'reregistration' => array(
 				'surface_cap'  => 'ffc_view_reregistration',
 				'pii_cap'      => 'ffc_view_reregistration_pii',
-				'admin_role'   => 'ffc_administrator',
+				'admin_role'   => 'ffc_reregistration_admin',
 				'audit_action' => 'reregistration_pii_revealed',
 			),
 		);

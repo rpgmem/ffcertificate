@@ -416,13 +416,25 @@ class ReregistrationAdminRendererTest extends TestCase {
 
 	public function test_unmasked_tier_still_gets_a_masked_email_with_reveal(): void {
 		$this->submissionReader();
-		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'ffc_administrator' ) ) );
+		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'ffc_reregistration_admin' ) ) );
 
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, true ) );
 
 		$this->assertStringNotContainsString( 'maria@example.org', $html, 'Even the unmasked tier fetches the clear value through the audited endpoint.' );
 		$this->assertStringContainsString( 'm***@example.org', $html );
 		$this->assertStringContainsString( 'data-type="reregistration"', $html );
+		$this->assertStringContainsString( 'ffc-view-details-btn', $html );
+	}
+
+	public function test_ffc_administrator_is_the_reveal_tier_as_in_the_other_domains(): void {
+		$this->submissionReader();
+		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'ffc_administrator' ) ) );
+		Functions\when( 'user_can' )->alias( static fn ( $uid, $cap ) => 'manage_options' !== $cap );
+
+		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, true ) );
+
+		$this->assertStringNotContainsString( 'maria@example.org', $html );
+		$this->assertStringContainsString( 'ffc-reveal-pii', $html );
 		$this->assertStringContainsString( 'ffc-view-details-btn', $html );
 	}
 
