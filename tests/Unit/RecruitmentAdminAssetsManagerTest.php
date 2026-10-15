@@ -32,13 +32,6 @@ class RecruitmentAdminAssetsManagerTest extends TestCase {
 		// The notice-edit localize reads RecruitmentSettings::all(), which
 		// pulls the option; default (empty) is fine for the enqueue gate.
 		Functions\when( 'get_option' )->justReturn( array() );
-
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', '/tmp/ffc_recruitment_assets_test/' );
-		}
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.test/plugins/ffc/' );
-		}
 	}
 
 	protected function tearDown(): void {

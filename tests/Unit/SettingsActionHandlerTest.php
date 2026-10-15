@@ -65,15 +65,6 @@ class SettingsActionHandlerTest extends TestCase {
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'delete_transient' )->justReturn( true );
 		Functions\when( 'date_i18n' )->justReturn( 'Jan 4, 2026' );
-		if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
-			define( 'MINUTE_IN_SECONDS', 60 );
-		}
-		// Point the plugin dir at a non-existent path so the email chrome helper
-		// (EmailHelperTrait::ffc_render_email_partial) returns '' instead of
-		// including the real layout template and its dependency chain.
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', '/nonexistent-ffc-plugin-dir/' );
-		}
 
 		// Redirects / die / json halt: throw so we can assert via expectException.
 		Functions\when( 'wp_safe_redirect' )->alias(

@@ -69,19 +69,6 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		Functions\when( 'nocache_headers' )->justReturn( null );
 		Functions\when( 'do_action' )->justReturn( null );
 
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '4.12.0' );
-		}
-		if ( ! defined( 'FFC_HTML2CANVAS_VERSION' ) ) {
-			define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );
-		}
-		if ( ! defined( 'FFC_JSPDF_VERSION' ) ) {
-			define( 'FFC_JSPDF_VERSION', '2.5.1' );
-		}
-
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';

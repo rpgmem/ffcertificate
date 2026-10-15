@@ -75,13 +75,6 @@ class AdminClassTest extends TestCase {
 				throw new \RuntimeException( self::REDIRECTED );
 			}
 		);
-
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '4.12.0' );
-		}
 	}
 
 	protected function tearDown(): void {

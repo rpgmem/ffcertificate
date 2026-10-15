@@ -46,10 +46,6 @@ class SelfSchedulingAdminTest extends TestCase {
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
-
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '4.12.0' );
-		}
 	}
 
 	protected function tearDown(): void {

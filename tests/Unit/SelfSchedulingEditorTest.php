@@ -64,13 +64,6 @@ class SelfSchedulingEditorTest extends TestCase {
 		Functions\when( 'add_query_arg' )->justReturn( '/' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
-
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '4.12.0' );
-		}
 	}
 
 	protected function tearDown(): void {

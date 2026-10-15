@@ -26,10 +26,6 @@ class MigrationForeignKeysTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 
-		if ( ! defined( 'DB_NAME' ) ) {
-			define( 'DB_NAME', 'test_db' );
-		}
-
 		// Namespaced stubs for ActivityLog
 		Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( array() );
 		Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( array() );

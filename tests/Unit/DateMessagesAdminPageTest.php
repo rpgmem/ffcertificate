@@ -477,9 +477,6 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_assets_load_on_this_screen_only_and_carry_both_nonces(): void {
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.org/p/' );
-		}
 		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
 		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )->shouldReceive( 'defaults' )->andReturn(
 			array(
@@ -806,9 +803,6 @@ class DateMessagesAdminPageTest extends TestCase {
 	 */
 	private function render_screen( array $get, $outcome = false ): string {
 		$_GET = $get;
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', dirname( __DIR__, 2 ) . '/' );
-		}
 		Mockery::getConfiguration()->setConstantsMap(
 			array(
 				'FreeFormCertificate\DateMessages\DateMessagesCron' => array( 'CRON_HOOK' => 'ffc_date_messages_daily' ),

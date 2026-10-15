@@ -123,13 +123,6 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
 		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 		$GLOBALS['wpdb'] = $wpdb;
-
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '4.12.0' );
-		}
 	}
 
 	protected function tearDown(): void {

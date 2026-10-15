@@ -52,19 +52,6 @@ class ReregistrationAdminTest extends TestCase {
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'get_option' )->justReturn( 'Y-m-d' );
 
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '4.12.0' );
-		}
-		if ( ! defined( 'FFC_HTML2CANVAS_VERSION' ) ) {
-			define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );
-		}
-		if ( ! defined( 'FFC_JSPDF_VERSION' ) ) {
-			define( 'FFC_JSPDF_VERSION', '2.5.1' );
-		}
-
 		$this->json_responses = array();
 		$responses = &$this->json_responses;
 

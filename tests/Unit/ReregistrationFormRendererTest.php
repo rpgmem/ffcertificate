@@ -47,10 +47,6 @@ class ReregistrationFormRendererTest extends TestCase {
 		$user_mock->user_registered = '2025-01-01 00:00:00';
 		Functions\when( 'get_userdata' )->justReturn( $user_mock );
 
-		if ( ! defined( 'ARRAY_A' ) ) {
-			define( 'ARRAY_A', 'ARRAY_A' );
-		}
-
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
