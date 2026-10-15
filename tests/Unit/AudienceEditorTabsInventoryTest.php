@@ -402,20 +402,15 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		// rendered by that view, less the filter form and the Calendars /
 		// Environments view switch (#1783) the tab does not need: it is
 		// already filtered, and it sits inside the calendar.
-		// The one deliberate difference is the tab's Add New, which carries
-		// the calendar so the form opens with it chosen (#1796): the list's
-		// `&action=new` is expected there as `&action=new&schedule_id=5`.
-		// Rewritten here rather than regenerating the fixture, which records
-		// the screens as they stood before the tabs and holds no Environments
-		// link at all.
+		// Both Add New links carry the calendar so the form opens with it
+		// chosen: the tab's since #1796, the filtered list's since #1801, so
+		// the list's `&action=new&schedule_id=5` is taken as it renders and
+		// no longer rewritten here.
 		$view = 'href:https://example.com/wp-admin/admin.php?page=ffc-scheduling-calendars&view=environments';
-		$list = array_map(
-			static fn( string $item ): string => $view . '&action=new' === $item ? $item . '&schedule_id=5' : $item,
-			array_values(
-				array_filter(
-					self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'view' => 'environments', 'schedule_id' => '5' ) ) ),
-					static fn( string $item ): bool => ! str_contains( $item, 'get-filter' ) && $view !== $item
-				)
+		$list = array_values(
+			array_filter(
+				self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'view' => 'environments', 'schedule_id' => '5' ) ) ),
+				static fn( string $item ): bool => ! str_contains( $item, 'get-filter' ) && $view !== $item
 			)
 		);
 
