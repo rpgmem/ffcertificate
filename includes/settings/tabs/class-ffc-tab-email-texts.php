@@ -370,7 +370,7 @@ class TabEmailTexts extends SettingsTab {
 			<tbody>
 				<?php foreach ( $groups as $group ) : ?>
 					<tr>
-						<th colspan="3" scope="rowgroup" style="background:transparent;">
+						<th colspan="3" scope="rowgroup">
 							<strong><?php echo esc_html( $group['title'] ); ?></strong>
 						</th>
 					</tr>

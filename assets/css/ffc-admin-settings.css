@@ -1386,3 +1386,61 @@ html:has(.ffc-settings-back-to-top) {
     width: 1%;
     white-space: nowrap;
 }
+
+/* Rules that lived in `style=""` attributes until #1837. An inline
+   declaration beats every class, so each selector here carries enough
+   specificity to keep winning where the attribute used to. */
+
+/* General → automatic deletion: the "Delete after (days)" line sits just
+   under its switch. */
+.ffc-settings-wrap .ffc-cleanup-days-row {
+    margin-top: .6em;
+}
+
+/* Rate Limit → device signals: the strength badge beside each signal. */
+.ffc-signal-badge--cookie {
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+}
+
+.ffc-signal-badge--strong {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-signal-badge--weak {
+    background: var(--ffc-gray-200);
+    color: var(--ffc-gray-700);
+}
+
+/* Templates → current assignments, and the two IP Diagnostics tables: a
+   narrow lookup table, not a full-width list. */
+.ffc-settings-wrap .ffc-template-assignments,
+.ffc-settings-wrap .ffc-ip-headers-table,
+.ffc-settings-wrap .ffc-ip-scenarios-table {
+    max-width: 640px;
+}
+
+.ffc-settings-wrap .ffc-ip-headers-table {
+    margin: var(--ffc-spacing-sm) 0 var(--ffc-spacing-2xs);
+}
+
+.ffc-settings-wrap .ffc-ip-scenarios-table {
+    margin: 14px 0 var(--ffc-spacing-2xs);
+}
+
+/* IP Diagnostics → custom proxies: the Cloudflare warning under the field. */
+.ffc-settings-wrap .notice.ffc-ip-cloudflare-warning {
+    margin: var(--ffc-spacing-sm) 0 0;
+    max-width: 560px;
+}
+
+/* Advanced → the result notices of the maintenance actions. */
+.ffc-settings-wrap .notice.ffc-advanced-notice {
+    margin: var(--ffc-spacing-lg) 0;
+}
+
+/* Date Messages → the per-rule action buttons sit on one line. */
+.ffc-dm-rule-action {
+    display: inline;
+}

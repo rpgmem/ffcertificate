@@ -490,7 +490,7 @@ class TabIpDiagnostics extends SettingsTab {
 			$rows .= '<tr><td><code>' . esc_html( $label ) . '</code></td><td>' . $shown . '</td><td>' . $situation . '</td></tr>';
 		}
 
-		echo '<table class="widefat striped" style="max-width:640px;margin:8px 0 4px">';
+		echo '<table class="widefat striped ffc-ip-headers-table">';
 		echo '<thead><tr>'
 			. '<th>' . esc_html__( 'Header', 'ffcertificate' ) . '</th>'
 			. '<th>' . esc_html__( 'Value received', 'ffcertificate' ) . '</th>'
@@ -523,7 +523,7 @@ class TabIpDiagnostics extends SettingsTab {
 			'<code>' . esc_html( (string) $d['forged_sentinel'] ) . '</code>'
 		);
 
-		echo '<table class="widefat striped" style="max-width:640px;margin:14px 0 4px">';
+		echo '<table class="widefat striped ffc-ip-scenarios-table">';
 		echo '<thead><tr>'
 			. '<th>' . esc_html__( 'Scenario', 'ffcertificate' ) . '</th>'
 			. '<th>' . esc_html__( 'Legacy →', 'ffcertificate' ) . '</th>'
@@ -641,7 +641,7 @@ class TabIpDiagnostics extends SettingsTab {
 		echo '<p class="description">' . esc_html__( 'One CIDR or IP per line. Used only with the Custom mode above.', 'ffcertificate' ) . '</p>';
 		// (#920 ①) Steer admins away from the common mistake of pasting the
 		// Cloudflare ranges here — they are detected and refreshed automatically.
-		echo '<div class="notice notice-warning inline" style="margin:8px 0 0;max-width:560px"><p>';
+		echo '<div class="notice notice-warning inline ffc-ip-cloudflare-warning"><p>';
 		echo '<strong>' . esc_html__( 'Do not paste Cloudflare ranges here.', 'ffcertificate' ) . '</strong> ';
 		echo esc_html__( 'They are already detected and kept up to date automatically (official ips-v4/ips-v6 lists, daily refresh) via the Auto or Cloudflare modes. This field is only for your own reverse proxy — nginx, HAProxy or another CDN.', 'ffcertificate' );
 		echo '</p></div>';

@@ -199,6 +199,18 @@
     background: var(--ffc-bg-alt);
 }
 
+/* A user already in the audience: listed, but not pickable. The script
+   wrote this state inline until #1837. */
+.ffc-user-result.ffc-user-exists {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.ffc-user-result-empty {
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+    color: var(--ffc-text-muted);
+}
+
 .ffc-selected-users {
     margin: var(--ffc-spacing-xl) 0;
 }
@@ -570,4 +582,15 @@
     .ffc-aud-editor {
         grid-template-columns: minmax(0, 1fr);
     }
+}
+
+/* Scheduling settings → Audiences: the "Multiple audiences" badge colour
+   picker. It lived in a `style=""` attribute until #1837; the selector
+   outranks core's `input[type="color"]` the way the attribute did. */
+.ffc-page-scheduling-settings input.ffc-aud-badge-color {
+    width: 50px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--ffc-gray-300);
+    cursor: pointer;
 }

@@ -146,9 +146,9 @@
                 '<td>' +
                     '<input type="text" name="ffc_locations[' + escAttr(id) + '][name]" value="' + escAttr(nm) + '" class="regular-text ffc-location-field" data-field="name" required>' +
                 '</td>' +
-                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][lat]" value="' + escAttr(lat) + '" step="any" min="-90" max="90" style="width: 120px;" class="ffc-location-field" data-field="lat" required></td>' +
-                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][lng]" value="' + escAttr(lng) + '" step="any" min="-180" max="180" style="width: 120px;" class="ffc-location-field" data-field="lng" required></td>' +
-                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][radius]" value="' + escAttr(radius) + '" step="any" min="1" style="width: 100px;" class="ffc-location-field" data-field="radius" required></td>' +
+                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][lat]" value="' + escAttr(lat) + '" step="any" min="-90" max="90" class="ffc-location-field ffc-set-w-120" data-field="lat" required></td>' +
+                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][lng]" value="' + escAttr(lng) + '" step="any" min="-180" max="180" class="ffc-location-field ffc-set-w-120" data-field="lng" required></td>' +
+                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][radius]" value="' + escAttr(radius) + '" step="any" min="1" class="ffc-location-field ffc-set-w-100" data-field="radius" required></td>' +
                 '<td><input type="radio" name="ffc_location_default_gps" class="ffc-location-default-gps" value="' + escAttr(id) + '"></td>' +
                 '<td><input type="radio" name="ffc_location_default_ip" class="ffc-location-default-ip" value="' + escAttr(id) + '"></td>' +
                 '<td>' +

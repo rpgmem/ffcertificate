@@ -856,3 +856,9 @@
         border: 1px solid CanvasText;
     }
 }
+
+/* Event list: a holiday's accent stripe. It lived in a script-written
+   `style=""` until #1837. */
+.ffc-shortcode .ffc-event-list-item.ffc-event-list-holiday {
+    border-left: 3px solid var(--ffc-warning);
+}

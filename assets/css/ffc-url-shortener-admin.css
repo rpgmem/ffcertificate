@@ -292,3 +292,9 @@
     color: var(--ffc-text-muted);
     font-style: italic;
 }
+
+/* QR modal: the message shown when the image could not be produced. It
+   lived in a script-written `style=""` until #1837. */
+.ffc-qr-modal__error {
+    color: var(--ffc-danger);
+}

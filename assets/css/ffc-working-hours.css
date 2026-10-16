@@ -122,3 +122,10 @@
     background: var(--ffc-danger-bg);
     border-top: 0;
 }
+
+/* The notice listing the working-hours rows that were not saved. It lived in
+   a `style=""` attribute until #1837. */
+.notice .ffc-working-hours-incomplete {
+    list-style: disc;
+    margin-left: 2em;
+}

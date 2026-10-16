@@ -331,7 +331,7 @@
                                 });
                                 $.each(data, function(i, user) {
                                     var disabled = existingIds.indexOf(user.id) !== -1;
-                                    html += '<div class="ffc-user-result' + (disabled ? ' ffc-user-exists' : '') + '" data-id="' + user.id + '" data-name="' + escHtml(user.name) + '" style="padding: 8px 12px; cursor: ' + (disabled ? 'default' : 'pointer') + '; border-bottom: 1px solid #eee;' + (disabled ? ' opacity: 0.5;' : '') + '">';
+                                    html += '<div class="ffc-user-result' + (disabled ? ' ffc-user-exists' : '') + '" data-id="' + user.id + '" data-name="' + escHtml(user.name) + '">';
                                     html += '<strong>' + escHtml(user.name) + '</strong>';
                                     html += '<br><small>' + escHtml(user.email) + '</small>';
                                     if (disabled) html += ' <em>(' + escHtml(strings.alreadyAdded || 'already added') + ')</em>';
@@ -339,7 +339,7 @@
                                 });
                                 $('#ffc-user-search-results').html(html).show();
                             } else {
-                                $('#ffc-user-search-results').html('<div style="padding: 8px 12px; color: #666;"><em>' + escHtml(strings.noUsersFound || 'No users found.') + '</em></div>').show();
+                                $('#ffc-user-search-results').html('<div class="ffc-user-result-empty"><em>' + escHtml(strings.noUsersFound || 'No users found.') + '</em></div>').show();
                             }
                         })
                         .catch(function() {

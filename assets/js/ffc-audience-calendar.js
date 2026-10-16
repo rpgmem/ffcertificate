@@ -389,7 +389,7 @@
                 // Holiday item
                 var holidayLabel = ffcAudience.strings.holiday || 'Holiday';
                 var holidayDesc = evt.data.description || '';
-                html += '<div class="ffc-event-list-item" data-date="' + evt.date + '" style="border-left: 3px solid var(--ffc-warning);">';
+                html += '<div class="ffc-event-list-item ffc-event-list-holiday" data-date="' + evt.date + '">';
                 html += '<span class="ffc-event-list-time ffc-all-day">' + escapeHtml(holidayLabel) + '</span>';
                 if (holidayDesc) {
                     html += '<span class="ffc-event-list-desc">' + escapeHtml(holidayDesc) + '</span>';
