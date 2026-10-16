@@ -425,7 +425,7 @@ class AudienceAdminEnvironment {
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
-						<label for="environment_schedule"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
+						<label for="environment_schedule"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 					</th>
 					<td>
 						<select name="environment_schedule" id="environment_schedule" required>
@@ -446,7 +446,7 @@ class AudienceAdminEnvironment {
 				</tr>
 				<tr>
 					<th scope="row">
-						<label for="environment_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
+						<label for="environment_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 					</th>
 					<td>
 						<input type="text" name="environment_name" id="environment_name" class="regular-text"

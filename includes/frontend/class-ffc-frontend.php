@@ -206,9 +206,10 @@ class Frontend {
 			// submission succeeds. Only enqueued where [ffc_form] renders.
 			if ( $has_form ) {
 				// Shuffle, character counters, the checkbox cap and "choose at
-				// least one" (#1729). Footer, no dependency: it reads the form's
-				// markup and listens on the document.
-				wp_enqueue_script( 'ffc-form-fields', FFC_PLUGIN_URL . "assets/js/ffc-form-fields{$s}.js", array(), FFC_VERSION, true );
+				// least one" (#1729). Footer: it reads the form's markup and
+				// listens on the document; ffc-core carries the field message
+				// it shows when the checkbox cap is reached (#1844).
+				wp_enqueue_script( 'ffc-form-fields', FFC_PLUGIN_URL . "assets/js/ffc-form-fields{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 				wp_localize_script(
 					'ffc-form-fields',
 					'ffcFormFields',

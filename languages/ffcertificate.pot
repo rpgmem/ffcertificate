@@ -26155,3 +26155,11 @@ msgstr ""
 #: includes/settings/views/documentation/config-user-access.php
 msgid "Saving the tab shows a confirmation at the top of the screen."
 msgstr ""
+
+#: templates/admin/qr/design-fields.php
+msgid "Enter a colour as #rrggbb."
+msgstr ""
+
+#: templates/admin/audience/transfer-list.php
+msgid "Select at least one audience."
+msgstr ""

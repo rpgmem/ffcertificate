@@ -11,6 +11,7 @@ beforeAll(() => {
 			chooseOne: 'Choose at least one option.',
 		},
 	};
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-form-fields.js');
 });
 
@@ -20,7 +21,9 @@ const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 function group({ max = 0, required = false, n = 4 } = {}) {
 	const attrs = (max ? ` data-ffc-max-select="${max}"` : '') + (required ? ' data-ffc-required="1"' : '');
 	const boxes = Array.from({ length: n }, (_, i) => `<label><input type="checkbox" name="g[]" value="o${i}"> o${i}</label>`).join('');
-	return `<fieldset class="ffc-choice-field ffc-choice-checkbox"${attrs}><div class="ffc-radio-group">${boxes}</div>${max ? '<p class="ffc-select-counter"></p>' : ''}</fieldset>`;
+	// The renderer's markup: the boxes' group, then the foot row (#1844).
+	const foot = max ? '<div class="ffc-field-foot"><span class="ffc-field-counter" aria-hidden="true" data-ffc-counter-for="g"></span></div>' : '';
+	return `<fieldset class="ffc-choice-field ffc-choice-checkbox"${attrs}><div class="ffc-radio-group">${boxes}</div>${foot}</fieldset>`;
 }
 
 function tick(index) {
@@ -59,19 +62,28 @@ describe('shuffle', () => {
 describe('length counter', () => {
 	beforeEach(() => {
 		document.documentElement.lang = 'en-US';
-		document.body.innerHTML = '<textarea maxlength="2000" minlength="5"></textarea><p class="ffc-length-counter">0 / 2,000</p>';
+		document.body.innerHTML = '<textarea id="t" maxlength="2000" minlength="5"></textarea>'
+			+ '<div class="ffc-field-foot"><span class="ffc-field-counter" aria-hidden="true" data-ffc-counter-for="t">0 / 2,000</span></div>';
+	});
+
+	it('finds its counter through data-ffc-counter-for, past a message in between', () => {
+		const ta = document.querySelector('textarea');
+		window.FFC.fieldMessage(ta, 'error', 'Too short.');
+		ta.value = 'abcd';
+		ta.dispatchEvent(new Event('input', { bubbles: true }));
+		expect(document.querySelector('.ffc-field-counter').textContent).toBe('4 / 2,000');
 	});
 
 	it('counts characters as the participant types', () => {
 		const ta = document.querySelector('textarea');
 		ta.value = 'abc';
 		ta.dispatchEvent(new Event('input', { bubbles: true }));
-		expect(document.querySelector('.ffc-length-counter').textContent).toBe('3 / 2,000');
+		expect(document.querySelector('.ffc-field-counter').textContent).toBe('3 / 2,000');
 	});
 
 	it('marks a non-empty answer below the minimum', () => {
 		const ta = document.querySelector('textarea');
-		const counter = document.querySelector('.ffc-length-counter');
+		const counter = document.querySelector('.ffc-field-counter');
 		ta.value = 'abc';
 		FF().updateLength(ta);
 		expect(counter.classList.contains('is-below-min')).toBe(true);
@@ -87,7 +99,7 @@ describe('length counter', () => {
 		const ta = document.querySelector('textarea');
 		ta.value = 'a😀';
 		FF().updateLength(ta);
-		expect(document.querySelector('.ffc-length-counter').textContent).toBe('2 / 2,000');
+		expect(document.querySelector('.ffc-field-counter').textContent).toBe('2 / 2,000');
 	});
 });
 
@@ -103,11 +115,22 @@ describe('checkbox cap', () => {
 		const boxes = $$('input[type="checkbox"]');
 		expect(boxes.map((b) => b.disabled)).toEqual([false, false, true, true]);
 		expect(boxes[2].closest('label').classList.contains('is-disabled')).toBe(true);
-		expect(document.querySelector('.ffc-select-counter').textContent).toBe('2 of 2 selected. Untick one to choose another.');
+		// The counter only counts; the limit is said by a warning message
+		// under the boxes, announced politely, which the boxes name (#1844).
+		expect(document.querySelector('.ffc-field-counter').textContent).toBe('2 of 2 selected.');
+		const msg = document.querySelector('.ffc-field-message');
+		expect(msg.textContent).toBe('Untick one to choose another.');
+		expect(msg.classList.contains('is-warning')).toBe(true);
+		expect(msg.getAttribute('role')).toBe('status');
+		expect(msg.previousElementSibling.classList.contains('ffc-radio-group')).toBe(true);
+		expect(boxes[0].getAttribute('aria-describedby')).toBe(msg.id);
+		expect(boxes[0].hasAttribute('aria-invalid')).toBe(false);
 
 		tick(0);
 		expect($$('input[type="checkbox"]').some((b) => b.disabled)).toBe(false);
-		expect(document.querySelector('.ffc-select-counter').textContent).toBe('1 of 2 selected.');
+		expect(document.querySelector('.ffc-field-counter').textContent).toBe('1 of 2 selected.');
+		expect(document.querySelector('.ffc-field-message')).toBeNull();
+		expect(boxes[0].hasAttribute('aria-describedby')).toBe(false);
 	});
 });
 

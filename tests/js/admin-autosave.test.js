@@ -595,7 +595,29 @@ describe('FFC.Admin.autoSaveField — browser validity (#1114)', () => {
 		vi.advanceTimersByTime(600);
 
 		expect(postSpy).not.toHaveBeenCalled();
-		expect(document.querySelector('.ffc-autosave-badge').className).toContain('is-error');
+		// The reason goes under the field, in the field-message standard
+		// (#1844); the badge is not where a validation message lives.
+		const input = document.getElementById('n');
+		expect(input.classList.contains('is-invalid')).toBe(true);
+		expect(input.getAttribute('aria-invalid')).toBe('true');
+		const msg = document.getElementById(input.getAttribute('data-ffc-message-id'));
+		expect(msg.classList.contains('ffc-field-message')).toBe(true);
+		expect(msg.getAttribute('role')).toBe('alert');
+		expect(document.querySelector('.ffc-autosave-badge').hidden).toBe(true);
+	});
+
+	it('withdraws the field message once the value is valid again', () => {
+		document.body.innerHTML = '<input type="number" id="n" min="1" value="5" required>';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		window.FFC.Admin.autoSaveField(window.$('#n'), { key: 'ip_max_per_hour' });
+		window.$('#n').val('').trigger('input');
+		vi.advanceTimersByTime(600);
+		expect(document.querySelector('.ffc-field-message')).not.toBeNull();
+
+		window.$('#n').val('7').trigger('input');
+		vi.advanceTimersByTime(600);
+		expect(document.querySelector('.ffc-field-message')).toBeNull();
+		expect(document.getElementById('n').hasAttribute('aria-invalid')).toBe(false);
 	});
 
 	it('refuses a value below the declared min', () => {

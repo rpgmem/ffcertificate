@@ -26238,3 +26238,11 @@ msgstr "A cor informativa vale só nas páginas públicas; as notas dentro das t
 #: includes/settings/views/documentation/config-user-access.php
 msgid "Saving the tab shows a confirmation at the top of the screen."
 msgstr "Salvar a aba mostra uma confirmação no topo da tela."
+
+#: templates/admin/qr/design-fields.php
+msgid "Enter a colour as #rrggbb."
+msgstr "Informe uma cor no formato #rrggbb."
+
+#: templates/admin/audience/transfer-list.php
+msgid "Select at least one audience."
+msgstr "Selecione pelo menos um público-alvo."

@@ -107,7 +107,7 @@ class FormEditor {
 		wp_enqueue_script(
 			'ffc-geofence-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-geofence-admin{$s}.js",
-			array( 'jquery', 'ffc-geofence-validation' ),
+			array( 'jquery', 'ffc-core', 'ffc-geofence-validation' ),
 			FFC_VERSION,
 			true
 		);

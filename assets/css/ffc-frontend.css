@@ -16,7 +16,9 @@
     max-width: none !important; /* ← Drops the old cap */
     height: 45px !important;
     padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) !important;
-    border: 1px solid var(--ffc-border) !important;
+    /* The field states in `ffc-common.css` set the custom property; the
+       `!important` here would otherwise hide them (#1844). */
+    border: 1px solid var(--ffc-field-state-border, var(--ffc-border)) !important;
     border-radius: var(--ffc-radius-sm) !important;
     font-size: var(--ffc-font-size-xl) !important;
     line-height: 1.5 !important;
@@ -127,13 +129,6 @@
     font-size: var(--ffc-font-size-xl);
 }
 
-.ffc-shortcode .ffc-form-field label .ffc-required,
-.ffc-shortcode .ffc-field-legend .ffc-required {
-    color: var(--ffc-danger);
-    font-weight: 700;
-    margin-left: 3px;
-}
-
 .ffc-shortcode .ffc-radio-group {
     display: flex;
     flex-direction: column;
@@ -171,30 +166,17 @@
     cursor: not-allowed;
 }
 
-.ffc-shortcode .ffc-field-hint,
-.ffc-shortcode .ffc-field-counter {
-    margin: var(--ffc-spacing-xs) 0 0;
-    font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-text-secondary);
-}
-
-.ffc-shortcode .ffc-field-legend + .ffc-field-hint {
-    margin: 0 0 var(--ffc-spacing-sm);
+/* The hint and the counter sit in `.ffc-field-foot`, under the control and
+   its message; their look is in `ffc-common.css` (#1844). */
+.ffc-shortcode .ffc-field-foot {
+    margin-top: var(--ffc-spacing-xs);
 }
 
 /* A control keeps the bottom margin every field has; what follows it
    directly is pulled up under it, so it reads as part of the field. */
-.ffc-shortcode .ffc-input + .ffc-length-counter,
-.ffc-shortcode .ffc-input + .ffc-field-hint {
+.ffc-shortcode .ffc-input + .ffc-field-message,
+.ffc-shortcode .ffc-input + .ffc-field-foot {
     margin-top: calc(var(--ffc-spacing-xl) * -1 + var(--ffc-spacing-xs));
-}
-
-.ffc-shortcode .ffc-length-counter {
-    text-align: right;
-}
-
-.ffc-shortcode .ffc-length-counter.is-below-min {
-    color: var(--ffc-warning-text);
 }
 
 /* Per-question verdict after a quiz attempt (#1730): the word carries the
@@ -377,12 +359,6 @@
 .ffc-shortcode .ffc-consent-text a:hover {
     color: var(--ffc-link-hover);
     text-decoration: none;
-}
-
-.ffc-shortcode .ffc-consent-text .ffc-required {
-    color: var(--ffc-danger);
-    font-weight: 700;
-    margin-left: 3px;
 }
 
 .ffc-shortcode .ffc-consent-description {
@@ -677,53 +653,6 @@ details.ffc-consent-description > p {
     background: var(--ffc-border);
     cursor: not-allowed;
     transform: none;
-}
-
-/* ============================================
-   FORM FEEDBACK (ffc-frontend-helpers.js)
-   The helper used to inject these rules as a <style> and as inline
-   declarations (#1840). Every page that loads the helper enqueues this
-   sheet: the form, verification and public CSV pages through
-   `Frontend::enqueue_assets()`, the self-scheduling calendar through its
-   shortcode. The input states are `is-valid` / `is-invalid`, which
-   ffc-frontend.js also sets on an empty required field.
-   ============================================ */
-
-/* `:where()` keeps the weight of the old injected `input.ffc-invalid`
-   (0,1,1), so these still lose to `.ffc-shortcode .ffc-input`'s own
-   `!important` border and ground, exactly as before. They show on the
-   inputs that are not `.ffc-input`, such as the calendar's booking form. */
-:where(.ffc-shortcode) input.is-valid {
-    border-color: var(--ffc-success-border) !important;
-    background: var(--ffc-success-bg);
-    color: var(--ffc-text);
-}
-
-:where(.ffc-shortcode) input.is-invalid {
-    border-color: var(--ffc-danger-border) !important;
-    background: var(--ffc-danger-bg);
-    color: var(--ffc-text);
-}
-
-/* The message the CPF/RF mask puts after its input. */
-.ffc-shortcode .ffc-field-message {
-    display: block;
-    color: var(--ffc-danger);
-    font-size: var(--ffc-font-size-xs);
-    margin-top: var(--ffc-spacing-2xs);
-    animation: ffc-slide-down 0.3s ease;
-}
-
-@keyframes ffc-slide-down {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 /* ============================================
@@ -1918,18 +1847,6 @@ details.ffc-consent-description > p {
     outline: 0;
     border-color: var(--ffc-primary);
     box-shadow: 0 0 0 3px var(--ffc-focus-ring);
-}
-
-/* Client-side validation error state — set via .ffc-extend-end-input-invalid
-   in ffc-csv-extend-end.js (was previously a JS inline border-color). */
-.ffc-extend-end-modal .ffc-extend-end-input-invalid {
-    border-color: var(--ffc-danger);
-}
-
-.ffc-extend-end-error {
-    margin: var(--ffc-spacing-xs) 0 0;
-    font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-danger);
 }
 
 .ffc-open-early-actions {

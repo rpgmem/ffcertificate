@@ -60,14 +60,12 @@ final class FormFieldRenderer {
 				<label for="<?php echo esc_attr( $name ); ?>">
 					<?php echo esc_html( $label ); ?>
 					<?php if ( $is_req ) : ?>
-						<span class="ffc-required">*</span>
+						<span class="ffc-required" aria-hidden="true">*</span>
 					<?php endif; ?>
 				</label>
 				<?php
-				$this->render_control( $field, $type, $name, $default, $is_req, '' === $hint ? '' : $hint_id );
-				if ( '' !== $hint ) {
-					printf( '<p class="ffc-field-hint" id="%s">%s</p>', esc_attr( $hint_id ), esc_html( $hint ) );
-				}
+				$counter = $this->render_control( $field, $type, $name, $default, $is_req, '' === $hint ? '' : $hint_id );
+				$this->render_foot( $name, $hint, $hint_id, $counter );
 				?>
 			</div>
 			<?php
@@ -112,12 +110,9 @@ final class FormFieldRenderer {
 			<legend class="ffc-field-legend">
 				<?php echo esc_html( $label ); ?>
 				<?php if ( $is_req ) : ?>
-					<span class="ffc-required">*</span>
+					<span class="ffc-required" aria-hidden="true">*</span>
 				<?php endif; ?>
 			</legend>
-			<?php if ( '' !== $hint ) : ?>
-				<p class="ffc-field-hint" id="<?php echo esc_attr( $hint_id ); ?>"><?php echo esc_html( $hint ); ?></p>
-			<?php endif; ?>
 			<div class="ffc-radio-group<?php echo $is_checkbox ? ' ffc-checkbox-group' : ''; ?>"<?php echo FormField::shuffles( $field ) ? ' data-ffc-shuffle="1"' : ''; ?>>
 				<?php foreach ( FormField::choices( $field ) as $choice ) : ?>
 					<label>
@@ -133,9 +128,9 @@ final class FormFieldRenderer {
 					</label>
 				<?php endforeach; ?>
 			</div>
-			<?php if ( $is_checkbox && $max_select > 0 ) : ?>
-				<p class="ffc-field-counter ffc-select-counter" aria-live="polite"></p>
-			<?php endif; ?>
+			<?php
+			$this->render_foot( $name, $hint, $hint_id, $is_checkbox && $max_select > 0 ? '' : null );
+			?>
 		</fieldset>
 		<?php
 	}
@@ -149,8 +144,9 @@ final class FormFieldRenderer {
 	 * @param string               $default   Default value.
 	 * @param bool                 $is_req    Whether an answer is required.
 	 * @param string               $describer Id of the hint, or ''.
+	 * @return string|null The counter's first reading for a counted field, or null.
 	 */
-	private function render_control( array $field, string $type, string $name, string $default, bool $is_req, string $describer ): void {
+	private function render_control( array $field, string $type, string $name, string $default, bool $is_req, string $describer ): ?string {
 		$common = sprintf( ' name="%1$s" id="%1$s"', esc_attr( $name ) );
 		if ( $is_req ) {
 			$common .= ' required aria-required="true"';
@@ -182,8 +178,7 @@ final class FormFieldRenderer {
 				$common, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value is escaped while $common is built above.
 				esc_textarea( $default )
 			);
-			$this->render_length_counter( $max_length );
-			return;
+			return $this->length_counter( $max_length );
 		}
 
 		if ( 'select' === $type ) {
@@ -197,7 +192,7 @@ final class FormFieldRenderer {
 				printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $choice ), selected( $default, $choice, false ), esc_html( $choice ) );
 			}
 			echo '</select>';
-			return;
+			return null;
 		}
 
 		if ( in_array( $type, FormField::RANGE_TYPES, true ) ) {
@@ -220,24 +215,51 @@ final class FormFieldRenderer {
 			$common, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value is escaped while $common is built above.
 			esc_attr( $default )
 		);
-		if ( 'text' === $type ) {
-			$this->render_length_counter( $max_length );
-		}
+		return 'text' === $type ? $this->length_counter( $max_length ) : null;
 	}
 
 	/**
-	 * The live "n / max" counter under a text or textarea.
+	 * The first reading of the live "n / max" counter under a text or
+	 * textarea, or null when the field has no limit.
 	 *
 	 * @param int $max_length Longest answer accepted.
 	 */
-	private function render_length_counter( int $max_length ): void {
-		if ( $max_length <= 0 ) {
+	private function length_counter( int $max_length ): ?string {
+		return $max_length > 0 ? '0 / ' . number_format_i18n( $max_length ) : null;
+	}
+
+	/**
+	 * The row under a field: the hint on the left, the counter on the right
+	 * (#1844). A message the script shows goes between the control and this
+	 * row.
+	 *
+	 * The counter is `aria-hidden`: the hint states the limit, and a message
+	 * says so when the limit is reached. `data-ffc-counter-for` is how the
+	 * form-fields script finds it, so a message inserted after the control
+	 * cannot come between the two.
+	 *
+	 * @param string      $name    Field name, the control's id.
+	 * @param string      $hint    Limit sentence, or ''.
+	 * @param string      $hint_id Hint element id.
+	 * @param string|null $counter The counter's first reading ('' when the
+	 *                             script writes it); null for no counter.
+	 */
+	private function render_foot( string $name, string $hint, string $hint_id, ?string $counter ): void {
+		if ( '' === $hint && null === $counter ) {
 			return;
 		}
-		printf(
-			'<p class="ffc-field-counter ffc-length-counter" aria-hidden="true">0 / %s</p>',
-			esc_html( number_format_i18n( $max_length ) )
-		);
+		echo '<div class="ffc-field-foot">';
+		if ( '' !== $hint ) {
+			printf( '<p class="ffc-field-hint" id="%s">%s</p>', esc_attr( $hint_id ), esc_html( $hint ) );
+		}
+		if ( null !== $counter ) {
+			printf(
+				'<span class="ffc-field-counter" aria-hidden="true" data-ffc-counter-for="%1$s">%2$s</span>',
+				esc_attr( $name ),
+				esc_html( $counter )
+			);
+		}
+		echo '</div>';
 	}
 
 	/**

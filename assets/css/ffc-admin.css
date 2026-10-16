@@ -1000,27 +1000,6 @@ td .ffc-restriction-label {
 .ffc-copy-shortcode .ffc-icon-copy::before { margin-right: 0; }
 .ffc-copy-shortcode.is-copied { color: var(--ffc-success-text); border-color: var(--ffc-success); }
 
-/* =========================================================================
- * Datetime order validation feedback (#159 S3).
- *
- * Applied via PHP on first paint when the persisted geofence config has an
- * order error, and toggled live by ffc-geofence-admin.js (S5) while the
- * operator edits the date/time inputs.
- * ========================================================================= */
-.ffc-input-invalid {
-	border-color: var(--ffc-danger) !important;
-	box-shadow: 0 0 0 1px var(--ffc-danger) !important;
-}
-.ffc-input-invalid:focus {
-	border-color: var(--ffc-danger) !important;
-	box-shadow: 0 0 0 1px var(--ffc-danger), 0 0 2px 1px var(--ffc-danger-hover) !important;
-}
-p.ffc-datetime-order-error {
-	color: var(--ffc-danger-text);
-	font-weight: 500;
-	margin-top: var(--ffc-spacing-2xs);
-}
-
 /* Registered-locations picker in the Geolocation tab (#1614). */
 .ffc-location-picker {
 	display: flex;

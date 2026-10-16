@@ -125,7 +125,7 @@ $ffc_qr_color = static function ( string $ffc_key, string $ffc_label, string $ff
 		<label class="ffc-qr-field__label" for="<?php echo esc_attr( $ffc_key ); ?>"><?php echo esc_html( $ffc_label ); ?></label>
 		<span class="ffc-qr-color">
 			<input type="color" class="ffc-qr-color__swatch" name="<?php echo esc_attr( $ffc_qr_name( $ffc_key ) ); ?>" id="<?php echo esc_attr( $ffc_key ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-qr-design="<?php echo esc_attr( $ffc_key ); ?>">
-			<input type="text" class="ffc-qr-color__hex" value="<?php echo esc_attr( $ffc_value ); ?>" maxlength="7" spellcheck="false" aria-label="<?php echo esc_attr( $ffc_label ); ?> (hex)" data-ffc-qr-hex-for="<?php echo esc_attr( $ffc_key ); ?>">
+			<input type="text" class="ffc-qr-color__hex" id="<?php echo esc_attr( $ffc_key ); ?>-hex" value="<?php echo esc_attr( $ffc_value ); ?>" maxlength="7" spellcheck="false" aria-label="<?php echo esc_attr( $ffc_label ); ?> (hex)" data-ffc-qr-hex-for="<?php echo esc_attr( $ffc_key ); ?>" data-ffc-invalid-message="<?php esc_attr_e( 'Enter a colour as #rrggbb.', 'ffcertificate' ); ?>">
 		</span>
 	</div>
 	<?php

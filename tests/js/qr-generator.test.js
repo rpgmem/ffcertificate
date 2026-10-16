@@ -247,8 +247,19 @@ describe('ffc-qr-generator.js', () => {
 
 		expect(spy.mock.calls.some((c) => c[1].action === 'ffc_qr_shorten')).toBe(false);
 		expect(download).not.toHaveBeenCalled();
-		expect(window.$('#ffc-qr-generator-status').text()).toBe('Title needed');
-		expect(window.$('#ffc-qr-short-title').hasClass('is-invalid')).toBe(true);
+		// Under the field, in the field-message standard (#1844), not in
+		// the page status far from it.
+		const $title = window.$('#ffc-qr-short-title');
+		expect($title.hasClass('is-invalid')).toBe(true);
+		expect($title.attr('aria-invalid')).toBe('true');
+		const $msg = $title.next('.ffc-field-message');
+		expect($msg.text()).toBe('Title needed');
+		expect($msg.attr('role')).toBe('alert');
+		expect(window.$('#ffc-qr-generator-status').text()).not.toBe('Title needed');
+
+		$title.val('Flyer').trigger('input');
+		expect(window.$('.ffc-field-message').length).toBe(0);
+		expect($title.hasClass('is-invalid')).toBe(false);
 	});
 
 	it('the first download creates the short URL, draws it, then saves that code; the next reuses it', async () => {

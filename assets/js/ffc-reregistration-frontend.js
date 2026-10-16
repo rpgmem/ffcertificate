@@ -212,7 +212,6 @@
 
     function validateField($field) {
         var $wrap = $field.closest('.ffc-rereg-field');
-        var $error = $wrap.find('.ffc-rereg-field-error');
         // `$.trim` was removed in jQuery 4; native String.prototype.trim
         // covers the same case and works across all supported runtimes.
         var val = ($field.val() || '').trim();
@@ -233,9 +232,28 @@
             );
         }
 
-        $wrap.toggleClass('has-error', !!msg);
-        $error.text(msg);
+        showFieldMessage($field, $wrap, msg);
         return !msg;
+    }
+
+    /**
+     * The field-message standard (#1844). The message goes at the end of
+     * the field's wrapper, where `Core\FieldMessage` would print it: a
+     * cascade of selects or the working-hours table has no single control
+     * to follow.
+     */
+    function showFieldMessage($field, $wrap, msg) {
+        if (msg) {
+            var options = { within: $wrap };
+            // The working-hours times have no id of their own: they share
+            // one message per field, as they shared one line before.
+            if (!$field.attr('id') && $wrap.attr('data-field-id')) {
+                options.id = 'ffc_rereg_field_' + $wrap.attr('data-field-id');
+            }
+            FFC.fieldMessage($field, 'error', msg, options);
+        } else {
+            FFC.clearFieldMessage($field);
+        }
     }
 
     /* ─── Save Draft ───────────────────────────────────── */
@@ -290,7 +308,7 @@
             if (!valid) {
                 FFC.status($container.find('.ffc-rereg-status'), 'error', S.fixErrors || 'Please fix the errors below.');
                 // Scroll to first error
-                var $first = $container.find('.has-error:first');
+                var $first = $container.find('.ffc-field-message').first();
                 if ($first.length) {
                     $('html, body').animate({ scrollTop: $first.offset().top - 60 }, 300);
                 }
@@ -366,18 +384,15 @@
 
     function showServerErrors($container, errors) {
         // Clear previous errors
-        $container.find('.has-error').removeClass('has-error');
-        $container.find('.ffc-rereg-field-error').text('');
+        FFC.clearFieldMessage($container.find('[data-ffc-message-id]'));
 
         $.each(errors, function (name, msg) {
             var $input = $container.find('[name="' + name + '"]');
-            var $wrap = $input.closest('.ffc-rereg-field');
-            $wrap.addClass('has-error');
-            $wrap.find('.ffc-rereg-field-error').text(msg);
+            showFieldMessage($input, $input.closest('.ffc-rereg-field'), msg);
         });
 
         // Scroll to first error
-        var $first = $container.find('.has-error:first');
+        var $first = $container.find('.ffc-field-message').first();
         if ($first.length) {
             $('html, body').animate({ scrollTop: $first.offset().top - 60 }, 300);
         }

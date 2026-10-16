@@ -7,6 +7,7 @@ import { loadScript } from './helpers.js';
 function flush() { return Promise.resolve().then(() => Promise.resolve()); }
 
 async function reload() {
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-audience-transfer-list.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
@@ -173,25 +174,34 @@ describe('audience transfer list', () => {
 		expect(window.$('.ffc-transfer-available .ffc-transfer-item').length).toBe(3);
 	});
 
-	it('form submit with no selection prevents default and pulses the error class', async () => {
+	it('form submit with no selection prevents default and shows a field message', async () => {
 		mountTransfer();
+		window.$('.ffc-transfer-list').attr('data-required-message', 'Select at least one audience.');
 		await reload();
 		const ev = window.$.Event('submit');
 		window.$('form').trigger(ev);
 		await flush();
 		expect(ev.isDefaultPrevented()).toBe(true);
-		expect(window.$('.ffc-transfer-selected').hasClass('ffc-transfer-error')).toBe(true);
+		// The field-message standard (#1844): the selected column takes the
+		// invalid state, the message goes after the picker and is announced.
+		const $column = window.$('.ffc-transfer-selected');
+		expect($column.hasClass('is-invalid')).toBe(true);
+		expect($column.attr('aria-invalid')).toBe('true');
+		const $msg = window.$('.ffc-transfer-list').next('.ffc-field-message');
+		expect($msg.text()).toBe('Select at least one audience.');
+		expect($msg.attr('role')).toBe('alert');
+		expect($column.attr('aria-describedby')).toBe($msg.attr('id'));
 	});
 
-	it('clears the error pulse after the 2000ms timeout', async () => {
+	it('keeps the message until a choice is made, then clears it', async () => {
 		mountTransfer();
 		await reload();
-		vi.useFakeTimers();
 		window.$('form').trigger(window.$.Event('submit'));
-		expect(window.$('.ffc-transfer-selected').hasClass('ffc-transfer-error')).toBe(true);
-		vi.advanceTimersByTime(2000);
-		expect(window.$('.ffc-transfer-selected').hasClass('ffc-transfer-error')).toBe(false);
-		vi.useRealTimers();
+		expect(window.$('.ffc-field-message').length).toBe(1);
+		window.$('.ffc-transfer-add-all').trigger('click');
+		await flush();
+		expect(window.$('.ffc-field-message').length).toBe(0);
+		expect(window.$('.ffc-transfer-selected').hasClass('is-invalid')).toBe(false);
 	});
 
 	it('clicking a transfer-item toggles the highlight class', async () => {

@@ -98,20 +98,17 @@
 			$modal.remove();
 		}
 
-		// Client-side validation surface: an inline error chip + red border
-		// on the time input. Server is the authority — these checks are
-		// pure UX so the operator gets feedback before submit (#243 S3).
-		var $input    = $modal.find('.ffc-extend-end-input');
-		var $errorMsg = $('<p class="ffc-extend-end-error" role="alert" hidden></p>');
-		$input.closest('p').append($errorMsg);
+		// Client-side validation, in the field-message standard (#1844): the
+		// message under the time input, the invalid state on it. Server is
+		// the authority — these checks are pure UX so the operator gets
+		// feedback before submit (#243 S3).
+		var $input = $modal.find('.ffc-extend-end-input');
 
 		function setError(msg) {
-			$input.addClass('ffc-extend-end-input-invalid');
-			$errorMsg.text(msg).removeAttr('hidden');
+			window.FFC.fieldMessage($input, 'error', msg);
 		}
 		function clearError() {
-			$input.removeClass('ffc-extend-end-input-invalid');
-			$errorMsg.attr('hidden', 'hidden').text('');
+			window.FFC.clearFieldMessage($input);
 		}
 		// Clear the error indication on every keystroke / picker change so the
 		// user sees their correction acknowledged immediately.

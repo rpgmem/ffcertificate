@@ -119,19 +119,27 @@
 			}
 			$hex.data('ffcQrHexBound', true);
 
-			$picker.on('input change', function () {
-				$hex.val(String($picker.val() || '')).removeClass('is-invalid');
-			});
+			// A text that is not a colour says so under the pair, in the
+			// field-message standard (#1844); the picker keeps the last
+			// good colour, which the box shows again on blur.
+			var $pair = $hex.closest('.ffc-qr-color');
+			function settle() {
+				$hex.val(String($picker.val() || ''));
+				window.FFC.clearFieldMessage($hex);
+			}
+			$picker.on('input change', settle);
 			$hex.on('input', function () {
 				var color = normalizeHex($hex.val());
-				$hex.toggleClass('is-invalid', color === '' && String($hex.val()).trim() !== '');
+				if (color === '' && String($hex.val()).trim() !== '') {
+					window.FFC.fieldMessage($hex, 'error', $hex.attr('data-ffc-invalid-message') || '', { after: $pair });
+				} else {
+					window.FFC.clearFieldMessage($hex);
+				}
 				if (color !== '' && color !== String($picker.val()).toLowerCase()) {
 					$picker.val(color).trigger('input');
 				}
 			});
-			$hex.on('blur', function () {
-				$hex.val(String($picker.val() || '')).removeClass('is-invalid');
-			});
+			$hex.on('blur', settle);
 		});
 	}
 

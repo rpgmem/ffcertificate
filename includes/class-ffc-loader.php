@@ -1155,7 +1155,8 @@ class Loader {
 	 */
 	public function register_frontend_assets(): void {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		// ffc-core dep: the helpers build their notices with FFC.notice() (#1842).
+		// ffc-core dep: the helpers build their notices with FFC.notice() (#1842)
+		// and their field messages with FFC.fieldMessage() (#1844).
 		wp_register_script( 'ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 
 		// ffc-core ships `window.FFC.request()` (the AJAX helper used by the
@@ -1169,6 +1170,7 @@ class Loader {
 			'ffcCoreConfig',
 			array(
 				'version' => FFC_VERSION,
+				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
 			)
 		);
 
@@ -1226,6 +1228,7 @@ class Loader {
 			'ffcCoreConfig',
 			array(
 				'version' => FFC_VERSION,
+				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
 			)
 		);
 	}

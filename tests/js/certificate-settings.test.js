@@ -135,6 +135,9 @@ describe('required-data autosave', () => {
 		vi.advanceTimersByTime(400);
 
 		expect(post).not.toHaveBeenCalled();
-		expect(window.$('.ffc-autosave-badge').hasClass('is-error')).toBe(true);
+		// The browser's reason goes under the field it is about (#1844).
+		const $name = window.$('[name="ffc_settings[required_data][0][name]"]');
+		expect($name.hasClass('is-invalid')).toBe(true);
+		expect(window.$('#' + $name.attr('data-ffc-message-id')).hasClass('ffc-field-message')).toBe(true);
 	});
 });

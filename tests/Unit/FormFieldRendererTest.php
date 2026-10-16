@@ -91,7 +91,56 @@ class FormFieldRendererTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-max-select="2"', $html );
 		$this->assertStringContainsString( 'Choose up to 2 options.', $html );
 		$this->assertStringContainsString( 'aria-describedby="f-hint"', $html );
-		$this->assertStringContainsString( 'ffc-select-counter', $html );
+		// One counter markup, in the foot row after the boxes (#1844).
+		$this->assertStringContainsString( '<span class="ffc-field-counter" aria-hidden="true" data-ffc-counter-for="f"></span>', $html );
+		$this->assertStringNotContainsString( 'aria-live', $html );
+		$this->assertLessThan( strpos( $html, 'ffc-field-foot' ), strpos( $html, 'ffc-radio-group' ) );
+	}
+
+	public function test_the_hint_and_the_counter_share_one_row_under_the_control(): void {
+		$html = $this->render(
+			array(
+				'type'       => 'text',
+				'max_length' => '80',
+			)
+		);
+		$this->assertStringContainsString(
+			'<div class="ffc-field-foot"><p class="ffc-field-hint" id="f-hint">Up to 80 characters.</p><span class="ffc-field-counter" aria-hidden="true" data-ffc-counter-for="f">0 / 80</span></div>',
+			$html
+		);
+		// The control comes first, so a message the script inserts after it
+		// lands between the control and this row.
+		$this->assertLessThan( strpos( $html, 'ffc-field-foot' ), strpos( $html, 'class="ffc-input"' ) );
+	}
+
+	public function test_the_required_marker_is_the_one_hidden_asterisk(): void {
+		$single = $this->render(
+			array(
+				'type'     => 'text',
+				'required' => '1',
+			)
+		);
+		$group  = $this->render(
+			array(
+				'type'     => 'radio',
+				'required' => '1',
+				'choices'  => array( 'A', 'B' ),
+			)
+		);
+		foreach ( array( $single, $group ) as $html ) {
+			$this->assertStringContainsString( '<span class="ffc-required" aria-hidden="true">*</span>', $html );
+		}
+		$this->assertStringContainsString( 'required aria-required="true"', $single );
+	}
+
+	public function test_a_select_has_no_foot_row(): void {
+		$html = $this->render(
+			array(
+				'type'    => 'select',
+				'choices' => array( 'A' ),
+			)
+		);
+		$this->assertStringNotContainsString( 'ffc-field-foot', $html );
 	}
 
 	public function test_a_required_radio_keeps_html_required_and_reads_a_legacy_string(): void {

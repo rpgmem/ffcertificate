@@ -239,7 +239,9 @@ describe('form-meta autosave — browser validity (#1114)', () => {
 		await flush();
 
 		expect(postSpy).not.toHaveBeenCalled();
-		expect(document.querySelector('.ffc-autosave-badge').className).toContain('is-error');
+		// Under the field, in the field-message standard (#1844).
+		expect(document.getElementById('n-device_limit_max').classList.contains('is-invalid')).toBe(true);
+		expect(document.querySelector('.ffc-field-message')).not.toBeNull();
 	});
 
 	it('shows the localized fallback when the browser supplies no message', async () => {
@@ -252,7 +254,7 @@ describe('form-meta autosave — browser validity (#1114)', () => {
 		releaseSave();
 		await flush();
 
-		expect(window.$('.ffc-autosave-badge').text()).toBe('Informe um valor válido');
+		expect(window.$('.ffc-field-message').text()).toBe('Informe um valor válido');
 	});
 
 	it('saves once the value becomes valid again', async () => {

@@ -338,7 +338,7 @@ class AudienceAdminCalendar {
 				<?php endif; ?>
 				<tr>
 					<th scope="row">
-						<label for="schedule_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
+						<label for="schedule_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 					</th>
 					<td>
 						<input type="text" name="schedule_name" id="schedule_name" class="regular-text"

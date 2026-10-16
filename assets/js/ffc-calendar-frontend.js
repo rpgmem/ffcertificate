@@ -397,25 +397,36 @@
          * Validate form
          */
         validateForm: function($form) {
-            var isValid = true;
+            // Each empty required field says so under itself, in the
+            // field-message standard (#1844); the form-level message still
+            // sums it up next to the submit button.
+            var firstInvalid = null;
 
-            $form.find('[required]').each(function() {
-                if (!$(this).val() || $(this).val().trim() === '') {
-                    isValid = false;
+            $form.find('[required], #ffc-booking-consent').each(function() {
+                var empty = this.type === 'checkbox' ? !this.checked : !$(this).val() || $(this).val().trim() === '';
+                if (empty) {
+                    var message = this.id === 'ffc-booking-consent'
+                        ? ffcCalendar.strings.consentRequired
+                        : FFC.requiredMessage();
+                    FFC.fieldMessage(this, 'error', message);
+                    $(this).data('ffcEmptyRequired', true);
+                    firstInvalid = firstInvalid || this;
+                } else if ($(this).data('ffcEmptyRequired')) {
+                    // Only the message this check put there is withdrawn,
+                    // so the CPF/RF mask's verdict is left standing.
+                    FFC.clearFieldMessage(this);
+                    $(this).removeData('ffcEmptyRequired');
                 }
             });
 
-            if (!$('#ffc-booking-consent').is(':checked')) {
-                this.showError(ffcCalendar.strings.consentRequired);
-                return false;
+            if (!firstInvalid) {
+                return true;
             }
 
-            if (!isValid) {
-                this.showError(ffcCalendar.strings.fillRequired);
-                return false;
-            }
-
-            return true;
+            var consentOnly = firstInvalid.id === 'ffc-booking-consent';
+            this.showError(consentOnly ? ffcCalendar.strings.consentRequired : ffcCalendar.strings.fillRequired);
+            $(firstInvalid).trigger('focus');
+            return false;
         },
 
         /**
