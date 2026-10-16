@@ -11,6 +11,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Audience calendars and environments list their shortcode** (#1814). A Shortcode column with the forms list's copy button; an environment's is tied to its calendar. The copy script is `ffc-copy-shortcode.js`, and `ffc-form-list-copy-shortcode` remains a deprecated handle alias until 6.41.0.
 - **A card-corner setting in Public Design** (#1827). Settings → Public Design → Card corners drives `--ffc-radius-lg`, the corner of the form and verification card, the user dashboard and its cards, so a design at 0 squares the cards as well as the fields. It applies in both themes.
+- **Public Design sets the information notices' colour** (#1842). It draws their bar and text in the light theme; their background is derived from it, and a colour below 4.5:1 on it is saved with a warning.
 
 ### Changed
 
@@ -29,6 +30,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Inline CSS moved to the stylesheets and frozen** (#1837). Settings tabs, Date Messages, the Scheduling colour picker and the dialogs the scripts build read classes and tokens instead of `style=""`, so they follow dark mode; `InlineStyleTest` freezes what legitimately stays (e-mails, documents, operator colours, run-time values).
 - **Public form feedback is styled by the sheet and follows dark mode** (#1840). `.ffc-field-error` named three things; the input state is now `is-invalid` / `is-valid`, the CPF/RF message `.ffc-field-message`, the reregistration error `.ffc-rereg-field-error`. The helper's error and success boxes read palette tokens.
 - **Log Out sits in the dashboard's tab bar** (#1840). The user dashboard prints it at the end of the tab bar, outside the tablist, so it shows on every tab instead of only on Profile; on phones it is the last, full-width item under the stacked tabs.
+- **The certificate form's notices are one component** (#1842). `.ffc-notice` in five tones with a `Core\Icons` icon, printed by `Core\Notice` and `FFC.notice()`; the quiz, schedule-exception and grading notices now sit above the title.
 
 ### Fixed
 
