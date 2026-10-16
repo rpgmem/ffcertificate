@@ -469,9 +469,9 @@
             $form.find('[required]').each(function() {
                 if (!$(this).val()) {
                     isValid = false;
-                    $(this).addClass('ffc-field-error').attr('aria-invalid', 'true');
+                    $(this).addClass('is-invalid').attr('aria-invalid', 'true');
                 } else {
-                    $(this).removeClass('ffc-field-error').removeAttr('aria-invalid');
+                    $(this).removeClass('is-invalid').removeAttr('aria-invalid');
                 }
             });
             
@@ -487,7 +487,7 @@
             if (!isValid) {
                 showAccessibleAlert(ffc_ajax.strings.fillRequired || 'Please fill all required fields', $form);
                 // Focus the first invalid field
-                $form.find('.ffc-field-error').first().focus();
+                $form.find('.is-invalid').first().focus();
                 return;
             }
             

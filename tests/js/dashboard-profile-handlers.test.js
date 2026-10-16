@@ -53,7 +53,6 @@ beforeAll(() => {
 		lgpd: 'Privacy',
 	});
 	window.ffcDashboard.restUrl = 'https://x.test/wp-json/ffc/v1/';
-	window.ffcDashboard.logoutUrl = 'https://x.test/logout';
 
 	const dash = document.getElementById('ffc-dashboard');
 	if (dash && ! document.getElementById('ffc-tabpanel-profile')) {

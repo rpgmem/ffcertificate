@@ -305,7 +305,7 @@ describe('rereg blur validation', () => {
 		await mountForm(`
 			<div class="ffc-rereg-field">
 				<input name="x" required />
-				<span class="ffc-field-error"></span>
+				<span class="ffc-rereg-field-error"></span>
 			</div>
 		`);
 		const el = document.querySelector('[name="x"]');
@@ -313,14 +313,14 @@ describe('rereg blur validation', () => {
 		await flush();
 
 		expect(window.$(el).closest('.ffc-rereg-field').hasClass('has-error')).toBe(true);
-		expect(window.$('.ffc-field-error').text()).toBe('Required.');
+		expect(window.$('.ffc-rereg-field-error').text()).toBe('Required.');
 	});
 
 	it('flags invalid CPF and clears on valid CPF', async () => {
 		await mountForm(`
 			<div class="ffc-rereg-field" data-format="cpf">
 				<input name="cpf" />
-				<span class="ffc-field-error"></span>
+				<span class="ffc-rereg-field-error"></span>
 			</div>
 		`);
 		const el = document.querySelector('[name="cpf"]');
@@ -339,7 +339,7 @@ describe('rereg blur validation', () => {
 		await mountForm(`
 			<div class="ffc-rereg-field" data-format="cpf">
 				<input name="cpf" />
-				<span class="ffc-field-error"></span>
+				<span class="ffc-rereg-field-error"></span>
 			</div>
 		`);
 		const el = document.querySelector('[name="cpf"]');
@@ -347,14 +347,14 @@ describe('rereg blur validation', () => {
 		window.$(el).val('12345').trigger('blur');
 		await flush();
 		expect(window.$('.ffc-rereg-field').hasClass('has-error')).toBe(true);
-		expect(window.$('.ffc-field-error').text()).toBe('Invalid CPF.');
+		expect(window.$('.ffc-rereg-field-error').text()).toBe('Invalid CPF.');
 	});
 
 	it('flags a CPF made of repeated digits', async () => {
 		await mountForm(`
 			<div class="ffc-rereg-field" data-format="cpf">
 				<input name="cpf" />
-				<span class="ffc-field-error"></span>
+				<span class="ffc-rereg-field-error"></span>
 			</div>
 		`);
 		const el = document.querySelector('[name="cpf"]');
@@ -368,49 +368,49 @@ describe('rereg blur validation', () => {
 		await mountForm(`
 			<div class="ffc-rereg-field" data-format="email">
 				<input name="email" value="not-an-email" />
-				<span class="ffc-field-error"></span>
+				<span class="ffc-rereg-field-error"></span>
 			</div>
 		`);
 		window.$('[name="email"]').trigger('blur');
 		await flush();
-		expect(window.$('.ffc-field-error').text()).toBe('Invalid email.');
+		expect(window.$('.ffc-rereg-field-error').text()).toBe('Invalid email.');
 	});
 
 	it('flags invalid phone', async () => {
 		await mountForm(`
 			<div class="ffc-rereg-field" data-format="phone">
 				<input name="phone" value="123" />
-				<span class="ffc-field-error"></span>
+				<span class="ffc-rereg-field-error"></span>
 			</div>
 		`);
 		window.$('[name="phone"]').trigger('blur');
 		await flush();
-		expect(window.$('.ffc-field-error').text()).toBe('Invalid phone.');
+		expect(window.$('.ffc-rereg-field-error').text()).toBe('Invalid phone.');
 	});
 
 	it('flags custom_regex mismatch with the localised message', async () => {
 		await mountForm(`
 			<div class="ffc-rereg-field" data-format="custom_regex" data-regex="^[A-Z]{3}$" data-regex-msg="Three caps.">
 				<input name="code" value="ab" />
-				<span class="ffc-field-error"></span>
+				<span class="ffc-rereg-field-error"></span>
 			</div>
 		`);
 		window.$('[name="code"]').trigger('blur');
 		await flush();
-		expect(window.$('.ffc-field-error').text()).toBe('Three caps.');
+		expect(window.$('.ffc-rereg-field-error').text()).toBe('Three caps.');
 	});
 
 	it('skips silently when the data-regex itself is invalid', async () => {
 		await mountForm(`
 			<div class="ffc-rereg-field" data-format="custom_regex" data-regex="[invalid">
 				<input name="code" value="abc" />
-				<span class="ffc-field-error"></span>
+				<span class="ffc-rereg-field-error"></span>
 			</div>
 		`);
 		// Should not throw.
 		expect(() => window.$('[name="code"]').trigger('blur')).not.toThrow();
 		await flush();
-		expect(window.$('.ffc-field-error').text()).toBe('');
+		expect(window.$('.ffc-rereg-field-error').text()).toBe('');
 	});
 });
 
@@ -744,7 +744,7 @@ describe('rereg submit', () => {
 							<form id="ffc-rereg-form">
 								<div class="ffc-rereg-field">
 									<input name="fields[name]" required />
-									<span class="ffc-field-error"></span>
+									<span class="ffc-rereg-field-error"></span>
 								</div>
 								<span class="ffc-rereg-status"></span>
 								<button type="submit" class="ffc-rereg-submit-btn">Send</button>
@@ -808,7 +808,7 @@ describe('rereg submit', () => {
 			window.$('#ffc-rereg-form').prepend(`
 				<div class="ffc-rereg-field" data-format="cpf">
 					<input name="fields[cpf]" value="123" />
-					<span class="ffc-field-error"></span>
+					<span class="ffc-rereg-field-error"></span>
 				</div>
 			`);
 			vi.restoreAllMocks();
@@ -857,7 +857,7 @@ describe('rereg submit', () => {
 		window.$('#ffc-rereg-form').prepend(`
 			<div class="ffc-rereg-field">
 				<input name="fields[email]" />
-				<span class="ffc-field-error"></span>
+				<span class="ffc-rereg-field-error"></span>
 			</div>
 		`);
 		vi.restoreAllMocks();
@@ -875,7 +875,7 @@ describe('rereg submit', () => {
 		expect(window.$('.ffc-rereg-status').text()).toBe('Validation failed.');
 		const $email = window.$('input[name="fields[email]"]');
 		expect($email.closest('.ffc-rereg-field').hasClass('has-error')).toBe(true);
-		expect($email.closest('.ffc-rereg-field').find('.ffc-field-error').text()).toBe('Already taken.');
+		expect($email.closest('.ffc-rereg-field').find('.ffc-rereg-field-error').text()).toBe('Already taken.');
 	});
 
 	it('shows the network-error message and re-enables the submit button', async () => {

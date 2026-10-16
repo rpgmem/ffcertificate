@@ -272,13 +272,9 @@
             this.state = profile;
             var s = ffcDashboard.strings;
 
-            var html = '';
-
-            if (ffcDashboard.logoutUrl) {
-                html += '<div class="ffc-profile-logout"><a href="' + ffcDashboard.logoutUrl + '" class="ffc-logout-link"><span class="ffc-icon-logout" aria-hidden="true"></span>' + (s.logout || 'Log Out') + '</a></div>';
-            }
-
-            html += '<div class="ffc-profile-info">';
+            // Log Out lives in the tab bar, printed by the shortcode, so it
+            // shows on every tab (#1840).
+            var html = '<div class="ffc-profile-info">';
 
             html += renderListField(s.name, 'ffc-name-list', profile.names, profile.display_name);
             html += renderListField(s.linkedEmails, 'ffc-email-list', profile.emails, profile.email);

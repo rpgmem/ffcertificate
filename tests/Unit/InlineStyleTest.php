@@ -79,9 +79,6 @@ final class InlineStyleTest extends TestCase {
 
 	private const RECEIPT_PAGE = 'the standalone printable appointment receipt carries its own <style>: it is a whole document, printed, with no plugin stylesheet';
 
-
-	private const DEFERRED_HELPERS = 'move, deferred to a follow-up: `.ffc-field-error` is also the reregistration form\'s own class (ffc-reregistration-frontend.css) and a marker ffc-frontend.js puts on INPUTS, so moving these rules into a sheet first needs the helper\'s classes renamed -- otherwise the injected rules start reaching the reregistration form, which never loads the helpers';
-
 	/**
 	 * Every inline occurrence left, per file, with how many and why.
 	 *
@@ -158,14 +155,6 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="background-color:'                             => array( 4, self::OWN_DOCUMENT ),
 			'style=: style="width:'                                        => array( 1, self::OWN_DOCUMENT ),
 			'<style>: <style'                                              => array( 1, self::OWN_DOCUMENT ),
-		),
-		'assets/js/ffc-frontend-helpers.js' => array(
-			'style=: style="margin: 0 0 10px 0; font-size: 20px;' => array( 1, self::DEFERRED_HELPERS ),
-			'style=: style="margin: 0;'                           => array( 1, self::DEFERRED_HELPERS ),
-			'<style>: <style id="ffc-validation-styles"'          => array( 1, self::DEFERRED_HELPERS ),
-			'<style>: <style id="ffc-slide-animation"'            => array( 1, self::DEFERRED_HELPERS ),
-			'.css(): .css({'                                      => array( 3, self::DEFERRED_HELPERS ),
-			'.css(): .css("background-color", "#fffbcc"'          => array( 1, self::DEFERRED_HELPERS ),
 		),
 		'assets/js/ffc-frontend.js' => array(
 			'.css(): .css({'                                                                         => array( 1, self::OFFSCREEN ),

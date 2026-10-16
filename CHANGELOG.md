@@ -27,6 +27,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The user dashboard follows the plugin's design** (#1826, #1827). It takes the Public Design font, the palette and the `Core\Icons` registry; it has one text field style, one button family (`.button`, secondary, primary or danger outline) and one status badge (`.ffc-pill`).
 - **Settings → Documentation and the readmes describe this batch** (#1833). The topics and the three readmes now say that personal data starts masked for administrators too, name the PII administrator roles, and cover the Activity Log names, Add New on Environments and the dashboard's look. The screenshots of the form builder, the two lists and the user dashboard are refreshed.
 - **Inline CSS moved to the stylesheets and frozen** (#1837). Settings tabs, Date Messages, the Scheduling colour picker and the dialogs the scripts build read classes and tokens instead of `style=""`, so they follow dark mode; `InlineStyleTest` freezes what legitimately stays (e-mails, documents, operator colours, run-time values).
+- **Public form feedback is styled by the sheet and follows dark mode** (#1840). `.ffc-field-error` named three things; the input state is now `is-invalid` / `is-valid`, the CPF/RF message `.ffc-field-message`, the reregistration error `.ffc-rereg-field-error`. The helper's error and success boxes read palette tokens.
+- **Log Out sits in the dashboard's tab bar** (#1840). The user dashboard prints it at the end of the tab bar, outside the tablist, so it shows on every tab instead of only on Profile; on phones it is the last, full-width item under the stacked tabs.
 
 ### Fixed
 
@@ -41,6 +43,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **`[ffc_recruitment_my_calls]` and the logged-out dashboard notice load their stylesheets** (#1832). Both rendered with no plugin sheet; wrapping text in dialogs, notices, descriptions and the acknowledgment carries its own line height.
 - **The dashboard's calendar tabs page each section on its own** (#1836). Personal and Group Calendar page Upcoming by 5, Past by 3 and Cancelled by 2, with a count per heading and aligned columns; Certificates keeps its pager. The filter bar is compact, and pt_BR reads "Cancelados".
 - **The Reregistrations tab spaces its groups again** (#1837). Completed sat flush against the Active table because the heading margin lost to the tab's own reset; each group is now a section, spaced like the calendar tabs.
+- **A clicked dashboard tab no longer shows a focus box** (#1840). The tabs draw their ring on keyboard focus only (`:focus-visible`, the 2px primary ring), so a theme's `button:focus` outline no longer boxes the active tab after a click.
+- **The dashboard's tab bar wraps instead of overflowing** (#1840). Between the phone layout and a width that fits every tab, the tabs flow onto a second row and Log Out stays at the right end of the last row; at 769–900px the page no longer scrolls sideways.
 
 ### Security
 

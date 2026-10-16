@@ -172,6 +172,11 @@ class DashboardShortcode {
 
 			<div class="ffc-dashboard-summary" id="ffc-dashboard-summary"></div>
 
+			<?php
+			// The tab bar holds the tablist and, outside it, the Log Out link,
+			// so the link shows on every tab without being read as a tab (#1840).
+			?>
+			<div class="ffc-dashboard-tabbar">
 			<nav class="ffc-dashboard-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Dashboard', 'ffcertificate' ); ?>">
 				<?php if ( $can_view_certificates ) : ?>
 					<button class="ffc-tab <?php echo esc_attr( 'certificates' === $current_tab ? 'is-active' : '' ); ?>"
@@ -243,6 +248,11 @@ class DashboardShortcode {
 					<span class="ffc-icon-user" aria-hidden="true"></span><?php esc_html_e( 'Profile', 'ffcertificate' ); ?>
 				</button>
 			</nav>
+
+			<a href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>" class="ffc-logout-link">
+				<span class="ffc-icon-logout" aria-hidden="true"></span><?php esc_html_e( 'Log Out', 'ffcertificate' ); ?>
+			</a>
+			</div>
 
 			<?php if ( $can_view_certificates ) : ?>
 				<div class="ffc-tab-content <?php echo esc_attr( 'certificates' === $current_tab ? 'is-active' : '' ); ?>"

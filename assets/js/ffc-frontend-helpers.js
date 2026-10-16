@@ -172,7 +172,7 @@ $inputs.each(function() {
                     $(this).val(masked);
                     
                     // Remove validation styling while typing
-                    $(this).removeClass('ffc-invalid ffc-valid');
+                    $(this).removeClass('is-invalid is-valid');
                     if (this.setCustomValidity) {
                         this.setCustomValidity('');
                     }
@@ -184,8 +184,8 @@ $inputs.each(function() {
                     
                     // Skip if empty (not required check)
                     if (value.length === 0) {
-                        $(this).removeClass('ffc-invalid ffc-valid').removeAttr('aria-invalid aria-describedby');
-                        $(this).next('.ffc-field-error').remove();
+                        $(this).removeClass('is-invalid is-valid').removeAttr('aria-invalid aria-describedby');
+                        $(this).next('.ffc-field-message').remove();
                         if (this.setCustomValidity) {
                             this.setCustomValidity('');
                         }
@@ -235,18 +235,18 @@ $inputs.each(function() {
                     }
 
                     if (isValid) {
-                        $(this).removeClass('ffc-invalid').addClass('ffc-valid')
+                        $(this).removeClass('is-invalid').addClass('is-valid')
                                .removeAttr('aria-invalid aria-describedby');
-                        $(this).next('.ffc-field-error').fadeOut(function() { $(this).remove(); });
+                        $(this).next('.ffc-field-message').fadeOut(function() { $(this).remove(); });
                     } else {
-                        $(this).removeClass('ffc-valid').addClass('ffc-invalid')
+                        $(this).removeClass('is-valid').addClass('is-invalid')
                                .attr('aria-invalid', 'true')
                                .attr('aria-describedby', errorId);
 
                         // Show error message near field
-                        var $errorSpan = $(this).next('.ffc-field-error');
+                        var $errorSpan = $(this).next('.ffc-field-message');
                         if ($errorSpan.length === 0) {
-                            $errorSpan = $('<span class="ffc-field-error" role="alert"></span>').insertAfter($(this));
+                            $errorSpan = $('<span class="ffc-field-message" role="alert"></span>').insertAfter($(this));
                         }
                         // Stays until the value changes: the submit is blocked
                         // for as long as it stands.
@@ -268,14 +268,9 @@ $inputs.each(function() {
                 }
             });
             
-            // Add CSS for validation states if not exists
-            if (!$('#ffc-validation-styles').length) {
-                $('<style id="ffc-validation-styles">' +
-                    'input.ffc-valid { border-color: #00a32a !important; background: #f0f9ff; }' +
-                    'input.ffc-invalid { border-color: #d63638 !important; background: #fff3f3; }' +
-                    '.ffc-field-error { display: block; color: #d63638; font-size: 12px; margin-top: 5px; animation: ffcSlideDown 0.3s ease; }' +
-                '</style>').appendTo('head');
-            }
+            // The look of the states and of the message lives in
+            // ffc-frontend.css ("FORM FEEDBACK"), which every page that
+            // loads this file enqueues (#1840).
         },
         
         /**
@@ -453,27 +448,10 @@ $inputs.each(function() {
             // Remove existing error messages
             $form.find('.ffc-form-error').remove();
             
-            // Create error HTML with styling
+            // Styled by ffc-frontend.css (#1840).
             var $error = $('<div class="ffc-form-error"></div>')
-                .css({
-                    'background': '#f8d7da',
-                    'color': '#721c24',
-                    'padding': '15px 20px',
-                    'margin': '0 0 20px 0',
-                    'border-radius': '5px',
-                    'border': '1px solid #f5c6cb',
-                    'font-size': '14px',
-                    'line-height': '1.5',
-                    'animation': 'ffcSlideDown 0.3s ease'
-                })
                 .html('<strong>' + (escapeHtml(message).indexOf('Error') === 0 ? '' : 'Error: ') + '</strong>' + escapeHtml(message));
-            
-            // Add slide down animation if not exists
-            if (!$('#ffc-slide-animation').length) {
-                $('<style id="ffc-slide-animation">@keyframes ffcSlideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }</style>')
-                    .appendTo('head');
-            }
-            
+
             // Insert at top of form
             $form.prepend($error);
             
@@ -507,19 +485,10 @@ $inputs.each(function() {
             }
             
             // Otherwise show generic success
+            // Styled by ffc-frontend.css (#1840).
             var $success = $('<div class="ffc-form-success"></div>')
-                .css({
-                    'background': '#d4edda',
-                    'color': '#155724',
-                    'padding': '20px',
-                    'margin': '0 0 20px 0',
-                    'border-radius': '5px',
-                    'border': '1px solid #c3e6cb',
-                    'text-align': 'center',
-                    'animation': 'ffcSlideDown 0.3s ease'
-                })
-                .html('<h3 style="margin: 0 0 10px 0; font-size: 20px;"><span class="ffc-icon-success" aria-hidden="true"></span>' + (ffc_ajax.strings.success || 'Success!') + '</h3><p style="margin: 0;">' + (ffc_ajax.strings.submissionSuccessful || 'Your submission was successful.') + '</p>');
-            
+                .html('<h3 class="ffc-form-success-title"><span class="ffc-icon-success" aria-hidden="true"></span>' + (ffc_ajax.strings.success || 'Success!') + '</h3><p class="ffc-form-success-text">' + (ffc_ajax.strings.submissionSuccessful || 'Your submission was successful.') + '</p>');
+
             $form.html($success);
         },
         
@@ -597,16 +566,11 @@ $inputs.each(function() {
 
             // Clear and focus input
             if ($captchaInput.length) {
+                // The cleared, focused field is the whole cue. A yellow
+                // flash used to be painted inline here and never showed:
+                // `.ffc-captcha-row .ffc-input` sets its ground with
+                // `!important`, which beats an inline declaration (#1840).
                 $captchaInput.val('').focus();
-
-                // Add visual feedback (flash animation)
-                $captchaInput.css('background-color', '#fffbcc');
-                setTimeout(function() {
-                    $captchaInput.css({
-                        'background-color': '#fff',
-                        'transition': 'background-color 0.5s'
-                    });
-                }, 100);
             }
         },
 
