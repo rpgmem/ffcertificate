@@ -34,6 +34,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Admin messages follow one rule per layer** (#1843). Page notices go through `Core\AdminNotice` and `FFC.Admin.notify()`: a `Core\Icons` icon, and only success and info close. Callouts inside a screen are `.ffc-notice`; status lines and autosave badges are `.ffc-status`. The short-URL toast is gone.
 - **One standard for field errors, warnings, hints and required markers** (#1844). Every plugin form shows a field's problem under it with an icon and appends it to `aria-describedby` (`FFC.fieldMessage()`, `Core\FieldMessage`). The public form's invalid state shows, audience booking drops `alert()`, one hidden `*` and one counter remain.
 - **The calendar, audience, dashboard and reregistration notices use `.ffc-notice` too** (#1842). So do the CSV info alerts and the WebView banner, through `Core\Notice` / `FFC.notice()`; their old classes and CSS are gone.
+- **One danger-text utility** (#1853). `.ffc-text-error` is gone; `.ffc-text-danger` lives in the utility sheet beside its success and info siblings and reads `--ffc-danger-text`, so the Cache tab's warnings match the metabox notes.
 
 ### Fixed
 

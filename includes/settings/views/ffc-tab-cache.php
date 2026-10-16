@@ -113,7 +113,7 @@ if ( $ffcertificate_cf_behind ) :
 	$ffcertificate_cf_raw    = isset( $ffcertificate_cf_probe['raw'] ) ? (string) $ffcertificate_cf_probe['raw'] : '';
 
 	if ( \FreeFormCertificate\Integrations\CloudflareCacheProbe::STATUS_CACHING === $ffcertificate_cf_status ) {
-		$ffcertificate_cf_cls = 'ffc-text-error ffc-icon-warning';
+		$ffcertificate_cf_cls = 'ffc-text-danger ffc-icon-warning';
 		$ffcertificate_cf_msg = sprintf(
 			/* translators: %s: raw cf-cache-status value */
 			__( 'A Cloudflare rule is caching HTML (cf-cache-status: %s). Exclude FFC form and dashboard URLs from that rule — otherwise pages may be served stale or, for the personal dashboard, to the wrong user.', 'ffcertificate' ),
@@ -359,7 +359,7 @@ if ( $ffcertificate_cf_behind ) :
 										<?php if ( $ffcertificate_qr_stats['enabled'] ) : ?>
 											<span class="ffc-text-success ffc-icon-checkmark"><?php esc_html_e( 'Enabled', 'ffcertificate' ); ?></span>
 										<?php else : ?>
-											<span class="ffc-text-error ffc-icon-cross"><?php esc_html_e( 'Disabled', 'ffcertificate' ); ?></span>
+											<span class="ffc-text-danger ffc-icon-cross"><?php esc_html_e( 'Disabled', 'ffcertificate' ); ?></span>
 										<?php endif; ?>
 									</td>
 								</tr>

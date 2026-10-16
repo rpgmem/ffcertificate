@@ -173,9 +173,12 @@
     font-weight: 600;
 }
 
-.ffc-text-error {
-    color: var(--ffc-danger);
-    font-weight: 600;
+/* The danger tone for a note beside a field or a status word. It was also
+   `.ffc-text-error` here and `.ffc-text-danger` in ffc-admin.css, two names
+   and two colours for one tone (#1853). Not bold: the blocking notes it
+   marks are sentences. */
+.ffc-text-danger {
+    color: var(--ffc-danger-text);
 }
 
 .ffc-text-info {
