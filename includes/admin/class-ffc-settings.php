@@ -539,17 +539,14 @@ class Settings {
 
 			if ( 'qr_cache_cleared' === $msg ) {
 				$cleared = RequestInput::get_get_int( 'cleared' );
-				wp_admin_notice(
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
 					esc_html(
 						sprintf(
 							/* translators: %d: number of QR codes cleared */
 							__( '%d QR Code(s) cleared from cache successfully.', 'ffcertificate' ),
 							$cleared
 						)
-					),
-					array(
-						'type'        => 'success',
-						'dismissible' => true,
 					)
 				);
 			}
@@ -570,28 +567,22 @@ class Settings {
 
 			if ( 'cache_warmed' === $msg ) {
 				$count = RequestInput::get_get_int( 'count' );
-				wp_admin_notice(
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
 					esc_html(
 						sprintf(
 						/* translators: %d: number of forms pre-loaded */
 							__( 'Cache warmed! %d form(s) pre-loaded.', 'ffcertificate' ),
 							$count
 						)
-					),
-					array(
-						'type'        => 'success',
-						'dismissible' => true,
 					)
 				);
 			}
 
 			if ( 'cache_cleared' === $msg ) {
-				wp_admin_notice(
-					esc_html__( 'Cache cleared successfully!', 'ffcertificate' ),
-					array(
-						'type'        => 'success',
-						'dismissible' => true,
-					)
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
+					esc_html__( 'Cache cleared successfully!', 'ffcertificate' )
 				);
 			}
 		}
@@ -612,9 +603,9 @@ class Settings {
 		$visible_tabs = $this->visible_tabs();
 		if ( empty( $visible_tabs ) ) {
 			echo '<div class="wrap ffc-admin-page ffc-page-settings">';
-			wp_admin_notice(
-				esc_html__( 'You do not have permission to view any settings.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'You do not have permission to view any settings.', 'ffcertificate' )
 			);
 			echo '</div>';
 			return;
@@ -634,16 +625,14 @@ class Settings {
 		<div class="wrap ffc-admin-page ffc-page-settings ffc-settings-wrap">
 			<span id="ffc-settings-top" aria-hidden="true"></span>
 			<h1><?php echo esc_html( \FreeFormCertificate\Core\PluginAreas::label( 'settings' ) ); ?></h1>
-			<?php settings_errors( 'ffc_settings' ); ?>
+			<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_settings' ); ?>
+			<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_user_access_settings' ); ?>
 			<?php
 			$ffc_settings_can_edit = $page_state['can_edit'];
 			if ( ! $ffc_settings_can_edit ) {
-				wp_admin_notice(
-					esc_html__( 'Read-only — you can view these settings but do not have permission to change them.', 'ffcertificate' ),
-					array(
-						'type'               => 'info',
-						'additional_classes' => array( 'inline' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'info',
+					esc_html__( 'Read-only — you can view these settings but do not have permission to change them.', 'ffcertificate' )
 				);
 			}
 			?>
@@ -652,21 +641,15 @@ class Settings {
 			// Display migration messages.
             // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
 			if ( isset( $_GET['migration_success'] ) ) {
-				wp_admin_notice(
-					esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_success'] ) ) ) ),
-					array(
-						'type'        => 'success',
-						'dismissible' => true,
-					)
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
+					esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_success'] ) ) ) )
 				);
 			}
 			if ( isset( $_GET['migration_error'] ) ) {
-				wp_admin_notice(
-					esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_error'] ) ) ) ),
-					array(
-						'type'        => 'error',
-						'dismissible' => true,
-					)
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'error',
+					esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_error'] ) ) ) )
 				);
 			}
             // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized

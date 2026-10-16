@@ -35,10 +35,6 @@
     white-space: nowrap;
 }
 
-.ffc-wh-table th .ffc-required {
-    color: var(--ffc-danger);
-}
-
 .ffc-wh-table td {
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xs);
     vertical-align: middle;
@@ -108,24 +104,9 @@
     }
 }
 
-/* Incomplete row: has a time but not both required ones (#1128).
-   Tokens, never literals — a hex here is invisible in dark mode, which is
-   the defect #1116 fixed once and #1126 catalogued as a class. */
-.ffc-wh-row-invalid td {
-    background: var(--ffc-danger-bg);
-}
-
-.ffc-wh-row-error td {
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
-    color: var(--ffc-danger-text);
-    font-size: var(--ffc-font-size-xs);
-    background: var(--ffc-danger-bg);
-    border-top: 0;
-}
-
-/* The notice listing the working-hours rows that were not saved. It lived in
-   a `style=""` attribute until #1837. */
-.notice .ffc-working-hours-incomplete {
-    list-style: disc;
-    margin-left: 2em;
+/* The row inserted under an incomplete one to hold its message (#1128,
+   #1844). The message is the field-message standard; the row only gives
+   it the table's width, under the inputs it describes. */
+.ffc-wh-message-row td {
+    padding-top: 0;
 }

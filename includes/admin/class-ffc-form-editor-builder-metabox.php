@@ -161,18 +161,17 @@ class FormEditorBuilderMetabox {
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=certificates' ) ); ?>"><?php esc_html_e( 'Settings → Certificates', 'ffcertificate' ); ?></a>
 		</p>
 		<?php if ( array() !== $missing ) : ?>
-			<div class="notice notice-warning inline ffc-required-fields-missing">
-				<p>
-					<?php esc_html_e( 'This form lacks required fields:', 'ffcertificate' ); ?>
-					<?php echo implode( ', ', array_map( static fn( array $row ): string => '<code>' . esc_html( $row['name'] ) . '</code>', $missing ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each name is escaped above. ?>
-				</p>
-				<p>
-					<button type="button" class="button ffc-add-required-fields" data-ffc-required-fields="<?php echo esc_attr( (string) wp_json_encode( $missing ) ); ?>">
-						<span class="ffc-icon-plus" aria-hidden="true"></span>
-						<?php esc_html_e( 'Add the required fields', 'ffcertificate' ); ?>
-					</button>
-				</p>
-			</div>
+			<?php
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'warning',
+				'<p>' . esc_html__( 'This form lacks required fields:', 'ffcertificate' ) . ' '
+					. implode( ', ', array_map( static fn( array $row ): string => '<code>' . esc_html( $row['name'] ) . '</code>', $missing ) ) . '</p>'
+					. '<p><button type="button" class="button ffc-add-required-fields" data-ffc-required-fields="' . esc_attr( (string) wp_json_encode( $missing ) ) . '">'
+					. '<span class="ffc-icon-plus" aria-hidden="true"></span> '
+					. esc_html__( 'Add the required fields', 'ffcertificate' ) . '</button></p>',
+				array( 'classes' => array( 'ffc-required-fields-missing' ) )
+			);
+			?>
 		<?php endif; ?>
 		</div>
 		<div class="ffc-builder-actions ffc-mt-2xl">

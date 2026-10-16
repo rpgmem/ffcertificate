@@ -76,7 +76,7 @@ echo '<span id="ffc-cand-csv-progress" class="ffc-rec-progress-inline">';
 echo '<span class="spinner is-active ffc-rec-spinner-flush"></span>';
 echo '<span id="ffc-cand-csv-progress-text"></span>';
 echo '</span>';
-echo '<span id="ffc-cand-csv-status" class="ffc-rec-mono-status"></span>';
+echo '<span id="ffc-cand-csv-status" class="ffc-status" role="status" aria-live="polite" hidden></span>';
 echo '</p>';
 echo '</form>';
 

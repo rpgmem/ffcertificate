@@ -31,12 +31,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'The Members tab and a calendar\'s User access tab show each person\'s account email masked, for everyone. Audiences have no personal-data capability of their own, so revealing it follows the appointments one: administrators, the appointments admin role and holders of ffc_view_appointments_pii get a Reveal button, and every reveal writes an Activity Log entry. The audience roles alone see the email masked.', 'ffcertificate' ); ?></p>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Free-form times, not fixed slots.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Unlike personal calendars, an audience booking has a free start/end time. Two bookings that overlap the same environment are a hard conflict (blocked); overlaps for the same audience or user are soft conflicts the booker can acknowledge. Each booking needs a short description (15–300 characters).', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Free-form times, not fixed slots.', 'ffcertificate' ) )
+	);
+	?>
 
 	<h4><?php esc_html_e( 'Booking flow', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Publish a calendar with the shortcode:', 'ffcertificate' ); ?> <code>[ffc_audience schedule_id="0" environment_id="0" view="month"]</code>. <?php esc_html_e( 'schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin\'s REST API and can target one or more audiences or an individual, and are cancelled with a required reason.', 'ffcertificate' ); ?> <?php esc_html_e( 'The Shortcode column of Audience Calendars shows each calendar\'s shortcode with a copy button, and the Environments view shows each environment\'s, tied to its calendar.', 'ffcertificate' ); ?></p>

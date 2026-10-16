@@ -80,7 +80,7 @@
         html += '<div class="ffc-profile-edit-actions">';
         html += '<button type="button" class="button button-primary ffc-profile-save-btn">' + (s.save || 'Save') + '</button> ';
         html += '<button type="button" class="button ffc-profile-cancel-btn">' + (s.cancel || 'Cancel') + '</button>';
-        html += '<span class="ffc-profile-save-status ffc-status-msg" style="display: none;"></span>';
+        html += '<span class="ffc-profile-save-status ffc-status" role="status" aria-live="polite" hidden></span>';
         html += '</div></div>';
 
         $container.html(html);
@@ -141,16 +141,29 @@
         var confirmPwd = $('#ffc-confirm-password').val();
         var $status = $('.ffc-password-status');
 
-        if (!current || !newPwd || !confirmPwd) {
-            setStatus($status, s.passwordError || 'All fields required', 'error');
-            return;
-        }
-        if (newPwd !== confirmPwd) {
-            setStatus($status, s.passwordMismatch || 'Passwords do not match', 'error');
-            return;
-        }
-        if (newPwd.length < 8) {
-            setStatus($status, s.passwordTooShort || 'Min 8 characters', 'error');
+        // Each rule is said under the field it is about, in the
+        // field-message standard (#1844); the status line keeps the
+        // server's answer.
+        var $current = $('#ffc-current-password');
+        var $new = $('#ffc-new-password');
+        var $confirm = $('#ffc-confirm-password');
+        var checks = [
+            [$current, current ? '' : FFC.requiredMessage()],
+            [$new, !newPwd ? FFC.requiredMessage() : (newPwd.length < 8 ? (s.passwordTooShort || 'Min 8 characters') : '')],
+            [$confirm, !confirmPwd ? FFC.requiredMessage() : (newPwd && newPwd !== confirmPwd ? (s.passwordMismatch || 'Passwords do not match') : '')]
+        ];
+        var $first = null;
+        checks.forEach(function (check) {
+            if (check[1]) {
+                FFC.fieldMessage(check[0], 'error', check[1]);
+                $first = $first || check[0];
+            } else {
+                FFC.clearFieldMessage(check[0]);
+            }
+        });
+        if ($first) {
+            setStatus($status, '', '');
+            $first.trigger('focus');
             return;
         }
 
@@ -168,7 +181,7 @@
         })
             .then(function (response) {
                 setStatus($status, response.message || s.passwordChanged || 'Password changed!', 'success');
-                $('#ffc-current-password, #ffc-new-password, #ffc-confirm-password').val('');
+                FFC.clearFieldMessage($('#ffc-current-password, #ffc-new-password, #ffc-confirm-password').val(''));
                 $btn.prop('disabled', false);
             })
             .catch(function (err) {
@@ -321,14 +334,15 @@
             html += '</div>';
 
             html += '<div class="ffc-password-form" style="display: none;">';
-            html += '<div class="ffc-profile-field"><label for="ffc-current-password">' + (s.currentPassword || 'Current Password') + '</label>';
-            html += '<input type="password" id="ffc-current-password" autocomplete="current-password" /></div>';
-            html += '<div class="ffc-profile-field"><label for="ffc-new-password">' + (s.newPassword || 'New Password') + '</label>';
-            html += '<input type="password" id="ffc-new-password" autocomplete="new-password" minlength="8" /></div>';
-            html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + '</label>';
-            html += '<input type="password" id="ffc-confirm-password" autocomplete="new-password" /></div>';
+            var req = ' <span class="ffc-required" aria-hidden="true">*</span>';
+            html += '<div class="ffc-profile-field"><label for="ffc-current-password">' + (s.currentPassword || 'Current Password') + req + '</label>';
+            html += '<input type="password" id="ffc-current-password" autocomplete="current-password" required /></div>';
+            html += '<div class="ffc-profile-field"><label for="ffc-new-password">' + (s.newPassword || 'New Password') + req + '</label>';
+            html += '<input type="password" id="ffc-new-password" autocomplete="new-password" minlength="8" required /></div>';
+            html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + req + '</label>';
+            html += '<input type="password" id="ffc-confirm-password" autocomplete="new-password" required /></div>';
             html += '<button type="button" class="button button-primary ffc-password-save-btn">' + (s.save || 'Save') + '</button>';
-            html += '<span class="ffc-password-status ffc-status-msg"></span>';
+            html += '<span class="ffc-password-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
             // Audience self-join section — populated by ffc-user-dashboard-audience-join.js.
@@ -348,7 +362,7 @@
                 html += buildToggle('notify_date_messages', s.notifDateMessages || 'Date messages (such as birthday greetings)', prefs, true);
             }
             html += '</div>';
-            html += '<span class="ffc-notif-status ffc-status-msg" style="display: none;"></span>';
+            html += '<span class="ffc-notif-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
             html += '<div class="ffc-profile-section ffc-lgpd-section">';
@@ -357,7 +371,7 @@
             html += '<button type="button" class="button ffc-lgpd-export-btn">' + (s.exportData || 'Export My Data') + '</button>';
             html += '<p class="ffc-lgpd-desc">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
             html += '<button type="button" class="button ffc-lgpd-delete-btn">' + (s.requestDeletion || 'Request Data Deletion') + '</button>';
-            html += '<span class="ffc-lgpd-status ffc-status-msg" style="display: none;"></span>';
+            html += '<span class="ffc-lgpd-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
             $container.html(html);

@@ -82,9 +82,9 @@ final class RecruitmentCandidateEditPage {
 		$candidate    = $candidate_id > 0 ? RecruitmentCandidateReader::get_by_id( $candidate_id ) : null;
 		if ( null === $candidate ) {
 			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
-			wp_admin_notice(
-				esc_html__( 'Candidate not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'Candidate not found.', 'ffcertificate' )
 			);
 			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Candidates', 'ffcertificate' ) . '</a></p>';
 			return;
@@ -901,7 +901,7 @@ final class RecruitmentCandidateEditPage {
 		}
 		$html .= '</select> ';
 		$html .= '<button type="button" class="button button-small ffc-adjutancy-swap-btn">' . esc_html__( 'Save', 'ffcertificate' ) . '</button>';
-		$html .= ' <span class="ffc-adjutancy-swap-msg" aria-live="polite"></span>';
+		$html .= ' <span class="ffc-adjutancy-swap-msg ffc-status" role="status" aria-live="polite" hidden></span>';
 		$html .= '</span>';
 		return $html;
 	}

@@ -14,7 +14,76 @@
 
 (function(window) {
     'use strict';
-    
+
+    /**
+     * What each message kind puts on the message and on its control (#1844).
+     * The classes are written out whole so a scan for who emits them finds
+     * them; `Core\FieldMessage` carries the same map for the server side.
+     */
+    var FIELD_KINDS = {
+        error: { message: 'is-error', icon: 'ffc-icon-error', control: 'is-invalid', role: 'alert', invalid: true },
+        warning: { message: 'is-warning', icon: 'ffc-icon-warning', control: 'is-warning', role: 'status', invalid: false }
+    };
+
+    var fieldMessageCount = 0;
+
+    /**
+     * The message id for a control: `ffc-msg-` plus its id, else its name,
+     * with anything an id cannot hold turned into a hyphen — the rule
+     * `Core\FieldMessage::id()` applies, so a server-printed message is found.
+     */
+    function fieldMessageId(key) {
+        return 'ffc-msg-' + String(key).replace(/[^A-Za-z0-9_-]/g, '-');
+    }
+
+    function controlMessageId(control) {
+        var key = control.id || control.getAttribute('name') || '';
+        if (!key) {
+            fieldMessageCount += 1;
+            key = 'field-' + fieldMessageCount;
+        }
+        return fieldMessageId(key);
+    }
+
+    function placeFieldMessage(message, control, options) {
+        var within = options.within && jQuery(options.within)[0];
+        if (within) {
+            within.appendChild(message);
+            return;
+        }
+        var anchor = options.after && jQuery(options.after)[0];
+        if (!anchor) {
+            anchor = control;
+            if (control.type === 'checkbox' || control.type === 'radio') {
+                anchor = control.closest('.ffc-radio-group, .ffc-checkbox-group, [role="group"], [role="radiogroup"]')
+                    || control.closest('label')
+                    || control;
+            }
+        }
+        if (anchor.parentNode) {
+            anchor.parentNode.insertBefore(message, anchor.nextSibling);
+        }
+    }
+
+    function addIdToken(el, attr, id) {
+        var tokens = (el.getAttribute(attr) || '').split(/\s+/).filter(Boolean);
+        if (tokens.indexOf(id) === -1) {
+            tokens.push(id);
+        }
+        el.setAttribute(attr, tokens.join(' '));
+    }
+
+    function removeIdToken(el, attr, id) {
+        var tokens = (el.getAttribute(attr) || '').split(/\s+/).filter(function(token) {
+            return token && token !== id;
+        });
+        if (tokens.length) {
+            el.setAttribute(attr, tokens.join(' '));
+        } else {
+            el.removeAttribute(attr);
+        }
+    }
+
     /**
      * Initialize global FFC namespace
      */
@@ -435,6 +504,121 @@
         },
 
         /**
+         * Show a message under a field and put the field in its state (#1844).
+         *
+         * One shape for every field the plugin draws: the label, the control,
+         * this message, then the hint and the counter. An error marks the
+         * control `is-invalid` with `aria-invalid` and is announced with
+         * `role="alert"`; a warning marks it `is-warning`, is announced
+         * politely with `role="status"` and does not block anything; `valid`
+         * removes any message and marks the control `is-valid`.
+         *
+         * The message's id is APPENDED to `aria-describedby`, so a hint the
+         * control already names keeps being read; clearing removes that id
+         * and nothing else. The text goes in as `textContent`, never as HTML.
+         *
+         * The message goes after the control, or after the group that holds
+         * a checkbox or radio, so it never lands between a box and its label.
+         * `options.after` names another element to follow, and
+         * `options.within` a container to append it to, for a field whose
+         * layout the default cannot read (a table row, a cascade of selects);
+         * `options.id` keys a message several controls share, as the server
+         * keys it.
+         * A message the server already printed — same id, see
+         * `Core\FieldMessage` — is reused where it stands.
+         *
+         * @param {Element|jQuery|string} input   The control, or every control of one group.
+         * @param {string}                kind    'error', 'warning' or 'valid'.
+         * @param {string}                [text]  The message, plain text.
+         * @param {Object}                [options] `after` or `within` (an Element or jQuery), `id`.
+         * @return {Element|null} The message element; null for 'valid' or no control.
+         */
+        fieldMessage: function(input, kind, text, options) {
+            var $controls = jQuery(input);
+            if (!$controls.length) {
+                return null;
+            }
+            var spec = FIELD_KINDS[kind];
+            if (!spec) {
+                this.clearFieldMessage($controls);
+                if (kind === 'valid') {
+                    $controls.addClass('is-valid');
+                }
+                return null;
+            }
+
+            options = options || {};
+            var first = $controls[0];
+            var id = options.id
+                ? fieldMessageId(options.id)
+                : (first.getAttribute('data-ffc-message-id') || controlMessageId(first));
+            var message = document.getElementById(id);
+            if (!message || !message.classList.contains('ffc-field-message')) {
+                message = document.createElement('span');
+                message.id = id;
+                placeFieldMessage(message, first, options);
+            }
+
+            message.className = 'ffc-field-message ' + spec.message + ' ' + spec.icon;
+            message.setAttribute('role', spec.role);
+            message.removeAttribute('hidden');
+            message.textContent = text === null || typeof text === 'undefined' ? '' : String(text);
+
+            $controls.each(function() {
+                this.classList.remove('is-invalid', 'is-warning', 'is-valid');
+                this.classList.add(spec.control);
+                if (spec.invalid) {
+                    this.setAttribute('aria-invalid', 'true');
+                } else {
+                    this.removeAttribute('aria-invalid');
+                }
+                this.setAttribute('data-ffc-message-id', id);
+                addIdToken(this, 'aria-describedby', id);
+            });
+
+            return message;
+        },
+
+        /**
+         * Remove a field's message and state, as `fieldMessage()` set them.
+         *
+         * Only the message's own id leaves `aria-describedby`; a hint id the
+         * control carried before stays. A message shared by several controls
+         * is removed with the last of them.
+         *
+         * @param {Element|jQuery|string} input The control, or every control of one group.
+         */
+        clearFieldMessage: function(input) {
+            jQuery(input).each(function() {
+                var id = this.getAttribute('data-ffc-message-id');
+                if (id) {
+                    removeIdToken(this, 'aria-describedby', id);
+                    this.removeAttribute('data-ffc-message-id');
+                    // A message several controls share stays while any of
+                    // them still points at it.
+                    var message = document.getElementById(id);
+                    if (message && message.classList.contains('ffc-field-message') && message.parentNode
+                        && !document.querySelector('[data-ffc-message-id="' + id + '"]')) {
+                        message.parentNode.removeChild(message);
+                    }
+                }
+                this.classList.remove('is-invalid', 'is-warning', 'is-valid');
+                this.removeAttribute('aria-invalid');
+            });
+        },
+
+        /**
+         * The localized "This field is required." every field message uses
+         * for an empty required control.
+         *
+         * @return {string}
+         */
+        requiredMessage: function() {
+            var strings = (window.ffcCoreConfig && window.ffcCoreConfig.strings) || {};
+            return strings.fieldRequired || 'This field is required.';
+        },
+
+        /**
          * Build a system notice (#1842): the JS twin of `Core\Notice::render()`,
          * printing the same markup, so no script hand-writes it.
          *
@@ -502,6 +686,61 @@
             notice.appendChild(mark);
             notice.appendChild(body);
             return notice;
+        },
+
+        /**
+         * Set a status line beside a control (#1843): `.ffc-status` plus one
+         * state class, a registry icon and the text, announced politely.
+         *
+         * One look for every "saving… / saved / failed" next to a button or
+         * a field, in the admin and on the dashboard. The text lands through
+         * `textContent`, so a server message cannot become markup. A call
+         * with no state and no text clears the line and hides it.
+         *
+         * @param {HTMLElement|jQuery|string} target The line, or a selector for it.
+         * @param {string} [state] busy | success | error | warning; anything else is plain.
+         * @param {string} [text]  The text.
+         * @return {HTMLElement|null} The line.
+         */
+        status: function(target, state, text) {
+            var el = target && target.jquery ? target[0] : (typeof target === 'string' ? document.querySelector(target) : target);
+            if (!el || !el.classList) {
+                return null;
+            }
+            var icons = { busy: 'sync', success: 'success', error: 'error', warning: 'warning' };
+            var known = Object.prototype.hasOwnProperty.call(icons, state);
+            var value = (text === null || typeof text === 'undefined') ? '' : String(text);
+
+            el.classList.add('ffc-status');
+            el.classList.remove('is-busy', 'is-success', 'is-error', 'is-warning');
+            if (!el.hasAttribute('role')) {
+                el.setAttribute('role', 'status');
+            }
+            if (!el.hasAttribute('aria-live')) {
+                el.setAttribute('aria-live', 'polite');
+            }
+            while (el.firstChild) {
+                el.removeChild(el.firstChild);
+            }
+
+            if (!known && value === '') {
+                el.setAttribute('hidden', 'hidden');
+                return el;
+            }
+
+            if (known) {
+                el.classList.add('is-' + state);
+                var mark = document.createElement('span');
+                mark.className = 'ffc-status-icon ffc-icon-' + icons[state] + ('busy' === state ? ' ffc-icon-spin' : '');
+                mark.setAttribute('aria-hidden', 'true');
+                el.appendChild(mark);
+            }
+            var label = document.createElement('span');
+            label.className = 'ffc-status-text';
+            label.textContent = value;
+            el.appendChild(label);
+            el.removeAttribute('hidden');
+            return el;
         },
 
         /**

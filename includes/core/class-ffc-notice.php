@@ -81,6 +81,12 @@ final class Notice {
 	 *     @type bool                  $html    The message is trusted HTML; default false.
 	 *     @type string                $hook    A `data-ffc-notice` value a script finds the notice by.
 	 *     @type array<string, string> $attrs   Further `data-*` or `id` attributes.
+	 *     @type bool                  $blocks  The message is trusted HTML that brings its own
+	 *                                          blocks (paragraphs, a list, a heading), so it goes
+	 *                                          into the body as it is, through `wp_kses_post()`,
+	 *                                          instead of one paragraph per string; default false.
+	 *     @type array<int, string>    $classes Further classes, for a screen's own layout rule
+	 *                                          or a script's hook (`ffc-role-impact`).
 	 *     @type string                $actions Trusted HTML for the notice's buttons and links, printed
 	 *                                          through `wp_kses_post()` below the text -- the PHP twin of
 	 *                                          `FFC.notice()`'s `children` option.
@@ -113,18 +119,32 @@ final class Notice {
 		if ( '' !== $title ) {
 			$body .= '<strong class="ffc-notice-title">' . esc_html( $title ) . '</strong>';
 		}
-		foreach ( is_array( $message ) ? $message : array( $message ) as $paragraph ) {
-			$paragraph = (string) $paragraph;
-			if ( '' === $paragraph ) {
-				continue;
+		if ( ! empty( $args['blocks'] ) ) {
+			$body .= wp_kses_post( implode( '', array_map( 'strval', is_array( $message ) ? $message : array( $message ) ) ) );
+		} else {
+			foreach ( is_array( $message ) ? $message : array( $message ) as $paragraph ) {
+				$paragraph = (string) $paragraph;
+				if ( '' === $paragraph ) {
+					continue;
+				}
+				$body .= '<p class="ffc-notice-text">' . ( $html ? wp_kses_post( $paragraph ) : esc_html( $paragraph ) ) . '</p>';
 			}
-			$body .= '<p class="ffc-notice-text">' . ( $html ? wp_kses_post( $paragraph ) : esc_html( $paragraph ) ) . '</p>';
 		}
 		if ( isset( $args['actions'] ) && is_string( $args['actions'] ) && '' !== $args['actions'] ) {
 			$body .= '<div class="ffc-notice-actions">' . wp_kses_post( $args['actions'] ) . '</div>';
 		}
 
-		return '<div class="ffc-notice ffc-notice-' . esc_attr( $tone ) . '"' . $attributes . '>'
+		$classes = '';
+		foreach ( isset( $args['classes'] ) && is_array( $args['classes'] ) ? $args['classes'] : array() as $class ) {
+			// The character set `sanitize_html_class()` keeps, without its
+			// percent-encoded-octet pass, which a class name here never needs.
+			$class = (string) preg_replace( '/[^A-Za-z0-9_-]/', '', (string) $class );
+			if ( '' !== $class ) {
+				$classes .= ' ' . $class;
+			}
+		}
+
+		return '<div class="ffc-notice ffc-notice-' . esc_attr( $tone ) . $classes . '"' . $attributes . '>'
 			. '<span class="ffc-notice-icon ffc-icon-' . esc_attr( $icon ) . '" aria-hidden="true"></span>'
 			. '<div class="ffc-notice-body">' . $body . '</div>'
 			. '</div>';

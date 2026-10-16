@@ -32,6 +32,7 @@
 
         // Reset form
         $('#ffc-booking-form')[0].reset();
+        FFC.clearFieldMessage($('#ffc-booking-form').find('input, select, textarea'));
         $('#booking-all-day').prop('checked', false);
         $('#booking-time-row').show();
         $('#booking-start-time').attr('required', 'required');
@@ -93,7 +94,7 @@
             currentSchedule = schedules[0];
         }
         if (currentSchedule && currentSchedule.environmentLabel) {
-            $('label[for="booking-environment-id"]').html(escapeHtml(currentSchedule.environmentLabel) + ' *');
+            $('label[for="booking-environment-id"]').html(escapeHtml(currentSchedule.environmentLabel) + ' <span class="ffc-required" aria-hidden="true">*</span>');
         }
 
         // Set selected environment
@@ -303,46 +304,65 @@
     }
 
     /**
-     * Validate booking form
+     * Validate booking form.
+     *
+     * Each problem is said under its own field, in the field-message
+     * standard (#1844), instead of in an `alert()` that named one problem
+     * and hid the field it was about. Every field is checked, so all the
+     * problems show at once, and the first one takes the focus.
      */
     function validateBookingForm() {
+        var S = ffcAudience.strings;
         var isAllDay = $('#booking-all-day').is(':checked');
-        var startTime = $('#booking-start-time').val();
-        var endTime = $('#booking-end-time').val();
-        var description = $('#booking-description').val().trim();
+        var $start = $('#booking-start-time');
+        var $end = $('#booking-end-time');
+        var $description = $('#booking-description');
         var bookingType = $('#booking-type').val();
+        var invalid = [];
 
-        if (!isAllDay) {
-            if (!startTime || !endTime) {
-                alert(ffcAudience.strings.fillTimeFields || 'Please fill in the time fields.');
-                return false;
-            }
-
-            if (startTime >= endTime) {
-                alert(ffcAudience.strings.invalidTime);
-                return false;
+        function check($field, message) {
+            if (message) {
+                FFC.fieldMessage($field, 'error', message);
+                invalid.push($field[0]);
+            } else {
+                FFC.clearFieldMessage($field);
             }
         }
 
-        if (description.length < 15 || description.length > 300) {
-            alert(ffcAudience.strings.descriptionRequired);
-            return false;
+        if (isAllDay) {
+            FFC.clearFieldMessage($start.add($end));
+        } else {
+            var fill = S.fillTimeFields || 'Please fill in the time fields.';
+            check($start, $start.val() ? '' : fill);
+            check($end, !$end.val() ? fill : ($start.val() && $start.val() >= $end.val() ? S.invalidTime : ''));
         }
 
+        var length = ($description.val() || '').trim().length;
+        check($description, length < 15 || length > 300 ? S.descriptionRequired : '');
+
+        var $audiences = $('#booking-audiences');
+        var $users = $('#booking-user-search');
         if (bookingType === 'audience') {
-            var audiences = $('#booking-audiences').val();
-            if (!audiences || audiences.length === 0) {
-                alert(ffcAudience.strings.selectAudience);
-                return false;
-            }
+            var audiences = $audiences.val();
+            check($audiences, !audiences || audiences.length === 0 ? S.selectAudience : '');
+            FFC.clearFieldMessage($users);
         } else {
             var userIds = $('#booking-user-ids').val();
+            // The picker's chosen users sit under the search box; the
+            // message goes after them, where the choice shows.
             if (!userIds || userIds.trim() === '') {
-                alert(ffcAudience.strings.selectUser);
-                return false;
+                FFC.fieldMessage($users, 'error', S.selectUser, { after: $('#booking-selected-users') });
+                invalid.push($users[0]);
+            } else {
+                FFC.clearFieldMessage($users);
             }
+            FFC.clearFieldMessage($audiences);
         }
 
+        if (invalid.length) {
+            $(invalid[0]).trigger('focus');
+            return false;
+        }
         return true;
     }
 

@@ -161,12 +161,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><code>POST /ffc/v1/operator/certificates</code> — <?php esc_html_e( 'issue a certificate. The JSON body carries form_id plus the form\'s fields; it reuses the same required-field / CPF-RF / e-mail validation and the same storage as the public form, so the result is byte-for-byte a normal submission. Gated by ffc_manage_certificates (admins pass via manage_options). Returns the submission id, the formatted authentication code and the PDF endpoint URL.', 'ffcertificate' ); ?></li>
 			<li><code>GET /ffc/v1/operator/certificates/{id}/pdf</code> — <?php esc_html_e( 'fetch a certificate\'s PDF payload (HTML + assets, rendered to PDF client-side — the plugin has no server-side PDF binary). Any logged-in user may call it; the handler then requires ffc_manage_certificates OR ownership of that specific certificate.', 'ffcertificate' ); ?></li>
 		</ul>
-		<div class="ffc-doc-note">
+		<?php ob_start(); ?>
 			<p>
-				<strong class="ffc-icon-info"><?php esc_html_e( 'Why no captcha / geofence / per-IP limit here?', 'ffcertificate' ); ?></strong><br>
 				<?php esc_html_e( 'Those defend the anonymous public form. The operator endpoint is authenticated and capability-gated, so the gate itself is the control; a generous per-operator rate-limit (300/hour, 2000/day) stays on only as a runaway guard. Per-IP limits are deliberately omitted because many field operators legitimately share one office IP.', 'ffcertificate' ); ?>
 			</p>
-		</div>
+		<?php
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'info',
+			(string) ob_get_clean(),
+			array( 'title' => __( 'Why no captcha / geofence / per-IP limit here?', 'ffcertificate' ) )
+		);
+		?>
 		<pre><code>curl -u operator:app_password -H "Content-Type: application/json" -d '{"form_id":12,"name":"Jane Doe","cpf_rf":"12345678901","email":"jane@example.com"}' "https://example.com/wp-json/ffc/v1/operator/certificates"</code></pre>
 
 		<h4><?php esc_html_e( 'Short URL QR Code (base64)', 'ffcertificate' ); ?></h4>

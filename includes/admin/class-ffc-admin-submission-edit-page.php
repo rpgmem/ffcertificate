@@ -111,9 +111,9 @@ class AdminSubmissionEditPage {
 		// Permission check.
 		if ( ! $this->can_edit_submission() ) {
 			echo '<div class="wrap ffc-admin-page ffc-page-submissions">';
-			wp_admin_notice(
-				esc_html__( 'You do not have permission to edit submissions.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'You do not have permission to edit submissions.', 'ffcertificate' )
 			);
 			echo '</div>';
 			return;
@@ -452,7 +452,7 @@ class AdminSubmissionEditPage {
 		ob_start();
 		?>
 			<p>
-				<strong class="ffc-icon-warning"><?php esc_html_e( 'Warning:', 'ffcertificate' ); ?></strong>
+				<strong><?php esc_html_e( 'Warning:', 'ffcertificate' ); ?></strong>
 				<?php
 				echo wp_kses_post(
 					sprintf(
@@ -470,13 +470,10 @@ class AdminSubmissionEditPage {
 				<?php endif; ?>.
 			</p>
 		<?php
-		wp_admin_notice(
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'warning',
 			(string) ob_get_clean(),
-			array(
-				'type'               => 'warning',
-				'additional_classes' => array( 'ffc-edited-notice' ),
-				'paragraph_wrap'     => false,
-			)
+			array( 'classes' => array( 'ffc-edited-notice' ) )
 		);
 	}
 
@@ -713,7 +710,7 @@ class AdminSubmissionEditPage {
 		$ffc_email = (string) $this->sub_array['email'];
 		?>
 		<div class="ffc-edit-field">
-			<label for="user_email"><?php esc_html_e( 'Email', 'ffcertificate' ); ?> *</label>
+			<label for="user_email"><?php esc_html_e( 'Email', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 			<span class="ffc-pii-row">
 				<input type="email" name="user_email" id="user_email" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::mask_email( $ffc_email ) ); ?>" class="regular-text" data-ffc-pii-field="email" data-ffc-pii-editable="1" disabled required>
 				<?php echo '' !== $ffc_email ? $this->reveal_button( 'email' ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- reveal_button() escapes every value. ?>

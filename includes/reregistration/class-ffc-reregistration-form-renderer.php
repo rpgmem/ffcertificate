@@ -29,6 +29,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
+use FreeFormCertificate\Core\FieldMessage;
 use FreeFormCertificate\UserDashboard\UserManager;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -255,8 +256,10 @@ class ReregistrationFormRenderer {
 	 * @param object $field Field definition.
 	 * @phpstan-param CustomFieldRow $field
 	 * @param mixed  $value Current value (already decrypted for sensitive fields).
+	 * @param string $error A message the server already has for the field, or ''
+	 *                      (#1844); the script shows the ones it finds itself.
 	 */
-	public static function render_field( object $field, $value ): void {
+	public static function render_field( object $field, $value, string $error = '' ): void {
 		$field_id   = self::FIELD_ID_PREFIX . (int) $field->id;
 		$field_name = self::FIELD_NAME_ROOT . '[' . (string) $field->field_key . ']';
 		$required   = ! empty( $field->is_required );
@@ -291,14 +294,19 @@ class ReregistrationFormRenderer {
 	 * @param mixed                $value      Current value.
 	 * @param bool                 $required   Whether the field is required.
 	 * @param array<string, mixed> $rules     Validation rules.
+	 * @param string               $error     The field's message, or ''; ties the
+	 *                                        control to it (#1844).
 	 */
-	public static function render_input( object $field, string $field_id, string $field_name, $value, bool $required, array $rules ): void {
+	public static function render_input( object $field, string $field_id, string $field_name, $value, bool $required, array $rules, string $error = '' ): void {
 		$mask = isset( $field->field_mask ) ? (string) $field->field_mask : '';
 		if ( '' === $mask && ! empty( $rules['format'] ) ) {
 			$mask = (string) $rules['format'];
 		}
 		$mask_attr = '' !== $mask ? ' data-mask="' . esc_attr( $mask ) . '"' : '';
 		$req_attr  = $required ? ' required' : '';
+		// The state and the ARIA that tie the control to its message; '' when
+		// there is none. Every value is escaped inside control_attributes().
+		$req_attr .= FieldMessage::control_attributes( $field_id, $error );
 
 		switch ( (string) $field->field_type ) {
 			case 'textarea':
@@ -339,12 +347,14 @@ class ReregistrationFormRenderer {
 
 			case 'checkbox':
 				printf(
-					'<label class="ffc-checkbox-label"><input type="checkbox" id="%s" name="%s" value="1" %s> %s%s</label>',
+					'<label class="ffc-checkbox-label"><input type="checkbox" id="%s" name="%s" value="1" %s%s> %s%s</label>',
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
 					checked( (string) $value, '1', false ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- control_attributes() escapes every value.
+					FieldMessage::control_attributes( $field_id, $error ),
 					esc_html( (string) $field->field_label ),
-					$required ? ' <span class="ffc-required">*</span>' : ''
+					$required ? ' <span class="ffc-required" aria-hidden="true">*</span>' : ''
 				);
 				break;
 

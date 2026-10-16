@@ -138,13 +138,22 @@
         $search.on('input', render);
 
         if (required) {
+            // The field-message standard (#1844): the selected column takes
+            // the invalid state and the message goes under the picker; both
+            // stay until a choice is made, instead of a two-second flash
+            // nothing announced.
+            var $column = $wrap.find('.ffc-transfer-selected');
+            var message = $wrap.attr('data-required-message') || 'Select at least one audience.';
             $wrap.closest('form').on('submit', function (e) {
                 if (!selectedIds.length) {
                     e.preventDefault();
-                    $wrap.find('.ffc-transfer-selected').addClass('ffc-transfer-error');
-                    setTimeout(function () {
-                        $wrap.find('.ffc-transfer-selected').removeClass('ffc-transfer-error');
-                    }, 2000);
+                    window.FFC.fieldMessage($column, 'error', message, { after: $wrap });
+                    $search.trigger('focus');
+                }
+            });
+            $wrap.on('ffc:transfer-list-change', function (e, ids) {
+                if (ids.length) {
+                    window.FFC.clearFieldMessage($column);
                 }
             });
         }

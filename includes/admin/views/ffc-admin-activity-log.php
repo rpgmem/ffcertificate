@@ -97,9 +97,12 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 	<div id="ffc-activity-log-table">
 	<?php if ( empty( $logs ) ) : ?>
 		<?php
-		wp_admin_notice(
-			esc_html__( 'No activity logs found.', 'ffcertificate' ),
-			array( 'type' => 'info' )
+		// The empty state of the table, not page feedback: a callout that stays
+		// where the table would be (a `.notice` here is lifted to the top of
+		// the screen by core's common.js, #1843).
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'info',
+			esc_html__( 'No activity logs found.', 'ffcertificate' )
 		);
 		?>
 	<?php else : ?>

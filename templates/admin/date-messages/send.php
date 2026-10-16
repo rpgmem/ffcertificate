@@ -34,12 +34,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <?php if ( ! $queue_ready ) : ?>
 	<?php
-	wp_admin_notice(
-		esc_html__( 'No mail queue is active, so a large range is handed to wp_mail() as fast as PHP runs. Installing a mail queue plugin paces the sending.', 'ffcertificate' ),
-		array(
-			'type'               => 'info',
-			'additional_classes' => array( 'inline' ),
-		)
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		esc_html__( 'No mail queue is active, so a large range is handed to wp_mail() as fast as PHP runs. Installing a mail queue plugin paces the sending.', 'ffcertificate' )
 	);
 	?>
 <?php endif; ?>

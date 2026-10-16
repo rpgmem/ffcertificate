@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<div class="ffc-transfer-list" data-audiences="<?php echo esc_attr( $flat_json ? $flat_json : '[]' ); ?>" data-selected="<?php echo esc_attr( $selected_json ? $selected_json : '[]' ); ?>" data-field-name="<?php echo esc_attr( $field_name ); ?>"<?php echo $required ? ' data-required="1"' : ''; ?>>
+<div class="ffc-transfer-list" data-audiences="<?php echo esc_attr( $flat_json ? $flat_json : '[]' ); ?>" data-selected="<?php echo esc_attr( $selected_json ? $selected_json : '[]' ); ?>" data-field-name="<?php echo esc_attr( $field_name ); ?>"<?php echo $required ? ' data-required="1" data-required-message="' . esc_attr__( 'Select at least one audience.', 'ffcertificate' ) . '"' : ''; ?>>
 	<div class="ffc-transfer-col ffc-transfer-available">
 		<div class="ffc-transfer-header"><?php esc_html_e( 'Available', 'ffcertificate' ); ?></div>
 		<input type="text" class="ffc-transfer-search" placeholder="<?php esc_attr_e( 'Filter...', 'ffcertificate' ); ?>">

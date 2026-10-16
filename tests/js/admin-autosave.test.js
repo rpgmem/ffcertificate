@@ -89,7 +89,7 @@ describe('FFC.Admin.autoSaveField', () => {
 
 		const $badge = window.$('.ffc-autosave-badge');
 		expect($badge.text()).toBe('Saved');
-		expect($badge.hasClass('ffc-autosave-badge--saved')).toBe(true);
+		expect($badge.hasClass('is-success')).toBe(true);
 
 		vi.advanceTimersByTime(1800);
 		expect($badge.attr('hidden')).toBe('hidden');
@@ -154,7 +154,7 @@ describe('FFC.Admin.autoSaveField', () => {
 
 		const $badge = window.$('.ffc-autosave-badge');
 		expect($badge.text()).toBe('Quota exceeded');
-		expect($badge.hasClass('ffc-autosave-badge--error')).toBe(true);
+		expect($badge.hasClass('is-error')).toBe(true);
 	});
 
 	it('honours a custom transform when extracting the value', () => {
@@ -444,7 +444,7 @@ describe('FFC.Admin.autoSaveField — extra branches', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 		const $badge = window.$('.ffc-autosave-badge');
-		expect($badge.hasClass('ffc-autosave-badge--saved')).toBe(true);
+		expect($badge.hasClass('is-success')).toBe(true);
 
 		// Trigger another change while the "Saved" linger timer is live.
 		window.$('#t').prop('checked', false).trigger('change');
@@ -595,7 +595,29 @@ describe('FFC.Admin.autoSaveField — browser validity (#1114)', () => {
 		vi.advanceTimersByTime(600);
 
 		expect(postSpy).not.toHaveBeenCalled();
-		expect(document.querySelector('.ffc-autosave-badge').className).toContain('--error');
+		// The reason goes under the field, in the field-message standard
+		// (#1844); the badge is not where a validation message lives.
+		const input = document.getElementById('n');
+		expect(input.classList.contains('is-invalid')).toBe(true);
+		expect(input.getAttribute('aria-invalid')).toBe('true');
+		const msg = document.getElementById(input.getAttribute('data-ffc-message-id'));
+		expect(msg.classList.contains('ffc-field-message')).toBe(true);
+		expect(msg.getAttribute('role')).toBe('alert');
+		expect(document.querySelector('.ffc-autosave-badge').hidden).toBe(true);
+	});
+
+	it('withdraws the field message once the value is valid again', () => {
+		document.body.innerHTML = '<input type="number" id="n" min="1" value="5" required>';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		window.FFC.Admin.autoSaveField(window.$('#n'), { key: 'ip_max_per_hour' });
+		window.$('#n').val('').trigger('input');
+		vi.advanceTimersByTime(600);
+		expect(document.querySelector('.ffc-field-message')).not.toBeNull();
+
+		window.$('#n').val('7').trigger('input');
+		vi.advanceTimersByTime(600);
+		expect(document.querySelector('.ffc-field-message')).toBeNull();
+		expect(document.getElementById('n').hasAttribute('aria-invalid')).toBe(false);
 	});
 
 	it('refuses a value below the declared min', () => {

@@ -60,12 +60,9 @@ $ffc_modes = array(
 
 	<?php if ( ! $ffc_is_ssl ) : ?>
 		<?php
-		wp_admin_notice(
-			esc_html__( 'This site is not being served over HTTPS. The ALTCHA widget refuses to run outside a secure connection, so the ALTCHA-only mode cannot be selected here — the fallback mode remains available.', 'ffcertificate' ),
-			array(
-				'type'               => 'warning',
-				'additional_classes' => array( 'inline' ),
-			)
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'warning',
+			esc_html__( 'This site is not being served over HTTPS. The ALTCHA widget refuses to run outside a secure connection, so the ALTCHA-only mode cannot be selected here — the fallback mode remains available.', 'ffcertificate' )
 		);
 		?>
 	<?php endif; ?>

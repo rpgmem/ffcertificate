@@ -45,12 +45,13 @@ try {
 			<?php esc_html_e( 'Manage database structure migrations to improve performance and data organization. These migrations move data from JSON storage to dedicated database columns for faster queries and better reliability.', 'ffcertificate' ); ?>
 		</p>
 		
-		<div class="ffc-migration-warning">
-			<p>
-				<strong class="ffc-icon-info"><?php esc_html_e( 'Important:', 'ffcertificate' ); ?></strong>
-				<?php esc_html_e( 'Migrations are safe to run multiple times. Each migration processes up to 100 records at a time. Run again if needed until 100% complete.', 'ffcertificate' ); ?>
-			</p>
-		</div>
+		<?php
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'warning',
+			esc_html__( 'Migrations are safe to run multiple times. Each migration processes up to 100 records at a time. Run again if needed until 100% complete.', 'ffcertificate' ),
+			array( 'title' => __( 'Important:', 'ffcertificate' ) )
+		);
+		?>
 	</div>
 
 	<?php
@@ -64,21 +65,14 @@ try {
 		</p>
 		<p><?php esc_html_e( 'Try deactivating and reactivating the plugin, or clearing any server-side cache (OPcache).', 'ffcertificate' ); ?></p>
 		<?php
-		wp_admin_notice(
-			(string) ob_get_clean(),
-			array(
-				'type'               => 'error',
-				'additional_classes' => array( 'inline' ),
-				'paragraph_wrap'     => false,
-			)
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'error',
+			(string) ob_get_clean()
 		);
 	elseif ( empty( $ffcertificate_migrations ) ) :
-		wp_admin_notice(
-			esc_html__( 'No migrations available at this time.', 'ffcertificate' ),
-			array(
-				'type'               => 'info',
-				'additional_classes' => array( 'inline' ),
-			)
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'info',
+			esc_html__( 'No migrations available at this time.', 'ffcertificate' )
 		);
 	else :
 		foreach ( $ffcertificate_migrations as $ffcertificate_key => $ffcertificate_migration ) :
@@ -175,12 +169,9 @@ try {
 
 			<?php if ( ! empty( $ffcertificate_status_error ) ) : ?>
 				<?php
-				wp_admin_notice(
-					'<strong>' . esc_html__( 'Status check error:', 'ffcertificate' ) . '</strong> ' . esc_html( $ffcertificate_status_error ),
-					array(
-						'type'               => 'warning',
-						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'warning',
+					'<strong>' . esc_html__( 'Status check error:', 'ffcertificate' ) . '</strong> ' . esc_html( $ffcertificate_status_error )
 				);
 				?>
 			<?php endif; ?>
@@ -441,32 +432,27 @@ try {
 				<?php esc_html_e( 'Scan published posts, pages and reusable blocks for embedded [ffc_form] shortcodes that point to forms whose end date is more than N days in the past, and remove those obsolete shortcodes from the content.', 'ffcertificate' ); ?>
 			</p>
 
-			<div class="ffc-migration-warning">
-				<p>
-					<strong class="ffc-icon-info"><?php esc_html_e( 'Safe by design:', 'ffcertificate' ); ?></strong>
-					<?php esc_html_e( 'WordPress automatically creates a revision for every modified post so administrators can roll back manually. Only shortcodes pointing at expired forms are removed — the rest of the content is left untouched.', 'ffcertificate' ); ?>
-				</p>
-			</div>
+			<?php
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'warning',
+				esc_html__( 'WordPress automatically creates a revision for every modified post so administrators can roll back manually. Only shortcodes pointing at expired forms are removed — the rest of the content is left untouched.', 'ffcertificate' ),
+				array( 'title' => __( 'Safe by design:', 'ffcertificate' ) )
+			);
+			?>
 
 			<?php if ( $ffcertificate_cleanup_msg ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html( $ffcertificate_cleanup_msg ),
-					array(
-						'type'               => 'success',
-						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'success',
+					esc_html( $ffcertificate_cleanup_msg )
 				);
 				?>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_cleanup_err ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html( $ffcertificate_cleanup_err ),
-					array(
-						'type'               => 'error',
-						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'error',
+					esc_html( $ffcertificate_cleanup_err )
 				);
 				?>
 			<?php endif; ?>
@@ -664,32 +650,27 @@ try {
 				<?php esc_html_e( 'Delete obsolete short URLs from the URL shortener: those whose target post no longer exists, those created long ago and never clicked, and those already in the trash. Choose the criteria, preview, then delete.', 'ffcertificate' ); ?>
 			</p>
 
-			<div class="ffc-migration-warning">
-				<p>
-					<strong class="ffc-icon-info"><?php esc_html_e( 'Heads up:', 'ffcertificate' ); ?></strong>
-					<?php esc_html_e( 'Deletion is permanent — short URLs are hard-deleted and any printed/shared links pointing at them will stop resolving. Always run a preview first.', 'ffcertificate' ); ?>
-				</p>
-			</div>
+			<?php
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'warning',
+				esc_html__( 'Deletion is permanent — short URLs are hard-deleted and any printed/shared links pointing at them will stop resolving. Always run a preview first.', 'ffcertificate' ),
+				array( 'title' => __( 'Heads up:', 'ffcertificate' ) )
+			);
+			?>
 
 			<?php if ( $ffcertificate_url_msg ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html( $ffcertificate_url_msg ),
-					array(
-						'type'               => 'success',
-						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'success',
+					esc_html( $ffcertificate_url_msg )
 				);
 				?>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_url_err ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html( $ffcertificate_url_err ),
-					array(
-						'type'               => 'error',
-						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'error',
+					esc_html( $ffcertificate_url_err )
 				);
 				?>
 			<?php endif; ?>
@@ -875,23 +856,17 @@ try {
 
 			<?php if ( $ffcertificate_pa_msg ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html( $ffcertificate_pa_msg ),
-					array(
-						'type'               => 'success',
-						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'success',
+					esc_html( $ffcertificate_pa_msg )
 				);
 				?>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_pa_err ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html( $ffcertificate_pa_err ),
-					array(
-						'type'               => 'error',
-						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'error',
+					esc_html( $ffcertificate_pa_err )
 				);
 				?>
 			<?php endif; ?>
@@ -1048,23 +1023,17 @@ try {
 
 			<?php if ( $ffcertificate_sa_msg ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html( $ffcertificate_sa_msg ),
-					array(
-						'type'               => 'success',
-						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'success',
+					esc_html( $ffcertificate_sa_msg )
 				);
 				?>
 			<?php endif; ?>
 			<?php if ( $ffcertificate_sa_err ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html( $ffcertificate_sa_err ),
-					array(
-						'type'               => 'error',
-						'additional_classes' => array( 'inline', 'ffc-set-my-10' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'error',
+					esc_html( $ffcertificate_sa_err )
 				);
 				?>
 			<?php endif; ?>

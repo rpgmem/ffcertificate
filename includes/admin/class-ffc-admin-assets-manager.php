@@ -243,7 +243,14 @@ class AdminAssetsManager {
 			FFC_VERSION,
 			true
 		);
-		wp_localize_script( 'ffc-core', 'ffcCoreConfig', array( 'version' => FFC_VERSION ) );
+		wp_localize_script(
+			'ffc-core',
+			'ffcCoreConfig',
+			array(
+				'version' => FFC_VERSION,
+				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
+			)
+		);
 
 		wp_enqueue_script(
 			'ffc-admin-pdf',
@@ -361,6 +368,7 @@ class AdminAssetsManager {
 			'ffcCoreConfig',
 			array(
 				'version' => FFC_VERSION,
+				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
 			)
 		);
 	}

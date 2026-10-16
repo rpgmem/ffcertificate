@@ -274,7 +274,7 @@ class Shortcodes {
 					?>
 					<div class="ffc-form-field ffc-restriction-field">
 						<label for="ffc_password">
-							<?php esc_html_e( 'Password', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
+							<?php esc_html_e( 'Password', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span>
 						</label>
 						<input type="password"
 								class="ffc-input"
@@ -294,7 +294,7 @@ class Shortcodes {
 					?>
 					<div class="ffc-form-field ffc-restriction-field">
 						<label for="ffc_ticket">
-							<?php esc_html_e( 'Ticket Code', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
+							<?php esc_html_e( 'Ticket Code', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span>
 						</label>
 						<input type="text"
 								class="ffc-input ffc-ticket-input ffc-uppercase"
@@ -331,7 +331,7 @@ class Shortcodes {
 								)
 							);
 							?>
-							<span class="ffc-required">*</span>
+							<span class="ffc-required" aria-hidden="true">*</span>
 						</span>
 					</label>
 					

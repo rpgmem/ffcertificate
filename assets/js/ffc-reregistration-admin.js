@@ -199,6 +199,10 @@
             $('body').addClass('ffc-rereg-modal-open');
         }
 
+        function showDetailsError(text) {
+            $body.empty().append(window.FFC.notice('danger', 'error', text, '', { role: 'alert' }));
+        }
+
         function closeModal() {
             $modal.hide();
             $('body').removeClass('ffc-rereg-modal-open');
@@ -223,12 +227,13 @@
                     if (data && data.html) {
                         $body.html(data.html);
                     } else {
-                        $body.html('<p class="notice notice-error">' + (S.errorLoadingDetails || 'Failed to load submission details.') + '</p>');
+                        showDetailsError(S.errorLoadingDetails || 'Failed to load submission details.');
                     }
                 })
                 .catch(function (err) {
-                    var msg = (err && err.fromServer && err.message) || S.errorLoadingDetails || 'Failed to load submission details.';
-                    $body.html('<p class="notice notice-error">' + msg + '</p>');
+                    // The server's message is text: FFC.notice() writes it with
+                    // textContent, so it can never become markup (#1843).
+                    showDetailsError((err && err.fromServer && err.message) || S.errorLoadingDetails || 'Failed to load submission details.');
                 });
         });
 

@@ -164,16 +164,23 @@
             var $wrapper = $(this);
             var rows = incompleteRows($wrapper);
 
-            $wrapper.find('.ffc-wh-row-error').remove();
-            $wrapper.find('.ffc-wh-row-invalid').removeClass('ffc-wh-row-invalid');
+            FFC.clearFieldMessage($wrapper.find('[data-ffc-message-id]'));
+            $wrapper.find('.ffc-wh-message-row').remove();
 
             for (var i = 0; i < rows.length; i++) {
-                rows[i].$row.addClass('ffc-wh-row-invalid');
-                $('<tr class="ffc-wh-row-error"><td colspan="6"></td></tr>')
-                    .find('td')
-                    .text(strings.incomplete.replace('%s', rows[i].missing.join(', ')))
-                    .end()
-                    .insertAfter(rows[i].$row);
+                // The field-message standard (#1844): the empty required
+                // times take the invalid state, and the message sits in a
+                // row of its own under them, the width of the table.
+                var $missing = rows[i].$row.find('.ffc-wh-entry1, .ffc-wh-exit2').filter(function () {
+                    return !($(this).val() || '').trim();
+                });
+                var $holder = $('<tr class="ffc-wh-message-row"><td colspan="6"></td></tr>').insertAfter(rows[i].$row);
+                FFC.fieldMessage(
+                    $missing,
+                    'error',
+                    strings.incomplete.replace('%s', rows[i].missing.join(', ')),
+                    { within: $holder.find('td') }
+                );
 
                 if (!blocked) {
                     blocked = rows[i].$row;

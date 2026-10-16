@@ -31,16 +31,15 @@
         return $row.find('.ffc-autosave-badge').first();
     }
 
+    // The row's badge is the shared status line beside a control (#1843).
+    var STATES = { saving: 'busy', saved: 'success', error: 'error' };
+
     function setBadge($badge, state, text) {
-        $badge
-            .removeClass('ffc-autosave-badge--saving ffc-autosave-badge--saved ffc-autosave-badge--error')
-            .addClass('ffc-autosave-badge--' + state)
-            .text(text || '')
-            .removeAttr('hidden');
+        FFC.status($badge, STATES[state] || '', text || '');
     }
 
     function hideBadgeLater($badge) {
-        setTimeout(function () { $badge.attr('hidden', 'hidden').text(''); }, 1800);
+        setTimeout(function () { FFC.status($badge, '', ''); }, 1800);
     }
 
     function rowPayload($row) {
@@ -153,7 +152,7 @@
                 '<td><input type="radio" name="ffc_location_default_ip" class="ffc-location-default-ip" value="' + escAttr(id) + '"></td>' +
                 '<td>' +
                     '<button type="button" class="button button-small ffc-location-delete">' + escHtml(deleteText) + '</button>' +
-                    '<span class="ffc-autosave-badge" hidden></span>' +
+                    '<span class="ffc-autosave-badge ffc-status" role="status" aria-live="polite" hidden></span>' +
                 '</td>' +
             '</tr>'
         );

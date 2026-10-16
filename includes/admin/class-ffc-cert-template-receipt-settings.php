@@ -137,12 +137,9 @@ class CertTemplateReceiptSettings {
 		$templates = CertTemplateReader::list_for_editor( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT );
 
 		if ( RequestInput::has_get( 'ffc_saved' ) ) {
-			wp_admin_notice(
-				esc_html__( 'Appointment receipt templates saved.', 'ffcertificate' ),
-				array(
-					'type'        => 'success',
-					'dismissible' => true,
-				)
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'success',
+				esc_html__( 'Appointment receipt templates saved.', 'ffcertificate' )
 			);
 		}
 		?>

@@ -231,7 +231,7 @@ describe('custom-fields-admin — saveFields', () => {
 		await flush();
 
 		expect(window.$('#ffc-custom-fields-status').text()).toBe('Saved');
-		expect(window.$('#ffc-custom-fields-status').hasClass('ffc-status-success')).toBe(true);
+		expect(window.$('#ffc-custom-fields-status').hasClass('is-success')).toBe(true);
 
 		// After 800ms timer, location.reload() fires.
 		vi.advanceTimersByTime(800);
@@ -259,7 +259,7 @@ describe('custom-fields-admin — saveFields', () => {
 		await flush();
 
 		expect(window.$('#ffc-custom-fields-status').text()).toBe('Bad key');
-		expect(window.$('#ffc-custom-fields-status').hasClass('ffc-status-error')).toBe(true);
+		expect(window.$('#ffc-custom-fields-status').hasClass('is-error')).toBe(true);
 	});
 
 	it('on network failure: shows the localised error status', async () => {
@@ -278,7 +278,7 @@ describe('custom-fields-admin — saveFields', () => {
 		await flush();
 
 		expect(window.$('#ffc-custom-fields-status').text()).toBe('Error');
-		expect(window.$('#ffc-custom-fields-status').hasClass('ffc-status-error')).toBe(true);
+		expect(window.$('#ffc-custom-fields-status').hasClass('is-error')).toBe(true);
 	});
 
 	it('re-enables the save button after a failed save', async () => {
@@ -574,7 +574,7 @@ describe('custom-fields-admin — replicateFieldOptions', () => {
 		expect(postSpy.mock.calls[0][1].audience_id).toBe(9);
 		const $status = window.$('#ffc-custom-fields-status');
 		expect($status.text()).toBe('Replicated to 4 audiences');
-		expect($status.hasClass('ffc-status-success')).toBe(true);
+		expect($status.hasClass('is-success')).toBe(true);
 		// Button re-enabled by the trailing .then.
 		expect(window.$('#ffc-replicate-field-options').prop('disabled')).toBe(false);
 	});
@@ -587,7 +587,7 @@ describe('custom-fields-admin — replicateFieldOptions', () => {
 		await flush();
 		const $status = window.$('#ffc-custom-fields-status');
 		expect($status.text()).toBe('Boom');
-		expect($status.hasClass('ffc-status-error')).toBe(true);
+		expect($status.hasClass('is-error')).toBe(true);
 		expect(window.$('#ffc-replicate-field-options').prop('disabled')).toBe(false);
 	});
 });

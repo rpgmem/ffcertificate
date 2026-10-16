@@ -261,6 +261,11 @@ class UrlShortenerMetaBox {
 			FFC_VERSION,
 			true
 		);
+		// `ffc-admin-js` carries FFC.Admin.notify(), the one toast the admin
+		// has (#1843): copy and regenerate report through it.
+		$ffc_s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$ffc_s}.js", array( 'jquery' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-admin-js', FFC_PLUGIN_URL . "assets/js/ffc-admin{$ffc_s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		wp_enqueue_script(
 			'ffc-url-shortener-admin',
 			FFC_PLUGIN_URL . 'assets/js/ffc-url-shortener-admin.js',
@@ -271,7 +276,7 @@ class UrlShortenerMetaBox {
 			// otherwise drop `ffc-core` for not being in the chain. Same
 			// fix shape as 6.6.7 (#367) applied to the 4 public-facing
 			// sites; admin sites missed that pass.
-			array( 'jquery', 'ffc-core', 'ffc-qr-raster' ),
+			array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-qr-raster' ),
 			FFC_VERSION,
 			true
 		);

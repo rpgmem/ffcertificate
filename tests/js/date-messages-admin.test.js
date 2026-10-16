@@ -14,6 +14,10 @@ async function loadOnReady() {
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
+// The real notice builder: the script draws its messages through FFC.notice().
+loadScript('assets/js/ffc-core.js');
+const notice = window.FFC.notice;
+
 function installSendDom() {
 	document.body.innerHTML = `
 		<form id="ffc-dm-send-form" data-ffc-confirm="Send?">
@@ -54,7 +58,7 @@ beforeEach(() => {
 	window.$(document).off();
 	document.body.innerHTML = '';
 	request = vi.fn();
-	window.FFC = { request };
+	window.FFC = { request, notice };
 	window.ffcDateMessages = {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		previewAction: 'ffc_date_messages_preview',
@@ -131,12 +135,12 @@ describe('ffc-date-messages-admin', () => {
 		await flush();
 		expect(request.mock.calls[0][0]).toBe('ffc_date_messages_test_send');
 		expect(request.mock.calls[0][2].nonce).toBe('tn');
-		expect(document.querySelector('.notice-success').textContent).toBe('Sent to you');
+		expect(document.querySelector('.ffc-notice-success').textContent).toBe('Sent to you');
 
 		request.mockRejectedValueOnce(new Error('No address'));
 		window.$('.ffc-dm-test-button').trigger('click');
 		await flush();
-		expect(document.querySelector('.notice-error').textContent).toBe('No address');
+		expect(document.querySelector('.ffc-notice-danger').textContent).toBe('No address');
 		expect(document.querySelector('.ffc-dm-test-button').disabled).toBe(false);
 	});
 

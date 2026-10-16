@@ -257,6 +257,9 @@ describe('profile.changePassword', () => {
 		// Render the read view so the password form fields exist
 		// (#ffc-current-password etc. are inside .ffc-password-form).
 		panel().render(PROFILE_FIXTURE);
+		// The form is open when the user saves; a hidden control cannot take
+		// the focus (jsdom 30.1.2 enforces it, as browsers do).
+		window.$('#ffc-tabpanel-profile .ffc-password-form').show();
 	});
 
 	function setPasswords(current, neu, conf) {
@@ -265,28 +268,50 @@ describe('profile.changePassword', () => {
 		document.getElementById('ffc-confirm-password').value = conf;
 	}
 
-	it('rejects when any field is blank (no AJAX call)', () => {
+	// Each rule is said under its field, in the field-message standard
+	// (#1844); the status line is left for the server's answer.
+	function messageOf(id) {
+		const field = document.getElementById(id);
+		const msgId = field.getAttribute('data-ffc-message-id');
+		return msgId ? document.getElementById(msgId) : null;
+	}
+
+	it('rejects when any field is blank (no AJAX call), under each blank field', () => {
 		const spy = mockAjax(() => ({}));
 		setPasswords('', '', '');
 		window.$('.ffc-password-save-btn').trigger('click');
 		expect(spy).not.toHaveBeenCalled();
-		expect(document.querySelector('.ffc-password-status').textContent).toBe('All fields required');
+		['ffc-current-password', 'ffc-new-password', 'ffc-confirm-password'].forEach((id) => {
+			expect(messageOf(id).textContent).toBe('This field is required.');
+			expect(document.getElementById(id).getAttribute('aria-invalid')).toBe('true');
+		});
+		expect(document.querySelector('.ffc-password-status').textContent).toBe('');
+		expect(document.activeElement.id).toBe('ffc-current-password');
 	});
 
-	it('rejects when new + confirm mismatch', () => {
+	it('rejects when new + confirm mismatch, under the confirmation', () => {
 		const spy = mockAjax(() => ({}));
 		setPasswords('old', 'abcdefgh', 'abcdefgi');
 		window.$('.ffc-password-save-btn').trigger('click');
 		expect(spy).not.toHaveBeenCalled();
-		expect(document.querySelector('.ffc-password-status').textContent).toBe('Passwords do not match');
+		expect(messageOf('ffc-confirm-password').textContent).toBe('Passwords do not match');
+		expect(messageOf('ffc-new-password')).toBeNull();
 	});
 
-	it('rejects when new password is shorter than 8 chars', () => {
+	it('rejects when new password is shorter than 8 chars, under the new password', () => {
 		const spy = mockAjax(() => ({}));
 		setPasswords('old', 'short', 'short');
 		window.$('.ffc-password-save-btn').trigger('click');
 		expect(spy).not.toHaveBeenCalled();
-		expect(document.querySelector('.ffc-password-status').textContent).toBe('Min 8 characters');
+		expect(messageOf('ffc-new-password').textContent).toBe('Min 8 characters');
+	});
+
+	it('marks the three fields required, with the one marker', () => {
+		['ffc-current-password', 'ffc-new-password', 'ffc-confirm-password'].forEach((id) => {
+			expect(document.getElementById(id).required).toBe(true);
+			const marker = document.querySelector('label[for="' + id + '"] .ffc-required');
+			expect(marker.getAttribute('aria-hidden')).toBe('true');
+		});
 	});
 
 	it('on success: clears the password fields and shows the response message', async () => {
@@ -686,13 +711,13 @@ describe('profile — group tags and status lines follow the palette (#1826)', (
 		expect(chip.closest('.ffc-profile-groups')).not.toBeNull();
 	});
 
-	it('reports a password error through the error class, never an inline colour', () => {
+	it('reports a password field error through the standard classes, never an inline colour', () => {
 		panel().render(PROFILE_FIXTURE);
 		window.$('.ffc-password-save-btn').trigger('click');
-		const status = document.querySelector('.ffc-password-status');
-		expect(status.textContent).toBe('All fields required');
-		expect(status.classList.contains('ffc-status-msg-error')).toBe(true);
-		expect(status.getAttribute('style') || '').not.toMatch(/color/);
+		const msg = document.querySelector('.ffc-password-form .ffc-field-message');
+		expect(msg.classList.contains('is-error')).toBe(true);
+		expect(msg.getAttribute('style') || '').not.toMatch(/color/);
+		expect(document.getElementById('ffc-current-password').getAttribute('style') || '').not.toMatch(/color/);
 	});
 
 	it('swaps the tone class rather than stacking it', () => {
@@ -700,7 +725,7 @@ describe('profile — group tags and status lines follow the palette (#1826)', (
 		const $status = window.$('.ffc-password-status');
 		window.FFCDashboard.helpers.setStatus($status, 'Saving…', 'busy');
 		window.FFCDashboard.helpers.setStatus($status, 'Done', 'success');
-		expect($status[0].className).toBe('ffc-password-status ffc-status-msg ffc-status-msg-success');
+		expect($status[0].className).toBe('ffc-password-status ffc-status is-success');
 	});
 
 	it('leaves no colour literal or inline margin in the rendered profile', () => {

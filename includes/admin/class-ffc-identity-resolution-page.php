@@ -309,10 +309,13 @@ class IdentityResolutionPage {
 			return;
 		}
 
+		// ffc-core: the dialog's refusal is drawn by FFC.notice() (#1843).
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 		wp_enqueue_script(
 			'ffc-identity-search',
 			FFC_PLUGIN_URL . 'assets/js/ffc-identity-search.js',
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

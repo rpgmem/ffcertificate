@@ -244,6 +244,12 @@ final class DarkModeCssTest extends TestCase {
 			array( '--ffc-text-muted', '--ffc-danger-bg', 4.5, 'the schedule\'s cancelled row' ),
 			array( '--ffc-warning-text', '--ffc-bg', 4.5, 'warning as text' ),
 			array( '--ffc-warning-text', '--ffc-bg-card', 4.5, 'warning as text on a card' ),
+			// The status line beside a control (#1843) has no ground of its own:
+			// each state reads its text tone on the card or the page it sits on.
+			array( '--ffc-success-text', '--ffc-bg', 4.5, 'a status line, saved' ),
+			array( '--ffc-danger-text', '--ffc-bg', 4.5, 'a status line, failed' ),
+			array( '--ffc-text-muted', '--ffc-bg', 4.5, 'a status line, busy' ),
+			array( '--ffc-info-text', '--ffc-bg-card', 4.5, 'info as text on a card' ),
 			array( '--ffc-inverse-on-surface', '--ffc-inverse-surface', 4.5, 'a toast bubble' ),
 			// The base pair (#1126, 5th pass). Text that declares no colour
 			// inherits from OUTSIDE here — from core's `body { color: #3c434a }`
@@ -271,6 +277,17 @@ final class DarkModeCssTest extends TestCase {
 			array( '--ffc-success', '--ffc-bg', 3.0, 'success as a signal' ),
 			array( '--ffc-warning', '--ffc-bg', 3.0, 'warning as a signal' ),
 			array( '--ffc-info', '--ffc-bg', 3.0, 'info as a signal' ),
+			// The field-message standard (#1844). The message sits on the page
+			// ground, a card or the alternate ground; the control's state is its
+			// border and ring, a graphic against the field. The warning state
+			// reads --ffc-warning: --ffc-warning-border gave 2.22:1 on a white field.
+			array( '--ffc-danger-text', '--ffc-bg', 4.5, 'a field error message on the page' ),
+			array( '--ffc-danger-text', '--ffc-bg-alt', 4.5, 'a field error message on the alternate ground' ),
+			array( '--ffc-warning-text', '--ffc-bg-alt', 4.5, 'a field warning message on the alternate ground' ),
+			array( '--ffc-text-secondary', '--ffc-bg', 4.5, 'a field hint or counter on the page' ),
+			array( '--ffc-danger-border', '--ffc-bg-input', 3.0, 'an invalid field\'s border' ),
+			array( '--ffc-warning', '--ffc-bg-input', 3.0, 'a field\'s warning border' ),
+			array( '--ffc-success-border', '--ffc-bg-input', 3.0, 'a valid field\'s border' ),
 		);
 	}
 

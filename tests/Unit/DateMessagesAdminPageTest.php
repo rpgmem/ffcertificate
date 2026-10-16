@@ -877,7 +877,7 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 
-		$this->assertStringContainsString( '<div class="notice notice-success">Rule saved.</div>', $html );
+		$this->assertStringContainsString( '<div class="notice notice-success"><span class="ffc-admin-notice-icon ffc-icon-success ffc-icon-tone-success" aria-hidden="true"></span>Rule saved.</div>', $html );
 		$this->assertStringContainsString( '<strong>08:00</strong>', $html );
 		$this->assertStringContainsString( 'The daily run is not scheduled.', $html );
 		$this->assertStringNotContainsString( 'Add rule', $html, 'a view-only operator gets no add button' );
@@ -907,7 +907,7 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 
-		$this->assertStringContainsString( '<div class="notice notice-error">That rule no longer exists.</div>', $html );
+		$this->assertStringContainsString( '<div class="notice notice-error"><span class="ffc-admin-notice-icon ffc-icon-error ffc-icon-tone-danger" aria-hidden="true"></span>That rule no longer exists.</div>', $html );
 		$this->assertStringContainsString( 'aria-labelledby="ffc-date-messages-tabnav-rules"', $html );
 	}
 

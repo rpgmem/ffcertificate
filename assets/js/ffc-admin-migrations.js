@@ -91,15 +91,17 @@
                     // Accumulate the REAL processed count from each batch,
                     // not iterations × 100 — last batch is often shorter.
                     totalProcessed += parseInt(data.processed, 10) || 0;
-                    $description.html(
+                    // The card's line is the shared status beside a control
+                    // (#1843), written as text.
+                    window.FFC.status($description, 'busy',
                         (strings.processed || 'Processed ')
-                        + '<strong>' + formatNumber(totalProcessed) + '</strong> '
+                        + formatNumber(totalProcessed) + ' '
                         + (strings.records || 'records...')
                     );
 
                     if (data.is_complete) {
                         $btn.html('<span class="ffc-icon-success" aria-hidden="true"></span>' + (strings.migrationComplete || 'Migration Complete'));
-                        $description.html('✓ ' + (strings.allRecordsMigrated || 'All records have been successfully migrated.'));
+                        window.FFC.status($description, 'success', strings.allRecordsMigrated || 'All records have been successfully migrated.');
                         setTimeout(function () { window.location.reload(); }, 1500);
                     } else {
                         setTimeout(runBatch, 300);
@@ -109,7 +111,7 @@
                     var strings = getStrings();
                     var msg = (err && err.message) ? err.message : (strings.errorOccurred || 'Error occurred. Please try again.');
                     $btn.prop('disabled', false).removeClass('disabled').html(originalBtnHtml);
-                    $description.html('<span class="ffc-text-error">✗ ' + msg + '</span>');
+                    window.FFC.status($description, 'error', msg);
                 });
         }
 

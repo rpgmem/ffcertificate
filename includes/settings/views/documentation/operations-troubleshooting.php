@@ -119,10 +119,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
-	<div class="ffc-alert ffc-alert-info ffc-mt-2xl">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Need More Help?', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'For additional support, check the plugin repository documentation or contact support.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array(
+			'title'   => __( 'Need More Help?', 'ffcertificate' ),
+			'classes' => array( 'ffc-mt-2xl' ),
+		)
+	);
+	?>
 </div>

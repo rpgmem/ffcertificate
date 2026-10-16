@@ -116,12 +116,9 @@ class TabEmailModel extends SettingsTab {
 				'failed'     => array( 'error', __( 'The test email could not be sent. Check your SMTP settings and try again.', 'ffcertificate' ) ),
 			);
 			if ( isset( $ffc_test_email_notices[ $ffc_test_email_flag ] ) ) {
-				wp_admin_notice(
-					esc_html( $ffc_test_email_notices[ $ffc_test_email_flag ][1] ),
-					array(
-						'type'               => $ffc_test_email_notices[ $ffc_test_email_flag ][0],
-						'additional_classes' => array( 'inline' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					$ffc_test_email_notices[ $ffc_test_email_flag ][0],
+					esc_html( $ffc_test_email_notices[ $ffc_test_email_flag ][1] )
 				);
 			}
 		}

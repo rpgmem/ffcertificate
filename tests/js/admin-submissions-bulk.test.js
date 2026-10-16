@@ -101,7 +101,7 @@ describe('Submissions bulk — form interception', () => {
 
 	it('fades out the affected rows on success + pops a toast', async () => {
 		vi.spyOn(window.FFC, 'request').mockResolvedValue({ message: '2 submissions moved to trash.' });
-		const notifySpy = vi.spyOn(window.FFC.Admin, 'showNotification').mockImplementation(() => {});
+		const notifySpy = vi.spyOn(window.FFC.Admin, 'notify').mockImplementation(() => {});
 
 		window.$('select[name="action"]').val('bulk_trash');
 		window.$('input[name="submission[]"][value="1"]').prop('checked', true);
@@ -119,7 +119,7 @@ describe('Submissions bulk — form interception', () => {
 
 	it('on error: restores the row opacity + toasts the server message', async () => {
 		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('DB conflict'));
-		const notifySpy = vi.spyOn(window.FFC.Admin, 'showNotification').mockImplementation(() => {});
+		const notifySpy = vi.spyOn(window.FFC.Admin, 'notify').mockImplementation(() => {});
 
 		window.$('select[name="action"]').val('bulk_trash');
 		window.$('input[name="submission[]"][value="1"]').prop('checked', true);

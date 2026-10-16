@@ -42,7 +42,7 @@
 		var progressText = document.getElementById('ffc-edit-csv-progress-text');
 		var errorList = document.getElementById('ffc-edit-csv-errors');
 		btn.disabled = true;
-		status.textContent = '';
+		window.FFC.status(status, '', '');
 		if (errorList) { errorList.innerHTML = ''; }
 		if (target !== 'definitive' && window.ffcRecruitmentImportBatched) {
 			// Preview list → staging-based orchestrator (4 phases).
@@ -79,13 +79,13 @@
 			.then(function (o) {
 				cleanup();
 				if (o.status >= 200 && o.status < 300) {
-					status.textContent = 'OK (' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)) + ')';
+					window.FFC.status(status, 'success', 'OK (' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)) + ')');
 					location.reload();
 				} else {
-					status.textContent = 'Error: ' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body));
+					window.FFC.status(status, 'error', 'Error: ' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)));
 				}
 			})
-			.catch(function (e) { cleanup(); status.textContent = (strings.networkError || 'Network error:') + ' ' + e.message; });
+			.catch(function (e) { cleanup(); window.FFC.status(status, 'error', (strings.networkError || 'Network error:') + ' ' + e.message); });
 		return false;
 	};
 
@@ -199,11 +199,11 @@
 		var status = document.getElementById('ffc-bulk-status');
 		var date = document.getElementById('ffc-bulk-date').value;
 		var time = document.getElementById('ffc-bulk-time').value;
-		if (!date || !time) { status.textContent = strings.bulkNoDate || ''; return; }
+		if (!date || !time) { window.FFC.status(status, 'warning', strings.bulkNoDate || ''); return; }
 		var ids = [];
 		var boxes = document.querySelectorAll('.ffc-cls-bulk-cb:checked');
 		for (var i = 0; i < boxes.length; i++) { ids.push(parseInt(boxes[i].value, 10)); }
-		if (ids.length === 0) { status.textContent = strings.bulkNoSel || ''; return; }
+		if (ids.length === 0) { window.FFC.status(status, 'warning', strings.bulkNoSel || ''); return; }
 		// Out-of-order detection: per adjutancy, find the lowest-rank empty
 		// row NOT in this selection (the "threshold"); any selected row with
 		// rank > threshold means the bulk would skip someone. Comparing
@@ -249,7 +249,7 @@
 		window.ffcRecruitmentAdmin.openConfirmModal(modalCfg, function (sharedReason, notifyChecked) {
 			var reasons = {};
 			if (anyOoO) { for (var k2 = 0; k2 < ids.length; k2++) { reasons[String(ids[k2])] = sharedReason; } }
-			status.textContent = '…';
+			window.FFC.status(status, 'busy', '…');
 			var bulkPayload = { classification_ids: ids, date_to_assume: date, time_to_assume: time };
 			if (anyOoO) { bulkPayload.out_of_order_reasons = reasons; }
 			// Ask mode (#794): the modal checkbox drives the per-batch opt-in.
@@ -269,9 +269,9 @@
 						} catch (e) {}
 						location.reload();
 					} else {
-						status.textContent = 'Error: ' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body));
+						window.FFC.status(status, 'error', 'Error: ' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)));
 					}
-				}).catch(function (e) { status.textContent = (strings.networkError || 'Network error:') + ' ' + e.message; });
+				}).catch(function (e) { window.FFC.status(status, 'error', (strings.networkError || 'Network error:') + ' ' + e.message); });
 		});
 	};
 

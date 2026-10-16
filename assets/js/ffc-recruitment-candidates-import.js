@@ -69,7 +69,7 @@
 		var progressText = document.getElementById('ffc-cand-csv-progress-text');
 		btn.disabled = true;
 		progress.style.display = 'inline-flex';
-		status.textContent = '';
+		window.FFC.status(status, '', '');
 		var startedAt = Date.now();
 		function tick() {
 			var sec = Math.floor((Date.now() - startedAt) / 1000);
@@ -94,15 +94,15 @@
 			.then(function (o) {
 				cleanup();
 				if (o.status >= 200 && o.status < 300) {
-					status.textContent = 'OK (' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)) + ')';
+					window.FFC.status(status, 'success', 'OK (' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)) + ')');
 					location.reload();
 				} else {
-					status.textContent = 'Error: ' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body));
+					window.FFC.status(status, 'error', 'Error: ' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)));
 				}
 			})
 			.catch(function (e) {
 				cleanup();
-				status.textContent = 'Network error: ' + e.message;
+				window.FFC.status(status, 'error', 'Network error: ' + e.message);
 			});
 		return false;
 	};

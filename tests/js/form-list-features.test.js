@@ -72,7 +72,7 @@ describe('Forms-list features toggle', () => {
 		$csv.prop('checked', true).trigger('change');
 
 		expect($badge.text()).toBe('Saving…');
-		expect($badge.hasClass('ffc-features-badge--saving')).toBe(true);
+		expect($badge.hasClass('is-busy')).toBe(true);
 		expect($badge.attr('hidden')).toBeUndefined();
 		expect($csv.prop('disabled')).toBe(true);
 
@@ -80,7 +80,7 @@ describe('Forms-list features toggle', () => {
 		await Promise.resolve(); await Promise.resolve();
 
 		expect($badge.text()).toBe('Saved');
-		expect($badge.hasClass('ffc-features-badge--saved')).toBe(true);
+		expect($badge.hasClass('is-success')).toBe(true);
 		expect($csv.prop('disabled')).toBe(false);
 	});
 
@@ -99,7 +99,7 @@ describe('Forms-list features toggle', () => {
 		expect($quiz.prop('disabled')).toBe(false);
 		const $badge = $row.find('.ffc-features-badge');
 		expect($badge.text()).toBe('You do not have permission');
-		expect($badge.hasClass('ffc-features-badge--error')).toBe(true);
+		expect($badge.hasClass('is-error')).toBe(true);
 	});
 
 	it('falls back to the localised error string when the response has no message', async () => {
@@ -133,7 +133,7 @@ describe('Forms-list features toggle', () => {
 
 		await Promise.resolve(); await Promise.resolve();
 		const $badge = window.$('#row-42 .ffc-features-badge');
-		expect($badge.hasClass('ffc-features-badge--saved')).toBe(true);
+		expect($badge.hasClass('is-success')).toBe(true);
 
 		vi.advanceTimersByTime(1800);
 		expect($badge.attr('hidden')).toBe('hidden');

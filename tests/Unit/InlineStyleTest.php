@@ -192,7 +192,7 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="--ffc-badge-row-bg:' => array( 1, self::OPERATOR_COLOUR ),
 		),
 		'assets/js/ffc-user-dashboard-profile.js' => array(
-			'style=: style="display: none;' => array( 4, self::INITIAL_STATE ),
+			'style=: style="display: none;' => array( 1, self::INITIAL_STATE ),
 		),
 		'includes/admin/class-ffc-admin-menu-icons.php' => array(
 			'wp_add_inline_style: wp_add_inline_style( "admin-menu"' => array( 1, self::GENERATED ),

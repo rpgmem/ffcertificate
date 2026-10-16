@@ -40,10 +40,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</table>
 	</div>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Disable hides, it does not delete.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'A disabled module keeps every row it already stored; only its screens and runtime stop. Public URLs that a disabled module used to answer (a short link, a public recruitment queue) stop responding until you turn it back on.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Disable hides, it does not delete.', 'ffcertificate' ) )
+	);
+	?>
 </div>

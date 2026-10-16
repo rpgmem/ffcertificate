@@ -80,7 +80,7 @@ class FormEditorDeviceLimitMetabox {
 				— <?php esc_html_e( 'Limit submissions per physical device (cookie + browser fingerprint).', 'ffcertificate' ); ?>
 				<?php if ( ! $global_active ) : ?>
 					<br>
-					<em class="ffc-warning-text">
+					<em class="ffc-text-danger">
 						<?php
 						echo wp_kses(
 							sprintf(

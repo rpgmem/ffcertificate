@@ -100,10 +100,14 @@
         if ($existing.length) {
             return $existing;
         }
-        var $badge = $('<span class="' + BADGE_CLASS + '" aria-live="polite" hidden></span>');
+        var $badge = $('<span class="' + BADGE_CLASS + ' ffc-status" role="status" aria-live="polite" hidden></span>');
         $anchor.after($badge);
         return $badge;
     }
+
+    // The badge is the shared status line beside a control (#1843):
+    // `BADGE_CLASS` only locates it, `.ffc-status` draws it.
+    var BADGE_STATES = { saving: 'busy', saved: 'success', error: 'error' };
 
     /**
      * Show one of three badge states: 'saving' | 'saved' | 'error'.
@@ -113,15 +117,11 @@
      * @param {string}  [text]
      */
     function setBadgeState($badge, state, text) {
-        $badge
-            .removeClass(BADGE_CLASS + '--saving ' + BADGE_CLASS + '--saved ' + BADGE_CLASS + '--error')
-            .addClass(BADGE_CLASS + '--' + state)
-            .text(text || '')
-            .removeAttr('hidden');
+        window.FFC.status($badge, BADGE_STATES[state] || '', text || '');
     }
 
     function hideBadge($badge) {
-        $badge.attr('hidden', 'hidden').text('');
+        window.FFC.status($badge, '', '');
     }
 
     /**
@@ -237,10 +237,14 @@
                     return true;
                 });
             }
+            // The browser's reason goes under the field, in the field-message
+            // standard (#1844), and leaves once the field saves again.
             if (!el || typeof el.checkValidity !== 'function' || el.checkValidity()) {
+                window.FFC.clearFieldMessage($field.add($field.find('[data-ffc-message-id]')));
                 return true;
             }
-            setBadgeState($badge, 'error', (el.validationMessage || invalidTxt));
+            hideBadge($badge);
+            window.FFC.fieldMessage(el, 'error', el.validationMessage || invalidTxt);
             if (typeof el.reportValidity === 'function') {
                 el.reportValidity();
             }

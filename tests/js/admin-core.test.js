@@ -105,6 +105,69 @@ describe('FFC.Admin.showNotification', () => {
 		window.FFC.Admin.showNotification('no h1');
 		expect(document.querySelector('#wpbody-content .ffc-admin-notification')).not.toBeNull();
 	});
+
+	it('is the same function as FFC.Admin.notify', () => {
+		expect(window.FFC.Admin.showNotification).toBe(window.FFC.Admin.notify);
+	});
+});
+
+// ----------------------------------------------------------------------
+// FFC.Admin.notify (#1843)
+// ----------------------------------------------------------------------
+
+describe('FFC.Admin.notify', () => {
+	it('leads the paragraph with the type icon in its tone', () => {
+		window.FFC.Admin.notify('Saved', 'success');
+		const icon = document.querySelector('.ffc-admin-notification p > span:first-child');
+		expect(icon.className).toContain('ffc-icon-success');
+		expect(icon.className).toContain('ffc-icon-tone-success');
+		expect(icon.getAttribute('aria-hidden')).toBe('true');
+	});
+
+	it('paints an error with the error icon in the danger tone', () => {
+		window.FFC.Admin.notify('Broken', 'error');
+		const icon = document.querySelector('.ffc-admin-notification .ffc-admin-notice-icon');
+		expect(icon.classList.contains('ffc-icon-error')).toBe(true);
+		expect(icon.classList.contains('ffc-icon-tone-danger')).toBe(true);
+	});
+
+	it('writes the message as text, never as markup', () => {
+		window.FFC.Admin.notify('<img src=x onerror="window.__pwned=1">', 'error');
+		const p = document.querySelector('.ffc-admin-notification p');
+		expect(p.querySelector('img')).toBeNull();
+		expect(p.textContent).toContain('<img src=x');
+	});
+
+	it('lets success and info close, and not a warning or an error', () => {
+		window.FFC.Admin.notify('a', 'success');
+		expect(document.querySelector('.ffc-admin-notification .notice-dismiss')).not.toBeNull();
+		window.FFC.Admin.notify('b', 'info');
+		expect(document.querySelector('.ffc-admin-notification.is-dismissible')).not.toBeNull();
+		window.FFC.Admin.notify('c', 'warning');
+		expect(document.querySelector('.ffc-admin-notification .notice-dismiss')).toBeNull();
+		window.FFC.Admin.notify('d', 'error');
+		expect(document.querySelector('.ffc-admin-notification.is-dismissible')).toBeNull();
+	});
+
+	it('announces errors as an alert and the rest as a status', () => {
+		window.FFC.Admin.notify('x', 'error');
+		expect(document.querySelector('.ffc-admin-notification').getAttribute('role')).toBe('alert');
+		window.FFC.Admin.notify('y', 'success');
+		expect(document.querySelector('.ffc-admin-notification').getAttribute('role')).toBe('status');
+	});
+
+	it('keeps an error until it is replaced unless a duration is passed', () => {
+		vi.useFakeTimers();
+		window.FFC.Admin.notify('stays', 'error');
+		vi.advanceTimersByTime(10000);
+		expect(document.querySelector('.ffc-admin-notification')).not.toBeNull();
+		vi.useRealTimers();
+	});
+
+	it('reads an unknown type as info', () => {
+		window.FFC.Admin.notify('m', 'bogus');
+		expect(document.querySelector('.ffc-admin-notification.notice-info')).not.toBeNull();
+	});
 });
 
 // ----------------------------------------------------------------------

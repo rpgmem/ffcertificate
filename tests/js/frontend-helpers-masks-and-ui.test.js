@@ -161,6 +161,28 @@ describe('FFC.Frontend.Masks.applyCpfRf — blur validation', () => {
 		expect($input.attr('aria-describedby')).toBe($err.attr('id'));
 	});
 
+	// #1844: the message used to REPLACE aria-describedby, so the hint the
+	// renderer linked stopped being read while the error stood.
+	it('appends the message to the hint it already names, and gives it back on a fix', () => {
+		const $input = setup('123.456.789-00');
+		$input.attr('aria-describedby', 'cpf_rf-hint');
+		$input.trigger('blur');
+		const id = $input.next('.ffc-field-message').attr('id');
+		expect($input.attr('aria-describedby')).toBe('cpf_rf-hint ' + id);
+
+		$input.val('529.982.247-25').trigger('blur');
+		expect($input.attr('aria-describedby')).toBe('cpf_rf-hint');
+		expect($input.next('.ffc-field-message').length).toBe(0);
+	});
+
+	it('withdraws the verdict as soon as the value changes', () => {
+		const $input = setup('123.456.789-00');
+		$input.trigger('blur');
+		$input.val('1').trigger('input');
+		expect($input.hasClass('is-invalid')).toBe(false);
+		expect($input.next('.ffc-field-message').length).toBe(0);
+	});
+
 	it('replaces a prior error span rather than stacking', () => {
 		const $input = setup('12345');
 		$input.trigger('blur');

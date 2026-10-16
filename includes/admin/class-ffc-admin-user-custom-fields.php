@@ -60,7 +60,7 @@ class AdminUserCustomFields {
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 		wp_enqueue_style( 'ffc-custom-fields-admin', FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css", array( 'ffc-common' ), FFC_VERSION );
-		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		// `ffc-core` supplies `FFC.setRequiredWithin()`, which the collapse
 		// script uses to carry `required` with a section's visibility (#1120).
 		// Without it a collapsed section holding a required field blocks the
@@ -199,7 +199,7 @@ class AdminUserCustomFields {
 										<label for="<?php echo esc_attr( $input_name ); ?>">
 											<?php echo esc_html( $field->field_label ); ?>
 											<?php if ( ! empty( $field->is_required ) ) : ?>
-												<span class="ffc-required">*</span>
+												<span class="ffc-required" aria-hidden="true">*</span>
 											<?php endif; ?>
 										</label>
 										<?php if ( (int) $field->source_audience_id !== (int) $audience->id ) : ?>
@@ -332,10 +332,10 @@ class AdminUserCustomFields {
 						<thead>
 							<tr>
 								<th><?php esc_html_e( 'Day', 'ffcertificate' ); ?></th>
-								<th><?php esc_html_e( 'Entry 1', 'ffcertificate' ); ?> <span class="ffc-required">*</span></th>
+								<th><?php esc_html_e( 'Entry 1', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></th>
 								<th><?php esc_html_e( 'Exit 1', 'ffcertificate' ); ?></th>
 								<th><?php esc_html_e( 'Entry 2', 'ffcertificate' ); ?></th>
-								<th><?php esc_html_e( 'Exit 2', 'ffcertificate' ); ?> <span class="ffc-required">*</span></th>
+								<th><?php esc_html_e( 'Exit 2', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></th>
 								<th></th>
 							</tr>
 						</thead>
@@ -680,8 +680,8 @@ class AdminUserCustomFields {
 		}
 		delete_transient( $key );
 
-		printf(
-			'<div class="notice notice-warning is-dismissible"><p>%s</p></div>',
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'warning',
 			esc_html(
 				sprintf(
 					/* translators: %s: comma-separated list of custom field labels. */
@@ -734,10 +734,11 @@ class AdminUserCustomFields {
 			return;
 		}
 
-		printf(
-			'<div class="notice notice-warning is-dismissible"><p>%s</p><ul class="ffc-working-hours-incomplete"><li>%s</li></ul></div>',
-			esc_html__( 'These working-hours rows were incomplete and were not saved. The first entry and the last exit are required; the middle shift is optional.', 'ffcertificate' ),
-			implode( '</li><li>', array_map( 'esc_html', $lines ) )
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'warning',
+			'<p>' . esc_html__( 'These working-hours rows were incomplete and were not saved. The first entry and the last exit are required; the middle shift is optional.', 'ffcertificate' ) . '</p>'
+				. '<ul class="ffc-working-hours-incomplete"><li>' . implode( '</li><li>', array_map( 'esc_html', $lines ) ) . '</li></ul>',
+			array( 'paragraph_wrap' => false )
 		);
 	}
 }

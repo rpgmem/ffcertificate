@@ -69,9 +69,9 @@ final class RecruitmentReasonEditPage {
 
 		if ( null === $reason ) {
 			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
-			wp_admin_notice(
-				esc_html__( 'Reason not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'Reason not found.', 'ffcertificate' )
 			);
 			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Reasons', 'ffcertificate' ) . '</a></p>';
 			return;

@@ -81,26 +81,29 @@ jQuery(document).ready(function($) {
         // without going through this jQuery-bound IIFE.
         var errors = window.FFCGeofenceValidation.analyzeDateTimeOrder(values);
 
-        // Toggle the .ffc-input-invalid class on each input based on the map.
+        // The field-message standard (#1844): each input that breaks the
+        // order rule takes the invalid state, and one message under Date
+        // Range — the helper repeats the same message across paired fields
+        // — names the rule. The key is the one the metabox prints with.
+        var $all = $();
+        var $invalid = $();
+        var firstMsg = '';
         DATETIME_FIELDS.forEach(function(name) {
             var $input = $('input[name="' + name + '"]');
             var key    = name.slice(name.indexOf('[') + 1, -1);
-            $input.toggleClass('ffc-input-invalid', !!errors[key]);
+            $all = $all.add($input);
+            if (errors[key]) {
+                $invalid = $invalid.add($input);
+                firstMsg = firstMsg || errors[key];
+            }
         });
 
-        // Update / show / hide the inline error paragraph under Date Range.
-        var $msg = $('p.ffc-datetime-order-error');
-        if ($msg.length) {
-            // One message represents the current rule violation (the helper
-            // repeats the same message across paired fields).
-            var firstMsg = '';
-            for (var k in errors) {
-                if (Object.prototype.hasOwnProperty.call(errors, k)) {
-                    firstMsg = errors[k];
-                    break;
-                }
-            }
-            $msg.text(firstMsg).toggleClass('ffc-hidden', !firstMsg);
+        window.FFC.clearFieldMessage($all);
+        if (firstMsg) {
+            window.FFC.fieldMessage($invalid, 'error', firstMsg, {
+                id: 'ffc_geofence_datetime_order',
+                after: $('#ffc_geofence_date_start').closest('td').children('p.description').first()
+            });
         }
     }
 

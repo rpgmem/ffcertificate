@@ -54,12 +54,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php esc_html_e( 'Define FFC_ENCRYPTION_KEY and FFC_HASH_SALT (32+ chars each) in wp-config.php so a future WordPress salt rotation cannot make your encrypted data unreadable. The panel generates ready-to-paste, self-documented snippets — each value is produced in your browser and is never saved or sent, and the plugin never writes wp-config.php for you.', 'ffcertificate' ); ?>
 	</p>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-lock"><?php esc_html_e( 'One-way — plan before you edit.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Defining a constant is effectively one-way: new writes use the new key the moment it is defined. On a site that already stores data, adopt the constants and then run the Encryption Key Rotation (Settings → Data Migrations) to re-encrypt existing records. Removing or blindly changing a constant on a live site makes existing records unreadable until the exact value is restored — it is never a blind edit.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array(
+			'icon'  => 'lock',
+			'title' => __( 'One-way — plan before you edit.', 'ffcertificate' ),
+		)
+	);
+	?>
 
 	<p><strong><?php esc_html_e( 'Rotating to a new key (re-key).', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'To replace an in-use encryption key without downtime, use the panel\'s "Rotate to a new key" helper:', 'ffcertificate' ); ?></p>
 	<ol>
@@ -70,10 +78,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</ol>
 	<p class="description"><?php esc_html_e( 'The rotation is only available when both FFC_ENCRYPTION_KEY and FFC_HASH_SALT are defined, and only one previous key is supported at a time — finish one rotation before starting the next. FFC_HASH_SALT needs no "previous": the search hashes are rebuilt from the decrypted values during the rotation.', 'ffcertificate' ); ?></p>
 
-	<div class="ffc-doc-note ffc-mt-2xl">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-lock"><?php esc_html_e( 'Danger Zone.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Two destructive tools live here: "Delete all plugin data on uninstall" (when on, deleting the plugin drops its tables, options, roles/capabilities and transients — off by default), and a "Delete submissions" action (all, or for one form, with an option to reset the ID counter). Both are irreversible.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array(
+			'icon'    => 'lock',
+			'title'   => __( 'Danger Zone.', 'ffcertificate' ),
+			'classes' => array( 'ffc-mt-2xl' ),
+		)
+	);
+	?>
 </div>

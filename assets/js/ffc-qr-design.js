@@ -62,17 +62,16 @@
 	 * @param {Object} checks  { inverted, low_contrast, min_ratio, caption_contrast }.
 	 */
 	function showChecks($out, checks) {
-		$out.removeClass('is-warning is-error');
 		if (checks.inverted) {
-			$out.addClass('is-error').text(i18n.inverted || '');
+			window.FFC.status($out, 'error', i18n.inverted || '');
 		} else if (checks.transparent) {
-			$out.addClass('is-warning').text(i18n.transparent || '');
+			window.FFC.status($out, 'warning', i18n.transparent || '');
 		} else if (checks.caption_contrast === false) {
-			$out.addClass('is-warning').text(i18n.captionContrast || '');
+			window.FFC.status($out, 'warning', i18n.captionContrast || '');
 		} else if (checks.low_contrast) {
-			$out.addClass('is-warning').text(String(i18n.lowContrast || '').replace('%s', String(checks.min_ratio)));
+			window.FFC.status($out, 'warning', String(i18n.lowContrast || '').replace('%s', String(checks.min_ratio)));
 		} else {
-			$out.text(i18n.ok || '');
+			window.FFC.status($out, 'success', i18n.ok || '');
 		}
 	}
 
@@ -99,7 +98,7 @@
 				if (mine !== sequence) {
 					return;
 				}
-				$out.removeClass('is-warning').addClass('is-error').text(i18n.error || '');
+				window.FFC.status($out, 'error', i18n.error || '');
 			});
 	}
 
@@ -120,19 +119,27 @@
 			}
 			$hex.data('ffcQrHexBound', true);
 
-			$picker.on('input change', function () {
-				$hex.val(String($picker.val() || '')).removeClass('is-invalid');
-			});
+			// A text that is not a colour says so under the pair, in the
+			// field-message standard (#1844); the picker keeps the last
+			// good colour, which the box shows again on blur.
+			var $pair = $hex.closest('.ffc-qr-color');
+			function settle() {
+				$hex.val(String($picker.val() || ''));
+				window.FFC.clearFieldMessage($hex);
+			}
+			$picker.on('input change', settle);
 			$hex.on('input', function () {
 				var color = normalizeHex($hex.val());
-				$hex.toggleClass('is-invalid', color === '' && String($hex.val()).trim() !== '');
+				if (color === '' && String($hex.val()).trim() !== '') {
+					window.FFC.fieldMessage($hex, 'error', $hex.attr('data-ffc-invalid-message') || '', { after: $pair });
+				} else {
+					window.FFC.clearFieldMessage($hex);
+				}
 				if (color !== '' && color !== String($picker.val()).toLowerCase()) {
 					$picker.val(color).trigger('input');
 				}
 			});
-			$hex.on('blur', function () {
-				$hex.val(String($picker.val() || '')).removeClass('is-invalid');
-			});
+			$hex.on('blur', settle);
 		});
 	}
 

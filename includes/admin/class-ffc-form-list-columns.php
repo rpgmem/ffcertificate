@@ -295,7 +295,7 @@ class FormListColumns {
 				)
 			);
 		}
-		echo '<span class="ffc-features-badge" aria-live="polite" hidden></span>';
+		echo '<span class="ffc-features-badge ffc-status" role="status" aria-live="polite" hidden></span>';
 		echo '</div>';
 	}
 

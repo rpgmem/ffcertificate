@@ -52,7 +52,7 @@ class SchedulingFrameControlsTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_trim_words' )->returnArg();
 		Functions\when( 'selected' )->justReturn( '' );
 		// WordPress's helpers emit their real markup, so the fields and buttons

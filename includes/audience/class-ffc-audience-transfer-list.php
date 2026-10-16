@@ -51,7 +51,7 @@ final class AudienceTransferList {
 		wp_enqueue_script(
 			self::HANDLE,
 			FFC_PLUGIN_URL . "assets/js/ffc-audience-transfer-list{$suffix}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

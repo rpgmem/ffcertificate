@@ -146,7 +146,7 @@ class AudienceAdminCalendar {
 		<?php endif; ?>
 		<hr class="wp-header-end">
 
-		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 
 		<?php
 		if ( null !== $this->environment ) {
@@ -306,7 +306,7 @@ class AudienceAdminCalendar {
 		<h1><?php echo esc_html( $page_title ); ?></h1>
 		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Calendars', 'ffcertificate' ); ?></a>
 
-		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 		<?php if ( ! $can_manage ) : ?>
 			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
 		<?php endif; ?>
@@ -338,7 +338,7 @@ class AudienceAdminCalendar {
 				<?php endif; ?>
 				<tr>
 					<th scope="row">
-						<label for="schedule_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
+						<label for="schedule_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 					</th>
 					<td>
 						<input type="text" name="schedule_name" id="schedule_name" class="regular-text"

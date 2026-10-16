@@ -79,16 +79,18 @@ abstract class AbstractDismissibleNotice {
 			return;
 		}
 
-		// Render via the canonical WP 6.4+ helper: it builds the standard
-		// `notice notice-{type} is-dismissible` markup and escapes the classes +
-		// attributes. `ffc-js-dismiss-notice` is the hook class the shared
-		// dismiss JS binds to; the data-attributes carry the AJAX action + nonce.
-		// paragraph_wrap is off because each notice supplies its own <p> markup.
-		wp_admin_notice(
+		// Render through the plugin's page-notice builder, which wraps the
+		// canonical WP 6.4+ helper and adds the type's icon (#1843). This is an
+		// acknowledgement, so it closes whatever its type: the dismissal is
+		// stored, and closing it is the point. `ffc-js-dismiss-notice` is the
+		// hook class the shared dismiss JS binds to; the data-attributes carry
+		// the AJAX action + nonce. paragraph_wrap is off because each notice
+		// supplies its own <p> markup.
+		\FreeFormCertificate\Core\AdminNotice::render(
+			static::notice_type(),
 			static::notice_message(),
 			array(
-				'type'               => static::notice_type(),
-				'dismissible'        => true,
+				'acknowledge'        => true,
 				'paragraph_wrap'     => false,
 				'additional_classes' => array_filter( array( 'ffc-js-dismiss-notice', static::extra_class() ) ),
 				'attributes'         => array(

@@ -165,7 +165,7 @@ class AudienceAdminEnvironment {
 		<?php endif; ?>
 		<hr class="wp-header-end">
 
-		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 
 		<?php AudienceAdminCalendar::render_view_switch( $this->menu_slug, self::VIEW ); ?>
 
@@ -405,7 +405,7 @@ class AudienceAdminEnvironment {
 			?>
 		</a>
 
-		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 		<?php if ( ! $can_manage ) : ?>
 			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
 		<?php endif; ?>
@@ -425,7 +425,7 @@ class AudienceAdminEnvironment {
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
-						<label for="environment_schedule"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
+						<label for="environment_schedule"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 					</th>
 					<td>
 						<select name="environment_schedule" id="environment_schedule" required>
@@ -446,7 +446,7 @@ class AudienceAdminEnvironment {
 				</tr>
 				<tr>
 					<th scope="row">
-						<label for="environment_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
+						<label for="environment_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 					</th>
 					<td>
 						<input type="text" name="environment_name" id="environment_name" class="regular-text"

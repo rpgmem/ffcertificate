@@ -87,7 +87,7 @@
         if (!cid || !sel || !msg) {
             return;
         }
-        msg.textContent = '';
+        window.FFC.status(msg, '', '');
         btn.disabled = true;
 
         fetch(cfg.classRoot + encodeURIComponent(cid) + '/adjutancy', {
@@ -100,19 +100,13 @@
         }).then(function (res) {
             btn.disabled = false;
             if (res.ok && res.body && res.body.success) {
-                msg.textContent = strings.saved || 'Saved';
-                msg.classList.remove('is-error');
-                msg.classList.add('is-success');
+                window.FFC.status(msg, 'success', strings.saved || 'Saved');
             } else {
-                msg.textContent = (strings.error || 'Error') + ': ' + ((res.body && res.body.message) || '');
-                msg.classList.remove('is-success');
-                msg.classList.add('is-error');
+                window.FFC.status(msg, 'error', (strings.error || 'Error') + ': ' + ((res.body && res.body.message) || ''));
             }
         }).catch(function () {
             btn.disabled = false;
-            msg.textContent = strings.error || 'Error';
-            msg.classList.remove('is-success');
-            msg.classList.add('is-error');
+            window.FFC.status(msg, 'error', strings.error || 'Error');
         });
     });
 

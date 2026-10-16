@@ -137,7 +137,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</table>
 	</div>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<h4><?php esc_html_e( 'Dependent-select fields (Division / Sector):', 'ffcertificate' ); ?></h4>
 		<p>
 			<?php esc_html_e( 'A dependent_select custom field (e.g. divisao_setor) exposes three placeholders: the combined value plus its two halves. Use whichever the layout needs.', 'ffcertificate' ); ?>
@@ -150,7 +150,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p>
 			<?php esc_html_e( 'The same _parent / _child split is available for any dependent_select field by appending those suffixes to its field key.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean()
+	);
+	?>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Customization:', 'ffcertificate' ); ?></h4>

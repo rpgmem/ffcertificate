@@ -225,21 +225,33 @@ describe('frontend.handleFormSubmission', () => {
 		delete window.ffcGeneratePDF;
 	});
 
-	it('clears a stale error class from a required field that now has a value', async () => {
+	it('says "required" under an empty required field, and withdraws it once filled', async () => {
 		const $form = setupForm({ withRequired: true });
 		const input = document.querySelector('input[name="name"]');
-		// Pre-mark as invalid (as a prior failed submit would have).
-		input.classList.add('is-invalid');
-		input.setAttribute('aria-invalid', 'true');
-		input.value = 'Filled';
+		input.setAttribute('aria-describedby', 'name-hint');
 		mockAjax((opts) => { opts.success({ success: true, data: { html: '<div>ok</div>' } }); return {}; });
 
 		$form.trigger('submit');
 		await flush();
 
-		// The validation loop took the else-branch and cleared the markers.
+		// The field-message standard (#1844): the state, the announced
+		// message, and its id APPENDED to the hint the field already names.
+		expect(input.classList.contains('is-invalid')).toBe(true);
+		expect(input.getAttribute('aria-invalid')).toBe('true');
+		const id = input.getAttribute('data-ffc-message-id');
+		expect(input.getAttribute('aria-describedby')).toBe('name-hint ' + id);
+		const msg = document.getElementById(id);
+		expect(msg.textContent).toBe('This field is required.');
+		expect(msg.getAttribute('role')).toBe('alert');
+
+		input.value = 'Filled';
+		$form.trigger('submit');
+		await flush();
+
 		expect(input.classList.contains('is-invalid')).toBe(false);
 		expect(input.getAttribute('aria-invalid')).toBeNull();
+		expect(input.getAttribute('aria-describedby')).toBe('name-hint');
+		expect(document.getElementById(id)).toBeNull();
 	});
 
 	it('on a resolved-but-null response: shows the generic error and re-enables submit', async () => {

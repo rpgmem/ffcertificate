@@ -234,19 +234,18 @@
 			if ( ! $panel.length ) {
 				return;
 			}
-			var $warn = $( '<div class="ffc-vtabs__required-warning notice notice-error" role="alert"></div>' );
-			$warn.append( $( '<p></p>' ).append(
-				$( '<strong></strong>' ).text( cfg.message || 'Missing required tags:' )
-			) );
-			var $list = $( '<p></p>' );
+			// The `.ffc-notice` component (#1843): the message is its title and
+			// the tag list its body, each tag written as text.
+			var $list = $( '<p class="ffc-notice-text"></p>' );
 			missing.forEach( function ( tag, i ) {
 				if ( i ) {
 					$list.append( document.createTextNode( ', ' ) );
 				}
 				$list.append( $( '<code></code>' ).text( tag ) );
 			} );
-			$warn.append( $list );
-			$panel.prepend( $warn );
+			var warn = window.FFC.notice( 'danger', 'error', [], cfg.message || 'Missing required tags:', { role: 'alert', children: [ $list[ 0 ] ] } );
+			warn.classList.add( 'ffc-vtabs__required-warning' );
+			$panel.prepend( warn );
 		}
 
 		/**

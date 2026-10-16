@@ -9,7 +9,8 @@
 //   - "Display during" hide-mode row toggle (visible only in daily mode)
 //   - Geo enable toggle + auto-enable GPS when both methods are off
 //   - Alert + revert when the operator tries to disable both GPS and IP
-//   - Live validity refresh adds .ffc-input-invalid via the validator
+//   - Live validity refresh marks the inputs invalid via the validator,
+//     with one field message under Date Range (#1844)
 //
 // Sprint A of the JS coverage roadmap — closes the 0% blind spot on the
 // admin shell. The validator is exercised separately to keep that
@@ -35,7 +36,6 @@ function mountMetabox() {
 				<tr id="ffc-datetime-hide-mode-during-row">
 					<td><select name="ffc_geofence[hide_mode_during]"><option value="hidden">hidden</option></select></td>
 				</tr>
-				<p class="ffc-datetime-order-error ffc-hidden"></p>
 			</div>
 
 			<div id="ffc-tab-geolocation">
@@ -55,7 +55,8 @@ beforeEach(() => {
 	// their own. Disable the FX queue so slideUp/slideDown apply display
 	// immediately and tests can assert on css('display').
 	window.$.fx.off = true;
-	// The shell depends on the extracted validator.
+	// The shell depends on the extracted validator and on FFC.fieldMessage().
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-geofence-validation.js');
 });
 
@@ -165,7 +166,7 @@ describe('ffc-geofence-admin — geo enable + method validation', () => {
 });
 
 describe('ffc-geofence-admin — live validity refresh', () => {
-	it('adds .ffc-input-invalid on the date inputs when end < start', async () => {
+	it('marks the date inputs invalid when end < start, with one message', async () => {
 		mountMetabox();
 		loadScript('assets/js/ffc-geofence-admin.js');
 		await new Promise((r) => setTimeout(r, 0));
@@ -179,13 +180,18 @@ describe('ffc-geofence-admin — live validity refresh', () => {
 			.val('2026-06-01')
 			.trigger('input');
 
-		expect(window.$('input[name="ffc_geofence[date_start]"]').hasClass('ffc-input-invalid')).toBe(true);
-		expect(window.$('input[name="ffc_geofence[date_end]"]').hasClass('ffc-input-invalid')).toBe(true);
-		// The inline error paragraph carries the first error message and
-		// loses the shared hidden class.
-		const $msg = window.$('p.ffc-datetime-order-error');
-		expect($msg.hasClass('ffc-hidden')).toBe(false);
+		const $start = window.$('input[name="ffc_geofence[date_start]"]');
+		const $end = window.$('input[name="ffc_geofence[date_end]"]');
+		expect($start.hasClass('is-invalid')).toBe(true);
+		expect($end.hasClass('is-invalid')).toBe(true);
+		// One message, keyed as the metabox prints it, which both inputs name.
+		const $msg = window.$('.ffc-field-message');
+		expect($msg.length).toBe(1);
+		expect($msg.attr('id')).toBe('ffc-msg-ffc_geofence_datetime_order');
+		expect($msg.attr('role')).toBe('alert');
 		expect($msg.text().length).toBeGreaterThan(0);
+		expect($start.attr('aria-describedby')).toBe('ffc-msg-ffc_geofence_datetime_order');
+		expect($end.attr('aria-invalid')).toBe('true');
 	});
 
 	it('clears the invalid state once the dates are reordered', async () => {
@@ -198,8 +204,9 @@ describe('ffc-geofence-admin — live validity refresh', () => {
 		// Fix the order.
 		window.$('input[name="ffc_geofence[date_end]"]').val('2026-07-01').trigger('input');
 
-		expect(window.$('input[name="ffc_geofence[date_start]"]').hasClass('ffc-input-invalid')).toBe(false);
-		expect(window.$('input[name="ffc_geofence[date_end]"]').hasClass('ffc-input-invalid')).toBe(false);
-		expect(window.$('p.ffc-datetime-order-error').hasClass('ffc-hidden')).toBe(true);
+		expect(window.$('input[name="ffc_geofence[date_start]"]').hasClass('is-invalid')).toBe(false);
+		expect(window.$('input[name="ffc_geofence[date_end]"]').hasClass('is-invalid')).toBe(false);
+		expect(window.$('input[name="ffc_geofence[date_end]"]').attr('aria-describedby')).toBeUndefined();
+		expect(window.$('.ffc-field-message').length).toBe(0);
 	});
 });

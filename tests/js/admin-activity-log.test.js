@@ -146,6 +146,10 @@ describe('Activity Log — AJAX filter form', () => {
 
 		expect(window.$('#ffc-activity-log-table').text()).toContain('No activity logs found.');
 		expect(window.$('#ffc-activity-log-table table').length).toBe(0);
+		// An in-content callout inside the container, never a core `.notice`
+		// that common.js would lift to the top of the screen (#1843).
+		expect(window.$('#ffc-activity-log-table > .ffc-notice.ffc-notice-info').length).toBe(1);
+		expect(window.$('#ffc-activity-log-table .notice').length).toBe(0);
 	});
 });
 
@@ -209,9 +213,9 @@ describe('Activity Log — Export CSV (batched engine #772)', () => {
 });
 
 describe('Activity Log — error path', () => {
-	it('shows the server message via FFC.Admin.showNotification on error', async () => {
+	it('shows the server message via FFC.Admin.notify on error', async () => {
 		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('DB exploded'));
-		const notifySpy = vi.spyOn(window.FFC.Admin, 'showNotification').mockImplementation(() => {});
+		const notifySpy = vi.spyOn(window.FFC.Admin, 'notify').mockImplementation(() => {});
 
 		// jsdom doesn't implement HTMLFormElement.submit, so we dispatch
 		// the submit event directly — handlers still fire, default is
@@ -225,11 +229,11 @@ describe('Activity Log — error path', () => {
 		expect(window.$('#ffc-activity-log-table tbody').html()).toContain('old row');
 	});
 
-	it('falls back to window.alert when showNotification is unavailable', async () => {
+	it('falls back to window.alert when notify is unavailable', async () => {
 		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('Net down'));
-		// Temporarily remove the showNotification helper.
-		const saved = window.FFC.Admin.showNotification;
-		window.FFC.Admin.showNotification = undefined;
+		// Temporarily remove the notify helper.
+		const saved = window.FFC.Admin.notify;
+		window.FFC.Admin.notify = undefined;
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		document.querySelector('.tablenav.top .alignleft form')
@@ -237,7 +241,7 @@ describe('Activity Log — error path', () => {
 		await Promise.resolve(); await Promise.resolve();
 
 		expect(alertSpy).toHaveBeenCalledWith('Net down');
-		window.FFC.Admin.showNotification = saved;
+		window.FFC.Admin.notify = saved;
 	});
 });
 

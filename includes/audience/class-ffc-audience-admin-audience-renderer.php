@@ -47,7 +47,7 @@ final class AudienceAdminAudienceRenderer {
 		<?php endif; ?>
 		<hr class="wp-header-end">
 
-		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 
 		<table class="wp-list-table widefat fixed striped">
 			<thead>
@@ -246,7 +246,7 @@ final class AudienceAdminAudienceRenderer {
 			<?php endif; ?>
 		<?php endif; ?>
 
-		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 		<?php if ( ! $can_manage ) : ?>
 			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
 		<?php endif; ?>
@@ -265,7 +265,7 @@ final class AudienceAdminAudienceRenderer {
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
-						<label for="audience_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
+						<label for="audience_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 					</th>
 					<td>
 						<input type="text" name="audience_name" id="audience_name" class="regular-text"
@@ -461,7 +461,7 @@ final class AudienceAdminAudienceRenderer {
 						<?php esc_html_e( 'Replicate lists to children', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
-				<span id="ffc-custom-fields-status" class="ffc-save-status"></span>
+				<span id="ffc-custom-fields-status" class="ffc-status" role="status" aria-live="polite" hidden></span>
 			</p>
 			<?php else : ?>
 			<p class="description"><em><?php esc_html_e( 'Read-only — you do not have permission to edit custom field definitions.', 'ffcertificate' ); ?></em></p>
