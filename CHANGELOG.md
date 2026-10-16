@@ -47,6 +47,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The Reregistrations tab spaces its groups again** (#1837). Completed sat flush against the Active table because the heading margin lost to the tab's own reset; each group is now a section, spaced like the calendar tabs.
 - **A clicked dashboard tab no longer shows a focus box** (#1840). The tabs draw their ring on keyboard focus only (`:focus-visible`, the 2px primary ring), so a theme's `button:focus` outline no longer boxes the active tab after a click.
 - **The dashboard's tab bar wraps instead of overflowing** (#1840). Between the phone layout and a width that fits every tab, the tabs flow onto a second row and Log Out stays at the right end of the last row; at 769–900px the page no longer scrolls sideways.
+- **The rate-limit notice shows on the form that was refused** (#1846). It looked for `.ffc-form`, which no public form has, so the certificate form never showed it; it now sits above the refused form, counts down, and gives the button its own label back.
 
 ### Security
 
