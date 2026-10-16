@@ -510,52 +510,55 @@ describe('FFC.Frontend.UI.refreshCaptcha', () => {
 // ----------------------------------------------------------------------
 
 describe('FFC.Frontend.RateLimit', () => {
+	// The certificate form's own markup: no `.ffc-form` class (#1846).
 	beforeEach(() => {
 		document.body.innerHTML = `
-			<form class="ffc-form">
-				<input type="text" name="x">
-				<button type="submit">Send</button>
-			</form>
+			<div class="ffc-shortcode ffc-form-wrapper">
+				<h2 class="ffc-form-title">T</h2>
+				<form class="ffc-submission-form">
+					<input type="text" name="x">
+					<button type="submit" class="ffc-submit-btn">Submit</button>
+				</form>
+			</div>
 		`;
 	});
+	const $form = () => window.$('.ffc-submission-form');
 
 	it('show() injects a notice with the message and disables the submit button', () => {
-		// Use real timers — the IIFE's setTimeout(updateDisplay, 1000) will
-		// be controlled below; for now just exercise the entry path.
-		window.FFC.Frontend.RateLimit.show('Too many tries', 30);
+		window.FFC.Frontend.RateLimit.show('Too many tries', 30, $form());
 
 		expect(window.$('[data-ffc-notice="rate-limit"]').length).toBe(1);
 		expect(window.$('[data-ffc-notice="rate-limit"]').text()).toContain('Too many tries');
-		expect(window.$('.ffc-form button[type="submit"]').prop('disabled')).toBe(true);
+		expect($form().find('button[type="submit"]').prop('disabled')).toBe(true);
 		expect(window.FFC.Frontend.RateLimit.blocked).toBe(true);
 
-		// Cleanup so the test's setTimeout countdown doesn't bleed into
-		// subsequent suites.
+		// Cleanup so the countdown does not bleed into later suites.
 		window.FFC.Frontend.RateLimit.enable();
 	});
 
-	it('enable() removes the notice and re-enables the button', () => {
-		window.FFC.Frontend.RateLimit.show('msg', 10);
-		window.FFC.Frontend.RateLimit.enable();
+	it('enable() removes the notice and gives the button its label back', () => {
+		window.FFC.Frontend.RateLimit.show('msg', 10, $form());
+		window.FFC.Frontend.RateLimit.enable($form());
 
 		expect(window.$('[data-ffc-notice="rate-limit"]').length).toBe(0);
-		expect(window.$('.ffc-form button[type="submit"]').prop('disabled')).toBe(false);
-		expect(window.$('.ffc-form button[type="submit"]').text()).toBe('Send');
+		expect($form().find('button[type="submit"]').prop('disabled')).toBe(false);
+		expect($form().find('button[type="submit"]').text()).toBe('Submit');
 		expect(window.FFC.Frontend.RateLimit.blocked).toBe(false);
 	});
 
-	it('startCountdown formats mm:ss and decrements (fake timers)', () => {
+	it('the countdown formats mm:ss and decrements (fake timers)', () => {
 		vi.useFakeTimers();
-		window.FFC.Frontend.RateLimit.show('msg', 75);
+		window.FFC.Frontend.RateLimit.show('msg', 75, $form());
+		const count = () => window.$('[data-ffc-notice="rate-limit"] strong').text();
 
 		// Immediately after show: 1:15.
-		expect(window.$('#ffc-countdown').text()).toBe('1:15');
+		expect(count()).toBe('1:15');
 
 		vi.advanceTimersByTime(1000);
-		expect(window.$('#ffc-countdown').text()).toBe('1:14');
+		expect(count()).toBe('1:14');
 
 		vi.advanceTimersByTime(75000);
-		// After 75 more seconds enable() is called and the notice is gone.
+		// The wait is over: the notice is gone.
 		expect(window.$('[data-ffc-notice="rate-limit"]').length).toBe(0);
 
 		vi.useRealTimers();

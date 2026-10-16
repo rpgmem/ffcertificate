@@ -54,7 +54,7 @@ function certForm(id) {
 	document.body.innerHTML = `
 		<div class="ffc-shortcode ffc-form-wrapper" id="ffc-form-${id}">
 			<h2 class="ffc-form-title">Form</h2>
-			<form class="ffc-submission-form ffc-form" id="ffc-form-element-${id}">
+			<form class="ffc-submission-form" id="ffc-form-element-${id}">
 				<input type="hidden" name="form_id" value="${id}">
 				<div class="ffc-form-field"><input name="name" value="Ana"></div>
 				<button type="submit">Submit</button>
@@ -158,14 +158,14 @@ describe('certificate-form emitters', () => {
 	it('rate limit: a warning notice with clock, the message as text and a live countdown', () => {
 		certForm(4);
 		vi.useFakeTimers();
-		window.FFC.Frontend.RateLimit.show(XSS, 75);
+		window.FFC.Frontend.RateLimit.show(XSS, 75, document.getElementById('ffc-form-element-4'));
 		const n = document.querySelector('[data-ffc-notice="rate-limit"]');
 		expectNotice(n, 'warning', 'clock', 'status');
 		expect(n.getAttribute('aria-live')).toBe('polite');
 		expect(n.querySelector('img')).toBeNull();
 		expect(n.querySelector('.ffc-notice-text').textContent).toBe(XSS + ' 1:15');
 		vi.advanceTimersByTime(1000);
-		expect(n.querySelector('#ffc-countdown').textContent).toBe('1:14');
+		expect(n.querySelector('.ffc-notice-text strong').textContent).toBe('1:14');
 		window.FFC.Frontend.RateLimit.enable();
 		expect(document.querySelector('[data-ffc-notice="rate-limit"]')).toBeNull();
 	});
