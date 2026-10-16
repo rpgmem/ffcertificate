@@ -47,7 +47,7 @@ class ReregistrationAdminRendererTest extends TestCase {
 			return $url . '&_wpnonce=' . $action;
 		} );
 		Functions\when( 'selected' )->justReturn( '' );
-		Functions\when( 'settings_errors' )->justReturn( null );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'submit_button' )->alias( function ( $text = '' ) {
 			echo '<button>' . $text . '</button>';
 		} );

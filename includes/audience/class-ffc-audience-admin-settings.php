@@ -112,7 +112,7 @@ class AudienceAdminSettings {
 			// The one place this screen prints its notices, for every tab (#1771):
 			// the save handlers and `?message=` queue them under `ffc_audience`,
 			// and a second call would print each one twice.
-			settings_errors( 'ffc_audience' );
+			\FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' );
 			?>
 
 			<div class="ffc-settings-tabs">

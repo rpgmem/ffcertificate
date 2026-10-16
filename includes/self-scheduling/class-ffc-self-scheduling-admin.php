@@ -78,11 +78,11 @@ class SelfSchedulingAdmin {
 			require_once plugin_dir_path( __FILE__ ) . 'views/appointments-list.php';
 		} catch ( \Throwable $e ) {
 			echo '<div class="wrap ffc-admin-page ffc-page-appointments">';
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
 				'<strong>' . esc_html__( 'Error:', 'ffcertificate' ) . '</strong> '
 					. esc_html( $e->getMessage() )
-					. ' <em>(' . esc_html( basename( $e->getFile() ) ) . ':' . esc_html( (string) $e->getLine() ) . ')</em>',
-				array( 'type' => 'error' )
+					. ' <em>(' . esc_html( basename( $e->getFile() ) ) . ':' . esc_html( (string) $e->getLine() ) . ')</em>'
 			);
 			echo '</div>';
 			\FreeFormCertificate\Core\Debug::log_self_scheduling(

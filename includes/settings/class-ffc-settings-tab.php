@@ -204,12 +204,9 @@ abstract class SettingsTab {
 	protected function render_notice( $message, $type = 'success' ) {
 		// paragraph_wrap (default true) supplies the <p>; the message is
 		// wp_kses_post-sanitized as before, so rich-HTML callers still work.
-		wp_admin_notice(
-			wp_kses_post( $message ),
-			array(
-				'type'        => $type,
-				'dismissible' => true,
-			)
+		\FreeFormCertificate\Core\AdminNotice::render(
+			$type,
+			wp_kses_post( $message )
 		);
 	}
 

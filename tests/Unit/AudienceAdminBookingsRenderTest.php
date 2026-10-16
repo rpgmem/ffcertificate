@@ -45,7 +45,7 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'selected' )->justReturn( '' );
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_trim_words' )->returnArg();
 
 		// DateFormatter → verbatim, deterministic output.

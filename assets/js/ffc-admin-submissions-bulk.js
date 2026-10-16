@@ -8,7 +8,7 @@
  *
  * Both funnel into the same `ffc_submissions_bulk_action` endpoint.
  * On success the matching <tr> rows fade out and are removed; a toast
- * confirms the count via FFC.Admin.showNotification.
+ * confirms the count via FFC.Admin.notify.
  *
  * `move_to_form` is intentionally left alone — its dedicated modal
  * flow handles conflict detection and target selection.
@@ -58,8 +58,8 @@
     }
 
     function toast(message, type) {
-        if (window.FFC.Admin && typeof window.FFC.Admin.showNotification === 'function') {
-            window.FFC.Admin.showNotification(message, type || 'success');
+        if (window.FFC.Admin && typeof window.FFC.Admin.notify === 'function') {
+            window.FFC.Admin.notify(message, type || 'success');
         }
     }
 

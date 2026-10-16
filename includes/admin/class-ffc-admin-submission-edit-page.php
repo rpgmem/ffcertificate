@@ -111,9 +111,9 @@ class AdminSubmissionEditPage {
 		// Permission check.
 		if ( ! $this->can_edit_submission() ) {
 			echo '<div class="wrap ffc-admin-page ffc-page-submissions">';
-			wp_admin_notice(
-				esc_html__( 'You do not have permission to edit submissions.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'You do not have permission to edit submissions.', 'ffcertificate' )
 			);
 			echo '</div>';
 			return;
@@ -470,10 +470,10 @@ class AdminSubmissionEditPage {
 				<?php endif; ?>.
 			</p>
 		<?php
-		wp_admin_notice(
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'warning',
 			(string) ob_get_clean(),
 			array(
-				'type'               => 'warning',
 				'additional_classes' => array( 'ffc-edited-notice' ),
 				'paragraph_wrap'     => false,
 			)

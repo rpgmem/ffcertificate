@@ -270,7 +270,7 @@ class CertTemplateReceiptSettingsTest extends TestCase {
 		$html = $this->capture( fn() => ( new CertTemplateReceiptSettings() )->render_tab() );
 		unset( $_GET['ffc_saved'] );
 
-		$this->assertSame( array( array( 'Appointment receipt templates saved.', 'success' ) ), $notices );
+		$this->assertSame( array( array( '<span class="ffc-admin-notice-icon ffc-icon-success ffc-icon-tone-success" aria-hidden="true"></span>Appointment receipt templates saved.', 'success' ) ), $notices );
 		$this->assertContains(
 			array(
 				'key'   => CertTemplateCpt::META_KIND,

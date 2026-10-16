@@ -376,12 +376,9 @@ final class DateMessagesAdminPage {
 				. esc_html__( 'Run it in Settings → Data Migrations.', 'ffcertificate' ) . '</a>';
 		}
 
-		wp_admin_notice(
-			$message,
-			array(
-				'type'        => 'warning',
-				'dismissible' => false,
-			)
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'warning',
+			$message
 		);
 	}
 

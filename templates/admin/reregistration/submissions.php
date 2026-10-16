@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</h1>
 		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Reregistrations', 'ffcertificate' ); ?></a>
 
-		<?php settings_errors( 'ffc_reregistration' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_reregistration' ); ?>
 
 		<?php
 		// One shared stat card per status (#1631), toned for what the status

@@ -209,12 +209,9 @@ final class RecruitmentAdminPageRenderer {
 		if ( ! isset( $map[ $key ] ) ) {
 			return;
 		}
-		wp_admin_notice(
-			esc_html( $map[ $key ][1] ),
-			array(
-				'type'        => $map[ $key ][0],
-				'dismissible' => true,
-			)
+		\FreeFormCertificate\Core\AdminNotice::render(
+			$map[ $key ][0],
+			esc_html( $map[ $key ][1] )
 		);
 	}
 

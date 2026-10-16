@@ -169,9 +169,9 @@ class AdminActivityLogPage {
 			include $view_file;
 		} else {
 			echo '<div class="ffc-settings-wrap"><h2 class="ffc-icon-history">' . esc_html__( 'Activity Log', 'ffcertificate' ) . '</h2>';
-			wp_admin_notice(
-				esc_html__( 'View file not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'View file not found.', 'ffcertificate' )
 			);
 			echo '</div>';
 		}
