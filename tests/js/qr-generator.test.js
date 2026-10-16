@@ -23,7 +23,7 @@ function mount() {
 				<input type="checkbox" id="ffc-qr-short" checked>
 				<p id="ffc-qr-short-circular" hidden></p>
 				<p id="ffc-qr-short-direct" hidden></p>
-				<div data-ffc-qr-short-on><input id="ffc-qr-short-title" value=""></div>
+				<div data-ffc-qr-short-on><input id="ffc-qr-short-title" value="" required></div>
 				<div data-ffc-qr-short-on id="ffc-qr-short-duplicates" hidden><ul id="ffc-qr-short-duplicate-list"></ul><input type="checkbox" id="ffc-qr-short-ack"></div>
 				<div id="ffc-qr-short-result-row" hidden><button type="button" id="ffc-qr-short-result"></button><span id="ffc-qr-short-copied"></span></div>
 			</div>
@@ -223,6 +223,21 @@ describe('ffc-qr-generator.js', () => {
 		window.$('#ffc-qr-short').prop('checked', false).trigger('change');
 		expect(window.FFC.QrGenerator.collect($form).short).toBe('');
 		expect(window.$('[data-ffc-qr-short-on]').first().prop('hidden')).toBe(true);
+	});
+
+	it('the title is required only while its row shows (#1850)', () => {
+		window.FFC.QrGenerator.init();
+		const title = document.getElementById('ffc-qr-short-title');
+		expect(title.required).toBe(true);
+
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		window.$('#ffc-qr-short').prop('checked', false).trigger('change');
+		expect(title.required).toBe(false);
+		expect(document.getElementById('ffc-qr-generator').checkValidity()).toBe(true);
+
+		window.$('#ffc-qr-short').prop('checked', true).trigger('change');
+		expect(title.required).toBe(true);
+		expect(document.getElementById('ffc-qr-generator').checkValidity()).toBe(false);
 	});
 
 	it('the short URL block shows for a website and a social profile only', () => {

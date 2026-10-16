@@ -214,7 +214,10 @@
         var $wrap = $field.closest('.ffc-rereg-field');
         // `$.trim` was removed in jQuery 4; native String.prototype.trim
         // covers the same case and works across all supported runtimes.
-        var val = ($field.val() || '').trim();
+        // A checkbox's value is fixed; what it answers is whether it is ticked.
+        var val = $field.is(':checkbox')
+            ? ($field.prop('checked') ? '1' : '')
+            : ($field.val() || '').trim();
         var msg = '';
 
         // Required check

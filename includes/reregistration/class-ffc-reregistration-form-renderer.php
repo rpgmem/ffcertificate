@@ -351,8 +351,8 @@ class ReregistrationFormRenderer {
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
 					checked( (string) $value, '1', false ),
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- control_attributes() escapes every value.
-					FieldMessage::control_attributes( $field_id, $error ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string; control_attributes() escapes every value.
+					$req_attr,
 					esc_html( (string) $field->field_label ),
 					$required ? ' <span class="ffc-required" aria-hidden="true">*</span>' : ''
 				);

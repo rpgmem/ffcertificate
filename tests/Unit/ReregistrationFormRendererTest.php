@@ -416,6 +416,9 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringContainsString( 'I agree <span class="ffc-required" aria-hidden="true">*</span>', $checked );
 		$this->assertStringNotContainsString( 'checked=', $unchecked );
 		$this->assertStringNotContainsString( 'ffc-required', $unchecked );
+		// The control itself carries the constraint, not only the marker (#1850).
+		$this->assertMatchesRegularExpression( '/<input type="checkbox"[^>]* required[ >]/', $checked );
+		$this->assertStringNotContainsString( ' required', $unchecked );
 	}
 
 	public function test_render_input_number_carries_the_field_mask(): void {

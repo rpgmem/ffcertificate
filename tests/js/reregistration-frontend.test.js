@@ -329,6 +329,25 @@ describe('rereg blur validation', () => {
 		expect(window.$('.ffc-rereg-field .ffc-field-message').text()).toBe('Required.');
 	});
 
+	it('flags an unticked required checkbox under its group, and clears it once ticked (#1850)', async () => {
+		await mountForm(`
+			<div class="ffc-rereg-field">
+				<label class="ffc-checkbox-label"><input type="checkbox" id="ffc_rereg_field_7" name="fields[termo_ciencia]" value="1" required> I agree</label>
+			</div>
+		`);
+		const box = window.$('#ffc_rereg_field_7');
+		box.trigger('blur');
+		await flush();
+
+		expect(box.attr('aria-invalid')).toBe('true');
+		expect(window.$('.ffc-rereg-field .ffc-field-message').text()).toBe('Required.');
+
+		box.prop('checked', true).trigger('blur');
+		await flush();
+		expect(box.attr('aria-invalid')).toBeUndefined();
+		expect(window.$('.ffc-rereg-field .ffc-field-message').length).toBe(0);
+	});
+
 	it('gives id-less controls of one field a single shared message', async () => {
 		await mountForm(`
 			<div class="ffc-rereg-field" data-field-id="4">
