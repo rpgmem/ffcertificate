@@ -98,11 +98,23 @@ class DashboardShortcodeTest extends TestCase {
 
 	public function test_render_shows_login_when_not_logged_in(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		$asset_helper = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '' );
+		$asset_helper->shouldReceive( 'enqueue_dark_mode' )->once();
+		$styles = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $handle ) use ( &$styles ) {
+				$styles[] = $handle;
+			}
+		);
 
 		$output = DashboardShortcode::render();
 
 		$this->assertStringContainsString( 'logged in', $output );
 		$this->assertStringContainsString( 'Login', $output );
+		// #1832: the notice is a plugin root and loads the sheets that style it.
+		$this->assertStringContainsString( 'class="ffc-shortcode ffc-dashboard-notice ffc-notice-warning"', $output );
+		$this->assertSame( array( 'ffc-common', 'ffc-dashboard' ), $styles );
 	}
 
 	// ==================================================================
