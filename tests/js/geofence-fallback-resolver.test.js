@@ -13,6 +13,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
@@ -123,7 +124,7 @@ describe('validateGeolocation — honours per-case fallback map', () => {
 		});
 
 		expect($w.hasClass('ffc-validated')).toBe(true);
-		expect($w.find('.ffc-geofence-blocked').length).toBe(0);
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').length).toBe(0);
 		restoreLoc();
 	});
 
@@ -142,7 +143,7 @@ describe('validateGeolocation — honours per-case fallback map', () => {
 		});
 
 		expect($w.hasClass('ffc-validated')).toBe(false);
-		expect($w.find('.ffc-geofence-blocked').length).toBe(1);
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').length).toBe(1);
 		restoreLoc();
 	});
 
@@ -187,9 +188,9 @@ describe('validateGeolocation — honours per-case fallback map', () => {
 		});
 
 		expect($w.hasClass('ffc-validated')).toBe(false);
-		expect($w.find('.ffc-geofence-blocked').length).toBe(1);
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').length).toBe(1);
 		expect($w.find('.ffc-geofence-reload-btn').length).toBe(1);
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('Location access is required');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('Location access is required');
 		restoreLoc();
 	});
 
@@ -233,7 +234,7 @@ describe('validateGeolocation — honours per-case fallback map', () => {
 			gpsFallback: { positionUnavailable: false },
 		});
 
-		expect($w.find('.ffc-geofence-blocked').text()).toContain("couldn't determine your location");
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain("couldn't determine your location");
 		expect($w.find('.ffc-geofence-reload-btn').length).toBe(1);
 		restoreLoc();
 	});
@@ -259,7 +260,7 @@ describe('applyGpsFallback — honours safetyTimer case', () => {
 			hideMode: 'message',
 			gpsFallback: { safetyTimer: false },
 		});
-		expect($w.find('.ffc-geofence-blocked').text()).toContain("didn't respond");
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain("didn't respond");
 		expect($w.find('.ffc-geofence-reload-btn').length).toBe(1);
 	});
 });
@@ -269,7 +270,7 @@ describe('applyGpsFallback — honours safetyTimer case', () => {
 // ----------------------------------------------------------------------
 
 describe('Reload page button', () => {
-	it('renders inside .ffc-geofence-blocked when handleBlocked is called with showReload=true', () => {
+	it('renders inside [data-ffc-notice="geofence-blocked"] when handleBlocked is called with showReload=true', () => {
 		const $w = mountForm(5001);
 		window.FFCGeofence.handleBlocked($w, 'message', 'Test error', true);
 

@@ -422,20 +422,6 @@ $inputs.each(function() {
      * UI MODULE
      * ==========================================================================
      */
-    /**
-     * Escape HTML entities to prevent XSS
-     * @param {string} str - String to escape
-     * @returns {string} Escaped string
-     */
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str).replace(/&/g, '&amp;')
-                          .replace(/</g, '&lt;')
-                          .replace(/>/g, '&gt;')
-                          .replace(/"/g, '&quot;')
-                          .replace(/'/g, '&#39;');
-    }
-
     var UI = {
 
         /**
@@ -446,28 +432,26 @@ $inputs.each(function() {
          */
         showFormError: function($form, message) {
             // Remove existing error messages
-            $form.find('.ffc-form-error').remove();
-            
-            // Styled by ffc-frontend.css (#1840).
-            var $error = $('<div class="ffc-form-error"></div>')
-                .html('<strong>' + (escapeHtml(message).indexOf('Error') === 0 ? '' : 'Error: ') + '</strong>' + escapeHtml(message));
+            $form.find('[data-ffc-notice="form-error"]').remove();
+
+            var error = window.FFC.notice('danger', 'error', message, '', { role: 'alert', hook: 'form-error' });
 
             // Insert at top of form
-            $form.prepend($error);
-            
+            $form.prepend(error);
+
             // Scroll to error (smooth)
             $('html, body').animate({
-                scrollTop: $error.offset().top - 100
+                scrollTop: $(error).offset().top - 100
             }, 300);
-            
+
             // Auto-remove after 10 seconds
             setTimeout(function() {
-                $error.fadeOut(300, function() {
+                $(error).fadeOut(300, function() {
                     $(this).remove();
                 });
             }, 10000);
         },
-        
+
         /**
          * Show success message in form
          * 
@@ -476,22 +460,25 @@ $inputs.each(function() {
          */
         showFormSuccess: function($form, html) {
             // Remove existing messages
-            $form.find('.ffc-form-error, .ffc-form-success').remove();
-            
+            $form.find('[data-ffc-notice="form-error"], [data-ffc-notice="form-success"]').remove();
+
             // If html provided, use it directly
             if (html && html.trim().length > 0) {
                 $form.html(html);
                 return;
             }
-            
-            // Otherwise show generic success
-            // Styled by ffc-frontend.css (#1840).
-            var $success = $('<div class="ffc-form-success"></div>')
-                .html('<h3 class="ffc-form-success-title"><span class="ffc-icon-success" aria-hidden="true"></span>' + (ffc_ajax.strings.success || 'Success!') + '</h3><p class="ffc-form-success-text">' + (ffc_ajax.strings.submissionSuccessful || 'Your submission was successful.') + '</p>');
 
-            $form.html($success);
+            // Otherwise show generic success
+            var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+            $form.html(window.FFC.notice(
+                'success',
+                'success',
+                strings.submissionSuccessful || 'Your submission was successful.',
+                strings.success || 'Success!',
+                { role: 'status', hook: 'form-success' }
+            ));
         },
-        
+
         /**
          * Hand the visitor a fresh challenge after the server refused one.
          *
@@ -637,15 +624,19 @@ $inputs.each(function() {
             // changes are announced by screen readers without
             // interrupting their current speech (assertive would be
             // wrong for ticking values).
-            $form.prepend(
-                '<div class="ffc-rate-limit-notice" role="status" aria-live="polite">' +
-                    '<div class="ffc-rate-limit-icon ffc-icon-clock" aria-hidden="true"></div>' +
-                    '<div class="ffc-rate-limit-message">' +
-                        $('<span>').text(message)[0].outerHTML +
-                        ' <strong id="ffc-countdown">' + initialDisplay + '</strong>' +
-                    '</div>' +
-                '</div>'
-            );
+            var text = document.createElement('p');
+            var countdown = document.createElement('strong');
+            text.className = 'ffc-notice-text';
+            countdown.id = 'ffc-countdown';
+            countdown.textContent = initialDisplay;
+            text.appendChild(document.createTextNode(message + ' '));
+            text.appendChild(countdown);
+            $form.prepend(window.FFC.notice('warning', 'clock', '', '', {
+                role: 'status',
+                live: 'polite',
+                hook: 'rate-limit',
+                children: [text]
+            }));
 
             // Disable button with countdown — initial display already correct.
             var waitText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings.wait || 'Wait...' : 'Wait...';
@@ -708,7 +699,7 @@ $inputs.each(function() {
          */
         enable: function() {
             this.blocked = false;
-            $('.ffc-rate-limit-notice').remove();
+            $('[data-ffc-notice="rate-limit"]').remove();
             var sendText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings.send || 'Send' : 'Send';
             $('.ffc-form button[type="submit"]').prop('disabled', false).text(sendText);
         }

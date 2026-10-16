@@ -202,18 +202,18 @@ describe('FFC.Frontend.UI.showFormError', () => {
 	it('auto-removes the error notice after 10 seconds', () => {
 		vi.useFakeTimers();
 		U().showFormError(window.$('#f'), 'Transient');
-		expect(window.$('#f .ffc-form-error').length).toBe(1);
+		expect(window.$('#f [data-ffc-notice="form-error"]').length).toBe(1);
 		// $.fx.off is true → the fadeOut callback removes the node synchronously
 		// once the 10s timer fires.
 		vi.advanceTimersByTime(10000);
-		expect(window.$('#f .ffc-form-error').length).toBe(0);
+		expect(window.$('#f [data-ffc-notice="form-error"]').length).toBe(0);
 		vi.useRealTimers();
 	});
 
 	it('styles the notice through its class, with no inline declaration or <style> (#1840)', () => {
 		document.head.querySelectorAll('style').forEach((el) => el.remove());
 		U().showFormError(window.$('#f'), 'Bad code');
-		const notice = document.querySelector('#f .ffc-form-error');
+		const notice = document.querySelector('#f [data-ffc-notice="form-error"]');
 		expect(notice).not.toBeNull();
 		expect(notice.getAttribute('style')).toBeNull();
 		expect(document.getElementById('ffc-slide-animation')).toBeNull();

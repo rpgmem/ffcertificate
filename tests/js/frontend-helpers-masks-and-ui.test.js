@@ -299,9 +299,9 @@ describe('FFC.Frontend.UI.showFormSuccess (generic branch)', () => {
 		const $form = window.$('.ffc-form');
 		window.FFC.Frontend.UI.showFormSuccess($form);
 
-		expect($form.find('.ffc-form-success').length).toBe(1);
-		expect($form.find('.ffc-form-success').text()).toContain('Success!');
-		expect($form.find('.ffc-form-success').text()).toContain('Your submission was successful.');
+		expect($form.find('[data-ffc-notice="form-success"]').length).toBe(1);
+		expect($form.find('[data-ffc-notice="form-success"]').text()).toContain('Success!');
+		expect($form.find('[data-ffc-notice="form-success"]').text()).toContain('Your submission was successful.');
 	});
 
 	it('styles the block through classes, not inline declarations (#1840)', () => {
@@ -309,10 +309,13 @@ describe('FFC.Frontend.UI.showFormSuccess (generic branch)', () => {
 		const $form = window.$('.ffc-form');
 		window.FFC.Frontend.UI.showFormSuccess($form);
 
-		const $box = $form.find('.ffc-form-success');
+		const $box = $form.find('[data-ffc-notice="form-success"]');
 		expect($box.attr('style')).toBeUndefined();
-		expect($box.find('h3.ffc-form-success-title').text()).toContain('Success!');
-		expect($box.find('p.ffc-form-success-text').text()).toBe('Your submission was successful.');
+		// The shared success notice (#1842).
+		expect($box.attr('class')).toBe('ffc-notice ffc-notice-success');
+		expect($box.find('.ffc-notice-icon.ffc-icon-success').length).toBe(1);
+		expect($box.find('strong.ffc-notice-title').text()).toBe('Success!');
+		expect($box.find('p.ffc-notice-text').text()).toBe('Your submission was successful.');
 		expect($box.find('[style]').length).toBe(0);
 	});
 
@@ -499,8 +502,8 @@ describe('FFC.Frontend.RateLimit', () => {
 		// be controlled below; for now just exercise the entry path.
 		window.FFC.Frontend.RateLimit.show('Too many tries', 30);
 
-		expect(window.$('.ffc-rate-limit-notice').length).toBe(1);
-		expect(window.$('.ffc-rate-limit-notice').text()).toContain('Too many tries');
+		expect(window.$('[data-ffc-notice="rate-limit"]').length).toBe(1);
+		expect(window.$('[data-ffc-notice="rate-limit"]').text()).toContain('Too many tries');
 		expect(window.$('.ffc-form button[type="submit"]').prop('disabled')).toBe(true);
 		expect(window.FFC.Frontend.RateLimit.blocked).toBe(true);
 
@@ -513,7 +516,7 @@ describe('FFC.Frontend.RateLimit', () => {
 		window.FFC.Frontend.RateLimit.show('msg', 10);
 		window.FFC.Frontend.RateLimit.enable();
 
-		expect(window.$('.ffc-rate-limit-notice').length).toBe(0);
+		expect(window.$('[data-ffc-notice="rate-limit"]').length).toBe(0);
 		expect(window.$('.ffc-form button[type="submit"]').prop('disabled')).toBe(false);
 		expect(window.$('.ffc-form button[type="submit"]').text()).toBe('Send');
 		expect(window.FFC.Frontend.RateLimit.blocked).toBe(false);
@@ -531,7 +534,7 @@ describe('FFC.Frontend.RateLimit', () => {
 
 		vi.advanceTimersByTime(75000);
 		// After 75 more seconds enable() is called and the notice is gone.
-		expect(window.$('.ffc-rate-limit-notice').length).toBe(0);
+		expect(window.$('[data-ffc-notice="rate-limit"]').length).toBe(0);
 
 		vi.useRealTimers();
 	});

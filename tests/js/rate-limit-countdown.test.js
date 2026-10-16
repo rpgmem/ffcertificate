@@ -42,7 +42,7 @@ describe('RateLimit.show initial render', () => {
 
 	it('adds role=status + aria-live=polite to the notice for screen readers', () => {
 		window.FFC.Frontend.RateLimit.show('Try later', 60);
-		const notice = document.querySelector('.ffc-rate-limit-notice');
+		const notice = document.querySelector('[data-ffc-notice="rate-limit"]');
 		expect(notice.getAttribute('role')).toBe('status');
 		expect(notice.getAttribute('aria-live')).toBe('polite');
 	});
@@ -50,7 +50,7 @@ describe('RateLimit.show initial render', () => {
 	it('HTML-escapes the message argument (XSS regression guard)', () => {
 		window.FFC.Frontend.RateLimit.show('<img src=x onerror=alert(1)>', 60);
 		// The literal text is rendered, not the image element.
-		const msgEl = document.querySelector('.ffc-rate-limit-message');
+		const msgEl = document.querySelector('[data-ffc-notice="rate-limit"] .ffc-notice-text');
 		expect(msgEl.querySelector('img')).toBeNull();
 		expect(msgEl.textContent).toContain('<img src=x onerror=alert(1)>');
 	});
@@ -82,7 +82,7 @@ describe('RateLimit countdown ticking', () => {
 
 		// +1s → enable() fires → notice removed, button re-enabled
 		vi.advanceTimersByTime(1000);
-		expect(document.querySelector('.ffc-rate-limit-notice')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="rate-limit"]')).toBeNull();
 		expect(document.querySelector('button[type="submit"]').disabled).toBe(false);
 	});
 });

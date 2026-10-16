@@ -17,9 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * The public design: an accent, borders, hints, errors, the corner radius of
- * the controls and of the cards, the width of the form cards and the font,
- * applied to every
+ * The public design: an accent, borders, hints, errors, the information
+ * notices' colour, the corner radius of the controls and of the cards, the
+ * width of the form cards and the font, applied to every
  * `.ffc-shortcode` surface (forms, verification, scheduling, audiences, the
  * user dashboard, recruitment).
  *
@@ -50,6 +50,7 @@ final class PublicDesign {
 		'border'      => '#8e8f91',
 		'muted'       => '#646970',
 		'error'       => '#d63638',
+		'info'        => '#006ba1',
 		'radius'      => 4,
 		'card_radius' => 8,
 		'width'       => 600,
@@ -60,6 +61,20 @@ final class PublicDesign {
 	 * The ceiling of both corner settings, the controls' and the cards'.
 	 */
 	public const RADIUS_MAX = 24;
+
+	/**
+	 * How far the information notices' ground is mixed from the picked colour
+	 * towards white (#1842).
+	 *
+	 * Measured against the palette: no single amount reproduces the light
+	 * `--ffc-info-bg` (#e5f5fa) from `--ffc-info-border` (#006ba1), because
+	 * the sheet's pair was tuned by hand per channel. 0.91 is the closest,
+	 * #e8f2f7 at an RGB distance of 5.2, where 0.88 (the accent's light
+	 * shade) lands at 11.2. That is why the default colour emits nothing: the
+	 * sheet's own pair stays, and only a colour the operator changed is
+	 * derived.
+	 */
+	public const INFO_BG_MIX = 0.91;
 
 	public const WIDTH_MIN = 320;
 
@@ -92,6 +107,7 @@ final class PublicDesign {
 		'border'      => 'public_design_border',
 		'muted'       => 'public_design_muted',
 		'error'       => 'public_design_error',
+		'info'        => 'public_design_info',
 		'radius'      => 'public_design_radius',
 		'card_radius' => 'public_design_card_radius',
 		'width'       => 'public_design_width',
@@ -132,6 +148,14 @@ final class PublicDesign {
 	 * @var string
 	 */
 	public string $error;
+
+	/**
+	 * Information notices: their bar and their text; their ground is
+	 * derived from it (#1842).
+	 *
+	 * @var string
+	 */
+	public string $info;
 
 	/**
 	 * Corner radius of fields and buttons, px.
@@ -177,6 +201,7 @@ final class PublicDesign {
 		$this->border      = $on ? self::color( $raw['border'] ?? null, self::DEFAULTS['border'] ) : self::DEFAULTS['border'];
 		$this->muted       = $on ? self::color( $raw['muted'] ?? null, self::DEFAULTS['muted'] ) : self::DEFAULTS['muted'];
 		$this->error       = $on ? self::color( $raw['error'] ?? null, self::DEFAULTS['error'] ) : self::DEFAULTS['error'];
+		$this->info        = $on ? self::color( $raw['info'] ?? null, self::DEFAULTS['info'] ) : self::DEFAULTS['info'];
 		$this->radius      = $on ? self::number( $raw['radius'] ?? null, self::DEFAULTS['radius'], 0, self::RADIUS_MAX ) : self::DEFAULTS['radius'];
 		$this->card_radius = $on ? self::number( $raw['card_radius'] ?? null, self::DEFAULTS['card_radius'], 0, self::RADIUS_MAX ) : self::DEFAULTS['card_radius'];
 		$this->width       = $on ? self::number( $raw['width'] ?? null, self::DEFAULTS['width'], self::WIDTH_MIN, self::WIDTH_MAX ) : self::DEFAULTS['width'];
@@ -209,6 +234,7 @@ final class PublicDesign {
 			self::KEYS['border']      => $this->border,
 			self::KEYS['muted']       => $this->muted,
 			self::KEYS['error']       => $this->error,
+			self::KEYS['info']        => $this->info,
 			self::KEYS['radius']      => $this->radius,
 			self::KEYS['card_radius'] => $this->card_radius,
 			self::KEYS['width']       => $this->width,
@@ -259,7 +285,30 @@ final class PublicDesign {
 			$this->error
 		);
 
+		// The information notices (#1842). The operator picks the strong
+		// colour, which draws the bar and the text; the ground is derived from
+		// it. The default emits nothing, so the sheet's hand-tuned pair stays
+		// (see INFO_BG_MIX). `--ffc-info` and `--ffc-info-light` follow too,
+		// for the components that read the info tone by those names.
+		if ( self::DEFAULTS['info'] !== $this->info ) {
+			$colors .= sprintf(
+				'--ffc-info:%1$s;--ffc-info-border:%1$s;--ffc-info-text:%1$s;--ffc-info-bg:%2$s;--ffc-info-light:%2$s;',
+				$this->info,
+				$this->info_background()
+			);
+		}
+
 		return '.ffc-shortcode{' . $shape . '}:root:not(.ffc-dark-mode) .ffc-shortcode{' . $colors . '}';
+	}
+
+	/**
+	 * The ground of the information notices: the picked colour mixed towards
+	 * white by INFO_BG_MIX.
+	 *
+	 * @return string `#rrggbb`.
+	 */
+	public function info_background(): string {
+		return self::shade( $this->info, '#ffffff', self::INFO_BG_MIX );
 	}
 
 	/**
@@ -267,19 +316,24 @@ final class PublicDesign {
 	 * Text on the accent is not listed: `ContrastColor::on()` picks it, and
 	 * that choice never falls below 4.5:1.
 	 *
+	 * The information colour is measured on its own derived ground, which is
+	 * where it is read; it is never darkened to pass, because the operator
+	 * chose it (#1842).
+	 *
 	 * @return list<array{pair: string, ratio: float, min: float}>
 	 */
 	public function weak_contrasts(): array {
 		$pairs = array(
-			array( 'accent', __( 'links on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST ),
-			array( 'muted', __( 'hints on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST ),
-			array( 'error', __( 'errors on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST ),
-			array( 'border', __( 'field borders on white', 'ffcertificate' ), self::MIN_BORDER_CONTRAST ),
+			array( 'accent', __( 'links on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, '#ffffff' ),
+			array( 'muted', __( 'hints on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, '#ffffff' ),
+			array( 'error', __( 'errors on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, '#ffffff' ),
+			array( 'border', __( 'field borders on white', 'ffcertificate' ), self::MIN_BORDER_CONTRAST, '#ffffff' ),
+			array( 'info', __( 'information notices on their background', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, $this->info_background() ),
 		);
 
 		$weak = array();
 		foreach ( $pairs as $pair ) {
-			$ratio = (float) ContrastColor::ratio( $this->{ $pair[0] }, '#ffffff' );
+			$ratio = (float) ContrastColor::ratio( $this->{ $pair[0] }, $pair[3] );
 			if ( $ratio < $pair[2] ) {
 				$weak[] = array(
 					'pair'  => $pair[1],

@@ -8,7 +8,7 @@
  * @since 6.6.4 (split out of ffc-geofence-frontend.js)
  */
 
-(function($) {
+(function() {
     'use strict';
 
     var FFCGeofence = window.FFCGeofence;
@@ -92,23 +92,7 @@
             );
             const tryAnyway = this.getString('cookieTryAnyway', 'Try anyway');
 
-            const $banner = $(
-                '<div class="ffc-preflight-banner ffc-preflight-cookies" role="alert" aria-live="assertive">'
-                + '<strong class="ffc-preflight-banner-title"></strong>'
-                + '<p class="ffc-preflight-banner-body"></p>'
-                + (instructions ? '<p class="ffc-preflight-banner-how"></p>' : '')
-                + '<button type="button" class="ffc-preflight-try-anyway"></button>'
-                + '</div>'
-            );
-            $banner.find('.ffc-preflight-banner-title').text(title);
-            $banner.find('.ffc-preflight-banner-body').text(body);
-            if (instructions) {
-                $banner.find('.ffc-preflight-banner-how').text(instructions);
-            }
-            $banner.find('.ffc-preflight-try-anyway').text(tryAnyway);
-
-            $banner.find('.ffc-preflight-try-anyway').on('click', () => {
-                $banner.remove();
+            this.renderPreflightBanner(formWrapper, 'preflight-cookies', title, body, instructions, tryAnyway, () => {
                 // Continue pipeline as if the gate passed — equivalent
                 // to skipping to STEP 3 (geo). We re-enter processForm
                 // with a flag so we don't re-run the cookie probe.
@@ -120,9 +104,6 @@
                 }
                 this.processGeoOrShow(formWrapper, config);
             });
-
-            formWrapper.find('.ffc-submission-form, .ffc-form').hide();
-            formWrapper.prepend($banner);
         },
 
         /**
@@ -189,7 +170,7 @@
                     // change that fires this: re-entering would ask for the
                     // position a second time and, outside the area, block
                     // the wrapper twice (#1668).
-                    const banner = formWrapper[0].querySelector('.ffc-preflight-gps');
+                    const banner = formWrapper[0].querySelector('[data-ffc-notice="preflight-gps"]');
                     if (status.state === 'granted' && banner) {
                         banner.remove();
                         self.validateGeolocation(formWrapper, config, true);
@@ -243,7 +224,7 @@
             );
             const tryAnyway = this.getString('gpsTryAnyway', 'Try anyway');
 
-            this.renderPreflightBanner(formWrapper, 'ffc-preflight-gps', title, body, instructions, tryAnyway, function () {
+            this.renderPreflightBanner(formWrapper, 'preflight-gps', title, body, instructions, tryAnyway, function () {
                 // Fall through to the existing native flow. Skip the
                 // pre-check so we don't loop back into this banner.
                 self.validateGeolocation(formWrapper, config, true);
@@ -278,48 +259,48 @@
             );
             const cta = this.getString('gpsPromptContinue', 'Continue');
 
-            this.renderPreflightBanner(formWrapper, 'ffc-preflight-gps', title, body, '', cta, function () {
+            this.renderPreflightBanner(formWrapper, 'preflight-gps', title, body, '', cta, function () {
                 self.validateGeolocation(formWrapper, config, true);
             });
         },
 
         /**
-         * 6.6.4 Sprint 3 — shared renderer for pre-flight banners
-         * (denied + prompt). DOM shape mirrors the cookie banner
-         * (Sprint 2) so the CSS class .ffc-preflight-banner styles
-         * both, but the modifier class lets callers identify which
-         * one is showing (for the onchange listener cleanup path).
+         * 6.6.4 Sprint 3 — shared renderer for the pre-flight banners
+         * (cookies, GPS denied, GPS prompt). Each is a warning notice
+         * (#1842) with a title, the explanation, the platform's how-to
+         * when there is one, and the CTA; the hook names which one is
+         * showing, for the onchange listener cleanup path.
          *
          * @param {jQuery}   formWrapper
-         * @param {string}   modifierClass eg. 'ffc-preflight-gps'
+         * @param {string}   hook   eg. 'preflight-gps'
          * @param {string}   title
          * @param {string}   body
          * @param {string}   instructions (may be empty)
          * @param {string}   ctaLabel
          * @param {Function} onCta Callback fired on CTA click after banner removal.
          */
-        renderPreflightBanner: function(formWrapper, modifierClass, title, body, instructions, ctaLabel, onCta) {
-            const $banner = $(
-                '<div class="ffc-preflight-banner ' + modifierClass + '" role="alert" aria-live="assertive">'
-                + '<strong class="ffc-preflight-banner-title"></strong>'
-                + '<p class="ffc-preflight-banner-body"></p>'
-                + (instructions ? '<p class="ffc-preflight-banner-how"></p>' : '')
-                + '<button type="button" class="ffc-preflight-try-anyway"></button>'
-                + '</div>'
-            );
-            $banner.find('.ffc-preflight-banner-title').text(title);
-            $banner.find('.ffc-preflight-banner-body').text(body);
-            if (instructions) {
-                $banner.find('.ffc-preflight-banner-how').text(instructions);
-            }
-            $banner.find('.ffc-preflight-try-anyway').text(ctaLabel).on('click', function () {
-                $banner.remove();
+        renderPreflightBanner: function(formWrapper, hook, title, body, instructions, ctaLabel, onCta) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'ffc-preflight-try-anyway';
+            button.textContent = ctaLabel;
+
+            const banner = window.FFC.notice('warning', 'warning', [body, instructions], title, {
+                role: 'alert',
+                live: 'assertive',
+                hook: hook,
+                children: [button]
+            });
+            button.addEventListener('click', function () {
+                if (banner.parentNode) {
+                    banner.parentNode.removeChild(banner);
+                }
                 onCta();
             });
             formWrapper.find('.ffc-submission-form, .ffc-form').hide();
-            formWrapper.prepend($banner);
+            formWrapper.prepend(banner);
         }
 
     });
 
-})(jQuery);
+})();
