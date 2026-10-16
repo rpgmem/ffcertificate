@@ -79,9 +79,8 @@ final class InlineStyleTest extends TestCase {
 
 	private const RECEIPT_PAGE = 'the standalone printable appointment receipt carries its own <style>: it is a whole document, printed, with no plugin stylesheet';
 
-	private const PENDING_1836 = 'pending #1836/#1838; remove after merge';
 
-	private const DEFERRED_HELPERS = 'move, deferred: the validation, error and success styles reach every public page that loads the helpers, the reregistration form among them -- #1836/#1838 territory -- so the move and its render check follow that merge';
+	private const DEFERRED_HELPERS = 'move, deferred to a follow-up: `.ffc-field-error` is also the reregistration form\'s own class (ffc-reregistration-frontend.css) and a marker ffc-frontend.js puts on INPUTS, so moving these rules into a sheet first needs the helper\'s classes renamed -- otherwise the injected rules start reaching the reregistration form, which never loads the helpers';
 
 	/**
 	 * Every inline occurrence left, per file, with how many and why.
@@ -198,13 +197,13 @@ final class InlineStyleTest extends TestCase {
 			'.style.x =: .style.transform = "translate(" + x + "px, " + y + "px) scale(" + sca' => array( 1, self::RUNTIME_VALUE ),
 		),
 		'assets/js/ffc-user-dashboard-audience-join.js' => array(
-			'style=: style="background-color:' => array( 1, self::PENDING_1836 ),
+			'style=: style="background-color:' => array( 1, self::OPERATOR_COLOUR ),
 		),
 		'assets/js/ffc-user-dashboard-core.js' => array(
-			'style=: style="--ffc-badge-row-bg:' => array( 1, self::PENDING_1836 ),
+			'style=: style="--ffc-badge-row-bg:' => array( 1, self::OPERATOR_COLOUR ),
 		),
 		'assets/js/ffc-user-dashboard-profile.js' => array(
-			'style=: style="display: none;' => array( 4, self::PENDING_1836 ),
+			'style=: style="display: none;' => array( 4, self::INITIAL_STATE ),
 		),
 		'includes/admin/class-ffc-admin-menu-icons.php' => array(
 			'wp_add_inline_style: wp_add_inline_style( "admin-menu"' => array( 1, self::GENERATED ),
