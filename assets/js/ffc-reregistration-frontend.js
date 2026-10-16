@@ -212,7 +212,7 @@
 
     function validateField($field) {
         var $wrap = $field.closest('.ffc-rereg-field');
-        var $error = $wrap.find('.ffc-field-error');
+        var $error = $wrap.find('.ffc-rereg-field-error');
         // `$.trim` was removed in jQuery 4; native String.prototype.trim
         // covers the same case and works across all supported runtimes.
         var val = ($field.val() || '').trim();
@@ -367,13 +367,13 @@
     function showServerErrors($container, errors) {
         // Clear previous errors
         $container.find('.has-error').removeClass('has-error');
-        $container.find('.ffc-field-error').text('');
+        $container.find('.ffc-rereg-field-error').text('');
 
         $.each(errors, function (name, msg) {
             var $input = $container.find('[name="' + name + '"]');
             var $wrap = $input.closest('.ffc-rereg-field');
             $wrap.addClass('has-error');
-            $wrap.find('.ffc-field-error').text(msg);
+            $wrap.find('.ffc-rereg-field-error').text(msg);
         });
 
         // Scroll to first error

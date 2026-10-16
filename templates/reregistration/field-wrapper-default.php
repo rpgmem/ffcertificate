@@ -32,5 +32,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<?php self::render_input( $field, $field_id, $field_name, $value, $required, $rules ); ?>
 
-			<span class="ffc-field-error" role="alert"></span>
+			<span class="ffc-rereg-field-error" role="alert"></span>
 		</div>

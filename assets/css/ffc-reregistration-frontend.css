@@ -267,7 +267,7 @@
     box-shadow: 0 0 0 1px var(--ffc-danger);
 }
 
-.ffc-field-error {
+.ffc-rereg-field-error {
     display: block;
     color: var(--ffc-danger-text);
     font-size: var(--ffc-font-size-xs);
@@ -275,7 +275,7 @@
     min-height: 0;
 }
 
-.ffc-field-error:empty {
+.ffc-rereg-field-error:empty {
     display: none;
 }
 

@@ -20,5 +20,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<div class="ffc-rereg-field" data-field-id="<?php echo esc_attr( (string) $field->id ); ?>"
 				data-field-key="<?php echo esc_attr( (string) $field->field_key ); ?>">
 				<?php self::render_input( $field, $field_id, $field_name, $value, $required, $rules ); ?>
-				<span class="ffc-field-error" role="alert"></span>
+				<span class="ffc-rereg-field-error" role="alert"></span>
 			</div>
