@@ -713,7 +713,7 @@ class AdminSubmissionEditPage {
 		$ffc_email = (string) $this->sub_array['email'];
 		?>
 		<div class="ffc-edit-field">
-			<label for="user_email"><?php esc_html_e( 'Email', 'ffcertificate' ); ?> *</label>
+			<label for="user_email"><?php esc_html_e( 'Email', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 			<span class="ffc-pii-row">
 				<input type="email" name="user_email" id="user_email" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::mask_email( $ffc_email ) ); ?>" class="regular-text" data-ffc-pii-field="email" data-ffc-pii-editable="1" disabled required>
 				<?php echo '' !== $ffc_email ? $this->reveal_button( 'email' ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- reveal_button() escapes every value. ?>

@@ -82,11 +82,6 @@
     color: var(--ffc-danger-text);
 }
 
-/* Form Styles */
-.ffc-form .ffc-required {
-    color: var(--ffc-danger);
-}
-
 /* Color Swatch — the per-row colour comes from the --ffc-color custom
    property (set inline) instead of an inline background-color (#890 slice 3). */
 .ffc-color-swatch {
