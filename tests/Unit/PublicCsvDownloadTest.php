@@ -569,6 +569,22 @@ class PublicCsvDownloadTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-pcd-message', $html );
 		$this->assertStringContainsString( 'Invalid access hash.', $html );
+		$this->assertStringContainsString( '<div class="ffc-notice ffc-notice-danger" role="alert">', $html, 'An error flash is a danger notice (#1842).' );
+		$this->assertStringContainsString( 'ffc-icon-error', $html );
+	}
+
+	public function test_render_shortcode_shows_a_success_flash_as_a_success_notice(): void {
+		unset( $_GET['form_id'], $_GET['hash'] );
+		Functions\when( 'get_transient' )->justReturn( array(
+			'type'    => 'success',
+			'message' => 'Download ready.',
+		) );
+
+		$html = $this->handler->render_shortcode( array() );
+
+		$this->assertStringContainsString( '<div class="ffc-notice ffc-notice-success" role="status">', $html );
+		$this->assertStringContainsString( 'ffc-icon-success', $html );
+		$this->assertStringContainsString( 'Download ready.', $html );
 	}
 
 	// ==================================================================

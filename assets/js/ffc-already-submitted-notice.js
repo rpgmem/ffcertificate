@@ -106,27 +106,17 @@
 		var body     = s.body     || 'We detected a previous submission from this device. If you lost your certificate, just fill in your CPF and submit — the system recognises it and returns the existing certificate.';
 		var dismissText = s.dismiss || 'Got it';
 
-		var notice  = document.createElement( 'div' );
-		notice.className = 'ffc-already-submitted-notice';
-		notice.setAttribute( 'role', 'status' );
-
-		var icon    = document.createElement( 'div' );
-		icon.className = 'ffc-already-submitted-icon ffc-icon-info';
-		icon.setAttribute( 'aria-hidden', 'true' );
-
-		var content = document.createElement( 'div' );
-		content.className = 'ffc-already-submitted-content';
-
-		var h = document.createElement( 'h3' );
-		h.textContent = title;
-
-		var p = document.createElement( 'p' );
-		p.textContent = body;
-
 		var btn = document.createElement( 'button' );
 		btn.type = 'button';
 		btn.className = 'ffc-already-submitted-dismiss';
 		btn.textContent = dismissText;
+
+		var notice = window.FFC.notice( 'info', 'info', body, title, {
+			role: 'status',
+			hook: 'already-submitted',
+			children: [ btn ]
+		} );
+
 		btn.addEventListener( 'click', function ( e ) {
 			e.preventDefault();
 			markDismissedThisSession( formId );
@@ -135,18 +125,14 @@
 			}
 		} );
 
-		content.appendChild( h );
-		content.appendChild( p );
-		content.appendChild( btn );
-		notice.appendChild( icon );
-		notice.appendChild( content );
-
-		// Insert above the form wrapper if present, otherwise above the form itself.
-		var anchor = $form.closest( '.ffc-form-wrapper' );
-		if ( anchor.length === 0 ) {
-			anchor = $form;
-		}
-		anchor[ 0 ].parentNode.insertBefore( notice, anchor[ 0 ] );
+		// Above the form title, after any notice already there (the admin
+		// bypass, the form's own context), so system notices read in one run
+		// at the top of the card (#1842). A form without a wrapper takes it
+		// directly above itself.
+		var $wrapper = $form.closest( '.ffc-form-wrapper' );
+		var $title   = $wrapper.children( '.ffc-form-title' ).first();
+		var anchor   = $title.length ? $title[ 0 ] : $form[ 0 ];
+		anchor.parentNode.insertBefore( notice, anchor );
 	}
 
 	function bindSubmissionSuccessTracker( $form ) {

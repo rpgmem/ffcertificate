@@ -108,7 +108,7 @@ describe('offline short-circuit on form submit', () => {
 
 		// Form-submit handler aborted BEFORE the AJAX layer.
 		expect(postSpy).not.toHaveBeenCalled();
-		const alert = document.querySelector('.ffc-accessible-alert');
+		const alert = document.querySelector('[data-ffc-notice="accessible-alert"]');
 		expect(alert).not.toBeNull();
 		expect(alert.textContent).toContain('offline');
 	});
@@ -144,7 +144,7 @@ describe('offline short-circuit on download click', () => {
 		window.$('.ffc-download-pdf-btn').trigger('click');
 
 		expect(generateSpy).not.toHaveBeenCalled();
-		const alert = document.querySelector('.ffc-accessible-alert');
+		const alert = document.querySelector('[data-ffc-notice="accessible-alert"]');
 		expect(alert).not.toBeNull();
 		expect(alert.textContent).toContain('offline');
 	});

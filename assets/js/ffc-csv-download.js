@@ -92,8 +92,10 @@
 
 		showFlash: function (msg, type) {
 			api.$container.find('.ffc-pcd-message').remove();
-			var cls = type === 'error' ? 'ffc-verify-error' : 'ffc-verify-success';
-			var $flash = $('<div class="ffc-verify-result ffc-pcd-message"><div class="' + cls + '">' + esc(msg) + '</div></div>');
+			var notice = type === 'error'
+				? window.FFC.notice('danger', 'error', msg, '', { role: 'alert' })
+				: window.FFC.notice('success', 'success', msg, '', { role: 'status' });
+			var $flash = $('<div class="ffc-verify-result ffc-pcd-message"></div>').append(notice);
 			api.$container.find('.ffc-verification-header').after($flash);
 		},
 

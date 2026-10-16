@@ -26,6 +26,7 @@ beforeEach(() => {
 });
 
 async function loadOnReady() {
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-already-submitted-notice.js');
 	// `$(document).ready(cb)` defers to a microtask in jQuery 4 even when
 	// the document is already complete.
@@ -47,17 +48,23 @@ describe('ffc-already-submitted-notice', () => {
 		installForm(7);
 		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([1, 2, 3]));
 		await loadOnReady();
-		expect(document.querySelector('.ffc-already-submitted-notice')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="already-submitted"]')).toBeNull();
 	});
 
 	it('renders the notice when the form ID is in localStorage', async () => {
 		installForm(42);
 		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([42]));
 		await loadOnReady();
-		const notice = document.querySelector('.ffc-already-submitted-notice');
+		const notice = document.querySelector('[data-ffc-notice="already-submitted"]');
 		expect(notice).not.toBeNull();
-		expect(notice.querySelector('h3')).not.toBeNull();
+		// The shared info notice (#1842): tone, registry icon, title, text.
+		expect(notice.className).toBe('ffc-notice ffc-notice-info');
+		expect(notice.getAttribute('role')).toBe('status');
+		expect(notice.querySelector('.ffc-notice-icon.ffc-icon-info')).not.toBeNull();
+		expect(notice.querySelector('.ffc-notice-title')).not.toBeNull();
 		expect(notice.querySelector('.ffc-already-submitted-dismiss')).not.toBeNull();
+		expect(notice.querySelector('[style]')).toBeNull();
+		expect(notice.hasAttribute('style')).toBe(false);
 	});
 
 	it('does NOT render when the dismissal flag is already set for this form', async () => {
@@ -65,7 +72,7 @@ describe('ffc-already-submitted-notice', () => {
 		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([42]));
 		window.sessionStorage.setItem(DISMISS_PREFIX + '42', '1');
 		await loadOnReady();
-		expect(document.querySelector('.ffc-already-submitted-notice')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="already-submitted"]')).toBeNull();
 	});
 
 	it('dismiss button removes the notice and sets the sessionStorage flag', async () => {
@@ -75,7 +82,7 @@ describe('ffc-already-submitted-notice', () => {
 		const dismiss = document.querySelector('.ffc-already-submitted-dismiss');
 		expect(dismiss).not.toBeNull();
 		dismiss.click();
-		expect(document.querySelector('.ffc-already-submitted-notice')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="already-submitted"]')).toBeNull();
 		expect(window.sessionStorage.getItem(DISMISS_PREFIX + '99')).toBe('1');
 	});
 
@@ -83,7 +90,7 @@ describe('ffc-already-submitted-notice', () => {
 		installForm(0);
 		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([0]));
 		await loadOnReady();
-		expect(document.querySelector('.ffc-already-submitted-notice')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="already-submitted"]')).toBeNull();
 	});
 
 	it('treats a sessionStorage read failure as not-dismissed (still renders)', async () => {
@@ -106,7 +113,7 @@ describe('ffc-already-submitted-notice', () => {
 		try {
 			await loadOnReady();
 			// The catch in isDismissedThisSession returns false → notice renders.
-			expect(document.querySelector('.ffc-already-submitted-notice')).not.toBeNull();
+			expect(document.querySelector('[data-ffc-notice="already-submitted"]')).not.toBeNull();
 		} finally {
 			spy.mockRestore();
 		}
@@ -116,7 +123,7 @@ describe('ffc-already-submitted-notice', () => {
 		document.body.innerHTML = '<div>no form here</div>';
 		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([1]));
 		await loadOnReady();
-		expect(document.querySelector('.ffc-already-submitted-notice')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="already-submitted"]')).toBeNull();
 	});
 
 	it('survives malformed JSON in localStorage', async () => {
@@ -125,14 +132,14 @@ describe('ffc-already-submitted-notice', () => {
 		await loadOnReady();
 		// Should not throw; just renders nothing (since the parsed list
 		// is treated as empty).
-		expect(document.querySelector('.ffc-already-submitted-notice')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="already-submitted"]')).toBeNull();
 	});
 
 	it('treats a non-array localStorage value as empty', async () => {
 		installForm(1);
 		window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ not: 'an array' }));
 		await loadOnReady();
-		expect(document.querySelector('.ffc-already-submitted-notice')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="already-submitted"]')).toBeNull();
 	});
 
 	it('uses custom strings from window.ffc_already_submitted', async () => {
@@ -142,10 +149,40 @@ describe('ffc-already-submitted-notice', () => {
 			strings: { title: 'Custom T', body: 'Custom B', dismiss: 'OK!' },
 		};
 		await loadOnReady();
-		const notice = document.querySelector('.ffc-already-submitted-notice');
-		expect(notice.querySelector('h3').textContent).toBe('Custom T');
-		expect(notice.querySelector('p').textContent).toBe('Custom B');
+		const notice = document.querySelector('[data-ffc-notice="already-submitted"]');
+		expect(notice.querySelector('.ffc-notice-title').textContent).toBe('Custom T');
+		expect(notice.querySelector('.ffc-notice-text').textContent).toBe('Custom B');
 		expect(notice.querySelector('.ffc-already-submitted-dismiss').textContent).toBe('OK!');
+		delete window.ffc_already_submitted;
+	});
+
+	it('places the notice above the title, after the notices already there (#1842)', async () => {
+		document.body.innerHTML = `
+			<div class="ffc-form-wrapper">
+				<div data-ffc-notice="geofence-bypass"></div>
+				<h2 class="ffc-form-title">T</h2>
+				<form class="ffc-submission-form">
+					<input type="hidden" name="form_id" value="61" />
+				</form>
+			</div>
+		`;
+		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([61]));
+		await loadOnReady();
+		const notice = document.querySelector('[data-ffc-notice="already-submitted"]');
+		expect(notice.previousElementSibling.getAttribute('data-ffc-notice')).toBe('geofence-bypass');
+		expect(notice.nextElementSibling.classList.contains('ffc-form-title')).toBe(true);
+	});
+
+	it('writes the strings as text, never as markup', async () => {
+		installForm(62);
+		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([62]));
+		window.ffc_already_submitted = {
+			strings: { title: '<img src=x onerror=alert(1)>', body: '<b>B</b>', dismiss: '<i>D</i>' },
+		};
+		await loadOnReady();
+		const notice = document.querySelector('[data-ffc-notice="already-submitted"]');
+		expect(notice.querySelector('img, b, i')).toBeNull();
+		expect(notice.querySelector('.ffc-notice-title').textContent).toBe('<img src=x onerror=alert(1)>');
 		delete window.ffc_already_submitted;
 	});
 
@@ -157,7 +194,7 @@ describe('ffc-already-submitted-notice', () => {
 		`;
 		window.localStorage.setItem(STORAGE_KEY, JSON.stringify([77]));
 		await loadOnReady();
-		const notice = document.querySelector('.ffc-already-submitted-notice');
+		const notice = document.querySelector('[data-ffc-notice="already-submitted"]');
 		expect(notice).not.toBeNull();
 		// Inserted as the form's previous sibling.
 		expect(notice.nextElementSibling.classList.contains('ffc-submission-form')).toBe(true);
