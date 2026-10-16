@@ -26099,3 +26099,27 @@ msgstr ""
 
 msgid "Add New on a calendar's Environments tab, or on the Environments view filtered to one calendar, opens the new environment with that calendar already chosen."
 msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgctxt "dashboard section heading: cancelled items"
+msgid "Cancelled"
+msgstr ""
+
+#. translators: {start}, {end}: first and last item shown; {total}: items in the section. Keep the braces.
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "{start}–{end} of {total}"
+msgstr ""
+
+#. translators: {section}: section heading, such as Upcoming. Keep the braces.
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Pagination: {section}"
+msgstr ""
+
+#. translators: {page}: page number. Keep the braces.
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Page {page}"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "The personal-calendar and group-calendar tabs split the list into Upcoming, Past and Cancelled, each heading showing how many items it holds. Each section pages on its own, 5 upcoming, 3 past and 2 cancelled items at a time, and the filter bar brings every section back to its first page."
+msgstr ""

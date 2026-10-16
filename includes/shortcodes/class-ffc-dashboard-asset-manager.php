@@ -281,7 +281,10 @@ class DashboardAssetManager {
 					'audiences'                => __( 'Audiences', 'ffcertificate' ),
 					'upcoming'                 => __( 'Upcoming', 'ffcertificate' ),
 					'past'                     => __( 'Past', 'ffcertificate' ),
-					'cancelled'                => __( 'Cancelled', 'ffcertificate' ),
+					// A section heading over several items, so plural where the
+					// language marks it (#1836); the status label stays the plain
+					// "Cancelled".
+					'cancelled'                => _x( 'Cancelled', 'dashboard section heading: cancelled items', 'ffcertificate' ),
 					// Profile.
 					'audienceGroups'           => __( 'Groups:', 'ffcertificate' ),
 					'notesLabel'               => __( 'Notes:', 'ffcertificate' ),
@@ -346,6 +349,15 @@ class DashboardAssetManager {
 					'next'                     => __( 'Next', 'ffcertificate' ),
 					'pageOf'                   => __( 'Page {current} of {total}', 'ffcertificate' ),
 					'perPage'                  => __( 'Per page:', 'ffcertificate' ),
+					// Per-section pager of the calendar tabs (#1836).
+					/* translators: {start}, {end}: first and last item shown; {total}: items in the section. Keep the braces. */
+					'sectionRange'             => __( '{start}–{end} of {total}', 'ffcertificate' ),
+					/* translators: {section}: section heading, such as Upcoming. Keep the braces. */
+					'sectionPagination'        => __( 'Pagination: {section}', 'ffcertificate' ),
+					/* translators: {page}: page number. Keep the braces. */
+					'pageNumber'               => __( 'Page {page}', 'ffcertificate' ),
+					'previousPage'             => __( 'Previous page', 'ffcertificate' ),
+					'nextPage'                 => __( 'Next page', 'ffcertificate' ),
 					// Reregistrations tab.
 					'noReregistrations'        => __( 'No reregistrations found.', 'ffcertificate' ),
 					'reregistrationTitle'      => __( 'Campaign', 'ffcertificate' ),
