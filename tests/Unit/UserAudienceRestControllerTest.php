@@ -285,7 +285,18 @@ class UserAudienceRestControllerTest extends TestCase {
 			'environment_name' => 'Room',
 			'schedule_name'    => 'Sched',
 			'description'      => 'desc',
-			'audiences'        => array( array( 'id' => 1, 'name' => 'Group' ) ),
+			'audiences'        => array(
+				array(
+					'id'    => 1,
+					'name'  => 'Group',
+					'color' => '#fafafa',
+				),
+				array(
+					'id'    => 2,
+					'name'  => 'Other',
+					'color' => 'red;background:url(x)',
+				),
+			),
 		);
 		$this->query_service->shouldReceive( 'find_user_bookings' )->andReturn( array( $booking ) );
 
@@ -301,7 +312,25 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertSame( '08:00:00', $row['start_time'] );
 		$this->assertSame( 'cancelled', $row['status'] );
 		$this->assertFalse( $row['is_past'], 'future date is not past' );
-		$this->assertSame( array( array( 'id' => 1, 'name' => 'Group' ) ), $row['audiences'] );
+		// Each audience carries the text colour computed over its own colour
+		// (#1826); a value that is not a hex colour never reaches the payload.
+		$this->assertSame(
+			array(
+				array(
+					'id'         => 1,
+					'name'       => 'Group',
+					'color'      => '#fafafa',
+					'text_color' => '#000000',
+				),
+				array(
+					'id'         => 2,
+					'name'       => 'Other',
+					'color'      => '#e9ecef',
+					'text_color' => '#000000',
+				),
+			),
+			$row['audiences']
+		);
 	}
 
 	public function test_get_user_audience_bookings_returns_500_on_exception(): void {

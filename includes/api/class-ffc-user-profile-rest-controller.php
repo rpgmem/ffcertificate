@@ -155,11 +155,11 @@ class UserProfileRestController {
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
 			if ( self::table_exists( $members_table ) ) {
-				$audience_groups = \FreeFormCertificate\Audience\AudienceReader::get_user_audience_badges( $user_id );
-
-				if ( empty( $audience_groups ) ) {
-					$audience_groups = array();
-				}
+				// Each group's tag text colour is computed over its own colour
+				// here, not left to the script (#1826).
+				$audience_groups = \FreeFormCertificate\Core\BadgeHtml::with_row_colors(
+					\FreeFormCertificate\Audience\AudienceReader::get_user_audience_badges( $user_id )
+				);
 			}
 
 			// Decode preferences JSON. UserService surfaces the raw blob

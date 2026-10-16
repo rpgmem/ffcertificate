@@ -371,6 +371,17 @@
     color: var(--ffc-text);
 }
 
+/* A control does not inherit the font: the browser gives fields and buttons
+   its own (Arial, or the system's), so the labels read in the surface's font
+   and the fields beside them in another. It lives here rather than in a
+   module sheet because every public surface needs it and every one loads
+   this sheet; the user dashboard, which loads no `ffc-frontend.css`, drew its
+   fields and buttons in the browser's font until #1826. The size, the weight
+   and the line height stay each control's own rule. */
+.ffc-shortcode :is(input, select, textarea, button) {
+    font-family: inherit;
+}
+
 /* The CANVAS the base pair needs. Painting the text light and leaving core's
    `#f0f0f1` page behind it put every page title, the list-table view counts
    and "N items" at light-on-light on every FFC screen: the cards were dark,

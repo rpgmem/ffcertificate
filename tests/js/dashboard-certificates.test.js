@@ -74,6 +74,8 @@ describe('FFCDashboard.panels.certificates.render', () => {
 		const buttons = document.querySelectorAll('#ffc-tabpanel-certificates .ffc-btn-pdf');
 		expect(buttons.length).toBe(1);
 		expect(buttons[0].getAttribute('href')).toBe('https://x.test/y');
+		// The icon is the registry's download class (#1826), not a data: mask.
+		expect(buttons[0].classList.contains('ffc-icon-download')).toBe(true);
 	});
 
 	it('escapes HTML in text cells so injected markup cannot execute', () => {

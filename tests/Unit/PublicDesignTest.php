@@ -146,10 +146,25 @@ class PublicDesignTest extends TestCase {
 	 * The font the design picks reaches the fields and buttons too. A control
 	 * does not inherit `font-family`, so without this rule the labels follow
 	 * the choice and the fields beside them stay in the browser's font.
+	 *
+	 * The rule lives in `ffc-common.css`, which every public surface loads:
+	 * while it lived in `ffc-frontend.css` the user dashboard, which does not
+	 * load that sheet, drew its controls in the browser's font (#1826).
 	 */
 	public function test_form_controls_inherit_the_forms_font(): void {
-		$css = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-frontend.css' );
+		$css = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' );
 		$this->assertMatchesRegularExpression( '/\.ffc-shortcode :is\(input, select, textarea, button\) \{\s*font-family: inherit;\s*\}/', $css );
+	}
+
+	/**
+	 * A surface that names its own font stack beats the design: the rule the
+	 * design prints is on `.ffc-shortcode`, one class, and a module sheet that
+	 * prints later at the same specificity wins. The user dashboard did exactly
+	 * that until #1826.
+	 */
+	public function test_the_dashboard_does_not_override_the_designs_font(): void {
+		$css = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-user-dashboard.css' );
+		$this->assertDoesNotMatchRegularExpression( '/(?:^|\})\s*\.ffc-user-dashboard\s*\{[^}]*font-family/', $css );
 	}
 
 	public function test_the_theme_font_adds_no_font_rule(): void {

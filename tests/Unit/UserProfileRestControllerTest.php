@@ -594,12 +594,46 @@ class UserProfileRestControllerTest extends TestCase {
 			static fn( $q ) => ( is_string( $q ) && false !== strpos( $q, 'ffc_audience_members' ) ) ? 'wp_ffc_audience_members' : null
 		);
 		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceReader' )
-			->shouldReceive( 'get_user_audience_badges' )->andReturn( array( array( 'name' => 'Group A' ) ) );
+			->shouldReceive( 'get_user_audience_badges' )->andReturn(
+				array(
+					array(
+						'name'  => 'Group A',
+						'color' => '#FFEB3B',
+					),
+					array(
+						'name'  => 'Group B',
+						'color' => '#1d2327',
+					),
+					array( 'name' => 'Group C' ),
+				)
+			);
 
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->get_user_profile( $this->make_request() );
 
 		$this->assertIsArray( $result );
-		$this->assertSame( array( array( 'name' => 'Group A' ) ), $result['audience_groups'] );
+		// The tag's text colour is computed server-side over the group's own
+		// colour (#1826): dark over a pale yellow, light over a near-black, and
+		// a group with no valid colour falls back to the neutral badge ground.
+		$this->assertSame(
+			array(
+				array(
+					'name'       => 'Group A',
+					'color'      => '#ffeb3b',
+					'text_color' => '#000000',
+				),
+				array(
+					'name'       => 'Group B',
+					'color'      => '#1d2327',
+					'text_color' => '#ffffff',
+				),
+				array(
+					'name'       => 'Group C',
+					'color'      => '#e9ecef',
+					'text_color' => '#000000',
+				),
+			),
+			$result['audience_groups']
+		);
 	}
 
 	public function test_get_user_profile_wraps_exception(): void {

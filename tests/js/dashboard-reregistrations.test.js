@@ -100,6 +100,7 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		const buttons = document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-rereg-open-form');
 		expect(buttons.length).toBe(1);
 		expect(buttons[0].getAttribute('data-reregistration-id')).toBe('10');
+		expect(buttons[0].classList.contains('ffc-icon-edit')).toBe(true);
 	});
 
 	it('renders the Download Record link only when both can_download and magic_link present', () => {
@@ -110,6 +111,8 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		], 1);
 		const buttons = document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-btn-pdf');
 		expect(buttons.length).toBe(1);
+		// The icon is the registry's download class (#1826), not a data: mask.
+		expect(buttons[0].classList.contains('ffc-icon-download')).toBe(true);
 	});
 
 	it('attaches the prefixed status class with the status value', () => {

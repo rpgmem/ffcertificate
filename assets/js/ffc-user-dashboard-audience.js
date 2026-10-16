@@ -97,7 +97,7 @@
                     else if (section === 'past') { sectionLabel = ffcDashboard.strings.past || 'Past'; isPastSection = true; }
                     else { sectionLabel = ffcDashboard.strings.cancelled || 'Cancelled'; isPastSection = true; }
 
-                    html += '<h3' + (currentSection !== 'upcoming' ? ' style="margin-top: 30px;"' : '') + '>' + sectionLabel + '</h3>';
+                    html += '<h3>' + sectionLabel + '</h3>';
                     html += '<table class="ffc-audience-bookings-table' + (isPastSection ? ' ffc-table-past' : '') + '">';
                     html += '<thead><tr>';
                     html += '<th>' + (ffcDashboard.strings.environment || 'Environment') + '</th>';
@@ -115,7 +115,7 @@
 
                 html += '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
                 html += '<td>' + booking.environment_name;
-                if (booking.schedule_name) html += '<br><small style="color: #666;">' + booking.schedule_name + '</small>';
+                if (booking.schedule_name) html += '<br><small class="ffc-booking-schedule">' + booking.schedule_name + '</small>';
                 html += '</td>';
                 html += '<td>' + booking.booking_date + '</td>';
                 html += '<td>' + booking.start_time + ' - ' + booking.end_time + '</td>';
@@ -123,7 +123,7 @@
                 html += '<td>';
                 if (booking.audiences && booking.audiences.length > 0) {
                     booking.audiences.forEach(function (audience) {
-                        html += '<span class="ffc-audience-tag" style="background-color: ' + helpers.esc(audience.color) + '; color: #fff; padding: 2px 8px; border-radius: 3px; font-size: 12px;">' + helpers.esc(audience.name) + '</span>';
+                        html += FFCDashboard.helpers.rowColorTag('ffc-audience-tag', audience);
                     });
                 }
                 html += '</td>';
@@ -134,7 +134,7 @@
                     var bookingEvent = {
                         uid: 'ffc-booking-' + booking.id,
                         summary: (booking.description || booking.environment_name),
-                        description: (booking.environment_name ? (ffcDashboard.strings.environment || 'Ambiente') + ': ' + booking.environment_name : '') + (booking.schedule_name ? '\n' + booking.schedule_name : '') + (booking.description ? '\n' + booking.description : '') + (audienceNames ? '\n' + (ffcDashboard.strings.audiences || 'Audiencias') + ': ' + audienceNames : ''),
+                        description: (booking.environment_name ? (ffcDashboard.strings.environment || 'Environment') + ': ' + booking.environment_name : '') + (booking.schedule_name ? '\n' + booking.schedule_name : '') + (booking.description ? '\n' + booking.description : '') + (audienceNames ? '\n' + (ffcDashboard.strings.audiences || 'Audiences') + ': ' + audienceNames : ''),
                         location: booking.environment_name || '',
                         date: booking.booking_date_raw,
                         startTime: booking.start_time,

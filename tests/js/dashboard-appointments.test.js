@@ -112,6 +112,8 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		const buttons = document.querySelectorAll('#ffc-tabpanel-appointments .ffc-btn-receipt');
 		expect(buttons.length).toBe(1);
 		expect(buttons[0].getAttribute('href')).toBe('https://x.test/receipt/1');
+		// The icon is the registry's document class (#1826), not a data: mask.
+		expect(buttons[0].classList.contains('ffc-icon-file')).toBe(true);
 	});
 
 	it('escapes HTML in the calendar_title cell so injected markup cannot execute', () => {
