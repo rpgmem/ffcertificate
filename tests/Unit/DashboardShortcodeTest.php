@@ -294,6 +294,9 @@ class DashboardShortcodeTest extends TestCase {
 		// Every capability check returns true so all cap-gated tabs render.
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		// The tab bar prints the Log Out link (#1840).
+		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'wp_logout_url' )->alias( static fn( $redirect = '' ) => 'https://example.com/wp-login.php?action=logout&redirect_to=' . rawurlencode( $redirect ) . '&_wpnonce=abc' );
 
 		$view_mode = Mockery::mock( 'alias:\FreeFormCertificate\Shortcodes\DashboardViewMode' );
 		$view_mode->shouldReceive( 'get_view_as_user_id' )->andReturn( $view_as ? 55 : false )->byDefault();
@@ -345,6 +348,42 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-recruitment-body', $output );
 		// Reregistration form panel present when reregistrations tab visible.
 		$this->assertStringContainsString( 'ffc-rereg-form-panel', $output );
+	}
+
+	/**
+	 * Log Out sits in the tab bar, after the tablist and outside it, so it
+	 * shows on every tab without being announced as a tab (#1840).
+	 */
+	public function test_render_prints_log_out_in_the_tab_bar_outside_the_tablist(): void {
+		$this->wireFullRenderCollaborators( false );
+		$escaped = array();
+		Functions\when( 'esc_url' )->alias( static function ( $url ) use ( &$escaped ) {
+			$escaped[] = $url;
+			return str_replace( '&', '&#038;', $url );
+		} );
+
+		$output = DashboardShortcode::render();
+
+		$doc = new \DOMDocument();
+		libxml_use_internal_errors( true );
+		$doc->loadHTML( '<?xml encoding="utf-8"?>' . $output );
+		libxml_clear_errors();
+		$xpath = new \DOMXPath( $doc );
+
+		$links = $xpath->query( '//a[contains(concat(" ", normalize-space(@class), " "), " ffc-logout-link ")]' );
+		$this->assertSame( 1, $links->length, 'Exactly one Log Out link is printed.' );
+		$link = $links->item( 0 );
+		$this->assertSame( 'https://example.com/wp-login.php?action=logout&redirect_to=https%3A%2F%2Fexample.com&_wpnonce=abc', $link->getAttribute( 'href' ) );
+		$this->assertContains( 'https://example.com/wp-login.php?action=logout&redirect_to=https%3A%2F%2Fexample.com&_wpnonce=abc', $escaped, 'The URL goes through esc_url().' );
+		$this->assertStringContainsString( 'action=logout&#038;redirect_to=', $output, 'The printed attribute is the escaped URL.' );
+		$this->assertStringContainsString( 'Log Out', $link->textContent );
+		$this->assertSame( 1, $xpath->query( './/span[contains(@class, "ffc-icon-logout")]', $link )->length );
+
+		$parent = $link->parentNode;
+		$this->assertInstanceOf( \DOMElement::class, $parent );
+		$this->assertStringContainsString( 'ffc-dashboard-tabbar', $parent->getAttribute( 'class' ) );
+		$this->assertSame( 0, $xpath->query( 'ancestor::*[@role="tablist"]', $link )->length, 'The link is not inside the tablist.' );
+		$this->assertSame( 1, $xpath->query( '../nav[@role="tablist"]', $link )->length, 'The tablist is its sibling in the bar.' );
 	}
 
 	// ==================================================================

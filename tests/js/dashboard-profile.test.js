@@ -30,7 +30,6 @@ beforeAll(() => {
 		notifications: 'Notifications',
 		lgpd: 'Privacy',
 	});
-	window.ffcDashboard.logoutUrl = 'https://x.test/logout';
 
 	// Inject the panel's tab container.
 	const dash = document.getElementById('ffc-dashboard');
@@ -74,11 +73,11 @@ describe('FFCDashboard.panels.profile.render', () => {
 		expect(document.querySelector('#ffc-tabpanel-profile .ffc-profile-info')).not.toBeNull();
 	});
 
-	it('renders the logout link when ffcDashboard.logoutUrl is set', () => {
+	it('no longer renders Log Out: the shortcode prints it in the tab bar (#1840)', () => {
 		panel().render(makeProfile());
-		const logout = document.querySelector('#ffc-tabpanel-profile .ffc-logout-link');
-		expect(logout).not.toBeNull();
-		expect(logout.getAttribute('href')).toBe('https://x.test/logout');
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-logout-link')).toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-profile-logout')).toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile').textContent).not.toContain('Log Out');
 	});
 
 	it('renders core fields with their localised labels', () => {

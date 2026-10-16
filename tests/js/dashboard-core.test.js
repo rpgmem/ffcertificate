@@ -264,6 +264,34 @@ describe('FFCDashboard.tab dispatch', () => {
 		expect(window.FFCDashboard.panels.appointments.load).toHaveBeenCalled();
 	});
 
+	it('tabs keep switching inside the tab bar, and Log Out is not a tab (#1840)', async () => {
+		// The markup the shortcode prints: the tablist and, beside it, the link.
+		document.body.innerHTML = `
+			<div id="ffc-dashboard">
+				<div class="ffc-dashboard-tabbar">
+					<nav class="ffc-dashboard-tabs" role="tablist">
+						<button class="ffc-tab is-active" data-tab="certificates" role="tab">Certs</button>
+						<button class="ffc-tab" data-tab="appointments" role="tab">Appts</button>
+						<button class="ffc-tab" data-tab="audience" role="tab">Audience</button>
+					</nav>
+					<a href="https://x.test/logout" class="ffc-logout-link">Log Out</a>
+				</div>
+				<div id="ffc-tabpanel-certificates" class="ffc-tab-content is-active"></div>
+				<div id="ffc-tabpanel-appointments" class="ffc-tab-content"></div>
+				<div id="ffc-tabpanel-audience" class="ffc-tab-content"></div>
+			</div>
+		`;
+		installFakePanels();
+		window.$('.ffc-tab[data-tab="appointments"]').trigger('click');
+		expect(window.$('.ffc-tab.is-active').data('tab')).toBe('appointments');
+		expect(window.$('.ffc-tab-content.is-active').attr('id')).toBe('ffc-tabpanel-appointments');
+
+		// End jumps to the last TAB, never to the link after the tablist.
+		window.$('.ffc-tab').eq(0).trigger(window.$.Event('keydown', { key: 'End' }));
+		expect(window.$('.ffc-tab.is-active').data('tab')).toBe('audience');
+		expect(window.$('.ffc-logout-link').hasClass('is-active')).toBe(false);
+	});
+
 	it('keyboard nav: ArrowRight cycles forward, ArrowLeft cycles backward', async () => {
 		installFakePanels();
 		// Focus the first tab + ArrowRight.

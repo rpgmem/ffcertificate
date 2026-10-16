@@ -230,11 +230,20 @@
    TABS NAVIGATION
    ========================================================================== */
 
+/* The bar holds the tablist and, outside it, the Log Out link (#1840). The
+   bar carries the rule under the tabs, so it still spans the full width; the
+   tabs' -2px bottom margin lays the active tab's border over it as before. */
+.ffc-dashboard-tabbar {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--ffc-spacing-lg);
+    margin-bottom: var(--ffc-spacing-3xl);
+    border-bottom: 2px solid var(--ffc-border-light);
+}
+
 .ffc-dashboard-tabs {
     display: flex;
     gap: var(--ffc-spacing-3xs);
-    margin-bottom: var(--ffc-spacing-3xl);
-    border-bottom: 2px solid var(--ffc-border-light);
 }
 
 .ffc-tab {
@@ -857,15 +866,16 @@
 }
 
 /* ==========================================================================
-   PROFILE LOGOUT
+   LOG OUT (in the tab bar, #1840)
+   A discreet bordered link at the end of the bar, centred on the tabs; it
+   must never read as one more tab.
    ========================================================================== */
 
-.ffc-profile-logout {
-    text-align: right;
-    margin-bottom: var(--ffc-spacing-lg);
-}
-
 .ffc-logout-link {
+    align-self: center;
+    margin-left: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     gap: var(--ffc-spacing-xs);
@@ -1495,10 +1505,25 @@
         justify-content: center;
     }
 
+    .ffc-dashboard-tabbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        border-bottom: none;
+    }
+
     .ffc-dashboard-tabs {
         flex-direction: column;
         gap: 0;
-        border-bottom: none;
+    }
+
+    /* Last item of the stacked menu, full width, apart from the tabs. */
+    .ffc-logout-link {
+        align-self: stretch;
+        justify-content: center;
+        margin-left: 0;
+        margin-top: var(--ffc-spacing-lg);
+        padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
     }
 
     .ffc-tab {
