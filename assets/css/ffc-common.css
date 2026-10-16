@@ -1167,41 +1167,105 @@
 }
 
 /* ==========================================================================
-   RATE LIMIT NOTICE - Frontend & Admin
+   NOTICE — shared component (#1842)
+   One look for every system notice on the public screens: a 4px bar in the
+   tone's border colour, the tone's ground and text, a leading registry icon,
+   an optional bold title and the message. `Core\Notice::render()` and
+   `FFC.notice()` (ffc-core.js) print the markup, so no emitter hand-writes
+   it. It lives here because the forms, the verification page and the user
+   dashboard all load this sheet.
+
+   The tone rules are compounded with `.ffc-notice` on purpose: the dashboard
+   and audience notices still carry a bare `ffc-notice-info` /
+   `ffc-notice-warning` of their own until they move to this component, and a
+   bare tone selector would repaint them.
+
+   The info tone reads the three `--ffc-info-*` tokens, which Settings →
+   Public Design may override in the light theme (`Core\PublicDesign`).
    ========================================================================== */
 
-/**
- * Rate limit warning banner (created dynamically by ffc-frontend-helpers.js)
- * Moved from ffc-admin-settings.css -- these styles are needed on the frontend.
- */
-.ffc-rate-limit-notice {
-    background: var(--ffc-warning-bg);
-    border: 1px solid var(--ffc-warning-border);
-    border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-xl);
-    margin-bottom: var(--ffc-spacing-2xl);
+.ffc-notice {
     display: flex;
-    align-items: center;
     gap: var(--ffc-spacing-md);
+    align-items: flex-start;
+    margin: 0 0 var(--ffc-spacing-xl) 0;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
+    border-left: 4px solid;
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
+    text-align: left;
 }
 
-.ffc-rate-limit-icon {
-    font-size: var(--ffc-font-size-2xl);
+.ffc-notice.ffc-notice-info {
+    border-left-color: var(--ffc-info-border);
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+}
+
+.ffc-notice.ffc-notice-warning {
+    border-left-color: var(--ffc-warning-border);
+    background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
-.ffc-rate-limit-icon::before {
+.ffc-notice.ffc-notice-danger {
+    border-left-color: var(--ffc-danger-border);
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-notice.ffc-notice-success {
+    border-left-color: var(--ffc-success-border);
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-notice.ffc-notice-neutral {
+    border-left-color: var(--ffc-border);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+}
+
+/* The icon sits on the first line of text: 1.5em is the line box. */
+.ffc-notice .ffc-notice-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    height: 1.5em;
+}
+
+.ffc-notice .ffc-notice-icon::before {
     margin-right: 0;
+    vertical-align: 0;
 }
 
-.ffc-rate-limit-message {
+.ffc-notice .ffc-notice-body {
     flex: 1;
-    color: var(--ffc-warning-text);
+    min-width: 0;
 }
 
-.ffc-rate-limit-message strong {
-    color: var(--ffc-danger);
-    font-family: monospace;
+.ffc-notice .ffc-notice-title {
+    display: block;
+    font-weight: 600;
+}
+
+.ffc-notice .ffc-notice-text {
+    margin: 0;
+    font-size: var(--ffc-font-size-base);
+    line-height: inherit;
+    color: inherit;
+}
+
+.ffc-notice .ffc-notice-title + .ffc-notice-text,
+.ffc-notice .ffc-notice-text + .ffc-notice-text {
+    margin-top: var(--ffc-spacing-2xs);
+}
+
+/* An action inside a notice (dismiss, reload, try anyway) starts on its own
+   line below the text. */
+.ffc-notice .ffc-notice-body > button {
+    margin-top: var(--ffc-spacing-md);
 }
 
 /* Disabled submit buttons during rate limit */
@@ -3014,6 +3078,13 @@
     .ffc-pill-row-color,
     .ffc-status-pending {
         border: 1px solid CanvasText;
+    }
+
+    /* A notice keeps its bar, but its ground was what set it apart from the
+       page; the contour closes the box around the message (#1842). */
+    .ffc-notice {
+        border: 1px solid CanvasText;
+        border-left-width: 4px;
     }
 }
 

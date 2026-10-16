@@ -26124,6 +26124,22 @@ msgstr ""
 msgid "The personal-calendar and group-calendar tabs split the list into Upcoming, Past and Cancelled, each heading showing how many items it holds. Each section pages on its own, 5 upcoming, 3 past and 2 cancelled items at a time, and the filter bar brings every section back to its first page."
 msgstr ""
 
+#: includes/core/class-ffc-public-design.php
+msgid "information notices on their background"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "Information notices (bar and text)"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "The background of the information notices (the administrator bypass, the quiz and schedule notices, \"already submitted\") is a light shade of their colour, made for you. Their colour is checked against that background, at 4.5:1."
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php
+msgid "The colour of the information notices (the administrator bypass, the quiz and schedule notices, \"already submitted\") draws their bar and their text; their background is a light shade of it, made automatically, and the warning measures the colour against that background. Left at its default, the notices keep the plugin's own blue pair."
+msgstr ""
+
 #: templates/admin/qr/design-fields.php
 msgid "Enter a colour as #rrggbb."
 msgstr ""

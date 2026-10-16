@@ -21,6 +21,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
@@ -112,7 +113,7 @@ describe('FFCGeofence.processForm', () => {
 			},
 			geo: { enabled: false },
 		});
-		expect($w.find('.ffc-geofence-blocked').length).toBe(1);
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').length).toBe(1);
 		// title_message keeps the title visible; only the form body is hidden.
 		expect($w.find('.ffc-form-title').css('display')).not.toBe('none');
 		expect($w.find('.ffc-submission-form').css('display')).toBe('none');
@@ -151,7 +152,7 @@ describe('FFCGeofence.processForm', () => {
 			bypassInfo: { hasDatetime: true, hasGeo: true },
 		});
 		// Two bypass notices (one per restriction).
-		expect($w.find('.ffc-geofence-admin-bypass').length).toBe(2);
+		expect($w.find('[data-ffc-notice="geofence-bypass"]').length).toBe(2);
 	});
 });
 
@@ -192,7 +193,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 		const restore = installLocation('http:', 'example.com');
 		const $w = mountForm(100);
 		window.FFCGeofence.validateGeolocation($w, { hideMode: 'message' });
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('secure connection');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('secure connection');
 		restore();
 	});
 
@@ -208,7 +209,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 
 		window.FFCGeofence.validateGeolocation($w, { hideMode: 'message' });
 
-		expect($w.find('.ffc-geofence-blocked').length).toBe(0);
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').length).toBe(0);
 		expect(cb).toHaveBeenCalled();
 		restore();
 	});
@@ -223,7 +224,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 		window.FFCGeofence.validateGeolocation($w, { hideMode: 'message' });
 		// New copy nudges the user to a modern browser; assert on the
 		// stable substring so a future translation tweak doesn't break us.
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('does not support location services');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('does not support location services');
 		restore();
 	});
 
@@ -318,7 +319,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 			areas: [],
 			gpsFallback: 'block',
 		});
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('Location access is required');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('Location access is required');
 		restore();
 	});
 
@@ -338,7 +339,7 @@ describe('FFCGeofence.validateGeolocation', () => {
 			areas: [],
 			gpsFallback: 'block',
 		});
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('took too long');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('took too long');
 		restore();
 	});
 });
@@ -388,7 +389,7 @@ describe('FFCGeofence.checkLocation', () => {
 				messageBlocked: 'Outside zone',
 			},
 		);
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('Outside zone');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('Outside zone');
 		expect($w.hasClass('ffc-validated')).toBe(false);
 	});
 });
@@ -437,7 +438,7 @@ describe('FFCGeofence.handleBlocked', () => {
 		window.FFCGeofence.handleBlocked($w, 'message', 'closed');
 		expect($w.find('.ffc-form-title').css('display')).toBe('none');
 		expect($w.find('.ffc-submission-form').css('display')).toBe('none');
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('closed');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('closed');
 	});
 
 	it("'title_message' keeps the title visible", () => {
@@ -445,20 +446,20 @@ describe('FFCGeofence.handleBlocked', () => {
 		window.FFCGeofence.handleBlocked($w, 'title_message', 'try again later');
 		expect($w.find('.ffc-form-title').css('display')).not.toBe('none');
 		expect($w.find('.ffc-submission-form').css('display')).toBe('none');
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('try again later');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('try again later');
 	});
 
 	it('unknown mode falls through to the default message branch', () => {
 		const $w = mountForm(303);
 		window.FFCGeofence.handleBlocked($w, 'unknown-mode', 'fallback');
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('fallback');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('fallback');
 	});
 
 	it('escapes HTML in the message', () => {
 		const $w = mountForm(304);
 		window.FFCGeofence.handleBlocked($w, 'message', '<script>alert(1)</script>');
 		// The literal angle brackets appear as text — no script element.
-		expect($w.find('.ffc-geofence-blocked p').text()).toContain('<script>');
+		expect($w.find('[data-ffc-notice="geofence-blocked"] .ffc-notice-text').text()).toContain('<script>');
 		expect($w.find('script').length).toBe(0);
 	});
 });
@@ -476,28 +477,28 @@ describe('FFCGeofence.showAdminBypassMessages', () => {
 	it('falls back to a generic message when no bypassInfo is given', () => {
 		const $w = mountForm(400);
 		window.FFCGeofence.showAdminBypassMessages($w, null);
-		expect($w.find('.ffc-geofence-admin-bypass').length).toBe(1);
-		expect($w.find('.ffc-geofence-admin-bypass').text()).toContain('Admin Bypass');
+		expect($w.find('[data-ffc-notice="geofence-bypass"]').length).toBe(1);
+		expect($w.find('[data-ffc-notice="geofence-bypass"]').text()).toContain('Admin Bypass');
 	});
 
 	it('renders a notice per active restriction (datetime + geo)', () => {
 		const $w = mountForm(401);
 		window.FFCGeofence.showAdminBypassMessages($w, { hasDatetime: true, hasGeo: true });
-		expect($w.find('.ffc-geofence-admin-bypass').length).toBe(2);
+		expect($w.find('[data-ffc-notice="geofence-bypass"]').length).toBe(2);
 	});
 
 	it('renders only the datetime notice when only datetime is bypassed', () => {
 		const $w = mountForm(402);
 		window.FFCGeofence.showAdminBypassMessages($w, { hasDatetime: true, hasGeo: false });
-		expect($w.find('.ffc-geofence-admin-bypass').length).toBe(1);
-		expect($w.find('.ffc-geofence-admin-bypass').text()).toContain('Date/Time');
+		expect($w.find('[data-ffc-notice="geofence-bypass"]').length).toBe(1);
+		expect($w.find('[data-ffc-notice="geofence-bypass"]').text()).toContain('Date/Time');
 	});
 
 	it('renders a generic notice when bypassInfo has neither flag', () => {
 		const $w = mountForm(403);
 		window.FFCGeofence.showAdminBypassMessages($w, { hasDatetime: false, hasGeo: false });
-		expect($w.find('.ffc-geofence-admin-bypass').length).toBe(1);
-		expect($w.find('.ffc-geofence-admin-bypass').text()).toContain('Admin Bypass');
+		expect($w.find('[data-ffc-notice="geofence-bypass"]').length).toBe(1);
+		expect($w.find('[data-ffc-notice="geofence-bypass"]').text()).toContain('Admin Bypass');
 	});
 });
 

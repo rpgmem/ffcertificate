@@ -15,6 +15,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
@@ -320,7 +321,7 @@ describe('validateGeolocation — success, safety timer, Safari retry', () => {
 		// Non-Safari safety timeout is 25 s.
 		vi.advanceTimersByTime(25000);
 		expect($w.hasClass('ffc-geofence-loading')).toBe(false);
-		expect($w.find('.ffc-geofence-blocked').length).toBe(1);
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').length).toBe(1);
 		restoreLoc();
 		restoreUa();
 	});
@@ -440,7 +441,7 @@ describe('validateGeolocation — success, safety timer, Safari retry', () => {
 			gpsFallback: { positionUnavailable: false },
 		});
 
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('Custom location error');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('Custom location error');
 		restoreLoc();
 		restoreUa();
 	});

@@ -6,14 +6,17 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
 	loadScript('assets/js/ffc-geofence-preflight.js');
 	loadScript('assets/js/ffc-geofence-content.js');
+	core = window.FFC;
 });
 
 let request;
+let core;
 
 beforeEach(() => {
 	document.body.innerHTML = '';
@@ -25,7 +28,8 @@ beforeEach(() => {
 		strings: { unavailable: 'This content is not available.' },
 	};
 	request = vi.fn(() => Promise.resolve({ html: '<p>Answer key</p>' }));
-	window.FFC = { request };
+	// The notices are built by the real FFC.notice() (#1842).
+	window.FFC = { request, notice: core.notice };
 });
 
 afterEach(() => {
@@ -72,7 +76,7 @@ describe('protected content', () => {
 		window.FFCGeofence.processContent($w);
 
 		expect(request).not.toHaveBeenCalled();
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('Closed.');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('Closed.');
 		expect($w.find('.ffc-geofence-loading-msg')).toHaveLength(0);
 	});
 
@@ -111,7 +115,7 @@ describe('protected content', () => {
 		window.FFCGeofence.processContent($w);
 		await flush();
 
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('This content is not available in your location.');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('This content is not available in your location.');
 		expect($w.find('.ffc-geofence-loading-msg')).toHaveLength(0);
 	});
 
@@ -122,7 +126,7 @@ describe('protected content', () => {
 		window.FFCGeofence.processContent($w);
 		await flush();
 
-		expect($w.find('.ffc-geofence-blocked').text()).toContain('This content is not available.');
+		expect($w.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('This content is not available.');
 	});
 
 	it('asks for the content once however often it is revealed', async () => {
@@ -163,7 +167,7 @@ describe('protected content', () => {
 		expect($badge.attr('title')).toContain('Date/Time');
 		expect($w.children().first().is($badge)).toBe(true);
 		expect($w.find('p').last().text()).toBe('Answer key');
-		expect($w.find('.ffc-geofence-admin-bypass')).toHaveLength(0);
+		expect($w.find('[data-ffc-notice="geofence-bypass"]')).toHaveLength(0);
 	});
 
 	it('shows no badge without a bypass', async () => {
@@ -187,6 +191,6 @@ describe('forms keep their own behaviour', () => {
 
 		expect(request).not.toHaveBeenCalled();
 		expect($f.hasClass('ffc-validated')).toBe(true);
-		expect($f.find('.ffc-geofence-blocked').text()).toContain('Nope');
+		expect($f.find('[data-ffc-notice="geofence-blocked"]').text()).toContain('Nope');
 	});
 });

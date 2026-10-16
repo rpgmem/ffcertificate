@@ -85,9 +85,9 @@
      */
     function showAccessibleAlert(message, $context) {
         // Remove any previous transient alerts
-        $('.ffc-accessible-alert').remove();
+        $('[data-ffc-notice="accessible-alert"]').remove();
 
-        var $alert = $('<div class="ffc-accessible-alert ffc-message ffc-message-error" role="alert">').text(message);
+        var $alert = $(FFC.notice('danger', 'error', message, '', { role: 'alert', hook: 'accessible-alert' }));
 
         if ($context && $context.length) {
             $context.before($alert);
@@ -321,12 +321,13 @@
                 }
                 // Show error inline without destroying the form.
                 var errorMsg = err.message || (ffc_ajax.strings.error || 'Error');
-                var $errorDiv = $form.find('.ffc-verify-error');
-                if (!$errorDiv.length) {
-                    $form.find('.ffc-form-field').first().before('<div class="ffc-verify-error"></div>');
-                    $errorDiv = $form.find('.ffc-verify-error');
+                var notice = FFC.notice('danger', 'error', errorMsg, '', { role: 'alert', hook: 'verify-error' });
+                var $previous = $form.find('[data-ffc-notice="verify-error"]');
+                if ($previous.length) {
+                    $previous.replaceWith(notice);
+                } else {
+                    $form.find('.ffc-form-field').first().before(notice);
                 }
-                $errorDiv.html('').append($('<p class="ffc-message ffc-message-error">').text(errorMsg));
             });
     });
 
@@ -510,7 +511,24 @@
                         $submitBtn.prop('disabled', false).text(originalBtnText);
                         return;
                     }
-                    if (data.html) {
+                    // The quiz's "stay on this page" notice sits above the
+                    // title, outside the form the response replaces; it is
+                    // done once the attempt is in (#1842).
+                    $form.closest('.ffc-form-wrapper').find('[data-ffc-notice="quiz-leave"]').remove();
+                    if (data.html && data.quiz && data.quiz.pending) {
+                        // An attempt a person has still to grade (#1732) is
+                        // a system notice: it takes the place of the form
+                        // and sits above the title, like the form's other
+                        // notices (#1842).
+                        var $wrapper = $form.closest('.ffc-form-wrapper');
+                        var $title = $wrapper.children('.ffc-form-title').first();
+                        if ($title.length) {
+                            $title.before(data.html);
+                            $form.remove();
+                        } else {
+                            $form.html(data.html);
+                        }
+                    } else if (data.html) {
                         $form.html(data.html);
                         // Add PDF data to download button if available
                         if (data.pdf_data) {

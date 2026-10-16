@@ -139,7 +139,7 @@ describe('frontend.handleFormSubmission', () => {
 		mockAjax(() => ({}));
 		$form.trigger('submit');
 		await flush();
-		const alert = document.querySelector('.ffc-accessible-alert');
+		const alert = document.querySelector('[data-ffc-notice="accessible-alert"]');
 		expect(alert).not.toBeNull();
 		expect(alert.textContent).toContain('Please fill all required fields');
 		expect(alert.getAttribute('role')).toBe('alert');
@@ -376,7 +376,7 @@ describe('frontend.handleFormSubmission', () => {
 		});
 		$form.trigger('submit');
 		await flush();
-		const alert = document.querySelector('.ffc-accessible-alert');
+		const alert = document.querySelector('[data-ffc-notice="accessible-alert"]');
 		expect(alert).not.toBeNull();
 		expect(alert.textContent).toContain('Connection error');
 	});
@@ -399,11 +399,11 @@ describe('frontend.showAccessibleAlert (via required-field validation)', () => {
 		// First submit → first alert.
 		window.$('form').trigger('submit');
 		await flush();
-		expect(document.querySelectorAll('.ffc-accessible-alert').length).toBe(1);
+		expect(document.querySelectorAll('[data-ffc-notice="accessible-alert"]').length).toBe(1);
 		// Second submit → still only one alert.
 		window.$('form').trigger('submit');
 		await flush();
-		expect(document.querySelectorAll('.ffc-accessible-alert').length).toBe(1);
+		expect(document.querySelectorAll('[data-ffc-notice="accessible-alert"]').length).toBe(1);
 	});
 
 	it('schedules the alert auto-hide after 8 seconds', () => {
@@ -419,7 +419,7 @@ describe('frontend.showAccessibleAlert (via required-field validation)', () => {
 			mockAjax(() => ({}));
 			window.$('form').trigger('submit');
 			// The validation path runs synchronously before any AJAX.
-			expect(document.querySelectorAll('.ffc-accessible-alert').length).toBe(1);
+			expect(document.querySelectorAll('[data-ffc-notice="accessible-alert"]').length).toBe(1);
 			// Drive the 8s auto-hide timer body (line 100) — the fadeOut call
 			// inside it runs without throwing under fake timers.
 			expect(() => vi.advanceTimersByTime(8000)).not.toThrow();

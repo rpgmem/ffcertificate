@@ -310,7 +310,7 @@ describe('frontend.verificationForm submit', () => {
 		await flush();
 
 		expect(postSpy).not.toHaveBeenCalled();
-		expect(window.$('.ffc-accessible-alert').length).toBe(1);
+		expect(window.$('[data-ffc-notice="accessible-alert"]').length).toBe(1);
 	});
 
 	it('POSTs ffc_verify_certificate with the serialized form when authCode is set', async () => {
@@ -422,7 +422,7 @@ describe('frontend.verificationForm submit', () => {
 
 		expect(window.$('.ffc-captcha-label-text').text()).toBe('New Question');
 		expect(window.$('input[name="ffc_captcha_hash"]').val()).toBe('new-hash');
-		expect(window.$('.ffc-verify-error').text()).toContain('Wrong captcha');
+		expect(window.$('[data-ffc-notice="verify-error"]').text()).toContain('Wrong captcha');
 	});
 
 	it('on network error: shows the connection-error alert', async () => {
@@ -433,7 +433,7 @@ describe('frontend.verificationForm submit', () => {
 		window.$('.ffc-verification-form').trigger('submit');
 		await flush();
 
-		expect(window.$('.ffc-accessible-alert').text()).toContain('Connection error');
+		expect(window.$('[data-ffc-notice="accessible-alert"]').text()).toContain('Connection error');
 	});
 
 	it('on success: routes the resolved data into displayVerificationResult', async () => {
@@ -487,7 +487,7 @@ describe('frontend.downloadPdfBtn', () => {
 		window.$('.ffc-download-pdf-btn').trigger('click');
 		await flush();
 
-		expect(window.$('.ffc-accessible-alert').text()).toContain('PDF generation not available');
+		expect(window.$('[data-ffc-notice="accessible-alert"]').text()).toContain('PDF generation not available');
 	});
 
 	it('catches malformed JSON and surfaces an alert', async () => {
@@ -502,7 +502,7 @@ describe('frontend.downloadPdfBtn', () => {
 		window.$('.ffc-download-pdf-btn').trigger('click');
 		await flush();
 
-		expect(window.$('.ffc-accessible-alert').length).toBe(1);
+		expect(window.$('[data-ffc-notice="accessible-alert"]').length).toBe(1);
 	});
 });
 

@@ -19,6 +19,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
+use FreeFormCertificate\Core\Notice;
 use FreeFormCertificate\Security\Geofence;
 use FreeFormCertificate\Security\GeofenceLocationRegistry;
 
@@ -149,19 +150,19 @@ class GeofenceContent {
 		// Outside a post's own content (a widget, a template) there is no
 		// stored copy for the endpoint to read, so the content is never shown.
 		if ( $post_id <= 0 || $index < 0 ) {
-			return '<div class="ffc-shortcode ffc-geofence-content"><div class="ffc-geofence-blocked"><p>' . esc_html( self::unavailable_message() ) . '</p></div></div>';
+			return '<div class="ffc-shortcode ffc-geofence-content">' . Notice::render( 'warning', 'map-pin', self::unavailable_message(), '', array( 'hook' => 'geofence-blocked' ) ) . '</div>';
 		}
 
 		$handle = self::handle( $post_id, $index, self::fingerprint( $atts ) );
 		$id     = 'ffc-geofence-content-' . ( ++self::$rendered );
 
 		return sprintf(
-			'<div id="%1$s" class="ffc-shortcode ffc-geofence-content" data-ffc-geofence-handle="%2$s" data-ffc-geofence-config="%3$s"><div class="ffc-geofence-loading-msg"><div class="ffc-spinner"></div><p>%4$s</p></div><noscript><div class="ffc-geofence-blocked"><p>%5$s</p></div></noscript></div>',
+			'<div id="%1$s" class="ffc-shortcode ffc-geofence-content" data-ffc-geofence-handle="%2$s" data-ffc-geofence-config="%3$s"><div class="ffc-geofence-loading-msg"><div class="ffc-spinner"></div><p>%4$s</p></div><noscript>%5$s</noscript></div>',
 			esc_attr( $id ),
 			esc_attr( $handle ),
 			esc_attr( (string) wp_json_encode( Geofence::build_frontend_config( $config, array( 'contentId' => $id ) ) ) ),
 			esc_html__( 'Checking access…', 'ffcertificate' ),
-			esc_html__( 'This content needs JavaScript to check your access.', 'ffcertificate' )
+			Notice::render( 'warning', 'map-pin', __( 'This content needs JavaScript to check your access.', 'ffcertificate' ), '', array( 'hook' => 'geofence-blocked' ) )
 		);
 	}
 

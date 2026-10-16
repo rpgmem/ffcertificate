@@ -13,6 +13,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
@@ -97,14 +98,14 @@ describe('handleCookieBlocked banner', () => {
 
 		window.FFCGeofence.init();
 
-		const banner = document.querySelector('.ffc-preflight-banner.ffc-preflight-cookies');
+		const banner = document.querySelector('[data-ffc-notice="preflight-cookies"]');
 		expect(banner).not.toBeNull();
 		expect(banner.getAttribute('role')).toBe('alert');
 		expect(banner.getAttribute('aria-live')).toBe('assertive');
-		expect(banner.querySelector('.ffc-preflight-banner-title').textContent).toBe('Cookies blocked');
-		expect(banner.querySelector('.ffc-preflight-banner-body').textContent).toContain('the submit may fail');
+		expect(banner.querySelector('.ffc-notice-title').textContent).toBe('Cookies blocked');
+		expect(banner.querySelector('.ffc-notice-text').textContent).toContain('the submit may fail');
 		// Desktop UA → desktop instructions.
-		expect(banner.querySelector('.ffc-preflight-banner-how').textContent).toBe('Desktop instructions here');
+		expect(banner.querySelector('.ffc-notice-text + .ffc-notice-text').textContent).toBe('Desktop instructions here');
 		expect(banner.querySelector('.ffc-preflight-try-anyway').textContent).toBe('Try anyway');
 
 		// Form is hidden behind the banner.
@@ -121,7 +122,7 @@ describe('handleCookieBlocked banner', () => {
 
 		window.FFCGeofence.init();
 
-		expect(document.querySelector('.ffc-preflight-banner-how').textContent).toBe('iOS instructions here');
+		expect(document.querySelector('.ffc-notice-text + .ffc-notice-text').textContent).toBe('iOS instructions here');
 	});
 
 	it('skips the cookie check entirely when adminBypass is true', () => {
@@ -135,7 +136,7 @@ describe('handleCookieBlocked banner', () => {
 
 		window.FFCGeofence.init();
 
-		expect(document.querySelector('.ffc-preflight-banner')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice^="preflight"]')).toBeNull();
 	});
 
 	it('"Try anyway" removes the banner and re-enters the geo pipeline', () => {
@@ -147,13 +148,13 @@ describe('handleCookieBlocked banner', () => {
 		});
 
 		window.FFCGeofence.init();
-		expect(document.querySelector('.ffc-preflight-banner')).not.toBeNull();
+		expect(document.querySelector('[data-ffc-notice^="preflight"]')).not.toBeNull();
 
 		// Click "Try anyway".
 		window.$('.ffc-preflight-try-anyway').trigger('click');
 
 		// Banner gone, form revealed.
-		expect(document.querySelector('.ffc-preflight-banner')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice^="preflight"]')).toBeNull();
 		expect(window.$('.ffc-submission-form').css('display')).not.toBe('none');
 	});
 
@@ -166,14 +167,14 @@ describe('handleCookieBlocked banner', () => {
 		});
 
 		window.FFCGeofence.init();
-		expect(document.querySelector('.ffc-preflight-banner')).not.toBeNull();
+		expect(document.querySelector('[data-ffc-notice^="preflight"]')).not.toBeNull();
 
 		// Drop the per-form config so the try-anyway handler takes its
 		// `if (! config) { this.showForm(...) }` branch.
 		delete window.ffcGeofenceConfig[42];
 		window.$('.ffc-preflight-try-anyway').trigger('click');
 
-		expect(document.querySelector('.ffc-preflight-banner')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice^="preflight"]')).toBeNull();
 		expect(window.$('.ffc-submission-form').css('display')).not.toBe('none');
 	});
 
@@ -198,6 +199,6 @@ describe('handleCookieBlocked banner', () => {
 		window.FFCGeofence.init();
 
 		// Datetime banner fires; cookie banner does NOT.
-		expect(document.querySelector('.ffc-preflight-cookies')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="preflight-cookies"]')).toBeNull();
 	});
 });

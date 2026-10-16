@@ -195,9 +195,12 @@ class PublicCsvDownload {
 
 			<?php if ( $flash ) : ?>
 				<div class="ffc-verify-result ffc-pcd-message">
-					<div class="<?php echo esc_attr( 'error' === $flash['type'] ? 'ffc-verify-error' : 'ffc-verify-success' ); ?>">
-						<?php echo esc_html( $flash['message'] ); ?>
-					</div>
+					<?php
+					$flash_notice = 'error' === $flash['type']
+						? \FreeFormCertificate\Core\Notice::render( 'danger', 'error', (string) $flash['message'], '', array( 'role' => 'alert' ) )
+						: \FreeFormCertificate\Core\Notice::render( 'success', 'success', (string) $flash['message'] );
+					echo $flash_notice; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+					?>
 				</div>
 			<?php endif; ?>
 

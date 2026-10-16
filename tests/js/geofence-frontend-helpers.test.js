@@ -16,6 +16,7 @@ beforeAll(() => {
 			},
 		},
 	};
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
@@ -243,14 +244,14 @@ describe('FFCGeofence.handleBlocked', () => {
 		const root = document.getElementById('ffc-form-1');
 		expect(root.querySelector('.ffc-submission-form').style.display).toBe('none');
 		expect(root.querySelector('.ffc-form-title').style.display).toBe('none');
-		const blocked = root.querySelector('.ffc-geofence-blocked');
+		const blocked = root.querySelector('[data-ffc-notice="geofence-blocked"]');
 		expect(blocked).not.toBeNull();
 		expect(blocked.textContent).toContain('You are blocked');
 	});
 
 	it('escapes HTML in the blocked message to prevent XSS', () => {
 		G().handleBlocked(wrapper(), 'message', '<img src=x onerror=alert(1)>');
-		const blocked = document.querySelector('#ffc-form-1 .ffc-geofence-blocked');
+		const blocked = document.querySelector('#ffc-form-1 [data-ffc-notice="geofence-blocked"]');
 		// The img tag must not have been parsed as HTML.
 		expect(blocked.innerHTML).not.toContain('<img');
 		expect(blocked.innerHTML).toContain('&lt;img');
@@ -262,21 +263,21 @@ describe('FFCGeofence.showAdminBypassMessages', () => {
 
 	it('renders a generic bypass message when bypassInfo is null', () => {
 		G().showAdminBypassMessages(wrapper(), null);
-		const bypass = document.querySelector('#ffc-form-1 .ffc-geofence-admin-bypass');
+		const bypass = document.querySelector('#ffc-form-1 [data-ffc-notice="geofence-bypass"]');
 		expect(bypass).not.toBeNull();
 		expect(bypass.textContent).toMatch(/Bypass|bypass/);
 	});
 
 	it('renders a datetime-specific message when hasDatetime is true', () => {
 		G().showAdminBypassMessages(wrapper(), { hasDatetime: true, hasGeo: false });
-		const messages = document.querySelectorAll('#ffc-form-1 .ffc-geofence-admin-bypass');
+		const messages = document.querySelectorAll('#ffc-form-1 [data-ffc-notice="geofence-bypass"]');
 		expect(messages.length).toBe(1);
 		expect(messages[0].textContent).toMatch(/Date|date|Time|time/);
 	});
 
 	it('renders both datetime and geo messages when both flags are set', () => {
 		G().showAdminBypassMessages(wrapper(), { hasDatetime: true, hasGeo: true });
-		const messages = document.querySelectorAll('#ffc-form-1 .ffc-geofence-admin-bypass');
+		const messages = document.querySelectorAll('#ffc-form-1 [data-ffc-notice="geofence-bypass"]');
 		expect(messages.length).toBe(2);
 	});
 });
@@ -297,11 +298,11 @@ describe('FFCGeofence.showForm / resetForm', () => {
 		G().handleBlocked(wrapper(), 'message', 'something');
 		G().showForm(wrapper());
 		// Sanity: both states present.
-		expect(document.querySelector('#ffc-form-1 .ffc-geofence-blocked')).not.toBeNull();
+		expect(document.querySelector('#ffc-form-1 [data-ffc-notice="geofence-blocked"]')).not.toBeNull();
 
 		G().resetForm(wrapper());
 		expect(document.getElementById('ffc-form-1').classList.contains('ffc-validated')).toBe(false);
-		expect(document.querySelector('#ffc-form-1 .ffc-geofence-blocked')).toBeNull();
+		expect(document.querySelector('#ffc-form-1 [data-ffc-notice="geofence-blocked"]')).toBeNull();
 	});
 });
 
@@ -369,6 +370,6 @@ describe('FFCGeofence.applyGpsFallback', () => {
 		G().applyGpsFallback(wrapper(), { gpsFallback: 'block', hideMode: 'message' });
 		const root = document.getElementById('ffc-form-1');
 		expect(root.classList.contains('ffc-validated')).toBe(false);
-		expect(document.querySelector('#ffc-form-1 .ffc-geofence-blocked')).not.toBeNull();
+		expect(document.querySelector('#ffc-form-1 [data-ffc-notice="geofence-blocked"]')).not.toBeNull();
 	});
 });

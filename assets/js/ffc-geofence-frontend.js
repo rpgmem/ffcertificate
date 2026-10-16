@@ -224,11 +224,11 @@
 
         resetForm: function(formWrapper) {
             formWrapper.removeClass('ffc-validated');
-            formWrapper.find('.ffc-geofence-blocked').remove();
-            formWrapper.find('.ffc-geofence-admin-bypass').remove();
+            formWrapper.find('[data-ffc-notice="geofence-blocked"]').remove();
+            formWrapper.find('[data-ffc-notice="geofence-bypass"]').remove();
             // processForm draws the pre-flight banner again when it is
             // still needed; leaving the old one stacks a second (#1668).
-            formWrapper.find('.ffc-preflight-banner').remove();
+            formWrapper.find('[data-ffc-notice^="preflight"]').remove();
             formWrapper.find('.ffc-submission-form').show();
             formWrapper.find('.ffc-form-title').show();
             formWrapper.show();
@@ -307,22 +307,24 @@
          * Show blocked message
          */
         showBlockedMessage: function(formWrapper, message, showReload) {
-            var html = '<div class="ffc-geofence-blocked"><p>' + this.escapeHtml(message) + '</p>';
+            var children = [];
             if (showReload) {
-                var label = this.getString('reloadPageBtn', 'Reload page');
-                html += '<button type="button" class="ffc-btn ffc-geofence-reload-btn">'
-                    + this.escapeHtml(label) + '</button>';
-            }
-            html += '</div>';
-            // One block at a time: a second verdict replaces the first (#1668).
-            formWrapper.find('.ffc-geofence-blocked').remove();
-            formWrapper.append(html);
-
-            if (showReload) {
-                formWrapper.find('.ffc-geofence-reload-btn').on('click', function() {
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'ffc-btn ffc-geofence-reload-btn';
+                button.textContent = this.getString('reloadPageBtn', 'Reload page');
+                button.addEventListener('click', function() {
                     window.location.reload();
                 });
+                children.push(button);
             }
+            // One block at a time: a second verdict replaces the first (#1668).
+            formWrapper.find('[data-ffc-notice="geofence-blocked"]').remove();
+            formWrapper.append(window.FFC.notice('warning', 'map-pin', message, '', {
+                role: 'status',
+                hook: 'geofence-blocked',
+                children: children
+            }));
         },
 
         /**
@@ -332,33 +334,28 @@
          * @param {object} bypassInfo Info about which restrictions are bypassed
          */
         showAdminBypassMessages: function(formWrapper, bypassInfo) {
+            var messages = [];
             if (!bypassInfo) {
                 // Fallback: show generic message if no bypass info
-                const message = this.getString('bypassGeneric', 'Admin Bypass Mode Active - Geofence restrictions are disabled for administrators');
-                const html = '<div class="ffc-geofence-admin-bypass"><p class="ffc-icon-unlock">' + this.escapeHtml(message) + '</p></div>';
-                formWrapper.prepend(html);
-                return;
+                messages.push(this.getString('bypassGeneric', 'Admin Bypass Mode Active - Geofence restrictions are disabled for administrators'));
+            } else {
+                // One notice for each bypassed restriction.
+                if (bypassInfo.hasDatetime) {
+                    messages.push(this.getString('bypassDatetime', 'Admin Bypass: Date/Time restrictions are disabled for administrators'));
+                }
+                if (bypassInfo.hasGeo) {
+                    messages.push(this.getString('bypassGeo', 'Admin Bypass: Geolocation restrictions are disabled for administrators'));
+                }
+                if (!bypassInfo.hasDatetime && !bypassInfo.hasGeo) {
+                    messages.push(this.getString('bypassActive', 'Admin Bypass Mode Active'));
+                }
             }
 
-            // Show specific messages for each bypassed restriction
-            if (bypassInfo.hasDatetime) {
-                const datetimeMsg = this.getString('bypassDatetime', 'Admin Bypass: Date/Time restrictions are disabled for administrators');
-                const datetimeHtml = '<div class="ffc-geofence-admin-bypass"><p class="ffc-icon-unlock">' + this.escapeHtml(datetimeMsg) + '</p></div>';
-                formWrapper.prepend(datetimeHtml);
-            }
-
-            if (bypassInfo.hasGeo) {
-                const geoMsg = this.getString('bypassGeo', 'Admin Bypass: Geolocation restrictions are disabled for administrators');
-                const geoHtml = '<div class="ffc-geofence-admin-bypass"><p class="ffc-icon-unlock">' + this.escapeHtml(geoMsg) + '</p></div>';
-                formWrapper.prepend(geoHtml);
-            }
-
-            // If neither, show generic message
-            if (!bypassInfo.hasDatetime && !bypassInfo.hasGeo) {
-                const message = this.getString('bypassActive', 'Admin Bypass Mode Active');
-                const html = '<div class="ffc-geofence-admin-bypass"><p class="ffc-icon-unlock">' + this.escapeHtml(message) + '</p></div>';
-                formWrapper.prepend(html);
-            }
+            // Prepended in reverse so they read in the order above, ahead of
+            // the form's own notices (#1842).
+            messages.reverse().forEach(function(message) {
+                formWrapper.prepend(window.FFC.notice('info', 'unlock', message, '', { role: 'note', hook: 'geofence-bypass' }));
+            });
         },
 
         /**

@@ -113,7 +113,9 @@ class SuccessResponder {
 
 	/**
 	 * The response to an attempt a person has still to grade (#1732): it
-	 * replaces the form, like a certificate does, but carries no PDF.
+	 * replaces the form, like a certificate does, but carries no PDF. The
+	 * html is a system notice, which `ffc-frontend.js` places above the form
+	 * title (#1842).
 	 *
 	 * @return array{message: string, pdf_data: null, html: string, quiz: array{pending: true}}
 	 */
@@ -122,7 +124,16 @@ class SuccessResponder {
 		return array(
 			'message'  => $msg,
 			'pdf_data' => null,
-			'html'     => '<div class="ffc-form-info-block ffc-quiz-awaiting-grading" role="status"><p>' . esc_html( $msg ) . '</p></div>',
+			'html'     => \FreeFormCertificate\Core\Notice::render(
+				'info',
+				'clock',
+				$msg,
+				'',
+				array(
+					'role' => 'status',
+					'hook' => 'awaiting-grading',
+				)
+			),
 			'quiz'     => array( 'pending' => true ),
 		);
 	}

@@ -229,7 +229,7 @@ class Frontend {
 				// it reads the form's markup, which carries its own strings.
 				wp_enqueue_script( 'ffc-quiz-leave', FFC_PLUGIN_URL . "assets/js/ffc-quiz-leave{$s}.js", array(), FFC_VERSION, true );
 
-				wp_enqueue_script( 'ffc-already-submitted-notice', FFC_PLUGIN_URL . "assets/js/ffc-already-submitted-notice{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+				wp_enqueue_script( 'ffc-already-submitted-notice', FFC_PLUGIN_URL . "assets/js/ffc-already-submitted-notice{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 				wp_localize_script(
 					'ffc-already-submitted-notice',
 					'ffc_already_submitted',

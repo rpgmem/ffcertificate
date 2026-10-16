@@ -82,6 +82,14 @@
     align-items: stretch; /* ← the children take the full width */
 }
 
+/* A system notice in the form card takes the form's column, so the notices
+   above the title line up with the fields below it (#1842). */
+.ffc-shortcode.ffc-form-wrapper > .ffc-notice {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: calc(var(--ffc-form-width) - 150px);
+}
+
 /* 6.7.1 — When the form is replaced by the success card (after submit,
    the AJAX handler does `$form.html(data.html)`), the form keeps its
    `.ffc-submission-form` class with its 450px `max-width`. That visually
@@ -216,20 +224,6 @@
 
 .ffc-shortcode .ffc-form-info-block p:last-child {
     margin-bottom: 0;
-}
-
-/* 6.7.1 — Schedule-exception banner ON the form (#369 / 6.7.0). Distinct
-   from `.ffc-schedule-exception-block` on `/valid` (audit context). Pre-
-   6.7.1 the banner inherited only `.ffc-form-info-block` styling, which
-   left it wider than the 450px form fields below — banner sits at the
-   form-wrapper level (~540px after padding). Its type size now comes from
-   the base block (#1828). */
-.ffc-shortcode .ffc-schedule-exception-banner {
-    max-width: calc(var(--ffc-form-width) - 150px);
-    margin-left: auto;
-    margin-right: auto;
-    border: 2px solid var(--ffc-primary);
-    border-left-width: 2px; /* override the 4px solid from .ffc-form-info-block */
 }
 
 .ffc-shortcode .ffc-info-title {
@@ -662,83 +656,6 @@ details.ffc-consent-description > p {
 }
 
 /* ============================================
-   MESSAGES
-   ============================================ */
-.ffc-shortcode .ffc-message {
-    margin-top: var(--ffc-spacing-2xl);
-    padding: var(--ffc-spacing-xl);
-    border-radius: var(--ffc-radius-sm);
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-}
-
-.ffc-shortcode .ffc-message.ffc-success {
-    background: var(--ffc-success-bg);
-    color: var(--ffc-success-text);
-    border: 1px solid var(--ffc-success-border);
-}
-
-.ffc-shortcode .ffc-message.ffc-error {
-    background: var(--ffc-danger-bg);
-    color: var(--ffc-danger-text);
-    border: 1px solid var(--ffc-danger-border);
-}
-
-/* ============================================
-   FORM FEEDBACK (ffc-frontend-helpers.js)
-   The helper used to inject these rules as a <style> and as inline
-   declarations (#1840). Every page that loads the helper enqueues this
-   sheet: the form, verification and public CSV pages through
-   `Frontend::enqueue_assets()`, the self-scheduling calendar through its
-   shortcode. A field's own states and its message are the field-message
-   standard in `ffc-common.css` (#1844); these are the form-level boxes.
-   ============================================ */
-
-.ffc-shortcode .ffc-form-error {
-    background: var(--ffc-danger-bg);
-    color: var(--ffc-danger-text);
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    margin: 0 0 var(--ffc-spacing-2xl);
-    border-radius: var(--ffc-radius-sm);
-    border: 1px solid var(--ffc-danger-border);
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-    animation: ffc-slide-down 0.3s ease;
-}
-
-.ffc-shortcode .ffc-form-success {
-    background: var(--ffc-success-bg);
-    color: var(--ffc-success-text);
-    padding: var(--ffc-spacing-2xl);
-    margin: 0 0 var(--ffc-spacing-2xl);
-    border-radius: var(--ffc-radius-sm);
-    border: 1px solid var(--ffc-success-border);
-    text-align: center;
-    animation: ffc-slide-down 0.3s ease;
-}
-
-.ffc-shortcode .ffc-form-success-title {
-    margin: 0 0 var(--ffc-spacing-md);
-    font-size: var(--ffc-font-size-xl);
-}
-
-.ffc-shortcode .ffc-form-success-text {
-    margin: 0;
-}
-
-@keyframes ffc-slide-down {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* ============================================
    VERIFICATION PAGE
    ============================================ */
 .ffc-shortcode.ffc-verification-container {
@@ -825,44 +742,6 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-verify-result {
     margin-top: var(--ffc-spacing-2xl);
     width: 100%;
-}
-
-.ffc-shortcode .ffc-verify-error {
-    padding: var(--ffc-spacing-xl);
-    background: var(--ffc-danger-bg);
-    color: var(--ffc-danger-text);
-    border: 1px solid var(--ffc-danger-border);
-    border-radius: var(--ffc-radius-sm);
-    font-size: var(--ffc-font-size-xl);
-}
-
-.ffc-shortcode .ffc-verify-success {
-    padding: var(--ffc-spacing-2xl);
-    background: var(--ffc-success-bg);
-    color: var(--ffc-success-text);
-    border: 1px solid var(--ffc-success-border);
-    border-radius: var(--ffc-radius-sm);
-}
-
-.ffc-shortcode .ffc-verify-success h3 {
-    margin: 0 0 var(--ffc-spacing-xl) 0;
-    font-size: var(--ffc-font-size-xl);
-}
-
-.ffc-shortcode .ffc-verify-success p {
-    margin: var(--ffc-spacing-md) 0;
-    font-size: var(--ffc-font-size-xl);
-}
-
-.ffc-shortcode .ffc-verify-success hr {
-    margin: var(--ffc-spacing-xl) 0;
-    border: none;
-    border-top: 1px solid var(--ffc-success-border);
-}
-
-.ffc-shortcode .ffc-verify-success h4 {
-    margin: var(--ffc-spacing-xl) 0 var(--ffc-spacing-md) 0;
-    font-size: var(--ffc-font-size-xl);
 }
 
 /* ============================================
@@ -1081,9 +960,8 @@ details.ffc-consent-description > p {
    Per-submission override audit block (#369 / 6.7.0). Wrapped in a
    soft-amber notice with a left border so it carries its own
    salience without needing the oversized explanatory paragraph
-   that pre-polish drafts shipped. Palette mirrors the existing
-   `.ffc-preflight-banner` (#dba617 / #fcf9e8 / #674008) for
-   plugin-wide consistency. The `<hr>` separator that used to
+   that pre-polish drafts shipped. It reads the warning tokens, like
+   the warning `.ffc-notice` (#1842). The `<hr>` separator that used to
    precede the block is intentionally removed — the colored card
    provides enough visual break from the rows above.
    ============================================ */
@@ -1209,41 +1087,6 @@ details.ffc-consent-description > p {
     margin: var(--ffc-spacing-2xl) 0 0 0;
     color: var(--ffc-text-muted);
     font-size: var(--ffc-font-size-lg);
-}
-
-/* Geofence blocked message */
-.ffc-shortcode .ffc-geofence-blocked {
-    background: var(--ffc-warning-bg);
-    border-left: 4px solid var(--ffc-warning-border);
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    margin: var(--ffc-spacing-2xl) 0;
-    border-radius: var(--ffc-radius-sm);
-}
-
-.ffc-shortcode .ffc-geofence-blocked p {
-    margin: 0;
-    color: var(--ffc-warning-text);
-    font-size: var(--ffc-font-size-base);
-}
-
-.ffc-shortcode .ffc-geofence-reload-btn {
-    margin-top: var(--ffc-spacing-lg);
-}
-
-/* Admin bypass message (informational - blue theme) */
-.ffc-shortcode .ffc-geofence-admin-bypass {
-    background: var(--ffc-info-bg);
-    border-left: 4px solid var(--ffc-info-border);
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    margin: 0 0 var(--ffc-spacing-2xl) 0;
-    border-radius: var(--ffc-radius-sm);
-}
-
-.ffc-shortcode .ffc-geofence-admin-bypass p {
-    margin: 0;
-    color: var(--ffc-info-text);
-    font-size: var(--ffc-font-size-base);
-    font-weight: 500;
 }
 
 /* [ffc_geofence]: the bypass shows as a badge over the content (#1668). */
@@ -1480,38 +1323,9 @@ details.ffc-consent-description > p {
     margin: var(--ffc-spacing-2xs) 0;
 }
 
-/* 6.6.4 — pre-flight permission banners (cookies / GPS).
-   Yellow warning, non-blocking visually but the form is hidden behind.
-   Includes a "try anyway" CTA so permissive users can proceed. */
-.ffc-preflight-banner {
-    border: 1px solid var(--ffc-warning-border);
-    background: var(--ffc-warning-bg);
-    color: var(--ffc-warning-text);
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-xl);
-    border-radius: var(--ffc-radius-md);
-    margin: var(--ffc-spacing-lg) 0;
-    text-align: left;
-}
-
-.ffc-preflight-banner-title {
-    display: block;
-    font-size: var(--ffc-font-size-lg);
-    margin-bottom: var(--ffc-spacing-xs);
-    color: var(--ffc-warning-text);
-}
-
-.ffc-preflight-banner-body,
-.ffc-preflight-banner-how {
-    margin: var(--ffc-spacing-xs) 0;
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-}
-
-.ffc-preflight-banner-how {
-    color: var(--ffc-warning-text);
-    font-style: italic;
-}
-
+/* 6.6.4 — the "try anyway" CTA of the pre-flight banners (cookies / GPS),
+   so permissive users can proceed. The banner itself is a warning
+   `.ffc-notice` (#1842). */
 .ffc-preflight-try-anyway {
     display: inline-block;
     margin-top: var(--ffc-spacing-md);
@@ -2320,84 +2134,36 @@ details.ffc-consent-description > p {
 }
 
 /* ============================================
-   v6.3.10 - "Already submitted" friendly notice (ffc-already-submitted-notice.js)
-   Soft info banner shown above the certificate form when this device has
-   succeeded submitting the same form_id before. Visual sibling of the
-   v6.3.7 .ffc-webview-warning, but in an info-blue tone instead of warning
-   amber, since this isn't a problem — it's a heads-up for users who
-   wandered back looking to re-download their certificate.
+   v6.3.10 - "Already submitted" notice (ffc-already-submitted-notice.js):
+   its dismiss button. The notice itself is an info `.ffc-notice` (#1842).
    ============================================ */
-
-.ffc-already-submitted-notice {
-    display: flex;
-    gap: var(--ffc-spacing-xl);
-    align-items: flex-start;
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    margin: 0 0 var(--ffc-spacing-3xl) 0;
-    background: var(--ffc-info-bg);
-    border: 1px solid var(--ffc-info-border);
-    border-left: 4px solid var(--ffc-primary);
-    border-radius: var(--ffc-radius-lg);
-    box-shadow: var(--ffc-shadow-sm);
-}
-
-.ffc-already-submitted-icon {
-    font-size: var(--ffc-font-size-2xl);
-    line-height: 1;
-    color: var(--ffc-primary);
-    flex-shrink: 0;
-    font-weight: 700;
-}
-
-.ffc-already-submitted-icon::before {
-    margin-right: 0;
-}
-
-.ffc-already-submitted-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.ffc-already-submitted-content h3 {
-    margin: 0 0 var(--ffc-spacing-xs) 0;
-    font-size: var(--ffc-font-size-lg);
-    font-weight: 600;
-    color: var(--ffc-info-text);
-    line-height: 1.3;
-}
-
-.ffc-already-submitted-content p {
-    margin: 0 0 var(--ffc-spacing-lg) 0;
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-    color: var(--ffc-info-text);
-}
 
 .ffc-already-submitted-dismiss {
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-sm);
     font-weight: 600;
     background: transparent;
-    color: var(--ffc-primary);
+    color: var(--ffc-info-text);
     border: 1px solid var(--ffc-info-border);
     border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     transition: background var(--ffc-transition-base), border-color var(--ffc-transition-base);
 }
 
+/* The button follows the notice's info tone, which Public Design may set,
+   rather than the accent (#1842). */
 .ffc-already-submitted-dismiss:hover,
 .ffc-already-submitted-dismiss:focus-visible {
-    background: var(--ffc-primary-light);
-    border-color: var(--ffc-primary);
-    outline: none;
+    background: var(--ffc-bg-card);
+    color: var(--ffc-info-text);
+}
+
+.ffc-already-submitted-dismiss:focus-visible {
+    outline: 2px solid var(--ffc-info-border);
+    outline-offset: 1px;
 }
 
 @media (max-width: 600px) {
-    .ffc-already-submitted-notice {
-        flex-direction: column;
-        gap: var(--ffc-spacing-sm);
-        padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
-    }
     .ffc-already-submitted-dismiss {
         width: 100%;
         text-align: center;
