@@ -7,6 +7,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.status() draws the status lines beside the buttons (#1843).
+loadScript('assets/js/ffc-core.js');
+
 const SCRIPT = 'assets/js/ffc-recruitment-candidates-import.js';
 
 const CFG = {

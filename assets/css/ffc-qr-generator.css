@@ -165,19 +165,17 @@
     height: auto;
 }
 
-.ffc-page-qr-generator .ffc-qr-generator__usage,
-.ffc-page-qr-generator .ffc-qr-generator__status {
+.ffc-page-qr-generator .ffc-qr-generator__usage {
     margin: var(--ffc-spacing-sm) 0 0;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
 }
 
-.ffc-page-qr-generator .ffc-qr-generator__status.is-warning {
-    color: var(--ffc-warning-text);
-}
-
-.ffc-page-qr-generator .ffc-qr-generator__status.is-error {
-    color: var(--ffc-danger-text);
+/* The status under the preview is the shared `.ffc-status` (#1843); here it
+   sits on its own line below the usage. */
+.ffc-page-qr-generator .ffc-qr-generator__status:not([hidden]) {
+    display: flex;
+    margin: var(--ffc-spacing-sm) 0 0;
 }
 
 /* Overlay confirming that a short URL record was written (#1592). */

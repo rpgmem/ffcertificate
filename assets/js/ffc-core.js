@@ -505,6 +505,61 @@
         },
 
         /**
+         * Set a status line beside a control (#1843): `.ffc-status` plus one
+         * state class, a registry icon and the text, announced politely.
+         *
+         * One look for every "saving… / saved / failed" next to a button or
+         * a field, in the admin and on the dashboard. The text lands through
+         * `textContent`, so a server message cannot become markup. A call
+         * with no state and no text clears the line and hides it.
+         *
+         * @param {HTMLElement|jQuery|string} target The line, or a selector for it.
+         * @param {string} [state] busy | success | error | warning; anything else is plain.
+         * @param {string} [text]  The text.
+         * @return {HTMLElement|null} The line.
+         */
+        status: function(target, state, text) {
+            var el = target && target.jquery ? target[0] : (typeof target === 'string' ? document.querySelector(target) : target);
+            if (!el || !el.classList) {
+                return null;
+            }
+            var icons = { busy: 'sync', success: 'success', error: 'error', warning: 'warning' };
+            var known = Object.prototype.hasOwnProperty.call(icons, state);
+            var value = (text === null || typeof text === 'undefined') ? '' : String(text);
+
+            el.classList.add('ffc-status');
+            el.classList.remove('is-busy', 'is-success', 'is-error', 'is-warning');
+            if (!el.hasAttribute('role')) {
+                el.setAttribute('role', 'status');
+            }
+            if (!el.hasAttribute('aria-live')) {
+                el.setAttribute('aria-live', 'polite');
+            }
+            while (el.firstChild) {
+                el.removeChild(el.firstChild);
+            }
+
+            if (!known && value === '') {
+                el.setAttribute('hidden', 'hidden');
+                return el;
+            }
+
+            if (known) {
+                el.classList.add('is-' + state);
+                var mark = document.createElement('span');
+                mark.className = 'ffc-status-icon ffc-icon-' + icons[state] + ('busy' === state ? ' ffc-icon-spin' : '');
+                mark.setAttribute('aria-hidden', 'true');
+                el.appendChild(mark);
+            }
+            var label = document.createElement('span');
+            label.className = 'ffc-status-text';
+            label.textContent = value;
+            el.appendChild(label);
+            el.removeAttribute('hidden');
+            return el;
+        },
+
+        /**
          * Centralized field toggle helper
          *
          * @param {jQuery|string} $trigger - Trigger element (checkbox, radio, select)

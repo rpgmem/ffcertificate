@@ -26,10 +26,10 @@
 
     // Each type, with its registry icon and its icon tone.
     var NOTICE_TYPES = {
-        success: ['success', 'success'],
-        info: ['info', 'info'],
-        warning: ['warning', 'warning'],
-        error: ['error', 'danger']
+        success: 'ffc-icon-success ffc-icon-tone-success',
+        info: 'ffc-icon-info ffc-icon-tone-info',
+        warning: 'ffc-icon-warning ffc-icon-tone-warning',
+        error: 'ffc-icon-error ffc-icon-tone-danger'
     };
 
     /**
@@ -64,7 +64,7 @@
             .addClass('notice-' + type)
             .attr('role', 'error' === type || 'warning' === type ? 'alert' : 'status');
         var $icon = $('<span class="ffc-admin-notice-icon" aria-hidden="true"></span>')
-            .addClass('ffc-icon-' + NOTICE_TYPES[type][0] + ' ffc-icon-tone-' + NOTICE_TYPES[type][1]);
+            .addClass(NOTICE_TYPES[type]);
         $notif.append($('<p></p>').append($icon).append(document.createTextNode(String(message))));
 
         function close() {
@@ -114,7 +114,7 @@
             // Show inline error instead of alert
             var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
             var errorMsg = strings.enterValidNumber || 'Please enter a valid number.';
-            $('#ffc_gen_status').text(errorMsg).removeClass('is-busy is-success is-error').addClass('is-error');
+            FFC.status($('#ffc_gen_status'), 'error', errorMsg);
             $('#ffc_qty_codes').focus();
             return;
         }
@@ -132,7 +132,7 @@
         var generatingTicketsText = strings.generatingTickets || 'Generating tickets...';
 
         $btn.prop('disabled', true).text(generatingText);
-        $status.text(generatingTicketsText).removeClass('is-busy is-success is-error').addClass('is-busy');
+        FFC.status($status, 'busy', generatingTicketsText);
 
         // Use nonce from ffc_ajax (localized by class-ffc-admin.php)
         var nonce = (typeof ffc_ajax !== 'undefined') ? ffc_ajax.nonce : '';
@@ -150,19 +150,19 @@
                     // Programmatic, so say it: the form editor's tab dot reads the field (#1755).
                     $codesField.val(newCodes).trigger('input');
                     var successMsg = strings.ticketsGeneratedSuccess || 'tickets generated successfully!';
-                    $status.text('✓ ' + quantity + ' ' + successMsg).removeClass('is-busy is-success is-error').addClass('is-success');
-                    setTimeout(function () { $status.text(''); }, 5000);
+                    FFC.status($status, 'success', quantity + ' ' + successMsg);
+                    setTimeout(function () { FFC.status($status, '', ''); }, 5000);
                 } else {
                     console.warn('[FFC] Generated codes field not found');
                     var errorMsg = strings.codesFieldNotFound || 'Error: codes field not found';
-                    $status.text('✗ ' + errorMsg).removeClass('is-busy is-success is-error').addClass('is-error');
+                    FFC.status($status, 'error', errorMsg);
                 }
                 $btn.prop('disabled', false).text(originalText);
             })
             .catch(function (err) {
                 var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
                 var xhr = err && err.xhr;
-                var errorMsg = '✗ ';
+                var errorMsg = '';
                 if (err && err.fromServer) {
                     errorMsg += (strings.error || 'Error: ') + (err.message || 'Unknown error');
                 } else if (xhr && xhr.status === 403) {
@@ -174,7 +174,7 @@
                     errorMsg += serverErrorTemplate.replace('%d', xhr ? xhr.status : '?');
                 }
                 if (xhr) console.error('[FFC] AJAX error:', xhr.status, xhr.statusText, xhr.responseText);
-                $status.text(errorMsg).removeClass('is-busy is-success is-error').addClass('is-error');
+                FFC.status($status, 'error', errorMsg);
                 $btn.prop('disabled', false).text(originalText);
             });
     });
@@ -376,10 +376,10 @@
                 if (data && typeof data.count !== 'undefined') {
                     $('.ffc-csv-public-count').text(String(data.count));
                 }
-                $status.text(String($btn.data('done') || ''));
+                FFC.status($status, 'success', String($btn.data('done') || ''));
             })
             .catch(function (err) {
-                $status.text((err && err.message) ? err.message : '');
+                FFC.status($status, 'error', (err && err.message) ? err.message : '');
             })
             .then(function () {
                 $btn.prop('disabled', false);

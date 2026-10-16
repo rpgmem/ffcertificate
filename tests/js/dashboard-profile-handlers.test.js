@@ -691,7 +691,7 @@ describe('profile — group tags and status lines follow the palette (#1826)', (
 		window.$('.ffc-password-save-btn').trigger('click');
 		const status = document.querySelector('.ffc-password-status');
 		expect(status.textContent).toBe('All fields required');
-		expect(status.classList.contains('ffc-status-msg-error')).toBe(true);
+		expect(status.classList.contains('is-error')).toBe(true);
 		expect(status.getAttribute('style') || '').not.toMatch(/color/);
 	});
 
@@ -700,7 +700,7 @@ describe('profile — group tags and status lines follow the palette (#1826)', (
 		const $status = window.$('.ffc-password-status');
 		window.FFCDashboard.helpers.setStatus($status, 'Saving…', 'busy');
 		window.FFCDashboard.helpers.setStatus($status, 'Done', 'success');
-		expect($status[0].className).toBe('ffc-password-status ffc-status-msg ffc-status-msg-success');
+		expect($status[0].className).toBe('ffc-password-status ffc-status is-success');
 	});
 
 	it('leaves no colour literal or inline margin in the rendered profile', () => {

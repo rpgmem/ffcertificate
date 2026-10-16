@@ -216,12 +216,12 @@
 		var title = String($title.val() || '').trim();
 		if (!title) {
 			$title.addClass('is-invalid').trigger('focus');
-			$status.removeClass('is-warning').addClass('is-error').text(i18n.titleRequired || '');
+			window.FFC.status($status, 'error', i18n.titleRequired || '');
 			return Promise.reject(new Error('title'));
 		}
 		var acknowledged = $form.find('#ffc-qr-short-ack').is(':checked');
 		if ((state.duplicates || []).length && !acknowledged) {
-			$status.removeClass('is-warning').addClass('is-error').text(i18n.acknowledge || '');
+			window.FFC.status($status, 'error', i18n.acknowledge || '');
 			return Promise.reject(new Error('acknowledge'));
 		}
 		var request = collect($form);
@@ -236,7 +236,7 @@
 				return refresh($form).then(function () { return saved; });
 			})
 			.catch(function (err) {
-				$status.removeClass('is-warning').addClass('is-error').text(errorMessage(err));
+				window.FFC.status($status, 'error', errorMessage(err));
 				throw err;
 			});
 	}
@@ -324,19 +324,18 @@
 	function showStatus($out, data) {
 		var checks = data.checks || {};
 		var usage = data.usage || {};
-		$out.removeClass('is-warning is-error');
 		if (checks.inverted) {
-			$out.addClass('is-error').text(i18n.inverted || '');
+			window.FFC.status($out, 'error', i18n.inverted || '');
 		} else if (checks.transparent) {
-			$out.addClass('is-warning').text(i18n.transparent || '');
+			window.FFC.status($out, 'warning', i18n.transparent || '');
 		} else if (checks.caption_contrast === false) {
-			$out.addClass('is-warning').text(i18n.captionContrast || '');
+			window.FFC.status($out, 'warning', i18n.captionContrast || '');
 		} else if (checks.low_contrast) {
-			$out.addClass('is-warning').text(fill(i18n.lowContrast, [checks.min_ratio]));
+			window.FFC.status($out, 'warning', fill(i18n.lowContrast, [checks.min_ratio]));
 		} else if (usage.dense) {
-			$out.addClass('is-warning').text(fill(i18n.dense, [usage.version]));
+			window.FFC.status($out, 'warning', fill(i18n.dense, [usage.version]));
 		} else {
-			$out.text(i18n.ok || '');
+			window.FFC.status($out, 'success', i18n.ok || '');
 		}
 	}
 
@@ -376,7 +375,7 @@
 				$preview.empty();
 				$usage.text('');
 				$buttons.prop('disabled', true);
-				$status.removeClass('is-warning').addClass('is-error').text(errorMessage(err));
+				window.FFC.status($status, 'error', errorMessage(err));
 			});
 	}
 
@@ -527,7 +526,7 @@
 						window.FFC.QrRaster.download(png, filename($form, 'png'), 'image/png');
 						remember($form);
 					})
-					.catch(function () { $('#ffc-qr-generator-status').addClass('is-error').text(i18n.error || ''); });
+					.catch(function () { window.FFC.status('#ffc-qr-generator-status', 'error', i18n.error || ''); });
 			}).catch(function () {});
 		});
 		$('#ffc-qr-print').on('click', function () {
@@ -585,12 +584,12 @@
 					$btn.prop('disabled', false);
 					apply($form, data.state, String(data.logo_thumb || ''));
 					return refresh($form).then(function () {
-						$('#ffc-qr-generator-status').text(i18n.reset || '');
+						window.FFC.status('#ffc-qr-generator-status', 'success', i18n.reset || '');
 					});
 				})
 				.catch(function (err) {
 					$btn.prop('disabled', false);
-					$('#ffc-qr-generator-status').addClass('is-error').text(errorMessage(err));
+					window.FFC.status('#ffc-qr-generator-status', 'error', errorMessage(err));
 				});
 		});
 

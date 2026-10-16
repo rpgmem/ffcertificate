@@ -174,20 +174,6 @@
     border-radius: var(--ffc-radius-xs);
 }
 
-/* Save status */
-.ffc-save-status {
-    margin-left: var(--ffc-spacing-md);
-    font-style: italic;
-}
-
-.ffc-save-status.ffc-status-success {
-    color: var(--ffc-success-text);
-}
-
-.ffc-save-status.ffc-status-error {
-    color: var(--ffc-danger-text);
-}
-
 /* ==========================================================================
    USER PROFILE - Section headings & collapsible groups
    ========================================================================== */

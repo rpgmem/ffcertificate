@@ -630,7 +630,7 @@ describe('rereg save draft', () => {
 		await flush();
 
 		expect(window.$('.ffc-rereg-status').text()).toBe('Disk full');
-		expect(window.$('.ffc-rereg-status').hasClass('ffc-status-err')).toBe(true);
+		expect(window.$('.ffc-rereg-status').hasClass('is-error')).toBe(true);
 	});
 
 	it('shows the error on network failure', async () => {
@@ -657,7 +657,7 @@ describe('rereg save draft', () => {
 
 		vi.advanceTimersByTime(3000);
 		expect(window.$('.ffc-rereg-status').text()).toBe('');
-		expect(window.$('.ffc-rereg-status').hasClass('ffc-status-ok')).toBe(false);
+		expect(window.$('.ffc-rereg-status').hasClass('is-success')).toBe(false);
 		vi.useRealTimers();
 	});
 

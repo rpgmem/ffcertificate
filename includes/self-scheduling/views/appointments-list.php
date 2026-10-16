@@ -245,7 +245,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 				<div class="card">
 					<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Appointment Details', 'ffcertificate' ); ?></h2>
 					<table class="form-table">
-						<tr><th><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th><td><span class="ffc-status ffc-status-<?php echo esc_attr( $ffcertificate_appointment['status'] ); ?>"><?php echo esc_html( $ffcertificate_status_text ); ?></span></td></tr>
+						<tr><th><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th><td><span class="ffc-appointment-status ffc-appointment-status-<?php echo esc_attr( 'no_show' === $ffcertificate_appointment['status'] ? 'noshow' : $ffcertificate_appointment['status'] ); ?>"><?php echo esc_html( $ffcertificate_status_text ); ?></span></td></tr>
 						<tr><th><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_calendar_title ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['appointment_date'] ?? '-' ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( ( $ffcertificate_appointment['start_time'] ?? '' ) . ' - ' . ( $ffcertificate_appointment['end_time'] ?? '' ) ); ?></td></tr>

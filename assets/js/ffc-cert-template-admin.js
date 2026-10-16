@@ -36,7 +36,7 @@
 	$toggle.on('change', function () {
 		var visible = $(this).is(':checked') ? '1' : '0';
 
-		$status.removeClass('ffc-saved ffc-error').text(cfg.savingText || '');
+		window.FFC.status($status, 'busy', cfg.savingText || '');
 
 		window.FFC.request(
 			cfg.toggleAction,
@@ -44,10 +44,10 @@
 			{ nonce: cfg.nonce, ajaxUrl: cfg.ajaxUrl }
 		)
 			.then(function () {
-				$status.removeClass('ffc-error').addClass('ffc-saved').text(cfg.savedText || '');
+				window.FFC.status($status, 'success', cfg.savedText || '');
 			})
 			.catch(function () {
-				$status.removeClass('ffc-saved').addClass('ffc-error').text(cfg.errorText || '');
+				window.FFC.status($status, 'error', cfg.errorText || '');
 			});
 	});
 })(jQuery);

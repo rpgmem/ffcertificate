@@ -901,7 +901,7 @@ final class RecruitmentCandidateEditPage {
 		}
 		$html .= '</select> ';
 		$html .= '<button type="button" class="button button-small ffc-adjutancy-swap-btn">' . esc_html__( 'Save', 'ffcertificate' ) . '</button>';
-		$html .= ' <span class="ffc-adjutancy-swap-msg" aria-live="polite"></span>';
+		$html .= ' <span class="ffc-adjutancy-swap-msg ffc-status" role="status" aria-live="polite" hidden></span>';
 		$html .= '</span>';
 		return $html;
 	}

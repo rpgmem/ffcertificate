@@ -135,6 +135,6 @@ describe('required-data autosave', () => {
 		vi.advanceTimersByTime(400);
 
 		expect(post).not.toHaveBeenCalled();
-		expect(window.$('.ffc-autosave-badge').hasClass('ffc-autosave-badge--error')).toBe(true);
+		expect(window.$('.ffc-autosave-badge').hasClass('is-error')).toBe(true);
 	});
 });

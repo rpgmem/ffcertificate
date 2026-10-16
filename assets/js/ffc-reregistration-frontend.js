@@ -247,7 +247,7 @@
             var id = $container.find('[name="reregistration_id"]').val();
 
             $btn.prop('disabled', true).text(S.saving || 'Saving...');
-            $status.text('');
+            FFC.status($status, '', '');
 
             FFC.request(
                 'ffc_save_reregistration_draft',
@@ -256,13 +256,13 @@
             )
                 .then(function () {
                     $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
-                    $status.text(S.draftSaved || 'Draft saved.').addClass('ffc-status-ok');
-                    setTimeout(function () { $status.text('').removeClass('ffc-status-ok'); }, 3000);
+                    FFC.status($status, 'success', S.draftSaved || 'Draft saved.');
+                    setTimeout(function () { FFC.status($status, '', ''); }, 3000);
                 })
                 .catch(function (err) {
                     $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
                     var msg = (err && err.fromServer && err.message) || S.errorSaving || 'Error saving draft.';
-                    $status.text(msg).addClass('ffc-status-err');
+                    FFC.status($status, 'error', msg);
                 });
         });
     }
@@ -288,7 +288,7 @@
             });
 
             if (!valid) {
-                $container.find('.ffc-rereg-status').text(S.fixErrors || 'Please fix the errors below.').addClass('ffc-status-err');
+                FFC.status($container.find('.ffc-rereg-status'), 'error', S.fixErrors || 'Please fix the errors below.');
                 // Scroll to first error
                 var $first = $container.find('.has-error:first');
                 if ($first.length) {
@@ -302,7 +302,7 @@
             var id = $container.find('[name="reregistration_id"]').val();
 
             $btn.prop('disabled', true).text(S.submitting || 'Submitting...');
-            $status.text('').removeClass('ffc-status-err ffc-status-ok');
+            FFC.status($status, '', '');
 
             FFC.request(
                 'ffc_submit_reregistration',
@@ -322,9 +322,9 @@
                         if (err.data && err.data.errors) {
                             showServerErrors($container, err.data.errors);
                         }
-                        $status.text(err.message || S.errorSubmitting || 'Error submitting.').addClass('ffc-status-err');
+                        FFC.status($status, 'error', err.message || S.errorSubmitting || 'Error submitting.');
                     } else {
-                        $status.text(S.errorSubmitting || 'Error submitting.').addClass('ffc-status-err');
+                        FFC.status($status, 'error', S.errorSubmitting || 'Error submitting.');
                     }
                 });
         });

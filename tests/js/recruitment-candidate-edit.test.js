@@ -25,6 +25,7 @@ beforeAll(() => {
 		nonce: NONCE,
 		strings: { hide: 'Hide', reveal: 'Reveal', saved: 'Saved', error: 'Error' },
 	};
+	if (!window.FFC || !window.FFC.status) { loadScript('assets/js/ffc-core.js'); }
 	loadScript('assets/js/ffc-recruitment-candidate-edit.js');
 });
 

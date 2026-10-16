@@ -461,7 +461,7 @@ final class AudienceAdminAudienceRenderer {
 						<?php esc_html_e( 'Replicate lists to children', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
-				<span id="ffc-custom-fields-status" class="ffc-save-status"></span>
+				<span id="ffc-custom-fields-status" class="ffc-status" role="status" aria-live="polite" hidden></span>
 			</p>
 			<?php else : ?>
 			<p class="description"><em><?php esc_html_e( 'Read-only — you do not have permission to edit custom field definitions.', 'ffcertificate' ); ?></em></p>

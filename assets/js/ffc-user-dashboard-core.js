@@ -55,17 +55,12 @@
             return '<span class="' + cls + ' ffc-pill-row-color"' + style + '>' + helpers.esc(item ? item.name : '') + '</span>';
         },
 
-        // A status line's text and tone. The tone is a class on the palette
-        // (#1826) -- never a colour literal, which ignores the dark theme.
+        // A status line's text and tone: the shared `.ffc-status` the admin
+        // uses too, drawn by FFC.status() (#1843). The tone is a class on the
+        // palette (#1826) -- never a colour literal, which ignores the dark theme.
         setStatus: function ($el, text, tone) {
-            var tones = {
-                busy: 'ffc-status-msg-busy',
-                error: 'ffc-status-msg-error',
-                success: 'ffc-status-msg-success'
-            };
-            return $el.text(text)
-                .removeClass('ffc-status-msg-busy ffc-status-msg-error ffc-status-msg-success')
-                .addClass(tones[tone] || '');
+            window.FFC.status($el, tone || '', text);
+            return $el;
         },
 
         getPageSize: function () {

@@ -135,7 +135,7 @@
         });
 
         $btn.prop('disabled', true);
-        $status.text(ffcAudienceAdmin.strings.saving || 'Saving...').removeClass('ffc-status-error ffc-status-success');
+        FFC.status($status, 'busy', ffcAudienceAdmin.strings.saving || 'Saving...');
 
         FFC.request(
             'ffc_save_custom_fields',
@@ -143,13 +143,13 @@
             { nonce: ffcAudienceAdmin.adminNonce, ajaxUrl: ffcAudienceAdmin.ajaxUrl }
         )
             .then(function () {
-                $status.text(ffcAudienceAdmin.strings.saved || 'Saved!').addClass('ffc-status-success');
+                FFC.status($status, 'success', ffcAudienceAdmin.strings.saved || 'Saved!');
                 // Reload page to show updated field IDs
                 setTimeout(function () { window.location.reload(); }, 800);
             })
             .catch(function (err) {
                 var msg = (err && err.fromServer && err.message) || ffcAudienceAdmin.strings.error || 'Error';
-                $status.text(msg).addClass('ffc-status-error');
+                FFC.status($status, 'error', msg);
             })
             .then(function () {
                 // .finally equivalent — always re-enable the button.
@@ -177,7 +177,7 @@
         }
 
         $btn.prop('disabled', true);
-        $status.text(ffcAudienceAdmin.strings.saving || 'Saving...').removeClass('ffc-status-error ffc-status-success');
+        FFC.status($status, 'busy', ffcAudienceAdmin.strings.saving || 'Saving...');
 
         FFC.request(
             'ffc_replicate_field_options',
@@ -186,11 +186,11 @@
         )
             .then(function (data) {
                 var msg = (data && data.message) || ffcAudienceAdmin.strings.saved || 'Saved!';
-                $status.text(msg).addClass('ffc-status-success');
+                FFC.status($status, 'success', msg);
             })
             .catch(function (err) {
                 var msg = (err && err.fromServer && err.message) || ffcAudienceAdmin.strings.error || 'Error';
-                $status.text(msg).addClass('ffc-status-error');
+                FFC.status($status, 'error', msg);
             })
             .then(function () {
                 $btn.prop('disabled', false);
