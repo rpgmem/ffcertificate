@@ -2906,6 +2906,7 @@
     .ffc-btn-success,
     :root.ffc-dark-mode .button,
     :root.ffc-dark-mode .button-secondary,
+    :root.ffc-dark-mode .ffc-shortcode .button-primary,
     :root.ffc-dark-mode .button.disabled,
     :root.ffc-dark-mode .button-primary.disabled,
     :root.ffc-dark-mode .button-primary[disabled],
