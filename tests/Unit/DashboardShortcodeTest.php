@@ -114,7 +114,9 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'logged in', $output );
 		$this->assertStringContainsString( 'Login', $output );
 		// #1832: the notice is a plugin root and loads the sheets that style it.
-		$this->assertStringContainsString( 'class="ffc-shortcode ffc-dashboard-notice ffc-notice-warning"', $output );
+		$this->assertMatchesRegularExpression( '#<div class="ffc-shortcode">\s*<div class="ffc-notice ffc-notice-warning"#', $output );
+		$this->assertStringContainsString( 'data-ffc-notice="login-required"', $output );
+		$this->assertStringContainsString( '<div class="ffc-notice-actions"><a href=', $output );
 		$this->assertSame( array( 'ffc-common', 'ffc-dashboard' ), $styles );
 	}
 
@@ -237,6 +239,7 @@ class DashboardShortcodeTest extends TestCase {
 		$output = DashboardShortcode::render();
 
 		$this->assertStringContainsString( 'redirected from the admin panel', $output );
+		$this->assertStringContainsString( 'data-ffc-notice="admin-redirect"', $output );
 	}
 
 	// ==================================================================
@@ -456,15 +459,17 @@ class DashboardShortcodeTest extends TestCase {
 		$output = DashboardShortcode::render();
 
 		$this->assertStringContainsString( 'Approved Campaign', $output );
-		$this->assertStringContainsString( 'ffc-rereg-completed', $output );
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-success"', $output );
 		$this->assertStringContainsString( 'Submitted Campaign', $output );
-		$this->assertStringContainsString( 'ffc-rereg-pending-review', $output );
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-info"', $output );
 		$this->assertStringContainsString( 'In Progress Campaign', $output );
 		$this->assertStringContainsString( 'Continue Reregistration', $output );
 		$this->assertStringContainsString( 'Rejected Campaign', $output );
 		$this->assertStringContainsString( 'Resubmit Reregistration', $output );
-		// Urgent class present for the near-deadline rejected banner.
-		$this->assertStringContainsString( 'ffc-rereg-urgent', $output );
+		// The near-deadline rejected banner takes the danger tone; the far
+		// ones keep the warning tone, and each carries its campaign id.
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-danger" role="note" data-ffc-notice="rereg-banner" data-reregistration-id="13"', $output );
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-warning" role="note" data-ffc-notice="rereg-banner" data-reregistration-id="12"', $output );
 		$this->assertStringContainsString( 'New Campaign', $output );
 		$this->assertStringContainsString( 'Complete Reregistration', $output );
 	}

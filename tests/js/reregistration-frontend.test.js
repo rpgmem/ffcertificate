@@ -142,7 +142,21 @@ describe('rereg.loadForm', () => {
 		window.$('.ffc-rereg-open-form').trigger('click');
 		await flush();
 
-		expect(window.$('#ffc-rereg-form-panel .ffc-error').text()).toContain('Not found');
+		expect(window.$('#ffc-rereg-form-panel .ffc-notice.ffc-notice-danger[role="alert"] .ffc-notice-text').text()).toContain('Not found');
+	});
+
+	it('prints a server error as text, never as markup, and with no inline style (#1842)', async () => {
+		await setupBanner();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: '<img src=x onerror="window.__pwn=1">' } } }));
+
+		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
+
+		const notice = document.querySelector('#ffc-rereg-form-panel .ffc-notice');
+		expect(notice.querySelector('img')).toBeNull();
+		expect(notice.textContent).toContain('<img src=x');
+		expect(notice.querySelector('.ffc-icon-error')).not.toBeNull();
+		expect(notice.outerHTML).not.toContain('style=');
 	});
 
 	it('falls back to the localised error string when response.data is empty', async () => {
@@ -152,7 +166,7 @@ describe('rereg.loadForm', () => {
 		window.$('.ffc-rereg-open-form').trigger('click');
 		await flush();
 
-		expect(window.$('#ffc-rereg-form-panel .ffc-error').text()).toContain('Error loading form.');
+		expect(window.$('#ffc-rereg-form-panel .ffc-notice.ffc-notice-danger[role="alert"] .ffc-notice-text').text()).toContain('Error loading form.');
 	});
 
 	it('shows the error on network failure', async () => {
@@ -162,7 +176,7 @@ describe('rereg.loadForm', () => {
 		window.$('.ffc-rereg-open-form').trigger('click');
 		await flush();
 
-		expect(window.$('#ffc-rereg-form-panel .ffc-error').text()).toContain('Error loading form.');
+		expect(window.$('#ffc-rereg-form-panel .ffc-notice.ffc-notice-danger[role="alert"] .ffc-notice-text').text()).toContain('Error loading form.');
 	});
 });
 
@@ -707,7 +721,7 @@ describe('rereg submit', () => {
 	async function mountValidForm() {
 		document.body.innerHTML = `
 			<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>
-			<div class="ffc-rereg-banner" data-reregistration-id="9">Banner</div>
+			<div class="ffc-notice ffc-notice-warning" data-ffc-notice="rereg-banner" data-reregistration-id="9">Banner</div>
 		`;
 		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
 			if (payload.action === 'ffc_get_reregistration_form') {
@@ -793,9 +807,9 @@ describe('rereg submit', () => {
 		await flush();
 
 		expect(window.$('#ffc-rereg-form').length).toBe(0);
-		expect(window.$('.ffc-dashboard-notice').text()).toBe('Submitted OK!');
+		expect(window.$('.ffc-notice.ffc-notice-success[role="status"] .ffc-notice-text').text()).toBe('Submitted OK!');
 		// Banner gets slideUp; with fx.off=true display is none.
-		expect(window.$('.ffc-rereg-banner').css('display')).toBe('none');
+		expect(window.$('[data-ffc-notice="rereg-banner"]').css('display')).toBe('none');
 	});
 
 	it('blocks submission when a non-required format field holds an invalid value', async () => {
@@ -977,13 +991,13 @@ describe('rereg working hours', () => {
 });
 
 // ----------------------------------------------------------------------
-// Importar o ciclo anterior (#1213)
+// Import the previous cycle (#1213)
 // ----------------------------------------------------------------------
 
 describe('rereg import previous', () => {
 	const FORM_HTML = `
 		<div class="ffc-rereg-form-container" data-reregistration-id="9">
-			<div class="ffc-rereg-import-notice">
+			<div class="ffc-notice ffc-notice-info" data-ffc-notice="rereg-import">
 				<button type="button" class="button ffc-rereg-import-btn">Bring</button>
 				<span class="ffc-rereg-import-status"></span>
 			</div>
@@ -1043,7 +1057,7 @@ describe('rereg import previous', () => {
 		window.$('.ffc-rereg-import-btn').trigger('click');
 		await flush();
 
-		expect(window.$('.ffc-rereg-import-notice').css('display')).toBe('none');
+		expect(window.$('[data-ffc-notice="rereg-import"]').css('display')).toBe('none');
 	});
 
 	it('does nothing when the form carries no offer', async () => {

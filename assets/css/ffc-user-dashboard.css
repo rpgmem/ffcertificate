@@ -178,55 +178,6 @@
 }
 
 /* ==========================================================================
-   NOTICES
-   ========================================================================== */
-
-.ffc-dashboard-notice {
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
-    margin-bottom: var(--ffc-spacing-2xl);
-    border-radius: var(--ffc-radius-md);
-    border-left: 4px solid var(--ffc-border);
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-}
-
-.ffc-notice-info {
-    background: var(--ffc-info-bg);
-    border-left-color: var(--ffc-primary);
-    color: var(--ffc-info-text);
-}
-
-.ffc-notice-warning {
-    background: var(--ffc-warning-bg);
-    border-left-color: var(--ffc-warning);
-    color: var(--ffc-warning-text);
-}
-
-.ffc-notice-admin-viewing {
-    background: var(--ffc-warning-bg);
-    border-left-color: var(--ffc-warning-border);
-    color: var(--ffc-warning-text);
-    font-weight: 600;
-}
-
-.ffc-notice-admin-viewing strong {
-    color: var(--ffc-warning-text);
-}
-
-/* A notice's paragraph — the reregistration banner's line on every tab, the
-   admin-viewing banner, the logged-out notice — is sized here rather than
-   left to the root, so a theme that sizes `p` does not re-size it (#1832). */
-.ffc-dashboard-notice p {
-    margin: 0.4em 0;
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-}
-
-.ffc-dashboard-notice .button {
-    margin-top: var(--ffc-spacing-sm);
-}
-
-/* ==========================================================================
    TABS NAVIGATION
    ========================================================================== */
 
@@ -1455,18 +1406,9 @@
 .ffc-cal-export-dropdown a:hover { background: var(--ffc-primary-light); }
 
 /* ==========================================================================
-   ERROR & EMPTY STATES
+   EMPTY STATES
+   A tab that fails to load says so with `.ffc-notice` (#1842).
    ========================================================================== */
-
-.ffc-error {
-    background: var(--ffc-danger-bg);
-    border-left: 4px solid var(--ffc-danger);
-    color: var(--ffc-danger-text);
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
-    border-radius: var(--ffc-radius-md);
-    margin: var(--ffc-spacing-2xl) 0;
-    font-size: var(--ffc-font-size-base);
-}
 
 /* The base .ffc-empty-state rule lives in ffc-common.css (#1614). */
 .ffc-empty-state p {

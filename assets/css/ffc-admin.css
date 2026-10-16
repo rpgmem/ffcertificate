@@ -720,7 +720,6 @@
 
 /* Margin utilities (ffc-mb-xl and ffc-mt-xl in ffc-admin-utilities.css) */
 .ffc-ml-20 { margin-left: var(--ffc-spacing-2xl); }
-.ffc-m-2xs-0 { margin: var(--ffc-spacing-2xs) 0 0 0; }
 
 /* Form label blocks */
 .ffc-restriction-label {
@@ -843,13 +842,6 @@
 /* Inline warning text used by metaboxes (replaces inline style="color:#a00"). */
 .ffc-warning-text {
     color: var(--ffc-danger-text);
-}
-
-/* Dashboard header flex */
-.ffc-dashboard-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
 }
 
 /* Activity log details */

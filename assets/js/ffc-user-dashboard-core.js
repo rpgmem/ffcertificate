@@ -297,7 +297,7 @@
             FFC.rest(url, { nonce: ffcDashboard.nonce })
                 .then(function (data) { FFCDashboard.renderSummary(data); })
                 .catch(function () {
-                    $summary.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
+                    $summary.empty().append(FFC.notice('danger', 'error', ffcDashboard.strings.error, '', { role: 'alert' }));
                 });
         },
 

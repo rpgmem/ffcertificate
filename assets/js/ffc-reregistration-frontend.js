@@ -59,7 +59,7 @@
             })
             .catch(function (err) {
                 var msg = (err && err.fromServer && err.message) || S.errorLoading || 'Error loading form.';
-                $panel.html('').append($('<div class="ffc-error">').text(msg));
+                $panel.html('').append(FFC.notice('danger', 'error', msg, '', { role: 'alert' }));
             });
     }
 
@@ -79,10 +79,10 @@
         initImportPrevious($container);
     }
 
-    /* ─── Importar o ciclo anterior ────────────────────── */
+    /* ─── Import the previous cycle ────────────────────── */
 
     function initImportPrevious($container) {
-        var $notice = $container.find('.ffc-rereg-import-notice');
+        var $notice = $container.find('[data-ffc-notice="rereg-import"]');
         if (!$notice.length) {
             return;
         }
@@ -310,11 +310,15 @@
                 { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
             )
                 .then(function (data) {
-                    var $notice = $('<div class="ffc-dashboard-notice ffc-notice-info">').append(
-                        $('<p>').text((data && data.message) || S.submitted || 'Reregistration submitted successfully!')
+                    var notice = FFC.notice(
+                        'success',
+                        'success',
+                        (data && data.message) || S.submitted || 'Reregistration submitted successfully!',
+                        '',
+                        { role: 'status' }
                     );
-                    $container.find('#ffc-rereg-form').replaceWith($notice);
-                    $('.ffc-rereg-banner[data-reregistration-id="' + id + '"]').slideUp();
+                    $container.find('#ffc-rereg-form').replaceWith(notice);
+                    $('[data-ffc-notice="rereg-banner"][data-reregistration-id="' + id + '"]').slideUp();
                 })
                 .catch(function (err) {
                     $btn.prop('disabled', false).text(S.submit || 'Submit');

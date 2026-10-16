@@ -164,7 +164,9 @@ class ReregistrationFormRendererTest extends TestCase {
 
 		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
 
-		$this->assertStringContainsString( 'ffc-rereg-import-notice', $html );
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-info"', $html );
+		$this->assertStringContainsString( 'data-ffc-notice="rereg-import"', $html );
+		$this->assertStringContainsString( 'ffc-rereg-import-btn', $html );
 		$this->assertStringContainsString( 'Recadastramento 2024', $html );
 	}
 
@@ -176,7 +178,7 @@ class ReregistrationFormRendererTest extends TestCase {
 
 		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
 
-		$this->assertStringNotContainsString( 'ffc-rereg-import-notice', $html );
+		$this->assertStringNotContainsString( 'data-ffc-notice="rereg-import"', $html );
 	}
 
 	public function test_render_acknowledgment_field_outputs_its_html(): void {

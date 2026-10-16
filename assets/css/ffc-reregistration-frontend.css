@@ -5,34 +5,8 @@
  * @package FreeFormCertificate
  */
 
-/* ── Banner ──────────────────────────────────── */
-
-.ffc-rereg-banner .ffc-dashboard-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--ffc-spacing-xl);
-    flex-wrap: wrap;
-}
-
-.ffc-rereg-banner.ffc-rereg-urgent {
-    border-left-color: var(--ffc-danger-border);
-    background: var(--ffc-danger-bg);
-}
-
-.ffc-rereg-banner.ffc-rereg-urgent strong {
-    color: var(--ffc-danger-text);
-}
-
-.ffc-rereg-completed {
-    border-left-color: var(--ffc-success-border);
-    background: var(--ffc-success-bg);
-}
-
-.ffc-rereg-pending-review {
-    border-left-color: var(--ffc-primary);
-    background: var(--ffc-info-bg);
-}
+/* The dashboard's reregistration banners are `.ffc-notice` (#1842): their
+   tones live in ffc-common.css. */
 
 /* ── Header Bar ─────────────────────────────── */
 
@@ -352,29 +326,10 @@
     .ffc-rereg-actions .ffc-rereg-cancel-btn {
         margin-left: 0;
     }
-
-    .ffc-rereg-banner .ffc-dashboard-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
 }
 
 /* ── Import the previous cycle ──────────────── */
 
-.ffc-rereg-import-notice {
-    margin-bottom: var(--ffc-spacing-xl);
-    padding: var(--ffc-spacing-lg);
-    border: 1px solid var(--ffc-info-border);
-    border-radius: var(--ffc-radius-sm);
-    background: var(--ffc-info-bg);
-    color: var(--ffc-info-text);
-}
-
-.ffc-rereg-import-notice p {
-    margin: 0 0 var(--ffc-spacing-sm);
-}
-
 .ffc-rereg-import-status {
-    margin-left: var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-sm);
 }
