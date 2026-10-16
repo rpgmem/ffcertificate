@@ -64,11 +64,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</li>
 	</ul>
 
-	<div class="ffc-doc-note">
+	<h4><?php esc_html_e( 'Messages on the admin screens', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'Three kinds, each with its own look. The result of an action appears at the top of the screen with an icon: a success or a note can be closed, while a warning or an error stays until the problem is gone. A box inside a page, with a coloured bar and an icon, explains or warns about that part of the screen. A short line beside a button or a switch shows its progress: saving, saved or failed.', 'ffcertificate' ); ?></p>
+
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Find your way around:', 'ffcertificate' ); ?></strong>
+			<strong><?php esc_html_e( 'Find your way around:', 'ffcertificate' ); ?></strong>
 			<?php esc_html_e( 'Use the Quick Navigation on the left — it mirrors the plugin\'s own menus. Start with', 'ffcertificate' ); ?>
 			<a href="#feature-certificates"><?php esc_html_e( 'Certificates & Forms', 'ffcertificate' ); ?></a>, <?php esc_html_e( 'or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Date Messages, Developer).', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean()
+	);
+	?>
 </div>

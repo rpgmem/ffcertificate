@@ -35,6 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 	<p class="description"><?php esc_html_e( 'The "FFC End User" role is assigned automatically to people who submit forms with a CPF or RF.', 'ffcertificate' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Saving the tab shows a confirmation at the top of the screen.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Operator roles in wp-admin', 'ffcertificate' ); ?></h4>
