@@ -19,15 +19,15 @@
     // Icons come from the plugin's registry (`Core\Icons`, #1826) as
     // `.ffc-icon-*` mask classes in `currentColor`, so each takes the colour of
     // the text beside it and follows the dark theme and the Public Design
-    // accent. The registry draws no brand logos: Google Calendar and Outlook
-    // open a page on another site, so both take the external-link icon.
+    // accent. Google Calendar and Outlook have their own registry drawings in
+    // the house style, not brand logos.
     function icon(cls) {
         return '<span class="' + cls + '" aria-hidden="true"></span>';
     }
 
     var calIcons = {
-        google: icon('ffc-icon-external'),
-        outlook: icon('ffc-icon-external'),
+        google: icon('ffc-icon-cal-google'),
+        outlook: icon('ffc-icon-cal-outlook'),
         ics: icon('ffc-icon-download'),
         calendar: icon('ffc-icon-calendar'),
         caret: icon('ffc-icon-chevron-down')

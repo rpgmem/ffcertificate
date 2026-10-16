@@ -146,7 +146,7 @@ describe('ffc-user-dashboard-cal-export — buildButton', () => {
 		expect(btnIcons).toEqual(['ffc-icon-calendar', 'ffc-icon-chevron-down']);
 
 		const linkIcons = Array.from(tmp.querySelectorAll('.ffc-cal-export-dropdown a > span')).map((s) => s.className);
-		expect(linkIcons).toEqual(['ffc-icon-external', 'ffc-icon-external', 'ffc-icon-download']);
+		expect(linkIcons).toEqual(['ffc-icon-cal-google', 'ffc-icon-cal-outlook', 'ffc-icon-download']);
 		tmp.querySelectorAll('span[class^="ffc-icon-"]').forEach((s) => {
 			expect(s.getAttribute('aria-hidden')).toBe('true');
 		});
