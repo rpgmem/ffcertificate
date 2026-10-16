@@ -205,29 +205,35 @@
     border-radius: var(--ffc-radius-sm);
     width: 100%;
     box-sizing: border-box;
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
+}
+
+/* A theme that sizes `p` would otherwise win over the block's size, which is
+   how the quiz leave-window notice rendered larger than the form (#1828).
+   Named rather than inherited, so the typography budget still reads it. */
+.ffc-shortcode .ffc-form-info-block p {
+    margin: 0 0 var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-base);
+    line-height: inherit;
+}
+
+.ffc-shortcode .ffc-form-info-block p:last-child {
+    margin-bottom: 0;
 }
 
 /* 6.7.1 — Schedule-exception banner ON the form (#369 / 6.7.0). Distinct
    from `.ffc-schedule-exception-block` on `/valid` (audit context). Pre-
    6.7.1 the banner inherited only `.ffc-form-info-block` styling, which
-   left it (a) wider than the 450px form fields below — banner sits at
-   the form-wrapper level (~540px after padding) — and (b) typographically
-   loose because the base info-block sets no font-size and the inner
-   `<strong>` + `<p>` rendered at the WP theme default. Three overrides
-   below align it visually with the rest of the form and the `/valid`
-   notice patterns. */
+   left it wider than the 450px form fields below — banner sits at the
+   form-wrapper level (~540px after padding). Its type size now comes from
+   the base block (#1828). */
 .ffc-shortcode .ffc-schedule-exception-banner {
     max-width: calc(var(--ffc-form-width) - 150px);
     margin-left: auto;
     margin-right: auto;
     border: 2px solid var(--ffc-primary);
     border-left-width: 2px; /* override the 4px solid from .ffc-form-info-block */
-}
-
-.ffc-shortcode .ffc-schedule-exception-banner p {
-    margin: 0;
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
 }
 
 .ffc-shortcode .ffc-info-title {
