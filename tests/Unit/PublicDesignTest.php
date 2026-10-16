@@ -51,6 +51,7 @@ class PublicDesignTest extends TestCase {
 				'border' => '--ffc-border',
 				'muted'  => '--ffc-text-muted',
 				'error'  => '--ffc-danger',
+				'info'   => '--ffc-info-border',
 			) as $field => $token
 		) {
 			$this->assertMatchesRegularExpression( '/' . preg_quote( $token, '/' ) . ':\s*' . preg_quote( PublicDesign::DEFAULTS[ $field ], '/' ) . ';/i', $light, "{$field} defaults to the light {$token}." );
@@ -177,6 +178,71 @@ class PublicDesignTest extends TestCase {
 	public function test_the_theme_font_adds_no_font_rule(): void {
 		$css = ( new PublicDesign( array( 'enabled' => '1' ) ) )->css();
 		$this->assertStringNotContainsString( 'font-family', $css );
+	}
+
+	public function test_the_default_info_colour_keeps_the_sheets_own_pair(): void {
+		$css = ( new PublicDesign( array( 'enabled' => '1' ) ) )->css();
+		$this->assertStringNotContainsString( '--ffc-info', $css, 'At the default the hand-tuned light pair stays: no derivation reproduces it exactly (#1842).' );
+	}
+
+	public function test_the_derived_ground_is_the_closest_shade_to_todays_default_pair(): void {
+		$common = (string) file_get_contents( __DIR__ . '/../../assets/css/ffc-common.css' );
+		$light  = substr( $common, 0, (int) strpos( $common, ':root.ffc-dark-mode' ) );
+		$this->assertSame( 1, preg_match( '/--ffc-info-bg:\s*(#[0-9a-f]{6});/i', $light, $m ) );
+		$sheet = array_map( 'hexdec', str_split( substr( strtolower( $m[1] ), 1 ), 2 ) );
+
+		$distance = static function ( string $hex ) use ( $sheet ): float {
+			$rgb = array_map( 'hexdec', str_split( substr( $hex, 1 ), 2 ) );
+			return sqrt( ( $rgb[0] - $sheet[0] ) ** 2 + ( $rgb[1] - $sheet[1] ) ** 2 + ( $rgb[2] - $sheet[2] ) ** 2 );
+		};
+
+		$design = new PublicDesign( array( 'enabled' => '1' ) );
+		$this->assertSame( '#e8f2f7', $design->info_background() );
+		$this->assertLessThan( 6.0, $distance( $design->info_background() ), 'Within a few steps of the sheet\'s #e5f5fa.' );
+
+		// No other amount in 0.80..0.99 lands closer, which is how 0.91 was chosen.
+		$shade = new \ReflectionMethod( PublicDesign::class, 'shade' );
+		$shade->setAccessible( true );
+		$best = $distance( $design->info_background() );
+		for ( $amount = 0.80; $amount <= 0.991; $amount += 0.01 ) {
+			$this->assertGreaterThanOrEqual( $best, $distance( (string) $shade->invoke( null, PublicDesign::DEFAULTS['info'], '#ffffff', $amount ) ) );
+		}
+	}
+
+	public function test_a_picked_info_colour_draws_bar_and_text_and_derives_the_ground_in_the_light_theme_only(): void {
+		$design = new PublicDesign(
+			array(
+				'enabled' => '1',
+				'info'    => '#6B21A8',
+			)
+		);
+		$this->assertSame( '#6b21a8', $design->info );
+		$this->assertSame( '#f2ebf7', $design->info_background() );
+
+		$css   = $design->css();
+		$light = substr( $css, (int) strpos( $css, ':root:not(.ffc-dark-mode) .ffc-shortcode{' ) );
+		$this->assertStringContainsString( '--ffc-info:#6b21a8;--ffc-info-border:#6b21a8;--ffc-info-text:#6b21a8;--ffc-info-bg:#f2ebf7;--ffc-info-light:#f2ebf7;', $light );
+		$this->assertStringNotContainsString( '--ffc-info', substr( $css, 0, (int) strpos( $css, ':root:not(.ffc-dark-mode)' ) ), 'Nothing in the both-themes block.' );
+		$this->assertSame( '#6b21a8', $design->to_settings()['public_design_info'] );
+	}
+
+	public function test_an_invalid_info_colour_takes_the_default(): void {
+		$this->assertSame( PublicDesign::DEFAULTS['info'], ( new PublicDesign( array( 'enabled' => '1', 'info' => 'blue' ) ) )->info );
+		$this->assertSame( PublicDesign::DEFAULTS['info'], ( new PublicDesign( array( 'enabled' => '', 'info' => '#6b21a8' ) ) )->info, 'Switching off resets it.' );
+	}
+
+	public function test_a_light_info_colour_is_warned_about_not_darkened(): void {
+		$design = new PublicDesign(
+			array(
+				'enabled' => '1',
+				'info'    => '#4fc3f7',
+			)
+		);
+		$weak = $design->weak_contrasts();
+		$this->assertSame( array( 'information notices on their background' ), array_column( $weak, 'pair' ) );
+		$this->assertSame( array( 4.5 ), array_column( $weak, 'min' ) );
+		$this->assertLessThan( 4.5, $weak[0]['ratio'] );
+		$this->assertStringContainsString( '--ffc-info-text:#4fc3f7;', $design->css(), 'The operator\'s colour is used as picked.' );
 	}
 
 	public function test_the_defaults_raise_no_contrast_warning(): void {

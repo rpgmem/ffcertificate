@@ -329,6 +329,7 @@ class Settings {
 			'public_design_border'       => '#8e8f91',
 			'public_design_muted'        => '#646970',
 			'public_design_error'        => '#d63638',
+			'public_design_info'         => '#006ba1',
 			'public_design_radius'       => 4,
 			'public_design_card_radius'  => 8,
 			'public_design_width'        => 600,

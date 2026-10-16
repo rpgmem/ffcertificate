@@ -19,6 +19,7 @@ $ffc_colors = array(
 	'border' => __( 'Field borders', 'ffcertificate' ),
 	'muted'  => __( 'Hints and secondary text', 'ffcertificate' ),
 	'error'  => __( 'Errors', 'ffcertificate' ),
+	'info'   => __( 'Information notices (bar and text)', 'ffcertificate' ),
 );
 ?>
 
@@ -68,6 +69,7 @@ $ffc_colors = array(
 		</tbody>
 	</table>
 	<p class="description"><?php esc_html_e( 'The text on buttons is chosen for you, black or white, whichever reads best on the accent. A colour that reads poorly on white (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it.', 'ffcertificate' ); ?></p>
+	<p class="description"><?php esc_html_e( 'The background of the information notices (the administrator bypass, the quiz and schedule notices, "already submitted") is a light shade of their colour, made for you. Their colour is checked against that background, at 4.5:1.', 'ffcertificate' ); ?></p>
 </div>
 
 <div class="card">
