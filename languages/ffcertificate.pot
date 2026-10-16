@@ -26123,3 +26123,11 @@ msgstr ""
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "The personal-calendar and group-calendar tabs split the list into Upcoming, Past and Cancelled, each heading showing how many items it holds. Each section pages on its own, 5 upcoming, 3 past and 2 cancelled items at a time, and the filter bar brings every section back to its first page."
 msgstr ""
+
+#: templates/admin/qr/design-fields.php
+msgid "Enter a colour as #rrggbb."
+msgstr ""
+
+#: templates/admin/audience/transfer-list.php
+msgid "Select at least one audience."
+msgstr ""
