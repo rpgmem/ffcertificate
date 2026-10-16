@@ -1440,6 +1440,15 @@ html:has(.ffc-settings-back-to-top) {
     margin: var(--ffc-spacing-lg) 0;
 }
 
+/* Email Texts → the email index: a group heading row lets the stripe show
+   through. It looks dead in the light theme, where nothing paints a body
+   `th`, and is not: the dark theme's `table.widefat th` ground would land on
+   it, which the `style=""` this replaced was quietly preventing. The selector
+   matches that rule's (0,3,2) and wins by coming later. */
+.ffc-settings-wrap table.ffc-email-index th.ffc-email-index-group {
+    background: transparent;
+}
+
 /* Date Messages → the per-rule action buttons sit on one line. */
 .ffc-dm-rule-action {
     display: inline;
