@@ -31,6 +31,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Public form feedback is styled by the sheet and follows dark mode** (#1840). `.ffc-field-error` named three things; the input state is now `is-invalid` / `is-valid`, the CPF/RF message `.ffc-field-message`, the reregistration error `.ffc-rereg-field-error`. The helper's error and success boxes read palette tokens.
 - **Log Out sits in the dashboard's tab bar** (#1840). The user dashboard prints it at the end of the tab bar, outside the tablist, so it shows on every tab instead of only on Profile; on phones it is the last, full-width item under the stacked tabs.
 - **The certificate form's notices are one component** (#1842). `.ffc-notice` in five tones with a `Core\Icons` icon, printed by `Core\Notice` and `FFC.notice()`; the quiz, schedule-exception and grading notices now sit above the title.
+- **The calendar, audience, dashboard and reregistration notices use `.ffc-notice` too** (#1842). Admin bypass, approval, e-mail sent, waitlist, conflicts, the reregistration banners, admin view mode, set-password, import offer, tab-load errors, the CSV info alerts and the WebView banner print through `Core\Notice` / `FFC.notice()`; their old classes and CSS are gone.
 
 ### Fixed
 
