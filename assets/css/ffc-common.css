@@ -997,6 +997,19 @@
 
 .ffc-shortcode .ffc-modal-body {
     padding: var(--ffc-spacing-2xl);
+    font-size: var(--ffc-font-size-base);
+}
+
+/* The dialog's own text is sized here, not left to the root (#1832): the
+   modal is appended to `<body>`, so before it carried the root class itself
+   its paragraph and its summary took the theme's body size. Naming the step
+   on each keeps the dialog's text one size whatever the page around it. The
+   summary is named under the modal only — the public cancellation page
+   draws it too, on a page of its own, at that page's size. */
+.ffc-shortcode .ffc-modal-body > p,
+.ffc-shortcode .ffc-modal-body .ffc-cancel-summary dt,
+.ffc-shortcode .ffc-modal-body .ffc-cancel-summary dd {
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-shortcode .ffc-modal-footer {
@@ -1011,12 +1024,14 @@
    and the sheet that styled `.ffc-form-group` is not loaded on the dashboard. */
 .ffc-shortcode .ffc-modal-body .ffc-form-group label {
     display: block;
+    font-size: var(--ffc-font-size-base);
     font-weight: 600;
     margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-shortcode .ffc-modal-body .ffc-form-group textarea {
     width: 100%;
+    font-size: var(--ffc-font-size-base);
     box-sizing: border-box;
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
     color: var(--ffc-text);

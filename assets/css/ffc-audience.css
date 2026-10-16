@@ -352,6 +352,12 @@
     font-size: var(--ffc-font-size-base);
 }
 
+/* The new-booking dialog's chosen date, a `<p>` the script fills: it had no
+   size of its own and took the theme's (#1832). */
+.ffc-shortcode .ffc-booking-date-display {
+    font-size: var(--ffc-font-size-base);
+}
+
 .ffc-shortcode .ffc-form-group input,
 .ffc-shortcode .ffc-form-group select,
 .ffc-shortcode .ffc-form-group textarea {
@@ -529,6 +535,7 @@
 
 .ffc-shortcode .ffc-booking-description {
     margin: var(--ffc-spacing-md) 0;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-shortcode .ffc-booking-meta {
