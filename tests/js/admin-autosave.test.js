@@ -89,7 +89,7 @@ describe('FFC.Admin.autoSaveField', () => {
 
 		const $badge = window.$('.ffc-autosave-badge');
 		expect($badge.text()).toBe('Saved');
-		expect($badge.hasClass('ffc-autosave-badge--saved')).toBe(true);
+		expect($badge.hasClass('is-success')).toBe(true);
 
 		vi.advanceTimersByTime(1800);
 		expect($badge.attr('hidden')).toBe('hidden');
@@ -154,7 +154,7 @@ describe('FFC.Admin.autoSaveField', () => {
 
 		const $badge = window.$('.ffc-autosave-badge');
 		expect($badge.text()).toBe('Quota exceeded');
-		expect($badge.hasClass('ffc-autosave-badge--error')).toBe(true);
+		expect($badge.hasClass('is-error')).toBe(true);
 	});
 
 	it('honours a custom transform when extracting the value', () => {
@@ -444,7 +444,7 @@ describe('FFC.Admin.autoSaveField — extra branches', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 		const $badge = window.$('.ffc-autosave-badge');
-		expect($badge.hasClass('ffc-autosave-badge--saved')).toBe(true);
+		expect($badge.hasClass('is-success')).toBe(true);
 
 		// Trigger another change while the "Saved" linger timer is live.
 		window.$('#t').prop('checked', false).trigger('change');

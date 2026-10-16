@@ -999,25 +999,6 @@
     font-size: var(--ffc-font-size-sm);
 }
 
-/* The line a profile action reports into (saving, saved, an error). Its tone
-   is a class on the palette (#1826): the colour literals it replaced ignored
-   the dark theme, and `#666` measured about 2.6:1 there. */
-.ffc-status-msg {
-    margin-left: var(--ffc-spacing-md);
-}
-
-.ffc-status-msg.ffc-status-msg-busy {
-    color: var(--ffc-text-muted);
-}
-
-.ffc-status-msg.ffc-status-msg-success {
-    color: var(--ffc-success-text);
-}
-
-.ffc-status-msg.ffc-status-msg-error {
-    color: var(--ffc-danger-text);
-}
-
 .ffc-profile-field .ffc-email-list,
 .ffc-profile-field .ffc-name-list,
 .ffc-profile-field .ffc-cpf-list {

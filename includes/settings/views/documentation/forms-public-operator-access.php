@@ -42,12 +42,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-lock"><?php esc_html_e( 'CSV download unlocks only after the form closes.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'A form with no end date never releases the CSV. Downloads are also capped by a per-form quota (blank inherits the global Default Download Limit under Settings → Advanced). When the CPF gate below is set to anything other than none — or when an operator volunteers a valid CPF — each attempt is written to a per-form audit log of the most recent attempts (timestamp, IP address stored encrypted, mode, result) that admins can export.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array(
+			'icon'  => 'lock',
+			'title' => __( 'CSV download unlocks only after the form closes.', 'ffcertificate' ),
+		)
+	);
+	?>
 
 	<h4><?php esc_html_e( 'CPF gate on the CSV', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The CSV can additionally require the operator to prove a CPF before it releases. The modes form a scale from the loosest to the strictest, and a form that never chose one uses audit:', 'ffcertificate' ); ?></p>

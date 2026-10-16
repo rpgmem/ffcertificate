@@ -31,6 +31,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Public form feedback is styled by the sheet and follows dark mode** (#1840). `.ffc-field-error` named three things; the input state is now `is-invalid` / `is-valid`, the CPF/RF message `.ffc-field-message`, the reregistration error `.ffc-rereg-field-error`. The helper's error and success boxes read palette tokens.
 - **Log Out sits in the dashboard's tab bar** (#1840). The user dashboard prints it at the end of the tab bar, outside the tablist, so it shows on every tab instead of only on Profile; on phones it is the last, full-width item under the stacked tabs.
 - **The certificate form's notices are one component** (#1842). `.ffc-notice` in five tones with a `Core\Icons` icon, printed by `Core\Notice` and `FFC.notice()`; the quiz, schedule-exception and grading notices now sit above the title.
+- **Admin messages follow one rule per layer** (#1843). Page notices go through `Core\AdminNotice` and `FFC.Admin.notify()`: a `Core\Icons` icon, and only success and info close. Callouts inside a screen are `.ffc-notice`; status lines and autosave badges are `.ffc-status`. The short-URL toast is gone.
 - **One standard for field errors, warnings, hints and required markers** (#1844). Every plugin form shows a field's problem under it with an icon and appends it to `aria-describedby` (`FFC.fieldMessage()`, `Core\FieldMessage`). The public form's invalid state shows, audience booking drops `alert()`, one hidden `*` and one counter remain.
 
 ### Fixed
@@ -49,6 +50,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A clicked dashboard tab no longer shows a focus box** (#1840). The tabs draw their ring on keyboard focus only (`:focus-visible`, the 2px primary ring), so a theme's `button:focus` outline no longer boxes the active tab after a click.
 - **The dashboard's tab bar wraps instead of overflowing** (#1840). Between the phone layout and a width that fits every tab, the tabs flow onto a second row and Log Out stays at the right end of the last row; at 769–900px the page no longer scrolls sideways.
 - **The rate-limit notice shows on the form that was refused** (#1846). It looked for `.ffc-form`, which no public form has, so the certificate form never showed it; it now sits above the refused form, counts down, and gives the button its own label back.
+- **Admin messages that were lost or unsafe** (#1843). User Access shows its save message; the reregistration details dialog writes a server error as text; Activity Log's empty state stays in its table; the Danger Zone wears one bar; `.ffc-warning-text` is `.ffc-text-danger`, and `.ffc-text-info` reads the info tone.
 
 ### Security
 

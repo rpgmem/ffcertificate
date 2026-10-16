@@ -158,7 +158,7 @@ describe('form-meta autosave — the badge', () => {
 		const $badge = window.$('.ffc-autosave-badge');
 		expect($badge.length).toBe(1);
 		expect($badge.text()).toBe('Salvo');
-		expect($badge.hasClass('ffc-autosave-badge--saved')).toBe(true);
+		expect($badge.hasClass('is-success')).toBe(true);
 
 		vi.advanceTimersByTime(1800);
 		await flush();
@@ -189,7 +189,7 @@ describe('form-meta autosave — the badge', () => {
 
 		const $badge = window.$('.ffc-autosave-badge');
 		expect($badge.text()).toBe('Nope');
-		expect($badge.hasClass('ffc-autosave-badge--error')).toBe(true);
+		expect($badge.hasClass('is-error')).toBe(true);
 	});
 
 	it('distinguishes a dropped connection from a server refusal', async () => {

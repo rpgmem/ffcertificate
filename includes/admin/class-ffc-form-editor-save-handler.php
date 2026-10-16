@@ -778,13 +778,10 @@ class FormEditorSaveHandler {
 			?>
 			<p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $error_tags, 'is_scalar' ) ) ) ); ?></code>.</p>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
 				(string) ob_get_clean(),
-				array(
-					'type'           => 'error',
-					'dismissible'    => true,
-					'paragraph_wrap' => false,
-				)
+				array( 'paragraph_wrap' => false )
 			);
 		}
 
@@ -800,13 +797,10 @@ class FormEditorSaveHandler {
 				<?php endforeach; ?>
 			</ul>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
 				(string) ob_get_clean(),
-				array(
-					'type'           => 'warning',
-					'dismissible'    => true,
-					'paragraph_wrap' => false,
-				)
+				array( 'paragraph_wrap' => false )
 			);
 		}
 
@@ -817,13 +811,10 @@ class FormEditorSaveHandler {
 			?>
 			<p><strong><?php esc_html_e( 'Warning! The form lacks these required fields:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $missing_fields, 'is_scalar' ) ) ) ); ?></code>. <?php esc_html_e( 'The Fields tab can add them: “Add the required fields”.', 'ffcertificate' ); ?></p>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
 				(string) ob_get_clean(),
-				array(
-					'type'           => 'error',
-					'dismissible'    => true,
-					'paragraph_wrap' => false,
-				)
+				array( 'paragraph_wrap' => false )
 			);
 		}
 
@@ -847,13 +838,10 @@ class FormEditorSaveHandler {
 				<a href="<?php echo esc_url( $migrations_url ); ?>"><?php esc_html_e( 'Settings → Data Migrations → Rewrite html/ Image References', 'ffcertificate' ); ?></a>.
 			</p>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
 				(string) ob_get_clean(),
-				array(
-					'type'           => 'warning',
-					'dismissible'    => true,
-					'paragraph_wrap' => false,
-				)
+				array( 'paragraph_wrap' => false )
 			);
 		}
 
@@ -872,13 +860,10 @@ class FormEditorSaveHandler {
 				<?php endforeach; ?>
 			</ul>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
 				(string) ob_get_clean(),
-				array(
-					'type'           => 'error',
-					'dismissible'    => true,
-					'paragraph_wrap' => false,
-				)
+				array( 'paragraph_wrap' => false )
 			);
 		}
 	}

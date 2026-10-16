@@ -117,10 +117,12 @@ class AudienceEditorTabsTest extends TestCase {
 
 		$this->assertSame( $loads, AudienceEditorTabs::maybe_enqueue( $page, $action ) );
 		if ( $loads ) {
-			$this->assertCount( 1, $enqueued );
-			$this->assertSame( 'ffc-vertical-tabs', $enqueued[0][0], 'the shared handle, so the editors never load it twice' );
-			$this->assertStringContainsString( 'assets/js/ffc-vertical-tabs', $enqueued[0][1] );
-			$this->assertSame( array( 'jquery' ), $enqueued[0][2] );
+			// ffc-core first: the required-tag banner is FFC.notice() (#1843).
+			$this->assertCount( 2, $enqueued );
+			$this->assertSame( 'ffc-core', $enqueued[0][0] );
+			$this->assertSame( 'ffc-vertical-tabs', $enqueued[1][0], 'the shared handle, so the editors never load it twice' );
+			$this->assertStringContainsString( 'assets/js/ffc-vertical-tabs', $enqueued[1][1] );
+			$this->assertSame( array( 'jquery', 'ffc-core' ), $enqueued[1][2] );
 			$this->assertSame( array( array( 'ffc-form-editor-tabs', false, array( 'ffc-vertical-tabs' ) ) ), $registered, 'the deprecated handle stays an alias wherever the script loads (#1788)' );
 		} else {
 			$this->assertSame( array(), $enqueued );

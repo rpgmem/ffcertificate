@@ -52,11 +52,11 @@ jQuery(function ($) {
 		return 'form' === String($box.data('ffc-dm-preview')) ? formPayload($box) : savedPayload($box);
 	}
 
+	// An in-content callout: the `.ffc-notice` component, built by FFC.notice()
+	// so the text lands as text (#1843).
 	function message($out, text, isError) {
 		$out.empty().append(
-			$('<div class="notice inline"></div>')
-				.addClass(isError ? 'notice-error' : 'notice-success')
-				.append($('<p></p>').text(text))
+			window.FFC.notice(isError ? 'danger' : 'success', isError ? 'error' : 'success', text, '', { role: isError ? 'alert' : 'status' })
 		);
 	}
 

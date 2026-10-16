@@ -314,9 +314,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 			</tbody></table>
 		</div>
 
-		<!-- Info Box -->
-		<div class="card ffc-info-card">
-			<h2 class="ffc-icon-info"><?php esc_html_e( 'Information', 'ffcertificate' ); ?></h2>
+		<?php ob_start(); ?>
 			<p>
 				<?php esc_html_e( 'The "FFC End User" role is automatically assigned to users who submit forms with CPF/RF.', 'ffcertificate' ); ?>
 			</p>
@@ -346,7 +344,13 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 				}
 				?>
 			</p>
-		</div>
+		<?php
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'info',
+			(string) ob_get_clean(),
+			array( 'title' => __( 'Information', 'ffcertificate' ) )
+		);
+		?>
 
 		<p class="submit">
 			<button type="submit" name="save_settings" class="button button-primary">

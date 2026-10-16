@@ -115,7 +115,7 @@ class FormEditorPublicCsvDownloadMetabox {
 					?>
 
 					<?php if ( '' === $date_end ) : ?>
-						<p class="description ffc-warning-text">
+						<p class="description ffc-text-danger">
 							<strong><?php esc_html_e( 'Warning:', 'ffcertificate' ); ?></strong>
 							<?php esc_html_e( 'This form has no end date configured in the "Geolocation & Date/Time Restrictions" metabox. You must set an end date before public downloads will work — downloads are only released after the form has ended.', 'ffcertificate' ); ?>
 						</p>
@@ -335,7 +335,7 @@ class FormEditorPublicCsvDownloadMetabox {
 							data-done="<?php esc_attr_e( 'Counter reset.', 'ffcertificate' ); ?>">
 							<?php esc_html_e( 'Reset counter', 'ffcertificate' ); ?>
 						</button>
-						<span class="ffc-csv-public-action-status" role="status" aria-live="polite"></span>
+						<span class="ffc-csv-public-action-status ffc-status" role="status" aria-live="polite" hidden></span>
 					</p>
 					<p class="description">
 						<?php esc_html_e( 'Both act at once, without saving the form. Regenerating invalidates the link already shared.', 'ffcertificate' ); ?>

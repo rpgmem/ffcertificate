@@ -725,7 +725,7 @@ describe('profile — group tags and status lines follow the palette (#1826)', (
 		const $status = window.$('.ffc-password-status');
 		window.FFCDashboard.helpers.setStatus($status, 'Saving…', 'busy');
 		window.FFCDashboard.helpers.setStatus($status, 'Done', 'success');
-		expect($status[0].className).toBe('ffc-password-status ffc-status-msg ffc-status-msg-success');
+		expect($status[0].className).toBe('ffc-password-status ffc-status is-success');
 	});
 
 	it('leaves no colour literal or inline margin in the rendered profile', () => {

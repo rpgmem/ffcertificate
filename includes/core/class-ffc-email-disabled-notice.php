@@ -39,8 +39,9 @@ final class EmailDisabledNotice {
 	 * Echo the notice when the global email kill-switch is on; no-op otherwise.
 	 *
 	 * Callers place this at the top of any email-editing surface. The markup is
-	 * a self-styled inline box (it renders correctly inside metaboxes and
-	 * settings cards alike, unlike a floating `.notice`).
+	 * the `.ffc-notice` component in the warning tone, with the email icon, so
+	 * it renders inside metaboxes and settings cards alike, unlike a floating
+	 * `.notice`.
 	 */
 	public static function render(): void {
 		if ( ! SettingsReader::emails_disabled() ) {
@@ -56,16 +57,17 @@ final class EmailDisabledNotice {
 			$link
 		);
 
-		// The colours and the spacing used to live in a `style=""` here, which
-		// is why this notice ignored dark mode -- pale yellow on the dark
-		// screen, on every surface that edits an email. They are in
-		// ffc-admin.css now, as tokens (#1126).
-		$html = '<div class="ffc-email-disabled-notice">'
-			. '<p>' . $message . '</p>'
-			. '</div>';
-
-		// $html is assembled entirely from esc_url() / esc_html__() output plus a
-		// single static <a> tag, so it is already output-safe.
-		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $html is assembled above entirely from esc_url()/esc_html__() output plus a static <a> tag, so it is already output-safe.
+		// An in-content callout, not a page notice: it sits inside the
+		// metabox or the card that edits the email, so core must not lift it
+		// to the top of the screen. The component reads tokens only, so it
+		// follows dark mode (#1126, #1843).
+		AdminNotice::callout(
+			'warning',
+			$message,
+			array(
+				'icon' => 'email',
+				'hook' => 'emails-disabled',
+			)
+		);
 	}
 }

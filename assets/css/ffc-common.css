@@ -1128,12 +1128,6 @@
     white-space: nowrap;
 }
 
-/* Status variants - Submission status */
-.ffc-status-pending {
-    background: var(--ffc-warning-bg);
-    color: var(--ffc-warning-text);
-}
-
 /* ==========================================================================
    LOADING STATES
    ========================================================================== */
@@ -1260,6 +1254,16 @@
 .ffc-notice .ffc-notice-title + .ffc-notice-text,
 .ffc-notice .ffc-notice-text + .ffc-notice-text {
     margin-top: var(--ffc-spacing-2xs);
+}
+
+/* A body that brings its own blocks (`Notice::render()`'s `blocks`, the admin
+   callouts of #1843): they open and close flush with the box. */
+.ffc-notice .ffc-notice-body > :first-child {
+    margin-top: 0;
+}
+
+.ffc-notice .ffc-notice-body > :last-child {
+    margin-bottom: 0;
 }
 
 /* An action inside a notice (dismiss, reload, try anyway) starts on its own
@@ -2929,33 +2933,50 @@
 }
 
 /* ==========================================================================
-   AUTO-SAVE BADGE — companion to FFC.Admin.autoSaveField.
-   Renders next to a field showing the live save state.
+   STATUS LINE — beside a control (#1843)
+   One look for every "saving… / saved / failed" next to a button or a field,
+   the autosave badges included: `.ffc-status` plus `is-busy`, `is-success`,
+   `is-error` or `is-warning`, a registry icon and the text. `FFC.status()`
+   (ffc-core.js) fills it; the PHP prints an empty
+   `<span class="ffc-status" role="status" aria-live="polite">`. It has no
+   ground of its own, so each state reads its `*-text` tone on whatever card or
+   page it sits on.
    ========================================================================== */
-.ffc-autosave-badge {
-    display: inline-block;
+.ffc-status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
     margin-left: var(--ffc-spacing-sm);
-    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
-    border-radius: 10px;
-    font-size: var(--ffc-font-size-xs);
+    font-size: var(--ffc-font-size-sm);
     font-weight: 500;
     line-height: 1.5;
+    color: var(--ffc-text-secondary);
     vertical-align: middle;
 }
 
-.ffc-autosave-badge--saving {
-    background: var(--ffc-bg-alt);
+.ffc-status[hidden] {
+    display: none;
+}
+
+.ffc-status .ffc-status-icon::before {
+    margin-right: 0;
+    vertical-align: 0;
+}
+
+.ffc-status.is-busy {
     color: var(--ffc-text-muted);
 }
 
-.ffc-autosave-badge--saved {
-    background: var(--ffc-success-light);
-    color: var(--ffc-success);
+.ffc-status.is-success {
+    color: var(--ffc-success-text);
 }
 
-.ffc-autosave-badge--error {
-    background: var(--ffc-danger-light);
+.ffc-status.is-error {
     color: var(--ffc-danger-text);
+}
+
+.ffc-status.is-warning {
+    color: var(--ffc-warning-text);
 }
 
 /* ==========================================================================
@@ -2973,29 +2994,10 @@
     margin: 0;
 }
 
-.ffc-features-badge {
-    display: inline-block;
-    margin-top: var(--ffc-spacing-2xs);
-    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
-    border-radius: 10px;
-    font-size: var(--ffc-font-size-2xs);
-    font-weight: 500;
-    line-height: 1.4;
-}
-
-.ffc-features-badge--saving {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text-muted);
-}
-
-.ffc-features-badge--saved {
-    background: var(--ffc-success-light);
-    color: var(--ffc-success);
-}
-
-.ffc-features-badge--error {
-    background: var(--ffc-danger-light);
-    color: var(--ffc-danger-text);
+/* The cell stacks its toggles, so the status line sits under them. */
+.ffc-features-cell .ffc-status {
+    margin: var(--ffc-spacing-2xs) 0 0;
+    font-size: var(--ffc-font-size-xs);
 }
 
 /* ==========================================================================
@@ -3006,29 +3008,6 @@
     opacity: 0.55;
     pointer-events: none;
     transition: opacity 0.15s ease;
-}
-
-/* ==========================================================================
-   EMAILS-DISABLED NOTICE (Core\EmailDisabledNotice)
-
-   These rules lived in a `style=""` inside the PHP, which made the notice
-   ignore dark mode on every screen that edits an email (#1126). They sit here,
-   and not in ffc-admin.css, because the notice appears on five different
-   surfaces — the form editor's metabox, the calendar editor and three settings
-   tabs — and ffc-common is the only sheet all five declare as a dependency.
-   ========================================================================== */
-
-.ffc-email-disabled-notice {
-    margin: 0 0 var(--ffc-spacing-xl);
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
-    border-left: 4px solid var(--ffc-warning-border);
-    background: var(--ffc-warning-bg);
-    color: var(--ffc-warning-text);
-    border-radius: 2px;
-}
-
-.ffc-email-disabled-notice p {
-    margin: 0;
 }
 
 /* ==========================================================================
@@ -3065,18 +3044,12 @@
         border: 1px solid ButtonText;
     }
 
-    /* Status badges: the text still says the state; the border
-       gives them their badge shape back. */
-    .ffc-autosave-badge--error,
-    .ffc-autosave-badge--saved,
-    .ffc-autosave-badge--saving,
-    .ffc-features-badge--error,
-    .ffc-features-badge--saved,
-    .ffc-features-badge--saving,
-    /* The per-row colour badge paints a ground and nothing else; under forced
+    /* The status line beside a control (#1843) paints no ground, so it
+       needs no contour here: its icon and text say the state.
+
+       The per-row colour badge paints a ground and nothing else; under forced
        colors the system discards that ground and bare text is left (#1193). */
-    .ffc-pill-row-color,
-    .ffc-status-pending {
+    .ffc-pill-row-color {
         border: 1px solid CanvasText;
     }
 

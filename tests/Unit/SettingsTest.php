@@ -679,7 +679,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
-		Functions\when( 'settings_errors' )->justReturn( null );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 
 		$tabs = array();
 		foreach ( $tab_ids as $tab_id ) {
@@ -807,7 +807,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
-		Functions\when( 'settings_errors' )->justReturn( null );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		// Holds the settings view cap but NOT the activity-log view cap.
 		Functions\when( 'current_user_can' )->alias(
 			static function ( $cap ) {
@@ -1054,7 +1054,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
-		Functions\when( 'settings_errors' )->justReturn( null );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
 		$tab = new class( $active_tab_id ) {
@@ -1139,7 +1139,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
-		Functions\when( 'settings_errors' )->justReturn( null );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
 		$tab = new class() {
@@ -1192,7 +1192,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
-		Functions\when( 'settings_errors' )->justReturn( null );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
 		// Ensure tabs start empty so display_settings_page triggers load_tabs().

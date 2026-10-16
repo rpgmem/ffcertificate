@@ -26140,6 +26140,22 @@ msgstr ""
 msgid "The colour of the information notices (the administrator bypass, the quiz and schedule notices, \"already submitted\") draws their bar and their text; their background is a light shade of it, made automatically, and the warning measures the colour against that background. Left at its default, the notices keep the plugin's own blue pair."
 msgstr ""
 
+#: includes/settings/views/documentation/overview.php
+msgid "Messages on the admin screens"
+msgstr ""
+
+#: includes/settings/views/documentation/overview.php
+msgid "Three kinds, each with its own look. The result of an action appears at the top of the screen with an icon: a success or a note can be closed, while a warning or an error stays until the problem is gone. A box inside a page, with a coloured bar and an icon, explains or warns about that part of the screen. A short line beside a button or a switch shows its progress: saving, saved or failed."
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php
+msgid "The information colour applies to the public pages only; the notes inside the admin screens keep the admin's own colours."
+msgstr ""
+
+#: includes/settings/views/documentation/config-user-access.php
+msgid "Saving the tab shows a confirmation at the top of the screen."
+msgstr ""
+
 #: templates/admin/qr/design-fields.php
 msgid "Enter a colour as #rrggbb."
 msgstr ""

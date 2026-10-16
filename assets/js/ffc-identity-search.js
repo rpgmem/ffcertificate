@@ -174,7 +174,7 @@
         var message = (response && response.data && response.data.message) || strings.failed || '';
 
         $results.empty().append(
-            $('<div/>', { 'class': 'notice notice-error inline' }).append($('<p/>').text(message))
+            window.FFC.notice('danger', 'error', message, '', { role: 'alert' })
         );
     }
 

@@ -73,11 +73,10 @@
         if (!$tbl.length) { return; }
 
         if (data.is_empty) {
-            $tbl.html(
-                '<div class="notice notice-info"><p>'
-                + (s.noLogs || 'No activity logs found.')
-                + '</p></div>'
-            );
+            // The table's empty state is an in-content callout, the same
+            // the PHP prints, not a core `.notice` (which common.js lifts out
+            // of the table container) (#1843).
+            $tbl.empty().append(window.FFC.notice('info', 'info', s.noLogs || 'No activity logs found.', '', { role: 'status' }));
         } else {
             var $tbody = $tbl.find('tbody');
             if (!$tbody.length) {
@@ -126,8 +125,8 @@
                 hideLoading();
                 var s = strings();
                 var msg = (err && err.message) ? err.message : (s.error || 'Failed to fetch logs.');
-                if (window.FFC.Admin && typeof window.FFC.Admin.showNotification === 'function') {
-                    window.FFC.Admin.showNotification(msg, 'error');
+                if (window.FFC.Admin && typeof window.FFC.Admin.notify === 'function') {
+                    window.FFC.Admin.notify(msg, 'error');
                 } else {
                     window.alert(msg);
                 }

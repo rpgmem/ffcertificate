@@ -134,4 +134,25 @@ class NoticeTest extends TestCase {
 		$this->assertStringNotContainsString( 'onclick', $html );
 		$this->assertStringNotContainsString( 'style', $html, 'A notice never carries inline CSS.' );
 	}
+
+	public function test_blocks_put_trusted_html_in_the_body_as_it_is(): void {
+		// The admin callouts of #1843 bring their own paragraphs and lists.
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => strip_tags( (string) $v, '<a><strong><em><p>' ) );
+		$html = Notice::render( 'info', 'info', '<p>One</p><p>Two <strong>bold</strong></p>', '', array( 'blocks' => true ) );
+
+		$this->assertStringContainsString( '<div class="ffc-notice-body"><p>One</p><p>Two <strong>bold</strong></p></div>', $html );
+		$this->assertStringNotContainsString( 'ffc-notice-text', $html, 'no paragraph is wrapped in another' );
+	}
+
+	public function test_blocks_still_go_through_kses(): void {
+		$html = Notice::render( 'danger', 'error', '<p>ok</p><script>x()</script>', '', array( 'blocks' => true ) );
+
+		$this->assertStringNotContainsString( '<script>', $html );
+	}
+
+	public function test_further_classes_are_added_and_filtered(): void {
+		$html = Notice::render( 'warning', 'warning', 'm', '', array( 'classes' => array( 'ffc-role-impact', 'x" onclick="y', '' ) ) );
+
+		$this->assertStringStartsWith( '<div class="ffc-notice ffc-notice-warning ffc-role-impact xonclicky"', $html );
+	}
 }

@@ -80,7 +80,7 @@
         html += '<div class="ffc-profile-edit-actions">';
         html += '<button type="button" class="button button-primary ffc-profile-save-btn">' + (s.save || 'Save') + '</button> ';
         html += '<button type="button" class="button ffc-profile-cancel-btn">' + (s.cancel || 'Cancel') + '</button>';
-        html += '<span class="ffc-profile-save-status ffc-status-msg" style="display: none;"></span>';
+        html += '<span class="ffc-profile-save-status ffc-status" role="status" aria-live="polite" hidden></span>';
         html += '</div></div>';
 
         $container.html(html);
@@ -342,7 +342,7 @@
             html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + req + '</label>';
             html += '<input type="password" id="ffc-confirm-password" autocomplete="new-password" required /></div>';
             html += '<button type="button" class="button button-primary ffc-password-save-btn">' + (s.save || 'Save') + '</button>';
-            html += '<span class="ffc-password-status ffc-status-msg"></span>';
+            html += '<span class="ffc-password-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
             // Audience self-join section — populated by ffc-user-dashboard-audience-join.js.
@@ -362,7 +362,7 @@
                 html += buildToggle('notify_date_messages', s.notifDateMessages || 'Date messages (such as birthday greetings)', prefs, true);
             }
             html += '</div>';
-            html += '<span class="ffc-notif-status ffc-status-msg" style="display: none;"></span>';
+            html += '<span class="ffc-notif-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
             html += '<div class="ffc-profile-section ffc-lgpd-section">';
@@ -371,7 +371,7 @@
             html += '<button type="button" class="button ffc-lgpd-export-btn">' + (s.exportData || 'Export My Data') + '</button>';
             html += '<p class="ffc-lgpd-desc">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
             html += '<button type="button" class="button ffc-lgpd-delete-btn">' + (s.requestDeletion || 'Request Data Deletion') + '</button>';
-            html += '<span class="ffc-lgpd-status ffc-status-msg" style="display: none;"></span>';
+            html += '<span class="ffc-lgpd-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
             $container.html(html);

@@ -144,12 +144,9 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 					<td>
 						<?php if ( $ffcertificate_mail_queue ) : ?>
 							<?php
-							wp_admin_notice(
-								esc_html__( 'Total Mail Queue is active and manages email delivery, so WP Default is used. The choice saved here is kept and applies again when Total Mail Queue is deactivated.', 'ffcertificate' ),
-								array(
-									'type'               => 'info',
-									'additional_classes' => array( 'inline' ),
-								)
+							\FreeFormCertificate\Core\AdminNotice::callout(
+								'info',
+								esc_html__( 'Total Mail Queue is active and manages email delivery, so WP Default is used. The choice saved here is kept and applies again when Total Mail Queue is deactivated.', 'ffcertificate' )
 							);
 							?>
 						<?php endif; ?>
@@ -280,13 +277,18 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 </div>
 
 <?php if ( ! $ffcertificate_mail_queue ) : ?>
-<div class="card" id="ffc-mailqueue-recommendation">
-	<h2 class="ffc-icon-bulb"><?php esc_html_e( 'Recommended for reliable delivery', 'ffcertificate' ); ?></h2>
-	<p><?php esc_html_e( 'For queued sending with automatic retries and true multipart (HTML + plain-text) delivery, install the total-mail-queue plugin. Every email this plugin sends already goes through wp_mail(), so it is picked up automatically once activated — no extra configuration.', 'ffcertificate' ); ?></p>
-	<p>
-		<a class="button" href="<?php echo esc_url( 'https://github.com/rpgmem/total-mail-queue' ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Learn more about total-mail-queue', 'ffcertificate' ); ?></a>
-	</p>
-</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		'<p>' . esc_html__( 'For queued sending with automatic retries and true multipart (HTML + plain-text) delivery, install the total-mail-queue plugin. Every email this plugin sends already goes through wp_mail(), so it is picked up automatically once activated — no extra configuration.', 'ffcertificate' ) . '</p>'
+		. '<p><a class="button" href="' . esc_url( 'https://github.com/rpgmem/total-mail-queue' ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Learn more about total-mail-queue', 'ffcertificate' ) . '</a></p>',
+		array(
+			'icon'  => 'bulb',
+			'title' => __( 'Recommended for reliable delivery', 'ffcertificate' ),
+			'attrs' => array( 'id' => 'ffc-mailqueue-recommendation' ),
+		)
+	);
+	?>
 <?php endif; ?>
 
 </div><!-- .ffc-settings-wrap -->

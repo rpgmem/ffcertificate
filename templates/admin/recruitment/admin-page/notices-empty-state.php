@@ -28,11 +28,8 @@ echo '<li>' . esc_html__( 'Create your first notice (Code + Name) using the form
 echo '<li>' . esc_html__( 'Open the new notice and attach the relevant adjutancies + import the candidate CSV.', 'ffcertificate' ) . '</li>';
 echo '<li>' . esc_html__( 'Promote the preliminary list to definitive once you\'re ready, and call candidates per row or in bulk.', 'ffcertificate' ) . '</li>';
 echo '</ol>';
-wp_admin_notice(
+\FreeFormCertificate\Core\AdminNotice::callout(
+	'info',
 	(string) ob_get_clean(),
-	array(
-		'type'               => 'info',
-		'additional_classes' => array( 'inline', 'ffc-rec-welcome-notice' ),
-		'paragraph_wrap'     => false,
-	)
+	array( 'classes' => array( 'ffc-rec-welcome-notice' ) )
 );

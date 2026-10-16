@@ -179,7 +179,8 @@
 }
 
 .ffc-text-info {
-    color: var(--ffc-primary);
+    /* The info tone, not the accent: it read --ffc-primary until #1843. */
+    color: var(--ffc-info-text);
     font-weight: 600;
 }
 

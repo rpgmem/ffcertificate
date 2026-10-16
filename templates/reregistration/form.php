@@ -75,7 +75,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<button type="button" class="button ffc-rereg-draft-btn"><?php esc_html_e( 'Save Draft', 'ffcertificate' ); ?></button>
 					<button type="submit" class="button button-primary ffc-rereg-submit-btn"><?php esc_html_e( 'Submit', 'ffcertificate' ); ?></button>
 					<button type="button" class="button ffc-rereg-cancel-btn"><?php esc_html_e( 'Cancel', 'ffcertificate' ); ?></button>
-					<span class="ffc-rereg-status"></span>
+					<span class="ffc-rereg-status ffc-status" role="status" aria-live="polite" hidden></span>
 				</div>
 			</form>
 		</div>

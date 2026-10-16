@@ -35,10 +35,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Admin notification', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Optionally notify one or more admin addresses on each submission (comma-separated; blank falls back to the site admin email).', 'ffcertificate' ); ?></p>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'You edit the body only.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'At send time the message is wrapped in the shared, admin-configurable chrome (the "Email Model") and delivered through the one email pipeline — the same one every plugin email uses. Enabling the participant email adds it to a waiting list that is sent progressively, not instantly. See', 'ffcertificate' ); ?> <a href="#reference-emails"><?php esc_html_e( 'Emails & Delivery', 'ffcertificate' ); ?></a>.
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'You edit the body only.', 'ffcertificate' ) )
+	);
+	?>
 </div>

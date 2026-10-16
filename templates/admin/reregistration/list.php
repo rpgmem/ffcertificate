@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php endif; ?>
 		<hr class="wp-header-end">
 
-		<?php settings_errors( 'ffc_reregistration' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_reregistration' ); ?>
 
 		<!-- Filters -->
 		<div class="tablenav top">

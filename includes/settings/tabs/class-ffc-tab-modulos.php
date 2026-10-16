@@ -64,9 +64,9 @@ class TabModulos extends SettingsTab {
 			$settings = $this;
 			include $view_file;
 		} else {
-			wp_admin_notice(
-				esc_html__( 'Modules settings view file not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'Modules settings view file not found.', 'ffcertificate' )
 			);
 		}
 	}

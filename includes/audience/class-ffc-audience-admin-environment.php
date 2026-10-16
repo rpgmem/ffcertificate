@@ -165,7 +165,7 @@ class AudienceAdminEnvironment {
 		<?php endif; ?>
 		<hr class="wp-header-end">
 
-		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 
 		<?php AudienceAdminCalendar::render_view_switch( $this->menu_slug, self::VIEW ); ?>
 
@@ -405,7 +405,7 @@ class AudienceAdminEnvironment {
 			?>
 		</a>
 
-		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 		<?php if ( ! $can_manage ) : ?>
 			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
 		<?php endif; ?>

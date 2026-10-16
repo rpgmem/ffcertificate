@@ -74,7 +74,7 @@ echo '<span class="spinner is-active ffc-rec-spinner-flush"></span>';
 echo '<progress id="ffc-edit-csv-progress-bar" max="1" value="0" class="ffc-rec-progress-bar"></progress>';
 echo '<span id="ffc-edit-csv-progress-text"></span>';
 echo '</span>';
-echo '<span id="ffc-edit-csv-status" class="ffc-rec-mono-status"></span>';
+echo '<span id="ffc-edit-csv-status" class="ffc-status" role="status" aria-live="polite" hidden></span>';
 echo '</p>';
 // Per-line validation errors land here when /import-job/validate
 // returns a non-empty list. Hidden by default; the orchestrator

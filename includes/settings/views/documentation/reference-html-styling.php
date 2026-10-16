@@ -73,12 +73,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'The template is filtered on save.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Only the tags above survive, each with a fixed set of attributes: style and class work on almost every tag, and style blocks are not allowed — use inline styles. Developers can widen the list with the ffcertificate_allowed_html_tags filter.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'The template is filtered on save.', 'ffcertificate' ) )
+	);
+	?>
 
 	<h4><?php esc_html_e( 'Image Attributes:', 'ffcertificate' ); ?></h4>
 	<table class="widefat striped">
@@ -146,12 +151,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Helper classes:', 'ffcertificate' ); ?></h4>
 	<p>
-		<?php esc_html_e( 'The PDF stylesheet ships alignment helpers for the certificate body:', 'ffcertificate' ); ?>
+	<?php esc_html_e( 'The PDF stylesheet ships alignment helpers for the certificate body:', 'ffcertificate' ); ?>
 		<code>ffc-txt-center</code>, <code>ffc-txt-left</code>, <code>ffc-txt-right</code>, <code>ffc-txt-justify</code>, <code>ffc-full-width</code>.
 		<?php esc_html_e( 'Use them on a paragraph, div, span, heading, list or table.', 'ffcertificate' ); ?>
 	</p>
 	<p>
-		<?php esc_html_e( 'Images take', 'ffcertificate' ); ?>
+	<?php esc_html_e( 'Images take', 'ffcertificate' ); ?>
 		<code>ffc-responsive-logo</code> <?php esc_html_e( '(scales a logo down to fit) and', 'ffcertificate' ); ?> <code>ffc-full-width-img</code> <?php esc_html_e( '(spans the full width).', 'ffcertificate' ); ?>
 	</p>
 </div>

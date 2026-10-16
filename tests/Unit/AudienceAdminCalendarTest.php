@@ -46,7 +46,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 		Functions\when( 'wp_trim_words' )->returnArg();
 		Functions\when( 'date_i18n' )->alias( function ( $f, $t = null ) { return date( $f, $t ?? time() ); } );

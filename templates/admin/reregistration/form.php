@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h1><?php echo esc_html( $title ); ?></h1>
 		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Reregistrations', 'ffcertificate' ); ?></a>
 
-		<?php settings_errors( 'ffc_reregistration' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_reregistration' ); ?>
 
 		<form method="post" action="" class="ffc-form">
 			<?php wp_nonce_field( 'save_reregistration', 'ffc_reregistration_nonce' ); ?>

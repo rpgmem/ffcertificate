@@ -118,9 +118,9 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 			$ffcertificate_appointment = $ffcertificate_repo->findById( $ffc_self_scheduling_appointment_id );
 			if ( ! $ffcertificate_appointment ) {
 				echo '<div class="wrap ffc-admin-page ffc-page-appointments">';
-				wp_admin_notice(
-					esc_html__( 'Appointment not found.', 'ffcertificate' ),
-					array( 'type' => 'error' )
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'error',
+					esc_html__( 'Appointment not found.', 'ffcertificate' )
 				);
 				echo '</div>';
 				return;
@@ -245,7 +245,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 				<div class="card">
 					<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Appointment Details', 'ffcertificate' ); ?></h2>
 					<table class="form-table">
-						<tr><th><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th><td><span class="ffc-status ffc-status-<?php echo esc_attr( $ffcertificate_appointment['status'] ); ?>"><?php echo esc_html( $ffcertificate_status_text ); ?></span></td></tr>
+						<tr><th><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th><td><span class="ffc-appointment-status ffc-appointment-status-<?php echo esc_attr( 'no_show' === $ffcertificate_appointment['status'] ? 'noshow' : $ffcertificate_appointment['status'] ); ?>"><?php echo esc_html( $ffcertificate_status_text ); ?></span></td></tr>
 						<tr><th><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_calendar_title ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['appointment_date'] ?? '-' ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( ( $ffcertificate_appointment['start_time'] ?? '' ) . ' - ' . ( $ffcertificate_appointment['end_time'] ?? '' ) ); ?></td></tr>
@@ -292,9 +292,9 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 		} catch ( \Throwable $e ) {
 			echo '<div class="wrap ffc-admin-page ffc-page-appointments">';
 			echo '<h1>' . esc_html__( 'Appointment Details', 'ffcertificate' ) . '</h1>';
-			wp_admin_notice(
-				'<strong>' . esc_html__( 'Error loading appointment:', 'ffcertificate' ) . '</strong> ' . esc_html( $e->getMessage() ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				'<strong>' . esc_html__( 'Error loading appointment:', 'ffcertificate' ) . '</strong> ' . esc_html( $e->getMessage() )
 			);
 			echo '<p><a href="' . esc_url( $ffcertificate_appointments_url ) . '" class="button">' . esc_html__( 'Back to List', 'ffcertificate' ) . '</a></p>';
 			echo '</div>';
@@ -318,12 +318,9 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 // Display admin notices from transients.
 $ffcertificate_admin_notice = get_transient( 'ffc_admin_notice_' . get_current_user_id() );
 if ( $ffcertificate_admin_notice && is_array( $ffcertificate_admin_notice ) ) {
-	wp_admin_notice(
-		esc_html( $ffcertificate_admin_notice['message'] ),
-		array(
-			'type'        => 'error' === $ffcertificate_admin_notice['type'] ? 'error' : 'success',
-			'dismissible' => true,
-		)
+	\FreeFormCertificate\Core\AdminNotice::render(
+		'error' === $ffcertificate_admin_notice['type'] ? 'error' : 'success',
+		esc_html( $ffcertificate_admin_notice['message'] )
 	);
 	// Delete transient after displaying.
 	delete_transient( 'ffc_admin_notice_' . get_current_user_id() );

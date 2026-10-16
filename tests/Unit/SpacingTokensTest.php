@@ -97,7 +97,7 @@ final class SpacingTokensTest extends TestCase {
 		// 2 -> 3 in #1837: the "Load template" picker's `30px` padding left
 		// a script-built `style=""` for this sheet, a one-off panel distance
 		// above the ladder. The repository's net is zero.
-		'ffc-admin.css'                    => 3,
+		'ffc-admin.css'                    => 2,
 		'ffc-audience-admin.css'           => 6,
 		'ffc-audience.css'                 => 7,
 		'ffc-calendar-frontend.css'        => 4,

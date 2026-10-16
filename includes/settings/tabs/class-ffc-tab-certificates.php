@@ -69,9 +69,9 @@ class TabCertificates extends SettingsTab {
 		if ( file_exists( $view_file ) ) {
 			include $view_file;
 		} else {
-			wp_admin_notice(
-				esc_html__( 'Certificates settings view file not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'Certificates settings view file not found.', 'ffcertificate' )
 			);
 		}
 	}

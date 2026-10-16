@@ -165,13 +165,10 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 			<?php endif; ?>
 		</ul>
 	<?php
-	wp_admin_notice(
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
 		(string) ob_get_clean(),
-		array(
-			'type'               => 'info',
-			'additional_classes' => array( 'inline', 'ffc-settings-divergence-notice' ),
-			'paragraph_wrap'     => false,
-		)
+		array( 'classes' => array( 'ffc-settings-divergence-notice' ) )
 	);
 	?>
 <?php endif; ?>
