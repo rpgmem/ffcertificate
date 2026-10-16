@@ -96,7 +96,7 @@
                         ? (s.active || 'Active')
                         : (s.completed || 'Completed');
 
-                    html += '<h3' + (section !== 'active' ? ' style="margin-top: 30px;"' : '') + '>' + sectionLabel + '</h3>';
+                    html += '<h3>' + sectionLabel + '</h3>';
                     html += '<table class="ffc-reregistrations-table' + (section !== 'active' ? ' ffc-table-past' : '') + '">';
                     html += '<thead><tr>';
                     html += '<th>' + (s.reregistrationTitle || 'Campaign') + '</th>';
@@ -123,10 +123,10 @@
                 html += '</td>';
                 html += '<td>';
                 if (item.can_submit) {
-                    html += '<button type="button" class="button ffc-btn-edit ffc-rereg-open-form" data-reregistration-id="' + item.reregistration_id + '">' + (s.editReregistration || 'Edit') + '</button> ';
+                    html += '<button type="button" class="button ffc-btn-edit ffc-icon-edit ffc-rereg-open-form" data-reregistration-id="' + item.reregistration_id + '">' + (s.editReregistration || 'Edit') + '</button> ';
                 }
                 if (item.can_download && item.magic_link) {
-                    html += '<a href="' + esc(item.magic_link) + '" class="button ffc-btn-pdf" target="_blank" rel="noopener">' + (s.downloadRecord || 'Download Record') + '</a>';
+                    html += '<a href="' + esc(item.magic_link) + '" class="button ffc-btn-pdf ffc-icon-download" target="_blank" rel="noopener">' + (s.downloadRecord || 'Download Record') + '</a>';
                 }
                 html += '</td>';
                 html += '</tr>';

@@ -241,7 +241,7 @@
                     else if (section === 'past') { sectionLabel = ffcDashboard.strings.past || 'Past'; isPastSection = true; }
                     else { sectionLabel = ffcDashboard.strings.cancelled || 'Cancelled'; isPastSection = true; }
 
-                    html += '<h3' + (section !== 'upcoming' ? ' style="margin-top: 30px;"' : '') + '>' + sectionLabel + '</h3>';
+                    html += '<h3>' + sectionLabel + '</h3>';
                     html += '<table class="ffc-appointments-table' + (isPastSection ? ' ffc-table-past' : '') + '">';
                     html += '<thead><tr>';
                     html += '<th>' + ffcDashboard.strings.calendar + '</th>';
@@ -264,7 +264,7 @@
                 html += '<td>';
 
                 if (apt.receipt_url) {
-                    html += '<a href="' + helpers.escAttr(apt.receipt_url) + '" class="button ffc-btn-receipt" target="_blank" rel="noopener noreferrer">' + (ffcDashboard.strings.viewReceipt || 'View Receipt') + '</a>';
+                    html += '<a href="' + helpers.escAttr(apt.receipt_url) + '" class="button ffc-btn-receipt ffc-icon-file" target="_blank" rel="noopener noreferrer">' + (ffcDashboard.strings.viewReceipt || 'View Receipt') + '</a>';
                 }
 
                 if (apt.can_cancel) {
@@ -275,7 +275,7 @@
                     var aptEvent = {
                         uid: 'ffc-apt-' + apt.id,
                         summary: apt.calendar_title,
-                        description: apt.calendar_title + (apt.name ? '\n' + (ffcDashboard.strings.name || 'Nome:') + ' ' + apt.name : '') + (apt.email ? '\n' + (ffcDashboard.strings.email || 'Email:') + ' ' + apt.email : ''),
+                        description: apt.calendar_title + (apt.name ? '\n' + (ffcDashboard.strings.name || 'Name:') + ' ' + apt.name : '') + (apt.email ? '\n' + (ffcDashboard.strings.email || 'Email:') + ' ' + apt.email : ''),
                         location: ffcDashboard.mainAddress || '',
                         date: apt.appointment_date_raw,
                         startTime: apt.start_time_raw,

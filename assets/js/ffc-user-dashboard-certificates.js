@@ -93,7 +93,7 @@
                 html += '<td>' + helpers.esc(cert.auth_code) + '</td>';
                 html += '<td>';
                 if (cert.magic_link) {
-                    html += '<a href="' + helpers.escAttr(cert.magic_link) + '" class="button ffc-btn-pdf" target="_blank" rel="noopener noreferrer">' + ffcDashboard.strings.downloadPdf + '</a>';
+                    html += '<a href="' + helpers.escAttr(cert.magic_link) + '" class="button ffc-btn-pdf ffc-icon-download" target="_blank" rel="noopener noreferrer">' + ffcDashboard.strings.downloadPdf + '</a>';
                 }
                 html += '</td>';
                 html += '</tr>';

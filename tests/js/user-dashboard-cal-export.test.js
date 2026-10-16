@@ -122,6 +122,35 @@ describe('ffc-user-dashboard-cal-export — buildButton', () => {
 		const html = window.FFCDashboard.calExport.buildButton(makeEvent());
 		expect(html).toContain('Salvar no calendário');
 	});
+
+	it('falls back to English labels when the localized strings are missing', () => {
+		window.ffcDashboard.strings = {};
+		const html = window.FFCDashboard.calExport.buildButton(makeEvent());
+		const tmp = document.createElement('div');
+		tmp.innerHTML = html;
+		expect(tmp.querySelector('.ffc-cal-export-btn').textContent).toBe('Export to Calendar');
+		expect(tmp.querySelector('.ffc-cal-export-ics').textContent).toBe('Other (.ics)');
+	});
+
+	// #1826: every icon is a registry class drawn in currentColor; no inline
+	// SVG, and no colour of its own to break the dark theme or a light accent.
+	it('draws every icon from the registry classes, with no inline SVG or colour', () => {
+		const html = window.FFCDashboard.calExport.buildButton(makeEvent());
+		const tmp = document.createElement('div');
+		tmp.innerHTML = html;
+
+		expect(tmp.querySelector('svg')).toBeNull();
+		expect(html).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
+
+		const btnIcons = Array.from(tmp.querySelectorAll('.ffc-cal-export-btn > span')).map((s) => s.className);
+		expect(btnIcons).toEqual(['ffc-icon-calendar', 'ffc-icon-chevron-down']);
+
+		const linkIcons = Array.from(tmp.querySelectorAll('.ffc-cal-export-dropdown a > span')).map((s) => s.className);
+		expect(linkIcons).toEqual(['ffc-icon-cal-google', 'ffc-icon-cal-outlook', 'ffc-icon-download']);
+		tmp.querySelectorAll('span[class^="ffc-icon-"]').forEach((s) => {
+			expect(s.getAttribute('aria-hidden')).toBe('true');
+		});
+	});
 });
 
 describe('ffc-user-dashboard-cal-export — dropdown interactions', () => {

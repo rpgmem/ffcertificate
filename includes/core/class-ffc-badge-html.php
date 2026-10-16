@@ -119,14 +119,51 @@ final class BadgeHtml {
 	 * @return string Already-escaped HTML.
 	 */
 	public static function render_with_row_color( string $base_class, string $bg, string $label, string $tooltip = '' ): string {
-		$color = ColorValidator::normalize( $bg, self::FALLBACK_BG );
+		$pair  = self::row_colors( $bg );
 		$style = sprintf(
 			'--ffc-badge-row-bg:%1$s;--ffc-badge-row-text:%2$s;',
-			$color,
-			ContrastColor::on( $color )
+			$pair['color'],
+			$pair['text_color']
 		);
 
 		return self::span( $base_class, self::ROW_COLOR_CLASS, $label, $tooltip, $style );
+	}
+
+	/**
+	 * The validated ground and the text colour computed for it, for a badge a
+	 * script builds from a REST payload (the user dashboard's audience tags,
+	 * #1826). The same pair `render_with_row_color()` prints, so a tag drawn
+	 * in PHP and one drawn in JS cannot disagree about either half.
+	 *
+	 * @param string $bg Hex colour from the row (validated here).
+	 * @return array{color: string, text_color: string}
+	 */
+	public static function row_colors( string $bg ): array {
+		$color = ColorValidator::normalize( $bg, self::FALLBACK_BG );
+
+		return array(
+			'color'      => $color,
+			'text_color' => ContrastColor::on( $color ),
+		);
+	}
+
+	/**
+	 * Each badge of a list with its colour validated and its text colour
+	 * added, every other key kept as it came.
+	 *
+	 * @param array<int|string, mixed> $badges Badges, each an array carrying a `color`.
+	 * @return list<array<string, mixed>>
+	 */
+	public static function with_row_colors( array $badges ): array {
+		$out = array();
+		foreach ( $badges as $badge ) {
+			if ( ! is_array( $badge ) ) {
+				continue;
+			}
+			$color = isset( $badge['color'] ) && is_string( $badge['color'] ) ? $badge['color'] : '';
+			$out[] = array_merge( $badge, self::row_colors( $color ) );
+		}
+		return $out;
 	}
 
 	/**

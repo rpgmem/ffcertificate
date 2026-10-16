@@ -655,16 +655,62 @@ describe('profile — attribute escaping (S12)', () => {
 		expect(input.hasAttribute('onmouseover')).toBe(false);
 	});
 
-	it('encodes a double quote in an audience-group color inside the style attribute', () => {
+	it('drops an audience-group color that is not hex instead of writing it into the style attribute', () => {
 		const payload = 'red" onmouseover="alert(1)';
 		panel().render({
 			...PROFILE_FIXTURE,
-			audience_groups: [ { name: 'Alpha', color: payload } ],
+			audience_groups: [ { name: 'Alpha', color: payload, text_color: '#000000' } ],
 		});
-		const chip = document.querySelector('#ffc-tabpanel-profile span[style*="background-color"]');
+		const chip = document.querySelector('#ffc-tabpanel-profile .ffc-profile-group-tag');
 		expect(chip).not.toBeNull();
-		// The group name still renders and no rogue handler broke out of style="…".
+		// The group name still renders, nothing broke out of the attribute, and
+		// the tag keeps the neutral pair `.ffc-pill-row-color` declares (#1826).
 		expect(chip.textContent).toBe('Alpha');
 		expect(chip.hasAttribute('onmouseover')).toBe(false);
+		expect(chip.hasAttribute('style')).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
+// Palette, not literals (#1826)
+// ----------------------------------------------------------------------
+
+describe('profile — group tags and status lines follow the palette (#1826)', () => {
+	it('paints a group tag with the colour pair the REST payload carries', () => {
+		panel().render({
+			...PROFILE_FIXTURE,
+			audience_groups: [ { name: 'Pale', color: '#ffeb3b', text_color: '#000000' } ],
+		});
+		const chip = document.querySelector('#ffc-tabpanel-profile .ffc-profile-group-tag');
+		expect(chip.classList.contains('ffc-pill-row-color')).toBe(true);
+		expect(chip.getAttribute('style')).toBe('--ffc-badge-row-bg:#ffeb3b;--ffc-badge-row-text:#000000;');
+		expect(chip.closest('.ffc-profile-groups')).not.toBeNull();
+	});
+
+	it('reports a password error through the error class, never an inline colour', () => {
+		panel().render(PROFILE_FIXTURE);
+		window.$('.ffc-password-save-btn').trigger('click');
+		const status = document.querySelector('.ffc-password-status');
+		expect(status.textContent).toBe('All fields required');
+		expect(status.classList.contains('ffc-status-msg-error')).toBe(true);
+		expect(status.getAttribute('style') || '').not.toMatch(/color/);
+	});
+
+	it('swaps the tone class rather than stacking it', () => {
+		panel().render(PROFILE_FIXTURE);
+		const $status = window.$('.ffc-password-status');
+		window.FFCDashboard.helpers.setStatus($status, 'Saving…', 'busy');
+		window.FFCDashboard.helpers.setStatus($status, 'Done', 'success');
+		expect($status[0].className).toBe('ffc-password-status ffc-status-msg ffc-status-msg-success');
+	});
+
+	it('leaves no colour literal or inline margin in the rendered profile', () => {
+		panel().render({
+			...PROFILE_FIXTURE,
+			audience_groups: [ { name: 'G', color: '#123456', text_color: '#ffffff' } ],
+		});
+		const html = document.getElementById('ffc-tabpanel-profile').innerHTML;
+		expect(html).not.toMatch(/(?<!--ffc-badge-row-(?:bg|text):)#[0-9a-fA-F]{3,6}\b/);
+		expect(html).not.toMatch(/margin-(?:top|left)/);
 	});
 });

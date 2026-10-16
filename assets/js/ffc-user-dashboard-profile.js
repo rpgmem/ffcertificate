@@ -16,6 +16,7 @@
     // Attribute-safe escape (encodes the double quote esc() leaves through) for
     // values interpolated into value="…"/style="…" attributes — #837 S12.
     var escAttr = helpers.escAttr;
+    var setStatus = helpers.setStatus;
 
     // Profile shows three multi-value fields (names, emails, CPFs) that all
     // share the same single/list/fallback pattern with different list classes.
@@ -76,10 +77,10 @@
         html += '<div class="ffc-profile-field"><label for="ffc-edit-notes">' + (s.notesLabel || 'Notes:') + '</label>';
         html += '<textarea id="ffc-edit-notes" rows="3" maxlength="1000" placeholder="' + (s.notesPlaceholder || 'Personal notes...') + '">' + esc(profile.notes) + '</textarea></div>';
 
-        html += '<div class="ffc-profile-edit-actions" style="margin-top: 15px;">';
+        html += '<div class="ffc-profile-edit-actions">';
         html += '<button type="button" class="button button-primary ffc-profile-save-btn">' + (s.save || 'Save') + '</button> ';
         html += '<button type="button" class="button ffc-profile-cancel-btn">' + (s.cancel || 'Cancel') + '</button>';
-        html += '<span class="ffc-profile-save-status" style="margin-left: 10px; display: none;"></span>';
+        html += '<span class="ffc-profile-save-status ffc-status-msg" style="display: none;"></span>';
         html += '</div></div>';
 
         $container.html(html);
@@ -115,7 +116,7 @@
         var $saveBtn = $('.ffc-profile-save-btn');
         var $status = $('.ffc-profile-save-status');
         $saveBtn.prop('disabled', true);
-        $status.text(ffcDashboard.strings.saving || 'Saving...').show().css('color', '#666');
+        setStatus($status, ffcDashboard.strings.saving || 'Saving...', 'busy').show();
 
         var url = ffcDashboard.restUrl + 'user/profile';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
@@ -128,7 +129,7 @@
             .catch(function (err) {
                 var msg = (ffcDashboard.strings.saveError || 'Error saving profile');
                 if (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) msg = err.xhr.responseJSON.message;
-                $status.text(msg).css('color', '#d63638');
+                setStatus($status, msg, 'error');
                 $saveBtn.prop('disabled', false);
             });
     }
@@ -141,21 +142,21 @@
         var $status = $('.ffc-password-status');
 
         if (!current || !newPwd || !confirmPwd) {
-            $status.text(s.passwordError || 'All fields required').css('color', '#d63638');
+            setStatus($status, s.passwordError || 'All fields required', 'error');
             return;
         }
         if (newPwd !== confirmPwd) {
-            $status.text(s.passwordMismatch || 'Passwords do not match').css('color', '#d63638');
+            setStatus($status, s.passwordMismatch || 'Passwords do not match', 'error');
             return;
         }
         if (newPwd.length < 8) {
-            $status.text(s.passwordTooShort || 'Min 8 characters').css('color', '#d63638');
+            setStatus($status, s.passwordTooShort || 'Min 8 characters', 'error');
             return;
         }
 
         var $btn = $('.ffc-password-save-btn');
         $btn.prop('disabled', true);
-        $status.text(s.saving || 'Saving...').css('color', '#666');
+        setStatus($status, s.saving || 'Saving...', 'busy');
 
         var url = ffcDashboard.restUrl + 'user/change-password';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
@@ -166,33 +167,33 @@
             nonce: ffcDashboard.nonce
         })
             .then(function (response) {
-                $status.text(response.message || s.passwordChanged || 'Password changed!').css('color', '#28a745');
+                setStatus($status, response.message || s.passwordChanged || 'Password changed!', 'success');
                 $('#ffc-current-password, #ffc-new-password, #ffc-confirm-password').val('');
                 $btn.prop('disabled', false);
             })
             .catch(function (err) {
                 var msg = s.passwordError || 'Error';
                 if (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) msg = err.xhr.responseJSON.message;
-                $status.text(msg).css('color', '#d63638');
+                setStatus($status, msg, 'error');
                 $btn.prop('disabled', false);
             });
     }
 
     function privacyRequest(type) {
         var $status = $('.ffc-lgpd-status');
-        $status.text(ffcDashboard.strings.loading || 'Loading...').css('color', '#666').show();
+        setStatus($status, ffcDashboard.strings.loading || 'Loading...', 'busy').show();
 
         var url = ffcDashboard.restUrl + 'user/privacy-request';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
         FFC.rest(url, { method: 'POST', data: { type: type }, nonce: ffcDashboard.nonce })
             .then(function (response) {
-                $status.text(response.message || ffcDashboard.strings.privacyRequestSent || 'Request sent!').css('color', '#28a745');
+                setStatus($status, response.message || ffcDashboard.strings.privacyRequestSent || 'Request sent!', 'success');
             })
             .catch(function (err) {
                 var msg = ffcDashboard.strings.privacyRequestError || 'Error';
                 if (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) msg = err.xhr.responseJSON.message;
-                $status.text(msg).css('color', '#d63638');
+                setStatus($status, msg, 'error');
             });
     }
 
@@ -212,11 +213,11 @@
                 if (response.preferences && FFCDashboard.panels.profile.state) {
                     FFCDashboard.panels.profile.state.preferences = response.preferences;
                 }
-                $status.text(ffcDashboard.strings.notifSaved || 'Saved').show();
+                setStatus($status, ffcDashboard.strings.notifSaved || 'Saved', 'success').show();
                 setTimeout(function () { $status.fadeOut(); }, 2000);
             })
             .catch(function () {
-                $status.text(ffcDashboard.strings.saveError || 'Error').css('color', '#d63638').show();
+                setStatus($status, ffcDashboard.strings.saveError || 'Error', 'error').show();
             });
     }
 
@@ -303,9 +304,9 @@
             if (profile.audience_groups && profile.audience_groups.length > 0) {
                 html += '<div class="ffc-profile-field">';
                 html += '<label>' + (s.audienceGroups || 'Groups') + '</label>';
-                html += '<div class="ffc-field-value" style="display: flex; flex-wrap: wrap; gap: 6px;">';
+                html += '<div class="ffc-field-value ffc-profile-groups">';
                 profile.audience_groups.forEach(function (group) {
-                    html += '<span style="background-color: ' + escAttr(group.color || '#2271b1') + '; color: #fff; padding: 4px 12px; border-radius: 3px; font-size: 13px;">' + esc(group.name) + '</span>';
+                    html += helpers.rowColorTag('ffc-profile-group-tag', group);
                 });
                 html += '</div></div>';
             }
@@ -331,7 +332,7 @@
             html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + '</label>';
             html += '<input type="password" id="ffc-confirm-password" autocomplete="new-password" /></div>';
             html += '<button type="button" class="button button-primary ffc-password-save-btn">' + (s.save || 'Save') + '</button>';
-            html += '<span class="ffc-password-status" style="margin-left: 10px;"></span>';
+            html += '<span class="ffc-password-status ffc-status-msg"></span>';
             html += '</div>';
 
             // Audience self-join section — populated by ffc-user-dashboard-audience-join.js.
@@ -351,16 +352,16 @@
                 html += buildToggle('notify_date_messages', s.notifDateMessages || 'Date messages (such as birthday greetings)', prefs, true);
             }
             html += '</div>';
-            html += '<span class="ffc-notif-status" style="margin-left: 10px; color: #28a745; display: none;"></span>';
+            html += '<span class="ffc-notif-status ffc-status-msg" style="display: none;"></span>';
             html += '</div>';
 
             html += '<div class="ffc-profile-section ffc-lgpd-section">';
             html += '<h3>' + (s.privacySection || 'Privacy & Data (LGPD)') + '</h3>';
             html += '<p class="ffc-lgpd-desc">' + (s.exportDataDesc || 'Request a copy of all your personal data stored in the system.') + '</p>';
             html += '<button type="button" class="button ffc-lgpd-export-btn">' + (s.exportData || 'Export My Data') + '</button>';
-            html += '<p class="ffc-lgpd-desc" style="margin-top: 20px;">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
+            html += '<p class="ffc-lgpd-desc">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
             html += '<button type="button" class="button ffc-lgpd-delete-btn">' + (s.requestDeletion || 'Request Data Deletion') + '</button>';
-            html += '<span class="ffc-lgpd-status" style="margin-left: 10px; display: none;"></span>';
+            html += '<span class="ffc-lgpd-status ffc-status-msg" style="display: none;"></span>';
             html += '</div>';
 
             $container.html(html);

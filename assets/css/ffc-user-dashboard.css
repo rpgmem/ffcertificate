@@ -26,8 +26,39 @@
     background: var(--ffc-bg);
     border-radius: var(--ffc-radius-lg);
     box-shadow: var(--ffc-shadow-md);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    /* No font stack here (#1826): one would beat the Public Design font,
+       which `.ffc-shortcode` carries at the same specificity and prints
+       earlier. The dashboard takes the font of the surface it sits in. */
     color: var(--ffc-text);
+}
+
+/* A palette skin for every `.button` on the dashboard (#1826). The dashboard
+   loads no WordPress button sheet on the front end, so a `.button` that no
+   rule below paints renders as the host theme's button -- or as the browser's
+   -- which is what the profile editor's Save and Cancel, the password Save and
+   the data export did. `:where()` keeps this at one class of specificity, so
+   every component rule below that paints its own button still wins on order. */
+:where(.ffc-user-dashboard) .button {
+    background: var(--ffc-bg);
+    color: var(--ffc-text-secondary);
+    border: 1px solid var(--ffc-border);
+}
+
+:where(.ffc-user-dashboard) .button:hover {
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+}
+
+:where(.ffc-user-dashboard) .button-primary {
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
+    border-color: var(--ffc-primary);
+}
+
+:where(.ffc-user-dashboard) .button-primary:hover {
+    background: var(--ffc-primary-hover);
+    color: var(--ffc-text-on-primary);
+    border-color: var(--ffc-primary-hover);
 }
 
 /* ==========================================================================
@@ -94,10 +125,20 @@
     font-size: var(--ffc-font-size-base);
     font-weight: 500;
     color: var(--ffc-text-muted);
-    transition: color 0.2s, border-color 0.2s, background 0.2s;
+    transition: color var(--ffc-transition-base), border-color var(--ffc-transition-base), background var(--ffc-transition-base);
     border-radius: var(--ffc-radius-md) var(--ffc-radius-md) 0 0;
     margin-bottom: -2px;
     white-space: nowrap;
+    /* The icon and the label are spaced by the gap alone (#1826). Some tabs
+       carried a literal space after the icon and some did not, so the same
+       distance measured two ways across one menu. */
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+}
+
+.ffc-tab > [class*="ffc-icon-"]::before {
+    margin-right: 0;
 }
 
 .ffc-tab:hover {
@@ -180,7 +221,7 @@
     border-radius: var(--ffc-radius-lg);
     padding: var(--ffc-spacing-xl) var(--ffc-spacing-xl);
     text-align: center;
-    transition: box-shadow 0.2s, border-color 0.2s;
+    transition: box-shadow var(--ffc-transition-base), border-color var(--ffc-transition-base);
 }
 
 .ffc-summary-card:hover {
@@ -251,13 +292,13 @@
     font-size: var(--ffc-font-size-sm);
     background: var(--ffc-bg);
     color: var(--ffc-text);
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color var(--ffc-transition-fast), box-shadow var(--ffc-transition-fast);
 }
 
 .ffc-filter-bar input[type="date"]:focus,
 .ffc-filter-bar input[type="text"]:focus {
     border-color: var(--ffc-primary);
-    box-shadow: 0 0 0 1px var(--ffc-primary);
+    box-shadow: 0 0 0 3px var(--ffc-focus-ring);
     outline: none;
 }
 
@@ -271,7 +312,7 @@
     font-weight: 500;
     border-radius: var(--ffc-radius-sm);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all var(--ffc-transition-fast);
     line-height: 1.4;
 }
 
@@ -309,7 +350,7 @@
     text-decoration: none;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
     border-radius: var(--ffc-radius-xs);
-    transition: background 0.15s;
+    transition: background var(--ffc-transition-fast);
 }
 
 .ffc-page-size-select a:hover {
@@ -327,6 +368,15 @@
 /* ==========================================================================
    SHARED TABLE STYLES
    ========================================================================== */
+
+/* A tab lists its rows in sections (upcoming, past, cancelled), each a heading
+   over a table. The space above a heading that follows a table was an inline
+   `margin-top: 30px` in three scripts until #1826; it is the scale's widest
+   step now, and it lands only where a table precedes the heading, so a page
+   of the pagination that opens on a later section no longer starts low. */
+.ffc-tab-content table + h3 {
+    margin-top: var(--ffc-spacing-3xl);
+}
 
 .ffc-certificates-table,
 .ffc-appointments-table,
@@ -451,78 +501,33 @@
     text-decoration: none !important;
     white-space: nowrap;
     border-radius: var(--ffc-radius-sm) !important;
-    transition: all 0.15s;
+    transition: all var(--ffc-transition-fast);
     line-height: 1.4;
     cursor: pointer;
-}
-
-.ffc-btn-pdf {
-    background: var(--ffc-danger) !important;
-    color: var(--ffc-text-on-danger) !important;
-    border: 1px solid var(--ffc-danger) !important;
-}
-
-.ffc-btn-pdf:hover {
-    background: var(--ffc-danger-hover) !important;
-    border-color: var(--ffc-danger-hover) !important;
-    color: var(--ffc-text-on-danger) !important;
-}
-
-.ffc-btn-pdf::before {
-    content: '';
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    background: currentColor;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zm5.5 1.5v3h3l-3-3zM5.5 8a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H6.75v1h.75a.5.5 0 0 1 0 1h-.75v1.5a.5.5 0 0 1-1 0V8zm3.5-.5a.5.5 0 0 0-.5.5v3.5a.5.5 0 0 0 .5.5h.5a1.5 1.5 0 0 0 0-3H9.5v-1a.5.5 0 0 0-.5-.5z'/%3E%3C/svg%3E") no-repeat center;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zm5.5 1.5v3h3l-3-3zM5.5 8a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H6.75v1h.75a.5.5 0 0 1 0 1h-.75v1.5a.5.5 0 0 1-1 0V8zm3.5-.5a.5.5 0 0 0-.5.5v3.5a.5.5 0 0 0 .5.5h.5a1.5 1.5 0 0 0 0-3H9.5v-1a.5.5 0 0 0-.5-.5z'/%3E%3C/svg%3E") no-repeat center;
-    flex-shrink: 0;
-}
-
-.ffc-btn-receipt {
+    /* One tone for the three: each opens or edits a record, none destroys
+       one. "View PDF" was painted in the danger colour until #1826, which
+       said "destructive" over the most ordinary action on the screen. */
     background: var(--ffc-primary) !important;
     color: var(--ffc-text-on-primary) !important;
     border: 1px solid var(--ffc-primary) !important;
 }
 
-.ffc-btn-receipt:hover {
-    background: var(--ffc-primary-hover) !important;
-    border-color: var(--ffc-primary-hover) !important;
-    color: var(--ffc-text-on-primary) !important;
-}
-
-.ffc-btn-receipt::before {
-    content: '';
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    background: currentColor;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 13 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zM4 5a.5.5 0 0 0 0 1h8a.5.5 0 0 0 0-1H4zm0 2.5a.5.5 0 0 0 0 1h8a.5.5 0 0 0 0-1H4zm0 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1H4z'/%3E%3C/svg%3E") no-repeat center;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 13 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zM4 5a.5.5 0 0 0 0 1h8a.5.5 0 0 0 0-1H4zm0 2.5a.5.5 0 0 0 0 1h8a.5.5 0 0 0 0-1H4zm0 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1H4z'/%3E%3C/svg%3E") no-repeat center;
-    flex-shrink: 0;
-}
-
-.ffc-btn-edit {
-    background: var(--ffc-primary) !important;
-    color: var(--ffc-text-on-primary) !important;
-    border: 1px solid var(--ffc-primary) !important;
-}
-
+.ffc-btn-pdf:hover,
+.ffc-btn-receipt:hover,
 .ffc-btn-edit:hover {
     background: var(--ffc-primary-hover) !important;
     border-color: var(--ffc-primary-hover) !important;
     color: var(--ffc-text-on-primary) !important;
 }
 
+/* The icon is a registry class on the control (`ffc-icon-download`,
+   `ffc-icon-file`, `ffc-icon-edit`; #1826), which draws it in `::before`. The
+   control's own gap spaces it from the label, so the icon's trailing margin
+   goes. */
+.ffc-btn-pdf::before,
+.ffc-btn-receipt::before,
 .ffc-btn-edit::before {
-    content: '';
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    background: currentColor;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z'/%3E%3C/svg%3E") no-repeat center;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z'/%3E%3C/svg%3E") no-repeat center;
-    flex-shrink: 0;
+    margin-right: 0;
 }
 
 /* Action cell spacing */
@@ -589,7 +594,7 @@
     border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.15s;
+    transition: all var(--ffc-transition-fast);
 }
 
 .ffc-appointments-table .ffc-cancel-appointment:hover {
@@ -653,6 +658,15 @@
 .ffc-audience-bookings-table .ffc-audience-tag {
     display: block;
     margin-bottom: var(--ffc-spacing-2xs);
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-xs);
+}
+
+/* The schedule under an environment's name: secondary text, which was a
+   fixed `#666` that dropped to about 2.6:1 in the dark theme (#1826). */
+.ffc-audience-bookings-table .ffc-booking-schedule {
+    color: var(--ffc-text-muted);
 }
 
 .ffc-audience-bookings-table .ffc-audience-tag:last-child {
@@ -731,7 +745,7 @@
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     background: var(--ffc-bg);
-    transition: all 0.2s ease;
+    transition: all var(--ffc-transition-base);
 }
 
 .ffc-logout-link:hover {
@@ -803,6 +817,40 @@
     line-height: 1.5;
 }
 
+/* The person's audience groups, each a tag over the group's own colour. The
+   ground and its text arrive through `.ffc-pill-row-color` (the text computed
+   by `ContrastColor::on()`, #1826); only the shape is declared here. */
+.ffc-profile-field .ffc-profile-groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-profile-group-tag {
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-sm);
+}
+
+/* The line a profile action reports into (saving, saved, an error). Its tone
+   is a class on the palette (#1826): the colour literals it replaced ignored
+   the dark theme, and `#666` measured about 2.6:1 there. */
+.ffc-status-msg {
+    margin-left: var(--ffc-spacing-md);
+}
+
+.ffc-status-msg.ffc-status-msg-busy {
+    color: var(--ffc-text-muted);
+}
+
+.ffc-status-msg.ffc-status-msg-success {
+    color: var(--ffc-success-text);
+}
+
+.ffc-status-msg.ffc-status-msg-error {
+    color: var(--ffc-danger-text);
+}
+
 .ffc-profile-field .ffc-email-list,
 .ffc-profile-field .ffc-name-list,
 .ffc-profile-field .ffc-cpf-list {
@@ -849,7 +897,7 @@
     font-weight: 500;
     border-radius: var(--ffc-radius-md);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all var(--ffc-transition-fast);
     line-height: 1.4;
     text-decoration: none;
     display: inline-flex;
@@ -927,12 +975,12 @@
     border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-base);
     background: var(--ffc-bg);
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color var(--ffc-transition-fast), box-shadow var(--ffc-transition-fast);
 }
 
 .ffc-password-form input[type="password"]:focus {
     border-color: var(--ffc-primary);
-    box-shadow: 0 0 0 1px var(--ffc-primary);
+    box-shadow: 0 0 0 3px var(--ffc-focus-ring);
     outline: none;
 }
 
@@ -1005,7 +1053,7 @@
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md) var(--ffc-radius-md) 0 0;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background var(--ffc-transition-fast);
     text-align: left;
 }
 
@@ -1096,7 +1144,7 @@
     box-sizing: border-box;
     background: var(--ffc-bg);
     border-bottom: 1px solid var(--ffc-border-light);
-    transition: background 0.15s;
+    transition: background var(--ffc-transition-fast);
 }
 
 .ffc-audience-join-item:last-child {
@@ -1119,6 +1167,9 @@
 .ffc-audience-dot {
     width: 12px;
     height: 12px;
+    /* The group's own colour arrives inline; a group without one keeps the
+       palette's primary. */
+    background-color: var(--ffc-primary);
     border-radius: var(--ffc-radius-full);
     display: inline-block;
     flex-shrink: 0;
@@ -1134,7 +1185,7 @@
     font-weight: 500;
     border-radius: var(--ffc-radius-sm);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all var(--ffc-transition-fast);
     line-height: 1.4;
 }
 
@@ -1210,6 +1261,10 @@
     line-height: 1.5;
 }
 
+.ffc-lgpd-export-btn + .ffc-lgpd-desc {
+    margin-top: var(--ffc-spacing-2xl);
+}
+
 .ffc-lgpd-export-btn {
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl) !important;
     font-size: var(--ffc-font-size-sm) !important;
@@ -1273,13 +1328,13 @@
     border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-base);
     background: var(--ffc-bg);
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color var(--ffc-transition-fast), box-shadow var(--ffc-transition-fast);
 }
 
 .ffc-profile-edit-form input:focus,
 .ffc-profile-edit-form textarea:focus {
     border-color: var(--ffc-primary);
-    box-shadow: 0 0 0 1px var(--ffc-primary);
+    box-shadow: 0 0 0 3px var(--ffc-focus-ring);
     outline: none;
 }
 
@@ -1324,13 +1379,14 @@
     border: 1px solid var(--ffc-primary);
     border-radius: var(--ffc-radius-sm);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background var(--ffc-transition-fast);
     line-height: 1.4;
 }
 
 .ffc-pagination-btn:hover {
     background: var(--ffc-primary-hover);
     border-color: var(--ffc-primary-hover);
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-pagination-btn:disabled {
@@ -1379,7 +1435,7 @@
     border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     white-space: nowrap;
-    transition: background 0.15s;
+    transition: background var(--ffc-transition-fast);
 }
 
 .ffc-cal-export-btn:hover {
@@ -1388,7 +1444,10 @@
     color: var(--ffc-text-on-primary);
 }
 
-.ffc-cal-export-btn svg { flex-shrink: 0; }
+.ffc-cal-export-btn > [class*="ffc-icon-"]::before,
+.ffc-cal-export-dropdown a > [class*="ffc-icon-"]::before {
+    margin-right: 0;
+}
 
 .ffc-cal-export-dropdown {
     display: none;
@@ -1415,13 +1474,12 @@
     color: var(--ffc-text);
     text-decoration: none;
     font-size: var(--ffc-font-size-sm);
-    transition: background 0.15s;
+    transition: background var(--ffc-transition-fast);
     border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-cal-export-dropdown a:last-child { border-bottom: none; }
 .ffc-cal-export-dropdown a:hover { background: var(--ffc-primary-light); }
-.ffc-cal-export-dropdown a svg { flex-shrink: 0; }
 
 /* ==========================================================================
    ERROR & EMPTY STATES
@@ -1642,6 +1700,12 @@
    ========================================================================== */
 
 @media (forced-colors: active) {
+    /* The palette's primary button paints its ground; the contour is what
+       is left of it once the system drops that ground (#1826). */
+    :where(.ffc-user-dashboard) .button-primary {
+        border: 1px solid ButtonText;
+    }
+
     /* Status badges: the text still says the state; the border
        gives them their badge shape back. */
     .ffc-dashboard-status.ffc-dashboard-status-approved,

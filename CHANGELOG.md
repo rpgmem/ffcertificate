@@ -58,6 +58,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Six settings-tab tests run the tab's own `render()`** (#1811). They asserted a copy; every tab now resolves its view through `SettingsTab::view_path()`, which tests override, `SettingsViewPathSeamTest` refuses an inline path, and temporary views go in `tearDown()`.
 - **The appointment detail masks CPF, RF and email for every viewer** (#1813). The appointments admin role and site admins no longer get the clear value in the page: like the submission edit screen, anyone who may reveal sees the masked value and a Reveal button, and each reveal is audited.
 - **Form info blocks follow the form's text size** (#1828). The base block now sets the scale's base size for its paragraphs, so a theme that sizes `p` no longer enlarges the quiz leave-window notice or the other info blocks.
+- **The user dashboard follows the palette, the icon registry and the Public Design** (#1826). Its font and controls take the design's font, every button is painted, status lines and group tags read palette tokens and `ContrastColor::on()`, and its icons come from `Core\Icons`.
 
 ### Security
 

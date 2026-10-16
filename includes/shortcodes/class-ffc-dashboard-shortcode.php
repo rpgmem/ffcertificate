@@ -181,7 +181,7 @@ class DashboardShortcode {
 							aria-selected="<?php echo esc_attr( 'certificates' === $current_tab ? 'true' : 'false' ); ?>"
 							aria-controls="ffc-tabpanel-certificates"
 							tabindex="<?php echo esc_attr( 'certificates' === $current_tab ? '0' : '-1' ); ?>">
-						<span class="ffc-icon-scroll" aria-hidden="true"></span> <?php esc_html_e( 'Certificates', 'ffcertificate' ); ?>
+						<span class="ffc-icon-scroll" aria-hidden="true"></span><?php esc_html_e( 'Certificates', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
@@ -193,7 +193,7 @@ class DashboardShortcode {
 							aria-selected="<?php echo esc_attr( 'appointments' === $current_tab ? 'true' : 'false' ); ?>"
 							aria-controls="ffc-tabpanel-appointments"
 							tabindex="<?php echo esc_attr( 'appointments' === $current_tab ? '0' : '-1' ); ?>">
-						<span class="ffc-icon-calendar" aria-hidden="true"></span> <?php esc_html_e( 'Personal Schedule', 'ffcertificate' ); ?>
+						<span class="ffc-icon-calendar" aria-hidden="true"></span><?php esc_html_e( 'Personal Schedule', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
@@ -205,7 +205,7 @@ class DashboardShortcode {
 							aria-selected="<?php echo esc_attr( 'audience' === $current_tab ? 'true' : 'false' ); ?>"
 							aria-controls="ffc-tabpanel-audience"
 							tabindex="<?php echo esc_attr( 'audience' === $current_tab ? '0' : '-1' ); ?>">
-						<span class="ffc-icon-users" aria-hidden="true"></span> <?php esc_html_e( 'Group Schedule', 'ffcertificate' ); ?>
+						<span class="ffc-icon-users" aria-hidden="true"></span><?php esc_html_e( 'Group Schedule', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
@@ -217,7 +217,7 @@ class DashboardShortcode {
 							aria-selected="<?php echo esc_attr( 'reregistrations' === $current_tab ? 'true' : 'false' ); ?>"
 							aria-controls="ffc-tabpanel-reregistrations"
 							tabindex="<?php echo esc_attr( 'reregistrations' === $current_tab ? '0' : '-1' ); ?>">
-						<span class="ffc-icon-file" aria-hidden="true"></span> <?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?>
+						<span class="ffc-icon-file" aria-hidden="true"></span><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
@@ -435,7 +435,7 @@ class DashboardShortcode {
 							</div>
 							<?php if ( ! empty( $rereg['magic_link'] ) ) : ?>
 							<div>
-								<a href="<?php echo esc_url( $rereg['magic_link'] ); ?>" class="button ffc-btn-pdf" target="_blank" rel="noopener">
+								<a href="<?php echo esc_url( $rereg['magic_link'] ); ?>" class="button ffc-btn-pdf ffc-icon-download" target="_blank" rel="noopener">
 									<?php esc_html_e( 'Download Record', 'ffcertificate' ); ?>
 								</a>
 							</div>
@@ -453,7 +453,7 @@ class DashboardShortcode {
 							</div>
 							<?php if ( ! empty( $rereg['magic_link'] ) ) : ?>
 							<div>
-								<a href="<?php echo esc_url( $rereg['magic_link'] ); ?>" class="button ffc-btn-pdf" target="_blank" rel="noopener">
+								<a href="<?php echo esc_url( $rereg['magic_link'] ); ?>" class="button ffc-btn-pdf ffc-icon-download" target="_blank" rel="noopener">
 									<?php esc_html_e( 'Download Record', 'ffcertificate' ); ?>
 								</a>
 							</div>

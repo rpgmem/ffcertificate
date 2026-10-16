@@ -29,6 +29,34 @@
 
         pad2: function (n) { return n < 10 ? '0' + n : '' + n; },
 
+        // A tag over a colour an operator picked (an audience group). The
+        // ground and its text come from the REST payload -- `color` and
+        // `text_color`, the second computed server-side by
+        // `ContrastColor::on()` (#1826) -- and travel as the two custom
+        // properties `.ffc-pill-row-color` reads, so the rule stays in the
+        // sheet. Anything that is not a hex colour is dropped, and the tag
+        // falls back to the neutral pair that class declares.
+        rowColorTag: function (cls, item) {
+            var hex = /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
+            var bg = item && hex.test(item.color || '') ? item.color : '';
+            var fg = item && hex.test(item.text_color || '') ? item.text_color : '';
+            var style = (bg && fg) ? ' style="--ffc-badge-row-bg:' + bg + ';--ffc-badge-row-text:' + fg + ';"' : '';
+            return '<span class="' + cls + ' ffc-pill-row-color"' + style + '>' + helpers.esc(item ? item.name : '') + '</span>';
+        },
+
+        // A status line's text and tone. The tone is a class on the palette
+        // (#1826) -- never a colour literal, which ignores the dark theme.
+        setStatus: function ($el, text, tone) {
+            var tones = {
+                busy: 'ffc-status-msg-busy',
+                error: 'ffc-status-msg-error',
+                success: 'ffc-status-msg-success'
+            };
+            return $el.text(text)
+                .removeClass('ffc-status-msg-busy ffc-status-msg-error ffc-status-msg-success')
+                .addClass(tones[tone] || '');
+        },
+
         getPageSize: function () {
             var stored = parseInt(localStorage.getItem('ffc_page_size'), 10);
             return (stored && [10, 25, 50].indexOf(stored) !== -1) ? stored : DEFAULT_PAGE_SIZE;

@@ -89,6 +89,27 @@ describe('FFCDashboard.panels.audience.render', () => {
 		expect(tags[1].textContent).toBe('Children');
 	});
 
+	// #1826: the text over an operator's colour comes from the payload's
+	// `text_color` (ContrastColor::on() server-side), never a fixed white.
+	it('paints each tag with the payload colour pair through .ffc-pill-row-color', () => {
+		panel().render([
+			makeBooking({
+				schedule_name: 'Morning',
+				audiences: [
+					{ name: 'Pale', color: '#ffeb3b', text_color: '#000000' },
+					{ name: 'Bad',  color: 'red;x', text_color: '#000000' },
+				],
+			}),
+		], 1);
+		const tags = document.querySelectorAll('#ffc-tabpanel-audience .ffc-audience-tag');
+		expect(tags[0].classList.contains('ffc-pill-row-color')).toBe(true);
+		expect(tags[0].getAttribute('style')).toBe('--ffc-badge-row-bg:#ffeb3b;--ffc-badge-row-text:#000000;');
+		expect(tags[1].hasAttribute('style')).toBe(false);
+		expect(document.querySelector('#ffc-tabpanel-audience .ffc-booking-schedule').textContent).toBe('Morning');
+		const html = document.getElementById('ffc-tabpanel-audience').innerHTML;
+		expect(html).not.toMatch(/color:\s*#|#fff\b|margin-top/);
+	});
+
 	it('splits into Upcoming / Past / Cancelled sections', () => {
 		panel().render([
 			makeBooking({ is_past: false, status: 'confirmed' }),

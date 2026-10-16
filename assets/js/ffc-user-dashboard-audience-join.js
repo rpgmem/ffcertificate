@@ -47,10 +47,17 @@
             return '<button type="button" class="button button-primary ffc-audience-join-btn" data-id="' + node.id + '"' + disabled + '>' + (s.joinGroup || 'Join') + '</button>';
         }
 
+        // The dot takes the group's colour, an operator's choice, so it stays
+        // inline; anything that is not a hex colour is dropped and the dot
+        // keeps the sheet's own ground, the palette's primary (#1826).
+        function dot(color) {
+            return '<span class="ffc-audience-dot"' + (color ? ' style="background-color: ' + color + ';"' : '') + '></span>';
+        }
+
         function renderNodes(nodes, depth, parentColor) {
             var out = '';
             nodes.forEach(function (node) {
-                var color = node.color || parentColor || '#2271b1';
+                var color = /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(node.color || '') ? node.color : (parentColor || '');
                 var hasChildren = node.children && node.children.length > 0;
 
                 if (node.joinable && hasChildren) {
@@ -58,7 +65,7 @@
                     out += '<div class="ffc-audience-parent-group' + (depth > 0 ? ' ffc-audience-subgroup' : '') + '">';
                     out += '<div class="ffc-audience-join-item' + (node.is_member ? ' is-member' : '') + '" data-group-id="' + node.id + '">';
                     out += '<span class="ffc-audience-name">';
-                    out += '<span class="ffc-audience-dot" style="background-color: ' + color + ';"></span>';
+                    out += dot(color);
                     out += esc(node.name);
                     out += '</span>';
                     out += '<span class="ffc-audience-item-actions">';
@@ -75,7 +82,7 @@
                     // Header only: non-joinable parent kept visible for its children.
                     out += '<div class="ffc-audience-parent-group' + (depth > 0 ? ' ffc-audience-subgroup' : '') + '">';
                     out += '<button type="button" class="ffc-audience-parent-header ffc-audience-accordion-toggle" aria-expanded="false">';
-                    out += '<span class="ffc-audience-dot" style="background-color: ' + color + ';"></span>';
+                    out += dot(color);
                     out += '<span class="ffc-audience-header-name">' + esc(node.name) + '</span>';
                     out += '<span class="ffc-audience-toggle-icon">+</span>';
                     out += '</button>';
@@ -86,7 +93,7 @@
                     // Button only: a bare join-item leaf.
                     out += '<div class="ffc-audience-join-item' + (node.is_member ? ' is-member' : '') + '" data-group-id="' + node.id + '">';
                     out += '<span class="ffc-audience-name">';
-                    out += '<span class="ffc-audience-dot" style="background-color: ' + color + ';"></span>';
+                    out += dot(color);
                     out += esc(node.name);
                     out += '</span>';
                     out += joinLeaveButton(node);

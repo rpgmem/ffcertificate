@@ -183,7 +183,9 @@ class UserAudienceRestController {
 					'status'           => $status,
 					'status_label'     => $status_labels[ $status ] ?? $status,
 					'is_past'          => $is_past,
-					'audiences'        => $booking['audiences'],
+					// The text colour over each audience's own colour is computed here,
+					// not left to the script (#1826).
+					'audiences'        => \FreeFormCertificate\Core\BadgeHtml::with_row_colors( $booking['audiences'] ),
 				);
 			}
 
