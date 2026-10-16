@@ -29,6 +29,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Inline CSS moved to the stylesheets and frozen** (#1837). Settings tabs, Date Messages, the Scheduling colour picker and the dialogs the scripts build read classes and tokens instead of `style=""`, so they follow dark mode; `InlineStyleTest` freezes what legitimately stays (e-mails, documents, operator colours, run-time values).
 - **Public form feedback is styled by the sheet and follows dark mode** (#1840). `.ffc-field-error` named three things; the input state is now `is-invalid` / `is-valid`, the CPF/RF message `.ffc-field-message`, the reregistration error `.ffc-rereg-field-error`. The helper's error and success boxes read palette tokens.
 - **Log Out sits in the dashboard's tab bar** (#1840). The user dashboard prints it at the end of the tab bar, outside the tablist, so it shows on every tab instead of only on Profile; on phones it is the last, full-width item under the stacked tabs.
+- **One standard for field errors, warnings, hints and required markers** (#1844). Every plugin form shows a field's problem under it with an icon and appends it to `aria-describedby` (`FFC.fieldMessage()`, `Core\FieldMessage`). The public form's invalid state shows, audience booking drops `alert()`, one hidden `*` and one counter remain.
 
 ### Fixed
 
