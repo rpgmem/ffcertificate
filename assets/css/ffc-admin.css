@@ -781,14 +781,6 @@
     line-height: 1.3;
 }
 
-/* Inline warning text used by metaboxes (replaces inline style="color:#a00"). */
-/* A blocking note beside a field ("disabled globally", "set an end date
-   first"). It was `.ffc-warning-text` while it painted the danger tone, so the
-   name and the colour disagreed (#1843). */
-.ffc-text-danger {
-    color: var(--ffc-danger-text);
-}
-
 /* Activity log details */
 .ffc-log-summary {
     cursor: pointer;
