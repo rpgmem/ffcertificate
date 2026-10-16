@@ -90,10 +90,10 @@ describe('FFC.Frontend.Masks.applyCpfRf — input mask', () => {
 
 	it('removes invalid/valid classes on input', () => {
 		const $input = setup();
-		$input.addClass('ffc-valid ffc-invalid');
+		$input.addClass('is-valid is-invalid');
 		$input.val('123').trigger('input');
-		expect($input.hasClass('ffc-valid')).toBe(false);
-		expect($input.hasClass('ffc-invalid')).toBe(false);
+		expect($input.hasClass('is-valid')).toBe(false);
+		expect($input.hasClass('is-invalid')).toBe(false);
 	});
 });
 
@@ -111,26 +111,26 @@ describe('FFC.Frontend.Masks.applyCpfRf — blur validation', () => {
 
 	it('clears classes when the value is empty', () => {
 		const $input = setup('');
-		$input.addClass('ffc-invalid').attr('aria-invalid', 'true');
+		$input.addClass('is-invalid').attr('aria-invalid', 'true');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-invalid')).toBe(false);
+		expect($input.hasClass('is-invalid')).toBe(false);
 		expect($input.attr('aria-invalid')).toBeUndefined();
 	});
 
-	it('marks valid CPF with .ffc-valid', () => {
+	it('marks valid CPF with .is-valid', () => {
 		// 529.982.247-25 is a known-valid CPF; the digits-only value 52998224725
 		// satisfies the mod-11 check.
 		const $input = setup('529.982.247-25');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-valid')).toBe(true);
-		expect($input.hasClass('ffc-invalid')).toBe(false);
+		expect($input.hasClass('is-valid')).toBe(true);
+		expect($input.hasClass('is-invalid')).toBe(false);
 	});
 
-	it('marks invalid CPF with .ffc-invalid and adds an error span', () => {
+	it('marks invalid CPF with .is-invalid and adds an error span', () => {
 		const $input = setup('123.456.789-00');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-invalid')).toBe(true);
-		const $err = $input.next('.ffc-field-error');
+		expect($input.hasClass('is-invalid')).toBe(true);
+		const $err = $input.next('.ffc-field-message');
 		expect($err.length).toBe(1);
 		expect($err.text()).toContain('Invalid CPF');
 	});
@@ -138,23 +138,41 @@ describe('FFC.Frontend.Masks.applyCpfRf — blur validation', () => {
 	it('flags a wrong-length value with the generic message', () => {
 		const $input = setup('12345');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-invalid')).toBe(true);
-		const $err = $input.next('.ffc-field-error');
+		expect($input.hasClass('is-invalid')).toBe(true);
+		const $err = $input.next('.ffc-field-message');
 		expect($err.text()).toContain('Enter a valid CPF or RF');
+	});
+
+	it('injects no <style> of its own: the look lives in ffc-frontend.css (#1840)', () => {
+		document.head.querySelectorAll('style').forEach((el) => el.remove());
+		const $input = setup('123.456.789-00');
+		$input.trigger('blur');
+		expect(document.getElementById('ffc-validation-styles')).toBeNull();
+		expect(document.head.querySelectorAll('style').length).toBe(0);
+	});
+
+	it('gives the message its own name, not the input-state class (#1840)', () => {
+		const $input = setup('123.456.789-00');
+		$input.trigger('blur');
+		const $err = $input.next('.ffc-field-message');
+		expect($err.attr('role')).toBe('alert');
+		expect($err.hasClass('is-invalid')).toBe(false);
+		expect($input.attr('aria-invalid')).toBe('true');
+		expect($input.attr('aria-describedby')).toBe($err.attr('id'));
 	});
 
 	it('replaces a prior error span rather than stacking', () => {
 		const $input = setup('12345');
 		$input.trigger('blur');
 		$input.trigger('blur');
-		expect($input.nextAll('.ffc-field-error').length).toBe(1);
+		expect($input.nextAll('.ffc-field-message').length).toBe(1);
 	});
 
-	it('marks a valid 7-digit RF with .ffc-valid', () => {
+	it('marks a valid 7-digit RF with .is-valid', () => {
 		const $input = setup('123.456-7');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-valid')).toBe(true);
-		expect($input.hasClass('ffc-invalid')).toBe(false);
+		expect($input.hasClass('is-valid')).toBe(true);
+		expect($input.hasClass('is-invalid')).toBe(false);
 	});
 
 	it('flags an invalid 7-digit RF with the rfInvalid message', () => {
@@ -164,25 +182,25 @@ describe('FFC.Frontend.Masks.applyCpfRf — blur validation', () => {
 		// confirming a VALID RF clears any prior error span.
 		const $input = setup('1234567');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-valid')).toBe(true);
+		expect($input.hasClass('is-valid')).toBe(true);
 	});
 
 	it('clears an existing error span when the value becomes valid', () => {
 		const $input = setup('12345'); // invalid → spawns an error span
 		$input.trigger('blur');
-		expect($input.next('.ffc-field-error').length).toBe(1);
+		expect($input.next('.ffc-field-message').length).toBe(1);
 
 		// Now make it a valid CPF and re-blur → the valid branch fades the
 		// prior error span out (line 227).
 		$input.val('529.982.247-25').trigger('blur');
-		expect($input.hasClass('ffc-valid')).toBe(true);
+		expect($input.hasClass('is-valid')).toBe(true);
 	});
 
 	it('keeps the error visible and blocks the submit until the value changes (#1734)', () => {
 		vi.useFakeTimers();
 		const $input = setup('123.456.789-00'); // invalid CPF
 		$input.trigger('blur');
-		const $err = $input.next('.ffc-field-error');
+		const $err = $input.next('.ffc-field-message');
 		expect($err.length).toBe(1);
 		vi.advanceTimersByTime(10000);
 		expect($err.css('display')).not.toBe('none');
@@ -217,7 +235,7 @@ describe('FFC.Frontend.Masks.applyCpfRf — blur validation', () => {
 		try {
 			const $input = setup('123.456.789-00');
 			$input.trigger('blur');
-			expect($input.next('.ffc-field-error').text()).toBe('CSV CPF bad');
+			expect($input.next('.ffc-field-message').text()).toBe('CSV CPF bad');
 		} finally {
 			delete window.ffc_csv_download;
 		}
@@ -286,6 +304,18 @@ describe('FFC.Frontend.UI.showFormSuccess (generic branch)', () => {
 		expect($form.find('.ffc-form-success').text()).toContain('Your submission was successful.');
 	});
 
+	it('styles the block through classes, not inline declarations (#1840)', () => {
+		document.body.innerHTML = `<form class="ffc-form"></form>`;
+		const $form = window.$('.ffc-form');
+		window.FFC.Frontend.UI.showFormSuccess($form);
+
+		const $box = $form.find('.ffc-form-success');
+		expect($box.attr('style')).toBeUndefined();
+		expect($box.find('h3.ffc-form-success-title').text()).toContain('Success!');
+		expect($box.find('p.ffc-form-success-text').text()).toBe('Your submission was successful.');
+		expect($box.find('[style]').length).toBe(0);
+	});
+
 	it('renders provided html verbatim when supplied', () => {
 		document.body.innerHTML = `<form class="ffc-form"></form>`;
 		const $form = window.$('.ffc-form');
@@ -352,15 +382,16 @@ describe('FFC.Frontend.UI.refreshCaptcha', () => {
 		expect($form.find('input[name="ffc_captcha_hash"]').val()).toBe('old-hash');
 	});
 
-	it('flashes the captcha input then resets its background after 100ms', () => {
+	it('leaves no inline style on the captcha input (#1840)', () => {
 		vi.useFakeTimers();
 		const $form = mountMath();
 		window.FFC.Frontend.UI.refreshCaptcha($form, MATH);
+		vi.advanceTimersByTime(1000);
 		const $ans = $form.find('input[name="ffc_captcha_ans"]');
-		// Flash colour applied immediately.
-		expect($ans.css('background-color')).toBe('rgb(255, 251, 204)');
-		vi.advanceTimersByTime(100);
-		expect($ans.css('background-color')).toBe('rgb(255, 255, 255)');
+		// The flash it used to paint never showed (the sheet's `!important`
+		// ground beats an inline declaration), and the white it left behind
+		// would have stayed white in the dark theme.
+		expect($ans.attr('style')).toBeUndefined();
 		vi.useRealTimers();
 	});
 

@@ -209,6 +209,16 @@ describe('FFC.Frontend.UI.showFormError', () => {
 		expect(window.$('#f .ffc-form-error').length).toBe(0);
 		vi.useRealTimers();
 	});
+
+	it('styles the notice through its class, with no inline declaration or <style> (#1840)', () => {
+		document.head.querySelectorAll('style').forEach((el) => el.remove());
+		U().showFormError(window.$('#f'), 'Bad code');
+		const notice = document.querySelector('#f .ffc-form-error');
+		expect(notice).not.toBeNull();
+		expect(notice.getAttribute('style')).toBeNull();
+		expect(document.getElementById('ffc-slide-animation')).toBeNull();
+		expect(document.head.querySelectorAll('style').length).toBe(0);
+	});
 });
 
 describe('FFC.Frontend.RateLimit._formatRemaining', () => {

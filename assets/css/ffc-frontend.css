@@ -709,6 +709,85 @@ details.ffc-consent-description > p {
 }
 
 /* ============================================
+   FORM FEEDBACK (ffc-frontend-helpers.js)
+   The helper used to inject these rules as a <style> and as inline
+   declarations (#1840). Every page that loads the helper enqueues this
+   sheet: the form, verification and public CSV pages through
+   `Frontend::enqueue_assets()`, the self-scheduling calendar through its
+   shortcode. The input states are `is-valid` / `is-invalid`, which
+   ffc-frontend.js also sets on an empty required field.
+   ============================================ */
+
+/* `:where()` keeps the weight of the old injected `input.ffc-invalid`
+   (0,1,1), so these still lose to `.ffc-shortcode .ffc-input`'s own
+   `!important` border and ground, exactly as before. They show on the
+   inputs that are not `.ffc-input`, such as the calendar's booking form. */
+:where(.ffc-shortcode) input.is-valid {
+    border-color: var(--ffc-success-border) !important;
+    background: var(--ffc-success-bg);
+    color: var(--ffc-text);
+}
+
+:where(.ffc-shortcode) input.is-invalid {
+    border-color: var(--ffc-danger-border) !important;
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-text);
+}
+
+/* The message the CPF/RF mask puts after its input. */
+.ffc-shortcode .ffc-field-message {
+    display: block;
+    color: var(--ffc-danger);
+    font-size: var(--ffc-font-size-xs);
+    margin-top: var(--ffc-spacing-2xs);
+    animation: ffc-slide-down 0.3s ease;
+}
+
+.ffc-shortcode .ffc-form-error {
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
+    margin: 0 0 var(--ffc-spacing-2xl);
+    border-radius: var(--ffc-radius-sm);
+    border: 1px solid var(--ffc-danger-border);
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
+    animation: ffc-slide-down 0.3s ease;
+}
+
+.ffc-shortcode .ffc-form-success {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+    padding: var(--ffc-spacing-2xl);
+    margin: 0 0 var(--ffc-spacing-2xl);
+    border-radius: var(--ffc-radius-sm);
+    border: 1px solid var(--ffc-success-border);
+    text-align: center;
+    animation: ffc-slide-down 0.3s ease;
+}
+
+.ffc-shortcode .ffc-form-success-title {
+    margin: 0 0 var(--ffc-spacing-md);
+    font-size: var(--ffc-font-size-xl);
+}
+
+.ffc-shortcode .ffc-form-success-text {
+    margin: 0;
+}
+
+@keyframes ffc-slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
    VERIFICATION PAGE
    ============================================ */
 .ffc-shortcode.ffc-verification-container {

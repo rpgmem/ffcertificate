@@ -110,8 +110,28 @@ describe('frontend.handleFormSubmission', () => {
 		expect(spy).not.toHaveBeenCalled();
 		// First required field is marked invalid.
 		const input = document.querySelector('input[name="name"]');
-		expect(input.classList.contains('ffc-field-error')).toBe(true);
+		expect(input.classList.contains('is-invalid')).toBe(true);
 		expect(input.getAttribute('aria-invalid')).toBe('true');
+	});
+
+	it('focuses the first invalid input, never the mask message after it (#1840)', async () => {
+		document.body.innerHTML = `
+			<form class="ffc-submission-form">
+				<input type="text" name="cpf_rf" value="123" />
+				<span class="ffc-field-message" role="alert">Invalid CPF</span>
+				<input type="text" name="name" required />
+				<button type="submit">Send</button>
+			</form>
+		`;
+		const $form = window.$('form.ffc-submission-form');
+		const spy = mockAjax(() => ({}));
+		$form.trigger('submit');
+		await flush();
+		expect(spy).not.toHaveBeenCalled();
+		const input = document.querySelector('input[name="name"]');
+		expect(input.classList.contains('is-invalid')).toBe(true);
+		expect(document.activeElement).toBe(input);
+		expect(document.querySelector('.ffc-field-message').classList.contains('is-invalid')).toBe(false);
 	});
 
 	it('inserts an accessible alert above the form when validation fails', async () => {
@@ -209,7 +229,7 @@ describe('frontend.handleFormSubmission', () => {
 		const $form = setupForm({ withRequired: true });
 		const input = document.querySelector('input[name="name"]');
 		// Pre-mark as invalid (as a prior failed submit would have).
-		input.classList.add('ffc-field-error');
+		input.classList.add('is-invalid');
 		input.setAttribute('aria-invalid', 'true');
 		input.value = 'Filled';
 		mockAjax((opts) => { opts.success({ success: true, data: { html: '<div>ok</div>' } }); return {}; });
@@ -218,7 +238,7 @@ describe('frontend.handleFormSubmission', () => {
 		await flush();
 
 		// The validation loop took the else-branch and cleared the markers.
-		expect(input.classList.contains('ffc-field-error')).toBe(false);
+		expect(input.classList.contains('is-invalid')).toBe(false);
 		expect(input.getAttribute('aria-invalid')).toBeNull();
 	});
 
