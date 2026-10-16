@@ -55,9 +55,9 @@
     background: var(--ffc-bg-card);
     border-radius: var(--ffc-radius-lg);
     box-shadow: var(--ffc-shadow-md);
-    display: flex; /* ← CENTRALIZAÇÃO */
-    flex-direction: column; /* ← CENTRALIZAÇÃO */
-    align-items: center; /* ← CENTRALIZAÇÃO */
+    display: flex; /* ← centring */
+    flex-direction: column; /* ← centring */
+    align-items: center; /* ← centring */
 }
 
 .ffc-shortcode .ffc-form-title {
@@ -66,18 +66,18 @@
     color: var(--ffc-text);
     text-align: center;
     font-weight: 600;
-    width: 100%; /* ← Título pega largura total */
+    width: 100%; /* ← the title takes the full width */
 }
 
 /* ============================================
    FORM FIELDS
    ============================================ */
 .ffc-shortcode .ffc-submission-form {
-    width: 100%; /* ← Form pega largura total do wrapper */
+    width: 100%; /* ← the form takes the wrapper's full width */
     max-width: calc(var(--ffc-form-width) - 150px);
-    display: flex; /* ← CENTRALIZAÇÃO */
-    flex-direction: column; /* ← CENTRALIZAÇÃO */
-    align-items: stretch; /* ← Elementos pegam largura total */
+    display: flex; /* ← centring */
+    flex-direction: column; /* ← centring */
+    align-items: stretch; /* ← the children take the full width */
 }
 
 /* 6.7.1 — When the form is replaced by the success card (after submit,
@@ -93,7 +93,7 @@
 
 .ffc-shortcode .ffc-form-field {
     margin-bottom: var(--ffc-spacing-2xl);
-    width: 100%; /* ← Campo pega largura total do form (450px) */
+    width: 100%; /* ← the field takes the form's full width (450px) */
 }
 
 .ffc-shortcode .ffc-form-field label {
@@ -500,7 +500,7 @@ details.ffc-consent-description > p {
     margin-top: 25px;
     padding-top: 25px;
     border-top: 1px solid var(--ffc-border-light);
-    width: 100%; /* ← Pega largura total do form (450px) */
+    width: 100%; /* ← takes the form's full width (450px) */
 }
 
 /* .ffc-honeypot-field defined in ffc-common.css */
@@ -593,21 +593,21 @@ details.ffc-consent-description > p {
 
 .ffc-shortcode .ffc-captcha-row {
     margin-bottom: var(--ffc-spacing-2xl);
-    padding: var(--ffc-spacing-2xl); /* ← Padding confortável */
-    background: var(--ffc-primary-light); /* ← DESTAQUE: fundo azul claro */
-    border: 2px solid var(--ffc-primary); /* ← DESTAQUE: borda azul */
-    border-radius: var(--ffc-radius-lg); /* ← DESTAQUE: bordas arredondadas */
-    box-shadow: 0 2px 8px var(--ffc-focus-ring); /* ← DESTAQUE: sombra suave */
+    padding: var(--ffc-spacing-2xl); /* ← comfortable padding */
+    background: var(--ffc-primary-light); /* ← emphasis: a light accent ground */
+    border: 2px solid var(--ffc-primary); /* ← emphasis: an accent border */
+    border-radius: var(--ffc-radius-lg); /* ← emphasis: rounded corners */
+    box-shadow: 0 2px 8px var(--ffc-focus-ring); /* ← emphasis: a soft shadow */
     width: 100%; /* ← 100% do security-container (450px) */
-    box-sizing: border-box; /* ← Padding incluído na largura */
+    box-sizing: border-box; /* ← padding included in the width */
 }
 
 .ffc-shortcode .ffc-captcha-row label {
     display: block;
     margin-bottom: var(--ffc-spacing-md);
-    font-weight: 600; /* ← DESTAQUE: negrito mais forte */
-    color: var(--ffc-primary); /* ← DESTAQUE: cor azul */
-    font-size: var(--ffc-font-size-xl); /* ← DESTAQUE: fonte um pouco maior */
+    font-weight: 600; /* ← emphasis: a heavier weight */
+    color: var(--ffc-primary); /* ← emphasis: the accent colour */
+    font-size: var(--ffc-font-size-xl); /* ← emphasis: a slightly larger size */
 }
 
 .ffc-shortcode .ffc-captcha-row .ffc-input {
@@ -615,14 +615,14 @@ details.ffc-consent-description > p {
        repaints a control's ground carries both halves, so they cannot diverge
        later. A control does not inherit `color` (#1126). */
     color: var(--ffc-text);
-    border: 2px solid var(--ffc-primary) !important; /* ← DESTAQUE: borda azul mais grossa */
+    border: 2px solid var(--ffc-primary) !important; /* ← emphasis: a thicker accent border */
     background: var(--ffc-bg-input) !important;
-    margin-bottom: 0 !important; /* ← Remove margem inferior */
+    margin-bottom: 0 !important; /* ← no bottom margin */
 }
 
 .ffc-shortcode .ffc-captcha-row .ffc-input:focus {
-    border-color: var(--ffc-primary-hover); /* ← DESTAQUE: azul mais escuro no focus */
-    box-shadow: 0 0 0 3px var(--ffc-focus-ring); /* ← Sombra mais visível */
+    border-color: var(--ffc-primary-hover); /* ← emphasis: a darker accent on focus */
+    box-shadow: 0 0 0 3px var(--ffc-focus-ring); /* ← a more visible shadow */
 }
 
 /* ============================================
@@ -639,7 +639,7 @@ details.ffc-consent-description > p {
     font-weight: 600;
     cursor: pointer;
     transition: background var(--ffc-transition-slow), transform 0.1s;
-    box-sizing: border-box; /* ← Padding incluído */
+    box-sizing: border-box; /* ← padding included */
 }
 
 .ffc-shortcode .ffc-submit-btn:hover {
@@ -2132,8 +2132,8 @@ details.ffc-consent-description > p {
 #ffc-preview-iframe {
     display: block;
     border: none;
-    /* Branco nos dois temas: o iframe mostra a pré-visualização do certificado,
-       e o papel do documento é branco por definição (#1126). */
+    /* White in both themes: the iframe shows the certificate preview, and the
+       document's paper is white by definition (#1126). */
     background: #fff;
 }
 
@@ -2369,7 +2369,7 @@ details.ffc-consent-description > p {
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    /* Controls: without a contour, a button stops looking clickable. */
     .ffc-extend-end-modal .ffc-info-btn-primary,
     .ffc-open-early-modal .ffc-info-btn-primary,
     .ffc-public-csv-download .ffc-info-btn-primary,

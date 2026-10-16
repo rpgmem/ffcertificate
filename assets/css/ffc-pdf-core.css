@@ -17,7 +17,7 @@
     /* Width, height, left, z-index set dynamically by JS for portrait/landscape */
 }
 
-/* Container temporário usado pelo ffc-frontend.js */
+/* The temporary container ffc-frontend.js uses */
 .ffc-pdf-temp-container {
     position: fixed !important;
     overflow: hidden !important;

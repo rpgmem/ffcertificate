@@ -88,6 +88,18 @@ $ffc_colors = array(
 				</td>
 			</tr>
 			<tr>
+				<th scope="row"><label for="public_design_card_radius"><?php esc_html_e( 'Card corners', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="number" id="public_design_card_radius" name="<?php echo esc_attr( $ffc_name( 'card_radius' ) ); ?>" value="<?php echo esc_attr( (string) $ffc_design->card_radius ); ?>" min="0" max="<?php echo esc_attr( (string) PublicDesign::RADIUS_MAX ); ?>" class="small-text" required> px
+					<p class="description">
+						<?php
+						/* translators: 1: default radius, 2: maximum, in pixels. */
+						echo esc_html( sprintf( __( 'Of the cards: the form and verification card, the user dashboard and the cards inside it; 0 makes them square. Default: %1$d px, up to %2$d.', 'ffcertificate' ), PublicDesign::DEFAULTS['card_radius'], PublicDesign::RADIUS_MAX ) );
+						?>
+					</p>
+				</td>
+			</tr>
+			<tr>
 				<th scope="row"><label for="public_design_width"><?php esc_html_e( 'Form width', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="public_design_width" name="<?php echo esc_attr( $ffc_name( 'width' ) ); ?>" value="<?php echo esc_attr( (string) $ffc_design->width ); ?>" min="<?php echo esc_attr( (string) PublicDesign::WIDTH_MIN ); ?>" max="<?php echo esc_attr( (string) PublicDesign::WIDTH_MAX ); ?>" step="10" class="small-text" required> px

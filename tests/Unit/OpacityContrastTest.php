@@ -105,9 +105,6 @@ final class OpacityContrastTest extends TestCase {
 		'ffc-url-shortener-admin.css'     => array(
 			'.ffc-shorturl-toast' => 'opacity: 0 — the toast only appears through animation',
 		),
-		'ffc-user-dashboard.css'          => array(
-			'.ffc-audience-join-item .button.button-primary:disabled' => 'inactive component, exempt under SC 1.4.3',
-		),
 		'ffc-user-permissions.css'        => array(
 			'.ffc-cap-role[disabled]' => 'inactive component, exempt under SC 1.4.3',
 		),

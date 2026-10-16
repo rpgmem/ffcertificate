@@ -120,6 +120,10 @@
     color: var(--ffc-danger-text);
 }
 
+/* The look of every field here -- ground, border, height, size, focus ring,
+   and the read-only state -- is the dashboard's one text field, declared in
+   `ffc-user-dashboard.css`, which this sheet depends on (#1827). Only the
+   width is the form's. */
 .ffc-rereg-field input[type="text"],
 .ffc-rereg-field input[type="email"],
 .ffc-rereg-field input[type="tel"],
@@ -127,36 +131,11 @@
 .ffc-rereg-field input[type="date"],
 .ffc-rereg-field textarea,
 .ffc-rereg-field select {
-    color: var(--ffc-text);
     width: 100%;
     max-width: 500px;
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    font-size: var(--ffc-font-size-base);
-    font-family: inherit;
-    background: var(--ffc-bg-card);
-    transition: border-color var(--ffc-transition-fast), box-shadow var(--ffc-transition-fast);
-    box-sizing: border-box;
-}
-
-.ffc-rereg-field input:focus,
-.ffc-rereg-field textarea:focus,
-.ffc-rereg-field select:focus {
-    border-color: var(--ffc-border-focus);
-    box-shadow: 0 0 0 3px var(--ffc-focus-ring);
-    outline: none;
-}
-
-.ffc-rereg-field input[readonly],
-.ffc-rereg-field input[disabled] {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text-light);
-    cursor: not-allowed;
 }
 
 .ffc-rereg-field textarea {
-    resize: vertical;
     min-height: 72px;
 }
 
@@ -224,15 +203,14 @@
     padding: var(--ffc-spacing-2xs);
 }
 
-.ffc-wh-table select,
-.ffc-wh-table input[type="time"] {
+/* A grid cell, not a form row: the table keeps a compact size and takes
+   the dashboard field's paint (#1827). One element more specific than the
+   field rule in `ffc-user-dashboard.css`, which is what lets the size win. */
+.ffc-user-dashboard .ffc-wh-table :is(select, input[type="time"]) {
     width: 100%;
+    height: auto;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xs);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-sm);
-    font-family: inherit;
-    box-sizing: border-box;
 }
 
 .ffc-wh-remove {
@@ -254,7 +232,7 @@
     font-size: var(--ffc-font-size-sm);
 }
 
-/* ── Termo de Ciência ───────────────────────── */
+/* ── Acknowledgement term ────────────────────── */
 
 .ffc-rereg-termo-text {
     font-size: var(--ffc-font-size-sm);
@@ -304,33 +282,8 @@
     flex-wrap: wrap;
 }
 
-.ffc-rereg-actions .button {
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
-    font-size: var(--ffc-font-size-sm);
-    font-weight: 500;
-    border-radius: var(--ffc-radius-md);
-    cursor: pointer;
-    transition: all var(--ffc-transition-fast);
-    line-height: 1.4;
-}
-
-.ffc-rereg-actions .button-primary {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-    border: 1px solid var(--ffc-primary);
-}
-
-.ffc-rereg-actions .button-primary:hover {
-    background: var(--ffc-primary-hover);
-    border-color: var(--ffc-primary-hover);
-}
-
-.ffc-rereg-actions .button-primary:disabled {
-    background: var(--ffc-border-light);
-    border-color: var(--ffc-border-light);
-    cursor: not-allowed;
-}
-
+/* The buttons are the dashboard's button family (`ffc-user-dashboard.css`,
+   #1827); only their place in the row is the form's. */
 .ffc-rereg-actions .ffc-rereg-cancel-btn {
     margin-left: auto;
 }
@@ -387,10 +340,6 @@
         align-items: stretch;
     }
 
-    .ffc-rereg-actions .button {
-        text-align: center;
-    }
-
     .ffc-rereg-actions .ffc-rereg-cancel-btn {
         margin-left: 0;
     }
@@ -401,16 +350,7 @@
     }
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .ffc-rereg-field input,
-    .ffc-rereg-field textarea,
-    .ffc-rereg-field select,
-    .ffc-rereg-actions .button {
-        transition: none;
-    }
-}
-
-/* ── Importar o ciclo anterior ──────────────── */
+/* ── Import the previous cycle ──────────────── */
 
 .ffc-rereg-import-notice {
     margin-bottom: var(--ffc-spacing-xl);

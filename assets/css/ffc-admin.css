@@ -262,7 +262,7 @@
     height: 450px;
     font-family: Consolas, Monaco, monospace;
     font-size: var(--ffc-font-size-sm);
-    /* Editor de código: escuro nos dois temas por definição (#1126). */
+    /* Code editor: dark in both themes by definition (#1126). */
     background: #2c3338;
     color: #f0f0f1;
     padding: var(--ffc-spacing-xl);
@@ -303,19 +303,19 @@
    5. SUBMISSIONS TABLE - COMPLETE LAYOUT
    ========================================================================== */
 
-/* Remove limite de largura do container principal */
+/* Lift the width cap of the main container */
 .post-type-ffc_form .wrap {
     max-width: none !important;
 }
 
-/* Container responsivo da tabela */
+/* Responsive table container */
 .ffc-table-responsive {
     overflow-x: auto;
     margin-top: var(--ffc-spacing-2xl);
     width: 100%;
 }
 
-/* Tabela principal - LARGURA COMPLETA */
+/* Main table -- full width */
 .ffc-table-responsive table.wp-list-table {
     width: 100% !important;
     max-width: 100% !important;
@@ -323,18 +323,18 @@
     border-collapse: collapse;
 }
 
-/* Quebra de texto em emails e dados */
+/* Wrap long text in the email and data columns */
 .ffc-table-responsive table.wp-list-table td.column-email,
 .ffc-table-responsive table.wp-list-table td.column-data {
     overflow-wrap: break-word;
 }
 
-/* Botões de ação - alinhamento */
+/* Action buttons -- alignment */
 .ffc-table-responsive td.column-actions {
     white-space: normal;
 }
 
-/* Responsivo para telas menores */
+/* Responsive, for smaller screens */
 @media screen and (max-width: 782px) {
     .ffc-table-responsive table.wp-list-table {
         table-layout: auto;
@@ -497,7 +497,7 @@
     border-color: var(--ffc-primary-hover);
 }
 
-/* Links de magic link - quebra de linha */
+/* Magic-link links -- line breaking */
 .ffc-admin-page .form-table td a[href*="token="] {
     display: inline-block;
     max-width: 100%;
@@ -510,7 +510,7 @@
     color: var(--ffc-link-hover);
 }
 
-/* Descrições mais legíveis */
+/* More legible descriptions */
 .ffc-admin-page .form-table .description strong {
     color: var(--ffc-text);
 }
@@ -547,7 +547,7 @@
     margin: 0;
 }
 /* ==========================================================================
-   CORREÇÕES SPRINT 3.0 - v3.0.0
+   FIXES -- v3.0.0
    ========================================================================== */
 
 
@@ -1132,7 +1132,7 @@ p.ffc-datetime-order-error {
 }
 
 /* ==========================================================================
-   PRE-FLIGHT STATS METABOX (#361, movido da gaveta de utilitários em #1171)
+   PRE-FLIGHT STATS METABOX (#361, moved out of the utilities drawer in #1171)
    ========================================================================== */
 
 /* 6.6.4 follow-up (#361 Sprint 3) — pre-flight stats badges in the

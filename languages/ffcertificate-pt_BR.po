@@ -24825,6 +24825,20 @@ msgstr "Cantos arredondados"
 msgid "Of the fields and buttons; 0 makes them square. Default: %1$d px, up to %2$d."
 msgstr "Dos campos e botões; 0 os deixa retos. Padrão: %1$d px, até %2$d."
 
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "Card corners"
+msgstr "Cantos dos cartões"
+
+#: includes/settings/views/ffc-tab-public-design.php
+#, php-format
+msgid "Of the cards: the form and verification card, the user dashboard and the cards inside it; 0 makes them square. Default: %1$d px, up to %2$d."
+msgstr "Dos cartões: o cartão do formulário e da verificação, o painel do usuário e os cartões dentro dele; 0 os deixa retos. Padrão: %1$d px, até %2$d."
+
+#: includes/settings/views/documentation/config-public-design.php
+#, php-format
+msgid "The corner radius of the cards is a setting of its own: the form and verification card, the user dashboard and the cards inside it (0 makes them square). It defaults to %d px, a little rounder than the fields, and applies in both themes."
+msgstr "O raio dos cantos dos cartões é um ajuste à parte: o cartão do formulário e da verificação, o painel do usuário e os cartões dentro dele (0 os deixa quadrados). O padrão é %d px, um pouco mais arredondado que os campos, e vale nos dois temas."
+
 #: includes/settings/views/ffc-tab-public-design.php:91
 msgid "Form width"
 msgstr "Largura do formulário"

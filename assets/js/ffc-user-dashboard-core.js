@@ -68,7 +68,7 @@
             html += '<label>' + (s.filterFrom || 'From:') + ' <input type="date" class="ffc-filter-from" /></label>';
             html += '<label>' + (s.filterTo || 'To:') + ' <input type="date" class="ffc-filter-to" /></label>';
             html += '<input type="text" class="ffc-filter-search" placeholder="' + (s.filterSearch || 'Search...') + '" />';
-            html += '<button type="button" class="button ffc-filter-apply">' + (s.filterApply || 'Filter') + '</button>';
+            html += '<button type="button" class="button button-primary ffc-filter-apply">' + (s.filterApply || 'Filter') + '</button>';
             html += '<button type="button" class="button ffc-filter-clear">' + (s.filterClear || 'Clear') + '</button>';
             html += '</div>';
             return html;
@@ -99,7 +99,7 @@
             var html = '<div class="ffc-pagination">';
 
             if (page > 1) {
-                html += '<button class="button ffc-pagination-btn" data-page="' + (page - 1) + '" data-target="' + dataAttr + '">&laquo; ' + (ffcDashboard.strings.previous || 'Previous') + '</button> ';
+                html += '<button class="button button-primary ffc-pagination-btn" data-page="' + (page - 1) + '" data-target="' + dataAttr + '">&laquo; ' + (ffcDashboard.strings.previous || 'Previous') + '</button> ';
             }
 
             html += '<span class="ffc-pagination-info">';
@@ -107,7 +107,7 @@
             html += '</span>';
 
             if (page < totalPages) {
-                html += ' <button class="button ffc-pagination-btn" data-page="' + (page + 1) + '" data-target="' + dataAttr + '">' + (ffcDashboard.strings.next || 'Next') + ' &raquo;</button>';
+                html += ' <button class="button button-primary ffc-pagination-btn" data-page="' + (page + 1) + '" data-target="' + dataAttr + '">' + (ffcDashboard.strings.next || 'Next') + ' &raquo;</button>';
             }
 
             html += ' ' + helpers.buildPageSizeSelector();

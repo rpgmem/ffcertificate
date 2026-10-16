@@ -112,7 +112,7 @@
                 html += '<tr' + rowClass + '>';
                 html += '<td>' + esc(item.title) + '</td>';
                 html += '<td>' + esc(item.start_date_formatted) + ' &mdash; ' + esc(item.end_date_formatted) + '</td>';
-                html += '<td><span class="ffc-dashboard-status ffc-dashboard-status-' + item.status + '">' + esc(item.status_label) + '</span></td>';
+                html += '<td><span class="ffc-pill ffc-dashboard-status-' + item.status + '">' + esc(item.status_label) + '</span></td>';
                 html += '<td>' + esc(item.submitted_at || '—') + '</td>';
                 html += '<td>';
                 if (item.auth_code) {
@@ -123,10 +123,10 @@
                 html += '</td>';
                 html += '<td>';
                 if (item.can_submit) {
-                    html += '<button type="button" class="button ffc-btn-edit ffc-icon-edit ffc-rereg-open-form" data-reregistration-id="' + item.reregistration_id + '">' + (s.editReregistration || 'Edit') + '</button> ';
+                    html += '<button type="button" class="button button-primary ffc-btn-edit ffc-icon-edit ffc-rereg-open-form" data-reregistration-id="' + item.reregistration_id + '">' + (s.editReregistration || 'Edit') + '</button> ';
                 }
                 if (item.can_download && item.magic_link) {
-                    html += '<a href="' + esc(item.magic_link) + '" class="button ffc-btn-pdf ffc-icon-download" target="_blank" rel="noopener">' + (s.downloadRecord || 'Download Record') + '</a>';
+                    html += '<a href="' + esc(item.magic_link) + '" class="button button-primary ffc-btn-pdf ffc-icon-download" target="_blank" rel="noopener">' + (s.downloadRecord || 'Download Record') + '</a>';
                 }
                 html += '</td>';
                 html += '</tr>';

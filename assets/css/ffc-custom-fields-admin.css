@@ -255,7 +255,7 @@
     }
 }
 
-/* Divisão → Setor (dependent_select) nested editor in the field row. */
+/* The parent → child (dependent_select) nested editor in the field row. */
 .ffc-field-groups-container {
     margin: var(--ffc-spacing-sm) 0;
 }

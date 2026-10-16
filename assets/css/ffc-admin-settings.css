@@ -679,7 +679,7 @@
 }
 
 .ffc-doc-example pre {
-    /* Tema de editor: escuro nos dois temas por definição, como o
+    /* An editor theme: dark in both themes by definition, like
        ffc-code-editor-dark.css (#1126). */
     background: #1e1e1e;
     color: #d4d4d4;

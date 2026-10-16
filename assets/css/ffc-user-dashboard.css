@@ -32,33 +32,149 @@
     color: var(--ffc-text);
 }
 
-/* A palette skin for every `.button` on the dashboard (#1826). The dashboard
-   loads no WordPress button sheet on the front end, so a `.button` that no
-   rule below paints renders as the host theme's button -- or as the browser's
-   -- which is what the profile editor's Save and Cancel, the password Save and
-   the data export did. `:where()` keeps this at one class of specificity, so
-   every component rule below that paints its own button still wins on order. */
-:where(.ffc-user-dashboard) .button {
+/* ==========================================================================
+   ONE BUTTON FAMILY (#1827)
+
+   Every button on the dashboard is a `.button`, painted by the rules below
+   and by nothing else: a secondary look by default, `.button-primary` for
+   the action a screen leads with, and a danger outline for the actions that
+   leave, cancel or delete. Until #1827 each component painted its own --
+   five treatments, with the table actions holding theirs with eighteen
+   `!important`s and the profile actions on a 9px padding no other button
+   used. A component now declares only the layout it needs (a width, a
+   compact size in a table row), never a colour.
+
+   The dashboard loads no WordPress button sheet on the front end, so a
+   `.button` these rules did not reach would render as the host theme's. Two
+   classes of specificity are what keep a theme's `.button` or `button` rule
+   out; the dark theme's own button rules in `ffc-common.css` are more
+   specific still, and they are the dark half of this family.
+   ========================================================================== */
+
+.ffc-user-dashboard .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
+    font-size: var(--ffc-font-size-sm);
+    font-weight: 500;
+    line-height: 1.4;
+    text-decoration: none;
+    white-space: nowrap;
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-md);
+    box-shadow: none;
+    cursor: pointer;
+    transition: background var(--ffc-transition-fast), border-color var(--ffc-transition-fast), color var(--ffc-transition-fast);
     background: var(--ffc-bg);
     color: var(--ffc-text-secondary);
-    border: 1px solid var(--ffc-border);
 }
 
-:where(.ffc-user-dashboard) .button:hover {
+.ffc-user-dashboard .button:hover {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text);
 }
 
-:where(.ffc-user-dashboard) .button-primary {
+.ffc-user-dashboard .button-primary {
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
     border-color: var(--ffc-primary);
 }
 
-:where(.ffc-user-dashboard) .button-primary:hover {
+.ffc-user-dashboard .button-primary:hover {
     background: var(--ffc-primary-hover);
     color: var(--ffc-text-on-primary);
     border-color: var(--ffc-primary-hover);
+}
+
+/* The danger outline: the actions that cancel, leave or delete. One class
+   more than the dark theme's `.button` rule ties it, and this sheet loads
+   after `ffc-common.css`, so the outline holds in both themes -- which is
+   what the `!important`s on the data-deletion button were for. */
+.ffc-user-dashboard .button:is(.ffc-cancel-appointment, .ffc-audience-leave-btn, .ffc-leave-all-groups-btn, .ffc-lgpd-delete-btn) {
+    background: var(--ffc-bg);
+    color: var(--ffc-danger-text);
+    border-color: var(--ffc-danger);
+}
+
+.ffc-user-dashboard .button:is(.ffc-cancel-appointment, .ffc-audience-leave-btn, .ffc-leave-all-groups-btn, .ffc-lgpd-delete-btn):hover {
+    background: var(--ffc-danger);
+    color: var(--ffc-text-on-danger);
+    border-color: var(--ffc-danger);
+}
+
+/* A disabled button says so with colour, never with `opacity` (#1126). The
+   dark theme's disabled rules in `ffc-common.css` take over there. */
+.ffc-user-dashboard .button:disabled {
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-muted);
+    border-color: var(--ffc-border);
+    cursor: not-allowed;
+}
+
+/* The compact size, for a button that sits in a table row or a list item
+   beside other text. Layout only; the colour is the family's. */
+.ffc-user-dashboard .ffc-btn-pdf,
+.ffc-user-dashboard .ffc-btn-receipt,
+.ffc-user-dashboard .ffc-btn-edit,
+.ffc-user-dashboard .ffc-cancel-appointment,
+.ffc-user-dashboard .ffc-cal-export-btn,
+.ffc-audience-join-item .button {
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
+    font-size: var(--ffc-font-size-xs);
+    border-radius: var(--ffc-radius-sm);
+}
+
+/* ==========================================================================
+   ONE TEXT FIELD (#1827)
+
+   The public form's field, on every text field the dashboard draws: the
+   filter bar, the profile editor, the password form, the set-password card
+   and the reregistration form. They were three styles with three heights,
+   three font sizes and two grounds until #1827. The look is the form's
+   `.ffc-shortcode .ffc-input` in `ffc-frontend.css`, which this screen does
+   not load: the input ground, the 45px height and the `xl` size, and the
+   3px focus ring. A component keeps only its width.
+
+   Two classes of specificity keep a theme's `input[type="text"]` out, the
+   same reason as the button family above. The working-hours table in the
+   reregistration form takes the paint and keeps its own compact size, which
+   `ffc-reregistration-frontend.css` declares one element more specific.
+   ========================================================================== */
+
+.ffc-user-dashboard :is(input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="date"], input[type="time"], input[type="password"], input[type="search"], input[type="url"], select, textarea) {
+    box-sizing: border-box;
+    height: 45px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-xl);
+    line-height: 1.5;
+    background-color: var(--ffc-bg-input);
+    color: var(--ffc-text);
+    box-shadow: none;
+    transition: border-color var(--ffc-transition-base), box-shadow var(--ffc-transition-base);
+}
+
+.ffc-user-dashboard textarea {
+    height: auto;
+    min-height: 45px;
+    resize: vertical;
+}
+
+.ffc-user-dashboard :is(input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="date"], input[type="time"], input[type="password"], input[type="search"], input[type="url"], select, textarea):focus {
+    outline: none;
+    border-color: var(--ffc-primary);
+    box-shadow: 0 0 0 3px var(--ffc-focus-ring);
+}
+
+/* A field that cannot be edited says so with its ground. Exempt from the
+   contrast floor as an inactive component (SC 1.4.3). */
+.ffc-user-dashboard :is(input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="date"], input[type="time"], input[type="password"], input[type="search"], input[type="url"], select, textarea):is([readonly], :disabled) {
+    background-color: var(--ffc-bg-alt);
+    color: var(--ffc-text-light);
+    cursor: not-allowed;
 }
 
 /* ==========================================================================
@@ -284,58 +400,14 @@
     font-weight: 500;
 }
 
-.ffc-filter-bar input[type="date"],
-.ffc-filter-bar input[type="text"] {
-    padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    font-size: var(--ffc-font-size-sm);
-    background: var(--ffc-bg);
-    color: var(--ffc-text);
-    transition: border-color var(--ffc-transition-fast), box-shadow var(--ffc-transition-fast);
-}
-
-.ffc-filter-bar input[type="date"]:focus,
-.ffc-filter-bar input[type="text"]:focus {
-    border-color: var(--ffc-primary);
-    box-shadow: 0 0 0 3px var(--ffc-focus-ring);
-    outline: none;
-}
-
 .ffc-filter-bar input[type="text"] {
     min-width: 160px;
 }
 
+/* The filter buttons stand in one row with the fields, so they take the
+   field's height. */
 .ffc-filter-bar .button {
-    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
-    font-size: var(--ffc-font-size-sm);
-    font-weight: 500;
-    border-radius: var(--ffc-radius-sm);
-    cursor: pointer;
-    transition: all var(--ffc-transition-fast);
-    line-height: 1.4;
-}
-
-.ffc-filter-bar .ffc-filter-apply {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-    border: 1px solid var(--ffc-primary);
-}
-
-.ffc-filter-bar .ffc-filter-apply:hover {
-    background: var(--ffc-primary-hover);
-    border-color: var(--ffc-primary-hover);
-}
-
-.ffc-filter-bar .ffc-filter-clear {
-    background: var(--ffc-bg);
-    color: var(--ffc-text-secondary);
-    border: 1px solid var(--ffc-border);
-}
-
-.ffc-filter-bar .ffc-filter-clear:hover {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text);
+    height: 45px;
 }
 
 /* Page Size Selector */
@@ -480,44 +552,27 @@
    ACTION BUTTONS (View PDF, View Receipt)
    ========================================================================== */
 
-/* `vertical-align: middle` on the action cell's three controls and on the
+/* `vertical-align: middle` on the action cell's controls and on the
    exporter's wrapper (#1215). Without it each box sits on the line by its OWN
    baseline, and the three derive that baseline differently: an `inline-flex`
    inherits it from its first flex item -- which here is the icon's `::before`,
    a 14px box with no text -- while an `inline-block` takes it from the last
    line of text it contains. Measured: on the appointments tab all three had the
    SAME height (26,8px) and tops at 100,00 / 103,39 / 103,55, which fattened the
-   table row by 3,54px. The height was never the problem; the baseline was. */
-.ffc-btn-pdf,
-.ffc-btn-receipt,
-.ffc-btn-edit {
-    display: inline-flex !important;
-    align-items: center;
-    vertical-align: middle;
-    gap: var(--ffc-spacing-xs);
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg) !important;
-    font-size: var(--ffc-font-size-xs) !important;
-    font-weight: 500;
-    text-decoration: none !important;
-    white-space: nowrap;
-    border-radius: var(--ffc-radius-sm) !important;
-    transition: all var(--ffc-transition-fast);
-    line-height: 1.4;
-    cursor: pointer;
-    /* One tone for the three: each opens or edits a record, none destroys
-       one. "View PDF" was painted in the danger colour until #1826, which
-       said "destructive" over the most ordinary action on the screen. */
-    background: var(--ffc-primary) !important;
-    color: var(--ffc-text-on-primary) !important;
-    border: 1px solid var(--ffc-primary) !important;
-}
+   table row by 3,54px. The height was never the problem; the baseline was.
 
-.ffc-btn-pdf:hover,
-.ffc-btn-receipt:hover,
-.ffc-btn-edit:hover {
-    background: var(--ffc-primary-hover) !important;
-    border-color: var(--ffc-primary-hover) !important;
-    color: var(--ffc-text-on-primary) !important;
+   The declaration is here and not on the family's `.button`, because the
+   exporter's inner button is a `.button` too and must NOT declare it: what
+   joins the cell's line is its wrapper (see "Calendar export dropdown"). Every
+   control here is `inline-flex` since #1827, and the paint is the family's:
+   the first three are `.button-primary`, one tone for the three, because
+   each opens or edits a record and none destroys one ("View PDF" was painted
+   in the danger colour until #1826); Cancel is the danger outline. */
+.ffc-user-dashboard .ffc-btn-pdf,
+.ffc-user-dashboard .ffc-btn-receipt,
+.ffc-user-dashboard .ffc-btn-edit,
+.ffc-user-dashboard .ffc-cancel-appointment {
+    vertical-align: middle;
 }
 
 /* The icon is a registry class on the control (`ffc-icon-download`,
@@ -546,60 +601,35 @@
    APPOINTMENTS TABLE
    ========================================================================== */
 
-.ffc-dashboard-status {
-    padding: 3px var(--ffc-spacing-md);
-    border-radius: 10px;
-    font-size: var(--ffc-font-size-2xs);
-    font-weight: 600;
-    display: inline-block;
-    letter-spacing: 0.2px;
-    text-transform: capitalize;
-}
+/* A status is a `.ffc-pill` from `ffc-common.css` (#1827): the shape, the
+   size and the `--ffc-radius-pill` corner are the shared badge's, and only
+   the colour pair is the status's own. It was a second badge with a literal
+   10px corner until then. The modifier is assembled at runtime
+   (`'ffc-dashboard-status-' + status`), so it stays compound with the pill. */
 
-.ffc-dashboard-status.ffc-dashboard-status-pending {
+.ffc-pill.ffc-dashboard-status-pending {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
-.ffc-dashboard-status.ffc-dashboard-status-confirmed {
+.ffc-pill.ffc-dashboard-status-confirmed {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-dashboard-status.ffc-dashboard-status-cancelled {
+.ffc-pill.ffc-dashboard-status-cancelled {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
 
-.ffc-dashboard-status.ffc-dashboard-status-completed {
+.ffc-pill.ffc-dashboard-status-completed {
     background: var(--ffc-info-bg);
     color: var(--ffc-info-text);
 }
 
-.ffc-dashboard-status.ffc-dashboard-status-no_show {
+.ffc-pill.ffc-dashboard-status-no_show {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
-}
-
-.ffc-appointments-table .ffc-cancel-appointment {
-    display: inline-block;
-    vertical-align: middle;
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
-    font-size: var(--ffc-font-size-xs);
-    line-height: 1.4;
-    min-height: 0;
-    background: transparent;
-    color: var(--ffc-danger);
-    border: 1px solid var(--ffc-danger);
-    border-radius: var(--ffc-radius-sm);
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all var(--ffc-transition-fast);
-}
-
-.ffc-appointments-table .ffc-cancel-appointment:hover {
-    background: var(--ffc-danger);
-    color: var(--ffc-text-on-danger);
 }
 
 /* No `opacity` in these four rules, on purpose (#1126).
@@ -699,27 +729,27 @@
     white-space: nowrap;
 }
 
-.ffc-dashboard-status.ffc-dashboard-status-submitted {
+.ffc-pill.ffc-dashboard-status-submitted {
     background: var(--ffc-primary-light);
     color: var(--ffc-primary-hover);
 }
 
-.ffc-dashboard-status.ffc-dashboard-status-approved {
+.ffc-pill.ffc-dashboard-status-approved {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-dashboard-status.ffc-dashboard-status-rejected {
+.ffc-pill.ffc-dashboard-status-rejected {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
 
-.ffc-dashboard-status.ffc-dashboard-status-expired {
+.ffc-pill.ffc-dashboard-status-expired {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
 }
 
-.ffc-dashboard-status.ffc-dashboard-status-in_progress {
+.ffc-pill.ffc-dashboard-status-in_progress {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
@@ -891,53 +921,6 @@
     margin-top: var(--ffc-spacing-xl);
 }
 
-.ffc-profile-actions .button {
-    padding: 9px var(--ffc-spacing-2xl);
-    font-size: var(--ffc-font-size-sm);
-    font-weight: 500;
-    border-radius: var(--ffc-radius-md);
-    cursor: pointer;
-    transition: all var(--ffc-transition-fast);
-    line-height: 1.4;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ffc-spacing-xs);
-}
-
-.ffc-profile-actions .button-primary {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-    border: 1px solid var(--ffc-primary);
-    box-shadow: var(--ffc-shadow-sm);
-}
-
-.ffc-profile-actions .button-primary:hover {
-    background: var(--ffc-primary-hover);
-    border-color: var(--ffc-primary-hover);
-}
-
-.ffc-profile-actions .button:not(.button-primary) {
-    background: var(--ffc-bg);
-    color: var(--ffc-text-secondary);
-    border: 1px solid var(--ffc-border);
-}
-
-.ffc-profile-actions .button:not(.button-primary):hover {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text);
-    border-color: var(--ffc-border);
-}
-
-.ffc-profile-actions .ffc-leave-all-groups-btn {
-    color: var(--ffc-danger-text);
-    border-color: var(--ffc-danger);
-}
-.ffc-profile-actions .ffc-leave-all-groups-btn:hover {
-    background: var(--ffc-danger);
-    color: var(--ffc-text-on-danger);
-    border-color: var(--ffc-danger);
-}
 
 /* ==========================================================================
    PASSWORD FORM
@@ -967,27 +950,8 @@
 }
 
 .ffc-password-form input[type="password"] {
-    color: var(--ffc-text);
     width: 100%;
     max-width: 340px;
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    font-size: var(--ffc-font-size-base);
-    background: var(--ffc-bg);
-    transition: border-color var(--ffc-transition-fast), box-shadow var(--ffc-transition-fast);
-}
-
-.ffc-password-form input[type="password"]:focus {
-    border-color: var(--ffc-primary);
-    box-shadow: 0 0 0 3px var(--ffc-focus-ring);
-    outline: none;
-}
-
-.ffc-password-form .button-primary {
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
-    font-size: var(--ffc-font-size-sm);
-    border-radius: var(--ffc-radius-md);
 }
 
 /* ==========================================================================
@@ -1180,41 +1144,6 @@
 
 .ffc-audience-join-item .button {
     flex-shrink: 0;
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xl);
-    font-size: var(--ffc-font-size-xs);
-    font-weight: 500;
-    border-radius: var(--ffc-radius-sm);
-    cursor: pointer;
-    transition: all var(--ffc-transition-fast);
-    line-height: 1.4;
-}
-
-.ffc-audience-join-item .button.button-primary {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-    border: 1px solid var(--ffc-primary);
-}
-
-.ffc-audience-join-item .button.button-primary:hover {
-    background: var(--ffc-primary-hover);
-}
-
-.ffc-audience-join-item .button.button-primary:disabled {
-    background: var(--ffc-border);
-    border-color: var(--ffc-border);
-    cursor: not-allowed;
-    opacity: 0.7;
-}
-
-.ffc-audience-join-item .ffc-audience-leave-btn {
-    background: transparent;
-    color: var(--ffc-danger);
-    border: 1px solid var(--ffc-danger);
-}
-
-.ffc-audience-join-item .ffc-audience-leave-btn:hover {
-    background: var(--ffc-danger);
-    color: var(--ffc-text-on-danger);
 }
 
 .ffc-audience-join-item.is-member {
@@ -1265,25 +1194,6 @@
     margin-top: var(--ffc-spacing-2xl);
 }
 
-.ffc-lgpd-export-btn {
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl) !important;
-    font-size: var(--ffc-font-size-sm) !important;
-    border-radius: var(--ffc-radius-md) !important;
-}
-
-.ffc-lgpd-delete-btn {
-    color: var(--ffc-danger) !important;
-    border-color: var(--ffc-danger) !important;
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl) !important;
-    font-size: var(--ffc-font-size-sm) !important;
-    border-radius: var(--ffc-radius-md) !important;
-}
-
-.ffc-lgpd-delete-btn:hover {
-    background: var(--ffc-danger) !important;
-    color: var(--ffc-text-on-danger) !important;
-}
-
 /* ==========================================================================
    PROFILE EDIT FORM
    ========================================================================== */
@@ -1317,30 +1227,9 @@
     margin-bottom: var(--ffc-spacing-2xs);
 }
 
-.ffc-profile-edit-form input[type="text"],
-.ffc-profile-edit-form input[type="tel"],
-.ffc-profile-edit-form textarea {
-    color: var(--ffc-text);
+.ffc-profile-edit-form :is(input[type="text"], input[type="tel"], input[type="date"], textarea) {
     width: 100%;
     max-width: 450px;
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    font-size: var(--ffc-font-size-base);
-    background: var(--ffc-bg);
-    transition: border-color var(--ffc-transition-fast), box-shadow var(--ffc-transition-fast);
-}
-
-.ffc-profile-edit-form input:focus,
-.ffc-profile-edit-form textarea:focus {
-    border-color: var(--ffc-primary);
-    box-shadow: 0 0 0 3px var(--ffc-focus-ring);
-    outline: none;
-}
-
-.ffc-profile-edit-form textarea {
-    resize: vertical;
-    font-family: inherit;
 }
 
 .ffc-profile-edit-actions {
@@ -1350,11 +1239,6 @@
     margin-top: var(--ffc-spacing-xl);
 }
 
-.ffc-profile-edit-actions .button {
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
-    font-size: var(--ffc-font-size-sm);
-    border-radius: var(--ffc-radius-md);
-}
 
 /* ==========================================================================
    PAGINATION
@@ -1368,32 +1252,6 @@
     margin-top: var(--ffc-spacing-xl);
     padding-top: var(--ffc-spacing-lg);
     border-top: 1px solid var(--ffc-border-light);
-}
-
-.ffc-pagination-btn {
-    padding: var(--ffc-spacing-xs) var(--ffc-spacing-xl);
-    font-size: var(--ffc-font-size-sm);
-    font-weight: 500;
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-    border: 1px solid var(--ffc-primary);
-    border-radius: var(--ffc-radius-sm);
-    cursor: pointer;
-    transition: background var(--ffc-transition-fast);
-    line-height: 1.4;
-}
-
-.ffc-pagination-btn:hover {
-    background: var(--ffc-primary-hover);
-    border-color: var(--ffc-primary-hover);
-    color: var(--ffc-text-on-primary);
-}
-
-.ffc-pagination-btn:disabled {
-    background: var(--ffc-bg-alt);
-    border-color: var(--ffc-border);
-    color: var(--ffc-text-muted);
-    cursor: not-allowed;
 }
 
 .ffc-pagination-info {
@@ -1420,28 +1278,6 @@
     position: relative;
     display: inline-block;
     vertical-align: middle;
-}
-
-.ffc-cal-export-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ffc-spacing-xs);
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
-    font-size: var(--ffc-font-size-xs);
-    line-height: 1.4;
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-    border: 1px solid var(--ffc-primary);
-    border-radius: var(--ffc-radius-sm);
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background var(--ffc-transition-fast);
-}
-
-.ffc-cal-export-btn:hover {
-    background: var(--ffc-primary-hover);
-    border-color: var(--ffc-primary-hover);
-    color: var(--ffc-text-on-primary);
 }
 
 .ffc-cal-export-btn > [class*="ffc-icon-"]::before,
@@ -1537,8 +1373,6 @@
 
     .ffc-filter-bar .button {
         width: 100%;
-        text-align: center;
-        padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     }
 
     .ffc-page-size-select {
@@ -1581,10 +1415,6 @@
         flex-direction: column;
     }
 
-    .ffc-profile-actions .button {
-        justify-content: center;
-    }
-
     .ffc-certificates-table,
     .ffc-appointments-table,
     .ffc-audience-bookings-table,
@@ -1616,7 +1446,7 @@
         font-size: 10px;
     }
 
-    .ffc-certificates-table .button {
+    .ffc-user-dashboard .ffc-certificates-table .button {
         padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
         font-size: var(--ffc-font-size-2xs);
     }
@@ -1690,7 +1520,7 @@
     .ffc-loading::after { animation: none; }
     .ffc-tab { transition: none; }
     .ffc-audience-join-item { transition: none; }
-    .ffc-password-form input { transition: none; }
+    .ffc-user-dashboard :is(.button, input, select, textarea) { transition: none; }
 }
 
 /* ==========================================================================
@@ -1702,22 +1532,22 @@
 @media (forced-colors: active) {
     /* The palette's primary button paints its ground; the contour is what
        is left of it once the system drops that ground (#1826). */
-    :where(.ffc-user-dashboard) .button-primary {
+    .ffc-user-dashboard .button-primary {
         border: 1px solid ButtonText;
     }
 
     /* Status badges: the text still says the state; the border
        gives them their badge shape back. */
-    .ffc-dashboard-status.ffc-dashboard-status-approved,
-    .ffc-dashboard-status.ffc-dashboard-status-cancelled,
-    .ffc-dashboard-status.ffc-dashboard-status-completed,
-    .ffc-dashboard-status.ffc-dashboard-status-confirmed,
-    .ffc-dashboard-status.ffc-dashboard-status-expired,
-    .ffc-dashboard-status.ffc-dashboard-status-in_progress,
-    .ffc-dashboard-status.ffc-dashboard-status-no_show,
-    .ffc-dashboard-status.ffc-dashboard-status-pending,
-    .ffc-dashboard-status.ffc-dashboard-status-rejected,
-    .ffc-dashboard-status.ffc-dashboard-status-submitted {
+    .ffc-pill.ffc-dashboard-status-approved,
+    .ffc-pill.ffc-dashboard-status-cancelled,
+    .ffc-pill.ffc-dashboard-status-completed,
+    .ffc-pill.ffc-dashboard-status-confirmed,
+    .ffc-pill.ffc-dashboard-status-expired,
+    .ffc-pill.ffc-dashboard-status-in_progress,
+    .ffc-pill.ffc-dashboard-status-no_show,
+    .ffc-pill.ffc-dashboard-status-pending,
+    .ffc-pill.ffc-dashboard-status-rejected,
+    .ffc-pill.ffc-dashboard-status-submitted {
         border: 1px solid CanvasText;
     }
 }
@@ -1763,18 +1593,10 @@
     color: var(--ffc-text);
 }
 
-/* A control given a ground must be given text: `input` does not inherit
-   `color`, it takes `fieldtext` from the user agent, and in the dark theme
-   that renders black on dark (#1126, defect 4). */
+/* The field's look is the dashboard's one text field, at the top of this
+   sheet; only the width is the card's. */
 .ffc-set-password-field input[type="password"] {
     width: 100%;
-    box-sizing: border-box;
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
-    font-size: var(--ffc-font-size-base);
-    background: var(--ffc-bg);
-    color: var(--ffc-text);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-set-password-actions {
@@ -1786,6 +1608,4 @@
     padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-base);
     font-weight: 600;
-    text-align: center;
-    vertical-align: middle;
 }

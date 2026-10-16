@@ -148,6 +148,20 @@ class CommentLanguageTest extends TestCase {
 		'tabela', 'tamanho', 'tela', 'ultima', 'último', 'usuário', 'usuario', 'valor', 'variavel',
 		'variáveis', 'varredura', 'vazia', 'vazio', 'versão', 'versao', 'nao', 'não',
 
+		// The vocabulary of a stylesheet comment (#1827). Every one of these sat
+		// in a Portuguese CSS comment the list above could not see, because the
+		// sheets talk about corners, borders and widths rather than tables and
+		// keys -- `Controles: sem contorno, um botão deixa de parecer clicável.`
+		// shipped in four sheets carrying a single word from it.
+		'botão', 'botao', 'botões', 'botoes', 'contorno', 'controles', 'deixa', 'parecer', 'clicável',
+		'clicavel', 'largura', 'pega', 'pegam', 'azul', 'borda', 'bordas', 'sombra', 'negrito', 'margem',
+		'fundo', 'escuro', 'temas', 'dois', 'definição', 'definicao', 'quebra', 'texto', 'dados',
+		'responsivo', 'telas', 'maior', 'menores', 'pouco', 'glifo', 'ícone', 'icone', 'sucesso',
+		'escala', 'branco', 'papel', 'mostra', 'usado', 'temporário', 'temporario', 'gaveta', 'movido',
+		'utilitários', 'utilitarios', 'descrições', 'descricoes', 'legíveis', 'legiveis', 'correções',
+		'correcoes', 'composto', 'dava', 'incluído', 'incluido', 'confortável', 'confortavel',
+		'destaque', 'grossa', 'suave',
+
 	);
 
 	/**
@@ -533,6 +547,51 @@ class CommentLanguageTest extends TestCase {
 	}
 
 	/**
+	 * THE WALK READS EVERY STYLESHEET, COUNTED BY A SECOND TRAVERSAL (#1827).
+	 *
+	 * `test_the_scan_reaches_the_tree()` names one sheet and a floor of files,
+	 * and a floor over the whole tree cannot tell a walk that lost half of
+	 * `assets/css/` from one that read it all -- the "a self-check is worth
+	 * what it is tight to" rule in `CLAUDE.md`. This recounts the sheets with
+	 * `scandir()` instead of the recursive iterator {@see self::files()} uses,
+	 * repeats its one filter (minified sheets are generated, never written),
+	 * and asks for the same list, so adding a sheet moves both sides.
+	 *
+	 * @return void
+	 */
+	public function test_the_walk_reads_every_stylesheet(): void {
+		$root    = dirname( __DIR__, 2 );
+		$recount = array();
+		$pending = array( 'assets/css' );
+
+		while ( array() !== $pending ) {
+			$dir = array_pop( $pending );
+			foreach ( (array) scandir( $root . '/' . $dir ) as $entry ) {
+				if ( '.' === $entry || '..' === $entry ) {
+					continue;
+				}
+				$relative = $dir . '/' . $entry;
+				if ( is_dir( $root . '/' . $relative ) ) {
+					$pending[] = $relative;
+				} elseif ( str_ends_with( $entry, '.css' ) && ! str_ends_with( $entry, '.min.css' ) ) {
+					$recount[] = $relative;
+				}
+			}
+		}
+		sort( $recount );
+
+		$walked = array_values(
+			array_filter(
+				$this->files(),
+				static fn( string $file ): bool => str_starts_with( $file, 'assets/css/' ) && str_ends_with( $file, '.css' )
+			)
+		);
+
+		$this->assertNotSame( array(), $recount, 'The recount found no stylesheet -- it is broken, not clean.' );
+		$this->assertSame( $recount, $walked, 'The walk does not read exactly the stylesheets in `assets/css/`; a sheet it misses is a sheet whose comments nobody checks.' );
+	}
+
+	/**
 	 * The detector fires on prose and stays quiet on English.
 	 *
 	 * This pins the DESIGN, and every English line here is one that a one-word
@@ -568,6 +627,10 @@ class CommentLanguageTest extends TestCase {
 			// The six lines a tree three passes had called clean still carried.
 			'// Guarda por versao (#1231) -- ver a nota logo acima da assinatura.',
 			'* Versao do envelope gravado na coluna qr_cache.',
+			// A stylesheet comment, which carried one word of the list above and
+			// shipped in four sheets (#1827).
+			'/* Controles: sem contorno, um botão deixa de parecer clicável. */',
+			'width: 100%; /* ← Campo pega largura total do form (450px) */',
 		);
 		foreach ( $portuguese as $line ) {
 			$this->assertGreaterThanOrEqual(
