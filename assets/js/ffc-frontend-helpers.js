@@ -171,8 +171,8 @@ $inputs.each(function() {
                     
                     $(this).val(masked);
                     
-                    // Remove validation styling while typing
-                    $(this).removeClass('is-invalid is-valid');
+                    // A new value withdraws the verdict on the old one.
+                    window.FFC.clearFieldMessage(this);
                     if (this.setCustomValidity) {
                         this.setCustomValidity('');
                     }
@@ -184,8 +184,7 @@ $inputs.each(function() {
                     
                     // Skip if empty (not required check)
                     if (value.length === 0) {
-                        $(this).removeClass('is-invalid is-valid').removeAttr('aria-invalid aria-describedby');
-                        $(this).next('.ffc-field-message').remove();
+                        window.FFC.clearFieldMessage(this);
                         if (this.setCustomValidity) {
                             this.setCustomValidity('');
                         }
@@ -223,10 +222,6 @@ $inputs.each(function() {
                         errorMsg = strings.enterValidCpfRf || 'Enter a valid CPF (11 digits) or RF (7 digits)';
                     }
                     
-                    // Apply visual feedback with ARIA
-                    var inputId = $(this).attr('id') || $(this).attr('name') || 'cpfrf';
-                    var errorId = 'ffc-error-' + inputId;
-
                     // The browser's own validation carries the verdict, so an
                     // invalid CPF/RF blocks the submit instead of reaching the
                     // server first (#1734).
@@ -234,26 +229,17 @@ $inputs.each(function() {
                         this.setCustomValidity(isValid ? '' : errorMsg);
                     }
 
+                    // The message and the state are the field-message
+                    // standard (#1844): its id is appended to the hint the
+                    // field already names, never put in its place. It stays
+                    // until the value changes, as long as the submit is blocked.
                     if (isValid) {
-                        $(this).removeClass('is-invalid').addClass('is-valid')
-                               .removeAttr('aria-invalid aria-describedby');
-                        $(this).next('.ffc-field-message').fadeOut(function() { $(this).remove(); });
+                        window.FFC.fieldMessage(this, 'valid');
                     } else {
-                        $(this).removeClass('is-valid').addClass('is-invalid')
-                               .attr('aria-invalid', 'true')
-                               .attr('aria-describedby', errorId);
-
-                        // Show error message near field
-                        var $errorSpan = $(this).next('.ffc-field-message');
-                        if ($errorSpan.length === 0) {
-                            $errorSpan = $('<span class="ffc-field-message" role="alert"></span>').insertAfter($(this));
-                        }
-                        // Stays until the value changes: the submit is blocked
-                        // for as long as it stands.
-                        $errorSpan.attr('id', errorId).text(errorMsg).fadeIn();
+                        window.FFC.fieldMessage(this, 'error', errorMsg);
                     }
                 });
-                
+
                 // Apply on paste
                 $input.on('paste.cpfrf', function() {
                     var $this = $(this);
@@ -268,9 +254,8 @@ $inputs.each(function() {
                 }
             });
             
-            // The look of the states and of the message lives in
-            // ffc-frontend.css ("FORM FEEDBACK"), which every page that
-            // loads this file enqueues (#1840).
+            // The look of the states and of the message is the
+            // field-message standard in ffc-common.css (#1844).
         },
         
         /**

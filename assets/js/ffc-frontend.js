@@ -464,14 +464,20 @@
             var $submitBtn = $form.find('button[type="submit"]');
             var originalBtnText = $submitBtn.text();
             
-            // Basic validation
+            // Basic validation. An empty required field says so under
+            // itself, in the field-message standard (#1844); the summary
+            // alert below still names the problem for the whole form.
             var isValid = true;
             $form.find('[required]').each(function() {
+                // Only the message this check put there is withdrawn, so a
+                // CPF/RF verdict from the mask is left standing.
                 if (!$(this).val()) {
                     isValid = false;
-                    $(this).addClass('is-invalid').attr('aria-invalid', 'true');
-                } else {
-                    $(this).removeClass('is-invalid').removeAttr('aria-invalid');
+                    FFC.fieldMessage(this, 'error', FFC.requiredMessage());
+                    $(this).data('ffcEmptyRequired', true);
+                } else if ($(this).data('ffcEmptyRequired')) {
+                    FFC.clearFieldMessage(this);
+                    $(this).removeData('ffcEmptyRequired');
                 }
             });
             
