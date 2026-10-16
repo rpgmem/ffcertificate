@@ -2212,6 +2212,14 @@
     color: inherit;
 }
 
+/* On a public surface the label sits in the host theme's document, whose
+   body or label size it would otherwise inherit -- on the dashboard that made
+   the notification toggles larger than every other line (#1827). wp-admin
+   keeps core's size, so the rule is scoped to the plugin's front-end root. */
+.ffc-shortcode .ffc-control-toggle {
+    font-size: var(--ffc-font-size-base);
+}
+
 /* Mark: the glyph rides above the knob; its shape, not its colour, says on or off. */
 .ffc-control-toggle-mark .ffc-control-toggle-track::before {
     content: "";

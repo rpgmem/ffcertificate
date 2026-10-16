@@ -685,12 +685,21 @@
 .ffc-audience-bookings-table .ffc-row-cancelled { background: var(--ffc-danger-bg); }
 .ffc-audience-bookings-table .ffc-row-cancelled td { color: var(--ffc-text-muted); }
 
+/* One tag per line, each as wide as its name: `display: block` alone
+   stretched every tag across the cell. The text colour comes from
+   `ContrastColor::on()`, which clears 4.5:1 by the numbers; at 12px and a
+   light weight it still read as faint, so the tag takes the profile tag's
+   size and a heavier weight (#1827). */
 .ffc-audience-bookings-table .ffc-audience-tag {
     display: block;
+    width: fit-content;
+    max-width: 100%;
     margin-bottom: var(--ffc-spacing-2xs);
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: var(--ffc-radius-xs);
-    font-size: var(--ffc-font-size-xs);
+    font-size: var(--ffc-font-size-sm);
+    font-weight: 600;
+    line-height: 1.5;
 }
 
 /* The schedule under an environment's name: secondary text, which was a

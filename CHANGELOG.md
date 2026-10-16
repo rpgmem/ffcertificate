@@ -62,6 +62,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Form info blocks follow the form's text size** (#1828). The base block now sets the scale's base size for its paragraphs, so a theme that sizes `p` no longer enlarges the quiz leave-window notice or the other info blocks.
 - **The user dashboard follows the palette, the icon registry and the Public Design** (#1826). Its font and controls take the design's font, every button is painted, status lines and group tags read palette tokens and `ContrastColor::on()`, and its icons come from `Core\Icons`.
 - **The comment-language guard reads stylesheets with their own vocabulary** (#1827). `CommentLanguageTest` recounts `assets/css/` by a second traversal and its word list carries the sheets' words; the Portuguese comments it found, among them the forced-colors line four sheets shared, are now English.
+- **Front-end text keeps the plugin's size** (#1827). The dashboard's notification toggles and the booking confirmation notices no longer take the theme's size, audience tags fit their name and read at a heavier weight, and the reregistration form's fallback strings are English.
 
 ### Security
 

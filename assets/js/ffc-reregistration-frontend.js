@@ -246,7 +246,7 @@
             var $status = $container.find('.ffc-rereg-status');
             var id = $container.find('[name="reregistration_id"]').val();
 
-            $btn.prop('disabled', true).text(S.saving || 'Salvando...');
+            $btn.prop('disabled', true).text(S.saving || 'Saving...');
             $status.text('');
 
             FFC.request(
@@ -255,13 +255,13 @@
                 { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
             )
                 .then(function () {
-                    $btn.prop('disabled', false).text(S.saveDraft || 'Salvar Rascunho');
-                    $status.text(S.draftSaved || 'Rascunho salvo.').addClass('ffc-status-ok');
+                    $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
+                    $status.text(S.draftSaved || 'Draft saved.').addClass('ffc-status-ok');
                     setTimeout(function () { $status.text('').removeClass('ffc-status-ok'); }, 3000);
                 })
                 .catch(function (err) {
-                    $btn.prop('disabled', false).text(S.saveDraft || 'Salvar Rascunho');
-                    var msg = (err && err.fromServer && err.message) || S.errorSaving || 'Erro ao salvar rascunho.';
+                    $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
+                    var msg = (err && err.fromServer && err.message) || S.errorSaving || 'Error saving draft.';
                     $status.text(msg).addClass('ffc-status-err');
                 });
         });
@@ -288,7 +288,7 @@
             });
 
             if (!valid) {
-                $container.find('.ffc-rereg-status').text(S.fixErrors || 'Por favor, corrija os erros abaixo.').addClass('ffc-status-err');
+                $container.find('.ffc-rereg-status').text(S.fixErrors || 'Please fix the errors below.').addClass('ffc-status-err');
                 // Scroll to first error
                 var $first = $container.find('.has-error:first');
                 if ($first.length) {
@@ -301,7 +301,7 @@
             var $status = $container.find('.ffc-rereg-status');
             var id = $container.find('[name="reregistration_id"]').val();
 
-            $btn.prop('disabled', true).text(S.submitting || 'Enviando...');
+            $btn.prop('disabled', true).text(S.submitting || 'Submitting...');
             $status.text('').removeClass('ffc-status-err ffc-status-ok');
 
             FFC.request(
@@ -311,20 +311,20 @@
             )
                 .then(function (data) {
                     var $notice = $('<div class="ffc-dashboard-notice ffc-notice-info">').append(
-                        $('<p>').text((data && data.message) || S.submitted || 'Recadastramento enviado com sucesso!')
+                        $('<p>').text((data && data.message) || S.submitted || 'Reregistration submitted successfully!')
                     );
                     $container.find('#ffc-rereg-form').replaceWith($notice);
                     $('.ffc-rereg-banner[data-reregistration-id="' + id + '"]').slideUp();
                 })
                 .catch(function (err) {
-                    $btn.prop('disabled', false).text(S.submit || 'Enviar');
+                    $btn.prop('disabled', false).text(S.submit || 'Submit');
                     if (err && err.fromServer) {
                         if (err.data && err.data.errors) {
                             showServerErrors($container, err.data.errors);
                         }
-                        $status.text(err.message || S.errorSubmitting || 'Erro ao enviar.').addClass('ffc-status-err');
+                        $status.text(err.message || S.errorSubmitting || 'Error submitting.').addClass('ffc-status-err');
                     } else {
-                        $status.text(S.errorSubmitting || 'Erro ao enviar.').addClass('ffc-status-err');
+                        $status.text(S.errorSubmitting || 'Error submitting.').addClass('ffc-status-err');
                     }
                 });
         });
