@@ -105,6 +105,19 @@
     text-transform: none;
 }
 
+/* The help line under a restriction field (the ticket code): the step the
+   consent description uses, instead of whatever the theme gives `p` (#1832). */
+.ffc-shortcode .ffc-restriction-field .description {
+    font-size: var(--ffc-font-size-sm);
+}
+
+/* The heading of the legacy verification result, which `ffc-frontend.js`
+   still builds when a response carries no `html` block. It had no rule at
+   all; the root net leaves headings alone, so it is named here (#1832). */
+.ffc-shortcode .ffc-verification-success h3 {
+    font-size: var(--ffc-font-size-xl);
+}
+
 .ffc-shortcode .ffc-form-field label .ffc-required,
 .ffc-shortcode .ffc-field-legend .ffc-required {
     color: var(--ffc-danger);
@@ -270,6 +283,11 @@
 .ffc-shortcode .ffc-info-content ol {
     margin: var(--ffc-spacing-sm) 0;
     padding-left: var(--ffc-spacing-2xl);
+}
+
+/* The block's list items, like its paragraphs, read the block's step (#1832). */
+.ffc-shortcode .ffc-info-content li {
+    font-size: var(--ffc-font-size-base);
 }
 
 /* ============================================

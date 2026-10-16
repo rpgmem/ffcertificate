@@ -213,8 +213,12 @@
     color: var(--ffc-warning-text);
 }
 
+/* A notice's paragraph — the reregistration banner's line on every tab, the
+   admin-viewing banner, the logged-out notice — is sized here rather than
+   left to the root, so a theme that sizes `p` does not re-size it (#1832). */
 .ffc-dashboard-notice p {
     margin: 0.4em 0;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-dashboard-notice .button {
@@ -706,6 +710,9 @@
    fixed `#666` that dropped to about 2.6:1 in the dark theme (#1826). */
 .ffc-audience-bookings-table .ffc-booking-schedule {
     color: var(--ffc-text-muted);
+    /* The step below the cell's, which is what `small` drew relative to it
+       before the root gave `small` the `sm` step (#1832). */
+    font-size: var(--ffc-font-size-2xs);
 }
 
 .ffc-audience-bookings-table .ffc-audience-tag:last-child {
