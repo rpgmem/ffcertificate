@@ -63,6 +63,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The user dashboard follows the palette, the icon registry and the Public Design** (#1826). Its font and controls take the design's font, every button is painted, status lines and group tags read palette tokens and `ContrastColor::on()`, and its icons come from `Core\Icons`.
 - **The comment-language guard reads stylesheets with their own vocabulary** (#1827). `CommentLanguageTest` recounts `assets/css/` by a second traversal and its word list carries the sheets' words; the Portuguese comments it found, among them the forced-colors line four sheets shared, are now English.
 - **Front-end text keeps the plugin's size** (#1827). The dashboard's notification toggles and the booking confirmation notices no longer take the theme's size, audience tags fit their name and read at a heavier weight, and the reregistration form's fallback strings are English.
+- **The audience event list is styled, and public text no longer takes the theme's size** (#1832). The event-list panel sits under the plugin root. `.ffc-shortcode` names the base step and the tags under it inherit it at one class of weight; dialogs, notices and inner tags name their own steps.
+- **`[ffc_recruitment_my_calls]` and the logged-out dashboard notice load their stylesheets** (#1832). Both rendered with no plugin sheet; wrapping text in dialogs, notices, descriptions and the acknowledgment carries its own line height.
 
 ### Security
 

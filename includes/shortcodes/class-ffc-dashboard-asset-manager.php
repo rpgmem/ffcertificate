@@ -44,6 +44,26 @@ class DashboardAssetManager {
 	}
 
 	/**
+	 * Enqueue the dashboard's stylesheets and the dark-mode toggle, no script.
+	 *
+	 * The whole dashboard needs them, and so does what the shortcode prints
+	 * when nobody is logged in: that notice used to load no plugin sheet at
+	 * all, so it wore the theme's sizes and colours (#1832). It is also what
+	 * `[ffc_recruitment_my_calls]` loads on a page of its own, because the
+	 * rules for that section live in the dashboard's sheet.
+	 */
+	public static function enqueue_styles(): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
+		// ffc-common carries the palette, the scale and the icon classes.
+		wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
+		wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+
+		// Without the toggle, `.ffc-dark-mode` never reaches <html> (#1126).
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+	}
+
+	/**
 	 * Enqueue dashboard assets
 	 *
 	 * @param int|false $view_as_user_id User ID in view-as mode.
@@ -78,12 +98,7 @@ class DashboardAssetManager {
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
-		// Enqueue CSS (ffc-common provides icon classes).
-		wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
-		wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array( 'ffc-common' ), FFC_VERSION );
-
-		// Dark mode.
-		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+		self::enqueue_styles();
 
 		// Enqueue JavaScript. The dashboard is split across 8 files since 6.5.2:
 		// `ffc-dashboard` is the core (handle preserved for backwards-compat with

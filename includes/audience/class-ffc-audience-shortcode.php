@@ -218,7 +218,9 @@ class AudienceShortcode {
 	private static function render_calendar_html( array $schedules, array $config, array $atts, bool $show_booking_modal ): string {
 		$show_event_list     = ! empty( $config['showEventList'] );
 		$event_list_position = $config['eventListPosition'] ?? 'side';
-		$wrapper_class       = 'ffc-calendar-wrapper';
+		// The wrapper is a plugin root (#1832): the event-list panel is the
+		// calendar's sibling, so without the root class here no rule reaches it.
+		$wrapper_class = 'ffc-shortcode ffc-calendar-wrapper';
 		if ( $show_event_list ) {
 			$wrapper_class .= ' ffc-has-event-list ffc-event-list-' . esc_attr( $event_list_position );
 		}

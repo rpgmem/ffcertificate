@@ -19,7 +19,7 @@
 }
 
 /* When inside a wrapper with event list, let the wrapper handle sizing */
-.ffc-shortcode .ffc-calendar-wrapper .ffc-audience-calendar {
+.ffc-shortcode.ffc-calendar-wrapper .ffc-audience-calendar {
     max-width: none;
     margin: 0;
 }
@@ -352,6 +352,12 @@
     font-size: var(--ffc-font-size-base);
 }
 
+/* The new-booking dialog's chosen date, a `<p>` the script fills: it had no
+   size of its own and took the theme's (#1832). */
+.ffc-shortcode .ffc-booking-date-display {
+    font-size: var(--ffc-font-size-base);
+}
+
 .ffc-shortcode .ffc-form-group input,
 .ffc-shortcode .ffc-form-group select,
 .ffc-shortcode .ffc-form-group textarea {
@@ -529,6 +535,8 @@
 
 .ffc-shortcode .ffc-booking-description {
     margin: var(--ffc-spacing-md) 0;
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
 }
 
 .ffc-shortcode .ffc-booking-meta {
@@ -637,11 +645,11 @@
     }
 
     /* Side layout becomes below on mobile */
-    .ffc-shortcode .ffc-calendar-wrapper.ffc-event-list-side {
+    .ffc-shortcode.ffc-calendar-wrapper.ffc-event-list-side {
         flex-direction: column;
     }
 
-    .ffc-shortcode .ffc-event-list-side .ffc-event-list-panel {
+    .ffc-shortcode.ffc-event-list-side .ffc-event-list-panel {
         width: 100%;
         max-height: 300px;
     }
@@ -667,28 +675,34 @@
    EVENT LIST PANEL
    ========================================================================== */
 
-/* Wrapper for calendar + event list */
-.ffc-shortcode .ffc-calendar-wrapper {
+/* Wrapper for calendar + event list. The wrapper is a plugin root itself
+   (#1832): the panel is the calendar's SIBLING, not its child, so while the
+   root class sat only on `#ffc-audience-calendar` every rule below read
+   `.ffc-shortcode .ffc-calendar-wrapper …` and matched nothing — the panel
+   rendered with the theme's sizes and none of its layout. The wrapper rules
+   are written as a compound for the same reason: the root class is on the
+   wrapper, not above it. */
+.ffc-shortcode.ffc-calendar-wrapper {
     max-width: 600px;
     margin: 0 auto;
 }
 
-.ffc-shortcode .ffc-calendar-wrapper.ffc-has-event-list {
+.ffc-shortcode.ffc-calendar-wrapper.ffc-has-event-list {
     max-width: 1120px;
 }
 
-.ffc-shortcode .ffc-calendar-wrapper.ffc-has-event-list.ffc-event-list-side {
+.ffc-shortcode.ffc-calendar-wrapper.ffc-has-event-list.ffc-event-list-side {
     display: flex;
     gap: var(--ffc-spacing-2xl);
     align-items: flex-start;
 }
 
-.ffc-shortcode .ffc-calendar-wrapper.ffc-event-list-side .ffc-audience-calendar {
+.ffc-shortcode.ffc-calendar-wrapper.ffc-event-list-side .ffc-audience-calendar {
     flex: 1;
     min-width: 0;
 }
 
-.ffc-shortcode .ffc-calendar-wrapper.ffc-event-list-below .ffc-audience-calendar {
+.ffc-shortcode.ffc-calendar-wrapper.ffc-event-list-below .ffc-audience-calendar {
     max-width: 600px;
 }
 
@@ -700,14 +714,14 @@
     overflow: hidden;
 }
 
-.ffc-shortcode .ffc-event-list-side .ffc-event-list-panel {
+.ffc-shortcode.ffc-event-list-side .ffc-event-list-panel {
     width: 500px;
     flex-shrink: 0;
     max-height: 700px;
     overflow-y: auto;
 }
 
-.ffc-shortcode .ffc-event-list-below .ffc-event-list-panel {
+.ffc-shortcode.ffc-event-list-below .ffc-event-list-panel {
     max-width: 600px;
     margin-top: var(--ffc-spacing-2xl);
 }
@@ -811,7 +825,7 @@
 }
 
 /* Below layout: items in a more horizontal format */
-.ffc-shortcode .ffc-event-list-below .ffc-event-list-content {
+.ffc-shortcode.ffc-event-list-below .ffc-event-list-content {
     max-height: 300px;
     overflow-y: auto;
 }

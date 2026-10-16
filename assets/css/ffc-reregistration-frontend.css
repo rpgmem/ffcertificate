@@ -249,6 +249,15 @@
     margin-bottom: var(--ffc-spacing-xs);
 }
 
+/* The acknowledgment is HTML an administrator can edit, so its tags are
+   whatever they wrote: sized here, a theme that sizes `p` or `li` does not
+   re-size the legal text (#1832). Inline tags inside them inherit. */
+.ffc-rereg-termo-text p,
+.ffc-rereg-termo-text li {
+    font-size: var(--ffc-font-size-sm);
+    line-height: 1.6;
+}
+
 /* ── Validation Error ────────────────────────── */
 
 .ffc-rereg-field.has-error input,
