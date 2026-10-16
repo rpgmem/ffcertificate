@@ -182,7 +182,7 @@ class Frontend {
 			// pre-open + manual-tap fallbacks still cover anyone who
 			// dismisses the banner and proceeds.
 			if ( $has_form || $has_csv_download ) {
-				wp_enqueue_script( 'ffc-webview-warning', FFC_PLUGIN_URL . "assets/js/ffc-webview-warning{$s}.js", array(), FFC_VERSION, true );
+				wp_enqueue_script( 'ffc-webview-warning', FFC_PLUGIN_URL . "assets/js/ffc-webview-warning{$s}.js", array( 'ffc-core' ), FFC_VERSION, true );
 				wp_localize_script(
 					'ffc-webview-warning',
 					'ffc_webview_warning',

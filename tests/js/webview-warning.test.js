@@ -10,7 +10,7 @@
 //   4. Adds a dismiss button that sets the sessionStorage flag.
 //
 // Sprint C of #168.
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 const STORAGE_KEY = 'ffc_webview_warning_dismissed';
@@ -20,6 +20,15 @@ function setUA(ua) {
 }
 
 const ORIG_UA = navigator.userAgent;
+const BANNER = '[data-ffc-notice="webview-warning"]';
+
+beforeAll(() => {
+	// The banner is the shared notice (#1842): FFC.notice() lives in ffc-core.
+	window.ffc_ajax = window.ffc_ajax || { ajax_url: '/wp-admin/admin-ajax.php', nonce: 'n', strings: {} };
+	if (!window.FFC || typeof window.FFC.notice !== 'function') {
+		loadScript('assets/js/ffc-core.js');
+	}
+});
 
 beforeEach(() => {
 	window.sessionStorage.clear();
@@ -31,36 +40,61 @@ describe('ffc-webview-warning', () => {
 	it('renders no banner on a plain desktop browser UA', () => {
 		setUA('Mozilla/5.0 (Windows NT 10.0; Win64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36');
 		loadScript('assets/js/ffc-webview-warning.js');
-		expect(document.querySelector('.ffc-webview-warning')).toBeNull();
+		expect(document.querySelector(BANNER)).toBeNull();
 	});
 
 	it('renders the banner on an Android WebView UA', () => {
 		setUA('Mozilla/5.0 (Linux; Android 13; Pixel 7; wv) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36');
 		loadScript('assets/js/ffc-webview-warning.js');
-		const banner = document.querySelector('.ffc-webview-warning');
+		const banner = document.querySelector(BANNER);
 		expect(banner).not.toBeNull();
-		expect(banner.querySelector('h3')).not.toBeNull();
+		expect(banner.className).toBe('ffc-notice ffc-notice-warning');
+		expect(banner.getAttribute('role')).toBe('alert');
+		expect(banner.querySelector('.ffc-notice-icon.ffc-icon-warning')).not.toBeNull();
+		expect(banner.querySelector('.ffc-notice-title').textContent).toBe('Download may fail in this app');
+		expect(banner.querySelector('.ffc-notice-actions .ffc-webview-warning-open')).not.toBeNull();
+		expect(banner.outerHTML).not.toContain('style=');
 		expect(banner.querySelector('.ffc-webview-warning-open')).not.toBeNull();
 		expect(banner.querySelector('.ffc-webview-warning-dismiss')).not.toBeNull();
+	});
+
+	it('prints the localised strings as text, never as markup (#1842)', () => {
+		window.ffc_webview_warning = { strings: { title: '<b>T</b>', body: '<img src=x>' } };
+		setUA('Mozilla/5.0 (Linux; Android 13; wv) AppleWebKit/537.36');
+		loadScript('assets/js/ffc-webview-warning.js');
+		const banner = document.querySelector(BANNER);
+		expect(banner.querySelector('b')).toBeNull();
+		expect(banner.querySelector('img')).toBeNull();
+		expect(banner.querySelector('.ffc-notice-text').textContent).toBe('<img src=x>');
+		delete window.ffc_webview_warning;
+	});
+
+	it('renders nothing without ffc-core', () => {
+		const FFC = window.FFC;
+		window.FFC = undefined;
+		setUA('Mozilla/5.0 (Linux; Android 13; wv) AppleWebKit/537.36');
+		loadScript('assets/js/ffc-webview-warning.js');
+		expect(document.querySelector(BANNER)).toBeNull();
+		window.FFC = FFC;
 	});
 
 	it('renders the banner on an Instagram in-app UA', () => {
 		setUA('Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Instagram 310.0.0');
 		loadScript('assets/js/ffc-webview-warning.js');
-		expect(document.querySelector('.ffc-webview-warning')).not.toBeNull();
+		expect(document.querySelector(BANNER)).not.toBeNull();
 	});
 
 	it('renders the banner on a Facebook in-app UA (FBAN marker)', () => {
 		setUA('Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 FBAN/FBIOS;FBAV/440.0.0');
 		loadScript('assets/js/ffc-webview-warning.js');
-		expect(document.querySelector('.ffc-webview-warning')).not.toBeNull();
+		expect(document.querySelector(BANNER)).not.toBeNull();
 	});
 
 	it('does NOT render when the dismissed flag is already set in sessionStorage', () => {
 		setUA('Mozilla/5.0 (Linux; Android 13; wv) AppleWebKit/537.36');
 		window.sessionStorage.setItem(STORAGE_KEY, '1');
 		loadScript('assets/js/ffc-webview-warning.js');
-		expect(document.querySelector('.ffc-webview-warning')).toBeNull();
+		expect(document.querySelector(BANNER)).toBeNull();
 	});
 
 	it('dismisses by removing the banner and setting the sessionStorage flag', () => {
@@ -69,7 +103,7 @@ describe('ffc-webview-warning', () => {
 		const dismiss = document.querySelector('.ffc-webview-warning-dismiss');
 		expect(dismiss).not.toBeNull();
 		dismiss.click();
-		expect(document.querySelector('.ffc-webview-warning')).toBeNull();
+		expect(document.querySelector(BANNER)).toBeNull();
 		expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe('1');
 	});
 
@@ -78,14 +112,14 @@ describe('ffc-webview-warning', () => {
 		loadScript('assets/js/ffc-webview-warning.js');
 		const wrapper = document.querySelector('.ffc-form-wrapper');
 		expect(wrapper.previousElementSibling).not.toBeNull();
-		expect(wrapper.previousElementSibling.classList.contains('ffc-webview-warning')).toBe(true);
+		expect(wrapper.previousElementSibling.getAttribute('data-ffc-notice')).toBe('webview-warning');
 	});
 
 	it('does nothing when no anchor element is present in the DOM', () => {
 		document.body.innerHTML = '<div>nothing to anchor against</div>';
 		setUA('Mozilla/5.0 (Linux; Android 13; wv) AppleWebKit/537.36');
 		loadScript('assets/js/ffc-webview-warning.js');
-		expect(document.querySelector('.ffc-webview-warning')).toBeNull();
+		expect(document.querySelector(BANNER)).toBeNull();
 	});
 
 	it('defers rendering to DOMContentLoaded while the document is loading', () => {
@@ -98,12 +132,12 @@ describe('ffc-webview-warning', () => {
 		loadScript('assets/js/ffc-webview-warning.js');
 
 		// Not rendered yet — deferred.
-		expect(document.querySelector('.ffc-webview-warning')).toBeNull();
+		expect(document.querySelector(BANNER)).toBeNull();
 		const dclCall = addSpy.mock.calls.find((c) => c[0] === 'DOMContentLoaded');
 		expect(dclCall).toBeTruthy();
 		readyStateSpy.mockRestore();
 		dclCall[1]();
-		expect(document.querySelector('.ffc-webview-warning')).not.toBeNull();
+		expect(document.querySelector(BANNER)).not.toBeNull();
 		addSpy.mockRestore();
 	});
 
