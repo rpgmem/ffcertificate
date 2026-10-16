@@ -33,6 +33,7 @@ class DashboardAssetManagerTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'add_action' )->justReturn( true );
