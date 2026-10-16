@@ -326,6 +326,8 @@ describe('ffc-calendar-frontend.js — validateForm', () => {
 			<div class="ffc-form-messages"></div>
 			<div id="ffc-self-scheduling-modal"><div class="ffc-modal-content"></div></div>
 		`;
+		// The real core, for FFC.fieldMessage() (#1844).
+		loadScript('assets/js/ffc-core.js');
 		loadScript('assets/js/ffc-calendar-frontend.js');
 	});
 
@@ -338,6 +340,12 @@ describe('ffc-calendar-frontend.js — validateForm', () => {
 		expect(document.querySelector('.ffc-message-error').textContent).toBe(
 			'Consent is required'
 		);
+		// …and under the box itself, in the field-message standard (#1844).
+		const box = document.querySelector('#ffc-booking-consent');
+		expect(box.getAttribute('aria-invalid')).toBe('true');
+		const msg = document.getElementById(box.getAttribute('data-ffc-message-id'));
+		expect(msg.textContent).toBe('Consent is required');
+		expect(msg.getAttribute('role')).toBe('alert');
 	});
 
 	it('fails when a required field is empty (consent checked)', () => {
@@ -349,6 +357,20 @@ describe('ffc-calendar-frontend.js — validateForm', () => {
 		expect(document.querySelector('.ffc-message-error').textContent).toBe(
 			'Please fill all required fields'
 		);
+		const name = document.querySelector('#name');
+		expect(name.classList.contains('is-invalid')).toBe(true);
+		expect(document.getElementById('ffc-msg-name').textContent).toBe('This field is required.');
+		expect(name.getAttribute('aria-describedby')).toBe('ffc-msg-name');
+	});
+
+	it('withdraws the required message once the field is filled', () => {
+		window.ffcCalendarFrontend.validateForm(window.$('#ffc-self-scheduling-form'));
+		expect(document.getElementById('ffc-msg-name')).not.toBeNull();
+		document.querySelector('#name').value = 'Jane';
+		document.querySelector('#ffc-booking-consent').checked = true;
+		expect(window.ffcCalendarFrontend.validateForm(window.$('#ffc-self-scheduling-form'))).toBe(true);
+		expect(document.querySelector('.ffc-field-message')).toBeNull();
+		expect(document.querySelector('#name').hasAttribute('aria-invalid')).toBe(false);
 	});
 
 	it('passes when consent + all required fields are filled', () => {

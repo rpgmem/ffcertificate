@@ -199,22 +199,37 @@ describe('ffc-audience-booking-form — searchUsers', () => {
 });
 
 describe('ffc-audience-booking-form — validation guards (via checkConflicts)', () => {
-	it('blocks when time fields are empty', () => {
+	// Each problem is said under its field in the field-message standard,
+	// never in an alert() (#1844).
+	function messageFor(selector) {
+		const id = window.$(selector).attr('data-ffc-message-id');
+		return id ? window.$('#' + id) : window.$();
+	}
+
+	it('blocks when time fields are empty, under the empty field', () => {
 		setValidAudienceForm();
 		window.$('#booking-start-time').val('');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const restSpy = vi.spyOn(window.FFC, 'rest');
 		api.checkConflicts();
-		expect(alertSpy).toHaveBeenCalledWith('Please fill in the time fields.');
+		expect(alertSpy).not.toHaveBeenCalled();
 		expect(restSpy).not.toHaveBeenCalled();
+		const $start = window.$('#booking-start-time');
+		expect($start.hasClass('is-invalid')).toBe(true);
+		expect($start.attr('aria-invalid')).toBe('true');
+		expect(messageFor('#booking-start-time').text()).toBe('Please fill in the time fields.');
+		expect(messageFor('#booking-start-time').attr('role')).toBe('alert');
+		expect(window.$('#booking-end-time').hasClass('is-invalid')).toBe(false);
 	});
 
-	it('blocks when start >= end', () => {
+	it('blocks when start >= end, under the end time', () => {
 		setValidAudienceForm();
 		window.$('#booking-end-time').val('09:00');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		api.checkConflicts();
-		expect(alertSpy).toHaveBeenCalledWith('End must be after start.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(messageFor('#booking-end-time').text()).toBe('End must be after start.');
+		expect(document.activeElement).toBe(window.$('#booking-end-time')[0]);
 	});
 
 	it('blocks when the description is too short', () => {
@@ -222,7 +237,8 @@ describe('ffc-audience-booking-form — validation guards (via checkConflicts)',
 		window.$('#booking-description').val('too short');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		api.checkConflicts();
-		expect(alertSpy).toHaveBeenCalledWith('Description must be 15–300 chars.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(messageFor('#booking-description').text()).toBe('Description must be 15–300 chars.');
 	});
 
 	it('blocks an audience booking with no audience selected', () => {
@@ -230,16 +246,36 @@ describe('ffc-audience-booking-form — validation guards (via checkConflicts)',
 		window.$('#booking-audiences').val([]);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		api.checkConflicts();
-		expect(alertSpy).toHaveBeenCalledWith('Select an audience.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(messageFor('#booking-audiences').text()).toBe('Select an audience.');
 	});
 
-	it('blocks a user booking with no users selected', () => {
+	it('blocks a user booking with no users selected, after the chosen list', () => {
 		setValidAudienceForm();
 		window.$('#booking-type').val('users');
 		window.$('#booking-user-ids').val('');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		api.checkConflicts();
-		expect(alertSpy).toHaveBeenCalledWith('Select a user.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		const $msg = messageFor('#booking-user-search');
+		expect($msg.text()).toBe('Select a user.');
+		if (window.$('#booking-selected-users').length) {
+			expect(window.$('#booking-selected-users').next()[0]).toBe($msg[0]);
+		}
+	});
+
+	it('shows every problem at once and clears them once fixed', () => {
+		setValidAudienceForm();
+		window.$('#booking-start-time').val('');
+		window.$('#booking-description').val('short');
+		api.checkConflicts();
+		expect(window.$('.ffc-field-message').length).toBe(2);
+
+		setValidAudienceForm();
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, conflicts: {} });
+		api.checkConflicts();
+		expect(window.$('.ffc-field-message').length).toBe(0);
+		expect(window.$('#ffc-booking-form .is-invalid').length).toBe(0);
 	});
 
 	it('skips time validation for an all-day booking', () => {

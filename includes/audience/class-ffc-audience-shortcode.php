@@ -340,7 +340,7 @@ class AudienceShortcode {
 
 						<div class="ffc-form-group">
 							<label for="booking-environment-id">
-								<?php echo esc_html( $first_env_label_singular ); ?> *
+								<?php echo esc_html( $first_env_label_singular ); ?> <span class="ffc-required" aria-hidden="true">*</span>
 							</label>
 							<select name="environment_id" id="booking-environment-id" required>
 								<!-- Populated by JavaScript -->
@@ -356,17 +356,17 @@ class AudienceShortcode {
 
 						<div class="ffc-form-row" id="booking-time-row">
 							<div class="ffc-form-group">
-								<label for="booking-start-time"><?php esc_html_e( 'Start Time', 'ffcertificate' ); ?> *</label>
+								<label for="booking-start-time"><?php esc_html_e( 'Start Time', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 								<input type="time" name="start_time" id="booking-start-time" required>
 							</div>
 							<div class="ffc-form-group">
-								<label for="booking-end-time"><?php esc_html_e( 'End Time', 'ffcertificate' ); ?> *</label>
+								<label for="booking-end-time"><?php esc_html_e( 'End Time', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 								<input type="time" name="end_time" id="booking-end-time" required>
 							</div>
 						</div>
 
 						<div class="ffc-form-group">
-							<label for="booking-type"><?php esc_html_e( 'Booking Type', 'ffcertificate' ); ?> *</label>
+							<label for="booking-type"><?php esc_html_e( 'Booking Type', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 							<select name="booking_type" id="booking-type" required>
 								<option value="audience"><?php esc_html_e( 'Audience Groups', 'ffcertificate' ); ?></option>
 								<option value="individual"><?php esc_html_e( 'Individual Users', 'ffcertificate' ); ?></option>
@@ -374,14 +374,14 @@ class AudienceShortcode {
 						</div>
 
 						<div class="ffc-form-group" id="audience-select-group">
-							<label for="booking-audiences"><?php esc_html_e( 'Select Audiences', 'ffcertificate' ); ?> *</label>
+							<label for="booking-audiences"><?php esc_html_e( 'Select Audiences', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 							<select name="audience_ids[]" id="booking-audiences" multiple class="ffc-multiselect">
 								<!-- Populated by JavaScript -->
 							</select>
 						</div>
 
 						<div class="ffc-form-group" id="user-select-group" style="display: none;">
-							<label for="booking-users"><?php esc_html_e( 'Select Users', 'ffcertificate' ); ?> *</label>
+							<label for="booking-users"><?php esc_html_e( 'Select Users', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 							<input type="text" id="booking-user-search" placeholder="<?php esc_attr_e( 'Search users...', 'ffcertificate' ); ?>">
 							<div id="booking-user-results" class="ffc-user-results"></div>
 							<div id="booking-selected-users" class="ffc-selected-users"></div>
@@ -389,10 +389,12 @@ class AudienceShortcode {
 						</div>
 
 						<div class="ffc-form-group">
-							<label for="booking-description"><?php esc_html_e( 'Description', 'ffcertificate' ); ?> *</label>
+							<label for="booking-description"><?php esc_html_e( 'Description', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 							<textarea name="description" id="booking-description" rows="3" required minlength="15" maxlength="300"
 										placeholder="<?php esc_attr_e( 'Describe the purpose of this booking (15-300 characters)', 'ffcertificate' ); ?>"></textarea>
-							<span class="ffc-char-count"><span id="desc-char-count">0</span>/300</span>
+							<div class="ffc-field-foot">
+								<span class="ffc-field-counter" aria-hidden="true" data-ffc-counter-for="booking-description"><span id="desc-char-count">0</span>/300</span>
+							</div>
 						</div>
 
 						<!-- Soft Conflict Warning -->

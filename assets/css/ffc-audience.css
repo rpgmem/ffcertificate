@@ -382,13 +382,6 @@
     gap: var(--ffc-spacing-xl);
 }
 
-.ffc-shortcode .ffc-char-count {
-    font-size: var(--ffc-font-size-xs);
-    color: var(--ffc-gray-600);
-    float: right;
-    margin-top: var(--ffc-spacing-2xs);
-}
-
 /* User Search/Select */
 .ffc-shortcode .ffc-user-results {
     max-height: 150px;

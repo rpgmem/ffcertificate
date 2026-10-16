@@ -116,10 +116,6 @@
     margin-bottom: var(--ffc-spacing-2xs);
 }
 
-.ffc-rereg-field label .ffc-required {
-    color: var(--ffc-danger-text);
-}
-
 /* The look of every field here -- ground, border, height, size, focus ring,
    and the read-only state -- is the dashboard's one text field, declared in
    `ffc-user-dashboard.css`, which this sheet depends on (#1827). Only the
@@ -256,27 +252,6 @@
 .ffc-rereg-termo-text li {
     font-size: var(--ffc-font-size-sm);
     line-height: 1.6;
-}
-
-/* ── Validation Error ────────────────────────── */
-
-.ffc-rereg-field.has-error input,
-.ffc-rereg-field.has-error textarea,
-.ffc-rereg-field.has-error select {
-    border-color: var(--ffc-danger);
-    box-shadow: 0 0 0 1px var(--ffc-danger);
-}
-
-.ffc-rereg-field-error {
-    display: block;
-    color: var(--ffc-danger-text);
-    font-size: var(--ffc-font-size-xs);
-    margin-top: var(--ffc-spacing-2xs);
-    min-height: 0;
-}
-
-.ffc-rereg-field-error:empty {
-    display: none;
 }
 
 /* ── Actions ─────────────────────────────────── */
