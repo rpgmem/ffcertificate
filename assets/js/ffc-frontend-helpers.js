@@ -599,26 +599,41 @@ $inputs.each(function() {
      */
     var RateLimit = {
         blocked: false,
-        waitSeconds: 0,
-        countdownInterval: null,
-        
+
         /**
-         * Show rate limit notice with countdown
-         * 
+         * The countdowns running now, one per refused form, so two forms on
+         * one page never share a notice, a timer or a button (#1846).
+         *
+         * @type {Array<{form: Element, stop: Function}>}
+         */
+        active: [],
+
+        /**
+         * Show the rate-limit notice with a countdown on the form that was
+         * refused, and hold its submit button until the wait is over.
+         *
+         * The form comes from the caller, the one whose submit got the
+         * refusal. It used to be `$('.ffc-form')`, a class no public form
+         * carries, so the certificate form never showed the notice (#1846).
+         *
          * @param {string} message - Rate limit message
          * @param {number} waitSeconds - Seconds to wait
+         * @param {jQuery|Element} form - The form that was refused
+         * @param {string} [label] - The button's label to restore at the end;
+         *                           defaults to its text now
          */
-        show: function(message, waitSeconds) {
+        show: function(message, waitSeconds, form, label) {
+            var $form = $(form).first();
+            if (!$form.length) {
+                return;
+            }
+            this.enable($form);
             this.blocked = true;
-            this.waitSeconds = waitSeconds;
 
-            var $form = $('.ffc-form');
-            var $btn = $form.find('button[type="submit"]');
-
-            // 6.6.4 Sprint 6 — compute the initial mm:ss synchronously
-            // so the user sees the actual remaining time on first paint
-            // instead of a "0:00" flicker that updates ~1s later.
-            var initialDisplay = this._formatRemaining(waitSeconds);
+            var self = this;
+            var $btn = $form.find('button[type="submit"]').first();
+            var restoreLabel = typeof label === 'string' ? label : $btn.text();
+            var remaining = Math.max(0, parseInt(waitSeconds, 10) || 0);
 
             // role="status" + aria-live="polite" so the countdown
             // changes are announced by screen readers without
@@ -627,33 +642,58 @@ $inputs.each(function() {
             var text = document.createElement('p');
             var countdown = document.createElement('strong');
             text.className = 'ffc-notice-text';
-            countdown.id = 'ffc-countdown';
-            countdown.textContent = initialDisplay;
+            countdown.textContent = this._formatRemaining(remaining);
             text.appendChild(document.createTextNode(message + ' '));
             text.appendChild(countdown);
-            $form.prepend(window.FFC.notice('warning', 'clock', '', '', {
+            var notice = window.FFC.notice('warning', 'clock', '', '', {
                 role: 'status',
                 live: 'polite',
                 hook: 'rate-limit',
                 children: [text]
-            }));
+            });
 
-            // Disable button with countdown — initial display already correct.
+            // A response to the submit, so it sits directly above the form,
+            // where the accessible alert goes too; the notices that frame the
+            // form (bypass, quiz, schedule) stay above the title (#1842).
+            $form.before(notice);
+
             var waitText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings.wait || 'Wait...' : 'Wait...';
-            $btn.prop('disabled', true).html(
-                $('<span>').text(waitText)[0].outerHTML
-                + ' (<span id="ffc-countdown-btn">' + initialDisplay + '</span>)'
-            );
+            var buttonCount = document.createElement('span');
+            buttonCount.textContent = this._formatRemaining(remaining);
+            $btn.prop('disabled', true).empty()
+                .append(document.createTextNode(waitText + ' ('), buttonCount, document.createTextNode(')'));
 
-            // Start countdown
-            this.startCountdown();
+            var timer = null;
+            var state = {
+                form: $form[0],
+                stop: function() {
+                    clearTimeout(timer);
+                    if (notice.parentNode) {
+                        notice.parentNode.removeChild(notice);
+                    }
+                    $btn.prop('disabled', false).text(restoreLabel);
+                }
+            };
+            this.active.push(state);
+
+            // show() painted the initial mm:ss synchronously; the first tick
+            // is one second later.
+            var tick = function() {
+                remaining--;
+                if (remaining <= 0) {
+                    self.enable($form);
+                    return;
+                }
+                countdown.textContent = self._formatRemaining(remaining);
+                buttonCount.textContent = countdown.textContent;
+                timer = setTimeout(tick, 1000);
+            };
+            timer = setTimeout(tick, 1000);
         },
 
         /**
          * 6.6.4 Sprint 6 — format seconds into mm:ss for the
-         * countdown display. Extracted so the initial render
-         * (synchronous, in show()) and the tick loop (async, in
-         * startCountdown()) share the formatting and never drift.
+         * countdown display, shared by the first paint and every tick.
          *
          * @param {number} remaining Seconds remaining.
          * @returns {string} mm:ss formatted.
@@ -664,44 +704,23 @@ $inputs.each(function() {
             var secs = remaining % 60;
             return mins + ':' + (secs < 10 ? '0' : '') + secs;
         },
-        
-        /**
-         * Start countdown timer
-         */
-        startCountdown: function() {
-            var self = this;
-            // 6.6.4 Sprint 6 — start from waitSeconds - 1 because show()
-            // already painted waitSeconds as the initial value. First
-            // tick happens 1 second after show().
-            var remaining = this.waitSeconds - 1;
 
-            var updateDisplay = function() {
-                if (remaining <= 0) {
-                    self.enable();
-                    return;
+        /**
+         * End the wait on one form: remove its notice and give its submit
+         * button back its label. Without a form, end every wait.
+         *
+         * @param {jQuery|Element} [form]
+         */
+        enable: function(form) {
+            var target = form ? $(form)[0] : null;
+            this.active = this.active.filter(function(state) {
+                if (target && state.form !== target) {
+                    return true;
                 }
-
-                var display = self._formatRemaining(remaining);
-                $('#ffc-countdown').text(display);
-                $('#ffc-countdown-btn').text(display);
-
-                remaining--;
-                setTimeout(updateDisplay, 1000);
-            };
-
-            // Schedule first tick 1s after the initial render. show()
-            // already painted the correct initial mm:ss synchronously.
-            setTimeout(updateDisplay, 1000);
-        },
-        
-        /**
-         * Enable form after rate limit expires
-         */
-        enable: function() {
-            this.blocked = false;
-            $('[data-ffc-notice="rate-limit"]').remove();
-            var sendText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings.send || 'Send' : 'Send';
-            $('.ffc-form button[type="submit"]').prop('disabled', false).text(sendText);
+                state.stop();
+                return false;
+            });
+            this.blocked = this.active.length > 0;
         }
     };
     

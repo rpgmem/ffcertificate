@@ -353,7 +353,12 @@ describe('frontend.handleFormSubmission', () => {
 		});
 		$form.trigger('submit');
 		await flush();
-		expect(showSpy).toHaveBeenCalledWith('Slow down', 30);
+		// The refused form and the label it had before "Processing…" (#1846).
+		expect(showSpy).toHaveBeenCalledTimes(1);
+		const [message, wait, form, label] = showSpy.mock.calls[0];
+		expect([message, wait]).toEqual(['Slow down', 30]);
+		expect(window.$(form)[0]).toBe($form[0]);
+		expect(label).toBe('Send');
 	});
 
 	it('on generic error: shows the connection-error alert', async () => {
