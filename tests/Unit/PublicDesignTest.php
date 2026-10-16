@@ -153,7 +153,7 @@ class PublicDesignTest extends TestCase {
 	 */
 	public function test_form_controls_inherit_the_forms_font(): void {
 		$css = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' );
-		$this->assertMatchesRegularExpression( '/\.ffc-shortcode :is\(input, select, textarea, button\) \{\s*font-family: inherit;\s*\}/', $css );
+		$this->assertMatchesRegularExpression( '/\.ffc-shortcode :is\(input, select, textarea, button, \.button\) \{\s*font-family: inherit;\s*\}/', $css );
 	}
 
 	/**
