@@ -461,15 +461,6 @@
    SHARED TABLE STYLES
    ========================================================================== */
 
-/* A tab lists its rows in sections (upcoming, past, cancelled), each a heading
-   over a table. The space above a heading that follows a table was an inline
-   `margin-top: 30px` in three scripts until #1826; it is the scale's widest
-   step now, and it lands only where a table precedes the heading, so a page
-   of the pagination that opens on a later section no longer starts low. */
-.ffc-tab-content table + h3 {
-    margin-top: var(--ffc-spacing-3xl);
-}
-
 .ffc-certificates-table,
 .ffc-appointments-table,
 .ffc-audience-bookings-table,
@@ -625,7 +616,9 @@
    a table, and the section's own pager. The space between two sections
    sits on the section, not on the heading: `#ffc-tabpanel-* h3` below
    resets the heading's top margin with an id's specificity, which is why
-   the `table + h3` rule above never reached these tabs.
+   the `table + h3` rule that used to stand in the shared table styles never
+   reached these tabs. The Reregistrations tab draws its Active and Completed
+   groups the same way since #1837, which left that rule with no reader.
    ========================================================================== */
 
 .ffc-dashboard-section + .ffc-dashboard-section {
