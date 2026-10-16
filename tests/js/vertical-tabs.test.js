@@ -7,6 +7,7 @@ import { loadScript } from './helpers.js';
 beforeAll(() => {
 	// The required-tag guard flushes the layout editor through the shared
 	// window.FFCCodeEditor helper; load the core so it's defined.
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-code-editor-core.js');
 	loadScript('assets/js/ffc-vertical-tabs.js');
 });

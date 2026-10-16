@@ -38,12 +38,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Event Schedule is not the submission window.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'The "Event Schedule (Reference)" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. Once they are filled, the certificate layout must contain {{schedule}}. The tokens use a per-participant exception first, then the Event Schedule, then the window\'s start/end time. See', 'ffcertificate' ); ?> <a href="#reference-tokens"><?php esc_html_e( 'Template Variables / Tokens', 'ffcertificate' ); ?></a>.
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Event Schedule is not the submission window.', 'ffcertificate' ) )
+	);
+	?>
 
 	<h4><?php esc_html_e( 'Start Early / Postpone Close', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Two one-shot actions let a trusted operator adjust the window without logging into WordPress:', 'ffcertificate' ); ?></p>

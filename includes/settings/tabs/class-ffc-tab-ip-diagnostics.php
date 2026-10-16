@@ -122,10 +122,14 @@ class TabIpDiagnostics extends SettingsTab {
 			return;
 		}
 
-		echo '<div class="notice notice-warning inline"><p>';
-		echo '<strong>' . esc_html__( 'Recommended:', 'ffcertificate' ) . '</strong> ';
-		echo esc_html__( 'Switch the active strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers.', 'ffcertificate' );
-		echo '</p></div>';
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'warning',
+			esc_html__( 'Switch the active strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers.', 'ffcertificate' ),
+			array(
+				'icon'  => 'bulb',
+				'title' => __( 'Recommended:', 'ffcertificate' ),
+			)
+		);
 	}
 
 	/**
@@ -641,10 +645,14 @@ class TabIpDiagnostics extends SettingsTab {
 		echo '<p class="description">' . esc_html__( 'One CIDR or IP per line. Used only with the Custom mode above.', 'ffcertificate' ) . '</p>';
 		// (#920 ①) Steer admins away from the common mistake of pasting the
 		// Cloudflare ranges here — they are detected and refreshed automatically.
-		echo '<div class="notice notice-warning inline ffc-ip-cloudflare-warning"><p>';
-		echo '<strong>' . esc_html__( 'Do not paste Cloudflare ranges here.', 'ffcertificate' ) . '</strong> ';
-		echo esc_html__( 'They are already detected and kept up to date automatically (official ips-v4/ips-v6 lists, daily refresh) via the Auto or Cloudflare modes. This field is only for your own reverse proxy — nginx, HAProxy or another CDN.', 'ffcertificate' );
-		echo '</p></div>';
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'warning',
+			esc_html__( 'They are already detected and kept up to date automatically (official ips-v4/ips-v6 lists, daily refresh) via the Auto or Cloudflare modes. This field is only for your own reverse proxy — nginx, HAProxy or another CDN.', 'ffcertificate' ),
+			array(
+				'title'   => __( 'Do not paste Cloudflare ranges here.', 'ffcertificate' ),
+				'classes' => array( 'ffc-ip-cloudflare-warning' ),
+			)
+		);
 		echo '</td></tr>';
 
 		// Shadow logging — a `.ffc-control-toggle` with autosave (allowlisted key

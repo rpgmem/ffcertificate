@@ -32,23 +32,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'The Post Types setting has two columns per type: "Shorten" (show the meta box and allow short URLs for that type) and "Expose". When a type is exposed, a published post\'s short URL becomes the site\'s canonical shortlink — WordPress emits it as the', 'ffcertificate' ); ?> <code>rel="shortlink"</code> <?php esc_html_e( 'tag in the page head and the HTTP Link header, and it also backs the editor\'s "Get Shortlink" button and REST. Expose is off by default (opt-in), depends on Shorten, and only takes effect once a short URL exists for the page — otherwise WordPress falls back to its native shortlink.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'The "Generate missing short URLs" button creates short URLs for already-published posts of the shortened types that do not have one yet (it runs in timeout-safe batches). This only creates the short URLs — tick "Expose" to publish them as shortlinks.', 'ffcertificate' ); ?></p>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Editing & the destination.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Manually-created links can be edited (destination URL + title) from the list. Links created for a post/page are not editable — their destination automatically follows the page: if you change the post slug (or the site permalink structure), the short URL keeps redirecting to the current permalink.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Editing & the destination.', 'ffcertificate' ) )
+	);
+	?>
 
 	<h4><?php esc_html_e( 'The list & QR codes', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The list shows each link\'s title, short URL, destination, click count and status, with actions to show a QR code, enable/disable, or trash (trashed links can be restored or permanently deleted). Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted.', 'ffcertificate' ); ?> <?php esc_html_e( 'Their design follows Settings → QR Code when it is applied to short URLs.', 'ffcertificate' ); ?> <a href="#config-qr-code"><?php esc_html_e( 'See QR Code settings', 'ffcertificate' ); ?></a>.</p>
 	<p><?php esc_html_e( 'QR Codes are also available over REST for external automations:', 'ffcertificate' ); ?> <code>GET /ffc/v1/short-urls/{code}/qr</code> (<?php esc_html_e( 'base64 png/svg, cap-gated by ffc_view_url_shortener via an Application Password).', 'ffcertificate' ); ?> <a href="#developer-hooks-api"><?php esc_html_e( 'See the REST API', 'ffcertificate' ); ?></a>.</p>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Clicks are a counter only.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Each visit increments a click count; the plugin does not store per-click timestamps, referrers or IPs. Disabled and trashed links redirect home and are not counted.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Clicks are a counter only.', 'ffcertificate' ) )
+	);
+	?>
 
 	<h4><?php esc_html_e( 'Exporting', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The "Export CSV" button downloads the list — code, title, destination, click count and status — as a CSV file, honouring the current search box, status filter and sort order. The export runs as a timeout-safe background job (the same batched engine every other list export uses), so it is safe on shared hosting with large link tables. Gated by the', 'ffcertificate' ); ?> <code>ffc_export_url_shortener</code> <?php esc_html_e( 'capability.', 'ffcertificate' ); ?></p>

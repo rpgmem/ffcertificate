@@ -452,7 +452,7 @@ class AdminSubmissionEditPage {
 		ob_start();
 		?>
 			<p>
-				<strong class="ffc-icon-warning"><?php esc_html_e( 'Warning:', 'ffcertificate' ); ?></strong>
+				<strong><?php esc_html_e( 'Warning:', 'ffcertificate' ); ?></strong>
 				<?php
 				echo wp_kses_post(
 					sprintf(
@@ -470,13 +470,10 @@ class AdminSubmissionEditPage {
 				<?php endif; ?>.
 			</p>
 		<?php
-		\FreeFormCertificate\Core\AdminNotice::render(
+		\FreeFormCertificate\Core\AdminNotice::callout(
 			'warning',
 			(string) ob_get_clean(),
-			array(
-				'additional_classes' => array( 'ffc-edited-notice' ),
-				'paragraph_wrap'     => false,
-			)
+			array( 'classes' => array( 'ffc-edited-notice' ) )
 		);
 	}
 

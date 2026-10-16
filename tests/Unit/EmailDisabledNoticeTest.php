@@ -24,6 +24,8 @@ class EmailDisabledNoticeTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => '/wp-admin/' . $p );
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'wp_kses_post' )->returnArg();
 	}
 
 	protected function tearDown(): void {
@@ -54,7 +56,11 @@ class EmailDisabledNoticeTest extends TestCase {
 
 		$html = $this->capture();
 
-		$this->assertStringContainsString( 'ffc-email-disabled-notice', $html );
+		// The `.ffc-notice` callout in the warning tone, with the email icon
+		// (#1843), never a core `.notice` that common.js would lift away.
+		$this->assertStringStartsWith( '<div class="ffc-notice ffc-notice-warning" role="note" data-ffc-notice="emails-disabled">', $html );
+		$this->assertStringContainsString( '<span class="ffc-notice-icon ffc-icon-email" aria-hidden="true"></span>', $html );
+		$this->assertStringNotContainsString( 'class="notice', $html );
 		$this->assertStringContainsString( 'admin.php?page=ffc-settings&tab=smtp', $html );
 		$this->assertStringContainsString( 'currently turned off', $html );
 	}

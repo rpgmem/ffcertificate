@@ -37,12 +37,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><?php esc_html_e( 'The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form.', 'ffcertificate' ); ?></p>
 	</div>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Templates come from a shared pool.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Certificate PDF layouts are managed as reusable, duplicable templates in the Document Templates hub — not edited inline per form only. The form editor selects which pool template it issues; the same pool also backs the reregistration record and the appointment receipt. Build or duplicate a layout once and reuse it across forms.', 'ffcertificate' ); ?> <a href="#document-templates-hub"><?php esc_html_e( 'See the Document Templates hub.', 'ffcertificate' ); ?></a>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Templates come from a shared pool.', 'ffcertificate' ) )
+	);
+	?>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Geofence: restrict where a form can be submitted', 'ffcertificate' ); ?></h4>

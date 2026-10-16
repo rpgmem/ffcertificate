@@ -36,10 +36,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</ul>
 	</div>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Why Legacy is still the default:', 'ffcertificate' ); ?></strong>
+			<strong><?php esc_html_e( 'Why Legacy is still the default:', 'ffcertificate' ); ?></strong>
 			<?php esc_html_e( 'switching changes which address rate limits and the geofence see, which can matter on shared hosting. The tab recommends Secure, and putting Cloudflare (free plan) in front of the site for an address that cannot be forged.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean()
+	);
+	?>
 </div>

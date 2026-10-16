@@ -630,12 +630,9 @@ class Settings {
 			<?php
 			$ffc_settings_can_edit = $page_state['can_edit'];
 			if ( ! $ffc_settings_can_edit ) {
-				wp_admin_notice(
-					esc_html__( 'Read-only — you can view these settings but do not have permission to change them.', 'ffcertificate' ),
-					array(
-						'type'               => 'info',
-						'additional_classes' => array( 'inline' ),
-					)
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'info',
+					esc_html__( 'Read-only — you can view these settings but do not have permission to change them.', 'ffcertificate' )
 				);
 			}
 			?>

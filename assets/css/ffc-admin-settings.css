@@ -745,24 +745,6 @@
     font-size: var(--ffc-font-size-lg);
 }
 
-/* Alerts */
-.ffc-alert {
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    border-radius: var(--ffc-radius-sm);
-    margin: var(--ffc-spacing-2xl) 0;
-    border-left: 4px solid;
-}
-
-.ffc-alert p {
-    margin: 0;
-}
-
-.ffc-alert-info {
-    background: var(--ffc-info-bg);
-    border-color: var(--ffc-info-border);
-    color: var(--ffc-info-text);
-}
-
 /* Tables in Documentation */
 .ffc-settings-wrap .widefat {
     border: 1px solid var(--ffc-border);
@@ -1138,10 +1120,6 @@ html:has(.ffc-settings-back-to-top) {
    also loads there but these classes are kept feature-local to avoid
    coupling the views to the shared utility names. */
 
-.ffc-set-my-10 {
-    margin: var(--ffc-spacing-md) 0;
-}
-
 .ffc-set-my-12 {
     margin: var(--ffc-spacing-lg) 0;
 }
@@ -1243,11 +1221,6 @@ html:has(.ffc-settings-back-to-top) {
 }
 
 /* General tab: date/time format divergence notice body. */
-.ffc-settings-divergence-notice {
-    margin: var(--ffc-spacing-xl) 0;
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
-}
-
 .ffc-settings-divergence-notice p {
     margin: 0 0 var(--ffc-spacing-sm);
 }
@@ -1309,12 +1282,6 @@ html:has(.ffc-settings-back-to-top) {
 .ffc-url-shortener-types .ffc-col-center {
     text-align: center;
     width: 6em;
-}
-
-.ffc-inline-status {
-    margin-left: var(--ffc-spacing-sm);
-    font-style: italic;
-    color: var(--ffc-text-muted);
 }
 
 /* #1563 — QR Code tab: design controls beside a live preview. */
@@ -1441,14 +1408,9 @@ html:has(.ffc-settings-back-to-top) {
 }
 
 /* IP Diagnostics → custom proxies: the Cloudflare warning under the field. */
-.ffc-settings-wrap .notice.ffc-ip-cloudflare-warning {
+.ffc-settings-wrap .ffc-notice.ffc-ip-cloudflare-warning {
     margin: var(--ffc-spacing-sm) 0 0;
     max-width: 560px;
-}
-
-/* Advanced → the result notices of the maintenance actions. */
-.ffc-settings-wrap .notice.ffc-advanced-notice {
-    margin: var(--ffc-spacing-lg) 0;
 }
 
 /* Email Texts → the email index: a group heading row lets the stripe show

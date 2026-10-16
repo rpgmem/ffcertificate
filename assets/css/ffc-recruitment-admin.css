@@ -250,12 +250,6 @@
     height: 14px;
 }
 
-.ffc-rec-mono-status {
-    margin-left: 1em;
-    font-family: monospace;
-    font-size: var(--ffc-font-size-xs);
-}
-
 .ffc-rec-csv-errors {
     margin: .5em 0 0;
     padding-left: 1.5em;
@@ -321,11 +315,6 @@
     margin-bottom: var(--ffc-spacing-sm);
 }
 
-.ffc-rec-welcome-notice {
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    margin: 1em 0;
-}
-
 /* The notice sits inside the Notices tab's `.card`, where
    `.ffc-settings-wrap .card h3` would push its heading down; it opens flush. */
 .ffc-recruitment-admin .ffc-rec-welcome-notice h3 {
@@ -365,16 +354,6 @@
     .ffc-recruitment-status-badge {
         border: 1px solid CanvasText;
     }
-}
-
-/* Candidate edit → adjutancy swap: the outcome line beside the button. The
-   script wrote these colours inline until #1837. */
-.ffc-adjutancy-swap-msg.is-success {
-    color: var(--ffc-success);
-}
-
-.ffc-adjutancy-swap-msg.is-error {
-    color: var(--ffc-danger);
 }
 
 /* Notice edit → preliminary preview: a status that needs a reason marks its

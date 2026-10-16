@@ -44,15 +44,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class AdminNotice {
 
 	/**
-	 * Each type, with its registry icon and its icon tone.
+	 * Each type, with the registry icon a callout of that type leads with.
 	 *
-	 * @var array<string, array{0: string, 1: string}>
+	 * @var array<string, string>
 	 */
 	public const TYPES = array(
-		'success' => array( 'success', 'success' ),
-		'info'    => array( 'info', 'info' ),
-		'warning' => array( 'warning', 'warning' ),
-		'error'   => array( 'error', 'danger' ),
+		'success' => 'success',
+		'info'    => 'info',
+		'warning' => 'warning',
+		'error'   => 'error',
+	);
+
+	/**
+	 * The icon classes of each type, written out whole so the icon guards can
+	 * read them: the registry icon and its tone.
+	 *
+	 * @var array<string, string>
+	 */
+	private const ICON_CLASSES = array(
+		'success' => 'ffc-icon-success ffc-icon-tone-success',
+		'info'    => 'ffc-icon-info ffc-icon-tone-info',
+		'warning' => 'ffc-icon-warning ffc-icon-tone-warning',
+		'error'   => 'ffc-icon-error ffc-icon-tone-danger',
 	);
 
 	/**
@@ -115,6 +128,75 @@ final class AdminNotice {
 	}
 
 	/**
+	 * Echo an in-content callout: a `.ffc-notice` inside a card or a tab.
+	 *
+	 * A callout is not page feedback, so it is not a `.notice` and core never
+	 * moves it to the top of the screen. It takes the same four types as a
+	 * page notice, maps them onto the component's tones (`error` is
+	 * `danger`), and leads with the type's icon unless the caller names
+	 * another one. Like {@see render()}, `$message` is HTML the caller
+	 * already escaped; a message that opens with a block element (a
+	 * paragraph, a list, a heading) is placed as it is, anything else is one
+	 * paragraph.
+	 *
+	 * @param string               $type    `success`, `info`, `warning` or `error`.
+	 * @param string               $message Escaped HTML.
+	 * @param array<string, mixed> $args {
+	 *     Optional.
+	 *
+	 *     @type string             $icon    A registry class name without the prefix.
+	 *     @type string             $title   A bold title, plain text.
+	 *     @type string             $role    `note` (default), `status` or `alert`.
+	 *     @type string             $live    `polite` or `assertive`.
+	 *     @type string             $hook    A `data-ffc-notice` value.
+	 *     @type array<int, string> $classes Further classes.
+	 *     @type array<string, string> $attrs `id` or `data-*` attributes.
+	 * }
+	 * @return void
+	 */
+	public static function callout( string $type, string $message, array $args = array() ): void {
+		echo wp_kses_post( self::callout_markup( $type, $message, $args ) );
+	}
+
+	/**
+	 * The markup of an in-content callout; see {@see callout()}.
+	 *
+	 * @param string               $type    The type.
+	 * @param string               $message Escaped HTML.
+	 * @param array<string, mixed> $args    See {@see callout()}.
+	 * @return string
+	 */
+	public static function callout_markup( string $type, string $message, array $args = array() ): string {
+		$type  = self::normalize_type( $type );
+		$icon  = isset( $args['icon'] ) && is_string( $args['icon'] ) ? $args['icon'] : self::TYPES[ $type ];
+		$title = isset( $args['title'] ) && is_string( $args['title'] ) ? $args['title'] : '';
+
+		$notice_args = array(
+			'html'   => true,
+			'blocks' => 1 === preg_match( '/^\s*<(?:p|ul|ol|dl|h[1-6]|div|table|pre|blockquote)[\s>]/i', $message ),
+			'role'   => isset( $args['role'] ) ? $args['role'] : 'note',
+		);
+		foreach ( array( 'live', 'hook', 'classes', 'attrs' ) as $key ) {
+			if ( isset( $args[ $key ] ) ) {
+				$notice_args[ $key ] = $args[ $key ];
+			}
+		}
+
+		return Notice::render( self::tone( $type ), $icon, $message, $title, $notice_args );
+	}
+
+	/**
+	 * The `.ffc-notice` tone of a notice type.
+	 *
+	 * @param string $type The notice type.
+	 * @return string
+	 */
+	public static function tone( string $type ): string {
+		$type = self::normalize_type( $type );
+		return 'error' === $type ? 'danger' : $type;
+	}
+
+	/**
 	 * Whether a notice of this type closes.
 	 *
 	 * @param string $type The notice type.
@@ -131,8 +213,7 @@ final class AdminNotice {
 	 * @return string
 	 */
 	public static function icon( string $type ): string {
-		$pair = self::TYPES[ self::normalize_type( $type ) ];
-		return '<span class="ffc-admin-notice-icon ffc-icon-' . $pair[0] . ' ffc-icon-tone-' . $pair[1] . '" aria-hidden="true"></span>';
+		return '<span class="ffc-admin-notice-icon ' . self::ICON_CLASSES[ self::normalize_type( $type ) ] . '" aria-hidden="true"></span>';
 	}
 
 	/**
@@ -144,6 +225,9 @@ final class AdminNotice {
 	public static function normalize_type( string $type ): string {
 		if ( 'updated' === $type ) {
 			return 'success';
+		}
+		if ( 'danger' === $type ) {
+			return 'error';
 		}
 		return isset( self::TYPES[ $type ] ) ? $type : 'info';
 	}

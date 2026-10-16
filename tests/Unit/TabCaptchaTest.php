@@ -117,18 +117,14 @@ class TabCaptchaTest extends TestCase {
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
-		$notices = array();
-		Functions\when( 'wp_admin_notice' )->alias(
-			static function ( $message, $args ) use ( &$notices ) {
-				$notices[] = $args['type'];
-			}
-		);
+		Functions\when( 'wp_kses_post' )->returnArg();
 
 		ob_start();
 		$this->tab->render();
 		$html = (string) ob_get_clean();
 
-		$this->assertSame( array( 'warning' ), $notices, 'the HTTPS warning is shown' );
+		// The HTTPS warning is an in-content callout in the warning tone (#1843).
+		$this->assertSame( 1, substr_count( $html, 'class="ffc-notice ffc-notice-warning"' ), 'the HTTPS warning is shown' );
 		$this->assertStringContainsString( 'name="_ffc_tab" value="captcha"', $html );
 		$this->assertStringContainsString( 'ALTCHA + Math', $html );
 		$this->assertStringContainsString( 'This is reach, not strength.', $html );

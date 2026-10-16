@@ -32,12 +32,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><strong><?php esc_html_e( 'Personal Calendars confirmation:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'a calendar can keep its own confirmation body; "Restore Default Text" there restores the effective global.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Audience booking / cancellation:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'a schedule\'s own custom body still overrides the global.', 'ffcertificate' ); ?></li>
 		</ul>
-		<div class="ffc-doc-note">
+		<?php ob_start(); ?>
 			<p>
-				<strong class="ffc-icon-info"><?php esc_html_e( 'Heads up after an upgrade.', 'ffcertificate' ); ?></strong><br>
 				<?php esc_html_e( 'When a shipped default text changes, a per-form / per-schedule / per-calendar body that still holds the OLD default is detected as Custom and keeps its old wording until you press "Restore Default Text"; blank (Global-tracking) entities render the new standard automatically.', 'ffcertificate' ); ?>
 			</p>
-		</div>
+		<?php
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'info',
+			(string) ob_get_clean(),
+			array( 'title' => __( 'Heads up after an upgrade.', 'ffcertificate' ) )
+		);
+		?>
 	</div>
 
 	<div class="ffc-doc-example">
@@ -56,10 +61,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><?php esc_html_e( 'Date-message e-mails are listed there too, but each rule\'s subject and body are edited on the rule itself, on the Date Messages screen. The hub\'s "Birthday message (default for new rules)" only sets the text a new rule starts from; existing rules keep their own.', 'ffcertificate' ); ?> <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages', 'ffcertificate' ); ?></a>.</p>
 	</div>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Who can edit here.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'The Email texts hub is gated by the dedicated ffc_manage_email_templates capability, so editing email copy can be delegated to — or withheld from — a role independently of the blanket Settings capability. Without it the tab is hidden entirely.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Who can edit here.', 'ffcertificate' ) )
+	);
+	?>
 </div>

@@ -556,12 +556,9 @@ $ffc_identity_tier_note = static function ( $tier ) {
 
 	<?php if ( is_array( $ffc_identity_outcome ) && ! empty( $ffc_identity_outcome['text'] ) ) : ?>
 		<?php
-		wp_admin_notice(
-			esc_html( (string) $ffc_identity_outcome['text'] ),
-			array(
-				'type'               => (string) ( $ffc_identity_outcome['type'] ?? 'info' ),
-				'additional_classes' => array( 'inline' ),
-			)
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			(string) ( $ffc_identity_outcome['type'] ?? 'info' ),
+			esc_html( (string) $ffc_identity_outcome['text'] )
 		);
 		?>
 	<?php endif; ?>
@@ -895,19 +892,17 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	?>
 	<?php if ( $ffc_identity_to_correct > 0 && $ffc_identity_to_judge > 0 ) : ?>
 		<?php
-		wp_admin_notice(
-			esc_html__( 'Work the corrections first. A number that fails its own check digit cannot be anyone\'s, so it is not evidence that two accounts belong to one person — correcting it can make a finding further down disappear rather than be resolved.', 'ffcertificate' ),
-			array(
-				'type'               => 'info',
-				'additional_classes' => array( 'inline' ),
-			)
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'info',
+			esc_html__( 'Work the corrections first. A number that fails its own check digit cannot be anyone\'s, so it is not evidence that two accounts belong to one person — correcting it can make a finding further down disappear rather than be resolved.', 'ffcertificate' )
 		);
 		?>
 	<?php endif; ?>
 
 	<?php if ( array() !== $ffc_identity_capped ) : ?>
 		<?php
-		wp_admin_notice(
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'warning',
 			esc_html(
 				sprintf(
 					/* translators: 1: how many findings each check returns at most, 2: comma-separated check names. */
@@ -915,10 +910,6 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					number_format_i18n( IdentityResolutionPage::LIMIT ),
 					implode( ', ', array_map( 'strval', $ffc_identity_capped ) )
 				)
-			),
-			array(
-				'type'               => 'warning',
-				'additional_classes' => array( 'inline' ),
 			)
 		);
 		?>
@@ -926,12 +917,9 @@ $ffc_identity_tier_note = static function ( $tier ) {
 
 	<?php if ( $ffc_identity_truncated ) : ?>
 		<?php
-		wp_admin_notice(
-			esc_html__( 'The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again.', 'ffcertificate' ),
-			array(
-				'type'               => 'warning',
-				'additional_classes' => array( 'inline' ),
-			)
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'warning',
+			esc_html__( 'The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again.', 'ffcertificate' )
 		);
 		?>
 	<?php endif; ?>
@@ -1968,12 +1956,9 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		// because then the sentence would be false -- a notice that renders
 		// unconditionally is the same defect as a strip that always reads clean.
 		if ( ! $ffc_identity_rf_gate ) {
-			wp_admin_notice(
-				esc_html__( 'New wrong RFs can still arrive: the submission form currently accepts any seven digits, because the RF check-digit requirement is off. Correcting the values below does not close that door — Settings → General turns it on. It does not affect CPF, which is always checked on submission.', 'ffcertificate' ),
-				array(
-					'type'               => 'warning',
-					'additional_classes' => array( 'inline' ),
-				)
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'warning',
+				esc_html__( 'New wrong RFs can still arrive: the submission form currently accepts any seven digits, because the RF check-digit requirement is off. Correcting the values below does not close that door — Settings → General turns it on. It does not affect CPF, which is always checked on submission.', 'ffcertificate' )
 			);
 		}
 	}
@@ -1993,27 +1978,21 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		?>
 		<?php if ( 0 === $ffc_identity_all['stores'] ) : ?>
 			<?php
-			wp_admin_notice(
-				esc_html__( 'Nothing was scanned: no store on this install carries an RF or a CPF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result.', 'ffcertificate' ),
-				array(
-					'type'               => 'warning',
-					'additional_classes' => array( 'inline' ),
-				)
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'warning',
+				esc_html__( 'Nothing was scanned: no store on this install carries an RF or a CPF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result.', 'ffcertificate' )
 			);
 			?>
 		<?php elseif ( $ffc_identity_all['examined'] > 0 && $ffc_identity_all['examined'] === $ffc_identity_all['unreadable'] ) : ?>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'error',
 				esc_html(
 					sprintf(
 						/* translators: %s: how many distinct stored values were found. */
 						__( 'Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result.', 'ffcertificate' ),
 						number_format_i18n( $ffc_identity_all['examined'] )
 					)
-				),
-				array(
-					'type'               => 'error',
-					'additional_classes' => array( 'inline' ),
 				)
 			);
 			?>
@@ -2030,17 +2009,14 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			// says no row in any scanned store carries both a hash and a
 			// ciphertext. On a fresh or test install that is ordinary; on an
 			// install with submissions it is a signal.
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'info',
 				esc_html(
 					sprintf(
 						/* translators: %s: how many stores were scanned. */
 						__( 'No stored RF or CPF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured one yet — worth looking into on one that has.', 'ffcertificate' ),
 						number_format_i18n( $ffc_identity_all['stores'] )
 					)
-				),
-				array(
-					'type'               => 'info',
-					'additional_classes' => array( 'inline' ),
 				)
 			);
 			?>
@@ -2577,9 +2553,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			<?php esc_html_e( 'These are usually candidacies that were never promoted, or records whose account was deleted. Linking one to an existing account uses the same rule as a move: the two must already agree on an identifier. Opening an account needs CPF, RF and an e-mail address together — an account opened from one identifier is one the resolver will fail to match on the next record carrying another.', 'ffcertificate' ); ?>
 		</p>
 		<?php if ( $ffc_identity_orphan_capped ) : ?>
-			<div class="notice notice-warning inline">
-				<p><?php esc_html_e( 'More orphaned records were found than are shown. Resolve these and read the queue again.', 'ffcertificate' ); ?></p>
-			</div>
+			<?php \FreeFormCertificate\Core\AdminNotice::callout( 'warning', esc_html__( 'More orphaned records were found than are shown. Resolve these and read the queue again.', 'ffcertificate' ) ); ?>
 		<?php endif; ?>
 		<?php
 		// THE SAME CARD AGAIN, OVER THE ONE FINDING THAT IS ABOUT AN ABSENCE

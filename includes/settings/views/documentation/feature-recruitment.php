@@ -86,10 +86,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-lock"><?php esc_html_e( 'Privacy:', 'ffcertificate' ); ?></strong>
+			<strong><?php esc_html_e( 'Privacy:', 'ffcertificate' ); ?></strong>
 			<?php esc_html_e( 'CPF, RF and email are stored encrypted and shown masked by default in both the admin lists and the public queue; unmasking requires the ffc_view_recruitment_pii capability, and a candidate can always see their own data. Convocation emails always mask these fields.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'icon' => 'lock' )
+	);
+	?>
 </div>
