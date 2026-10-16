@@ -1010,6 +1010,11 @@
 .ffc-shortcode .ffc-modal-body .ffc-cancel-summary dt,
 .ffc-shortcode .ffc-modal-body .ffc-cancel-summary dd {
     font-size: var(--ffc-font-size-base);
+    /* The dialog's running text wraps, so it carries a line height of its
+       own — on the tags, because a theme's `p { line-height }` sits on the
+       tag and beats anything inherited. Not on the body: every audience
+       dialog shares it, and their labels and badges are single lines. */
+    line-height: 1.5;
 }
 
 .ffc-shortcode .ffc-modal-footer {
@@ -1032,6 +1037,7 @@
 .ffc-shortcode .ffc-modal-body .ffc-form-group textarea {
     width: 100%;
     font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
     box-sizing: border-box;
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
     color: var(--ffc-text);

@@ -255,6 +255,7 @@
 .ffc-rereg-termo-text p,
 .ffc-rereg-termo-text li {
     font-size: var(--ffc-font-size-sm);
+    line-height: 1.6;
 }
 
 /* ── Validation Error ────────────────────────── */

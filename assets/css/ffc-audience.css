@@ -536,6 +536,7 @@
 .ffc-shortcode .ffc-booking-description {
     margin: var(--ffc-spacing-md) 0;
     font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
 }
 
 .ffc-shortcode .ffc-booking-meta {
