@@ -241,9 +241,18 @@
     border-bottom: 2px solid var(--ffc-border-light);
 }
 
+/* Between the phone layout and a width that fits every tab, the tabs flow
+   onto a second row instead of pushing the page sideways (#1840). The row gap
+   is wider than the tabs' 2px overlap, so a tab on an upper row never reaches
+   into the row below; the bar's rule stays under the last row, where an
+   active tab there meets it as on one row. The tablist takes the space the
+   link leaves, so the link stays at the right end of the bar. */
 .ffc-dashboard-tabs {
     display: flex;
-    gap: var(--ffc-spacing-3xs);
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-3xs);
 }
 
 .ffc-tab:focus:not(:focus-visible) {
@@ -884,7 +893,11 @@
    ========================================================================== */
 
 .ffc-logout-link {
-    align-self: center;
+    /* Bottom-aligned and lifted by the 2xs step, which centres it on the
+       LAST row of tabs: on one row that is where `center` put it, and on two
+       rows `center` would leave it between them. */
+    align-self: flex-end;
+    margin-bottom: var(--ffc-spacing-2xs);
     margin-left: auto;
     flex-shrink: 0;
     white-space: nowrap;
@@ -1534,6 +1547,7 @@
         align-self: stretch;
         justify-content: center;
         margin-left: 0;
+        margin-bottom: 0;
         margin-top: var(--ffc-spacing-lg);
         padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
     }

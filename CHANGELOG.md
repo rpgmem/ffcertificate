@@ -44,6 +44,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The dashboard's calendar tabs page each section on its own** (#1836). Personal and Group Calendar page Upcoming by 5, Past by 3 and Cancelled by 2, with a count per heading and aligned columns; Certificates keeps its pager. The filter bar is compact, and pt_BR reads "Cancelados".
 - **The Reregistrations tab spaces its groups again** (#1837). Completed sat flush against the Active table because the heading margin lost to the tab's own reset; each group is now a section, spaced like the calendar tabs.
 - **A clicked dashboard tab no longer shows a focus box** (#1840). The tabs draw their ring on keyboard focus only (`:focus-visible`, the 2px primary ring), so a theme's `button:focus` outline no longer boxes the active tab after a click.
+- **The dashboard's tab bar wraps instead of overflowing** (#1840). Between the phone layout and a width that fits every tab, the tabs flow onto a second row and Log Out stays at the right end of the last row; at 769–900px the page no longer scrolls sideways.
 
 ### Security
 
