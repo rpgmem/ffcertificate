@@ -52,6 +52,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The dashboard's tab bar wraps instead of overflowing** (#1840). Between the phone layout and a width that fits every tab, the tabs flow onto a second row and Log Out stays at the right end of the last row; at 769–900px the page no longer scrolls sideways.
 - **The rate-limit notice shows on the form that was refused** (#1846). It looked for `.ffc-form`, which no public form has, so the certificate form never showed it; it now sits above the refused form, counts down, and gives the button its own label back.
 - **Admin messages that were lost or unsafe** (#1843). User Access shows its save message; the reregistration details dialog writes a server error as text; Activity Log's empty state stays in its table; the Danger Zone wears one bar; `.ffc-warning-text` is `.ffc-text-danger`, and `.ffc-text-info` reads the info tone.
+- **Two required controls now carry `required`** (#1850). A required reregistration checkbox, such as the consent, is flagged under its group when unticked and blocks the submit; the QR short title is required while its row shows.
 
 ### Security
 

@@ -82,6 +82,8 @@
 				this.hidden = false;
 			}
 		});
+		// A hidden title must not hold up constraint validation (#1850).
+		window.FFC.setRequiredWithin($form.find('[data-ffc-qr-short-on]'), on);
 	}
 
 	/**
