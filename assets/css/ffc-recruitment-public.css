@@ -104,6 +104,14 @@
     display: inline-flex;
     align-items: center;
     gap: var(--ffc-spacing-xs);
+    font-size: var(--ffc-font-size-base);
+}
+
+/* The name search: a form control takes the user agent's size, not its
+   label's, and a theme that sizes `input` reached it (#1832). The step is the
+   one the filter selects beside it already read. */
+.ffc-recruitment-queue .ffc-recruitment-filters input {
+    font-size: var(--ffc-font-size-sm);
 }
 
 .ffc-recruitment-queue .ffc-recruitment-search-btn {

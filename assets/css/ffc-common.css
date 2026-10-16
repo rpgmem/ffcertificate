@@ -317,6 +317,58 @@
 }
 
 /* ==========================================================================
+   ROOT TEXT SIZE — the safety net under every public surface (#1832)
+   ==========================================================================
+
+   A plugin root names its own text size, and the text tags under it take
+   that size instead of the theme's. Without this, any text the component
+   rules forgot to size took it from the host document: the body's size when
+   the theme sizes only `body`, and the theme's own size for `p`, `li`,
+   `label`, `input` … when it sizes those (the #1829 shape). A render audit
+   measured both on every public surface.
+
+   It is a NET, not a rule that decides anything, and three properties keep it
+   that way. `SafetyNetTypographyTest` pins all three.
+
+   1. It comes FIRST, before any component rule. The tag list is inside
+      `:where()`, so the selector weighs one class, (0,1,0) — exactly what a
+      single-class component rule weighs, and every one of them comes later in
+      the cascade, so every component that sizes its text still wins. It is
+      not (0,0,0) on purpose: a theme's bare `p { … }` weighs (0,0,1), and a
+      net that loses to it catches nothing.
+   2. `inherit`, not a step. A tag under the root takes its PARENT's size, so a
+      component that sizes its container sizes everything inside it; the net
+      only stops the theme from re-sizing the inner tags. That is also why the
+      containers are listed: an inner `p` that inherits from a `div` the theme
+      sized would take the theme's size, so the chain from the root down is
+      closed. None of the listed tags has a size of its own in the user agent
+      except the form controls, so with no theme loaded the net changes only
+      the text that had no size at all, and the controls. `inherit` is not a
+      size, which is why it is one of this sheet's literals and the budget in
+      `TypographyTokensTest` names it.
+   3. No headings and no line height. A heading the plugin did not size takes
+      the user agent's relative size (`h3` is 1.17em of its parent), which is
+      a hierarchy; `inherit` would flatten it to body text, so an unsized
+      heading gets a named size in its component instead. And a root
+      `line-height` was measured re-flowing 1,275 elements with no theme
+      loaded at all, so line height is set per component, where text wraps.
+
+   `small` takes the scale's `sm` step rather than `inherit`: inheriting would
+   draw it at its parent's size, which is what `small` exists not to do. */
+.ffc-shortcode {
+    font-size: var(--ffc-font-size-base);
+}
+
+.ffc-shortcode :where(div, section, article, header, footer, nav, form, fieldset, details, summary, ul, ol, dl, table, caption, thead, tbody, tfoot, tr),
+.ffc-shortcode :where(p, li, dt, dd, label, legend, span, strong, em, b, i, a, td, th, button, input, select, textarea) {
+    font-size: inherit;
+}
+
+.ffc-shortcode :where(small) {
+    font-size: var(--ffc-font-size-sm);
+}
+
+/* ==========================================================================
    DARK MODE - WordPress core chrome (#1126)
    ==========================================================================
 
@@ -945,6 +997,24 @@
 
 .ffc-shortcode .ffc-modal-body {
     padding: var(--ffc-spacing-2xl);
+    font-size: var(--ffc-font-size-base);
+}
+
+/* The dialog's own text is sized here, not left to the root (#1832): the
+   modal is appended to `<body>`, so before it carried the root class itself
+   its paragraph and its summary took the theme's body size. Naming the step
+   on each keeps the dialog's text one size whatever the page around it. The
+   summary is named under the modal only — the public cancellation page
+   draws it too, on a page of its own, at that page's size. */
+.ffc-shortcode .ffc-modal-body > p,
+.ffc-shortcode .ffc-modal-body .ffc-cancel-summary dt,
+.ffc-shortcode .ffc-modal-body .ffc-cancel-summary dd {
+    font-size: var(--ffc-font-size-base);
+    /* The dialog's running text wraps, so it carries a line height of its
+       own — on the tags, because a theme's `p { line-height }` sits on the
+       tag and beats anything inherited. Not on the body: every audience
+       dialog shares it, and their labels and badges are single lines. */
+    line-height: 1.5;
 }
 
 .ffc-shortcode .ffc-modal-footer {
@@ -959,12 +1029,15 @@
    and the sheet that styled `.ffc-form-group` is not loaded on the dashboard. */
 .ffc-shortcode .ffc-modal-body .ffc-form-group label {
     display: block;
+    font-size: var(--ffc-font-size-base);
     font-weight: 600;
     margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-shortcode .ffc-modal-body .ffc-form-group textarea {
     width: 100%;
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
     box-sizing: border-box;
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
     color: var(--ffc-text);

@@ -101,8 +101,11 @@ class TypographyTokensTest extends TestCase {
 		'ffc-audience.css'                 => 2,
 
 		// Two `em` values relative to the parent on purpose: the component is
-		// dropped into contexts of different sizes and follows each one.
-		'ffc-common.css'                   => 2,
+		// dropped into contexts of different sizes and follows each one. Plus
+		// the root safety net's `inherit` (#1832): not a size, but the keyword
+		// that makes a tag under `.ffc-shortcode` take its parent's step
+		// instead of the theme's. `SafetyNetTypographyTest` pins it.
+		'ffc-common.css'                   => 3,
 
 		// `ffc-pdf-core.css` stays entirely literal, for two distinct reasons.
 		// The six h1-h6 rules redeclare the user agent's default sizes

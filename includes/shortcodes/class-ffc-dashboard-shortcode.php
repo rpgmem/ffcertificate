@@ -333,9 +333,13 @@ class DashboardShortcode {
 			}
 		}
 
+		// The notice is a plugin root of its own and loads the dashboard's
+		// sheets: before #1832 it loaded none, and sat outside any root.
+		DashboardAssetManager::enqueue_styles();
+
 		ob_start();
 		?>
-		<div class="ffc-dashboard-notice ffc-notice-warning">
+		<div class="ffc-shortcode ffc-dashboard-notice ffc-notice-warning">
 			<p><?php esc_html_e( 'You must be logged in to view your dashboard.', 'ffcertificate' ); ?></p>
 			<p>
 				<?php $permalink = get_permalink(); ?>

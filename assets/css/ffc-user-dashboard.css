@@ -213,8 +213,13 @@
     color: var(--ffc-warning-text);
 }
 
+/* A notice's paragraph — the reregistration banner's line on every tab, the
+   admin-viewing banner, the logged-out notice — is sized here rather than
+   left to the root, so a theme that sizes `p` does not re-size it (#1832). */
 .ffc-dashboard-notice p {
     margin: 0.4em 0;
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
 }
 
 .ffc-dashboard-notice .button {
@@ -706,6 +711,9 @@
    fixed `#666` that dropped to about 2.6:1 in the dark theme (#1826). */
 .ffc-audience-bookings-table .ffc-booking-schedule {
     color: var(--ffc-text-muted);
+    /* The step below the cell's, which is what `small` drew relative to it
+       before the root gave `small` the `sm` step (#1832). */
+    font-size: var(--ffc-font-size-2xs);
 }
 
 .ffc-audience-bookings-table .ffc-audience-tag:last-child {
@@ -1462,17 +1470,24 @@
 }
 
 /* ==========================================================================
-   RECRUITMENT TAB — visual parity with the other dashboard tabs
-   ========================================================================== */
+   MY CALLS — the recruitment tab, and `[ffc_recruitment_my_calls]` alone
+   ==========================================================================
 
-#ffc-tabpanel-recruitment .ffc-recruitment-my-calls > h2 {
+   The section renders in two places: the dashboard's recruitment tab and the
+   standalone shortcode, which `RecruitmentDashboardSection::render()` serves
+   on any page. These rules used to descend from `#ffc-tabpanel-recruitment`,
+   so the standalone shortcode — which also loaded no sheet — drew a bare
+   section in the theme's sizes (#1832). They now hang off the section's own
+   class, and the shortcode loads this sheet, so the rules keep one owner. */
+
+.ffc-recruitment-my-calls > h2 {
     margin: 0 0 var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     color: var(--ffc-text);
 }
 
-#ffc-tabpanel-recruitment .ffc-recruitment-my-notice {
+.ffc-recruitment-my-calls .ffc-recruitment-my-notice {
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     background: var(--ffc-bg-card);
@@ -1480,20 +1495,20 @@
     margin-bottom: var(--ffc-spacing-xl);
 }
 
-#ffc-tabpanel-recruitment .ffc-recruitment-my-notice header {
+.ffc-recruitment-my-calls .ffc-recruitment-my-notice header {
     margin-bottom: var(--ffc-spacing-lg);
     border-bottom: 1px solid var(--ffc-border-light);
     padding-bottom: var(--ffc-spacing-lg);
 }
 
-#ffc-tabpanel-recruitment .ffc-recruitment-my-notice header h3 {
+.ffc-recruitment-my-calls .ffc-recruitment-my-notice header h3 {
     margin: 0 0 var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
 }
 
-#ffc-tabpanel-recruitment .ffc-recruitment-my-notice h4 {
+.ffc-recruitment-my-calls .ffc-recruitment-my-notice h4 {
     margin: var(--ffc-spacing-xl) 0 var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-xs);
     font-weight: 600;
@@ -1502,7 +1517,7 @@
     letter-spacing: 0.3px;
 }
 
-#ffc-tabpanel-recruitment .ffc-recruitment-banner {
+.ffc-recruitment-my-calls .ffc-recruitment-banner {
     display: inline-block;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
     border-radius: var(--ffc-radius-md);
@@ -1510,12 +1525,12 @@
     font-weight: 500;
 }
 
-#ffc-tabpanel-recruitment .ffc-banner-preliminary {
+.ffc-recruitment-my-calls .ffc-banner-preliminary {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
-#ffc-tabpanel-recruitment .ffc-banner-definitive {
+.ffc-recruitment-my-calls .ffc-banner-definitive {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
