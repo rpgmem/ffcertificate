@@ -435,6 +435,76 @@
         },
 
         /**
+         * Build a system notice (#1842): the JS twin of `Core\Notice::render()`,
+         * printing the same markup, so no script hand-writes it.
+         *
+         * Every string lands through `textContent`, never `innerHTML`, so a
+         * message from the server or a translation cannot become markup.
+         *
+         * @param {string} tone  info | warning | danger | success | neutral; anything else is info.
+         * @param {string} icon  A `.ffc-icon-*` class name without the prefix (`clock`).
+         * @param {string|string[]} text  The message; a list prints one paragraph each.
+         * @param {string} [title]  Optional bold title.
+         * @param {Object} [options]
+         * @param {string} [options.role]  status (default) | alert | note.
+         * @param {string} [options.live]  polite | assertive.
+         * @param {string} [options.hook]  A `data-ffc-notice` value a script finds it by.
+         * @param {Node[]} [options.children]  Nodes appended after the text (a button).
+         * @return {HTMLElement}
+         */
+        notice: function(tone, icon, text, title, options) {
+            var fallbacks = { info: 'info', warning: 'warning', danger: 'error', success: 'success', neutral: 'info' };
+            var opts = options || {};
+            if (!Object.prototype.hasOwnProperty.call(fallbacks, tone)) {
+                tone = 'info';
+            }
+            if (typeof icon !== 'string' || !/^[a-z0-9-]+$/.test(icon)) {
+                icon = fallbacks[tone];
+            }
+
+            var notice = document.createElement('div');
+            notice.className = 'ffc-notice ffc-notice-' + tone;
+            notice.setAttribute('role', ['status', 'alert', 'note'].indexOf(opts.role) !== -1 ? opts.role : 'status');
+            if (opts.live === 'polite' || opts.live === 'assertive') {
+                notice.setAttribute('aria-live', opts.live);
+            }
+            if (typeof opts.hook === 'string' && opts.hook !== '') {
+                notice.setAttribute('data-ffc-notice', opts.hook);
+            }
+
+            var mark = document.createElement('span');
+            mark.className = 'ffc-notice-icon ffc-icon-' + icon;
+            mark.setAttribute('aria-hidden', 'true');
+
+            var body = document.createElement('div');
+            body.className = 'ffc-notice-body';
+            if (title) {
+                var strong = document.createElement('strong');
+                strong.className = 'ffc-notice-title';
+                strong.textContent = String(title);
+                body.appendChild(strong);
+            }
+            (Array.isArray(text) ? text : [text]).forEach(function(paragraph) {
+                if (paragraph === null || typeof paragraph === 'undefined' || paragraph === '') {
+                    return;
+                }
+                var p = document.createElement('p');
+                p.className = 'ffc-notice-text';
+                p.textContent = String(paragraph);
+                body.appendChild(p);
+            });
+            (opts.children || []).forEach(function(child) {
+                if (child) {
+                    body.appendChild(child);
+                }
+            });
+
+            notice.appendChild(mark);
+            notice.appendChild(body);
+            return notice;
+        },
+
+        /**
          * Centralized field toggle helper
          *
          * @param {jQuery|string} $trigger - Trigger element (checkbox, radio, select)
