@@ -27,6 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *       <div class="ffc-notice-body">
  *         <strong class="ffc-notice-title">…</strong>
  *         <p class="ffc-notice-text">…</p>
+ *         <div class="ffc-notice-actions">…</div>
  *       </div>
  *     </div>
  *
@@ -75,11 +76,14 @@ final class Notice {
 	 * @param array<string, mixed>      $args {
 	 *          Optional.
 	 *
-	 *     @type string                $role  One of self::ROLES; default `status`.
-	 *     @type string                $live  `polite` or `assertive`; default none.
-	 *     @type bool                  $html  The message is trusted HTML; default false.
-	 *     @type string                $hook  A `data-ffc-notice` value a script finds the notice by.
-	 *     @type array<string, string> $attrs Further `data-*` or `id` attributes.
+	 *     @type string                $role    One of self::ROLES; default `status`.
+	 *     @type string                $live    `polite` or `assertive`; default none.
+	 *     @type bool                  $html    The message is trusted HTML; default false.
+	 *     @type string                $hook    A `data-ffc-notice` value a script finds the notice by.
+	 *     @type array<string, string> $attrs   Further `data-*` or `id` attributes.
+	 *     @type string                $actions Trusted HTML for the notice's buttons and links, printed
+	 *                                          through `wp_kses_post()` below the text -- the PHP twin of
+	 *                                          `FFC.notice()`'s `children` option.
 	 * }
 	 * @return string
 	 */
@@ -115,6 +119,9 @@ final class Notice {
 				continue;
 			}
 			$body .= '<p class="ffc-notice-text">' . ( $html ? wp_kses_post( $paragraph ) : esc_html( $paragraph ) ) . '</p>';
+		}
+		if ( isset( $args['actions'] ) && is_string( $args['actions'] ) && '' !== $args['actions'] ) {
+			$body .= '<div class="ffc-notice-actions">' . wp_kses_post( $args['actions'] ) . '</div>';
 		}
 
 		return '<div class="ffc-notice ffc-notice-' . esc_attr( $tone ) . '"' . $attributes . '>'

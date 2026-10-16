@@ -134,4 +134,25 @@ class NoticeTest extends TestCase {
 		$this->assertStringNotContainsString( 'onclick', $html );
 		$this->assertStringNotContainsString( 'style', $html, 'A notice never carries inline CSS.' );
 	}
+
+	public function test_actions_print_after_the_text_through_kses(): void {
+		$html = Notice::render(
+			'warning',
+			'lock',
+			'Log in first.',
+			'',
+			array( 'actions' => '<a href="/login" class="button">Login</a><script>evil()</script>' )
+		);
+
+		$this->assertStringContainsString(
+			'<p class="ffc-notice-text">Log in first.</p><div class="ffc-notice-actions"><a href="/login" class="button">Login</a>evil()</div></div></div>',
+			$html
+		);
+		$this->assertStringNotContainsString( '<script>', $html );
+	}
+
+	public function test_no_actions_prints_no_actions_row(): void {
+		$this->assertStringNotContainsString( 'ffc-notice-actions', Notice::render( 'info', 'info', 'x', '', array( 'actions' => '' ) ) );
+		$this->assertStringNotContainsString( 'ffc-notice-actions', Notice::render( 'info', 'info', 'x' ) );
+	}
 }

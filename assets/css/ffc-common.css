@@ -1175,10 +1175,12 @@
    it. It lives here because the forms, the verification page and the user
    dashboard all load this sheet.
 
-   The tone rules are compounded with `.ffc-notice` on purpose: the dashboard
-   and audience notices still carry a bare `ffc-notice-info` /
-   `ffc-notice-warning` of their own until they move to this component, and a
-   bare tone selector would repaint them.
+   The tone rules are compounded with `.ffc-notice`. They were written that
+   way while the dashboard and audience notices still carried a bare
+   `ffc-notice-info` / `ffc-notice-warning` of their own; those moved here in
+   #1842 and their rules are gone, but the compound stays: a tone name is
+   generic enough that another component may reach for it, and the compound
+   keeps the tone from painting anything that is not a notice.
 
    The info tone reads the three `--ffc-info-*` tokens, which Settings →
    Public Design may override in the light theme (`Core\PublicDesign`).
@@ -1263,8 +1265,17 @@
 }
 
 /* An action inside a notice (dismiss, reload, try anyway) starts on its own
-   line below the text. */
+   line below the text. A row of them goes in `.ffc-notice-actions`, which
+   `Core\Notice::render()` prints from its `actions` argument. */
 .ffc-notice .ffc-notice-body > button {
+    margin-top: var(--ffc-spacing-md);
+}
+
+.ffc-notice .ffc-notice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-md);
+    align-items: center;
     margin-top: var(--ffc-spacing-md);
 }
 
@@ -2065,18 +2076,6 @@
 .ffc-scheduling-restricted .ffc-restricted-message a {
     color: var(--ffc-primary);
     font-weight: 600;
-}
-
-/* Admin bypass notice */
-/* 0.9em literal: relative to its parent, same reason as .ffc-calendar-title above. */
-.ffc-admin-bypass-notice {
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
-    margin-bottom: var(--ffc-spacing-xl);
-    background: var(--ffc-info-light);
-    border: 1px solid var(--ffc-info);
-    border-radius: var(--ffc-radius-sm);
-    font-size: 0.9em;
-    color: var(--ffc-info);
 }
 
 /* Badge — canonical base class (shared across admin + frontend) */
