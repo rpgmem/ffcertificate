@@ -237,10 +237,14 @@
                     return true;
                 });
             }
+            // The browser's reason goes under the field, in the field-message
+            // standard (#1844), and leaves once the field saves again.
             if (!el || typeof el.checkValidity !== 'function' || el.checkValidity()) {
+                window.FFC.clearFieldMessage($field.add($field.find('[data-ffc-message-id]')));
                 return true;
             }
-            setBadgeState($badge, 'error', (el.validationMessage || invalidTxt));
+            hideBadge($badge);
+            window.FFC.fieldMessage(el, 'error', el.validationMessage || invalidTxt);
             if (typeof el.reportValidity === 'function') {
                 el.reportValidity();
             }

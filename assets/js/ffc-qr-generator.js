@@ -215,8 +215,10 @@
 		var $title = $form.find('#ffc-qr-short-title');
 		var title = String($title.val() || '').trim();
 		if (!title) {
-			$title.addClass('is-invalid').trigger('focus');
-			$status.removeClass('is-warning').addClass('is-error').text(i18n.titleRequired || '');
+			// Under the field it is about, in the field-message standard
+			// (#1844), rather than in the page status far from it.
+			window.FFC.fieldMessage($title, 'error', i18n.titleRequired || window.FFC.requiredMessage());
+			$title.trigger('focus');
 			return Promise.reject(new Error('title'));
 		}
 		var acknowledged = $form.find('#ffc-qr-short-ack').is(':checked');
@@ -550,7 +552,7 @@
 			refresh($form);
 		});
 		$form.on('input', '#ffc-qr-short-title', function () {
-			$(this).removeClass('is-invalid');
+			window.FFC.clearFieldMessage(this);
 			schedule($form);
 		});
 		$form.on('click', '.ffc-qr-short__use', function () {

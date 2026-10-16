@@ -307,7 +307,3 @@
     margin-left: var(--ffc-spacing-sm);
     color: var(--ffc-success-text);
 }
-
-.ffc-page-qr-generator #ffc-qr-short-title.is-invalid {
-    border-color: var(--ffc-danger);
-}
