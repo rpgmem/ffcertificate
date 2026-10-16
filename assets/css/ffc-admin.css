@@ -911,7 +911,7 @@ td .ffc-restriction-label {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 999999;
+    z-index: var(--ffc-z-topmost);
     opacity: 0;
     transition: opacity 0.2s ease;
 }
@@ -2468,7 +2468,7 @@ p.ffc-datetime-order-error {
 .ffc-template-modal {
     position: fixed;
     inset: 0;
-    z-index: var(--ffc-z-modal);
+    z-index: var(--ffc-z-topmost);
     display: flex;
     align-items: center;
     justify-content: center;
