@@ -224,6 +224,9 @@ describe('ffc-audience-booking-form — validation guards (via checkConflicts)',
 
 	it('blocks when start >= end, under the end time', () => {
 		setValidAudienceForm();
+		// The modal is open when the visitor validates; a hidden control
+		// cannot take the focus (jsdom 30.1.2 enforces it, as browsers do).
+		window.$('#ffc-booking-modal').show();
 		window.$('#booking-end-time').val('09:00');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		api.checkConflicts();

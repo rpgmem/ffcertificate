@@ -257,6 +257,9 @@ describe('profile.changePassword', () => {
 		// Render the read view so the password form fields exist
 		// (#ffc-current-password etc. are inside .ffc-password-form).
 		panel().render(PROFILE_FIXTURE);
+		// The form is open when the user saves; a hidden control cannot take
+		// the focus (jsdom 30.1.2 enforces it, as browsers do).
+		window.$('#ffc-tabpanel-profile .ffc-password-form').show();
 	});
 
 	function setPasswords(current, neu, conf) {
