@@ -146,6 +146,10 @@ describe('Activity Log — AJAX filter form', () => {
 
 		expect(window.$('#ffc-activity-log-table').text()).toContain('No activity logs found.');
 		expect(window.$('#ffc-activity-log-table table').length).toBe(0);
+		// An in-content callout inside the container, never a core `.notice`
+		// that common.js would lift to the top of the screen (#1843).
+		expect(window.$('#ffc-activity-log-table > .ffc-notice.ffc-notice-info').length).toBe(1);
+		expect(window.$('#ffc-activity-log-table .notice').length).toBe(0);
 	});
 });
 

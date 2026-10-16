@@ -34,34 +34,6 @@
     min-width: 60px;
 }
 
-/* Toast notification */
-.ffc-shorturl-toast {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--ffc-inverse-surface);
-    color: var(--ffc-inverse-on-surface);
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
-    border-radius: var(--ffc-radius-sm);
-    font-size: var(--ffc-font-size-sm);
-    z-index: 100100;
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    pointer-events: none;
-    box-shadow: var(--ffc-shadow-md);
-}
-
-.ffc-shorturl-toast--visible {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
-
-.ffc-shorturl-toast--error {
-    background: var(--ffc-danger);
-    color: var(--ffc-text-on-danger);
-}
-
 /* Admin page: clickable short URL code */
 .ffc-shorturl-code {
     cursor: pointer;

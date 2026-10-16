@@ -1231,6 +1231,13 @@ class AdminUserCustomFieldsTest extends TestCase {
 		Functions\when('get_current_screen')->justReturn($screen);
 		Functions\when('get_current_user_id')->justReturn(3);
 		Functions\when('get_transient')->alias(static fn($key) => $transients[ $key ] ?? false);
+		// Core\AdminNotice prints through wp_admin_notice() (#1843).
+		Functions\when('wp_admin_notice')->alias(
+			static function ( $message, $args = array() ) {
+				$wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
+				echo '<div class="notice notice-' . $args['type'] . '">' . ( $wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
+			}
+		);
 		$deleted = array();
 		Functions\when('delete_transient')->alias(function ($key) use (&$deleted) {
 			$deleted[] = $key;
