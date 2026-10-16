@@ -109,9 +109,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<label for="ffc_aud_multiple_audiences_color"><?php esc_html_e( '"Multiple Audiences" Badge Color', 'ffcertificate' ); ?></label>
 							</th>
 							<td>
-								<input type="color" name="ffc_aud_multiple_audiences_color" id="ffc_aud_multiple_audiences_color"
-										value="<?php echo esc_attr( $multiple_audiences_color ? $multiple_audiences_color : '#666666' ); ?>"
-										style="width: 50px; height: 30px; padding: 0; border: 1px solid #ccc; cursor: pointer;">
+								<input type="color" name="ffc_aud_multiple_audiences_color" id="ffc_aud_multiple_audiences_color" class="ffc-aud-badge-color"
+										value="<?php echo esc_attr( $multiple_audiences_color ? $multiple_audiences_color : '#666666' ); ?>">
 								<span class="ffc-color-value"><?php echo esc_html( $multiple_audiences_color ? $multiple_audiences_color : '#666666' ); ?></span>
 								<p class="description">
 									<?php esc_html_e( 'Color for the "Multiple audiences" badge shown in the event list when an event has more than 2 audiences.', 'ffcertificate' ); ?>

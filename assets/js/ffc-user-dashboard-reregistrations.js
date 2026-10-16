@@ -89,13 +89,18 @@
                 var section = item._section;
 
                 if (section !== currentSection) {
-                    if (currentSection !== '') html += '</tbody></table>';
+                    if (currentSection !== '') html += '</tbody></table></section>';
                     currentSection = section;
 
                     var sectionLabel = section === 'active'
                         ? (s.active || 'Active')
                         : (s.completed || 'Completed');
 
+                    // One <section> per state, spaced like the calendar tabs'
+                    // (#1837): `#ffc-tabpanel-* h3` zeroes the heading's top
+                    // margin with an id's specificity, so the space between
+                    // two sections sits on the section.
+                    html += '<section class="ffc-dashboard-section" data-section="' + section + '">';
                     html += '<h3>' + sectionLabel + '</h3>';
                     html += '<table class="ffc-reregistrations-table' + (section !== 'active' ? ' ffc-table-past' : '') + '">';
                     html += '<thead><tr>';
@@ -132,7 +137,7 @@
                 html += '</tr>';
             });
 
-            if (currentSection !== '') html += '</tbody></table>';
+            if (currentSection !== '') html += '</tbody></table></section>';
             html += helpers.buildPagination(allOrdered.length, page, 'reregistrations');
 
             $container.html(html);

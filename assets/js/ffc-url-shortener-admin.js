@@ -210,11 +210,11 @@
                     var i18n = settings.i18n || {};
                     if (err && err.fromServer) {
                         $modal.find('.ffc-qr-modal__preview')
-                            .html('<p style="color:#dc3232;"></p>')
+                            .html('<p class="ffc-qr-modal__error"></p>')
                             .find('p').text(err.message || i18n.error || 'Error');
                     } else {
                         $modal.find('.ffc-qr-modal__preview')
-                            .html('<p style="color:#dc3232;"></p>')
+                            .html('<p class="ffc-qr-modal__error"></p>')
                             .find('p').text(i18n.qrLoadFailed || 'Failed to load QR Code');
                     }
                 });

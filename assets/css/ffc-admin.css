@@ -291,6 +291,21 @@
     font-weight: 600;
 }
 
+/* The three outcomes of a "Generate tickets" run. The script used to write
+   these as inline colours (`red`, `green`, `#999`), which no theme could
+   reach (#1837). */
+.ffc-gen-status.is-busy {
+    color: var(--ffc-text-light);
+}
+
+.ffc-gen-status.is-success {
+    color: var(--ffc-success);
+}
+
+.ffc-gen-status.is-error {
+    color: var(--ffc-danger);
+}
+
 .ffc-textarea-mono {
     font-family: 'Courier New', Courier, monospace;
     font-size: var(--ffc-font-size-xs);
@@ -896,7 +911,7 @@ td .ffc-restriction-label {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 999999;
+    z-index: var(--ffc-z-topmost);
     opacity: 0;
     transition: opacity 0.2s ease;
 }
@@ -2444,4 +2459,70 @@ p.ffc-datetime-order-error {
     .ffc-page-identities .ffc-identity-chip-orphans {
         border: 1px solid CanvasText;
     }
+}
+
+/* Form editor → "Load template": the picker the script builds on the fly.
+   Its rules lived in `style=""` attributes and a hover written in JS until
+   #1837; the veil and the shadow now read the tokens every other modal of
+   the plugin reads. */
+.ffc-template-modal {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ffc-z-topmost);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ffc-bg-overlay);
+}
+
+.ffc-template-modal-box {
+    width: 90%;
+    max-width: 500px;
+    padding: 30px;
+    background: var(--ffc-bg-card);
+    border-radius: var(--ffc-radius-lg);
+    box-shadow: var(--ffc-shadow-lg);
+}
+
+.ffc-template-modal .ffc-template-modal-title {
+    margin: 0 0 var(--ffc-spacing-2xl);
+    font-size: var(--ffc-font-size-xl);
+}
+
+.ffc-template-modal .ffc-template-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.ffc-template-modal-actions {
+    margin-top: var(--ffc-spacing-2xl);
+    text-align: right;
+}
+
+.ffc-template-modal-actions .button {
+    margin-right: var(--ffc-spacing-md);
+}
+
+.ffc-template-option {
+    margin: var(--ffc-spacing-md) 0;
+    padding: var(--ffc-spacing-xl);
+    border: 2px solid var(--ffc-border-light);
+    border-radius: var(--ffc-radius-sm);
+    cursor: pointer;
+    transition: all var(--ffc-transition-base);
+}
+
+.ffc-template-option:hover {
+    background: var(--ffc-primary-light);
+    border-color: var(--ffc-primary);
+}
+
+.ffc-template-option-label {
+    font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-template-option-kind {
+    margin-top: var(--ffc-spacing-2xs);
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-sm);
 }

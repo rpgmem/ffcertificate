@@ -87,11 +87,17 @@ final class SpacingTokensTest extends TestCase {
 	 */
 	private const BUDGET = array(
 		'ffc-admin-move-submissions.css'   => 1,
-		'ffc-admin-settings.css'           => 6,
+		// 6 -> 7 in #1837: the IP Diagnostics scenarios table's `14px` top
+		// margin left a PHP `style=""` for this sheet. Not a new literal in
+		// the repository -- the same move the ffc-common.css entry records.
+		'ffc-admin-settings.css'           => 7,
 		// This sheet's only literal left with the fossil `.ffc-status-badge` rule
 		// (#1193): with no emitter since the list migrated to `.ffc-badge`.
 		'ffc-admin-submissions.css'        => 0,
-		'ffc-admin.css'                    => 2,
+		// 2 -> 3 in #1837: the "Load template" picker's `30px` padding left
+		// a script-built `style=""` for this sheet, a one-off panel distance
+		// above the ladder. The repository's net is zero.
+		'ffc-admin.css'                    => 3,
 		'ffc-audience-admin.css'           => 6,
 		'ffc-audience.css'                 => 7,
 		'ffc-calendar-frontend.css'        => 4,

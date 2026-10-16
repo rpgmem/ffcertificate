@@ -79,7 +79,7 @@
             // Show inline error instead of alert
             var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
             var errorMsg = strings.enterValidNumber || 'Please enter a valid number.';
-            $('#ffc_gen_status').text(errorMsg).css('color', 'red');
+            $('#ffc_gen_status').text(errorMsg).removeClass('is-busy is-success is-error').addClass('is-error');
             $('#ffc_qty_codes').focus();
             return;
         }
@@ -97,7 +97,7 @@
         var generatingTicketsText = strings.generatingTickets || 'Generating tickets...';
 
         $btn.prop('disabled', true).text(generatingText);
-        $status.text(generatingTicketsText).css('color', '#999');
+        $status.text(generatingTicketsText).removeClass('is-busy is-success is-error').addClass('is-busy');
 
         // Use nonce from ffc_ajax (localized by class-ffc-admin.php)
         var nonce = (typeof ffc_ajax !== 'undefined') ? ffc_ajax.nonce : '';
@@ -115,12 +115,12 @@
                     // Programmatic, so say it: the form editor's tab dot reads the field (#1755).
                     $codesField.val(newCodes).trigger('input');
                     var successMsg = strings.ticketsGeneratedSuccess || 'tickets generated successfully!';
-                    $status.text('✓ ' + quantity + ' ' + successMsg).css('color', 'green');
+                    $status.text('✓ ' + quantity + ' ' + successMsg).removeClass('is-busy is-success is-error').addClass('is-success');
                     setTimeout(function () { $status.text(''); }, 5000);
                 } else {
                     console.warn('[FFC] Generated codes field not found');
                     var errorMsg = strings.codesFieldNotFound || 'Error: codes field not found';
-                    $status.text('✗ ' + errorMsg).css('color', 'red');
+                    $status.text('✗ ' + errorMsg).removeClass('is-busy is-success is-error').addClass('is-error');
                 }
                 $btn.prop('disabled', false).text(originalText);
             })
@@ -139,7 +139,7 @@
                     errorMsg += serverErrorTemplate.replace('%d', xhr ? xhr.status : '?');
                 }
                 if (xhr) console.error('[FFC] AJAX error:', xhr.status, xhr.statusText, xhr.responseText);
-                $status.text(errorMsg).css('color', 'red');
+                $status.text(errorMsg).removeClass('is-busy is-success is-error').addClass('is-error');
                 $btn.prop('disabled', false).text(originalText);
             });
     });

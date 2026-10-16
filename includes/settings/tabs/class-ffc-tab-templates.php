@@ -128,7 +128,7 @@ class TabTemplates extends SettingsTab {
 		<p class="description">
 			<?php esc_html_e( 'Which template each feature is using right now. Templates are edited here; the assignment is chosen in each feature\'s own settings.', 'ffcertificate' ); ?>
 		</p>
-		<table class="widefat striped ffc-template-assignments" style="max-width:640px;">
+		<table class="widefat striped ffc-template-assignments">
 			<thead>
 				<tr>
 					<th scope="col"><?php esc_html_e( 'Used for', 'ffcertificate' ); ?></th>

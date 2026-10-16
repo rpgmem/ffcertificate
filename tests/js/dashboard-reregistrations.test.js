@@ -85,6 +85,21 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		expect(headers).toEqual(['Active', 'Completed']);
 	});
 
+	it('wraps each group in its own section, heading and table together (#1837)', () => {
+		panel().render([
+			makeRereg({ is_active: true, title: 'Open' }),
+			makeRereg({ is_active: false, title: 'Done' }),
+		], 1);
+		const sections = Array.from(document.querySelectorAll('#ffc-tabpanel-reregistrations section.ffc-dashboard-section'));
+		expect(sections.map((el) => el.getAttribute('data-section'))).toEqual(['active', 'completed']);
+		sections.forEach((el) => {
+			expect(el.querySelector(':scope > h3')).not.toBeNull();
+			expect(el.querySelector(':scope > table.ffc-reregistrations-table')).not.toBeNull();
+		});
+		// The pager stays outside the sections: it pages the whole list.
+		expect(document.querySelector('#ffc-tabpanel-reregistrations section .ffc-pagination')).toBeNull();
+	});
+
 	it("applies 'ffc-row-past' to completed rows", () => {
 		panel().render([
 			makeRereg({ is_active: false, title: 'Done' }),

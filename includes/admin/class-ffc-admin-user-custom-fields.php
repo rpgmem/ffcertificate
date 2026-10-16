@@ -735,7 +735,7 @@ class AdminUserCustomFields {
 		}
 
 		printf(
-			'<div class="notice notice-warning is-dismissible"><p>%s</p><ul style="list-style:disc;margin-left:2em"><li>%s</li></ul></div>',
+			'<div class="notice notice-warning is-dismissible"><p>%s</p><ul class="ffc-working-hours-incomplete"><li>%s</li></ul></div>',
 			esc_html__( 'These working-hours rows were incomplete and were not saved. The first entry and the last exit are required; the middle shift is optional.', 'ffcertificate' ),
 			implode( '</li><li>', array_map( 'esc_html', $lines ) )
 		);

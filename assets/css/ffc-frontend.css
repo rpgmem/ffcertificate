@@ -2434,3 +2434,12 @@ details.ffc-consent-description > p {
     line-height: 1.5;
     color: var(--ffc-text);
 }
+
+/* Schedule-exception modal: the validation line under the two time fields.
+   It lived in a `style=""` attribute until #1837; the selector outranks
+   `.ffc-open-early-body p`, whose margin the attribute used to beat. */
+.ffc-open-early-body .ffc-schedule-exception-error {
+    margin: var(--ffc-spacing-xs) 0 0;
+    color: var(--ffc-danger);
+    font-size: var(--ffc-font-size-sm);
+}

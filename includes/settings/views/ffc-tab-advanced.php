@@ -597,9 +597,8 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 			(string) ob_get_clean(),
 			array(
 				'type'               => 'error',
-				'additional_classes' => array( 'inline' ),
+				'additional_classes' => array( 'inline', 'ffc-advanced-notice' ),
 				'paragraph_wrap'     => false,
-				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
 			)
 		);
 		?>
@@ -622,9 +621,8 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 			(string) ob_get_clean(),
 			array(
 				'type'               => 'info',
-				'additional_classes' => array( 'inline' ),
+				'additional_classes' => array( 'inline', 'ffc-advanced-notice' ),
 				'paragraph_wrap'     => false,
-				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
 			)
 		);
 		?>
@@ -636,9 +634,8 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 			(string) ob_get_clean(),
 			array(
 				'type'               => 'success',
-				'additional_classes' => array( 'inline' ),
+				'additional_classes' => array( 'inline', 'ffc-advanced-notice' ),
 				'paragraph_wrap'     => false,
-				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
 			)
 		);
 		?>
@@ -764,9 +761,8 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				(string) ob_get_clean(),
 				array(
 					'type'               => $ffc_rot_type,
-					'additional_classes' => array( 'inline' ),
+					'additional_classes' => array( 'inline', 'ffc-advanced-notice' ),
 					'paragraph_wrap'     => false,
-					'attributes'         => array( 'style' => 'margin: 12px 0;' ),
 				)
 			);
 		}

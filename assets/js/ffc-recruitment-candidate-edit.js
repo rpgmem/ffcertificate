@@ -101,15 +101,18 @@
             btn.disabled = false;
             if (res.ok && res.body && res.body.success) {
                 msg.textContent = strings.saved || 'Saved';
-                msg.style.color = '#1a7f37';
+                msg.classList.remove('is-error');
+                msg.classList.add('is-success');
             } else {
                 msg.textContent = (strings.error || 'Error') + ': ' + ((res.body && res.body.message) || '');
-                msg.style.color = '#b91c1c';
+                msg.classList.remove('is-success');
+                msg.classList.add('is-error');
             }
         }).catch(function () {
             btn.disabled = false;
             msg.textContent = strings.error || 'Error';
-            msg.style.color = '#b91c1c';
+            msg.classList.remove('is-success');
+            msg.classList.add('is-error');
         });
     });
 

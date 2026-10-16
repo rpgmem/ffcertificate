@@ -366,3 +366,22 @@
         border: 1px solid CanvasText;
     }
 }
+
+/* Candidate edit → adjutancy swap: the outcome line beside the button. The
+   script wrote these colours inline until #1837. */
+.ffc-adjutancy-swap-msg.is-success {
+    color: var(--ffc-success);
+}
+
+.ffc-adjutancy-swap-msg.is-error {
+    color: var(--ffc-danger);
+}
+
+/* Notice edit → preliminary preview: a status that needs a reason marks its
+   reason dropdown. The script already sets `aria-required`, so the outline
+   reads the same attribute a screen reader does (#1837). The selector
+   outranks core's `select:focus` outline, as the inline style did. */
+.ffc-cls-preview-reason[aria-required="true"] {
+    outline: 2px solid var(--ffc-danger);
+    outline-offset: 2px;
+}

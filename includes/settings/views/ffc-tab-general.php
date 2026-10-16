@@ -265,7 +265,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 							)
 						);
 						?>
-						<p style="margin-top:.6em;">
+						<p class="ffc-cleanup-days-row">
 							<label for="cleanup_days"><?php esc_html_e( 'Delete after (days):', 'ffcertificate' ); ?></label>
 							<input type="number" name="ffc_settings[cleanup_days]" id="cleanup_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'cleanup_days', 365 ) ); ?>" class="small-text" min="1" max="3650" data-ffc-autosave-key="cleanup_days" required>
 						</p>

@@ -20,6 +20,11 @@
  * coexist, which is a behaviour change rather than a conversion, and it needs
  * screen-by-screen verification. They stay literal, in the budget, visible.
  *
+ * `999999` was the exception that could be named without collapsing anything
+ * (#1837): it was already the value of every full-screen editor overlay, so
+ * `--ffc-z-topmost` declares that same number and the order between those
+ * overlays and every `modal` element is unchanged. The other three stay literal.
+ *
  * Dependency-free on purpose — it reads source text only.
  *
  * @package FreeFormCertificate\Tests\Unit
@@ -56,7 +61,7 @@ final class RadiusAndLayerTokensTest extends TestCase {
 	// is why they close the list: circle and pill. `pill` arrived in #1193, when
 	// the badge's shape left a PHP literal for the base sheet's `.ffc-pill`.
 	private const RADIUS_STEPS = array( 'xs', 'sm', 'md', 'lg', 'full', 'pill' );
-	private const LAYER_STEPS  = array( 'raised', 'sticky', 'dropdown', 'overlay', 'modal' );
+	private const LAYER_STEPS  = array( 'raised', 'sticky', 'dropdown', 'overlay', 'modal', 'topmost' );
 
 	/**
 	 * Radius literals still allowed per stylesheet. `0` is not a radius.
@@ -85,13 +90,12 @@ final class RadiusAndLayerTokensTest extends TestCase {
 	/**
 	 * `z-index` literals still allowed per stylesheet.
 	 *
-	 * Ten remain, and they are the debt this guard exists to keep visible:
-	 * `ffc-pdf-core.css` carries five (it cannot read tokens at all), and the
-	 * other five are the escalation values described in the class docblock.
+	 * They are the debt this guard exists to keep visible: `ffc-pdf-core.css`
+	 * carries five (it cannot read tokens at all), and the rest are the
+	 * escalation values described in the class docblock.
 	 */
 	private const LAYER_BUDGET = array(
 		'ffc-admin-settings.css'      => 1,
-		'ffc-admin.css'               => 1,
 		'ffc-frontend.css'            => 1,
 		'ffc-pdf-core.css'            => 5,
 		// Screenshot viewer (#1716): above core's own modal, which sits at

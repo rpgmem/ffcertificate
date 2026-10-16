@@ -374,8 +374,6 @@
 	// -- Section 7: preliminary preview-status + reason dropdowns -------
 
 	function ffcRecruitmentPreviewMarkRequired(reasonSel, required) {
-		reasonSel.style.outline = required ? '2px solid #d63638' : '';
-		reasonSel.style.outlineOffset = required ? '2px' : '';
 		reasonSel.setAttribute('aria-required', required ? 'true' : 'false');
 	}
 

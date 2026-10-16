@@ -122,18 +122,24 @@
        100000 because the wp-admin bar is 99999 — that is the one number here
        with an external reason, and it is the reason it exists.
 
-       FOUR values were deliberately left out: 9999, 100001, 999999 and
+       Four values were left out of the scale: 9999, 100001, 999999 and
        2147483647 are four different answers to "be above the bar", and they
        are the signature of a stacking war. Collapsing them CHANGES the
        relative order on the screens where they coexist, which is a behaviour
        change rather than a conversion — it needs screen-by-screen
-       verification. They stay literal and visible in the guard's budget
-       until somebody does that. */
+       verification. 999999 is now named `topmost` (#1837) under its own
+       value, which collapses nothing; the other three stay literal and
+       visible in the guard's budget until somebody does that. */
     --ffc-z-raised: 1;
     --ffc-z-sticky: 10;
     --ffc-z-dropdown: 100;
     --ffc-z-overlay: 1000;
     --ffc-z-modal: 100000;
+    /* The full-screen editor overlays (certificate preview, template picker,
+       template preview) always sat at 999999. That number is an existing
+       answer to "above everything", not a new one: naming it keeps the order
+       between those overlays and every `modal` element exactly as it was. */
+    --ffc-z-topmost: 999999;
 
     /* Shadows */
     --ffc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -3015,4 +3021,50 @@
    2,03:1 on the dark card; the danger token is tuned for both themes. */
 .ffc-admin-page .ffc-required {
     color: var(--ffc-danger);
+}
+
+/* The background-image preview of the form editor and of the certificate
+   template editor: the thumbnail the media picker drops in. It lived in a
+   script-written inline style until #1837; it is here because the template
+   editor loads no other plugin sheet. */
+.ffc-bg-image-preview-img {
+    max-width: 200px;
+    height: auto;
+}
+
+/* Certificate templates → Preview: the full-screen overlay the list screen
+   builds on the fly. That screen loads only this sheet, which is why the
+   overlay is declared here (#1837). */
+.ffc-tpl-preview-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ffc-z-topmost);
+    display: flex;
+    flex-direction: column;
+    background: var(--ffc-bg-overlay);
+}
+
+.ffc-tpl-preview-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
+    background: var(--ffc-inverse-surface);
+    color: var(--ffc-inverse-on-surface);
+}
+
+.ffc-tpl-preview-bar .ffc-tpl-preview-title {
+    font-size: var(--ffc-font-size-base);
+}
+
+.ffc-tpl-preview-body {
+    flex: 1;
+    overflow: auto;
+    padding: var(--ffc-spacing-xl);
+}
+
+.ffc-tpl-preview-frame {
+    width: 100%;
+    height: 100%;
+    border: 0;
 }

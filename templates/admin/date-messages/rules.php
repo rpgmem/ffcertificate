@@ -107,7 +107,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							);
 							foreach ( $ffc_dm_actions as $ffc_dm_action => $ffc_dm_label ) :
 								?>
-								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline"<?php echo DateMessagesAdminPage::DELETE_ACTION === $ffc_dm_action ? ' data-ffc-confirm="' . esc_attr__( 'Delete this rule? What it already sent stays in the history.', 'ffcertificate' ) . '"' : ''; ?>>
+								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-dm-rule-action"<?php echo DateMessagesAdminPage::DELETE_ACTION === $ffc_dm_action ? ' data-ffc-confirm="' . esc_attr__( 'Delete this rule? What it already sent stays in the history.', 'ffcertificate' ) . '"' : ''; ?>>
 									<?php wp_nonce_field( $ffc_dm_action . '_' . $ffc_dm_rule->id ); ?>
 									<input type="hidden" name="action" value="<?php echo esc_attr( $ffc_dm_action ); ?>">
 									<input type="hidden" name="rule_id" value="<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>">
