@@ -360,6 +360,23 @@ class AudienceScheduleRepository {
 	}
 
 	/**
+	 * Check if a user holds a permission row on any schedule (#1824).
+	 *
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
+	public static function has_any_permission( int $user_id ): bool {
+		$wpdb  = self::db();
+		$table = self::get_permissions_table_name();
+
+		$count = $wpdb->get_var(
+			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', $table, $user_id )
+		);
+
+		return (int) $count > 0;
+	}
+
+	/**
 	 * Get all permissions for a schedule
 	 *
 	 * @param int $schedule_id Schedule ID.

@@ -61,14 +61,42 @@ class AdminAjax {
 				'admin_role'   => 'ffc_reregistration_admin',
 				'audit_action' => 'reregistration_pii_revealed',
 			),
+			// The account email of a person listed on an audience screen
+			// (#1824). The audience domain has no PII cap of its own, so the
+			// gate is the appointments one; AudienceAccountEmail says why.
+			\FreeFormCertificate\Audience\AudienceAccountEmail::REVEAL_TYPE => array(
+				'surface_cap'  => 'ffc_view_audiences',
+				'pii_cap'      => \FreeFormCertificate\Audience\AudienceAccountEmail::PII_CAP,
+				'admin_role'   => \FreeFormCertificate\Audience\AudienceAccountEmail::ADMIN_ROLE,
+				'audit_action' => 'audience_account_email_revealed',
+			),
 		);
+	}
+
+	/**
+	 * Fields a reveal type serves. `account_email` is the email of the WP
+	 * account a submission is linked to (#1824); an audience record is an
+	 * account, so its only field is that account's email.
+	 *
+	 * @param string $type Reveal type, a key of {@see pii_reveal_configs()}.
+	 * @return list<string>
+	 */
+	private function pii_reveal_fields( string $type ): array {
+		if ( \FreeFormCertificate\Audience\AudienceAccountEmail::REVEAL_TYPE === $type ) {
+			return array( 'email' );
+		}
+		if ( 'submission' === $type ) {
+			return array( 'cpf', 'rf', 'email', 'ip', 'account_email' );
+		}
+		return array( 'cpf', 'rf', 'email', 'ip' );
 	}
 
 	/**
 	 * Load and decrypt the record whose PII a reveal targets.
 	 *
-	 * @param string $type Record type ('submission' | 'appointment' | 'reregistration').
-	 * @param int    $id   Record ID.
+	 * @param string $type Record type ('submission' | 'appointment' |
+	 *                     'reregistration' | 'audience_account').
+	 * @param int    $id   Record ID; for `audience_account`, the account ID.
 	 * @return array<string, mixed>|null Decrypted row (with `cpf` / `rf` /
 	 *                                   `email` / `user_ip` / `user_id` keys), or null when
 	 *                                   the record is missing.
@@ -77,6 +105,23 @@ class AdminAjax {
 		if ( 'reregistration' === $type ) {
 			return $this->load_reregistration_pii_record( $id );
 		}
+
+		if ( \FreeFormCertificate\Audience\AudienceAccountEmail::REVEAL_TYPE === $type ) {
+			// Only an account an audience screen lists, so this type cannot
+			// read any account's email by id.
+			if ( ! \FreeFormCertificate\Audience\AudienceAccountEmail::is_listed( $id ) ) {
+				return null;
+			}
+			$account = get_userdata( $id );
+			if ( ! $account ) {
+				return null;
+			}
+			return array(
+				'user_id' => $id,
+				'email'   => (string) $account->user_email,
+			);
+		}
+
 		if ( 'appointment' === $type ) {
 			$repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 			$row  = $repo->findById( $id );
@@ -137,7 +182,10 @@ class AdminAjax {
 	 * submission, self-scheduling appointment or reregistration submission
 	 * (#1815), gated by the #739 §3.3 PII
 	 * policy and audited. The IP is the stored `user_ip`, the address the
-	 * submission and its LGPD consent were recorded from (#1760).
+	 * submission and its LGPD consent were recorded from (#1760). It also
+	 * serves a WordPress account's email where an admin screen lists one:
+	 * the account linked to a submission (`account_email`) and the people on
+	 * the audience screens (type `audience_account`), both since #1824.
 	 *
 	 * The admin surfaces (submission edit page + list, appointment detail +
 	 * list) render the masked value only; the plaintext is fetched here on
@@ -145,8 +193,9 @@ class AdminAjax {
 	 * tiers. Returns 403 for the masked tier. Every reveal served writes an
 	 * audit row, whatever the tier, since a call is always a deliberate
 	 * disclosure: the submission edit page (#1655), the appointment detail
-	 * page (#1813) and the list screens (#1815, #1822) mask for the unmasked
-	 * tier too, which makes this the only way it sees a value there. The `type`
+	 * page (#1813), the list screens (#1815, #1822) and the account emails
+	 * (#1824) mask for the unmasked tier too, which makes this the only way
+	 * it sees a value there. The `type`
 	 * POST field selects the record domain (defaults to `submission` for
 	 * backward compatibility).
 	 *
@@ -169,7 +218,7 @@ class AdminAjax {
 
 		$id    = $this->get_post_int( 'submission_id' );
 		$field = $this->get_post_param( 'field' );
-		if ( ! in_array( $field, array( 'cpf', 'rf', 'email', 'ip' ), true ) ) {
+		if ( ! in_array( $field, $this->pii_reveal_fields( $type ), true ) ) {
 			wp_send_json_error( array( 'message' => __( 'Unsupported field.', 'ffcertificate' ) ) );
 		}
 		if ( $id <= 0 ) {
@@ -202,6 +251,13 @@ class AdminAjax {
 				break;
 			case 'ip':
 				$display = (string) ( $record['user_ip'] ?? '' );
+				break;
+			case 'account_email':
+				// The linked account's email (#1824), gated by the
+				// submission's policy: it is shown on the submission screen,
+				// to whoever may reveal that submission's own email.
+				$account = null !== $owner && $owner > 0 ? get_userdata( $owner ) : false;
+				$display = $account ? (string) $account->user_email : '';
 				break;
 			default:
 				$display = (string) ( $record['email'] ?? '' );

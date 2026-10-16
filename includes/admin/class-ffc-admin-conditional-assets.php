@@ -108,6 +108,12 @@ class AdminConditionalAssets {
 			$this->enqueue_pii_reveal_assets( $s );
 		}
 
+		// Audience screens: members and calendar user-access rows carry the
+		// masked account email with reveal buttons (#1824).
+		if ( $this->is_audience_account_page() ) {
+			$this->enqueue_pii_reveal_assets( $s );
+		}
+
 		// Submissions list page (when filtered by a single form): "Move to form…" modal.
 		// Its email column carries reveal buttons too (#1822).
 		if ( $this->is_submissions_list_page() ) {
@@ -428,7 +434,8 @@ class AdminConditionalAssets {
 	/**
 	 * Enqueue the shared masked-PII reveal script (#739 §3.3). Used on the
 	 * submission edit page and list, on the appointments list and detail
-	 * view and on the reregistration submissions list (#1815); each reveal
+	 * view, on the reregistration submissions list (#1815) and on the
+	 * audience and audience-calendar screens (#1824); each reveal
 	 * button carries its own nonce, and `ffc-core` (which
 	 * provides `FFC.request`) is already enqueued on every FFC admin screen.
 	 *
@@ -484,5 +491,21 @@ class AdminConditionalAssets {
 	 */
 	private function is_appointments_page(): bool {
 		return 'ffc-appointments' === RequestInput::get_get_key( 'page' );
+	}
+
+	/**
+	 * Check if current page lists accounts with their email on an audience
+	 * screen (#1824): the audiences page (its Members tab) or the audience
+	 * calendars page (its User access tab, whose rows the "add user" AJAX
+	 * handler also returns).
+	 *
+	 * @return bool
+	 */
+	private function is_audience_account_page(): bool {
+		return in_array(
+			RequestInput::get_get_key( 'page' ),
+			array( 'ffc-scheduling-audiences', 'ffc-scheduling-calendars' ),
+			true
+		);
 	}
 }

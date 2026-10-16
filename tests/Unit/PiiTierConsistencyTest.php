@@ -42,7 +42,16 @@ class PiiTierConsistencyTest extends TestCase {
 	}
 
 	/**
-	 * Domain => its reveal-endpoint config.
+	 * Reveal types that own no PII pair and borrow a domain's, => the lender.
+	 * The audience screens' account email (#1824) uses the appointments pair,
+	 * because audiences have no PII capability or admin role of their own.
+	 */
+	private const BORROWED = array( 'audience_account' => 'appointment' );
+
+	/**
+	 * Domain => its reveal-endpoint config. A borrowing type must hand the
+	 * policy exactly its lender's pair, and is then left out: it is not a
+	 * domain, so it would read as one role unmasked in two domains.
 	 *
 	 * @return array<string, array<string, string>>
 	 */
@@ -50,7 +59,12 @@ class PiiTierConsistencyTest extends TestCase {
 		$method = new \ReflectionMethod( AdminAjax::class, 'pii_reveal_configs' );
 		$method->setAccessible( true );
 		$configs = $method->invoke( new AdminAjax() );
-		$this->assertSame( array( 'submission', 'appointment', 'reregistration' ), array_keys( $configs ), 'The three PII domains.' );
+		$this->assertSame( array( 'submission', 'appointment', 'reregistration', 'audience_account' ), array_keys( $configs ), 'The three PII domains and the borrowing type.' );
+		foreach ( self::BORROWED as $type => $lender ) {
+			$this->assertSame( $configs[ $lender ]['pii_cap'], $configs[ $type ]['pii_cap'], "{$type} borrows the {$lender} reveal cap" );
+			$this->assertSame( $configs[ $lender ]['admin_role'], $configs[ $type ]['admin_role'], "{$type} borrows the {$lender} unmasked role" );
+			unset( $configs[ $type ] );
+		}
 		return $configs;
 	}
 

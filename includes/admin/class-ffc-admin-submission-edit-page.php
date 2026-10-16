@@ -321,7 +321,8 @@ class AdminSubmissionEditPage {
 	 * may not reveal. Every reveal button on the screen comes from here, so
 	 * they share one size and one gate.
 	 *
-	 * @param string $field Field the endpoint reveals: email, cpf, rf or ip.
+	 * @param string $field Field the endpoint reveals: email, cpf, rf, ip or
+	 *                      account_email (the linked account's, #1824).
 	 * @return string Escaped HTML.
 	 */
 	private function reveal_button( string $field ): string {
@@ -356,6 +357,27 @@ class AdminSubmissionEditPage {
 			esc_attr( $field ),
 			esc_attr( $label ),
 			$this->reveal_button( $field )
+		);
+	}
+
+	/**
+	 * The linked account's email, masked, with the same gate and button as
+	 * the submission's own values (#1824). The clear address is fetched
+	 * through `ffc_reveal_pii` with `field=account_email`, never printed.
+	 *
+	 * @param string $email The linked account's email.
+	 * @return string Escaped HTML.
+	 */
+	private function masked_account_email( string $email ): string {
+		$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
+		if ( $masked === $email ) {
+			// mask_email() hands back an address it cannot parse unchanged.
+			$masked = '' === $email ? '' : '***';
+		}
+		return sprintf(
+			'<span class="ffc-pii-row"><span class="ffc-pii-value" data-field="account_email">%1$s</span>%2$s</span>',
+			esc_html( $masked ),
+			'' !== $email ? ' ' . $this->reveal_button( 'account_email' ) : ''
 		);
 	}
 
@@ -537,7 +559,17 @@ class AdminSubmissionEditPage {
 								<span class="ffc-user-info">
 									<?php echo get_avatar( $current_user_id, 32 ); ?>
 									<strong><?php echo esc_html( $current_user->display_name ); ?></strong>
-									<span class="ffc-user-email">(<?php echo esc_html( $current_user->user_email ); ?>)</span>
+									<?php
+									/*
+									 * The linked account's own email, masked for every tier
+									 * like the submission's (#1824). It is the account's
+									 * field, not a submission column, so the endpoint serves
+									 * it as `account_email`; a field name of its own also
+									 * keeps the script from writing it into the submission's
+									 * email input on the same screen.
+									 */
+									?>
+									<span class="ffc-user-email">(<?php echo $this->masked_account_email( (string) $current_user->user_email ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- masked_account_email() escapes every value. ?>)</span>
 									<span class="ffc-user-id">ID: <?php echo esc_html( (string) $current_user_id ); ?></span>
 								</span>
 								<a href="<?php echo esc_url( get_edit_user_link( $current_user_id ) ); ?>" target="_blank" class="button button-small ffc-icon-external">
