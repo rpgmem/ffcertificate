@@ -79,34 +79,22 @@ class DashboardViewMode {
 			$exit_url = home_url( '/dashboard' );
 		}
 
-		ob_start();
-		?>
-		<div class="ffc-dashboard-notice ffc-notice-admin-viewing">
-			<div class="ffc-dashboard-header">
-				<div>
-					<strong class="ffc-icon-eye"><?php esc_html_e( 'Admin View Mode', 'ffcertificate' ); ?></strong>
-					<p class="ffc-m-2xs-0">
-						<?php
-						echo wp_kses_post(
-							sprintf(
-							/* translators: 1: Admin name, 2: User name */
-								esc_html__( 'You (%1$s) are viewing the dashboard as: %2$s', 'ffcertificate' ),
-								'<strong>' . esc_html( $admin->display_name ) . '</strong>',
-								'<strong>' . esc_html( $user->display_name ) . ' (' . esc_html( $user->user_email ) . ')</strong>'
-							)
-						);
-						?>
-					</p>
-				</div>
-				<div>
-					<a href="<?php echo esc_url( $exit_url ); ?>" class="button button-primary">
-						<?php esc_html_e( 'Exit View Mode', 'ffcertificate' ); ?>
-					</a>
-				</div>
-			</div>
-		</div>
-		<?php
-		$banner_html = ob_get_clean();
-		return $banner_html ? $banner_html : '';
+		return \FreeFormCertificate\Core\Notice::render(
+			'warning',
+			'eye',
+			sprintf(
+				/* translators: 1: Admin name, 2: User name */
+				esc_html__( 'You (%1$s) are viewing the dashboard as: %2$s', 'ffcertificate' ),
+				'<strong>' . esc_html( $admin->display_name ) . '</strong>',
+				'<strong>' . esc_html( $user->display_name ) . ' (' . esc_html( $user->user_email ) . ')</strong>'
+			),
+			__( 'Admin View Mode', 'ffcertificate' ),
+			array(
+				'role'    => 'note',
+				'html'    => true,
+				'hook'    => 'admin-viewing',
+				'actions' => '<a href="' . esc_url( $exit_url ) . '" class="button button-primary">' . esc_html__( 'Exit View Mode', 'ffcertificate' ) . '</a>',
+			)
+		);
 	}
 }

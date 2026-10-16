@@ -75,7 +75,7 @@
             if ($container.length === 0) return;
 
             if (typeof ffcDashboard.canViewAudienceBookings !== 'undefined' && !ffcDashboard.canViewAudienceBookings) {
-                $container.html('<div class="ffc-error">' + ffcDashboard.strings.noPermission + '</div>');
+                $container.empty().append(FFC.notice('danger', 'error', ffcDashboard.strings.noPermission, '', { role: 'alert' }));
                 return;
             }
 
@@ -93,7 +93,7 @@
                     self.render(self.state, 1);
                 })
                 .catch(function () {
-                    $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
+                    $container.empty().append(FFC.notice('danger', 'error', ffcDashboard.strings.error, '', { role: 'alert' }));
                 });
         },
 

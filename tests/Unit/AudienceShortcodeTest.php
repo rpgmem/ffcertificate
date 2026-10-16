@@ -241,7 +241,8 @@ class AudienceShortcodeTest extends TestCase {
 
 		$result = AudienceShortcode::render(array());
 
-		$this->assertStringContainsString('ffc-audience-notice', $result);
+		$this->assertStringContainsString('data-ffc-notice="audience-no-access"', $result);
+		$this->assertStringContainsString('class="ffc-notice ffc-notice-info"', $result);
 		$this->assertStringContainsString('You do not have access to any calendars.', $result);
 	}
 
@@ -507,7 +508,9 @@ class AudienceShortcodeTest extends TestCase {
 
 		$result = AudienceShortcode::render(array());
 
-		$this->assertStringContainsString('ffc-admin-bypass-notice', $result);
+		$this->assertStringContainsString('data-ffc-notice="admin-bypass"', $result);
+		$this->assertStringContainsString('ffc-icon-unlock', $result);
+		$this->assertStringContainsString('ffc-badge-private', $result);
 		$this->assertStringContainsString('ffc-schedule-select', $result, 'Two schedules must render the calendar selector.');
 		$this->assertStringContainsString('ffc-event-list-panel', $result);
 		$this->assertStringContainsString('ffc-event-list-below', $result);
@@ -554,7 +557,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$result = AudienceShortcode::render(array('schedule_id' => 8));
 
-		$this->assertStringNotContainsString('ffc-admin-bypass-notice', $result);
+		$this->assertStringNotContainsString('data-ffc-notice="admin-bypass"', $result);
 		$this->assertStringNotContainsString('ffc-schedule-select', $result, 'One schedule needs no selector.');
 		$this->assertStringNotContainsString('ffc-event-list-panel', $result);
 		$this->assertSame('booking', $localized['strings']['booking'], 'No custom label keeps the default.');

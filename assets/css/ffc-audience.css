@@ -316,24 +316,6 @@
     grid-column: 1 / -1;
 }
 
-/* Notice Messages */
-.ffc-shortcode .ffc-audience-notice {
-    padding: var(--ffc-spacing-2xl);
-    border-radius: var(--ffc-radius-sm);
-    margin: var(--ffc-spacing-2xl) 0;
-    text-align: center;
-}
-
-.ffc-shortcode .ffc-audience-notice.ffc-notice-warning {
-    background: var(--ffc-warning-bg);
-    border: 1px solid var(--ffc-warning);
-}
-
-.ffc-shortcode .ffc-audience-notice.ffc-notice-info {
-    background: var(--ffc-info-bg);
-    border: 1px solid var(--ffc-primary);
-}
-
 /* Buttons — base classes consolidated in ffc-common.css */
 
 /* Modal — moved to ffc-common.css (#1140): a shared component, and the
@@ -439,32 +421,9 @@
     min-height: 100px;
 }
 
-/* Conflict Warning */
-.ffc-shortcode .ffc-conflict-warning {
-    background: var(--ffc-warning-bg);
-    border: 1px solid var(--ffc-warning);
-    border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-xl);
-    margin-top: var(--ffc-spacing-xl);
-}
-
-.ffc-shortcode .ffc-conflict-warning .ffc-icon-warning {
-    color: var(--ffc-warning);
-    float: left;
-    margin-right: var(--ffc-spacing-md);
-    font-size: var(--ffc-font-size-2xl);
-}
-
-.ffc-shortcode .ffc-conflict-warning p {
-    margin: 0 0 var(--ffc-spacing-md);
-}
-
-.ffc-shortcode .ffc-conflict-details {
-    font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-gray-600);
-    margin-top: var(--ffc-spacing-md);
-}
-
+/* Conflict notices (`.ffc-notice`, #1842): the booking form's script builds
+   them inside #ffc-conflict-warning / #ffc-conflict-error, and moves the
+   acknowledgement below into the warning. */
 .ffc-shortcode .ffc-conflict-acknowledge {
     display: flex;
     align-items: flex-start;
@@ -477,28 +436,6 @@
 
 .ffc-shortcode .ffc-conflict-acknowledge input[type="checkbox"] {
     margin-top: var(--ffc-spacing-3xs);
-}
-
-/* Hard Conflict Error */
-.ffc-shortcode .ffc-conflict-error {
-    background: var(--ffc-danger-bg);
-    border: 1px solid var(--ffc-danger);
-    border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-xl);
-    margin-top: var(--ffc-spacing-xl);
-}
-
-.ffc-shortcode .ffc-conflict-error .ffc-icon-error {
-    color: var(--ffc-danger);
-    float: left;
-    margin-right: var(--ffc-spacing-md);
-    font-size: var(--ffc-font-size-2xl);
-}
-
-.ffc-shortcode .ffc-conflict-error-details {
-    font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-gray-700);
-    margin-top: var(--ffc-spacing-2xs);
 }
 
 /* Day Detail Bookings */

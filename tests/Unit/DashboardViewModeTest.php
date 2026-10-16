@@ -33,6 +33,7 @@ class DashboardViewModeTest extends TestCase {
 		} );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
@@ -146,7 +147,10 @@ class DashboardViewModeTest extends TestCase {
 		$html = DashboardViewMode::render_admin_viewing_banner( 42 );
 
 		$this->assertStringContainsString( 'Admin View Mode', $html );
-		$this->assertStringContainsString( 'ffc-notice-admin-viewing', $html );
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-warning"', $html );
+		$this->assertStringContainsString( 'ffc-icon-eye', $html );
+		$this->assertStringContainsString( 'data-ffc-notice="admin-viewing"', $html );
+		$this->assertStringContainsString( '<strong class="ffc-notice-title">Admin View Mode</strong>', $html );
 		$this->assertStringContainsString( 'Exit View Mode', $html );
 	}
 

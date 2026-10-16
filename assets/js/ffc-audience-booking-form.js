@@ -188,11 +188,12 @@
                         if (isHardConflict) {
                             // HARD CONFLICT — block booking
                             var errorMsg = ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.';
-                            var times = conflicts.bookings.map(function(b) { return escapeHtml(b.start_time) + '–' + escapeHtml(b.end_time); }).join(', ');
-                            var errorHtml = '<p><strong>' + escapeHtml(errorMsg) + '</strong></p><p>' + times + '</p>';
+                            var times = conflicts.bookings.map(function(b) { return b.start_time + '–' + b.end_time; }).join(', ');
 
-                            $('#ffc-conflict-error-details').html(errorHtml);
-                            $('#ffc-conflict-error').show();
+                            $('#ffc-conflict-error')
+                                .empty()
+                                .append(FFC.notice('danger', 'error', times, errorMsg, { role: 'alert', hook: 'conflict-error' }))
+                                .show();
 
                             // Hide check button, do NOT show create button
                             $btn.hide();
@@ -210,12 +211,10 @@
                                     }
                                     grouped[b.audience_name].push(b.start_time + '–' + b.end_time);
                                 });
-                                var lines = [];
+                                softWarnings.push(ffcAudience.strings.audienceSameDayWarning || 'This audience group already has a booking on this day:');
                                 for (var name in grouped) {
-                                    lines.push('<strong>' + escapeHtml(name) + '</strong>: ' + grouped[name].join(', '));
+                                    softWarnings.push(name + ': ' + grouped[name].join(', '));
                                 }
-                                var sameDayMsg = ffcAudience.strings.audienceSameDayWarning || 'This audience group already has a booking on this day:';
-                                softWarnings.push(sameDayMsg + '<br>' + lines.join('<br>'));
                             }
 
                             // User member overlap
@@ -228,8 +227,15 @@
 
                             if (softWarnings.length > 0) {
                                 // SOFT CONFLICT: show warning + require acknowledgment
-                                $('#ffc-conflict-details').html(softWarnings.join('<br><br>'));
-                                $('#ffc-conflict-warning').show();
+                                // The acknowledgement checkbox is markup of the
+                                // form, so it moves into the notice instead of
+                                // being rebuilt: its change handler stays bound.
+                                var $warning = $('#ffc-conflict-warning');
+                                var ack = $warning.find('.ffc-conflict-acknowledge').detach()[0];
+                                $warning
+                                    .empty()
+                                    .append(FFC.notice('warning', 'warning', softWarnings, '', { role: 'status', hook: 'conflict-warning', children: [ack] }))
+                                    .show();
                                 $('#ffc-create-booking-btn').show().prop('disabled', true);
                             } else {
                                 // NO CONFLICT: proceed directly

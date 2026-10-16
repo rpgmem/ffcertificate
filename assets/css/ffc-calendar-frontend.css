@@ -136,16 +136,6 @@
     font-style: italic;
 }
 
-.ffc-shortcode .ffc-waitlist-notice {
-    margin: 0 0 var(--ffc-spacing-xl);
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-lg);
-    border-radius: var(--ffc-radius-md);
-    background: var(--ffc-gray-100);
-    border: 1px solid var(--ffc-gray-200);
-    font-size: var(--ffc-font-size-base);
-    color: var(--ffc-gray-700);
-}
-
 .ffc-shortcode .ffc-no-slots {
     text-align: center;
     padding: 40px var(--ffc-spacing-2xl);
@@ -292,30 +282,6 @@
     margin-top: var(--ffc-spacing-xl);
 }
 
-.ffc-shortcode .ffc-message {
-    padding: var(--ffc-spacing-xl);
-    border-radius: var(--ffc-radius-sm);
-    margin-bottom: var(--ffc-spacing-md);
-    font-size: var(--ffc-font-size-base);
-}
-
-.ffc-shortcode .ffc-message-error {
-    background: var(--ffc-danger-light);
-    color: var(--ffc-danger-text);
-    border: 1px solid var(--ffc-danger);
-}
-
-/* Error Message */
-.ffc-shortcode .ffc-error {
-    padding: var(--ffc-spacing-2xl);
-    background: var(--ffc-danger-light);
-    color: var(--ffc-danger-text);
-    border: 1px solid var(--ffc-danger);
-    border-radius: var(--ffc-radius-sm);
-    margin: var(--ffc-spacing-2xl) 0;
-    text-align: center;
-}
-
 /* ==========================================================================
    CONFIRMATION SECTION
    ========================================================================== */
@@ -419,21 +385,12 @@
     background: var(--ffc-primary-hover);
 }
 
-.ffc-shortcode .ffc-approval-notice,
-.ffc-shortcode .ffc-confirmation-notice {
-    /* Both notices are a `<p>`: without a size of their own they took the
-       host theme's paragraph size and outgrew the card above them (#1827). */
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-    padding: var(--ffc-spacing-xl);
-    background: var(--ffc-warning-light);
-    border: 1px solid var(--ffc-warning);
-    border-radius: var(--ffc-radius-sm);
-    margin-bottom: var(--ffc-spacing-2xl);
-    text-align: left;
+/* The approval and e-mail notices (`.ffc-notice`, #1842) sit in a centred
+   card: they keep the narrower measure they had there. */
+.ffc-shortcode .ffc-confirmation-success .ffc-notice {
     max-width: 500px;
-    margin-left: auto;
     margin-right: auto;
+    margin-left: auto;
 }
 
 /* ==========================================================================

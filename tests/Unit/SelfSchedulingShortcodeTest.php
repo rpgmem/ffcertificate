@@ -101,6 +101,20 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		$result = $shortcode->render_calendar( array( 'id' => 0 ) );
 
 		$this->assertStringContainsString( 'Calendar ID is required', $result );
+		// #1842: the shared notice, danger tone, read with the page.
+		$this->assertStringStartsWith( '<div class="ffc-notice ffc-notice-danger" role="note" data-ffc-notice="calendar-error">', $result );
+		$this->assertStringContainsString( 'ffc-icon-error', $result );
+	}
+
+	public function test_render_calendar_error_message_is_escaped(): void {
+		Functions\when( '__' )->justReturn( '<script>x</script>' );
+		Functions\when( 'esc_html' )->alias( static fn( $v ) => htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) );
+
+		$shortcode = new SelfSchedulingShortcode();
+		$result    = $shortcode->render_calendar( array( 'id' => 0 ) );
+
+		$this->assertStringNotContainsString( '<script>', $result );
+		$this->assertStringContainsString( '&lt;script&gt;', $result );
 	}
 
 	// ==================================================================
@@ -303,6 +317,31 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		$result    = $shortcode->render_calendar( array( 'id' => 100 ) );
 
 		$this->assertStringContainsString( 'pending approval', $result );
+		$this->assertStringContainsString( '<div class="ffc-notice ffc-notice-warning" role="note" data-ffc-notice="booking-approval"><span class="ffc-notice-icon ffc-icon-clock"', $result );
+	}
+
+	public function test_render_calendar_hides_the_email_sent_notice_until_the_script_shows_it(): void {
+		$shortcode = $this->shortcode_with_calendar( $this->make_calendar() );
+		$result    = $shortcode->render_calendar( array( 'id' => 100 ) );
+
+		$this->assertStringNotContainsString( 'data-ffc-notice="booking-approval"', $result );
+		$this->assertMatchesRegularExpression(
+			'#<div class="ffc-confirmation-email" style="display: none;">\s*<div class="ffc-notice ffc-notice-warning" role="note" data-ffc-notice="booking-email-sent">#',
+			$result
+		);
+	}
+
+	public function test_render_calendar_bypass_notice_is_an_info_notice_with_its_badges(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'wp_kses_post' )->returnArg();
+
+		$shortcode = $this->shortcode_with_calendar( $this->make_calendar( array( 'visibility' => 'private' ) ) );
+		$result    = $shortcode->render_calendar( array( 'id' => 100 ) );
+
+		$this->assertStringContainsString( '<div class="ffc-notice ffc-notice-info" role="note" data-ffc-notice="admin-bypass"><span class="ffc-notice-icon ffc-icon-unlock"', $result );
+		$this->assertStringContainsString( '<span class="ffc-badge ffc-badge-private">Private</span>', $result );
+		$this->assertStringContainsString( 'bypass active', $result );
 	}
 
 	public function test_render_calendar_private_visibility_anonymous_shows_message(): void {

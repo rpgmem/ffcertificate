@@ -33,6 +33,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The certificate form's notices are one component** (#1842). `.ffc-notice` in five tones with a `Core\Icons` icon, printed by `Core\Notice` and `FFC.notice()`; the quiz, schedule-exception and grading notices now sit above the title.
 - **Admin messages follow one rule per layer** (#1843). Page notices go through `Core\AdminNotice` and `FFC.Admin.notify()`: a `Core\Icons` icon, and only success and info close. Callouts inside a screen are `.ffc-notice`; status lines and autosave badges are `.ffc-status`. The short-URL toast is gone.
 - **One standard for field errors, warnings, hints and required markers** (#1844). Every plugin form shows a field's problem under it with an icon and appends it to `aria-describedby` (`FFC.fieldMessage()`, `Core\FieldMessage`). The public form's invalid state shows, audience booking drops `alert()`, one hidden `*` and one counter remain.
+- **The calendar, audience, dashboard and reregistration notices use `.ffc-notice` too** (#1842). So do the CSV info alerts and the WebView banner, through `Core\Notice` / `FFC.notice()`; their old classes and CSS are gone.
 
 ### Fixed
 

@@ -276,7 +276,7 @@
             FFC.rest(url, { nonce: ffcDashboard.nonce })
                 .then(function (response) { self.render(response); })
                 .catch(function () {
-                    $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
+                    $container.empty().append(FFC.notice('danger', 'error', ffcDashboard.strings.error, '', { role: 'alert' }));
                 });
         },
 
@@ -390,7 +390,7 @@
             FFC.rest(url, { nonce: ffcDashboard.nonce })
                 .then(function (response) { self.render(response); })
                 .catch(function () {
-                    $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
+                    $container.empty().append(FFC.notice('danger', 'error', ffcDashboard.strings.error, '', { role: 'alert' }));
                 });
         }
     };

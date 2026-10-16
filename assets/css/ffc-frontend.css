@@ -1504,33 +1504,6 @@ details.ffc-consent-description > p {
     text-decoration: underline;
 }
 
-/* Alerts */
-.ffc-public-csv-download .ffc-info-alert {
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
-    border-radius: var(--ffc-radius-sm, 6px);
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-    margin-top: var(--ffc-spacing-lg);
-}
-
-.ffc-public-csv-download .ffc-info-alert-warning {
-    background: var(--ffc-warning-bg);
-    border: 1px solid var(--ffc-warning-border);
-    color: var(--ffc-warning-text);
-}
-
-.ffc-public-csv-download .ffc-info-alert-info {
-    background: var(--ffc-info-bg);
-    border: 1px solid var(--ffc-info-border);
-    color: var(--ffc-info-text);
-}
-
-.ffc-public-csv-download .ffc-info-alert-success {
-    background: var(--ffc-success-bg);
-    border: 1px solid var(--ffc-success-border);
-    color: var(--ffc-success-text);
-}
-
 /* Action buttons */
 .ffc-public-csv-download .ffc-info-actions {
     display: flex;
@@ -2026,60 +1999,9 @@ details.ffc-consent-description > p {
    Renders above [ffc_form] / [ffc_csv_download] when the page is
    loaded inside Facebook / Instagram / WhatsApp / Android WebView,
    inviting the user to switch to Chrome/Safari for a reliable
-   download. Visual matches the existing .ffc-info-alert family.
+   download. The banner is the shared `.ffc-notice` (#1842); only its
+   two buttons are styled here.
    ============================================ */
-
-.ffc-webview-warning {
-    display: flex;
-    gap: var(--ffc-spacing-xl);
-    align-items: flex-start;
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    margin: 0 0 var(--ffc-spacing-3xl) 0;
-    background: var(--ffc-warning-bg);
-    border: 1px solid var(--ffc-warning-border);
-    border-left: 4px solid var(--ffc-warning);
-    border-radius: var(--ffc-radius-lg);
-    box-shadow: var(--ffc-shadow-sm);
-}
-
-/* 26px literal: the warning icon's glyph — a glyph box, not text. Same
-   reason as .ffc-open-early-close above. */
-.ffc-webview-warning-icon {
-    font-size: 26px;
-    line-height: 1;
-    color: var(--ffc-warning-text);
-    flex-shrink: 0;
-}
-
-.ffc-webview-warning-icon::before {
-    margin-right: 0;
-}
-
-.ffc-webview-warning-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.ffc-webview-warning-content h3 {
-    margin: 0 0 var(--ffc-spacing-xs) 0;
-    font-size: var(--ffc-font-size-lg);
-    font-weight: 600;
-    color: var(--ffc-warning-text);
-    line-height: 1.3;
-}
-
-.ffc-webview-warning-content p {
-    margin: 0 0 var(--ffc-spacing-lg) 0;
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-    color: var(--ffc-text);
-}
-
-.ffc-webview-warning-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--ffc-spacing-md);
-}
 
 .ffc-webview-warning-open,
 .ffc-webview-warning-dismiss {
@@ -2117,15 +2039,6 @@ details.ffc-consent-description > p {
 }
 
 @media (max-width: 600px) {
-    .ffc-webview-warning {
-        flex-direction: column;
-        gap: var(--ffc-spacing-sm);
-        padding: var(--ffc-spacing-xl);
-    }
-    .ffc-webview-warning-actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
     .ffc-webview-warning-open,
     .ffc-webview-warning-dismiss {
         width: 100%;
