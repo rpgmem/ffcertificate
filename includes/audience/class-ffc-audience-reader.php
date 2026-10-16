@@ -353,6 +353,32 @@ class AudienceReader {
 	}
 
 	/**
+	 * Check if a user is a member of any audience, whatever its status.
+	 *
+	 * The members screen lists inactive audiences' members too, so the
+	 * account-email reveal binds to membership itself rather than to
+	 * {@see self::get_user_audiences()}, which keeps active audiences only
+	 * (#1824).
+	 *
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
+	public static function is_member_of_any( int $user_id ): bool {
+		$wpdb  = self::db();
+		$table = self::get_members_table_name();
+
+		$count = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE user_id = %d',
+				$table,
+				$user_id
+			)
+		);
+
+		return (int) $count > 0;
+	}
+
+	/**
 	 * Get members of an audience
 	 *
 	 * @param int  $audience_id Audience ID.

@@ -423,8 +423,40 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Error adding user permissions', $this->responses[0]['data']['message'] );
 	}
 
-	public function test_add_user_permission_succeeds_with_html(): void {
+	/**
+	 * The row draws the account email masked (#1824); the policy decides
+	 * whether it carries the Reveal button.
+	 *
+	 * @param bool $can_reveal What the policy answers.
+	 */
+	private function stubAccountEmail( bool $can_reveal ): void {
+		Functions\when( 'is_email' )->justReturn( true );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'wp_create_nonce' )->justReturn( 'reveal-nonce' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
+			->shouldReceive( 'can_reveal' )
+			->with( 'ffc_view_appointments_pii', 'ffc_appointments_admin', 7 )
+			->andReturn( $can_reveal );
+	}
+
+	/**
+	 * @return array<string, array{0: bool}>
+	 */
+	public static function reveal_tiers(): array {
+		return array(
+			'may reveal' => array( true ),
+			'masked'     => array( false ),
+		);
+	}
+
+	/**
+	 * @dataProvider reveal_tiers
+	 *
+	 * @param bool $can_reveal What the policy answers.
+	 */
+	public function test_add_user_permission_succeeds_with_html( bool $can_reveal ): void {
 		$this->mockUtils();
+		$this->stubAccountEmail( $can_reveal );
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7' );
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
@@ -439,12 +471,20 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_add_user_permission() );
 
 		$this->assertTrue( $this->responses[0]['ok'] );
-		$this->assertStringContainsString( 'Jane', $this->responses[0]['data']['html'] );
-		$this->assertStringContainsString( 'jane@e.com', $this->responses[0]['data']['html'] );
+		$html = $this->responses[0]['data']['html'];
+		$this->assertStringContainsString( 'Jane', $html );
+		// The row the script inserts is masked by the server, never sent clear (#1824).
+		$this->assertStringNotContainsString( 'jane@e.com', $html );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">j***@e.com</span>', $html );
+		$this->assertSame(
+			$can_reveal,
+			str_contains( $html, 'data-type="audience_account" data-field="email" data-submission-id="7" data-nonce="reveal-nonce"' )
+		);
 	}
 
 	public function test_add_user_permission_row_uses_the_toggle_markup_of_the_page(): void {
 		$this->mockUtils();
+		$this->stubAccountEmail( false );
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7' );
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );

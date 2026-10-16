@@ -190,6 +190,57 @@ describe('ffc-pii-reveal', () => {
 		expect(window.$('#r2 .ffc-reveal-pii').length).toBe(0);
 	});
 
+	it('reveals the linked account email without touching the submission email (#1824)', async () => {
+		document.body.innerHTML = `<form>
+			<p class="ffc-edit-field"><span class="ffc-pii-row">
+				<input type="email" name="user_email" data-ffc-pii-field="email" data-ffc-pii-editable="1" value="s***@x.com" disabled />
+				<button class="ffc-reveal-pii" id="sub" data-field="email" data-submission-id="12" data-nonce="n">Reveal</button>
+			</span></p>
+			<span class="ffc-user-email">(<span class="ffc-pii-row"><span class="ffc-pii-value" data-field="account_email">a***@x.com</span>
+				<button class="ffc-reveal-pii" id="acct" data-field="account_email" data-submission-id="12" data-nonce="n">Reveal</button>
+			</span>)</span>
+		</form>`;
+		window.FFC.request = vi.fn(() => Promise.resolve({ field: 'account_email', value: 'account@x.com' }));
+
+		await load();
+		window.$('#acct').trigger('click');
+		await flush();
+
+		expect(window.FFC.request).toHaveBeenCalledWith(
+			'ffc_reveal_pii',
+			{ submission_id: 12, field: 'account_email', type: 'submission' },
+			{ nonce: 'n' }
+		);
+		expect(window.$('.ffc-pii-value[data-field="account_email"]').text()).toBe('account@x.com');
+		expect(window.$('[data-ffc-pii-field="email"]').val()).toBe('s***@x.com');
+		expect(window.$('[data-ffc-pii-field="email"]').prop('disabled')).toBe(true);
+		expect(window.$('#sub').length).toBe(1);
+	});
+
+	it('reveals a row inserted after load, once per click (#1824)', async () => {
+		document.body.innerHTML = '<table><tbody id="perms"></tbody></table>';
+		window.FFC.request = vi.fn(() => Promise.resolve({ field: 'email', value: 'member@x.com' }));
+
+		await load();
+		// Loading twice must not bind twice.
+		await load();
+		window.$('#perms').append(`<tr><td><strong>Member</strong>
+			<br><span class="description"><span class="ffc-pii-row"><span class="ffc-pii-value" data-field="email">m***@x.com</span>
+			<button class="ffc-reveal-pii" data-type="audience_account" data-field="email" data-submission-id="7" data-nonce="n7">Reveal</button></span></span>
+		</td></tr>`);
+		window.$('.ffc-reveal-pii').trigger('click');
+		await flush();
+
+		expect(window.FFC.request).toHaveBeenCalledTimes(1);
+		expect(window.FFC.request).toHaveBeenCalledWith(
+			'ffc_reveal_pii',
+			{ submission_id: 7, field: 'email', type: 'audience_account' },
+			{ nonce: 'n7' }
+		);
+		expect(window.$('.ffc-pii-value[data-field="email"]').text()).toBe('member@x.com');
+		expect(window.$('.ffc-reveal-pii').length).toBe(0);
+	});
+
 	it('defaults type to submission when data-type is absent', async () => {
 		document.body.innerHTML = `<table><tr><td>
 			<span class="ffc-pii-value" data-field="rf">1*.***.***</span>

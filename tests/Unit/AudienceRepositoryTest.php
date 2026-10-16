@@ -842,6 +842,23 @@ class AudienceRepositoryTest extends TestCase {
 		$this->assertFalse(AudienceReader::is_member(1, 42));
 	}
 
+	public function test_is_member_of_any_counts_the_user_across_every_audience(): void {
+		$this->wpdb->shouldReceive('prepare')
+			->once()
+			->with('SELECT COUNT(*) FROM %i WHERE user_id = %d', 'wp_ffc_audience_members', 42)
+			->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_var')->once()->with('QUERY')->andReturn('3');
+
+		$this->assertTrue(AudienceReader::is_member_of_any(42));
+	}
+
+	public function test_is_member_of_any_returns_false_without_a_membership_row(): void {
+		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn('0');
+
+		$this->assertFalse(AudienceReader::is_member_of_any(42));
+	}
+
 	// ==================================================================
 	// get_members()
 	// ==================================================================

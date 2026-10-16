@@ -233,6 +233,32 @@ class AdminConditionalAssetsTest extends TestCase {
 		$this->assertContains( 'ffc-pii-reveal', $this->scripts );
 	}
 
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function audience_account_pages(): array {
+		return array(
+			'audiences (Members tab)'           => array( 'ffc-scheduling-audiences' ),
+			'audience calendars (User access)' => array( 'ffc-scheduling-calendars' ),
+		);
+	}
+
+	/**
+	 * The audience screens list account emails behind reveal buttons (#1824).
+	 *
+	 * @dataProvider audience_account_pages
+	 *
+	 * @param string $page The `?page=` slug.
+	 */
+	public function test_audience_account_screens_enqueue_pii_reveal_script( string $page ): void {
+		$_GET['page'] = $page;
+
+		$assets = new AdminConditionalAssets();
+		$assets->enqueue_conditional_assets();
+
+		$this->assertContains( 'ffc-pii-reveal', $this->scripts );
+	}
+
 	public function test_other_scheduling_screen_does_not_enqueue_pii_reveal_script(): void {
 		$_GET['page'] = 'ffc-scheduling-settings';
 

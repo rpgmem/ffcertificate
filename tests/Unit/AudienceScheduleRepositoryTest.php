@@ -588,6 +588,23 @@ class AudienceScheduleRepositoryTest extends TestCase {
 		$this->assertSame(0, $result->can_cancel_others);
 	}
 
+	public function test_has_any_permission_counts_the_user_across_every_schedule(): void {
+		$this->wpdb->shouldReceive('prepare')
+			->once()
+			->with('SELECT COUNT(*) FROM %i WHERE user_id = %d', 'wp_ffc_audience_schedule_permissions', 5)
+			->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_var')->once()->with('QUERY')->andReturn('1');
+
+		$this->assertTrue(AudienceScheduleRepository::has_any_permission(5));
+	}
+
+	public function test_has_any_permission_returns_false_without_a_permission_row(): void {
+		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn(null);
+
+		$this->assertFalse(AudienceScheduleRepository::has_any_permission(5));
+	}
+
 	public function test_get_user_permissions_returns_null_when_not_found(): void {
 		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
 		$this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
