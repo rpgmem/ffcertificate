@@ -432,6 +432,50 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-user-search-input', $html );
 	}
 
+	/**
+	 * @return array<string, array{0: list<string>, 1: list<string>, 2: bool}>
+	 */
+	public static function account_email_tiers(): array {
+		return array(
+			'WordPress admin (unmasked)'         => array( array( 'manage_options' ), array(), true ),
+			'certificates admin role (unmasked)' => array( array(), array( 'ffc_certificates_admin' ), true ),
+			'certificates PII cap (reveal)'      => array( array( 'ffc_view_certificates_pii' ), array(), true ),
+			'no PII access (masked)'             => array( array( 'ffc_view_certificates' ), array(), false ),
+		);
+	}
+
+	/**
+	 * The linked account's email is masked at every tier, behind the same
+	 * gate and Reveal button as the submission's own values (#1824). It used
+	 * to print in clear for every viewer of the screen.
+	 *
+	 * @dataProvider account_email_tiers
+	 *
+	 * @param list<string> $caps   Viewer caps.
+	 * @param list<string> $roles  Viewer roles.
+	 * @param bool         $button Whether a Reveal button is drawn.
+	 */
+	public function test_render_masks_the_linked_account_email_at_every_tier( array $caps, array $roles, bool $button ): void {
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => in_array( $cap, $caps, true ) );
+		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => $roles ) );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'user_id' => 9 ) ) );
+		Functions\when( 'get_userdata' )->alias(
+			static fn( $id ) => 9 === (int) $id ? (object) array( 'display_name' => 'Jane Doe', 'user_email' => 'jane@x.com' ) : false
+		);
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Jane Doe', $html );
+		$this->assertStringNotContainsString( 'jane@x.com', $html, 'no tier receives the clear address' );
+		$this->assertStringContainsString( '<span class="ffc-user-email">(<span class="ffc-pii-row"><span class="ffc-pii-value" data-field="account_email">j***@x.com</span>', $html );
+		$this->assertSame(
+			$button ? 1 : 0,
+			substr_count( $html, '<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="account_email" data-submission-id="42" data-nonce="nonce123">Reveal</button>' )
+		);
+	}
+
 	public function test_render_masks_cpf_and_email_for_an_administrator_and_offers_reveal(): void {
 		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
 

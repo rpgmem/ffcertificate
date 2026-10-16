@@ -778,7 +778,7 @@ class AudienceAdminCalendar {
 		<tr data-user-id="<?php echo esc_attr( $user_id ); ?>">
 			<td>
 				<strong><?php echo esc_html( $user->display_name ); ?></strong>
-				<br><span class="description"><?php echo esc_html( $user->user_email ); ?></span>
+				<br><span class="description"><?php echo AudienceAccountEmail::render( (int) $perm->user_id, (string) $user->user_email ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render() escapes every value. ?></span>
 			</td>
 			<?php foreach ( $columns as $column => $granted ) : ?>
 				<td>
@@ -983,7 +983,7 @@ class AudienceAdminCalendar {
 					<tr>
 						<td>
 							<strong><?php echo esc_html( $user->display_name ); ?></strong>
-							<br><span class="description"><?php echo esc_html( $user->user_email ); ?></span>
+							<br><span class="description"><?php echo AudienceAccountEmail::render( (int) $perm->user_id, (string) $user->user_email ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render() escapes every value. ?></span>
 						</td>
 						<?php foreach ( $columns as $column => $label ) : ?>
 							<td>

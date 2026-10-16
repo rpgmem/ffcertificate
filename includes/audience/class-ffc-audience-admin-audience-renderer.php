@@ -809,7 +809,7 @@ final class AudienceAdminAudienceRenderer {
 								?>
 								<tr>
 									<td><?php echo esc_html( $user->display_name ); ?></td>
-									<td><?php echo esc_html( $user->user_email ); ?></td>
+									<td><?php echo AudienceAccountEmail::render( (int) $user_id, (string) $user->user_email ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render() escapes every value. ?></td>
 									<?php if ( $can_manage ) : ?>
 									<td class="column-actions">
 										<a href="<?php echo esc_url( $remove_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Remove this member?', 'ffcertificate' ); ?>');">

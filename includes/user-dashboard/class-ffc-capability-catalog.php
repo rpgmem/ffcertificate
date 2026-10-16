@@ -250,7 +250,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_view_appointments_pii'       => array(
 						'label'       => __( 'Reveal appointment PII', 'ffcertificate' ),
-						'description' => __( 'Reveal the decrypted CPF / RF / email on an appointment (audited). Without it the values stay masked (#739).', 'ffcertificate' ),
+						'description' => __( 'Reveal the decrypted CPF / RF / email on an appointment, and the account email on the audience screens (audited). Without it the values stay masked (#739, #1824).', 'ffcertificate' ),
 					),
 				),
 			),

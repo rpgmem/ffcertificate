@@ -51,6 +51,9 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		'manage' => array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences', 'ffc_manage_custom_fields' ),
 	);
 
+	/** The data attribute the masked account-email cell carries (#1824). */
+	private const MASKED_EMAIL = 'data:data-field=email';
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -92,6 +95,11 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		Functions\when( 'settings_errors' )->justReturn( '' );
 		Functions\when( 'wp_trim_words' )->returnArg();
 		Functions\when( 'get_option' )->justReturn( array() );
+		// The member and access tables mask account emails (#1824). No tier
+		// here holds a PII cap, so a logged-out viewer resolves to the same
+		// masked tier without stubbing the role lookup.
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== strpos( (string) $e, '@' ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
 		Functions\when( 'get_userdata' )->alias(
 			static fn( $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
 		);
@@ -368,6 +376,18 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 	}
 
 	/**
+	 * Drop the masked account-email cell (#1824). The fixture predates it, and
+	 * it is markup rather than a control, so the callers assert it is present
+	 * and compare the rest against the fixture.
+	 *
+	 * @param list<string> $items Inventory.
+	 * @return list<string>
+	 */
+	private static function without_masked_email( array $items ): array {
+		return array_values( array_diff( $items, array( self::MASKED_EMAIL ) ) );
+	}
+
+	/**
 	 * @param list<string> ...$sets Inventories.
 	 * @return list<string>
 	 */
@@ -412,7 +432,8 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		);
 
 		$after = self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'action' => 'edit', 'id' => '5' ) ) );
-		$this->assertSame( self::union( $fixture[ 'calendar-edit-' . $tier ], $list ), self::without_tab_markup( $after ) );
+		$this->assertContains( self::MASKED_EMAIL, $after, 'the User access table masks the account email' );
+		$this->assertSame( self::union( $fixture[ 'calendar-edit-' . $tier ], $list ), self::without_masked_email( self::without_tab_markup( $after ) ) );
 		if ( 'manage' === $tier ) {
 			$this->assertContains( $view . '&action=new&schedule_id=5', $after, 'the tab\'s Add New carries the calendar' );
 		}
@@ -436,7 +457,8 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 
 		foreach ( array( 'edit', 'members' ) as $action ) {
 			$after = self::inventory( $this->render( 'ffc-scheduling-audiences', array( 'action' => $action, 'id' => '5' ) ) );
-			$this->assertSame( $expected, self::without_tab_markup( $after ), 'action=' . $action );
+			$this->assertContains( self::MASKED_EMAIL, $after, 'the Members table masks the account email, action=' . $action );
+			$this->assertSame( $expected, self::without_masked_email( self::without_tab_markup( $after ) ), 'action=' . $action );
 		}
 
 		$after_new = self::inventory( $this->render( 'ffc-scheduling-audiences', array( 'action' => 'new' ) ) );

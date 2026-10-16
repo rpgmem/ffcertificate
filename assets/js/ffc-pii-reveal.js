@@ -8,10 +8,10 @@
  * initial page HTML for the `reveal` / `masked` tiers.
  *
  * Each reveal button carries:
- *   - data-field           cpf | rf | email | ip
- *   - data-type            submission | appointment | reregistration
- *                          (defaults to submission)
- *   - data-submission-id   the record ID
+ *   - data-field           cpf | rf | email | ip | account_email
+ *   - data-type            submission | appointment | reregistration |
+ *                          audience_account (defaults to submission)
+ *   - data-submission-id   the record ID (the account ID for audience_account)
  *   - data-nonce           the ffc_reveal_pii_nonce
  *
  * On success the value replaces either an `[data-ffc-pii-field]` input (the
@@ -22,6 +22,10 @@
  * consent) are revealed one at a time (#1760). An input marked
  * `data-ffc-pii-editable` (the submission email) is enabled once it holds the
  * clear value, so it is edited and posted only after a reveal (#1655).
+ *
+ * The click is delegated from the document, so a row inserted after load
+ * (a calendar's user-access row returned by its "add user" AJAX handler,
+ * already masked by the server) reveals like the rest (#1824).
  */
 jQuery(document).ready(function ($) {
     'use strict';
@@ -32,7 +36,7 @@ jQuery(document).ready(function ($) {
 
     var strings = window.ffcPiiReveal || {};
 
-    $('.ffc-reveal-pii').on('click', function (e) {
+    $(document).off('click.ffcPiiReveal').on('click.ffcPiiReveal', '.ffc-reveal-pii', function (e) {
         e.preventDefault();
 
         var $btn = $(this);

@@ -20,6 +20,12 @@ class AudienceAdminAudienceTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var Mockery\MockInterface Alias mock of Core\PiiAccessPolicy. */
+	private $policy;
+
+	/** @var bool What the policy answers for a listed account (#1824). */
+	private $can_reveal = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -58,6 +64,14 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'get_user_by' )->alias(
 			static fn( $field, $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
 		);
+
+		// The account email is masked (#1824). Whether a row gets a Reveal
+		// button is the policy's answer, set per test through
+		// $this->can_reveal; the tiers themselves are AudienceAccountEmailTest's.
+		Functions\when( 'is_email' )->justReturn( true );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'reveal-nonce' );
+		$this->policy = Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
+		$this->policy->shouldReceive( 'can_reveal' )->andReturnUsing( fn() => $this->can_reveal )->byDefault();
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -489,7 +503,9 @@ class AudienceAdminAudienceTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'User7', $output );
-		$this->assertStringContainsString( '8@e.com', $output );
+		// The email is masked (#1824).
+		$this->assertStringContainsString( '8***@e.com', $output );
+		$this->assertStringNotContainsString( '8@e.com', $output );
 		$this->assertStringContainsString( 'ffc-boxed', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-plus">', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-users">', $output );
@@ -1003,9 +1019,10 @@ class AudienceAdminAudienceTest extends TestCase {
 		$page->render_page();
 		$output = (string) ob_get_clean();
 
-		// Every tier sees the members.
+		// Every tier sees the members, with the email masked (#1824).
 		$this->assertStringContainsString( 'User7', $output );
-		$this->assertStringContainsString( '8@e.com', $output );
+		$this->assertStringContainsString( '8***@e.com', $output );
+		$this->assertStringNotContainsString( '8@e.com', $output );
 
 		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
 		$this->assertSame( $can_manage, str_contains( $output, '<h2 class="ffc-icon-plus">' ), 'the Add Members box' );
@@ -1014,5 +1031,63 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'Remove this member?' ) );
 		$this->assertSame( $can_manage, str_contains( $output, 'column-actions' ) );
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+	}
+
+	/**
+	 * @return array<string, array{0: bool}>
+	 */
+	public static function reveal_tiers(): array {
+		return array(
+			'may reveal (unmasked or reveal tier)' => array( true ),
+			'masked tier'                          => array( false ),
+		);
+	}
+
+	/**
+	 * The members table masks each account email for every tier and draws
+	 * the audited Reveal button only for a viewer the policy lets reveal,
+	 * asking with the appointments gate and the member as owner (#1824).
+	 *
+	 * @dataProvider reveal_tiers
+	 *
+	 * @param bool $can_reveal What the policy answers.
+	 */
+	public function test_members_table_masks_the_account_email_at_every_tier( bool $can_reveal ): void {
+		$this->can_reveal = $can_reveal;
+		$this->policy->shouldReceive( 'can_reveal' )
+			->with( 'ffc_view_appointments_pii', 'ffc_appointments_admin', Mockery::type( 'int' ) )
+			->andReturnUsing( fn() => $this->can_reveal );
+		$_GET['action'] = 'members';
+		$_GET['id']     = '5';
+		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
+		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
+		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_children' )->andReturn( array() );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 );
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
+		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp' ) );
+		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		foreach ( array( 7, 8 ) as $member ) {
+			$this->assertStringNotContainsString( $member . '@e.com', $output, 'no tier receives the clear address' );
+			$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">' . $member . '***@e.com</span>', $output );
+			$this->assertSame(
+				$can_reveal,
+				str_contains( $output, 'data-type="audience_account" data-field="email" data-submission-id="' . $member . '" data-nonce="reveal-nonce"' )
+			);
+		}
+		$this->assertSame( $can_reveal ? 2 : 0, substr_count( $output, 'ffc-reveal-pii' ) );
 	}
 }
