@@ -1413,6 +1413,17 @@ html:has(.ffc-settings-back-to-top) {
     color: var(--ffc-gray-700);
 }
 
+@media (forced-colors: active) {
+    /* The badge paints a ground and nothing else; forced colors discard the
+       ground, so the contour is what keeps it a badge. Invisible to this
+       guard while the colours lived in a `style=""` (#1837). */
+    .ffc-signal-badge--cookie,
+    .ffc-signal-badge--strong,
+    .ffc-signal-badge--weak {
+        border: 1px solid CanvasText;
+    }
+}
+
 /* Templates → current assignments, and the two IP Diagnostics tables: a
    narrow lookup table, not a full-width list. */
 .ffc-settings-wrap .ffc-template-assignments,
