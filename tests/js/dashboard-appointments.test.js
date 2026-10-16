@@ -72,14 +72,15 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		const headers = document.querySelectorAll('#ffc-tabpanel-appointments h3');
 		expect(headers.length).toBe(3);
 		const labels = Array.from(headers).map((h) => h.textContent);
-		expect(labels).toEqual(['Upcoming', 'Past', 'Cancelled']);
+		// Each heading carries its section's total (#1836).
+		expect(labels).toEqual(['Upcoming (1)', 'Past (1)', 'Cancelled (1)']);
 	});
 
 	it('omits sections that have no items', () => {
 		// Only upcoming → only one section.
 		panel().render([makeAppt(), makeAppt()], 1);
 		expect(document.querySelectorAll('#ffc-tabpanel-appointments h3').length).toBe(1);
-		expect(document.querySelector('#ffc-tabpanel-appointments h3').textContent).toBe('Upcoming');
+		expect(document.querySelector('#ffc-tabpanel-appointments h3').textContent).toBe('Upcoming (2)');
 	});
 
 	it("applies 'ffc-row-cancelled' / 'ffc-row-past' classes to the right rows", () => {

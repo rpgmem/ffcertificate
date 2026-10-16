@@ -117,7 +117,8 @@ describe('FFCDashboard.panels.audience.render', () => {
 			makeBooking({ is_past: false, status: 'cancelled' }),
 		], 1);
 		const headers = Array.from(document.querySelectorAll('#ffc-tabpanel-audience h3')).map((h) => h.textContent);
-		expect(headers).toEqual(['Upcoming', 'Past', 'Cancelled']);
+		// Each heading carries its section's total (#1836).
+		expect(headers).toEqual(['Upcoming (1)', 'Past (1)', 'Cancelled (1)']);
 	});
 
 	it("applies 'ffc-row-past' and 'ffc-row-cancelled' classes appropriately", () => {

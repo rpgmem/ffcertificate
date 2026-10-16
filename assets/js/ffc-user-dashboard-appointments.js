@@ -2,7 +2,8 @@
  * FFC User Dashboard — Appointments panel
  *
  * Self-scheduling appointments list with upcoming/past/cancelled sections,
- * filter bar, pagination, calendar export buttons, and cancel action.
+ * each with its own pager (#1836), filter bar, calendar export buttons, and
+ * cancel action.
  *
  * @since 6.5.2
  */
@@ -132,6 +133,62 @@
             });
     }
 
+    var SECTION_ORDER = ['upcoming', 'past', 'cancelled'];
+
+    function sectionLabel(key) {
+        var s = ffcDashboard.strings;
+        if (key === 'upcoming') return s.upcoming || 'Upcoming';
+        if (key === 'past') return s.past || 'Past';
+        return s.cancelled || 'Cancelled';
+    }
+
+    /**
+     * One appointment row.
+     *
+     * @param {Object} apt     Appointment row from the REST payload.
+     * @param {string} section Section key the row is drawn in.
+     * @returns {string}
+     */
+    function buildRow(apt, section) {
+        var rowClass = '';
+        if (apt.status === 'cancelled') rowClass = 'ffc-row-cancelled';
+        else if (section === 'past') rowClass = 'ffc-row-past';
+
+        var html = '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
+        html += '<td>' + helpers.esc(apt.calendar_title) + '</td>';
+        html += '<td>' + apt.appointment_date + '</td>';
+        html += '<td>' + apt.start_time + '</td>';
+        html += '<td><span class="ffc-pill ffc-dashboard-status-' + apt.status + '">' + apt.status_label + '</span></td>';
+        html += '<td>';
+
+        if (apt.receipt_url) {
+            html += '<a href="' + helpers.escAttr(apt.receipt_url) + '" class="button button-primary ffc-btn-receipt ffc-icon-file" target="_blank" rel="noopener noreferrer">' + (ffcDashboard.strings.viewReceipt || 'View Receipt') + '</a>';
+        }
+
+        if (apt.can_cancel) {
+            html += '<button class="button ffc-cancel-appointment" data-id="' + apt.id + '">' + ffcDashboard.strings.cancelAppointment + '</button>';
+        }
+
+        if (section === 'upcoming' && apt.status === 'confirmed') {
+            var aptEvent = {
+                uid: 'ffc-apt-' + apt.id,
+                summary: apt.calendar_title,
+                description: apt.calendar_title + (apt.name ? '\n' + (ffcDashboard.strings.name || 'Name:') + ' ' + apt.name : '') + (apt.email ? '\n' + (ffcDashboard.strings.email || 'Email:') + ' ' + apt.email : ''),
+                location: ffcDashboard.mainAddress || '',
+                date: apt.appointment_date_raw,
+                startTime: apt.start_time_raw,
+                // Use the raw wall-clock end (like start_time_raw), not the
+                // display-formatted end_time — the calendar export needs a
+                // parseable HH:MM, and raw avoids any locale/TZ formatting.
+                endTime: apt.end_time_raw || apt.start_time_raw
+            };
+            html += ' ' + FFCDashboard.calExport.buildButton(aptEvent);
+        }
+
+        html += '</td></tr>';
+        return html;
+    }
+
     FFCDashboard.panels.appointments = {
         state: null,
 
@@ -181,10 +238,18 @@
                 });
         },
 
-        render: function (appointments, page) {
+        // The page each section shows; `render()` resets them, a pager
+        // click moves one (core's `handleSectionPage`).
+        sectionPages: { upcoming: 1, past: 1, cancelled: 1 },
+
+        // The filtered items of each section, from the last `render()`.
+        sections: { upcoming: [], past: [], cancelled: [] },
+
+        // A full render: on load, on Filter and on Clear. Every section
+        // goes back to its first page (#1836). The core dispatch passes a
+        // page as well; this tab pages per section and ignores it.
+        render: function (appointments) {
             var $container = $('#ffc-tabpanel-appointments');
-            page = page || 1;
-            var pageSize = helpers.getPageSize();
 
             var filterHtml = helpers.buildFilterBar('appointments');
             var $existing = $container.find('.ffc-filter-bar');
@@ -192,7 +257,10 @@
             var toVal = $existing.find('.ffc-filter-to').val() || '';
             var searchVal = $existing.find('.ffc-filter-search').val() || '';
 
+            this.sectionPages = { upcoming: 1, past: 1, cancelled: 1 };
+
             if (!appointments || appointments.length === 0) {
+                this.sections = { upcoming: [], past: [], cancelled: [] };
                 $container.html(filterHtml + '<div class="ffc-empty-state"><p>' + ffcDashboard.strings.noAppointments + '</p></div>');
                 return;
             }
@@ -211,93 +279,49 @@
             }
 
             var today = new Date().toISOString().slice(0, 10);
-            var upcoming = [], past = [], cancelled = [];
+            var sections = { upcoming: [], past: [], cancelled: [] };
             filtered.forEach(function (apt) {
-                if (apt.status === 'cancelled') cancelled.push(apt);
-                else if (apt.appointment_date_raw < today || apt.status === 'completed' || apt.status === 'no_show') past.push(apt);
-                else upcoming.push(apt);
+                if (apt.status === 'cancelled') sections.cancelled.push(apt);
+                else if (apt.appointment_date_raw < today || apt.status === 'completed' || apt.status === 'no_show') sections.past.push(apt);
+                else sections.upcoming.push(apt);
             });
-
-            var allOrdered = [];
-            upcoming.forEach(function (b) { b._section = 'upcoming'; allOrdered.push(b); });
-            past.forEach(function (b) { b._section = 'past'; allOrdered.push(b); });
-            cancelled.forEach(function (b) { b._section = 'cancelled'; allOrdered.push(b); });
-
-            var start = (page - 1) * pageSize;
-            var pageItems = allOrdered.slice(start, start + pageSize);
+            this.sections = sections;
 
             var html = filterHtml;
-            var currentSection = '';
-
-            pageItems.forEach(function (apt) {
-                var section = apt._section;
-
-                if (section !== currentSection) {
-                    if (currentSection !== '') html += '</tbody></table>';
-                    currentSection = section;
-
-                    var sectionLabel = '', isPastSection = false;
-                    if (section === 'upcoming') { sectionLabel = ffcDashboard.strings.upcoming || 'Upcoming'; }
-                    else if (section === 'past') { sectionLabel = ffcDashboard.strings.past || 'Past'; isPastSection = true; }
-                    else { sectionLabel = ffcDashboard.strings.cancelled || 'Cancelled'; isPastSection = true; }
-
-                    html += '<h3>' + sectionLabel + '</h3>';
-                    html += '<table class="ffc-appointments-table' + (isPastSection ? ' ffc-table-past' : '') + '">';
-                    html += '<thead><tr>';
-                    html += '<th>' + ffcDashboard.strings.calendar + '</th>';
-                    html += '<th>' + ffcDashboard.strings.date + '</th>';
-                    html += '<th>' + ffcDashboard.strings.time + '</th>';
-                    html += '<th>' + ffcDashboard.strings.status + '</th>';
-                    html += '<th>' + ffcDashboard.strings.actions + '</th>';
-                    html += '</tr></thead><tbody>';
-                }
-
-                var rowClass = '';
-                if (apt.status === 'cancelled') rowClass = 'ffc-row-cancelled';
-                else if (section === 'past') rowClass = 'ffc-row-past';
-
-                html += '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
-                html += '<td>' + helpers.esc(apt.calendar_title) + '</td>';
-                html += '<td>' + apt.appointment_date + '</td>';
-                html += '<td>' + apt.start_time + '</td>';
-                html += '<td><span class="ffc-pill ffc-dashboard-status-' + apt.status + '">' + apt.status_label + '</span></td>';
-                html += '<td>';
-
-                if (apt.receipt_url) {
-                    html += '<a href="' + helpers.escAttr(apt.receipt_url) + '" class="button button-primary ffc-btn-receipt ffc-icon-file" target="_blank" rel="noopener noreferrer">' + (ffcDashboard.strings.viewReceipt || 'View Receipt') + '</a>';
-                }
-
-                if (apt.can_cancel) {
-                    html += '<button class="button ffc-cancel-appointment" data-id="' + apt.id + '">' + ffcDashboard.strings.cancelAppointment + '</button>';
-                }
-
-                if (section === 'upcoming' && apt.status === 'confirmed') {
-                    var aptEvent = {
-                        uid: 'ffc-apt-' + apt.id,
-                        summary: apt.calendar_title,
-                        description: apt.calendar_title + (apt.name ? '\n' + (ffcDashboard.strings.name || 'Name:') + ' ' + apt.name : '') + (apt.email ? '\n' + (ffcDashboard.strings.email || 'Email:') + ' ' + apt.email : ''),
-                        location: ffcDashboard.mainAddress || '',
-                        date: apt.appointment_date_raw,
-                        startTime: apt.start_time_raw,
-                        // Use the raw wall-clock end (like start_time_raw), not the
-                        // display-formatted end_time — the calendar export needs a
-                        // parseable HH:MM, and raw avoids any locale/TZ formatting.
-                        endTime: apt.end_time_raw || apt.start_time_raw
-                    };
-                    html += ' ' + FFCDashboard.calExport.buildButton(aptEvent);
-                }
-
-                html += '</td></tr>';
+            var self = this;
+            SECTION_ORDER.forEach(function (key) {
+                html += self.buildSectionHtml(key);
             });
-
-            if (currentSection !== '') html += '</tbody></table>';
-            html += helpers.buildPagination(allOrdered.length, page, 'appointments');
 
             $container.html(html);
 
             $container.find('.ffc-filter-from').val(fromVal);
             $container.find('.ffc-filter-to').val(toVal);
             $container.find('.ffc-filter-search').val(searchVal);
+        },
+
+        // One section's markup at its current page. A section without
+        // items is not drawn.
+        buildSectionHtml: function (key) {
+            var items = this.sections[key] || [];
+            if (items.length === 0) return '';
+            var s = ffcDashboard.strings;
+
+            return helpers.buildSection({
+                target: 'appointments',
+                key: key,
+                label: sectionLabel(key),
+                items: items,
+                page: this.sectionPages[key] || 1,
+                tableClass: 'ffc-appointments-table ffc-dashboard-section-table' + (key === 'upcoming' ? '' : ' ffc-table-past'),
+                headHtml:
+                    '<th class="ffc-col-calendar">' + s.calendar + '</th>' +
+                    '<th class="ffc-col-date">' + s.date + '</th>' +
+                    '<th class="ffc-col-time">' + s.time + '</th>' +
+                    '<th class="ffc-col-status">' + s.status + '</th>' +
+                    '<th class="ffc-col-actions">' + s.actions + '</th>',
+                rowHtml: function (apt) { return buildRow(apt, key); }
+            });
         }
     };
 
