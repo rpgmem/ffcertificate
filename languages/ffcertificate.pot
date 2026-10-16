@@ -20682,7 +20682,7 @@ msgid "load answers from a spreadsheet. Separate from manage on purpose: it writ
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:66
-msgid "reveal the decrypted CPF / RF / e-mail on an appointment, and the e-mail in the appointments list, with the Reveal button; every reveal is audited. Without it those values stay masked, even for an operator who can manage appointments. The list masks the e-mail for administrators and the appointments admin role too; they reveal it the same way."
+msgid "reveal the decrypted CPF / RF / e-mail on an appointment, and the e-mail in the appointments list, with the Reveal button; every reveal is audited. Without it those values stay masked, even for an operator who can manage appointments. The appointment detail and the list mask them for administrators and the appointments admin role too; they reveal them the same way."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:104
@@ -23257,7 +23257,7 @@ msgstr ""
 msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
 msgstr ""
 
-msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability. Revealing recruitment PII writes an activity-log entry (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
+msgid "On screen, CPF/RF and e-mail start masked, for administrators too; an operator who holds the matching PII capability fetches a value with the Reveal button beside it. Every reveal on submissions, appointments, reregistration and the audience screens writes an activity-log entry. Revealing recruitment PII is logged too (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
 msgstr ""
 
 msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
@@ -23947,7 +23947,7 @@ msgstr ""
 msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
 msgstr ""
 
-msgid "The plugin registers one role per module tier — viewer, operator, manager — plus \"FFC Administrator\", \"FFC Read-Only (all modules)\" and \"FFC End User\", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:"
+msgid "The plugin registers one role per module tier — viewer, operator, manager and, for the modules that hold personal data (certificates, appointments, reregistration, recruitment), an administrator role that may reveal it — plus \"FFC Administrator\", \"FFC Read-Only (all modules)\" and \"FFC End User\", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:"
 msgstr ""
 
 msgid "The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. WordPress administrators (manage_options) always hold every FFC capability."
@@ -26089,4 +26089,13 @@ msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:895
 msgid "FFC Reregistration - Administrator"
+msgstr ""
+
+msgid "Each action is listed by a readable name, such as \"Appointment Personal Data Revealed\" or \"Audience Account Email Revealed\"; an action with no name of its own shows its code, with spaces for the underscores."
+msgstr ""
+
+msgid "The dashboard is drawn with the plugin's own palette and icons, so it follows Dark Mode, and its fields, buttons and status badges look like those of the public forms. With Public Design switched on it also takes the design's font, accent colour, field corners and card corners."
+msgstr ""
+
+msgid "Add New on a calendar's Environments tab, or on the Environments view filtered to one calendar, opens the new environment with that calendar already chosen."
 msgstr ""

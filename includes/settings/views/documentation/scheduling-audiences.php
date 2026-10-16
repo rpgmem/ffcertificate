@@ -46,7 +46,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Admin pages', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The Scheduling menu lists Dashboard, Personal Calendars, Appointments, Audience Calendars, Audiences, Audience Bookings and Settings. A new personal calendar is added with the Add New button of Personal Calendars or the Dashboard\'s quick action.', 'ffcertificate' ); ?></p>
-	<p><?php esc_html_e( 'Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar\'s row opens that calendar\'s environments.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar\'s row opens that calendar\'s environments.', 'ffcertificate' ); ?> <?php esc_html_e( 'Add New on a calendar\'s Environments tab, or on the Environments view filtered to one calendar, opens the new environment with that calendar already chosen.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'Audience Bookings lists every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Import / export', 'ffcertificate' ); ?></h4>

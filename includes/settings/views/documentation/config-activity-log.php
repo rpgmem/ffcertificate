@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'What the viewer offers', 'ffcertificate' ); ?></h4>
 		<ul>
-			<li><strong><?php esc_html_e( 'Filters', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'narrow the table by level and by action, or search the entries by text.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Filters', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'narrow the table by level and by action, or search the entries by text.', 'ffcertificate' ); ?> <?php esc_html_e( 'Each action is listed by a readable name, such as "Appointment Personal Data Revealed" or "Audience Account Email Revealed"; an action with no name of its own shows its code, with spaces for the underscores.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Statistics', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'an activity summary for the last 30 days: the total, the counts by level and the most frequent actions.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'download the log as a CSV file, honouring the active filters. It runs as a timeout-safe background job, so a long history exports cleanly on shared hosting.', 'ffcertificate' ); ?></li>
 		</ul>

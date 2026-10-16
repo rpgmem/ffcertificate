@@ -20765,8 +20765,8 @@ msgid "load answers from a spreadsheet. Separate from manage on purpose: it writ
 msgstr "carrega respostas de uma planilha. Separada de gerenciar de propósito: grava dados pessoais de pessoas que nunca abriram o formulário."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:66
-msgid "reveal the decrypted CPF / RF / e-mail on an appointment, and the e-mail in the appointments list, with the Reveal button; every reveal is audited. Without it those values stay masked, even for an operator who can manage appointments. The list masks the e-mail for administrators and the appointments admin role too; they reveal it the same way."
-msgstr "revela o CPF / RF / e-mail decifrado num agendamento, e o e-mail na lista de agendamentos, com o botão Revelar; toda revelação é auditada. Sem ela, esses valores continuam mascarados, mesmo para um operador que pode gerenciar agendamentos. A lista mascara o e-mail também para administradores e para a função de administrador de agendamentos; eles o revelam da mesma forma."
+msgid "reveal the decrypted CPF / RF / e-mail on an appointment, and the e-mail in the appointments list, with the Reveal button; every reveal is audited. Without it those values stay masked, even for an operator who can manage appointments. The appointment detail and the list mask them for administrators and the appointments admin role too; they reveal them the same way."
+msgstr "revela o CPF / RF / e-mail decifrado num agendamento, e o e-mail na lista de agendamentos, com o botão Revelar; toda revelação é auditada. Sem ela, esses valores continuam mascarados, mesmo para um operador que pode gerenciar agendamentos. O detalhe do agendamento e a lista os mascaram também para administradores e para a função de administrador de agendamentos; eles os revelam da mesma forma."
 
 #: includes/settings/views/documentation/feature-reregistration.php:104
 msgid "rows that will be written."
@@ -23340,8 +23340,8 @@ msgstr "E-mail, CPF, RF, o IP do cliente e os dados extras do formulário do env
 msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
 msgstr "Identificadores sensíveis — e-mail, CPF e RF — são criptografados (AES-256-CBC com um IV aleatório por registro e uma verificação de integridade encrypt-then-HMAC), nunca armazenados em texto puro. Os envios de certificado também criptografam o IP do cliente e os dados extras do formulário."
 
-msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability. Revealing recruitment PII writes an activity-log entry (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
-msgstr "Na tela, CPF/RF e e-mail são mascarados, a menos que o operador tenha a capacidade de dados pessoais correspondente. Revelar dados pessoais do recrutamento grava uma entrada no registro de atividades (revelações repetidas do mesmo campo dentro de um minuto não são registradas de novo, e uma configuração do recrutamento pode desativar essa auditoria)."
+msgid "On screen, CPF/RF and e-mail start masked, for administrators too; an operator who holds the matching PII capability fetches a value with the Reveal button beside it. Every reveal on submissions, appointments, reregistration and the audience screens writes an activity-log entry. Revealing recruitment PII is logged too (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
+msgstr "Na tela, CPF/RF e e-mail começam mascarados, também para administradores; um operador que tenha a capacidade de dados pessoais correspondente busca o valor com o botão Revelar ao lado dele. Cada revelação em submissões, agendamentos, recadastramento e nas telas de públicos-alvo grava uma entrada no registro de atividades. Revelar dados pessoais do recrutamento também é registrado (revelações repetidas do mesmo campo dentro de um minuto não são registradas de novo, e uma configuração do recrutamento pode desativar essa auditoria)."
 
 msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
 msgstr "Um logotipo da Biblioteca de Mídia pode ser desenhado no centro (a correção de erros é elevada para H automaticamente), e uma moldura (banner, badge, bubble, pill, speech, circle, brackets ou double) pode trazer uma legenda curta como \"Escaneie para verificar\", opcionalmente com um ícone. Uma moldura deixa a imagem mais alta do que larga; os certificados mantêm a largura pedida pelo placeholder e crescem em altura."
@@ -24030,8 +24030,8 @@ msgstr "A execução diária envia todas as regras ativas uma vez por dia, só p
 msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
 msgstr "O nome da pessoa como armazenado; o nome e o sobrenome do perfil do WordPress (quando vazios, a primeira palavra do nome e o restante); e os dois unidos"
 
-msgid "The plugin registers one role per module tier — viewer, operator, manager — plus \"FFC Administrator\", \"FFC Read-Only (all modules)\" and \"FFC End User\", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:"
-msgstr "O plugin registra uma função por nível de cada módulo — visualizador, operador, gestor — além de \"FFC Administrador\", \"FFC Somente Leitura (todos os módulos)\" e \"FFC Usuário Final\", atribuída automaticamente a quem envia um formulário com CPF ou RF. As funções que o plugin registra atualmente:"
+msgid "The plugin registers one role per module tier — viewer, operator, manager and, for the modules that hold personal data (certificates, appointments, reregistration, recruitment), an administrator role that may reveal it — plus \"FFC Administrator\", \"FFC Read-Only (all modules)\" and \"FFC End User\", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:"
+msgstr "O plugin registra uma função por nível de cada módulo — visualizador, operador, gestor e, nos módulos que guardam dados pessoais (certificados, agendamentos, recadastramento, recrutamento), uma função de administrador que pode revelá-los — além de \"FFC Administrador\", \"FFC Somente Leitura (todos os módulos)\" e \"FFC Usuário Final\", atribuída automaticamente a quem envia um formulário com CPF ou RF. As funções que o plugin registra atualmente:"
 
 msgid "The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. WordPress administrators (manage_options) always hold every FFC capability."
 msgstr "O plugin traz capacidades granulares e funções próprias, e gerencia ambas por conta própria — nenhum plugin de gestão de capacidades é necessário. Administradores do WordPress (manage_options) sempre têm todas as capacidades do FFC."
@@ -26173,3 +26173,12 @@ msgstr "Na lista de submissões o e-mail fica mascarado para todos, administrado
 #: includes/user-dashboard/class-ffc-capability-manager.php:895
 msgid "FFC Reregistration - Administrator"
 msgstr "FFC Recadastramento - Administrador"
+
+msgid "Each action is listed by a readable name, such as \"Appointment Personal Data Revealed\" or \"Audience Account Email Revealed\"; an action with no name of its own shows its code, with spaces for the underscores."
+msgstr "Cada ação aparece com um nome legível, como \"Dados Pessoais do Agendamento Revelados\" ou \"E-mail da Conta de Público-alvo Revelado\"; uma ação sem nome próprio mostra o seu código, com espaços no lugar dos sublinhados."
+
+msgid "The dashboard is drawn with the plugin's own palette and icons, so it follows Dark Mode, and its fields, buttons and status badges look like those of the public forms. With Public Design switched on it also takes the design's font, accent colour, field corners and card corners."
+msgstr "O painel é desenhado com a paleta e os ícones do próprio plugin, por isso segue o Modo Escuro, e seus campos, botões e selos de status têm a mesma aparência dos formulários públicos. Com o Design Público ativado, ele também adota a fonte, a cor de destaque, os cantos dos campos e os cantos dos cartões do design."
+
+msgid "Add New on a calendar's Environments tab, or on the Environments view filtered to one calendar, opens the new environment with that calendar already chosen."
+msgstr "Adicionar Novo na aba Ambientes de um calendário, ou na visão Ambientes filtrada por um calendário, abre o novo ambiente com esse calendário já escolhido."

@@ -25,6 +25,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Add New on Environments chooses the calendar in view** (#1796, #1801). From a calendar's Environments tab or from the list filtered to one calendar, the new environment's form opens with that calendar selected; an unknown id is ignored and an existing environment keeps its saved calendar.
 - **"Admin bypass" reads naturally in Portuguese** (#1789). Every administrator and manager bypass label now says "Exceção para administradores" (or "gestores") instead of "Burlar do administrador"; the two legacy Scheduling redirects share one query-forwarding helper.
 - **The user dashboard follows the plugin's design** (#1826, #1827). It takes the Public Design font, the palette and the `Core\Icons` registry; it has one text field style, one button family (`.button`, secondary, primary or danger outline) and one status badge (`.ffc-pill`).
+- **Settings → Documentation describes this batch** (#1833). Privacy, Capabilities & Roles, Activity Log, Personal Calendars, Audience Calendars and the User Dashboard topics now say that personal data starts masked for administrators too, name the PII administrator roles, and cover the action names, Add New on Environments and the dashboard's look.
 
 ### Fixed
 
