@@ -246,6 +246,18 @@
     gap: var(--ffc-spacing-3xs);
 }
 
+.ffc-tab:focus:not(:focus-visible) {
+    /* A click must not leave a ring: the active tab already says where the
+       visitor is, and a theme's `button:focus` outline drew a box around it
+       after every click (#1840). Keyboard focus keeps the ring below. */
+    outline: none;
+}
+
+.ffc-tab:focus-visible {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: -2px;
+}
+
 .ffc-tab {
     padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
     background: transparent;
