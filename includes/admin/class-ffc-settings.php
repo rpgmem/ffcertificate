@@ -330,6 +330,7 @@ class Settings {
 			'public_design_muted'        => '#646970',
 			'public_design_error'        => '#d63638',
 			'public_design_radius'       => 4,
+			'public_design_card_radius'  => 8,
 			'public_design_width'        => 600,
 			'public_design_font'         => 'theme',
 			// `d/m/Y` default since #244 — Brazilian-locale friendly. Pre-

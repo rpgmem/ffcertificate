@@ -24742,6 +24742,20 @@ msgstr ""
 msgid "Of the fields and buttons; 0 makes them square. Default: %1$d px, up to %2$d."
 msgstr ""
 
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "Card corners"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php
+#, php-format
+msgid "Of the cards: the form and verification card, the user dashboard and the cards inside it; 0 makes them square. Default: %1$d px, up to %2$d."
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php
+#, php-format
+msgid "The corner radius of the cards is a setting of its own: the form and verification card, the user dashboard and the cards inside it (0 makes them square). It defaults to %d px, a little rounder than the fields, and applies in both themes."
+msgstr ""
+
 #: includes/settings/views/ffc-tab-public-design.php:91
 msgid "Form width"
 msgstr ""

@@ -23,6 +23,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Shape and Font', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The corner radius of fields and buttons (0 makes them square), the widest a form or verification card grows (its fields are 150 px narrower), and the font: the site theme\'s (the default), the plugin\'s system font, or Arial, the same three choices as Email Signature Generator and Institutional Email. These apply in both themes.', 'ffcertificate' ); ?></p>
+	<p>
+		<?php
+		echo esc_html(
+			sprintf(
+				/* translators: %d: the default card radius, in pixels. */
+				__( 'The corner radius of the cards is a setting of its own: the form and verification card, the user dashboard and the cards inside it (0 makes them square). It defaults to %d px, a little rounder than the fields, and applies in both themes.', 'ffcertificate' ),
+				\FreeFormCertificate\Core\PublicDesign::DEFAULTS['card_radius']
+			)
+		);
+		?>
+	</p>
 
 	<h4><?php esc_html_e( 'Cached pages', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The design is part of the page, so a page cache keeps the old look until it is purged. After changing it, purge the cache of the pages with forms.', 'ffcertificate' ); ?></p>

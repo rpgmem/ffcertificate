@@ -143,8 +143,8 @@ describe('FFCDashboard.panels.appointments.render', () => {
 			makeAppt({ status: 'confirmed', status_label: 'Confirmed' }),
 			makeAppt({ status: 'completed', status_label: 'Done', appointment_date_raw: FAR_PAST }),
 		], 1);
-		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-dashboard-status.ffc-dashboard-status-confirmed').length).toBe(1);
-		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-dashboard-status.ffc-dashboard-status-completed').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-pill.ffc-dashboard-status-confirmed').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-pill.ffc-dashboard-status-completed').length).toBe(1);
 	});
 
 	// #1151: the badge was `appointment-status status-<state>` — the only

@@ -445,7 +445,7 @@
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    /* Controls: without a contour, a button stops looking clickable. */
     .ffc-delete-btn {
         border: 1px solid ButtonText;
     }

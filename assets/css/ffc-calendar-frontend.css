@@ -330,8 +330,8 @@
     padding: 40px var(--ffc-spacing-2xl);
 }
 
-/* 48px literal: glifo do ícone de sucesso, dimensionado como marca visual e
-   não como texto — a escala tipográfica não o governa. */
+/* 48px literal: the success icon's glyph, sized as a visual mark and not as
+   text -- the typography scale does not govern it. */
 .ffc-shortcode .ffc-success-icon {
     width: 80px;
     height: 80px;
@@ -426,6 +426,10 @@
 
 .ffc-shortcode .ffc-approval-notice,
 .ffc-shortcode .ffc-confirmation-notice {
+    /* Both notices are a `<p>`: without a size of their own they took the
+       host theme's paragraph size and outgrew the card above them (#1827). */
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
     padding: var(--ffc-spacing-xl);
     background: var(--ffc-warning-light);
     border: 1px solid var(--ffc-warning);
@@ -508,7 +512,7 @@
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    /* Controls: without a contour, a button stops looking clickable. */
     .ffc-shortcode .ffc-receipt-actions .ffc-btn-secondary {
         border: 1px solid ButtonText;
     }

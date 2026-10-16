@@ -56,6 +56,7 @@ class PublicDesignTest extends TestCase {
 			$this->assertMatchesRegularExpression( '/' . preg_quote( $token, '/' ) . ':\s*' . preg_quote( PublicDesign::DEFAULTS[ $field ], '/' ) . ';/i', $light, "{$field} defaults to the light {$token}." );
 		}
 		$this->assertMatchesRegularExpression( '/--ffc-radius-sm:\s*' . PublicDesign::DEFAULTS['radius'] . 'px;/', $light );
+		$this->assertMatchesRegularExpression( '/--ffc-radius-lg:\s*' . PublicDesign::DEFAULTS['card_radius'] . 'px;/', $light, 'The card corner defaults to the light --ffc-radius-lg.' );
 		$this->assertMatchesRegularExpression( '/--ffc-form-width:\s*' . PublicDesign::DEFAULTS['width'] . 'px;/', $light );
 	}
 
@@ -68,6 +69,7 @@ class PublicDesignTest extends TestCase {
 				'muted'   => '#ABCDEF',
 				'radius'  => '99',
 				'width'   => '10',
+				'card_radius' => '-3',
 				'font'    => 'comic',
 			)
 		);
@@ -75,6 +77,7 @@ class PublicDesignTest extends TestCase {
 		$this->assertSame( PublicDesign::DEFAULTS['border'], $design->border );
 		$this->assertSame( '#abcdef', $design->muted, 'A valid colour is kept, lower-cased.' );
 		$this->assertSame( PublicDesign::RADIUS_MAX, $design->radius );
+		$this->assertSame( 0, $design->card_radius, 'Below the floor clamps to square, like the controls\' corner.' );
 		$this->assertSame( PublicDesign::WIDTH_MIN, $design->width );
 		$this->assertSame( 'theme', $design->font );
 	}
@@ -85,9 +88,11 @@ class PublicDesignTest extends TestCase {
 				'enabled' => '1',
 				'radius'  => '',
 				'width'   => '',
+				'card_radius' => '',
 			)
 		);
 		$this->assertSame( PublicDesign::DEFAULTS['radius'], $design->radius, 'A cleared field is not square corners.' );
+		$this->assertSame( PublicDesign::DEFAULTS['card_radius'], $design->card_radius, 'A cleared card corner is not a square card.' );
 		$this->assertSame( PublicDesign::DEFAULTS['width'], $design->width );
 		$this->assertSame( 0, ( new PublicDesign( array( 'enabled' => '1', 'radius' => '0' ) ) )->radius, 'A typed 0 is a choice.' );
 	}
@@ -103,6 +108,7 @@ class PublicDesignTest extends TestCase {
 		);
 		$this->assertSame( PublicDesign::DEFAULTS['accent'], $design->accent );
 		$this->assertSame( PublicDesign::DEFAULTS['radius'], $design->radius );
+		$this->assertSame( PublicDesign::DEFAULTS['card_radius'], $design->card_radius );
 		$this->assertSame( 'theme', $design->font );
 		$this->assertSame( 0, $design->to_settings()['public_design'] );
 	}
@@ -115,10 +121,11 @@ class PublicDesignTest extends TestCase {
 				'radius'  => '0',
 				'width'   => '800',
 				'font'    => 'plugin',
+				'card_radius' => '16',
 			)
 		) )->css();
 
-		$this->assertStringContainsString( '.ffc-shortcode{--ffc-form-width:800px;--ffc-radius-sm:0px;--ffc-radius-md:0px;font-family:var(--ffc-font-family);}', $css, 'Shape and font in both themes.' );
+		$this->assertStringContainsString( '.ffc-shortcode{--ffc-form-width:800px;--ffc-radius-sm:0px;--ffc-radius-md:0px;--ffc-radius-lg:16px;font-family:var(--ffc-font-family);}', $css, 'Shape and font in both themes; the card corner is shape.' );
 		$this->assertStringContainsString( ':root:not(.ffc-dark-mode) .ffc-shortcode{--ffc-primary:#7a1f2b;', $css, 'Colours scoped away from the dark theme.' );
 		$this->assertStringContainsString( '--ffc-text-on-primary:#ffffff;', $css, 'White reads best on a dark accent.' );
 		$this->assertStringContainsString( '--ffc-focus-ring:rgba(122, 31, 43, 0.75);', $css );

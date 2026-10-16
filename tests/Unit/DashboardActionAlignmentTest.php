@@ -59,10 +59,10 @@ class DashboardActionAlignmentTest extends TestCase {
 	 * @var array<string, string>
 	 */
 	private const CONTROLS = array(
-		'.ffc-btn-pdf'      => 'Download PDF / Download Record -- `inline-flex` with an `::before` icon (certificates and reregistrations).',
-		'.ffc-btn-receipt'  => 'View Receipt -- `inline-flex` with an `::before` icon (appointments).',
-		'.ffc-btn-edit'     => 'Edit -- `inline-flex` with an `::before` icon (reregistrations).',
-		'.ffc-appointments-table .ffc-cancel-appointment' => 'Cancel -- `inline-block` with no icon, whose baseline comes from the text.',
+		'.ffc-user-dashboard .ffc-btn-pdf'     => 'Download PDF / Download Record -- `inline-flex` with an `::before` icon (certificates and reregistrations).',
+		'.ffc-user-dashboard .ffc-btn-receipt' => 'View Receipt -- `inline-flex` with an `::before` icon (appointments).',
+		'.ffc-user-dashboard .ffc-btn-edit'    => 'Edit -- `inline-flex` with an `::before` icon (reregistrations).',
+		'.ffc-user-dashboard .ffc-cancel-appointment' => 'Cancel -- `inline-flex` with no icon, whose baseline comes from the text (an `inline-block` until the button family of #1827).',
 		'.ffc-cal-export-wrap' => 'Export Calendar -- an `inline-block` wrapping the button; IT is what joins the cell\'s line.',
 	);
 
@@ -72,7 +72,16 @@ class DashboardActionAlignmentTest extends TestCase {
 	 * See item 2 of the class docblock: there the declaration was not inert, it
 	 * was the cause of 3.55px of misalignment.
 	 */
-	private const MUST_NOT_DECLARE = '.ffc-cal-export-btn';
+	private const MUST_NOT_DECLARE = '.ffc-user-dashboard .ffc-cal-export-btn';
+
+	/**
+	 * The button family's base rule, which the exporter's inner button also
+	 * matches since it became a `.button` (#1827).
+	 *
+	 * A `vertical-align` there would reach the inner button through the
+	 * family, which is the same defect wearing a different selector.
+	 */
+	private const FAMILY_BASE = '.ffc-user-dashboard .button';
 
 	private function sheet(): string {
 		$path = dirname( __DIR__, 2 ) . '/' . self::SHEET;
@@ -136,6 +145,13 @@ class DashboardActionAlignmentTest extends TestCase {
 			'/vertical-align\s*:/',
 			$bodies[ self::MUST_NOT_DECLARE ],
 			'`' . self::MUST_NOT_DECLARE . '` declares `vertical-align` again. What joins the cell\'s line is `.ffc-cal-export-wrap`; aligning the inner button shifts the wrapper\'s baseline (#1215).'
+		);
+
+		$this->assertArrayHasKey( self::FAMILY_BASE, $bodies, 'The button family\'s base rule vanished; revise this register.' );
+		$this->assertDoesNotMatchRegularExpression(
+			'/vertical-align\s*:/',
+			$bodies[ self::FAMILY_BASE ],
+			'`' . self::FAMILY_BASE . '` declares `vertical-align`, and the exporter\'s inner button is a `.button`: the declaration reaches it through the family (#1215, #1827).'
 		);
 	}
 }

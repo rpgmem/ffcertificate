@@ -121,7 +121,7 @@ class AudienceShortcodeTest extends TestCase {
 		// Stub Utils for enqueue_styles
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
-		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		$result = AudienceShortcode::render(array('schedule_id' => 1));
@@ -165,7 +165,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
-		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		$result = AudienceShortcode::render(array('schedule_id' => 1));
@@ -201,7 +201,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
-		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		$result = AudienceShortcode::render(array('schedule_id' => 5));
@@ -236,7 +236,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
-		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		$result = AudienceShortcode::render(array());
@@ -312,7 +312,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
-		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		Functions\when('get_option')->alias(function ($key, $default = false) {
@@ -363,7 +363,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
-		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		Functions\when('get_option')->alias(function ($key, $default = false) {
@@ -403,7 +403,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
-		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		$result = AudienceShortcode::render(array('schedule_id' => 99));
@@ -705,7 +705,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
-		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		Functions\when('get_option')->alias(function ($key, $default = false) {

@@ -115,7 +115,7 @@ final class SpacingTokensTest extends TestCase {
 		// ffc-common, so it cannot read the ladder.
 		'ffc-screenshots.css'              => 4,
 		'ffc-url-shortener-admin.css'      => 1,
-		'ffc-user-dashboard.css'           => 7,
+		'ffc-user-dashboard.css'           => 5,
 		'ffc-user-permissions.css'         => 14,
 	);
 

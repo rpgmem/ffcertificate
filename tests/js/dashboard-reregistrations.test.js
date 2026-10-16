@@ -120,8 +120,8 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 			makeRereg({ status: 'approved', status_label: 'Approved', reregistration_id: 1 }),
 			makeRereg({ status: 'rejected', status_label: 'Rejected', reregistration_id: 2 }),
 		], 1);
-		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-dashboard-status.ffc-dashboard-status-approved').length).toBe(1);
-		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-dashboard-status.ffc-dashboard-status-rejected').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-pill.ffc-dashboard-status-approved').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-pill.ffc-dashboard-status-rejected').length).toBe(1);
 	});
 
 	// #1151 — the same badge, the same rename, the second of its two emitters.

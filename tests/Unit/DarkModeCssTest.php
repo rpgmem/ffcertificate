@@ -434,7 +434,7 @@ final class DarkModeCssTest extends TestCase {
 	 */
 	private const DERIVED_EXCEPTIONS = array(
 		'var(--ffc-gray-400) || var(--ffc-gray-100)'    => 'a full time slot in the public calendar: `cursor: not-allowed`, an inactive component exempt under SC 1.4.3',
-		'var(--ffc-text-light) || var(--ffc-bg-alt)'    => 'a `readonly`/`disabled` reregistration field: an inactive component exempt under SC 1.4.3',
+		'var(--ffc-text-light) || var(--ffc-bg-alt)'    => 'a `readonly`/`disabled` field on the user dashboard (the reregistration form among them, #1827): an inactive component exempt under SC 1.4.3',
 	);
 
 	/**

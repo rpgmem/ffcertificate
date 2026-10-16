@@ -122,7 +122,7 @@
         var eventJson = JSON.stringify(event).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
 
         var html = '<div class="ffc-cal-export-wrap">';
-        html += '<button type="button" class="ffc-cal-export-btn">';
+        html += '<button type="button" class="button button-primary ffc-cal-export-btn">';
         html += calIcons.calendar;
         html += (ffcDashboard.strings.exportToCalendar || 'Export to Calendar');
         html += calIcons.caret + '</button>';

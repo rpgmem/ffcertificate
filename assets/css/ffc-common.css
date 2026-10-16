@@ -222,7 +222,7 @@
     /* Semantic Tokens - Interactive */
     --ffc-link: #2271b1;
     --ffc-link-hover: #135e96;
-    --ffc-focus-ring: rgba(34, 113, 177, 0.75);   /* composto 3,25:1 — a 0.4 dava 1,78:1 (#1132). */
+    --ffc-focus-ring: rgba(34, 113, 177, 0.75);   /* composited 3.25:1 -- at 0.4 it gave 1.78:1 (#1132). */
 }
 
 /* ==========================================================================
@@ -313,7 +313,7 @@
     /* Semantic Tokens - Interactive */
     --ffc-link: #5dabde;
     --ffc-link-hover: #7cbde8;
-    --ffc-focus-ring: rgba(93, 171, 222, 0.6);    /* composto 3,19:1 — a 0.4 dava 2,14:1 (#1132). */
+    --ffc-focus-ring: rgba(93, 171, 222, 0.6);    /* composited 3.19:1 -- at 0.4 it gave 2.14:1 (#1132). */
 }
 
 /* ==========================================================================
@@ -2212,6 +2212,14 @@
     color: inherit;
 }
 
+/* On a public surface the label sits in the host theme's document, whose
+   body or label size it would otherwise inherit -- on the dashboard that made
+   the notification toggles larger than every other line (#1827). wp-admin
+   keeps core's size, so the rule is scoped to the plugin's front-end root. */
+.ffc-shortcode .ffc-control-toggle {
+    font-size: var(--ffc-font-size-base);
+}
+
 /* Mark: the glyph rides above the knob; its shape, not its colour, says on or off. */
 .ffc-control-toggle-mark .ffc-control-toggle-track::before {
     content: "";
@@ -2899,7 +2907,7 @@
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    /* Controls: without a contour, a button stops looking clickable. */
     .ffc-btn-danger,
     .ffc-btn-primary,
     .ffc-btn-secondary,
