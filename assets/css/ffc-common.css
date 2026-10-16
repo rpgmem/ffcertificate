@@ -378,7 +378,7 @@
    this sheet; the user dashboard, which loads no `ffc-frontend.css`, drew its
    fields and buttons in the browser's font until #1826. The size, the weight
    and the line height stay each control's own rule. */
-.ffc-shortcode :is(input, select, textarea, button) {
+.ffc-shortcode :is(input, select, textarea, button, .button) {
     font-family: inherit;
 }
 
@@ -617,6 +617,22 @@
     color: var(--ffc-text);
     background: var(--ffc-bg-card);
     border-color: var(--ffc-border-focus);
+}
+
+/* A primary button on a public surface. wp-admin keeps core's blue (see the
+   secondary rule above), but the front end loads no core button sheet, so
+   the dark `.button` rule above would paint a primary button as a secondary
+   one. The dark palette's own primary pair takes its place (#1826). */
+:root.ffc-dark-mode .ffc-shortcode .button-primary {
+    color: var(--ffc-text-on-primary);
+    background: var(--ffc-primary);
+    border-color: var(--ffc-primary);
+}
+
+:root.ffc-dark-mode .ffc-shortcode .button-primary:hover {
+    color: var(--ffc-text-on-primary);
+    background: var(--ffc-primary-hover);
+    border-color: var(--ffc-primary-hover);
 }
 
 /* A disabled primary button. Core declares its light ground with
