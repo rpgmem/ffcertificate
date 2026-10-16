@@ -553,8 +553,9 @@
                     // which FFC.request doesn't surface for connection
                     // errors. Server-issued protocol errors carry err.data.
                     if (err && err.data && err.data.rate_limit) {
-                        FFC.Frontend.RateLimit.show(err.data.message, err.data.wait_seconds);
-                        $submitBtn.prop('disabled', false).text(originalBtnText);
+                        // The helper holds the button until the wait ends
+                        // and then restores this label (#1846).
+                        FFC.Frontend.RateLimit.show(err.data.message, err.data.wait_seconds, $form, originalBtnText);
                         return;
                     }
                     if (err && err.fromServer) {
