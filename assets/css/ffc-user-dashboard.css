@@ -409,10 +409,25 @@
     min-width: 160px;
 }
 
-/* The filter buttons stand in one row with the fields, so they take the
-   field's height. */
-.ffc-filter-bar .button {
-    height: 45px;
+/* The bar is compact: its fields and its buttons share the labels' `sm`
+   step and one height, smaller than the public form's 45px field the
+   dashboard's other fields take (#1836). One class more than the
+   dashboard's field rule above, which would otherwise win.
+
+   34px literal: it is a control height, not a distance, so the spacing
+   scale has no step for it; it is the height the family's `.button`
+   already renders at in `sm` (an `sm` line at 1.4 plus the `sm` padding
+   and the border), so the fields line up with the buttons. */
+.ffc-user-dashboard .ffc-filter-bar :is(input[type="text"], input[type="date"]),
+.ffc-user-dashboard .ffc-filter-bar .button {
+    box-sizing: border-box;
+    height: 34px;
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-user-dashboard .ffc-filter-bar :is(input[type="text"], input[type="date"]) {
+    padding: 0 var(--ffc-spacing-md);
+    line-height: 1.4;
 }
 
 /* Page Size Selector */
@@ -603,6 +618,96 @@
 }
 
 /* ==========================================================================
+   SECTIONED TABS (#1836)
+
+   The personal-calendar and group-calendar tabs draw one `<section>` per
+   state (upcoming, past, cancelled): a heading with the section's count,
+   a table, and the section's own pager. The space between two sections
+   sits on the section, not on the heading: `#ffc-tabpanel-* h3` below
+   resets the heading's top margin with an id's specificity, which is why
+   the `table + h3` rule above never reached these tabs.
+   ========================================================================== */
+
+.ffc-dashboard-section + .ffc-dashboard-section {
+    margin-top: var(--ffc-spacing-3xl);
+}
+
+.ffc-dashboard-section-count {
+    font-size: var(--ffc-font-size-sm);
+    font-weight: 400;
+    color: var(--ffc-text-muted);
+}
+
+/* Every table of a tab shares one set of column widths, so the columns
+   line up from one section to the next; `fixed` makes the header row's
+   widths the table's, whatever the rows hold. The widths are per tab,
+   by the column's class on its `<th>`. */
+.ffc-dashboard-section-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* With fixed columns the actions cell cannot grow to fit its buttons, so
+   they wrap onto a second line instead of spilling out of the table. The
+   gap moves to the right of each button, so a wrapped line starts flush
+   with the column, and the vertical margin separates the lines. */
+.ffc-dashboard-section-table td:last-child {
+    white-space: normal;
+}
+
+.ffc-dashboard-section-table td:last-child > *,
+.ffc-dashboard-section-table td:last-child > * + * {
+    margin: var(--ffc-spacing-3xs) var(--ffc-spacing-xs) var(--ffc-spacing-3xs) 0;
+}
+
+.ffc-appointments-table .ffc-col-calendar { width: 27%; }
+.ffc-appointments-table .ffc-col-date { width: 13%; }
+.ffc-appointments-table .ffc-col-time { width: 10%; }
+.ffc-appointments-table .ffc-col-status { width: 12%; }
+.ffc-appointments-table .ffc-col-actions { width: 38%; }
+
+.ffc-audience-bookings-table .ffc-col-environment { width: 17%; }
+.ffc-audience-bookings-table .ffc-col-date { width: 12%; }
+.ffc-audience-bookings-table .ffc-col-time { width: 10%; }
+.ffc-audience-bookings-table .ffc-col-description { width: 24%; }
+.ffc-audience-bookings-table .ffc-col-audiences { width: 17%; }
+.ffc-audience-bookings-table .ffc-col-actions { width: 20%; }
+
+/* A section's pager: the range on the left, the pages on the right. It is
+   only drawn when the section does not fit on one page. */
+.ffc-section-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-sm);
+    margin-top: var(--ffc-spacing-sm);
+}
+
+.ffc-section-pager-range {
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
+
+.ffc-section-pager-pages {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+}
+
+/* The compact size, square-ish so a one-digit page reads as a key. */
+.ffc-user-dashboard .ffc-section-page-btn {
+    min-width: 32px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-xs);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-section-pager-gap {
+    color: var(--ffc-text-muted);
+}
+
+/* ==========================================================================
    APPOINTMENTS TABLE
    ========================================================================== */
 
@@ -664,19 +769,6 @@
 /* ==========================================================================
    AUDIENCE BOOKINGS TABLE
    ========================================================================== */
-
-.ffc-audience-bookings-table th:nth-child(1),
-.ffc-audience-bookings-table td:nth-child(1) { width: 17%; }
-.ffc-audience-bookings-table th:nth-child(2),
-.ffc-audience-bookings-table td:nth-child(2) { width: 12%; }
-.ffc-audience-bookings-table th:nth-child(3),
-.ffc-audience-bookings-table td:nth-child(3) { width: 10%; }
-.ffc-audience-bookings-table th:nth-child(4),
-.ffc-audience-bookings-table td:nth-child(4) { width: 24%; }
-.ffc-audience-bookings-table th:nth-child(5),
-.ffc-audience-bookings-table td:nth-child(5) { width: 17%; }
-.ffc-audience-bookings-table th:nth-child(6),
-.ffc-audience-bookings-table td:nth-child(6) { width: 20%; }
 
 /* No `opacity` in these four rules, on purpose (#1126).
    Opacity on a row fades the TEXT along with the background, so it multiplies
@@ -1397,6 +1489,19 @@
         text-align: center;
     }
 
+    .ffc-section-pager {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ffc-section-pager-range {
+        text-align: center;
+    }
+
+    .ffc-section-pager-pages {
+        justify-content: center;
+    }
+
     .ffc-dashboard-tabs {
         flex-direction: column;
         gap: 0;
@@ -1439,6 +1544,22 @@
         display: block;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+    }
+
+    /* A sectioned tab's table stays a table, so its fixed columns still
+       line up from one section to the next; its wrapper scrolls sideways
+       instead of crushing them. 720px literal: the narrowest at which the
+       date column still holds a dd/mm/yyyy on one line; a layout width,
+       not a distance. */
+    .ffc-dashboard-section-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .ffc-dashboard-section-table.ffc-appointments-table,
+    .ffc-dashboard-section-table.ffc-audience-bookings-table {
+        display: table;
+        min-width: 720px;
     }
 
     .ffc-certificates-table thead,
