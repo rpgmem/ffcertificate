@@ -133,9 +133,9 @@ class TabEmailTexts extends SettingsTab {
 	 */
 	public function render(): void {
 		if ( $this->maybe_save_email_bodies() ) {
-			wp_admin_notice(
-				esc_html__( 'Email texts saved.', 'ffcertificate' ),
-				array( 'type' => 'success' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'success',
+				esc_html__( 'Email texts saved.', 'ffcertificate' )
 			);
 		}
 		?>

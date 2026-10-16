@@ -42,9 +42,12 @@ $ffcertificate_method_labels = array(
 		</p>
 
 		<?php if ( $ffcertificate_any_late ) : ?>
-			<div class="notice notice-warning inline">
-				<p><?php esc_html_e( 'At least one task has not run when expected. WP-Cron only runs when the site receives visits; configure the server line below so tasks run on time.', 'ffcertificate' ); ?></p>
-			</div>
+			<?php
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'warning',
+				esc_html__( 'At least one task has not run when expected. WP-Cron only runs when the site receives visits; configure the server line below so tasks run on time.', 'ffcertificate' )
+			);
+			?>
 		<?php endif; ?>
 
 		<form method="post">
@@ -124,20 +127,23 @@ $ffcertificate_method_labels = array(
 		</p>
 
 		<?php if ( $ffcertificate_cron_off ) : ?>
-			<div class="notice notice-success inline">
-				<p><?php esc_html_e( 'DISABLE_WP_CRON is set: WP-Cron no longer depends on visits. Make sure the server line below is installed, or no task will run.', 'ffcertificate' ); ?></p>
-			</div>
+			<?php
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'success',
+				esc_html__( 'DISABLE_WP_CRON is set: WP-Cron no longer depends on visits. Make sure the server line below is installed, or no task will run.', 'ffcertificate' )
+			);
+			?>
 		<?php else : ?>
-			<div class="notice notice-info inline">
-				<p>
-					<?php
-					echo wp_kses(
-						__( 'Recommended: install the server line below, then add <code>define( \'DISABLE_WP_CRON\', true );</code> to <code>wp-config.php</code> so page visits stop triggering WP-Cron.', 'ffcertificate' ),
-						array( 'code' => array() )
-					);
-					?>
-				</p>
-			</div>
+			<?php
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'info',
+				wp_kses(
+					__( 'Recommended: install the server line below, then add <code>define( \'DISABLE_WP_CRON\', true );</code> to <code>wp-config.php</code> so page visits stop triggering WP-Cron.', 'ffcertificate' ),
+					array( 'code' => array() )
+				),
+				array( 'icon' => 'bulb' )
+			);
+			?>
 		<?php endif; ?>
 
 		<table class="form-table" role="presentation">

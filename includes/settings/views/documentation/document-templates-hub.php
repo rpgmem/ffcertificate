@@ -50,10 +50,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><?php esc_html_e( 'A read-only "Current assignments" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a "Change →" link into that feature\'s own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature.', 'ffcertificate' ); ?></p>
 	</div>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'No migration, fully backward compatible.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'A template with no kind marker is treated as a certificate, so installs that predate the pool render exactly as before. Developer filters still let code override the resolved HTML for the record and receipt where a bundled layout was used previously.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'No migration, fully backward compatible.', 'ffcertificate' ) )
+	);
+	?>
 </div>

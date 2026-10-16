@@ -270,12 +270,9 @@ class TabGeolocation extends SettingsTab {
 			// match every other settings-mutation path.
 			if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 				$this->save_settings();
-				wp_admin_notice(
-					esc_html__( 'Geolocation settings saved successfully!', 'ffcertificate' ),
-					array(
-						'type'        => 'success',
-						'dismissible' => true,
-					)
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
+					esc_html__( 'Geolocation settings saved successfully!', 'ffcertificate' )
 				);
 			}
 		}

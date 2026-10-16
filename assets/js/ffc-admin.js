@@ -21,48 +21,83 @@
     // console.log('[FFC Admin] Initializing v3.1.0...');
 
     // ==========================================================================
-    // NOTIFICATION SYSTEM - Replace alerts with inline messages
+    // PAGE NOTICES - FFC.Admin.notify(), the JS twin of Core\AdminNotice
     // ==========================================================================
 
-    function showNotification(message, type, duration) {
-        type = type || 'info';
-        duration = duration || 5000;
+    // Each type, with its registry icon and its icon tone.
+    var NOTICE_TYPES = {
+        success: 'ffc-icon-success ffc-icon-tone-success',
+        info: 'ffc-icon-info ffc-icon-tone-info',
+        warning: 'ffc-icon-warning ffc-icon-tone-warning',
+        error: 'ffc-icon-error ffc-icon-tone-danger'
+    };
+
+    /**
+     * Show a page notice: WordPress's own `.notice`, after the screen's
+     * heading, with the type's registry icon and the one dismissibility rule
+     * `Core\AdminNotice` applies (#1843). Success and info close, and fade
+     * after `duration` (5s by default); a warning or an error has no close
+     * button and stays until the next notice replaces it, unless the caller
+     * passes a duration.
+     *
+     * The message is plain text and is written with `.text()`, so a server
+     * message can never inject markup. Only one notice shows at a time.
+     *
+     * @param {string} message  Plain text.
+     * @param {string} [type]   success | info | warning | error (default info).
+     * @param {number} [duration] Milliseconds before it fades; 0 keeps it.
+     * @return {jQuery} The notice.
+     */
+    function notify(message, type, duration) {
+        type = NOTICE_TYPES[type] ? type : 'info';
+        var dismissible = 'success' === type || 'info' === type;
+        if (typeof duration !== 'number') {
+            duration = dismissible ? 5000 : 0;
+        }
 
         $('.ffc-admin-notification').remove();
 
-        var icons = {success: 'success', error: 'error', warning: 'warning', info: 'info'};
-        var colors = {success: 'notice-success', error: 'notice-error', warning: 'notice-warning', info: 'notice-info'};
-
-        // Get localized strings with fallbacks
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
         var dismissText = strings.dismiss || 'Dismiss';
 
-        var $notif = $('<div class="ffc-admin-notification notice ' + colors[type] + ' is-dismissible">' +
-            '<p><span class="ffc-icon-' + icons[type] + '" aria-hidden="true"></span>' + message + '</p>' +
-            '<button type="button" class="notice-dismiss"><span class="screen-reader-text">' + dismissText + '</span></button>' +
-            '</div>');
+        var $notif = $('<div class="ffc-admin-notification ffc-admin-notice notice"></div>')
+            .addClass('notice-' + type)
+            .attr('role', 'error' === type || 'warning' === type ? 'alert' : 'status');
+        var $icon = $('<span class="ffc-admin-notice-icon" aria-hidden="true"></span>')
+            .addClass(NOTICE_TYPES[type]);
+        $notif.append($('<p></p>').append($icon).append(document.createTextNode(String(message))));
+
+        function close() {
+            $notif.fadeOut(200, function() { $(this).remove(); });
+        }
+
+        if (dismissible) {
+            $notif.addClass('is-dismissible');
+            $('<button type="button" class="notice-dismiss"></button>')
+                .append($('<span class="screen-reader-text"></span>').text(dismissText))
+                .on('click', close)
+                .appendTo($notif);
+        }
 
         if ($('.wrap > h1').length) {
-            $('.wrap > h1').after($notif);
+            $('.wrap > h1').first().after($notif);
         } else {
             $('#wpbody-content').prepend($notif);
         }
 
-        $notif.find('.notice-dismiss').on('click', function() {
-            $notif.fadeOut(200, function() { $(this).remove(); });
-        });
-
         if (duration > 0) {
-            setTimeout(function() {
-                $notif.fadeOut(200, function() { $(this).remove(); });
-            }, duration);
+            setTimeout(close, duration);
         }
+
+        return $notif;
     }
 
-    // Export showNotification to FFC.Admin namespace for use by modules
+    // Export to FFC.Admin for the modules. `showNotification` is the name
+    // this had before #1843 and stays as an alias for third-party callers.
     window.FFC = window.FFC || {};
     window.FFC.Admin = window.FFC.Admin || {};
-    window.FFC.Admin.showNotification = showNotification;
+    window.FFC.Admin.notify = notify;
+    window.FFC.Admin.showNotification = notify;
 
     // ==========================================================================
     // GENERATE TICKETS
@@ -79,7 +114,7 @@
             // Show inline error instead of alert
             var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
             var errorMsg = strings.enterValidNumber || 'Please enter a valid number.';
-            $('#ffc_gen_status').text(errorMsg).removeClass('is-busy is-success is-error').addClass('is-error');
+            FFC.status($('#ffc_gen_status'), 'error', errorMsg);
             $('#ffc_qty_codes').focus();
             return;
         }
@@ -97,7 +132,7 @@
         var generatingTicketsText = strings.generatingTickets || 'Generating tickets...';
 
         $btn.prop('disabled', true).text(generatingText);
-        $status.text(generatingTicketsText).removeClass('is-busy is-success is-error').addClass('is-busy');
+        FFC.status($status, 'busy', generatingTicketsText);
 
         // Use nonce from ffc_ajax (localized by class-ffc-admin.php)
         var nonce = (typeof ffc_ajax !== 'undefined') ? ffc_ajax.nonce : '';
@@ -115,19 +150,19 @@
                     // Programmatic, so say it: the form editor's tab dot reads the field (#1755).
                     $codesField.val(newCodes).trigger('input');
                     var successMsg = strings.ticketsGeneratedSuccess || 'tickets generated successfully!';
-                    $status.text('✓ ' + quantity + ' ' + successMsg).removeClass('is-busy is-success is-error').addClass('is-success');
-                    setTimeout(function () { $status.text(''); }, 5000);
+                    FFC.status($status, 'success', quantity + ' ' + successMsg);
+                    setTimeout(function () { FFC.status($status, '', ''); }, 5000);
                 } else {
                     console.warn('[FFC] Generated codes field not found');
                     var errorMsg = strings.codesFieldNotFound || 'Error: codes field not found';
-                    $status.text('✗ ' + errorMsg).removeClass('is-busy is-success is-error').addClass('is-error');
+                    FFC.status($status, 'error', errorMsg);
                 }
                 $btn.prop('disabled', false).text(originalText);
             })
             .catch(function (err) {
                 var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
                 var xhr = err && err.xhr;
-                var errorMsg = '✗ ';
+                var errorMsg = '';
                 if (err && err.fromServer) {
                     errorMsg += (strings.error || 'Error: ') + (err.message || 'Unknown error');
                 } else if (xhr && xhr.status === 403) {
@@ -139,7 +174,7 @@
                     errorMsg += serverErrorTemplate.replace('%d', xhr ? xhr.status : '?');
                 }
                 if (xhr) console.error('[FFC] AJAX error:', xhr.status, xhr.statusText, xhr.responseText);
-                $status.text(errorMsg).removeClass('is-busy is-success is-error').addClass('is-error');
+                FFC.status($status, 'error', errorMsg);
                 $btn.prop('disabled', false).text(originalText);
             });
     });
@@ -341,10 +376,10 @@
                 if (data && typeof data.count !== 'undefined') {
                     $('.ffc-csv-public-count').text(String(data.count));
                 }
-                $status.text(String($btn.data('done') || ''));
+                FFC.status($status, 'success', String($btn.data('done') || ''));
             })
             .catch(function (err) {
-                $status.text((err && err.message) ? err.message : '');
+                FFC.status($status, 'error', (err && err.message) ? err.message : '');
             })
             .then(function () {
                 $btn.prop('disabled', false);

@@ -109,7 +109,7 @@ class AudienceAdminBookings {
 				</button>			<?php endif; ?>
 			<hr class="wp-header-end">
 
-			<?php settings_errors( 'ffc_audience' ); ?>
+			<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 
 			<!-- Filters -->
 			<div class="tablenav top">

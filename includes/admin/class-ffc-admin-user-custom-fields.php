@@ -680,8 +680,8 @@ class AdminUserCustomFields {
 		}
 		delete_transient( $key );
 
-		printf(
-			'<div class="notice notice-warning is-dismissible"><p>%s</p></div>',
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'warning',
 			esc_html(
 				sprintf(
 					/* translators: %s: comma-separated list of custom field labels. */
@@ -734,10 +734,11 @@ class AdminUserCustomFields {
 			return;
 		}
 
-		printf(
-			'<div class="notice notice-warning is-dismissible"><p>%s</p><ul class="ffc-working-hours-incomplete"><li>%s</li></ul></div>',
-			esc_html__( 'These working-hours rows were incomplete and were not saved. The first entry and the last exit are required; the middle shift is optional.', 'ffcertificate' ),
-			implode( '</li><li>', array_map( 'esc_html', $lines ) )
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'warning',
+			'<p>' . esc_html__( 'These working-hours rows were incomplete and were not saved. The first entry and the last exit are required; the middle shift is optional.', 'ffcertificate' ) . '</p>'
+				. '<ul class="ffc-working-hours-incomplete"><li>' . implode( '</li><li>', array_map( 'esc_html', $lines ) ) . '</li></ul>',
+			array( 'paragraph_wrap' => false )
 		);
 	}
 }

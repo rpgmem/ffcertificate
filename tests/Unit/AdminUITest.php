@@ -649,9 +649,12 @@ class AdminUITest extends TestCase {
 
 		AdminUI::enqueue_vertical_tabs();
 
-		$this->assertCount( 1, $enqueued );
-		$this->assertSame( 'ffc-vertical-tabs', $enqueued[0][0] );
-		$this->assertStringContainsString( 'assets/js/ffc-vertical-tabs', $enqueued[0][1] );
+		// ffc-core first: the required-tag banner is drawn by FFC.notice() (#1843).
+		$this->assertCount( 2, $enqueued );
+		$this->assertSame( 'ffc-core', $enqueued[0][0] );
+		$this->assertSame( 'ffc-vertical-tabs', $enqueued[1][0] );
+		$this->assertStringContainsString( 'assets/js/ffc-vertical-tabs', $enqueued[1][1] );
+		$this->assertContains( 'ffc-core', $enqueued[1][2] );
 		$this->assertSame(
 			array( array( 'ffc-form-editor-tabs', false, array( 'ffc-vertical-tabs' ) ) ),
 			$registered,

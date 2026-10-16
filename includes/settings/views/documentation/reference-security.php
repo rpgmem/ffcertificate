@@ -46,12 +46,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Reprints are automatic.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'If someone submits again with a CPF/RF that already has a certificate, they are returned their existing certificate instead of generating a new one. This is always on — it is what keeps one person from issuing two certificates. On a form with the Ticket restriction, re-entering a ticket that already issued a certificate returns that certificate the same way; on a quiz form a used ticket is rejected, because there a new submission is a new attempt.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Reprints are automatic.', 'ffcertificate' ) )
+	);
+	?>
 
 	<h4><?php esc_html_e( 'Per-device limit (fingerprint)', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A form can cap how many submissions come from the same device using a browser/device fingerprint. Empty per-form values inherit the global defaults from Settings → Rate Limit → Device Fingerprint, and the per-form toggle stays disabled until that global subsystem is enabled. Automatic reprints are exempt from the device cap.', 'ffcertificate' ); ?></p>

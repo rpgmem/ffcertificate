@@ -169,9 +169,9 @@ class AdminActivityLogPage {
 			include $view_file;
 		} else {
 			echo '<div class="ffc-settings-wrap"><h2 class="ffc-icon-history">' . esc_html__( 'Activity Log', 'ffcertificate' ) . '</h2>';
-			wp_admin_notice(
-				esc_html__( 'View file not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'View file not found.', 'ffcertificate' )
 			);
 			echo '</div>';
 		}
@@ -198,11 +198,10 @@ class AdminActivityLogPage {
 				</a>
 			</p>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'warning',
 				(string) ob_get_clean(),
 				array(
-					'type'               => 'warning',
-					'paragraph_wrap'     => false,
 					// Inline, or WordPress's common.js lifts the notice above
 					// the settings tabs and the card is left empty.
 					'additional_classes' => array( 'inline' ),

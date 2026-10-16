@@ -62,17 +62,16 @@
 	 * @param {Object} checks  { inverted, low_contrast, min_ratio, caption_contrast }.
 	 */
 	function showChecks($out, checks) {
-		$out.removeClass('is-warning is-error');
 		if (checks.inverted) {
-			$out.addClass('is-error').text(i18n.inverted || '');
+			window.FFC.status($out, 'error', i18n.inverted || '');
 		} else if (checks.transparent) {
-			$out.addClass('is-warning').text(i18n.transparent || '');
+			window.FFC.status($out, 'warning', i18n.transparent || '');
 		} else if (checks.caption_contrast === false) {
-			$out.addClass('is-warning').text(i18n.captionContrast || '');
+			window.FFC.status($out, 'warning', i18n.captionContrast || '');
 		} else if (checks.low_contrast) {
-			$out.addClass('is-warning').text(String(i18n.lowContrast || '').replace('%s', String(checks.min_ratio)));
+			window.FFC.status($out, 'warning', String(i18n.lowContrast || '').replace('%s', String(checks.min_ratio)));
 		} else {
-			$out.text(i18n.ok || '');
+			window.FFC.status($out, 'success', i18n.ok || '');
 		}
 	}
 
@@ -99,7 +98,7 @@
 				if (mine !== sequence) {
 					return;
 				}
-				$out.removeClass('is-warning').addClass('is-error').text(i18n.error || '');
+				window.FFC.status($out, 'error', i18n.error || '');
 			});
 	}
 

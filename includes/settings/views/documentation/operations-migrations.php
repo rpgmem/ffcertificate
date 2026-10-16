@@ -29,11 +29,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</ul>
 	</div>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Safe to repeat, not to undo.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'A migration can be run again safely, and a finished one simply has nothing left to do. It cannot be undone, so take a database backup first and run the encryption cards during low traffic.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Safe to repeat, not to undo.', 'ffcertificate' ) )
+	);
+	?>
 	<p class="description"><?php esc_html_e( 'The same tab hosts the maintenance tools and the identity audit.', 'ffcertificate' ); ?> <a href="#operations-maintenance"><?php esc_html_e( 'See Maintenance Tools.', 'ffcertificate' ); ?></a></p>
 </div>

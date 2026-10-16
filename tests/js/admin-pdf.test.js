@@ -11,7 +11,7 @@ function installFFC() {
 		version: '6.6.1',
 		registerModule: vi.fn(),
 		Admin: {
-			showNotification: vi.fn(),
+			notify: vi.fn(),
 		},
 	};
 }
@@ -149,7 +149,7 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 			'<h1>Certificado</h1>'
 		);
 		// Loading + success notifications.
-		expect(window.FFC.Admin.showNotification).toHaveBeenCalledTimes(2);
+		expect(window.FFC.Admin.notify).toHaveBeenCalledTimes(2);
 	});
 
 	// What used to sit here asserted the by-filename POST the `html/` glob fed.
@@ -168,8 +168,8 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 		// it, because `||` never evaluates its right side.
 		window.FFC.Admin.PDF.loadTemplate(5, '');
 
-		expect(window.FFC.Admin.showNotification).toHaveBeenLastCalledWith(
-			'✓ Template "" loaded!',
+		expect(window.FFC.Admin.notify).toHaveBeenLastCalledWith(
+			'Template "" loaded!',
 			'success',
 			3000
 		);
@@ -221,7 +221,7 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 
 		window.FFC.Admin.PDF.loadTemplate(999, 'Missing');
 
-		const calls = window.FFC.Admin.showNotification.mock.calls;
+		const calls = window.FFC.Admin.notify.mock.calls;
 		const errorCall = calls.find((c) => c[1] === 'error');
 		expect(errorCall).toBeDefined();
 		expect(errorCall[0]).toMatch(/not found/i);
@@ -358,7 +358,7 @@ describe('ffc-admin-pdf.js — inline image insert', () => {
 		);
 		// Original content is preserved (insert, not replace).
 		expect(value).toContain('{{name}}');
-		expect(window.FFC.Admin.showNotification).toHaveBeenCalledWith(
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith(
 			'Image inserted!',
 			'success'
 		);
@@ -388,7 +388,7 @@ describe('ffc-admin-pdf.js — inline image insert', () => {
 
 		expect(() => window.$('#ffc_btn_media_lib').trigger('click')).not.toThrow();
 
-		const calls = window.FFC.Admin.showNotification.mock.calls;
+		const calls = window.FFC.Admin.notify.mock.calls;
 		expect(calls.some((c) => c[1] === 'error')).toBe(true);
 	});
 
@@ -397,7 +397,7 @@ describe('ffc-admin-pdf.js — inline image insert', () => {
 		window.$('#ffc_btn_insert_image').trigger('click');
 
 		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<p>{{name}}</p>');
-		const calls = window.FFC.Admin.showNotification.mock.calls;
+		const calls = window.FFC.Admin.notify.mock.calls;
 		expect(calls.some((c) => c[1] === 'error')).toBe(true);
 	});
 

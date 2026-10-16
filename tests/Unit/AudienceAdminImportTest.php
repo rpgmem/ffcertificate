@@ -45,7 +45,7 @@ class AudienceAdminImportTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
@@ -140,7 +140,7 @@ class AudienceAdminImportTest extends TestCase {
 	public function test_render_content_leaves_the_notices_to_the_hosting_settings_page(): void {
 		// The Settings page prints `ffc_audience` notices once for every tab;
 		// printing them here too would show each one twice (#1771).
-		$log = CallLog::record( 'settings_errors', '' );
+		$log = CallLog::record( 'get_settings_errors', array() );
 
 		$page = new AudienceAdminImport( 'ffc-scheduling' );
 		ob_start();

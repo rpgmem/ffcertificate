@@ -32,10 +32,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Server cron', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'By default WP-Cron runs only when someone visits the site, so on a quiet site a daily task can run hours late. The tab generates a crontab line — WP-CLI (recommended, needs WP-CLI on the server), or HTTP with wget or curl (works on any host) — at an interval you pick. Add it with "crontab -e" as the user that owns the WordPress files, or paste it into your hosting panel.', 'ffcertificate' ); ?></p>
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'The line does not decide when tasks run.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'WordPress keeps each task\'s schedule; the server line only makes sure due tasks run promptly, so a short interval is right. Once the line is installed you can add DISABLE_WP_CRON to wp-config.php so visits stop triggering WP-Cron — but with that constant set and no server line, no task runs at all.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'The line does not decide when tasks run.', 'ffcertificate' ) )
+	);
+	?>
 </div>

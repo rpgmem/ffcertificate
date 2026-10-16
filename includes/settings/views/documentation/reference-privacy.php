@@ -38,12 +38,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><strong><?php esc_html_e( 'Export', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'exporters gather the person\'s FFC data: profile, certificates, appointments, audience groups, audience bookings, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Erase', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person\'s audience memberships, booking links, schedule permissions, stored profile and FFC user settings, and unlinks their activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person\'s data is erased.', 'ffcertificate' ); ?></li>
 		</ul>
-		<div class="ffc-doc-note">
+		<?php ob_start(); ?>
 			<p>
-				<strong class="ffc-icon-info"><?php esc_html_e( 'What the eraser keeps.', 'ffcertificate' ); ?></strong><br>
 				<?php esc_html_e( 'Reregistration submissions and recruitment candidacies are exported but not erased: they are institutional records an organisation is usually required to keep, so the eraser reports them as retained, with a message, and changes nothing. Remove them from the campaign or from Recruitment when the obligation no longer applies. A record linked to a different account is that account\'s, even when it carries the same e-mail address.', 'ffcertificate' ); ?>
 			</p>
-		</div>
+		<?php
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'info',
+			(string) ob_get_clean(),
+			array( 'title' => __( 'What the eraser keeps.', 'ffcertificate' ) )
+		);
+		?>
 	</div>
 
 	<div class="ffc-doc-example">
@@ -54,12 +59,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><?php esc_html_e( 'Pure relationships (audience memberships, permission grants, the stored user profile) are removed with the account.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'A database foreign-key backstop enforces the same anonymise/remove behaviour even if the application hook is bypassed.', 'ffcertificate' ); ?></li>
 		</ul>
-		<div class="ffc-doc-note">
+		<?php ob_start(); ?>
 			<p>
-				<strong class="ffc-icon-info"><?php esc_html_e( 'Deleting the account is not the same as erasing the person.', 'ffcertificate' ); ?></strong><br>
 				<?php esc_html_e( 'Account deletion anonymises the link so records stay verifiable; it deliberately leaves the encrypted personal data in the retained records untouched. To also clear that encrypted data, run the Erase Personal Data tool above — that is the path that honours an actual erasure request.', 'ffcertificate' ); ?>
 			</p>
-		</div>
+		<?php
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'info',
+			(string) ob_get_clean(),
+			array( 'title' => __( 'Deleting the account is not the same as erasing the person.', 'ffcertificate' ) )
+		);
+		?>
 	</div>
 
 	<div class="ffc-doc-example">

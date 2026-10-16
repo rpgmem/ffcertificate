@@ -107,7 +107,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 									<button type="button" class="button button-small ffc-location-delete">
 										<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
 									</button>
-									<span class="ffc-autosave-badge" hidden></span>
+									<span class="ffc-autosave-badge ffc-status" role="status" aria-live="polite" hidden></span>
 								</td>
 							</tr>
 						<?php endforeach; ?>
@@ -175,7 +175,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							</button>
 						</td>
 						<td>
-							<span class="ffc-autosave-badge" hidden></span>
+							<span class="ffc-autosave-badge ffc-status" role="status" aria-live="polite" hidden></span>
 						</td>
 					</tr>
 				</tfoot>

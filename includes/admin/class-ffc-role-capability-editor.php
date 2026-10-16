@@ -160,12 +160,10 @@ final class RoleCapabilityEditor {
 		// after the settings form so it is not part of that form's submit.
 		echo '<div class="card">';
 		echo '<h2 class="ffc-icon-shield">' . esc_html__( 'FFC Roles & Capabilities', 'ffcertificate' ) . '</h2>';
-		wp_admin_notice(
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'warning',
 			esc_html__( 'Editing a role changes the capabilities for every user holding that role — immediately, and retroactively. Changes save as you toggle and are recorded in the activity log. The role definition is global; to change a single person, use their profile screen instead.', 'ffcertificate' ),
-			array(
-				'type'               => 'warning',
-				'additional_classes' => array( 'inline', 'ffc-role-impact' ),
-			)
+			array( 'classes' => array( 'ffc-role-impact' ) )
 		);
 
 		if ( empty( $roles ) ) {

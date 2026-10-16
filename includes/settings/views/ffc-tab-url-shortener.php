@@ -170,7 +170,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 			<button type="button" class="button" id="ffc-url-shortener-backfill">
 				<?php esc_html_e( 'Generate missing short URLs', 'ffcertificate' ); ?>
 			</button>
-			<span id="ffc-url-shortener-backfill-status" class="ffc-inline-status" role="status" aria-live="polite"></span>
+			<span id="ffc-url-shortener-backfill-status" class="ffc-status" role="status" aria-live="polite" hidden></span>
 			<?php wp_nonce_field( \FreeFormCertificate\UrlShortener\UrlShortenerBackfillHandler::NONCE_ACTION, 'ffc_url_shortener_backfill_nonce' ); ?>
 			<p class="description">
 				<?php esc_html_e( 'Create short URLs for already-published posts of the shortened post types that do not have one yet. Runs in the background in batches; safe to leave running. This only creates the short URLs — tick "Expose" above to publish them as shortlinks.', 'ffcertificate' ); ?>

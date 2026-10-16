@@ -4,7 +4,7 @@
  * The two buttons keep their nonced href as a no-JS fallback (the
  * legacy admin_init handler in Settings::handle_cache_actions still
  * runs); this module just intercepts the click, calls FFC.request,
- * and pops a toast via FFC.Admin.showNotification — no reload, no
+ * and pops a toast via FFC.Admin.notify — no reload, no
  * lost scroll position, no lost tab state.
  *
  * @since 6.5.5
@@ -12,7 +12,7 @@
 (function ($) {
     'use strict';
 
-    if (!window.FFC || !window.FFC.request || !window.FFC.Admin || typeof window.FFC.Admin.showNotification !== 'function') {
+    if (!window.FFC || !window.FFC.request || !window.FFC.Admin || typeof window.FFC.Admin.notify !== 'function') {
         return;
     }
 
@@ -43,12 +43,12 @@
             .then(function (data) {
                 restore($btn);
                 var msg = (data && data.message) ? data.message : (strings.success || 'Done.');
-                window.FFC.Admin.showNotification(msg, 'success');
+                window.FFC.Admin.notify(msg, 'success');
             })
             .catch(function (err) {
                 restore($btn);
                 var msg = (err && err.message) ? err.message : (strings.error || 'Action failed.');
-                window.FFC.Admin.showNotification(msg, 'error');
+                window.FFC.Admin.notify(msg, 'error');
             });
     }
 

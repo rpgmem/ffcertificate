@@ -179,7 +179,7 @@ class FormEditorRestrictionMetabox {
 					<div class="ffc-admin-flex-row ffc-mb-2xs">
 						<input type="number" id="ffc_qty_codes" value="10" min="1" max="500" class="ffc-input-small">
 						<button type="button" class="button button-secondary" id="ffc_btn_generate_codes"><?php esc_html_e( 'Generate Tickets', 'ffcertificate' ); ?></button>
-						<span id="ffc_gen_status" class="ffc-gen-status"></span>
+						<span id="ffc_gen_status" class="ffc-status" role="status" aria-live="polite" hidden></span>
 					</div>
 					<textarea name="ffc_config[generated_codes_list]"
 								id="ffc_generated_list"

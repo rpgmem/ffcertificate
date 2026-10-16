@@ -111,12 +111,9 @@ class TabReregistration extends SettingsTab {
 		$can_edit  = $selected > 0 && ! CertTemplateReader::is_default( $selected );
 
 		if ( RequestInput::has_get( 'ffc_saved' ) ) {
-			wp_admin_notice(
-				esc_html__( 'Record template saved.', 'ffcertificate' ),
-				array(
-					'type'        => 'success',
-					'dismissible' => true,
-				)
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'success',
+				esc_html__( 'Record template saved.', 'ffcertificate' )
 			);
 		}
 		?>

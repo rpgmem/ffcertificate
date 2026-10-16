@@ -432,7 +432,7 @@ class Admin {
 		}
 
 		if ( $text ) {
-			echo "<div class='" . esc_attr( $type ) . " notice is-dismissible'><p>" . esc_html( $text ) . '</p></div>';
+			\FreeFormCertificate\Core\AdminNotice::render( $type, esc_html( $text ) );
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
@@ -469,7 +469,8 @@ class Admin {
 		}
 
 		if ( $moved > 0 ) {
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'success',
 				esc_html(
 					sprintf(
 						/* translators: 1: number of moved submissions, 2: target form title */
@@ -482,10 +483,6 @@ class Admin {
 						$moved,
 						$to_title
 					)
-				),
-				array(
-					'type'        => 'success',
-					'dismissible' => true,
 				)
 			);
 		}
@@ -509,22 +506,16 @@ class Admin {
 			if ( '' !== $ids_text ) {
 				$ffc_move_notice .= ' <strong>' . esc_html__( 'Conflict IDs:', 'ffcertificate' ) . '</strong> ' . esc_html( $ids_text );
 			}
-			wp_admin_notice(
-				$ffc_move_notice,
-				array(
-					'type'        => 'warning',
-					'dismissible' => true,
-				)
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
+				$ffc_move_notice
 			);
 		}
 
 		if ( 0 === $moved && 0 === $conflicts ) {
-			wp_admin_notice(
-				esc_html__( 'No submissions matched the selection.', 'ffcertificate' ),
-				array(
-					'type'        => 'warning',
-					'dismissible' => true,
-				)
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
+				esc_html__( 'No submissions matched the selection.', 'ffcertificate' )
 			);
 		}
 	}

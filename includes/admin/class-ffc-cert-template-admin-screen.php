@@ -835,7 +835,7 @@ class CertTemplateAdminScreen {
 			<span class="ffc-control-toggle-track" aria-hidden="true"></span>
 			<span class="ffc-control-toggle-label"><?php echo esc_html( $toggle_label ); ?></span>
 		</label>
-		<span id="ffc_template_visible_status" class="ffc-autosave-status" role="status" aria-live="polite"></span>
+		<span id="ffc_template_visible_status" class="ffc-status" role="status" aria-live="polite" hidden></span>
 		<p class="description">
 			<?php echo esc_html( $toggle_help ); ?>
 		</p>

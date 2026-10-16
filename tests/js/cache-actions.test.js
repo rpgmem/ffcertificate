@@ -42,7 +42,7 @@ describe('FFC Cache Actions — Warm', () => {
 			count: 5,
 			message: 'Cache warmed for 5 forms.',
 		});
-		const notifySpy = vi.spyOn(window.FFC.Admin, 'showNotification').mockImplementation(() => {});
+		const notifySpy = vi.spyOn(window.FFC.Admin, 'notify').mockImplementation(() => {});
 
 		const $btn = window.$('.ffc-cache-warm-btn');
 		const ev = window.$.Event('click');
@@ -59,7 +59,7 @@ describe('FFC Cache Actions — Warm', () => {
 
 	it('falls back to the localised success string when the response has no message', async () => {
 		vi.spyOn(window.FFC, 'request').mockResolvedValue({});
-		const notifySpy = vi.spyOn(window.FFC.Admin, 'showNotification').mockImplementation(() => {});
+		const notifySpy = vi.spyOn(window.FFC.Admin, 'notify').mockImplementation(() => {});
 
 		window.$('.ffc-cache-warm-btn').trigger('click');
 		await Promise.resolve(); await Promise.resolve();
@@ -80,7 +80,7 @@ describe('FFC Cache Actions — Warm', () => {
 
 	it('on error: shows the server error message and re-enables the button', async () => {
 		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('Server down'));
-		const notifySpy = vi.spyOn(window.FFC.Admin, 'showNotification').mockImplementation(() => {});
+		const notifySpy = vi.spyOn(window.FFC.Admin, 'notify').mockImplementation(() => {});
 
 		const $btn = window.$('.ffc-cache-warm-btn');
 		$btn.trigger('click');
@@ -110,7 +110,7 @@ describe('FFC Cache Actions — Clear', () => {
 	it('on confirm + success: posts ffc_cache_clear and toasts', async () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ message: 'Cache cleared.' });
-		const notifySpy = vi.spyOn(window.FFC.Admin, 'showNotification').mockImplementation(() => {});
+		const notifySpy = vi.spyOn(window.FFC.Admin, 'notify').mockImplementation(() => {});
 
 		window.$('.ffc-cache-clear-btn').trigger('click');
 		await Promise.resolve(); await Promise.resolve();
@@ -133,7 +133,7 @@ describe('FFC Cache Actions — payload / guards', () => {
 	it('attaches the per-action nonce to the request payload when localized', async () => {
 		window.ffcCacheActions.nonces = { ffc_cache_warm: 'warm-nonce' };
 		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({});
-		vi.spyOn(window.FFC.Admin, 'showNotification').mockImplementation(() => {});
+		vi.spyOn(window.FFC.Admin, 'notify').mockImplementation(() => {});
 
 		window.$('.ffc-cache-warm-btn').trigger('click');
 		await Promise.resolve(); await Promise.resolve();
@@ -154,9 +154,9 @@ describe('FFC Cache Actions — payload / guards', () => {
 });
 
 describe('FFC Cache Actions — load-time guard', () => {
-	it('returns at load when FFC.Admin.showNotification is unavailable', () => {
+	it('returns at load when FFC.Admin.notify is unavailable', () => {
 		const savedAdmin = window.FFC.Admin;
-		// Strip showNotification so the top-of-IIFE guard returns early.
+		// Strip notify so the top-of-IIFE guard returns early.
 		window.FFC.Admin = {};
 		expect(() => loadScript('assets/js/ffc-cache-actions.js')).not.toThrow();
 		window.FFC.Admin = savedAdmin;

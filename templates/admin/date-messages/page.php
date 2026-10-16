@@ -81,12 +81,9 @@ $ffc_dm_icons = array(
 
 	<?php if ( isset( $outcome['message'] ) && is_string( $outcome['message'] ) && '' !== $outcome['message'] ) : ?>
 		<?php
-		wp_admin_notice(
-			esc_html( $outcome['message'] ),
-			array(
-				'type'        => 'success' === ( $outcome['type'] ?? '' ) ? 'success' : 'error',
-				'dismissible' => true,
-			)
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'success' === ( $outcome['type'] ?? '' ) ? 'success' : 'error',
+			esc_html( $outcome['message'] )
 		);
 		?>
 	<?php endif; ?>

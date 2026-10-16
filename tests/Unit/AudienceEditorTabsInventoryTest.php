@@ -92,7 +92,7 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 			}
 		);
 		Functions\when( 'selected' )->justReturn( '' );
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_trim_words' )->returnArg();
 		Functions\when( 'get_option' )->justReturn( array() );
 		// The member and access tables mask account emails (#1824). No tier

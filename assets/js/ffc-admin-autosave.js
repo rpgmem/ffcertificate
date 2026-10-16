@@ -100,10 +100,14 @@
         if ($existing.length) {
             return $existing;
         }
-        var $badge = $('<span class="' + BADGE_CLASS + '" aria-live="polite" hidden></span>');
+        var $badge = $('<span class="' + BADGE_CLASS + ' ffc-status" role="status" aria-live="polite" hidden></span>');
         $anchor.after($badge);
         return $badge;
     }
+
+    // The badge is the shared status line beside a control (#1843):
+    // `BADGE_CLASS` only locates it, `.ffc-status` draws it.
+    var BADGE_STATES = { saving: 'busy', saved: 'success', error: 'error' };
 
     /**
      * Show one of three badge states: 'saving' | 'saved' | 'error'.
@@ -113,15 +117,11 @@
      * @param {string}  [text]
      */
     function setBadgeState($badge, state, text) {
-        $badge
-            .removeClass(BADGE_CLASS + '--saving ' + BADGE_CLASS + '--saved ' + BADGE_CLASS + '--error')
-            .addClass(BADGE_CLASS + '--' + state)
-            .text(text || '')
-            .removeAttr('hidden');
+        window.FFC.status($badge, BADGE_STATES[state] || '', text || '');
     }
 
     function hideBadge($badge) {
-        $badge.attr('hidden', 'hidden').text('');
+        window.FFC.status($badge, '', '');
     }
 
     /**

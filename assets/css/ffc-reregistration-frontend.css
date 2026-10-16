@@ -297,19 +297,6 @@
     margin-left: auto;
 }
 
-.ffc-rereg-status {
-    font-size: var(--ffc-font-size-sm);
-    font-weight: 500;
-}
-
-.ffc-rereg-status.ffc-status-ok {
-    color: var(--ffc-success-text);
-}
-
-.ffc-rereg-status.ffc-status-err {
-    color: var(--ffc-danger-text);
-}
-
 /* ── Responsive ──────────────────────────────── */
 
 @media (max-width: 768px) {

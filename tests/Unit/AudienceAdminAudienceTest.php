@@ -148,7 +148,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_page_renders_list_by_default(): void {
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 		Functions\when( 'wp_trim_words' )->returnArg();
 
@@ -167,7 +167,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_list_renders_hierarchical_rows(): void {
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 
 		$child  = (object) array(
@@ -238,7 +238,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	 */
 	public function test_row_actions_render_only_for_the_cap_their_handler_checks( array $caps, bool $can_manage, bool $can_delete ): void {
 		$this->grant( $caps );
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 		$child  = (object) array( 'id' => 2, 'name' => 'Child Aud', 'color' => '#00ff00', 'status' => 'inactive', 'children' => array() );
 		$parent = (object) array( 'id' => 1, 'name' => 'Parent Aud', 'color' => '#ff0000', 'status' => 'active', 'children' => array( $child ) );
@@ -267,7 +267,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	public function test_render_form_edit_renders_custom_fields_section(): void {
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
@@ -404,7 +404,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	public function test_render_form_edit_with_breadcrumb_and_custom_fields(): void {
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
@@ -476,7 +476,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	public function test_render_members_lists_users(): void {
 		$_GET['action'] = 'members';
 		$_GET['id']     = '5';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 		Functions\when( 'submit_button' )->justReturn( '' );
@@ -522,7 +522,7 @@ class AudienceAdminAudienceTest extends TestCase {
 		// audiences list shows, which skips it too (#1795).
 		$_GET['action'] = 'members';
 		$_GET['id']     = '5';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 		Functions\when( 'submit_button' )->justReturn( '' );
@@ -583,7 +583,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	public function test_editor_opens_the_tab_the_request_names( array $get, array $post, string $opened ): void {
 		$_GET  = array_merge( array( 'page' => 'ffc-scheduling-audiences', 'id' => '5' ), $get );
 		$_POST = $post;
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
@@ -616,7 +616,7 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->grant( array( 'ffc_view_audiences' ) );
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
@@ -638,7 +638,7 @@ class AudienceAdminAudienceTest extends TestCase {
 
 	public function test_new_audience_has_only_the_audience_tab(): void {
 		$_GET['action'] = 'new';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
@@ -953,7 +953,7 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->capture_submit_buttons();
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 
@@ -999,7 +999,7 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->capture_submit_buttons();
 		$_GET['action'] = 'members';
 		$_GET['id']     = '5';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/remove' );
 		Functions\when( 'get_user_by' )->alias(
@@ -1059,7 +1059,7 @@ class AudienceAdminAudienceTest extends TestCase {
 			->andReturnUsing( fn() => $this->can_reveal );
 		$_GET['action'] = 'members';
 		$_GET['id']     = '5';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );

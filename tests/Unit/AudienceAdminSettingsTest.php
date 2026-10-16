@@ -42,7 +42,7 @@ class AudienceAdminSettingsTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
@@ -367,9 +367,10 @@ class AudienceAdminSettingsTest extends TestCase {
 			}
 		);
 		$calls = array();
-		Functions\when( 'settings_errors' )->alias(
+		Functions\when( 'get_settings_errors' )->alias(
 			static function ( ...$args ) use ( &$calls ) {
 				$calls[] = $args;
+				return array();
 			}
 		);
 

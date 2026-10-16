@@ -103,9 +103,6 @@ final class OpacityContrastTest extends TestCase {
 		'ffc-screenshots.css'             => array(
 			'.ffc-shots-button:disabled' => 'inactive component (a zoom button at its bound), exempt under SC 1.4.3',
 		),
-		'ffc-url-shortener-admin.css'     => array(
-			'.ffc-shorturl-toast' => 'opacity: 0 — the toast only appears through animation',
-		),
 		'ffc-user-permissions.css'        => array(
 			'.ffc-cap-role[disabled]' => 'inactive component, exempt under SC 1.4.3',
 		),

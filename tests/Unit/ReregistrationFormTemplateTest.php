@@ -37,7 +37,7 @@ class ReregistrationFormTemplateTest extends TestCase {
 				echo $text;
 			}
 		);
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'checked' )->justReturn( '' );

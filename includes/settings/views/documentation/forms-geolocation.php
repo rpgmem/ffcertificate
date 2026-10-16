@@ -36,10 +36,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'The named-locations registry', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Reusable locations are managed under Settings → Geolocation and shared by every form. Each has a name, latitude/longitude, radius (meters) and optional "default for GPS" / "default for IP" flags — a new form auto-selects the defaults. Editing a location updates every form that references it.', 'ffcertificate' ); ?></p>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Admin bypass.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Geofencing can be set to ignore administrators so they can test a form from anywhere (Settings → Geolocation).', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Admin bypass.', 'ffcertificate' ) )
+	);
+	?>
 </div>

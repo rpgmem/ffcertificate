@@ -244,6 +244,12 @@ final class DarkModeCssTest extends TestCase {
 			array( '--ffc-text-muted', '--ffc-danger-bg', 4.5, 'the schedule\'s cancelled row' ),
 			array( '--ffc-warning-text', '--ffc-bg', 4.5, 'warning as text' ),
 			array( '--ffc-warning-text', '--ffc-bg-card', 4.5, 'warning as text on a card' ),
+			// The status line beside a control (#1843) has no ground of its own:
+			// each state reads its text tone on the card or the page it sits on.
+			array( '--ffc-success-text', '--ffc-bg', 4.5, 'a status line, saved' ),
+			array( '--ffc-danger-text', '--ffc-bg', 4.5, 'a status line, failed' ),
+			array( '--ffc-text-muted', '--ffc-bg', 4.5, 'a status line, busy' ),
+			array( '--ffc-info-text', '--ffc-bg-card', 4.5, 'info as text on a card' ),
 			array( '--ffc-inverse-on-surface', '--ffc-inverse-surface', 4.5, 'a toast bubble' ),
 			// The base pair (#1126, 5th pass). Text that declares no colour
 			// inherits from OUTSIDE here — from core's `body { color: #3c434a }`

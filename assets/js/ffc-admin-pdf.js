@@ -7,7 +7,7 @@
  * Dependencies:
  * - jQuery
  * - WordPress Media API (wp.media)
- * - FFC Core (for notifications via window.FFC.Admin.showNotification)
+ * - FFC Core (for notifications via window.FFC.Admin.notify)
  * - window.ffcGeneratePDF() - Shared PDF generator module
  *
  * @since 3.1.0
@@ -167,7 +167,7 @@
     // that could not be reached anyway: `discover_layout_templates()` returns
     // pool entries only, each with a real post id, so the id is never 0.
     function loadTemplateFile(templateId, displayName) {
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
         var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
         var strings = ajaxData.strings || {};
         var ajaxUrl = ajaxData.ajax_url || (typeof ajaxurl !== 'undefined' ? ajaxurl : '');
@@ -201,14 +201,14 @@
                         }
                         var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
                         var successMsg = successTemplate.replace('%s', displayName || '');
-                        showNotification('✓ ' + successMsg, 'success', 3000);
+                        showNotification(successMsg, 'success', 3000);
                     } else {
                         var fieldMsg = strings.htmlFieldNotFound || 'HTML field not found.';
-                        showNotification('✗ ' + fieldMsg, 'error');
+                        showNotification(fieldMsg, 'error');
                     }
                 } else {
                     var notFoundMsg = strings.templateFileNotFound || 'Template not found. It may have been removed from the template pool.';
-                    showNotification('✗ ' + notFoundMsg, 'error', 8000);
+                    showNotification(notFoundMsg, 'error', 8000);
                 }
             })
             .fail(function(jqXHR) {
@@ -220,14 +220,14 @@
                 } else {
                     errorMsg = strings.networkError || 'Network error. Check your connection.';
                 }
-                showNotification('✗ ' + errorMsg, 'error', 8000);
+                showNotification(errorMsg, 'error', 8000);
             });
     }
 
     // Save the current layout HTML as a new template in the DB pool (#865).
     $(document).on('click', '#ffc_save_as_model_btn', function(e) {
         e.preventDefault();
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
         var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
         var strings = ajaxData.strings || {};
 
@@ -261,13 +261,13 @@
         })
             .done(function(response) {
                 if (response && response.success) {
-                    showNotification('✓ ' + (strings.templateSaved || 'Template saved!'), 'success', 3000);
+                    showNotification((strings.templateSaved || 'Template saved!'), 'success', 3000);
                 } else {
-                    showNotification('✗ ' + (strings.error || 'Error: '), 'error', 8000);
+                    showNotification((strings.error || 'Error: '), 'error', 8000);
                 }
             })
             .fail(function() {
-                showNotification('✗ ' + (strings.connectionError || 'Connection error.'), 'error', 8000);
+                showNotification((strings.connectionError || 'Connection error.'), 'error', 8000);
             });
     });
 
@@ -278,7 +278,7 @@
     // Import HTML file button
     $(document).on('click', '#ffc_btn_import_html', function(e) {
         e.preventDefault();
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
 
         // Try to find file input
         var $fileInput = $('#ffc_import_html_file');
@@ -332,7 +332,7 @@
 
         if (!file) return;
 
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
         var reader = new FileReader();
@@ -569,7 +569,7 @@
 
     $(document).on('click', '#ffc_btn_media_lib', function(e) {
         e.preventDefault();
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
         // Check if wp.media is available
@@ -642,7 +642,7 @@
 
     $(document).on('click', '#ffc_btn_insert_image', function(e) {
         e.preventDefault();
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
         if (typeof wp === 'undefined' || typeof wp.media === 'undefined') {

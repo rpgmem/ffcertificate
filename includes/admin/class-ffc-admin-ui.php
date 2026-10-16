@@ -625,10 +625,12 @@ class AdminUI {
 	 */
 	public static function enqueue_vertical_tabs(): void {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		// ffc-core: the required-tag banner is drawn by FFC.notice() (#1843).
+		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 		wp_enqueue_script(
 			self::VERTICAL_TABS_HANDLE,
 			FFC_PLUGIN_URL . "assets/js/ffc-vertical-tabs{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

@@ -24,7 +24,7 @@ echo '<input type="date" id="ffc-bulk-date" class="ffc-rec-mr-half">';
 echo '<span>' . esc_html__( 'Time:', 'ffcertificate' ) . ' </span>';
 echo '<input type="time" id="ffc-bulk-time" class="ffc-rec-mr-half">';
 echo '<button type="button" class="button button-primary" onclick="ffcRecruitmentBulkCall();">' . esc_html__( 'Call selected', 'ffcertificate' ) . '</button>';
-echo '<span id="ffc-bulk-status" class="ffc-rec-mono-status"></span>';
+echo '<span id="ffc-bulk-status" class="ffc-status" role="status" aria-live="polite" hidden></span>';
 // §6 — bulk call is atomic; any single race-loss rolls back the entire batch.
 echo '<p class="description ffc-rec-mt-6px">' . esc_html__( 'Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch. Date and time are remembered from the previous successful call.', 'ffcertificate' ) . '</p>';
 echo '</div>';

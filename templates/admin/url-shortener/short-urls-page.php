@@ -56,52 +56,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<?php if ( 'trashed' === $msg ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html__( 'Short URL moved to Trash.', 'ffcertificate' ),
-					array(
-						'type'        => 'success',
-						'dismissible' => true,
-					)
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
+					esc_html__( 'Short URL moved to Trash.', 'ffcertificate' )
 				);
 				?>
 			<?php elseif ( 'restored' === $msg ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html__( 'Short URL restored.', 'ffcertificate' ),
-					array(
-						'type'        => 'success',
-						'dismissible' => true,
-					)
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
+					esc_html__( 'Short URL restored.', 'ffcertificate' )
 				);
 				?>
 			<?php elseif ( 'deleted' === $msg ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html__( 'Short URL permanently deleted.', 'ffcertificate' ),
-					array(
-						'type'        => 'success',
-						'dismissible' => true,
-					)
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
+					esc_html__( 'Short URL permanently deleted.', 'ffcertificate' )
 				);
 				?>
 			<?php elseif ( 'emptied' === $msg ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html__( 'Trash emptied.', 'ffcertificate' ),
-					array(
-						'type'        => 'success',
-						'dismissible' => true,
-					)
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
+					esc_html__( 'Trash emptied.', 'ffcertificate' )
 				);
 				?>
 			<?php elseif ( 'toggled' === $msg ) : ?>
 				<?php
-				wp_admin_notice(
-					esc_html__( 'Status updated.', 'ffcertificate' ),
-					array(
-						'type'        => 'success',
-						'dismissible' => true,
-					)
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
+					esc_html__( 'Status updated.', 'ffcertificate' )
 				);
 				?>
 			<?php endif; ?>

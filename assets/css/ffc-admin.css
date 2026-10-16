@@ -285,27 +285,6 @@
     font-size: var(--ffc-font-size-xs);
 }
 
-.ffc-gen-status {
-    margin-left: var(--ffc-spacing-md);
-    color: var(--ffc-primary);
-    font-weight: 600;
-}
-
-/* The three outcomes of a "Generate tickets" run. The script used to write
-   these as inline colours (`red`, `green`, `#999`), which no theme could
-   reach (#1837). */
-.ffc-gen-status.is-busy {
-    color: var(--ffc-text-light);
-}
-
-.ffc-gen-status.is-success {
-    color: var(--ffc-success);
-}
-
-.ffc-gen-status.is-error {
-    color: var(--ffc-danger);
-}
-
 .ffc-textarea-mono {
     font-family: 'Courier New', Courier, monospace;
     font-size: var(--ffc-font-size-xs);
@@ -372,18 +351,9 @@
 /* ==========================================================================
    6. SETTINGS & DOCUMENTATION
    ========================================================================== */
-.ffc-danger-zone {
-    margin-top: 40px;
-    padding: var(--ffc-spacing-2xl);
-    background: var(--ffc-bg-card);
-    border: 2px solid var(--ffc-danger);
-    border-radius: var(--ffc-radius-sm);
-}
-
-.ffc-danger-zone h2 {
-    color: var(--ffc-danger);
-    margin-top: 0;
-}
+/* The Danger Zone card (Settings → Advanced) is drawn by ffc-admin-settings.css:
+   one danger bar on the card. This sheet drew a second, 2px border around it
+   too, so the card wore both (#1843). */
 
 /* ==========================================================================
    7. SHORTCODE SIDEBAR METABOX
@@ -550,17 +520,6 @@
     max-width: 1500px;
 }
 
-/* Warning Box */
-.ffc-migration-warning {
-    background: var(--ffc-warning-bg);
-    border-left: 4px solid var(--ffc-warning-border);
-    padding: var(--ffc-spacing-lg);
-    margin: var(--ffc-spacing-xl) 0;
-}
-
-.ffc-migration-warning p {
-    margin: 0;
-}
 /* ==========================================================================
    FIXES -- v3.0.0
    ========================================================================== */
@@ -591,23 +550,6 @@
     align-items: center;
 }
 
-
-/* Inline autosave feedback for the template visibility toggle (edit screen). */
-.ffc-autosave-status {
-    display: inline-block;
-    margin-left: var(--ffc-spacing-sm);
-    font-size: var(--ffc-font-size-xs);
-    font-style: italic;
-    vertical-align: middle;
-}
-
-.ffc-autosave-status.ffc-saved {
-    color: var(--ffc-success);
-}
-
-.ffc-autosave-status.ffc-error {
-    color: var(--ffc-danger);
-}
 
 /* ==========================================================================
    GEOFENCE META BOX STYLES - v3.0.0
@@ -841,7 +783,10 @@
 }
 
 /* Inline warning text used by metaboxes (replaces inline style="color:#a00"). */
-.ffc-warning-text {
+/* A blocking note beside a field ("disabled globally", "set an end date
+   first"). It was `.ffc-warning-text` while it painted the danger tone, so the
+   name and the colour disagreed (#1843). */
+.ffc-text-danger {
     color: var(--ffc-danger-text);
 }
 
@@ -896,11 +841,6 @@ td .ffc-restriction-label {
     display: block;
 }
 
-/* Info card */
-.ffc-info-card {
-    background: var(--ffc-info-bg);
-    border-left: 4px solid var(--ffc-info-border);
-}
 
 /* ==========================================================================
    CERTIFICATE PREVIEW MODAL
