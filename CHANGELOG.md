@@ -12,6 +12,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience calendars and environments list their shortcode** (#1814). A Shortcode column with the forms list's copy button; an environment's is tied to its calendar. The copy script is `ffc-copy-shortcode.js`, and `ffc-form-list-copy-shortcode` remains a deprecated handle alias until 6.41.0.
 - **A card-corner setting in Public Design** (#1827). Settings → Public Design → Card corners drives `--ffc-radius-lg`, the corner of the form and verification card, the user dashboard and its cards, so a design at 0 squares the cards as well as the fields. It applies in both themes.
 - **Public Design sets the information notices' colour** (#1842). It draws their bar and text in the light theme; their background is derived from it, and a colour below 4.5:1 on it is saved with a warning.
+- **A wipe-and-seed script for the testes site** (#1855). `.github/scripts/testes-seed.php` empties the plugin's tables, posts and demo users, then writes 20+ fictitious records per module through the plugin's own code. It refuses to run without `--yes-wipe` and a `--site` equal to `home_url()`.
 
 ### Changed
 
