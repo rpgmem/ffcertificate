@@ -417,23 +417,26 @@ describe('appointments.render — filter, pagination, extras', () => {
 		expect(rows[0].textContent).toContain('Match');
 	});
 
-	it('paginates when there are more rows than the page size', async () => {
-		// getPageSize() only accepts 10/25/50 — set the lowest and build 11 rows.
+	it('pages each section on its own, ignoring the per-page setting', async () => {
+		// The certificates tab's per-page setting does not reach this tab
+		// (#1836): Upcoming pages 5 at a time, whatever is stored.
 		window.localStorage.setItem('ffc_page_size', '10');
 		const items = [];
 		for (let i = 1; i <= 11; i++) {
 			items.push(makeAppt({ calendar_title: 'C' + i, id: i }));
 		}
 		panel().render(items, 1);
-		// First 10 rows on page 1.
-		expect(document.querySelectorAll('#ffc-tabpanel-appointments tbody tr').length).toBe(10);
-		// Pagination control is emitted with prev/next links.
-		expect(document.querySelector('#ffc-tabpanel-appointments .ffc-pagination')).not.toBeNull();
+		const tab = document.getElementById('ffc-tabpanel-appointments');
+		expect(tab.querySelectorAll('tbody tr').length).toBe(5);
+		expect(tab.querySelector('.ffc-pagination')).toBeNull();
+		expect(tab.querySelector('.ffc-page-size-select')).toBeNull();
+		expect(tab.querySelector('.ffc-section-pager')).not.toBeNull();
 
-		// Page 2 → only the 11th row.
-		panel().render(items, 2);
-		expect(document.querySelectorAll('#ffc-tabpanel-appointments tbody tr').length).toBe(1);
-		expect(document.querySelector('#ffc-tabpanel-appointments tbody tr').textContent).toContain('C11');
+		// Page 3 through the pager → only the 11th row.
+		const btn = tab.querySelector('.ffc-section-page-btn[data-page="3"]');
+		window.FFCDashboard.handleSectionPage({ preventDefault() {}, currentTarget: btn });
+		expect(tab.querySelectorAll('tbody tr').length).toBe(1);
+		expect(tab.querySelector('tbody tr').textContent).toContain('C11');
 	});
 
 	it('renders the cancel button when can_cancel is true', async () => {

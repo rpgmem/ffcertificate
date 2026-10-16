@@ -38,6 +38,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The comment-language guard reads stylesheets** (#1827). `CommentLanguageTest` recounts `assets/css/` by a second traversal and knows the sheets' words; the Portuguese comments it found are now English, and so are the reregistration form's fallback strings.
 - **The audience event list is styled, and public text no longer takes the theme's size** (#1832). The event-list panel sits under the plugin root. `.ffc-shortcode` names the base step and the tags under it inherit it at one class of weight; dialogs, notices and inner tags name their own steps.
 - **`[ffc_recruitment_my_calls]` and the logged-out dashboard notice load their stylesheets** (#1832). Both rendered with no plugin sheet; wrapping text in dialogs, notices, descriptions and the acknowledgment carries its own line height.
+- **The dashboard's calendar tabs page each section on its own** (#1836). Personal and Group Calendar page Upcoming by 5, Past by 3 and Cancelled by 2, with a count per heading and aligned columns; Certificates keeps its pager. The filter bar is compact, and pt_BR reads "Cancelados".
 
 ### Security
 
