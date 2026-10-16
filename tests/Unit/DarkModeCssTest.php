@@ -271,6 +271,17 @@ final class DarkModeCssTest extends TestCase {
 			array( '--ffc-success', '--ffc-bg', 3.0, 'success as a signal' ),
 			array( '--ffc-warning', '--ffc-bg', 3.0, 'warning as a signal' ),
 			array( '--ffc-info', '--ffc-bg', 3.0, 'info as a signal' ),
+			// The field-message standard (#1844). The message sits on the page
+			// ground, a card or the alternate ground; the control's state is its
+			// border and ring, a graphic against the field. The warning state
+			// reads --ffc-warning: --ffc-warning-border gave 2.22:1 on a white field.
+			array( '--ffc-danger-text', '--ffc-bg', 4.5, 'a field error message on the page' ),
+			array( '--ffc-danger-text', '--ffc-bg-alt', 4.5, 'a field error message on the alternate ground' ),
+			array( '--ffc-warning-text', '--ffc-bg-alt', 4.5, 'a field warning message on the alternate ground' ),
+			array( '--ffc-text-secondary', '--ffc-bg', 4.5, 'a field hint or counter on the page' ),
+			array( '--ffc-danger-border', '--ffc-bg-input', 3.0, 'an invalid field\'s border' ),
+			array( '--ffc-warning', '--ffc-bg-input', 3.0, 'a field\'s warning border' ),
+			array( '--ffc-success-border', '--ffc-bg-input', 3.0, 'a valid field\'s border' ),
 		);
 	}
 

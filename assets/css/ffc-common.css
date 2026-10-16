@@ -3017,10 +3017,125 @@
     }
 }
 
-/* The asterisk beside a required admin field. Core's `.required` red measured
-   2,03:1 on the dark card; the danger token is tuned for both themes. */
-.ffc-admin-page .ffc-required {
-    color: var(--ffc-danger);
+/* ==========================================================================
+   FIELD FEEDBACK (#1844)
+
+   One shape for every field the plugin draws, public or admin: the label
+   with its required marker, the control, the message, then one row with
+   the hint on the left and the counter on the right. `FFC.fieldMessage()`
+   in `ffc-core.js` and `Core\FieldMessage` print the message and set the
+   control's state; nothing else does. This sheet is the one every screen
+   that draws a field loads, which is why the rules live here and not in a
+   module sheet.
+   ========================================================================== */
+
+/* The required marker. One rule, so the asterisk is the same red on every
+   screen; the marker is `aria-hidden` and the control carries `required`. */
+.ffc-required {
+    color: var(--ffc-danger-text);
+    font-weight: 600;
+}
+
+/* The message under a control. The icon is the registry's `.ffc-icon-error`
+   or `.ffc-icon-warning` mask on `::before`; it paints in `currentColor`. */
+.ffc-field-message {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-2xs);
+    margin-top: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-sm);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.ffc-field-message::before {
+    flex: 0 0 auto;
+    margin: 0.125em 0 0;
+}
+
+.ffc-field-message.is-error {
+    color: var(--ffc-danger-text);
+}
+
+.ffc-field-message.is-warning {
+    color: var(--ffc-warning-text);
+}
+
+/* The row under a field: the hint on the left, the counter on the right. */
+.ffc-field-foot {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ffc-spacing-md);
+    margin-top: var(--ffc-spacing-2xs);
+}
+
+.ffc-field-foot .ffc-field-hint {
+    margin: 0;
+}
+
+.ffc-field-hint,
+.ffc-field-counter {
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-secondary);
+}
+
+/* `aria-hidden`: the hint already says the limit, and a message says it
+   when it is reached; a counter read on every keystroke is noise. */
+.ffc-field-counter {
+    margin: 0 0 0 auto;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.ffc-field-counter.is-below-min {
+    color: var(--ffc-warning-text);
+}
+
+/* The control's state. The anchors are the roots under which the plugin
+   draws fields: its public shortcodes, its admin screens, the two post
+   editors it owns, the working-hours table (also on profile.php, where no
+   other root exists) and the public CSV dialog, which is appended to
+   `body`. `:not(#ffc-field-state)` matches every element — nothing carries
+   that id — and lifts the rule to id weight: a state has to show over the
+   resting border every component gives its controls, and those rules reach
+   (0,3,1) on the dashboard's working-hours table. Weight does that without
+   `!important`; `.ffc-shortcode .ffc-input`, the one rule that does set its
+   border `!important`, reads `--ffc-field-state-border` instead.
+   A checkbox or a radio takes no ring: its box is drawn by the browser,
+   and the message under its group carries the state.
+   The warning border is `--ffc-warning`, not `--ffc-warning-border`: the
+   latter measures 2.22:1 on a white field, under the 3:1 a state that only
+   colour carries needs; the signal colour measures 3.04:1. */
+:is(.ffc-shortcode, .ffc-admin-page, .post-type-ffc_form, .post-type-ffc_self_scheduling, .ffc-working-hours, .ffc-extend-end-modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea):not(#ffc-field-state).is-invalid {
+    --ffc-field-state-border: var(--ffc-danger-border);
+    border-color: var(--ffc-danger-border);
+    box-shadow: 0 0 0 1px var(--ffc-danger-border);
+}
+
+:is(.ffc-shortcode, .ffc-admin-page, .post-type-ffc_form, .post-type-ffc_self_scheduling, .ffc-working-hours, .ffc-extend-end-modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea):not(#ffc-field-state).is-warning {
+    --ffc-field-state-border: var(--ffc-warning);
+    border-color: var(--ffc-warning);
+    box-shadow: 0 0 0 1px var(--ffc-warning);
+}
+
+:is(.ffc-shortcode, .ffc-admin-page, .post-type-ffc_form, .post-type-ffc_self_scheduling, .ffc-working-hours, .ffc-extend-end-modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea):not(#ffc-field-state).is-valid {
+    --ffc-field-state-border: var(--ffc-success-border);
+    border-color: var(--ffc-success-border);
+}
+
+/* Focused, the state keeps its colour and the focus ring comes back
+   around it, so a keyboard user sees both. */
+:is(.ffc-shortcode, .ffc-admin-page, .post-type-ffc_form, .post-type-ffc_self_scheduling, .ffc-working-hours, .ffc-extend-end-modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea):not(#ffc-field-state):is(.is-invalid, .is-warning):focus {
+    box-shadow: 0 0 0 1px var(--ffc-field-state-border), 0 0 0 4px var(--ffc-focus-ring);
+}
+
+/* Forced colours drop the ring and force the border's colour, which leaves
+   an invalid field looking like any other; an outline is drawn instead. */
+@media (forced-colors: active) {
+    :is(.ffc-shortcode, .ffc-admin-page, .post-type-ffc_form, .post-type-ffc_self_scheduling, .ffc-working-hours, .ffc-extend-end-modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea):not(#ffc-field-state):is(.is-invalid, .is-warning) {
+        outline: 2px solid CanvasText;
+        outline-offset: 1px;
+    }
 }
 
 /* The background-image preview of the form editor and of the certificate
