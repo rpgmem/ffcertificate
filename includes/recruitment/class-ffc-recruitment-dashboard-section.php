@@ -35,6 +35,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Shortcodes\DashboardAssetManager;
 use FreeFormCertificate\Shortcodes\DashboardViewMode;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -85,7 +86,16 @@ final class RecruitmentDashboardSection {
 			: false;
 		$user_id = $view_as ? (int) $view_as : (int) get_current_user_id();
 
-		return self::render_for_user( $user_id );
+		$html = self::render_for_user( $user_id );
+
+		// On a page of its own nothing else loads the section's rules, which
+		// live in the dashboard's sheet with the tab that shows the same
+		// section (#1832). Loaded only when there is a section to style.
+		if ( '' !== $html ) {
+			DashboardAssetManager::enqueue_styles();
+		}
+
+		return $html;
 	}
 
 	/**

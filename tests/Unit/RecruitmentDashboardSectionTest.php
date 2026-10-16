@@ -25,6 +25,9 @@ class RecruitmentDashboardSectionTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/** @var array<int, string> Stylesheet handles enqueued during the test. */
+	private array $styles = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -57,6 +60,14 @@ class RecruitmentDashboardSectionTest extends TestCase {
 		$this->wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing( static fn ( $sql ) => $sql )
 			->byDefault();
+
+		// A rendered section loads the dashboard's sheets (#1832).
+		$this->styles = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			function ( $handle ) {
+				$this->styles[] = $handle;
+			}
+		);
 	}
 
 	protected function tearDown(): void {
@@ -137,6 +148,8 @@ class RecruitmentDashboardSectionTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
 
 		$this->assertSame( '', RecruitmentDashboardSection::render() );
+		// Nothing to style, so nothing is loaded.
+		$this->assertSame( array(), $this->styles );
 	}
 
 	public function test_render_skips_draft_notices(): void {
@@ -195,5 +208,8 @@ class RecruitmentDashboardSectionTest extends TestCase {
 
 		$this->assertStringContainsString( 'Final classification', $html );
 		$this->assertStringNotContainsString( 'Preliminary classification', $html );
+		// #1832: on a page of its own the section's rules come from the
+		// dashboard's sheet, so the shortcode loads it.
+		$this->assertSame( array( 'ffc-common', 'ffc-dashboard' ), $this->styles );
 	}
 }
