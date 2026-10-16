@@ -213,7 +213,7 @@
                 })
                 .catch(function () {
                     $loading.hide();
-                    $container.html('').append($('<p class="ffc-message ffc-message-error">').text(ffcCalendar.strings.error));
+                    $container.html('').append(FFC.notice('danger', 'error', ffcCalendar.strings.error, '', { role: 'alert' }));
                 });
         },
 
@@ -289,16 +289,20 @@
             // Waitlist notice (#941 phase 2): this slot is full, so the booking
             // joins the queue. Show/hide a banner atop the form accordingly.
             var $formWrapper = $('.ffc-booking-form-wrapper');
-            var $notice = $formWrapper.find('.ffc-waitlist-notice');
+            var $notice = $formWrapper.find('[data-ffc-notice="waitlist"]');
             if (this.selectedWaitlist) {
                 if (!$notice.length) {
-                    $notice = $('<div class="ffc-waitlist-notice" role="status"></div>');
+                    $notice = $(FFC.notice(
+                        'neutral',
+                        'users',
+                        ffcCalendar.strings.waitlistNotice ||
+                        'This time is full. Submitting adds you to the waitlist — you will be notified automatically if a spot opens up.',
+                        '',
+                        { role: 'status', hook: 'waitlist' }
+                    ));
                     $formWrapper.prepend($notice);
                 }
-                $notice.text(
-                    ffcCalendar.strings.waitlistNotice ||
-                    'This time is full. Submitting adds you to the waitlist — you will be notified automatically if a spot opens up.'
-                ).show();
+                $notice.show();
             } else if ($notice.length) {
                 $notice.hide();
             }
@@ -423,7 +427,7 @@
          */
         showError: function(message) {
             var $messages = $('.ffc-form-messages');
-            $messages.html('').append($('<div class="ffc-message ffc-message-error">').text(message));
+            $messages.html('').append(FFC.notice('danger', 'error', message, '', { role: 'note' }));
 
             // Scroll modal body to bottom to show the message
             var $modalContent = $('#ffc-self-scheduling-modal .ffc-modal-content');
@@ -488,7 +492,7 @@
 
             // Show email confirmation notice only if email was actually sent
             if (data.email_sent) {
-                $('.ffc-confirmation-notice').show();
+                $('.ffc-confirmation-email').show();
             }
 
             // Hide calendar, show confirmation

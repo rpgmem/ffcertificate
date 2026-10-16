@@ -6,8 +6,17 @@
 // selectTimeSlot, openModal/closeModal, resetCalendar, validateForm,
 // showError) and the FFC.request integration for `loadTimeSlots` /
 // `submitBooking` via a mocked window.FFC.request.
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
+
+// The real FFC.notice() (#1842), kept across the suite's FFC mock: every
+// notice the calendar prints goes through it.
+let realNotice;
+beforeAll(() => {
+	window.ffc_ajax = window.ffc_ajax || { ajax_url: '/wp-admin/admin-ajax.php', nonce: 'n', strings: {} };
+	loadScript('assets/js/ffc-core.js');
+	realNotice = window.FFC.notice;
+});
 
 function installGlobals() {
 	window.ffcCalendar = {
@@ -42,6 +51,7 @@ function installGlobals() {
 	};
 	window.FFC = {
 		request: vi.fn(),
+		notice: realNotice,
 	};
 }
 
@@ -210,6 +220,56 @@ describe('ffc-calendar-frontend.js — selectTimeSlot', () => {
 	});
 });
 
+describe('ffc-calendar-frontend.js — waitlist and e-mail notices (#1842)', () => {
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		document.body.innerHTML = `
+			<div class="ffc-booking-form-wrapper" style="display:none;"><form></form></div>
+			<div class="ffc-confirmation-wrapper" style="display:none;">
+				<div class="ffc-appointment-details"></div>
+				<div class="ffc-confirmation-email" style="display: none;"><div data-ffc-notice="booking-email-sent"></div></div>
+			</div>
+			<div id="ffc-self-scheduling-modal"><div class="ffc-modal-content"><div class="ffc-modal-title"></div></div></div>
+		`;
+		loadScript('assets/js/ffc-calendar-frontend.js');
+	});
+
+	it('prepends one neutral waitlist notice and hides it for a normal slot', () => {
+		const ctl = window.ffcCalendarFrontend;
+		window.ffcCalendar.strings.waitlistNotice = '<b>Full</b>, you join the queue.';
+		ctl.selectedWaitlist = true;
+		ctl.showBookingForm();
+		ctl.showBookingForm();
+
+		const notices = document.querySelectorAll('.ffc-booking-form-wrapper [data-ffc-notice="waitlist"]');
+		expect(notices.length).toBe(1);
+		const notice = notices[0];
+		expect(notice.className).toBe('ffc-notice ffc-notice-neutral');
+		expect(notice.getAttribute('role')).toBe('status');
+		expect(notice.querySelector('.ffc-icon-users')).not.toBeNull();
+		expect(notice.querySelector('b')).toBeNull();
+		expect(notice.textContent).toBe('<b>Full</b>, you join the queue.');
+		expect(notice.getAttribute('style') || '').not.toContain('color');
+		expect(document.querySelector('.ffc-booking-form-wrapper').firstElementChild).toBe(notice);
+
+		ctl.selectedWaitlist = false;
+		ctl.showBookingForm();
+		expect(notice.style.display).toBe('none');
+	});
+
+	it('reveals the e-mail notice only when the server says it was sent', () => {
+		const ctl = window.ffcCalendarFrontend;
+		window.$.fn.animate = function () { return this; };
+		ctl.selectedDate = '2026-05-20';
+		ctl.selectedTime = '09:00';
+		ctl.showConfirmation({ email_sent: false });
+		expect(document.querySelector('.ffc-confirmation-email').style.display).toBe('none');
+		ctl.showConfirmation({ email_sent: true });
+		expect(document.querySelector('.ffc-confirmation-email').style.display).not.toBe('none');
+	});
+});
+
 describe('ffc-calendar-frontend.js — modal open/close', () => {
 	beforeEach(() => {
 		reset();
@@ -307,10 +367,12 @@ describe('ffc-calendar-frontend.js — loadTimeSlots / FFC.request', () => {
 		await Promise.resolve();
 
 		const msg = document.querySelector(
-			'#ffc-timeslots-container .ffc-message-error'
+			'#ffc-timeslots-container .ffc-notice.ffc-notice-danger[role="alert"]'
 		);
 		expect(msg).not.toBeNull();
+		expect(msg.querySelector('.ffc-icon-error')).not.toBeNull();
 		expect(msg.textContent).toBe('An error occurred');
+		expect(msg.outerHTML).not.toContain('style=');
 	});
 });
 
@@ -335,9 +397,9 @@ describe('ffc-calendar-frontend.js — validateForm', () => {
 			window.$('#ffc-self-scheduling-form')
 		);
 		expect(ok).toBe(false);
-		expect(document.querySelector('.ffc-message-error').textContent).toBe(
-			'Consent is required'
-		);
+		const notice = document.querySelector('.ffc-form-messages .ffc-notice.ffc-notice-danger');
+		expect(notice.getAttribute('role')).toBe('note');
+		expect(notice.textContent).toBe('Consent is required');
 	});
 
 	it('fails when a required field is empty (consent checked)', () => {
@@ -346,7 +408,7 @@ describe('ffc-calendar-frontend.js — validateForm', () => {
 			window.$('#ffc-self-scheduling-form')
 		);
 		expect(ok).toBe(false);
-		expect(document.querySelector('.ffc-message-error').textContent).toBe(
+		expect(document.querySelector('.ffc-form-messages .ffc-notice.ffc-notice-danger').textContent).toBe(
 			'Please fill all required fields'
 		);
 	});

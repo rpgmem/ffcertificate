@@ -253,7 +253,7 @@ class SelfSchedulingShortcode {
 		$calendar_id = absint( $atts['id'] );
 
 		if ( ! $calendar_id ) {
-			return '<p class="ffc-error">' . __( 'Calendar ID is required.', 'ffcertificate' ) . '</p>';
+			return self::error_notice( __( 'Calendar ID is required.', 'ffcertificate' ) );
 		}
 
 		// Try to get calendar by Post ID first (most common usage).
@@ -272,16 +272,16 @@ class SelfSchedulingShortcode {
 		}
 
 		if ( ! $calendar ) {
-			return '<p class="ffc-error">' . __( 'Calendar not found.', 'ffcertificate' ) . '</p>';
+			return self::error_notice( __( 'Calendar not found.', 'ffcertificate' ) );
 		}
 
 		if ( 'active' !== $calendar['status'] ) {
-			return '<p class="ffc-error">' . __( 'This calendar is not accepting bookings.', 'ffcertificate' ) . '</p>';
+			return self::error_notice( __( 'This calendar is not accepting bookings.', 'ffcertificate' ) );
 		}
 
 		// Ensure working_hours is an array.
 		if ( empty( $calendar['working_hours'] ) || ! is_array( $calendar['working_hours'] ) ) {
-			return '<p class="ffc-error">' . __( 'Calendar has no working hours configured. Please contact the administrator.', 'ffcertificate' ) . '</p>';
+			return self::error_notice( __( 'Calendar has no working hours configured. Please contact the administrator.', 'ffcertificate' ) );
 		}
 
 		$is_logged_in          = is_user_logged_in();
@@ -346,19 +346,49 @@ class SelfSchedulingShortcode {
 		ob_start();
 		// Admin bypass badge.
 		if ( $has_bypass && ( 'private' === $visibility || $restrict_viewing || $restrict_booking ) ) {
-			echo '<div class="ffc-admin-bypass-notice">';
+			$badges = '';
 			if ( 'private' === $visibility ) {
-				echo '<span class="ffc-badge ffc-badge-private">' . esc_html__( 'Private', 'ffcertificate' ) . '</span> ';
+				$badges .= '<span class="ffc-badge ffc-badge-private">' . esc_html__( 'Private', 'ffcertificate' ) . '</span> ';
 			}
 			if ( $restrict_viewing || $restrict_booking ) {
-				echo '<span class="ffc-badge ffc-badge-private">' . esc_html__( 'Business Hours Restricted', 'ffcertificate' ) . '</span> ';
+				$badges .= '<span class="ffc-badge ffc-badge-private">' . esc_html__( 'Business Hours Restricted', 'ffcertificate' ) . '</span> ';
 			}
-			echo esc_html__( 'You are viewing this calendar as an administrator (bypass active).', 'ffcertificate' );
-			echo '</div>';
+			$notice_html = \FreeFormCertificate\Core\Notice::render(
+				'info',
+				'unlock',
+				$badges . esc_html__( 'You are viewing this calendar as an administrator (bypass active).', 'ffcertificate' ),
+				'',
+				array(
+					'role' => 'note',
+					'html' => true,
+					'hook' => 'admin-bypass',
+				)
+			);
+			echo $notice_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
 		}
 		$this->render_calendar_interface( $calendar, $can_book, $scheduling_message );
 		$output = ob_get_clean();
 		return $output ? $output : '';
+	}
+
+	/**
+	 * The notice the shortcode prints instead of a calendar it cannot show
+	 * (#1842): no id, no calendar, an inactive one, no working hours.
+	 *
+	 * @param string $message Plain-text message.
+	 * @return string
+	 */
+	private static function error_notice( string $message ): string {
+		return \FreeFormCertificate\Core\Notice::render(
+			'danger',
+			'error',
+			$message,
+			'',
+			array(
+				'role' => 'note',
+				'hook' => 'calendar-error',
+			)
+		);
 	}
 
 	/**
@@ -680,14 +710,36 @@ class SelfSchedulingShortcode {
 					<h3><?php esc_html_e( 'Appointment Confirmed!', 'ffcertificate' ); ?></h3>
 					<div class="ffc-appointment-details"></div>
 
-					<?php if ( $calendar['requires_approval'] ) : ?>
-						<p class="ffc-approval-notice">
-							<?php esc_html_e( 'Your appointment is pending approval. You will receive an email confirmation once it is approved.', 'ffcertificate' ); ?>
-						</p>
-					<?php endif; ?>
-					<p class="ffc-confirmation-notice" style="display: none;">
-						<?php esc_html_e( 'A confirmation email has been sent to your email address.', 'ffcertificate' ); ?>
-					</p>
+					<?php
+					if ( $calendar['requires_approval'] ) {
+						$notice_html = \FreeFormCertificate\Core\Notice::render(
+							'warning',
+							'clock',
+							__( 'Your appointment is pending approval. You will receive an email confirmation once it is approved.', 'ffcertificate' ),
+							'',
+							array(
+								'role' => 'note',
+								'hook' => 'booking-approval',
+							)
+						);
+						echo $notice_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+					}
+					?>
+					<div class="ffc-confirmation-email" style="display: none;">
+						<?php
+						$notice_html = \FreeFormCertificate\Core\Notice::render(
+							'warning',
+							'email',
+							__( 'A confirmation email has been sent to your email address.', 'ffcertificate' ),
+							'',
+							array(
+								'role' => 'note',
+								'hook' => 'booking-email-sent',
+							)
+						);
+						echo $notice_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+						?>
+					</div>
 
 					<button type="button" class="ffc-btn ffc-btn-primary ffc-btn-new-booking">
 						<?php esc_html_e( 'Book Another Appointment', 'ffcertificate' ); ?>

@@ -167,10 +167,18 @@ class AudienceShortcode {
 				}
 			);
 			if ( ! empty( $private_schedules ) ) {
-				$bypass_notice = '<div class="ffc-admin-bypass-notice">'
-					. '<span class="ffc-badge ffc-badge-private">' . esc_html__( 'Private', 'ffcertificate' ) . '</span> '
-					. esc_html__( 'You are viewing this calendar as an administrator (bypass active).', 'ffcertificate' )
-					. '</div>';
+				$bypass_notice = \FreeFormCertificate\Core\Notice::render(
+					'info',
+					'unlock',
+					'<span class="ffc-badge ffc-badge-private">' . esc_html__( 'Private', 'ffcertificate' ) . '</span> '
+					. esc_html__( 'You are viewing this calendar as an administrator (bypass active).', 'ffcertificate' ),
+					'',
+					array(
+						'role' => 'note',
+						'html' => true,
+						'hook' => 'admin-bypass',
+					)
+				);
 			}
 		}
 
@@ -395,21 +403,17 @@ class AudienceShortcode {
 							<span class="ffc-char-count"><span id="desc-char-count">0</span>/300</span>
 						</div>
 
-						<!-- Soft Conflict Warning -->
-						<div class="ffc-conflict-warning ffc-conflict-soft" id="ffc-conflict-warning" style="display: none;">
-							<span class="ffc-icon-warning" aria-hidden="true"></span>
-							<div class="ffc-conflict-details" id="ffc-conflict-details"></div>
+						<!-- Soft conflict warning: ffc-audience-booking-form.js builds the
+							notice (#1842) and moves the acknowledgement into it. -->
+						<div id="ffc-conflict-warning" style="display: none;">
 							<label class="ffc-conflict-acknowledge">
 								<input type="checkbox" id="ffc-conflict-acknowledge">
 								<?php esc_html_e( 'I am aware of the conflicts and want to proceed.', 'ffcertificate' ); ?>
 							</label>
 						</div>
 
-						<!-- Hard Conflict Error -->
-						<div class="ffc-conflict-error" id="ffc-conflict-error" style="display: none;">
-							<span class="ffc-icon-error" aria-hidden="true"></span>
-							<div class="ffc-conflict-error-details" id="ffc-conflict-error-details"></div>
-						</div>
+						<!-- Hard conflict error: the script builds the notice here. -->
+						<div id="ffc-conflict-error" style="display: none;"></div>
 					</form>
 				</div>
 				<div class="ffc-modal-footer">
@@ -553,14 +557,16 @@ class AudienceShortcode {
 	 * @return string HTML output
 	 */
 	private static function render_no_access(): string {
-		ob_start();
-		?>
-		<div class="ffc-audience-notice ffc-notice-info">
-			<p><?php esc_html_e( 'You do not have access to any calendars.', 'ffcertificate' ); ?></p>
-		</div>
-		<?php
-		$output = ob_get_clean();
-		return is_string( $output ) ? $output : '';
+		return \FreeFormCertificate\Core\Notice::render(
+			'info',
+			'lock',
+			__( 'You do not have access to any calendars.', 'ffcertificate' ),
+			'',
+			array(
+				'role' => 'note',
+				'hook' => 'audience-no-access',
+			)
+		);
 	}
 
 	/**

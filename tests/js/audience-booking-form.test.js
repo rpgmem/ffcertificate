@@ -63,9 +63,10 @@ function modalFixture() {
 				<input id="booking-user-ids" />
 				<textarea id="booking-description">A valid description here</textarea>
 				<span id="desc-char-count"></span>
-				<div id="ffc-conflict-warning" style="display:none"><div id="ffc-conflict-details"></div></div>
-				<div id="ffc-conflict-error" style="display:none"><div id="ffc-conflict-error-details"></div></div>
-				<input type="checkbox" id="ffc-conflict-acknowledge" />
+				<div id="ffc-conflict-warning" style="display:none">
+					<label class="ffc-conflict-acknowledge"><input type="checkbox" id="ffc-conflict-acknowledge" /> I am aware</label>
+				</div>
+				<div id="ffc-conflict-error" style="display:none"></div>
 				<button id="ffc-check-conflicts-btn">Check</button>
 				<button id="ffc-create-booking-btn" style="display:none">Create</button>
 			</div>
@@ -286,7 +287,12 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
 		expect(window.$('#ffc-conflict-error').css('display')).not.toBe('none');
-		expect(window.$('#ffc-conflict-error-details').html()).toContain('09:00');
+		const notice = document.querySelector('#ffc-conflict-error [data-ffc-notice="conflict-error"]');
+		expect(notice.className).toBe('ffc-notice ffc-notice-danger');
+		expect(notice.getAttribute('role')).toBe('alert');
+		expect(notice.querySelector('.ffc-icon-error')).not.toBeNull();
+		expect(notice.querySelector('.ffc-notice-title').textContent).toBe('Already booked for this environment.');
+		expect(notice.querySelector('.ffc-notice-text').textContent).toBe('09:00–10:00');
 		expect(window.$('#ffc-create-booking-btn').css('display')).toBe('none');
 	});
 
@@ -298,7 +304,14 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
 		expect(window.$('#ffc-conflict-warning').css('display')).not.toBe('none');
-		expect(window.$('#ffc-conflict-details').html()).toContain('Sub');
+		const notice = document.querySelector('#ffc-conflict-warning [data-ffc-notice="conflict-warning"]');
+		expect(notice.className).toBe('ffc-notice ffc-notice-warning');
+		expect(notice.querySelector('.ffc-icon-warning')).not.toBeNull();
+		const lines = Array.from(notice.querySelectorAll('.ffc-notice-text')).map((p) => p.textContent);
+		expect(lines).toEqual(['This audience already has a booking today:', 'Sub: 11:00–12:00']);
+		// The acknowledgement moved into the notice, once, still the same node.
+		expect(notice.querySelectorAll('#ffc-conflict-acknowledge').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-conflict-acknowledge').length).toBe(1);
 		expect(window.$('#ffc-create-booking-btn').prop('disabled')).toBe(true);
 	});
 
@@ -310,7 +323,25 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
 		expect(window.$('#ffc-conflict-warning').css('display')).not.toBe('none');
-		expect(window.$('#ffc-conflict-details').html()).toContain('2 member(s) overlap.');
+		expect(window.$('#ffc-conflict-warning .ffc-notice-text').text()).toContain('2 member(s) overlap.');
+	});
+
+	it('prints audience names and times as text, never as markup, on a re-check too', async () => {
+		const rest = vi.spyOn(window.FFC, 'rest').mockResolvedValue({
+			success: true,
+			conflicts: { audience_same_day: [{ audience_name: '<img src=x>', start_time: '11:00', end_time: '12:00' }] },
+		});
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		const $warning = window.$('#ffc-conflict-warning');
+		expect($warning.find('img').length).toBe(0);
+		expect($warning.find('.ffc-notice').length).toBe(1);
+		expect($warning.text()).toContain('<img src=x>: 11:00–12:00');
+		expect($warning.find('#ffc-conflict-acknowledge').length).toBe(1);
+		expect($warning.html()).not.toContain('style=');
+		rest.mockRestore();
 	});
 
 	it('enables create directly when there is no conflict', async () => {
