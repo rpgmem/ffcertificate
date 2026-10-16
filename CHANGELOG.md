@@ -10,6 +10,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Audience calendars and environments list their shortcode** (#1814). A Shortcode column with the forms list's copy button; an environment's is tied to its calendar. The copy script is `ffc-copy-shortcode.js`, and `ffc-form-list-copy-shortcode` remains a deprecated handle alias until 6.41.0.
+- **A card-corner setting in Public Design** (#1827). Settings → Public Design → Card corners drives `--ffc-radius-lg`, the corner of the form and verification card, the user dashboard and its cards, so a design at 0 squares the cards as well as the fields. Like the field corner, it applies in both themes.
 
 ### Changed
 
@@ -31,6 +32,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Add New on the Environments list keeps its calendar filter** (#1801). With the list filtered to one calendar, its Add New carries that calendar, so the form opens with it chosen; with no filter the link is unchanged.
 - **The shared vertical tabs are named for the family** (#1788). `.ffc-form-tabs` is `.ffc-vtabs`, the script is `ffc-vertical-tabs.js` and the global `FFC.VerticalTabs`; the audience editors print through `AdminUI`'s tab primitives. `ffc-form-editor-tabs` and `FFC.FormEditorTabs` remain deprecated aliases until 6.41.0.
 - **Stacked toggles share one rhythm, and the captcha display toggles explain themselves** (#1816). `render_toggle()` takes a `description`; a `.ffc-control-toggle-stack` spaces toggles in one cell, replacing a `<br />` on the Captcha tab and the scheduling email toggles' own rule.
+- **The user dashboard has one text field, one button family and one badge** (#1827). Every field takes the public form's look (input ground, 45px, the 3px focus ring); every button is a `.button` (secondary, primary or danger outline) with no `!important`; statuses are `.ffc-pill`.
 
 ### Fixed
 
@@ -59,6 +61,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The appointment detail masks CPF, RF and email for every viewer** (#1813). The appointments admin role and site admins no longer get the clear value in the page: like the submission edit screen, anyone who may reveal sees the masked value and a Reveal button, and each reveal is audited.
 - **Form info blocks follow the form's text size** (#1828). The base block now sets the scale's base size for its paragraphs, so a theme that sizes `p` no longer enlarges the quiz leave-window notice or the other info blocks.
 - **The user dashboard follows the palette, the icon registry and the Public Design** (#1826). Its font and controls take the design's font, every button is painted, status lines and group tags read palette tokens and `ContrastColor::on()`, and its icons come from `Core\Icons`.
+- **The comment-language guard reads stylesheets with their own vocabulary** (#1827). `CommentLanguageTest` recounts `assets/css/` by a second traversal and its word list carries the sheets' words; the Portuguese comments it found, among them the forced-colors line four sheets shared, are now English.
 
 ### Security
 
