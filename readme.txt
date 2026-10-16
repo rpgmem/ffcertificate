@@ -50,13 +50,14 @@ The full reference (every token, shortcode, capability and setting) ships inside
 * **Group Bookings** - Schedule activities for whole audiences or individual users.
 * **CSV Import & Export** - Import and export audiences and members, with user creation.
 * **Conflict Detection** - Conflicts are checked before a booking is confirmed.
+* **Shortcodes** - The Audience Calendars list shows each calendar's and each environment's shortcode with a copy button.
 * **Email Notifications** - Automatic notifications for new bookings and cancellations.
 
 = Reregistration =
 
 * **Campaign Management** - Reregistration campaigns linked to audiences, with configurable periods.
 * **Custom Fields** - Per-audience custom fields (text, textarea, number, date, select, checkbox) with validation, plus a seeded set of standard identity, contact and employment fields.
-* **Email Notifications** - Invitation, reminder and confirmation e-mails with editable templates.
+* **Email Notifications** - Invitation, reminder and confirmation e-mails with editable templates. Once a campaign is active, the daily reregistration run sends the invitations in batches.
 * **Approval Workflow** - Manual or automatic approval, with an admin review screen.
 * **Record PDF** - PDF records of each submission, from a customisable template.
 * **Dashboard Integration** - Users see reregistration banners and can submit and download their record from the dashboard.
@@ -87,12 +88,12 @@ The full reference (every token, shortcode, capability and setting) ships inside
 * **Ticket System** - Import single-use access codes for exclusive form access.
 * **Allowlist / Denylist** - Allow or block specific IDs.
 * **Captcha & Honeypot** - A honeypot on every public form, plus a math challenge, an ALTCHA proof-of-work challenge, or both (ALTCHA with a math fallback when JavaScript is off).
-* **Data Encryption** - E-mail, CPF/RF, IP address and other sensitive fields are encrypted at rest (AES-256), with salted hashes for lookups.
+* **Data Encryption** - E-mail, CPF/RF, IP address and other sensitive fields are encrypted at rest (AES-256), with salted hashes for lookups. On screen it starts masked for every viewer, administrators included, and each Reveal is written to the Activity Log.
 
 = Administration =
 
-* **Activity Log** - Audit trail of admin and user actions.
-* **User Dashboard** - Personal frontend dashboard for certificates, appointments, bookings, reregistration and profile.
+* **Activity Log** - Audit trail of admin and user actions, each listed by a readable name.
+* **User Dashboard** - Personal frontend dashboard for certificates, appointments, bookings, reregistration and profile. It follows the plugin's palette, Dark Mode and Public Design.
 * **CSV Export** - Batched, timeout-safe exports of submissions, appointments, bookings and other data.
 * **Data Migrations** - Settings → Migrations runs batched migrations with progress tracking.
 * **Maintenance Tools** - Clean up obsolete short URLs, switch off Public Operator Access on forms that have ended, and audit how submissions are linked to WordPress users. The audit is report-only.
@@ -100,9 +101,9 @@ The full reference (every token, shortcode, capability and setting) ships inside
 * **Identity Resolution** - An audit of conflicting identity records (shared or invalid CPF/RF and e-mails) across the plugin's stores, with accept and resolve actions.
 * **Email** - Built-in SMTP settings, one configurable e-mail layout shared by every message, and a global switch to disable all e-mails.
 * **REST API** - REST endpoints for external integrations.
-* **Capabilities & Roles** - Granular, delegable permissions with three states per domain (hidden / view only / view and edit), dedicated roles, and per-user and per-role editors, so the plugin can be delegated without granting WordPress administrator.
-* **Dark Mode** - An admin dark theme (off, on, or following the operating system).
-* **Public Design** - Settings → Public Design gives every public screen the site's accent, field, hint and error colours, corner radius, form width and font. It is off by default, applies to the light theme only, and warns when a colour pair falls below WCAG's contrast floor.
+* **Capabilities & Roles** - Granular, delegable permissions with three states per domain (hidden / view only / view and edit), dedicated roles (among them an administrator role, allowed to reveal personal data, for each module that holds it), and per-user and per-role editors, so the plugin can be delegated without granting WordPress administrator.
+* **Dark Mode** - A dark theme for the admin screens and the public pages (off, on, or following the operating system).
+* **Public Design** - Settings → Public Design gives every public screen the site's accent, field, hint and error colours, the corners of fields and of cards, the form width and the font. The user dashboard follows it too. It is off by default, applies to the light theme only, and warns when a colour pair falls below WCAG's contrast floor.
 
 = Integrations =
 
@@ -115,7 +116,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 
 1. Upload the `ffcertificate` folder to `/wp-content/plugins/`.
 2. Activate the plugin through the "Plugins" menu in WordPress.
-3. Go to Certificate → Add New Form to create your first form.
+3. Go to Certificates → Add New Form to create your first form.
 4. Place the shortcode `[ffc_form id="FORM_ID"]` on any page or post.
 5. Optional: enable or disable modules in Settings → Modules, and install the server cron line shown in Settings → Scheduled Tasks so background tasks run on time.
 
@@ -123,7 +124,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 
 = How do I create a form? =
 
-1. Go to Certificate → Add New Form.
+1. Go to Certificates → Add New Form.
 2. Enter a title and add fields with the Form Builder.
 3. Choose and adjust the certificate layout.
 4. Save, then copy the generated shortcode.
@@ -138,7 +139,7 @@ The plugin creates a `/valid` page during activation. You can also place `[ffc_v
 
 = How do I create a calendar? =
 
-1. Go to Scheduling → Personal Calendars → New Personal Calendar.
+1. Go to Scheduling → Personal Calendars and click New Personal Calendar.
 2. Configure business hours, slot duration and capacity.
 3. Place the shortcode `[ffc_self_scheduling id="CALENDAR_ID"]` on any page.
 

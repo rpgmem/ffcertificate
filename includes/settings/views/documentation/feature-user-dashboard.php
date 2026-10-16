@@ -35,6 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><?php esc_html_e( 'Notification Preferences: an "Appointment reminder" toggle and, when the Date Messages module is on, a "Date messages (such as birthday greetings)" toggle that opts them out; both are on until turned off', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'The dashboard is drawn with the plugin\'s own palette and icons, so it follows Dark Mode, and its fields, buttons and status badges look like those of the public forms. With Public Design switched on it also takes the design\'s font, accent colour, field corners and card corners.', 'ffcertificate' ); ?> <a href="#config-public-design"><?php esc_html_e( 'Public Design', 'ffcertificate' ); ?></a></p>
 	</div>
 
 	<div class="ffc-doc-example">

@@ -50,13 +50,13 @@ A built-in short-link domain with click counts, plus a QR code generator for lin
 
 ## More
 
-- **User dashboard:** a front-end page where each person finds their certificates, appointments, group events, reregistrations and profile.
+- **User dashboard:** a front-end page where each person finds their certificates, appointments, group events, reregistrations and profile, drawn in the plugin's palette and following Dark Mode and Public Design.
 - **Reregistration:** campaigns with per-audience custom fields, approval and PDF records.
 - **Recruitment:** public-tender notices, candidate classification lists, convocations and a public queue.
-- **Privacy:** e-mail, CPF/RF, IP addresses and other sensitive fields are encrypted at rest, and a reveal is logged.
+- **Privacy:** e-mail, CPF/RF, IP addresses and other sensitive fields are encrypted at rest and start masked on screen for every viewer, administrators included; each reveal is logged.
 - **Administration:** granular capabilities (hidden, view only, view and edit), an activity log, batched CSV exports, data migrations, a scheduled-tasks screen that generates the server cron line, and one e-mail layout shared by every message.
 - **Dark mode:** for the plugin's admin screens and public pages, either always on or following the operating system.
-- **Public design:** an optional setting that gives every public screen the site's accent and field colours, corners, form width and font, and warns about hard-to-read colour pairs.
+- **Public design:** an optional setting that gives every public screen the site's accent and field colours, the corners of fields and cards, form width and font, and warns about hard-to-read colour pairs.
 
 | User dashboard | Dark mode |
 | --- | --- |

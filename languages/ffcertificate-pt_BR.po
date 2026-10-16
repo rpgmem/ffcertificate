@@ -984,7 +984,7 @@ msgstr "Uma impressão digital irreversível da chave de criptografia ativa. Ela
 
 #: includes/settings/views/documentation/feature-recruitment.php:41
 msgid "A notice moves through these statuses; the public shortcode exposes the classification from preliminary onward:"
-msgstr "Um aviso percorre estes estágios; o código curto público exibe a classificação a partir da fase preliminar:"
+msgstr "Um aviso percorre estes estágios; o shortcode público exibe a classificação a partir da fase preliminar:"
 
 #: includes/settings/views/documentation/submissions-download.php:23
 msgid "A one-click link that downloads the participant's own certificate. The secret token travels in the URL hash fragment (#token=…), so the server never sees it in logs. The token is the only credential — there is no separate login — so the link should be treated as private. It has no captcha, but it is rate-limited by IP and every access is logged."
@@ -2795,7 +2795,7 @@ msgstr "Cor de segundo plano"
 
 #: includes/recruitment/class-ffc-recruitment-adjutancy-edit-page.php:118
 msgid "Background color for the badge on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values fall back to the default."
-msgstr "Cor de segundo plano para o selo no código curto público. Aceita #RGB / #RRGGBB / #RRGGBBAA. Valores inválidos retornam ao padrão."
+msgstr "Cor de segundo plano para o selo no shortcode público. Aceita #RGB / #RRGGBB / #RRGGBBAA. Valores inválidos retornam ao padrão."
 
 #: templates/admin/recruitment/admin-page/create-reason-form.php:27
 msgid "Background color for the reason badge when surfaced. Accepts #RGB / #RRGGBB / #RRGGBBAA."
@@ -2803,19 +2803,19 @@ msgstr "Cor de segundo plano para o emblema de motivo quando exibido. Aceita #RG
 
 #: templates/admin/recruitment/admin-page/create-adjutancy-form.php:27
 msgid "Background color for this adjutancy badge on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values silently fall back to the default."
-msgstr "Cor de segundo plano para este emblema de matéria no código curto público. Aceita #RGB / #RRGGBB / #RRGGBBAA. Valores inválidos retornam silenciosamente ao padrão."
+msgstr "Cor de segundo plano para este emblema de matéria no shortcode público. Aceita #RGB / #RRGGBB / #RRGGBBAA. Valores inválidos retornam silenciosamente ao padrão."
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:100
 msgid "Background color used for each classification status pill on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values silently fall back to defaults."
-msgstr "Cor de segundo plano usada para cada indicador de classificação no código curto público. Aceita #RGB / #RRGGBB / #RRGGBBAA. Valores inválidos retornam silenciosamente aos valores padrão."
+msgstr "Cor de segundo plano usada para cada indicador de classificação no shortcode público. Aceita #RGB / #RRGGBB / #RRGGBBAA. Valores inválidos retornam silenciosamente aos valores padrão."
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:186
 msgid "Background color used for each notice lifecycle status (Draft / Preliminary / Definitive / Closed). Drives both the admin Notices list table and the public shortcode banner so both surfaces share one palette."
-msgstr "A cor de segundo plano é usada para cada status do ciclo de vida do aviso (Rascunho / Preliminar / Definitivo / Concluído). Ela controla tanto a tabela de avisos do administrador quanto o banner público com código curto, para que ambas as superfícies compartilhem a mesma paleta de cores."
+msgstr "A cor de segundo plano é usada para cada status do ciclo de vida do aviso (Rascunho / Preliminar / Definitivo / Concluído). Ela controla tanto a tabela de avisos do administrador quanto o banner público com shortcode, para que ambas as superfícies compartilhem a mesma paleta de cores."
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:121
 msgid "Background color used for each preliminary-list visual status on the public shortcode. These statuses do not change the candidate flow; they only affect the badge color."
-msgstr "Cor de segundo plano usada para cada status visual da lista preliminar no código curto público. Esses status não alteram o fluxo de candidatos; eles afetam apenas a cor do selo."
+msgstr "Cor de segundo plano usada para cada status visual da lista preliminar no shortcode público. Esses status não alteram o fluxo de candidatos; eles afetam apenas a cor do selo."
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:168
 msgid "Background color used on the public + admin subscription-type badges. Each candidate is either PCD (pessoa com deficiência) or GERAL — these two knobs paint the corresponding pill."
@@ -4094,7 +4094,7 @@ msgstr "Limpeza concluída. %d URLs curtas excluídas."
 #: includes/admin/class-ffc-settings-action-handler.php:281
 #, php-format
 msgid "Cleanup complete. Removed %1$d shortcode(s) from %2$d post(s)."
-msgstr "Limpeza concluída. Os códigos curtos %1$d foram removidos das postagens %2$d."
+msgstr "Limpeza concluída. %1$d shortcode(s) removido(s) de %2$d post(s)."
 
 #: includes/settings/views/ffc-tab-migrations.php:412 includes/settings/views/ffc-tab-migrations.php:655
 msgid "Cleanup report"
@@ -4634,7 +4634,7 @@ msgstr "Copiar link"
 
 #: includes/admin/class-ffc-admin-ui.php:658
 msgid "Copy shortcode"
-msgstr "Copiar código curto"
+msgstr "Copiar shortcode"
 
 #: includes/admin/class-ffc-admin-user-capabilities.php:485
 msgid "Copy slug"
@@ -4642,7 +4642,7 @@ msgstr "Copiar slug"
 
 #: includes/admin/class-ffc-form-editor-shortcode-metabox.php:36
 msgid "Copy this Shortcode:"
-msgstr "Copie este código curto:"
+msgstr "Copie este shortcode:"
 
 #: includes/generators/class-ffc-magic-link-helper.php:202
 msgid "Copy to clipboard"
@@ -9224,7 +9224,7 @@ msgstr "Como exibir o formulário quando o usuário está fora das áreas permit
 
 #: includes/admin/class-ffc-form-editor.php:275 includes/self-scheduling/class-ffc-self-scheduling-editor.php:188
 msgid "How to Use / Shortcode"
-msgstr "Como Usar / Código Curto"
+msgstr "Como Usar / Shortcode"
 
 #: includes/privacy/class-ffc-privacy-handler.php:86
 msgid "How your data is stored"
@@ -11608,7 +11608,7 @@ msgstr "Ainda não há editais. O caminho típico para sua primeira chamada é:"
 
 #: includes/settings/views/ffc-tab-migrations.php:506
 msgid "No obsolete shortcodes found. Nothing to clean up."
-msgstr "Nenhum código curto obsoleto encontrado. Nada a limpar."
+msgstr "Nenhum shortcode obsoleto encontrado. Nada a limpar."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-cpt.php:98
 msgid "No personal calendars found in Trash."
@@ -11918,7 +11918,7 @@ msgstr "Cache de objetos (Redis):"
 
 #: includes/migrations/class-ffc-obsolete-shortcode-cleaner.php:58 includes/settings/views/ffc-tab-migrations.php:312 includes/settings/views/documentation/operations-maintenance.php:31
 msgid "Obsolete Shortcode Cleanup"
-msgstr "Limpeza de códigos curtos obsoletos"
+msgstr "Limpeza de shortcodes obsoletos"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:261
 msgid "Occupancy"
@@ -12893,7 +12893,7 @@ msgstr "Por favor, execute uma pré-visualização antes de desativar o acesso."
 
 #: includes/admin/class-ffc-settings-action-handler.php:257
 msgid "Please run a preview first before removing shortcodes."
-msgstr "Por favor, execute uma pré-visualização antes de remover os códigos curtos."
+msgstr "Por favor, execute uma pré-visualização antes de remover os shortcodes."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:163
 msgid "Please select a date"
@@ -13382,11 +13382,11 @@ msgstr "Visualização/reserva pública ou privada, com mensagens configuráveis
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:79
 msgid "Public shortcode"
-msgstr "Código curto público"
+msgstr "Shortcode público"
 
 #: includes/settings/views/documentation/feature-recruitment.php:58
 msgid "Public shortcodes"
-msgstr "Códigos curtos públicos"
+msgstr "Shortcodes públicos"
 
 #: includes/settings/views/documentation/submissions-download.php:26
 msgid "Public validation page"
@@ -13458,7 +13458,7 @@ msgstr "Publique a postagem para gerar um URL curto."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:925
 msgid "Publish this calendar to generate the shortcode."
-msgstr "Publique este calendário para gerar o código curto."
+msgstr "Publique este calendário para gerar o shortcode."
 
 #: includes/admin/class-ffc-submissions-list.php:289 includes/admin/class-ffc-submissions-list.php:520 includes/admin/class-ffc-cpt.php:319
 msgid "Published"
@@ -14037,11 +14037,11 @@ msgstr "Remover selecionado"
 
 #: includes/settings/views/ffc-tab-migrations.php:354
 msgid "Remove shortcodes for forms ended more than"
-msgstr "Remover códigos curtos para formulários encerrados há mais de"
+msgstr "Remover shortcodes para formulários encerrados há mais de"
 
 #: includes/settings/views/ffc-tab-migrations.php:383 includes/settings/views/ffc-tab-migrations.php:388
 msgid "Remove shortcodes now"
-msgstr "Remova os códigos curtos agora."
+msgstr "Remova os shortcodes agora."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:570
 msgid "Remove this field?"
@@ -14900,7 +14900,7 @@ msgstr "Salvando…"
 
 #: includes/settings/views/ffc-tab-migrations.php:318
 msgid "Scan published posts, pages and reusable blocks for embedded [ffc_form] shortcodes that point to forms whose end date is more than N days in the past, and remove those obsolete shortcodes from the content."
-msgstr "Analise as publicações, páginas e blocos reutilizáveis ​​em busca de códigos curtos [ffc_form] incorporados que apontem para formulários cuja data de término seja superior a N dias no passado e remova esses códigos curtos obsoletos do conteúdo."
+msgstr "Analise as publicações, páginas e blocos reutilizáveis ​​em busca de shortcodes [ffc_form] incorporados que apontem para formulários cuja data de término seja superior a N dias no passado e remova esses shortcodes obsoletos do conteúdo."
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:522
 msgid "Scenario"
@@ -15782,7 +15782,7 @@ msgstr "URLs curtas vinculadas a um post ou página não são editáveis ​​�
 
 #: includes/admin/class-ffc-form-list-columns.php:116 includes/audience/class-ffc-audience-admin-calendar.php:200 includes/settings/views/documentation/reference-shortcodes.php:22
 msgid "Shortcode"
-msgstr "Código curto"
+msgstr "Shortcode"
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:24
 msgid "shortcode with the form id and hash in the query string:"
@@ -15791,11 +15791,11 @@ msgstr "shortcode com o ID do formulário e o hash na query string:"
 #: includes/settings/views/ffc-tab-documentation.php:320 includes/settings/views/documentation/reference-shortcodes.php:17 includes/settings/views/documentation/feature-certificates.php:25 includes/settings/views/documentation/developer-hooks-api.php:19
 #| msgid "1. Shortcodes"
 msgid "Shortcodes"
-msgstr "Códigos curtos"
+msgstr "Shortcodes"
 
 #: includes/settings/views/ffc-tab-migrations.php:440
 msgid "Shortcodes removed"
-msgstr "Códigos curtos removidos"
+msgstr "Shortcodes removidos"
 
 #: includes/settings/views/ffc-tab-url-shortener.php:127
 msgid "Shorten"
@@ -16924,7 +16924,7 @@ msgstr "a campanha terminou antes do envio."
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:264
 msgid "The candidate list is hidden from the public shortcode."
-msgstr "A lista de candidatos está oculta no código curto público."
+msgstr "A lista de candidatos está oculta no shortcode público."
 
 #: includes/recruitment/class-ffc-recruitment-candidates-list-table.php:152
 msgid "The candidate record will be permanently removed."
@@ -17165,7 +17165,7 @@ msgstr "o identificador (obrigatório). Veja a observação abaixo sobre a valid
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:228
 msgid "The imported candidate list becomes visible on the public shortcode."
-msgstr "A lista de candidatos importada torna-se visível no código curto público."
+msgstr "A lista de candidatos importada torna-se visível no shortcode público."
 
 #: includes/settings/views/documentation/config-general.php:32
 msgid "The institutional address; fills the {{main_address}} token in certificate and appointment templates."
@@ -17310,15 +17310,15 @@ msgstr "O link curto público é"
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:239
 msgid "The public shortcode flips to the \"Final classification.\" banner."
-msgstr "O código curto público muda para o banner \"Classificação final\"."
+msgstr "O shortcode público muda para o banner \"Classificação final\"."
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:214
 msgid "The public shortcode no longer shows the \"Notice closed.\" banner."
-msgstr "O código curto público não exibe mais o banner \"Edital fechado\"."
+msgstr "O shortcode público não exibe mais o banner \"Edital fechado\"."
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:254
 msgid "The public shortcode shows the \"Notice closed.\" banner above the list."
-msgstr "O código curto público exibe o banner \"Edital encerrado\" acima da lista."
+msgstr "O shortcode público exibe o banner \"Edital encerrado\" acima da lista."
 
 #: includes/recruitment/class-ffc-recruitment-reasons-list-table.php:133
 msgid "The reason record will be permanently removed."
@@ -18264,7 +18264,7 @@ msgstr "Registre as atividades para fins de auditoria."
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:84
 msgid "Transient cache for the public shortcode. 0 disables."
-msgstr "Cache temporário para o código curto público. 0 desativa."
+msgstr "Cache temporário para o shortcode público. 0 desativa."
 
 #: includes/admin/class-ffc-submissions-list.php:208 includes/admin/class-ffc-submissions-list.php:291 includes/admin/class-ffc-submissions-list.php:527 includes/admin/class-ffc-cpt.php:322 templates/admin/url-shortener/short-urls-page.php:220 templates/admin/url-shortener/short-urls-page.php:300
 msgid "Trash"
@@ -18680,7 +18680,7 @@ msgstr "Use este shortcode para exibir o calendário em qualquer página ou post
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:917
 msgid "Use this shortcode to display the calendar:"
-msgstr "Use este código curto para exibir o calendário:"
+msgstr "Use este shortcode para exibir o calendário:"
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:46
 msgid "Use:"
@@ -18864,7 +18864,7 @@ msgstr "Usuários e Privacidade"
 #: includes/settings/views/ffc-tab-user-access.php:327
 #, php-format
 msgid "Users can access their certificates via the dashboard page using the %s shortcode."
-msgstr "Os usuários podem acessar seus certificados através da página do painel de controle usando o código curto %s."
+msgstr "Os usuários podem acessar seus certificados através da página do painel de controle usando o shortcode %s."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:614
 msgid "Users can cancel their own appointments"
@@ -19589,7 +19589,7 @@ msgstr "Quando ativado, as reservas começam como pendentes até que um administ
 
 #: templates/admin/recruitment/notice-edit/general-section.php:73
 msgid "When on, the public shortcode will render the reason label next to the preliminary status badge. Off by default per notice — operators decide all-or-nothing per edital."
-msgstr "Quando ativado, o código curto público exibirá o rótulo do motivo ao lado do indicador de status preliminar. Desativado por padrão por edital — os operadores decidem se ativa ou desativa por edital."
+msgstr "Quando ativado, o shortcode público exibirá o rótulo do motivo ao lado do indicador de status preliminar. Desativado por padrão por edital — os operadores decidem se ativa ou desativa por edital."
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:810
 msgid "When on, this template appears in the certificate form editor’s “Load” dropdown."
@@ -20765,8 +20765,8 @@ msgid "load answers from a spreadsheet. Separate from manage on purpose: it writ
 msgstr "carrega respostas de uma planilha. Separada de gerenciar de propósito: grava dados pessoais de pessoas que nunca abriram o formulário."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:66
-msgid "reveal the decrypted CPF / RF / e-mail on an appointment, and the e-mail in the appointments list, with the Reveal button; every reveal is audited. Without it those values stay masked, even for an operator who can manage appointments. The list masks the e-mail for administrators and the appointments admin role too; they reveal it the same way."
-msgstr "revela o CPF / RF / e-mail decifrado num agendamento, e o e-mail na lista de agendamentos, com o botão Revelar; toda revelação é auditada. Sem ela, esses valores continuam mascarados, mesmo para um operador que pode gerenciar agendamentos. A lista mascara o e-mail também para administradores e para a função de administrador de agendamentos; eles o revelam da mesma forma."
+msgid "reveal the decrypted CPF / RF / e-mail on an appointment, and the e-mail in the appointments list, with the Reveal button; every reveal is audited. Without it those values stay masked, even for an operator who can manage appointments. The appointment detail and the list mask them for administrators and the appointments admin role too; they reveal them the same way."
+msgstr "revela o CPF / RF / e-mail decifrado num agendamento, e o e-mail na lista de agendamentos, com o botão Revelar; toda revelação é auditada. Sem ela, esses valores continuam mascarados, mesmo para um operador que pode gerenciar agendamentos. O detalhe do agendamento e a lista os mascaram também para administradores e para a função de administrador de agendamentos; eles os revelam da mesma forma."
 
 #: includes/settings/views/documentation/feature-reregistration.php:104
 msgid "rows that will be written."
@@ -23340,8 +23340,8 @@ msgstr "E-mail, CPF, RF, o IP do cliente e os dados extras do formulário do env
 msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
 msgstr "Identificadores sensíveis — e-mail, CPF e RF — são criptografados (AES-256-CBC com um IV aleatório por registro e uma verificação de integridade encrypt-then-HMAC), nunca armazenados em texto puro. Os envios de certificado também criptografam o IP do cliente e os dados extras do formulário."
 
-msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability. Revealing recruitment PII writes an activity-log entry (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
-msgstr "Na tela, CPF/RF e e-mail são mascarados, a menos que o operador tenha a capacidade de dados pessoais correspondente. Revelar dados pessoais do recrutamento grava uma entrada no registro de atividades (revelações repetidas do mesmo campo dentro de um minuto não são registradas de novo, e uma configuração do recrutamento pode desativar essa auditoria)."
+msgid "On screen, CPF/RF and e-mail start masked, for administrators too; an operator who holds the matching PII capability fetches a value with the Reveal button beside it. Every reveal on submissions, appointments, reregistration and the audience screens writes an activity-log entry. Revealing recruitment PII is logged too (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
+msgstr "Na tela, CPF/RF e e-mail começam mascarados, também para administradores; um operador que tenha a capacidade de dados pessoais correspondente busca o valor com o botão Revelar ao lado dele. Cada revelação em submissões, agendamentos, recadastramento e nas telas de públicos-alvo grava uma entrada no registro de atividades. Revelar dados pessoais do recrutamento também é registrado (revelações repetidas do mesmo campo dentro de um minuto não são registradas de novo, e uma configuração do recrutamento pode desativar essa auditoria)."
 
 msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
 msgstr "Um logotipo da Biblioteca de Mídia pode ser desenhado no centro (a correção de erros é elevada para H automaticamente), e uma moldura (banner, badge, bubble, pill, speech, circle, brackets ou double) pode trazer uma legenda curta como \"Escaneie para verificar\", opcionalmente com um ícone. Uma moldura deixa a imagem mais alta do que larga; os certificados mantêm a largura pedida pelo placeholder e crescem em altura."
@@ -24030,8 +24030,8 @@ msgstr "A execução diária envia todas as regras ativas uma vez por dia, só p
 msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
 msgstr "O nome da pessoa como armazenado; o nome e o sobrenome do perfil do WordPress (quando vazios, a primeira palavra do nome e o restante); e os dois unidos"
 
-msgid "The plugin registers one role per module tier — viewer, operator, manager — plus \"FFC Administrator\", \"FFC Read-Only (all modules)\" and \"FFC End User\", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:"
-msgstr "O plugin registra uma função por nível de cada módulo — visualizador, operador, gestor — além de \"FFC Administrador\", \"FFC Somente Leitura (todos os módulos)\" e \"FFC Usuário Final\", atribuída automaticamente a quem envia um formulário com CPF ou RF. As funções que o plugin registra atualmente:"
+msgid "The plugin registers one role per module tier — viewer, operator, manager and, for the modules that hold personal data (certificates, appointments, reregistration, recruitment), an administrator role that may reveal it — plus \"FFC Administrator\", \"FFC Read-Only (all modules)\" and \"FFC End User\", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:"
+msgstr "O plugin registra uma função por nível de cada módulo — visualizador, operador, gestor e, nos módulos que guardam dados pessoais (certificados, agendamentos, recadastramento, recrutamento), uma função de administrador que pode revelá-los — além de \"FFC Administrador\", \"FFC Somente Leitura (todos os módulos)\" e \"FFC Usuário Final\", atribuída automaticamente a quem envia um formulário com CPF ou RF. As funções que o plugin registra atualmente:"
 
 msgid "The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. WordPress administrators (manage_options) always hold every FFC capability."
 msgstr "O plugin traz capacidades granulares e funções próprias, e gerencia ambas por conta própria — nenhum plugin de gestão de capacidades é necessário. Administradores do WordPress (manage_options) sempre têm todas as capacidades do FFC."
@@ -26140,7 +26140,7 @@ msgstr "A aba Membros e a aba Acesso de usuários de um calendário mostram o e-
 
 #: includes/settings/views/documentation/scheduling-audiences.php:41
 msgid "The Shortcode column of Audience Calendars shows each calendar's shortcode with a copy button, and the Environments view shows each environment's, tied to its calendar."
-msgstr "A coluna Código curto de Calendários de Público-alvo mostra o código curto de cada calendário com um botão de copiar, e a visão Ambientes mostra o de cada ambiente, vinculado ao seu calendário."
+msgstr "A coluna Shortcode de Calendários de Público-alvo mostra o shortcode de cada calendário com um botão de copiar, e a visão Ambientes mostra o de cada ambiente, vinculado ao seu calendário."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:325
 msgid "Reveal reregistration PII"
@@ -26173,3 +26173,12 @@ msgstr "Na lista de submissões o e-mail fica mascarado para todos, administrado
 #: includes/user-dashboard/class-ffc-capability-manager.php:895
 msgid "FFC Reregistration - Administrator"
 msgstr "FFC Recadastramento - Administrador"
+
+msgid "Each action is listed by a readable name, such as \"Appointment Personal Data Revealed\" or \"Audience Account Email Revealed\"; an action with no name of its own shows its code, with spaces for the underscores."
+msgstr "Cada ação aparece com um nome legível, como \"Dados Pessoais do Agendamento Revelados\" ou \"E-mail da Conta de Público-alvo Revelado\"; uma ação sem nome próprio mostra o seu código, com espaços no lugar dos sublinhados."
+
+msgid "The dashboard is drawn with the plugin's own palette and icons, so it follows Dark Mode, and its fields, buttons and status badges look like those of the public forms. With Public Design switched on it also takes the design's font, accent colour, field corners and card corners."
+msgstr "O painel é desenhado com a paleta e os ícones do próprio plugin, por isso segue o Modo Escuro, e seus campos, botões e selos de status têm a mesma aparência dos formulários públicos. Com o Design Público ativado, ele também adota a fonte, a cor de destaque, os cantos dos campos e os cantos dos cartões do design."
+
+msgid "Add New on a calendar's Environments tab, or on the Environments view filtered to one calendar, opens the new environment with that calendar already chosen."
+msgstr "Adicionar Novo na aba Ambientes de um calendário, ou na visão Ambientes filtrada por um calendário, abre o novo ambiente com esse calendário já escolhido."

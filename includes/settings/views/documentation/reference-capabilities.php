@@ -29,7 +29,7 @@ $ffc_cap_catalog = '\FreeFormCertificate\UserDashboard\CapabilityCatalog';
 			<li><strong><?php esc_html_e( 'Per role:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Settings → User Access → "FFC Roles & Capabilities" edits which capabilities each FFC role carries.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Per user:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'the "FFC Permissions" section of the user-edit screen adds or removes FFC roles and grants individual capabilities on top of them. Roles are toggled one at a time and kept alongside the user\'s other WordPress roles.', 'ffcertificate' ); ?></li>
 		</ul>
-		<p><?php esc_html_e( 'The plugin registers one role per module tier — viewer, operator, manager — plus "FFC Administrator", "FFC Read-Only (all modules)" and "FFC End User", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The plugin registers one role per module tier — viewer, operator, manager and, for the modules that hold personal data (certificates, appointments, reregistration, recruitment), an administrator role that may reveal it — plus "FFC Administrator", "FFC Read-Only (all modules)" and "FFC End User", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:', 'ffcertificate' ); ?></p>
 		<?php
 		$ffc_role_registrar = '\\FreeFormCertificate\\UserDashboard\\RoleRegistrar';
 		if ( class_exists( $ffc_role_registrar ) && method_exists( $ffc_role_registrar, 'ffc_managed_role_labels' ) ) :
