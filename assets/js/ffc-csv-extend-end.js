@@ -76,13 +76,11 @@
 			+         esc(strings.openEarlyCacheWarn || 'If your site uses page caching, some visitors may see the old close time until the cache refreshes.')
 			+       '</p>'
 			+     '</div>'
+			// Cancel is neutral and takes the focus; Confirm is caution,
+			// because it moves the close the participants see (#1881).
 			+     '<div class="ffc-open-early-actions">'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-extend-end-cancel" autofocus>'
-			+         esc(strings.cancel || 'Cancel')
-			+       '</button>'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-extend-end-confirm">'
-			+         esc(strings.postponeConfirm || 'Confirm postponement')
-			+       '</button>'
+			+       FFC.buttonHtml({ label: strings.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-extend-end-cancel', attrs: { autofocus: true } })
+			+       FFC.buttonHtml({ label: strings.postponeConfirm || 'Confirm postponement', category: 'caution', icon: 'calendar-check', className: 'ffc-extend-end-confirm' })
 			+     '</div>'
 			+   '</div>'
 			+ '</div>';

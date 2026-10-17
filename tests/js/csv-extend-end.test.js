@@ -151,6 +151,10 @@ describe('csv extend-end — Postpone close button render', () => {
 		expect($btn.length).toBe(1);
 		expect($btn.text()).toContain('Postpone close');
 		expect($btn.prop('disabled')).toBe(false);
+		// #1881 — caution, because it moves the close the participants see.
+		expect($btn.hasClass('ffc-btn')).toBe(true);
+		expect($btn.hasClass('ffc-btn-caution')).toBe(true);
+		expect($btn.hasClass('ffc-icon-calendar-check')).toBe(true);
 	});
 
 	it('renders a disabled button when extend_end_disabled_by_admin', async () => {
@@ -187,6 +191,18 @@ describe('csv extend-end — modal', () => {
 		expect($modal.text()).toContain('2026-12-31 18:00');
 		// 18:00 + 30min → 18:30 default.
 		expect($modal.find('.ffc-extend-end-input').val()).toBe('18:30');
+		// #1881 — Cancel is neutral with `cross` and takes the focus; the
+		// confirm is caution with the trigger's own icon.
+		const $cancel = $modal.find('.ffc-extend-end-cancel');
+		expect($cancel.hasClass('ffc-btn')).toBe(true);
+		expect($cancel.hasClass('ffc-btn-neutral')).toBe(true);
+		expect($cancel.hasClass('ffc-icon-cross')).toBe(true);
+		expect($cancel.is('[autofocus]')).toBe(true);
+		const $confirm = $modal.find('.ffc-extend-end-confirm');
+		expect($confirm.hasClass('ffc-btn')).toBe(true);
+		expect($confirm.hasClass('ffc-btn-caution')).toBe(true);
+		expect($confirm.hasClass('ffc-icon-calendar-check')).toBe(true);
+		expect($modal.find('[class*="ffc-info-btn"]').length).toBe(0);
 	});
 
 	it('falls back to end_date_formatted when date-only is missing', async () => {

@@ -1289,31 +1289,6 @@ details.ffc-consent-description > p {
     flex: 1;
 }
 
-.ffc-public-csv-download .ffc-info-back {
-    background: none;
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm, 4px);
-    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
-    font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-text-muted);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ffc-spacing-2xs);
-    white-space: nowrap;
-}
-
-.ffc-public-csv-download .ffc-info-back:hover {
-    border-color: var(--ffc-primary);
-    color: var(--ffc-primary);
-}
-
-.ffc-public-csv-download .ffc-info-back-arrow {
-    font-size: var(--ffc-font-size-lg);
-    line-height: 1;
-}
-
 .ffc-public-csv-download .ffc-info-section {
     margin-bottom: var(--ffc-spacing-2xl);
     padding: var(--ffc-spacing-xl);
@@ -1416,95 +1391,16 @@ details.ffc-consent-description > p {
     box-sizing: border-box;
 }
 
-/* Button variants shared by the public-CSV info screen AND its
-   modal dialogs (early-open + extend-end). The modals are appended
-   to `document.body` and therefore fall outside `.ffc-public-csv-download`
-   — listing both scopes here keeps the visual contract intact wherever
-   `.ffc-info-btn*` is rendered. */
-.ffc-public-csv-download .ffc-info-btn,
-.ffc-open-early-modal .ffc-info-btn,
-.ffc-extend-end-modal .ffc-info-btn {
+/* The buttons are the `.ffc-btn` family (#1881); this sheet only lays them
+   out: they share the row and grow to fill it, wrapping on a narrow screen. */
+.ffc-public-csv-download .ffc-info-actions .ffc-btn {
     flex: 1;
     min-width: 160px;
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
-    border: none;
-    border-radius: var(--ffc-radius-sm, 6px);
-    font-size: var(--ffc-font-size-base);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: center;
-}
-
-.ffc-public-csv-download .ffc-info-btn-primary,
-.ffc-open-early-modal .ffc-info-btn-primary,
-.ffc-extend-end-modal .ffc-info-btn-primary {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-}
-
-.ffc-public-csv-download .ffc-info-btn-primary:hover:not([disabled]),
-.ffc-open-early-modal .ffc-info-btn-primary:hover:not([disabled]),
-.ffc-extend-end-modal .ffc-info-btn-primary:hover:not([disabled]) {
-    background: var(--ffc-primary-hover);
-}
-
-.ffc-public-csv-download .ffc-info-btn-primary[disabled],
-.ffc-open-early-modal .ffc-info-btn-primary[disabled],
-.ffc-extend-end-modal .ffc-info-btn-primary[disabled] {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.ffc-public-csv-download .ffc-info-btn-secondary,
-.ffc-open-early-modal .ffc-info-btn-secondary,
-.ffc-extend-end-modal .ffc-info-btn-secondary {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text);
-    border: 1px solid var(--ffc-border);
-}
-
-.ffc-public-csv-download .ffc-info-btn-secondary:hover:not([disabled]),
-.ffc-open-early-modal .ffc-info-btn-secondary:hover:not([disabled]),
-.ffc-extend-end-modal .ffc-info-btn-secondary:hover:not([disabled]) {
-    background: var(--ffc-border);
-}
-
-.ffc-public-csv-download .ffc-info-btn-secondary[disabled],
-.ffc-open-early-modal .ffc-info-btn-secondary[disabled],
-.ffc-extend-end-modal .ffc-info-btn-secondary[disabled] {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* "Start Form Now" — warning-tinted, less prominent than the
-   primary blue Cancel button so the operator can't trip the
-   destructive action by accident. */
-.ffc-public-csv-download .ffc-info-btn-warning,
-.ffc-open-early-modal .ffc-info-btn-warning,
-.ffc-extend-end-modal .ffc-info-btn-warning {
-    background: var(--ffc-warning);
-    color: var(--ffc-text-on-warning);
-    border: 1px solid var(--ffc-warning);
-}
-
-.ffc-public-csv-download .ffc-info-btn-warning:hover:not([disabled]),
-.ffc-open-early-modal .ffc-info-btn-warning:hover:not([disabled]),
-.ffc-extend-end-modal .ffc-info-btn-warning:hover:not([disabled]) {
-    background: var(--ffc-warning-text);
-    border-color: var(--ffc-warning-text);
-}
-
-.ffc-public-csv-download .ffc-info-btn-warning[disabled],
-.ffc-open-early-modal .ffc-info-btn-warning[disabled],
-.ffc-extend-end-modal .ffc-info-btn-warning[disabled] {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 /* ────────────────────────────────────────────────────────────
-   Early-open confirmation modal — Cancel-button-emphasised
-   defensive UX (the action is irreversible from the public page).
+   Early-open confirmation modal — Cancel takes the focus, a
+   defensive default (the action is irreversible from the public page).
    Visually aligned with #ffc-preview-modal: dark slate header with
    title + close X, white body, footer with action buttons.
    ──────────────────────────────────────────────────────────── */
@@ -1713,30 +1609,10 @@ details.ffc-consent-description > p {
     background: var(--ffc-bg-alt);
 }
 
-/* Cancel is the prominent, defensive default — keeps the operator
-   from tripping the destructive action by reflex. */
-.ffc-open-early-actions .ffc-open-early-cancel,
-.ffc-open-early-actions .ffc-extend-end-cancel {
-    flex: 0 1 auto;
+/* The dialog's actions are the `.ffc-btn` family (#1881); only their
+   minimum width is set here, so a short label still reads as a button. */
+.ffc-open-early-actions .ffc-btn {
     min-width: 120px;
-    font-weight: 600;
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-3xl);
-    font-size: var(--ffc-font-size-base);
-}
-
-.ffc-open-early-actions .ffc-open-early-confirm,
-.ffc-open-early-actions .ffc-extend-end-confirm {
-    flex: 0 1 auto;
-    min-width: 120px;
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
-    font-size: var(--ffc-font-size-base);
-}
-
-.ffc-open-early-actions .ffc-open-early-confirm {
-    /* Confirm is smaller + warning-tinted so the operator has to
-       deliberately reach for it. */
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
-    font-size: var(--ffc-font-size-sm);
 }
 
 /* Certificate preview modal (reuses admin modal structure) */
@@ -1956,13 +1832,6 @@ details.ffc-consent-description > p {
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Controls: without a contour, a button stops looking clickable. */
-    .ffc-extend-end-modal .ffc-info-btn-primary,
-    .ffc-open-early-modal .ffc-info-btn-primary,
-    .ffc-public-csv-download .ffc-info-btn-primary {
-        border: 1px solid ButtonText;
-    }
-
     /* Status badges: the text still says the state; the border
        gives them their badge shape back. */
     .ffc-shortcode .ffc-status-badge,

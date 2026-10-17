@@ -59,13 +59,11 @@
 			+         esc(strings.openEarlyCacheWarn || 'If your site uses page caching (Cloudflare, W3 Total Cache, etc.), some visitors may see the old "not yet started" state until the cache refreshes. Ask them to reload if needed.')
 			+       '</p>'
 			+     '</div>'
+			// Cancel is neutral and takes the focus; Confirm is caution,
+			// because it moves the start the participants see (#1881).
 			+     '<div class="ffc-open-early-actions">'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-open-early-cancel" autofocus>'
-			+         esc(strings.cancel || 'Cancel')
-			+       '</button>'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-open-early-confirm">'
-			+         esc(strings.openEarlyConfirm || 'Confirm and start form')
-			+       '</button>'
+			+       FFC.buttonHtml({ label: strings.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-open-early-cancel', attrs: { autofocus: true } })
+			+       FFC.buttonHtml({ label: strings.openEarlyConfirm || 'Confirm and start form', category: 'caution', icon: 'clock', className: 'ffc-open-early-confirm' })
 			+     '</div>'
 			+   '</div>'
 			+ '</div>';

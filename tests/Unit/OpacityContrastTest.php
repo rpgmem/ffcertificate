@@ -87,13 +87,7 @@ final class OpacityContrastTest extends TestCase {
 			'.ffc-custom-field-row.ffc-field-inactive' => 'disabled field: inactive component, exempt under SC 1.4.3',
 		),
 		'ffc-frontend.css'                => array(
-			'.ffc-public-csv-download .ffc-info-btn-primary[disabled], .ffc-open-early-modal .ffc-info-btn-primary[disabled], .ffc-extend-end-modal .ffc-info-btn-primary[disabled]'   => 'inactive component, exempt under SC 1.4.3',
-			'.ffc-public-csv-download .ffc-info-btn-secondary[disabled], .ffc-open-early-modal .ffc-info-btn-secondary[disabled], .ffc-extend-end-modal .ffc-info-btn-secondary[disabled]' => 'inactive component, exempt under SC 1.4.3',
-			'.ffc-public-csv-download .ffc-info-btn-warning[disabled], .ffc-open-early-modal .ffc-info-btn-warning[disabled], .ffc-extend-end-modal .ffc-info-btn-warning[disabled]'   => 'inactive component, exempt under SC 1.4.3',
 			'#ffc-preview-modal' => 'opacity: 0 — the closed modal is not painted',
-		),
-		'ffc-pdf-core.css'                => array(
-			'.ffc-btn-loading' => 'loading state, transient',
 		),
 		'ffc-reregistration-frontend.css' => array(
 			'.ffc-rereg-header-subtitle' => 'header subtitle: measured in #1185, 17.58:1 light and 10.10:1 dark with the fade included',
