@@ -218,8 +218,14 @@
                 bg_image: data.bg_image
             };
             
-            html += '<button class="ffc-download-pdf-btn" data-pdf-data=\'' + JSON.stringify(pdfDataToUse) + '\'>' + 
-                    (ffc_ajax.strings.downloadPDF || 'Download PDF') + '</button>';
+            // `ffc-download-pdf-btn` is the hook the click handler reads (#1880).
+            html += FFC.buttonHtml({
+                label: ffc_ajax.strings.downloadPDF || 'Download PDF',
+                category: 'primary',
+                icon: 'download',
+                className: 'ffc-download-pdf-btn',
+                attrs: { 'data-pdf-data': JSON.stringify(pdfDataToUse) }
+            });
         }
         
         html += '</div>';
@@ -248,7 +254,14 @@
         html += '<div class="ffc-manual-verification-form">';
         html += '<h4>' + (s.tryManually || 'Or try manual verification') + ':</h4>';
         html += '<input type="text" class="ffc-manual-auth-code" placeholder="' + (s.enterAuthCode || 'Enter validation code') + '">';
-        html += '<button class="ffc-manual-verify-btn ffc-download-btn">' + (s.verify || 'Verify') + '</button>';
+        // `ffc-manual-verify-btn` and `ffc-download-btn` are the hooks the
+        // click handlers read (#1880).
+        html += FFC.buttonHtml({
+            label: s.verify || 'Verify',
+            category: 'primary',
+            icon: 'checkmark',
+            className: 'ffc-manual-verify-btn ffc-download-btn'
+        });
         html += '</div>';
         html += '</div>';
         html += '</div>';

@@ -32,6 +32,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
+use FreeFormCertificate\Core\Button;
 use FreeFormCertificate\Core\Utils;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
@@ -283,9 +284,18 @@ class PublicCsvDownload {
 					?>
 				</div>
 
-				<button type="submit" class="ffc-submit-btn">
-					<?php esc_html_e( 'View form details', 'ffcertificate' ); ?>
-				</button>
+				<?php
+				// `ffc-submit-btn` is the hook `ffc-csv-download.js` reads (#1880).
+				Button::render(
+					array(
+						'label'    => __( 'View form details', 'ffcertificate' ),
+						'category' => 'primary',
+						'icon'     => 'checkmark',
+						'type'     => 'submit',
+						'class'    => 'ffc-btn-block ffc-submit-btn',
+					)
+				);
+				?>
 			</form>
 		</div>
 		<?php

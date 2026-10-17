@@ -45,12 +45,20 @@ $ffc_auth_code  = isset( $auth_code ) ? (string) $auth_code : '';
 				<span class="ffc-detail-label"><?php esc_html_e( 'Authentication Code:', 'ffcertificate' ); ?></span>
 				<span class="ffc-detail-value ffc-detail-value-code">
 					<code class="ffc-success-code"><?php echo esc_html( $ffc_auth_code ); ?></code>
-					<button type="button"
-						class="ffc-copy-btn"
-						data-ffc-copy="<?php echo esc_attr( $ffc_auth_code ); ?>"
-						aria-label="<?php esc_attr_e( 'Copy authentication code', 'ffcertificate' ); ?>">
-						<?php esc_html_e( 'Copy', 'ffcertificate' ); ?>
-					</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'    => __( 'Copy', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'copy',
+							'class'    => 'ffc-copy-btn',
+							'attrs'    => array(
+								'data-ffc-copy' => $ffc_auth_code,
+								'aria-label'    => __( 'Copy authentication code', 'ffcertificate' ),
+							),
+						)
+					);
+					?>
 				</span>
 			</div>
 			<p class="ffc-success-row-hint">
@@ -77,20 +85,37 @@ $ffc_auth_code  = isset( $auth_code ) ? (string) $auth_code : '';
 					class="ffc-magic-link-url">
 					<?php echo esc_html( $ffc_magic_link ); ?>
 				</a>
-				<button type="button"
-					class="ffc-copy-btn"
-					data-ffc-copy="<?php echo esc_attr( $ffc_magic_link ); ?>"
-					aria-label="<?php esc_attr_e( 'Copy link', 'ffcertificate' ); ?>">
-					<?php esc_html_e( 'Copy', 'ffcertificate' ); ?>
-				</button>
+				<?php
+				\FreeFormCertificate\Core\Button::render(
+					array(
+						'label'    => __( 'Copy', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'copy',
+						'class'    => 'ffc-copy-btn',
+						'attrs'    => array(
+							'data-ffc-copy' => $ffc_magic_link,
+							'aria-label'    => __( 'Copy link', 'ffcertificate' ),
+						),
+					)
+				);
+				?>
 			</div>
 		<?php endif; ?>
 	</div>
 
 	<div class="ffc-preview-actions ffc-success-actions">
-		<button type="button" class="ffc-download-btn ffc-download-pdf-btn ffc-success-download-btn ffc-icon-download">
-			<?php esc_html_e( 'Download PDF again', 'ffcertificate' ); ?>
-		</button>
+		<?php
+		// `ffc-download-btn`, `ffc-download-pdf-btn` and `ffc-success-download-btn`
+		// are the hooks scripts and an install's own CSS read (#1880).
+		\FreeFormCertificate\Core\Button::render(
+			array(
+				'label'    => __( 'Download PDF again', 'ffcertificate' ),
+				'category' => 'primary',
+				'icon'     => 'download',
+				'class'    => 'ffc-download-btn ffc-download-pdf-btn ffc-success-download-btn',
+			)
+		);
+		?>
 
 		<details class="ffc-success-where-is-file" aria-live="polite">
 			<summary class="ffc-success-where-title">

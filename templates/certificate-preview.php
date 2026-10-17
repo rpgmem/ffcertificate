@@ -129,9 +129,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<?php if ( $show_download_button ) : ?>
 		<div class="ffc-preview-actions">
-			<button class="ffc-download-btn ffc-download-pdf-btn ffc-icon-download" data-submission-id="<?php echo esc_attr( $submission->id ); ?>">
-				<?php esc_html_e( 'Download Certificate (PDF)', 'ffcertificate' ); ?>
-			</button>
+			<?php
+			// `ffc-download-btn` / `ffc-download-pdf-btn` are the hooks
+			// `ffc-frontend.js` reads (#1880).
+			\FreeFormCertificate\Core\Button::render(
+				array(
+					'label'    => __( 'Download Certificate (PDF)', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'download',
+					'class'    => 'ffc-download-btn ffc-download-pdf-btn',
+					'attrs'    => array( 'data-submission-id' => (string) $submission->id ),
+				)
+			);
+			?>
 		</div>
 	<?php endif; ?>
 </div>

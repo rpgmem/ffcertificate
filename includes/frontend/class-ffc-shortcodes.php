@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
+use FreeFormCertificate\Core\Button;
 use FreeFormCertificate\Core\Utils;
 use FreeFormCertificate\Core\RequestInput;
 
@@ -371,7 +372,19 @@ class Shortcodes {
 					<?php endif; ?>
 				</div>
 
-				<button type="submit" class="ffc-submit-btn"><?php esc_html_e( 'Submit', 'ffcertificate' ); ?></button>
+				<?php
+				// `ffc-submit-btn` is the hook scripts and an install's own CSS
+				// read; the look is the family's, full width (#1880).
+				Button::render(
+					array(
+						'label'    => __( 'Submit', 'ffcertificate' ),
+						'category' => 'primary',
+						'icon'     => 'checkmark',
+						'type'     => 'submit',
+						'class'    => 'ffc-btn-block ffc-submit-btn',
+					)
+				);
+				?>
 			</form>
 		</div>
 		<?php
@@ -468,7 +481,16 @@ class Shortcodes {
 					<p id="<?php echo esc_attr( $text_id ); ?>"><?php esc_html_e( 'You left this page while answering the quiz, so the answers were cleared. Leaving does not count as an attempt. Start again reloads the quiz.', 'ffcertificate' ); ?></p>
 				</div>
 				<div class="ffc-modal-footer">
-					<button type="button" class="ffc-submit-btn ffc-quiz-leave-restart"><?php esc_html_e( 'Start again', 'ffcertificate' ); ?></button>
+					<?php
+					Button::render(
+						array(
+							'label'    => __( 'Start again', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'sync',
+							'class'    => 'ffc-submit-btn ffc-quiz-leave-restart',
+						)
+					);
+					?>
 				</div>
 			</div>
 		</div>
