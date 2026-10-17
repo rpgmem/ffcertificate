@@ -838,6 +838,15 @@
     color: var(--ffc-danger-text);
 }
 
+@media (forced-colors: active) {
+    /* Reason tags: read, not clicked — the border keeps the tag shape. */
+    .ffc-shortcode .ffc-env-reason-tag,
+    .ffc-shortcode .ffc-env-reason-tag.ffc-env-reason-holiday,
+    .ffc-shortcode .ffc-env-reason-tag.ffc-env-reason-closed_day {
+        border: 1px solid CanvasText;
+    }
+}
+
 .ffc-shortcode #booking-environment-id option.ffc-env-option-restricted {
     color: var(--ffc-warning-text);
     background: var(--ffc-warning-bg);
