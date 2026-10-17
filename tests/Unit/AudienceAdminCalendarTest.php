@@ -418,7 +418,7 @@ class AudienceAdminCalendarTest extends TestCase {
 			$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-' . $title . '</h2>', $output );
 		}
 		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-vtabs__panel is-active"', $output, 'General opens first' );
-		$this->assertMatchesRegularExpression( '/<div class="ffc-aud-editor__side">\s*<div class="card">\s*<h2 class="ffc-icon-checkmark">Save<\/h2>/', $output );
+		$this->assertMatchesRegularExpression( '/<div class="ffc-aud-editor__side">\s*<div class="card">\s*<h2 class="ffc-icon-save">Save<\/h2>/', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-code">Shortcode</h2>', $output );
 		// The card draws the list column's cell, copy button included (#1814).
 		$this->assertMatchesRegularExpression(
@@ -884,7 +884,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
 
 		// The Save card (#1761) exists only where the button did.
-		$this->assertSame( $can_manage, str_contains( $output, '<h2 class="ffc-icon-checkmark">Save</h2>' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '<h2 class="ffc-icon-save">Save</h2>' ) );
 		if ( ! $can_manage ) {
 			// The lock spans the three panels of the calendar form.
 			$open  = (int) strpos( $output, '<fieldset disabled' );

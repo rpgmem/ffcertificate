@@ -172,7 +172,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 				array(
 					'label'    => __( 'Generate missing short URLs', 'ffcertificate' ),
 					'category' => 'create',
-					'icon'     => 'plus',
+					'icon'     => 'stack-plus',
 					'id'       => 'ffc-url-shortener-backfill',
 				)
 			);

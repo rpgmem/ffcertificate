@@ -124,7 +124,7 @@ $ffc_font_options  = array(
 										array(
 											'label'    => __( 'Clear', 'ffcertificate' ),
 											'category' => 'danger',
-											'icon'     => 'cross',
+											'icon'     => 'eraser',
 											'class'    => 'ffc-media-clear',
 											'attrs'    => array( 'data-ffc-media-target' => '#' . $ffc_id ),
 										)
@@ -151,7 +151,7 @@ $ffc_font_options  = array(
 					array(
 						'label'    => __( 'Save Email Model', 'ffcertificate' ),
 						'category' => 'primary',
-						'icon'     => 'checkmark',
+						'icon'     => 'save',
 						'type'     => 'submit',
 						'name'     => 'submit',
 					)

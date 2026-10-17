@@ -246,7 +246,7 @@ class ButtonTest extends TestCase {
 		AdminUI::render_save_button();
 		$html = (string) ob_get_clean();
 		$this->assertSame(
-			'<p class="submit"><button type="submit" class="ffc-btn ffc-btn-primary ffc-icon-checkmark" name="submit">Save Changes</button>' . "\n" . '</p>',
+			'<p class="submit"><button type="submit" class="ffc-btn ffc-btn-primary ffc-icon-save" name="submit">Save Changes</button>' . "\n" . '</p>',
 			$html
 		);
 

@@ -9,7 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **One button family, by what the action does** (#1874). `.ffc-btn` has five categories — primary, neutral, create, caution, danger — drawn by `Core\Button` and `FFC.button()`, each with a registry icon. The Settings tabs and the Scheduling holiday form use it; disabled no longer fades.
+- **One button family, by what the action does** (#1874). `.ffc-btn` has five categories — primary, neutral, create, caution, danger — drawn by `Core\Button` and `FFC.button()`, each with a registry icon; save, erase, open-in-place and bulk-generate get icons of their own. The Settings tabs and the Scheduling holiday form use it; disabled no longer fades.
 
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 

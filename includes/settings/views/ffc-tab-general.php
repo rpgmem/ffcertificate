@@ -497,7 +497,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 							array(
 								'label'    => __( 'Clear', 'ffcertificate' ),
 								'category' => 'danger',
-								'icon'     => 'cross',
+								'icon'     => 'eraser',
 								'class'    => 'ffc-media-clear',
 								'attrs'    => array( 'data-ffc-media-target' => '#logo_gov' ),
 							)
@@ -528,7 +528,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 							array(
 								'label'    => __( 'Clear', 'ffcertificate' ),
 								'category' => 'danger',
-								'icon'     => 'cross',
+								'icon'     => 'eraser',
 								'class'    => 'ffc-media-clear',
 								'attrs'    => array( 'data-ffc-media-target' => '#logo_org' ),
 							)

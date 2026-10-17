@@ -392,7 +392,7 @@ class TabEmailTexts extends SettingsTab {
 									array(
 										'label'    => $open_label,
 										'category' => 'neutral',
-										'icon'     => 'external',
+										'icon'     => 'panel-open',
 										'href'     => (string) $ffc_row_url,
 									)
 								);

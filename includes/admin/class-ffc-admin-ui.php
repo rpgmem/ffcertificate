@@ -500,7 +500,7 @@ class AdminUI {
 				array(
 					'label'    => '' !== $label ? $label : __( 'Save Changes', 'ffcertificate' ),
 					'category' => 'primary',
-					'icon'     => 'checkmark',
+					'icon'     => 'save',
 					'type'     => 'submit',
 					'name'     => 'submit',
 				),
