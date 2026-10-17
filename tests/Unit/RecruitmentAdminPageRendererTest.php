@@ -69,6 +69,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 		Functions\when( 'esc_attr_e' )->alias( static function ( $s ) { echo $s; } );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_textarea' )->returnArg();
 		// The email body now renders via wp_editor (TinyMCE).
@@ -222,7 +223,13 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	}
 
 	public function test_render_settings_tab(): void {
+		// Tags what passes through esc_attr__() so the placeholders prove they are translated (#1873).
+		Functions\when( 'esc_attr__' )->alias( static fn( $s ) => 'i18n:' . $s );
+
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_settings_tab() );
+
+		$this->assertStringContainsString( 'placeholder="i18n:(falls back to wp_mail default)"', $out );
+		$this->assertStringContainsString( 'placeholder="i18n:(falls back to site name)"', $out );
 
 		$this->assertStringContainsString( 'Email template', $out );
 		$this->assertStringContainsString( 'Status badge colors', $out );
