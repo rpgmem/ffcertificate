@@ -626,6 +626,14 @@ msgstr ""
 msgid "(Deleted)"
 msgstr ""
 
+#: templates/admin/recruitment/admin-page/settings-tab.php:86
+msgid "(falls back to site name)"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php:82
+msgid "(falls back to wp_mail default)"
+msgstr ""
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:232 includes/self-scheduling/views/appointments-list.php:205
 msgid "(Guest)"
 msgstr ""

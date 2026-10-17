@@ -322,7 +322,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 		);
 
 		$this->assertStringContainsString( 'name="ffc_template_visible"', $html );
-		$this->assertStringContainsString( 'ffc-control-toggle', $html );
+		$this->assertStringContainsString( 'class="ffc-control-toggle ffc-control-toggle-mark"', $html, 'The hand-built toggle carries the default mark (#1873).' );
 	}
 
 	public function test_save_edit_metabox_persists_html_and_visibility(): void {

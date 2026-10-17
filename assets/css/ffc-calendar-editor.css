@@ -46,8 +46,9 @@
     width: 200px;
 }
 
-.post-type-ffc_self_scheduling .form-table td input[type="number"],
-.post-type-ffc_self_scheduling .form-table td input[type="text"] {
+/* Number inputs only: a text input keeps the WordPress width its class asks
+   for (`regular-text`, `large-text`), which a type selector would outrank (#1873). */
+.post-type-ffc_self_scheduling .form-table td input[type="number"] {
     width: 100px;
 }
 
@@ -147,8 +148,7 @@
         width: auto;
     }
 
-    .post-type-ffc_self_scheduling .form-table td input[type="number"],
-    .post-type-ffc_self_scheduling .form-table td input[type="text"] {
+    .post-type-ffc_self_scheduling .form-table td input[type="number"] {
         width: 100%;
     }
 }

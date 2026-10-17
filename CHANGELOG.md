@@ -7,6 +7,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Every toggle shows its on/off mark** (#1873). The ✓/✗ on the knob is now `AdminUI::render_toggle()`'s default, and the hand-built toggles (user dashboard notifications, template visibility) carry it too; `'mark' => false` opts a toggle out.
+
+### Fixed
+
+- **Calendar e-mail fields and recruitment placeholders** (#1873). The personal-calendar editor's admin addresses and subject take their WordPress width again instead of 100px, and Recruitment → Settings' From address and From name placeholders are translated.
+
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 
 ### Added
