@@ -167,9 +167,16 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 	<tr>
 		<th scope="row"><?php esc_html_e( 'Existing pages', 'ffcertificate' ); ?></th>
 		<td>
-			<button type="button" class="button" id="ffc-url-shortener-backfill">
-				<?php esc_html_e( 'Generate missing short URLs', 'ffcertificate' ); ?>
-			</button>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label'    => __( 'Generate missing short URLs', 'ffcertificate' ),
+					'category' => 'create',
+					'icon'     => 'stack-plus',
+					'id'       => 'ffc-url-shortener-backfill',
+				)
+			);
+			?>
 			<span id="ffc-url-shortener-backfill-status" class="ffc-status" role="status" aria-live="polite" hidden></span>
 			<?php wp_nonce_field( \FreeFormCertificate\UrlShortener\UrlShortenerBackfillHandler::NONCE_ACTION, 'ffc_url_shortener_backfill_nonce' ); ?>
 			<p class="description">
@@ -180,7 +187,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		</tbody>
 	</table>
 
-		<?php submit_button(); ?>
+		<?php \FreeFormCertificate\Admin\AdminUI::render_save_button(); ?>
 	</form>
 </div>
 

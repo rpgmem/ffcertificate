@@ -483,8 +483,26 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 					</th>
 					<td>
 						<input type="url" name="ffc_settings[logo_gov]" id="logo_gov" value="<?php echo esc_attr( $ffcertificate_get_option( 'logo_gov', '' ) ); ?>" class="large-text" placeholder="https://example.com/wp-content/uploads/logo.png" data-ffc-autosave-key="logo_gov">
-						<button type="button" class="button ffc-media-select" data-ffc-media-target="#logo_gov"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
-						<button type="button" class="button-link ffc-media-clear" data-ffc-media-target="#logo_gov"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Select image', 'ffcertificate' ),
+								'category' => 'neutral',
+								'icon'     => 'image',
+								'class'    => 'ffc-media-select',
+								'attrs'    => array( 'data-ffc-media-target' => '#logo_gov' ),
+							)
+						);
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Clear', 'ffcertificate' ),
+								'category' => 'danger',
+								'icon'     => 'eraser',
+								'class'    => 'ffc-media-clear',
+								'attrs'    => array( 'data-ffc-media-target' => '#logo_gov' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Resolves the {{logo_gov}} placeholder in the default record and appointment-receipt templates. Falls back to a generic placeholder when empty.', 'ffcertificate' ); ?>
 						</p>
@@ -496,8 +514,26 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 					</th>
 					<td>
 						<input type="url" name="ffc_settings[logo_org]" id="logo_org" value="<?php echo esc_attr( $ffcertificate_get_option( 'logo_org', '' ) ); ?>" class="large-text" placeholder="https://example.com/wp-content/uploads/logo.png" data-ffc-autosave-key="logo_org">
-						<button type="button" class="button ffc-media-select" data-ffc-media-target="#logo_org"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
-						<button type="button" class="button-link ffc-media-clear" data-ffc-media-target="#logo_org"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Select image', 'ffcertificate' ),
+								'category' => 'neutral',
+								'icon'     => 'image',
+								'class'    => 'ffc-media-select',
+								'attrs'    => array( 'data-ffc-media-target' => '#logo_org' ),
+							)
+						);
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Clear', 'ffcertificate' ),
+								'category' => 'danger',
+								'icon'     => 'eraser',
+								'class'    => 'ffc-media-clear',
+								'attrs'    => array( 'data-ffc-media-target' => '#logo_org' ),
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'Resolves the {{logo_org}} placeholder in the default record and appointment-receipt templates. Falls back to a generic placeholder when empty.', 'ffcertificate' ); ?>
 						</p>
@@ -507,7 +543,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 		</table>
 </div>
 
-	<?php submit_button(); ?>
+	<?php \FreeFormCertificate\Admin\AdminUI::render_save_button(); ?>
 
 </form>
 

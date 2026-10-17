@@ -747,15 +747,15 @@ msgid "+ Add Field"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:191
-msgid "+ New certificate template"
+msgid "New certificate template"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:219 includes/settings/tabs/class-ffc-tab-reregistration.php:160
-msgid "+ New record template"
+msgid "New record template"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:203
-msgid "+ New receipt template"
+msgid "New receipt template"
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-receipt-settings.php:158
@@ -6556,7 +6556,7 @@ msgid "Edit the global text"
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-receipt-settings.php:211 includes/settings/tabs/class-ffc-tab-reregistration.php:148
-msgid "Edit this template →"
+msgid "Edit this template"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:520

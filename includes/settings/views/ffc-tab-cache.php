@@ -293,12 +293,31 @@ if ( $ffcertificate_cf_behind ) :
 				<tr data-ffc-section="cache-enabled">
 					<th scope="row"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
 					<td>
-						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=ffc-settings&tab=cache&action=warm_cache' ), 'ffc_warm_cache' ) ); ?>" class="button ffc-cache-warm-btn" data-ffc-action="ffc_cache_warm">
-							<?php esc_html_e( 'Warm Cache Now', 'ffcertificate' ); ?>
-						</a>
-						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=ffc-settings&tab=cache&action=clear_cache' ), 'ffc_clear_cache' ) ); ?>" class="button ffc-cache-clear-btn" data-ffc-action="ffc_cache_clear" data-ffc-confirm="<?php echo esc_attr__( 'Clear all cache?', 'ffcertificate' ); ?>">
-							<span class="ffc-icon-delete"></span><?php esc_html_e( 'Clear Cache', 'ffcertificate' ); ?>
-						</a>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Warm Cache Now', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'zap',
+								'href'     => wp_nonce_url( admin_url( 'admin.php?page=ffc-settings&tab=cache&action=warm_cache' ), 'ffc_warm_cache' ),
+								'class'    => 'ffc-cache-warm-btn',
+								'attrs'    => array( 'data-ffc-action' => 'ffc_cache_warm' ),
+							)
+						);
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Clear Cache', 'ffcertificate' ),
+								'category' => 'danger',
+								'icon'     => 'delete',
+								'href'     => wp_nonce_url( admin_url( 'admin.php?page=ffc-settings&tab=cache&action=clear_cache' ), 'ffc_clear_cache' ),
+								'class'    => 'ffc-cache-clear-btn',
+								'attrs'    => array(
+									'data-ffc-action'  => 'ffc_cache_clear',
+									'data-ffc-confirm' => __( 'Clear all cache?', 'ffcertificate' ),
+								),
+							)
+						);
+						?>
 					</td>
 				</tr>
 				<?php endif; ?>
@@ -397,10 +416,11 @@ if ( $ffcertificate_cf_behind ) :
 							'ffc_clear_qr_cache'
 						);
 						?>
+						<?php // Written out rather than through AdminUI::button(): the helper refuses event-handler attributes, and this confirm() is the action's only guard. ?>
 						<a href="<?php echo esc_url( $ffcertificate_clear_qr_url ); ?>"
-							class="button button-secondary"
+							class="ffc-btn ffc-btn-danger ffc-icon-delete"
 							onclick="return confirm('<?php echo esc_js( __( 'Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed.', 'ffcertificate' ) ); ?>');">
-							<span class="ffc-icon-delete"></span><?php esc_html_e( 'Clear All QR Code Cache', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Clear All QR Code Cache', 'ffcertificate' ); ?>
 						</a>
 						<p class="description ffc-mt-md">
 							<?php esc_html_e( 'QR Codes will be regenerated automatically when needed. This action is safe and reversible.', 'ffcertificate' ); ?>
@@ -412,7 +432,7 @@ if ( $ffcertificate_cf_behind ) :
 		</table>
 </div>
 
-	<?php submit_button(); ?>
+	<?php \FreeFormCertificate\Admin\AdminUI::render_save_button(); ?>
 </form>
 
 

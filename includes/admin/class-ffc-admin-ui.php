@@ -467,6 +467,53 @@ class AdminUI {
 	}
 
 	/**
+	 * A button of the `.ffc-btn` family (#1874): the category says what the
+	 * action does, the icon is a `Core\Icons` class.
+	 *
+	 * The family is shared with the public screens, so the markup lives in
+	 * {@see \FreeFormCertificate\Core\Button}; this is its admin entry point.
+	 *
+	 * @param array<string, mixed> $args See {@see \FreeFormCertificate\Core\Button::html()}.
+	 * @return string
+	 */
+	public static function button( array $args ): string {
+		return \FreeFormCertificate\Core\Button::html( $args );
+	}
+
+	/**
+	 * Print {@see self::button()}.
+	 *
+	 * @param array<string, mixed> $args See {@see \FreeFormCertificate\Core\Button::html()}.
+	 */
+	public static function render_button( array $args ): void {
+		\FreeFormCertificate\Core\Button::render( $args );
+	}
+
+	/**
+	 * The save button of a settings form: the screen's primary action, in a
+	 * `p.submit` like the `submit_button()` it replaces (#1874).
+	 *
+	 * @param string               $label Label; defaults to WordPress's "Save Changes".
+	 * @param array<string, mixed> $args  Further {@see self::button()} arguments.
+	 */
+	public static function render_save_button( string $label = '', array $args = array() ): void {
+		echo '<p class="submit">';
+		self::render_button(
+			array_merge(
+				array(
+					'label'    => '' !== $label ? $label : __( 'Save Changes', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'save',
+					'type'     => 'submit',
+					'name'     => 'submit',
+				),
+				$args
+			)
+		);
+		echo '</p>';
+	}
+
+	/**
 	 * Same as {@see self::render_toggle()} but returns the markup as a string
 	 * instead of echoing — for callers that build an HTML string.
 	 *

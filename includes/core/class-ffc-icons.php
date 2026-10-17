@@ -144,6 +144,14 @@ final class Icons {
 		'external'      => '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
 		'cookie'        => '<path d="M12 3a9 9 0 1 0 9 9 3 3 0 0 1-3.5-3A3 3 0 0 1 14 5.5 3 3 0 0 1 12 3z"/><circle cx="8.5" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1" fill="currentColor" stroke="none"/>',
 
+		// Button meanings that had borrowed a neighbour's icon (#1874): save was a
+		// check mark, clearing a field a cross, opening a screen in place the
+		// external-link arrow, and a bulk generation a single plus.
+		'save'          => '<path d="M5 4h11l4 4v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
+		'eraser'        => '<path d="M14.5 4.5l5 5a1.5 1.5 0 0 1 0 2.1L12 19H8l-3.5-3.5a1.5 1.5 0 0 1 0-2.1l7.9-7.9a1.5 1.5 0 0 1 2.1 0z"/><path d="M9 9.5l5.5 5.5M8 19h12"/>',
+		'panel-open'    => '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 13l3 3 3-3"/>',
+		'stack-plus'    => '<rect x="7" y="7" width="13" height="13" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11M13.5 10.5v6M10.5 13.5h6"/>',
+
 		// Calendar services the dashboard's export menu opens (#1826), drawn in
 		// the house style rather than as brand logos: a calendar with a G, and
 		// a calendar whose header is an envelope flap.
@@ -189,6 +197,7 @@ final class Icons {
 		'download'      => 'download',
 		'edit'          => 'edit',
 		'email'         => 'email',
+		'eraser'        => 'eraser',
 		'error'         => 'error',
 		'external'      => 'external',
 		'eye'           => 'eye',
@@ -217,12 +226,14 @@ final class Icons {
 		'network'       => 'network',
 		'package'       => 'package',
 		'palette'       => 'palette',
+		'panel-open'    => 'panel-open',
 		'phone'         => 'phone',
 		'plus'          => 'plus',
 		'print'         => 'print',
 		'qr'            => 'qr',
 		'restore'       => 'restore',
 		'robot'         => 'robot',
+		'save'          => 'save',
 		'scroll'        => 'file',
 		'search'        => 'search',
 		'send'          => 'send',
@@ -232,6 +243,7 @@ final class Icons {
 		'shield'        => 'shield',
 		'skip'          => 'skip',
 		'sliders'       => 'advanced',
+		'stack-plus'    => 'stack-plus',
 		'success'       => 'success',
 		'sync'          => 'sync',
 		'tag'           => 'tag',

@@ -220,6 +220,19 @@ final class DarkModeCssTest extends TestCase {
 			array( '--ffc-text-on-primary', '--ffc-primary', 4.5, 'the chosen segmented option' ),
 			array( '--ffc-text-muted', '--ffc-gray-200', 4.5, 'a disabled chosen segmented option' ),
 			array( '--ffc-border', '--ffc-gray-100', 3.0, 'the segmented track outline on its own ground' ),
+			// The button family (#1874): every category's label on its ground,
+			// at rest and hovered, and the disabled state that replaced the fade.
+			// Most pairs are also listed above for another component; they are
+			// named here so a change to one cannot silently leave a button behind.
+			array( '--ffc-text-on-primary', '--ffc-primary', 4.5, 'a primary button' ),
+			array( '--ffc-text-on-primary', '--ffc-primary-hover', 4.5, 'a primary button hovered' ),
+			array( '--ffc-text', '--ffc-gray-100', 4.5, 'a neutral button' ),
+			array( '--ffc-success-text', '--ffc-success-bg', 4.5, 'a create button' ),
+			array( '--ffc-warning-text', '--ffc-warning-bg', 4.5, 'a caution button' ),
+			array( '--ffc-danger-text', '--ffc-danger-bg', 4.5, 'a destructive button' ),
+			array( '--ffc-text-muted', '--ffc-gray-200', 4.5, 'a disabled button' ),
+			array( '--ffc-border-focus', '--ffc-bg-card', 3.0, 'a button\'s focus ring on a card' ),
+			array( '--ffc-border-focus', '--ffc-bg', 3.0, 'a button\'s focus ring on the page' ),
 			array( '--ffc-text-secondary', '--ffc-bg-alt', 4.5, 'neutral status badge' ),
 			array( '--ffc-text-muted', '--ffc-bg-alt', 4.5, 'closed status badge' ),
 			array( '--ffc-text-secondary', '--ffc-bg-card', 4.5, 'a label inside the modal' ),

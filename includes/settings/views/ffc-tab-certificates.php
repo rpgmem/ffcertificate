@@ -99,7 +99,17 @@ $ffcertificate_data_row = static function ( string $index, array $row, array $ty
 			?>
 		</td>
 		<td>
-			<button type="button" class="button ffc-required-data-remove" <?php disabled( $is_email || $is_auth ); ?>><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label'    => __( 'Remove', 'ffcertificate' ),
+					'category' => 'danger',
+					'icon'     => 'delete',
+					'class'    => 'ffc-required-data-remove',
+					'disabled' => $is_email || $is_auth,
+				)
+			);
+			?>
 		</td>
 	</tr>
 	<?php
@@ -174,14 +184,23 @@ $ffcertificate_data_row = static function ( string $index, array $row, array $ty
 		?>
 	</template>
 	<p>
-		<button type="button" class="button ffc-icon-plus" id="ffc-required-data-add"><?php esc_html_e( 'Add required data', 'ffcertificate' ); ?></button>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label'    => __( 'Add required data', 'ffcertificate' ),
+				'category' => 'create',
+				'icon'     => 'plus',
+				'id'       => 'ffc-required-data-add',
+			)
+		);
+		?>
 	</p>
 	<p class="description">
 		<?php esc_html_e( 'A name takes lowercase letters, digits and underscores. Email is always required in the form: the certificate is sent to it. {{auth_code}} is always required in the certificate HTML: verification depends on it. A tag the plugin fills in itself, such as {{schedule}}, has no form field; {{schedule}} is asked only of a form that has an Event Schedule.', 'ffcertificate' ); ?>
 	</p>
 </div>
 
-	<?php submit_button(); ?>
+	<?php \FreeFormCertificate\Admin\AdminUI::render_save_button(); ?>
 
 </form>
 

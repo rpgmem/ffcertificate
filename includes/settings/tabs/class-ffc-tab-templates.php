@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Settings\Tabs;
 
 use FreeFormCertificate\Settings\SettingsTab;
+use FreeFormCertificate\Admin\AdminUI;
 use FreeFormCertificate\Admin\CertTemplateCpt;
 use FreeFormCertificate\Admin\CertTemplateRecordResolver;
 use FreeFormCertificate\Admin\CertTemplateReceiptResolver;
@@ -141,19 +142,52 @@ class TabTemplates extends SettingsTab {
 					<tr>
 						<td><?php esc_html_e( 'Appointment receipt — Regular', 'ffcertificate' ); ?></td>
 						<td><?php echo esc_html( self::assigned_label( CertTemplateReceiptResolver::selected_id( 'regular' ) ) ); ?></td>
-						<td><a href="<?php echo esc_url( $receipt_url ); ?>"><?php echo esc_html( $change_label ); ?></a></td>
+						<td>
+							<?php
+							AdminUI::render_button(
+								array(
+									'label'    => $change_label,
+									'category' => 'neutral',
+									'icon'     => 'edit',
+									'href'     => $receipt_url,
+								)
+							);
+							?>
+						</td>
 					</tr>
 					<tr>
 						<td><?php esc_html_e( 'Appointment receipt — Custom', 'ffcertificate' ); ?></td>
 						<td><?php echo esc_html( self::assigned_label( CertTemplateReceiptResolver::selected_id( 'custom' ) ) ); ?></td>
-						<td><a href="<?php echo esc_url( $receipt_url ); ?>"><?php echo esc_html( $change_label ); ?></a></td>
+						<td>
+							<?php
+							AdminUI::render_button(
+								array(
+									'label'    => $change_label,
+									'category' => 'neutral',
+									'icon'     => 'edit',
+									'href'     => $receipt_url,
+								)
+							);
+							?>
+						</td>
 					</tr>
 				<?php endif; ?>
 				<?php if ( $can_reregistration ) : ?>
 					<tr>
 						<td><?php esc_html_e( 'Reregistration record', 'ffcertificate' ); ?></td>
 						<td><?php echo esc_html( self::assigned_label( CertTemplateRecordResolver::selected_id() ) ); ?></td>
-						<td><a href="<?php echo esc_url( $reregistration_url ); ?>"><?php echo esc_html( $change_label ); ?></a></td>
+						<td>
+							<?php
+							AdminUI::render_button(
+								array(
+									'label'    => $change_label,
+									'category' => 'neutral',
+									'icon'     => 'edit',
+									'href'     => $reregistration_url,
+								)
+							);
+							?>
+						</td>
 					</tr>
 				<?php endif; ?>
 			</tbody>
@@ -178,9 +212,16 @@ class TabTemplates extends SettingsTab {
 		</p>
 
 		<p>
-			<a class="button button-primary" href="<?php echo esc_url( self::hub_url() ); ?>">
-				<?php esc_html_e( 'Manage all templates', 'ffcertificate' ); ?>
-			</a>
+			<?php
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Manage all templates', 'ffcertificate' ),
+					'category' => 'neutral',
+					'icon'     => 'list',
+					'href'     => self::hub_url(),
+				)
+			);
+			?>
 		</p>
 		</div>
 
@@ -189,28 +230,52 @@ class TabTemplates extends SettingsTab {
 		<div class="card">
 		<h2 class="ffc-icon-award"><?php esc_html_e( 'Certificates', 'ffcertificate' ); ?></h2>
 		<p>
-			<a class="button" href="<?php echo esc_url( self::hub_url( CertTemplateCpt::KIND_CERTIFICATE ) ); ?>">
-				<?php esc_html_e( 'Manage certificate templates', 'ffcertificate' ); ?>
-			</a>
-			<?php if ( $can_manage ) : ?>
-				<a class="button" href="<?php echo esc_url( self::new_url( CertTemplateCpt::KIND_CERTIFICATE ) ); ?>">
-					<?php esc_html_e( '+ New certificate template', 'ffcertificate' ); ?>
-				</a>
-			<?php endif; ?>
+			<?php
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Manage certificate templates', 'ffcertificate' ),
+					'category' => 'neutral',
+					'icon'     => 'list',
+					'href'     => self::hub_url( CertTemplateCpt::KIND_CERTIFICATE ),
+				)
+			);
+			if ( $can_manage ) {
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'New certificate template', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'href'     => self::new_url( CertTemplateCpt::KIND_CERTIFICATE ),
+					)
+				);
+			}
+			?>
 		</p>
 		</div>
 
 		<div class="card">
 		<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Appointment receipts', 'ffcertificate' ); ?></h2>
 		<p>
-			<a class="button" href="<?php echo esc_url( self::hub_url( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ) ); ?>">
-				<?php esc_html_e( 'Manage receipt templates', 'ffcertificate' ); ?>
-			</a>
-			<?php if ( $can_manage ) : ?>
-				<a class="button" href="<?php echo esc_url( self::new_url( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ) ); ?>">
-					<?php esc_html_e( '+ New receipt template', 'ffcertificate' ); ?>
-				</a>
-			<?php endif; ?>
+			<?php
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Manage receipt templates', 'ffcertificate' ),
+					'category' => 'neutral',
+					'icon'     => 'list',
+					'href'     => self::hub_url( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ),
+				)
+			);
+			if ( $can_manage ) {
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'New receipt template', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'href'     => self::new_url( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ),
+					)
+				);
+			}
+			?>
 			<br>
 			<span class="description">
 				<?php esc_html_e( 'Which receipt template each scheduling mode uses is chosen in Scheduling → Settings → Receipt.', 'ffcertificate' ); ?>
@@ -221,14 +286,26 @@ class TabTemplates extends SettingsTab {
 		<div class="card">
 		<h2 class="ffc-icon-user-check"><?php esc_html_e( 'Records (reregistration)', 'ffcertificate' ); ?></h2>
 		<p>
-			<a class="button" href="<?php echo esc_url( self::hub_url( CertTemplateCpt::KIND_RECORD ) ); ?>">
-				<?php esc_html_e( 'Manage record templates', 'ffcertificate' ); ?>
-			</a>
-			<?php if ( $can_manage ) : ?>
-				<a class="button" href="<?php echo esc_url( self::new_url( CertTemplateCpt::KIND_RECORD ) ); ?>">
-					<?php esc_html_e( '+ New record template', 'ffcertificate' ); ?>
-				</a>
-			<?php endif; ?>
+			<?php
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Manage record templates', 'ffcertificate' ),
+					'category' => 'neutral',
+					'icon'     => 'list',
+					'href'     => self::hub_url( CertTemplateCpt::KIND_RECORD ),
+				)
+			);
+			if ( $can_manage ) {
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'New record template', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'href'     => self::new_url( CertTemplateCpt::KIND_RECORD ),
+					)
+				);
+			}
+			?>
 			<br>
 			<span class="description">
 				<?php esc_html_e( 'Which record template the reregistration PDF uses is chosen in Settings → Reregistration.', 'ffcertificate' ); ?>

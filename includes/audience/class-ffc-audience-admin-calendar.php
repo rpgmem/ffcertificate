@@ -751,7 +751,7 @@ class AudienceAdminCalendar {
 		<div class="ffc-aud-editor__side">
 			<?php if ( $can_manage ) : ?>
 			<div class="card">
-				<h2 class="ffc-icon-checkmark"><?php esc_html_e( 'Save', 'ffcertificate' ); ?></h2>
+				<h2 class="ffc-icon-save"><?php esc_html_e( 'Save', 'ffcertificate' ); ?></h2>
 				<?php // Outside the form it posts, so it names the form. ?>
 				<?php submit_button( $id > 0 ? __( 'Update Calendar', 'ffcertificate' ) : __( 'Create Calendar', 'ffcertificate' ), 'primary', 'submit', true, array( 'form' => 'ffc-schedule-form' ) ); ?>
 			</div>

@@ -392,7 +392,7 @@ class AdminSubmissionEditPage {
 	 * Side panel: save and cancel.
 	 */
 	private function render_actions_card(): void {
-		self::card_open( __( 'Save', 'ffcertificate' ), 'checkmark' );
+		self::card_open( __( 'Save', 'ffcertificate' ), 'save' );
 		?>
 		<p class="ffc-edit-actions">
 			<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Changes', 'ffcertificate' ); ?></button>

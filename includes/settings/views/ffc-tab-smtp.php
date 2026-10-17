@@ -236,7 +236,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 			</div>
 		</div>
 		
-		<?php submit_button(); ?>
+		<?php \FreeFormCertificate\Admin\AdminUI::render_save_button(); ?>
 	</form>
 </div>
 

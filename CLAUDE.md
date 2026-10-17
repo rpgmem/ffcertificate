@@ -683,7 +683,7 @@ Every public form is guarded by the same block: a honeypot (provider-independent
 
 The plugin is a **guest in someone else's document** — the site's theme owns `<html>` on the frontend, WordPress owns it in wp-admin — and almost everything below follows from that one fact. It is its own section because "Architecture and patterns" is about how the PHP is composed and this is about what reaches the browser; a reader answering a question about repositories, email or CSV does not need the stylesheets, and a reader answering one about a selector should not have to find it inside a section named for something else.
 
-The subsections follow the order a question usually arrives in: **how many sheets there are and why**, **how a class is named**, **how a rule is scoped to a screen**, **how an icon is drawn**, **how a choice is drawn**, **when CSS may stay inline**, and **how colour works**. Each records the measurement behind a standing decision, so a proposal framed as "adopt BEM" or "collapse the sheets into a bundle" is answered from what was measured rather than from scratch.
+The subsections follow the order a question usually arrives in: **how many sheets there are and why**, **how a class is named**, **how a rule is scoped to a screen**, **how an icon is drawn**, **how a choice is drawn**, **how an action is drawn**, **when CSS may stay inline**, and **how colour works**. Each records the measurement behind a standing decision, so a proposal framed as "adopt BEM" or "collapse the sheets into a bundle" is answered from what was measured rather than from scratch.
 
 ### Stylesheet architecture (one sheet per screen — deliberately not a bundle)
 
@@ -828,6 +828,25 @@ A setting that picks among a few values is drawn by a control from the `ffc-cont
 - **Parameters for what varies, custom properties for fine tuning.** Palette, size, shape, width and which labels show are parameters that become classes; anything finer is a `--ffc-control-*` property set by a module class or inline. A palette or tone colours through tokens only and stays inside `:where()`, so a state such as disabled always wins over the colour of the chosen value.
 - **One state language.** Hover and pressed draw a halo (`--ffc-control-halo`), keyboard focus the 2px primary ring, and disabled takes the colour away instead of fading — `opacity` would multiply down the contrast `DarkModeCssTest` measures.
 - **The name is the family's, not the screen's or the count's** (the rule at the top of this file). The steps control began as a "three-position switch" and was renamed before it shipped because "three" stopped being true the day the limit became eleven.
+
+### Buttons (one family — #1874)
+
+An action is drawn by a `.ffc-btn` button whose category says what the action does, never how loud it should look. One family serves the admin and the public pages; the context comes from tokens, not from a second family.
+
+| Category | Use | Look |
+| --- | --- | --- |
+| `primary` | completes the screen's work — one per screen or form | solid accent |
+| `neutral` | opens, picks or navigates | soft grey ground |
+| `create` | adds something | soft success ground, success text |
+| `caution` | undoes or recomputes without losing data | soft warning ground, warning text |
+| `danger` | deletes or empties | soft danger ground, danger text |
+
+- **One markup, two helpers.** `Core\Button::html()` / `::render()` in PHP — `AdminUI::button()`, `render_button()` and `render_save_button()` (the settings forms' `p.submit`) are its admin entry points — and `FFC.button()` / `FFC.buttonHtml()` in `ffc-core.js`, which print the same markup. An unknown category draws `neutral` and calls `_doing_it_wrong()`; an unknown icon is dropped the same way. Both refuse an `on*` attribute, so a button that needs an inline `confirm()` is written out with the family's classes by hand, with the reason beside it.
+- **Every button carries a `Core\Icons` class** on the element itself, drawn as the usual `::before` mask, so a script that rewrites the label keeps the icon. A meaning the registry lacks is proposed to the maintainer before a drawing is added ("Icons" above); until then the button takes the closest existing icon.
+- **The tonal ground is the token pair the notices already use** (`--ffc-*-bg` with `--ffc-*-text`), with the tone's `-border` token on hover, so `DarkModeCssTest` measures each category in both themes. A link button restates its colour in `:hover`, `:focus` and `:active`, because core's `a:hover` outranks a single class.
+- **Shape by context.** The default is the public one, 40px tall for touch, reading `--ffc-radius-sm` and inheriting the font, which is what `Core\PublicDesign` sets on `.ffc-shortcode` in the light theme. `body.wp-admin .ffc-btn` changes only the shape: 34px, the 8px corner, the panel's text size.
+- **Disabled takes the colour away** (`:disabled`, `.disabled` or `aria-disabled` on a link), never fades: the theme rule below on `opacity`. Focus is the 2px `--ffc-border-focus` ring. In forced colors every category takes a `ButtonText` contour and a disabled one `GrayText`.
+- **`.ffc-btn-secondary` and `.ffc-btn-success` are the names the public screens used before the family had categories**, styled as `neutral` and `create` until that markup moves to the new names.
 
 ### Inline CSS (one rule, a short list of exceptions — #1837)
 

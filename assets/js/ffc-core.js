@@ -619,6 +619,93 @@
         },
 
         /**
+         * The button categories (#1874), the same list as `Core\Button::CATEGORIES`.
+         */
+        buttonCategories: ['primary', 'neutral', 'create', 'caution', 'danger'],
+
+        /**
+         * Build a button of the `.ffc-btn` family (#1874): the JS twin of
+         * `Core\Button::html()`, printing the same markup, so a button a
+         * script builds looks like one the server printed.
+         *
+         * The label lands through `textContent`; the icon is a `.ffc-icon-*`
+         * class on the button, so rewriting the label later keeps it.
+         *
+         * @param {Object} opts
+         * @param {string} opts.label  Visible text; required.
+         * @param {string} [opts.category]  primary | neutral | create | caution | danger; anything else is neutral.
+         * @param {string} [opts.icon]  A `.ffc-icon-*` class name without the prefix (`plus`).
+         * @param {string} [opts.href]  Makes the button a link.
+         * @param {string} [opts.type]  button (default) | submit | reset.
+         * @param {string} [opts.id]  Element id.
+         * @param {string} [opts.className]  Extra classes: the hooks scripts read.
+         * @param {boolean} [opts.disabled]  Disabled (`aria-disabled` + `.disabled` on a link).
+         * @param {Object} [opts.attrs]  Further attributes; `true` prints a bare one, `false`/`null` drops it.
+         * @return {HTMLElement|null}  Null without a label.
+         */
+        button: function(opts) {
+            var o = opts || {};
+            if (o.label === null || typeof o.label === 'undefined' || o.label === '') {
+                return null;
+            }
+            var category = this.buttonCategories.indexOf(o.category) !== -1 ? o.category : 'neutral';
+            var isLink = typeof o.href === 'string';
+            var el = document.createElement(isLink ? 'a' : 'button');
+            var classes = ['ffc-btn', 'ffc-btn-' + category];
+            if (typeof o.icon === 'string' && /^[a-z0-9-]+$/.test(o.icon)) {
+                classes.push('ffc-icon-' + o.icon);
+            }
+            String(o.className || '').split(/\s+/).forEach(function(name) {
+                if (name && classes.indexOf(name) === -1) {
+                    classes.push(name);
+                }
+            });
+            if (isLink) {
+                el.setAttribute('href', o.href);
+                if (o.disabled) {
+                    classes.push('disabled');
+                    el.setAttribute('aria-disabled', 'true');
+                }
+            } else {
+                el.type = ['button', 'submit', 'reset'].indexOf(o.type) !== -1 ? o.type : 'button';
+                if (o.disabled) {
+                    el.disabled = true;
+                }
+            }
+            el.className = classes.join(' ');
+            if (o.id) {
+                el.id = String(o.id);
+            }
+            var attrs = o.attrs || {};
+            Object.keys(attrs).forEach(function(key) {
+                var value = attrs[key];
+                var name = String(key).toLowerCase();
+                if (!/^[a-z][a-z0-9_:.-]*$/.test(name) || name.indexOf('on') === 0 || el.hasAttribute(name)) {
+                    return;
+                }
+                if (value === true) {
+                    el.setAttribute(name, '');
+                } else if (value !== false && value !== null && typeof value !== 'undefined') {
+                    el.setAttribute(name, String(value));
+                }
+            });
+            el.textContent = String(o.label);
+            return el;
+        },
+
+        /**
+         * {@link FFC.button} as an HTML string, for code that builds markup
+         * by concatenation. Every value is escaped by the DOM that built it.
+         *
+         * @param {Object} opts  See {@link FFC.button}.
+         * @return {string}
+         */
+        buttonHtml: function(opts) {
+            var el = this.button(opts);
+            return el ? el.outerHTML : '';
+        },
+
+        /**
          * Build a system notice (#1842): the JS twin of `Core\Notice::render()`,
          * printing the same markup, so no script hand-writes it.
          *

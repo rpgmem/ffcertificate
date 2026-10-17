@@ -79,7 +79,6 @@ final class OpacityContrastTest extends TestCase {
 		'ffc-common.css'                  => array(
 			'.ffc-loading'                                            => 'loading state, transient',
 			'.ffc-form button[type="submit"]:disabled'                => 'inactive component, exempt under SC 1.4.3',
-			'.ffc-btn:disabled'                                       => 'inactive component, exempt under SC 1.4.3',
 			'.ffc-control-toggle input[type="checkbox"]'                      => 'opacity: 0 — the real input is invisible under the drawn track',
 			'.ffc-control-steps-stop input'                           => 'opacity: 0 — the real radios are invisible under the drawn stops',
 			'#ffc-activity-log-table.ffc-loading'                     => 'loading state, transient',

@@ -205,11 +205,22 @@ class CertTemplateReceiptSettings {
 						</option>
 					<?php endforeach; ?>
 				</select>
-				<?php if ( $can_edit_selected ) : ?>
-					<a href="<?php echo esc_url( self::hub_edit_url( $selected ) ); ?>" target="_blank" rel="noopener">
-						<?php esc_html_e( 'Edit this template →', 'ffcertificate' ); ?>
-					</a>
-				<?php endif; ?>
+				<?php
+				if ( $can_edit_selected ) {
+					AdminUI::render_button(
+						array(
+							'label'    => __( 'Edit this template', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'edit',
+							'href'     => self::hub_edit_url( $selected ),
+							'attrs'    => array(
+								'target' => '_blank',
+								'rel'    => 'noopener',
+							),
+						)
+					);
+				}
+				?>
 			</p>
 		</div>
 		<?php
