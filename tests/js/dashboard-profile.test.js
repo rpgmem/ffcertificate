@@ -151,6 +151,8 @@ describe('FFCDashboard.panels.profile.render', () => {
 		expect(toggle).not.toBeNull();
 		const label = toggle.closest('label');
 		expect(label.classList.contains('ffc-control-toggle')).toBe(true);
+		// The on/off mark is every toggle's default, the JS-built one included (#1873).
+		expect(label.classList.contains('ffc-control-toggle-mark')).toBe(true);
 		expect(label.querySelector('.ffc-control-toggle-track').getAttribute('aria-hidden')).toBe('true');
 		expect(label.querySelector('.ffc-control-toggle-label').textContent).not.toBe('');
 		expect(document.querySelector('#ffc-tabpanel-profile .ffc-toggle-switch')).toBeNull();

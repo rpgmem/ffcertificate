@@ -501,7 +501,7 @@ class AudienceAjaxControllerTest extends TestCase {
 		$html = $this->responses[0]['data']['html'];
 		// A row added by AJAX draws the same toggles as the initial render
 		// (#1771): three AdminUI toggles, can_book on and the other two off.
-		$this->assertSame( 3, substr_count( $html, 'class="ffc-control-toggle"' ) );
+		$this->assertSame( 3, substr_count( $html, 'class="ffc-control-toggle ffc-control-toggle-mark"' ) );
 		$this->assertSame( 3, substr_count( $html, 'ffc-control-toggle-track' ) );
 		$this->assertStringContainsString( 'name="ffc_perm_7_can_book" value="1" checked class="ffc-perm-toggle" data-perm="can_book"', $html );
 		$this->assertStringContainsString( 'name="ffc_perm_7_can_cancel_others" value="1" class="ffc-perm-toggle" data-perm="can_cancel_others"', $html );
