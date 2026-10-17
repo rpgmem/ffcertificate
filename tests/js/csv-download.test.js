@@ -321,8 +321,17 @@ describe('csv-download — download flow', () => {
 			done: responses.shift() || { success: true, data: { processed: 1, total: 1, done: true } },
 		}));
 
-		window.$('.ffc-btn-download-csv').trigger('click');
-		await flush();
+		// Fake timers: the done batch reaches onExportComplete, whose nested
+		// 2000ms cleanup otherwise outlives the file and fires against a
+		// torn-down jsdom (`window is not defined`), the same race the
+		// start → batch → done test above records.
+		vi.useFakeTimers();
+		try {
+			window.$('.ffc-btn-download-csv').trigger('click');
+			await vi.advanceTimersByTimeAsync(2200);
+		} finally {
+			vi.useRealTimers();
+		}
 
 		// Locate the ffc_export_start request (its payload is the serialized
 		// string with &action=ffc_export_start appended by FFC.request).

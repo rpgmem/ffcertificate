@@ -50,5 +50,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php endforeach; ?>
 				</tbody>
 			</table>
-			<button type="button" class="button ffc-wh-add">+ <?php esc_html_e( 'Add Day', 'ffcertificate' ); ?></button>
+			<?php
+			\FreeFormCertificate\Core\Button::render(
+				array(
+					'label'    => __( 'Add Day', 'ffcertificate' ),
+					'category' => 'create',
+					'icon'     => 'plus',
+					'class'    => 'ffc-wh-add',
+				)
+			);
+			?>
 		</div>

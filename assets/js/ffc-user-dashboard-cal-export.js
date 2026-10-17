@@ -29,7 +29,6 @@
         google: icon('ffc-icon-cal-google'),
         outlook: icon('ffc-icon-cal-outlook'),
         ics: icon('ffc-icon-download'),
-        calendar: icon('ffc-icon-calendar'),
         caret: icon('ffc-icon-chevron-down')
     };
 
@@ -122,8 +121,9 @@
         var eventJson = JSON.stringify(event).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
 
         var html = '<div class="ffc-cal-export-wrap">';
-        html += '<button type="button" class="button button-primary ffc-cal-export-btn">';
-        html += calIcons.calendar;
+        // A family button written by hand (#1874): the caret after the label
+        // is a child, which FFC.button() cannot hold; the icon is its class.
+        html += '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-calendar ffc-cal-export-btn">';
         html += (ffcDashboard.strings.exportToCalendar || 'Export to Calendar');
         html += calIcons.caret + '</button>';
         html += '<div class="ffc-cal-export-dropdown">';

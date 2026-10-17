@@ -72,9 +72,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</div>
 
 				<div class="ffc-rereg-actions">
-					<button type="button" class="button ffc-rereg-draft-btn"><?php esc_html_e( 'Save Draft', 'ffcertificate' ); ?></button>
-					<button type="submit" class="button button-primary ffc-rereg-submit-btn"><?php esc_html_e( 'Submit', 'ffcertificate' ); ?></button>
-					<button type="button" class="button ffc-rereg-cancel-btn"><?php esc_html_e( 'Cancel', 'ffcertificate' ); ?></button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'    => __( 'Save Draft', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'save',
+							'class'    => 'ffc-rereg-draft-btn',
+						)
+					);
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'    => __( 'Submit', 'ffcertificate' ),
+							'category' => 'primary',
+							'icon'     => 'send',
+							'type'     => 'submit',
+							'class'    => 'ffc-rereg-submit-btn',
+						)
+					);
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'    => __( 'Cancel', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'cross',
+							'class'    => 'ffc-rereg-cancel-btn',
+						)
+					);
+					?>
 					<span class="ffc-rereg-status ffc-status" role="status" aria-live="polite" hidden></span>
 				</div>
 			</form>

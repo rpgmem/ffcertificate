@@ -142,7 +142,8 @@ describe('FFCDashboard.helpers section pager', () => {
 
 		const current = probe.querySelector('[aria-current="page"]');
 		expect(current.textContent).toBe('1');
-		expect(current.classList.contains('button-primary')).toBe(true);
+		// A family button (#1874); the sheet paints the current key by aria-current.
+		expect(current.className).toBe('ffc-btn ffc-btn-neutral ffc-section-page-btn');
 		expect(current.getAttribute('aria-label')).toBe('Page 1');
 		probe.remove();
 	});

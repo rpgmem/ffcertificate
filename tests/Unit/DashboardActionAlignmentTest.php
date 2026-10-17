@@ -62,26 +62,24 @@ class DashboardActionAlignmentTest extends TestCase {
 		'.ffc-user-dashboard .ffc-btn-pdf'     => 'Download PDF / Download Record -- `inline-flex` with an `::before` icon (certificates and reregistrations).',
 		'.ffc-user-dashboard .ffc-btn-receipt' => 'View Receipt -- `inline-flex` with an `::before` icon (appointments).',
 		'.ffc-user-dashboard .ffc-btn-edit'    => 'Edit -- `inline-flex` with an `::before` icon (reregistrations).',
-		'.ffc-user-dashboard .ffc-cancel-appointment' => 'Cancel -- `inline-flex` with no icon, whose baseline comes from the text (an `inline-block` until the button family of #1827).',
+		'.ffc-user-dashboard .ffc-cancel-appointment' => 'Cancel -- `inline-flex` with an `::before` icon since #1874 (an `inline-block` until the dashboard\'s button family of #1827).',
 		'.ffc-cal-export-wrap' => 'Export Calendar -- an `inline-block` wrapping the button; IT is what joins the cell\'s line.',
 	);
 
 	/**
-	 * The exporter's inner button declares no alignment.
+	 * The exporter's inner button, which must sit on its own baseline.
 	 *
-	 * See item 2 of the class docblock: there the declaration was not inert, it
-	 * was the cause of 3.55px of misalignment.
+	 * See item 2 of the class docblock: a `vertical-align: middle` there was
+	 * not inert, it was the cause of 3.55px of misalignment.
 	 */
-	private const MUST_NOT_DECLARE = '.ffc-user-dashboard .ffc-cal-export-btn';
+	private const EXPORT_BUTTON = '.ffc-user-dashboard .ffc-cal-export-btn';
 
 	/**
-	 * The button family's base rule, which the exporter's inner button also
-	 * matches since it became a `.button` (#1827).
-	 *
-	 * A `vertical-align` there would reach the inner button through the
-	 * family, which is the same defect wearing a different selector.
+	 * The button family's base rule, which every dashboard button matches
+	 * since #1874, the exporter's inner button included.
 	 */
-	private const FAMILY_BASE = '.ffc-user-dashboard .button';
+	private const FAMILY_SHEET = 'assets/css/ffc-common.css';
+	private const FAMILY_BASE  = '.ffc-btn';
 
 	private function sheet(): string {
 		$path = dirname( __DIR__, 2 ) . '/' . self::SHEET;
@@ -136,22 +134,31 @@ class DashboardActionAlignmentTest extends TestCase {
 		$bodies = $this->bodies_by_selector( $this->sheet() );
 
 		$this->assertArrayHasKey(
-			self::MUST_NOT_DECLARE,
+			self::EXPORT_BUTTON,
 			$bodies,
-			'`' . self::MUST_NOT_DECLARE . '` vanished from the sheet; if the exporter was rewritten, revise this register.'
+			'`' . self::EXPORT_BUTTON . '` vanished from the sheet; if the exporter was rewritten, revise this register.'
 		);
 
-		$this->assertDoesNotMatchRegularExpression(
-			'/vertical-align\s*:/',
-			$bodies[ self::MUST_NOT_DECLARE ],
-			'`' . self::MUST_NOT_DECLARE . '` declares `vertical-align` again. What joins the cell\'s line is `.ffc-cal-export-wrap`; aligning the inner button shifts the wrapper\'s baseline (#1215).'
-		);
+		// The family's base rule declares `vertical-align: middle`, and it
+		// reaches the inner button: the button has to put it back to the
+		// baseline it sat on when #1215 measured the cell aligned.
+		$family = file_get_contents( dirname( __DIR__, 2 ) . '/' . self::FAMILY_SHEET );
+		$this->assertIsString( $family, self::FAMILY_SHEET . ' could not be read.' );
+		$family_bodies = $this->bodies_by_selector( $family );
+		$this->assertArrayHasKey( self::FAMILY_BASE, $family_bodies, 'The button family\'s base rule vanished; revise this register.' );
 
-		$this->assertArrayHasKey( self::FAMILY_BASE, $bodies, 'The button family\'s base rule vanished; revise this register.' );
+		if ( 1 === preg_match( '/vertical-align\s*:(?!\s*baseline)/', $family_bodies[ self::FAMILY_BASE ] ) ) {
+			$this->assertMatchesRegularExpression(
+				'/vertical-align\s*:\s*baseline\s*;/',
+				$bodies[ self::EXPORT_BUTTON ],
+				'`' . self::FAMILY_BASE . '` aligns every button, and `' . self::EXPORT_BUTTON . '` does not put its own back to the baseline. What joins the cell\'s line is `.ffc-cal-export-wrap`; aligning the inner button shifts the wrapper\'s baseline (#1215).'
+			);
+		}
+
 		$this->assertDoesNotMatchRegularExpression(
-			'/vertical-align\s*:/',
-			$bodies[ self::FAMILY_BASE ],
-			'`' . self::FAMILY_BASE . '` declares `vertical-align`, and the exporter\'s inner button is a `.button`: the declaration reaches it through the family (#1215, #1827).'
+			'/vertical-align\s*:(?!\s*baseline)/',
+			$bodies[ self::EXPORT_BUTTON ],
+			'`' . self::EXPORT_BUTTON . '` declares an alignment other than the baseline. What joins the cell\'s line is `.ffc-cal-export-wrap`; aligning the inner button shifts the wrapper\'s baseline (#1215).'
 		);
 	}
 }

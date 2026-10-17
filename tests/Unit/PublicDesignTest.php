@@ -245,6 +245,66 @@ class PublicDesignTest extends TestCase {
 		$this->assertStringContainsString( '--ffc-info-text:#4fc3f7;', $design->css(), 'The operator\'s colour is used as picked.' );
 	}
 
+	public function test_the_default_error_colour_keeps_the_sheets_danger_pair(): void {
+		$css = ( new PublicDesign( array( 'enabled' => '1' ) ) )->css();
+		$this->assertStringContainsString( '--ffc-danger:#d63638;', $css );
+		$this->assertStringNotContainsString( '--ffc-danger-', $css, 'At the default the hand-tuned danger pair stays, with its darker text (#1874).' );
+	}
+
+	public function test_the_derived_danger_ground_is_the_closest_shade_to_the_sheets_pair(): void {
+		$common = (string) file_get_contents( __DIR__ . '/../../assets/css/ffc-common.css' );
+		$light  = substr( $common, 0, (int) strpos( $common, ':root.ffc-dark-mode' ) );
+		$this->assertSame( 1, preg_match( '/--ffc-danger-bg:\s*(#[0-9a-f]{6});/i', $light, $m ) );
+		$sheet = array_map( 'hexdec', str_split( substr( strtolower( $m[1] ), 1 ), 2 ) );
+
+		$distance = static function ( string $hex ) use ( $sheet ): float {
+			$rgb = array_map( 'hexdec', str_split( substr( $hex, 1 ), 2 ) );
+			return sqrt( ( $rgb[0] - $sheet[0] ) ** 2 + ( $rgb[1] - $sheet[1] ) ** 2 + ( $rgb[2] - $sheet[2] ) ** 2 );
+		};
+
+		$design = new PublicDesign( array( 'enabled' => '1' ) );
+		$this->assertSame( '#fcf1f1', $design->error_background() );
+
+		// No other amount in 0.80..0.99 lands closer, which is how 0.93 was chosen.
+		$shade = new \ReflectionMethod( PublicDesign::class, 'shade' );
+		$shade->setAccessible( true );
+		$best = $distance( $design->error_background() );
+		for ( $amount = 0.80; $amount <= 0.991; $amount += 0.01 ) {
+			$this->assertGreaterThanOrEqual( $best, $distance( (string) $shade->invoke( null, PublicDesign::DEFAULTS['error'], '#ffffff', $amount ) ) );
+		}
+	}
+
+	public function test_a_picked_error_colour_reaches_the_danger_buttons_in_the_light_theme_only(): void {
+		$design = new PublicDesign(
+			array(
+				'enabled' => '1',
+				'error'   => '#9C27B0',
+			)
+		);
+		$this->assertSame( '#9c27b0', $design->error );
+
+		$css   = $design->css();
+		$light = substr( $css, (int) strpos( $css, ':root:not(.ffc-dark-mode) .ffc-shortcode{' ) );
+		$this->assertStringContainsString(
+			'--ffc-danger-border:#9c27b0;--ffc-danger-text:#9c27b0;--ffc-danger-bg:' . $design->error_background() . ';--ffc-danger-light:' . $design->error_background() . ';',
+			$light,
+			'The tonal danger button reads --ffc-danger-bg, --ffc-danger-text and --ffc-danger-border (#1874).'
+		);
+		$this->assertStringNotContainsString( '--ffc-danger', substr( $css, 0, (int) strpos( $css, ':root:not(.ffc-dark-mode)' ) ), 'Nothing in the both-themes block.' );
+		$this->assertSame( array(), $design->weak_contrasts(), 'A dark error colour reads on its own ground.' );
+	}
+
+	public function test_a_light_error_colour_is_warned_about_on_its_ground_too(): void {
+		$weak = ( new PublicDesign(
+			array(
+				'enabled' => '1',
+				'error'   => '#ef5350',
+			)
+		) )->weak_contrasts();
+		$this->assertSame( array( 'errors on white', 'delete buttons and danger notices on their background' ), array_column( $weak, 'pair' ) );
+		$this->assertSame( array( 4.5, 4.5 ), array_column( $weak, 'min' ) );
+	}
+
 	public function test_the_defaults_raise_no_contrast_warning(): void {
 		$this->assertSame( array(), ( new PublicDesign( array( 'enabled' => '1' ) ) )->weak_contrasts() );
 	}

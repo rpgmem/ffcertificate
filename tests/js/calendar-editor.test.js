@@ -305,6 +305,9 @@ describe('appointment cleanup (.ffc-cleanup-btn click)', () => {
 		expect(part('confirm').disabled).toBe(false);
 		expect(document.activeElement).toBe(part('cancel'));
 		expect(part('confirm').textContent).toBe('Delete 29 appointment(s)');
+		// A deletion is the family's danger button with the trash icon (#1874).
+		expect(part('confirm').className).toBe('ffc-btn ffc-btn-danger ffc-icon-delete');
+		expect(part('cancel').className).toBe('ffc-btn ffc-btn-neutral ffc-icon-cross');
 
 		part('confirm').click();
 		await flush();
@@ -349,6 +352,9 @@ describe('appointment cleanup (.ffc-cleanup-btn click)', () => {
 		expect(dialog().classList.contains('ffc-cleanup-dialog-caution')).toBe(true);
 		expect(part('cancel').textContent).toBe('Go back');
 		expect(part('confirm').textContent).toBe('Cancel 12 and notify');
+		// Cancelling keeps the records: caution, not danger (#1874).
+		expect(part('confirm').className).toBe('ffc-btn ffc-btn-caution ffc-icon-cross');
+		expect(part('cancel').className).toBe('ffc-btn ffc-btn-neutral ffc-icon-chevron-left');
 		expect(part('confirm').disabled).toBe(true);
 
 		part('typed').focus();

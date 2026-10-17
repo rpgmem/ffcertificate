@@ -57,8 +57,8 @@
                         '</div>' +
                     '</div>' +
                     '<div class="ffc-modal-footer">' +
-                        '<button type="button" class="ffc-btn ffc-btn-secondary ffc-cancel-keep">' + helpers.esc(s.cancelKeepBtn) + '</button>' +
-                        '<button type="button" class="ffc-btn ffc-btn-danger ffc-cancel-confirm" data-id="' + helpers.escAttr(String(apt.id)) + '">' + helpers.esc(s.cancelConfirmBtn) + '</button>' +
+                        window.FFC.buttonHtml({ label: s.cancelKeepBtn, category: 'neutral', icon: 'calendar-check', className: 'ffc-cancel-keep' }) +
+                        window.FFC.buttonHtml({ label: s.cancelConfirmBtn, category: 'danger', icon: 'cross', className: 'ffc-cancel-confirm', attrs: { 'data-id': String(apt.id) } }) +
                     '</div>' +
                 '</div>' +
             '</div>';
@@ -162,11 +162,24 @@
         html += '<td>';
 
         if (apt.receipt_url) {
-            html += '<a href="' + helpers.escAttr(apt.receipt_url) + '" class="button button-primary ffc-btn-receipt ffc-icon-file" target="_blank" rel="noopener noreferrer">' + (ffcDashboard.strings.viewReceipt || 'View Receipt') + '</a>';
+            html += window.FFC.buttonHtml({
+                label: ffcDashboard.strings.viewReceipt || 'View Receipt',
+                category: 'neutral',
+                icon: 'file',
+                href: apt.receipt_url,
+                className: 'ffc-btn-receipt',
+                attrs: { target: '_blank', rel: 'noopener noreferrer' }
+            });
         }
 
         if (apt.can_cancel) {
-            html += '<button class="button ffc-cancel-appointment" data-id="' + apt.id + '">' + ffcDashboard.strings.cancelAppointment + '</button>';
+            html += window.FFC.buttonHtml({
+                label: ffcDashboard.strings.cancelAppointment,
+                category: 'danger',
+                icon: 'cross',
+                className: 'ffc-cancel-appointment',
+                attrs: { 'data-id': apt.id }
+            });
         }
 
         if (section === 'upcoming' && apt.status === 'confirmed') {

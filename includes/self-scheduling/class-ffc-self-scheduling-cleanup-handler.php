@@ -20,6 +20,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\SelfScheduling;
 
 use FreeFormCertificate\Core\ActivityLog;
+use FreeFormCertificate\Core\Button;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Repositories\AppointmentRepository;
@@ -421,67 +422,88 @@ class SelfSchedulingCleanupHandler {
 		$notify      = self::sends_cancellation_email( $calendar );
 		?>
 		<div class="ffc-cleanup-actions">
-			<?php if ( $count_cancelled > 0 ) : ?>
-				<button type="button"
-						class="button ffc-cleanup-btn ffc-cleanup-btn-danger"
-						data-action="cancelled"
-						data-count="<?php echo esc_attr( (string) $count_cancelled ); ?>"
-						data-calendar-id="<?php echo esc_attr( $calendar_id ); ?>">
-					<span class="ffc-icon-delete" aria-hidden="true"></span>
-					<?php
-					/* translators: %d: number of cancelled appointments */
-					printf( esc_html__( 'Delete cancelled (%d)', 'ffcertificate' ), intval( $count_cancelled ) );
-					?>
-				</button>
-			<?php endif; ?>
+			<?php
+			// `ffc-cleanup-btn` is the hook `initCleanup()` listens on; the
+			// look is the button family's (#1874).
+			if ( $count_cancelled > 0 ) {
+				Button::render(
+					array(
+						/* translators: %d: number of cancelled appointments */
+						'label'    => sprintf( __( 'Delete cancelled (%d)', 'ffcertificate' ), $count_cancelled ),
+						'category' => 'danger',
+						'icon'     => 'delete',
+						'class'    => 'ffc-cleanup-btn',
+						'attrs'    => array(
+							'data-action'      => 'cancelled',
+							'data-count'       => (string) $count_cancelled,
+							'data-calendar-id' => $calendar_id,
+						),
+					)
+				);
+			}
 
-			<?php if ( $count_old > 0 ) : ?>
-				<button type="button"
-						class="button ffc-cleanup-btn ffc-cleanup-btn-danger"
-						data-action="old"
-						data-count="<?php echo esc_attr( (string) $count_old ); ?>"
-						data-calendar-id="<?php echo esc_attr( $calendar_id ); ?>">
-					<span class="ffc-icon-delete" aria-hidden="true"></span>
-					<?php
-					/* translators: %d: number of past appointments */
-					printf( esc_html__( 'Delete past (%d)', 'ffcertificate' ), intval( $count_old ) );
-					?>
-				</button>
-			<?php endif; ?>
+			if ( $count_old > 0 ) {
+				Button::render(
+					array(
+						/* translators: %d: number of past appointments */
+						'label'    => sprintf( __( 'Delete past (%d)', 'ffcertificate' ), $count_old ),
+						'category' => 'danger',
+						'icon'     => 'delete',
+						'class'    => 'ffc-cleanup-btn',
+						'attrs'    => array(
+							'data-action'      => 'old',
+							'data-count'       => (string) $count_old,
+							'data-calendar-id' => $calendar_id,
+						),
+					)
+				);
+			}
 
-			<?php if ( $count_active > 0 ) : ?>
-				<button type="button"
-						class="button ffc-cleanup-btn ffc-cleanup-btn-caution"
-						data-action="future"
-						data-count="<?php echo esc_attr( (string) $count_active ); ?>"
-						data-notify="<?php echo $notify ? '1' : '0'; ?>"
-						data-calendar-id="<?php echo esc_attr( $calendar_id ); ?>">
-					<span class="ffc-icon-cross" aria-hidden="true"></span>
-					<?php
-					if ( $notify ) {
-						/* translators: %d: number of future appointments still booked */
-						printf( esc_html__( 'Cancel future and notify (%d)', 'ffcertificate' ), intval( $count_active ) );
-					} else {
-						/* translators: %d: number of future appointments still booked */
-						printf( esc_html__( 'Cancel future (%d)', 'ffcertificate' ), intval( $count_active ) );
-					}
-					?>
-				</button>
-			<?php endif; ?>
+			if ( $count_active > 0 ) {
+				if ( $notify ) {
+					/* translators: %d: number of future appointments still booked */
+					$future_label = sprintf( __( 'Cancel future and notify (%d)', 'ffcertificate' ), $count_active );
+				} else {
+					/* translators: %d: number of future appointments still booked */
+					$future_label = sprintf( __( 'Cancel future (%d)', 'ffcertificate' ), $count_active );
+				}
+				Button::render(
+					array(
+						'label'    => $future_label,
+						'category' => 'caution',
+						'icon'     => 'cross',
+						'class'    => 'ffc-cleanup-btn',
+						'attrs'    => array(
+							'data-action'      => 'future',
+							'data-count'       => (string) $count_active,
+							'data-notify'      => $notify ? '1' : '0',
+							'data-calendar-id' => $calendar_id,
+						),
+					)
+				);
+			}
+			?>
 
 			<hr class="ffc-cleanup-separator" />
 
-			<button type="button"
-					class="button ffc-cleanup-btn ffc-cleanup-btn-solid"
-					data-action="all"
-					data-count="<?php echo esc_attr( (string) $count_all ); ?>"
-					data-calendar-id="<?php echo esc_attr( $calendar_id ); ?>">
-				<span class="ffc-icon-delete" aria-hidden="true"></span>
-				<?php
-				/* translators: %d: total number of appointments */
-				printf( esc_html__( 'Delete all (%d)', 'ffcertificate' ), intval( $count_all ) );
-				?>
-			</button>
+			<?php
+			// "Delete all" is the same category as the other deletions: the
+			// separator above sets it apart, and the dialog asks for the count.
+			Button::render(
+				array(
+					/* translators: %d: total number of appointments */
+					'label'    => sprintf( __( 'Delete all (%d)', 'ffcertificate' ), $count_all ),
+					'category' => 'danger',
+					'icon'     => 'delete',
+					'class'    => 'ffc-cleanup-btn',
+					'attrs'    => array(
+						'data-action'      => 'all',
+						'data-count'       => (string) $count_all,
+						'data-calendar-id' => $calendar_id,
+					),
+				)
+			);
+			?>
 		</div>
 		<?php
 	}

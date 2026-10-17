@@ -381,20 +381,20 @@
 
             const footer = document.createElement('div');
             footer.className = 'ffc-modal-footer';
-            const cancel = document.createElement('button');
-            cancel.type = 'button';
-            cancel.className = 'ffc-btn ffc-btn-secondary';
-            cancel.setAttribute('data-ffc-cleanup', 'cancel');
-            cancel.textContent = isFuture ? (all.goBack || 'Go back') : (all.cancel || 'Cancel');
-            const confirmBtn = document.createElement('button');
-            confirmBtn.type = 'button';
-            confirmBtn.className = 'ffc-btn ffc-btn-danger';
-            confirmBtn.setAttribute('data-ffc-cleanup', 'confirm');
-            const confirmMark = document.createElement('span');
-            confirmMark.className = isFuture ? 'ffc-icon-cross' : 'ffc-icon-delete';
-            confirmMark.setAttribute('aria-hidden', 'true');
-            confirmBtn.appendChild(confirmMark);
-            confirmBtn.appendChild(document.createTextNode(format(silent ? words.confirmSilent : words.confirm, 'Confirm (%d)')));
+            // The confirm button takes the category of the button that opened
+            // the dialog: cancelling future bookings keeps the records.
+            const cancel = FFC.button({
+                label: isFuture ? (all.goBack || 'Go back') : (all.cancel || 'Cancel'),
+                category: 'neutral',
+                icon: isFuture ? 'chevron-left' : 'cross',
+                attrs: { 'data-ffc-cleanup': 'cancel' }
+            });
+            const confirmBtn = FFC.button({
+                label: format(silent ? words.confirmSilent : words.confirm, 'Confirm (%d)'),
+                category: isFuture ? 'caution' : 'danger',
+                icon: isFuture ? 'cross' : 'delete',
+                attrs: { 'data-ffc-cleanup': 'confirm' }
+            });
             footer.appendChild(cancel);
             footer.appendChild(confirmBtn);
 

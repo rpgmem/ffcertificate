@@ -20304,10 +20304,6 @@ msgstr "— Selecione um formulário —"
 msgid "— Select a notice —"
 msgstr "— Selecione um aviso —"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:655
-msgid "← Back"
-msgstr "← Voltar"
-
 #: includes/admin/class-ffc-settings.php:529
 msgid "Cache cleared successfully!"
 msgstr "Cache limpo com sucesso!"
@@ -26899,3 +26895,11 @@ msgstr "exportar, ou excluir um agendamento da lista."
 #: includes/settings/views/documentation/feature-self-scheduling.php:80
 msgid "use the Clean Up Appointments box on a calendar. Held by the Personal Calendars - Bookings - Administrator role and by FFC Administrator; a Bookings Manager deletes one appointment at a time."
 msgstr "usar a caixa Limpar Agendamentos de um calendário. Pertence à função Calendários Pessoais - Agendamentos - Administrador e ao FFC Administrador; um Gestor de Agendamentos exclui um agendamento por vez."
+
+#: includes/core/class-ffc-public-design.php
+msgid "delete buttons and danger notices on their background"
+msgstr "botões de exclusão e avisos de perigo sobre o próprio fundo"
+
+#: includes/settings/views/documentation/config-public-design.php
+msgid "The colour of errors also draws the delete buttons and the danger notices: their text and border take it, and their background is a light shade of it, made automatically, against which the warning measures it too. Left at its default, they keep the plugin's own red pair."
+msgstr "A cor dos erros também desenha os botões de exclusão e os avisos de perigo: o texto e a borda deles a usam, e o fundo é um tom claro dela, feito automaticamente, contra o qual o aviso de contraste também a mede. Deixada no padrão, eles mantêm o par vermelho do próprio plugin."

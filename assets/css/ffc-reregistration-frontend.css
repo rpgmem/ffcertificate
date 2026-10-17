@@ -199,7 +199,6 @@
 
 .ffc-wh-add {
     margin-top: var(--ffc-spacing-sm);
-    font-size: var(--ffc-font-size-sm);
 }
 
 /* ── Acknowledgement term ────────────────────── */
@@ -240,8 +239,8 @@
     flex-wrap: wrap;
 }
 
-/* The buttons are the dashboard's button family (`ffc-user-dashboard.css`,
-   #1827); only their place in the row is the form's. */
+/* The buttons are the `.ffc-btn` family (`ffc-common.css`, #1874); only
+   their place in the row is the form's. */
 .ffc-rereg-actions .ffc-rereg-cancel-btn {
     margin-left: auto;
 }

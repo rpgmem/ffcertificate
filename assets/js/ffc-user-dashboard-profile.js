@@ -51,8 +51,13 @@
         if (!field || !isMasked(profile, field) || !profile.can_reveal) {
             return '';
         }
-        return ' <button type="button" class="button ffc-profile-reveal-btn" data-field="' + escAttr(field) + '">' +
-            esc(ffcDashboard.strings.reveal || 'Reveal') + '</button>';
+        return ' ' + window.FFC.buttonHtml({
+            label: ffcDashboard.strings.reveal || 'Reveal',
+            category: 'neutral',
+            icon: 'eye',
+            className: 'ffc-profile-reveal-btn',
+            attrs: { 'data-field': field }
+        });
     }
 
     function revealField(field, $btn) {
@@ -138,8 +143,8 @@
         html += '<textarea id="ffc-edit-notes" rows="3" maxlength="1000" placeholder="' + (s.notesPlaceholder || 'Personal notes...') + '">' + esc(profile.notes) + '</textarea></div>';
 
         html += '<div class="ffc-profile-edit-actions">';
-        html += '<button type="button" class="button button-primary ffc-profile-save-btn">' + (s.save || 'Save') + '</button> ';
-        html += '<button type="button" class="button ffc-profile-cancel-btn">' + (s.cancel || 'Cancel') + '</button>';
+        html += window.FFC.buttonHtml({ label: s.save || 'Save', category: 'primary', icon: 'save', className: 'ffc-profile-save-btn' }) + ' ';
+        html += window.FFC.buttonHtml({ label: s.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-profile-cancel-btn' });
         html += '<span class="ffc-profile-save-status ffc-status" role="status" aria-live="polite" hidden></span>';
         html += '</div></div>';
 
@@ -396,10 +401,10 @@
             html += '</div>';
 
             html += '<div class="ffc-profile-actions">';
-            html += '<button type="button" class="button button-primary ffc-profile-edit-btn">' + (s.editProfile || 'Edit Profile') + '</button>';
-            html += '<button type="button" class="button ffc-password-toggle-btn">' + (s.changePassword || 'Change Password') + '</button>';
+            html += window.FFC.buttonHtml({ label: s.editProfile || 'Edit Profile', category: 'neutral', icon: 'edit', className: 'ffc-profile-edit-btn' });
+            html += window.FFC.buttonHtml({ label: s.changePassword || 'Change Password', category: 'neutral', icon: 'key', className: 'ffc-password-toggle-btn' });
             if (profile.audience_groups && profile.audience_groups.length > 0) {
-                html += '<button type="button" class="button ffc-leave-all-groups-btn">' + (s.leaveAllGroups || 'Leave all groups') + '</button>';
+                html += window.FFC.buttonHtml({ label: s.leaveAllGroups || 'Leave all groups', category: 'danger', icon: 'logout', className: 'ffc-leave-all-groups-btn' });
             }
             html += '</div>';
 
@@ -411,7 +416,7 @@
             html += '<input type="password" id="ffc-new-password" autocomplete="new-password" minlength="8" required /></div>';
             html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + req + '</label>';
             html += '<input type="password" id="ffc-confirm-password" autocomplete="new-password" required /></div>';
-            html += '<button type="button" class="button button-primary ffc-password-save-btn">' + (s.save || 'Save') + '</button>';
+            html += window.FFC.buttonHtml({ label: s.save || 'Save', category: 'primary', icon: 'save', className: 'ffc-password-save-btn' });
             html += '<span class="ffc-password-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
@@ -438,9 +443,9 @@
             html += '<div class="ffc-profile-section ffc-lgpd-section">';
             html += '<h3>' + (s.privacySection || 'Privacy & Data (LGPD)') + '</h3>';
             html += '<p class="ffc-lgpd-desc">' + (s.exportDataDesc || 'Request a copy of all your personal data stored in the system.') + '</p>';
-            html += '<button type="button" class="button ffc-lgpd-export-btn">' + (s.exportData || 'Export My Data') + '</button>';
+            html += window.FFC.buttonHtml({ label: s.exportData || 'Export My Data', category: 'neutral', icon: 'download', className: 'ffc-lgpd-export-btn' });
             html += '<p class="ffc-lgpd-desc">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
-            html += '<button type="button" class="button ffc-lgpd-delete-btn">' + (s.requestDeletion || 'Request Data Deletion') + '</button>';
+            html += window.FFC.buttonHtml({ label: s.requestDeletion || 'Request Data Deletion', category: 'danger', icon: 'delete', className: 'ffc-lgpd-delete-btn' });
             html += '<span class="ffc-lgpd-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
