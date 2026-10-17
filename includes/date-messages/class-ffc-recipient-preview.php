@@ -61,7 +61,10 @@ final class RecipientPreview {
 					}
 					$rows[] = array(
 						'user_id'  => $row['user_id'],
-						'name'     => $row['name'],
+						// Masked like the address (#1863): the upcoming dates
+						// reveal a name on request, audited; the preview only
+						// shows who falls in the range.
+						'name'     => DocumentFormatter::mask_name( $row['name'] ),
 						'email'    => DocumentFormatter::mask_email( $row['email'] ),
 						'date'     => $day->format( 'Y-m-d' ),
 						'decision' => $row['decision'],

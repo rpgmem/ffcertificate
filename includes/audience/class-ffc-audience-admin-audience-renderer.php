@@ -787,6 +787,7 @@ final class AudienceAdminAudienceRenderer {
 			<?php if ( 0 === $member_count ) : ?>
 				<p><?php esc_html_e( 'No members yet.', 'ffcertificate' ); ?></p>
 			<?php else : ?>
+				<?php echo \FreeFormCertificate\Core\PiiReveal::page_button( AudienceAccountEmail::PII_CAP ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value. ?>
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>

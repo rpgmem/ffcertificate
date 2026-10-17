@@ -414,13 +414,13 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-view-details-btn', $html );
 	}
 
-	public function test_unmasked_tier_still_gets_a_masked_email_with_reveal(): void {
+	public function test_a_site_administrator_gets_a_masked_email_with_reveal(): void {
 		$this->submissionReader();
-		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'ffc_reregistration_admin' ) ) );
+		Functions\when( 'user_can' )->alias( static fn ( $uid, $cap ) => 'manage_options' === $cap );
 
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $this->piiRow(), 7, true ) );
 
-		$this->assertStringNotContainsString( 'maria@example.org', $html, 'Even the unmasked tier fetches the clear value through the audited endpoint.' );
+		$this->assertStringNotContainsString( 'maria@example.org', $html, 'An administrator fetches the clear value through the audited endpoint (#1863).' );
 		$this->assertStringContainsString( 'm***@example.org', $html );
 		$this->assertStringContainsString( 'data-type="reregistration"', $html );
 		$this->assertStringContainsString( 'ffc-view-details-btn', $html );

@@ -308,7 +308,6 @@ class AdminSubmissionEditPage {
 		if ( null === $this->can_reveal ) {
 			$this->can_reveal   = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
 				'ffc_view_certificates_pii',
-				'ffc_certificates_admin',
 				(int) ( $this->sub_array['user_id'] ?? 0 )
 			);
 			$this->reveal_nonce = $this->can_reveal ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';

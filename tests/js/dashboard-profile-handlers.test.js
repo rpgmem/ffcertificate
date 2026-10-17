@@ -738,3 +738,110 @@ describe('profile — group tags and status lines follow the palette (#1826)', (
 		expect(html).not.toMatch(/margin-(?:top|left)/);
 	});
 });
+
+// ----------------------------------------------------------------------
+// View as user (#1863): masked fields revealed one at a time, audited
+// ----------------------------------------------------------------------
+
+describe('profile — view as user', () => {
+	const VIEWED = {
+		...PROFILE_FIXTURE,
+		email: 'm***@example.com',
+		emails: ['m***@example.com'],
+		phone: '** *****-**00',
+		birth_date: '',
+		birth_date_display: '**/**/****',
+		pii_masked: true,
+		can_reveal: true,
+	};
+
+	beforeEach(() => {
+		window.ffcDashboard.strings.reveal = 'Reveal';
+		window.ffcDashboard.strings.revealError = 'Unable to reveal this value.';
+		window.ffcDashboard.strings.revealToEdit = 'Reveal the value to edit it.';
+		window.ffcDashboard.viewAsUserId = 5;
+	});
+
+	afterEach(() => {
+		window.ffcDashboard.viewAsUserId = 0;
+	});
+
+	it('draws a Reveal button beside each masked field and none on the owner profile', () => {
+		panel().render({ ...VIEWED });
+		expect(window.$('.ffc-profile-reveal-btn').map((i, b) => window.$(b).data('field')).get()).toEqual(['email', 'phone', 'birth_date']);
+
+		panel().render({ ...PROFILE_FIXTURE });
+		expect(window.$('.ffc-profile-reveal-btn').length).toBe(0);
+	});
+
+	it('draws no Reveal button for a viewer the policy keeps masked', () => {
+		panel().render({ ...VIEWED, can_reveal: false });
+		expect(window.$('.ffc-profile-reveal-btn').length).toBe(0);
+	});
+
+	it('posts the field to user/profile/reveal for the viewed user and shows the clear value', async () => {
+		panel().render({ ...VIEWED });
+		const spy = mockAjaxSuccess({ field: 'phone', value: '11 99999-0000' });
+
+		window.$('.ffc-profile-reveal-btn[data-field="phone"]').trigger('click');
+		await flush();
+
+		const call = spy.mock.calls[0][0];
+		expect(call.method).toBe('POST');
+		expect(call.url).toContain('user/profile/reveal?viewAsUserId=5');
+		expect(JSON.parse(call.data)).toEqual({ field: 'phone' });
+		expect(document.getElementById('ffc-tabpanel-profile').textContent).toContain('11 99999-0000');
+		expect(window.$('.ffc-profile-reveal-btn[data-field="phone"]').length).toBe(0);
+		expect(window.$('.ffc-profile-reveal-btn[data-field="email"]').length).toBe(1);
+	});
+
+	it('reveals every linked email at once', async () => {
+		panel().render({ ...VIEWED });
+		mockAjaxSuccess({ field: 'email', value: 'maria@example.com', values: ['maria@example.com', 'm.silva@example.com'] });
+
+		window.$('.ffc-profile-reveal-btn[data-field="email"]').trigger('click');
+		await flush();
+
+		expect(window.$('.ffc-email-list li').map((i, li) => window.$(li).text()).get()).toEqual(['maria@example.com', 'm.silva@example.com']);
+	});
+
+	it('keeps a masked phone and birth date out of the save until they are revealed', () => {
+		panel().render({ ...VIEWED });
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		expect(document.getElementById('ffc-edit-phone').disabled).toBe(true);
+		expect(document.getElementById('ffc-edit-birth-date').disabled).toBe(true);
+
+		const spy = mockAjaxSuccess(VIEWED);
+		window.$('.ffc-profile-save-btn').trigger('click');
+
+		const payload = JSON.parse(spy.mock.calls[0][0].data);
+		expect(payload).not.toHaveProperty('phone');
+		expect(payload).not.toHaveProperty('birth_date');
+		expect(payload.department).toBe('TI');
+	});
+
+	it('edits a field normally once it is revealed', async () => {
+		panel().render({ ...VIEWED });
+		mockAjaxSuccess({ field: 'birth_date', value: '1990-05-20', display: '20/05/1990' });
+		window.$('.ffc-profile-reveal-btn[data-field="birth_date"]').trigger('click');
+		await flush();
+		vi.restoreAllMocks();
+
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		const input = document.getElementById('ffc-edit-birth-date');
+		expect(input.disabled).toBe(false);
+		expect(input.value).toBe('1990-05-20');
+	});
+
+	it('re-enables the button and alerts when the reveal fails', async () => {
+		panel().render({ ...VIEWED });
+		mockAjaxError({ status: 403, responseJSON: { message: 'No.' } });
+		window.alert = vi.fn();
+
+		window.$('.ffc-profile-reveal-btn[data-field="phone"]').trigger('click');
+		await flush();
+
+		expect(window.alert).toHaveBeenCalledWith('Unable to reveal this value.');
+		expect(window.$('.ffc-profile-reveal-btn[data-field="phone"]').prop('disabled')).toBe(false);
+	});
+});

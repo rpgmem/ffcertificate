@@ -210,7 +210,7 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 	 */
 	public function test_view_details_reports_a_submission_whose_campaign_is_gone(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'user_can' )->justReturn( true ); // A site admin: the unmasked tier.
+		Functions\when( 'user_can' )->justReturn( true ); // A site admin: the reveal tier.
 		$_POST = array( 'submission_id' => '15' );
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
 			->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'reregistration_id' => '3', 'data' => null ) );
@@ -228,7 +228,7 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 	 */
 	public function test_view_details_renders_the_decrypted_values(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'user_can' )->justReturn( true ); // A site admin: the unmasked tier.
+		Functions\when( 'user_can' )->justReturn( true ); // A site admin: the reveal tier.
 		$_POST      = array( 'submission_id' => '15' );
 		$submission = (object) array(
 			'reregistration_id' => '3',
@@ -362,16 +362,16 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 	}
 
 	/**
-	 * The unmasked tier (the reregistration admin role) is audited too: the
-	 * modal decrypts the whole record, and every reveal served is logged,
-	 * whatever the tier, as `ffc_reveal_pii` does (#1655).
+	 * The reregistration admin role holds the PII cap and opens the modal
+	 * like any other reveal-tier user, audited: since #1863 no role sees
+	 * the decrypted record any other way.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_view_details_opens_for_the_unmasked_tier_and_audits(): void {
+	public function test_view_details_opens_for_the_module_admin_role_and_audits(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'ffc_reregistration_admin' ) ) );
+		Functions\when( 'user_can' )->alias( static fn ( $uid, $cap ) => 'ffc_view_reregistration_pii' === $cap );
 		$this->stubDetailsRequest( true );
 		$this->activityLog()->shouldReceive( 'log' )->once()
 			->with( 'reregistration_details_viewed', 'info', array( 'reregistration_id' => 3 ), 9, 15 )

@@ -82,7 +82,9 @@ class AudienceMembersExportSource implements SyncSourceInterface {
 	 * {@inheritDoc}
 	 *
 	 * One row per unique member+audience pair; users that no longer exist are
-	 * skipped.
+	 * skipped. The email goes in clear only for a holder of the audience PII
+	 * cap, and that export is recorded in the activity log; anyone else
+	 * receives it masked (#1863).
 	 *
 	 * @return iterable
 	 * @phpstan-return iterable<array<int, string>>
@@ -102,7 +104,9 @@ class AudienceMembersExportSource implements SyncSourceInterface {
 			$audience_map[ (int) $aud->id ] = $aud->name;
 		}
 
-		$seen = array(); // Avoid duplicate rows for the same user+audience.
+		$clear = \FreeFormCertificate\Core\PiiExport::allowed( AudienceAccountEmail::PII_CAP );
+		$rows  = 0;
+		$seen  = array(); // Avoid duplicate rows for the same user+audience.
 		foreach ( $audience_ids as $aid ) {
 			$member_ids    = AudienceReader::get_members( $aid );
 			$audience_name = isset( $audience_map[ $aid ] ) ? $audience_map[ $aid ] : '';
@@ -119,12 +123,17 @@ class AudienceMembersExportSource implements SyncSourceInterface {
 					continue;
 				}
 
+				++$rows;
 				yield array(
-					$user->user_email,
+					(string) \FreeFormCertificate\Core\PiiExport::cell( 'email', (string) $user->user_email, $clear ),
 					$user->display_name,
 					$audience_name,
 				);
 			}
+		}
+
+		if ( $clear && $rows > 0 ) {
+			\FreeFormCertificate\Core\PiiExport::log( 'audience_members', $rows );
 		}
 	}
 }

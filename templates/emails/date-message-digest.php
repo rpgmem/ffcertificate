@@ -11,8 +11,9 @@
  *     @type string                $target_from First target day, Y-m-d.
  *     @type string                $target_to   Last target day, Y-m-d.
  *     @type array<string, int>    $counts      Counter => value.
- *     @type array<int,string>|null $names      Recipients by name, or null when this manager may not see them.
+ *     @type array<int,string>|null $names      Recipients by masked name, or null when this manager may not see them.
  *     @type int                   $names_limit Most names listed.
+ *     @type string                $screen_url  The Date Messages screen, where a name is revealed.
  * }
  * @package FreeFormCertificate\DateMessages
  */
@@ -67,4 +68,10 @@ $ffc_dm_names  = $args['names'] ?? null;
 	<?php if ( count( $ffc_dm_names ) >= (int) ( $args['names_limit'] ?? 0 ) ) : ?>
 		<p style="margin: 0; font-size: 12px; color: #646970;"><?php esc_html_e( 'Only the first names are listed; the counts above include everyone.', 'ffcertificate' ); ?></p>
 	<?php endif; ?>
+	<p style="margin: 16px 0 0 0; font-size: 12px; color: #646970;">
+		<?php esc_html_e( 'Names are masked in this e-mail. Open Date Messages to reveal them; each reveal is recorded in the activity log.', 'ffcertificate' ); ?>
+		<?php if ( '' !== (string) ( $args['screen_url'] ?? '' ) ) : ?>
+			<a href="<?php echo esc_url( (string) $args['screen_url'] ); ?>"><?php esc_html_e( 'Open Date Messages', 'ffcertificate' ); ?></a>
+		<?php endif; ?>
+	</p>
 <?php endif; ?>

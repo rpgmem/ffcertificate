@@ -111,6 +111,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</div>
 			<?php endif; ?>
 
+			<?php
+			// One "Reveal this page" over the list (#1863).
+			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value.
+			echo \FreeFormCertificate\Core\PiiReveal::page_button( \FreeFormCertificate\Reregistration\ReregistrationAjaxHandler::PII_CAPABILITY );
+			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+			?>
 			<table class="wp-list-table widefat fixed striped">
 				<thead>
 					<tr>

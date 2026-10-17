@@ -81,10 +81,15 @@ class AppointmentRestController {
 				'callback'            => array( $this, 'get_appointment' ),
 				'permission_callback' => array( $this, 'check_appointment_access' ),
 				'args'                => array(
-					'id' => array(
+					'id'     => array(
 						'validate_callback' => function ( $param ) {
 							return is_numeric( $param );
 						},
+					),
+					'reveal' => array(
+						'default'           => false,
+						'sanitize_callback' => 'rest_sanitize_boolean',
+						'description'       => 'Return the email and phone in clear, for a caller the PII policy lets reveal; the read is recorded in the activity log.',
 					),
 				),
 			)
@@ -283,6 +288,25 @@ class AppointmentRestController {
 
 			$email_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
 			$phone_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' );
+
+			// #1863 — the booker sees their own email and phone; anyone else
+			// reaching this route (a holder of the scheduling bypass) gets them
+			// masked, unless the policy lets them reveal and the request asks
+			// with `reveal=1`, which is audited like the admin Reveal button.
+			$owner = (int) ( $appointment['user_id'] ?? 0 );
+			$tier  = \FreeFormCertificate\Core\PiiAccessPolicy::resolve( 'ffc_view_appointments_pii', $owner > 0 ? $owner : null );
+			if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier && $request->get_param( 'reveal' ) ) {
+				\FreeFormCertificate\Core\ActivityLog::log(
+					'appointment_pii_revealed',
+					\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+					array( 'field_key' => 'rest_api' ),
+					get_current_user_id(),
+					(int) $appointment['id']
+				);
+			} elseif ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED !== $tier ) {
+				$email_display = \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $email_display );
+				$phone_display = \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) $phone_display );
+			}
 
 			return rest_ensure_response(
 				array(

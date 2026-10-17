@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <!-- Emails & Delivery Section -->
 <div class="card">
 	<h3 id="reference-emails" class="ffc-icon-send"><?php esc_html_e( 'Emails & Delivery', 'ffcertificate' ); ?></h3>
-	<p><?php esc_html_e( 'Every email the plugin sends — certificate delivery, admin notifications, recruitment convocations, booking confirmations, reregistration invitations, audience notices — goes through one shared pipeline with one configurable look.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Every email the plugin sends — certificate delivery, admin notifications, recruitment convocations, booking confirmations, reregistration invitations, audience notices — goes through one shared pipeline with one configurable look.', 'ffcertificate' ); ?> <?php esc_html_e( 'The notices sent to staff carry personal data masked (CPF, RF, e-mail, phone, names in the Date Messages summary), with a link to the screen where it can be revealed and audited.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'The one pipeline', 'ffcertificate' ); ?></h4>

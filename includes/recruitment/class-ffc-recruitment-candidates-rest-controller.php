@@ -431,7 +431,13 @@ final class RecruitmentCandidatesRestController {
 	// ─────────────────────────────────────────────────────────────────────
 
 	/**
-	 * Decrypt sensitive fields for admin-side candidate responses.
+	 * Shape a candidate for the admin-side responses.
+	 *
+	 * CPF, RF and email come back masked for every caller but the candidate
+	 * themselves (#1863): a staff member reveals one through
+	 * `POST /candidates/{id}/reveal-pii`, which is audited, exactly as the
+	 * candidate screen's Reveal button does. Before #1863 these routes
+	 * returned all three in clear to every holder of the manage cap.
 	 *
 	 * @param object $candidate Candidate row (CandidateRow shape).
 	 * @phpstan-param CandidateRow $candidate
@@ -450,14 +456,20 @@ final class RecruitmentCandidatesRestController {
 			return null === $plain ? null : DocumentFormatter::mask_email( $plain );
 		};
 
+		$clear = RecruitmentPiiAccessPolicy::TIER_UNMASKED === RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
+		$cpf   = $decrypt( $candidate->cpf_encrypted );
+		$rf    = $decrypt( $candidate->rf_encrypted );
+		$email = $decrypt( $candidate->email_encrypted );
+
 		return array(
 			'id'           => (int) $candidate->id,
 			'user_id'      => null === $candidate->user_id ? null : (int) $candidate->user_id,
 			'name'         => $candidate->name,
-			'cpf'          => $decrypt( $candidate->cpf_encrypted ),
-			'rf'           => $decrypt( $candidate->rf_encrypted ),
-			'email'        => $decrypt( $candidate->email_encrypted ),
-			'email_masked' => $mask_or_plain_email( $decrypt( $candidate->email_encrypted ) ),
+			'cpf'          => $clear || null === $cpf ? $cpf : DocumentFormatter::mask_any( 'cpf', $cpf ),
+			'rf'           => $clear || null === $rf ? $rf : DocumentFormatter::mask_any( 'rf', $rf ),
+			'email'        => $clear ? $email : $mask_or_plain_email( $email ),
+			'email_masked' => $mask_or_plain_email( $email ),
+			'pii_masked'   => ! $clear,
 			'phone'        => $candidate->phone,
 			'notes'        => $candidate->notes,
 			'is_pcd'       => RecruitmentPcdHasher::verify( $candidate->pcd_hash, (int) $candidate->id ),

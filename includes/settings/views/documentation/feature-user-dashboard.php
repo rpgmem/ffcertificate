@@ -44,7 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<ul>
 			<li><strong><?php esc_html_e( 'Must be logged in:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'the dashboard resolves data from the current user and shows nothing to anonymous visitors.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Own data only:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'records are matched to the current user (and their CPF/RF); a user never sees another user\'s data.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'View as user:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen ("Login as User").', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'View as user:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen ("Login as User"). The other user\'s e-mail addresses, phone and birth date appear masked, each with a Reveal button that writes an activity-log entry, and a masked field cannot be saved over until it is revealed. The person themselves always sees their own data.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Roles & capabilities:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'admin surfaces are gated separately by FFC capabilities — see the Capabilities & Roles reference page.', 'ffcertificate' ); ?></li>
 		</ul>
 	</div>

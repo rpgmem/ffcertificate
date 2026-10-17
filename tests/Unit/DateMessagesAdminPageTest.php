@@ -53,6 +53,8 @@ class DateMessagesAdminPageTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Manager addresses and upcoming names are masked (#1863).
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 
 		$_POST         = array();
 		$_GET          = array();
@@ -269,7 +271,7 @@ class DateMessagesAdminPageTest extends TestCase {
 			}
 		);
 
-		$this->assertSame( array( 1 => 'Admin <admin@example.org>' ), DateMessagesAdminPage::manager_options() );
+		$this->assertSame( array( 1 => 'Admin <a***@example.org>' ), DateMessagesAdminPage::manager_options() );
 		$this->assertSame(
 			array( 'manage_options', 'ffc_view_date_messages', 'ffc_manage_date_messages', 'ffc_view_date_messages_pii' ),
 			$queried['capability__in']
@@ -956,6 +958,10 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+
 		$html = $this->render_screen(
 			array(
 				'tab'         => 'upcoming',
@@ -965,8 +971,11 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'Maria', $html );
-		$this->assertMatchesRegularExpression( '/<td>Maria<\/td>\s*<td>Schools<\/td>/', $html );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="name">Maria</span>', $html );
+		$this->assertMatchesRegularExpression( '/data-field="name">Maria<\/span>.*?<\/td>\s*<td>Schools<\/td>/s', $html );
+		// Each name reveals on its own, and the page reveals them all (#1863).
+		$this->assertStringContainsString( 'data-type="date_messages_person" data-field="name" data-submission-id="42"', $html );
+		$this->assertStringContainsString( 'ffc-reveal-pii-page', $html );
 	}
 
 	/**

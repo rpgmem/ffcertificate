@@ -251,6 +251,7 @@ class AdminActivityLogPage {
 			'pdf_generated'                                => __( 'PDF Generated', 'ffcertificate' ),
 			'certificate_emailed'                          => __( 'Certificate Emailed', 'ffcertificate' ),
 			'csv_downloaded'                               => __( 'CSV Downloaded', 'ffcertificate' ),
+			'pii_exported'                                 => __( 'Personal Data Exported', 'ffcertificate' ),
 			'captcha_fallback_used'                        => __( 'Captcha: fallback used', 'ffcertificate' ),
 
 			// Submission lifecycle.
@@ -275,6 +276,7 @@ class AdminActivityLogPage {
 			'profile_updated'                              => __( 'Profile Updated', 'ffcertificate' ),
 			'user_email_changed'                           => __( 'User Email Changed', 'ffcertificate' ),
 			'user_profile_read_full'                       => __( 'Full Profile Viewed', 'ffcertificate' ),
+			'user_profile_pii_revealed'                    => __( 'Profile Personal Data Revealed', 'ffcertificate' ),
 			'user_data_anonymized'                         => __( 'User Data Anonymized', 'ffcertificate' ),
 			'privacy_request_created'                      => __( 'Privacy Request Created', 'ffcertificate' ),
 			'privacy_data_erased'                          => __( 'Privacy Data Erased', 'ffcertificate' ),
@@ -293,6 +295,7 @@ class AdminActivityLogPage {
 			'reregistration_reminders_sent'                => __( 'Reregistration Reminders Sent', 'ffcertificate' ),
 			'reregistration_pii_revealed'                  => __( 'Reregistration Personal Data Revealed', 'ffcertificate' ),
 			'reregistration_details_viewed'                => __( 'Reregistration Details Viewed', 'ffcertificate' ),
+			'date_messages_pii_revealed'                   => __( 'Date Messages Personal Data Revealed', 'ffcertificate' ),
 			'custom_field_sensitive_demotion_refused'      => __( 'Sensitive Field Demotion Refused', 'ffcertificate' ),
 
 			// Recruitment.

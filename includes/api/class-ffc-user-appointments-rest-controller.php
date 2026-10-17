@@ -150,6 +150,13 @@ class UserAppointmentsRestController {
 
 				$email_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
 				$phone_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' );
+				// "View as user" is not the owner reading their own bookings
+				// (#1863): the email and phone arrive masked; the
+				// administrator reveals them on the appointments screen.
+				if ( $ctx['is_view_as'] ) {
+					$email_display = \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $email_display );
+					$phone_display = \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) $phone_display );
+				}
 
 				$end_time_formatted = ! empty( $appointment['end_time'] )
 					? \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['end_time'] )

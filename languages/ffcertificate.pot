@@ -23047,9 +23047,6 @@ msgstr ""
 msgid "View as user:"
 msgstr ""
 
-msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\")."
-msgstr ""
-
 msgid "The identity/contact/address/employment fields live on the plugin's user profile and are mapped to the reregistration and audience data, so a user's details stay consistent across a certificate PDF, a record and their profile. WordPress's first and last name follow the plugin's full name (first word / the rest), and editing First/Last Name on the user-edit screen updates it back."
 msgstr ""
 
@@ -23114,9 +23111,6 @@ msgid "Preview recipients and test send"
 msgstr ""
 
 msgid "Sends one rule to everyone whose date falls in a chosen range of up to 31 days, in batches handed to wp_mail(). People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs."
-msgstr ""
-
-msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen."
 msgstr ""
 
 msgid "Daily schedule"
@@ -23189,9 +23183,6 @@ msgid "E-mail, CPF, RF, the client IP and the submission's extra form data are s
 msgstr ""
 
 msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
-msgstr ""
-
-msgid "On screen, CPF/RF and e-mail start masked, for administrators too; an operator who holds the matching PII capability fetches a value with the Reveal button beside it. Every reveal on submissions, appointments, reregistration and the audience screens writes an activity-log entry. Revealing recruitment PII is logged too (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
 msgstr ""
 
 msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
@@ -24352,9 +24343,6 @@ msgstr ""
 msgid "Everyone, or the members of the audiences chosen in the two-column picker — the same one the reregistration campaign uses. Belonging to any one of them is enough, and members of their sub-audiences are included; choosing an audience brings its sub-audiences along."
 msgstr ""
 
-msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators."
-msgstr ""
-
 msgid "QR Code in the Certificate"
 msgstr ""
 
@@ -24395,9 +24383,6 @@ msgid "Reveal the email to edit it."
 msgstr ""
 
 msgid "On the edit screen the CPF/RF, the email and the IP start masked for everyone, administrators included. The IP is the address the submission and its consent were recorded from, so it is masked both under System Information and under the consent status. An operator who may see them uses the Reveal button beside each value to fetch it, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
-msgstr ""
-
-msgid "Administrators (manage_options) hold all of the above. Personal data starts masked for everyone, on the list and on the edit screen alike: administrators and the certificates admin role reveal a value with the Reveal button, as a holder of ffc_view_certificates_pii does, and every reveal is audited. See Capabilities & Roles."
 msgstr ""
 
 msgid "Certificates → Dashboard opens with a summary row (forms in the month shown, submissions today and over the last 7 days, GeoFence windows open now) above a calendar of forms by GeoFence start date, or by publication date when a form has none. Picking a day lists its forms beside the calendar. It needs ffc_view_certificates."
@@ -25956,12 +25941,6 @@ msgstr ""
 msgid "The linked user's account email in the side panel is masked the same way, with its own Reveal button and the same audit."
 msgstr ""
 
-msgid "It also reveals the account email of the people on the audience Members and User access tabs."
-msgstr ""
-
-msgid "The Members tab and a calendar's User access tab show each person's account email masked, for everyone. Audiences have no personal-data capability of their own, so revealing it follows the appointments one: administrators, the appointments admin role and holders of ffc_view_appointments_pii get a Reveal button, and every reveal writes an Activity Log entry. The audience roles alone see the email masked."
-msgstr ""
-
 #: includes/settings/views/documentation/scheduling-audiences.php:41
 msgid "The Shortcode column of Audience Calendars shows each calendar's shortcode with a copy button, and the Environments view shows each environment's, tied to its calendar."
 msgstr ""
@@ -25988,10 +25967,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:152
 msgid "reveal a submitter's email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-reregistration.php:154
-msgid "On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand. Every reveal and every opening of View Details writes an activity-log entry, whoever opens it. The FFC Reregistration - Administrator role and WordPress administrators hold the unmasked tier, as the certificates and appointments administrator roles do."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:895
@@ -26562,3 +26537,142 @@ msgstr ""
 msgid "global only; a schedule does not override it."
 msgstr ""
 
+#: includes/settings/views/documentation/reference-privacy.php:33
+msgid "A CSV export carries personal data in clear only for a holder of the module's PII capability, and each such export writes a \"Personal Data Exported\" activity-log entry; anyone else allowed to export receives the same columns masked."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:30
+msgid "A list offers \"Reveal this page\" above its masked values: it reveals every value listed at once and writes one activity-log entry naming the records."
+msgstr ""
+
+#: includes/settings/views/documentation/submissions-list.php:53
+msgid "Administrators (manage_options) hold all of the above. Personal data starts masked for everyone, on the list and on the edit screen alike: administrators reveal a value with the Reveal button, as a holder of ffc_view_certificates_pii does, the list also offers \"Reveal this page\", and every reveal is audited. A CSV export carries the personal columns in clear only with ffc_view_certificates_pii, and is recorded in the activity log. See Capabilities & Roles."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:298
+msgid "Date Messages Personal Data Revealed"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:34
+msgid "E-mails to staff (new submission and new appointment notices, the Date Messages summary) carry personal data masked, with a link to the screen where the recipient can reveal it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:80
+msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators. Names are masked, here and in the recipient preview; Reveal shows one and \"Reveal this page\" all of them, each recorded in the activity log."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-custom-fields.php:321
+msgid "Masked. Revealing it requires the audience PII capability."
+msgstr ""
+
+#: templates/emails/date-message-digest.php:72
+msgid "Names are masked in this e-mail. Open Date Messages to reveal them; each reveal is recorded in the activity log."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ajax.php:397
+msgid "Nothing to reveal."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:29
+msgid "On screen, CPF/RF, e-mail, phone and the other sensitive fields start masked for every member of staff, WordPress administrators and FFC Administrator included: nobody sees another person's data without revealing it. Each module reveals through its own capability (ffc_view_<module>_pii), held by the module's Manager and Administrator roles and by FFC Administrator; FFC Read-only never reveals. Every reveal on submissions, appointments, reregistration, the audience screens, the user-edit screen and Date Messages writes an activity-log entry. Revealing recruitment PII is logged too (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:154
+msgid "On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand, and \"Reveal this page\" reveals every email listed. Every reveal and every opening of View Details writes an activity-log entry, whoever opens it. An export by the Operator, who holds no PII capability, carries the email and the sensitive fields masked."
+msgstr ""
+
+#: templates/emails/date-message-digest.php:74
+msgid "Open Date Messages"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:254
+msgid "Personal Data Exported"
+msgstr ""
+
+#: templates/emails/appointment-admin-notification.php:24
+msgid "Personal data is masked in this e-mail. Open the appointments screen to reveal it; each reveal is recorded in the activity log."
+msgstr ""
+
+#: templates/emails/submission-admin-notification.php:24
+msgid "Personal data is masked in this e-mail. Open the submissions screen to reveal it; each reveal is recorded in the activity log."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-capabilities.php:39
+msgid "Personal data stays masked for every tier. The Manager and the Administrator hold the module's ffc_view_<module>_pii capability, which reveals a value or a whole list page with the Reveal button; every reveal is recorded in the activity log. No role, FFC Administrator included, sees another person's data without revealing it, and FFC Read-only never reveals."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:279
+msgid "Profile Personal Data Revealed"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:298
+msgid "Reveal audience PII"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:299
+msgid "Reveal the email of a person listed on the audience screens and the sensitive custom fields on a user's profile, and export them in clear (audited). Without it they stay masked (#1863)."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-custom-fields.php:319 includes/shortcodes/class-ffc-dashboard-asset-manager.php:303
+msgid "Reveal the value to edit it."
+msgstr ""
+
+#: includes/core/class-ffc-pii-reveal.php:47
+msgid "Reveal this page"
+msgstr ""
+
+#: includes/core/class-ffc-pii-reveal.php:48
+msgid "Shows every masked value listed here. The reveal is recorded in the activity log."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:32
+msgid "The Members tab and a calendar's User access tab show each person's account email masked, for everyone. Holders of ffc_view_audiences_pii (the Audience Calendars Manager and Administrator roles, FFC Administrator and WordPress administrators) get a Reveal button beside each address and \"Reveal this page\" above the members list, and every reveal writes an Activity Log entry. The Viewer and Operator roles see the email masked."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:35
+msgid "The REST API returns personal data masked too. A caller allowed to reveal adds reveal=1 to a submission or appointment request to receive it in clear, and that read is audited."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:32
+msgid "The activity log and identity resolution belong to FFC Administrator and WordPress administrators alone. Those screens show the data they need unmasked, because the screens themselves are restricted."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-emails.php:20
+msgid "The notices sent to staff carry personal data masked (CPF, RF, e-mail, phone, names in the Date Messages summary), with a link to the screen where it can be revealed and audited."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:31
+msgid "The person the data belongs to sees their own data unmasked in their dashboard. An administrator using \"View as user\" sees it masked, and reveals a field with the same audited button."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:71
+msgid "The phone on the appointment detail is masked and revealed the same way, the list offers \"Reveal this page\", and an export carries e-mail, phone and IP in clear only with this capability. The audience screens reveal through ffc_view_audiences_pii since 6.40.0."
+msgstr ""
+
+#: includes/api/class-ffc-user-profile-rest-controller.php:399
+msgid "There is nothing to reveal on your own profile."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ajax.php:400
+msgid "Too many values to reveal at once."
+msgstr ""
+
+#: templates/emails/submission-admin-notification.php:26
+msgid "View Submissions"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:77
+msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators), and travel masked, with a link to Date Messages; everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen, listed by name with the e-mail masked."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ajax.php:434
+msgid "You do not have permission to reveal these values."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php:47
+msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\"). The other user's e-mail addresses, phone and birth date appear masked, each with a Reveal button that writes an activity-log entry, and a masked field cannot be saved over until it is revealed. The person themselves always sees their own data."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:74
+msgid "reveal the account email of the people on the Members and User access tabs and the sensitive custom fields on another user's profile, with an audited Reveal; a members export carries the email in clear only with it. Existing holders of ffc_manage_audiences received it on update."
+msgstr ""

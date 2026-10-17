@@ -100,18 +100,18 @@ class AdminConditionalAssets {
 		// Appointments list and detail view — shared masked-PII reveal handler
 		// (#739 §3.3); the list's email column carries reveal buttons (#1822).
 		if ( $this->is_appointments_page() ) {
-			$this->enqueue_pii_reveal_assets( $s );
+			$this->enqueue_pii_reveal_assets();
 		}
 
 		// Reregistration submissions list — the masked email's Reveal (#1815).
 		if ( $this->is_reregistration_submissions_page() ) {
-			$this->enqueue_pii_reveal_assets( $s );
+			$this->enqueue_pii_reveal_assets();
 		}
 
 		// Audience screens: members and calendar user-access rows carry the
 		// masked account email with reveal buttons (#1824).
 		if ( $this->is_audience_account_page() ) {
-			$this->enqueue_pii_reveal_assets( $s );
+			$this->enqueue_pii_reveal_assets();
 		}
 
 		// Submissions list page (when filtered by a single form): "Move to form…" modal.
@@ -119,7 +119,7 @@ class AdminConditionalAssets {
 		if ( $this->is_submissions_list_page() ) {
 			$this->enqueue_move_submissions_assets();
 			$this->enqueue_submissions_bulk_assets();
-			$this->enqueue_pii_reveal_assets( $s );
+			$this->enqueue_pii_reveal_assets();
 		}
 
 		// Certificates Dashboard (calendar view).
@@ -428,7 +428,7 @@ class AdminConditionalAssets {
 		);
 
 		// Shared masked-PII reveal handler (#739 §3.3).
-		$this->enqueue_pii_reveal_assets( $s );
+		$this->enqueue_pii_reveal_assets();
 	}
 
 	/**
@@ -437,26 +437,13 @@ class AdminConditionalAssets {
 	 * view, on the reregistration submissions list (#1815) and on the
 	 * audience and audience-calendar screens (#1824); each reveal
 	 * button carries its own nonce, and `ffc-core` (which
-	 * provides `FFC.request`) is already enqueued on every FFC admin screen.
+	 * provides `FFC.request`) is registered on every admin screen. The same
+	 * script serves the "Reveal this page" button (#1863).
 	 *
-	 * @param string $s Asset minification suffix.
 	 * @return void
 	 */
-	private function enqueue_pii_reveal_assets( string $s ): void {
-		wp_enqueue_script(
-			'ffc-pii-reveal',
-			FFC_PLUGIN_URL . "assets/js/ffc-pii-reveal{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
-		wp_localize_script(
-			'ffc-pii-reveal',
-			'ffcPiiReveal',
-			array(
-				'reveal_error' => __( 'Unable to reveal this value.', 'ffcertificate' ),
-			)
-		);
+	private function enqueue_pii_reveal_assets(): void {
+		\FreeFormCertificate\Core\PiiReveal::enqueue_assets();
 	}
 
 	/**

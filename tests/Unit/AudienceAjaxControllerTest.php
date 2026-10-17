@@ -435,7 +435,7 @@ class AudienceAjaxControllerTest extends TestCase {
 		Functions\when( 'wp_create_nonce' )->justReturn( 'reveal-nonce' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
 			->shouldReceive( 'can_reveal' )
-			->with( 'ffc_view_appointments_pii', 'ffc_appointments_admin', 7 )
+			->with( 'ffc_view_audiences_pii', 7 )
 			->andReturn( $can_reveal );
 	}
 

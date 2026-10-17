@@ -1012,6 +1012,35 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Source-to-target map for the audiences PII cap (#1863).
+	 *
+	 * @since 6.40.0
+	 * @return array<string, array<int, string>>
+	 */
+	public static function audiences_pii_cap_grant_map(): array {
+		return array(
+			'ffc_manage_audiences' => array( 'ffc_view_audiences_pii' ),
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_view_audiences_pii` onto every user
+	 * and role already holding `ffc_manage_audiences`. Before #1863 the
+	 * audience screens revealed an account's email through the appointments
+	 * PII cap; the module's own cap now gates it, and whoever manages
+	 * audiences keeps revealing until an administrator says not.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_audiences_pii_cap_v1` option.
+	 *
+	 * @since 6.40.0
+	 * @return array<string, int> Per-target-cap count of users seeded.
+	 */
+	public static function migrate_audiences_pii_cap_grant(): array {
+		return self::seed_caps( self::audiences_pii_cap_grant_map() );
+	}
+
+	/**
 	 * Source-to-target map for the REST submit cap (#1861).
 	 *
 	 * @since 6.40.0
@@ -1080,6 +1109,7 @@ class CapabilityMigrator {
 			self::identity_verbs_cap_grant_map(),
 			self::grade_cap_grant_map(),
 			self::reregistration_pii_cap_grant_map(),
+			self::audiences_pii_cap_grant_map(),
 			self::forms_api_submit_cap_grant_map(),
 		);
 		foreach ( $multiple as $map ) {

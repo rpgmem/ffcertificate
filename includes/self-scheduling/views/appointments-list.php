@@ -149,14 +149,13 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 			$ffcertificate_cpf   = $ffcertificate_decrypted['cpf'] ?? '';
 			$ffcertificate_rf    = $ffcertificate_decrypted['rf'] ?? '';
 
-			// #739 §3.3 / #1813 — CPF / RF / email start masked for every tier,
-			// the unmasked one included, as on the submission edit page (#1760).
-			// Whoever may reveal (the unmasked and reveal tiers) gets a button
+			// #739 §3.3 / #1813 / #1863 — CPF / RF / email start masked for every
+			// viewer, as on the submission edit page (#1760). Whoever may reveal
+			// (the owner and the reveal tier) gets a button
 			// that fetches the clear value through the ffc_reveal_pii endpoint,
 			// so the plaintext never sits in this screen's HTML.
 			$ffcertificate_can_reveal   = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
 				'ffc_view_appointments_pii',
-				'ffc_appointments_admin',
 				(int) ( $ffcertificate_appointment['user_id'] ?? 0 )
 			);
 			$ffcertificate_reveal_nonce = $ffcertificate_can_reveal ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';
@@ -165,7 +164,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 			 * Render one PII cell: a dash when empty, otherwise the masked value
 			 * with a "Reveal" button when the viewer may reveal it.
 			 *
-			 * @param string $field          Field key (cpf | rf | email).
+			 * @param string $field          Field key (cpf | rf | email | phone).
 			 * @param string $raw            Raw decrypted value (empty ⇒ dash).
 			 * @param string $masked_display Masked placeholder shown to every tier.
 			 * @return void
@@ -251,7 +250,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 						<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( ( $ffcertificate_appointment['start_time'] ?? '' ) . ' - ' . ( $ffcertificate_appointment['end_time'] ?? '' ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_name ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'E-mail', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'email', (string) $ffcertificate_email, \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $ffcertificate_email ) ); ?></td></tr>
-						<tr><th><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_phone ? $ffcertificate_phone : '-' ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'phone', (string) $ffcertificate_phone, \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) $ffcertificate_phone ) ); ?></td></tr>
 						<?php if ( ! empty( $ffcertificate_cpf ) ) : ?>
 						<tr><th><?php esc_html_e( 'CPF', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'cpf', (string) $ffcertificate_cpf, \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $ffcertificate_cpf ) ); ?></td></tr>
 						<?php endif; ?>
@@ -355,6 +354,7 @@ $ffcertificate_table->prepare_items();
 
 	<form method="get">
 		<input type="hidden" name="page" value="ffc-appointments" />
+		<?php echo \FreeFormCertificate\Core\PiiReveal::page_button( 'ffc_view_appointments_pii' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value. ?>
 		<?php $ffcertificate_table->display(); ?>
 	</form>
 </div>

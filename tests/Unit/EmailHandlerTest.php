@@ -27,6 +27,8 @@ class EmailHandlerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The staff notification links to the submissions screen (#1863).
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -345,6 +347,45 @@ class EmailHandlerTest extends TestCase {
 		// Only admin notification sent (no user email)
 		$this->assertCount( 1, $this->sent_emails );
 		$this->assertSame( 'admin@example.com', $this->sent_emails[0]['to'] );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_admin_notification_masks_the_personal_fields(): void {
+		// #1863: CPF, RF and e-mail reach staff masked, with a link to the
+		// screen where they are revealed; other fields stay as typed.
+		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+			return 'admin_email' === $key ? 'admin@example.com' : $default;
+		} );
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
+		Mockery::mock( 'alias:\FreeFormCertificate\Core\HtmlPolicy' )->shouldReceive( 'get_allowed_html_tags' )->andReturn( array() );
+
+		$handler = new EmailHandler();
+		$handler->async_process_submission(
+			1,
+			10,
+			'Test Certificate',
+			array(
+				'name'  => 'John',
+				'cpf'   => '51817842080',
+				'email' => 'john@example.com',
+			),
+			'john@example.com',
+			array(),
+			array( 'send_user_email' => 0, 'send_admin_email' => '1', 'email_admin' => 'admin@example.com' ),
+			''
+		);
+
+		$this->assertCount( 1, $this->sent_emails );
+		$body = $this->sent_emails[0]['body'];
+		$this->assertStringContainsString( 'John', $body );
+		$this->assertStringContainsString( '518.***.***-80', $body );
+		$this->assertStringNotContainsString( '51817842080', $body );
+		$this->assertStringContainsString( 'j***@example.com', $body );
+		$this->assertStringNotContainsString( 'john@example.com', $body );
+		$this->assertStringContainsString( 'page=ffc-submissions', $body );
 	}
 
 	public function test_async_skips_admin_notification_when_not_opted_in(): void {

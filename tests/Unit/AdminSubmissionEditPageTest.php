@@ -437,10 +437,12 @@ class AdminSubmissionEditPageTest extends TestCase {
 	 */
 	public static function account_email_tiers(): array {
 		return array(
-			'WordPress admin (unmasked)'         => array( array( 'manage_options' ), array(), true ),
-			'certificates admin role (unmasked)' => array( array(), array( 'ffc_certificates_admin' ), true ),
-			'certificates PII cap (reveal)'      => array( array( 'ffc_view_certificates_pii' ), array(), true ),
-			'no PII access (masked)'             => array( array( 'ffc_view_certificates' ), array(), false ),
+			'WordPress admin (reveal)'                     => array( array( 'manage_options' ), array(), true ),
+			// The role unmasks nothing on its own since #1863.
+			'certificates admin role without the cap'      => array( array(), array( 'ffc_certificates_admin' ), false ),
+			'certificates admin role with its cap (reveal)' => array( array( 'ffc_view_certificates_pii' ), array( 'ffc_certificates_admin' ), true ),
+			'certificates PII cap (reveal)'                => array( array( 'ffc_view_certificates_pii' ), array(), true ),
+			'no PII access (masked)'                       => array( array( 'ffc_view_certificates' ), array(), false ),
 		);
 	}
 

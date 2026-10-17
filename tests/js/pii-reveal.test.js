@@ -275,4 +275,105 @@ describe('ffc-pii-reveal', () => {
 		expect(window.$('.ffc-reveal-pii').prop('disabled')).toBe(false);
 		expect(window.$('.ffc-reveal-pii').length).toBe(1);
 	});
+
+	// ── "Reveal this page" (#1863) ──────────────────────────────────────
+
+	function listPage() {
+		document.body.innerHTML = `<p><button class="ffc-reveal-pii-page" data-nonce="pn">Reveal this page</button></p>
+		<table><tbody>
+			<tr id="r1"><td><span class="ffc-pii-value" data-field="email">a***@x.com</span>
+				<button class="ffc-reveal-pii" data-type="submission" data-field="email" data-submission-id="1" data-nonce="n">Reveal</button></td></tr>
+			<tr id="r2"><td><span class="ffc-pii-value" data-field="email">b***@x.com</span>
+				<button class="ffc-reveal-pii" data-type="submission" data-field="email" data-submission-id="2" data-nonce="n">Reveal</button></td></tr>
+			<tr id="r3"><td><span class="ffc-pii-value" data-field="name">M*** S***</span>
+				<button class="ffc-reveal-pii" data-type="date_messages_person" data-field="name" data-submission-id="3" data-nonce="n">Reveal</button></td></tr>
+		</tbody></table>`;
+	}
+
+	it('sends every reveal button of the page in one request and fills each value', async () => {
+		listPage();
+		window.FFC.request = vi.fn(() => Promise.resolve({
+			values: [
+				{ type: 'submission', id: 1, field: 'email', value: 'ann@x.com' },
+				{ type: 'submission', id: 2, field: 'email', value: 'bob@x.com' },
+				{ type: 'date_messages_person', id: 3, field: 'name', value: 'Maria Silva' },
+			],
+		}));
+
+		await load();
+		window.$('.ffc-reveal-pii-page').trigger('click');
+		await flush();
+
+		expect(window.FFC.request).toHaveBeenCalledTimes(1);
+		const [action, data, opts] = window.FFC.request.mock.calls[0];
+		expect(action).toBe('ffc_reveal_pii_page');
+		expect(opts).toEqual({ nonce: 'pn' });
+		expect(JSON.parse(data.items)).toEqual([
+			{ type: 'submission', id: 1, field: 'email' },
+			{ type: 'submission', id: 2, field: 'email' },
+			{ type: 'date_messages_person', id: 3, field: 'name' },
+		]);
+		expect(window.$('#r1 .ffc-pii-value').text()).toBe('ann@x.com');
+		expect(window.$('#r2 .ffc-pii-value').text()).toBe('bob@x.com');
+		expect(window.$('#r3 .ffc-pii-value').text()).toBe('Maria Silva');
+		expect(window.$('.ffc-reveal-pii').length).toBe(0);
+		expect(window.$('.ffc-reveal-pii-page').length).toBe(0);
+	});
+
+	it('leaves what the server refused masked and keeps the page button for it', async () => {
+		listPage();
+		window.FFC.request = vi.fn(() => Promise.resolve({
+			values: [{ type: 'submission', id: 2, field: 'email', value: 'bob@x.com' }],
+		}));
+
+		await load();
+		window.$('.ffc-reveal-pii-page').trigger('click');
+		await flush();
+
+		expect(window.$('#r1 .ffc-pii-value').text()).toBe('a***@x.com');
+		expect(window.$('#r1 .ffc-reveal-pii').length).toBe(1);
+		expect(window.$('#r2 .ffc-pii-value').text()).toBe('bob@x.com');
+		expect(window.$('.ffc-reveal-pii-page').prop('disabled')).toBe(false);
+	});
+
+	it('enables an editable input revealed by the page button', async () => {
+		document.body.innerHTML = `<button class="ffc-reveal-pii-page" data-nonce="pn">Reveal this page</button>
+		<form><table><tr><td>
+			<input type="text" name="ffc_cf_3" data-ffc-pii-field="cf_3" data-ffc-pii-editable="1" value="1***" disabled />
+			<button class="ffc-reveal-pii" data-type="user_profile" data-field="cf_3" data-submission-id="9" data-nonce="n">Reveal</button>
+		</td></tr></table></form>`;
+		window.FFC.request = vi.fn(() => Promise.resolve({ values: [{ type: 'user_profile', id: 9, field: 'cf_3', value: '1234567' }] }));
+
+		await load();
+		window.$('.ffc-reveal-pii-page').trigger('click');
+		await flush();
+
+		expect(window.$('form').serialize()).toBe('ffc_cf_3=1234567');
+	});
+
+	it('removes the page button when there is nothing left to reveal', async () => {
+		document.body.innerHTML = '<button class="ffc-reveal-pii-page" data-nonce="pn">Reveal this page</button>';
+		window.FFC.request = vi.fn();
+
+		await load();
+		window.$('.ffc-reveal-pii-page').trigger('click');
+		await flush();
+
+		expect(window.FFC.request).not.toHaveBeenCalled();
+		expect(window.$('.ffc-reveal-pii-page').length).toBe(0);
+	});
+
+	it('re-enables the page button and alerts when the request fails', async () => {
+		listPage();
+		window.FFC.request = vi.fn(() => Promise.reject(new Error('denied')));
+		window.alert = vi.fn();
+
+		await load();
+		window.$('.ffc-reveal-pii-page').trigger('click');
+		await flush();
+
+		expect(window.alert).toHaveBeenCalledWith('denied');
+		expect(window.$('.ffc-reveal-pii-page').prop('disabled')).toBe(false);
+		expect(window.$('.ffc-reveal-pii').length).toBe(3);
+	});
 });

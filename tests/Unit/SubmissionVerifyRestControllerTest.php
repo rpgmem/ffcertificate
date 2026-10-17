@@ -93,6 +93,9 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		$request->shouldReceive( 'get_param' )->with( 'per_page' )->andReturn( 20 );
 		$request->shouldReceive( 'get_param' )->with( 'status' )->andReturn( 'publish' );
 		$request->shouldReceive( 'get_param' )->with( 'search' )->andReturn( '' );
+		$request->shouldReceive( 'get_param' )->with( 'reveal' )->andReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'user_can' )->justReturn( false );
 
 		$result = $ctrl->get_submissions( $request );
 
@@ -124,6 +127,9 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		$ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
 		$request = Mockery::mock( 'WP_REST_Request' );
 		$request->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 11 );
+		$request->shouldReceive( 'get_param' )->with( 'reveal' )->andReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'user_can' )->justReturn( false );
 
 		$result = $ctrl->get_submission( $request );
 
@@ -172,6 +178,8 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		$ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
 		$request = Mockery::mock( 'WP_REST_Request' );
 		$request->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 30 );
+		// Asking to reveal changes nothing for the masked tier.
+		$request->shouldReceive( 'get_param' )->with( 'reveal' )->andReturn( true );
 
 		$result = $ctrl->get_submission( $request );
 
@@ -202,10 +210,11 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		$ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
 		$request = Mockery::mock( 'WP_REST_Request' );
 		$request->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 30 );
+		$request->shouldReceive( 'get_param' )->with( 'reveal' )->andReturn( true );
 
 		$result = $ctrl->get_submission( $request );
 
-		// Reveal tier: plaintext, not masked.
+		// Reveal tier, asked with reveal=1: plaintext, not masked.
 		$this->assertSame( 'ana@x.com', $result['email'] );
 		$this->assertStringNotContainsString( '*', $result['cpf'] );
 		// THE WHOLE FORMATTED VALUE, NOT A FRAGMENT OF IT (#1492).
@@ -220,6 +229,44 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		// The data blob is returned raw for the reveal tier.
 		$this->assertSame( '51817842080', $result['data']['cpf'] );
 		$this->assertSame( 'Math', $result['data']['course'] );
+	}
+
+	public function test_get_submission_masks_for_a_pii_cap_holder_who_did_not_ask_to_reveal(): void {
+		// #1863: masked by default for every caller; reveal is explicit.
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Cert' ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'user_can' )->justReturn( true );
+
+		$repo = Mockery::mock( SubmissionRepository::class );
+		$repo->shouldReceive( 'findById' )->once()->andReturn( $this->pii_submission_row() );
+
+		$ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+		$request = Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 30 );
+		$request->shouldReceive( 'get_param' )->with( 'reveal' )->andReturn( false );
+
+		$result = $ctrl->get_submission( $request );
+
+		$this->assertNotSame( 'ana@x.com', $result['email'] );
+		$this->assertStringContainsString( '*', $result['cpf'] );
+	}
+
+	public function test_get_submission_gives_the_owner_their_own_record_in_clear(): void {
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Cert' ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 99 );
+		Functions\when( 'user_can' )->justReturn( false );
+
+		$repo = Mockery::mock( SubmissionRepository::class );
+		$repo->shouldReceive( 'findById' )->once()->andReturn( $this->pii_submission_row() );
+
+		$ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+		$request = Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_param' )->with( 'id' )->andReturn( 30 );
+		$request->shouldReceive( 'get_param' )->with( 'reveal' )->andReturn( false );
+
+		$result = $ctrl->get_submission( $request );
+
+		$this->assertSame( 'ana@x.com', $result['email'] );
 	}
 
 	// ------------------------------------------------------------------

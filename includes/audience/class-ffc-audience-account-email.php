@@ -21,28 +21,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Masked account email plus reveal control for the audience admin screens.
  *
- * WHICH GATE. The audience domain owns no PII capability and no `_admin`
- * role: `ffc_view_audiences` / `ffc_manage_audiences` decide who sees and
- * edits a group, not who reads a person's address. Rather than invent a
- * capability for one field, the reveal reuses the appointments domain's
- * (`ffc_view_appointments_pii` / `ffc_appointments_admin`): audiences live
- * under the same Scheduling menu, and that cap is already the one that
- * reveals a booker's email there. The cost is stated, not hidden: an
- * audiences-only role (viewer, operator, manager) sees the address masked
- * with no button, while WordPress administrators, `ffc_administrator`, the
- * appointments manager and admin roles, and the account's owner may reveal.
+ * WHICH GATE. The audience module's own PII capability,
+ * `ffc_view_audiences_pii` (#1863), held by the Audience Calendars Manager and
+ * Administrator roles and FFC Administrator. Until #1863 the module had none
+ * and borrowed the appointments one; `ffc_view_audiences` /
+ * `ffc_manage_audiences` decide who sees and edits a group, not who reads a
+ * person's address. The account's owner sees their own address unmasked.
  */
 final class AudienceAccountEmail {
 
 	/**
 	 * Reveal capability handed to the shared PII policy.
 	 */
-	public const PII_CAP = 'ffc_view_appointments_pii';
-
-	/**
-	 * Domain admin role handed to the shared PII policy.
-	 */
-	public const ADMIN_ROLE = 'ffc_appointments_admin';
+	public const PII_CAP = 'ffc_view_audiences_pii';
 
 	/**
 	 * The `ffc_reveal_pii` record type the button names.
@@ -80,7 +71,7 @@ final class AudienceAccountEmail {
 		}
 
 		$button = '';
-		if ( \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal( self::PII_CAP, self::ADMIN_ROLE, $user_id ) ) {
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal( self::PII_CAP, $user_id ) ) {
 			if ( null === self::$nonce ) {
 				self::$nonce = wp_create_nonce( 'ffc_reveal_pii_nonce' );
 			}

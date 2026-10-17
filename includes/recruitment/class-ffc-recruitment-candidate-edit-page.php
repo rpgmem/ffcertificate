@@ -133,14 +133,17 @@ final class RecruitmentCandidateEditPage {
 		$id           = (int) $candidate->id;
 		$nonce_action = 'ffc_recruitment_save_candidate_' . $id;
 
-		// #739 §4.1 — the email is PII. Only the unmasked tier (WP admin /
-		// domain admin) edits it inline; every lower tier sees a masked,
-		// disabled field and handle_save() preserves the stored address for
-		// them (the write is gated server-side on the same tier, not a form
-		// flag). This mirrors the CPF/RF treatment in the Sensitive section.
-		$tier           = RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
-		$email_editable = RecruitmentPiiAccessPolicy::TIER_UNMASKED === $tier;
-		$email          = $email_editable
+		// #739 §4.1 / #1863 — the email is PII. It starts masked and disabled
+		// for every staff member; the reveal tier gets a "Reveal" button that
+		// fetches the clear value through the audited REST endpoint and only
+		// then enables the field, so the address is edited (and posted) only
+		// after a reveal, as on the submission edit page (#1655). The
+		// candidate's own row (the unmasked tier) shows it in clear.
+		$tier             = RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
+		$email_editable   = RecruitmentPiiAccessPolicy::TIER_UNMASKED === $tier;
+		$email_revealable = RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier
+			&& '' !== (string) ( $candidate->email_encrypted ?? '' );
+		$email            = $email_editable
 			? self::resolve_general_email( $candidate )
 			: self::masked_general_email( $candidate );
 
@@ -591,12 +594,15 @@ final class RecruitmentCandidateEditPage {
 		// returns the wpdb int affected-rows, not the updated row.
 		$before = RecruitmentCandidateReader::get_by_id( $id );
 
-		// #739 §4.1 — only the unmasked PII tier may edit the email inline.
-		// Enforced on the loaded row (not a form flag), so a masked/reveal-tier
-		// operator can never overwrite or clear the stored address even by
-		// forging the field.
-		$email_editable = null !== $before
-			&& RecruitmentPiiAccessPolicy::TIER_UNMASKED === RecruitmentPiiAccessPolicy::resolve( $before, get_current_user_id() );
+		// #739 §4.1 / #1863 — the email is written only by whoever may see it
+		// (the candidate themselves, or the reveal tier), and only when the
+		// field was posted: it stays disabled, so out of the POST, until a
+		// reveal fills it. Enforced on the loaded row (not a form flag), so a
+		// masked-tier operator can never overwrite or clear the stored
+		// address even by forging the field.
+		$email_tier     = null !== $before ? RecruitmentPiiAccessPolicy::resolve( $before, get_current_user_id() ) : RecruitmentPiiAccessPolicy::TIER_MASKED;
+		$email_editable = RecruitmentPiiAccessPolicy::TIER_UNMASKED === $email_tier
+			|| ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $email_tier && isset( $_POST['email'] ) );
 
 		$update = array(
 			'name'  => $name,

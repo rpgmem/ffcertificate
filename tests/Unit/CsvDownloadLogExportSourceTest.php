@@ -32,6 +32,12 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		// The PII export rule (#1863): the exporter holds the PII cap unless a
+		// test says otherwise, and a masked cell asks is_email().
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 		class_exists( '\\FreeFormCertificate\\Frontend\\Csv\\CsvDownloadLogExportSource' );
 
 		Functions\when( '__' )->returnArg();
@@ -159,11 +165,53 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 		);
 		Functions\when( 'get_post_meta' )->justReturn( $log );
 
+		$logged = $this->record_activity_log();
+
 		$rows = iterator_to_array( ( new CsvDownloadLogExportSource( 42 ) )->rows(), false );
 
 		// Encryption configured → no advisory row; one data row (non-array skipped).
 		$this->assertCount( 1, $rows );
 		$this->assertSame( array( '2023-11-14 22:13:20', '1.2.3.4', 'audit', '52998224725', 'audit_pass' ), $rows[0] );
+		// A clear export is a bulk reveal, recorded once (#1863).
+		$this->assertSame( array( array( 'pii_exported', 'info', array( 'export' => 'csv_download_log', 'rows' => 1 ), 1, 0 ) ), $logged->calls );
+	}
+
+	public function test_rows_mask_the_cpf_and_ip_without_the_pii_cap_and_record_nothing(): void {
+		Functions\when( 'user_can' )->justReturn( false );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
+			->shouldReceive( 'is_configured' )->andReturn( true );
+		$audit = Mockery::mock( 'alias:FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog' );
+		$audit->shouldReceive( 'decrypt_log_entry_cpf' )->andReturn( '51817842080' );
+		$audit->shouldReceive( 'decrypt_log_entry_ip' )->andReturn( '1.2.3.4' );
+		Functions\when( 'get_post_meta' )->justReturn( array( array( 'ts' => 1700000000, 'mode' => 'audit', 'result' => 'audit_pass' ) ) );
+		$logged = $this->record_activity_log();
+
+		$rows = iterator_to_array( ( new CsvDownloadLogExportSource( 42 ) )->rows(), false );
+
+		$this->assertSame( array( '2023-11-14 22:13:20', '1.2.***.***', 'audit', '518.***.***-80', 'audit_pass' ), $rows[0] );
+		$this->assertSame( array(), $logged->calls, 'A masked export disclosed nothing.' );
+	}
+
+	/**
+	 * Replace ActivityLog with a recorder.
+	 *
+	 * @return object{calls: array<int, array<int, mixed>>}
+	 */
+	private function record_activity_log(): object {
+		$recorder        = new \stdClass();
+		$recorder->calls = array();
+		Mockery::getConfiguration()->setConstantsMap(
+			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
+			->shouldReceive( 'log' )
+			->andReturnUsing(
+				static function ( ...$args ) use ( $recorder ) {
+					$recorder->calls[] = $args;
+					return true;
+				}
+			);
+		return $recorder;
 	}
 
 	public function test_rows_emits_advisory_when_encryption_off(): void {

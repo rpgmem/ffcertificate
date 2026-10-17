@@ -352,7 +352,64 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertSame( 1, $result['calendar_id'] );
 		$this->assertSame( 'Test Calendar', $result['calendar_title'] );
 		$this->assertSame( 'confirmed', $result['status'] );
+		// A caller who is not the booker gets the address masked (#1863).
+		$this->assertSame( 'j***@example.com', $result['email'] );
+		$this->assertSame( '*********88', $result['phone'] );
+	}
+
+	/**
+	 * A booking owned by user 42.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function owned_appointment(): array {
+		return array(
+			'id'               => 10,
+			'calendar_id'      => 1,
+			'user_id'          => 42,
+			'appointment_date' => '2026-04-01',
+			'start_time'       => '09:00',
+			'end_time'         => '09:30',
+			'status'           => 'confirmed',
+			'name'             => 'Jane Doe',
+			'email'            => 'jane@example.com',
+			'phone'            => '11999998888',
+			'created_at'       => '2026-03-01 10:00:00',
+		);
+	}
+
+	public function test_get_appointment_gives_the_booker_their_own_email_and_phone(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 42 );
+		Functions\when( 'user_can' )->justReturn( false );
+		$this->appointment_repo_mock->shouldReceive( 'findById' )->andReturn( $this->owned_appointment() );
+		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'title' => 'Cal' ) );
+
+		$result = ( new AppointmentRestController( 'ffc/v1' ) )->get_appointment( $this->make_request( array( 'id' => '10' ) ) );
+
 		$this->assertSame( 'jane@example.com', $result['email'] );
+		$this->assertSame( '11999998888', $result['phone'] );
+	}
+
+	public function test_get_appointment_reveals_to_a_pii_holder_only_on_request_and_audits(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_appointments_pii' === $cap );
+		$this->appointment_repo_mock->shouldReceive( 'findById' )->andReturn( $this->owned_appointment() );
+		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'title' => 'Cal' ) );
+		Mockery::getConfiguration()->setConstantsMap(
+			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
+			->shouldReceive( 'log' )->once()
+			->with( 'appointment_pii_revealed', 'info', array( 'field_key' => 'rest_api' ), 5, 10 );
+		$ctrl = new AppointmentRestController( 'ffc/v1' );
+
+		$masked = $ctrl->get_appointment( $this->make_request( array( 'id' => '10' ) ) );
+		$this->assertSame( 'j***@example.com', $masked['email'] );
+		$this->assertSame( '*********88', $masked['phone'] );
+
+		$clear = $ctrl->get_appointment( $this->make_request( array( 'id' => '10', 'reveal' => true ) ) );
+		$this->assertSame( 'jane@example.com', $clear['email'] );
+		$this->assertSame( '11999998888', $clear['phone'] );
 	}
 
 	// ------------------------------------------------------------------

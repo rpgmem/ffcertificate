@@ -122,6 +122,11 @@ class CsvDownloadLogExportSource implements SyncSourceInterface {
 			yield array( '# Encryption is not configured on this site; CPF column will be empty for new entries. See plugin docs.' );
 		}
 
+		// The CPF and IP go in clear only for a holder of the certificates
+		// PII cap, and that export is recorded (#1863).
+		$clear = \FreeFormCertificate\Core\PiiExport::allowed( 'ffc_view_certificates_pii' );
+		$rows  = 0;
+
 		foreach ( $log as $entry ) {
 			if ( ! is_array( $entry ) ) {
 				continue;
@@ -138,7 +143,12 @@ class CsvDownloadLogExportSource implements SyncSourceInterface {
 			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
 			$cpf = CsvDownloadAuditLog::decrypt_log_entry_cpf( $entry );
 
-			yield array( $ts, $ip, $mod, $cpf, $res );
+			++$rows;
+			yield array( $ts, (string) \FreeFormCertificate\Core\PiiExport::cell( 'ip', $ip, $clear ), $mod, (string) \FreeFormCertificate\Core\PiiExport::cell( 'cpf', $cpf, $clear ), $res );
+		}
+
+		if ( $clear && $rows > 0 ) {
+			\FreeFormCertificate\Core\PiiExport::log( 'csv_download_log', $rows );
 		}
 	}
 }

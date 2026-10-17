@@ -25,6 +25,8 @@ class DashboardViewModeTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The banner masks the viewed account's address (#1863).
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -170,7 +172,9 @@ class DashboardViewModeTest extends TestCase {
 		$html = DashboardViewMode::render_admin_viewing_banner( 42 );
 
 		$this->assertStringContainsString( 'Jane Smith', $html );
-		$this->assertStringContainsString( 'jane@example.com', $html );
+		// The viewed account's address is masked (#1863).
+		$this->assertStringContainsString( 'j***@example.com', $html );
+		$this->assertStringNotContainsString( 'jane@example.com', $html );
 		$this->assertStringContainsString( 'Admin Boss', $html );
 	}
 

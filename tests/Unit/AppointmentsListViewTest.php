@@ -406,11 +406,39 @@ class AppointmentsListViewTest extends TestCase {
 		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
 		$cal_repo->shouldReceive( 'getActiveCalendars' )->andReturn( array() );
 
+		// The list's "Reveal this page" asks the policy (#1863); this viewer
+		// holds the appointments PII cap.
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_appointments_pii' === $cap );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'page-nonce' );
+
 		ob_start();
 		$this->include_view();
 		$out = ob_get_clean();
 
 		$this->assertStringContainsString( 'Appointments', $out );
 		$this->assertStringContainsString( 'Export CSV', $out );
+		$this->assertStringContainsString( 'class="button ffc-reveal-pii-page ffc-icon-eye" data-nonce="page-nonce"', $out );
+	}
+
+	public function test_the_list_offers_no_page_reveal_without_the_pii_cap(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturn( '' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
+		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appt_repo->shouldReceive( 'findAll' )->andReturn( array() );
+		$appt_repo->shouldReceive( 'count' )->andReturn( 0 );
+		Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' )
+			->shouldReceive( 'getActiveCalendars' )->andReturn( array() );
+		Functions\when( 'user_can' )->justReturn( false );
+
+		ob_start();
+		$this->include_view();
+		$out = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'ffc-reveal-pii-page', $out );
 	}
 }

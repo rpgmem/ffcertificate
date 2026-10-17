@@ -237,15 +237,13 @@ final class ReregistrationAdminRenderer {
 		// Statuses that can be sent back to draft for user revision.
 		$can_return_to_draft = in_array( $sub->status, array( 'submitted', 'approved', 'rejected' ), true );
 
-		// PII (#1815). The email is masked for every tier, the unmasked one
-		// included: the clear value is fetched through the audited
+		// PII (#1815). The email is masked for every viewer: the clear value is fetched through the audited
 		// `ffc_reveal_pii` endpoint, so it never sits in the list's HTML. The
 		// same policy decides whether "View Details" is drawn, because the
 		// modal it opens shows the decrypted CPF / RF / RG.
 		$owner_id       = isset( $sub->user_id ) ? (int) $sub->user_id : 0;
 		$pii_tier       = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
 			ReregistrationAjaxHandler::PII_CAPABILITY,
-			ReregistrationAjaxHandler::PII_UNMASKED_ROLE,
 			$owner_id > 0 ? $owner_id : null
 		);
 		$can_reveal_pii = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED !== $pii_tier;

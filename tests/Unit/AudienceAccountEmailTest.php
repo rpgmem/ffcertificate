@@ -66,12 +66,13 @@ class AudienceAccountEmailTest extends TestCase {
 	 */
 	public static function tiers(): array {
 		return array(
-			'WordPress admin (unmasked)'          => array( array( 'manage_options' ), array(), self::MEMBER, true ),
-			'appointments admin role (unmasked)'  => array( array(), array( 'ffc_appointments_admin' ), self::MEMBER, true ),
-			'appointments PII cap (reveal)'       => array( array( 'ffc_view_appointments_pii' ), array(), self::MEMBER, true ),
-			'the account owner (reveal)'          => array( array(), array(), self::VIEWER, true ),
-			'audiences manager only (masked)'     => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), array( 'ffc_audiences_manager' ), self::MEMBER, false ),
-			'certificates PII cap only (masked)'  => array( array( 'ffc_view_certificates_pii' ), array( 'ffc_certificates_admin' ), self::MEMBER, false ),
+			'WordPress admin (reveal)'               => array( array( 'manage_options' ), array(), self::MEMBER, true ),
+			// The audience module's own cap since #1863.
+			'audiences PII cap (reveal)'             => array( array( 'ffc_view_audiences', 'ffc_view_audiences_pii' ), array( 'ffc_audiences_manager' ), self::MEMBER, true ),
+			'the account owner (own data)'           => array( array(), array(), self::VIEWER, true ),
+			'audiences operator (masked)'            => array( array( 'ffc_view_audiences', 'ffc_import_audiences' ), array( 'ffc_audiences_operator' ), self::MEMBER, false ),
+			'appointments PII cap only (masked)'     => array( array( 'ffc_view_appointments_pii' ), array( 'ffc_appointments_admin' ), self::MEMBER, false ),
+			'certificates PII cap only (masked)'     => array( array( 'ffc_view_certificates_pii' ), array( 'ffc_certificates_admin' ), self::MEMBER, false ),
 		);
 	}
 

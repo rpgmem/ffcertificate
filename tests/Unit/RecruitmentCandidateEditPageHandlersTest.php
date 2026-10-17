@@ -258,6 +258,64 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 		$this->assertSame( 'Old Name', $captured['name'] );
 	}
 
+	public function test_handle_save_writes_the_email_a_reveal_tier_operator_revealed(): void {
+		// #1863 — the reveal tier edits the email once a reveal enabled the
+		// field, which is what puts it in the POST.
+		$_POST['candidate_id'] = '5';
+		$_POST['name']         = 'Old Name';
+		$_POST['email']        = 'new@example.test';
+		$_POST['phone']        = '111';
+		$_POST['notes']        = '';
+
+		$this->pii->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+		$captured = $this->capture_update();
+		$enc      = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'hash' )->andReturnUsing( static fn ( $v ) => 'h:' . $v );
+		$enc->shouldReceive( 'encrypt' )->andReturnUsing( static fn ( $v ) => 'e:' . $v );
+
+		$this->capture( array( RecruitmentCandidateEditPage::class, 'handle_save' ) );
+
+		$this->assertSame( 'e:new@example.test', $captured->data['email_encrypted'] );
+	}
+
+	public function test_handle_save_keeps_the_email_a_reveal_tier_operator_never_revealed(): void {
+		// The field stayed disabled, so no `email` was posted: keep the stored one.
+		$_POST['candidate_id'] = '5';
+		$_POST['name']         = 'Old Name';
+		$_POST['phone']        = '111';
+		$_POST['notes']        = '';
+
+		$this->pii->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+		$captured = $this->capture_update();
+
+		$this->capture( array( RecruitmentCandidateEditPage::class, 'handle_save' ) );
+
+		$this->assertArrayNotHasKey( 'email_encrypted', $captured->data );
+		$this->assertArrayNotHasKey( 'email_hash', $captured->data );
+	}
+
+	/**
+	 * The reader returns the stored row; the writer's update is captured.
+	 *
+	 * @return \stdClass With `data` once the update ran.
+	 */
+	private function capture_update(): \stdClass {
+		$captured       = new \stdClass();
+		$captured->data = array();
+		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' )
+			->shouldReceive( 'get_by_id' )->andReturn( $this->candidate_before() );
+		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' )
+			->shouldReceive( 'update' )->once()->andReturnUsing(
+				static function ( $id, $data ) use ( $captured ) {
+					$captured->data = $data;
+					return 1;
+				}
+			);
+		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivityLogger' )
+			->shouldReceive( 'candidate_fields_edited' )->andReturn( null );
+		return $captured;
+	}
+
 	// ==================================================================
 	// handle_delete()
 	// ==================================================================
