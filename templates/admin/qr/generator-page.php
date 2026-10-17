@@ -400,7 +400,18 @@ $ffc_qr_vcard_fields = array(
 	<div id="ffc-qr-short-saved" class="ffc-qr-saved" hidden>
 		<div class="ffc-qr-saved__backdrop" data-ffc-qr-saved-close></div>
 		<div class="ffc-qr-saved__dialog" role="dialog" aria-modal="true" aria-labelledby="ffc-qr-short-saved-title" aria-describedby="ffc-qr-short-saved-text">
-			<button type="button" class="ffc-qr-saved__close" data-ffc-qr-saved-close aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+			<?php
+			\FreeFormCertificate\Core\Button::render(
+				array(
+					'label'     => __( 'Close', 'ffcertificate' ),
+					'category'  => 'neutral',
+					'icon'      => 'cross',
+					'icon_only' => true,
+					'class'     => 'ffc-qr-saved__close',
+					'attrs'     => array( 'data-ffc-qr-saved-close' => true ),
+				)
+			);
+			?>
 			<span class="ffc-icon-success ffc-qr-saved__icon" aria-hidden="true"></span>
 			<h2 class="ffc-qr-saved__title" id="ffc-qr-short-saved-title"><?php esc_html_e( 'Short URL saved', 'ffcertificate' ); ?></h2>
 			<p class="ffc-qr-saved__text" id="ffc-qr-short-saved-text"></p>

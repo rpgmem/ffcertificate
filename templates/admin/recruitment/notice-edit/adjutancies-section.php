@@ -37,7 +37,9 @@ if ( empty( $attached_objects ) ) {
 	foreach ( $attached_objects as $a ) {
 		echo '<span class="ffc-attached">';
 		echo esc_html( (string) $a->slug );
-		echo ' <a href="#" data-notice="' . esc_attr( (string) $notice_id ) . '" data-adjutancy="' . esc_attr( (string) $a->id ) . '" onclick="return ffcDetachAdjutancy(this);" title="' . esc_attr__( 'Detach', 'ffcertificate' ) . '">×</a>';
+		// Written by hand with the family's classes: Core\Button refuses an
+		// `on*` attribute, and this link's handler is the inline one (#1879).
+		echo ' <a href="#" class="ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross" data-notice="' . esc_attr( (string) $notice_id ) . '" data-adjutancy="' . esc_attr( (string) $a->id ) . '" onclick="return ffcDetachAdjutancy(this);" aria-label="' . esc_attr__( 'Detach', 'ffcertificate' ) . '" title="' . esc_attr__( 'Detach', 'ffcertificate' ) . '"></a>';
 		echo '</span>';
 	}
 	echo '</span></p>';

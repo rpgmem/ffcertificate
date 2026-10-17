@@ -270,7 +270,7 @@ describe('admin filter overlay', () => {
 		document.body.innerHTML = `
 			<button id="ffc-open-filter-overlay">Filters</button>
 			<div id="ffc-filter-overlay">
-				<button class="ffc-filter-overlay-close">x</button>
+				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-filter-overlay-close" aria-label="Close"></button>
 				<div class="ffc-filter-overlay-backdrop"></div>
 				<div class="ffc-filter-content">content</div>
 			</div>

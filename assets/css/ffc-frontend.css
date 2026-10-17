@@ -1739,26 +1739,6 @@ details.ffc-consent-description > p {
     gap: var(--ffc-spacing-sm);
 }
 
-/* 26px literal: a glyph box, not text — an icon or a `&times;` sized by
-   font-size is a box, and the typography scale does not govern it. Same
-   reason the glyph-box family gives (#1148 step 1). */
-.ffc-open-early-close {
-    background: none;
-    border: none;
-    color: var(--ffc-inverse-on-surface);
-    font-size: 26px;
-    cursor: pointer;
-    padding: 0 var(--ffc-spacing-2xs);
-    line-height: 1;
-    transition: color var(--ffc-transition-base);
-}
-
-.ffc-open-early-close:hover,
-.ffc-open-early-close:focus-visible {
-    color: var(--ffc-inverse-on-surface);
-    outline: 0;
-}
-
 .ffc-open-early-body {
     padding: var(--ffc-spacing-2xl) var(--ffc-spacing-3xl);
     color: var(--ffc-text);
@@ -1915,20 +1895,6 @@ details.ffc-consent-description > p {
     margin: 0;
     font-size: var(--ffc-font-size-lg);
     font-weight: 500;
-    color: var(--ffc-inverse-on-surface);
-}
-
-#ffc-preview-modal .ffc-preview-close {
-    background: none;
-    border: none;
-    color: var(--ffc-inverse-on-surface);
-    font-size: var(--ffc-font-size-2xl);
-    cursor: pointer;
-    padding: 0 var(--ffc-spacing-2xs);
-    line-height: 1;
-}
-
-#ffc-preview-modal .ffc-preview-close:hover {
     color: var(--ffc-inverse-on-surface);
 }
 

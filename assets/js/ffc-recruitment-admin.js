@@ -185,7 +185,7 @@
             '<div class="ffc-confirm-modal" data-style="primary">' +
                 '<div class="ffc-confirm-modal-header">' +
                     '<h2 id="ffc-confirm-modal-title"></h2>' +
-                    '<button type="button" class="ffc-confirm-modal-close" aria-label="' + escText(closeLabel) + '">&times;</button>' +
+                    '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-confirm-modal-close" aria-label="' + escText(closeLabel) + '" title="' + escText(closeLabel) + '"></button>' +
                 '</div>' +
                 '<div class="ffc-confirm-modal-body"></div>' +
                 '<div class="ffc-confirm-modal-footer">' +

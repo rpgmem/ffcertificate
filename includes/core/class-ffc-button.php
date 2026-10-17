@@ -25,6 +25,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * drawn as the mask `::before` every other icon uses, so a script that later
  * rewrites the label keeps it. `FFC.button()` in `ffc-core.js` prints the
  * same markup for buttons a script builds.
+ *
+ * An icon-only button (`icon_only`, #1879) is the one shape without visible
+ * text — a dialog's close, a row's remove. Its label is still required: it
+ * becomes the `aria-label` and the `title`, so the button keeps a name a
+ * screen reader announces and a pointer user can read.
  */
 final class Button {
 
@@ -59,14 +64,21 @@ final class Button {
 	 * the hooks scripts read); `disabled` (`aria-disabled` plus `.disabled` on
 	 * a link); `attrs` (further attributes such as `data-*`, `title`, `target`
 	 * or `rel`: a string value is escaped, `true` prints the bare attribute,
-	 * `false` or `null` drops it, and an `on*` handler is refused).
+	 * `false` or `null` drops it, and an `on*` handler is refused);
+	 * `icon_only` (prints no text: the label becomes `aria-label` and `title`,
+	 * and both the label and a known icon are required — without either
+	 * nothing is printed and `_doing_it_wrong()` says why).
 	 *
 	 * @param array<string, mixed> $args See above.
 	 * @return string
 	 */
 	public static function html( array $args ): string {
-		$label = (string) ( $args['label'] ?? '' );
+		$label     = (string) ( $args['label'] ?? '' );
+		$icon_only = ! empty( $args['icon_only'] );
 		if ( '' === $label ) {
+			if ( $icon_only ) {
+				self::doing_it_wrong( 'An icon-only button needs a label: it is the button\'s accessible name. Nothing is printed.' );
+			}
 			return '';
 		}
 
@@ -85,13 +97,19 @@ final class Button {
 
 		$classes = array( 'ffc-btn', 'ffc-btn-' . $category );
 
-		$icon = (string) ( $args['icon'] ?? '' );
-		if ( '' !== $icon ) {
-			if ( isset( Icons::classes()[ $icon ] ) ) {
-				$classes[] = 'ffc-icon-' . $icon;
-			} else {
-				self::doing_it_wrong( sprintf( '"%s" is not a Core\Icons class; the button is drawn without an icon.', $icon ) );
+		$icon  = (string) ( $args['icon'] ?? '' );
+		$known = '' !== $icon && isset( Icons::classes()[ $icon ] );
+		if ( $icon_only ) {
+			if ( ! $known ) {
+				self::doing_it_wrong( sprintf( 'An icon-only button needs a Core\Icons class, and "%s" is not one. Nothing is printed.', $icon ) );
+				return '';
 			}
+			$classes[] = 'ffc-btn-icon';
+		}
+		if ( $known ) {
+			$classes[] = 'ffc-icon-' . $icon;
+		} elseif ( '' !== $icon ) {
+			self::doing_it_wrong( sprintf( '"%s" is not a Core\Icons class; the button is drawn without an icon.', $icon ) );
 		}
 
 		$extra = preg_split( '/\s+/', trim( (string) ( $args['class'] ?? '' ) ) );
@@ -133,6 +151,11 @@ final class Button {
 			}
 		}
 
+		if ( $icon_only ) {
+			$attrs['aria-label'] = $label;
+			$attrs['title']      = $label;
+		}
+
 		$more = is_array( $args['attrs'] ?? null ) ? $args['attrs'] : array();
 		foreach ( $more as $key => $value ) {
 			$key = strtolower( (string) $key );
@@ -159,7 +182,7 @@ final class Button {
 
 		$tag = null === $href ? 'button' : 'a';
 
-		return '<' . $tag . $printed . '>' . esc_html( $label ) . '</' . $tag . '>';
+		return '<' . $tag . $printed . '>' . ( $icon_only ? '' : esc_html( $label ) ) . '</' . $tag . '>';
 	}
 
 	/**

@@ -48,7 +48,7 @@
 			+         '<span class="ffc-icon-clock" aria-hidden="true"></span>'
 			+         esc(strings.scheduleExceptionTitle || 'Schedule exception')
 			+       '</h2>'
-			+       '<button type="button" class="ffc-open-early-close ffc-schedule-exception-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'
+			+       FFC.buttonHtml({ label: strings.close || 'Close', category: 'neutral', icon: 'cross', iconOnly: true, className: 'ffc-open-early-close ffc-schedule-exception-close' })
 			+     '</div>'
 			+     '<div class="ffc-open-early-body ffc-schedule-exception-body">'
 			+       '<p>' + esc(strings.scheduleExceptionBody || 'Set a different schedule for one participant. The next form submission opened from this modal will record this exception.') + '</p>'

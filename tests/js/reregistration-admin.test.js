@@ -300,7 +300,7 @@ describe('rereg-admin — submission details modal', () => {
 			<div id="ffc-submission-details-modal" style="display:none">
 				<div class="ffc-rereg-modal-backdrop"></div>
 				<div class="ffc-rereg-modal-content">
-					<button type="button" class="ffc-rereg-modal-close">x</button>
+					<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-rereg-modal-close" aria-label="Close"></button>
 					<div class="ffc-rereg-modal-body"><p class="ffc-rereg-modal-loading"></p></div>
 				</div>
 			</div>

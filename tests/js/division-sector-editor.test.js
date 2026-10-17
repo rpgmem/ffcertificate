@@ -20,7 +20,7 @@ function sectorMarkup(value) {
 	return `
 		<div class="ffc-ds-sector">
 			<input type="text" class="ffc-ds-sector-name" value="${value}">
-			<button type="button" class="ffc-ds-sector-remove">×</button>
+			<button type="button" class="ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross ffc-ds-sector-remove" aria-label="Remove department"></button>
 		</div>`;
 }
 

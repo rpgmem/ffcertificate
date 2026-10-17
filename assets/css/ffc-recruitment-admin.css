@@ -93,16 +93,6 @@
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
 }
-.ffc-confirm-modal-close {
-    background: none;
-    border: none;
-    font-size: var(--ffc-font-size-2xl);
-    cursor: pointer;
-    color: var(--ffc-text-muted);
-    padding: 0 var(--ffc-spacing-2xs);
-    line-height: 1;
-}
-.ffc-confirm-modal-close:hover { color: var(--ffc-text); }
 .ffc-confirm-modal-body {
     padding: var(--ffc-spacing-xl);
     overflow-y: auto;

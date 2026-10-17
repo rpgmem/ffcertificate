@@ -262,4 +262,79 @@ class ButtonTest extends TestCase {
 		}
 		$this->assertSame( 0, $log->count() );
 	}
+
+	public function test_an_icon_only_button_prints_no_text_and_names_itself(): void {
+		$html = Button::html(
+			array(
+				'label'     => 'Close',
+				'icon'      => 'cross',
+				'icon_only' => true,
+				'class'     => 'ffc-modal-close',
+			)
+		);
+		$this->assertSame( '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close" title="Close"></button>', $html );
+		$this->assertSame( array(), $this->wrong );
+	}
+
+	public function test_an_icon_only_name_is_escaped_and_attrs_cannot_replace_it(): void {
+		$html = Button::html(
+			array(
+				'label'     => '"><b>x',
+				'category'  => 'danger',
+				'icon'      => 'cross',
+				'icon_only' => true,
+				'attrs'     => array(
+					'aria-label' => 'other',
+					'title'      => 'other',
+				),
+			)
+		);
+		$this->assertStringContainsString( 'aria-label="&quot;&gt;&lt;b&gt;x" title="&quot;&gt;&lt;b&gt;x"></button>', $html );
+		$this->assertStringNotContainsString( 'other', $html );
+	}
+
+	public function test_an_icon_only_link_names_itself_too(): void {
+		$html = Button::html(
+			array(
+				'label'     => 'Detach',
+				'category'  => 'danger',
+				'icon'      => 'cross',
+				'icon_only' => true,
+				'href'      => '#',
+			)
+		);
+		$this->assertSame( '<a href="#" class="ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross" aria-label="Detach" title="Detach"></a>', $html );
+	}
+
+	public function test_an_icon_only_button_without_a_label_is_refused_and_reported(): void {
+		$this->assertSame(
+			'',
+			Button::html(
+				array(
+					'icon'      => 'cross',
+					'icon_only' => true,
+				)
+			)
+		);
+		$this->assertCount( 1, $this->wrong );
+		$this->assertStringContainsString( 'needs a label', $this->wrong[0] );
+	}
+
+	public function test_an_icon_only_button_without_a_known_icon_is_refused_and_reported(): void {
+		foreach ( array( '', 'no-such-icon' ) as $icon ) {
+			$this->wrong = array();
+			$this->assertSame(
+				'',
+				Button::html(
+					array(
+						'label'     => 'Close',
+						'icon'      => $icon,
+						'icon_only' => true,
+					)
+				)
+			);
+			$this->assertCount( 1, $this->wrong, $icon );
+			$this->assertStringContainsString( 'needs a Core\Icons class', $this->wrong[0] );
+		}
+	}
 }

@@ -726,7 +726,17 @@ class SubmissionsList extends \WP_List_Table {
 				<div class="ffc-filter-overlay-content">
 					<div class="ffc-filter-overlay-header">
 						<h3><?php esc_html_e( 'Filter by Form', 'ffcertificate' ); ?></h3>
-						<button type="button" class="ffc-filter-overlay-close" title="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+						<?php
+						\FreeFormCertificate\Core\Button::render(
+							array(
+								'label'     => __( 'Close', 'ffcertificate' ),
+								'category'  => 'neutral',
+								'icon'      => 'cross',
+								'icon_only' => true,
+								'class'     => 'ffc-filter-overlay-close',
+							)
+						);
+						?>
 					</div>
 					<div class="ffc-filter-overlay-body">
 						<?php

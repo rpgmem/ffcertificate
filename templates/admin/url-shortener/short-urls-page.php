@@ -319,7 +319,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<div id="ffc-qr-modal" class="ffc-qr-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ffc-qr-modal-title">
 				<div class="ffc-qr-modal__backdrop"></div>
 				<div class="ffc-qr-modal__content">
-					<button type="button" class="ffc-qr-modal__close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'     => __( 'Close', 'ffcertificate' ),
+							'category'  => 'neutral',
+							'icon'      => 'cross',
+							'icon_only' => true,
+							'class'     => 'ffc-qr-modal__close',
+						)
+					);
+					?>
 					<h2 id="ffc-qr-modal-title" class="ffc-qr-modal__title"></h2>
 					<p class="ffc-qr-modal__url"></p>
 					<div class="ffc-qr-modal__preview">
@@ -347,7 +357,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<div id="ffc-edit-modal" class="ffc-qr-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ffc-edit-modal-title">
 				<div class="ffc-qr-modal__backdrop"></div>
 				<div class="ffc-qr-modal__content">
-					<button type="button" class="ffc-qr-modal__close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'     => __( 'Close', 'ffcertificate' ),
+							'category'  => 'neutral',
+							'icon'      => 'cross',
+							'icon_only' => true,
+							'class'     => 'ffc-qr-modal__close',
+						)
+					);
+					?>
 					<h2 id="ffc-edit-modal-title" class="ffc-qr-modal__title"><?php esc_html_e( 'Edit Short URL', 'ffcertificate' ); ?></h2>
 					<form id="ffc-edit-short-url">
 						<?php wp_nonce_field( 'ffc_short_url_nonce', 'ffc_edit_short_url_nonce' ); ?>

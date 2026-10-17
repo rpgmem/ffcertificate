@@ -35,7 +35,7 @@ function mountWithRows(rows) {
 					<td><input type="time" class="ffc-wh-exit1" value="${r.exit1 || ''}"></td>
 					<td><input type="time" class="ffc-wh-entry2" value="${r.entry2 || ''}"></td>
 					<td><input type="time" class="ffc-wh-exit2" value="${r.exit2 || ''}"></td>
-					<td><button type="button" class="ffc-wh-remove">x</button></td>
+					<td><button type="button" class="ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross ffc-wh-remove" aria-label="Remove day"></button></td>
 				</tr>`,
 		)
 		.join('');
@@ -55,6 +55,11 @@ describe('ffc-working-hours — add row', () => {
 
 		const $rows = window.$('.ffc-wh-table tbody tr');
 		expect($rows.length).toBe(1);
+		// #1879 — the row's remove is the family's icon-only danger button.
+		const remove = $rows.find('.ffc-wh-remove')[0];
+		expect(remove.className).toBe('ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross ffc-wh-remove');
+		expect(remove.getAttribute('aria-label')).toBe('Remove day');
+		expect(remove.textContent).toBe('');
 		const hidden = JSON.parse(window.$('#my-target').val());
 		expect(hidden).toHaveLength(1);
 		expect(hidden[0]).toMatchObject({
@@ -141,7 +146,7 @@ describe('ffc-working-hours — sync on change', () => {
 						<td><input type="time" class="ffc-wh-exit1" value=""></td>
 						<td><input type="time" class="ffc-wh-entry2" value=""></td>
 						<td><input type="time" class="ffc-wh-exit2" value="16:30"></td>
-						<td><button class="ffc-wh-remove">x</button></td>
+						<td><button class="ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross ffc-wh-remove" aria-label="Remove day"></button></td>
 					</tr>
 				</tbody></table>
 				<button class="ffc-wh-add">+</button>

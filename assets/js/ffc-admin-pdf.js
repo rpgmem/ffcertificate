@@ -471,7 +471,9 @@
                 '<div class="ffc-preview-container">' +
                     '<div class="ffc-preview-header">' +
                         '<h2></h2>' +
-                        '<button type="button" class="ffc-preview-close">&times;</button>' +
+                        // `.attr()` below sets the translated name; the markup
+                        // carries the fallback so the button is never nameless.
+                        '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-preview-close" aria-label="Close" title="Close"></button>' +
                     '</div>' +
                     '<div class="ffc-preview-note"></div>' +
                     '<div class="ffc-preview-body">' +
@@ -490,7 +492,7 @@
             '</div>'
         );
         $modal.find('.ffc-preview-header h2').text(previewTitle);
-        $modal.find('.ffc-preview-close').attr('title', closeText);
+        $modal.find('.ffc-preview-close').attr({ 'aria-label': closeText, title: closeText });
         $modal.find('.ffc-preview-note').text(sampleDataNote);
 
         $('body').append($modal);

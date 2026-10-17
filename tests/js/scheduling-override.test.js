@@ -93,7 +93,7 @@ function fixture() {
 		<select id="ffc-environment-select"><option value="">placeholder</option></select>
 		<div id="ffc-calendar-days"></div>
 		<div id="ffc-booking-modal" style="display:none">
-			<button class="ffc-modal-close">x</button>
+			<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
 			<form id="ffc-booking-form">
 				<input type="checkbox" id="booking-all-day" />
 				<div id="booking-time-row"></div>

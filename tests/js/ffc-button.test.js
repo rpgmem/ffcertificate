@@ -105,4 +105,27 @@ describe('FFC.button', () => {
 		el.textContent = 'Working…';
 		expect(el.classList.contains('ffc-icon-delete')).toBe(true);
 	});
+
+	it('prints the PHP markup for an icon-only button: no text, the label as its name', () => {
+		expect(window.FFC.buttonHtml({ label: 'Close', icon: 'cross', iconOnly: true, className: 'ffc-modal-close' })).toBe(
+			'<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close" title="Close"></button>'
+		);
+	});
+
+	it('keeps the icon-only name out of markup and away from attrs', () => {
+		const el = window.FFC.button({ label: XSS, category: 'danger', icon: 'cross', iconOnly: true, attrs: { 'aria-label': 'other' } });
+		document.body.appendChild(el);
+		expect(el.textContent).toBe('');
+		expect(el.getAttribute('aria-label')).toBe(XSS);
+		expect(el.getAttribute('title')).toBe(XSS);
+		expect(el.querySelector('img')).toBeNull();
+		expect(window.__pwned).toBeUndefined();
+	});
+
+	it('refuses an icon-only button without a label or an icon, like any bad input', () => {
+		expect(window.FFC.button({ icon: 'cross', iconOnly: true })).toBeNull();
+		expect(window.FFC.button({ label: 'Close', iconOnly: true })).toBeNull();
+		expect(window.FFC.button({ label: 'Close', icon: 'x" onclick="y', iconOnly: true })).toBeNull();
+		expect(window.FFC.buttonHtml({ label: '', icon: 'cross', iconOnly: true })).toBe('');
+	});
 });

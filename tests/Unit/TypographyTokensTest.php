@@ -84,13 +84,14 @@ class TypographyTokensTest extends TestCase {
 		'ffc-working-hours.css'            => 0,
 		'ffc-audience-transfer-list.css'   => 0,
 
-		// Glyphs: an icon (dashicon, `&times;`, a success mark) sized by
-		// font-size is a glyph box, not text.
+		// Glyphs: an icon (dashicon, a success mark) sized by font-size is a
+		// glyph box, not text. 1 -> 0 for the three sheets whose literal was a
+		// `&times;` close, now the button family's icon-only variant (#1879).
 		'ffc-admin-settings.css'           => 1,
 		'ffc-calendar-frontend.css'        => 1,
-		'ffc-reregistration-admin.css'     => 1,
-		'ffc-admin.css'                    => 1,
-		'ffc-frontend.css'                 => 1,
+		'ffc-reregistration-admin.css'     => 0,
+		'ffc-admin.css'                    => 0,
+		'ffc-frontend.css'                 => 0,
 
 		// Card hero numbers, deliberately above the text scale — plus the phone
 		// step, which would make no sense if it rose to the floor.

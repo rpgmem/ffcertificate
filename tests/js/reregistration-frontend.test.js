@@ -1004,6 +1004,10 @@ describe('rereg working hours', () => {
 		await flush();
 
 		expect(window.$('.ffc-working-hours tbody tr').length).toBe(1);
+		// #1879 — the row's remove is the family's icon-only danger button.
+		const remove = window.$('.ffc-working-hours tbody tr .ffc-wh-remove')[0];
+		expect(remove.classList.contains('ffc-btn-icon')).toBe(true);
+		expect(remove.getAttribute('aria-label')).not.toBe('');
 		const hidden = JSON.parse(window.$('#wh-hidden').val());
 		expect(hidden).toHaveLength(1);
 		expect(hidden[0].day).toBe(0);

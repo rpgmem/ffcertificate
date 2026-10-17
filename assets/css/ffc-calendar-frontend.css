@@ -399,7 +399,8 @@
         flex-direction: column;
     }
 
-    .ffc-shortcode .ffc-btn {
+    /* The dialog's icon-only close stays a square (#1879). */
+    .ffc-shortcode .ffc-btn:not(.ffc-btn-icon) {
         width: 100%;
         text-align: center;
     }

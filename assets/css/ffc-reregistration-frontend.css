@@ -183,20 +183,6 @@
     font-size: var(--ffc-font-size-sm);
 }
 
-.ffc-wh-remove {
-    background: none;
-    border: none;
-    color: var(--ffc-danger-text);
-    font-size: var(--ffc-font-size-xl);
-    cursor: pointer;
-    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
-    line-height: 1;
-}
-
-.ffc-wh-remove:hover {
-    color: var(--ffc-danger-text);
-}
-
 .ffc-wh-add {
     margin-top: var(--ffc-spacing-sm);
 }
