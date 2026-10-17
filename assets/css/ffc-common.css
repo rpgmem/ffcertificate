@@ -2364,6 +2364,14 @@ body.wp-admin .ffc-btn-icon::before {
     height: 16px;
 }
 
+/* Full width (#1880): a layout modifier, not a category — the button keeps
+   its category's colours and fills its container, as the certificate form's
+   Submit does under the form. */
+.ffc-btn-block {
+    display: flex;
+    width: 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .ffc-btn {
         transition: none;

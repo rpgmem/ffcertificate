@@ -112,7 +112,9 @@ final class SpacingTokensTest extends TestCase {
 		// ffc-user-dashboard.css with the component, so the net is zero.
 		'ffc-common.css'                   => 3,
 		'ffc-custom-fields-admin.css'      => 3,
-		'ffc-frontend.css'                 => 17,
+		// Sixteen since #1880: the download button's `40px` side padding left
+		// with its rule when the certificate buttons joined the `.ffc-btn` family.
+		'ffc-frontend.css'                 => 16,
 		'ffc-pdf-core.css'                 => 1,
 		'ffc-progress-overlay.css'         => 1,
 		'ffc-recruitment-admin.css'        => 2,

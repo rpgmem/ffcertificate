@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\VerificationResponseRenderer;
+use FreeFormCertificate\Tests\Support\ButtonMarkup;
 
 /**
  * @covers \FreeFormCertificate\Frontend\VerificationResponseRenderer
@@ -169,6 +170,7 @@ class VerificationResponseRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Maria Silva', $html );
 		$this->assertStringContainsString( 'Workshop PHP', $html );
 		$this->assertStringContainsString( 'Download Receipt (PDF)', $html );
+		$this->assert_download_family_button( $html );
 	}
 
 	// ==================================================================
@@ -248,6 +250,7 @@ class VerificationResponseRendererTest extends TestCase {
 		$this->assertStringContainsString( '*', $html );
 		$this->assertStringContainsString( 'Rematrícula 2025', $html );
 		$this->assertStringContainsString( 'Download Record (PDF)', $html );
+		$this->assert_download_family_button( $html );
 		// 6.7.5 — Status row in body (not header anymore) with colored pill.
 		$this->assertStringContainsString( 'ffc-verification-status-approved', $html );
 		$this->assertStringContainsString( 'Approved', $html );
@@ -325,6 +328,37 @@ class VerificationResponseRendererTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-certificate-preview', $html );
 		$this->assertStringContainsString( 'My Certificate', $html );
+	}
+
+	public function test_format_verification_response_download_button_is_a_family_button(): void {
+		// The shipped `templates/certificate-preview.php`, with the button on.
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Certificate' ) );
+
+		$submission = (object) array(
+			'id'              => 7,
+			'form_id'         => 1,
+			'submission_date' => '2025-06-01 10:00:00',
+		);
+
+		$html = $this->renderer->format_verification_response( $submission, array( 'auth_code' => 'ABC123' ), true );
+
+		$this->assert_download_family_button( $html );
+		$this->assertStringContainsString( 'data-submission-id="7"', $html );
+	}
+
+	/**
+	 * A Download PDF button is a family button (#1880): primary with the
+	 * download icon, and the two hooks `ffc-frontend.js` reads.
+	 *
+	 * @param string $html Rendered markup.
+	 * @return void
+	 */
+	private function assert_download_family_button( string $html ): void {
+		$buttons = ButtonMarkup::classes_by_hook( $html, 'ffc-download-pdf-btn' );
+		$this->assertCount( 1, $buttons );
+		foreach ( array( 'ffc-btn', 'ffc-btn-primary', 'ffc-icon-download', 'ffc-download-btn' ) as $class ) {
+			$this->assertContains( $class, $buttons[0], "The download button lacks {$class}." );
+		}
 	}
 
 	// ==================================================================

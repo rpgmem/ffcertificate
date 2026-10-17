@@ -620,42 +620,6 @@ details.ffc-consent-description > p {
 }
 
 /* ============================================
-   BUTTONS
-   ============================================ */
-.ffc-shortcode .ffc-submit-btn {
-    width: 100%; /* ← 100% do form (450px) */
-    padding: var(--ffc-spacing-xl);
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-    border: none;
-    border-radius: var(--ffc-radius-sm);
-    font-size: var(--ffc-font-size-xl);
-    font-weight: 600;
-    cursor: pointer;
-    transition: background var(--ffc-transition-slow), transform 0.1s;
-    box-sizing: border-box; /* ← padding included */
-}
-
-.ffc-shortcode .ffc-submit-btn:hover {
-    background: var(--ffc-primary-hover);
-}
-
-.ffc-shortcode .ffc-submit-btn:active {
-    transform: scale(0.98);
-}
-
-.ffc-shortcode .ffc-submit-btn:focus-visible {
-    outline: 2px solid var(--ffc-primary);
-    outline-offset: 2px;
-}
-
-.ffc-shortcode .ffc-submit-btn:disabled {
-    background: var(--ffc-border);
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* ============================================
    VERIFICATION PAGE
    ============================================ */
 .ffc-shortcode.ffc-verification-container {
@@ -856,12 +820,6 @@ details.ffc-consent-description > p {
     box-sizing: border-box;
 }
 
-.ffc-shortcode .ffc-manual-verification-form .ffc-manual-verify-btn {
-    display: inline-block;
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-3xl);
-    font-size: var(--ffc-font-size-base);
-}
-
 /* ============================================
    PREVIEW BODY (Certificate Details)
    ============================================ */
@@ -1022,42 +980,6 @@ details.ffc-consent-description > p {
     border-top: 1px solid var(--ffc-border-light);
 }
 
-.ffc-shortcode .ffc-download-btn {
-    display: inline-block;
-    background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%);
-    color: var(--ffc-text-on-primary);
-    border: none;
-    padding: var(--ffc-spacing-xl) 40px;
-    font-size: var(--ffc-font-size-xl);
-    font-weight: 600;
-    border-radius: var(--ffc-radius-sm);
-    cursor: pointer;
-    transition: all var(--ffc-transition-slow);
-    box-shadow: 0 4px 12px var(--ffc-focus-ring);
-}
-
-.ffc-shortcode .ffc-download-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px var(--ffc-focus-ring);
-}
-
-.ffc-shortcode .ffc-download-btn:active {
-    transform: translateY(0);
-    box-shadow: var(--ffc-shadow-sm);
-}
-
-.ffc-shortcode .ffc-download-btn:focus-visible {
-    outline: 2px solid var(--ffc-primary);
-    outline-offset: 2px;
-}
-
-.ffc-shortcode .ffc-download-btn:disabled {
-    background: var(--ffc-border);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
 /* ============================================
    GEOFENCE - PREVENT FORM FLASH (v3.0.0)
    ============================================ */
@@ -1162,10 +1084,9 @@ details.ffc-consent-description > p {
         max-width: 100%;
     }
 
-    .ffc-shortcode .ffc-download-btn {
+    /* The download button fills the action strip on a phone. */
+    .ffc-shortcode .ffc-preview-actions .ffc-btn {
         width: 100%;
-        padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
-        font-size: var(--ffc-font-size-xl);
     }
 
     .ffc-shortcode .ffc-preview-body h3 {
@@ -1183,7 +1104,7 @@ details.ffc-consent-description > p {
 @media print {
     .ffc-shortcode .ffc-preview-header,
     .ffc-shortcode .ffc-preview-actions,
-    .ffc-shortcode .ffc-submit-btn {
+    .ffc-shortcode .ffc-btn {
         display: none;
     }
 
@@ -1196,14 +1117,17 @@ details.ffc-consent-description > p {
    SUBMISSION SUCCESS CARD
    6.6.12 — unified with /valid certificate-preview visual language.
    Shares `.ffc-certificate-preview` / `.ffc-preview-header` /
-   `.ffc-preview-body` / `.ffc-detail-row` / `.ffc-preview-actions` /
-   `.ffc-download-btn` with the verification card. The rules below
-   only carry the bits that are unique to the post-submission flow
-   (preamble message, auth-code copy button, magic-link row, the
-   collapsible device-hints `<details>` at the bottom).
+   `.ffc-preview-body` / `.ffc-detail-row` / `.ffc-preview-actions`
+   with the verification card. The rules below only carry the bits that
+   are unique to the post-submission flow (preamble message, auth-code
+   row, magic-link row, the collapsible device-hints `<details>` at the
+   bottom). Its buttons are the `.ffc-btn` family (#1880); the
+   `.ffc-download-btn` / `.ffc-success-download-btn` / `.ffc-copy-btn`
+   classes on them are hooks for scripts and an install's own CSS, with
+   no rule here.
    Pre-6.6.12 obsolete classes deleted: `.ffc-success-icon`,
    `.ffc-success-details`, `.ffc-success-row*`, `.ffc-success-actions`,
-   `.ffc-success-download-btn`, `.ffc-auth-code`.
+   `.ffc-auth-code`.
    ========================================================================== */
 
 /* Auth-code row: the `.ffc-detail-value-code` cell holds the <code> + copy button
@@ -1254,30 +1178,13 @@ details.ffc-consent-description > p {
     min-width: 0;
 }
 
-/* Shared copy button — used by both the auth-code row and the magic-link
-   row. Reset font-family back to the document default because the
-   button is nested inside `.ffc-detail-value-code` which sets monospace. */
-.ffc-shortcode .ffc-copy-btn {
-    display: inline-block;
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
-    border: 1px solid var(--ffc-primary);
-    background: transparent;
-    color: var(--ffc-primary);
-    border-radius: var(--ffc-radius-sm);
-    font-family: inherit;
-    font-size: var(--ffc-font-size-xs);
-    font-weight: 600;
-    letter-spacing: normal;
-    line-height: 1.4;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+/* The Copy buttons of the auth-code and magic-link rows are the `.ffc-btn`
+   family (#1880). Only layout stays: they never shrink beside the code or
+   the URL, and the code cell's letter spacing stays off the label. */
+.ffc-shortcode .ffc-success-auth-code .ffc-btn,
+.ffc-shortcode .ffc-success-magic-link-row .ffc-btn {
     flex-shrink: 0;
-}
-
-.ffc-shortcode .ffc-copy-btn:hover,
-.ffc-shortcode .ffc-copy-btn:focus {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
+    letter-spacing: normal;
 }
 
 /* "Can't find the PDF?" collapsible at the bottom of the success card.
@@ -1352,11 +1259,6 @@ details.ffc-consent-description > p {
    responsive override below and the submit-button loading state stay here —
    they are front-end only.
    ============================================ */
-.ffc-submit-btn.ffc-btn-loading {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
 /* ============================================
    CSV DOWNLOAD — INFO SCREEN
    Scoped under .ffc-public-csv-download to raise specificity
@@ -1952,9 +1854,7 @@ details.ffc-consent-description > p {
 
     .ffc-shortcode .ffc-input,
     .ffc-shortcode .ffc-consent-text a,
-    .ffc-shortcode .ffc-submit-btn,
     .ffc-shortcode .ffc-verify-input,
-    .ffc-shortcode .ffc-download-btn,
     .ffc-shortcode .ffc-csv-progress-bar-fill {
         transition: none;
     }
@@ -2059,9 +1959,7 @@ details.ffc-consent-description > p {
     /* Controls: without a contour, a button stops looking clickable. */
     .ffc-extend-end-modal .ffc-info-btn-primary,
     .ffc-open-early-modal .ffc-info-btn-primary,
-    .ffc-public-csv-download .ffc-info-btn-primary,
-    .ffc-shortcode .ffc-download-btn,
-    .ffc-shortcode .ffc-submit-btn {
+    .ffc-public-csv-download .ffc-info-btn-primary {
         border: 1px solid ButtonText;
     }
 

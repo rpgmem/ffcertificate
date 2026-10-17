@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\Shortcodes;
+use FreeFormCertificate\Tests\Support\ButtonMarkup;
 
 /**
  * @covers \FreeFormCertificate\Frontend\Shortcodes
@@ -208,6 +209,37 @@ class FrontendShortcodesTest extends TestCase {
 		$html = $this->shortcodes->render_verification_page( array() );
 
 		$this->assertStringContainsString( 'ffc-verification-form', $html );
+
+		// Verify is a family button (#1880), the hook kept.
+		$buttons = ButtonMarkup::classes_by_hook( $html, 'ffc-submit-btn' );
+		$this->assertCount( 1, $buttons );
+		foreach ( array( 'ffc-btn', 'ffc-btn-primary', 'ffc-icon-checkmark', 'ffc-btn-block' ) as $class ) {
+			$this->assertContains( $class, $buttons[0], "Verify lacks {$class}." );
+		}
+	}
+
+	/**
+	 * The quiz dialog's Start again is a neutral family button with the sync
+	 * icon (#1880), keeping both hooks `ffc-quiz-leave.js` and the stylesheet
+	 * history read.
+	 *
+	 * @return void
+	 */
+	public function test_quiz_leave_dialog_start_again_is_a_neutral_family_button(): void {
+		$method = new \ReflectionMethod( Shortcodes::class, 'render_quiz_leave_dialog' );
+		$method->setAccessible( true );
+
+		ob_start();
+		$method->invoke( $this->shortcodes, 42 );
+		$html = (string) ob_get_clean();
+
+		$buttons = ButtonMarkup::classes_by_hook( $html, 'ffc-quiz-leave-restart' );
+		$this->assertCount( 1, $buttons );
+		foreach ( array( 'ffc-btn', 'ffc-btn-neutral', 'ffc-icon-sync', 'ffc-submit-btn' ) as $class ) {
+			$this->assertContains( $class, $buttons[0], "Start again lacks {$class}." );
+		}
+		$this->assertNotContains( 'ffc-btn-primary', $buttons[0] );
+		$this->assertStringContainsString( 'Start again', $html );
 	}
 
 	// ==================================================================
@@ -296,6 +328,15 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-lgpd-consent', $html );
 		$this->assertStringContainsString( 'ffc-submit-btn', $html );
 		$this->assertStringContainsString( 'ffc_honeypot_trap', $html );
+
+		// The Submit is a family button (#1880): primary with the check icon,
+		// full width, and `ffc-submit-btn` kept as the hook scripts read.
+		$buttons = ButtonMarkup::classes_by_hook( $html, 'ffc-submit-btn' );
+		$this->assertCount( 1, $buttons );
+		foreach ( array( 'ffc-btn', 'ffc-btn-primary', 'ffc-icon-checkmark', 'ffc-btn-block' ) as $class ) {
+			$this->assertContains( $class, $buttons[0], "The form's Submit lacks {$class}." );
+		}
+		$this->assertStringContainsString( 'type="submit"', $html );
 	}
 
 	// ==================================================================

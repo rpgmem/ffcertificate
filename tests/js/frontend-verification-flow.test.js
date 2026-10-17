@@ -196,6 +196,14 @@ describe('frontend.handleMagicLinkVerification', () => {
 
 		// showVerificationError replaces container HTML with .ffc-verification-error.
 		expect(window.$('.ffc-verification-error').length).toBe(1);
+
+		// The manual Verify button is a family button (#1880): primary, the
+		// check icon, and the two hook classes the click handlers read.
+		const $verify = window.$('.ffc-verification-error button');
+		expect($verify.length).toBe(1);
+		['ffc-btn', 'ffc-btn-primary', 'ffc-icon-checkmark', 'ffc-manual-verify-btn', 'ffc-download-btn']
+			.forEach((cls) => expect($verify.hasClass(cls)).toBe(true));
+		expect($verify.text()).toBe('Verify');
 	});
 
 	it('on success=false: surfaces the server message', async () => {
@@ -261,6 +269,9 @@ describe('frontend.handleMagicLinkVerification', () => {
 		// Download button gets the pdf_data shape composed from legacy fields.
 		const $btn = $container.find('.ffc-download-pdf-btn');
 		expect($btn.length).toBe(1);
+		// A family button (#1880): primary with the download icon, the hook kept.
+		['ffc-btn', 'ffc-btn-primary', 'ffc-icon-download'].forEach((cls) => expect($btn.hasClass(cls)).toBe(true));
+		expect(JSON.parse($btn.attr('data-pdf-data'))).toMatchObject({ template: 'tpl', form_title: 'My Form' });
 	});
 
 	it('legacy block renders the certificate preview when html_preview is present', async () => {

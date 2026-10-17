@@ -87,7 +87,6 @@ final class OpacityContrastTest extends TestCase {
 			'.ffc-custom-field-row.ffc-field-inactive' => 'disabled field: inactive component, exempt under SC 1.4.3',
 		),
 		'ffc-frontend.css'                => array(
-			'.ffc-submit-btn.ffc-btn-loading' => 'loading state, transient',
 			'.ffc-public-csv-download .ffc-info-btn-primary[disabled], .ffc-open-early-modal .ffc-info-btn-primary[disabled], .ffc-extend-end-modal .ffc-info-btn-primary[disabled]'   => 'inactive component, exempt under SC 1.4.3',
 			'.ffc-public-csv-download .ffc-info-btn-secondary[disabled], .ffc-open-early-modal .ffc-info-btn-secondary[disabled], .ffc-extend-end-modal .ffc-info-btn-secondary[disabled]' => 'inactive component, exempt under SC 1.4.3',
 			'.ffc-public-csv-download .ffc-info-btn-warning[disabled], .ffc-open-early-modal .ffc-info-btn-warning[disabled], .ffc-extend-end-modal .ffc-info-btn-warning[disabled]'   => 'inactive component, exempt under SC 1.4.3',

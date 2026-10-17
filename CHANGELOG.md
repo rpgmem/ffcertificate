@@ -14,6 +14,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **One button family, by what the action does** (#1874). `.ffc-btn` has five categories — primary, neutral, create, caution, danger — drawn by `Core\Button` and `FFC.button()`, each with a registry icon; save, erase, open-in-place and bulk-generate get icons of their own. The Settings tabs and the Scheduling holiday form use it; disabled no longer fades.
 - **Public screens and the user dashboard use the button family** (#1874). Booking, audience, reregistration, profile and cleanup buttons take a category and a registry icon; `.ffc-btn-secondary`/`-success` are gone; Public Design's error colour now tints delete buttons and danger notices.
 - **Close and remove buttons are the family's icon-only variant** (#1879). `icon_only` / `iconOnly` draws a square with a registry icon and the label as its `aria-label` and `title`; every hand-drawn `&times;`, public and admin, now uses it, and `IconOnlyButtonTest` keeps them out.
+- **Certificate screens use the button family** (#1880). Submit and Verify are primary with a check, full width through `.ffc-btn-block`; Download PDF primary, Copy and Start again neutral. The old classes stay as hooks with no styling; their rules left `ffc-frontend.css`.
 
 ### Fixed
 

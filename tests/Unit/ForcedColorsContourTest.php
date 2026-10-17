@@ -285,8 +285,10 @@ class ForcedColorsContourTest extends TestCase {
 	 * A focus ring does not count as a permanent contour.
 	 *
 	 * This is the defect that hid `.ffc-submit-btn` from the first measurement:
-	 * it has an `outline` on `:focus-visible`, and the scan read that as "it has
-	 * a boundary".
+	 * it had an `outline` on `:focus-visible`, and the scan read that as "it has
+	 * a boundary". That button joined the `.ffc-btn` family in #1880, so the
+	 * case is now the family's solid category: a ground, a focus ring, and no
+	 * visible border at rest.
 	 *
 	 * @return void
 	 */
@@ -294,17 +296,17 @@ class ForcedColorsContourTest extends TestCase {
 		$scan = $this->scan();
 
 		$this->assertArrayHasKey(
-			'.ffc-shortcode .ffc-submit-btn',
+			'.ffc-btn-primary',
 			$scan['background'],
-			'The submit button must keep being seen as a component with a background.'
+			'The primary button must keep being seen as a component with a background.'
 		);
 		$this->assertArrayNotHasKey(
-			'.ffc-shortcode .ffc-submit-btn',
+			'.ffc-btn-primary',
 			$scan['contour'],
-			'The submit button has no border at rest — only a focus ring, which does not count.'
+			'The primary button has no border of its own at rest — only a focus ring, which does not count.'
 		);
 		$this->assertArrayHasKey(
-			'.ffc-shortcode .ffc-submit-btn',
+			'.ffc-btn-primary',
 			$scan['forced'],
 			'…and that is why it needs the forced-colors rule.'
 		);
