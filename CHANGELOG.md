@@ -14,6 +14,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Public Design sets the information notices' colour** (#1842). It draws their bar and text in the light theme; their background is derived from it, and a colour below 4.5:1 on it is saved with a warning.
 - **A wipe-and-seed script for the testes site** (#1855). `.github/scripts/testes-seed.php` empties the plugin's tables, posts and demo users, then writes 20+ fictitious records per module through the plugin's own code. It refuses to run without `--yes-wipe` and a `--site` equal to `home_url()`.
 - **The plugin says what it is as a project** (#1857). Settings → Documentation opens with the license and a free-forever promise and ends with "About this project": free software under the AGPLv3, made by public servants in Brazil. README.md and both readmes say the same.
+- **Booking outside a calendar's rules needs a confirmation** (#1859). One warning lists every broken rule; "I agree" unlocks after 15 seconds, nothing is saved without it, and the booking is logged. Personal calendars too. Audience calendars gain an Admin bypass toggle and `ffc_bypass_audiences`.
+- **"Override Conflicts" works** (#1859). Its holder may book over an occupied slot after the warning; the earlier booking is cancelled and its owner gets a new, editable email, "Your booking was cancelled by an administrator".
 
 ### Changed
 
@@ -58,6 +60,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The rate-limit notice shows on the form that was refused** (#1846). It looked for `.ffc-form`, which no public form has, so the certificate form never showed it; it now sits above the refused form, counts down, and gives the button its own label back.
 - **Admin messages that were lost or unsafe** (#1843). User Access shows its save message; the reregistration details dialog writes a server error as text; Activity Log's empty state stays in its table; the Danger Zone wears one bar; `.ffc-warning-text` is `.ffc-text-danger`, and `.ffc-text-info` reads the info tone.
 - **Two required controls now carry `required`** (#1850). A required reregistration checkbox, such as the consent, is flagged under its group when unticked and blocks the submit; the QR short title is required while its row shows.
+- **Audience calendars enforce their rules** (#1859). In the "All" view a day closes only when no space opens, and the form lists only open spaces. The server checks holidays, closed days, start and end hours, the site-time advance window and inactive calendars; all day means the opening window.
+- ⚠ **`ffc_bypass_appointments` no longer bypasses audience calendars** (#1859). Their bypass is the new `ffc_bypass_audiences`, held by FFC Administrator and `manage_options`; a personal-calendar operator now books shared spaces under their rules.
 
 ### Security
 

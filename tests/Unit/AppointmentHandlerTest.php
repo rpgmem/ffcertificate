@@ -112,6 +112,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->validator = Mockery::mock( 'FreeFormCertificate\SelfScheduling\AppointmentValidator' );
 		// Default: no waitlist diversion (#941 phase 2). Waitlist-specific tests override.
 		$this->validator->shouldReceive( 'is_waitlist_requested' )->andReturn( false )->byDefault();
+		$this->validator->shouldReceive( 'get_override_reasons' )->andReturn( array() )->byDefault();
 
 		$this->setPrivate( 'calendar_repository', $this->calendarRepo );
 		$this->setPrivate( 'appointment_repository', $this->appointmentRepo );
@@ -217,6 +218,52 @@ class AppointmentHandlerTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
 		$this->assertTrue( $result['requires_approval'] );
+	}
+
+	/**
+	 * A booking a bypass holder confirmed over the rules is logged, and the
+	 * confirmation flag never reaches the row (#1859).
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_process_logs_a_confirmed_override_and_strips_the_flag(): void {
+		\Mockery::getConfiguration()->setConstantsMap(
+			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_WARNING' => 'warning' ) )
+		);
+		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
+		$log->shouldReceive( 'log' )->once()->with(
+			'appointment_booked_with_override',
+			'warning',
+			Mockery::on( static fn( array $c ): bool => 102 === $c['appointment_id'] && array( 'too_far' ) === $c['reasons'] ),
+			Mockery::any()
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar( array( 'requires_approval' => 0 ) ) );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->validator->shouldReceive( 'validate' )->andReturn( true );
+		$this->validator->shouldReceive( 'get_override_reasons' )->andReturn( array( array( 'code' => 'too_far', 'message' => 'Too far' ) ) );
+		$this->appointmentRepo->shouldReceive( 'createAppointment' )->once()
+			->with( Mockery::on( static fn( $data ) => ! array_key_exists( 'confirm_override', $data ) ) )
+			->andReturn( 102 );
+		$this->appointmentRepo->shouldReceive( 'commit' )->once();
+		$this->appointmentRepo->shouldReceive( 'findById' )->with( 102 )->andReturn( array( 'id' => 102, 'confirmation_token' => 't' ) );
+
+		$result = $this->handler->process_appointment(
+			array(
+				'calendar_id'      => 1,
+				'appointment_date' => '2026-03-01',
+				'start_time'       => '10:00',
+				'consent_given'    => '1',
+				'user_ip'          => '1.2.3.4',
+				'confirm_override' => true,
+			)
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['success'] );
+		\Mockery::getConfiguration()->setConstantsMap( array() );
 	}
 
 	public function test_process_status_confirmed_without_approval(): void {

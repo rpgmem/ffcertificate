@@ -204,6 +204,9 @@ class AppointmentRestController {
 				'consent_text'     => isset( $params['consent_text'] ) ? sanitize_textarea_field( $params['consent_text'] ) : '',
 				'user_ip'          => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+				// A bypass holder's explicit confirmation of a booking outside
+				// the calendar's rules; without it the answer is a 409 (#1859).
+				'confirm_override' => ! empty( $params['confirm_override'] ),
 			);
 
 			if ( is_user_logged_in() ) {

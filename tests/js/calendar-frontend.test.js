@@ -540,3 +540,87 @@ describe('ffc-calendar-frontend.js — captcha refresh delegates to the shared U
 		expect(window.$('#form-a').find('input[name="ffc_captcha_ans"]').val()).toBe('');
 	});
 });
+
+describe('ffc-calendar-frontend.js — the bypass override warning (#1859)', () => {
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		document.body.innerHTML = `
+			<form id="ffc-self-scheduling-form">
+				<input type="hidden" name="nonce" value="n" />
+				<input type="hidden" name="action" value="ffc_book_appointment" />
+				<input type="hidden" name="calendar_id" value="4" />
+				<input type="hidden" name="date" value="2026-05-23" />
+				<input type="hidden" name="time" value="09:00" />
+				<input type="checkbox" id="ffc-booking-consent" checked />
+				<button type="submit">Book</button>
+			</form>
+			<div class="ffc-form-messages"></div>
+			<div id="ffc-self-scheduling-modal"><div class="ffc-modal-content"></div></div>
+		`;
+		loadScript('assets/js/ffc-calendar-frontend.js');
+	});
+
+	function flush() {
+		return Promise.resolve().then(() => Promise.resolve()).then(() => Promise.resolve());
+	}
+
+	it('asks for the reasons first and submits with the confirmation once agreed', async () => {
+		window.ffcCalendarFrontend.config = { canBypass: true };
+		window.FFC.overrideConfirm = vi.fn().mockResolvedValue(true);
+		window.FFC.request
+			.mockResolvedValueOnce({ reasons: [{ code: 'too_far', message: 'Too far.' }] })
+			.mockReturnValueOnce(new Promise(() => {}));
+
+		window.ffcCalendarFrontend.submitBooking(window.$('#ffc-self-scheduling-form'));
+		await flush();
+
+		expect(window.FFC.request.mock.calls[0][0]).toBe('ffc_check_booking_override');
+		expect(window.FFC.request.mock.calls[0][1]).toEqual({ calendar_id: '4', date: '2026-05-23', time: '09:00' });
+		expect(window.FFC.overrideConfirm).toHaveBeenCalledTimes(1);
+		expect(window.FFC.overrideConfirm.mock.calls[0][0].reasons[0].code).toBe('too_far');
+		expect(window.FFC.request.mock.calls[1][0]).toBe('ffc_book_appointment');
+		expect(window.FFC.request.mock.calls[1][1]).toContain('confirm_override=1');
+	});
+
+	it('submits nothing when the warning is cancelled', async () => {
+		window.ffcCalendarFrontend.config = { canBypass: true };
+		window.FFC.overrideConfirm = vi.fn().mockResolvedValue(false);
+		window.FFC.request.mockResolvedValueOnce({ reasons: ['x'] });
+
+		window.ffcCalendarFrontend.submitBooking(window.$('#ffc-self-scheduling-form'));
+		await flush();
+
+		expect(window.FFC.request).toHaveBeenCalledTimes(1);
+		expect(window.$('#ffc-self-scheduling-form button[type="submit"]').prop('disabled')).toBe(false);
+	});
+
+	it('submits straight away when nothing is broken, or without the bypass', async () => {
+		window.ffcCalendarFrontend.config = { canBypass: true };
+		window.FFC.overrideConfirm = vi.fn();
+		window.FFC.request
+			.mockResolvedValueOnce({ reasons: [] })
+			.mockReturnValueOnce(new Promise(() => {}));
+
+		window.ffcCalendarFrontend.submitBooking(window.$('#ffc-self-scheduling-form'));
+		await flush();
+
+		expect(window.FFC.overrideConfirm).not.toHaveBeenCalled();
+		expect(window.FFC.request.mock.calls[1][1]).not.toContain('confirm_override');
+	});
+
+	it('shows the reasons the server returned when the rules changed after the check', async () => {
+		window.ffcCalendarFrontend.config = { canBypass: false };
+		window.FFC.overrideConfirm = vi.fn().mockResolvedValue(false);
+		const err = new Error('confirm');
+		err.fromServer = true;
+		err.data = { code: 'override_confirmation_required', reasons: [{ code: 'daily_limit', message: 'Full.' }] };
+		window.FFC.request.mockRejectedValueOnce(err);
+
+		window.ffcCalendarFrontend.submitBooking(window.$('#ffc-self-scheduling-form'));
+		await flush();
+
+		expect(window.FFC.overrideConfirm).toHaveBeenCalledTimes(1);
+		expect(window.FFC.overrideConfirm.mock.calls[0][0].reasons[0].code).toBe('daily_limit');
+	});
+});

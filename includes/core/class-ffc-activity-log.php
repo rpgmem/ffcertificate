@@ -145,6 +145,8 @@ class ActivityLog {
 			// appointment reveals; without a prefix of its own it would fall
 			// back to `submissions`.
 			'audience_account_email_revealed'    => 'scheduling',
+			// A booking confirmed over the calendar's rules (#1859).
+			'audience_booking_override'          => 'scheduling',
 
 			'settings_changed'                   => 'system',
 			'access_denied'                      => 'system',

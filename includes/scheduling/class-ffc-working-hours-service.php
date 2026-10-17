@@ -85,6 +85,48 @@ class WorkingHoursService {
 	}
 
 	/**
+	 * Check that a whole time range falls inside the working hours (#1859).
+	 *
+	 * {@see self::is_within_working_hours()} looks at one instant, so a
+	 * booking from 18:30 to 20:00 passed in a space that closes at 19:00. This
+	 * checks both ends: the start must be open, and the range must fit inside
+	 * one of the day's ranges, the closing time included as an end.
+	 *
+	 * @param string              $date  Date string (Y-m-d).
+	 * @param string              $start Range start (H:i or H:i:s).
+	 * @param string              $end   Range end (H:i or H:i:s).
+	 * @param string|array<mixed> $working_hours JSON string or decoded array.
+	 * @return bool True when the range fits (or no restrictions are defined).
+	 */
+	public static function is_range_within_working_hours( string $date, string $start, string $end, $working_hours ): bool {
+		if ( ! self::is_within_working_hours( $date, $start, $working_hours ) ) {
+			return false;
+		}
+
+		$ranges = self::get_day_ranges( $date, $working_hours );
+		if ( empty( $ranges ) ) {
+			// The start passed and the day declares no range: unrestricted.
+			return true;
+		}
+
+		$s = strtotime( '1970-01-01 ' . $start );
+		$e = strtotime( '1970-01-01 ' . $end );
+		if ( false === $s || false === $e || $e <= $s ) {
+			return false;
+		}
+
+		foreach ( $ranges as $range ) {
+			$rs = strtotime( '1970-01-01 ' . $range['start'] );
+			$re = strtotime( '1970-01-01 ' . $range['end'] );
+			if ( false !== $rs && false !== $re && $s >= $rs && $e <= $re ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Check if a day is a working day (not closed).
 	 *
 	 * @param string              $date  Date string (Y-m-d).

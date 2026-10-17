@@ -226,6 +226,10 @@ class TabEmailTexts extends SettingsTab {
 				'label'  => __( 'Audience booking cancellation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'start_time', 'end_time', 'description', 'audiences', 'cancelled_by_name', 'cancellation_reason', 'site_name', 'site_url' ),
 			),
+			'audience-admin-cancellation'   => array(
+				'label'  => __( 'Audience booking cancelled by an administrator', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'start_time', 'end_time', 'description', 'audiences', 'cancelled_by_name', 'cancellation_reason', 'site_name', 'site_url' ),
+			),
 			'access-granted'                => array(
 				'label'  => __( 'Access granted to a user', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'context_label', 'site_name', 'dashboard_button' ),
@@ -329,7 +333,7 @@ class TabEmailTexts extends SettingsTab {
 				'reregistration-reminder',
 				'reregistration-confirmation',
 			),
-			__( 'Audience Calendars', 'ffcertificate' ) => array( 'audience-booking', 'audience-cancellation' ),
+			__( 'Audience Calendars', 'ffcertificate' ) => array( 'audience-booking', 'audience-cancellation', 'audience-admin-cancellation' ),
 			__( 'Account access', 'ffcertificate' )     => array( 'access-granted' ),
 			__( 'Date Messages', 'ffcertificate' )      => array( 'date-message-birthday' ),
 		);
@@ -507,6 +511,12 @@ class TabEmailTexts extends SettingsTab {
 					array(
 						'label'   => __( 'Booking & cancellation notices', 'ffcertificate' ),
 						'purpose' => __( 'Audience booking lifecycle — default text edited globally in the hub above; a schedule may still set its own.', 'ffcertificate' ),
+						'type'    => 'global',
+						'url'     => $hub_url,
+					),
+					array(
+						'label'   => __( 'Booking cancelled by an administrator', 'ffcertificate' ),
+						'purpose' => __( 'Sent to the owner of a booking an override took the slot of — text edited globally in the hub above.', 'ffcertificate' ),
 						'type'    => 'global',
 						'url'     => $hub_url,
 					),

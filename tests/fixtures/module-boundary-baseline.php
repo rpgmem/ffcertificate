@@ -37,7 +37,6 @@ return array(
 	'Audience>Admin',
 	'Audience>Core',
 	'Audience>Integrations',
-	'Audience>Repositories',
 	'Audience>Reregistration',
 	'Audience>Scheduling',
 	'Audience>Settings',

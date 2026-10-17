@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handler for audience notification operations.
  *
  * @phpstan-import-type ScheduleRow from AudienceScheduleRepository
+ * @phpstan-import-type BookingRow from AudienceBookingReader
  */
 class AudienceNotificationHandler {
 
@@ -37,6 +38,7 @@ class AudienceNotificationHandler {
 	public static function init(): void {
 		add_action( 'ffcertificate_audience_booking_created', array( __CLASS__, 'send_booking_created_notification' ) );
 		add_action( 'ffcertificate_audience_booking_cancelled', array( __CLASS__, 'send_booking_cancelled_notification' ), 10, 2 );
+		add_action( 'ffcertificate_audience_booking_overridden', array( __CLASS__, 'send_booking_overridden_notification' ), 10, 3 );
 	}
 
 	/**
@@ -135,24 +137,125 @@ class AudienceNotificationHandler {
 	/**
 	 * Send notification when booking is cancelled
 	 *
-	 * @param int    $booking_id Booking ID.
-	 * @param string $reason Cancellation reason.
+	 * @param int        $booking_id       Booking ID.
+	 * @param string     $reason           Cancellation reason.
+	 * @param array<int> $exclude_user_ids Users told some other way, skipped here.
 	 * @return void
 	 */
-	public static function send_booking_cancelled_notification( int $booking_id, string $reason ): void {
+	public static function send_booking_cancelled_notification( int $booking_id, string $reason, array $exclude_user_ids = array() ): void {
+		$context = self::cancelled_booking_context( $booking_id, $reason );
+		if ( null === $context ) {
+			return;
+		}
+		$schedule     = $context['schedule'];
+		$booking_data = $context['data'];
+
+		// Admin notification — opt-in (default off), independent of the
+		// per-schedule user toggle and of whether any users are affected.
+		self::maybe_notify_admin_of_cancellation( $schedule, $booking_data );
+
+		// User notifications — gated on the per-schedule user toggle.
+		if ( ! $schedule->notify_on_cancellation ) {
+			return;
+		}
+
+		// Get all affected users (from booking_users table).
+		$affected_users = AudienceBookingReader::get_booking_users( (int) $booking_id );
+		if ( empty( $affected_users ) ) {
+			return;
+		}
+
+		// Generate ICS cancellation if enabled.
+		$ics_content = null;
+		if ( $schedule->include_ics ) {
+			$ics_content = self::generate_ics( $booking_data, 'cancelled' );
+		}
+
+		// Get email template or use default.
+		$template = $schedule->email_template_cancellation ? $schedule->email_template_cancellation : self::get_default_cancellation_template();
+
+		$exclude = array_map( 'intval', $exclude_user_ids );
+
+		// Send email to each affected user.
+		foreach ( $affected_users as $user_id ) {
+			if ( in_array( (int) $user_id, $exclude, true ) ) {
+				continue;
+			}
+			$user = get_user_by( 'id', (int) $user_id );
+			if ( ! $user || ! $user->user_email ) {
+				continue;
+			}
+
+			self::send_email(
+				$user->user_email,
+				self::render_subject( \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-cancellation', 'subject' ), $booking_data ),
+				self::render_template( $template, $booking_data, $user ),
+				$ics_content
+			);
+		}
+	}
+
+	/**
+	 * Tell the owner of a booking that an administrator's booking took its
+	 * slot (#1859).
+	 *
+	 * The owner always receives the "cancelled by an administrator" e-mail —
+	 * whatever the calendar's own cancellation toggle says, because they did
+	 * not cancel it and would otherwise not know. The people the booking was
+	 * for then receive the calendar's ordinary cancellation notice, under its
+	 * toggle, the owner excepted so nobody gets both.
+	 *
+	 * @param int    $booking_id     The booking that gave way.
+	 * @param int    $new_booking_id The booking that took the slot (carried for other listeners; the e-mail does not name it).
+	 * @param string $reason         Cancellation reason.
+	 * @return void
+	 */
+	public static function send_booking_overridden_notification( int $booking_id, int $new_booking_id, string $reason ): void {
+		$context = self::cancelled_booking_context( $booking_id, $reason );
+		if ( null === $context ) {
+			return;
+		}
+
+		$owner_id = (int) $context['booking']->created_by;
+		$owner    = $owner_id > 0 ? get_user_by( 'id', $owner_id ) : false;
+
+		if ( $owner && $owner->user_email ) {
+			$booking_data = $context['data'];
+			$ics_content  = $context['schedule']->include_ics ? self::generate_ics( $booking_data, 'cancelled' ) : null;
+
+			self::send_email(
+				$owner->user_email,
+				self::render_subject( \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-admin-cancellation', 'subject' ), $booking_data ),
+				self::render_template( \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-admin-cancellation' ), $booking_data, $owner ),
+				$ics_content
+			);
+		}
+
+		self::send_booking_cancelled_notification( $booking_id, $reason, $owner_id > 0 ? array( $owner_id ) : array() );
+	}
+
+	/**
+	 * Load a cancelled booking with its space and calendar, and the token
+	 * values its e-mails read.
+	 *
+	 * @param int    $booking_id Booking ID.
+	 * @param string $reason     Cancellation reason.
+	 * @return array{booking: BookingRow, schedule: ScheduleRow, data: array<string, mixed>}|null
+	 */
+	private static function cancelled_booking_context( int $booking_id, string $reason ): ?array {
 		$booking = AudienceBookingReader::get_by_id( $booking_id );
 		if ( ! $booking ) {
-			return;
+			return null;
 		}
 
 		$environment = AudienceEnvironmentRepository::get_by_id( (int) $booking->environment_id );
 		if ( ! $environment ) {
-			return;
+			return null;
 		}
 
 		$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
 		if ( ! $schedule ) {
-			return;
+			return null;
 		}
 
 		// Get cancelled by info.
@@ -187,44 +290,11 @@ class AudienceNotificationHandler {
 		);
 		$booking_data['audiences'] = implode( ', ', $audience_names );
 
-		// Admin notification — opt-in (default off), independent of the
-		// per-schedule user toggle and of whether any users are affected.
-		self::maybe_notify_admin_of_cancellation( $schedule, $booking_data );
-
-		// User notifications — gated on the per-schedule user toggle.
-		if ( ! $schedule->notify_on_cancellation ) {
-			return;
-		}
-
-		// Get all affected users (from booking_users table).
-		$affected_users = AudienceBookingReader::get_booking_users( (int) $booking_id );
-		if ( empty( $affected_users ) ) {
-			return;
-		}
-
-		// Generate ICS cancellation if enabled.
-		$ics_content = null;
-		if ( $schedule->include_ics ) {
-			$ics_content = self::generate_ics( $booking_data, 'cancelled' );
-		}
-
-		// Get email template or use default.
-		$template = $schedule->email_template_cancellation ? $schedule->email_template_cancellation : self::get_default_cancellation_template();
-
-		// Send email to each affected user.
-		foreach ( $affected_users as $user_id ) {
-			$user = get_user_by( 'id', (int) $user_id );
-			if ( ! $user || ! $user->user_email ) {
-				continue;
-			}
-
-			self::send_email(
-				$user->user_email,
-				self::render_subject( \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-cancellation', 'subject' ), $booking_data ),
-				self::render_template( $template, $booking_data, $user ),
-				$ics_content
-			);
-		}
+		return array(
+			'booking'  => $booking,
+			'schedule' => $schedule,
+			'data'     => $booking_data,
+		);
 	}
 
 	/**

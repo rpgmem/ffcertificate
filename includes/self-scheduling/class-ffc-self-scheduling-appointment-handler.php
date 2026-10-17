@@ -155,7 +155,8 @@ class AppointmentHandler {
 		// === BEGIN TRANSACTION: Atomic validate + insert ===.
 		$this->appointment_repository->begin_transaction();
 
-		$is_waitlist = false;
+		$is_waitlist      = false;
+		$override_reasons = array();
 
 		try {
 			// Validate with row-level locks (FOR UPDATE) to prevent concurrent overbooking.
@@ -164,6 +165,11 @@ class AppointmentHandler {
 				$this->appointment_repository->rollback();
 				return $validation;
 			}
+
+			// The rules a bypass holder confirmed breaking (#1859); the flag
+			// itself is not a column.
+			$override_reasons = $this->validator->get_override_reasons();
+			unset( $data['confirm_override'] );
 
 			// The slot was full but the calendar's waitlist had room (#941 phase 2):
 			// store this booking as a queued `waitlist` entry rather than an active
@@ -197,6 +203,23 @@ class AppointmentHandler {
 			return new \WP_Error( 'booking_error', __( 'An error occurred while booking. Please try again.', 'ffcertificate' ) );
 		}
 		// === END TRANSACTION ===.
+
+		// A booking confirmed over the calendar's rules is recorded (#1859).
+		if ( ! empty( $override_reasons ) ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'appointment_booked_with_override',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'appointment_id'   => (int) $appointment_id,
+					'calendar_id'      => (int) $data['calendar_id'],
+					'appointment_date' => (string) $data['appointment_date'],
+					'start_time'       => (string) $data['start_time'],
+					'reasons'          => array_column( $override_reasons, 'code' ),
+					'confirmed_at'     => time(),
+				),
+				get_current_user_id()
+			);
+		}
 
 		// Everything from here on is *after* the commit: the appointment row
 		// exists and the booking is real. A failure in the notification hook,
@@ -263,6 +286,36 @@ class AppointmentHandler {
 			'receipt_url'        => $receipt_url,
 			'notifications_ok'   => $emails_ok,
 		);
+	}
+
+	/**
+	 * The rules a booking would break, for a bypass holder to confirm (#1859).
+	 *
+	 * Read by the booking form before it submits, so the warning and its
+	 * countdown happen before the captcha is spent. Empty for anyone without
+	 * the bypass on the calendar: they are refused on submit instead.
+	 *
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date        Date (Y-m-d).
+	 * @param string $time        Start time (H:i).
+	 * @return list<array{code: string, message: string}>|\WP_Error
+	 */
+	public function get_override_reasons( int $calendar_id, string $date, string $time ) {
+		$calendar = $this->calendar_repository->findById( $calendar_id );
+		if ( ! $calendar ) {
+			return new \WP_Error( 'invalid_calendar', __( 'Calendar not found.', 'ffcertificate' ) );
+		}
+
+		$data = array(
+			'calendar_id'      => $calendar_id,
+			'appointment_date' => $date,
+			'start_time'       => $time,
+		);
+		if ( is_user_logged_in() ) {
+			$data['user_id'] = get_current_user_id();
+		}
+
+		return $this->validator->override_reasons( $data, $calendar );
 	}
 
 	/**

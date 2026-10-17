@@ -230,6 +230,8 @@ class SelfSchedulingShortcode {
 					// PDF overlay.
 					'generatingPdf'        => __( 'Generating PDF...', 'ffcertificate' ),
 					'pleaseWait'           => __( 'Please wait, this may take a few seconds...', 'ffcertificate' ),
+					// The override warning (#1859).
+					'override'             => \FreeFormCertificate\Core\OverrideWarning::strings(),
 				),
 			)
 		);
@@ -775,6 +777,9 @@ class SelfSchedulingShortcode {
 			'minDateHours'  => isset( $calendar['advance_booking_min'] ) ? (int) $calendar['advance_booking_min'] : 0,
 			'maxDateDays'   => isset( $calendar['advance_booking_max'] ) ? (int) $calendar['advance_booking_max'] : 30,
 			'canBook'       => $can_book,
+			// The booking form asks for the override warning first (#1859);
+			// the server decides again on the submission.
+			'canBypass'     => is_user_logged_in() && \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null ),
 		);
 		?>
 		<script type="application/json" id="ffc-calendar-config-<?php echo (int) $calendar['id']; ?>"><?php echo wp_json_encode( $calendar_config ); ?></script>
