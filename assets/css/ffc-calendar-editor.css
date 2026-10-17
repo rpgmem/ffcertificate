@@ -150,53 +150,11 @@
     gap: var(--ffc-spacing-xs);
 }
 
-/* `.button` in core and its dark-mode override in `ffc-common.css` reach
-   (0,3,0); the variants below outrank both. */
-.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn {
-    display: inline-flex;
-    gap: var(--ffc-spacing-xs);
-    align-items: center;
+/* The buttons are the family's (#1874); the box only lays them out as a
+   left-aligned column. Two classes outrank the family's centred label. */
+.ffc-cleanup-actions .ffc-btn {
     justify-content: flex-start;
     width: 100%;
-}
-
-.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-danger {
-    border-color: var(--ffc-danger-border);
-    background: var(--ffc-bg-card);
-    color: var(--ffc-danger-text);
-}
-
-.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-danger:hover,
-.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-danger:focus {
-    border-color: var(--ffc-danger-border);
-    background: var(--ffc-danger-bg);
-    color: var(--ffc-danger-text);
-}
-
-.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-caution {
-    border-color: var(--ffc-warning-border);
-    background: var(--ffc-bg-card);
-    color: var(--ffc-warning-text);
-}
-
-.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-caution:hover,
-.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-caution:focus {
-    border-color: var(--ffc-warning-border);
-    background: var(--ffc-warning-bg);
-    color: var(--ffc-warning-text);
-}
-
-.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-solid {
-    border-color: var(--ffc-danger);
-    background: var(--ffc-danger);
-    color: var(--ffc-text-on-danger);
-}
-
-.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-solid:hover,
-.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-solid:focus {
-    border-color: var(--ffc-danger-hover);
-    background: var(--ffc-danger-hover);
-    color: var(--ffc-text-on-danger);
 }
 
 /* "Delete all" stands apart from the rest, at the end. */
@@ -236,21 +194,8 @@
     font-variant-numeric: tabular-nums;
 }
 
-.ffc-shortcode.ffc-cleanup-dialog .ffc-modal-footer .ffc-btn {
-    display: inline-flex;
-    gap: var(--ffc-spacing-xs);
-    align-items: center;
-}
-
-/* Forced colours keep a contour on every cleanup control: the outline
-   variants have one from `.button`, the solid one would be a word. */
+/* The buttons take their contour from the family in `ffc-common.css`. */
 @media (forced-colors: active) {
-    .ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-danger,
-    .ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-caution,
-    .ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-solid {
-        border: 1px solid ButtonText;
-    }
-
     .ffc-cleanup-danger-box {
         border: 2px solid CanvasText;
     }

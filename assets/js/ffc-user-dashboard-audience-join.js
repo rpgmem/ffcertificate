@@ -41,10 +41,16 @@
         //     accordion toggle, with the children list below it.
         function joinLeaveButton(node) {
             if (node.is_member) {
-                return '<button type="button" class="button ffc-audience-leave-btn" data-id="' + node.id + '">' + (s.leaveGroup || 'Leave') + '</button>';
+                return window.FFC.buttonHtml({ label: s.leaveGroup || 'Leave', category: 'danger', icon: 'logout', className: 'ffc-audience-leave-btn', attrs: { 'data-id': node.id } });
             }
-            var disabled = (data.joined_count >= data.max_groups) ? ' disabled' : '';
-            return '<button type="button" class="button button-primary ffc-audience-join-btn" data-id="' + node.id + '"' + disabled + '>' + (s.joinGroup || 'Join') + '</button>';
+            return window.FFC.buttonHtml({
+                label: s.joinGroup || 'Join',
+                category: 'create',
+                icon: 'plus',
+                className: 'ffc-audience-join-btn',
+                disabled: data.joined_count >= data.max_groups,
+                attrs: { 'data-id': node.id }
+            });
         }
 
         // The dot takes the group's colour, an operator's choice, so it stays

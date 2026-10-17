@@ -12,10 +12,12 @@ import { loadScript } from './helpers.js';
 // The real FFC.notice() (#1842), kept across the suite's FFC mock: every
 // notice the calendar prints goes through it.
 let realNotice;
+let realCore;
 beforeAll(() => {
 	window.ffc_ajax = window.ffc_ajax || { ajax_url: '/wp-admin/admin-ajax.php', nonce: 'n', strings: {} };
 	loadScript('assets/js/ffc-core.js');
 	realNotice = window.FFC.notice;
+	realCore = window.FFC;
 });
 
 function installGlobals() {
@@ -52,6 +54,9 @@ function installGlobals() {
 	window.FFC = {
 		request: vi.fn(),
 		notice: realNotice,
+		buttonCategories: realCore.buttonCategories,
+		button: realCore.button,
+		buttonHtml: realCore.buttonHtml,
 	};
 }
 
@@ -267,6 +272,29 @@ describe('ffc-calendar-frontend.js — waitlist and e-mail notices (#1842)', () 
 		expect(document.querySelector('.ffc-confirmation-email').style.display).toBe('none');
 		ctl.showConfirmation({ email_sent: true });
 		expect(document.querySelector('.ffc-confirmation-email').style.display).not.toBe('none');
+	});
+
+	// Either receipt control is the same action, so both are the family's
+	// primary button with the download icon (#1874).
+	it('draws the receipt as the primary download button, as a button or as a link', () => {
+		const ctl = window.ffcCalendarFrontend;
+		window.$.fn.animate = function () { return this; };
+		window.ffcCalendar.strings.downloadReceipt = 'Download receipt';
+		ctl.selectedDate = '2026-05-20';
+		ctl.selectedTime = '09:00';
+
+		ctl.showConfirmation({ pdf_data: { a: 1 } });
+		const btn = document.querySelector('.ffc-receipt-actions button');
+		expect(btn.className).toBe('ffc-btn ffc-btn-primary ffc-icon-download ffc-download-receipt-btn');
+		expect(btn.textContent).toBe('Download receipt');
+		expect(window.$(btn).data('pdfData')).toEqual({ a: 1 });
+
+		ctl.showConfirmation({ receipt_url: 'https://example.test/r?x=1&y=2' });
+		const link = document.querySelector('.ffc-receipt-actions a');
+		expect(link.className).toBe('ffc-btn ffc-btn-primary ffc-icon-download');
+		expect(link.getAttribute('href')).toBe('https://example.test/r?x=1&y=2');
+		expect(link.getAttribute('target')).toBe('_blank');
+		expect(link.getAttribute('rel')).toBe('noopener noreferrer');
 	});
 });
 

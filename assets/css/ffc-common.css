@@ -2211,10 +2211,6 @@
    the font inherited, which is what `Core\PublicDesign` sets on
    `.ffc-shortcode` in the light theme. The admin variant below only changes
    the shape.
-
-   `.ffc-btn-secondary` and `.ffc-btn-success` are the names the public
-   screens used before the family had categories; they read as neutral and
-   create until their markup moves to the new names.
    ========================================================================== */
 
 .ffc-btn {
@@ -2273,39 +2269,28 @@ body.wp-admin .ffc-btn {
 .ffc-btn-neutral,
 .ffc-btn-neutral:hover,
 .ffc-btn-neutral:focus,
-.ffc-btn-neutral:active,
-.ffc-btn-secondary,
-.ffc-btn-secondary:hover,
-.ffc-btn-secondary:focus,
-.ffc-btn-secondary:active {
+.ffc-btn-neutral:active {
     background: var(--ffc-gray-100);
     color: var(--ffc-text);
 }
 
-.ffc-btn-neutral,
-.ffc-btn-secondary {
+.ffc-btn-neutral {
     border-color: var(--ffc-border-light);
 }
 
-.ffc-btn-neutral:hover,
-.ffc-btn-secondary:hover {
+.ffc-btn-neutral:hover {
     border-color: var(--ffc-border);
 }
 
 .ffc-btn-create,
 .ffc-btn-create:hover,
 .ffc-btn-create:focus,
-.ffc-btn-create:active,
-.ffc-btn-success,
-.ffc-btn-success:hover,
-.ffc-btn-success:focus,
-.ffc-btn-success:active {
+.ffc-btn-create:active {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-btn-create:hover,
-.ffc-btn-success:hover {
+.ffc-btn-create:hover {
     border-color: var(--ffc-success-border);
 }
 
@@ -3174,8 +3159,6 @@ body.wp-admin .ffc-btn {
     .ffc-btn-create,
     .ffc-btn-caution,
     .ffc-btn-danger,
-    .ffc-btn-secondary,
-    .ffc-btn-success,
     :root.ffc-dark-mode .button,
     :root.ffc-dark-mode .button-secondary,
     :root.ffc-dark-mode .ffc-shortcode .button-primary,

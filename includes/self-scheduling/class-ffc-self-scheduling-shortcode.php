@@ -686,12 +686,24 @@ class SelfSchedulingShortcode {
 
 								<!-- Submit Button -->
 								<div class="ffc-form-row ffc-submit-row">
-									<button type="submit" class="ffc-btn ffc-btn-primary">
-										<?php esc_html_e( 'Book Appointment', 'ffcertificate' ); ?>
-									</button>
-									<button type="button" class="ffc-btn ffc-btn-secondary ffc-btn-back">
-										<?php esc_html_e( '← Back', 'ffcertificate' ); ?>
-									</button>
+									<?php
+									\FreeFormCertificate\Core\Button::render(
+										array(
+											'label'    => __( 'Book Appointment', 'ffcertificate' ),
+											'category' => 'primary',
+											'icon'     => 'checkmark',
+											'type'     => 'submit',
+										)
+									);
+									\FreeFormCertificate\Core\Button::render(
+										array(
+											'label'    => __( 'Back', 'ffcertificate' ),
+											'category' => 'neutral',
+											'icon'     => 'chevron-left',
+											'class'    => 'ffc-btn-back',
+										)
+									);
+									?>
 								</div>
 
 								<!-- Messages -->
@@ -743,9 +755,16 @@ class SelfSchedulingShortcode {
 						?>
 					</div>
 
-					<button type="button" class="ffc-btn ffc-btn-primary ffc-btn-new-booking">
-						<?php esc_html_e( 'Book Another Appointment', 'ffcertificate' ); ?>
-					</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'    => __( 'Book Another Appointment', 'ffcertificate' ),
+							'category' => 'create',
+							'icon'     => 'plus',
+							'class'    => 'ffc-btn-new-booking',
+						)
+					);
+					?>
 				</div>
 			</div>
 		</div>

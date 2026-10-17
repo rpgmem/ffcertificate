@@ -76,6 +76,18 @@ final class PublicDesign {
 	 */
 	public const INFO_BG_MIX = 0.91;
 
+	/**
+	 * How far the danger ground is mixed from the picked error colour towards
+	 * white (#1874): the ground of the delete buttons and the danger notices.
+	 *
+	 * Measured the way INFO_BG_MIX was: 0.93 turns the default error colour
+	 * (#d63638) into #fcf1f1, at an RGB distance of 1.0 from the sheet's
+	 * hand-tuned `--ffc-danger-bg` (#fcf0f1); 0.92 and 0.94 land at 2.2 and
+	 * 3.7. The default still emits nothing, so the sheet's pair, with its
+	 * darker text, stays until the operator changes the colour.
+	 */
+	public const ERROR_BG_MIX = 0.93;
+
 	public const WIDTH_MIN = 320;
 
 	public const WIDTH_MAX = 1200;
@@ -285,6 +297,19 @@ final class PublicDesign {
 			$this->error
 		);
 
+		// The danger tone (#1874): the delete buttons and the danger notices
+		// read `--ffc-danger-*`, which `--ffc-danger` alone never reached. The
+		// picked colour draws their text and border and the ground is derived
+		// from it, as for the information notices below; the default emits
+		// nothing, so the sheet's hand-tuned pair stays.
+		if ( self::DEFAULTS['error'] !== $this->error ) {
+			$colors .= sprintf(
+				'--ffc-danger-border:%1$s;--ffc-danger-text:%1$s;--ffc-danger-bg:%2$s;--ffc-danger-light:%2$s;',
+				$this->error,
+				$this->error_background()
+			);
+		}
+
 		// The information notices (#1842). The operator picks the strong
 		// colour, which draws the bar and the text; the ground is derived from
 		// it. The default emits nothing, so the sheet's hand-tuned pair stays
@@ -312,13 +337,25 @@ final class PublicDesign {
 	}
 
 	/**
+	 * The ground of the delete buttons and the danger notices: the picked
+	 * error colour mixed towards white by ERROR_BG_MIX.
+	 *
+	 * @return string `#rrggbb`.
+	 */
+	public function error_background(): string {
+		return self::shade( $this->error, '#ffffff', self::ERROR_BG_MIX );
+	}
+
+	/**
 	 * The pairs the design draws below WCAG's floors, each with its ratio.
 	 * Text on the accent is not listed: `ContrastColor::on()` picks it, and
 	 * that choice never falls below 4.5:1.
 	 *
 	 * The information colour is measured on its own derived ground, which is
 	 * where it is read; it is never darkened to pass, because the operator
-	 * chose it (#1842).
+	 * chose it (#1842). A changed error colour is measured on its derived
+	 * ground too, where the delete buttons and the danger notices read it;
+	 * the default is not, because it draws nothing there (#1874).
 	 *
 	 * @return list<array{pair: string, ratio: float, min: float}>
 	 */
@@ -330,6 +367,9 @@ final class PublicDesign {
 			array( 'border', __( 'field borders on white', 'ffcertificate' ), self::MIN_BORDER_CONTRAST, '#ffffff' ),
 			array( 'info', __( 'information notices on their background', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, $this->info_background() ),
 		);
+		if ( self::DEFAULTS['error'] !== $this->error ) {
+			$pairs[] = array( 'error', __( 'delete buttons and danger notices on their background', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, $this->error_background() );
+		}
 
 		$weak = array();
 		foreach ( $pairs as $pair ) {
