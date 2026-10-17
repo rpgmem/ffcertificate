@@ -624,6 +624,14 @@ msgstr "(padrão: 2)"
 msgid "(Deleted)"
 msgstr "(Excluída)"
 
+#: templates/admin/recruitment/admin-page/settings-tab.php:86
+msgid "(falls back to site name)"
+msgstr "(usa o nome do site)"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php:82
+msgid "(falls back to wp_mail default)"
+msgstr "(usa o padrão do wp_mail)"
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:232 includes/self-scheduling/views/appointments-list.php:205
 msgid "(Guest)"
 msgstr "(Visitante)"
@@ -1693,11 +1701,6 @@ msgstr "Todos os endpoints administrativos exigem a capacidade ffc_manage_recrui
 msgid "All AJAX endpoints use admin-ajax.php which is excluded from page cache by default."
 msgstr "Todos os endpoints AJAX utilizam o arquivo admin-ajax.php, que é excluído do cache de páginas por padrão."
 
-#. %d: total number of appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:271
-msgid "All Appointments (%d)"
-msgstr "Todos os Agendamentos (%d)"
-
 #: includes/audience/class-ffc-audience-admin-import.php:207 templates/admin/reregistration/list.php:42
 msgid "All Audiences"
 msgstr "Todos os públicos-alvo"
@@ -2346,14 +2349,6 @@ msgstr "Tem certeza de que deseja desativar este %s?"
 #| msgid "Are you sure you want to delete this calendar?"
 msgid "Are you sure you want to deactivate this calendar?"
 msgstr "Tem certeza de que deseja desativar este calendário?"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:128
-msgid "Are you sure you want to delete ALL appointments? This will permanently remove all appointment data and cannot be undone!"
-msgstr "Tem certeza que deseja excluir TODOS os agendamentos? Isso removerá permanentemente todos os dados de agendamento e não poderá ser desfeito!"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:127
-msgid "Are you sure you want to delete these appointments? This action cannot be undone."
-msgstr "Tem certeza que deseja excluir estes agendamentos? Esta ação não pode ser desfeita."
 
 #: includes/audience/class-ffc-audience-loader.php:400
 msgid "Are you sure you want to delete this item?"
@@ -3575,11 +3570,6 @@ msgstr "CANCELADO"
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:243 includes/api/class-ffc-user-appointments-rest-controller.php:161 includes/api/class-ffc-user-audience-rest-controller.php:165 includes/generators/class-ffc-pdf-generator.php:367 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:543 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:283 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:364 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:438 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:243 includes/recruitment/class-ffc-recruitment-dashboard-section.php:344 includes/audience/class-ffc-audience-admin-bookings.php:150 includes/audience/class-ffc-audience-admin-bookings.php:229 includes/audience/class-ffc-audience-loader.php:430 includes/audience/class-ffc-audience-booking-export-source.php:278 includes/audience/class-ffc-audience-shortcode.php:823 includes/frontend/class-ffc-verification-response-renderer.php:212 includes/self-scheduling/views/appointments-list.php:226
 msgid "Cancelled"
 msgstr "Cancelado"
-
-#. %d: number of cancelled appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:234
-msgid "Cancelled (%d)"
-msgstr "Cancelados (%d)"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:388 includes/audience/class-ffc-audience-booking-export-source.php:208
 msgid "Cancelled At"
@@ -5715,10 +5705,6 @@ msgstr "Excluir todos os envios (todos os formulários)"
 msgid "Delete appointments"
 msgstr "Excluir agendamentos"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:224
-msgid "Delete appointments:"
-msgstr "Excluir agendamentos:"
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:288
 msgid "Delete audiences, calendars, environments and bookings."
 msgstr "Exclua públicos-alvo, calendários, ambientes e reservas."
@@ -7646,10 +7632,6 @@ msgstr "Exportação de Membros"
 msgid "Export My Data"
 msgstr "Exportar Meus Dados"
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:65
-msgid "export or delete."
-msgstr "exportar ou excluir."
-
 #: includes/api/class-ffc-user-profile-rest-controller.php:439
 msgid "Export Personal Data"
 msgstr "Exportar Dados Pessoais"
@@ -8532,11 +8514,6 @@ msgstr "Nome completo do participante"
 #: includes/admin/class-ffc-admin-activity-log-page.php:270
 msgid "Full Profile Viewed"
 msgstr "Perfil Completo Visualizado"
-
-#. %d: number of future appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:260
-msgid "Future (%d)"
-msgstr "Futuros (%d)"
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:260
 msgid "Future Days Limit"
@@ -12427,11 +12404,6 @@ msgstr "As senhas não coincidem."
 msgid "Past"
 msgstr "Passados"
 
-#. %d: number of past appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:247
-msgid "Past (%d)"
-msgstr "Passados (%d)"
-
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:208
 msgid "Past:"
 msgstr "Passados:"
@@ -12589,10 +12561,6 @@ msgstr "Período:"
 #: includes/settings/views/ffc-tab-url-shortener.php:92
 msgid "Permanent"
 msgstr "Permanente"
-
-#: includes/user-dashboard/class-ffc-capability-catalog.php:242
-msgid "Permanently delete appointments and calendar cleanup purges."
-msgstr "Exclua agendamentos permanentemente e limpe o calendário."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:198
 msgid "Permanently delete appointments from this calendar. This action cannot be undone."
@@ -16489,11 +16457,6 @@ msgstr "%d agendamento(s) excluído(s) com sucesso."
 msgid "Successfully deleted %d cancelled appointment(s)."
 msgstr "%d agendamento(s) cancelado(s) excluído(s) com sucesso."
 
-#. %d: number of deleted future appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:111
-msgid "Successfully deleted %d future appointment(s)."
-msgstr "%d agendamento(s) futuro(s) excluído(s) com sucesso."
-
 #. %d: number of deleted past appointments
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:102
 msgid "Successfully deleted %d past appointment(s)."
@@ -19239,10 +19202,6 @@ msgstr "Atenção: o PDF gerado parece estar em branco. Por favor, tente novamen
 #: includes/settings/views/ffc-tab-advanced.php:916
 msgid "Warning: These actions cannot be undone."
 msgstr "Aviso: Essas ações não podem ser desfeitas."
-
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:277
-msgid "Warning: This action is permanent and cannot be undone!"
-msgstr "Atenção: Esta ação é permanente e não pode ser desfeita!"
 
 #: includes/admin/class-ffc-submissions-export-source.php:375 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:76
 msgid "Was Edited"
@@ -26760,3 +26719,183 @@ msgstr "quem tem ffc_view_as_user pode abrir o painel como outro usuário, sob u
 #: includes/settings/views/documentation/scheduling-audiences.php:74
 msgid "reveal the account email of the people on the Members and User access tabs and the sensitive custom fields on another user's profile, with an audited Reveal; a members export carries the email in clear only with it. Existing holders of ffc_manage_audiences received it on update."
 msgstr "revelar o e-mail da conta das pessoas nas abas Membros e Acesso de usuários e os campos personalizados sensíveis no perfil de outro usuário, com um Revelar auditado; uma exportação de membros traz o e-mail em claro somente com ela. Quem já tinha ffc_manage_audiences a recebeu na atualização."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:204
+#, php-format
+msgid "%1$d appointment(s) booked from today on in the calendar \"%2$s\" will be cancelled, and each person booked will receive the calendar's cancellation e-mail. Nothing is deleted."
+msgstr "%1$d agendamento(s) marcado(s) a partir de hoje no calendário \"%2$s\" serão cancelados, e cada pessoa agendada receberá o e-mail de cancelamento do calendário. Nada é excluído."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:206
+#, php-format
+msgid "%1$d appointment(s) booked from today on in the calendar \"%2$s\" will be cancelled. This calendar does not send cancellation e-mails, so nobody will be notified. Nothing is deleted."
+msgstr "%1$d agendamento(s) marcado(s) a partir de hoje no calendário \"%2$s\" serão cancelados. Este calendário não envia e-mails de cancelamento, então ninguém será avisado. Nada é excluído."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:190
+#, php-format
+msgid "%1$d cancelled appointment(s) of the calendar \"%2$s\" will be deleted for good."
+msgstr "%1$d agendamento(s) cancelado(s) do calendário \"%2$s\" serão excluídos para sempre."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:197
+#, php-format
+msgid "%1$d past appointment(s) of the calendar \"%2$s\" will be deleted for good."
+msgstr "%1$d agendamento(s) passado(s) do calendário \"%2$s\" serão excluídos para sempre."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:216
+#, php-format
+msgid "All %1$d appointment(s) of the calendar \"%2$s\" will be deleted for good: past, future and cancelled."
+msgstr "Todos os %1$d agendamento(s) do calendário \"%2$s\" serão excluídos para sempre: passados, futuros e cancelados."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:289
+msgid "Calendar Appointments Purged"
+msgstr "Agendamentos do Calendário Excluídos em Massa"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:290
+msgid "Calendar Future Appointments Cancelled"
+msgstr "Agendamentos Futuros do Calendário Cancelados"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:208
+#, php-format
+msgid "Cancel %d and notify"
+msgstr "Cancelar %d e avisar"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:210
+#, php-format
+msgid "Cancel %d appointment(s)"
+msgstr "Cancelar %d agendamento(s)"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:467
+#, php-format
+msgid "Cancel future (%d)"
+msgstr "Cancelar futuros (%d)"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:73
+msgid "Cancel future and Delete all only proceed after you type the number of appointments they reach. If that number changed since the page loaded, the cleanup stops and asks for a reload. Every cleanup writes one row to the Activity Log with who ran it, the calendar, the action, the count and the ids of the appointments."
+msgstr "Cancelar futuros e Excluir todos só seguem depois que você digita o número de agendamentos que alcançam. Se esse número mudou desde que a página carregou, a limpeza para e pede para recarregar. Toda limpeza grava uma linha no Registro de Atividades com quem a executou, o calendário, a ação, a contagem e os ids dos agendamentos."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:464
+#, php-format
+msgid "Cancel future and notify (%d)"
+msgstr "Cancelar futuros e avisar (%d)"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:202
+msgid "Cancel future appointments"
+msgstr "Cancelar agendamentos futuros"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:70
+msgid "Cancel future:"
+msgstr "Cancelar futuros:"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:196
+#, php-format
+msgid "Cancelled %d future appointment(s). The people booked were sent the calendar's cancellation e-mail."
+msgstr "Cancelado(s) %d agendamento(s) futuro(s). As pessoas agendadas receberam o e-mail de cancelamento do calendário."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:202
+#, php-format
+msgid "Cancelled %d future appointment(s). This calendar does not send cancellation e-mails, so nobody was notified."
+msgstr "Cancelado(s) %d agendamento(s) futuro(s). Este calendário não envia e-mails de cancelamento, então ninguém foi avisado."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:258
+msgid "Cancelled by the calendar administrator."
+msgstr "Cancelado pelo administrador do calendário."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:160
+msgid "Cancelling..."
+msgstr "Cancelando..."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:253
+msgid "Clean up a personal calendar in bulk: delete its past, cancelled or every appointment, and cancel its future ones with notice. Each run is written to the activity log (#1872)."
+msgstr "Limpar um calendário pessoal em massa: excluir os agendamentos passados, os cancelados ou todos, e cancelar os futuros com aviso. Cada execução é gravada no registro de atividades (#1872)."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:66
+msgid "Cleaning up a calendar"
+msgstr "Limpando um calendário"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:192 includes/self-scheduling/class-ffc-self-scheduling-editor.php:199 includes/self-scheduling/class-ffc-self-scheduling-editor.php:218
+#, php-format
+msgid "Delete %d appointment(s)"
+msgstr "Excluir %d agendamento(s)"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:483
+#, php-format
+msgid "Delete all (%d)"
+msgstr "Excluir todos (%d)"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:214
+msgid "Delete all appointments"
+msgstr "Excluir todos os agendamentos"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:71
+msgid "Delete all:"
+msgstr "Excluir todos:"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:434
+#, php-format
+msgid "Delete cancelled (%d)"
+msgstr "Excluir cancelados (%d)"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:69
+msgid "Delete cancelled / Delete past:"
+msgstr "Excluir cancelados / Excluir passados:"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:188
+msgid "Delete cancelled appointments"
+msgstr "Excluir agendamentos cancelados"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:448
+#, php-format
+msgid "Delete past (%d)"
+msgstr "Excluir passados (%d)"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:195
+msgid "Delete past appointments"
+msgstr "Excluir agendamentos passados"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:364
+msgid "Deletions are permanent. Every cleanup is recorded in the activity log."
+msgstr "Exclusões são permanentes. Toda limpeza fica registrada no registro de atividades."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:186
+msgid "Go back"
+msgstr "Voltar"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:249
+msgid "Permanently delete a single appointment from the list."
+msgstr "Excluir permanentemente um agendamento da lista."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:252
+msgid "Purge appointments"
+msgstr "Limpar agendamentos em massa"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:67
+msgid "The Clean Up Appointments box beside the calendar editor counts the calendar's appointments: total, past, future and cancelled. Everyone who can open the calendar sees the counts; only a holder of ffc_purge_appointments sees the actions, in a box marked as a danger zone:"
+msgstr "A caixa Limpar Agendamentos ao lado do editor do calendário conta os agendamentos do calendário: total, passados, futuros e cancelados. Todos que podem abrir o calendário veem as contagens; só quem tem ffc_purge_appointments vê as ações, numa caixa marcada como zona de perigo:"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:234
+msgid "The number of appointments changed since this page was loaded. Reload the page and try again."
+msgstr "O número de agendamentos mudou desde que esta página foi carregada. Recarregue a página e tente de novo."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:182
+#, php-format
+msgid "To confirm, type %d"
+msgstr "Para confirmar, digite %d"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:70
+msgid "cancels every appointment from today on that still holds a place (pending, confirmed or on the waitlist), records who cancelled it and why, and sends each person the calendar's cancellation e-mail when the calendar's Emails tab turns it on. Nothing is deleted; the cancelled appointments can then go with \"Delete cancelled\"."
+msgstr "cancela todo agendamento a partir de hoje que ainda ocupa uma vaga (pendente, confirmado ou na lista de espera), registra quem cancelou e por quê, e envia a cada pessoa o e-mail de cancelamento do calendário quando a aba E-mails do calendário o ativa. Nada é excluído; os agendamentos cancelados podem depois sair com \"Excluir cancelados\"."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:69
+msgid "delete those appointments for good, after a confirmation that states how many go."
+msgstr "excluem esses agendamentos para sempre, depois de uma confirmação que diz quantos saem."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:71
+msgid "deletes every appointment of the calendar."
+msgstr "exclui todos os agendamentos do calendário."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:79
+msgid "export, or delete one appointment from the list."
+msgstr "exportar, ou excluir um agendamento da lista."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:80
+msgid "use the Clean Up Appointments box on a calendar. Held by the Personal Calendars - Bookings - Administrator role and by FFC Administrator; a Bookings Manager deletes one appointment at a time."
+msgstr "usar a caixa Limpar Agendamentos de um calendário. Pertence à função Calendários Pessoais - Agendamentos - Administrador e ao FFC Administrador; um Gestor de Agendamentos exclui um agendamento por vez."

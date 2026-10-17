@@ -830,7 +830,7 @@ class CertTemplateAdminScreen {
 			$toggle_help  = __( 'When on, this template appears in the certificate form editor’s “Load” dropdown.', 'ffcertificate' );
 		}
 		?>
-		<label class="ffc-control-toggle">
+		<label class="ffc-control-toggle ffc-control-toggle-mark">
 			<input type="checkbox" id="ffc_template_visible" name="ffc_template_visible" value="1" <?php checked( $visible ); ?>>
 			<span class="ffc-control-toggle-track" aria-hidden="true"></span>
 			<span class="ffc-control-toggle-label"><?php echo esc_html( $toggle_label ); ?></span>

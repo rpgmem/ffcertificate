@@ -17,9 +17,31 @@ beforeAll(async () => {
 			confirmDelete: 'Delete this row?',
 			schedulingForced: 'Forced to Private.',
 			schedulingDesc: 'Public or private.',
-			confirmCleanup: 'Delete these appointments?',
-			confirmCleanupAll: 'Delete ALL appointments?',
 			deleting: 'Deleting…',
+			cancelling: 'Cancelling…',
+			cleanup: {
+				cancel: 'Cancel',
+				goBack: 'Go back',
+				old: {
+					title: 'Delete past appointments',
+					body: '%1$d past appointment(s) of the calendar "%2$s" will be deleted for good.',
+					confirm: 'Delete %d appointment(s)',
+				},
+				future: {
+					title: 'Cancel future appointments',
+					body: '%1$d appointment(s) in "%2$s" will be cancelled and notified.',
+					bodySilent: '%1$d appointment(s) in "%2$s" will be cancelled; nobody notified.',
+					confirm: 'Cancel %d and notify',
+					confirmSilent: 'Cancel %d appointment(s)',
+					type: 'To confirm, type %d',
+				},
+				all: {
+					title: 'Delete all appointments',
+					body: 'All %1$d appointment(s) of "%2$s" will be deleted.',
+					confirm: 'Delete %d appointment(s)',
+					type: 'To confirm, type %d',
+				},
+			},
 			errorDeleting: 'Error deleting appointments',
 			errorServer: 'Error communicating with server',
 		},
@@ -235,60 +257,179 @@ describe('toggle scheduling visibility (#ffc_visibility change)', () => {
 });
 
 // ----------------------------------------------------------------------
-// initCleanup (.ffc-cleanup-btn click)
+// initCleanup (.ffc-cleanup-btn click) and its dialog (#1872)
 // ----------------------------------------------------------------------
 
 describe('appointment cleanup (.ffc-cleanup-btn click)', () => {
+	const dialog = () => document.querySelector('.ffc-cleanup-dialog');
+	const part = (name) => dialog().querySelector('[data-ffc-cleanup="' + name + '"]');
+	const typeInto = (value) => {
+		const input = part('typed');
+		input.value = value;
+		input.dispatchEvent(new window.Event('input', { bubbles: true }));
+	};
+	const key = (k, extra) => {
+		document.dispatchEvent(new window.KeyboardEvent('keydown', Object.assign({ key: k, bubbles: true, cancelable: true }, extra || {})));
+	};
+	const flush = () => Promise.resolve().then(() => Promise.resolve());
+
 	beforeEach(() => {
 		window.$.fx.off = true;
+		document.querySelectorAll('.ffc-cleanup-dialog').forEach((d) => d.remove());
 		document.getElementById('ffc-scheduling-section').innerHTML = `
-			<button class="ffc-cleanup-btn" data-action="old" data-calendar-id="7">Clean old</button>
-			<button class="ffc-cleanup-btn" data-action="all" data-calendar-id="7">Clean all</button>
+			<div class="ffc-cleanup-appointments ffc-cleanup-danger" data-calendar-title="DRE Centro">
+				<button class="ffc-cleanup-btn" data-action="old" data-count="29" data-calendar-id="7">Clean old</button>
+				<button class="ffc-cleanup-btn" data-action="future" data-count="12" data-notify="1" data-calendar-id="7">Cancel future</button>
+				<button class="ffc-cleanup-btn" data-action="all" data-count="48" data-calendar-id="7">Clean all</button>
+			</div>
 			<input type="hidden" id="ffc_cleanup_appointments_nonce" value="cleanup-nonce" />
 		`;
 	});
 
-	it('bails when the confirm is declined (no AJAX)', () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
-		const reqSpy = vi.spyOn(window.FFC, 'request');
+	it('opens the plugin dialog instead of the browser confirm()', () => {
+		const confirmSpy = vi.spyOn(window, 'confirm');
 		window.$('.ffc-cleanup-btn[data-action="old"]').trigger('click');
-		expect(reqSpy).not.toHaveBeenCalled();
+		expect(confirmSpy).not.toHaveBeenCalled();
+		expect(dialog()).not.toBeNull();
+		expect(dialog().getAttribute('role')).toBe('alertdialog');
+		expect(dialog().getAttribute('aria-modal')).toBe('true');
+		expect(dialog().textContent).toContain('29 past appointment(s) of the calendar "DRE Centro" will be deleted for good.');
+		part('cancel').click();
 	});
 
-	it('uses the "all" confirm message for the delete-all button', () => {
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-		window.$('.ffc-cleanup-btn[data-action="all"]').trigger('click');
-		expect(confirmSpy).toHaveBeenCalledWith('Delete ALL appointments?');
-	});
-
-	it('disables the button and POSTs the cleanup request when confirmed', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+	it('confirms "past" without typing: the button is live and focus starts on Cancel', async () => {
 		const reqSpy = vi.spyOn(window.FFC, 'request').mockReturnValue(new Promise(() => {}));
 		const $btn = window.$('.ffc-cleanup-btn[data-action="old"]');
 		$btn.trigger('click');
-		expect(reqSpy).toHaveBeenCalled();
+		expect(part('typed')).toBeNull();
+		expect(part('confirm').disabled).toBe(false);
+		expect(document.activeElement).toBe(part('cancel'));
+		expect(part('confirm').textContent).toBe('Delete 29 appointment(s)');
+
+		part('confirm').click();
+		await flush();
+		expect(dialog()).toBeNull();
+		expect(reqSpy).toHaveBeenCalledTimes(1);
 		expect(reqSpy.mock.calls[0][0]).toBe('ffc_cleanup_appointments');
-		expect(reqSpy.mock.calls[0][1]).toMatchObject({ calendar_id: 7, cleanup_action: 'old' });
+		expect(reqSpy.mock.calls[0][1]).toMatchObject({ calendar_id: 7, cleanup_action: 'old', expected: 29 });
+		expect(reqSpy.mock.calls[0][2]).toEqual({ nonce: 'cleanup-nonce' });
 		expect($btn.prop('disabled')).toBe(true);
 		expect($btn.text()).toBe('Deleting…');
 	});
 
+	it('gates "delete all" on typing the exact count', async () => {
+		const reqSpy = vi.spyOn(window.FFC, 'request').mockReturnValue(new Promise(() => {}));
+		window.$('.ffc-cleanup-btn[data-action="all"]').trigger('click');
+		const confirmBtn = part('confirm');
+		expect(document.activeElement).toBe(part('typed'));
+		expect(dialog().textContent).toContain('To confirm, type 48');
+		expect(confirmBtn.disabled).toBe(true);
+		expect(confirmBtn.getAttribute('aria-disabled')).toBe('true');
+
+		confirmBtn.click();
+		await flush();
+		expect(reqSpy).not.toHaveBeenCalled();
+
+		typeInto('4');
+		expect(confirmBtn.disabled).toBe(true);
+		typeInto('480');
+		expect(confirmBtn.disabled).toBe(true);
+		typeInto(' 48 ');
+		expect(confirmBtn.disabled).toBe(false);
+
+		confirmBtn.click();
+		await flush();
+		expect(reqSpy.mock.calls[0][1]).toMatchObject({ cleanup_action: 'all', expected: 48 });
+	});
+
+	it('gates "cancel future" on the typed count, and Enter confirms once it matches', async () => {
+		const reqSpy = vi.spyOn(window.FFC, 'request').mockReturnValue(new Promise(() => {}));
+		const $btn = window.$('.ffc-cleanup-btn[data-action="future"]');
+		$btn.trigger('click');
+		expect(dialog().classList.contains('ffc-cleanup-dialog-caution')).toBe(true);
+		expect(part('cancel').textContent).toBe('Go back');
+		expect(part('confirm').textContent).toBe('Cancel 12 and notify');
+		expect(part('confirm').disabled).toBe(true);
+
+		part('typed').focus();
+		key('Enter');
+		await flush();
+		expect(reqSpy).not.toHaveBeenCalled();
+		expect(dialog()).not.toBeNull();
+
+		typeInto('12');
+		part('typed').focus();
+		key('Enter');
+		await flush();
+		expect(dialog()).toBeNull();
+		expect(reqSpy.mock.calls[0][1]).toMatchObject({ cleanup_action: 'future', expected: 12 });
+		expect($btn.text()).toBe('Cancelling…');
+	});
+
+	it('does not promise a notice the calendar will not send', () => {
+		window.$('.ffc-cleanup-btn[data-action="future"]').attr('data-notify', '0').removeData('notify').trigger('click');
+		expect(dialog().textContent).toContain('nobody notified');
+		expect(part('confirm').textContent).toBe('Cancel 12 appointment(s)');
+		part('cancel').click();
+	});
+
+	it('Escape cancels, sends nothing and returns focus to the button', async () => {
+		const reqSpy = vi.spyOn(window.FFC, 'request');
+		const btn = document.querySelector('.ffc-cleanup-btn[data-action="all"]');
+		btn.focus();
+		window.$(btn).trigger('click');
+		key('Escape');
+		await flush();
+		expect(dialog()).toBeNull();
+		expect(reqSpy).not.toHaveBeenCalled();
+		expect(document.activeElement).toBe(btn);
+	});
+
+	it('the backdrop and Cancel answer no', async () => {
+		const reqSpy = vi.spyOn(window.FFC, 'request');
+		window.$('.ffc-cleanup-btn[data-action="old"]').trigger('click');
+		dialog().querySelector('.ffc-modal-backdrop').click();
+		await flush();
+		expect(dialog()).toBeNull();
+		window.$('.ffc-cleanup-btn[data-action="old"]').trigger('click');
+		part('cancel').click();
+		await flush();
+		expect(dialog()).toBeNull();
+		expect(reqSpy).not.toHaveBeenCalled();
+	});
+
+	it('keeps Tab inside the dialog, skipping the disabled button', () => {
+		window.$('.ffc-cleanup-btn[data-action="all"]').trigger('click');
+		const input = part('typed');
+		const cancel = part('cancel');
+		cancel.focus();
+		key('Tab');
+		expect(document.activeElement).toBe(input);
+		input.focus();
+		key('Tab', { shiftKey: true });
+		expect(document.activeElement).toBe(cancel);
+
+		typeInto('48');
+		part('confirm').focus();
+		key('Tab');
+		expect(document.activeElement).toBe(input);
+		key('Escape');
+	});
+
 	it('alerts the server message and re-enables the button on a fromServer error', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.FFC, 'request').mockRejectedValue({ fromServer: true, message: 'Boom' });
 		const $btn = window.$('.ffc-cleanup-btn[data-action="old"]');
 		$btn.trigger('click');
-		await Promise.resolve().then(() => Promise.resolve());
+		part('confirm').click();
+		await flush();
+		await flush();
 		expect(alertSpy).toHaveBeenCalledWith('Boom');
 		expect($btn.prop('disabled')).toBe(false);
 	});
 
 	it('alerts the returned message and reloads on a successful cleanup', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-		// jsdom does not implement navigation; stub reload so the success
-		// branch can run without throwing.
 		const reloadSpy = vi.fn();
 		Object.defineProperty(window, 'location', {
 			configurable: true,
@@ -296,17 +437,20 @@ describe('appointment cleanup (.ffc-cleanup-btn click)', () => {
 		});
 		vi.spyOn(window.FFC, 'request').mockResolvedValue({ message: 'Done' });
 		window.$('.ffc-cleanup-btn[data-action="old"]').trigger('click');
-		await Promise.resolve().then(() => Promise.resolve());
+		part('confirm').click();
+		await flush();
+		await flush();
 		expect(alertSpy).toHaveBeenCalledWith('Done');
 		expect(reloadSpy).toHaveBeenCalled();
 	});
 
 	it('alerts the generic server-communication error on a network failure', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('net'));
 		window.$('.ffc-cleanup-btn[data-action="old"]').trigger('click');
-		await Promise.resolve().then(() => Promise.resolve());
+		part('confirm').click();
+		await flush();
+		await flush();
 		expect(alertSpy).toHaveBeenCalledWith('Error communicating with server');
 	});
 });

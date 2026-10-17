@@ -9,7 +9,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Every toggle shows its on/off mark** (#1873). The ✓/✗ on the knob is now `AdminUI::render_toggle()`'s default, and the hand-built toggles (user dashboard notifications, template visibility) carry it too; `'mark' => false` opts a toggle out.
+- ⚠ **Calendar cleanup has its own capability, cancels the future instead of deleting it, and is logged** (#1872). `ffc_purge_appointments` gates it, so Bookings Managers lose the bulk purge; "Future" cancels and e-mails; a typed count confirms; each run writes one Activity Log row.
 - **One button family, by what the action does** (#1874). `.ffc-btn` has five categories — primary, neutral, create, caution, danger — drawn by `Core\Button` and `FFC.button()`, each with a registry icon; save, erase, open-in-place and bulk-generate get icons of their own. The Settings tabs and the Scheduling holiday form use it; disabled no longer fades.
+
+### Fixed
+
+- **Calendar e-mail fields and recruitment placeholders** (#1873). The personal-calendar editor's admin addresses and subject take their WordPress width again instead of 100px, and Recruitment → Settings' From address and From name placeholders are translated.
 
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 

@@ -89,8 +89,9 @@
         var has = Object.prototype.hasOwnProperty.call(prefs, key);
         var on = defaultOn ? (!has || prefs[key] !== false) : !!prefs[key];
         var checked = on ? ' checked' : '';
-        // The plugin's one toggle (#1748): the checkbox stays focusable.
-        return '<label class="ffc-control-toggle">' +
+        // The plugin's one toggle (#1748): the checkbox stays focusable, and
+        // the knob carries the on/off mark like every other toggle (#1873).
+        return '<label class="ffc-control-toggle ffc-control-toggle-mark">' +
             '<input type="checkbox" class="ffc-notif-toggle" data-key="' + key + '"' + checked + ' />' +
             '<span class="ffc-control-toggle-track" aria-hidden="true"></span>' +
             '<span class="ffc-control-toggle-label">' + label + '</span></label>';

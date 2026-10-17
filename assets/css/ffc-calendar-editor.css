@@ -46,8 +46,9 @@
     width: 200px;
 }
 
-.post-type-ffc_self_scheduling .form-table td input[type="number"],
-.post-type-ffc_self_scheduling .form-table td input[type="text"] {
+/* Number inputs only: a text input keeps the WordPress width its class asks
+   for (`regular-text`, `large-text`), which a type selector would outrank (#1873). */
+.post-type-ffc_self_scheduling .form-table td input[type="number"] {
     width: 100px;
 }
 
@@ -121,19 +122,138 @@
     border: none;
 }
 
-.ffc-cleanup-btn-full {
+/* The danger zone (#1872): what a holder of `ffc_purge_appointments` sees.
+   The postbox class comes from the `postbox_classes_*` filter, so a user
+   without the capability keeps WordPress's plain box. Colour pairs are
+   declared in the same rule so the contrast meter measures them. */
+.ffc-cleanup-danger-box {
+    border-color: var(--ffc-danger-border);
+}
+
+.ffc-cleanup-danger-box .postbox-header {
+    border-bottom-color: var(--ffc-danger-border);
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-cleanup-danger-box .postbox-header .hndle {
+    color: inherit;
+}
+
+.ffc-cleanup-danger .ffc-notice {
+    margin: 0;
+}
+
+.ffc-cleanup-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-xs);
+}
+
+/* `.button` in core and its dark-mode override in `ffc-common.css` reach
+   (0,3,0); the variants below outrank both. */
+.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn {
+    display: inline-flex;
+    gap: var(--ffc-spacing-xs);
+    align-items: center;
+    justify-content: flex-start;
     width: 100%;
+}
+
+.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-danger {
+    border-color: var(--ffc-danger-border);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-danger:hover,
+.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-danger:focus {
+    border-color: var(--ffc-danger-border);
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-caution {
+    border-color: var(--ffc-warning-border);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-caution:hover,
+.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-caution:focus {
+    border-color: var(--ffc-warning-border);
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-solid {
+    border-color: var(--ffc-danger);
+    background: var(--ffc-danger);
+    color: var(--ffc-text-on-danger);
+}
+
+.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-solid:hover,
+.ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-solid:focus {
+    border-color: var(--ffc-danger-hover);
+    background: var(--ffc-danger-hover);
+    color: var(--ffc-text-on-danger);
+}
+
+/* "Delete all" stands apart from the rest, at the end. */
+.ffc-cleanup-separator {
+    width: 100%;
+    margin: var(--ffc-spacing-xs) 0;
+    border: 0;
+    border-top: 1px dashed var(--ffc-danger-border);
+}
+
+/* The confirmation dialog, built by `cleanupConfirm()` from the plugin modal
+   in `ffc-common.css`; only the heading icon and the typed field are its own. */
+.ffc-shortcode.ffc-cleanup-dialog .ffc-modal-header h3 {
+    display: flex;
+    gap: var(--ffc-spacing-xs);
+    align-items: center;
+}
+
+.ffc-shortcode.ffc-cleanup-dialog .ffc-cleanup-confirm-field {
+    margin-top: var(--ffc-spacing-lg);
+}
+
+.ffc-shortcode.ffc-cleanup-dialog .ffc-cleanup-confirm-field label {
+    display: block;
     margin-bottom: var(--ffc-spacing-2xs);
+    font-weight: 600;
 }
 
-.ffc-cleanup-btn-delete-all {
+.ffc-shortcode.ffc-cleanup-dialog .ffc-cleanup-confirm-input {
+    box-sizing: border-box;
     width: 100%;
-    margin-top: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-bg-input);
+    color: var(--ffc-text);
+    font-variant-numeric: tabular-nums;
 }
 
-.ffc-cleanup-warning {
-    margin-top: var(--ffc-spacing-md);
-    color: var(--ffc-danger);
+.ffc-shortcode.ffc-cleanup-dialog .ffc-modal-footer .ffc-btn {
+    display: inline-flex;
+    gap: var(--ffc-spacing-xs);
+    align-items: center;
+}
+
+/* Forced colours keep a contour on every cleanup control: the outline
+   variants have one from `.button`, the solid one would be a word. */
+@media (forced-colors: active) {
+    .ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-danger,
+    .ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-caution,
+    .ffc-cleanup-danger .ffc-cleanup-actions .button.ffc-cleanup-btn-solid {
+        border: 1px solid ButtonText;
+    }
+
+    .ffc-cleanup-danger-box {
+        border: 2px solid CanvasText;
+    }
 }
 
 /* Responsive */
@@ -147,8 +267,7 @@
         width: auto;
     }
 
-    .post-type-ffc_self_scheduling .form-table td input[type="number"],
-    .post-type-ffc_self_scheduling .form-table td input[type="text"] {
+    .post-type-ffc_self_scheduling .form-table td input[type="number"] {
         width: 100%;
     }
 }

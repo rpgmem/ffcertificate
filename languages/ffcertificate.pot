@@ -626,6 +626,14 @@ msgstr ""
 msgid "(Deleted)"
 msgstr ""
 
+#: templates/admin/recruitment/admin-page/settings-tab.php:86
+msgid "(falls back to site name)"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php:82
+msgid "(falls back to wp_mail default)"
+msgstr ""
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:232 includes/self-scheduling/views/appointments-list.php:205
 msgid "(Guest)"
 msgstr ""
@@ -1697,11 +1705,6 @@ msgstr ""
 msgid "All AJAX endpoints use admin-ajax.php which is excluded from page cache by default."
 msgstr ""
 
-#. %d: total number of appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:271
-msgid "All Appointments (%d)"
-msgstr ""
-
 #: includes/audience/class-ffc-audience-admin-import.php:207 templates/admin/reregistration/list.php:42
 msgid "All Audiences"
 msgstr ""
@@ -2345,14 +2348,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:138
 msgid "Are you sure you want to deactivate this calendar?"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:128
-msgid "Are you sure you want to delete ALL appointments? This will permanently remove all appointment data and cannot be undone!"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:127
-msgid "Are you sure you want to delete these appointments? This action cannot be undone."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-loader.php:400
@@ -3577,11 +3572,6 @@ msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:243 includes/api/class-ffc-user-appointments-rest-controller.php:161 includes/api/class-ffc-user-audience-rest-controller.php:165 includes/generators/class-ffc-pdf-generator.php:367 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:543 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:283 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:364 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:438 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:243 includes/recruitment/class-ffc-recruitment-dashboard-section.php:344 includes/audience/class-ffc-audience-admin-bookings.php:150 includes/audience/class-ffc-audience-admin-bookings.php:229 includes/audience/class-ffc-audience-loader.php:430 includes/audience/class-ffc-audience-booking-export-source.php:278 includes/audience/class-ffc-audience-shortcode.php:823 includes/frontend/class-ffc-verification-response-renderer.php:212 includes/self-scheduling/views/appointments-list.php:226
 msgid "Cancelled"
-msgstr ""
-
-#. %d: number of cancelled appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:234
-msgid "Cancelled (%d)"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:388 includes/audience/class-ffc-audience-booking-export-source.php:208
@@ -5708,10 +5698,6 @@ msgstr ""
 msgid "Delete appointments"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:224
-msgid "Delete appointments:"
-msgstr ""
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:288
 msgid "Delete audiences, calendars, environments and bookings."
 msgstr ""
@@ -7643,10 +7629,6 @@ msgstr ""
 msgid "Export My Data"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:65
-msgid "export or delete."
-msgstr ""
-
 #: includes/api/class-ffc-user-profile-rest-controller.php:439
 msgid "Export Personal Data"
 msgstr ""
@@ -8532,11 +8514,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:270
 msgid "Full Profile Viewed"
-msgstr ""
-
-#. %d: number of future appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:260
-msgid "Future (%d)"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:260
@@ -12406,11 +12383,6 @@ msgstr ""
 msgid "Past"
 msgstr ""
 
-#. %d: number of past appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:247
-msgid "Past (%d)"
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:208
 msgid "Past:"
 msgstr ""
@@ -12564,10 +12536,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-url-shortener.php:92
 msgid "Permanent"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-catalog.php:242
-msgid "Permanently delete appointments and calendar cleanup purges."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:198
@@ -16437,11 +16405,6 @@ msgstr ""
 msgid "Successfully deleted %d cancelled appointment(s)."
 msgstr ""
 
-#. %d: number of deleted future appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:111
-msgid "Successfully deleted %d future appointment(s)."
-msgstr ""
-
 #. %d: number of deleted past appointments
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:102
 msgid "Successfully deleted %d past appointment(s)."
@@ -19182,10 +19145,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:916
 msgid "Warning: These actions cannot be undone."
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:277
-msgid "Warning: This action is permanent and cannot be undone!"
 msgstr ""
 
 #: includes/admin/class-ffc-submissions-export-source.php:375 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:76
@@ -26675,4 +26634,184 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php:74
 msgid "reveal the account email of the people on the Members and User access tabs and the sensitive custom fields on another user's profile, with an audited Reveal; a members export carries the email in clear only with it. Existing holders of ffc_manage_audiences received it on update."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:204
+#, php-format
+msgid "%1$d appointment(s) booked from today on in the calendar \"%2$s\" will be cancelled, and each person booked will receive the calendar's cancellation e-mail. Nothing is deleted."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:206
+#, php-format
+msgid "%1$d appointment(s) booked from today on in the calendar \"%2$s\" will be cancelled. This calendar does not send cancellation e-mails, so nobody will be notified. Nothing is deleted."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:190
+#, php-format
+msgid "%1$d cancelled appointment(s) of the calendar \"%2$s\" will be deleted for good."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:197
+#, php-format
+msgid "%1$d past appointment(s) of the calendar \"%2$s\" will be deleted for good."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:216
+#, php-format
+msgid "All %1$d appointment(s) of the calendar \"%2$s\" will be deleted for good: past, future and cancelled."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:289
+msgid "Calendar Appointments Purged"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:290
+msgid "Calendar Future Appointments Cancelled"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:208
+#, php-format
+msgid "Cancel %d and notify"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:210
+#, php-format
+msgid "Cancel %d appointment(s)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:467
+#, php-format
+msgid "Cancel future (%d)"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:73
+msgid "Cancel future and Delete all only proceed after you type the number of appointments they reach. If that number changed since the page loaded, the cleanup stops and asks for a reload. Every cleanup writes one row to the Activity Log with who ran it, the calendar, the action, the count and the ids of the appointments."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:464
+#, php-format
+msgid "Cancel future and notify (%d)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:202
+msgid "Cancel future appointments"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:70
+msgid "Cancel future:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:196
+#, php-format
+msgid "Cancelled %d future appointment(s). The people booked were sent the calendar's cancellation e-mail."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:202
+#, php-format
+msgid "Cancelled %d future appointment(s). This calendar does not send cancellation e-mails, so nobody was notified."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:258
+msgid "Cancelled by the calendar administrator."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:160
+msgid "Cancelling..."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:253
+msgid "Clean up a personal calendar in bulk: delete its past, cancelled or every appointment, and cancel its future ones with notice. Each run is written to the activity log (#1872)."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:66
+msgid "Cleaning up a calendar"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:192 includes/self-scheduling/class-ffc-self-scheduling-editor.php:199 includes/self-scheduling/class-ffc-self-scheduling-editor.php:218
+#, php-format
+msgid "Delete %d appointment(s)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:483
+#, php-format
+msgid "Delete all (%d)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:214
+msgid "Delete all appointments"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:71
+msgid "Delete all:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:434
+#, php-format
+msgid "Delete cancelled (%d)"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:69
+msgid "Delete cancelled / Delete past:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:188
+msgid "Delete cancelled appointments"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:448
+#, php-format
+msgid "Delete past (%d)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:195
+msgid "Delete past appointments"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:364
+msgid "Deletions are permanent. Every cleanup is recorded in the activity log."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:186
+msgid "Go back"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:249
+msgid "Permanently delete a single appointment from the list."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:252
+msgid "Purge appointments"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:67
+msgid "The Clean Up Appointments box beside the calendar editor counts the calendar's appointments: total, past, future and cancelled. Everyone who can open the calendar sees the counts; only a holder of ffc_purge_appointments sees the actions, in a box marked as a danger zone:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:234
+msgid "The number of appointments changed since this page was loaded. Reload the page and try again."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:182
+#, php-format
+msgid "To confirm, type %d"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:70
+msgid "cancels every appointment from today on that still holds a place (pending, confirmed or on the waitlist), records who cancelled it and why, and sends each person the calendar's cancellation e-mail when the calendar's Emails tab turns it on. Nothing is deleted; the cancelled appointments can then go with \"Delete cancelled\"."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:69
+msgid "delete those appointments for good, after a confirmation that states how many go."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:71
+msgid "deletes every appointment of the calendar."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:79
+msgid "export, or delete one appointment from the list."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:80
+msgid "use the Clean Up Appointments box on a calendar. Held by the Personal Calendars - Bookings - Administrator role and by FFC Administrator; a Bookings Manager deletes one appointment at a time."
 msgstr ""

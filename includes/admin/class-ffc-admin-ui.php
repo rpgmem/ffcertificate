@@ -76,9 +76,11 @@ class AdminUI {
 	 *                                    string, tooltip on the wrapper label),
 	 *                                    `data` (optional array<string,string> of
 	 *                                    data-* attributes on the input), `mark`
-	 *                                    (optional bool, draws a check or a cross
-	 *                                    on the knob so on and off do not rest on
-	 *                                    colour alone; #1748), `aria_label`
+	 *                                    (optional bool, default true: draws a
+	 *                                    check or a cross on the knob so on and
+	 *                                    off do not rest on colour alone; #1748,
+	 *                                    the default since #1873 — pass false to
+	 *                                    opt a toggle out), `aria_label`
 	 *                                    (optional string, names the checkbox
 	 *                                    when no visible label does, as in a
 	 *                                    table cell under a column header),
@@ -108,7 +110,8 @@ class AdminUI {
 		$input_class = trim( (string) ( $args['input_class'] ?? '' ) );
 		$data        = $args['data'] ?? array();
 
-		$wrapper_class = 'ffc-control-toggle' . ( ! empty( $args['mark'] ) ? ' ffc-control-toggle-mark' : '' ) . ( '' !== $extra ? ' ' . $extra : '' );
+		$mark          = ! array_key_exists( 'mark', $args ) || ! empty( $args['mark'] );
+		$wrapper_class = 'ffc-control-toggle' . ( $mark ? ' ffc-control-toggle-mark' : '' ) . ( '' !== $extra ? ' ' . $extra : '' );
 		$title_attr    = '' !== $title ? ' title="' . esc_attr( $title ) . '"' : '';
 
 		$data_attrs = '';
