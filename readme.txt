@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.3
-Stable tag: 6.39.0
+Stable tag: 6.40.0
 Requires PHP: 8.3
 License: AGPLv3 or later
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
@@ -275,8 +275,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.39.0 =
-Quizzes score per field, can be graded by hand and can reset when the participant leaves the window. Choice fields take one option per row with limits, required certificate fields get their own tab, and the plugin gains an icon and a "View details" screen.
+= 6.40.0 =
+⚠ The REST submit and booking routes now need an authenticated caller with a capability. Staff see personal data only through an audited Reveal. Roles get four tiers per module and some lose capabilities. Audience calendars enforce closed days; booking outside the rules needs a confirmation.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one

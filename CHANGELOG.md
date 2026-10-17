@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.40.0] (2026-10-17)
+
 ### Added
 
 - **Audience calendars and environments list their shortcode** (#1814). A Shortcode column with the forms list's copy button; an environment's is tied to its calendar. The copy script is `ffc-copy-shortcode.js`, and `ffc-form-list-copy-shortcode` remains a deprecated handle alias until 6.41.0.
