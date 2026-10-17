@@ -82,7 +82,7 @@ class RateLimiterTest extends TestCase {
 		$this->stub_default_settings();
 
 		// Object cache returns 0 (no previous attempts)
-		Functions\when( 'wp_cache_get' )->justReturn( 0 );
+		Functions\when( 'get_transient' )->justReturn( 0 );
 
 		$result = RateLimiter::check_ip_limit( '192.168.1.1' );
 
@@ -93,7 +93,7 @@ class RateLimiterTest extends TestCase {
 		$this->stub_default_settings();
 
 		// Object cache returns max_per_hour (5)
-		Functions\when( 'wp_cache_get' )->justReturn( 5 );
+		Functions\when( 'get_transient' )->justReturn( 5 );
 
 		$result = RateLimiter::check_ip_limit( '192.168.1.1' );
 
@@ -111,7 +111,7 @@ class RateLimiterTest extends TestCase {
 		$this->stub_default_settings( array( 'ip' => array( 'enabled' => false ) ) );
 
 		// Counter is WAY over the hour limit, but it must not matter.
-		Functions\when( 'wp_cache_get' )->justReturn( 9999 );
+		Functions\when( 'get_transient' )->justReturn( 9999 );
 
 		$result = RateLimiter::check_ip_limit( '192.168.1.1' );
 
@@ -125,7 +125,7 @@ class RateLimiterTest extends TestCase {
 		// rendered as a silent failure).
 		$this->stub_default_settings( array( 'ip' => array( 'message' => '' ) ) );
 
-		Functions\when( 'wp_cache_get' )->justReturn( 5 ); // hour exceeded.
+		Functions\when( 'get_transient' )->justReturn( 5 ); // hour exceeded.
 
 		$result = RateLimiter::check_ip_limit( '192.168.1.1' );
 
@@ -140,7 +140,7 @@ class RateLimiterTest extends TestCase {
 		// expanded), the fallback only kicks in for empty templates.
 		$this->stub_default_settings();
 
-		Functions\when( 'wp_cache_get' )->justReturn( 5 );
+		Functions\when( 'get_transient' )->justReturn( 5 );
 
 		$result = RateLimiter::check_ip_limit( '192.168.1.1' );
 
@@ -152,7 +152,7 @@ class RateLimiterTest extends TestCase {
 
 		// Hour count is OK, day count is OK, but cooldown is active
 		$call_count = 0;
-		Functions\when( 'wp_cache_get' )->alias( function( $key ) use ( &$call_count ) {
+		Functions\when( 'get_transient' )->alias( function( $key ) use ( &$call_count ) {
 			$call_count++;
 			if ( $call_count === 1 ) return 1;  // hour count
 			if ( $call_count === 2 ) return time() - 10;  // last attempt 10s ago (cooldown = 60s)
@@ -173,8 +173,8 @@ class RateLimiterTest extends TestCase {
 	public function test_verification_allows_when_under_limit(): void {
 		$this->stub_default_settings();
 
-		Functions\when( 'wp_cache_get' )->justReturn( 0 );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( 0 );
+		Functions\when( 'set_transient' )->justReturn( true );
 
 		$result = RateLimiter::check_verification( '10.0.0.1' );
 
@@ -185,8 +185,8 @@ class RateLimiterTest extends TestCase {
 		$this->stub_default_settings();
 
 		// Return 10 for hour count (max is 10)
-		Functions\when( 'wp_cache_get' )->justReturn( 10 );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( 10 );
+		Functions\when( 'set_transient' )->justReturn( true );
 
 		$result = RateLimiter::check_verification( '10.0.0.1' );
 
@@ -198,13 +198,13 @@ class RateLimiterTest extends TestCase {
 		$this->stub_default_settings();
 
 		$call_count = 0;
-		Functions\when( 'wp_cache_get' )->alias( function() use ( &$call_count ) {
+		Functions\when( 'get_transient' )->alias( function() use ( &$call_count ) {
 			$call_count++;
 			if ( $call_count === 1 ) return 5;   // hour count OK
 			if ( $call_count === 2 ) return 30;  // day count >= 30
 			return 0;
 		});
-		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'set_transient' )->justReturn( true );
 
 		$result = RateLimiter::check_verification( '10.0.0.1' );
 
@@ -254,8 +254,8 @@ class RateLimiterTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_user_limit_allows_when_under_threshold(): void {
-		Functions\when( 'wp_cache_get' )->justReturn( 0 );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( 0 );
+		Functions\when( 'set_transient' )->justReturn( true );
 
 		$result = RateLimiter::check_user_limit( 42, 'password_change', 3, 10 );
 
@@ -263,8 +263,8 @@ class RateLimiterTest extends TestCase {
 	}
 
 	public function test_user_limit_blocks_when_hour_exceeded(): void {
-		Functions\when( 'wp_cache_get' )->justReturn( 3 );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( 3 );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( '_n' )->returnArg();
 		Functions\when( '__' )->returnArg();
 
@@ -276,11 +276,11 @@ class RateLimiterTest extends TestCase {
 
 	public function test_user_limit_blocks_when_day_exceeded(): void {
 		$call_count = 0;
-		Functions\when( 'wp_cache_get' )->alias( function() use ( &$call_count ) {
+		Functions\when( 'get_transient' )->alias( function() use ( &$call_count ) {
 			$call_count++;
 			return $call_count === 1 ? 1 : 10; // hour OK, day at limit
 		});
-		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( '__' )->returnArg();
 
 		$result = RateLimiter::check_user_limit( 42, 'privacy_request', 5, 10 );
@@ -331,7 +331,7 @@ class RateLimiterTest extends TestCase {
 	public function test_check_all_allows_when_no_limits_exceeded(): void {
 		$this->stub_default_settings();
 
-		Functions\when( 'wp_cache_get' )->justReturn( 0 );
+		Functions\when( 'get_transient' )->justReturn( 0 );
 
 		$result = RateLimiter::check_all( '192.168.1.1', null, null, null );
 
@@ -977,7 +977,7 @@ class RateLimiterTest extends TestCase {
 		);
 
 		// wp_cache_get returns the per-minute counter — already at limit.
-		Functions\when( 'wp_cache_get' )->justReturn( 5 );
+		Functions\when( 'get_transient' )->justReturn( 5 );
 
 		$r = RateLimiter::check_global_limit();
 
@@ -992,7 +992,7 @@ class RateLimiterTest extends TestCase {
 		);
 
 		// Minute counter is fine; the hour count from the DB overflows.
-		Functions\when( 'wp_cache_get' )->justReturn( 0 );
+		Functions\when( 'get_transient' )->justReturn( 0 );
 
 		global $wpdb;
 		$wpdb->shouldReceive( 'get_var' )->andReturn( '15' );
@@ -1008,7 +1008,7 @@ class RateLimiterTest extends TestCase {
 		$this->stub_default_settings(
 			array( 'global' => array( 'enabled' => true, 'max_per_minute' => 100, 'max_per_hour' => 1000 ) )
 		);
-		Functions\when( 'wp_cache_get' )->justReturn( 0 );
+		Functions\when( 'get_transient' )->justReturn( 0 );
 		global $wpdb;
 		$wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
 
@@ -1025,11 +1025,11 @@ class RateLimiterTest extends TestCase {
 
 	public function test_record_attempt_ip_writes_hour_and_last_cache_keys(): void {
 		$this->stub_default_settings();
-		Functions\when( 'wp_cache_get' )->justReturn( 2 );
+		Functions\when( 'get_transient' )->justReturn( 2 );
 		Functions\when( 'current_time' )->justReturn( '2026-06-01 12:00:00' );
 
 		$captured = array();
-		Functions\when( 'wp_cache_set' )->alias(
+		Functions\when( 'set_transient' )->alias(
 			function ( $key, $value ) use ( &$captured ) {
 				$captured[ $key ] = $value;
 				return true;
@@ -1049,11 +1049,11 @@ class RateLimiterTest extends TestCase {
 
 	public function test_record_attempt_global_writes_minute_cache_key(): void {
 		$this->stub_default_settings();
-		Functions\when( 'wp_cache_get' )->justReturn( 4 );
+		Functions\when( 'get_transient' )->justReturn( 4 );
 		Functions\when( 'current_time' )->justReturn( '2026-06-01 12:00:00' );
 
 		$captured = array();
-		Functions\when( 'wp_cache_set' )->alias(
+		Functions\when( 'set_transient' )->alias(
 			function ( $key, $value ) use ( &$captured ) {
 				$captured[ $key ] = $value;
 				return true;

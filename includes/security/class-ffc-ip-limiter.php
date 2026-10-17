@@ -2,7 +2,7 @@
 /**
  * IpLimiter — per-IP rate-limit strategy (#563 Sprint 4, A4).
  *
- * Hour counter (object cache) + day counter (DB) + cooldown window. Extracted
+ * Hour counter (transient) + day counter (DB) + cooldown window. Extracted
  * verbatim from RateLimitChecker::check_ip_limit().
  *
  * @package FreeFormCertificate\Security
@@ -57,10 +57,8 @@ class IpLimiter implements RateLimitStrategy {
 			return array( 'allowed' => true );
 		}
 
-		$hk = 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_hour';
-		// Use Object Cache API (auto Redis/Memcached if available).
-		$hc = wp_cache_get( $hk, RateLimiter::CACHE_GROUP );
-		$hc = false !== $hc ? $hc : 0;
+		// Persistent with or without an object cache (#1861).
+		$hc = RateCounter::get( 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_hour' );
 		if ( $hc >= $s['max_per_hour'] ) {
 			return array(
 				'allowed'      => false,
@@ -80,7 +78,7 @@ class IpLimiter implements RateLimitStrategy {
 			);
 		}
 
-		$last = wp_cache_get( 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_last', RateLimiter::CACHE_GROUP );
+		$last = RateCounter::get( 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_last' );
 		if ( $last && ( time() - $last ) < $s['cooldown_seconds'] ) {
 			$w = $s['cooldown_seconds'] - ( time() - $last );
 			return array(

@@ -1,14 +1,13 @@
 <?php
 /**
  * RateLimiter v3.3.0
- * Advanced rate limiting system with WordPress Object Cache API
+ * Advanced rate limiting system (transient-backed short-window counters)
  *
  * V3.3.0: Added strict types and type hints
  * v3.2.0: Migrated to namespace
- *         Migrated from transients to WordPress Object Cache API
- *         - Automatically uses Redis/Memcached if available (via LiteSpeed Cache, etc.)
- *         - Falls back to transients if no object cache plugin is installed
- *         - Significant performance improvement for high-traffic sites
+ * 6.40.0: the short-window counters are transients again ({@see RateCounter}).
+ *         The object cache alone does not persist without a Redis/Memcached
+ *         drop-in, which reset every counter on every request (#1861).
  *
  * S4 refactor: this class is now a thin facade that forwards each public
  * static method to {@see RateLimitChecker}, {@see RateLimitLogger} or
@@ -32,7 +31,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class RateLimiter {
 
 	/**
-	 * Cache group for WordPress Object Cache API
+	 * Cache group the counters used before they moved to transients
+	 * (#1861). Kept because it is public API; nothing here reads it.
 	 *
 	 * @since 3.2.0
 	 */

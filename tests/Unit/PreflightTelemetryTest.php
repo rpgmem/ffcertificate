@@ -39,6 +39,9 @@ class PreflightTelemetryTest extends TestCase {
 	/** @var array<string, mixed>|null */
 	private $captured_success = null;
 
+	/** @var array<string, mixed> Transient store. */
+	private array $transients = array();
+
 	/** @var \Mockery\MockInterface Alias mock for ActivityLog. */
 	private $activity_log_mock;
 
@@ -52,6 +55,22 @@ class PreflightTelemetryTest extends TestCase {
 		Functions\when( 'absint' )->alias( 'intval' );
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'fresh-nonce-xyz' );
+
+		// The per-visitor throttle (#1861) is a transient: a store that
+		// persists across calls, as the options table does.
+		$this->transients = array();
+		$transients       = &$this->transients;
+		Functions\when( 'get_transient' )->alias(
+			static function ( $key ) use ( &$transients ) {
+				return $transients[ $key ] ?? false;
+			}
+		);
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$transients ) {
+				$transients[ $key ] = $value;
+				return true;
+			}
+		);
 
 		// The real RequestInput::get_post_string reads $_POST after
 		// sanitize_text_field + wp_unslash; both stubbed to identity
@@ -190,5 +209,28 @@ class PreflightTelemetryTest extends TestCase {
 		}
 		// Mockery's tearDown assertion catches the expectation count.
 		$this->assertTrue( true );
+	}
+
+	public function test_one_visitor_writes_at_most_the_cap_per_window(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		$this->activity_log_mock->shouldReceive( 'log' )->times( PreflightTelemetry::MAX_PER_WINDOW )->andReturn( true );
+
+		$_POST = array(
+			'nonce'   => 'ok',
+			'form_id' => '42',
+			'reason'  => 'gps_denied',
+		);
+
+		for ( $i = 0; $i < PreflightTelemetry::MAX_PER_WINDOW + 5; $i++ ) {
+			try {
+				$this->handler->handle_ajax();
+			} catch ( \RuntimeException $e ) {
+				// wp_send_json_success short-circuits through the stub.
+			}
+		}
+
+		// The request over the cap still answers success, but logs nothing.
+		$this->assertSame( array( 'logged' => false ), $this->captured_success );
+		$this->assertSame( PreflightTelemetry::MAX_PER_WINDOW, array_sum( array_map( 'intval', $this->transients ) ) );
 	}
 }

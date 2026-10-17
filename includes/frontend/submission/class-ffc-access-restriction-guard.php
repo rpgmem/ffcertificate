@@ -29,7 +29,7 @@ class AccessRestrictionGuard {
 	 * @throws SubmissionRejected When access is denied.
 	 */
 	public function apply( SubmissionContext $ctx ): void {
-		$restriction_result = \FreeFormCertificate\Frontend\AccessRestrictionChecker::check( $ctx->form_config, $ctx->val_cpf, $ctx->val_ticket, $ctx->form_id );
+		$restriction_result = \FreeFormCertificate\Frontend\AccessRestrictionChecker::check( $ctx->form_config, $ctx->val_cpf, $ctx->val_ticket, $ctx->form_id, $ctx->val_password );
 
 		if ( ! $restriction_result['allowed'] ) {
 			throw new SubmissionRejected( array( 'message' => $restriction_result['message'] ) );

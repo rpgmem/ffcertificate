@@ -156,7 +156,15 @@ class AudienceRestControllerTest extends TestCase {
 
 		$route = $this->registered_routes[3];
 		$this->assertSame( '/audience/conflicts', $route['route'] );
-		$this->assertSame( array( $ctrl, 'check_read_permission' ), $route['args']['permission_callback'] );
+		$this->assertSame( array( $ctrl, 'check_conflicts_permission' ), $route['args']['permission_callback'] );
+	}
+
+	public function test_conflicts_permission_refuses_an_anonymous_caller(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		$this->assertFalse( ( new AudienceRestController() )->check_conflicts_permission() );
+
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		$this->assertTrue( ( new AudienceRestController() )->check_conflicts_permission() );
 	}
 
 	// ------------------------------------------------------------------
@@ -390,10 +398,10 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 2, $data['bookings'][0]['id'] );
 	}
 
-	public function test_check_conflicts_hides_conflicts_on_unreadable_schedule(): void {
-		// Anonymous caller probing an environment whose schedule (99) is not
-		// in the public set must get the empty "no conflict" shape even though
-		// a real conflict exists — no leak of times/descriptions.
+	public function test_check_conflicts_refuses_an_environment_on_an_unreadable_schedule(): void {
+		// A caller probing an environment whose schedule (99) they may not
+		// read is refused, exactly as for an environment that does not exist
+		// (#1861) — no leak of times/descriptions.
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'get_current_user_id' )->justReturn( 0 );
 		$this->calendar_repo_mock->shouldReceive( 'userHasSchedulingBypass' )->andReturn( false );
@@ -419,11 +427,64 @@ class AudienceRestControllerTest extends TestCase {
 			'user_ids'       => array(),
 		));
 
-		$data = $ctrl->check_conflicts( $request )->get_data();
+		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->never();
 
-		$this->assertTrue( $data['success'] );
-		$this->assertSame( 'none', $data['conflicts']['type'] );
-		$this->assertSame( array(), $data['conflicts']['bookings'] );
+		$result = $ctrl->check_conflicts( $request );
+
+		$this->assertSame( 404, $result->get_status() );
+		$this->assertFalse( $result->get_data()['success'] );
+		$this->assertArrayNotHasKey( 'conflicts', $result->get_data() );
+	}
+
+	public function test_check_conflicts_refuses_a_missing_environment(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->never();
+		$this->booking_repo_mock->shouldReceive( 'get_user_conflicts' )->never();
+
+		$result = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 404,
+					'booking_date'   => '2026-04-01',
+					'start_time'     => '09:00',
+					'end_time'       => '10:00',
+					'audience_ids'   => array( 1 ),
+					'user_ids'       => array( 2 ),
+				)
+			)
+		);
+
+		$this->assertSame( 404, $result->get_status() );
+	}
+
+	public function test_check_conflicts_scopes_the_cross_schedule_queries_to_readable_schedules(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->with( 3 )
+			->andReturn( array( (object) array( 'id' => 20 ), (object) array( 'id' => 21 ) ) );
+		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 11 )->andReturn( (object) array( 'id' => 11, 'schedule_id' => 20 ) );
+
+		$this->booking_repo_mock->shouldReceive( 'get_audience_same_day_bookings' )
+			->once()->with( '2026-04-01', array( 1 ), null, null, array( 20, 21 ) )->andReturn( array() );
+		$this->booking_repo_mock->shouldReceive( 'get_user_conflicts' )
+			->once()->with( '2026-04-01', '09:00', '10:00', array( 1 ), array( 2 ), null, null, array( 20, 21 ) )
+			->andReturn( array( 'bookings' => array(), 'affected_users' => array() ) );
+
+		$result = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 11,
+					'booking_date'   => '2026-04-01',
+					'start_time'     => '09:00',
+					'end_time'       => '10:00',
+					'audience_ids'   => array( 1 ),
+					'user_ids'       => array( 2 ),
+				)
+			)
+		);
+
+		$this->assertSame( 200, $result->get_status() );
 	}
 
 	// ------------------------------------------------------------------
@@ -763,6 +824,10 @@ class AudienceRestControllerTest extends TestCase {
 	}
 
 	public function test_check_conflicts_returns_success_with_no_conflicts(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->andReturn( array( (object) array( 'id' => 20 ) ) );
+		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( (object) array( 'id' => 10, 'schedule_id' => 20 ) );
 		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn( array() );
 		$this->booking_repo_mock->shouldReceive( 'get_user_conflicts' )->andReturn( array(
 			'bookings'       => array(),

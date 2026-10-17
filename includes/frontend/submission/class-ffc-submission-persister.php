@@ -22,7 +22,6 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend\Submission;
 
 use FreeFormCertificate\Core\ArrayValue;
-use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Core\SubmissionStatus;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
@@ -104,7 +103,7 @@ class SubmissionPersister {
 			// browser counts it, so it is a record, not evidence: it is kept
 			// only when the form asks for it, and capped.
 			if ( \FreeFormCertificate\Core\QuizLeaveLevel::OFF !== \FreeFormCertificate\Core\QuizLeaveLevel::of( $form_config ) ) {
-				$submission_data['_quiz_focus_losses'] = min( self::MAX_FOCUS_LOSSES, RequestInput::get_post_int( 'ffc_quiz_focus_losses' ) );
+				$submission_data['_quiz_focus_losses'] = min( self::MAX_FOCUS_LOSSES, SubmissionInput::int( $ctx, 'ffc_quiz_focus_losses' ) );
 			}
 
 			// An open answer a person grades holds the result back (#1732).

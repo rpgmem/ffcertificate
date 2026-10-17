@@ -25,6 +25,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 class VerificationResponseRenderer {
 
 	/**
+	 * Submission keys the verification page never shows: internal or
+	 * technical values, and the one-use ticket. The REST `/verify` route
+	 * drops the same keys, so the two answers agree (#1861).
+	 *
+	 * @var list<string>
+	 */
+	public const SKIP_FIELDS = array(
+		'auth_code',
+		'ticket',
+		'fill_date',
+		'fill_time',
+		'is_edited',
+		'edited_at',
+		'submission_id',
+		'magic_token',
+	);
+
+	/**
 	 * Format certificate verification response HTML
 	 *
 	 * @param object               $submission Submission object.
@@ -43,16 +61,7 @@ class VerificationResponseRenderer {
 			: '';
 
 		// Fields to skip (internal/technical).
-		$skip_fields = array(
-			'auth_code',
-			'ticket',
-			'fill_date',
-			'fill_time',
-			'is_edited',
-			'edited_at',
-			'submission_id',
-			'magic_token',
-		);
+		$skip_fields = self::SKIP_FIELDS;
 
 		// Priority fields to show first (in order).
 		$priority_fields = array( 'name', 'cpf_rf', 'email', 'program', 'date' );

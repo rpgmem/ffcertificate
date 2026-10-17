@@ -101,9 +101,7 @@ class RestController {
 		}
 
 		$max_per_hour = (int) ( $ip_settings['max_per_hour'] ?? 5 );
-		$cache_key    = 'ffc_rate_ip_' . md5( $ip ) . '_hour';
-		$current      = wp_cache_get( $cache_key, \FreeFormCertificate\Security\RateLimiter::CACHE_GROUP );
-		$current      = false !== $current ? (int) $current : 0;
+		$current      = \FreeFormCertificate\Security\RateCounter::get( 'ffc_rate_ip_' . md5( $ip ) . '_hour' );
 		$remaining    = max( 0, $max_per_hour - $current );
 
 		$response->header( 'X-RateLimit-Limit', (string) $max_per_hour );

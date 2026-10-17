@@ -157,7 +157,7 @@ class AudienceRestController {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'check_conflicts' ),
-				'permission_callback' => array( $this, 'check_read_permission' ),
+				'permission_callback' => array( $this, 'check_conflicts_permission' ),
 				'args'                => array(
 					'environment_id' => array(
 						'type'              => 'integer',
@@ -210,6 +210,19 @@ class AudienceRestController {
 
 		// Non-logged-in users can read public schedules (read-only calendar view).
 		return true;
+	}
+
+	/**
+	 * Permission callback for the conflict probe (#1861).
+	 *
+	 * Only the booking form calls it, and only a logged-in user can book;
+	 * an anonymous caller has nothing to check a conflict for.
+	 *
+	 * @since 6.40.0
+	 * @return bool
+	 */
+	public function check_conflicts_permission(): bool {
+		return is_user_logged_in();
 	}
 
 	/**
@@ -760,9 +773,22 @@ class AudienceRestController {
 				);
 			}
 
-			// Determine if this schedule is isolated (ignores cross-schedule conflicts).
-			$scope_schedule_id = null;
-			$environment       = AudienceEnvironmentRepository::get_by_id( $environment_id );
+			// The environment must exist and belong to a schedule the caller
+			// may read; both refusals read the same, so the probe does not
+			// tell an environment that exists from one that does not (#1861).
+			$environment           = AudienceEnvironmentRepository::get_by_id( $environment_id );
+			$readable_schedule_ids = $this->readable_schedule_ids();
+			if ( ! $environment
+				|| ( null !== $readable_schedule_ids
+					&& ! in_array( (int) $environment->schedule_id, $readable_schedule_ids, true ) ) ) {
+				return new \WP_REST_Response(
+					array(
+						'success' => false,
+						'message' => __( 'Environment not found.', 'ffcertificate' ),
+					),
+					404
+				);
+			}
 
 			$response_data = array(
 				'type'              => 'none',
@@ -771,27 +797,11 @@ class AudienceRestController {
 				'audience_same_day' => array(),
 			);
 
-			if ( $environment ) {
-				// Enforce schedule visibility: a caller who may not read this
-				// environment's schedule must not learn its bookings via the
-				// conflict probe. Return the empty "no conflict" shape instead
-				// of leaking times/descriptions of a private schedule.
-				$readable_schedule_ids = $this->readable_schedule_ids();
-				if ( null !== $readable_schedule_ids
-					&& ! in_array( (int) $environment->schedule_id, $readable_schedule_ids, true ) ) {
-					return new \WP_REST_Response(
-						array(
-							'success'   => true,
-							'conflicts' => $response_data,
-						),
-						200
-					);
-				}
-
-				$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
-				if ( $schedule && ! empty( $schedule->is_isolated ) ) {
-					$scope_schedule_id = (int) $schedule->id;
-				}
+			// Determine if this schedule is isolated (ignores cross-schedule conflicts).
+			$scope_schedule_id = null;
+			$schedule          = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
+			if ( $schedule && ! empty( $schedule->is_isolated ) ) {
+				$scope_schedule_id = (int) $schedule->id;
 			}
 
 			$is_hard_conflict = false;
@@ -816,7 +826,7 @@ class AudienceRestController {
 
 			// 2. Check same audience group on same day (soft conflict)
 			if ( ! $is_hard_conflict && ! empty( $audience_ids ) ) {
-				$same_day = AudienceBookingReader::get_audience_same_day_bookings( $booking_date, $audience_ids, null, $scope_schedule_id );
+				$same_day = AudienceBookingReader::get_audience_same_day_bookings( $booking_date, $audience_ids, null, $scope_schedule_id, $readable_schedule_ids );
 				if ( ! empty( $same_day ) ) {
 					$response_data['audience_same_day'] = array_map(
 						function ( $b ) {
@@ -843,7 +853,8 @@ class AudienceRestController {
 					$audience_ids,
 					$user_ids,
 					null,
-					$scope_schedule_id
+					$scope_schedule_id,
+					$readable_schedule_ids
 				);
 
 				if ( ! empty( $user_conflicts['bookings'] ) ) {

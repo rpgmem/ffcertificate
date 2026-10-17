@@ -65,8 +65,8 @@ class RateLimitCheckerTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'current_time' )->justReturn( '2026-10-12 10:00:00' );
-		Functions\when( 'wp_cache_get' )->alias( fn( $key ) => $this->cache[ $key ] ?? false );
-		Functions\when( 'wp_cache_set' )->alias(
+		Functions\when( 'get_transient' )->alias( fn( $key ) => $this->cache[ $key ] ?? false );
+		Functions\when( 'set_transient' )->alias(
 			function ( $key, $value ) {
 				$this->cache[ $key ] = $value;
 				return true;

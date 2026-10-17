@@ -1012,6 +1012,34 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Source-to-target map for the REST submit cap (#1861).
+	 *
+	 * @since 6.40.0
+	 * @return array<string, array<int, string>>
+	 */
+	public static function forms_api_submit_cap_grant_map(): array {
+		return array(
+			'ffc_view_forms_api' => array( 'ffc_submit_forms_api' ),
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_submit_forms_api` onto every user and
+	 * role already holding `ffc_view_forms_api`. The submit route was
+	 * anonymous before #1861; an integration holding the read cap keeps
+	 * submitting until an administrator says not.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_forms_api_submit_cap_v1` option.
+	 *
+	 * @since 6.40.0
+	 * @return array<string, int> Per-target-cap count of users seeded.
+	 */
+	public static function migrate_forms_api_submit_cap_grant(): array {
+		return self::seed_caps( self::forms_api_submit_cap_grant_map() );
+	}
+
+	/**
 	 * Seed every target capability onto whoever already holds its source.
 	 *
 	 * ONE BODY, BECAUSE THERE WERE ALREADY TWO IDENTICAL ONES

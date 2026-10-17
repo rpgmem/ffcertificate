@@ -437,6 +437,11 @@ final class CapabilityCatalog {
 						'description' => __( 'For external integrators authenticating with Application Passwords.', 'ffcertificate' ),
 						'surface'     => 'api',
 					),
+					'ffc_submit_forms_api'    => array(
+						'label'       => __( 'Submit forms via REST API', 'ffcertificate' ),
+						'description' => __( 'Lets an integration submit a form through the REST API, with the same checks as the public form. Creates submissions and may create accounts and send email.', 'ffcertificate' ),
+						'surface'     => 'api',
+					),
 					'ffc_manage_identities'   => array(
 						'label'       => __( 'Resolve identity conflicts', 'ffcertificate' ),
 						'description' => __( 'Work the identity queue: correct a stored CPF/RF, and move records to the account they belong to. Does not reveal a stored identifier — that stays with the PII capability. Opening an account and merging two are separate capabilities.', 'ffcertificate' ),
@@ -664,6 +669,7 @@ final class CapabilityCatalog {
 		$known  = array(
 			'view',
 			'book',
+			'submit',
 			'cancel',
 			'download',
 			'call',

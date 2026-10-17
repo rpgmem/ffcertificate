@@ -287,6 +287,37 @@ class AppointmentHandler {
 	}
 
 	/**
+	 * Whether a private calendar is hidden from the current visitor.
+	 *
+	 * The shortcode's rule (`SelfSchedulingShortcode::render()`): a calendar
+	 * whose `visibility` is private shows nothing to a visitor who is neither
+	 * logged in nor holds the scheduling bypass. The slot and month reads
+	 * apply the same rule, so they do not answer for a calendar the page
+	 * would not show (#1861).
+	 *
+	 * @since 6.40.0
+	 * @param array<string, mixed> $calendar Calendar row.
+	 * @return bool
+	 */
+	public function is_hidden_from_visitor( array $calendar ): bool {
+		if ( 'private' !== ( $calendar['visibility'] ?? 'public' ) || is_user_logged_in() ) {
+			return false;
+		}
+		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+		return ! \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
+	}
+
+	/**
+	 * The error a read of a calendar hidden from the visitor answers with.
+	 *
+	 * @since 6.40.0
+	 * @return \WP_Error
+	 */
+	public static function hidden_calendar_error(): \WP_Error {
+		return new \WP_Error( 'calendar_private', __( 'This calendar requires authentication.', 'ffcertificate' ), array( 'status' => 403 ) );
+	}
+
+	/**
 	 * Get available time slots for a date
 	 *
 	 * @param int    $calendar_id Calendar ID.
@@ -303,6 +334,10 @@ class AppointmentHandler {
 
 		if ( 'active' !== $calendar['status'] ) {
 			return new \WP_Error( 'calendar_inactive', __( 'Calendar is not active.', 'ffcertificate' ) );
+		}
+
+		if ( $this->is_hidden_from_visitor( $calendar ) ) {
+			return self::hidden_calendar_error();
 		}
 
 		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
