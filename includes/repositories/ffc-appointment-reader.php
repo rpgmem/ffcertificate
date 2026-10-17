@@ -614,6 +614,68 @@ class AppointmentReader extends AbstractRepository {
 	}
 
 	/**
+	 * Ids of a calendar's appointments that one cleanup criterion reaches (#1872).
+	 *
+	 * The calendar's Clean Up box reads the ids first and then acts on exactly
+	 * those, so the activity-log row names the records that went and the
+	 * count a person typed to confirm can be checked against what is there.
+	 *
+	 * - `all`       every appointment of the calendar;
+	 * - `old`       dated strictly before `$date`;
+	 * - `cancelled` status `cancelled`, whatever the date;
+	 * - `future`    dated on or after `$date` and still holding a place
+	 *               (`pending`, `confirmed` or `waitlist`) -- the ones a bulk
+	 *               cancel can still cancel.
+	 *
+	 * @since 6.41.0
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $criterion   all | old | cancelled | future.
+	 * @param string $date        Cutoff date (`Y-m-d`), the site's today.
+	 * @return array<int, int> Ids in ascending order; empty for an unknown criterion.
+	 */
+	public function findIdsForCleanup( int $calendar_id, string $criterion, string $date ): array {
+		if ( $calendar_id <= 0 ) {
+			return array();
+		}
+
+		switch ( $criterion ) {
+			case 'all':
+				$sql = $this->wpdb->prepare( 'SELECT id FROM %i WHERE calendar_id = %d ORDER BY id ASC', $this->table, $calendar_id );
+				break;
+			case 'old':
+				if ( '' === $date ) {
+					return array();
+				}
+				$sql = $this->wpdb->prepare( 'SELECT id FROM %i WHERE calendar_id = %d AND appointment_date < %s ORDER BY id ASC', $this->table, $calendar_id, $date );
+				break;
+			case 'cancelled':
+				$sql = $this->wpdb->prepare( 'SELECT id FROM %i WHERE calendar_id = %d AND status = %s ORDER BY id ASC', $this->table, $calendar_id, 'cancelled' );
+				break;
+			case 'future':
+				if ( '' === $date ) {
+					return array();
+				}
+				$sql = $this->wpdb->prepare(
+					'SELECT id FROM %i WHERE calendar_id = %d AND appointment_date >= %s AND status IN (%s, %s, %s) ORDER BY id ASC',
+					$this->table,
+					$calendar_id,
+					$date,
+					'pending',
+					'confirmed',
+					'waitlist'
+				);
+				break;
+			default:
+				return array();
+		}
+
+		if ( ! is_string( $sql ) ) {
+			return array();
+		}
+		return array_map( 'intval', $this->wpdb->get_col( $sql ) );
+	}
+
+	/**
 	 * Find the next upcoming appointment for a user — date >= today
 	 * AND status ∈ allow-list, ordered by date+time ASC, single row.
 	 * Used by the user-summary REST endpoint to surface "your next

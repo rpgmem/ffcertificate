@@ -251,6 +251,13 @@ class CapabilityManager {
 		'ffc_delete_custom_fields',
 		'ffc_delete_recruitment',
 		'ffc_delete_url_shortener',
+		// Bulk purge tier (#1872). `purge` is a flow verb: deletion BY
+		// CRITERIA, a whole calendar's past, cancelled or every appointment
+		// at once, narrower than the single-record `ffc_delete_appointments`
+		// a Bookings Manager holds. Only the Bookings Administrator tier
+		// carries it (and `ffc_administrator` through
+		// `get_all_capabilities()`), so no grant migration seeds it.
+		'ffc_purge_appointments',
 
 		// Granular "export" tier (GAP G). Each `ffc_export_<domain>` cap gates
 		// the bulk CSV data-extraction path of its domain *strictly* — the
@@ -951,7 +958,7 @@ class CapabilityManager {
 			// ── Personal Calendars - Bookings ────────────────────────────
 			// The bypass is the administrator's alone (#1860): approving and
 			// cancelling is the operator's job, booking outside the rules is
-			// not.
+			// not. So is the bulk purge of a calendar (#1872).
 			'ffc_appointments_viewer'      => array(
 				'label' => __( 'FFC Personal Calendars - Bookings - Viewer', 'ffcertificate' ),
 				'caps'  => $bookings_viewer,
@@ -966,7 +973,7 @@ class CapabilityManager {
 			),
 			'ffc_appointments_admin'       => array(
 				'label' => __( 'FFC Personal Calendars - Bookings - Administrator', 'ffcertificate' ),
-				'caps'  => array_merge( $bookings_manager, array( 'ffc_bypass_appointments', 'ffc_bypass_appointment_capacity' ) ),
+				'caps'  => array_merge( $bookings_manager, array( 'ffc_bypass_appointments', 'ffc_bypass_appointment_capacity', 'ffc_purge_appointments' ) ),
 			),
 
 			// ── Personal Calendars - Setup (Viewer and Manager only) ─────

@@ -243,104 +243,35 @@ class AppointmentWriter extends AbstractRepository {
 	}
 
 	/**
-	 * Delete every appointment row for a calendar. Issue #340.
+	 * Delete the appointments whose ids are given (#1872).
 	 *
-	 * @since 6.6.2
-	 * @param int $calendar_id Calendar ID.
-	 * @return int Rows deleted (0 when prepare/query fails).
+	 * The calendar's Clean Up box reads the ids a criterion reaches and then
+	 * deletes exactly those, so what the activity log records is what went.
+	 * Replaces the four criterion deletes (`deleteByCalendar*`, #340), which
+	 * had no caller left once the box started naming its records.
+	 *
+	 * @since 6.41.0
+	 * @param array<int, int> $ids Appointment ids.
+	 * @return int Rows deleted (0 when nothing valid was given).
 	 */
-	public function deleteByCalendar( int $calendar_id ): int {
-		if ( $calendar_id <= 0 ) {
+	public function deleteByIds( array $ids ): int {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ), static fn( int $id ): bool => $id > 0 ) ) );
+		if ( empty( $ids ) ) {
 			return 0;
 		}
-		$sql = $this->wpdb->prepare( 'DELETE FROM %i WHERE calendar_id = %d', $this->table, $calendar_id );
-		if ( ! is_string( $sql ) ) {
-			return 0;
-		}
-		$rows = $this->wpdb->query( $sql );
-		$this->clear_cache();
-		return is_int( $rows ) ? $rows : 0;
-	}
 
-	/**
-	 * Delete every appointment for a calendar dated strictly before
-	 * `$date` (Y-m-d). Issue #340.
-	 *
-	 * @since 6.6.2
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date        Cutoff date (`Y-m-d`).
-	 * @return int Rows deleted.
-	 */
-	public function deleteByCalendarBefore( int $calendar_id, string $date ): int {
-		if ( $calendar_id <= 0 || '' === $date ) {
-			return 0;
+		$deleted = 0;
+		foreach ( array_chunk( $ids, 500 ) as $chunk ) {
+			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+			$sql          = $this->wpdb->prepare( "DELETE FROM %i WHERE id IN ({$placeholders})", array_merge( array( $this->table ), $chunk ) );
+			if ( ! is_string( $sql ) ) {
+				continue;
+			}
+			$rows     = $this->wpdb->query( $sql );
+			$deleted += is_int( $rows ) ? $rows : 0;
 		}
-		$sql = $this->wpdb->prepare(
-			'DELETE FROM %i WHERE calendar_id = %d AND appointment_date < %s',
-			$this->table,
-			$calendar_id,
-			$date
-		);
-		if ( ! is_string( $sql ) ) {
-			return 0;
-		}
-		$rows = $this->wpdb->query( $sql );
 		$this->clear_cache();
-		return is_int( $rows ) ? $rows : 0;
-	}
-
-	/**
-	 * Delete every appointment for a calendar dated on or after `$date`
-	 * (Y-m-d). Issue #340.
-	 *
-	 * @since 6.6.2
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date        Cutoff date (`Y-m-d`).
-	 * @return int Rows deleted.
-	 */
-	public function deleteByCalendarAfter( int $calendar_id, string $date ): int {
-		if ( $calendar_id <= 0 || '' === $date ) {
-			return 0;
-		}
-		$sql = $this->wpdb->prepare(
-			'DELETE FROM %i WHERE calendar_id = %d AND appointment_date >= %s',
-			$this->table,
-			$calendar_id,
-			$date
-		);
-		if ( ! is_string( $sql ) ) {
-			return 0;
-		}
-		$rows = $this->wpdb->query( $sql );
-		$this->clear_cache();
-		return is_int( $rows ) ? $rows : 0;
-	}
-
-	/**
-	 * Delete every appointment for a calendar matching a specific
-	 * status (e.g. `'cancelled'`). Issue #340.
-	 *
-	 * @since 6.6.2
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $status      Status to delete (matches column verbatim).
-	 * @return int Rows deleted.
-	 */
-	public function deleteByCalendarAndStatus( int $calendar_id, string $status ): int {
-		if ( $calendar_id <= 0 || '' === $status ) {
-			return 0;
-		}
-		$sql = $this->wpdb->prepare(
-			'DELETE FROM %i WHERE calendar_id = %d AND status = %s',
-			$this->table,
-			$calendar_id,
-			$status
-		);
-		if ( ! is_string( $sql ) ) {
-			return 0;
-		}
-		$rows = $this->wpdb->query( $sql );
-		$this->clear_cache();
-		return is_int( $rows ) ? $rows : 0;
+		return $deleted;
 	}
 
 	/**

@@ -308,6 +308,19 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Ids of a calendar's appointments that one cleanup criterion reaches (#1872).
+	 *
+	 * @since 6.41.0
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $criterion   all | old | cancelled | future.
+	 * @param string $date        Cutoff date (`Y-m-d`).
+	 * @return array<int, int>
+	 */
+	public function findIdsForCleanup( int $calendar_id, string $criterion, string $date ): array {
+		return $this->reader->findIdsForCleanup( $calendar_id, $criterion, $date );
+	}
+
+	/**
 	 * Find the next upcoming appointment for a user.
 	 *
 	 * @since 6.6.2
@@ -454,50 +467,14 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
-	 * Delete every appointment row for a calendar.
+	 * Delete the appointments whose ids are given (#1872).
 	 *
-	 * @since 6.6.2
-	 * @param int $calendar_id Calendar ID.
+	 * @since 6.41.0
+	 * @param array<int, int> $ids Appointment ids.
 	 * @return int Rows deleted.
 	 */
-	public function deleteByCalendar( int $calendar_id ): int {
-		return $this->writer->deleteByCalendar( $calendar_id );
-	}
-
-	/**
-	 * Delete every appointment for a calendar dated strictly before `$date`.
-	 *
-	 * @since 6.6.2
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date        Cutoff date (`Y-m-d`).
-	 * @return int Rows deleted.
-	 */
-	public function deleteByCalendarBefore( int $calendar_id, string $date ): int {
-		return $this->writer->deleteByCalendarBefore( $calendar_id, $date );
-	}
-
-	/**
-	 * Delete every appointment for a calendar dated on or after `$date`.
-	 *
-	 * @since 6.6.2
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date        Cutoff date (`Y-m-d`).
-	 * @return int Rows deleted.
-	 */
-	public function deleteByCalendarAfter( int $calendar_id, string $date ): int {
-		return $this->writer->deleteByCalendarAfter( $calendar_id, $date );
-	}
-
-	/**
-	 * Delete every appointment for a calendar matching a specific status.
-	 *
-	 * @since 6.6.2
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $status      Status to delete.
-	 * @return int Rows deleted.
-	 */
-	public function deleteByCalendarAndStatus( int $calendar_id, string $status ): int {
-		return $this->writer->deleteByCalendarAndStatus( $calendar_id, $status );
+	public function deleteByIds( array $ids ): int {
+		return $this->writer->deleteByIds( $ids );
 	}
 
 	/**

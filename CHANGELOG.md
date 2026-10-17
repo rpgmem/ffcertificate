@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- ⚠ **Calendar cleanup has its own capability, cancels the future instead of deleting it, and is logged** (#1872). `ffc_purge_appointments` gates it, so Bookings Managers lose the bulk purge; "Future" cancels and e-mails; a typed count confirms; each run writes one Activity Log row.
+
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 
 ### Added

@@ -143,11 +143,11 @@ class SelfSchedulingEditor {
 			array(
 				'nonce'   => wp_create_nonce( 'ffc_self_scheduling_editor_nonce' ),
 				'strings' => array(
-					'confirmDelete'     => __( 'Are you sure you want to delete this?', 'ffcertificate' ),
-					'addWorkingHour'    => __( 'Add Working Hours', 'ffcertificate' ),
-					'lastWorkingHour'   => __( 'You must have at least one working hour configured.', 'ffcertificate' ),
-					'remove'            => __( 'Remove', 'ffcertificate' ),
-					'daysOfWeek'        => array(
+					'confirmDelete'    => __( 'Are you sure you want to delete this?', 'ffcertificate' ),
+					'addWorkingHour'   => __( 'Add Working Hours', 'ffcertificate' ),
+					'lastWorkingHour'  => __( 'You must have at least one working hour configured.', 'ffcertificate' ),
+					'remove'           => __( 'Remove', 'ffcertificate' ),
+					'daysOfWeek'       => array(
 						__( 'Sunday', 'ffcertificate' ),
 						__( 'Monday', 'ffcertificate' ),
 						__( 'Tuesday', 'ffcertificate' ),
@@ -156,15 +156,68 @@ class SelfSchedulingEditor {
 						__( 'Friday', 'ffcertificate' ),
 						__( 'Saturday', 'ffcertificate' ),
 					),
-					'confirmCleanup'    => __( 'Are you sure you want to delete these appointments? This action cannot be undone.', 'ffcertificate' ),
-					'confirmCleanupAll' => __( 'Are you sure you want to delete ALL appointments? This will permanently remove all appointment data and cannot be undone!', 'ffcertificate' ),
-					'deleting'          => __( 'Deleting...', 'ffcertificate' ),
-					'errorDeleting'     => __( 'Error deleting appointments', 'ffcertificate' ),
-					'errorServer'       => __( 'Error communicating with server', 'ffcertificate' ),
-					'schedulingForced'  => __( 'Forced to Private because Visibility is Private.', 'ffcertificate' ),
-					'schedulingDesc'    => __( 'Public: anyone can book. Private: only logged-in users can book.', 'ffcertificate' ),
+					'deleting'         => __( 'Deleting...', 'ffcertificate' ),
+					'cancelling'       => __( 'Cancelling...', 'ffcertificate' ),
+					'cleanup'          => self::cleanup_dialog_strings(),
+					'errorDeleting'    => __( 'Error deleting appointments', 'ffcertificate' ),
+					'errorServer'      => __( 'Error communicating with server', 'ffcertificate' ),
+					'schedulingForced' => __( 'Forced to Private because Visibility is Private.', 'ffcertificate' ),
+					'schedulingDesc'   => __( 'Public: anyone can book. Private: only logged-in users can book.', 'ffcertificate' ),
 				),
 			)
+		);
+	}
+
+	/**
+	 * Words of the cleanup confirmation dialog (#1872).
+	 *
+	 * One entry per action. `%1$d` is the count the action reaches and
+	 * `%2$s` the calendar title; `type` is the typed-count prompt, present
+	 * only on the two actions that ask for it.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function cleanup_dialog_strings(): array {
+		/* translators: %d: the number the person must type to confirm */
+		$type = __( 'To confirm, type %d', 'ffcertificate' );
+
+		return array(
+			'cancel'    => __( 'Cancel', 'ffcertificate' ),
+			'goBack'    => __( 'Go back', 'ffcertificate' ),
+			'cancelled' => array(
+				'title'   => __( 'Delete cancelled appointments', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'body'    => __( '%1$d cancelled appointment(s) of the calendar "%2$s" will be deleted for good.', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirm' => __( 'Delete %d appointment(s)', 'ffcertificate' ),
+			),
+			'old'       => array(
+				'title'   => __( 'Delete past appointments', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'body'    => __( '%1$d past appointment(s) of the calendar "%2$s" will be deleted for good.', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirm' => __( 'Delete %d appointment(s)', 'ffcertificate' ),
+			),
+			'future'    => array(
+				'title'         => __( 'Cancel future appointments', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'body'          => __( '%1$d appointment(s) booked from today on in the calendar "%2$s" will be cancelled, and each person booked will receive the calendar\'s cancellation e-mail. Nothing is deleted.', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'bodySilent'    => __( '%1$d appointment(s) booked from today on in the calendar "%2$s" will be cancelled. This calendar does not send cancellation e-mails, so nobody will be notified. Nothing is deleted.', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirm'       => __( 'Cancel %d and notify', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirmSilent' => __( 'Cancel %d appointment(s)', 'ffcertificate' ),
+				'type'          => $type,
+			),
+			'all'       => array(
+				'title'   => __( 'Delete all appointments', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'body'    => __( 'All %1$d appointment(s) of the calendar "%2$s" will be deleted for good: past, future and cancelled.', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirm' => __( 'Delete %d appointment(s)', 'ffcertificate' ),
+				'type'    => $type,
+			),
 		);
 	}
 
