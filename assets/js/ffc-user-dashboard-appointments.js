@@ -57,7 +57,7 @@
                         '</div>' +
                     '</div>' +
                     '<div class="ffc-modal-footer">' +
-                        window.FFC.buttonHtml({ label: s.cancelKeepBtn, category: 'neutral', icon: 'chevron-left', className: 'ffc-cancel-keep' }) +
+                        window.FFC.buttonHtml({ label: s.cancelKeepBtn, category: 'neutral', icon: 'calendar-check', className: 'ffc-cancel-keep' }) +
                         window.FFC.buttonHtml({ label: s.cancelConfirmBtn, category: 'danger', icon: 'cross', className: 'ffc-cancel-confirm', attrs: { 'data-id': String(apt.id) } }) +
                     '</div>' +
                 '</div>' +

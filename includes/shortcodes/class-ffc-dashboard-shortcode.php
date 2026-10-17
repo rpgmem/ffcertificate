@@ -366,7 +366,7 @@ class DashboardShortcode {
 						array(
 							'label'    => __( 'Login', 'ffcertificate' ),
 							'category' => 'primary',
-							'icon'     => 'key',
+							'icon'     => 'login',
 							'href'     => wp_login_url( $permalink ? $permalink : '' ),
 						)
 					),
