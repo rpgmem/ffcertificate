@@ -294,6 +294,11 @@ final class CapabilityCatalog {
 						'label'       => __( 'Delete audiences', 'ffcertificate' ),
 						'description' => __( 'Delete audiences, calendars, environments and bookings.', 'ffcertificate' ),
 					),
+					'ffc_bypass_audiences' => array(
+						'label'       => __( 'Audience calendar bypass', 'ffcertificate' ),
+						'description' => __( 'Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on (#1859).', 'ffcertificate' ),
+						'surface'     => 'frontend',
+					),
 				),
 			),
 			array(
@@ -382,6 +387,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Manage date messages', 'ffcertificate' ),
 						'description' => __( 'Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
 					),
+					'ffc_test_date_messages'     => array(
+						'label'       => __( 'Send date-message tests', 'ffcertificate' ),
+						'description' => __( 'Send a sample of a rule, with fictional values, to your own address. Managing date messages allows it too (#1860).', 'ffcertificate' ),
+					),
 					'ffc_view_date_messages_pii' => array(
 						'label'       => __( 'See who receives date messages', 'ffcertificate' ),
 						'description' => __( 'Lists people by name with their birthday (day and month) in the recipient preview and the upcoming-dates panel.', 'ffcertificate' ),
@@ -408,6 +417,10 @@ final class CapabilityCatalog {
 					'ffc_manage_settings_dangerzone' => array(
 						'label'       => __( 'Run destructive maintenance', 'ffcertificate' ),
 						'description' => __( 'Execute the Settings danger-zone actions: data deletion, cleanup and migrations.', 'ffcertificate' ),
+					),
+					'ffc_test_settings_smtp'         => array(
+						'label'       => __( 'Send the SMTP test email', 'ffcertificate' ),
+						'description' => __( 'Send the Email Model test message to your own address, without being able to change the transport. Managing SMTP settings allows it too (#1860).', 'ffcertificate' ),
 					),
 					'ffc_manage_email_templates'     => array(
 						'label'       => __( 'Manage email templates', 'ffcertificate' ),
@@ -657,8 +670,8 @@ final class CapabilityCatalog {
 	 * `view` (the faintest, safest assumption).
 	 *
 	 * @param string $slug Capability slug.
-	 * @return string One of: view, reveal, book, cancel, download, call, export,
-	 *                import, edit, manage, bypass, delete.
+	 * @return string One of: view, reveal, book, submit, test, cancel, download,
+	 *                call, export, import, edit, manage, bypass, delete.
 	 */
 	public static function cap_tier( string $slug ): string {
 		if ( str_ends_with( $slug, '_pii' ) ) {
@@ -670,6 +683,7 @@ final class CapabilityCatalog {
 			'view',
 			'book',
 			'submit',
+			'test',
 			'cancel',
 			'download',
 			'call',

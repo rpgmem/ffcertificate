@@ -80,6 +80,12 @@ final class AdminMenuVisibility {
 	public const DATE_MESSAGES_PAGE = 'ffc-date-messages';
 
 	/**
+	 * `?page=` of the QR Code Generator, registered by
+	 * `UrlShortener\QrGeneratorPage::register_menu()`.
+	 */
+	public const QR_GENERATOR_PAGE = 'ffc-qr-generator';
+
+	/**
 	 * Per-role visibility policy. Each entry is consumed at three
 	 * sites — `apply_menu_visibility()` (admin_menu), `block_url_access()`
 	 * (admin_init), and `prune_admin_bar()` (admin_bar_menu).
@@ -248,6 +254,12 @@ final class AdminMenuVisibility {
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
+			'ffc_audiences_admin'         => array(
+				'landing_page'         => AudienceAdminPage::MENU_SLUG,
+				'allowed_pages'        => $audience_screens,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
 			// Reregistration ladder. Custom Fields is registered under
 			// `ffc_manage_reregistration`, so only the manager lists it (#1782).
 			'ffc_reregistration_viewer'   => array(
@@ -276,14 +288,16 @@ final class AdminMenuVisibility {
 			),
 			// Cross-domain read-only: every screen one of its view caps opens
 			// (#1776). Writes stay with each handler's own capability check.
+			// It lands on the Certificates dashboard since the activity log,
+			// its old landing, became the FFC Administrator's alone (#1860).
 			'ffc_readonly'                => array(
-				'landing_page'         => 'admin.php?page=' . Settings::MENU_SLUG . '&tab=activity_log',
+				'landing_page'         => CertificatesDashboard::MENU_SLUG,
 				'allowed_pages'        => array_values(
 					array_unique(
 						array_merge(
 							$certificate_screens,
 							$form_screens,
-							array( Settings::MENU_SLUG, ReregistrationAdmin::MENU_SLUG, RecruitmentAdminPage::PAGE_SLUG, self::APPOINTMENTS_PAGE, $personal_calendars, self::SHORT_URLS_PAGE, self::DATE_MESSAGES_PAGE ),
+							array( ReregistrationAdmin::MENU_SLUG, RecruitmentAdminPage::PAGE_SLUG, self::APPOINTMENTS_PAGE, $personal_calendars, self::SHORT_URLS_PAGE, self::DATE_MESSAGES_PAGE ),
 							$audience_screens
 						)
 					)
@@ -314,6 +328,83 @@ final class AdminMenuVisibility {
 			'ffc_recruitment_admin'       => array(
 				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
 				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Short URLs ladder (#1860). The QR generator is registered under
+			// `ffc_manage_url_shortener`, so only the manager tiers list it.
+			'ffc_url_shortener_viewer'    => array(
+				'landing_page'         => self::SHORT_URLS_PAGE,
+				'allowed_pages'        => array( self::SHORT_URLS_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_url_shortener_operator'  => array(
+				'landing_page'         => self::SHORT_URLS_PAGE,
+				'allowed_pages'        => array( self::SHORT_URLS_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_url_shortener_manager'   => array(
+				'landing_page'         => self::SHORT_URLS_PAGE,
+				'allowed_pages'        => array( self::SHORT_URLS_PAGE, self::QR_GENERATOR_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_url_shortener_admin'     => array(
+				'landing_page'         => self::SHORT_URLS_PAGE,
+				'allowed_pages'        => array( self::SHORT_URLS_PAGE, self::QR_GENERATOR_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Date Messages ladder (#1860): one screen, its tabs included.
+			'ffc_date_messages_viewer'    => array(
+				'landing_page'         => self::DATE_MESSAGES_PAGE,
+				'allowed_pages'        => array( self::DATE_MESSAGES_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_date_messages_operator'  => array(
+				'landing_page'         => self::DATE_MESSAGES_PAGE,
+				'allowed_pages'        => array( self::DATE_MESSAGES_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_date_messages_manager'   => array(
+				'landing_page'         => self::DATE_MESSAGES_PAGE,
+				'allowed_pages'        => array( self::DATE_MESSAGES_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_date_messages_admin'     => array(
+				'landing_page'         => self::DATE_MESSAGES_PAGE,
+				'allowed_pages'        => array( self::DATE_MESSAGES_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// FFC Settings ladder (#1860): the Settings page; each tab gates
+			// itself on its own capability.
+			'ffc_settings_viewer'         => array(
+				'landing_page'         => Settings::MENU_SLUG,
+				'allowed_pages'        => array( Settings::MENU_SLUG ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_settings_operator'       => array(
+				'landing_page'         => Settings::MENU_SLUG,
+				'allowed_pages'        => array( Settings::MENU_SLUG ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_settings_manager'        => array(
+				'landing_page'         => Settings::MENU_SLUG,
+				'allowed_pages'        => array( Settings::MENU_SLUG ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_settings_admin'          => array(
+				'landing_page'         => Settings::MENU_SLUG,
+				'allowed_pages'        => array( Settings::MENU_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),

@@ -350,4 +350,173 @@ class CapabilityMigratorTest extends TestCase {
 			);
 		}
 	}
+
+	// ==================================================================
+	// #1860 — the tier alignment
+	// ==================================================================
+
+	/**
+	 * A stored role, built the way WordPress hands one back.
+	 *
+	 * @param array<int, string> $caps Capabilities it holds.
+	 */
+	private function stored_role( array $caps ): \WP_Role {
+		$role = new \WP_Role();
+		foreach ( $caps as $cap ) {
+			$role->capabilities[ $cap ] = true;
+		}
+		return $role;
+	}
+
+	public function test_the_tier_removals_never_take_a_cap_the_tier_owns(): void {
+		Functions\when( '__' )->returnArg();
+		$definition = CapabilityManager::module_roles_definition();
+		$removals   = CapabilityMigrator::role_tier_removals();
+
+		$this->assertArrayNotHasKey( 'ffc_administrator', $removals );
+		$this->assertNotEmpty( $removals );
+		foreach ( $removals as $slug => $caps ) {
+			$this->assertArrayHasKey( $slug, $definition );
+			$this->assertSame( array(), array_values( array_intersect( $caps, $definition[ $slug ]['caps'] ) ), "{$slug} would lose a cap its tier defines." );
+		}
+	}
+
+	public function test_the_tier_removals_name_the_issue_and_the_fresh_install_seeds(): void {
+		Functions\when( '__' )->returnArg();
+		$removals = CapabilityMigrator::role_tier_removals();
+
+		// The issue's two: the bypass leaves Bookings Operator and Manager,
+		// the activity log leaves Read-only.
+		$this->assertContains( 'ffc_bypass_appointments', $removals['ffc_appointments_operator'] );
+		$this->assertContains( 'ffc_bypass_appointments', $removals['ffc_appointments_manager'] );
+		$this->assertContains( 'ffc_view_activity_log', $removals['ffc_readonly'] );
+		$this->assertContains( 'ffc_export_activity_log', $removals['ffc_readonly'] );
+		$this->assertArrayNotHasKey( 'ffc_appointments_admin', array_filter( $removals, static fn( array $caps ): bool => in_array( 'ffc_bypass_appointments', $caps, true ) ) );
+
+		// What the seeds hand a fresh install's roles, followed through: the
+		// FFC Settings Manager holds `ffc_manage_settings`, which seeds the
+		// SMTP and Danger Zone caps, which seed the identity caps.
+		foreach ( array( 'ffc_manage_settings_smtp', 'ffc_manage_settings_dangerzone', 'ffc_manage_identities', 'ffc_split_identities', 'ffc_merge_identities' ) as $cap ) {
+			$this->assertContains( $cap, $removals['ffc_settings_manager'], "ffc_settings_manager keeps {$cap}." );
+		}
+		$this->assertContains( 'ffc_submit_forms_api', $removals['ffc_settings_viewer'] );
+		// The Bookings Operator approves and cancels through
+		// `ffc_manage_appointments`, whose seeds are the manager's export and
+		// delete.
+		$this->assertContains( 'ffc_export_appointments', $removals['ffc_appointments_operator'] );
+		$this->assertContains( 'ffc_delete_appointments', $removals['ffc_appointments_operator'] );
+	}
+
+	public function test_role_tiers_remove_add_and_rename_on_an_existing_install(): void {
+		Functions\when( '__' )->returnArg();
+
+		// An install upgraded from 6.39: the old tiers, labels and seeds.
+		$stored = array(
+			'ffc_appointments_operator' => $this->stored_role( array( 'read', 'ffc_view_appointments', 'ffc_bypass_appointments' ) ),
+			'ffc_appointments_manager'  => $this->stored_role( array( 'read', 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_bypass_appointments', 'ffc_export_appointments', 'ffc_view_appointments_pii' ) ),
+			'ffc_appointments_admin'    => $this->stored_role( array( 'read', 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_bypass_appointments', 'ffc_export_appointments', 'ffc_view_appointments_pii' ) ),
+			'ffc_readonly'              => $this->stored_role( array( 'read', 'ffc_view_certificates', 'ffc_view_activity_log', 'ffc_export_activity_log' ) ),
+			// A cap an administrator added in the role editor stays.
+			'ffc_audiences_viewer'      => $this->stored_role( array( 'read', 'ffc_view_audiences', 'ffc_view_url_shortener' ) ),
+		);
+		Functions\when( 'get_role' )->alias(
+			static function ( $slug ) use ( &$stored ) {
+				return $stored[ $slug ] ?? null;
+			}
+		);
+		$created = array();
+		Functions\when( 'add_role' )->alias(
+			static function ( string $slug, string $label, array $caps ) use ( &$created ) {
+				$created[ $slug ] = array(
+					'label' => $label,
+					'caps'  => $caps,
+				);
+				return null;
+			}
+		);
+
+		$option = array(
+			'ffc_appointments_operator' => array(
+				'name'         => 'FFC Appointments - Operator',
+				'capabilities' => array(),
+			),
+			'ffc_readonly'              => array(
+				'name'         => 'FFC Read-Only (all modules)',
+				'capabilities' => array(),
+			),
+			'editor'                    => array(
+				'name'         => 'Editor',
+				'capabilities' => array(),
+			),
+		);
+		Functions\when( 'wp_roles' )->justReturn( (object) array( 'role_key' => 'wp_user_roles' ) );
+		Functions\when( 'get_option' )->alias(
+			static function ( $key ) use ( &$option ) {
+				return 'wp_user_roles' === $key ? $option : false;
+			}
+		);
+		$written = array();
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$written ) {
+				$written[ $key ] = $value;
+				return true;
+			}
+		);
+
+		$counts = CapabilityMigrator::migrate_role_tiers();
+
+		$operator = $stored['ffc_appointments_operator']->capabilities;
+		$this->assertArrayNotHasKey( 'ffc_bypass_appointments', $operator, 'Bookings Operator loses the bypass.' );
+		$this->assertTrue( $operator['ffc_manage_appointments'] ?? false, 'Bookings Operator gains approve/cancel.' );
+		$this->assertArrayNotHasKey( 'ffc_bypass_appointments', $stored['ffc_appointments_manager']->capabilities, 'Bookings Manager loses the bypass.' );
+
+		$admin = $stored['ffc_appointments_admin']->capabilities;
+		$this->assertTrue( $admin['ffc_bypass_appointments'] ?? false, 'Bookings Administrator keeps the bypass.' );
+		$this->assertTrue( $admin['ffc_bypass_appointment_capacity'] ?? false, 'Bookings Administrator gains the capacity bypass.' );
+
+		$readonly = $stored['ffc_readonly']->capabilities;
+		$this->assertArrayNotHasKey( 'ffc_view_activity_log', $readonly );
+		$this->assertArrayNotHasKey( 'ffc_export_activity_log', $readonly );
+		$this->assertTrue( $readonly['ffc_view_certificates'] ?? false );
+
+		$this->assertTrue( $stored['ffc_audiences_viewer']->capabilities['ffc_view_url_shortener'] ?? false, 'A cap the tier never took into account stays.' );
+
+		// The roles new in this release are created.
+		$this->assertTrue( $created['ffc_audiences_admin']['caps']['ffc_bypass_audiences'] ?? false );
+		$this->assertTrue( $created['ffc_settings_operator']['caps']['ffc_test_settings_smtp'] ?? false );
+		$this->assertTrue( $created['ffc_date_messages_operator']['caps']['ffc_test_date_messages'] ?? false );
+
+		// The stored names follow the new labels; a role that is not ours is
+		// left alone.
+		$this->assertSame( 'FFC Personal Calendars - Bookings - Operator', $written['wp_user_roles']['ffc_appointments_operator']['name'] ?? null );
+		$this->assertSame( 'FFC Read-only', $written['wp_user_roles']['ffc_readonly']['name'] ?? null );
+		$this->assertSame( 'Editor', $written['wp_user_roles']['editor']['name'] ?? null );
+		$this->assertArrayNotHasKey( 'ffc_settings_admin', $written['wp_user_roles'], 'A role the option does not hold is not invented there.' );
+
+		// Two bypasses and the two activity-log caps.
+		$this->assertSame( 4, $counts['caps_removed'] );
+		$this->assertSame( 2, $counts['roles_renamed'] );
+	}
+
+	public function test_role_tiers_write_no_option_when_every_name_is_current(): void {
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'get_role' )->justReturn( null );
+		Functions\when( 'add_role' )->justReturn( null );
+		Functions\when( 'wp_roles' )->justReturn( (object) array( 'role_key' => 'wp_user_roles' ) );
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'ffc_readonly' => array(
+					'name'         => 'FFC Read-only',
+					'capabilities' => array(),
+				),
+			)
+		);
+		$log = \FreeFormCertificate\Tests\Support\CallLog::record( 'update_option', true );
+
+		$counts = CapabilityMigrator::migrate_role_tiers();
+
+		$this->assertSame( 0, $log->count() );
+		$this->assertSame( 0, $counts['roles_renamed'] );
+		$this->assertSame( 0, $counts['caps_removed'] );
+	}
 }

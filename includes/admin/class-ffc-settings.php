@@ -750,6 +750,12 @@ class Settings {
 					if ( ! $ffc_settings_can_edit ) {
 						echo '</fieldset>';
 					}
+					// A tab may print a part the lock must not disable: an
+					// action its own capability allows to a user who cannot
+					// save the tab (the Email Model's test send, #1860).
+					if ( isset( $visible_tabs[ $active_tab ] ) && method_exists( $visible_tabs[ $active_tab ], 'render_unlocked' ) ) {
+						$visible_tabs[ $active_tab ]->render_unlocked();
+					}
 					?>
 				</div>
 			</div>

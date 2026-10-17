@@ -257,7 +257,12 @@ class RoleRegistrar {
 	 * for a deactivate/reactivate cycle to surface new roles.
 	 *
 	 * Existing roles are upgraded: missing caps are added; extra caps
-	 * an operator manually granted are NOT removed.
+	 * an operator manually granted are NOT removed. Taking a cap away from a
+	 * shipped role is therefore a one-shot step in {@see CapabilityMigrator}
+	 * (the #1860 tiers are {@see CapabilityMigrator::migrate_role_tiers()}).
+	 *
+	 * `ffc_recruitment_manager` is part of the definition since #1860, so its
+	 * tier caps are topped up here like every other role's.
 	 *
 	 * @since 6.2.0
 	 * @return void
@@ -282,30 +287,6 @@ class RoleRegistrar {
 				$caps_map[ $cap ] = true;
 			}
 			add_role( $slug, $def['label'], $caps_map );
-		}
-
-		// Upgrade the existing `ffc_recruitment_manager` (6.0.0) to the new
-		// tier-2 cap set. Adds the 6.2.0 granular caps without removing the
-		// umbrella `ffc_manage_recruitment` cap that was there from launch.
-		$existing_manager = get_role( CapabilityManager::RECRUITMENT_MANAGER_ROLE );
-		if ( $existing_manager ) {
-			$tier_2_caps = array(
-				'ffc_view_recruitment',
-				'ffc_call_recruitment',
-				'ffc_import_recruitment',
-				'ffc_view_recruitment_pii',
-				'ffc_delete_recruitment',
-				// GAP I: reasons split into their own strict tier. A plain
-				// Recruitment Manager previously edited reasons via the umbrella;
-				// carry both reasons caps explicitly so that keeps working.
-				'ffc_view_recruitment_reasons',
-				'ffc_manage_recruitment_reasons',
-			);
-			foreach ( $tier_2_caps as $cap ) {
-				if ( ! isset( $existing_manager->capabilities[ $cap ] ) ) {
-					$existing_manager->add_cap( $cap, true );
-				}
-			}
 		}
 	}
 
@@ -373,8 +354,7 @@ class RoleRegistrar {
 	 */
 	public static function ffc_managed_role_labels(): array {
 		$labels = array(
-			'ffc_end_user'                              => __( 'FFC End User', 'ffcertificate' ),
-			CapabilityManager::RECRUITMENT_MANAGER_ROLE => __( 'FFC Recruitment - Manager', 'ffcertificate' ),
+			'ffc_end_user' => __( 'FFC End User', 'ffcertificate' ),
 		);
 		foreach ( CapabilityManager::module_roles_definition() as $slug => $def ) {
 			$labels[ $slug ] = $def['label'];
@@ -447,15 +427,18 @@ class RoleRegistrar {
 	}
 
 	/**
-	 * The module portion of a role label — everything before the " - " tier
-	 * suffix, with the leading "FFC " stripped so the alphabetical sort compares
-	 * on the module word itself. A label with no separator returns unchanged.
+	 * The module portion of a role label — everything before the LAST " - ",
+	 * which is the tier, with the leading "FFC " stripped so the alphabetical
+	 * sort compares on the module itself. A module's part stays in it
+	 * ("Certificates - Forms"), so a part's roles sort together rather than
+	 * interleaving with its sibling's (#1860). A label with no separator
+	 * returns unchanged.
 	 *
 	 * @param string $label Role display label.
 	 * @return string
 	 */
 	private static function label_module_part( string $label ): string {
-		$pos  = strpos( $label, ' - ' );
+		$pos  = strrpos( $label, ' - ' );
 		$core = false === $pos ? $label : substr( $label, 0, $pos );
 		return (string) preg_replace( '/^FFC\s+/u', '', $core );
 	}

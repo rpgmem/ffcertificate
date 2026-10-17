@@ -849,11 +849,33 @@ class SettingsActionHandlerTest extends TestCase {
 			->shouldReceive( 'current_user_can_admin_or' )
 			->andReturnUsing(
 				static function ( $cap ) {
-					return 'ffc_manage_settings_smtp' !== $cap;
+					return ! in_array( $cap, array( 'ffc_manage_settings_smtp', 'ffc_test_settings_smtp' ), true );
 				}
 			);
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'die' );
+		$this->handler->handle_send_test_email();
+	}
+
+	public function test_send_test_email_is_allowed_by_the_test_cap_alone(): void {
+		// #1860 — the FFC Settings Operator holds `ffc_test_settings_smtp`
+		// and nothing that changes SMTP: the capability gate lets it through,
+		// so the next thing the handler asks for is the nonce.
+		$_POST['ffc_send_test_email'] = '1';
+		Mockery::mock( 'alias:FreeFormCertificate\\Core\\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )
+			->andReturnUsing(
+				static function ( $cap ) {
+					return 'ffc_test_settings_smtp' === $cap;
+				}
+			);
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( $action ) {
+				throw new \RuntimeException( 'nonce:' . $action );
+			}
+		);
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'nonce:ffc_send_test_email' );
 		$this->handler->handle_send_test_email();
 	}
 

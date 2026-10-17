@@ -1040,6 +1040,184 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Every edge a seeding migration in this class follows: source cap =>
+	 * the caps it seeds onto the roles holding the source.
+	 *
+	 * Read by {@see self::role_tier_removals()}, because those seeds walk
+	 * EVERY role, the FFC ones included: on a fresh install the roles exist
+	 * (activation registers them) before the first `plugins_loaded` runs the
+	 * seeds, so a role holding a source receives its targets whether or not
+	 * its tier owns them -- `ffc_manage_settings` would bring the SMTP and
+	 * Danger Zone caps to the FFC Settings Manager, and through the danger
+	 * zone the identity caps.
+	 *
+	 * @since 6.40.0
+	 * @return array<string, list<string>>
+	 */
+	private static function seed_grant_edges(): array {
+		$edges = array();
+
+		// The `source => target` maps.
+		$single = array(
+			self::delete_cap_grant_map(),
+			self::export_cap_grant_map(),
+			self::import_cap_grant_map(),
+			self::activity_log_export_cap_grant_map(),
+			self::url_shortener_export_cap_grant_map(),
+			self::reasons_cap_grant_map(),
+		);
+		foreach ( $single as $map ) {
+			foreach ( $map as $source => $target ) {
+				$edges[ $source ][] = $target;
+			}
+		}
+
+		// The `source => targets[]` maps.
+		$multiple = array(
+			self::settings_split_cap_grant_map(),
+			self::email_templates_cap_grant_map(),
+			self::identities_cap_grant_map(),
+			self::identity_verbs_cap_grant_map(),
+			self::grade_cap_grant_map(),
+			self::reregistration_pii_cap_grant_map(),
+			self::forms_api_submit_cap_grant_map(),
+		);
+		foreach ( $multiple as $map ) {
+			foreach ( $map as $source => $targets ) {
+				foreach ( $targets as $target ) {
+					$edges[ $source ][] = $target;
+				}
+			}
+		}
+
+		return $edges;
+	}
+
+	/**
+	 * The caps each FFC role loses on the #1860 tier alignment.
+	 *
+	 * Per role (every one but `ffc_administrator`), the union of:
+	 *
+	 * - the administrator-only caps
+	 *   ({@see CapabilityManager::ADMINISTRATOR_ONLY_CAPABILITIES}) -- the
+	 *   activity log leaves the read-only role here;
+	 * - the bypass, for Personal Calendars - Bookings Operator and Manager;
+	 * - whatever the seeding migrations would add from the caps the role
+	 *   holds, followed to a fixed point ({@see self::seed_grant_edges()});
+	 *
+	 * minus the caps the role's tier defines. A cap the definition grants is
+	 * never on the list, so the step only takes away what the tier does not
+	 * own.
+	 *
+	 * @since 6.40.0
+	 * @return array<string, list<string>> Role slug => caps to remove.
+	 */
+	public static function role_tier_removals(): array {
+		$explicit = array(
+			'ffc_appointments_operator' => array( 'ffc_bypass_appointments' ),
+			'ffc_appointments_manager'  => array( 'ffc_bypass_appointments' ),
+		);
+		$edges    = self::seed_grant_edges();
+		$removals = array();
+
+		foreach ( CapabilityManager::module_roles_definition() as $slug => $def ) {
+			if ( 'ffc_administrator' === $slug ) {
+				continue;
+			}
+			$held    = $def['caps'];
+			$reached = array();
+			$queue   = $held;
+			while ( array() !== $queue ) {
+				$source = (string) array_shift( $queue );
+				foreach ( $edges[ $source ] ?? array() as $target ) {
+					if ( ! in_array( $target, $reached, true ) ) {
+						$reached[] = $target;
+						$queue[]   = $target;
+					}
+				}
+			}
+			$candidates = array_unique(
+				array_merge(
+					CapabilityManager::ADMINISTRATOR_ONLY_CAPABILITIES,
+					$explicit[ $slug ] ?? array(),
+					$reached
+				)
+			);
+			$remove     = array_values( array_diff( $candidates, $held ) );
+			if ( array() !== $remove ) {
+				$removals[ $slug ] = $remove;
+			}
+		}
+
+		return $removals;
+	}
+
+	/**
+	 * Align the stored FFC roles with the #1860 tiers and labels.
+	 *
+	 * Three halves, because `RoleRegistrar::register_module_roles()` only
+	 * ever ADDS:
+	 *
+	 * 1. Register, so a role new in this release (Short URLs, Date Messages,
+	 *    FFC Settings, Audience Calendars Administrator) exists and a role
+	 *    whose tier grew holds its new caps.
+	 * 2. Remove {@see self::role_tier_removals()} from each stored role.
+	 * 3. Rewrite the display name stored in the roles option. WordPress keeps
+	 *    the name given to `add_role()`, and the relabel on `wp_roles_init`
+	 *    changes it in memory only, so anything reading the option directly
+	 *    would still show the old label.
+	 *
+	 * Role definitions only: a capability granted to a user personally is
+	 * that user's, and stays.
+	 *
+	 * Runs once per install from `Loader::register_ffc_roles_safe()` on
+	 * `init` (the labels are translated, so not on `plugins_loaded`), after
+	 * every seeding migration has run, flagged by `ffc_role_tiers_v1`.
+	 *
+	 * @since 6.40.0
+	 * @return array{caps_removed: int, roles_renamed: int}
+	 */
+	public static function migrate_role_tiers(): array {
+		$counts = array(
+			'caps_removed'  => 0,
+			'roles_renamed' => 0,
+		);
+
+		RoleRegistrar::register_module_roles();
+
+		foreach ( self::role_tier_removals() as $slug => $caps ) {
+			$role = get_role( $slug );
+			if ( ! $role instanceof \WP_Role ) {
+				continue;
+			}
+			foreach ( $caps as $cap ) {
+				if ( isset( $role->capabilities[ $cap ] ) ) {
+					$role->remove_cap( $cap );
+					++$counts['caps_removed'];
+				}
+			}
+		}
+
+		$wp_roles = wp_roles();
+		$stored   = get_option( $wp_roles->role_key );
+		if ( is_array( $stored ) ) {
+			$changed = false;
+			foreach ( RoleRegistrar::ffc_managed_role_labels() as $slug => $label ) {
+				if ( isset( $stored[ $slug ] ) && is_array( $stored[ $slug ] ) && ( $stored[ $slug ]['name'] ?? '' ) !== $label ) {
+					$stored[ $slug ]['name'] = $label;
+					$changed                 = true;
+					++$counts['roles_renamed'];
+				}
+			}
+			if ( $changed ) {
+				update_option( $wp_roles->role_key, $stored );
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * Seed every target capability onto whoever already holds its source.
 	 *
 	 * ONE BODY, BECAUSE THERE WERE ALREADY TWO IDENTICAL ONES

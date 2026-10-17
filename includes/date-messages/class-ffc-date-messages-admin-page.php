@@ -54,6 +54,11 @@ final class DateMessagesAdminPage {
 	public const PII_CAP = 'ffc_view_date_messages_pii';
 
 	/**
+	 * Send a rule's test to oneself, without managing the rules (#1860).
+	 */
+	public const TEST_CAP = 'ffc_test_date_messages';
+
+	/**
 	 * `admin_post` actions. Each nonce action equals its `admin_post`
 	 * action, keyed per rule where the action names one.
 	 */
@@ -116,6 +121,20 @@ final class DateMessagesAdminPage {
 	 */
 	public static function can_manage(): bool {
 		return Capabilities::current_user_can_admin_or( self::MANAGE_CAP );
+	}
+
+	/**
+	 * Whether the current user may send a rule's test to their own address.
+	 *
+	 * The operator tier's action (#1860): `ffc_test_date_messages` allows it
+	 * without allowing any change, and managing the rules still allows it.
+	 * The message and recipient previews stay with {@see self::can_view()},
+	 * as they were: they send and record nothing.
+	 *
+	 * @return bool
+	 */
+	public static function can_test(): bool {
+		return self::can_manage() || Capabilities::current_user_can_admin_or( self::TEST_CAP );
 	}
 
 	/**
@@ -280,6 +299,7 @@ final class DateMessagesAdminPage {
 
 		$outcome    = $this->take_outcome();
 		$can_manage = self::can_manage();
+		$can_test   = self::can_test();
 		$rules      = RuleReader::all();
 		$audiences  = self::audience_options();
 		$managers   = array();

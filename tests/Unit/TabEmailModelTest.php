@@ -81,4 +81,56 @@ class TabEmailModelTest extends TestCase {
 
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 	}
+
+	/**
+	 * The test-send card leaves the read-only lock (#1860): it renders for a
+	 * user holding only `ffc_test_settings_smtp`, and for nobody without it
+	 * or the SMTP manage cap.
+	 *
+	 * @param array<int, string> $caps   Capabilities the user holds.
+	 * @param bool               $prints Whether the card renders.
+	 *
+	 * @dataProvider unlocked_card_cases
+	 */
+	public function test_the_test_card_renders_for_the_caps_that_may_send( array $caps, bool $prints ): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )
+			->andReturnUsing( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'user_email' => 'op@example.org' ) );
+		Functions\when( 'esc_html_e' )->alias(
+			static function ( string $text ): void {
+				echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Test stub.
+			}
+		);
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'submit_button' )->alias(
+			static function ( string $text ): void {
+				echo '<button>' . $text . '</button>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Test stub.
+			}
+		);
+
+		ob_start();
+		$this->tab->render_unlocked();
+		$html = (string) ob_get_clean();
+
+		if ( $prints ) {
+			$this->assertStringContainsString( 'name="ffc_send_test_email"', $html );
+			$this->assertStringContainsString( 'op@example.org', $html );
+		} else {
+			$this->assertSame( '', trim( $html ) );
+		}
+	}
+
+	/**
+	 * @return array<string, array{0: array<int, string>, 1: bool}>
+	 */
+	public static function unlocked_card_cases(): array {
+		return array(
+			'test cap alone'  => array( array( 'ffc_test_settings_smtp' ), true ),
+			'smtp manage cap' => array( array( 'ffc_manage_settings_smtp' ), true ),
+			'settings view'   => array( array( 'ffc_view_settings' ), false ),
+		);
+	}
 }

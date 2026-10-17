@@ -7876,18 +7876,6 @@ msgstr "FFC Administrador"
 msgid "FFC Appointments"
 msgstr "Agendamentos FFC"
 
-#: includes/user-dashboard/class-ffc-capability-manager.php:767
-msgid "FFC Appointments - Administrator"
-msgstr "FFC Agendamentos - Administrador"
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:758
-msgid "FFC Appointments - Operator"
-msgstr "FFC Agendamentos - Operador"
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:754
-msgid "FFC Appointments - Viewer"
-msgstr "FFC Agendamentos - Visualizador"
-
 #: includes/privacy/class-ffc-privacy-handler.php:133 includes/privacy/class-ffc-privacy-exporters.php:499
 msgid "FFC Audience Bookings"
 msgstr "Reservas de Público-alvo do FFC"
@@ -7896,33 +7884,9 @@ msgstr "Reservas de Público-alvo do FFC"
 msgid "FFC Audience Groups"
 msgstr "Grupos de Público-alvo do FFC"
 
-#: includes/user-dashboard/class-ffc-capability-manager.php:777
-msgid "FFC Audiences - Operator"
-msgstr "FFC Público-alvo - Operador"
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:773
-msgid "FFC Audiences - Viewer"
-msgstr "FFC Público-alvo - Visualizador"
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:802
-msgid "FFC Calendars - Viewer"
-msgstr "FFC Calendários - Visualizador"
-
 #: includes/privacy/class-ffc-privacy-handler.php:121 includes/privacy/class-ffc-privacy-exporters.php:211
 msgid "FFC Certificates"
 msgstr "Certificados FFC"
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:748
-msgid "FFC Certificates - Administrator"
-msgstr "FFC Certificados - Administrador"
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:737
-msgid "FFC Certificates - Operator"
-msgstr "FFC Certificados - Operador"
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:733
-msgid "FFC Certificates - Viewer"
-msgstr "FFC Certificados - Visualizador"
 
 #: includes/admin/class-ffc-admin-user-custom-fields.php:115
 msgid "FFC Custom Data"
@@ -7932,10 +7896,6 @@ msgstr "Dados Personalizados FFC"
 msgid "FFC End User"
 msgstr "FFC Usuário Final"
 
-#: includes/user-dashboard/class-ffc-capability-manager.php:812
-msgid "FFC Forms - Viewer"
-msgstr "FFC Formulários - Visualizador"
-
 #: includes/admin/class-ffc-admin-user-capabilities.php:171 includes/admin/class-ffc-admin-user-capabilities.php:187
 msgid "FFC Permissions"
 msgstr "Permissões FFC"
@@ -7943,10 +7903,6 @@ msgstr "Permissões FFC"
 #: includes/privacy/class-ffc-privacy-handler.php:117 includes/privacy/class-ffc-privacy-exporters.php:121
 msgid "FFC Profile"
 msgstr "Perfil FFC"
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:714
-msgid "FFC Read-Only (all modules)"
-msgstr "FFC Somente Leitura (todos os módulos)"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:833
 msgid "FFC Recruitment - Administrator"
@@ -13605,10 +13561,6 @@ msgstr "Troca de segredo concluída."
 #: includes/settings/views/documentation/operations-troubleshooting.php:94
 msgid "Re-save Settings → Permalinks once to flush WordPress rewrite rules"
 msgstr "Salve novamente as configurações de Links Permanentes uma vez para atualizar as regras de reescrita do WordPress."
-
-#: includes/settings/views/documentation/config-activity-log.php:35
-msgid "reach the tab and inspect the audit trail. Deliberately independent of the settings view capability, so an audit-only operator can read the log without any other settings access."
-msgstr "acesse a aba e examine o registro de auditoria. O recurso é deliberadamente independente da visualização de configurações, permitindo que um operador restrito à auditoria leia o log sem ter acesso a outras configurações."
 
 #: includes/settings/views/documentation/config-captcha.php:43
 msgid "Reach, not strength: the server accepts either proof, so an attacker picks the cheaper one and the effective security equals the math challenge alone."
@@ -23978,9 +23930,6 @@ msgstr "Painel → Atualizações mostra um breve resumo da versão oferecida, t
 msgid "Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
 msgstr "Cada execução, diária ou manual, é listada com a sua regra, as datas e os contadores: enviados, cancelaram o recebimento, sem e-mail válido, fora do público-alvo e com falha. \"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de e-mails ativa, a entrega acontece depois, a partir da fila. Acima da lista, a aba mostra quando será a próxima execução diária, com um link para Configurações → Tarefas Agendadas para quem pode abri-la."
 
-msgid "Independently of the settings above, an account whose roles are all FFC operator roles (a module viewer, operator or manager, or FFC Read-Only) sees a scoped wp-admin: the core menus it has no use for (Posts, Comments, Tools, Plugins and the like) are hidden, the admin bar is pruned, and opening an admin page outside its module redirects to the module's own screen. Its profile, the dashboard home and the AJAX endpoints stay reachable."
-msgstr "Independentemente das configurações acima, uma conta cujas funções são todas funções de operador do FFC (visualizador, operador ou gestor de um módulo, ou FFC Somente Leitura) vê um wp-admin restrito: os menus do núcleo que não usa (Posts, Comentários, Ferramentas, Plugins e afins) ficam ocultos, a barra de administração é reduzida, e abrir uma página de administração fora do seu módulo redireciona para a tela do próprio módulo. O perfil, a página inicial do painel e os endpoints AJAX continuam acessíveis."
-
 msgid "Off, On (always dark), or Auto (follow the operating system). Applies to the plugin's admin screens and to what it shows visitors: the public forms, the user dashboard and the scheduling, audience and recruitment shortcodes. Certificates and other PDFs are always light."
 msgstr "Desativado, Ativado (sempre escuro) ou Automático (segue o sistema operacional). Vale para as telas de administração do plugin e para o que ele mostra aos visitantes: os formulários públicos, o painel do usuário e os shortcodes de agendamento, público-alvo e convocação. Certificados e outros PDFs são sempre claros."
 
@@ -24013,9 +23962,6 @@ msgstr "A execução diária envia todas as regras ativas uma vez por dia, só p
 
 msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
 msgstr "O nome da pessoa como armazenado; o nome e o sobrenome do perfil do WordPress (quando vazios, a primeira palavra do nome e o restante); e os dois unidos"
-
-msgid "The plugin registers one role per module tier — viewer, operator, manager and, for the modules that hold personal data (certificates, appointments, reregistration, recruitment), an administrator role that may reveal it — plus \"FFC Administrator\", \"FFC Read-Only (all modules)\" and \"FFC End User\", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:"
-msgstr "O plugin registra uma função por nível de cada módulo — visualizador, operador, gestor e, nos módulos que guardam dados pessoais (certificados, agendamentos, recadastramento, recrutamento), uma função de administrador que pode revelá-los — além de \"FFC Administrador\", \"FFC Somente Leitura (todos os módulos)\" e \"FFC Usuário Final\", atribuída automaticamente a quem envia um formulário com CPF ou RF. As funções que o plugin registra atualmente:"
 
 msgid "The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. WordPress administrators (manage_options) always hold every FFC capability."
 msgstr "O plugin traz capacidades granulares e funções próprias, e gerencia ambas por conta própria — nenhum plugin de gestão de capacidades é necessário. Administradores do WordPress (manage_options) sempre têm todas as capacidades do FFC."
@@ -24265,21 +24211,6 @@ msgstr "Todos os e-mails enviados pelo plugin — entrega de certificados, notif
 
 msgid "Failed to load QR Code"
 msgstr "Falha ao carregar o QR Code"
-
-msgid "FFC Appointments - Manager"
-msgstr "FFC Agendamentos - Gestor"
-
-msgid "FFC Audiences - Manager"
-msgstr "FFC Público-alvo - Gestor"
-
-msgid "FFC Calendars - Manager"
-msgstr "FFC Calendários - Gestor"
-
-msgid "FFC Certificates - Manager"
-msgstr "FFC Certificados - Gestor"
-
-msgid "FFC Forms - Manager"
-msgstr "FFC Formulários - Gestor"
 
 msgid "FFC Recruitment - Manager"
 msgstr "FFC Recrutamento - Gestor"
@@ -26366,3 +26297,207 @@ msgstr "envia um formulário. Exige ffc_submit_forms_api, que quem já tinha ffc
 
 msgid "An authenticated write API for issuance: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.18.0."
 msgstr "Uma API de escrita autenticada para emissão: um aplicativo de operador de campo emite certificados utilizando Senhas de Aplicativo do WordPress (autenticação HTTP Basic, permitindo que as verificações de capacidade funcionem sem *nonce*). Adicionada na versão 6.18.0."
+
+#: includes/settings/views/documentation/reference-capabilities.php:39
+msgid "A module whose screens split into parts names the part in its roles: Certificates - Submissions and Certificates - Forms, Personal Calendars - Bookings and Personal Calendars - Setup. Forms and Setup have no day-to-day or administrator action, so they keep Viewer and Manager only. Beside the modules sit \"FFC Administrator\", which holds every FFC capability, \"FFC Read-only\", which sees every module masked, and \"FFC End User\", given automatically to people who submit a form with a CPF or RF. The activity log and identity resolution belong to FFC Administrator alone among these roles. The roles the plugin currently registers:"
+msgstr "Um módulo cujas telas se dividem em partes nomeia a parte em suas funções: Certificados - Submissões e Certificados - Formulários, Calendários Pessoais - Agendamentos e Calendários Pessoais - Configuração. Formulários e Configuração não têm ação do dia a dia nem de administrador, por isso mantêm apenas Visualizador e Gestor. Ao lado dos módulos ficam \"FFC Administrador\", que detém todas as capacidades do FFC, \"FFC Somente leitura\", que vê todos os módulos mascarados, e \"FFC Usuário Final\", atribuída automaticamente a quem envia um formulário com CPF ou RF. O registro de atividades e a resolução de identidades pertencem apenas ao FFC Administrador entre essas funções. As funções que o plugin registra atualmente:"
+
+#: includes/settings/views/documentation/feature-identity-resolution.php:53
+msgid "Among the FFC roles only FFC Administrator holds these three; no module role and not FFC Read-only carries them. WordPress administrators keep them too."
+msgstr "Entre as funções do FFC, apenas o FFC Administrador detém estas três; nenhuma função de módulo nem o FFC Somente leitura as possui. Os administradores do WordPress também as mantêm."
+
+#: includes/settings/views/documentation/config-activity-log.php:38
+msgid "Among the FFC roles only FFC Administrator holds these two: the log records what every other role did, so no module role and not FFC Read-only carries it. WordPress administrators keep it too."
+msgstr "Entre as funções do FFC, apenas o FFC Administrador detém estas duas: o registro mostra o que todas as outras funções fizeram, por isso nenhuma função de módulo nem o FFC Somente leitura o possui. Os administradores do WordPress também o mantêm."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:298
+msgid "Audience calendar bypass"
+msgstr "Exceção para administradores nos calendários de público-alvo"
+
+#: includes/settings/views/documentation/reference-emails.php:59
+msgid "Below it, \"Send a test email\" sends one message to your own address. It needs ffc_test_settings_smtp or ffc_manage_settings_smtp, so the FFC Settings - Operator role can check delivery without being able to change the transport or the model."
+msgstr "Abaixo dele, \"Enviar um e-mail de teste\" envia uma mensagem para o seu próprio endereço. Exige ffc_test_settings_smtp ou ffc_manage_settings_smtp, de modo que a função FFC Configurações FFC - Operador pode verificar a entrega sem poder alterar o transporte nem o modelo."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:299
+msgid "Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on (#1859)."
+msgstr "Reservar um espaço compartilhado em dias fechados e feriados, fora do horário de funcionamento, no passado, além da janela de antecedência ou sobre uma reserva existente, após confirmar um aviso — nos calendários cuja opção Exceção para administradores está ativada (#1859)."
+
+#: includes/admin/class-ffc-role-capability-editor.php:168
+msgid "Each module ships four roles, \"FFC <module> - Viewer / Operator / Manager / Administrator\", each holding everything the tier below it holds; the activity log and identity resolution are given to FFC Administrator only. Adding a capability here widens one role, it does not change the tiers of the others."
+msgstr "Cada módulo traz quatro funções, \"FFC <módulo> - Visualizador / Operador / Gestor / Administrador\", cada uma com tudo o que a função abaixo dela tem; o registro de atividades e a resolução de identidades são dados apenas ao FFC Administrador. Adicionar uma capacidade aqui amplia uma função, não altera os níveis das outras."
+
+#: includes/settings/views/documentation/reference-capabilities.php:32
+msgid "Every module has four roles, named \"FFC <module> - <tier>\" after the module's menu, each tier holding everything the one below it holds:"
+msgstr "Cada módulo tem quatro funções, chamadas \"FFC <módulo> - <nível>\" conforme o menu do módulo, cada nível com tudo o que o nível abaixo tem:"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:989
+msgid "FFC Audience Calendars - Administrator"
+msgstr "FFC Calendários de Público-alvo - Administrador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:985
+msgid "FFC Audience Calendars - Manager"
+msgstr "FFC Calendários de Público-alvo - Gestor"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:981
+msgid "FFC Audience Calendars - Operator"
+msgstr "FFC Calendários de Público-alvo - Operador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:977
+msgid "FFC Audience Calendars - Viewer"
+msgstr "FFC Calendários de Público-alvo - Visualizador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:940
+msgid "FFC Certificates - Forms - Manager"
+msgstr "FFC Certificados - Formulários - Gestor"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:936
+msgid "FFC Certificates - Forms - Viewer"
+msgstr "FFC Certificados - Formulários - Visualizador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:930
+msgid "FFC Certificates - Submissions - Administrator"
+msgstr "FFC Certificados - Submissões - Administrador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:925
+msgid "FFC Certificates - Submissions - Manager"
+msgstr "FFC Certificados - Submissões - Gestor"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:921
+msgid "FFC Certificates - Submissions - Operator"
+msgstr "FFC Certificados - Submissões - Operador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:917
+msgid "FFC Certificates - Submissions - Viewer"
+msgstr "FFC Certificados - Submissões - Visualizador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1066
+msgid "FFC Date Messages - Administrator"
+msgstr "FFC Mensagens por Data - Administrador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1062
+msgid "FFC Date Messages - Manager"
+msgstr "FFC Mensagens por Data - Gestor"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1058
+msgid "FFC Date Messages - Operator"
+msgstr "FFC Mensagens por Data - Operador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1054
+msgid "FFC Date Messages - Viewer"
+msgstr "FFC Mensagens por Data - Visualizador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:961
+msgid "FFC Personal Calendars - Bookings - Administrator"
+msgstr "FFC Calendários Pessoais - Agendamentos - Administrador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:957
+msgid "FFC Personal Calendars - Bookings - Manager"
+msgstr "FFC Calendários Pessoais - Agendamentos - Gestor"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:953
+msgid "FFC Personal Calendars - Bookings - Operator"
+msgstr "FFC Calendários Pessoais - Agendamentos - Operador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:949
+msgid "FFC Personal Calendars - Bookings - Viewer"
+msgstr "FFC Calendários Pessoais - Agendamentos - Visualizador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:971
+msgid "FFC Personal Calendars - Setup - Manager"
+msgstr "FFC Calendários Pessoais - Configuração - Gestor"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:967
+msgid "FFC Personal Calendars - Setup - Viewer"
+msgstr "FFC Calendários Pessoais - Configuração - Visualizador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:898
+msgid "FFC Read-only"
+msgstr "FFC Somente leitura"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1084
+msgid "FFC Settings - Administrator"
+msgstr "Configurações FFC - Administrador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1080
+msgid "FFC Settings - Manager"
+msgstr "Configurações FFC - Gestor"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1076
+msgid "FFC Settings - Operator"
+msgstr "Configurações FFC - Operador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1072
+msgid "FFC Settings - Viewer"
+msgstr "Configurações FFC - Visualizador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1048
+msgid "FFC Short URLs - Administrator"
+msgstr "FFC URLs Curtas - Administrador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1044
+msgid "FFC Short URLs - Manager"
+msgstr "FFC URLs Curtas - Gestor"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1040
+msgid "FFC Short URLs - Operator"
+msgstr "FFC URLs Curtas - Operador"
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1036
+msgid "FFC Short URLs - Viewer"
+msgstr "FFC URLs Curtas - Visualizador"
+
+#: includes/settings/views/documentation/config-user-access.php:42
+msgid "Independently of the settings above, an account whose roles are all FFC operator roles (a module viewer, operator, manager or administrator, or FFC Read-only) sees a scoped wp-admin: the core menus it has no use for (Posts, Comments, Tools, Plugins and the like) are hidden, the admin bar is pruned, and opening an admin page outside its module redirects to the module's own screen. Its profile, the dashboard home and the AJAX endpoints stay reachable."
+msgstr "Independentemente das configurações acima, uma conta cujas funções são todas funções de operador do FFC (visualizador, operador, gestor ou administrador de um módulo, ou FFC Somente leitura) vê um wp-admin restrito: os menus do núcleo que não usa (Posts, Comentários, Ferramentas, Plugins e afins) ficam ocultos, a barra de administração é reduzida, e abrir uma página de administração fora do seu módulo redireciona para a tela do próprio módulo. O perfil, a página inicial do painel e os endpoints AJAX continuam acessíveis."
+
+#: includes/settings/views/documentation/reference-capabilities.php:36
+msgid "Manager"
+msgstr "Gestor"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:392
+msgid "Send a sample of a rule, with fictional values, to your own address. Managing date messages allows it too (#1860)."
+msgstr "Enviar uma amostra de uma regra, com valores fictícios, para o seu próprio endereço. Gerenciar mensagens por data também permite (#1860)."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:391
+msgid "Send date-message tests"
+msgstr "Enviar testes de mensagens por data"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:423
+msgid "Send the Email Model test message to your own address, without being able to change the transport. Managing SMTP settings allows it too (#1860)."
+msgstr "Enviar a mensagem de teste do Modelo de E-mail para o seu próprio endereço, sem poder alterar o transporte. Gerenciar as configurações de SMTP também permite (#1860)."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:422
+msgid "Send the SMTP test email"
+msgstr "Enviar o e-mail de teste do SMTP"
+
+#: includes/settings/views/documentation/reference-capabilities.php:34
+msgid "Viewer"
+msgstr "Visualizador"
+
+#: includes/settings/views/documentation/reference-capabilities.php:37
+msgid "also holds the module's bypass and settings, where it has them; elsewhere it equals the Manager."
+msgstr "também detém a exceção e as configurações do módulo, quando ele as tem; nos demais, equivale ao Gestor."
+
+#: includes/settings/views/documentation/reference-capabilities.php:36
+msgid "also manages, exports and deletes, and may reveal personal data."
+msgstr "também gerencia, exporta e exclui, e pode revelar dados pessoais."
+
+#: includes/settings/views/documentation/reference-capabilities.php:35
+msgid "also performs the module's day-to-day actions: editing and grading submissions, approving and cancelling bookings, importing members, exporting, calling candidates, sending a test."
+msgstr "também executa as ações do dia a dia do módulo: editar e corrigir submissões, aprovar e cancelar agendamentos, importar membros, exportar, convocar candidatos, enviar um teste."
+
+#: includes/settings/views/documentation/scheduling-audiences.php:65
+msgid "book outside a calendar's rules after confirming a warning, on calendars whose Admin bypass toggle is on. Held by the FFC Audience Calendars - Administrator role and FFC Administrator."
+msgstr "reservar fora das regras de um calendário após confirmar um aviso, nos calendários cuja opção Exceção para administradores está ativada. Detida pela função FFC Calendários de Público-alvo - Administrador e pelo FFC Administrador."
+
+#: includes/settings/views/documentation/config-activity-log.php:35
+msgid "reach the tab and inspect the audit trail. Independent of the settings view capability, so it can be granted to an account without any other settings access."
+msgstr "acesse a aba e examine o registro de auditoria. Independente da visualização de configurações, de modo que pode ser concedida a uma conta sem nenhum outro acesso às configurações."
+
+#: includes/settings/views/documentation/reference-capabilities.php:34
+msgid "sees the module's screens, with personal data masked."
+msgstr "vê as telas do módulo, com os dados pessoais mascarados."
+
+#: includes/settings/views/documentation/feature-date-messages.php:114
+msgid "send a rule's test, with sample values, to your own address. Managing date messages allows it too. Previewing the recipients and the message needs only the view capability."
+msgstr "enviar o teste de uma regra, com valores de exemplo, para o seu próprio endereço. Gerenciar mensagens por data também permite. Visualizar os destinatários e a mensagem exige apenas a capacidade de visualização."

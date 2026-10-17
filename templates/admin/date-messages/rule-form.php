@@ -5,6 +5,7 @@
  * Included from page.php; see it for the variables in scope.
  *
  * @var bool                                          $can_manage Whether the user may change anything.
+ * @var bool                                          $can_test   Whether the user may send a test to themselves.
  * @var \FreeFormCertificate\DateMessages\Rule|null   $editing    Rule being edited, null for a new one.
  * @var array<string, mixed>                          $draft      Values submitted by a save that failed.
  * @var array<int, string>                            $audiences  Audience id => name.
@@ -340,7 +341,7 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 		<label><?php esc_html_e( 'To', 'ffcertificate' ); ?> <input type="date" class="ffc-dm-to" value="<?php echo esc_attr( $ffc_dm_target ); ?>"></label>
 		<button type="button" class="button ffc-dm-preview-button"><?php esc_html_e( 'Preview recipients', 'ffcertificate' ); ?></button>
 		<button type="button" class="button ffc-dm-message-button"><?php esc_html_e( 'Preview message', 'ffcertificate' ); ?></button>
-		<?php if ( $can_manage ) : ?>
+		<?php if ( $can_test ) : ?>
 			<button type="button" class="button ffc-dm-test-button"><?php esc_html_e( 'Send test to me', 'ffcertificate' ); ?></button>
 		<?php endif; ?>
 		<p class="description"><?php esc_html_e( 'The dates are the dates in the profile (such as birthdays), not the day the message goes out.', 'ffcertificate' ); ?></p>

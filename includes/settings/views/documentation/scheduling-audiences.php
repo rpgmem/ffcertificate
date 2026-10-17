@@ -62,6 +62,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><code>ffc_view_audiences</code> — <?php esc_html_e( 'view the Scheduling menu and audience pages.', 'ffcertificate' ); ?> <?php esc_html_e( 'On its own it opens them read-only: the calendar, environment and audience edit forms and the members screen show their fields disabled, with no Save, Add or Remove, under a read-only notice.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_manage_audiences</code> — <?php esc_html_e( 'create audiences, schedules, environments and members.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_import_audiences</code> / <code>ffc_export_audiences</code> / <code>ffc_delete_audiences</code> — <?php esc_html_e( 'import, export, delete.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_bypass_audiences</code> — <?php esc_html_e( 'book outside a calendar\'s rules after confirming a warning, on calendars whose Admin bypass toggle is on. Held by the FFC Audience Calendars - Administrator role and FFC Administrator.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_view_own_audience_bookings</code> — <?php esc_html_e( 'the end-user cap; booking/cancel rights come from per-schedule permissions.', 'ffcertificate' ); ?></li>
 	</ul>
 </div>

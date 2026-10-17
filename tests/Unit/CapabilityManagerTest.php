@@ -189,6 +189,7 @@ class CapabilityManagerTest extends TestCase {
 			'ffc_audiences_viewer',
 			'ffc_audiences_operator',
 			'ffc_audiences_manager',
+			'ffc_audiences_admin',
 			// Reregistration ladder.
 			'ffc_reregistration_viewer',
 			'ffc_reregistration_operator',
@@ -197,7 +198,21 @@ class CapabilityManagerTest extends TestCase {
 			// Recruitment ladder.
 			'ffc_recruitment_viewer',
 			'ffc_recruitment_operator',
+			'ffc_recruitment_manager',
 			'ffc_recruitment_admin',
+			// Short URLs, Date Messages and FFC Settings ladders (#1860).
+			'ffc_url_shortener_viewer',
+			'ffc_url_shortener_operator',
+			'ffc_url_shortener_manager',
+			'ffc_url_shortener_admin',
+			'ffc_date_messages_viewer',
+			'ffc_date_messages_operator',
+			'ffc_date_messages_manager',
+			'ffc_date_messages_admin',
+			'ffc_settings_viewer',
+			'ffc_settings_operator',
+			'ffc_settings_manager',
+			'ffc_settings_admin',
 		);
 		foreach ( $expected_slugs as $slug ) {
 			$this->assertArrayHasKey( $slug, $created, "Missing role: {$slug}" );
@@ -315,7 +330,6 @@ class CapabilityManagerTest extends TestCase {
 			'ffc_view_audiences',
 			'ffc_view_reregistration',
 			'ffc_view_custom_fields',
-			'ffc_view_activity_log',
 			'ffc_view_recruitment',
 			'ffc_view_recruitment_settings',
 			'ffc_view_recruitment_reasons',
@@ -324,8 +338,12 @@ class CapabilityManagerTest extends TestCase {
 			$this->assertTrue( $operator[ $view_cap ], "ffc_readonly must grant {$view_cap}" );
 		}
 		// …but never write caps, the Settings page, raw PII, the REST
-		// integrator cap, or impersonation.
+		// integrator cap, impersonation, or -- since #1860 -- the activity
+		// log and identity resolution, which are FFC Administrator's alone.
 		foreach ( array(
+			'ffc_view_activity_log',
+			'ffc_export_activity_log',
+			'ffc_manage_identities',
 			'ffc_manage_certificates',
 			'ffc_manage_audiences',
 			'ffc_view_settings',

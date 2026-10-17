@@ -111,6 +111,8 @@ class LoaderMigrationsTest extends TestCase {
 			'url shortener export' => array( 'ensure_url_shortener_export_cap_granted', 'ffc_url_shortener_export_cap_v1', 'migrate_url_shortener_export_cap_grant' ),
 			'reregistration pii'   => array( 'ensure_reregistration_pii_cap_granted', 'ffc_reregistration_pii_cap_v1', 'migrate_reregistration_pii_cap_grant' ),
 			'forms api submit'     => array( 'ensure_forms_api_submit_cap_granted', 'ffc_forms_api_submit_cap_v1', 'migrate_forms_api_submit_cap_grant' ),
+			// #1860: run from register_ffc_roles_safe() on init, after the seeds.
+			'role tiers'           => array( 'ensure_role_tiers_applied', 'ffc_role_tiers_v1', 'migrate_role_tiers' ),
 		);
 	}
 
@@ -176,6 +178,11 @@ class LoaderMigrationsTest extends TestCase {
 		$rr->shouldReceive( 'register_recruitment_manager_role' )->once();
 
 		Functions\when( 'wp_roles' )->justReturn( Mockery::mock( 'WP_Roles' ) );
+		// The #1860 tier alignment is a flagged one-shot run from here; with
+		// the flag set it must not touch the migrator.
+		Functions\when( 'get_option' )->justReturn( '1' );
+		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\CapabilityMigrator' )
+			->shouldReceive( 'migrate_role_tiers' )->never();
 
 		$added = array();
 		Functions\when( 'add_action' )->alias(

@@ -353,6 +353,7 @@ class AdminMenuVisibilityReachTest extends TestCase {
 		$screens = $this->registrations()['screens'];
 		$this->assertArrayHasKey( 'admin.php?page=' . AdminMenuVisibility::SHORT_URLS_PAGE, $screens, 'UrlShortenerAdminPage registers the Short URLs page under this slug.' );
 		$this->assertSame( DateMessagesAdminPage::MENU_SLUG, AdminMenuVisibility::DATE_MESSAGES_PAGE );
+		$this->assertSame( QrGeneratorPage::SLUG, AdminMenuVisibility::QR_GENERATOR_PAGE );
 	}
 
 	public function test_every_allow_list_entry_names_a_registered_screen(): void {
@@ -536,8 +537,10 @@ class AdminMenuVisibilityReachTest extends TestCase {
 	 * @param string $url wp-admin URL.
 	 */
 	public function test_the_readonly_role_is_still_redirected_off_write_screens( string $url ): void {
+		// Its landing is the Certificates dashboard since the activity log
+		// became FFC Administrator's alone (#1860).
 		$this->assertSame(
-			'https://example.com/wp-admin/admin.php?page=ffc-settings&tab=activity_log',
+			'https://example.com/wp-admin/admin.php?page=' . CertificatesDashboard::MENU_SLUG,
 			$this->visit( 'ffc_readonly', $url )
 		);
 	}
