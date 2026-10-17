@@ -149,6 +149,10 @@ describe('csv-download — Start Form Now button render', () => {
 		expect(window.$('.ffc-btn-open-early').length).toBe(1);
 		expect(window.$('.ffc-btn-open-early').text()).toContain('Start Form Now');
 		expect(window.$('.ffc-btn-open-early').attr('title')).toContain('Override schedule.');
+		// #1881 — caution, because it moves the start the participants see.
+		expect(window.$('.ffc-btn-open-early').hasClass('ffc-btn')).toBe(true);
+		expect(window.$('.ffc-btn-open-early').hasClass('ffc-btn-caution')).toBe(true);
+		expect(window.$('.ffc-btn-open-early').hasClass('ffc-icon-clock')).toBe(true);
 	});
 
 	it('omits the button when status.can_open_early is false', async () => {
@@ -175,6 +179,18 @@ describe('csv-download — open-early modal', () => {
 		expect(window.$('.ffc-open-early-modal').text()).toContain('2026-12-31 23:00');
 		expect(window.$('.ffc-open-early-cancel').length).toBe(1);
 		expect(window.$('.ffc-open-early-confirm').length).toBe(1);
+		// #1881 — Cancel is neutral with `cross` and takes the focus; the
+		// confirm is caution with the trigger's own icon.
+		const $cancel = window.$('.ffc-open-early-cancel');
+		expect($cancel.hasClass('ffc-btn')).toBe(true);
+		expect($cancel.hasClass('ffc-btn-neutral')).toBe(true);
+		expect($cancel.hasClass('ffc-icon-cross')).toBe(true);
+		expect($cancel.is('[autofocus]')).toBe(true);
+		const $confirm = window.$('.ffc-open-early-confirm');
+		expect($confirm.hasClass('ffc-btn')).toBe(true);
+		expect($confirm.hasClass('ffc-btn-caution')).toBe(true);
+		expect($confirm.hasClass('ffc-icon-clock')).toBe(true);
+		expect(window.$('.ffc-open-early-modal [class*="ffc-info-btn"]').length).toBe(0);
 	});
 
 	it('closes the modal when Cancel is clicked', async () => {

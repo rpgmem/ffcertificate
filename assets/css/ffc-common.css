@@ -2372,9 +2372,37 @@ body.wp-admin .ffc-btn-icon::before {
     width: 100%;
 }
 
+/* Busy (#1881): a script sets `.ffc-btn-loading` while the action the
+   button started is running — the public CSV form's submit and its
+   Download CSV. The label stays, the cursor says the page is working and a
+   ring in the text colour turns after the label. No `opacity`: the scripts
+   also disable the button, and the disabled grey already says it cannot be
+   pressed (CLAUDE.md, theme item 5). Declared after `:disabled`, so the
+   busy cursor wins over `not-allowed`. */
+.ffc-btn.ffc-btn-loading {
+    cursor: progress;
+}
+
+.ffc-btn.ffc-btn-loading::after {
+    content: "";
+    flex-shrink: 0;
+    box-sizing: border-box;
+    width: 1em;
+    height: 1em;
+    margin-left: var(--ffc-spacing-xs);
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: var(--ffc-radius-full);
+    animation: ffc-spin 0.8s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .ffc-btn {
         transition: none;
+    }
+
+    .ffc-btn.ffc-btn-loading::after {
+        animation: none;
     }
 }
 

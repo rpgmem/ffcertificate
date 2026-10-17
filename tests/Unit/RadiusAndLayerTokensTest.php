@@ -66,8 +66,9 @@ final class RadiusAndLayerTokensTest extends TestCase {
 	/**
 	 * Radius literals still allowed per stylesheet. `0` is not a radius.
 	 *
-	 * 40 remain of 186. The frequent ones are `10px` (10), `5px` (6), `2px` (5)
-	 * and `11px` (5) — near-misses that a step would have to be invented for, and
+	 * 40 remained of 186 when this was written, and #1881 took one more (the
+	 * loading spinner that left ffc-pdf-core.css). The frequent ones were
+	 * `10px` (10), `5px` (6), `2px` (5) and `11px` (5) — near-misses that a step would have to be invented for, and
 	 * inventing a step per value is how a scale becomes a dictionary.
 	 */
 	private const RADIUS_BUDGET = array(
@@ -79,7 +80,7 @@ final class RadiusAndLayerTokensTest extends TestCase {
 		'ffc-common.css'                 => 2,
 		'ffc-custom-fields-admin.css'    => 1,
 		'ffc-frontend.css'               => 1,
-		'ffc-pdf-core.css'               => 2,
+		'ffc-pdf-core.css'               => 1,
 		'ffc-recruitment-admin.css'      => 2,
 		'ffc-recruitment-public.css'     => 1,
 		// Screenshot viewer (#1716): no ffc-common in core's modal.

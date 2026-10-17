@@ -69,13 +69,11 @@
 			+       '</p>'
 			+       '<p class="ffc-schedule-exception-error" role="alert" hidden></p>'
 			+     '</div>'
+			// Cancel is neutral and takes the focus; Create is caution,
+			// because it moves one participant's window (#1881).
 			+     '<div class="ffc-open-early-actions ffc-schedule-exception-actions">'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-schedule-exception-cancel" autofocus>'
-			+         esc(strings.cancel || 'Cancel')
-			+       '</button>'
-			+       '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-schedule-exception-confirm">'
-			+         esc(strings.scheduleExceptionConfirm || 'Create exception')
-			+       '</button>'
+			+       FFC.buttonHtml({ label: strings.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-schedule-exception-cancel', attrs: { autofocus: true } })
+			+       FFC.buttonHtml({ label: strings.scheduleExceptionConfirm || 'Create exception', category: 'caution', icon: 'user-check', className: 'ffc-schedule-exception-confirm' })
 			+     '</div>'
 			+   '</div>'
 			+ '</div>';
@@ -177,10 +175,17 @@
 				$modal.find('.ffc-schedule-exception-body').html(
 					'<p>' + esc(strings.scheduleExceptionStaged || 'Exception staged. Open the participant\'s form in the next tab to consume it.') + '</p>'
 				);
-				$modal.find('.ffc-schedule-exception-actions').html(
-					'<a class="ffc-info-btn ffc-info-btn-primary ffc-schedule-exception-open" href="' + esc(url) + '" target="_blank" rel="noopener">'
-					+ esc(strings.scheduleExceptionOpenForm || 'Open participant form')
-					+ '</a>'
+				// Opening the form is what finishes this dialog's work, so the
+				// link is primary; `external` says it opens a new tab (#1881).
+				$modal.find('.ffc-schedule-exception-actions').empty().append(
+					FFC.button({
+						label: strings.scheduleExceptionOpenForm || 'Open participant form',
+						category: 'primary',
+						icon: 'external',
+						href: url,
+						className: 'ffc-schedule-exception-open',
+						attrs: { target: '_blank', rel: 'noopener' }
+					})
 				);
 				$modal.find('.ffc-schedule-exception-open').on('click', function () {
 					// The native anchor (target="_blank") opens the form in a
