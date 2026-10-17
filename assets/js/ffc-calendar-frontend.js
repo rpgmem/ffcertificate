@@ -554,14 +554,22 @@
 
             // Receipt actions (show only one button: pdf_data takes priority over receipt_url)
             detailsHtml += '<div class="ffc-receipt-actions">';
+            // Either control is the same action, so both are the primary button.
             if (data.pdf_data) {
-                detailsHtml += '<button type="button" class="ffc-btn ffc-btn-primary ffc-download-receipt-btn">';
-                detailsHtml += ffcCalendar.strings.downloadReceipt;
-                detailsHtml += '</button>';
+                detailsHtml += FFC.buttonHtml({
+                    label: ffcCalendar.strings.downloadReceipt,
+                    category: 'primary',
+                    icon: 'download',
+                    className: 'ffc-download-receipt-btn'
+                });
             } else if (data.receipt_url) {
-                detailsHtml += ' <a href="' + esc(data.receipt_url) + '" class="ffc-btn ffc-btn-secondary" target="_blank" rel="noopener noreferrer">';
-                detailsHtml += ffcCalendar.strings.downloadReceipt;
-                detailsHtml += '</a>';
+                detailsHtml += FFC.buttonHtml({
+                    label: ffcCalendar.strings.downloadReceipt,
+                    category: 'primary',
+                    icon: 'download',
+                    href: data.receipt_url,
+                    attrs: { target: '_blank', rel: 'noopener noreferrer' }
+                });
             }
             detailsHtml += '</div>';
 

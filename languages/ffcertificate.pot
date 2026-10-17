@@ -20246,10 +20246,6 @@ msgstr ""
 msgid "— Select a notice —"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:655
-msgid "← Back"
-msgstr ""
-
 #: includes/admin/class-ffc-settings.php:529
 msgid "Cache cleared successfully!"
 msgstr ""
@@ -26814,4 +26810,12 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:80
 msgid "use the Clean Up Appointments box on a calendar. Held by the Personal Calendars - Bookings - Administrator role and by FFC Administrator; a Bookings Manager deletes one appointment at a time."
+msgstr ""
+
+#: includes/core/class-ffc-public-design.php
+msgid "delete buttons and danger notices on their background"
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php
+msgid "The colour of errors also draws the delete buttons and the danger notices: their text and border take it, and their background is a light shade of it, made automatically, against which the warning measures it too. Left at its default, they keep the plugin's own red pair."
 msgstr ""

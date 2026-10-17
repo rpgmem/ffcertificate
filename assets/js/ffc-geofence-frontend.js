@@ -309,10 +309,12 @@
         showBlockedMessage: function(formWrapper, message, showReload) {
             var children = [];
             if (showReload) {
-                var button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'ffc-btn ffc-geofence-reload-btn';
-                button.textContent = this.getString('reloadPageBtn', 'Reload page');
+                var button = window.FFC.button({
+                    label: this.getString('reloadPageBtn', 'Reload page'),
+                    category: 'neutral',
+                    icon: 'sync',
+                    className: 'ffc-geofence-reload-btn'
+                });
                 button.addEventListener('click', function() {
                     window.location.reload();
                 });

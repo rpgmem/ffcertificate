@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 
+use FreeFormCertificate\Core\Button;
 use FreeFormCertificate\Core\Notice;
 use FreeFormCertificate\Core\PasswordInvite;
 use FreeFormCertificate\Core\RequestInput;
@@ -361,7 +362,14 @@ class DashboardShortcode {
 				array(
 					'role'    => 'note',
 					'hook'    => 'login-required',
-					'actions' => '<a href="' . esc_url( wp_login_url( $permalink ? $permalink : '' ) ) . '" class="button">' . esc_html__( 'Login', 'ffcertificate' ) . '</a>',
+					'actions' => Button::html(
+						array(
+							'label'    => __( 'Login', 'ffcertificate' ),
+							'category' => 'primary',
+							'icon'     => 'login',
+							'href'     => wp_login_url( $permalink ? $permalink : '' ),
+						)
+					),
 				)
 			);
 			echo $notice_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
@@ -451,8 +459,19 @@ class DashboardShortcode {
 			$title    = (string) $rereg['title'];
 			$pdf_link = '';
 			if ( ! empty( $rereg['magic_link'] ) ) {
-				$pdf_link = '<a href="' . esc_url( $rereg['magic_link'] ) . '" class="button button-primary ffc-btn-pdf ffc-icon-download" target="_blank" rel="noopener">'
-					. esc_html__( 'Download Record', 'ffcertificate' ) . '</a>';
+				$pdf_link = Button::html(
+					array(
+						'label'    => __( 'Download Record', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'download',
+						'href'     => (string) $rereg['magic_link'],
+						'class'    => 'ffc-btn-pdf',
+						'attrs'    => array(
+							'target' => '_blank',
+							'rel'    => 'noopener',
+						),
+					)
+				);
 			}
 
 			if ( ! $rereg['can_submit'] ) {
@@ -509,8 +528,15 @@ class DashboardShortcode {
 			} else {
 				$label = __( 'Complete Reregistration', 'ffcertificate' );
 			}
-			$open_button = '<button type="button" class="button button-primary ffc-rereg-open-form" data-reregistration-id="' . esc_attr( (string) $rereg['id'] ) . '">'
-				. esc_html( $label ) . '</button>';
+			$open_button = Button::html(
+				array(
+					'label'    => $label,
+					'category' => 'primary',
+					'icon'     => 'edit',
+					'class'    => 'ffc-rereg-open-form',
+					'attrs'    => array( 'data-reregistration-id' => (string) $rereg['id'] ),
+				)
+			);
 
 			// Three days or fewer is urgent: the danger tone, where the old
 			// banner repainted its warning one by hand.

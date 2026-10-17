@@ -630,7 +630,7 @@ class SelfSchedulingCleanupHandlerTest extends TestCase {
 
 		$this->assertStringContainsString( 'Total:', $output, 'The counts render for every tier.' );
 		$this->assertStringContainsString( '15', $output );
-		$this->assertSame( $sees_purge ? 4 : 0, substr_count( $output, 'ffc-cleanup-btn ' ) );
+		$this->assertSame( $sees_purge ? 4 : 0, preg_match_all( '/class="[^"]*\bffc-cleanup-btn\b/', $output ) );
 		$this->assertSame( $sees_purge, str_contains( $output, 'ffc-cleanup-danger' ) );
 		$this->assertSame( $sees_purge, str_contains( $output, 'ffc-notice-danger' ) );
 		$this->assertSame( ! $sees_purge, str_contains( $output, 'Permanently delete appointments from this calendar.' ), 'Without the cap the box is today\'s, unchanged.' );
@@ -658,8 +658,12 @@ class SelfSchedulingCleanupHandlerTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/data-action="future"\s+data-count="2"\s+data-notify="1"/', $output, 'Future counts the bookings it can still cancel.' );
 		$this->assertMatchesRegularExpression( '/data-action="all"\s+data-count="15"/', $output );
 		$this->assertStringContainsString( 'Cancel future and notify (2)', $output );
-		$this->assertStringContainsString( 'ffc-cleanup-btn-caution', $output );
-		$this->assertStringContainsString( 'ffc-cleanup-btn-solid', $output );
+		// The button family (#1874): deletions are danger, cancelling keeps
+		// the records and is caution; "Delete all" is a deletion like the rest.
+		$this->assertSame( 3, substr_count( $output, 'class="ffc-btn ffc-btn-danger ffc-icon-delete ffc-cleanup-btn"' ) );
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-caution ffc-icon-cross ffc-cleanup-btn"', $output );
+		$this->assertMatchesRegularExpression( '/ffc-btn-danger ffc-icon-delete ffc-cleanup-btn"\s+data-action="all"/', $output );
+		$this->assertStringNotContainsString( 'class="button', $output );
 		$this->assertSame( 3, substr_count( $output, 'ffc-icon-delete' ) );
 		$this->assertStringContainsString( 'ffc-icon-cross', $output );
 		$this->assertStringContainsString( 'data-calendar-title="Test Calendar"', $output );

@@ -74,8 +74,8 @@
             html += '<label>' + (s.filterFrom || 'From:') + ' <input type="date" class="ffc-filter-from" /></label>';
             html += '<label>' + (s.filterTo || 'To:') + ' <input type="date" class="ffc-filter-to" /></label>';
             html += '<input type="text" class="ffc-filter-search" placeholder="' + (s.filterSearch || 'Search...') + '" />';
-            html += '<button type="button" class="button button-primary ffc-filter-apply">' + (s.filterApply || 'Filter') + '</button>';
-            html += '<button type="button" class="button ffc-filter-clear">' + (s.filterClear || 'Clear') + '</button>';
+            html += window.FFC.buttonHtml({ label: s.filterApply || 'Filter', category: 'neutral', icon: 'filter', className: 'ffc-filter-apply' });
+            html += window.FFC.buttonHtml({ label: s.filterClear || 'Clear', category: 'neutral', icon: 'eraser', className: 'ffc-filter-clear' });
             html += '</div>';
             return html;
         },
@@ -157,7 +157,11 @@
             html += '<span class="ffc-section-pager-range">' + helpers.esc(range) + '</span>';
             html += '<span class="ffc-section-pager-pages">';
 
-            html += '<button type="button" class="button ffc-section-page-btn"' + attrs +
+            // The keys are the button family's neutral buttons written by
+            // hand (#1874): a page number or an arrow glyph IS the label, so
+            // they carry no icon, and the current page is marked by
+            // `aria-current`, which the sheet paints.
+            html += '<button type="button" class="ffc-btn ffc-btn-neutral ffc-section-page-btn"' + attrs +
                 ' data-page="' + (page - 1) + '" aria-label="' + helpers.escAttr(s.previousPage || 'Previous page') + '"' +
                 (page <= 1 ? ' disabled' : '') + '>&lsaquo;</button>';
 
@@ -167,12 +171,12 @@
                     return;
                 }
                 var current = n === page;
-                html += '<button type="button" class="button ffc-section-page-btn' + (current ? ' button-primary' : '') + '"' + attrs +
+                html += '<button type="button" class="ffc-btn ffc-btn-neutral ffc-section-page-btn"' + attrs +
                     ' data-page="' + n + '" aria-label="' + helpers.escAttr((s.pageNumber || 'Page {page}').replace('{page}', n)) + '"' +
                     (current ? ' aria-current="page"' : '') + '>' + n + '</button>';
             });
 
-            html += '<button type="button" class="button ffc-section-page-btn"' + attrs +
+            html += '<button type="button" class="ffc-btn ffc-btn-neutral ffc-section-page-btn"' + attrs +
                 ' data-page="' + (page + 1) + '" aria-label="' + helpers.escAttr(s.nextPage || 'Next page') + '"' +
                 (page >= totalPages ? ' disabled' : '') + '>&rsaquo;</button>';
 
@@ -213,7 +217,13 @@
             var html = '<div class="ffc-pagination">';
 
             if (page > 1) {
-                html += '<button class="button button-primary ffc-pagination-btn" data-page="' + (page - 1) + '" data-target="' + dataAttr + '">&laquo; ' + (ffcDashboard.strings.previous || 'Previous') + '</button> ';
+                html += window.FFC.buttonHtml({
+                    label: ffcDashboard.strings.previous || 'Previous',
+                    category: 'neutral',
+                    icon: 'chevron-left',
+                    className: 'ffc-pagination-btn',
+                    attrs: { 'data-page': page - 1, 'data-target': dataAttr }
+                }) + ' ';
             }
 
             html += '<span class="ffc-pagination-info">';
@@ -221,7 +231,13 @@
             html += '</span>';
 
             if (page < totalPages) {
-                html += ' <button class="button button-primary ffc-pagination-btn" data-page="' + (page + 1) + '" data-target="' + dataAttr + '">' + (ffcDashboard.strings.next || 'Next') + ' &raquo;</button>';
+                html += ' ' + window.FFC.buttonHtml({
+                    label: ffcDashboard.strings.next || 'Next',
+                    category: 'neutral',
+                    icon: 'chevron-right',
+                    className: 'ffc-pagination-btn',
+                    attrs: { 'data-page': page + 1, 'data-target': dataAttr }
+                });
             }
 
             html += ' ' + helpers.buildPageSizeSelector();

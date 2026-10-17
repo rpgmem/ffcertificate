@@ -865,15 +865,19 @@
 
             var footer = document.createElement('div');
             footer.className = 'ffc-modal-footer';
-            var cancel = document.createElement('button');
-            cancel.type = 'button';
-            cancel.className = 'ffc-btn ffc-btn-secondary';
-            cancel.setAttribute('data-ffc-override', 'cancel');
-            cancel.textContent = words.cancel;
-            var agree = document.createElement('button');
-            agree.type = 'button';
-            agree.className = 'ffc-btn ffc-btn-primary';
-            agree.setAttribute('data-ffc-override', 'agree');
+            var cancel = core.button({
+                label: words.cancel,
+                category: 'neutral',
+                icon: 'cross',
+                attrs: { 'data-ffc-override': 'cancel' }
+            });
+            // The label is the countdown, which label() below rewrites.
+            var agree = core.button({
+                label: words.agree,
+                category: 'primary',
+                icon: 'checkmark',
+                attrs: { 'data-ffc-override': 'agree' }
+            });
             footer.appendChild(cancel);
             footer.appendChild(agree);
 

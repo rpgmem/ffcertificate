@@ -93,7 +93,14 @@
                 html += '<td>' + helpers.esc(cert.auth_code) + '</td>';
                 html += '<td>';
                 if (cert.magic_link) {
-                    html += '<a href="' + helpers.escAttr(cert.magic_link) + '" class="button button-primary ffc-btn-pdf ffc-icon-download" target="_blank" rel="noopener noreferrer">' + ffcDashboard.strings.downloadPdf + '</a>';
+                    html += window.FFC.buttonHtml({
+                        label: ffcDashboard.strings.downloadPdf,
+                        category: 'neutral',
+                        icon: 'download',
+                        href: cert.magic_link,
+                        className: 'ffc-btn-pdf',
+                        attrs: { target: '_blank', rel: 'noopener noreferrer' }
+                    });
                 }
                 html += '</td>';
                 html += '</tr>';

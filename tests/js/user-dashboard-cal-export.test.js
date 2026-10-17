@@ -142,8 +142,12 @@ describe('ffc-user-dashboard-cal-export — buildButton', () => {
 		expect(tmp.querySelector('svg')).toBeNull();
 		expect(html).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
 
-		const btnIcons = Array.from(tmp.querySelectorAll('.ffc-cal-export-btn > span')).map((s) => s.className);
-		expect(btnIcons).toEqual(['ffc-icon-calendar', 'ffc-icon-chevron-down']);
+		// The calendar icon is the family button's own class (#1874); only
+		// the caret after the label is a child.
+		const btn = tmp.querySelector('.ffc-cal-export-btn');
+		expect(btn.className).toBe('ffc-btn ffc-btn-neutral ffc-icon-calendar ffc-cal-export-btn');
+		const btnIcons = Array.from(btn.querySelectorAll(':scope > span')).map((s) => s.className);
+		expect(btnIcons).toEqual(['ffc-icon-chevron-down']);
 
 		const linkIcons = Array.from(tmp.querySelectorAll('.ffc-cal-export-dropdown a > span')).map((s) => s.className);
 		expect(linkIcons).toEqual(['ffc-icon-cal-google', 'ffc-icon-cal-outlook', 'ffc-icon-download']);

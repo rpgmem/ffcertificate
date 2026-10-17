@@ -69,7 +69,16 @@ $ffc_messages = array(
 			</p>
 
 			<p class="ffc-set-password-actions">
-				<button type="submit" class="button button-primary"><?php esc_html_e( 'Save and enter', 'ffcertificate' ); ?></button>
+				<?php
+				\FreeFormCertificate\Core\Button::render(
+					array(
+						'label'    => __( 'Save and enter', 'ffcertificate' ),
+						'category' => 'primary',
+						'icon'     => 'save',
+						'type'     => 'submit',
+					)
+				);
+				?>
 			</p>
 		</form>
 	</div>
