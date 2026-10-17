@@ -224,6 +224,10 @@ class CapabilityManager {
 		'ffc_view_date_messages',
 		'ffc_manage_date_messages',
 		'ffc_view_date_messages_pii',
+		// Test tier (#1860). `test` is a flow verb: it sends one sample of a
+		// rule to the operator's own address, which `manage` also allows, so
+		// the operator tier can check a message without editing any rule.
+		'ffc_test_date_messages',
 
 		// Destructive "delete" tier (GAP E). Each `ffc_delete_<domain>` cap
 		// gates the irreversible removal paths of its domain *strictly* — the
@@ -299,6 +303,11 @@ class CapabilityManager {
 		// `settings_split_cap_grant_map()`.
 		'ffc_manage_settings_smtp',
 		'ffc_manage_settings_dangerzone',
+		// SMTP test tier (#1860). Sends the test message of Settings → Email
+		// Model to the operator's own address -- which exercises the transport
+		// without being able to change it. `ffc_manage_settings_smtp` still
+		// allows it too.
+		'ffc_test_settings_smtp',
 
 		// Email-template hub cap (#964). Gates editing the GLOBAL default body /
 		// subject of the plugin's emails (Settings → SMTP → "All plugin emails"),
@@ -381,6 +390,26 @@ class CapabilityManager {
 	 * @since 6.0.0
 	 */
 	public const RECRUITMENT_MANAGER_ROLE = 'ffc_recruitment_manager';
+
+	/**
+	 * Capabilities only `ffc_administrator` carries among the FFC roles (#1860).
+	 *
+	 * The activity log is the trail of what every other role did, and the
+	 * identity screen rewrites which account a record belongs to; neither is
+	 * a module's business, so no module role and not the read-only role holds
+	 * them. `manage_options` keeps both. `RoleNamingTest` refuses any other
+	 * role holding one, and `CapabilityMigrator::migrate_role_tiers()` takes
+	 * them off the stored roles of an existing install.
+	 *
+	 * @since 6.40.0
+	 */
+	public const ADMINISTRATOR_ONLY_CAPABILITIES = array(
+		'ffc_view_activity_log',
+		'ffc_export_activity_log',
+		'ffc_manage_identities',
+		'ffc_split_identities',
+		'ffc_merge_identities',
+	);
 
 	/**
 	 * Future capabilities (disabled by default).
@@ -773,38 +802,81 @@ class CapabilityManager {
 	}
 
 	/**
-	 * Definition map for the 6.2.0 module-manager + recruitment-tier roles.
+	 * Definition map of every FFC role but `ffc_end_user`.
 	 *
 	 * Each entry is a `slug => array{label: string, caps: list<string>}` so
 	 * `register_module_roles()` and `remove_module_roles()` share a single
 	 * source of truth. `read` is added implicitly to every role so members
 	 * can access wp-admin.
 	 *
-	 * Graduated tier ladder (#739 §3.2). Every action-domain exposes the same
-	 * `viewer → operator → manager` ladder (each tier inherits the tier above),
-	 * reusing the caps that already exist:
+	 * ONE NAMING PATTERN, FOUR TIERS (#1860)
 	 *
-	 *   viewer   (read-only: `ffc_view_<domain>`)
-	 *     → operator (viewer + the domain's primary non-destructive action:
-	 *                 certificates +edit, appointments +bypass, audiences
-	 *                 +import, reregistration +export, recruitment +call)
-	 *       → manager (viewer + `ffc_manage_<domain>` + export/import/delete)
+	 * A label reads `FFC <Module> [- <Part>] - <Tier>`. The module is named as
+	 * the admin menu names it ({@see \FreeFormCertificate\Core\PluginAreas}),
+	 * with the Scheduling area split into its two modules, Personal Calendars
+	 * and Audience Calendars. A module whose screens split into parts names the
+	 * part in every one of its roles: Certificates (Submissions, Forms) and
+	 * Personal Calendars (Bookings, Setup). FFC Settings already carries the
+	 * prefix, so its roles read "FFC Settings - <Tier>".
 	 *
-	 * The per-domain `admin` tier is the global `ffc_administrator` (all caps),
-	 * except where domain-scoped settings/PII caps make a dedicated `_admin`
-	 * distinct: recruitment (settings + reasons) ships one here; certificates
-	 * and appointments gain theirs with the PII carve (#739 §3.3), and
-	 * reregistration with its own (#1815). The two CPT
-	 * domains (calendars, forms) only own a `view`/`manage` pair, so they
-	 * materialize `viewer → manager` only.
+	 * Every module has the same four tiers, each holding the one below it:
+	 *
+	 *   Viewer        sees the screens, personal data masked;
+	 *   Operator      + the module's day-to-day actions;
+	 *   Manager       + manage, export and delete, and may reveal personal data;
+	 *   Administrator + bypass and module settings, where the module has them
+	 *                 (otherwise it equals the Manager).
+	 *
+	 * The two parts with no day-to-day or administrator action -- Certificates
+	 * - Forms and Personal Calendars - Setup -- keep Viewer and Manager only.
+	 *
+	 * Slugs are stored values and never change: `ffc_appointments_*` is
+	 * Personal Calendars - Bookings, `ffc_calendars_*` Personal Calendars -
+	 * Setup, `ffc_forms_*` Certificates - Forms and `ffc_audiences_*` Audience
+	 * Calendars. `RoleNamingTest` holds the labels and the tiers to this.
+	 *
+	 * The activity log and the identity-resolution caps
+	 * ({@see self::ADMINISTRATOR_ONLY_CAPABILITIES}) belong to
+	 * `ffc_administrator` alone.
 	 *
 	 * @since 6.2.0
-	 * @since 6.16.0 Generalized from per-domain single managers + recruitment
-	 *               tiers to a uniform viewer/operator/manager ladder in every
-	 *               domain; domain tokens pluralized to match the caps.
+	 * @since 6.16.0 Generalized to a uniform viewer/operator/manager ladder.
+	 * @since 6.40.0 One label pattern and four tiers in every module (#1860).
 	 * @return array<string, array{label: string, caps: list<string>}>
 	 */
 	public static function module_roles_definition(): array {
+		$certificates_viewer   = array( 'ffc_view_certificates' );
+		$certificates_operator = array_merge( $certificates_viewer, array( 'ffc_edit_certificates', 'ffc_grade_certificates' ) );
+		$certificates_manager  = array_merge( $certificates_operator, array( 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ) );
+
+		$bookings_viewer   = array( 'ffc_view_appointments' );
+		$bookings_operator = array_merge( $bookings_viewer, array( 'ffc_manage_appointments' ) );
+		$bookings_manager  = array_merge( $bookings_operator, array( 'ffc_export_appointments', 'ffc_delete_appointments', 'ffc_view_appointments_pii' ) );
+
+		$audiences_viewer   = array( 'ffc_view_audiences' );
+		$audiences_operator = array_merge( $audiences_viewer, array( 'ffc_import_audiences' ) );
+		$audiences_manager  = array_merge( $audiences_operator, array( 'ffc_manage_audiences', 'ffc_export_audiences', 'ffc_delete_audiences' ) );
+
+		$rereg_viewer   = array( 'ffc_view_reregistration' );
+		$rereg_operator = array_merge( $rereg_viewer, array( 'ffc_export_reregistration' ) );
+		$rereg_manager  = array_merge( $rereg_operator, array( 'ffc_manage_reregistration', 'ffc_import_reregistration', 'ffc_delete_reregistration', 'ffc_view_reregistration_pii' ) );
+
+		$recruitment_viewer   = array( 'ffc_view_recruitment', 'ffc_view_recruitment_reasons' );
+		$recruitment_operator = array_merge( $recruitment_viewer, array( 'ffc_call_recruitment' ) );
+		$recruitment_manager  = array_merge( $recruitment_operator, array( 'ffc_manage_recruitment', 'ffc_import_recruitment', 'ffc_delete_recruitment', 'ffc_manage_recruitment_reasons', 'ffc_view_recruitment_pii' ) );
+
+		$short_urls_viewer   = array( 'ffc_view_url_shortener' );
+		$short_urls_operator = array_merge( $short_urls_viewer, array( 'ffc_export_url_shortener' ) );
+		$short_urls_manager  = array_merge( $short_urls_operator, array( 'ffc_manage_url_shortener', 'ffc_delete_url_shortener' ) );
+
+		$date_messages_viewer   = array( 'ffc_view_date_messages' );
+		$date_messages_operator = array_merge( $date_messages_viewer, array( 'ffc_test_date_messages' ) );
+		$date_messages_manager  = array_merge( $date_messages_operator, array( 'ffc_manage_date_messages', 'ffc_view_date_messages_pii' ) );
+
+		$settings_viewer   = array( 'ffc_view_settings', 'ffc_view_custom_fields', 'ffc_view_forms_api' );
+		$settings_operator = array_merge( $settings_viewer, array( 'ffc_test_settings_smtp' ) );
+		$settings_manager  = array_merge( $settings_operator, array( 'ffc_manage_settings', 'ffc_manage_email_templates', 'ffc_manage_custom_fields', 'ffc_delete_custom_fields' ) );
+
 		return array(
 			// ── Cross-module roles ───────────────────────────────────────
 			// `ffc_administrator` is the aggregator (GAP F): a full FFC admin
@@ -814,152 +886,203 @@ class CapabilityManager {
 			// administration without handing out WordPress super-admin. Its cap
 			// set is the live `get_all_capabilities()` list, so any capability
 			// added in a future release is granted to it automatically.
-			'ffc_administrator'           => array(
+			'ffc_administrator'            => array(
 				'label' => __( 'FFC Administrator', 'ffcertificate' ),
 				'caps'  => self::get_all_capabilities(),
 			),
-			// Cross-domain read-only: the *view only* tier across every module.
-			'ffc_readonly'                => array(
-				'label' => __( 'FFC Read-Only (all modules)', 'ffcertificate' ),
+			// Cross-module read-only: every module's view tier, always masked
+			// (no `_pii` cap) and without the activity log, which is the
+			// administrator's alone (#1860). The Settings page stays out, as
+			// it always has: it is the FFC Settings roles' screen.
+			'ffc_readonly'                 => array(
+				'label' => __( 'FFC Read-only', 'ffcertificate' ),
 				'caps'  => array(
 					'ffc_view_certificates',
+					'ffc_view_forms',
 					'ffc_view_appointments',
+					'ffc_view_calendars',
 					'ffc_view_audiences',
 					'ffc_view_reregistration',
-					'ffc_view_calendars',
-					'ffc_view_forms',
-					'ffc_view_custom_fields',
-					'ffc_view_activity_log',
 					'ffc_view_recruitment',
 					'ffc_view_recruitment_settings',
 					'ffc_view_recruitment_reasons',
 					'ffc_view_url_shortener',
 					'ffc_view_date_messages',
+					'ffc_view_custom_fields',
 				),
 			),
 
-			// ── Certificates ─────────────────────────────────────────────
-			'ffc_certificates_viewer'     => array(
-				'label' => __( 'FFC Certificates - Viewer', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_certificates' ),
+			// ── Certificates - Submissions ───────────────────────────────
+			'ffc_certificates_viewer'      => array(
+				'label' => __( 'FFC Certificates - Submissions - Viewer', 'ffcertificate' ),
+				'caps'  => $certificates_viewer,
 			),
-			'ffc_certificates_operator'   => array(
-				'label' => __( 'FFC Certificates - Operator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_certificates', 'ffc_edit_certificates', 'ffc_grade_certificates' ),
+			'ffc_certificates_operator'    => array(
+				'label' => __( 'FFC Certificates - Submissions - Operator', 'ffcertificate' ),
+				'caps'  => $certificates_operator,
 			),
-			'ffc_certificates_manager'    => array(
-				'label' => __( 'FFC Certificates - Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_grade_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ),
+			'ffc_certificates_manager'     => array(
+				'label' => __( 'FFC Certificates - Submissions - Manager', 'ffcertificate' ),
+				'caps'  => $certificates_manager,
 			),
-			// Admin tier (#739 §3.3): same domain caps as the manager, but the
-			// PII policy treats this role as *unmasked* (plaintext, no reveal
-			// click / audit noise) — the highest-trust certificates role.
-			'ffc_certificates_admin'      => array(
-				'label' => __( 'FFC Certificates - Administrator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_edit_certificates', 'ffc_grade_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ),
+			// Same caps as the manager; the PII policy treats it as unmasked.
+			'ffc_certificates_admin'       => array(
+				'label' => __( 'FFC Certificates - Submissions - Administrator', 'ffcertificate' ),
+				'caps'  => $certificates_manager,
 			),
 
-			// ── Appointments (self-scheduling bookings) ──────────────────
-			'ffc_appointments_viewer'     => array(
-				'label' => __( 'FFC Appointments - Viewer', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_appointments' ),
-			),
-			'ffc_appointments_operator'   => array(
-				'label' => __( 'FFC Appointments - Operator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_appointments', 'ffc_bypass_appointments' ),
-			),
-			'ffc_appointments_manager'    => array(
-				'label' => __( 'FFC Appointments - Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_bypass_appointments', 'ffc_export_appointments', 'ffc_view_appointments_pii' ),
-			),
-			// Admin tier (#739 §3.3): manager caps + unmasked PII via the policy.
-			'ffc_appointments_admin'      => array(
-				'label' => __( 'FFC Appointments - Administrator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_appointments', 'ffc_manage_appointments', 'ffc_delete_appointments', 'ffc_bypass_appointments', 'ffc_export_appointments', 'ffc_view_appointments_pii' ),
-			),
-
-			// ── Audiences ────────────────────────────────────────────────
-			'ffc_audiences_viewer'        => array(
-				'label' => __( 'FFC Audiences - Viewer', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_audiences' ),
-			),
-			'ffc_audiences_operator'      => array(
-				'label' => __( 'FFC Audiences - Operator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_audiences', 'ffc_import_audiences' ),
-			),
-			'ffc_audiences_manager'       => array(
-				'label' => __( 'FFC Audiences - Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences', 'ffc_export_audiences', 'ffc_import_audiences' ),
-			),
-
-			// ── Reregistration ───────────────────────────────────────────
-			'ffc_reregistration_viewer'   => array(
-				'label' => __( 'FFC Reregistration - Viewer', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_reregistration' ),
-			),
-			'ffc_reregistration_operator' => array(
-				'label' => __( 'FFC Reregistration - Operator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_reregistration', 'ffc_export_reregistration' ),
-			),
-			'ffc_reregistration_manager'  => array(
-				'label' => __( 'FFC Reregistration - Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration', 'ffc_import_reregistration', 'ffc_view_reregistration_pii' ),
-			),
-			// Admin tier (#1815): same domain caps as the manager, but the PII
-			// policy treats this role as *unmasked*, like the certificates and
-			// appointments admins.
-			'ffc_reregistration_admin'    => array(
-				'label' => __( 'FFC Reregistration - Administrator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration', 'ffc_import_reregistration', 'ffc_view_reregistration_pii' ),
-			),
-
-			// ── Calendars (self-scheduling structure) ────────────────────
-			// Only a view/manage pair exists, so viewer → manager only.
-			'ffc_calendars_viewer'        => array(
-				'label' => __( 'FFC Calendars - Viewer', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_calendars' ),
-			),
-			'ffc_calendars_manager'       => array(
-				'label' => __( 'FFC Calendars - Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_calendars', 'ffc_manage_calendars' ),
-			),
-
-			// ── Forms (certificate-form structure) ───────────────────────
-			'ffc_forms_viewer'            => array(
-				'label' => __( 'FFC Forms - Viewer', 'ffcertificate' ),
+			// ── Certificates - Forms (Viewer and Manager only) ───────────
+			'ffc_forms_viewer'             => array(
+				'label' => __( 'FFC Certificates - Forms - Viewer', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_forms' ),
 			),
-			'ffc_forms_manager'           => array(
-				'label' => __( 'FFC Forms - Manager', 'ffcertificate' ),
+			'ffc_forms_manager'            => array(
+				'label' => __( 'FFC Certificates - Forms - Manager', 'ffcertificate' ),
 				'caps'  => array( 'ffc_view_forms', 'ffc_manage_forms' ),
 			),
 
-			// ── Recruitment tier ─────────────────────────────────────────
-			// `ffc_recruitment_manager` already exists (6.0.0) and is upgraded
-			// by `register_recruitment_manager_role()`, so it is not redefined
-			// here. The viewer/operator/admin tiers complete the ladder.
-			'ffc_recruitment_viewer'      => array(
+			// ── Personal Calendars - Bookings ────────────────────────────
+			// The bypass is the administrator's alone (#1860): approving and
+			// cancelling is the operator's job, booking outside the rules is
+			// not.
+			'ffc_appointments_viewer'      => array(
+				'label' => __( 'FFC Personal Calendars - Bookings - Viewer', 'ffcertificate' ),
+				'caps'  => $bookings_viewer,
+			),
+			'ffc_appointments_operator'    => array(
+				'label' => __( 'FFC Personal Calendars - Bookings - Operator', 'ffcertificate' ),
+				'caps'  => $bookings_operator,
+			),
+			'ffc_appointments_manager'     => array(
+				'label' => __( 'FFC Personal Calendars - Bookings - Manager', 'ffcertificate' ),
+				'caps'  => $bookings_manager,
+			),
+			'ffc_appointments_admin'       => array(
+				'label' => __( 'FFC Personal Calendars - Bookings - Administrator', 'ffcertificate' ),
+				'caps'  => array_merge( $bookings_manager, array( 'ffc_bypass_appointments', 'ffc_bypass_appointment_capacity' ) ),
+			),
+
+			// ── Personal Calendars - Setup (Viewer and Manager only) ─────
+			'ffc_calendars_viewer'         => array(
+				'label' => __( 'FFC Personal Calendars - Setup - Viewer', 'ffcertificate' ),
+				'caps'  => array( 'ffc_view_calendars' ),
+			),
+			'ffc_calendars_manager'        => array(
+				'label' => __( 'FFC Personal Calendars - Setup - Manager', 'ffcertificate' ),
+				'caps'  => array( 'ffc_view_calendars', 'ffc_manage_calendars' ),
+			),
+
+			// ── Audience Calendars ───────────────────────────────────────
+			'ffc_audiences_viewer'         => array(
+				'label' => __( 'FFC Audience Calendars - Viewer', 'ffcertificate' ),
+				'caps'  => $audiences_viewer,
+			),
+			'ffc_audiences_operator'       => array(
+				'label' => __( 'FFC Audience Calendars - Operator', 'ffcertificate' ),
+				'caps'  => $audiences_operator,
+			),
+			'ffc_audiences_manager'        => array(
+				'label' => __( 'FFC Audience Calendars - Manager', 'ffcertificate' ),
+				'caps'  => $audiences_manager,
+			),
+			'ffc_audiences_admin'          => array(
+				'label' => __( 'FFC Audience Calendars - Administrator', 'ffcertificate' ),
+				'caps'  => array_merge( $audiences_manager, array( 'ffc_bypass_audiences' ) ),
+			),
+
+			// ── Reregistration ───────────────────────────────────────────
+			'ffc_reregistration_viewer'    => array(
+				'label' => __( 'FFC Reregistration - Viewer', 'ffcertificate' ),
+				'caps'  => $rereg_viewer,
+			),
+			'ffc_reregistration_operator'  => array(
+				'label' => __( 'FFC Reregistration - Operator', 'ffcertificate' ),
+				'caps'  => $rereg_operator,
+			),
+			'ffc_reregistration_manager'   => array(
+				'label' => __( 'FFC Reregistration - Manager', 'ffcertificate' ),
+				'caps'  => $rereg_manager,
+			),
+			// Same caps as the manager; the PII policy treats it as unmasked.
+			'ffc_reregistration_admin'     => array(
+				'label' => __( 'FFC Reregistration - Administrator', 'ffcertificate' ),
+				'caps'  => $rereg_manager,
+			),
+
+			// ── Recruitment ──────────────────────────────────────────────
+			// The manager is the 6.0.0 role, defined here since #1860 so its
+			// tier is declared where every other tier is.
+			// `RoleRegistrar::register_recruitment_manager_role()` still
+			// creates it first on activation.
+			'ffc_recruitment_viewer'       => array(
 				'label' => __( 'FFC Recruitment - Viewer', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_recruitment', 'ffc_view_recruitment_reasons' ),
+				'caps'  => $recruitment_viewer,
 			),
-			'ffc_recruitment_operator'    => array(
+			'ffc_recruitment_operator'     => array(
 				'label' => __( 'FFC Recruitment - Operator', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_recruitment', 'ffc_call_recruitment', 'ffc_view_recruitment_reasons' ),
+				'caps'  => $recruitment_operator,
 			),
-			'ffc_recruitment_admin'       => array(
+			self::RECRUITMENT_MANAGER_ROLE => array(
+				'label' => __( 'FFC Recruitment - Manager', 'ffcertificate' ),
+				'caps'  => $recruitment_manager,
+			),
+			'ffc_recruitment_admin'        => array(
 				'label' => __( 'FFC Recruitment - Administrator', 'ffcertificate' ),
-				'caps'  => array(
-					'ffc_view_recruitment',
-					'ffc_call_recruitment',
-					'ffc_import_recruitment',
-					'ffc_view_recruitment_pii',
-					'ffc_manage_recruitment',
-					'ffc_delete_recruitment',
-					'ffc_view_recruitment_settings',
-					'ffc_manage_recruitment_settings',
-					'ffc_view_recruitment_reasons',
-					'ffc_manage_recruitment_reasons',
-				),
+				'caps'  => array_merge( $recruitment_manager, array( 'ffc_view_recruitment_settings', 'ffc_manage_recruitment_settings' ) ),
+			),
+
+			// ── Short URLs ───────────────────────────────────────────────
+			'ffc_url_shortener_viewer'     => array(
+				'label' => __( 'FFC Short URLs - Viewer', 'ffcertificate' ),
+				'caps'  => $short_urls_viewer,
+			),
+			'ffc_url_shortener_operator'   => array(
+				'label' => __( 'FFC Short URLs - Operator', 'ffcertificate' ),
+				'caps'  => $short_urls_operator,
+			),
+			'ffc_url_shortener_manager'    => array(
+				'label' => __( 'FFC Short URLs - Manager', 'ffcertificate' ),
+				'caps'  => $short_urls_manager,
+			),
+			'ffc_url_shortener_admin'      => array(
+				'label' => __( 'FFC Short URLs - Administrator', 'ffcertificate' ),
+				'caps'  => $short_urls_manager,
+			),
+
+			// ── Date Messages ────────────────────────────────────────────
+			'ffc_date_messages_viewer'     => array(
+				'label' => __( 'FFC Date Messages - Viewer', 'ffcertificate' ),
+				'caps'  => $date_messages_viewer,
+			),
+			'ffc_date_messages_operator'   => array(
+				'label' => __( 'FFC Date Messages - Operator', 'ffcertificate' ),
+				'caps'  => $date_messages_operator,
+			),
+			'ffc_date_messages_manager'    => array(
+				'label' => __( 'FFC Date Messages - Manager', 'ffcertificate' ),
+				'caps'  => $date_messages_manager,
+			),
+			'ffc_date_messages_admin'      => array(
+				'label' => __( 'FFC Date Messages - Administrator', 'ffcertificate' ),
+				'caps'  => $date_messages_manager,
+			),
+
+			// ── FFC Settings ─────────────────────────────────────────────
+			'ffc_settings_viewer'          => array(
+				'label' => __( 'FFC Settings - Viewer', 'ffcertificate' ),
+				'caps'  => $settings_viewer,
+			),
+			'ffc_settings_operator'        => array(
+				'label' => __( 'FFC Settings - Operator', 'ffcertificate' ),
+				'caps'  => $settings_operator,
+			),
+			'ffc_settings_manager'         => array(
+				'label' => __( 'FFC Settings - Manager', 'ffcertificate' ),
+				'caps'  => $settings_manager,
+			),
+			'ffc_settings_admin'           => array(
+				'label' => __( 'FFC Settings - Administrator', 'ffcertificate' ),
+				'caps'  => array_merge( $settings_manager, array( 'ffc_manage_settings_smtp', 'ffc_manage_settings_dangerzone', 'ffc_view_as_user' ) ),
 			),
 		);
 	}

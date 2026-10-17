@@ -32,8 +32,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
 		<ul>
-			<li><code>ffc_view_activity_log</code> — <?php esc_html_e( 'reach the tab and inspect the audit trail. Deliberately independent of the settings view capability, so an audit-only operator can read the log without any other settings access.', 'ffcertificate' ); ?></li>
+			<li><code>ffc_view_activity_log</code> — <?php esc_html_e( 'reach the tab and inspect the audit trail. Independent of the settings view capability, so it can be granted to an account without any other settings access.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_export_activity_log</code> — <?php esc_html_e( 'download the audit trail as CSV. Split out from the view capability (rpgmem/ffcertificate#711) so a view-only operator cannot bulk-extract the trail.', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'Among the FFC roles only FFC Administrator holds these two: the log records what every other role did, so no module role and not FFC Read-only carries it. WordPress administrators keep it too.', 'ffcertificate' ); ?></p>
 	</div>
 </div>

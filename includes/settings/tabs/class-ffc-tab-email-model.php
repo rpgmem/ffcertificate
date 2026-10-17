@@ -4,7 +4,7 @@
  *
  * The shared "chrome" every plugin email is wrapped in — header / body / footer
  * colours, logo, outer container — plus a live preview and a "Send test email"
- * action. Split out of the SMTP tab so transport, chrome and per-email texts
+ * action, printed by {@see self::render_unlocked()} outside the read-only lock. Split out of the SMTP tab so transport, chrome and per-email texts
  * each get their own focused screen in the Communication group.
  *
  * The chrome editor's own <form> posts `ffc_email_template[...]` (saved by
@@ -125,6 +125,30 @@ class TabEmailModel extends SettingsTab {
 
 		require FFC_PLUGIN_DIR . 'templates/admin/settings/email-model-box.php';
 		?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render the "Send a test email" card, outside the read-only lock.
+	 *
+	 * The Settings page wraps a tab in a disabled fieldset for a user who
+	 * cannot save it, and the FFC Settings Operator is that user here: it may
+	 * send the test (`ffc_test_settings_smtp`, #1860) and change nothing. So
+	 * the card is printed after the lock closes, and only for a user the
+	 * handler would let through.
+	 *
+	 * @since 6.40.0
+	 * @return void
+	 */
+	public function render_unlocked(): void {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_smtp' )
+			&& ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_test_settings_smtp' ) ) {
+			return;
+		}
+		?>
+		<div class="ffc-settings-wrap">
+		<?php require FFC_PLUGIN_DIR . 'templates/admin/settings/email-model-test.php'; ?>
 		</div>
 		<?php
 	}

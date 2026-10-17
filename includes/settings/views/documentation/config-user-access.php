@@ -39,7 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Operator roles in wp-admin', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'Independently of the settings above, an account whose roles are all FFC operator roles (a module viewer, operator or manager, or FFC Read-Only) sees a scoped wp-admin: the core menus it has no use for (Posts, Comments, Tools, Plugins and the like) are hidden, the admin bar is pruned, and opening an admin page outside its module redirects to the module\'s own screen. Its profile, the dashboard home and the AJAX endpoints stay reachable.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'Independently of the settings above, an account whose roles are all FFC operator roles (a module viewer, operator, manager or administrator, or FFC Read-only) sees a scoped wp-admin: the core menus it has no use for (Posts, Comments, Tools, Plugins and the like) are hidden, the admin bar is pruned, and opening an admin page outside its module redirects to the module\'s own screen. Its profile, the dashboard home and the AJAX endpoints stay reachable.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'An account that also holds a non-FFC role — an Editor who was given an FFC role, for example — keeps the whole of wp-admin, and administrators (manage_options) are never scoped. This is a convenience, not the security boundary: every FFC screen and action still checks its capability.', 'ffcertificate' ); ?></p>
 	</div>
 </div>

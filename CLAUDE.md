@@ -993,7 +993,7 @@ All FFC capabilities follow one grammar (ratified in #488, applied plugin-wide):
 ffc_<action>_[own_]<domain>[_<qualifier>]
 ```
 
-- **Actions (closed vocabulary):** `view` (read-only) · `manage` (read-write: create/edit/delete/configure) · `export` · `import` · `edit` (modify existing records — narrower than `manage`) · `delete`. Flow-specific verbs: `book`, `cancel`, `download`, `call`, `bypass`, `submit` (create a record through an authenticated API on behalf of the public flow — `ffc_submit_forms_api`, #1861).
+- **Actions (closed vocabulary):** `view` (read-only) · `manage` (read-write: create/edit/delete/configure) · `export` · `import` · `edit` (modify existing records — narrower than `manage`) · `delete`. Flow-specific verbs: `book`, `cancel`, `download`, `call`, `bypass`, `submit` (create a record through an authenticated API on behalf of the public flow — `ffc_submit_forms_api`, #1861), `test` (send a sample to the operator's own address without being able to change what is sent — `ffc_test_date_messages`, `ffc_test_settings_smtp`, #1860; the matching `manage` cap allows it too).
 - **`own_`** marks a self-scoped end-user cap (frontend; the user's own data).
 - **Domains (canonical):** `certificates`, `appointments`, `audiences`, `reregistration`, `custom_fields`, `activity_log`, `settings`, `recruitment`, `url_shortener`, `forms_api`.
 - **Qualifiers:** `_pii`, `_settings`, `_reasons`, `_history`, `_smtp`, `_dangerzone`. The last two carve the two most sensitive Settings surfaces out of the blanket `ffc_manage_settings` (#711): `ffc_manage_settings_smtp` gates the SMTP transport + Email Model save, and `ffc_manage_settings_dangerzone` gates every destructive maintenance action (delete-all, cleanups, public-access disabler, submission-link audit, migration execution). A dedicated `ffc_export_activity_log` (export tier) was also split out of the read-only `ffc_view_activity_log` so a view-only operator cannot bulk-extract the audit trail. All three ship with one-shot grant migrations that seed the new cap onto current holders, so no one loses access on upgrade.
@@ -1010,6 +1010,14 @@ canEdit = current_user_can('manage_options') || manage_cap
 ```
 
 A `manage` role does **not** need to also carry the `view` cap — `canView` already includes `manage`. Hidden when neither; read-only render (disabled inputs, no save, row/bulk actions hidden) when only `view`. Use `Capabilities::current_user_can_admin_or($cap)` for inline gates; menu/tab caps take the slug directly (admins hold every FFC admin cap via the activation/`ensure_admin_capabilities` grant).
+
+#### Roles — one label pattern, four tiers (#1860)
+
+Every module role is labelled `FFC <Module> [- <Part>] - <Tier>`, the module named as the menu names it (`Core\PluginAreas`; the Scheduling area is its two modules, Personal Calendars and Audience Calendars; FFC Settings already carries the prefix). A module whose screens split names the part in **every** one of its roles — Certificates - Submissions / Forms, Personal Calendars - Bookings / Setup — so a part's roles sort and read as one ladder. Slugs are stored values and never rename: `ffc_appointments_*` is Personal Calendars - Bookings, `ffc_calendars_*` Setup, `ffc_forms_*` Certificates - Forms, `ffc_audiences_*` Audience Calendars.
+
+Every module has four tiers, each holding the one below it: **Viewer** (screens, personal data masked) → **Operator** (+ the day-to-day actions) → **Manager** (+ manage, export, delete, reveal PII) → **Administrator** (+ bypass and module settings where the module has them, otherwise equal to the Manager). Certificates - Forms and Personal Calendars - Setup keep Viewer and Manager only. `ffc_administrator` holds everything; `ffc_readonly` holds view caps only, never a `_pii` one. The activity log and identity resolution (`CapabilityManager::ADMINISTRATOR_ONLY_CAPABILITIES`) are `ffc_administrator`'s alone among the roles. `RoleNamingTest` holds all of it; a new module joins `PluginAreas` and ships its four roles in the same PR.
+
+**A role only ever gains caps on its own.** `RoleRegistrar::register_module_roles()` adds what a definition grants and never removes, so taking a cap off a shipped tier — or renaming the stored label — needs a one-shot step in `CapabilityMigrator` (`migrate_role_tiers()` is the #1860 one). Beware the seeding migrations: they walk every role, so on a fresh install a role holding a seed's source receives its targets whether or not its tier owns them; `role_tier_removals()` follows those edges for exactly that reason.
 
 #### Registry, catalog, migration
 

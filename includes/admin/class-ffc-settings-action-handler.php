@@ -717,9 +717,10 @@ class SettingsActionHandler {
 	 * can confirm SMTP delivery and the Email Model chrome are working. The
 	 * recipient is ALWAYS the current user's own account email — never taken
 	 * from the request — so there is no way to make it mail an arbitrary
-	 * address. Requires the SMTP sub-cap `ffc_manage_settings_smtp` (or admin)
-	 * plus a valid nonce (#739 §4.4) — it exercises the SMTP transport, so it
-	 * belongs to the same sub-cap that gates saving that transport.
+	 * address. Requires the SMTP sub-cap `ffc_manage_settings_smtp` or the
+	 * test cap `ffc_test_settings_smtp` (#1860), or admin, plus a valid nonce
+	 * (#739 §4.4). Sending a test exercises the transport without changing
+	 * it, so the operator tier holds the test cap alone.
 	 *
 	 * Redirects back to the SMTP tab with `ffc_test_email=<flag>` where flag is
 	 * `sent` / `disabled` (global kill-switch on) / `no_address` (account has no
@@ -733,7 +734,8 @@ class SettingsActionHandler {
 			return;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_smtp' ) ) {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_smtp' )
+			&& ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_test_settings_smtp' ) ) {
 			wp_die( esc_html__( 'You do not have permission to send a test email.', 'ffcertificate' ) );
 		}
 

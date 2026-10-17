@@ -36,7 +36,8 @@
  * plugin's own repositories and services so CPF, RF and e-mail come out
  * encrypted and hashed with THIS site's key, exactly as a real write would.
  * Every person, e-mail (`@example.test`, a reserved domain) and document is
- * invented; CPFs and RFs are generated to pass their check digits. Outgoing
+ * invented, and every FFC role gets one demo account, `<role>@example.test`,
+ * so each tier can be signed into and looked at (#1860); CPFs and RFs are generated to pass their check digits. Outgoing
  * e-mail is blocked while the script runs, the activity log is switched on in
  * memory only (the stored setting is untouched), and every wp-cron event the
  * seed scheduled is removed at the end, so nothing is sent later either.
@@ -386,6 +387,7 @@ function ffc_tseed_seed( array $ctx ): void {
 
 	$ctx = ffc_tseed_certificates( $ctx );
 	$ctx = ffc_tseed_dashboard_users( $ctx );
+	$ctx = ffc_tseed_role_users( $ctx );
 	$ctx = ffc_tseed_templates( $ctx );
 	$ctx = ffc_tseed_calendars( $ctx );
 	$ctx = ffc_tseed_audiences( $ctx );
@@ -611,6 +613,53 @@ function ffc_tseed_dashboard_users( array $ctx ): array {
 		$ids[ $p['email'] ] = (int) $user->ID;
 	}
 	$ctx['user_ids'] = $ids;
+	return $ctx;
+}
+
+/**
+ * One demo account per FFC role (#1860): `<role>@example.test`, holding that
+ * role alone and named after its label, so every tier can be signed into and
+ * checked. `ffc_end_user` is left out: the people above already hold it.
+ * The wipe removes them with every other `@example.test` account.
+ *
+ * Passwords are random and never printed; sign in with "Lost your password"
+ * or switch to the account from an administrator.
+ *
+ * @param array<string, mixed> $ctx Context.
+ * @return array<string, mixed>
+ */
+function ffc_tseed_role_users( array $ctx ): array {
+	$ids = array();
+	foreach ( \FreeFormCertificate\UserDashboard\RoleRegistrar::ffc_managed_role_labels() as $role => $label ) {
+		if ( 'ffc_end_user' === $role ) {
+			continue;
+		}
+		if ( ! get_role( $role ) instanceof \WP_Role ) {
+			ffc_tseed_warn( 'role user ' . $role, 'the role is not registered' );
+			continue;
+		}
+		$email = $role . '@example.test';
+		$user  = get_user_by( 'email', $email );
+		if ( ! $user ) {
+			$uid = wp_insert_user(
+				array(
+					'user_login'   => $role,
+					'user_email'   => $email,
+					'user_pass'    => wp_generate_password( 24 ),
+					'display_name' => $label,
+					'role'         => $role,
+				)
+			);
+			if ( is_wp_error( $uid ) ) {
+				ffc_tseed_warn( 'role user ' . $email, $uid );
+				continue;
+			}
+			$user = get_user_by( 'id', $uid );
+		}
+		$user->set_role( $role );
+		$ids[ $role ] = (int) $user->ID;
+	}
+	$ctx['role_user_ids'] = $ids;
 	return $ctx;
 }
 

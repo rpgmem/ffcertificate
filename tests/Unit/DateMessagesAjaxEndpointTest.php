@@ -280,12 +280,36 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 		$this->assertSame( \FreeFormCertificate\DateMessages\RecipientPreview::ROW_LIMIT + 5, $out['totals']['will_send'] );
 	}
 
-	public function test_test_send_needs_the_manage_capability(): void {
+	public function test_test_send_needs_the_manage_or_the_test_capability(): void {
+		// A viewer previews; only manage or test sends (#1860).
+		$this->caps = array( 'ffc_view_date_messages' );
 		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )->shouldReceive( 'send' )->never();
 
 		$r = $this->respond( array( DateMessagesAjaxEndpoint::class, 'test_send' ) );
 
 		$this->assertSame( 403, $r->status );
+	}
+
+	public function test_the_test_capability_alone_sends_the_test(): void {
+		// The Date Messages Operator holds `ffc_test_date_messages` and
+		// nothing that changes a rule (#1860).
+		$this->caps = array( 'ffc_view_date_messages', 'ffc_test_date_messages' );
+		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'user_email' => 'op@example.org' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )->shouldReceive( 'sample' )->once()->andReturn(
+			array(
+				'subject' => 'Hi Maria',
+				'body'    => '<p>B</p>',
+			)
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DeliveryLog' )->shouldReceive( 'record_test' )->once()->andReturn( 12 );
+		Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' )->shouldReceive( 'send' )->once()->andReturn( true );
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$_POST = array( 'rule_id' => '3' );
+
+		$r = $this->respond( array( DateMessagesAjaxEndpoint::class, 'test_send' ) );
+
+		$this->assertTrue( $r->success );
 	}
 
 	public function test_test_send_goes_to_the_operator_and_is_recorded_only_as_a_test(): void {

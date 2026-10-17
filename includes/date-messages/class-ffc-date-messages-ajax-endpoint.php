@@ -144,7 +144,7 @@ final class DateMessagesAjaxEndpoint {
 	 */
 	public static function test_send(): void {
 		check_ajax_referer( self::TEST_ACTION, 'nonce' );
-		if ( ! DateMessagesAdminPage::can_manage() ) {
+		if ( ! DateMessagesAdminPage::can_test() ) {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to do this.', 'ffcertificate' ) ), 403 );
 		}
 

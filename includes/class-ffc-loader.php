@@ -593,7 +593,32 @@ class Loader {
 			if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentActivator' ) ) {
 				\FreeFormCertificate\UserDashboard\RoleRegistrar::register_recruitment_manager_role();
 			}
+
+			$this->ensure_role_tiers_applied();
 		}
+	}
+
+	/**
+	 * One-time alignment of the stored FFC roles with the #1860 tiers and
+	 * labels: removes the caps a tier no longer owns and rewrites the stored
+	 * role names. Flagged by `ffc_role_tiers_v1`.
+	 *
+	 * Here rather than with the other one-shots on `plugins_loaded` for two
+	 * reasons: the labels are translated, which must wait for `init`; and it
+	 * has to come AFTER every seeding migration, which on a fresh install
+	 * hands an FFC role caps its tier does not own (see
+	 * `CapabilityMigrator::role_tier_removals()`).
+	 *
+	 * @since 6.40.0
+	 * @return void
+	 */
+	private function ensure_role_tiers_applied(): void {
+		$flag = 'ffc_role_tiers_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_role_tiers();
+		update_option( $flag, '1', true );
 	}
 
 	/**
