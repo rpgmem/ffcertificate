@@ -104,6 +104,10 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 * **Geolocalização por IP** - Geofencing por IP através do ip-api.com ou do ipinfo.io (o ipinfo.io exige uma chave de API).
 * **Atualizações pelo GitHub** - As atualizações do plugin vêm das Releases do projeto no GitHub, pela tela de atualizações normal do WordPress, e o SHA-256 de cada pacote é conferido antes da instalação.
 
+= Software livre, gratuito para sempre =
+
+O Free Form Certificate é software livre (AGPLv3 ou posterior), desenvolvido e mantido por servidores públicos no Brasil. É gratuito para sempre: não existe nem existirá edição paga, recurso bloqueado ou assinatura. A declaração completa de princípios está em Configurações → Documentação → Sobre o projeto.
+
 == Installation ==
 
 1. Envie a pasta `ffcertificate` para `/wp-content/plugins/`.

@@ -26163,3 +26163,112 @@ msgstr ""
 #: templates/admin/audience/transfer-list.php
 msgid "Select at least one audience."
 msgstr ""
+
+#: includes/settings/views/ffc-tab-documentation.php
+#: includes/settings/views/documentation/about-project.php
+msgid "About this project"
+msgstr ""
+
+#. translators: %s: link to the "About this project" topic below
+#: includes/settings/views/ffc-tab-documentation.php
+#, php-format
+msgid "Free software under the AGPLv3 or later, made in Brazil: free of charge forever, with no paid edition, locked feature or subscription. %s"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Free software, made by public servants"
+msgstr ""
+
+#. translators: 1: link to an article on free software, 2: link to the GNU AGPLv3 license
+#: includes/settings/views/documentation/about-project.php
+#, php-format
+msgid "Free Form Certificate is developed and maintained by public servants in Brazil and distributed as %1$s under the %2$s license. We believe that what is built with public resources should return to the public."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "https://en.wikipedia.org/wiki/Free_software"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "free software"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Free of charge, always."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "There is no paid edition and there never will be: no locked feature, no subscription, no \"pro\" version. Every function described here is available to any institution."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Free to use, study and adapt."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Any public body, school or organisation may install, modify and redistribute it. The AGPL only asks that improvements you distribute, or offer as a network service, stay free as well."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Built to be replicated."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Each module can be switched on or off, so another school network or public body can adopt the same solution without depending on a vendor."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Accessible, and careful with personal data."
+msgstr ""
+
+#. translators: 1: link to an article on the WCAG accessibility guidelines, 2: link to an article on Brazil's data protection law (LGPD)
+#: includes/settings/views/documentation/about-project.php
+#, php-format
+msgid "Screens follow the %1$s accessibility guidelines, offer a dark mode and work on a phone. CPF, RF and e-mail are stored encrypted, in line with Brazil's data protection law, the %2$s."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "https://en.wikipedia.org/wiki/Web_Content_Accessibility_Guidelines"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "https://en.wikipedia.org/wiki/General_Personal_Data_Protection_Law"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Your data stays with you."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "The plugin collects no usage data and shows no advertising. It runs on your own server, and its only outbound calls are the update check and the optional services you choose to enable."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Transparent by default."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "The source code, every change (the changelog) and the list of known problems are public. Each change goes through automated tests before it is released."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Open to collaboration."
+msgstr ""
+
+#. translators: %s: link to the plugin's source repository
+#: includes/settings/views/documentation/about-project.php
+#, php-format
+msgid "Suggestions, bug reports and contributions are welcome in the %s."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "repository"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Our goal"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "To give public institutions a reliable, accessible and secure way to issue documents, run campaigns and serve people online, at no cost and without vendor lock-in, and to show that public servants can build digital public goods of high technical quality."
+msgstr ""

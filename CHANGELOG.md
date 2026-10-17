@@ -13,6 +13,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A card-corner setting in Public Design** (#1827). Settings → Public Design → Card corners drives `--ffc-radius-lg`, the corner of the form and verification card, the user dashboard and its cards, so a design at 0 squares the cards as well as the fields. It applies in both themes.
 - **Public Design sets the information notices' colour** (#1842). It draws their bar and text in the light theme; their background is derived from it, and a colour below 4.5:1 on it is saved with a warning.
 - **A wipe-and-seed script for the testes site** (#1855). `.github/scripts/testes-seed.php` empties the plugin's tables, posts and demo users, then writes 20+ fictitious records per module through the plugin's own code. It refuses to run without `--yes-wipe` and a `--site` equal to `home_url()`.
+- **The plugin says what it is as a project** (#1857). Settings → Documentation opens with the license and a free-forever promise and ends with "About this project": free software under the AGPLv3, made by public servants in Brazil. README.md and both readmes say the same.
 
 ### Changed
 

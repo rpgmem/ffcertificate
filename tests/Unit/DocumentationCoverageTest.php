@@ -142,7 +142,7 @@ class DocumentationCoverageTest extends TestCase {
 
 	public function test_the_top_level_follows_the_admin_menu(): void {
 		// The overview first, then one branch per plugin area in menu order,
-		// then Developer and Troubleshooting. Read as the order of the
+		// then Developer, Troubleshooting and About this project. Read as the order of the
 		// top-level `'icon'` lines: an area names itself through PluginAreas.
 		$src = (string) file_get_contents( self::root() . '/includes/settings/views/ffc-tab-documentation.php' );
 		preg_match_all( "/^\\tarray\\(\\n\\t\\t(?:'anchor' => '([a-z-]+)',\\n\\t\\t)?'icon'\\s*=> (?:\\\\FreeFormCertificate\\\\Core\\\\PluginAreas::icon_class\\( '([a-z_]+)' \\)|'([a-z-]+)')/m", $src, $m, PREG_SET_ORDER );
@@ -151,7 +151,7 @@ class DocumentationCoverageTest extends TestCase {
 			$m
 		);
 		$this->assertSame(
-			array_merge( array( 'overview' ), array_keys( \FreeFormCertificate\Core\PluginAreas::all() ), array( 'ffc-icon-code', 'operations-troubleshooting' ) ),
+			array_merge( array( 'overview' ), array_keys( \FreeFormCertificate\Core\PluginAreas::all() ), array( 'ffc-icon-code', 'operations-troubleshooting', 'about-project' ) ),
 			$order
 		);
 	}

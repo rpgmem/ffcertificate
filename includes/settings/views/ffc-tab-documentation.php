@@ -7,7 +7,7 @@
  * the plugin's functional areas (#697). The top level follows the admin menu,
  * area by area in `Core\PluginAreas` order — Certificates, Scheduling,
  * Reregistration, Recruitment, Short URLs, Date Messages, FFC Settings — after
- * the overview, with Developer and Troubleshooting last. FFC Settings is
+ * the overview, with Developer, Troubleshooting and About this project last. FFC Settings is
  * grouped like its own tab navigation (`Settings::nav_group_labels()`), so a
  * topic sits where the screen it describes sits. Each node may carry its own
  * page (`file` + `anchor`) and/or a list of `children`; the nav renders as a
@@ -425,6 +425,12 @@ $ffc_doc_tree = array(
 		'title'  => __( 'Troubleshooting', 'ffcertificate' ),
 		'file'   => 'operations-troubleshooting.php',
 	),
+	array(
+		'anchor' => 'about-project',
+		'icon'   => 'ffc-icon-globe',
+		'title'  => __( 'About this project', 'ffcertificate' ),
+		'file'   => 'about-project.php',
+	),
 );
 
 /**
@@ -530,6 +536,17 @@ $ffc_require_doc_pages = static function ( array $ffc_nodes ) use ( &$ffc_requir
 				/* translators: %s: link to the plugin's source repository */
 				__( 'Source code and issue tracker: %s', 'ffcertificate' ),
 				'<a href="' . esc_url( $ffc_plugin_meta['plugin_uri'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( (string) preg_replace( '#^https?://#', '', $ffc_plugin_meta['plugin_uri'] ) ) . '</a>'
+			)
+		);
+		?>
+	</p>
+	<p class="ffc-doc-credits">
+		<?php
+		echo wp_kses_post(
+			sprintf(
+				/* translators: %s: link to the "About this project" topic below */
+				__( 'Free software under the AGPLv3 or later, made in Brazil: free of charge forever, with no paid edition, locked feature or subscription. %s', 'ffcertificate' ),
+				'<a href="#about-project">' . esc_html__( 'About this project', 'ffcertificate' ) . '</a>'
 			)
 		);
 		?>
