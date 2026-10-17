@@ -42,6 +42,7 @@ final class EmailTemplates {
 		'reregistration-confirmation',
 		'audience-booking',
 		'audience-cancellation',
+		'audience-admin-cancellation',
 		'certificate-user',
 		'quiz-graded-passed',
 		'quiz-graded-not-passed',

@@ -1052,6 +1052,28 @@
     border-radius: var(--ffc-radius-sm);
 }
 
+/* The override warning (#1859): `FFC.overrideConfirm()` builds it from the
+   modal and a warning notice above, so only the list of reasons and the
+   countdown line are its own. Shared by audience and personal calendars,
+   which both load this sheet. */
+.ffc-shortcode .ffc-override-reasons {
+    margin: var(--ffc-spacing-sm) 0 0;
+    padding-left: var(--ffc-spacing-2xl);
+    list-style: disc;
+}
+
+.ffc-shortcode .ffc-override-reasons li {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
+}
+
+.ffc-shortcode .ffc-override-countdown {
+    margin: var(--ffc-spacing-lg) 0 0;
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-sm);
+}
+
 /* Service/when summary — the same pair the public cancellation page shows,
    now shared with the dashboard dialog (#1140). */
 .ffc-cancel-summary {

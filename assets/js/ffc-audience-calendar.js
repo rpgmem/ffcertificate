@@ -25,6 +25,115 @@
     var formatAudienceName      = api.formatAudienceName;
 
     /**
+     * "All <plural label>", in the word order the translation gives (#1859).
+     */
+    function allLabel(plural) {
+        var S = ffcAudience.strings || {};
+        if (S.allOf && S.allOf.indexOf('%s') !== -1) {
+            return S.allOf.replace('%s', plural);
+        }
+        return S.all ? S.all + ' ' + plural : plural;
+    }
+
+    /**
+     * The environments the calendar currently describes: the one picked in
+     * the filter, else those of the picked calendar, else every calendar's.
+     * Each carries its calendar, so its rules can be read (#1859).
+     */
+    function scopeEnvironments(scheduleId, environmentId) {
+        var schedules = state.config.schedules || [];
+        var sid = typeof scheduleId === 'undefined' ? state.selectedSchedule : scheduleId;
+        var eid = typeof environmentId === 'undefined' ? state.selectedEnvironment : environmentId;
+        var out = [];
+        schedules.forEach(function(schedule) {
+            if (sid > 0 && parseInt(schedule.id) !== parseInt(sid)) {
+                return;
+            }
+            (schedule.environments || []).forEach(function(env) {
+                if (eid > 0 && parseInt(env.id) !== parseInt(eid)) {
+                    return;
+                }
+                out.push({ id: parseInt(env.id), name: env.name, schedule: schedule });
+            });
+        });
+        return out;
+    }
+
+    /**
+     * Whether a date lies past a calendar's advance window.
+     */
+    function beyondWindow(date, schedule) {
+        var limit = schedule ? schedule.futureDaysLimit : null;
+        if (limit === null || typeof limit === 'undefined' || limit <= 0) {
+            return false;
+        }
+        var maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + limit);
+        maxDate.setHours(23, 59, 59, 999);
+        return date > maxDate;
+    }
+
+    function toMinutes(time) {
+        var parts = String(time || '').split(':');
+        return parseInt(parts[0], 10) * 60 + parseInt(parts[1] || '0', 10);
+    }
+
+    /**
+     * Why an environment cannot be booked on a date, and — given times — at
+     * those times (#1859). Codes: past_date, beyond_window, holiday,
+     * closed_day, outside_hours. Empty when it can. The server applies the
+     * same rules on every booking; this only tells the person beforehand.
+     *
+     * @param {Object} env     A scopeEnvironments() entry.
+     * @param {string} dateStr Y-m-d.
+     * @param {string} [start] H:i.
+     * @param {string} [end]   H:i.
+     */
+    function environmentReasons(env, dateStr, start, end) {
+        var reasons = [];
+        var date = api.parseDate(dateStr);
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (date < today) {
+            reasons.push('past_date');
+        }
+        if (beyondWindow(date, env.schedule)) {
+            reasons.push('beyond_window');
+        }
+
+        var info = state.availability ? state.availability[env.id] : null;
+        var scheduleHolidays = (state.scheduleHolidays || {})[String(env.schedule.id)] || [];
+        var isHoliday = (state.globalHolidays || []).indexOf(dateStr) !== -1
+            || scheduleHolidays.indexOf(dateStr) !== -1;
+        if (isHoliday) {
+            reasons.push('holiday');
+        }
+
+        if (info) {
+            var weekday = date.getDay();
+            if ((info.closed_weekdays || []).indexOf(weekday) !== -1) {
+                reasons.push('closed_day');
+            } else if (start && end && info.hours) {
+                var range = info.hours[weekday] || info.hours[String(weekday)] || null;
+                if (range && (toMinutes(start) < toMinutes(range.start) || toMinutes(end) > toMinutes(range.end))) {
+                    reasons.push('outside_hours');
+                }
+            }
+        }
+
+        return reasons;
+    }
+
+    /**
+     * Whether the person may book an environment outside its rules: the
+     * calendar's bypass, as the shortcode reported it (#1859).
+     */
+    function canBypass(env) {
+        return !!(env && env.schedule && env.schedule.canBypass);
+    }
+
+    /**
      * Update environment select based on selected schedule
      */
     function updateEnvironmentSelect() {
@@ -41,11 +150,10 @@
                 // Use == for loose comparison (int vs string)
                 if (parseInt(schedules[i].id) === parseInt(state.selectedSchedule)) {
                     environments = schedules[i].environments || [];
-                    // Update dropdown label to match schedule's custom label
+                    // Update dropdown label to match schedule's custom label:
+                    // "All <plural label>" (#1859).
                     if (schedules[i].environmentLabelPlural) {
-                        envLabelPlural = (ffcAudience.strings || {}).all
-                            ? (ffcAudience.strings.all + ' ' + schedules[i].environmentLabelPlural)
-                            : schedules[i].environmentLabelPlural;
+                        envLabelPlural = allLabel(schedules[i].environmentLabelPlural);
                     }
                     break;
                 }
@@ -163,19 +271,19 @@
                         classes.push('ffc-today');
                     }
 
-                    // Check for holidays
-                    var isHoliday = state.holidays[dateStr];
+                    // Closed and holiday (#1859). With the per-space pattern
+                    // the day is closed only when no space in view opens on
+                    // it, and a holiday when every one is on holiday; the
+                    // response of an older server falls back to the flat lists.
+                    var dayState = dayAvailability(dateStr, cellDate);
+                    var isHoliday = dayState.holiday;
+                    var isClosed = dayState.closed;
+                    var bypassable = dayState.bypassable;
+
                     if (isHoliday) {
                         classes.push('ffc-holiday');
-                        classes.push('ffc-disabled');
-                    }
-
-                    // Check for closed weekdays
-                    var weekday = cellDate.getDay();
-                    var isClosed = state.closedWeekdays && state.closedWeekdays.indexOf(weekday) !== -1;
-                    if (isClosed && !isHoliday) {
+                    } else if (isClosed) {
                         classes.push('ffc-closed');
-                        classes.push('ffc-disabled');
                     }
 
                     // Mark available days (not past, not closed, not holiday, not other month, within booking window)
@@ -184,6 +292,15 @@
                     var isWithinBookingWindow = checkWithinBookingWindow(cellDate);
                     if (!isOtherMonth && !isPast && !isClosed && !isHoliday && isWithinBookingWindow) {
                         classes.push('ffc-available');
+                    }
+
+                    // A closed day stays shut, except for whoever may book a
+                    // space outside its rules: for them it opens behind the
+                    // override warning.
+                    if (isHoliday || isClosed) {
+                        classes.push(bypassable ? 'ffc-bypassable' : 'ffc-disabled');
+                    } else if (bypassable && (isPast || !isWithinBookingWindow)) {
+                        classes.push('ffc-bypassable');
                     }
 
                     // Get booking count
@@ -214,6 +331,41 @@
     }
 
     /**
+     * Whether a day is closed or a holiday for the spaces in view, and
+     * whether the person may still open it (#1859).
+     */
+    function dayAvailability(dateStr, cellDate) {
+        var scope = scopeEnvironments();
+        var anyBypass = scope.some(canBypass);
+
+        if (!state.availability || scope.length === 0) {
+            var legacyHoliday = !!state.holidays[dateStr];
+            var legacyClosed = !legacyHoliday && !!(state.closedWeekdays && state.closedWeekdays.indexOf(cellDate.getDay()) !== -1);
+            return { holiday: legacyHoliday, closed: legacyClosed, bypassable: anyBypass };
+        }
+
+        var openCount = 0;
+        var holidayCount = 0;
+        scope.forEach(function(env) {
+            var reasons = environmentReasons(env, dateStr);
+            var shut = reasons.indexOf('holiday') !== -1 || reasons.indexOf('closed_day') !== -1;
+            if (reasons.indexOf('holiday') !== -1) {
+                holidayCount++;
+            }
+            if (!shut) {
+                openCount++;
+            }
+        });
+
+        var closedAll = openCount === 0;
+        return {
+            holiday: closedAll && holidayCount === scope.length,
+            closed: closedAll && holidayCount !== scope.length,
+            bypassable: anyBypass
+        };
+    }
+
+    /**
      * Fetch bookings and holidays for a month
      */
     function fetchMonthData(year, month, callback) {
@@ -223,6 +375,9 @@
         state.bookings = {};
         state.holidays = {};
         state.closedWeekdays = [];
+        state.availability = null;
+        state.scheduleHolidays = {};
+        state.globalHolidays = [];
 
         var startDate = year + '-' + pad(month) + '-01';
         var lastDay = new Date(year, month, 0).getDate();
@@ -264,6 +419,16 @@
                 if (response.closed_weekdays) {
                     state.closedWeekdays = response.closed_weekdays;
                 }
+
+                // Which spaces open on which days (#1859).
+                if (response.environments) {
+                    state.availability = {};
+                    response.environments.forEach(function(entry) {
+                        state.availability[parseInt(entry.id)] = entry;
+                    });
+                }
+                state.scheduleHolidays = response.schedule_holidays || {};
+                state.globalHolidays = response.global_holidays || [];
 
                 if (callback) callback();
             })
@@ -450,6 +615,9 @@
     }
 
     api.updateEnvironmentSelect = updateEnvironmentSelect;
+    api.scopeEnvironments       = scopeEnvironments;
+    api.environmentReasons      = environmentReasons;
+    api.canBypass               = canBypass;
     api.populateAudienceSelect  = populateAudienceSelect;
     api.renderCalendar          = renderCalendar;
 

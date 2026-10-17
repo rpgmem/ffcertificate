@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for audience schedule records.
  *
- * @phpstan-type ScheduleRow \stdClass&object{id: numeric-string, name: string, description: string|null, environment_label: string|null, visibility: string, future_days_limit: numeric-string|null, notify_on_booking: numeric-string, notify_on_cancellation: numeric-string, notify_admin_on_booking: numeric-string, notify_admin_on_cancellation: numeric-string, admin_notification_emails: string|null, email_template_booking: string|null, email_template_cancellation: string|null, include_ics: numeric-string, is_isolated?: numeric-string, status: string, created_by: numeric-string, created_at: string, updated_at: string}
+ * @phpstan-type ScheduleRow \stdClass&object{id: numeric-string, name: string, description: string|null, environment_label: string|null, visibility: string, future_days_limit: numeric-string|null, notify_on_booking: numeric-string, notify_on_cancellation: numeric-string, notify_admin_on_booking: numeric-string, notify_admin_on_cancellation: numeric-string, admin_notification_emails: string|null, email_template_booking: string|null, email_template_cancellation: string|null, include_ics: numeric-string, is_isolated?: numeric-string, admin_bypass?: numeric-string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string}
  * @phpstan-type SchedulePermissionRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, user_id: numeric-string, can_book: numeric-string, can_cancel_others: numeric-string, can_override_conflicts: numeric-string, created_at: string}
  */
 class AudienceScheduleRepository {
@@ -219,6 +219,7 @@ class AudienceScheduleRepository {
 			'email_template_cancellation'  => null,
 			'include_ics'                  => 0,
 			'is_isolated'                  => 0,
+			'admin_bypass'                 => 1,
 			'status'                       => 'active',
 			'created_by'                   => get_current_user_id(),
 		);
@@ -241,10 +242,11 @@ class AudienceScheduleRepository {
 				'email_template_cancellation'  => $data['email_template_cancellation'],
 				'include_ics'                  => $data['include_ics'],
 				'is_isolated'                  => $data['is_isolated'],
+				'admin_bypass'                 => $data['admin_bypass'],
 				'status'                       => $data['status'],
 				'created_by'                   => $data['created_by'],
 			),
-			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%d' )
+			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%d' )
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -287,6 +289,7 @@ class AudienceScheduleRepository {
 			'email_template_cancellation'  => '%s',
 			'include_ics'                  => '%d',
 			'is_isolated'                  => '%d',
+			'admin_bypass'                 => '%d',
 			'show_event_list'              => '%d',
 			'event_list_position'          => '%s',
 			'audience_badge_format'        => '%s',
@@ -514,21 +517,89 @@ class AudienceScheduleRepository {
 	}
 
 	/**
-	 * Check if user can override conflicts
+	 * Check if user can override conflicts (#1859).
+	 *
+	 * A user may book over an occupied slot when their permission row on the
+	 * schedule carries `can_override_conflicts`, or when they hold the
+	 * audience bypass on it. There is no administrator shortcut of its own:
+	 * an administrator overrides through the bypass, so the schedule's
+	 * "Admin bypass" toggle turned off removes the override from them too.
 	 *
 	 * @param int $schedule_id Schedule ID.
 	 * @param int $user_id User ID.
 	 * @return bool
 	 */
 	public static function user_can_override_conflicts( int $schedule_id, int $user_id ): bool {
-		// Admins can always override.
-		if ( user_can( $user_id, 'manage_options' ) ) {
+		if ( self::user_has_bypass( $schedule_id, $user_id ) ) {
 			return true;
 		}
 
 		$permissions = self::get_user_permissions( $schedule_id, $user_id );
 
 		return $permissions && (bool) $permissions->can_override_conflicts;
+	}
+
+	/**
+	 * Whether a user holds the audience bypass capability (#1859).
+	 *
+	 * `manage_options` or `ffc_bypass_audiences`. This is the capability half
+	 * only: it answers who may see every calendar and cancel any booking.
+	 * Whether the booking rules are bypassed on a given calendar also depends
+	 * on that calendar's "Admin bypass" toggle — see {@see self::user_has_bypass()}.
+	 *
+	 * The personal-calendar capability `ffc_bypass_appointments` is
+	 * deliberately not accepted here: an operator of personal calendars does
+	 * not, by that alone, bypass the rules of the shared spaces.
+	 *
+	 * @param int|null $user_id User ID (null for the current user).
+	 * @return bool
+	 */
+	public static function user_has_bypass_capability( ?int $user_id = null ): bool {
+		if ( null === $user_id ) {
+			return current_user_can( 'manage_options' ) || current_user_can( 'ffc_bypass_audiences' );
+		}
+
+		return user_can( $user_id, 'manage_options' ) || user_can( $user_id, 'ffc_bypass_audiences' );
+	}
+
+	/**
+	 * Whether a user bypasses the booking rules of one schedule (#1859).
+	 *
+	 * Both must hold: the capability ({@see self::user_has_bypass_capability()})
+	 * and the schedule's `admin_bypass` toggle. A row written before the
+	 * column existed carries no value, which reads as on — the behaviour
+	 * administrators had before the toggle.
+	 *
+	 * @param int      $schedule_id Schedule ID.
+	 * @param int|null $user_id     User ID (null for the current user).
+	 * @return bool
+	 */
+	public static function user_has_bypass( int $schedule_id, ?int $user_id = null ): bool {
+		if ( ! self::user_has_bypass_capability( $user_id ) ) {
+			return false;
+		}
+
+		$schedule = self::get_by_id( $schedule_id );
+		if ( ! $schedule ) {
+			return false;
+		}
+
+		return self::admin_bypass_enabled( $schedule );
+	}
+
+	/**
+	 * Whether a schedule row has its "Admin bypass" toggle on (#1859).
+	 *
+	 * @param object $schedule Schedule row.
+	 * @return bool
+	 */
+	public static function admin_bypass_enabled( object $schedule ): bool {
+		// `isset()` is also false for the NULL a row written before the column reads as.
+		if ( ! isset( $schedule->admin_bypass ) || '' === $schedule->admin_bypass ) {
+			return true;
+		}
+
+		return (bool) (int) $schedule->admin_bypass;
 	}
 
 	/**

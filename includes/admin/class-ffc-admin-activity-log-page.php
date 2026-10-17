@@ -283,7 +283,9 @@ class AdminActivityLogPage {
 			'appointment_created'                          => __( 'Appointment Created', 'ffcertificate' ),
 			'appointment_cancelled'                        => __( 'Appointment Cancelled', 'ffcertificate' ),
 			'appointment_pii_revealed'                     => __( 'Appointment Personal Data Revealed', 'ffcertificate' ),
+			'appointment_booked_with_override'             => __( 'Appointment Booked Outside the Rules', 'ffcertificate' ),
 			'audience_account_email_revealed'              => __( 'Audience Account Email Revealed', 'ffcertificate' ),
+			'audience_booking_override'                    => __( 'Audience Booking Made Outside the Rules', 'ffcertificate' ),
 
 			// Reregistration.
 			'reregistration_submitted'                     => __( 'Reregistration Submitted', 'ffcertificate' ),

@@ -344,8 +344,52 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 	 */
 	private static function fixture(): array {
 		$data = require self::FIXTURE;
-		return is_array( $data ) ? $data : array();
+		$data = is_array( $data ) ? $data : array();
+
+		// Controls the calendar editor gained after the tabs, each by name and
+		// with the issue that added it. The fixture records the screens before
+		// the tabs and is never edited by hand; a control a later feature adds
+		// is declared here instead, so the comparison still catches anything
+		// the tabs themselves changed.
+		foreach ( self::ADDED_AFTER_TABS as $key => $items ) {
+			if ( isset( $data[ $key ] ) ) {
+				$data[ $key ] = array_values( array_unique( array_merge( $data[ $key ], $items ) ) );
+				sort( $data[ $key ] );
+			}
+		}
+
+		return $data;
 	}
+
+	/**
+	 * Controls added to a screen after the tabs, by fixture key.
+	 *
+	 * The "Admin bypass" toggle (#1859): on an existing calendar it carries
+	 * the record autosave key, as every toggle there does; on a new one it is
+	 * a plain field until the calendar is created.
+	 *
+	 * @var array<string, list<string>>
+	 */
+	private const ADDED_AFTER_TABS = array(
+		'calendar-edit-manage' => array(
+			'data:data-ffc-autosave-record-key=admin_bypass',
+			'field:input:checkbox:schedule_admin_bypass@save_schedule',
+			'id:schedule_admin_bypass',
+		),
+		'calendar-edit-view'   => array(
+			'data:data-ffc-autosave-record-key=admin_bypass',
+			'field:input:checkbox:schedule_admin_bypass@save_schedule',
+			'id:schedule_admin_bypass',
+		),
+		'calendar-new-manage'  => array(
+			'field:input:checkbox:schedule_admin_bypass@save_schedule',
+			'id:schedule_admin_bypass',
+		),
+		'calendar-new-view'    => array(
+			'field:input:checkbox:schedule_admin_bypass@save_schedule',
+			'id:schedule_admin_bypass',
+		),
+	);
 
 	/**
 	 * @return array<string, array{0: string}>

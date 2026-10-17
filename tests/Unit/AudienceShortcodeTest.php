@@ -98,8 +98,8 @@ class AudienceShortcodeTest extends TestCase {
 		});
 		Functions\when('wp_enqueue_style')->justReturn(null);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		Functions\when('is_user_logged_in')->justReturn(false);
 
@@ -108,6 +108,13 @@ class AudienceShortcodeTest extends TestCase {
 		];
 
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_by_id')->with(1)->andReturn($schedule);
 
 		Functions\when('get_option')->alias(function ($key, $default = false) {
@@ -144,8 +151,8 @@ class AudienceShortcodeTest extends TestCase {
 		});
 		Functions\when('wp_enqueue_style')->justReturn(null);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		Functions\when('is_user_logged_in')->justReturn(false);
 
@@ -154,6 +161,13 @@ class AudienceShortcodeTest extends TestCase {
 		];
 
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_by_id')->with(1)->andReturn($schedule);
 
 		Functions\when('get_option')->alias(function ($key, $default = false) {
@@ -187,8 +201,8 @@ class AudienceShortcodeTest extends TestCase {
 		});
 		Functions\when('wp_enqueue_style')->justReturn(null);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		Functions\when('is_user_logged_in')->justReturn(false);
 
@@ -197,6 +211,13 @@ class AudienceShortcodeTest extends TestCase {
 		];
 
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_by_id')->with(5)->andReturn($schedule);
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
@@ -228,10 +249,17 @@ class AudienceShortcodeTest extends TestCase {
 		Functions\when('nocache_headers')->justReturn(null);
 		Functions\when('do_action')->justReturn(null);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_by_user_access')->with(42)->andReturn(array());
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
@@ -291,8 +319,8 @@ class AudienceShortcodeTest extends TestCase {
 		Functions\when('selected')->justReturn('');
 		Functions\when('is_user_logged_in')->justReturn(false);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		$schedule = (object) [
 			'id' => 2, 'name' => 'Public Calendar', 'status' => 'active', 'visibility' => 'public',
@@ -302,6 +330,13 @@ class AudienceShortcodeTest extends TestCase {
 		];
 
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_by_id')->with(2)->andReturn($schedule);
 		$schedRepoMock->shouldReceive('get_environment_label')->andReturn('Environment');
 
@@ -352,14 +387,21 @@ class AudienceShortcodeTest extends TestCase {
 		Functions\when('wp_enqueue_style')->justReturn(null);
 		Functions\when('is_user_logged_in')->justReturn(false);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		$schedule = (object) [
 			'id' => 3, 'name' => 'VIP Calendar', 'status' => 'active', 'visibility' => 'private',
 		];
 
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_by_id')->with(3)->andReturn($schedule);
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
@@ -396,10 +438,17 @@ class AudienceShortcodeTest extends TestCase {
 		Functions\when('wp_enqueue_style')->justReturn(null);
 		Functions\when('is_user_logged_in')->justReturn(false);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_by_id')->with(99)->andReturn(null);
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
@@ -472,8 +521,8 @@ class AudienceShortcodeTest extends TestCase {
 		$this->stubLoggedInCalendarEnvironment($localized);
 		Functions\when('user_can')->justReturn(true);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(true);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = true;
 
 		$private = (object) array(
 			'id' => 5, 'name' => 'Private Rooms', 'status' => 'active', 'visibility' => 'private',
@@ -488,6 +537,13 @@ class AudienceShortcodeTest extends TestCase {
 		);
 
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_all')->with(array('status' => 'active'))->andReturn(array($private, $public));
 		$schedRepoMock->shouldReceive('get_environment_label')->andReturn('Room');
 		$schedRepoMock->shouldNotReceive('user_can_book');
@@ -541,11 +597,18 @@ class AudienceShortcodeTest extends TestCase {
 		$this->stubLoggedInCalendarEnvironment($localized);
 		Functions\when('user_can')->justReturn(true);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(true);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = true;
 
 		$public = (object) array('id' => 8, 'name' => 'Open', 'status' => 'active', 'visibility' => 'public');
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_by_id')->with(8)->andReturn($public);
 		$schedRepoMock->shouldReceive('get_environment_label')->andReturn('Room');
 
@@ -572,10 +635,17 @@ class AudienceShortcodeTest extends TestCase {
 		$this->stubLoggedInCalendarEnvironment($localized);
 		Functions\when('user_can')->justReturn(true);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_by_id')->with(404)->andReturn(null);
 
 		$result = AudienceShortcode::render(array('schedule_id' => 404));
@@ -593,12 +663,19 @@ class AudienceShortcodeTest extends TestCase {
 		$this->stubLoggedInCalendarEnvironment($localized);
 		Functions\when('user_can')->justReturn(false);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		$a = (object) array('id' => 1, 'name' => 'A', 'status' => 'active', 'visibility' => 'public');
 		$b = (object) array('id' => 2, 'name' => 'B', 'status' => 'active', 'visibility' => 'public');
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_by_user_access')->with(7)->andReturn(array($a, $b));
 		$schedRepoMock->shouldReceive('get_environment_label')->andReturn('Room');
 		$schedRepoMock->shouldReceive('user_can_book')->with(2, 7)->once()->andReturn(true);
@@ -630,11 +707,18 @@ class AudienceShortcodeTest extends TestCase {
 		$this->stubLoggedInCalendarEnvironment($localized);
 		Functions\when('user_can')->justReturn(false);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		$a = (object) array('id' => 1, 'name' => 'A', 'status' => 'active', 'visibility' => 'public');
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_by_user_access')->with(7)->andReturn(array($a));
 		$schedRepoMock->shouldReceive('get_environment_label')->andReturn('Room');
 		$schedRepoMock->shouldReceive('user_can_book')->with(1, 7)->andReturn(false);
@@ -661,11 +745,18 @@ class AudienceShortcodeTest extends TestCase {
 		Functions\when('wp_login_url')->justReturn('https://example.com/login');
 		Functions\when('get_permalink')->justReturn(false);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		$a = (object) array('id' => 1, 'name' => 'A', 'status' => 'active', 'visibility' => 'public', 'show_event_list' => 1);
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_all')->with(array('status' => 'active', 'visibility' => 'public'))->andReturn(array($a));
 		$schedRepoMock->shouldReceive('get_environment_label')->andReturn('Room');
 
@@ -700,10 +791,17 @@ class AudienceShortcodeTest extends TestCase {
 		Functions\when('wp_enqueue_style')->justReturn(null);
 		Functions\when('is_user_logged_in')->justReturn(false);
 
-		$calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
-		$calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
+		// The audience bypass is its own capability since #1859.
+		$audienceBypass = false;
 
 		$schedRepoMock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceScheduleRepository');
+		$schedRepoMock->shouldReceive('user_has_bypass_capability')->andReturnUsing(
+			// For the current user, the bypass this test sets; for a given
+			// user, what manage_options answers (#1859).
+			static fn( $user_id = null ) => null === $user_id ? ( $audienceBypass ?? false ) : \user_can( $user_id, 'manage_options' )
+		);
+		$schedRepoMock->shouldReceive('user_has_bypass')->andReturn($audienceBypass ?? false);
+		$schedRepoMock->shouldReceive('user_can_override_conflicts')->andReturn($audienceBypass ?? false);
 		$schedRepoMock->shouldReceive('get_all')->andReturn(array());
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');

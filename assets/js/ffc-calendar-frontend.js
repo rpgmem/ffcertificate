@@ -329,6 +329,12 @@
 
         /**
          * Submit booking
+         *
+         * A bypass holder is first told which rules the booking breaks
+         * (#1859): the server lists them, one warning shows them all with a
+         * countdown, and only an "I agree" submits — with the confirmation
+         * the server requires. Asking first keeps the captcha for the real
+         * submission.
          */
         submitBooking: function($form) {
             var self = this;
@@ -348,7 +354,62 @@
             $submitBtn.data('submitting', true);
             $submitBtn.prop('disabled', true).text(ffcCalendar.strings.loading);
 
+            if (!(self.config && self.config.canBypass)) {
+                self.sendBooking($form, false);
+                return;
+            }
+
+            FFC.request('ffc_check_booking_override', {
+                calendar_id: $form.find('[name="calendar_id"]').val(),
+                date: $form.find('[name="date"]').val(),
+                time: $form.find('[name="time"]').val()
+            }, { nonce: ffcCalendar.nonce, ajaxUrl: ffcCalendar.ajaxurl })
+                .then(function(data) {
+                    var reasons = (data && data.reasons) || [];
+                    if (!reasons.length) {
+                        self.sendBooking($form, false);
+                        return;
+                    }
+                    self.confirmOverride($form, reasons);
+                })
+                .catch(function() {
+                    // The server decides on the submission either way.
+                    self.sendBooking($form, false);
+                });
+        },
+
+        /**
+         * Open the override warning; on "I agree", submit with the
+         * confirmation (#1859).
+         */
+        confirmOverride: function($form, reasons) {
+            var self = this;
+            var $submitBtn = $form.find('button[type="submit"]');
+            FFC.overrideConfirm({ reasons: reasons, strings: (ffcCalendar.strings || {}).override })
+                .then(function(agreed) {
+                    if (agreed) {
+                        self.sendBooking($form, true);
+                        return;
+                    }
+                    $submitBtn.data('submitting', false);
+                    $submitBtn.prop('disabled', false).text(ffcCalendar.strings.submit || 'Book Appointment');
+                    $submitBtn.trigger('focus');
+                });
+        },
+
+        /**
+         * Send the booking.
+         *
+         * @param {jQuery}  $form     The booking form.
+         * @param {boolean} confirmed Carry the override confirmation (#1859).
+         */
+        sendBooking: function($form, confirmed) {
+            var self = this;
+            var $submitBtn = $form.find('button[type="submit"]');
             var formData = $form.serialize();
+            if (confirmed) {
+                formData += '&confirm_override=1';
+            }
             // The form carries `action` and `nonce` as hidden fields. Pull
             // `action` out to pass explicitly to FFC.request (the helper
             // re-appends it), and drop the form's baked-in `nonce` too:
@@ -373,6 +434,16 @@
                 })
                 .catch(function (err) {
                     $submitBtn.data('submitting', false);
+                    if (err && err.fromServer && err.data && err.data.code === 'override_confirmation_required' && !confirmed) {
+                        // The rules changed between the check and the submit:
+                        // show what the server listed, then ask again.
+                        if (err.data.refresh_captcha) {
+                            FFC.Frontend.UI.refreshCaptcha($form, err.data);
+                        }
+                        $submitBtn.data('submitting', true);
+                        self.confirmOverride($form, err.data.reasons || []);
+                        return;
+                    }
                     if (err && err.fromServer) {
                         if (err.data && err.data.refresh_captcha) {
                             // The shared implementation, not a private copy:
@@ -605,6 +676,9 @@
         } catch (e) {
             return;
         }
+
+        // Kept for the booking submit, which reads `canBypass` (#1859).
+        self.config = config;
 
         var calendarId = config.calendarId;
         var workingDays = config.workingDays || [];

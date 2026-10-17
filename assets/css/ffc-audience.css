@@ -194,6 +194,18 @@
     box-shadow: none;
 }
 
+/* A closed, past or out-of-window day that a bypass holder may still open
+   (#1859): it keeps the look of what it is, and only the pointer and the
+   hover say it can be picked — behind the override warning. */
+.ffc-shortcode .ffc-day.ffc-bypassable {
+    cursor: pointer;
+}
+
+.ffc-shortcode .ffc-day.ffc-bypassable:hover {
+    border-color: var(--ffc-warning-border);
+    box-shadow: var(--ffc-shadow-sm);
+}
+
 .ffc-shortcode .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month) {
     border-color: var(--ffc-success);
     border-width: 2px;
@@ -791,4 +803,42 @@
    `style=""` until #1837. */
 .ffc-shortcode .ffc-event-list-item.ffc-event-list-holiday {
     border-left: 3px solid var(--ffc-warning);
+}
+
+/* Booking form: why a space cannot be booked on the chosen date (#1859).
+   The select lists only open spaces to most people; a bypass holder sees
+   every space, the restricted ones carrying the reasons in their name and,
+   for the selected one, as tags under the field. */
+.ffc-shortcode .ffc-env-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-2xs);
+    margin: var(--ffc-spacing-2xs) 0 0;
+}
+
+.ffc-shortcode .ffc-env-status[hidden] {
+    display: none;
+}
+
+.ffc-shortcode .ffc-env-reason-tag {
+    display: inline-block;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+    border: 1px solid var(--ffc-warning-border);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-shortcode .ffc-env-reason-tag.ffc-env-reason-holiday,
+.ffc-shortcode .ffc-env-reason-tag.ffc-env-reason-closed_day {
+    border-color: var(--ffc-danger-border);
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-shortcode #booking-environment-id option.ffc-env-option-restricted {
+    color: var(--ffc-warning-text);
+    background: var(--ffc-warning-bg);
 }

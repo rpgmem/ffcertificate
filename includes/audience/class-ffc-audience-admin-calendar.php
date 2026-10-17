@@ -421,6 +421,25 @@ class AudienceAdminCalendar {
 					</td>
 				</tr>
 				<tr>
+					<th scope="row"><?php esc_html_e( 'Admin bypass', 'ffcertificate' ); ?></th>
+					<td>
+						<?php
+						// Defaults on (#1859): a calendar saved before the toggle keeps the behaviour it had.
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'schedule_admin_bypass',
+								'checked' => null === $schedule || ! isset( $schedule->admin_bypass ) || 1 === (int) $schedule->admin_bypass,
+								'label'   => __( 'Let bypass holders book outside the rules', 'ffcertificate' ),
+								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'admin_bypass' ),
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'When enabled, holders of manage_options or ffc_bypass_audiences may book on closed days and holidays, outside opening hours, in the past and beyond the future days limit, and over an existing booking, each time after confirming a warning that lists every rule the booking breaks. Disable this to apply every rule to them too.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row">
 						<label for="schedule_status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
 					</th>
@@ -867,6 +886,7 @@ class AudienceAdminCalendar {
 					? sanitize_text_field( wp_unslash( $_POST['schedule_booking_label_plural'] ) )
 					: null,
 				'is_isolated'                  => isset( $_POST['schedule_is_isolated'] ) ? 1 : 0,
+				'admin_bypass'                 => isset( $_POST['schedule_admin_bypass'] ) ? 1 : 0,
 				'status'                       => RequestInput::get_post_string( 'schedule_status', 'active' ),
 			);
 

@@ -11359,10 +11359,6 @@ msgstr "Novo Recadastramento"
 msgid "New scheduled activity"
 msgstr "Nova atividade agendada"
 
-#: includes/settings/views/documentation/reference-emails.php:70
-msgid "New scheduled activity and activity-cancelled notices"
-msgstr "Novos avisos de atividade agendada e de cancelamento de atividade"
-
 #: templates/emails/audience-booking.php:23
 msgid "New scheduled activity: {{schedule_name}}"
 msgstr "Nova atividade agendada: {{schedule_name}}"
@@ -17060,10 +17056,6 @@ msgstr "o limite para o usuário final; os direitos de reserva/cancelamento deri
 #: includes/settings/views/documentation/feature-self-scheduling.php:68
 msgid "the end-user self-service caps."
 msgstr "os limites de autoatendimento para o usuário final."
-
-#: includes/audience/class-ffc-audience-rest-controller.php:604
-msgid "The environment is closed at this time."
-msgstr "O ambiente está fechado neste horário."
 
 #: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:34
 msgid "The existing definitive list is preserved as-is."
@@ -26366,3 +26358,167 @@ msgstr "envia um formulário. Exige ffc_submit_forms_api, que quem já tinha ffc
 
 msgid "An authenticated write API for issuance: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.18.0."
 msgstr "Uma API de escrita autenticada para emissão: um aplicativo de operador de campo emite certificados utilizando Senhas de Aplicativo do WordPress (autenticação HTTP Basic, permitindo que as verificações de capacidade funcionem sem *nonce*). Adicionada na versão 6.18.0."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "A booking that breaks one of those rules first opens a warning listing every rule it breaks; its \"I agree\" button unlocks after 15 seconds, the server saves nothing without that confirmation, and each confirmed booking is written to the Activity Log. Capacity is never bypassed."
+msgstr "Um agendamento que viola uma dessas regras abre antes um aviso que lista todas as regras violadas; o botão \"Concordo\" é liberado após 15 segundos, o servidor não salva nada sem essa confirmação e cada agendamento confirmado é registrado no Registro de Atividades. A capacidade nunca é ignorada."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
+msgstr "Um usuário cuja linha em Acesso de usuários tem Sobrescrever Conflitos, ou quem tem a exceção, pode reservar sobre um horário ocupado. A reserva anterior é então cancelada, e seu responsável recebe o e-mail \"reserva cancelada por um administrador\" com o motivo."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Admin bypass and Override Conflicts"
+msgstr "Exceção para administradores e Sobrescrever Conflitos"
+
+#: templates/emails/audience-admin-cancellation.php
+msgid "An administrator booked this space at the same time as your booking, so your booking was cancelled."
+msgstr "Um administrador reservou este espaço no mesmo horário da sua reserva, por isso a sua reserva foi cancelada."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Appointment Booked Outside the Rules"
+msgstr "Agendamento feito fora das regras"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Audience Booking Made Outside the Rules"
+msgstr "Reserva de público feita fora das regras"
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Audience booking cancelled by an administrator"
+msgstr "Reserva de público cancelada por um administrador"
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "Audience booking cancelled by an administrator:"
+msgstr "Reserva de público cancelada por um administrador:"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Audience calendar bypass"
+msgstr "Exceção dos calendários de público"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Beyond the booking window"
+msgstr "Além da janela de reserva"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on (#1859)."
+msgstr "Reservar um espaço compartilhado em dias fechados e feriados, fora do horário de funcionamento, no passado, além da janela de antecedência ou sobre uma reserva existente, após confirmar um aviso — nos calendários com o Exceção para administradores ligado (#1859)."
+
+#: includes/core/class-ffc-override-warning.php
+msgid "Book outside the rules?"
+msgstr "Reservar fora das regras?"
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Booking cancelled by an administrator"
+msgstr "Reserva cancelada por um administrador"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Booking rules"
+msgstr "Regras de reserva"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Each calendar has an Admin bypass toggle (General tab, on by default). While it is on, holders of manage_options or ffc_bypass_audiences may open closed days and book any space, the closed ones marked with their reasons (closed, holiday, outside hours, past date, beyond the booking window). Turn it off to apply every rule to them too."
+msgstr "Cada calendário tem a chave Exceção para administradores (aba Geral, ligada por padrão). Enquanto ligada, quem tem manage_options ou ffc_bypass_audiences pode abrir dias fechados e reservar qualquer espaço, com os fechados marcados pelos motivos (fechado, feriado, fora do horário, data passada, além da janela de reserva). Desligue-a para aplicar todas as regras também a essas pessoas."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Either way the booking first opens one warning listing every rule it breaks, conflicts included. Its \"I agree\" button unlocks after 15 seconds and Cancel works at once; the server saves nothing without that confirmation, and each confirmed booking is written to the Activity Log with its reasons."
+msgstr "Em qualquer caso, a reserva abre antes um único aviso que lista todas as regras violadas, conflitos incluídos. O botão \"Concordo\" é liberado após 15 segundos e Cancelar funciona na hora; o servidor não salva nada sem essa confirmação, e cada reserva confirmada é registrada no Registro de Atividades com seus motivos."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Every booking is checked on the server, whoever makes it: the calendar and the space must be active; the date must not be in the past, beyond the calendar's future days limit (counted in the site's time zone), a global or calendar holiday, or a day the space is closed; and both the start and the end must fall inside the space's opening hours. An all-day booking takes the space's whole opening window for that day. Two bookings may not overlap in one space."
+msgstr "Toda reserva é verificada no servidor, seja quem for que a faça: o calendário e o espaço precisam estar ativos; a data não pode estar no passado, além do limite de dias futuros do calendário (contado no fuso horário do site), ser feriado global ou do calendário, nem um dia em que o espaço está fechado; e tanto o início quanto o fim precisam estar dentro do horário de funcionamento do espaço. Uma reserva de dia inteiro ocupa toda a janela de funcionamento do espaço naquele dia. Duas reservas não podem se sobrepor no mesmo espaço."
+
+#: includes/core/class-ffc-override-warning.php
+msgid "I agree"
+msgstr "Concordo"
+
+#: includes/core/class-ffc-override-warning.php
+msgid "I agree (%d)"
+msgstr "Concordo (%d)"
+
+#: includes/core/class-ffc-override-warning.php
+msgid "If you confirm, the booking is saved and recorded in the activity log with these reasons."
+msgstr "Se você confirmar, a reserva é salva e registrada no registro de atividades com estes motivos."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "It applies to personal calendars only; audience calendars have their own ffc_bypass_audiences."
+msgstr "Vale apenas para os calendários pessoais; os calendários de público têm o seu próprio ffc_bypass_audiences."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Let bypass holders book outside the rules"
+msgstr "Permitir que quem tem a exceção reserve fora das regras"
+
+#: includes/settings/views/documentation/reference-emails.php
+msgid "New scheduled activity and activity-cancelled notices, and the \"booking cancelled by an administrator\" notice sent to the owner of a booking an override replaced"
+msgstr "Avisos de nova atividade agendada e de atividade cancelada, e o aviso \"reserva cancelada por um administrador\" enviado ao responsável por uma reserva substituída por uma sobreposição"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "No space is open on this date."
+msgstr "Nenhum espaço está aberto nesta data."
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Outside hours"
+msgstr "Fora do horário"
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "Overridden by a priority booking: the space is no longer available at this time."
+msgstr "Substituída por uma reserva prioritária: o espaço não está mais disponível neste horário."
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Past date"
+msgstr "Data passada"
+
+#: templates/emails/audience-admin-cancellation.php
+msgid "Please choose another time or space for your activity."
+msgstr "Escolha outro horário ou espaço para a sua atividade."
+
+#: includes/core/class-ffc-override-warning.php
+msgid "Read the reasons. You can confirm in %d seconds."
+msgstr "Leia os motivos. Você poderá confirmar em %d segundos."
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Sent to the owner of a booking an override took the slot of — text edited globally in the hub above."
+msgstr "Enviado ao responsável por uma reserva cujo horário foi tomado por uma sobreposição — texto editado globalmente no hub acima."
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "The booking falls outside the opening hours of this space."
+msgstr "A reserva fica fora do horário de funcionamento deste espaço."
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "This booking breaks the calendar rules. Confirm to book anyway."
+msgstr "Esta reserva viola as regras do calendário. Confirme para reservar mesmo assim."
+
+#: includes/core/class-ffc-override-warning.php
+msgid "This booking breaks the following rules:"
+msgstr "Esta reserva viola as seguintes regras:"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "This space is closed on this day."
+msgstr "Este espaço está fechado neste dia."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "When enabled, holders of manage_options or ffc_bypass_audiences may book on closed days and holidays, outside opening hours, in the past and beyond the future days limit, and over an existing booking, each time after confirming a warning that lists every rule the booking breaks. Disable this to apply every rule to them too."
+msgstr "Quando ativado, quem tem manage_options ou ffc_bypass_audiences pode reservar em dias fechados e feriados, fora do horário de funcionamento, no passado, além do limite de dias futuros e sobre uma reserva existente, sempre após confirmar um aviso que lista todas as regras violadas pela reserva. Desative para aplicar todas as regras também a essas pessoas."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "With every space of a calendar shown (\"All\" in the space filter), a day is open when at least one active space opens on it, and the booking form lists only the spaces open that day. A day on which no space opens renders closed and cannot be picked."
+msgstr "Com todos os espaços de um calendário exibidos (\"Todos\" no filtro de espaços), um dia está aberto quando ao menos um espaço ativo abre nele, e o formulário de reserva lista apenas os espaços abertos naquele dia. Um dia em que nenhum espaço abre aparece fechado e não pode ser escolhido."
+
+#: includes/core/class-ffc-override-warning.php
+msgid "You can confirm now."
+msgstr "Você já pode confirmar."
+
+#: templates/emails/audience-admin-cancellation.php
+msgid "Your booking was cancelled by an administrator"
+msgstr "Sua reserva foi cancelada por um administrador"
+
+#: templates/emails/audience-admin-cancellation.php
+msgid "Your booking was cancelled by an administrator: {{schedule_name}}"
+msgstr "Sua reserva foi cancelada por um administrador: {{schedule_name}}"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "book outside the calendar rules and over an occupied slot, after the warning, on calendars whose Admin bypass toggle is on; also see every calendar and cancel any booking. Held by FFC Administrator. ffc_bypass_appointments no longer reaches audience calendars."
+msgstr "reservar fora das regras do calendário e sobre um horário ocupado, após o aviso, nos calendários com o Exceção para administradores ligado; também ver todos os calendários e cancelar qualquer reserva. Atribuída ao FFC Administrador. ffc_bypass_appointments não alcança mais os calendários de público."
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "global only; a schedule does not override it."
+msgstr "somente global; um calendário não o sobrescreve."

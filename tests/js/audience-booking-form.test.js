@@ -35,6 +35,8 @@ beforeAll(() => {
 	window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php', nonce: 'n', strings: {} };
 	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-audience.js');
+	// The form reads the space rules the calendar module registers (#1859).
+	loadScript('assets/js/ffc-audience-calendar.js');
 	loadScript('assets/js/ffc-audience-booking-form.js');
 	api = window.FFCAudience;
 });
@@ -110,18 +112,20 @@ afterEach(() => {
 });
 
 describe('ffc-audience-booking-form — openBookingModal', () => {
+	// A future date: a past one lists no space to a caller without the
+	// bypass (#1859).
 	it('populates the environment select, sets the date display and shows the modal', () => {
-		api.openBookingModal('2026-06-10');
+		api.openBookingModal('2099-06-10');
 		const $opts = window.$('#booking-environment-id option');
 		expect($opts.length).toBe(2);
 		expect(window.$('.ffc-booking-date-display').text().length).toBeGreaterThan(0);
 		expect(window.$('#ffc-booking-modal').css('display')).not.toBe('none');
-		expect(window.$('#booking-date').val()).toBe('2026-06-10');
+		expect(window.$('#booking-date').val()).toBe('2099-06-10');
 		expect(window.$('label[for="booking-environment-id"]').html()).toContain('Room');
 	});
 
 	it('pre-selects the passed environment id', () => {
-		api.openBookingModal('2026-06-10', '20');
+		api.openBookingModal('2099-06-10', '20');
 		expect(window.$('#booking-environment-id').val()).toBe('20');
 	});
 
@@ -130,7 +134,7 @@ describe('ffc-audience-booking-form — openBookingModal', () => {
 			{ id: 1, name: 'Sched A', environments: [{ id: 10, name: 'Env A' }] },
 			{ id: 2, name: 'Sched B', environments: [{ id: 20, name: 'Env B' }] },
 		];
-		api.openBookingModal('2026-06-10');
+		api.openBookingModal('2099-06-10');
 		const labels = window.$('#booking-environment-id option').map((_, el) => el.textContent).get();
 		expect(labels).toContain('Sched A - Env A');
 		expect(labels).toContain('Sched B - Env B');
@@ -140,7 +144,7 @@ describe('ffc-audience-booking-form — openBookingModal', () => {
 		api.state.config.schedules = [
 			{ id: 1, name: 'Sched A', environments: [{ id: 10, name: 'Only Env' }] },
 		];
-		api.openBookingModal('2026-06-10');
+		api.openBookingModal('2099-06-10');
 		const $opts = window.$('#booking-environment-id option');
 		expect($opts.length).toBe(1);
 		expect($opts.eq(0).text()).toBe('Only Env');
@@ -152,7 +156,7 @@ describe('ffc-audience-booking-form — openBookingModal', () => {
 			{ id: 2, name: 'Sched B', environmentLabel: 'Sala 2', environments: [{ id: 20, name: 'Env B' }] },
 		];
 		api.state.selectedSchedule = 2;
-		api.openBookingModal('2026-06-10');
+		api.openBookingModal('2099-06-10');
 		expect(window.$('label[for="booking-environment-id"]').html()).toContain('Sala 2');
 	});
 });

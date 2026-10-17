@@ -689,6 +689,198 @@
         },
 
         /**
+         * The override warning (#1859): one dialog listing every rule a
+         * booking breaks, with an "I agree" button that stays disabled for a
+         * countdown.
+         *
+         * Audience calendars and personal calendars both open it when a
+         * bypass holder books outside the rules. It is the plugin's modal
+         * (`.ffc-shortcode.ffc-modal`, appended to `<body>`) carrying a
+         * warning notice, so it needs no style of its own. The countdown is
+         * shown on the button every second and announced twice through a
+         * polite live region — when it starts and when it ends — so a screen
+         * reader is told what to wait for without hearing every tick. Cancel,
+         * Escape and the backdrop answer at once; focus starts on Cancel,
+         * stays inside the dialog, and returns where it was.
+         *
+         * @param {Object}   options
+         * @param {Array}    options.reasons  `{code, message}` entries or plain strings.
+         * @param {Object}   [options.strings] Localized words (`OverrideWarning::strings()`).
+         * @param {number}   [options.seconds] Countdown length; `strings.seconds`, else 15.
+         * @return {Promise<boolean>} True when the person agreed.
+         */
+        overrideConfirm: function(options) {
+            var opts = options || {};
+            var s = opts.strings || {};
+            var seconds = parseInt(opts.seconds || s.seconds, 10);
+            if (!(seconds >= 0)) {
+                seconds = 15;
+            }
+            var words = {
+                title: s.title || 'Book outside the rules?',
+                intro: s.intro || 'This booking breaks the following rules:',
+                logged: s.logged || '',
+                agree: s.agree || 'I agree',
+                agreeIn: s.agreeIn || 'I agree (%d)',
+                cancel: s.cancel || 'Cancel',
+                countdownStart: s.countdownStart || 'You can confirm in %d seconds.',
+                countdownEnd: s.countdownEnd || 'You can confirm now.'
+            };
+            var reasons = (opts.reasons || []).map(function(r) {
+                return (r && typeof r === 'object') ? String(r.message || r.code || '') : String(r);
+            }).filter(function(text) { return text !== ''; });
+
+            var uid = 'ffc-override-' + Date.now().toString(36);
+            var previous = document.activeElement;
+
+            var dialog = document.createElement('div');
+            dialog.className = 'ffc-shortcode ffc-modal ffc-override-dialog';
+            dialog.setAttribute('role', 'alertdialog');
+            dialog.setAttribute('aria-modal', 'true');
+            dialog.setAttribute('aria-labelledby', uid + '-title');
+            dialog.setAttribute('aria-describedby', uid + '-body');
+
+            var backdrop = document.createElement('div');
+            backdrop.className = 'ffc-modal-backdrop';
+
+            var content = document.createElement('div');
+            content.className = 'ffc-modal-content';
+
+            var header = document.createElement('div');
+            header.className = 'ffc-modal-header';
+            var title = document.createElement('h3');
+            title.id = uid + '-title';
+            title.textContent = words.title;
+            header.appendChild(title);
+
+            var body = document.createElement('div');
+            body.className = 'ffc-modal-body';
+            body.id = uid + '-body';
+
+            var list = document.createElement('ul');
+            list.className = 'ffc-override-reasons';
+            reasons.forEach(function(text) {
+                var item = document.createElement('li');
+                item.textContent = text;
+                list.appendChild(item);
+            });
+            body.appendChild(this.notice('warning', 'warning', words.logged, words.intro, {
+                role: 'note',
+                hook: 'override-reasons',
+                children: [list]
+            }));
+
+            var live = document.createElement('p');
+            live.className = 'ffc-override-countdown';
+            live.setAttribute('role', 'status');
+            live.setAttribute('aria-live', 'polite');
+            body.appendChild(live);
+
+            var footer = document.createElement('div');
+            footer.className = 'ffc-modal-footer';
+            var cancel = document.createElement('button');
+            cancel.type = 'button';
+            cancel.className = 'ffc-btn ffc-btn-secondary';
+            cancel.setAttribute('data-ffc-override', 'cancel');
+            cancel.textContent = words.cancel;
+            var agree = document.createElement('button');
+            agree.type = 'button';
+            agree.className = 'ffc-btn ffc-btn-primary';
+            agree.setAttribute('data-ffc-override', 'agree');
+            footer.appendChild(cancel);
+            footer.appendChild(agree);
+
+            content.appendChild(header);
+            content.appendChild(body);
+            content.appendChild(footer);
+            dialog.appendChild(backdrop);
+            dialog.appendChild(content);
+            document.body.appendChild(dialog);
+
+            return new Promise(function(resolve) {
+                var left = seconds;
+                var timer = null;
+                var done = false;
+
+                function label() {
+                    agree.textContent = left > 0 ? words.agreeIn.replace('%d', left) : words.agree;
+                    agree.disabled = left > 0;
+                    agree.setAttribute('aria-disabled', left > 0 ? 'true' : 'false');
+                }
+
+                function finish(answer) {
+                    if (done) {
+                        return;
+                    }
+                    done = true;
+                    if (timer) {
+                        clearInterval(timer);
+                    }
+                    document.removeEventListener('keydown', onKey, true);
+                    if (dialog.parentNode) {
+                        dialog.parentNode.removeChild(dialog);
+                    }
+                    if (previous && typeof previous.focus === 'function') {
+                        previous.focus();
+                    }
+                    resolve(answer);
+                }
+
+                function onKey(e) {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        finish(false);
+                        return;
+                    }
+                    if (e.key !== 'Tab') {
+                        return;
+                    }
+                    var focusable = [cancel, agree].filter(function(el) { return !el.disabled; });
+                    var first = focusable[0];
+                    var last = focusable[focusable.length - 1];
+                    if (focusable.indexOf(document.activeElement) === -1) {
+                        e.preventDefault();
+                        first.focus();
+                    } else if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+
+                cancel.addEventListener('click', function() { finish(false); });
+                backdrop.addEventListener('click', function() { finish(false); });
+                agree.addEventListener('click', function() {
+                    if (!agree.disabled) {
+                        finish(true);
+                    }
+                });
+                document.addEventListener('keydown', onKey, true);
+
+                label();
+                if (left > 0) {
+                    live.textContent = words.countdownStart.replace('%d', left);
+                    timer = setInterval(function() {
+                        left -= 1;
+                        label();
+                        if (left <= 0) {
+                            clearInterval(timer);
+                            timer = null;
+                            live.textContent = words.countdownEnd;
+                        }
+                    }, 1000);
+                } else {
+                    live.textContent = words.countdownEnd;
+                }
+
+                cancel.focus();
+            });
+        },
+
+        /**
          * Set a status line beside a control (#1843): `.ffc-status` plus one
          * state class, a registry icon and the text, announced politely.
          *

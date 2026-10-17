@@ -707,4 +707,72 @@ class AppointmentValidatorTest extends TestCase {
 
 		$this->assertSame( 0, $this->validator->get_daily_appointment_count( 1, '2030-01-15' ) );
 	}
+
+	// ==================================================================
+	// validate() — the bypass asks for a confirmation (#1859)
+	// ==================================================================
+
+	/**
+	 * A caller holding the personal-calendar bypass, on a calendar with no
+	 * per-calendar toggle stored (which reads as on).
+	 */
+	private function as_bypass_holder(): void {
+		Functions\when( 'current_user_can' )->alias(
+			static fn( $cap ) => in_array( $cap, array( 'ffc_bypass_appointments', 'ffc_book_own_appointments' ), true )
+		);
+	}
+
+	private function far_future_regular_calendar(): array {
+		return array_merge( $this->permissive_calendar(), array( 'advance_booking_max' => 30 ) );
+	}
+
+	public function test_validate_a_bypass_holder_without_the_confirmation_gets_the_reasons(): void {
+		$this->as_bypass_holder();
+
+		$result = $this->validator->validate( $this->valid_data(), $this->far_future_regular_calendar() );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'override_confirmation_required', $result->get_error_code() );
+		$data = $result->get_error_data();
+		$this->assertSame( 409, $data['status'] );
+		$this->assertSame( array( 'too_far' ), array_column( $data['reasons'], 'code' ) );
+	}
+
+	public function test_validate_a_bypass_holder_with_the_confirmation_passes_and_keeps_the_reasons(): void {
+		$this->as_bypass_holder();
+		$data                     = $this->valid_data();
+		$data['confirm_override'] = true;
+
+		$this->assertTrue( $this->validator->validate( $data, $this->far_future_regular_calendar() ) );
+		$this->assertSame( array( 'too_far' ), array_column( $this->validator->get_override_reasons(), 'code' ) );
+	}
+
+	public function test_validate_without_the_bypass_still_refuses_on_the_first_rule(): void {
+		$result = $this->validator->validate( $this->valid_data(), $this->far_future_regular_calendar() );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'too_far', $result->get_error_code() );
+	}
+
+	public function test_override_reasons_reads_the_rules_without_spending_the_capacity_check(): void {
+		$this->as_bypass_holder();
+		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->never();
+
+		$reasons = $this->validator->override_reasons(
+			array( 'calendar_id' => 1, 'appointment_date' => '2030-01-15', 'start_time' => '10:00', 'user_id' => 1 ),
+			$this->far_future_regular_calendar()
+		);
+
+		$this->assertSame( array( 'too_far' ), array_column( $reasons, 'code' ) );
+	}
+
+	public function test_override_reasons_is_empty_without_the_bypass(): void {
+		$this->assertSame(
+			array(),
+			$this->validator->override_reasons(
+				array( 'calendar_id' => 1, 'appointment_date' => '2030-01-15', 'start_time' => '10:00' ),
+				$this->far_future_regular_calendar()
+			)
+		);
+	}
 }
