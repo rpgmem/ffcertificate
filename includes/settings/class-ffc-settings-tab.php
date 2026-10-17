@@ -186,7 +186,7 @@ abstract class SettingsTab {
 	 * overriding this method alone, instead of copying the body of
 	 * `render()` and asserting against the copy (#1811).
 	 *
-	 * @since 6.39.0
+	 * @since 6.40.0
 	 * @param string $file The view's file name, e.g. `ffc-tab-smtp.php`.
 	 * @return string
 	 */
