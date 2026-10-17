@@ -624,6 +624,14 @@ msgstr "(padrão: 2)"
 msgid "(Deleted)"
 msgstr "(Excluída)"
 
+#: templates/admin/recruitment/admin-page/settings-tab.php:86
+msgid "(falls back to site name)"
+msgstr "(usa o nome do site)"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php:82
+msgid "(falls back to wp_mail default)"
+msgstr "(usa o padrão do wp_mail)"
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:232 includes/self-scheduling/views/appointments-list.php:205
 msgid "(Guest)"
 msgstr "(Visitante)"

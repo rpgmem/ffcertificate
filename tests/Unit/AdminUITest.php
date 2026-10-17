@@ -44,7 +44,7 @@ class AdminUITest extends TestCase {
 
 	public function test_renders_unchecked_toggle_by_default(): void {
 		$html = $this->capture( array( 'name' => 'my_key' ) );
-		$this->assertStringContainsString( 'class="ffc-control-toggle"', $html );
+		$this->assertStringContainsString( 'class="ffc-control-toggle ffc-control-toggle-mark"', $html );
 		$this->assertStringContainsString( 'name="my_key"', $html );
 		$this->assertStringContainsString( 'id="my_key"', $html );
 		$this->assertStringContainsString( 'type="checkbox"', $html );
@@ -83,7 +83,7 @@ class AdminUITest extends TestCase {
 
 	public function test_appends_extra_class(): void {
 		$html = $this->capture( array( 'name' => 'k', 'class' => 'is-large' ) );
-		$this->assertStringContainsString( 'class="ffc-control-toggle is-large"', $html );
+		$this->assertStringContainsString( 'class="ffc-control-toggle ffc-control-toggle-mark is-large"', $html );
 	}
 
 	public function test_emits_data_attributes(): void {
@@ -117,7 +117,7 @@ class AdminUITest extends TestCase {
 
 	public function test_no_description_leaves_the_bare_label(): void {
 		$html = $this->capture( array( 'name' => 'k', 'label' => 'My toggle' ) );
-		$this->assertStringStartsWith( '<label class="ffc-control-toggle"', $html );
+		$this->assertStringStartsWith( '<label class="ffc-control-toggle ffc-control-toggle-mark"', $html );
 		$this->assertStringNotContainsString( 'ffc-control-toggle-field', $html );
 		$this->assertStringNotContainsString( 'aria-describedby', $html );
 		$this->assertStringNotContainsString( 'class="description"', $html );
@@ -137,7 +137,7 @@ class AdminUITest extends TestCase {
 			)
 		);
 		$this->assertSame(
-			'<div class="ffc-control-toggle-field"><label class="ffc-control-toggle" for="k_id">'
+			'<div class="ffc-control-toggle-field"><label class="ffc-control-toggle ffc-control-toggle-mark" for="k_id">'
 			. '<input type="checkbox" id="k_id" name="opt[k]" value="1" aria-describedby="k_id-description">'
 			. '<span class="ffc-control-toggle-track" aria-hidden="true"></span>'
 			. '<span class="ffc-control-toggle-label">My toggle</span></label>'
@@ -157,7 +157,7 @@ class AdminUITest extends TestCase {
 		$echoed = (string) ob_get_clean();
 
 		$this->assertSame( '', $echoed, 'get_toggle must not echo' );
-		$this->assertStringContainsString( 'class="ffc-control-toggle"', $returned );
+		$this->assertStringContainsString( 'class="ffc-control-toggle ffc-control-toggle-mark"', $returned );
 		$this->assertStringContainsString( 'name="k"', $returned );
 		$this->assertStringContainsString( '<span class="ffc-control-toggle-label">My toggle</span>', $returned );
 	}
@@ -368,23 +368,43 @@ class AdminUITest extends TestCase {
 		$this->assertStringNotContainsString( '<a ', AdminUI::get_stat_card( array( 'label' => 'Calendars', 'link' => 'Manage' ) ) );
 	}
 
-	public function test_toggle_mark_is_opt_in(): void {
+	public function test_toggle_mark_is_drawn_by_default(): void {
 		ob_start();
 		AdminUI::render_toggle(
 			array(
 				'name'  => 'flag',
-				'mark'  => true,
 				'class' => 'extra',
 			)
 		);
-		$marked = (string) ob_get_clean();
+		$default = (string) ob_get_clean();
 		ob_start();
-		AdminUI::render_toggle( array( 'name' => 'flag' ) );
-		$plain = (string) ob_get_clean();
+		AdminUI::render_toggle(
+			array(
+				'name' => 'flag',
+				'mark' => true,
+			)
+		);
+		$explicit = (string) ob_get_clean();
 
-		$this->assertStringContainsString( '<label class="ffc-control-toggle ffc-control-toggle-mark extra"', $marked );
-		$this->assertStringContainsString( '<label class="ffc-control-toggle" for="flag">', $plain );
-		$this->assertStringNotContainsString( 'ffc-toggle', str_replace( 'ffc-control-toggle', '', $plain ), 'No class of the pre-family name is left (#1748).' );
+		$this->assertStringContainsString( '<label class="ffc-control-toggle ffc-control-toggle-mark extra" for="flag">', $default, 'The on/off mark is the default (#1873).' );
+		$this->assertStringContainsString( '<label class="ffc-control-toggle ffc-control-toggle-mark" for="flag">', $explicit, 'Passing true still draws it.' );
+		$this->assertStringNotContainsString( 'ffc-toggle', str_replace( 'ffc-control-toggle', '', $default ), 'No class of the pre-family name is left (#1748).' );
+	}
+
+	public function test_toggle_mark_opts_out_with_false(): void {
+		foreach ( array( false, 0, '' ) as $off ) {
+			ob_start();
+			AdminUI::render_toggle(
+				array(
+					'name' => 'flag',
+					'mark' => $off,
+				)
+			);
+			$plain = (string) ob_get_clean();
+
+			$this->assertStringContainsString( '<label class="ffc-control-toggle" for="flag">', $plain, var_export( $off, true ) . ' opts the toggle out of the mark.' );
+			$this->assertStringNotContainsString( 'ffc-control-toggle-mark', $plain );
+		}
 	}
 
 	// ==================================================================
