@@ -2164,71 +2164,158 @@
 }
 
 /* ==========================================================================
-   BUTTONS — shared base classes (consolidated from audience + calendar-frontend)
+   BUTTONS — one family, five categories (#1874)
+
+   A button says what its action does, not how important it looks:
+     primary   one per screen, completes the work (solid)
+     neutral   opens, picks or navigates
+     create    adds something
+     caution   undoes or recomputes without losing data
+     danger    deletes or empties
+   The four that are not primary are tonal: a soft ground in their tone, the
+   tone as text, and the tone as a border on hover. The markup comes from
+   `Core\Button::html()` (PHP) and `FFC.button()` (JS), and every button
+   carries a `Core\Icons` class, so the icon is the same mask `::before`
+   every other icon uses.
+
+   The context comes from tokens, not from a second family. The default here
+   is the public one: 40px tall for touch, the corner `--ffc-radius-sm` and
+   the font inherited, which is what `Core\PublicDesign` sets on
+   `.ffc-shortcode` in the light theme. The admin variant below only changes
+   the shape.
+
+   `.ffc-btn-secondary` and `.ffc-btn-success` are the names the public
+   screens used before the family had categories; they read as neutral and
+   create until their markup moves to the new names.
    ========================================================================== */
 
 .ffc-btn {
-    display: inline-block;
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
-    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: 40px;
+    padding: 0 var(--ffc-spacing-xl);
+    border: 1px solid transparent;
     border-radius: var(--ffc-radius-sm);
-    font-family: var(--ffc-font-family);
+    font-family: inherit;
     font-size: var(--ffc-font-size-base);
     font-weight: 500;
+    line-height: 1.2;
     cursor: pointer;
     text-decoration: none;
     text-align: center;
-    transition: all 0.2s ease;
+    vertical-align: middle;
+    transition: background-color var(--ffc-transition-fast), border-color var(--ffc-transition-fast), color var(--ffc-transition-fast);
+}
+
+/* The admin shape: 34px tall and the 8px corner, at the panel's text size. */
+body.wp-admin .ffc-btn {
+    min-height: 34px;
+    padding: 0 var(--ffc-spacing-lg);
+    border-radius: var(--ffc-radius-lg);
+    font-size: var(--ffc-font-size-sm);
+}
+
+/* Core paints a focused link with a box-shadow ring; the family draws its
+   own 2px ring, so the shadow would be a second one. */
+.ffc-btn:focus {
+    box-shadow: none;
 }
 
 .ffc-btn:focus-visible {
-    outline: 2px solid var(--ffc-primary);
+    outline: 2px solid var(--ffc-border-focus);
     outline-offset: 2px;
 }
 
-.ffc-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.ffc-btn-primary {
+/* A link button's colour is restated in every state: core's `a:hover` and
+   `a:focus` outrank a single class and would repaint the label. */
+.ffc-btn-primary,
+.ffc-btn-primary:focus,
+.ffc-btn-primary:active {
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
 }
 
 .ffc-btn-primary:hover {
     background: var(--ffc-primary-hover);
+    color: var(--ffc-text-on-primary);
 }
 
-.ffc-btn-primary:disabled {
-    background: var(--ffc-gray-300);
+.ffc-btn-neutral,
+.ffc-btn-neutral:hover,
+.ffc-btn-neutral:focus,
+.ffc-btn-neutral:active,
+.ffc-btn-secondary,
+.ffc-btn-secondary:hover,
+.ffc-btn-secondary:focus,
+.ffc-btn-secondary:active {
+    background: var(--ffc-gray-100);
+    color: var(--ffc-text);
 }
 
+.ffc-btn-neutral,
 .ffc-btn-secondary {
-    background: var(--ffc-gray-200);
-    color: var(--ffc-gray-800);
+    border-color: var(--ffc-border-light);
 }
 
+.ffc-btn-neutral:hover,
 .ffc-btn-secondary:hover {
-    background: var(--ffc-gray-300);
+    border-color: var(--ffc-border);
 }
 
-.ffc-btn-success {
-    background: var(--ffc-success);
-    color: var(--ffc-text-on-success);
+.ffc-btn-create,
+.ffc-btn-create:hover,
+.ffc-btn-create:focus,
+.ffc-btn-create:active,
+.ffc-btn-success,
+.ffc-btn-success:hover,
+.ffc-btn-success:focus,
+.ffc-btn-success:active {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
 }
 
+.ffc-btn-create:hover,
 .ffc-btn-success:hover {
-    background: var(--ffc-success-hover);
+    border-color: var(--ffc-success-border);
 }
 
-.ffc-btn-danger {
-    background: var(--ffc-danger);
-    color: var(--ffc-text-on-danger);
+.ffc-btn-caution,
+.ffc-btn-caution:hover,
+.ffc-btn-caution:focus,
+.ffc-btn-caution:active {
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-btn-caution:hover {
+    border-color: var(--ffc-warning-border);
+}
+
+.ffc-btn-danger,
+.ffc-btn-danger:hover,
+.ffc-btn-danger:focus,
+.ffc-btn-danger:active {
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
 }
 
 .ffc-btn-danger:hover {
-    background: var(--ffc-danger-hover);
+    border-color: var(--ffc-danger-border);
+}
+
+/* Disabled takes the colour away instead of fading: `opacity` multiplies
+   down the contrast the pairs above guarantee (CLAUDE.md, theme item 5).
+   `.disabled` and `aria-disabled` cover a link button, which has no
+   `:disabled`. Declared after the categories, so it wins over their hover. */
+.ffc-btn:disabled,
+.ffc-btn.disabled,
+.ffc-btn[aria-disabled="true"] {
+    background: var(--ffc-gray-200);
+    color: var(--ffc-text-muted);
+    border-color: transparent;
+    cursor: not-allowed;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3050,9 +3137,15 @@
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Controls: without a contour, a button stops looking clickable. */
-    .ffc-btn-danger,
+    /* Controls: without a contour, a button stops looking clickable. The
+       family's border is transparent at rest, so every category names the
+       system colour itself (#1874). */
+    .ffc-btn,
     .ffc-btn-primary,
+    .ffc-btn-neutral,
+    .ffc-btn-create,
+    .ffc-btn-caution,
+    .ffc-btn-danger,
     .ffc-btn-secondary,
     .ffc-btn-success,
     :root.ffc-dark-mode .button,
@@ -3072,6 +3165,15 @@
        colors the system discards that ground and bare text is left (#1193). */
     .ffc-pill-row-color {
         border: 1px solid CanvasText;
+    }
+
+    /* A disabled button has no colour to lose; the system's own disabled
+       colour says it cannot be pressed. */
+    .ffc-btn:disabled,
+    .ffc-btn.disabled,
+    .ffc-btn[aria-disabled="true"] {
+        border-color: GrayText;
+        color: GrayText;
     }
 
     /* A notice keeps its bar, but its ground was what set it apart from the

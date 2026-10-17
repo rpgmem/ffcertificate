@@ -239,7 +239,7 @@ $ffc_modes = array(
 		</table>
 		</div>
 
-		<?php submit_button(); ?>
+		<?php \FreeFormCertificate\Admin\AdminUI::render_save_button(); ?>
 	</form>
 </div>
 

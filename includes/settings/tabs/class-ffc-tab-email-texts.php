@@ -386,7 +386,18 @@ class TabEmailTexts extends SettingsTab {
 							</td>
 							<td><?php echo esc_html( self::email_type_label( $row['type'] ) ); ?></td>
 							<?php $ffc_row_url = isset( $row['url'] ) ? $row['url'] : $group['url']; ?>
-							<td><a href="<?php echo esc_url( $ffc_row_url ); ?>"><?php echo esc_html( $open_label ); ?></a></td>
+							<td>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label'    => $open_label,
+										'category' => 'neutral',
+										'icon'     => 'external',
+										'href'     => (string) $ffc_row_url,
+									)
+								);
+								?>
+							</td>
 						</tr>
 					<?php endforeach; ?>
 				<?php endforeach; ?>

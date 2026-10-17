@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Settings\Tabs;
 
 use FreeFormCertificate\Settings\SettingsTab;
+use FreeFormCertificate\Admin\AdminUI;
 use FreeFormCertificate\Admin\CertTemplateCpt;
 use FreeFormCertificate\Admin\CertTemplateReader;
 use FreeFormCertificate\Admin\CertTemplateRecordResolver;
@@ -143,19 +144,50 @@ class TabReregistration extends SettingsTab {
 						</option>
 					<?php endforeach; ?>
 				</select>
-				<?php if ( $can_edit ) : ?>
-					<a href="<?php echo esc_url( self::hub_edit_url( $selected ) ); ?>" target="_blank" rel="noopener">
-						<?php esc_html_e( 'Edit this template →', 'ffcertificate' ); ?>
-					</a>
-				<?php endif; ?>
+				<?php
+				if ( $can_edit ) {
+					AdminUI::render_button(
+						array(
+							'label'    => __( 'Edit this template', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'edit',
+							'href'     => self::hub_edit_url( $selected ),
+							'attrs'    => array(
+								'target' => '_blank',
+								'rel'    => 'noopener',
+							),
+						)
+					);
+				}
+				?>
 			</p>
 			<p>
-				<a class="button" href="<?php echo esc_url( self::hub_list_url() ); ?>" target="_blank" rel="noopener">
-					<?php esc_html_e( 'Manage record templates', 'ffcertificate' ); ?>
-				</a>
-				<a class="button" href="<?php echo esc_url( self::hub_new_url() ); ?>" target="_blank" rel="noopener">
-					<?php esc_html_e( '+ New record template', 'ffcertificate' ); ?>
-				</a>
+				<?php
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'Manage record templates', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'list',
+						'href'     => self::hub_list_url(),
+						'attrs'    => array(
+							'target' => '_blank',
+							'rel'    => 'noopener',
+						),
+					)
+				);
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'New record template', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'href'     => self::hub_new_url(),
+						'attrs'    => array(
+							'target' => '_blank',
+							'rel'    => 'noopener',
+						),
+					)
+				);
+				?>
 			</p>
 			<h3 class="ffc-icon-key"><?php esc_html_e( 'Invitation password link', 'ffcertificate' ); ?></h3>
 			<p class="description">
@@ -182,7 +214,7 @@ class TabReregistration extends SettingsTab {
 					?>
 				</span>
 			</p>
-			<?php submit_button( __( 'Save Changes', 'ffcertificate' ) ); ?>
+			<?php AdminUI::render_save_button(); ?>
 		</form>
 		</div>
 		</div><!-- .ffc-settings-wrap -->

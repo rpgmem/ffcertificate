@@ -105,11 +105,7 @@ class TabEmailModelTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
-		Functions\when( 'submit_button' )->alias(
-			static function ( string $text ): void {
-				echo '<button>' . $text . '</button>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Test stub.
-			}
-		);
+		Functions\when( 'esc_attr' )->returnArg();
 
 		ob_start();
 		$this->tab->render_unlocked();
@@ -118,6 +114,8 @@ class TabEmailModelTest extends TestCase {
 		if ( $prints ) {
 			$this->assertStringContainsString( 'name="ffc_send_test_email"', $html );
 			$this->assertStringContainsString( 'op@example.org', $html );
+			// The send is the card's primary action, enabled for an account with an address (#1874).
+			$this->assertStringContainsString( '<button type="submit" class="ffc-btn ffc-btn-primary ffc-icon-send" id="ffc_send_test_email_submit" name="ffc_send_test_email_submit">Send Test Email</button>', $html );
 		} else {
 			$this->assertSame( '', trim( $html ) );
 		}

@@ -737,16 +737,16 @@ msgid "+ Add Field"
 msgstr "+ Adicionar Campo"
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:191
-msgid "+ New certificate template"
-msgstr "+ Novo modelo de certificado"
+msgid "New certificate template"
+msgstr "Novo modelo de certificado"
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:219 includes/settings/tabs/class-ffc-tab-reregistration.php:160
-msgid "+ New record template"
-msgstr "+ Novo modelo de ficha"
+msgid "New record template"
+msgstr "Novo modelo de ficha"
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:203
-msgid "+ New receipt template"
-msgstr "+ Novo modelo de comprovante"
+msgid "New receipt template"
+msgstr "Novo modelo de comprovante"
 
 #: includes/admin/class-ffc-cert-template-receipt-settings.php:158
 msgid "+ New template"
@@ -6578,8 +6578,8 @@ msgid "Edit the global text"
 msgstr "Editar o texto global"
 
 #: includes/admin/class-ffc-cert-template-receipt-settings.php:211 includes/settings/tabs/class-ffc-tab-reregistration.php:148
-msgid "Edit this template →"
-msgstr "Editar este modelo →"
+msgid "Edit this template"
+msgstr "Editar este modelo"
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:520
 msgid "Editable text"

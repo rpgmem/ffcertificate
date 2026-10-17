@@ -38,6 +38,20 @@ $ffc_test_email_to = is_object( $ffc_current_user ) ? (string) $ffc_current_user
 	<form method="post">
 		<?php wp_nonce_field( 'ffc_send_test_email' ); ?>
 		<input type="hidden" name="ffc_send_test_email" value="1">
-		<?php submit_button( __( 'Send Test Email', 'ffcertificate' ), 'secondary', 'ffc_send_test_email_submit', false, '' === $ffc_test_email_to ? array( 'disabled' => 'disabled' ) : array() ); ?>
+		<p class="submit">
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label'    => __( 'Send Test Email', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'send',
+					'type'     => 'submit',
+					'name'     => 'ffc_send_test_email_submit',
+					'id'       => 'ffc_send_test_email_submit',
+					'disabled' => '' === $ffc_test_email_to,
+				)
+			);
+			?>
+		</p>
 	</form>
 </div>

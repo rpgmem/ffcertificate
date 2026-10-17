@@ -55,9 +55,17 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 							<span class="ffc-text-success ffc-icon-success"><?php esc_html_e( 'Includes user ID, IP address, and timestamp for LGPD compliance.', 'ffcertificate' ); ?></span>
 							<?php if ( $ffcertificate_log_on ) : ?>
 								<br>
-								<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=activity_log' ) ); ?>" class="button button-secondary ffc-mt-md">
-									<span class="ffc-icon-chart"></span><?php esc_html_e( 'View Activity Logs', 'ffcertificate' ); ?>
-								</a>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label'    => __( 'View Activity Logs', 'ffcertificate' ),
+										'category' => 'neutral',
+										'icon'     => 'history',
+										'href'     => admin_url( 'admin.php?page=ffc-settings&tab=activity_log' ),
+										'class'    => 'ffc-mt-md',
+									)
+								);
+								?>
 							<?php endif; ?>
 						</p>
 					</td>
@@ -541,7 +549,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 		</table>
 </div>
 
-	<?php submit_button(); ?>
+	<?php \FreeFormCertificate\Admin\AdminUI::render_save_button(); ?>
 </form>
 
 <!-- Encryption Key Health Card (#839 S7a) -->
@@ -740,9 +748,16 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 			}
 			?>
 			<p>
-				<a class="button button-secondary" href="<?php echo esc_url( $ffc_rot_url ); ?>">
-					<?php esc_html_e( 'Go to Encryption Key Rotation', 'ffcertificate' ); ?>
-				</a>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Go to Encryption Key Rotation', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'key',
+						'href'     => $ffc_rot_url,
+					)
+				);
+				?>
 			</p>
 			<?php
 			\FreeFormCertificate\Core\AdminNotice::callout(
@@ -785,8 +800,24 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 					spellcheck="false" autocomplete="off"></textarea>
 			</p>
 			<p>
-				<button type="button" class="button ffc-key-suggest-regenerate"><?php esc_html_e( 'Generate another', 'ffcertificate' ); ?></button>
-				<button type="button" class="button ffc-key-suggest-copy"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Generate another', 'ffcertificate' ),
+						'category' => 'caution',
+						'icon'     => 'sync',
+						'class'    => 'ffc-key-suggest-regenerate',
+					)
+				);
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Copy', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'copy',
+						'class'    => 'ffc-key-suggest-copy',
+					)
+				);
+				?>
 				<span class="ffc-key-suggest-status description" role="status" aria-live="polite"></span>
 			</p>
 		</div>
@@ -841,8 +872,24 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 						spellcheck="false" autocomplete="off"></textarea>
 				</p>
 				<p>
-					<button type="button" class="button ffc-key-suggest-regenerate"><?php esc_html_e( 'Generate another', 'ffcertificate' ); ?></button>
-					<button type="button" class="button ffc-key-suggest-copy"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Generate another', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'sync',
+							'class'    => 'ffc-key-suggest-regenerate',
+						)
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Copy', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'copy',
+							'class'    => 'ffc-key-suggest-copy',
+						)
+					);
+					?>
 					<span class="ffc-key-suggest-status description" role="status" aria-live="polite"></span>
 				</p>
 			</div>
@@ -936,7 +983,8 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 						</div>
 
 						<div class="ffc-mt-2xl">
-							<button type="submit" class="button button-link-delete ffc-icon-delete" onclick="return confirm('<?php echo esc_js( __( 'Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted.', 'ffcertificate' ) ); ?>');">
+							<?php // Written out rather than through AdminUI::button(): the helper refuses event-handler attributes, and this confirm() is the action's last guard. ?>
+							<button type="submit" class="ffc-btn ffc-btn-danger ffc-icon-delete" onclick="return confirm('<?php echo esc_js( __( 'Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted.', 'ffcertificate' ) ); ?>');">
 								<?php esc_html_e( 'Delete Data Permanently', 'ffcertificate' ); ?>
 							</button>
 						</div>

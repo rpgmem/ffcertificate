@@ -110,8 +110,26 @@ $ffc_font_options  = array(
 								<span class="ffc-email-model-logo">
 									<input type="text" class="regular-text" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>" placeholder="https://…">
 									<?php // Shared media picker (assets/js/ffc-branding-media.js), enqueued page-wide on the settings screen; writes the chosen URL into this input and fires `change`, which refreshes the live preview. ?>
-									<button type="button" class="button ffc-media-select" data-ffc-media-target="#<?php echo esc_attr( $ffc_id ); ?>"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
-									<button type="button" class="button-link ffc-media-clear" data-ffc-media-target="#<?php echo esc_attr( $ffc_id ); ?>"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
+									<?php
+									\FreeFormCertificate\Admin\AdminUI::render_button(
+										array(
+											'label'    => __( 'Select image', 'ffcertificate' ),
+											'category' => 'neutral',
+											'icon'     => 'image',
+											'class'    => 'ffc-media-select',
+											'attrs'    => array( 'data-ffc-media-target' => '#' . $ffc_id ),
+										)
+									);
+									\FreeFormCertificate\Admin\AdminUI::render_button(
+										array(
+											'label'    => __( 'Clear', 'ffcertificate' ),
+											'category' => 'danger',
+											'icon'     => 'cross',
+											'class'    => 'ffc-media-clear',
+											'attrs'    => array( 'data-ffc-media-target' => '#' . $ffc_id ),
+										)
+									);
+									?>
 								</span>
 							<?php elseif ( 'textarea' === $ffc_type ) : ?>
 								<textarea class="large-text" rows="2" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>"><?php echo esc_textarea( $ffc_value ); ?></textarea>
@@ -128,8 +146,25 @@ $ffc_font_options  = array(
 			</p>
 
 			<p class="ffc-email-model-actions">
-				<?php submit_button( __( 'Save Email Model', 'ffcertificate' ), 'primary', 'submit', false ); ?>
-				<button type="button" class="button ffc-email-model-restore"><?php esc_html_e( 'Restore Defaults', 'ffcertificate' ); ?></button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Save Email Model', 'ffcertificate' ),
+						'category' => 'primary',
+						'icon'     => 'checkmark',
+						'type'     => 'submit',
+						'name'     => 'submit',
+					)
+				);
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Restore Defaults', 'ffcertificate' ),
+						'category' => 'caution',
+						'icon'     => 'restore',
+						'class'    => 'ffc-email-model-restore',
+					)
+				);
+				?>
 			</p>
 		</form>
 

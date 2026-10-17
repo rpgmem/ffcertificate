@@ -159,7 +159,7 @@ $ffc_qr_name      = static fn( string $key ): string => 'ffc_settings[' . $key .
 	</table>
 </div>
 
-	<?php submit_button(); ?>
+	<?php \FreeFormCertificate\Admin\AdminUI::render_save_button(); ?>
 
 </form>
 
