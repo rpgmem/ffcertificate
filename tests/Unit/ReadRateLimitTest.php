@@ -53,11 +53,12 @@ class ReadRateLimitTest extends TestCase {
 		$cache    =& $this->cache;
 		$settings =& $this->settings;
 
-		Functions\when( 'wp_cache_get' )->alias( function ( $key, $group = '' ) use ( &$cache ) {
-			return $cache[ $group . '|' . $key ] ?? false;
+		// The counters are transients since #1861; a transient has no group.
+		Functions\when( 'get_transient' )->alias( function ( $key ) use ( &$cache ) {
+			return $cache[ $key ] ?? false;
 		} );
-		Functions\when( 'wp_cache_set' )->alias( function ( $key, $value, $group = '' ) use ( &$cache ) {
-			$cache[ $group . '|' . $key ] = $value;
+		Functions\when( 'set_transient' )->alias( function ( $key, $value ) use ( &$cache ) {
+			$cache[ $key ] = $value;
 			return true;
 		} );
 		Functions\when( 'get_option' )->alias( function ( $name, $default_value = false ) use ( &$settings ) {

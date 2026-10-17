@@ -2594,7 +2594,6 @@ msgstr "Código de autenticação:"
 msgid "Authenticity:"
 msgstr "Autenticidade:"
 
-
 msgid "Auto"
 msgstr "Automático"
 
@@ -11988,7 +11987,6 @@ msgstr "Os envios mais antigos não possuem um indicador de consentimento explí
 msgid "on"
 msgstr "ativado"
 
-
 #: includes/settings/views/documentation/config-captcha.php:60
 msgid "on activation, on focus, on page load or on submit. Verifying on load spends the work before anyone decides to submit, and a challenge started too early can expire while the form is still being filled in."
 msgstr "na ativação, no foco, no carregamento da página ou no envio. A verificação durante o carregamento consome processamento antes mesmo de alguém decidir enviar o formulário, e um desafio iniciado cedo demais pode expirar enquanto o formulário ainda está sendo preenchido."
@@ -13348,10 +13346,6 @@ msgstr "Classificação provisória publicada para revisão."
 msgid "Public"
 msgstr "Público"
 
-#: includes/settings/views/documentation/developer-hooks-api.php:92
-msgid "Public (IP rate-limited)."
-msgstr "Público (com limitação de taxa de IP)."
-
 #: includes/frontend/class-ffc-public-csv-download.php:587 includes/frontend/class-ffc-public-csv-download.php:657 includes/frontend/class-ffc-public-csv-download.php:729
 msgid "Public access is disabled for this form."
 msgstr "O acesso público a este formulário está desativado."
@@ -13395,10 +13389,6 @@ msgstr "Página de validação pública"
 #: includes/settings/views/documentation/developer-hooks-api.php:90
 msgid "Public — read-only form structure."
 msgstr "Público — estrutura de formulário somente leitura."
-
-#: includes/settings/views/documentation/developer-hooks-api.php:91
-msgid "Public."
-msgstr "Público."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:133 includes/self-scheduling/class-ffc-self-scheduling-editor.php:703
 msgid "Public: anyone can book. Private: only logged-in users can book."
@@ -23472,9 +23462,6 @@ msgstr "Antes de uma exclusão de dados da Zona de Perigo ser executada — argu
 msgid "fires when a submissions export finishes; the other exports do not fire it."
 msgstr "é disparada quando uma exportação de envios termina; as demais exportações não a disparam."
 
-msgid "Public — books an appointment."
-msgstr "Público — cria um agendamento."
-
 msgid "Read or cancel one appointment — requires access to that appointment."
 msgstr "Lê ou cancela um agendamento — exige acesso a esse agendamento."
 
@@ -23492,9 +23479,6 @@ msgstr "ffc_view_certificates (os dados pessoais permanecem mascarados sem a cap
 
 msgid "Logged-in — the current candidate's own recruitment data."
 msgstr "Conectado — os dados de recrutamento do próprio candidato atual."
-
-msgid "The plugin's only authenticated write API: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.18.0."
-msgstr "A única API de escrita autenticada do plugin: um aplicativo de operador de campo emite certificados utilizando Senhas de Aplicativo do WordPress (autenticação HTTP Basic, permitindo que as verificações de capacidade funcionem sem *nonce*). Adicionada na versão 6.18.0."
 
 msgid "Activity Log: Encrypt Client IPs"
 msgstr "Registro de atividades: Criptografar IPs dos clientes"
@@ -26355,3 +26339,30 @@ msgstr "Nosso objetivo"
 #: includes/settings/views/documentation/about-project.php
 msgid "To give public institutions a reliable, accessible and secure way to issue documents, run campaigns and serve people online, at no cost and without vendor lock-in, and to show that public servants can build digital public goods of high technical quality."
 msgstr "Oferecer às instituições públicas um jeito confiável, acessível e seguro de emitir documentos, conduzir campanhas e atender pessoas pela internet, sem custo e sem dependência de fornecedor, e mostrar que servidores públicos podem construir bens públicos digitais de alta qualidade técnica."
+
+msgid "Submit forms via REST API"
+msgstr "Enviar formulários pela API REST"
+
+msgid "Lets an integration submit a form through the REST API, with the same checks as the public form. Creates submissions and may create accounts and send email."
+msgstr "Permite que uma integração envie um formulário pela API REST, com as mesmas verificações do formulário público. Cria envios e pode criar contas e enviar e-mails."
+
+msgid "Public (rate-limited). Returns the certificate with personal data masked, without the fields the verification page hides."
+msgstr "Público (com limite de requisições). Retorna o certificado com os dados pessoais mascarados, sem os campos que a página de verificação oculta."
+
+msgid "Authenticated — Application Password + ffc_submit_forms_api. Runs the same checks as the public form; see the Forms API below."
+msgstr "Autenticado — Senha de Aplicativo + ffc_submit_forms_api. Executa as mesmas verificações do formulário público; veja a API de Formulários abaixo."
+
+msgid "Public (IP rate-limited). A private calendar answers only a logged-in user or one with the scheduling bypass."
+msgstr "Público (com limite de requisições por IP). Um calendário privado responde apenas a um usuário conectado ou com a permissão de ignorar restrições de agendamento."
+
+msgid "Authenticated — ffc_manage_appointments. Books in the name and email sent; the public booking form does not use this route."
+msgstr "Autenticado — ffc_manage_appointments. Agenda no nome e e-mail enviados; o formulário público de agendamento não usa esta rota."
+
+msgid "Logged-in — the environment must belong to a schedule the caller may read, and only bookings in readable schedules are reported."
+msgstr "Conectado — o ambiente precisa pertencer a uma agenda que o solicitante pode ver, e só são informadas reservas de agendas visíveis para ele."
+
+msgid "submit a form. Needs ffc_submit_forms_api, which existing holders of ffc_view_forms_api received automatically on update. The JSON body carries the form's fields and ffc_lgpd_consent set to 1; the checks are the public form's: only the fields the form defines are stored, hidden fields keep the form's value, field rules, password, allowlist, denylist and ticket restrictions, quiz scoring and the rate limits all apply, and the authentication code is always generated by the plugin. The public form itself does not use this route."
+msgstr "envia um formulário. Exige ffc_submit_forms_api, que quem já tinha ffc_view_forms_api recebeu automaticamente na atualização. O corpo JSON traz os campos do formulário e ffc_lgpd_consent igual a 1; as verificações são as do formulário público: só os campos que o formulário define são gravados, campos ocultos mantêm o valor do formulário, e as regras dos campos, as restrições de senha, lista de permitidos, lista de bloqueados e ticket, a pontuação do quiz e os limites de requisições se aplicam; o código de autenticação é sempre gerado pelo plugin. O formulário público não usa esta rota."
+
+msgid "An authenticated write API for issuance: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.18.0."
+msgstr "Uma API de escrita autenticada para emissão: um aplicativo de operador de campo emite certificados utilizando Senhas de Aplicativo do WordPress (autenticação HTTP Basic, permitindo que as verificações de capacidade funcionem sem *nonce*). Adicionada na versão 6.18.0."

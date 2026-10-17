@@ -1147,6 +1147,45 @@ class CapabilityManagerTest extends TestCase {
 		$this->assertSame( array( 'ffc_view_reregistration_pii' => 0 ), $second, 'A second run seeds nobody.' );
 	}
 
+	public function test_forms_api_submit_cap_is_registered(): void {
+		$this->assertContains( 'ffc_submit_forms_api', CapabilityManager::get_all_capabilities() );
+	}
+
+	public function test_forms_api_submit_cap_grant_map_seeds_from_the_read_cap(): void {
+		$this->assertSame(
+			array( 'ffc_view_forms_api' => array( 'ffc_submit_forms_api' ) ),
+			CapabilityMigrator::forms_api_submit_cap_grant_map()
+		);
+	}
+
+	public function test_migrate_forms_api_submit_cap_grant_seeds_read_holders_only(): void {
+		Functions\when( 'get_users' )->justReturn( array( 1, 2 ) );
+
+		$users = array();
+		$added = array();
+		foreach ( array(
+			1 => array( 'ffc_view_forms_api' => true ),
+			2 => array( 'ffc_view_certificates' => true ),
+		) as $id => $caps ) {
+			$user       = Mockery::mock( 'WP_User' );
+			$user->caps = $caps;
+			$user->shouldReceive( 'add_cap' )->andReturnUsing(
+				function ( $cap, $val = true ) use ( &$added, $id, $user ) {
+					$added[]            = array( $id, $cap, $val );
+					$user->caps[ $cap ] = $val;
+				}
+			);
+			$users[ $id ] = $user;
+		}
+		Functions\when( 'get_userdata' )->alias( static fn ( $id ) => $users[ $id ] ?? false );
+		$wp_roles        = Mockery::mock();
+		$wp_roles->roles = array();
+		Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+
+		$this->assertSame( array( 'ffc_submit_forms_api' => 1 ), CapabilityMigrator::migrate_forms_api_submit_cap_grant() );
+		$this->assertSame( array( array( 1, 'ffc_submit_forms_api', true ) ), $added );
+	}
+
 	public function test_admin_capabilities_contains_export_tier(): void {
 		foreach ( array(
 			'ffc_export_appointments',

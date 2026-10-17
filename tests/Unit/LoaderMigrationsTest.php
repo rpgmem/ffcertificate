@@ -110,6 +110,7 @@ class LoaderMigrationsTest extends TestCase {
 			'activity log' => array( 'ensure_activity_log_export_cap_granted', 'ffc_activity_log_export_cap_v1', 'migrate_activity_log_export_cap_grant' ),
 			'url shortener export' => array( 'ensure_url_shortener_export_cap_granted', 'ffc_url_shortener_export_cap_v1', 'migrate_url_shortener_export_cap_grant' ),
 			'reregistration pii'   => array( 'ensure_reregistration_pii_cap_granted', 'ffc_reregistration_pii_cap_v1', 'migrate_reregistration_pii_cap_grant' ),
+			'forms api submit'     => array( 'ensure_forms_api_submit_cap_granted', 'ffc_forms_api_submit_cap_v1', 'migrate_forms_api_submit_cap_grant' ),
 		);
 	}
 

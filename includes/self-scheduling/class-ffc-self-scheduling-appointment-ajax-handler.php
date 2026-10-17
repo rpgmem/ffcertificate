@@ -354,6 +354,12 @@ class AppointmentAjaxHandler {
 				wp_send_json_error( array( 'message' => __( 'Invalid calendar.', 'ffcertificate' ) ) );
 			}
 
+			// A private calendar's month is not the anonymous visitor's to read (#1861).
+			$calendar = $this->handler->get_calendar_repository()->findById( $calendar_id );
+			if ( is_array( $calendar ) && $this->handler->is_hidden_from_visitor( $calendar ) ) {
+				wp_send_json_error( array( 'message' => AppointmentHandler::hidden_calendar_error()->get_error_message() ) );
+			}
+
 			$start_date = sprintf( '%04d-%02d-01', $year, $month );
 			$start_ts   = strtotime( $start_date );
 			$end_date   = gmdate( 'Y-m-t', $start_ts ? $start_ts : time() );

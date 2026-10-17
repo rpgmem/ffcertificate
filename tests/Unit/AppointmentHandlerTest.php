@@ -316,6 +316,42 @@ class AppointmentHandlerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 	}
 
+	public function test_available_slots_of_a_private_calendar_are_hidden_from_an_anonymous_visitor(): void {
+		// Same rule as the shortcode (#1861): not logged in, no bypass.
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn(
+			$this->makeCalendar( array( 'visibility' => 'private' ) )
+		);
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->never();
+
+		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'calendar_private', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+	}
+
+	public function test_a_private_calendar_is_visible_to_a_logged_in_visitor(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+
+		$this->assertFalse( $this->handler->is_hidden_from_visitor( $this->makeCalendar( array( 'visibility' => 'private' ) ) ) );
+	}
+
+	public function test_a_private_calendar_is_visible_with_the_scheduling_bypass(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_bypass_appointments' === $cap );
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+
+		$this->assertFalse( $this->handler->is_hidden_from_visitor( $this->makeCalendar( array( 'visibility' => 'private', 'post_id' => 5 ) ) ) );
+	}
+
+	public function test_a_public_calendar_is_never_hidden(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+
+		$this->assertFalse( $this->handler->is_hidden_from_visitor( $this->makeCalendar( array( 'visibility' => 'public' ) ) ) );
+	}
+
 	public function test_available_slots_generates_from_working_hours(): void {
 		// Monday 2026-03-02 (day_of_week=1)
 		$calendar = $this->makeCalendar( array(

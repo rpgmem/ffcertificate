@@ -253,9 +253,7 @@ final class RateLimitChecker {
 	public static function check_global_limit(): array {
 		$s  = self::get_settings()['global'];
 		$mk = 'ffc_rate_global_minute_' . floor( time() / 60 );
-		// v3.2.0: Use Object Cache API.
-		$mc = wp_cache_get( $mk, RateLimiter::CACHE_GROUP );
-		$mc = false !== $mc ? $mc : 0;
+		$mc = RateCounter::get( $mk );
 		if ( $mc >= $s['max_per_minute'] ) {
 			return array(
 				'allowed'      => false,
@@ -381,13 +379,8 @@ final class RateLimitChecker {
 		$max_per_hour = 10;
 		$max_per_day  = 30;
 
-		$hour_key = 'ffc_verify_ip_' . md5( $ip ) . '_hour_' . gmdate( 'YmdH' );
-		// v3.2.0: Use Object Cache API.
-		$hour_count = wp_cache_get( $hour_key, RateLimiter::CACHE_GROUP );
-
-		if ( false === $hour_count ) {
-			$hour_count = 0;
-		}
+		$hour_key   = 'ffc_verify_ip_' . md5( $ip ) . '_hour_' . gmdate( 'YmdH' );
+		$hour_count = RateCounter::get( $hour_key );
 
 		if ( $hour_count >= $max_per_hour ) {
 			$wait_seconds = 3600 - ( time() % 3600 );
@@ -401,11 +394,7 @@ final class RateLimitChecker {
 		}
 
 		$day_key   = 'ffc_verify_ip_' . md5( $ip ) . '_day_' . gmdate( 'Ymd' );
-		$day_count = wp_cache_get( $day_key, RateLimiter::CACHE_GROUP );
-
-		if ( false === $day_count ) {
-			$day_count = 0;
-		}
+		$day_count = RateCounter::get( $day_key );
 
 		if ( $day_count >= $max_per_day ) {
 			$wait_seconds = 86400 - ( time() % 86400 );
@@ -417,8 +406,8 @@ final class RateLimitChecker {
 			);
 		}
 
-		wp_cache_set( $hour_key, $hour_count + 1, RateLimiter::CACHE_GROUP, 3600 );
-		wp_cache_set( $day_key, $day_count + 1, RateLimiter::CACHE_GROUP, 86400 );
+		RateCounter::increment( $hour_key, 3600 );
+		RateCounter::increment( $day_key, 86400 );
 
 		if ( ! empty( $settings['logging']['enabled'] ) ) {
 			RateLimitLogger::log_attempt( 'ip', $ip, 'allowed', 'verification_attempt', null );
@@ -460,21 +449,13 @@ final class RateLimitChecker {
 		$s = self::get_settings();
 
 		if ( 'ip' === $type ) {
-			$hk = 'ffc_rate_ip_' . md5( $identifier . $form_id ) . '_hour';
-			// v3.2.0: Use Object Cache API for better performance.
-			$current = wp_cache_get( $hk, RateLimiter::CACHE_GROUP );
-			$current = false !== $current ? $current : 0;
-			wp_cache_set( $hk, $current + 1, RateLimiter::CACHE_GROUP, 3600 );
-
-			$last_key = 'ffc_rate_ip_' . md5( $identifier . $form_id ) . '_last';
-			wp_cache_set( $last_key, time(), RateLimiter::CACHE_GROUP, $s['ip']['cooldown_seconds'] );
+			// Transients, so the counters persist without an object cache (#1861).
+			RateCounter::increment( 'ffc_rate_ip_' . md5( $identifier . $form_id ) . '_hour', 3600 );
+			RateCounter::put( 'ffc_rate_ip_' . md5( $identifier . $form_id ) . '_last', time(), max( 1, (int) $s['ip']['cooldown_seconds'] ) );
 		}
 
 		if ( 'global' === $type ) {
-			$mk      = 'ffc_rate_global_minute_' . floor( time() / 60 );
-			$current = wp_cache_get( $mk, RateLimiter::CACHE_GROUP );
-			$current = false !== $current ? $current : 0;
-			wp_cache_set( $mk, $current + 1, RateLimiter::CACHE_GROUP, 60 );
+			RateCounter::increment( 'ffc_rate_global_minute_' . floor( time() / 60 ), 60 );
 		}
 
 		RateLimitRepository::increment_counter( $type, $identifier, 'day', $form_id );
@@ -596,8 +577,7 @@ final class RateLimitChecker {
 		}
 
 		$hour_key   = 'ffc_rate_user_' . $user_id . '_' . $action . '_hour_' . gmdate( 'YmdH' );
-		$hour_count = wp_cache_get( $hour_key, RateLimiter::CACHE_GROUP );
-		$hour_count = false !== $hour_count ? (int) $hour_count : 0;
+		$hour_count = RateCounter::get( $hour_key );
 
 		if ( $hour_count >= $max_per_hour ) {
 			$wait = 3600 - ( time() % 3600 );
@@ -610,8 +590,7 @@ final class RateLimitChecker {
 		}
 
 		$day_key   = 'ffc_rate_user_' . $user_id . '_' . $action . '_day_' . gmdate( 'Ymd' );
-		$day_count = wp_cache_get( $day_key, RateLimiter::CACHE_GROUP );
-		$day_count = false !== $day_count ? (int) $day_count : 0;
+		$day_count = RateCounter::get( $day_key );
 
 		if ( $day_count >= $max_per_day ) {
 			return array(
@@ -622,8 +601,8 @@ final class RateLimitChecker {
 		}
 
 		// Increment counters.
-		wp_cache_set( $hour_key, $hour_count + 1, RateLimiter::CACHE_GROUP, 3600 );
-		wp_cache_set( $day_key, $day_count + 1, RateLimiter::CACHE_GROUP, 86400 );
+		RateCounter::increment( $hour_key, 3600 );
+		RateCounter::increment( $day_key, 86400 );
 
 		return array( 'allowed' => true );
 	}
@@ -638,8 +617,8 @@ final class RateLimitChecker {
 	 * When the endpoint is disabled (or absent from settings) the call
 	 * short-circuits to `allowed=true` so feature stays opt-in per endpoint.
 	 *
-	 * Algorithm matches the existing IP path: minute window via object
-	 * cache + hour window via DB. Cache TTLs mirror the window length
+	 * Minute and hour windows are transient counters (persistent with or
+	 * without an object cache, #1861); their TTLs mirror the window length
 	 * (60 / 3600 seconds).
 	 *
 	 * @since 6.6.2
@@ -659,9 +638,7 @@ final class RateLimitChecker {
 		$message  = (string) ( $s['read']['message'] ?? __( 'Too many requests. Please wait {time}.', 'ffcertificate' ) );
 
 		if ( $max_min > 0 ) {
-			$mk     = 'ffc_rate_read_' . md5( $ip . '|' . $endpoint_key ) . '_minute';
-			$cached = wp_cache_get( $mk, RateLimiter::CACHE_GROUP );
-			$mc     = false !== $cached ? (int) $cached : 0;
+			$mc = RateCounter::get( 'ffc_rate_read_' . md5( $ip . '|' . $endpoint_key ) . '_minute' );
 			if ( $mc >= $max_min ) {
 				return array(
 					'allowed'      => false,
@@ -673,9 +650,7 @@ final class RateLimitChecker {
 		}
 
 		if ( $max_hour > 0 ) {
-			$hk     = 'ffc_rate_read_' . md5( $ip . '|' . $endpoint_key ) . '_hour';
-			$cached = wp_cache_get( $hk, RateLimiter::CACHE_GROUP );
-			$hc     = false !== $cached ? (int) $cached : 0;
+			$hc = RateCounter::get( 'ffc_rate_read_' . md5( $ip . '|' . $endpoint_key ) . '_hour' );
 			if ( $hc >= $max_hour ) {
 				return array(
 					'allowed'      => false,
@@ -691,7 +666,7 @@ final class RateLimitChecker {
 
 	/**
 	 * Record a successful read against the per-endpoint counters.
-	 * Increments both the minute and hour cache buckets keyed by
+	 * Increments both the minute and hour counters keyed by
 	 * `(ip, endpoint_key)` plus the underlying `ffc_rate_limits` row
 	 * (via `record_attempt`) so historical scans and the admin log
 	 * tab pick up the same audit trail other rate-limit types use.
@@ -704,13 +679,8 @@ final class RateLimitChecker {
 	public static function record_read_attempt( string $ip, string $endpoint_key ): void {
 		$identifier = $ip . '|' . $endpoint_key;
 
-		$mk     = 'ffc_rate_read_' . md5( $identifier ) . '_minute';
-		$cached = wp_cache_get( $mk, RateLimiter::CACHE_GROUP );
-		wp_cache_set( $mk, ( false !== $cached ? (int) $cached : 0 ) + 1, RateLimiter::CACHE_GROUP, 60 );
-
-		$hk     = 'ffc_rate_read_' . md5( $identifier ) . '_hour';
-		$cached = wp_cache_get( $hk, RateLimiter::CACHE_GROUP );
-		wp_cache_set( $hk, ( false !== $cached ? (int) $cached : 0 ) + 1, RateLimiter::CACHE_GROUP, 3600 );
+		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_minute', 60 );
+		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_hour', 3600 );
 
 		// Persist the day counter too so the admin "rate-limit log" tab
 		// surfaces read activity alongside the other types. `record_attempt`

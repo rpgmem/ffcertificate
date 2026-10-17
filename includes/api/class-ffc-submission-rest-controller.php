@@ -363,7 +363,9 @@ class SubmissionRestController {
 					// must be masked per-key (cpf/rf/rg/email) before returning it,
 					// matching the /valid page renderer. Skipping this leaked the
 					// full form-collected PII to any caller with a valid auth code.
-					'data'            => $this->mask_data_pii( $data ),
+					// #1861 — and the keys the public verification page hides
+					// (the one-use ticket among them) never leave here either.
+					'data'            => $this->mask_data_pii( array_diff_key( $data, array_flip( \FreeFormCertificate\Frontend\VerificationResponseRenderer::SKIP_FIELDS ) ) ),
 				),
 				'message'     => __( 'Certificate is valid and authentic.', 'ffcertificate' ),
 			);

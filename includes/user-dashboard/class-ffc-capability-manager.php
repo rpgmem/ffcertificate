@@ -168,6 +168,15 @@ class CapabilityManager {
 		// directly. See issue #139.
 		'ffc_view_forms_api',
 
+		// REST submit cap (#1861). `POST /ffc/v1/forms/{id}/submit` was
+		// anonymous; it now needs an authenticated caller holding this cap.
+		// Split from `ffc_view_forms_api` because submitting writes a record,
+		// may create an account and sends email, which reading does not. The
+		// one-shot `migrate_forms_api_submit_cap_grant()` seeds it onto every
+		// current `ffc_view_forms_api` holder, so an integration that read
+		// and submitted with one Application Password keeps doing both.
+		'ffc_submit_forms_api',
+
 		// Read-only "view" caps — the *view only* tier of the 3-state permission
 		// model (no access / view only / view and edit). Each pairs with a `manage`
 		// cap above so a surface can be shown read-only without granting

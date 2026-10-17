@@ -45,9 +45,10 @@ class AccessRestrictionChecker {
 	 * @param string               $val_cpf CPF/RF from form (already cleaned).
 	 * @param string               $val_ticket Ticket from form.
 	 * @param int                  $form_id Form ID (needed for ticket consumption).
+	 * @param string|null          $val_password Password the caller submitted; null reads `ffc_password` from POST.
 	 * @return array<string, mixed> ['allowed' => bool, 'message' => string, 'is_ticket' => bool]
 	 */
-	public static function check( array $form_config, string $val_cpf, string $val_ticket, int $form_id ): array {
+	public static function check( array $form_config, string $val_cpf, string $val_ticket, int $form_id, ?string $val_password = null ): array {
 		$restrictions = isset( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
 
 		// Clean CPF/RF (remove any mask).
@@ -57,8 +58,8 @@ class AccessRestrictionChecker {
 		// 1. PASSWORD CHECK (if active)
 		// ========================================.
 		if ( ! empty( $restrictions['password'] ) && '1' === $restrictions['password'] ) {
-			$password       = trim( RequestInput::get_post_string( 'ffc_password' ) );
-			$valid_password = isset( $form_config['validation_code'] ) ? $form_config['validation_code'] : '';
+			$password       = trim( $val_password ?? RequestInput::get_post_string( 'ffc_password' ) );
+			$valid_password = isset( $form_config['validation_code'] ) && is_scalar( $form_config['validation_code'] ) ? (string) $form_config['validation_code'] : '';
 
 			if ( empty( $password ) ) {
 				return array(
@@ -68,7 +69,8 @@ class AccessRestrictionChecker {
 				);
 			}
 
-			if ( $password !== $valid_password ) {
+			// Constant-time, so the comparison does not time the secret (#1861).
+			if ( '' === $valid_password || ! hash_equals( $valid_password, $password ) ) {
 				return array(
 					'allowed'   => false,
 					'message'   => __( 'Incorrect password.', 'ffcertificate' ),

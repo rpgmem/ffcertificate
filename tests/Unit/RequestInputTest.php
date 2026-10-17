@@ -249,4 +249,15 @@ class RequestInputTest extends TestCase {
 		$this->assertSame( array(), RequestInput::get_post_raw_array( 'payload' ) );
 		unset( $_POST['payload'] );
 	}
+
+	public function test_text_array_sanitises_a_non_post_value_like_get_post_array(): void {
+		// #1861: the REST booking route's `custom_data` goes through here.
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => is_scalar( $v ) ? trim( strip_tags( (string) $v ) ) : '' );
+		$this->assertSame( array(), RequestInput::text_array( 'not an array' ) );
+		$this->assertSame( array(), RequestInput::text_array( null ) );
+
+		$clean = RequestInput::text_array( array( 'school' => '<b>EMEF</b> ', 'n' => 3 ) );
+		$this->assertSame( array( 'school', 'n' ), array_keys( $clean ) );
+		$this->assertStringNotContainsString( '<b>', $clean['school'] );
+	}
 }

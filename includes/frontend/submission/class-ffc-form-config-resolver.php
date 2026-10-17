@@ -31,8 +31,7 @@ class FormConfigResolver {
 	 * @throws SubmissionRejected When the form id is invalid or config is absent.
 	 */
 	public function apply( SubmissionContext $ctx ): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified upstream by NonceGuard.
-		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id = SubmissionInput::int( $ctx, 'form_id' );
 		if ( ! $form_id ) {
 			throw new SubmissionRejected( array( 'message' => __( 'Invalid Form ID.', 'ffcertificate' ) ) );
 		}

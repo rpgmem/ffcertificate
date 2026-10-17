@@ -61,6 +61,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Personal data is masked for every viewer behind an audited Reveal** (#1760, #1813, #1820, #1822, #1824). The appointment detail (CPF, RF, email), the submission and appointment list email columns, the submission edit IP and linked user, and the audience Members and User access tables no longer print the clear value; each reveal is logged under its own Activity Log label.
 - **Reregistration PII has its own capability and admin role** (#1815). View Details and Reveal need the new `ffc_view_reregistration_pii`, auto-granted to current managers; the new `ffc_reregistration_admin` role holds it. The audience screens, which have no PII capability, reveal on `ffc_view_appointments_pii`.
+- **The REST submit and booking routes now require an authenticated caller with a capability** (#1861). `POST /forms/{id}/submit` needs the new `ffc_submit_forms_api` (auto-granted to `ffc_view_forms_api` holders) and runs the public form's own checks; `POST /calendars/{id}/appointments` needs `ffc_manage_appointments` and sanitises `custom_data`. The public forms keep their AJAX path.
+- **Rate limits persist without an object cache, and every write path records its attempts** (#1861). The audience conflict probe needs a login and reports only readable schedules; private calendars hide their slots and months; `/verify` drops the fields the verification page hides; the form password compares in constant time; pre-flight telemetry is throttled per visitor.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 

@@ -536,4 +536,41 @@ class AccessRestrictionCheckerTest extends TestCase {
 		$result = AccessRestrictionChecker::check( $config, '12345678901', '', 1 );
 		$this->assertFalse( $result['allowed'] );
 	}
+
+	// ==================================================================
+	// Password (#1861)
+	// ==================================================================
+
+	public function test_password_given_by_the_caller_is_checked_without_reading_post(): void {
+		$_POST  = array();
+		$config = array(
+			'restrictions'    => array( 'password' => '1' ),
+			'validation_code' => 'open-sesame',
+		);
+
+		$this->assertTrue( AccessRestrictionChecker::check( $config, '', '', 1, 'open-sesame' )['allowed'] );
+		$wrong = AccessRestrictionChecker::check( $config, '', '', 1, 'open-sesamE' );
+		$this->assertFalse( $wrong['allowed'] );
+		$this->assertSame( 'Incorrect password.', $wrong['message'] );
+	}
+
+	public function test_an_empty_stored_password_admits_nobody(): void {
+		$config = array(
+			'restrictions'    => array( 'password' => '1' ),
+			'validation_code' => '',
+		);
+
+		$this->assertFalse( AccessRestrictionChecker::check( $config, '', '', 1, 'anything' )['allowed'] );
+	}
+
+	public function test_password_is_compared_in_constant_time(): void {
+		// A plain `!==` returns at the first differing byte, which times the
+		// secret; the comparison must be hash_equals().
+		$method = new \ReflectionMethod( AccessRestrictionChecker::class, 'check' );
+		$lines  = file( (string) $method->getFileName() );
+		$body   = implode( '', array_slice( $lines, $method->getStartLine() - 1, $method->getEndLine() - $method->getStartLine() + 1 ) );
+
+		$this->assertStringContainsString( 'hash_equals( $valid_password, $password )', $body );
+		$this->assertStringNotContainsString( '$password !== $valid_password', $body );
+	}
 }

@@ -27,16 +27,16 @@ class RestControllerTest extends TestCase {
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'register_rest_route' )->justReturn( true );
-		Functions\when( 'wp_cache_get' )->justReturn( false );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
 		// ClientIpResolver (behind RequestInput::get_user_ip) legacy path helpers.
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 
 		// Namespaced stubs for repositories
-		Functions\when( 'wp_cache_get' )->justReturn( false );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\when( 'user_can' )->justReturn( false );
 
@@ -225,7 +225,7 @@ class RestControllerTest extends TestCase {
 				? array( 'ip' => array( 'enabled' => true, 'max_per_hour' => 5 ) )
 				: array();
 		} );
-		Functions\when( 'wp_cache_get' )->justReturn( 2 ); // 2 requests already spent this hour.
+		Functions\when( 'get_transient' )->justReturn( 2 ); // 2 requests already spent this hour.
 		$_SERVER['REMOTE_ADDR'] = '203.0.113.7';
 
 		$headers  = array();

@@ -11,6 +11,7 @@
 return array(
 	'API>Audience',
 	'API>Core',
+	'API>Frontend',
 	'API>Generators',
 	'API>Repositories',
 	'API>Reregistration',
