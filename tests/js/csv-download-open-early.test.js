@@ -200,12 +200,16 @@ describe('csv-download — open-early modal', () => {
 		expect(window.$('.ffc-open-early-modal').length).toBe(0);
 	});
 
-	it('closes the modal when the header close (×) button is clicked', async () => {
+	it('closes the modal when the header close button is clicked', async () => {
 		await reachInfoScreen();
 		window.$('.ffc-btn-open-early').trigger('click');
 		await flush();
 		expect(window.$('.ffc-open-early-modal').length).toBe(1);
 		expect(window.$('.ffc-open-early-close').length).toBe(1);
+		// #1879 — the family's icon-only close, named by its label.
+		expect(window.$('.ffc-open-early-close').hasClass('ffc-btn-icon')).toBe(true);
+		expect(window.$('.ffc-open-early-close').attr('aria-label')).toBeTruthy();
+		expect(window.$('.ffc-open-early-close').text()).toBe('');
 
 		window.$('.ffc-open-early-close').trigger('click');
 		await flush();

@@ -305,7 +305,7 @@ describe('ffc-calendar-frontend.js — modal open/close', () => {
 		document.body.innerHTML = `
 			<button id="trigger">Open</button>
 			<div id="ffc-self-scheduling-modal" style="display:none;">
-				<button class="ffc-modal-close">×</button>
+				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
 				<div class="ffc-timeslots-wrapper"></div>
 				<div class="ffc-booking-form-wrapper"></div>
 			</div>
@@ -349,7 +349,7 @@ describe('ffc-calendar-frontend.js — loadTimeSlots / FFC.request', () => {
 					<div id="ffc-timeslots-container"></div>
 				</div>
 				<div class="ffc-booking-form-wrapper"></div>
-				<button class="ffc-modal-close">×</button>
+				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
 			</div>
 		`;
 		loadScript('assets/js/ffc-calendar-frontend.js');

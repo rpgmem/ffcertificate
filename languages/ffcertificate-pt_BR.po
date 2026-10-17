@@ -13925,6 +13925,10 @@ msgstr "Remova os shortcodes [ffc_form] de posts, páginas e blocos reutilizáve
 msgid "Remove all"
 msgstr "Remover tudo"
 
+#: includes/admin/class-ffc-admin-user-custom-fields.php:124 includes/admin/class-ffc-admin-user-custom-fields.php:475 includes/shortcodes/class-ffc-dashboard-asset-manager.php:128 includes/shortcodes/class-ffc-dashboard-asset-manager.php:207 templates/reregistration/field-working-hours.php:52
+msgid "Remove day"
+msgstr "Remover dia"
+
 #: includes/audience/class-ffc-audience-loader.php:254 includes/audience/class-ffc-audience-admin-audience-renderer.php:624
 msgid "Remove department"
 msgstr "Remover departamento"

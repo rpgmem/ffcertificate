@@ -641,18 +641,27 @@
          * @param {string} [opts.className]  Extra classes: the hooks scripts read.
          * @param {boolean} [opts.disabled]  Disabled (`aria-disabled` + `.disabled` on a link).
          * @param {Object} [opts.attrs]  Further attributes; `true` prints a bare one, `false`/`null` drops it.
-         * @return {HTMLElement|null}  Null without a label.
+         * @param {boolean} [opts.iconOnly]  No visible text (#1879): the label becomes
+         *        `aria-label` and `title`, and an icon is required.
+         * @return {HTMLElement|null}  Null without a label, or icon-only without an icon.
          */
         button: function(opts) {
             var o = opts || {};
             if (o.label === null || typeof o.label === 'undefined' || o.label === '') {
                 return null;
             }
+            var hasIcon = typeof o.icon === 'string' && /^[a-z0-9-]+$/.test(o.icon);
+            if (o.iconOnly && !hasIcon) {
+                return null;
+            }
             var category = this.buttonCategories.indexOf(o.category) !== -1 ? o.category : 'neutral';
             var isLink = typeof o.href === 'string';
             var el = document.createElement(isLink ? 'a' : 'button');
             var classes = ['ffc-btn', 'ffc-btn-' + category];
-            if (typeof o.icon === 'string' && /^[a-z0-9-]+$/.test(o.icon)) {
+            if (o.iconOnly) {
+                classes.push('ffc-btn-icon');
+            }
+            if (hasIcon) {
                 classes.push('ffc-icon-' + o.icon);
             }
             String(o.className || '').split(/\s+/).forEach(function(name) {
@@ -676,6 +685,10 @@
             if (o.id) {
                 el.id = String(o.id);
             }
+            if (o.iconOnly) {
+                el.setAttribute('aria-label', String(o.label));
+                el.setAttribute('title', String(o.label));
+            }
             var attrs = o.attrs || {};
             Object.keys(attrs).forEach(function(key) {
                 var value = attrs[key];
@@ -689,7 +702,9 @@
                     el.setAttribute(name, String(value));
                 }
             });
-            el.textContent = String(o.label);
+            if (!o.iconOnly) {
+                el.textContent = String(o.label);
+            }
             return el;
         },
 

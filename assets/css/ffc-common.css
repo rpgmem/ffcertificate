@@ -987,20 +987,6 @@
     font-size: var(--ffc-font-size-xl);
 }
 
-.ffc-shortcode .ffc-modal-close {
-    background: none;
-    border: none;
-    font-size: var(--ffc-font-size-2xl);
-    cursor: pointer;
-    color: var(--ffc-gray-600);
-    padding: 0;
-    line-height: 1;
-}
-
-.ffc-shortcode .ffc-modal-close:hover {
-    color: var(--ffc-gray-800);
-}
-
 .ffc-shortcode .ffc-modal-body {
     padding: var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-base);
@@ -2343,6 +2329,39 @@ body.wp-admin .ffc-btn {
     color: var(--ffc-text-muted);
     border-color: transparent;
     cursor: not-allowed;
+}
+
+/* Icon-only (#1879): a square with the icon centred and no text — a
+   dialog's close, a row's remove. The label is still required and becomes
+   the `aria-label` and `title`. Every state above applies unchanged: the
+   category's ground and hover border, the focus ring, the disabled grey,
+   and the forced-colors contour `.ffc-btn` already carries. 32px on the
+   public pages, 28px in the admin, like the family's own two shapes. */
+.ffc-btn-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0;
+}
+
+body.wp-admin .ffc-btn-icon {
+    width: 28px;
+    height: 28px;
+    min-height: 28px;
+    padding: 0;
+}
+
+.ffc-btn-icon::before {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    vertical-align: middle;
+}
+
+body.wp-admin .ffc-btn-icon::before {
+    width: 16px;
+    height: 16px;
 }
 
 @media (prefers-reduced-motion: reduce) {

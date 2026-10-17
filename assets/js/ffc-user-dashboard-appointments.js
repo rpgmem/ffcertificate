@@ -42,7 +42,7 @@
                 '<div class="ffc-modal-content">' +
                     '<div class="ffc-modal-header">' +
                         '<h3 class="ffc-modal-title" id="' + MODAL_ID + '-title">' + helpers.esc(s.cancelTitle) + '</h3>' +
-                        '<button type="button" class="ffc-modal-close" aria-label="' + helpers.escAttr(s.close) + '">&times;</button>' +
+                        '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="' + helpers.escAttr(s.close) + '" title="' + helpers.escAttr(s.close) + '"></button>' +
                     '</div>' +
                     '<div class="ffc-modal-body">' +
                         '<p>' + helpers.esc(s.cancelIntro) + '</p>' +

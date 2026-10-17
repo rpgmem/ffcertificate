@@ -47,7 +47,7 @@
             '<td><input type="time" class="ffc-wh-exit1" value="' + (exit1 || '') + '"></td>' +
             '<td><input type="time" class="ffc-wh-entry2" value="' + (entry2 || '') + '"></td>' +
             '<td><input type="time" class="ffc-wh-exit2" value="' + (exit2 || '17:00') + '" required></td>' +
-            '<td><button type="button" class="button button-small ffc-wh-remove">&times;</button></td>' +
+            '<td>' + FFC.buttonHtml({ label: strings.removeDay, category: 'danger', icon: 'cross', iconOnly: true, className: 'ffc-wh-remove' }) + '</td>' +
             '</tr>';
     }
 
@@ -136,7 +136,8 @@
     var strings = $.extend({
         entry1:     'Entry 1',
         exit2:      'Exit 2',
-        incomplete: 'This row has a time but is missing: %s. Fill it in, or clear the row to remove the day.'
+        incomplete: 'This row has a time but is missing: %s. Fill it in, or clear the row to remove the day.',
+        removeDay:  'Remove day'
     }, (window.ffcWorkingHours && window.ffcWorkingHours.strings) || {});
 
     /**

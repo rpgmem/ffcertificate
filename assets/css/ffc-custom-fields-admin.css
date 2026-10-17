@@ -278,11 +278,3 @@
     gap: var(--ffc-spacing-xs);
     margin-bottom: var(--ffc-spacing-xs);
 }
-
-.ffc-ds-editor .ffc-ds-sector-remove {
-    color: var(--ffc-danger-text);
-    text-decoration: none;
-    font-size: var(--ffc-font-size-xl);
-    line-height: 1;
-    cursor: pointer;
-}

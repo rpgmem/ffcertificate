@@ -101,24 +101,11 @@
     }
 }
 
+/* Only the place: the look is the button family's icon-only close (#1879). */
 .ffc-qr-modal__close {
     position: absolute;
     top: 10px;
     right: var(--ffc-spacing-lg);
-    background: none;
-    border: none;
-    font-size: var(--ffc-font-size-2xl);
-    line-height: 1;
-    color: var(--ffc-text-muted);
-    cursor: pointer;
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
-    border-radius: var(--ffc-radius-sm);
-    transition: color 0.2s, background 0.2s;
-}
-
-.ffc-qr-modal__close:hover {
-    color: var(--ffc-danger-text);
-    background: var(--ffc-bg-alt);
 }
 
 .ffc-qr-modal__title {

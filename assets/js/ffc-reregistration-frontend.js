@@ -194,7 +194,7 @@
                     '<td><input type="time" class="ffc-wh-exit1"></td>' +
                     '<td><input type="time" class="ffc-wh-entry2"></td>' +
                     '<td><input type="time" class="ffc-wh-exit2"></td>' +
-                    '<td><button type="button" class="ffc-wh-remove">&times;</button></td>' +
+                    '<td>' + FFC.buttonHtml({ label: S.removeDay || 'Remove day', category: 'danger', icon: 'cross', iconOnly: true, className: 'ffc-wh-remove' }) + '</td>' +
                     '</tr>');
                 $tbody.append($row);
                 syncHidden();

@@ -64,7 +64,7 @@
 			'<div class="ffc-preview-container">' +
 				'<div class="ffc-preview-header">' +
 					'<h2>' + esc(previewTitle) + '</h2>' +
-					'<button type="button" class="ffc-preview-close" title="' + esc(closeText) + '">&times;</button>' +
+					FFC.buttonHtml({ label: closeText, category: 'neutral', icon: 'cross', iconOnly: true, className: 'ffc-preview-close' }) +
 				'</div>' +
 				'<div class="ffc-preview-note">' + esc(noteText) + '</div>' +
 				'<div class="ffc-preview-body">' +

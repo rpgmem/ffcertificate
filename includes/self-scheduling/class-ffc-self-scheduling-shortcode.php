@@ -579,7 +579,17 @@ class SelfSchedulingShortcode {
 				<div class="ffc-modal-content ffc-modal-lg">
 					<div class="ffc-modal-header">
 						<h3 class="ffc-modal-title" id="ffc-modal-title"><?php esc_html_e( 'Available Times', 'ffcertificate' ); ?></h3>
-						<button type="button" class="ffc-modal-close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+						<?php
+						\FreeFormCertificate\Core\Button::render(
+							array(
+								'label'     => __( 'Close', 'ffcertificate' ),
+								'category'  => 'neutral',
+								'icon'      => 'cross',
+								'icon_only' => true,
+								'class'     => 'ffc-modal-close',
+							)
+						);
+						?>
 					</div>
 					<div class="ffc-modal-body">
 

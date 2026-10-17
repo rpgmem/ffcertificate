@@ -23,7 +23,7 @@
  *         <div class="ffc-ds-sectors">
  *           <div class="ffc-ds-sector">
  *             <input class="ffc-ds-sector-name">
- *             <button class="ffc-ds-sector-remove">
+ *             <button class="ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross ffc-ds-sector-remove" aria-label="Remove department">
  *           </div>
  *         </div>
  *         <button class="ffc-ds-sector-add">
@@ -47,7 +47,7 @@
     function sectorRow(value) {
         return '<div class="ffc-ds-sector">' +
             '<input type="text" class="ffc-ds-sector-name regular-text" value="' + escapeAttr(value || '') + '" placeholder="' + escapeAttr(t('departmentName', 'Department name')) + '">' +
-            '<button type="button" class="button-link ffc-ds-sector-remove" aria-label="' + escapeAttr(t('removeSector', 'Remove department')) + '">×</button>' +
+            '<button type="button" class="ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross ffc-ds-sector-remove" aria-label="' + escapeAttr(t('removeSector', 'Remove department')) + '" title="' + escapeAttr(t('removeSector', 'Remove department')) + '"></button>' +
             '</div>';
     }
 

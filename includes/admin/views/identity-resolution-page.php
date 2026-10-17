@@ -2737,9 +2737,18 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					<h2 id="ffc-identity-dialog-title"><?php esc_html_e( 'Choose the destination account', 'ffcertificate' ); ?></h2>
 					<p class="ffc-identity-dialog-sub" id="ffc-identity-dialog-sub"></p>
 				</div>
-				<button type="button" class="ffc-identity-dialog-close" data-ffc-dialog-dismiss aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">
-					<span aria-hidden="true">&times;</span>
-				</button>
+				<?php
+				\FreeFormCertificate\Core\Button::render(
+					array(
+						'label'     => __( 'Close', 'ffcertificate' ),
+						'category'  => 'neutral',
+						'icon'      => 'cross',
+						'icon_only' => true,
+						'class'     => 'ffc-identity-dialog-close',
+						'attrs'     => array( 'data-ffc-dialog-dismiss' => true ),
+					)
+				);
+				?>
 			</div>
 			<div class="ffc-identity-dialog-body">
 				<?php

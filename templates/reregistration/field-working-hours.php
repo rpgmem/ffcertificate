@@ -45,7 +45,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<td><input type="time" class="ffc-wh-exit1"  value="<?php echo esc_attr( $wh_entry['exit1'] ?? '' ); ?>"></td>
 						<td><input type="time" class="ffc-wh-entry2" value="<?php echo esc_attr( $wh_entry['entry2'] ?? '' ); ?>"></td>
 						<td><input type="time" class="ffc-wh-exit2"  value="<?php echo esc_attr( $wh_entry['exit2'] ?? '' ); ?>" required></td>
-						<td><button type="button" class="ffc-wh-remove">&times;</button></td>
+						<td>
+							<?php
+							\FreeFormCertificate\Core\Button::render(
+								array(
+									'label'     => __( 'Remove day', 'ffcertificate' ),
+									'category'  => 'danger',
+									'icon'      => 'cross',
+									'icon_only' => true,
+									'class'     => 'ffc-wh-remove',
+								)
+							);
+							?>
+						</td>
 					</tr>
 					<?php endforeach; ?>
 				</tbody>

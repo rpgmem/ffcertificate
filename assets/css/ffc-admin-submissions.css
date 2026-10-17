@@ -238,20 +238,6 @@
     font-weight: 600;
 }
 
-.ffc-filter-overlay-close {
-    background: none;
-    border: none;
-    font-size: var(--ffc-font-size-2xl);
-    cursor: pointer;
-    color: var(--ffc-text-muted);
-    padding: 0;
-    line-height: 1;
-}
-
-.ffc-filter-overlay-close:hover {
-    color: var(--ffc-text);
-}
-
 .ffc-filter-overlay-body {
     padding: var(--ffc-spacing-sm) 0;
     overflow-y: auto;

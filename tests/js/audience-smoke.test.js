@@ -70,7 +70,7 @@ function fullCalendarFixture() {
 		<div id="ffc-day-modal" style="display:none">
 			<div class="ffc-modal-backdrop"></div>
 			<div class="ffc-modal-content">
-				<button class="ffc-modal-close">x</button>
+				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
 				<button class="ffc-modal-cancel">x</button>
 				<input type="checkbox" id="ffc-show-cancelled" />
 				<button id="ffc-new-booking-btn">+</button>
@@ -81,7 +81,7 @@ function fullCalendarFixture() {
 		<div id="ffc-booking-modal" style="display:none">
 			<div class="ffc-modal-backdrop"></div>
 			<div class="ffc-modal-content">
-				<button class="ffc-modal-close">x</button>
+				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
 				<button class="ffc-modal-cancel">x</button>
 				<input type="checkbox" id="booking-all-day" />
 				<select id="booking-type">

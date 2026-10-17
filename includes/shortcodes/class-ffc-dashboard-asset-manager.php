@@ -123,7 +123,11 @@ class DashboardAssetManager {
 			'ffc-working-hours',
 			'ffcWorkingHours',
 			array(
-				'days' => array(
+				// #1879 — the accessible name of a row's remove button.
+				'strings' => array(
+					'removeDay' => __( 'Remove day', 'ffcertificate' ),
+				),
+				'days'    => array(
 					array(
 						'value' => 0,
 						'label' => __( 'Sunday', 'ffcertificate' ),
@@ -200,6 +204,7 @@ class DashboardAssetManager {
 					'thursday'          => __( 'Thursday', 'ffcertificate' ),
 					'friday'            => __( 'Friday', 'ffcertificate' ),
 					'saturday'          => __( 'Saturday', 'ffcertificate' ),
+					'removeDay'         => __( 'Remove day', 'ffcertificate' ),
 					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
 					'importLoading'     => __( 'Bringing previous answers…', 'ffcertificate' ),
 				),

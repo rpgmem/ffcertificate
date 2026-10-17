@@ -37,7 +37,7 @@ function dayModalFixture() {
 	document.body.innerHTML = `
 		<div id="ffc-day-modal" style="display:none">
 			<div class="ffc-day-modal-title"></div>
-			<button class="ffc-modal-close">x</button>
+			<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
 			<input type="checkbox" id="ffc-show-cancelled" />
 			<div id="ffc-day-bookings"></div>
 		</div>

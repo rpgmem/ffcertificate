@@ -147,7 +147,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<div class="ffc-rereg-modal-content">
 				<div class="ffc-rereg-modal-header">
 					<h2 id="ffc-submission-details-title"><?php esc_html_e( 'Submission Details', 'ffcertificate' ); ?></h2>
-					<button type="button" class="ffc-rereg-modal-close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'     => __( 'Close', 'ffcertificate' ),
+							'category'  => 'neutral',
+							'icon'      => 'cross',
+							'icon_only' => true,
+							'class'     => 'ffc-rereg-modal-close',
+						)
+					);
+					?>
 				</div>
 				<div class="ffc-rereg-modal-body">
 					<p class="ffc-rereg-modal-loading"><?php esc_html_e( 'Loading…', 'ffcertificate' ); ?></p>

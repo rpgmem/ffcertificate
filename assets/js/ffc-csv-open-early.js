@@ -42,7 +42,7 @@
 			+         '<span class="ffc-icon-warning" aria-hidden="true"></span>'
 			+         esc(strings.openEarlyTitle || 'Start form now?')
 			+       '</h2>'
-			+       '<button type="button" class="ffc-open-early-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'
+			+       FFC.buttonHtml({ label: strings.close || 'Close', category: 'neutral', icon: 'cross', iconOnly: true, className: 'ffc-open-early-close' })
 			+     '</div>'
 			+     '<div class="ffc-open-early-body">'
 			+       '<p>' + esc(strings.openEarlyBody1 || 'This will override the scheduled start time. The form will open immediately for all users.') + '</p>'

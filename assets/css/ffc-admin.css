@@ -885,24 +885,6 @@ td .ffc-restriction-label {
     color: var(--ffc-inverse-on-surface);
 }
 
-/* 28px literal: a glyph box, not text — an icon or a `&times;` sized by
-   font-size is a box, and the typography scale does not govern it. Same
-   reason the glyph-box family gives (#1148 step 1). */
-.ffc-preview-close {
-    background: none;
-    border: none;
-    color: var(--ffc-inverse-on-surface);
-    font-size: 28px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0 var(--ffc-spacing-2xs);
-    transition: color 0.15s;
-}
-
-.ffc-preview-close:hover {
-    color: var(--ffc-inverse-on-surface);
-}
-
 .ffc-preview-note {
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
     background: var(--ffc-info-bg);
@@ -956,10 +938,6 @@ td .ffc-restriction-label {
 
 @media (prefers-reduced-motion: reduce) {
     #ffc-preview-modal {
-        transition: none;
-    }
-
-    .ffc-preview-close {
         transition: none;
     }
 }
@@ -2007,25 +1985,6 @@ td .ffc-restriction-label {
     margin: 0;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
-}
-
-/* 44px, like the stepper controls: this is a touch target on the tablets the
-   scheduling desk actually uses. */
-.ffc-page-identities .ffc-identity-dialog-close {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0;
-    font-size: var(--ffc-font-size-2xl);
-    line-height: 1;
-    color: var(--ffc-text-muted);
-    background: none;
-    border: none;
-    cursor: pointer;
-}
-
-.ffc-page-identities .ffc-identity-dialog-close:hover,
-.ffc-page-identities .ffc-identity-dialog-close:focus {
-    color: var(--ffc-text);
 }
 
 .ffc-page-identities .ffc-identity-dialog-body {

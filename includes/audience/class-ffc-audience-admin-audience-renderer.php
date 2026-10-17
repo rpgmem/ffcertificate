@@ -702,7 +702,17 @@ final class AudienceAdminAudienceRenderer {
 											<?php foreach ( (array) $ds_sectors as $ds_sector ) : ?>
 												<div class="ffc-ds-sector">
 													<input type="text" class="ffc-ds-sector-name regular-text" value="<?php echo esc_attr( (string) $ds_sector ); ?>" placeholder="<?php esc_attr_e( 'Department name', 'ffcertificate' ); ?>">
-													<button type="button" class="button-link ffc-ds-sector-remove" aria-label="<?php esc_attr_e( 'Remove department', 'ffcertificate' ); ?>">&times;</button>
+													<?php
+													\FreeFormCertificate\Core\Button::render(
+														array(
+															'label'     => __( 'Remove department', 'ffcertificate' ),
+															'category'  => 'danger',
+															'icon'      => 'cross',
+															'icon_only' => true,
+															'class'     => 'ffc-ds-sector-remove',
+														)
+													);
+													?>
 												</div>
 											<?php endforeach; ?>
 										</div>

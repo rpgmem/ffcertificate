@@ -54,7 +54,7 @@
 			+         '<span class="ffc-icon-clock" aria-hidden="true"></span>'
 			+         esc(strings.postponeCloseTitle || 'Postpone form close?')
 			+       '</h2>'
-			+       '<button type="button" class="ffc-open-early-close ffc-extend-end-close" title="' + esc(strings.cancel || 'Cancel') + '">&times;</button>'
+			+       FFC.buttonHtml({ label: strings.close || 'Close', category: 'neutral', icon: 'cross', iconOnly: true, className: 'ffc-open-early-close ffc-extend-end-close' })
 			+     '</div>'
 			+     '<div class="ffc-open-early-body">'
 			+       '<p>' + esc(strings.postponeCloseBody || 'Pick a new close time within the same day. This action is one-shot — once confirmed it cannot be repeated from this page.') + '</p>'

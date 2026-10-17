@@ -67,23 +67,6 @@
     color: var(--ffc-text-light);
 }
 
-.ffc-wh-remove {
-    background: none;
-    border: 1px solid transparent;
-    color: var(--ffc-danger-text);
-    cursor: pointer;
-    font-size: var(--ffc-font-size-lg);
-    line-height: 1;
-    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
-    border-radius: var(--ffc-radius-sm);
-}
-
-.ffc-wh-remove:hover {
-    color: var(--ffc-danger-text);
-    border-color: var(--ffc-danger);
-    background: var(--ffc-danger-bg);
-}
-
 .ffc-wh-add {
     margin-top: var(--ffc-spacing-sm);
 }
