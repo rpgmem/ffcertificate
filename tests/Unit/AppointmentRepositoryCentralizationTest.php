@@ -77,38 +77,74 @@ class AppointmentRepositoryCentralizationTest extends TestCase {
 	}
 
 	// ------------------------------------------------------------------
-	// deleteByCalendar / Before / After / AndStatus
+	// findIdsForCleanup / deleteByIds (#1872)
 	// ------------------------------------------------------------------
 
-	public function test_delete_by_calendar_short_circuits_on_invalid_id(): void {
+	public function test_find_ids_for_cleanup_short_circuits_on_bad_input(): void {
+		$this->wpdb->shouldNotReceive( 'get_col' );
+		$this->assertSame( array(), $this->repo()->findIdsForCleanup( 0, 'all', '2026-01-01' ) );
+		$this->assertSame( array(), $this->repo()->findIdsForCleanup( 5, 'old', '' ) );
+		$this->assertSame( array(), $this->repo()->findIdsForCleanup( 5, 'future', '' ) );
+		$this->assertSame( array(), $this->repo()->findIdsForCleanup( 5, 'bogus', '2026-01-01' ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string, 2: list<mixed>}>
+	 */
+	public function cleanup_criteria(): array {
+		return array(
+			'all'       => array( 'all', 'WHERE calendar_id = %d ORDER BY', array( 5 ) ),
+			'old'       => array( 'old', 'appointment_date < %s', array( 5, '2026-01-01' ) ),
+			'cancelled' => array( 'cancelled', 'status = %s', array( 5, 'cancelled' ) ),
+			'future'    => array( 'future', 'appointment_date >= %s AND status IN (%s, %s, %s)', array( 5, '2026-01-01', 'pending', 'confirmed', 'waitlist' ) ),
+		);
+	}
+
+	/**
+	 * @dataProvider cleanup_criteria
+	 *
+	 * @param string       $criterion Criterion.
+	 * @param string       $where     Fragment the SELECT must carry.
+	 * @param list<mixed>  $bound     Values bound after the table.
+	 */
+	public function test_find_ids_for_cleanup_selects_by_criterion( string $criterion, string $where, array $bound ): void {
+		$seen = array();
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+			static function ( string $sql, ...$args ) use ( &$seen ): string {
+				$seen = array( $sql, $args );
+				return 'Q';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_col' )->once()->with( 'Q' )->andReturn( array( '3', '4' ) );
+
+		$this->assertSame( array( 3, 4 ), $this->repo()->findIdsForCleanup( 5, $criterion, '2026-01-01' ) );
+		$this->assertStringStartsWith( 'SELECT id FROM %i', $seen[0] );
+		$this->assertStringContainsString( $where, $seen[0] );
+		$this->assertSame( array_merge( array( 'wp_ffc_self_scheduling_appointments' ), $bound ), $seen[1] );
+	}
+
+	public function test_delete_by_ids_ignores_nothing_valid(): void {
 		$this->wpdb->shouldNotReceive( 'query' );
-		$this->assertSame( 0, $this->repo()->deleteByCalendar( 0 ) );
+		$this->assertSame( 0, $this->repo()->deleteByIds( array() ) );
+		$this->assertSame( 0, $this->repo()->deleteByIds( array( 0, -3 ) ) );
 	}
 
-	public function test_delete_by_calendar_returns_affected_rows(): void {
-		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 10 );
-		$this->assertSame( 10, $this->repo()->deleteByCalendar( 5 ) );
-	}
+	public function test_delete_by_ids_deletes_the_distinct_ids_in_chunks(): void {
+		$ids      = range( 1, 501 );
+		$ids[]    = 7;
+		$prepared = array();
+		$this->wpdb->shouldReceive( 'prepare' )->twice()->andReturnUsing(
+			static function ( string $sql, array $args ) use ( &$prepared ): string {
+				$prepared[] = array( $sql, $args );
+				return 'Q';
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->twice()->with( 'Q' )->andReturn( 500, 1 );
 
-	public function test_delete_by_calendar_before_validates_inputs(): void {
-		$this->wpdb->shouldNotReceive( 'query' );
-		$this->assertSame( 0, $this->repo()->deleteByCalendarBefore( 0, '2026-01-01' ) );
-		$this->assertSame( 0, $this->repo()->deleteByCalendarBefore( 5, '' ) );
-	}
-
-	public function test_delete_by_calendar_before_returns_rows(): void {
-		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 3 );
-		$this->assertSame( 3, $this->repo()->deleteByCalendarBefore( 5, '2026-01-01' ) );
-	}
-
-	public function test_delete_by_calendar_after_returns_rows(): void {
-		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 7 );
-		$this->assertSame( 7, $this->repo()->deleteByCalendarAfter( 5, '2026-01-01' ) );
-	}
-
-	public function test_delete_by_calendar_and_status_returns_rows(): void {
-		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 2 );
-		$this->assertSame( 2, $this->repo()->deleteByCalendarAndStatus( 5, 'cancelled' ) );
+		$this->assertSame( 501, $this->repo()->deleteByIds( $ids ) );
+		$this->assertSame( 500, substr_count( $prepared[0][0], '%d' ) );
+		$this->assertStringStartsWith( 'DELETE FROM %i WHERE id IN (', $prepared[0][0] );
+		$this->assertSame( array( 'wp_ffc_self_scheduling_appointments', 501 ), $prepared[1][1] );
 	}
 
 	// ------------------------------------------------------------------
