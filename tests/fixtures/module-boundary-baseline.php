@@ -23,6 +23,7 @@ return array(
 	'API>UserDashboard',
 	'Admin>Audience',
 	'Admin>Core',
+	'Admin>DateMessages',
 	'Admin>Frontend',
 	'Admin>Generators',
 	'Admin>Maintenance',

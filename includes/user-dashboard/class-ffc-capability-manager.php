@@ -202,8 +202,9 @@ class CapabilityManager {
 		// caps so seeing a submission list no longer implies seeing the
 		// decrypted CPF / RF / email. Mirrors `ffc_view_recruitment_pii`:
 		// a holder gets the audited *reveal* tier (masked placeholder →
-		// click to decrypt, which writes an audit row); the domain `_admin`
-		// role sees plaintext unmasked. Lives on the manager + admin tiers.
+		// click to decrypt, which writes an audit row). Since #1863 nobody on
+		// staff sees plaintext without Reveal. Lives on the manager + admin
+		// tiers.
 		'ffc_view_certificates_pii',
 		'ffc_view_appointments_pii',
 		// Reregistration joins the carve (#1815): the submissions list printed
@@ -213,6 +214,12 @@ class CapabilityManager {
 		// `migrate_reregistration_pii_cap_grant()` seeds it onto every current
 		// `ffc_manage_reregistration` holder, so no manager loses the details.
 		'ffc_view_reregistration_pii',
+		// Audience Calendars join the carve (#1863): the module listed people
+		// and their account emails and had no PII cap, so the reveal borrowed
+		// the appointments one. The one-shot
+		// `migrate_audiences_pii_cap_grant()` seeds it onto every current
+		// `ffc_manage_audiences` holder.
+		'ffc_view_audiences_pii',
 
 		// URL shortener domain (GAP B). Its own view/manage pair so the
 		// Short URLs admin page is delegable without manage_options.
@@ -855,7 +862,7 @@ class CapabilityManager {
 
 		$audiences_viewer   = array( 'ffc_view_audiences' );
 		$audiences_operator = array_merge( $audiences_viewer, array( 'ffc_import_audiences' ) );
-		$audiences_manager  = array_merge( $audiences_operator, array( 'ffc_manage_audiences', 'ffc_export_audiences', 'ffc_delete_audiences' ) );
+		$audiences_manager  = array_merge( $audiences_operator, array( 'ffc_manage_audiences', 'ffc_export_audiences', 'ffc_delete_audiences', 'ffc_view_audiences_pii' ) );
 
 		$rereg_viewer   = array( 'ffc_view_reregistration' );
 		$rereg_operator = array_merge( $rereg_viewer, array( 'ffc_export_reregistration' ) );
@@ -925,7 +932,7 @@ class CapabilityManager {
 				'label' => __( 'FFC Certificates - Submissions - Manager', 'ffcertificate' ),
 				'caps'  => $certificates_manager,
 			),
-			// Same caps as the manager; the PII policy treats it as unmasked.
+			// Same caps as the manager.
 			'ffc_certificates_admin'       => array(
 				'label' => __( 'FFC Certificates - Submissions - Administrator', 'ffcertificate' ),
 				'caps'  => $certificates_manager,
@@ -1003,7 +1010,7 @@ class CapabilityManager {
 				'label' => __( 'FFC Reregistration - Manager', 'ffcertificate' ),
 				'caps'  => $rereg_manager,
 			),
-			// Same caps as the manager; the PII policy treats it as unmasked.
+			// Same caps as the manager.
 			'ffc_reregistration_admin'     => array(
 				'label' => __( 'FFC Reregistration - Administrator', 'ffcertificate' ),
 				'caps'  => $rereg_manager,

@@ -24,20 +24,28 @@ class AdminAjax {
 	use \FreeFormCertificate\Core\AjaxTrait;
 
 	/**
+	 * Most values one "reveal this page" request may name (#1863). A list
+	 * page holds a few hundred masked values at most.
+	 */
+	private const PAGE_REVEAL_LIMIT = 500;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		// Register AJAX handlers (ffc_load_template is handled by FormEditor).
 		add_action( 'wp_ajax_ffc_search_user', array( $this, 'search_user' ) );
 		add_action( 'wp_ajax_ffc_reveal_pii', array( $this, 'reveal_pii' ) );
+		add_action( 'wp_ajax_ffc_reveal_pii_page', array( $this, 'reveal_pii_page' ) );
 	}
 
 	/**
-	 * Per-record-type configuration for {@see reveal_pii()}. Each entry maps a
-	 * record type to the surface cap that gates the endpoint, the PII cap +
-	 * unmasked `_admin` role handed to the shared policy, and the audit action
-	 * written for a `reveal`-tier disclosure.
+	 * Per-record-type configuration for {@see reveal_pii()} and
+	 * {@see reveal_pii_page()}. Each entry maps a record type to the surface
+	 * cap that gates the endpoint, the module's PII cap handed to the shared
+	 * policy, and the audit action written for every disclosure.
 	 *
+	 * @since 6.40.0 No unmasked role any more: everyone reveals (#1863).
 	 * @return array<string, array<string, string>>
 	 */
 	private function pii_reveal_configs(): array {
@@ -45,58 +53,79 @@ class AdminAjax {
 			'submission'     => array(
 				'surface_cap'  => 'ffc_view_certificates',
 				'pii_cap'      => 'ffc_view_certificates_pii',
-				'admin_role'   => 'ffc_certificates_admin',
 				'audit_action' => 'submission_pii_revealed',
 			),
 			'appointment'    => array(
 				'surface_cap'  => 'ffc_view_appointments',
 				'pii_cap'      => 'ffc_view_appointments_pii',
-				'admin_role'   => 'ffc_appointments_admin',
 				'audit_action' => 'appointment_pii_revealed',
 			),
 			// #1815.
 			'reregistration' => array(
 				'surface_cap'  => 'ffc_view_reregistration',
 				'pii_cap'      => 'ffc_view_reregistration_pii',
-				'admin_role'   => 'ffc_reregistration_admin',
 				'audit_action' => 'reregistration_pii_revealed',
 			),
 			// The account email of a person listed on an audience screen
-			// (#1824). The audience domain has no PII cap of its own, so the
-			// gate is the appointments one; AudienceAccountEmail says why.
+			// (#1824), behind the audience module's own PII cap since #1863.
 			\FreeFormCertificate\Audience\AudienceAccountEmail::REVEAL_TYPE => array(
 				'surface_cap'  => 'ffc_view_audiences',
 				'pii_cap'      => \FreeFormCertificate\Audience\AudienceAccountEmail::PII_CAP,
-				'admin_role'   => \FreeFormCertificate\Audience\AudienceAccountEmail::ADMIN_ROLE,
 				'audit_action' => 'audience_account_email_revealed',
+			),
+			// A sensitive audience custom field on the WordPress user-edit
+			// screen (#1863). The surface is that screen, so the gate is
+			// editing users; the record check adds `edit_user` for the id.
+			\FreeFormCertificate\Admin\AdminUserCustomFields::REVEAL_TYPE => array(
+				'surface_cap'  => 'edit_users',
+				'pii_cap'      => \FreeFormCertificate\Admin\AdminUserCustomFields::PII_CAP,
+				'audit_action' => 'user_profile_pii_revealed',
+			),
+			// A person listed by Date Messages' upcoming dates (#1863).
+			\FreeFormCertificate\DateMessages\DateMessagesAdminPage::REVEAL_TYPE => array(
+				'surface_cap'  => \FreeFormCertificate\DateMessages\DateMessagesAdminPage::VIEW_CAP,
+				'pii_cap'      => \FreeFormCertificate\DateMessages\DateMessagesAdminPage::PII_CAP,
+				'audit_action' => 'date_messages_pii_revealed',
 			),
 		);
 	}
 
 	/**
-	 * Fields a reveal type serves. `account_email` is the email of the WP
-	 * account a submission is linked to (#1824); an audience record is an
-	 * account, so its only field is that account's email.
+	 * Whether a reveal type serves a field. `account_email` is the email of
+	 * the WP account a submission is linked to (#1824); an audience record is
+	 * an account, so its only field is that account's email; a user profile
+	 * serves its sensitive custom fields by id (`cf_<id>`), and a Date
+	 * Messages person their name.
 	 *
-	 * @param string $type Reveal type, a key of {@see pii_reveal_configs()}.
-	 * @return list<string>
+	 * @param string $type  Reveal type, a key of {@see pii_reveal_configs()}.
+	 * @param string $field Field asked for.
+	 * @return bool
 	 */
-	private function pii_reveal_fields( string $type ): array {
+	private function pii_reveal_serves( string $type, string $field ): bool {
+		if ( \FreeFormCertificate\Admin\AdminUserCustomFields::REVEAL_TYPE === $type ) {
+			return 1 === preg_match( '/^cf_[1-9][0-9]*$/', $field );
+		}
+		if ( \FreeFormCertificate\DateMessages\DateMessagesAdminPage::REVEAL_TYPE === $type ) {
+			return 'name' === $field;
+		}
 		if ( \FreeFormCertificate\Audience\AudienceAccountEmail::REVEAL_TYPE === $type ) {
-			return array( 'email' );
+			return 'email' === $field;
 		}
 		if ( 'submission' === $type ) {
-			return array( 'cpf', 'rf', 'email', 'ip', 'account_email' );
+			return in_array( $field, array( 'cpf', 'rf', 'email', 'ip', 'account_email' ), true );
 		}
-		return array( 'cpf', 'rf', 'email', 'ip' );
+		if ( 'appointment' === $type ) {
+			return in_array( $field, array( 'cpf', 'rf', 'email', 'ip', 'phone' ), true );
+		}
+		return in_array( $field, array( 'cpf', 'rf', 'email', 'ip' ), true );
 	}
 
 	/**
 	 * Load and decrypt the record whose PII a reveal targets.
 	 *
-	 * @param string $type Record type ('submission' | 'appointment' |
-	 *                     'reregistration' | 'audience_account').
-	 * @param int    $id   Record ID; for `audience_account`, the account ID.
+	 * @param string $type Record type, a key of {@see pii_reveal_configs()}.
+	 * @param int    $id   Record ID; for `audience_account`, `user_profile`
+	 *                     and `date_messages_person`, the account ID.
 	 * @return array<string, mixed>|null Decrypted row (with `cpf` / `rf` /
 	 *                                   `email` / `user_ip` / `user_id` keys), or null when
 	 *                                   the record is missing.
@@ -119,6 +148,31 @@ class AdminAjax {
 			return array(
 				'user_id' => $id,
 				'email'   => (string) $account->user_email,
+			);
+		}
+
+		if ( \FreeFormCertificate\Admin\AdminUserCustomFields::REVEAL_TYPE === $type ) {
+			// Only an account the current user may edit: the field is shown
+			// on that account's edit screen and nowhere else.
+			if ( $id <= 0 || ! current_user_can( 'edit_user', $id ) || ! get_userdata( $id ) ) {
+				return null;
+			}
+			return array(
+				'user_id' => $id,
+				'fields'  => \FreeFormCertificate\Admin\AdminUserCustomFields::sensitive_values( $id ),
+			);
+		}
+
+		if ( \FreeFormCertificate\DateMessages\DateMessagesAdminPage::REVEAL_TYPE === $type ) {
+			// Only a person the upcoming-dates panel can list: one with a
+			// birth date on the profile.
+			$account = $id > 0 ? get_userdata( $id ) : false;
+			if ( ! $account || ! \FreeFormCertificate\DateMessages\DateMessagesAdminPage::is_listed( $id ) ) {
+				return null;
+			}
+			return array(
+				'user_id' => $id,
+				'name'    => (string) $account->display_name,
 			);
 		}
 
@@ -178,26 +232,107 @@ class AdminAjax {
 	}
 
 	/**
-	 * Reveal one decrypted PII field (CPF / RF / email / IP) of a certificate
-	 * submission, self-scheduling appointment or reregistration submission
-	 * (#1815), gated by the #739 §3.3 PII
-	 * policy and audited. The IP is the stored `user_ip`, the address the
-	 * submission and its LGPD consent were recorded from (#1760). It also
-	 * serves a WordPress account's email where an admin screen lists one:
-	 * the account linked to a submission (`account_email`) and the people on
-	 * the audience screens (type `audience_account`), both since #1824.
+	 * The clear, display-formatted value of one field of a loaded record.
 	 *
-	 * The admin surfaces (submission edit page + list, appointment detail +
-	 * list) render the masked value only; the plaintext is fetched here on
-	 * demand so it never sits in the initial HTML for the `reveal` / `masked`
-	 * tiers. Returns 403 for the masked tier. Every reveal served writes an
-	 * audit row, whatever the tier, since a call is always a deliberate
-	 * disclosure: the submission edit page (#1655), the appointment detail
-	 * page (#1813), the list screens (#1815, #1822) and the account emails
-	 * (#1824) mask for the unmasked tier too, which makes this the only way
-	 * it sees a value there. The `type`
-	 * POST field selects the record domain (defaults to `submission` for
-	 * backward compatibility).
+	 * @param array<string, mixed> $record Record from {@see load_pii_record()}.
+	 * @param string               $field  Field key.
+	 * @return string '' when the record holds no value for it.
+	 */
+	private function pii_display_value( array $record, string $field ): string {
+		switch ( $field ) {
+			case 'cpf':
+				return \FreeFormCertificate\Core\DocumentFormatter::format_cpf( (string) ( $record['cpf'] ?? '' ) );
+			case 'rf':
+				return \FreeFormCertificate\Core\DocumentFormatter::format_rf( (string) ( $record['rf'] ?? '' ) );
+			case 'ip':
+				return (string) ( $record['user_ip'] ?? '' );
+			case 'phone':
+				return (string) ( $record['phone'] ?? '' );
+			case 'name':
+				return (string) ( $record['name'] ?? '' );
+			case 'account_email':
+				// The linked account's email (#1824), gated by the
+				// submission's policy: it is shown on the submission screen,
+				// to whoever may reveal that submission's own email.
+				$owner   = isset( $record['user_id'] ) ? (int) $record['user_id'] : 0;
+				$account = $owner > 0 ? get_userdata( $owner ) : false;
+				return $account ? (string) $account->user_email : '';
+			case 'email':
+				return (string) ( $record['email'] ?? '' );
+			default:
+				// A user-profile custom field, `cf_<id>`.
+				$fields = is_array( $record['fields'] ?? null ) ? $record['fields'] : array();
+				return (string) ( $fields[ (int) substr( $field, 3 ) ] ?? '' );
+		}
+	}
+
+	/**
+	 * Reveal one field of one record for the current user, without auditing.
+	 *
+	 * @param string $type  Record type, a key of {@see pii_reveal_configs()}.
+	 * @param int    $id    Record ID.
+	 * @param string $field Field key.
+	 * @return array{value?: string, status: int, message?: string} `status`
+	 *         200 with `value`, or the HTTP status and message of the refusal.
+	 */
+	private function reveal_one( string $type, int $id, string $field ): array {
+		$configs = $this->pii_reveal_configs();
+		$config  = $configs[ $type ];
+
+		if ( ! $this->pii_reveal_serves( $type, $field ) ) {
+			return array(
+				'status'  => 400,
+				'message' => __( 'Unsupported field.', 'ffcertificate' ),
+			);
+		}
+		if ( $id <= 0 ) {
+			return array(
+				'status'  => 400,
+				'message' => __( 'Invalid record.', 'ffcertificate' ),
+			);
+		}
+
+		$record = $this->load_pii_record( $type, $id );
+		if ( null === $record ) {
+			return array(
+				'status'  => 404,
+				'message' => __( 'Record not found.', 'ffcertificate' ),
+			);
+		}
+		$owner = isset( $record['user_id'] ) ? (int) $record['user_id'] : null;
+
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === \FreeFormCertificate\Core\PiiAccessPolicy::resolve( $config['pii_cap'], $owner ) ) {
+			return array(
+				'status'  => 403,
+				'message' => __( 'You do not have permission to reveal this field.', 'ffcertificate' ),
+			);
+		}
+
+		$display = $this->pii_display_value( $record, $field );
+		if ( '' === $display ) {
+			return array(
+				'status'  => 404,
+				'message' => __( 'No value to reveal.', 'ffcertificate' ),
+			);
+		}
+
+		return array(
+			'status' => 200,
+			'value'  => $display,
+		);
+	}
+
+	/**
+	 * Reveal one decrypted PII field of a record, gated by the shared PII
+	 * policy and audited (#739 §3.3, #1863). The `type` POST field selects
+	 * the record domain (defaults to `submission` for backward compatibility);
+	 * {@see pii_reveal_configs()} lists them.
+	 *
+	 * The admin surfaces render the masked value only; the plaintext is
+	 * fetched here on demand so it never sits in the initial HTML. Returns
+	 * 403 for the masked tier. Every reveal served writes an audit row, since
+	 * a call is always a deliberate disclosure (#1655); since #1863 there is
+	 * no staff tier that sees the value any other way.
 	 *
 	 * @return void
 	 */
@@ -216,54 +351,11 @@ class AdminAjax {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission.', 'ffcertificate' ) ), 403 );
 		}
 
-		$id    = $this->get_post_int( 'submission_id' );
-		$field = $this->get_post_param( 'field' );
-		if ( ! in_array( $field, $this->pii_reveal_fields( $type ), true ) ) {
-			wp_send_json_error( array( 'message' => __( 'Unsupported field.', 'ffcertificate' ) ) );
-		}
-		if ( $id <= 0 ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid record.', 'ffcertificate' ) ) );
-		}
-
-		$record = $this->load_pii_record( $type, $id );
-		if ( null === $record ) {
-			wp_send_json_error( array( 'message' => __( 'Record not found.', 'ffcertificate' ) ), 404 );
-		}
-		$owner = isset( $record['user_id'] ) ? (int) $record['user_id'] : null;
-
-		$tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
-			$config['pii_cap'],
-			$config['admin_role'],
-			$owner
-		);
-		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === $tier ) {
-			wp_send_json_error( array( 'message' => __( 'You do not have permission to reveal this field.', 'ffcertificate' ) ), 403 );
-		}
-
-		// The record arrives already decrypted; render through DocumentFormatter
-		// so it matches the unmasked display.
-		switch ( $field ) {
-			case 'cpf':
-				$display = \FreeFormCertificate\Core\DocumentFormatter::format_cpf( (string) ( $record['cpf'] ?? '' ) );
-				break;
-			case 'rf':
-				$display = \FreeFormCertificate\Core\DocumentFormatter::format_rf( (string) ( $record['rf'] ?? '' ) );
-				break;
-			case 'ip':
-				$display = (string) ( $record['user_ip'] ?? '' );
-				break;
-			case 'account_email':
-				// The linked account's email (#1824), gated by the
-				// submission's policy: it is shown on the submission screen,
-				// to whoever may reveal that submission's own email.
-				$account = null !== $owner && $owner > 0 ? get_userdata( $owner ) : false;
-				$display = $account ? (string) $account->user_email : '';
-				break;
-			default:
-				$display = (string) ( $record['email'] ?? '' );
-		}
-		if ( '' === $display ) {
-			wp_send_json_error( array( 'message' => __( 'No value to reveal.', 'ffcertificate' ) ), 404 );
+		$id     = $this->get_post_int( 'submission_id' );
+		$field  = $this->get_post_param( 'field' );
+		$result = $this->reveal_one( $type, $id, $field );
+		if ( 200 !== $result['status'] || ! isset( $result['value'] ) ) {
+			wp_send_json_error( array( 'message' => $result['message'] ?? '' ), $result['status'] );
 		}
 
 		// Every served reveal is audited (#1655); ActivityLog honours the
@@ -279,9 +371,84 @@ class AdminAjax {
 		wp_send_json_success(
 			array(
 				'field' => $field,
-				'value' => $display,
+				'value' => $result['value'],
 			)
 		);
+	}
+
+	/**
+	 * Reveal every masked value of a list page at once (#1863).
+	 *
+	 * `items` is a JSON list of `{type, id, field}`, one per reveal button
+	 * the page drew. Each is checked exactly as {@see reveal_pii()} checks
+	 * one -- surface cap, field, record, policy -- and one refused item never
+	 * stops the rest. The audit is ONE row per record domain, naming every
+	 * record revealed and the fields, so a page of fifty rows is one event
+	 * rather than fifty.
+	 *
+	 * @return void
+	 */
+	public function reveal_pii_page(): void {
+		$this->verify_ajax_nonce( 'ffc_reveal_pii_nonce' );
+
+		$raw   = json_decode( \FreeFormCertificate\Core\RequestInput::get_post_string( 'items', '[]' ), true );
+		$items = is_array( $raw ) ? $raw : array();
+		if ( array() === $items ) {
+			wp_send_json_error( array( 'message' => __( 'Nothing to reveal.', 'ffcertificate' ) ), 400 );
+		}
+		if ( count( $items ) > self::PAGE_REVEAL_LIMIT ) {
+			wp_send_json_error( array( 'message' => __( 'Too many values to reveal at once.', 'ffcertificate' ) ), 400 );
+		}
+
+		$configs  = $this->pii_reveal_configs();
+		$values   = array();
+		$revealed = array();
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			$type  = is_string( $item['type'] ?? null ) ? $item['type'] : '';
+			$id    = is_numeric( $item['id'] ?? null ) ? (int) $item['id'] : 0;
+			$field = is_string( $item['field'] ?? null ) ? $item['field'] : '';
+			if ( ! isset( $configs[ $type ] ) || ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( $configs[ $type ]['surface_cap'] ) ) {
+				continue;
+			}
+
+			$result = $this->reveal_one( $type, $id, $field );
+			if ( 200 !== $result['status'] || ! isset( $result['value'] ) ) {
+				continue;
+			}
+
+			$values[] = array(
+				'type'  => $type,
+				'id'    => $id,
+				'field' => $field,
+				'value' => $result['value'],
+			);
+
+			$revealed[ $type ]['ids'][ $id ]       = $id;
+			$revealed[ $type ]['fields'][ $field ] = $field;
+		}
+
+		if ( array() === $values ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to reveal these values.', 'ffcertificate' ) ), 403 );
+		}
+
+		foreach ( $revealed as $type => $what ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				$configs[ $type ]['audit_action'],
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'field_key'  => 'page',
+					'fields'     => array_values( $what['fields'] ),
+					'record_ids' => array_values( $what['ids'] ),
+				),
+				get_current_user_id(),
+				0
+			);
+		}
+
+		wp_send_json_success( array( 'values' => $values ) );
 	}
 
 	/**
@@ -366,7 +533,9 @@ class AdminAjax {
 		return array(
 			'id'           => $user->ID,
 			'display_name' => $user->display_name,
-			'email'        => $user->user_email,
+			// The picker tells accounts apart by name; the address is personal
+			// data and travels masked like every other (#1863).
+			'email'        => \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $user->user_email ),
 			'avatar'       => get_avatar_url( $user->ID, array( 'size' => 32 ) ),
 		);
 	}

@@ -155,10 +155,9 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * Render the email column (#1822). The address is masked for every tier,
-	 * the unmasked one included, as on the submission edit page: whoever may
-	 * reveal it (the unmasked and reveal tiers of #739 §3.3) gets a "Reveal"
-	 * button that fetches the clear value through the audited ffc_reveal_pii
+	 * Render the email column (#1822). The address is masked for every
+	 * viewer, as on the submission edit page: whoever may reveal it (the
+	 * owner and the reveal tier, #1863) gets a "Reveal" button that fetches the clear value through the audited ffc_reveal_pii
 	 * endpoint, so the plaintext never sits in the list HTML.
 	 *
 	 * @param array<string, mixed> $item Decrypted submission row.
@@ -176,7 +175,6 @@ class SubmissionsList extends \WP_List_Table {
 
 		$can_reveal = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
 			'ffc_view_certificates_pii',
-			'ffc_certificates_admin',
 			isset( $item['user_id'] ) ? (int) $item['user_id'] : null
 		);
 		if ( ! $can_reveal ) {

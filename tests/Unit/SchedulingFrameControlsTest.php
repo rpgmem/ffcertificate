@@ -226,6 +226,7 @@ class SchedulingFrameControlsTest extends TestCase {
 			->shouldReceive( 'mask_email' )->andReturn( 'a***@x.com' )
 			->shouldReceive( 'mask_cpf' )->andReturn( '***.***.**1-01' )
 			->shouldReceive( 'mask_rf' )->andReturn( '**.***.**8' )
+			->shouldReceive( 'mask_phone' )->andReturn( '' )
 			->shouldReceive( 'format_auth_code' )->andReturn( 'A-CODE' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'decrypt_appointment' )->andReturnUsing( static fn( $a ) => $a );

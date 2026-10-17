@@ -344,6 +344,20 @@ class AppointmentEmailHandlerTest extends TestCase {
 		$this->assertSame( 'admin@example.com', $this->last_mail['to'] );
 	}
 
+	public function test_admin_notification_masks_the_bookers_email_and_phone(): void {
+		// #1863: an e-mail is a copy no reveal can audit.
+		$this->handler->send_admin_notification(
+			$this->makeAppointment( array( 'phone' => '11999998888' ) ),
+			$this->makeCalendar()
+		);
+
+		$this->assertStringNotContainsString( 'john@example.com', $this->last_mail['body'] );
+		$this->assertStringContainsString( 'j***@example.com', $this->last_mail['body'] );
+		$this->assertStringNotContainsString( '11999998888', $this->last_mail['body'] );
+		$this->assertStringContainsString( '*********88', $this->last_mail['body'] );
+		$this->assertStringContainsString( 'page=ffc-appointments', $this->last_mail['body'] );
+	}
+
 	public function test_admin_notification_skipped_when_emails_disabled(): void {
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
 			if ( $key === 'ffc_settings' ) {

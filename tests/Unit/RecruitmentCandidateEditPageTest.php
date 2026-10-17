@@ -27,6 +27,9 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var Mockery\MockInterface Alias mock of RecruitmentPiiAccessPolicy. */
+	private $pii;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -97,6 +100,7 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		);
 		$pii = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentPiiAccessPolicy' );
 		$pii->shouldReceive( 'resolve' )->andReturn( 'unmasked' )->byDefault();
+		$this->pii = $pii;
 	}
 
 	protected function tearDown(): void {
@@ -294,5 +298,24 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		$this->assertStringContainsString( '<em>evt</em>', $html );
 		// Delete blocked branch (count_for_candidate > 0).
 		$this->assertStringContainsString( 'Blocked:', $html );
+	}
+
+	public function test_general_section_offers_the_reveal_tier_a_reveal_that_enables_the_email(): void {
+		// #1863: masked and disabled for staff, with a Reveal that names and
+		// enables the field; never a clear address in the HTML.
+		$this->pii->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
+			->shouldReceive( 'decrypt' )->andReturn( 'jane@example.test' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
+			->shouldReceive( 'mask_email' )->andReturn( 'j***@example.test' );
+
+		$method = new \ReflectionMethod( RecruitmentCandidateEditPage::class, 'render_general_section' );
+		$method->setAccessible( true );
+		$html = $this->capture_output( static fn () => $method->invoke( null, (object) array( 'id' => 5, 'name' => 'Jane', 'phone' => null, 'notes' => null, 'email_encrypted' => 'CIPHER' ) ) );
+
+		$this->assertStringNotContainsString( 'jane@example.test', $html );
+		$this->assertStringNotContainsString( ' name="email"', $html, 'The field posts only once a reveal named it.' );
+		$this->assertStringContainsString( 'value="j***@example.test" data-ffc-pii-field="email" data-ffc-pii-name="email" disabled', $html );
+		$this->assertStringContainsString( 'class="button button-secondary ffc-pii-reveal-btn" data-ffc-pii-candidate="5" data-ffc-pii-field="email"', $html );
 	}
 }

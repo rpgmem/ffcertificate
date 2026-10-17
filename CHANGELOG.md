@@ -69,6 +69,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration PII has its own capability and admin role** (#1815). View Details and Reveal need the new `ffc_view_reregistration_pii`, auto-granted to current managers; the new `ffc_reregistration_admin` role holds it. The audience screens, which have no PII capability, reveal on `ffc_view_appointments_pii`.
 - **The REST submit and booking routes now require an authenticated caller with a capability** (#1861). `POST /forms/{id}/submit` needs the new `ffc_submit_forms_api` (auto-granted to `ffc_view_forms_api` holders) and runs the public form's own checks; `POST /calendars/{id}/appointments` needs `ffc_manage_appointments` and sanitises `custom_data`. The public forms keep their AJAX path.
 - **Rate limits persist without an object cache, and every write path records its attempts** (#1861). The audience conflict probe needs a login and reports only readable schedules; private calendars hide their slots and months; `/verify` drops the fields the verification page hides; the form password compares in constant time; pre-flight telemetry is throttled per visitor.
+- ⚠ **Nobody on staff sees personal data without an audited Reveal** (#1863). The unmasked tier is gone: administrators and module administrator roles reveal like Managers; lists reveal a page in one logged action; REST, view-as, Date Messages and the user-edit screen are masked.
+- ⚠ **Exports and staff e-mails carry PII only for the module's PII cap** (#1863). Without it a CSV gets the same columns masked; a clear export is logged. Staff notices and the Date Messages summary are masked, with a link. Audiences get `ffc_view_audiences_pii`.
 
 ## [6.39.0] (2026-10-13) — `00eb9c88`
 

@@ -12,16 +12,16 @@ use FreeFormCertificate\Reregistration\ReregistrationAjaxHandler;
 use FreeFormCertificate\UserDashboard\CapabilityManager;
 
 /**
- * One role lands on one PII tier in every domain (#1815).
+ * One rule for every role in every PII domain (#1815, #1863).
  *
- * The three PII domains -- certificates, appointments, reregistration --
- * hand `PiiAccessPolicy` a (reveal cap, unmasked role) pair each. Nothing
- * else ties the pairs together, so a domain that named a different kind of
- * role as unmasked (reregistration first named `ffc_administrator`) would
- * make one role see plaintext in one domain and a reveal button in the next.
+ * Every domain hands `PiiAccessPolicy` its reveal cap. Since #1863 there is
+ * no staff unmasked tier: a role reveals in a domain exactly when it holds
+ * that domain's `_pii` cap, and is masked otherwise. No role -- not a module
+ * administrator, not FFC Administrator -- sees another person's data without
+ * Reveal.
  *
- * The pairs are read from `AdminAjax::pii_reveal_configs()`, the one place
- * that lists every domain, and each user is built from the caps and roles
+ * The caps are read from `AdminAjax::pii_reveal_configs()`, the one place
+ * that lists every reveal type, and each user is built from the caps
  * `CapabilityManager::module_roles_definition()` actually grants, so a role
  * that changes its caps changes what is measured here.
  *
@@ -42,16 +42,7 @@ class PiiTierConsistencyTest extends TestCase {
 	}
 
 	/**
-	 * Reveal types that own no PII pair and borrow a domain's, => the lender.
-	 * The audience screens' account email (#1824) uses the appointments pair,
-	 * because audiences have no PII capability or admin role of their own.
-	 */
-	private const BORROWED = array( 'audience_account' => 'appointment' );
-
-	/**
-	 * Domain => its reveal-endpoint config. A borrowing type must hand the
-	 * policy exactly its lender's pair, and is then left out: it is not a
-	 * domain, so it would read as one role unmasked in two domains.
+	 * Reveal type => its endpoint config.
 	 *
 	 * @return array<string, array<string, string>>
 	 */
@@ -59,94 +50,105 @@ class PiiTierConsistencyTest extends TestCase {
 		$method = new \ReflectionMethod( AdminAjax::class, 'pii_reveal_configs' );
 		$method->setAccessible( true );
 		$configs = $method->invoke( new AdminAjax() );
-		$this->assertSame( array( 'submission', 'appointment', 'reregistration', 'audience_account' ), array_keys( $configs ), 'The three PII domains and the borrowing type.' );
-		foreach ( self::BORROWED as $type => $lender ) {
-			$this->assertSame( $configs[ $lender ]['pii_cap'], $configs[ $type ]['pii_cap'], "{$type} borrows the {$lender} reveal cap" );
-			$this->assertSame( $configs[ $lender ]['admin_role'], $configs[ $type ]['admin_role'], "{$type} borrows the {$lender} unmasked role" );
-			unset( $configs[ $type ] );
+		$this->assertSame(
+			array( 'submission', 'appointment', 'reregistration', 'audience_account', 'user_profile', 'date_messages_person' ),
+			array_keys( $configs ),
+			'Every reveal type.'
+		);
+		foreach ( $configs as $type => $config ) {
+			$this->assertArrayNotHasKey( 'admin_role', $config, "{$type} names no unmasked role (#1863)." );
+			$this->assertMatchesRegularExpression( '/^ffc_view_[a-z_]+_pii$/', $config['pii_cap'], "{$type} reveals through a module PII cap." );
+			$this->assertContains( $config['pii_cap'], CapabilityManager::get_all_capabilities(), "{$type}'s cap is registered." );
 		}
 		return $configs;
 	}
 
 	/**
-	 * Make user 5 hold exactly these roles and capabilities.
+	 * Make user 5 hold exactly these capabilities.
 	 *
-	 * @param array<int, string> $roles Roles.
-	 * @param array<int, string> $caps  Capabilities.
+	 * @param array<int, string> $caps Capabilities.
 	 */
-	private function actAs( array $roles, array $caps ): void {
-		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => $roles ) );
+	private function actAs( array $caps ): void {
 		Functions\when( 'user_can' )->alias( static fn ( $uid, $cap ) => in_array( $cap, $caps, true ) );
 	}
 
 	/**
-	 * The tier user 5 resolves to in each domain.
+	 * The tier user 5 resolves to in each reveal type, on someone else's record.
 	 *
 	 * @return array<string, string>
 	 */
 	private function tiers(): array {
 		$tiers = array();
-		foreach ( $this->configs() as $domain => $config ) {
-			$tiers[ $domain ] = PiiAccessPolicy::resolve( $config['pii_cap'], $config['admin_role'], null, 5 );
+		foreach ( $this->configs() as $type => $config ) {
+			$tiers[ $type ] = PiiAccessPolicy::resolve( $config['pii_cap'], 99, 5 );
 		}
 		return $tiers;
 	}
 
-	/**
-	 * @return array<int, string>
-	 */
-	private function roleCaps( string $role ): array {
-		$definition = CapabilityManager::module_roles_definition();
-		$this->assertArrayHasKey( $role, $definition );
-		return $definition[ $role ]['caps'];
-	}
-
-	public function test_ffc_administrator_is_the_reveal_tier_in_every_domain(): void {
-		$this->actAs( array( 'ffc_administrator' ), $this->roleCaps( 'ffc_administrator' ) );
-
-		$this->assertSame(
-			array(
-				'submission'     => PiiAccessPolicy::TIER_REVEAL,
-				'appointment'    => PiiAccessPolicy::TIER_REVEAL,
-				'reregistration' => PiiAccessPolicy::TIER_REVEAL,
-			),
-			$this->tiers()
-		);
-	}
-
-	public function test_a_site_administrator_is_the_unmasked_tier_in_every_domain(): void {
-		$this->actAs( array( 'administrator' ), array( 'manage_options' ) );
-
-		$this->assertSame( array( PiiAccessPolicy::TIER_UNMASKED ), array_values( array_unique( $this->tiers() ) ) );
-	}
-
-	public function test_each_domain_admin_role_holds_its_pii_cap_and_is_unmasked_in_its_own_domain_only(): void {
-		foreach ( $this->configs() as $domain => $config ) {
-			$caps = $this->roleCaps( $config['admin_role'] );
-			$this->assertContains( $config['pii_cap'], $caps, "{$config['admin_role']} holds {$config['pii_cap']}" );
-			$this->assertStringEndsWith( '_admin', $config['admin_role'], "The {$domain} unmasked role is a domain admin role." );
-
-			$this->actAs( array( $config['admin_role'] ), $caps );
-			foreach ( $this->tiers() as $other => $tier ) {
+	public function test_no_role_is_unmasked_anywhere_and_each_reveals_exactly_where_it_holds_the_cap(): void {
+		$configs = $this->configs();
+		foreach ( CapabilityManager::module_roles_definition() as $role => $definition ) {
+			$this->actAs( $definition['caps'] );
+			foreach ( $this->tiers() as $type => $tier ) {
 				$this->assertSame(
-					$other === $domain ? PiiAccessPolicy::TIER_UNMASKED : PiiAccessPolicy::TIER_MASKED,
+					in_array( $configs[ $type ]['pii_cap'], $definition['caps'], true ) ? PiiAccessPolicy::TIER_REVEAL : PiiAccessPolicy::TIER_MASKED,
 					$tier,
-					"{$config['admin_role']} in {$other}"
+					"{$role} in {$type}"
 				);
 			}
 		}
 	}
 
+	public function test_ffc_administrator_reveals_in_every_domain(): void {
+		$this->actAs( CapabilityManager::module_roles_definition()['ffc_administrator']['caps'] );
+		$this->assertSame( array( PiiAccessPolicy::TIER_REVEAL ), array_values( array_unique( $this->tiers() ) ) );
+	}
+
+	public function test_a_site_administrator_reveals_in_every_domain(): void {
+		$this->actAs( array( 'manage_options' ) );
+		$this->assertSame( array( PiiAccessPolicy::TIER_REVEAL ), array_values( array_unique( $this->tiers() ) ) );
+	}
+
+	public function test_ffc_readonly_is_masked_in_every_domain(): void {
+		$this->actAs( CapabilityManager::module_roles_definition()['ffc_readonly']['caps'] );
+		$this->assertSame( array( PiiAccessPolicy::TIER_MASKED ), array_values( array_unique( $this->tiers() ) ) );
+	}
+
+	public function test_each_pii_cap_belongs_to_its_module_manager_and_administrator(): void {
+		$definition = CapabilityManager::module_roles_definition();
+		$owners     = array(
+			'ffc_view_certificates_pii'   => array( 'ffc_certificates_manager', 'ffc_certificates_admin' ),
+			'ffc_view_appointments_pii'   => array( 'ffc_appointments_manager', 'ffc_appointments_admin' ),
+			'ffc_view_reregistration_pii' => array( 'ffc_reregistration_manager', 'ffc_reregistration_admin' ),
+			'ffc_view_audiences_pii'      => array( 'ffc_audiences_manager', 'ffc_audiences_admin' ),
+			'ffc_view_date_messages_pii'  => array( 'ffc_date_messages_manager', 'ffc_date_messages_admin' ),
+			'ffc_view_recruitment_pii'    => array( CapabilityManager::RECRUITMENT_MANAGER_ROLE, 'ffc_recruitment_admin' ),
+		);
+		foreach ( $owners as $cap => $roles ) {
+			$holders = array();
+			foreach ( $definition as $role => $def ) {
+				if ( in_array( $cap, $def['caps'], true ) ) {
+					$holders[] = $role;
+				}
+			}
+			sort( $holders );
+			$expected = array_merge( $roles, array( 'ffc_administrator' ) );
+			sort( $expected );
+			$this->assertSame( $expected, $holders, $cap );
+		}
+	}
+
 	public function test_reregistration_tiers_per_role(): void {
-		$expected = array(
-			'ffc_reregistration_admin'   => PiiAccessPolicy::TIER_UNMASKED,
-			'ffc_reregistration_manager' => PiiAccessPolicy::TIER_REVEAL,
-			'ffc_administrator'          => PiiAccessPolicy::TIER_REVEAL,
-			'ffc_reregistration_viewer'  => PiiAccessPolicy::TIER_MASKED,
+		$definition = CapabilityManager::module_roles_definition();
+		$expected   = array(
+			'ffc_reregistration_admin'    => PiiAccessPolicy::TIER_REVEAL,
+			'ffc_reregistration_manager'  => PiiAccessPolicy::TIER_REVEAL,
+			'ffc_administrator'           => PiiAccessPolicy::TIER_REVEAL,
+			'ffc_reregistration_viewer'   => PiiAccessPolicy::TIER_MASKED,
 			'ffc_reregistration_operator' => PiiAccessPolicy::TIER_MASKED,
 		);
 		foreach ( $expected as $role => $tier ) {
-			$this->actAs( array( $role ), $this->roleCaps( $role ) );
+			$this->actAs( $definition[ $role ]['caps'] );
 			$this->assertSame( $tier, $this->tiers()['reregistration'], $role );
 		}
 	}
@@ -156,6 +158,6 @@ class PiiTierConsistencyTest extends TestCase {
 		$class  = new \ReflectionClass( ReregistrationAjaxHandler::class );
 
 		$this->assertSame( $config['pii_cap'], $class->getConstant( 'PII_CAPABILITY' ) );
-		$this->assertSame( $config['admin_role'], $class->getConstant( 'PII_UNMASKED_ROLE' ) );
+		$this->assertFalse( $class->hasConstant( 'PII_UNMASKED_ROLE' ), 'The unmasked role is retired (#1863).' );
 	}
 }

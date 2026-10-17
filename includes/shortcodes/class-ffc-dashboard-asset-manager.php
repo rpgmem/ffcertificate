@@ -297,6 +297,10 @@ class DashboardAssetManager {
 					'cancel'                   => __( 'Cancel', 'ffcertificate' ),
 					'saving'                   => __( 'Saving...', 'ffcertificate' ),
 					'saveError'                => __( 'Error saving profile', 'ffcertificate' ),
+					// View as user (#1863): masked fields reveal on request.
+					'reveal'                   => __( 'Reveal', 'ffcertificate' ),
+					'revealError'              => __( 'Unable to reveal this value.', 'ffcertificate' ),
+					'revealToEdit'             => __( 'Reveal the value to edit it.', 'ffcertificate' ),
 					// Password change.
 					'securitySection'          => __( 'Security', 'ffcertificate' ),
 					'changePassword'           => __( 'Change Password', 'ffcertificate' ),

@@ -16,8 +16,11 @@
  * @var string $nonce_action   Nonce action key for the save form.
  * @var string $email          Email for the field — plaintext when editable,
  *                             masked otherwise (#739 §4.1).
- * @var bool   $email_editable Whether the current user may edit the email
- *                             inline (unmasked PII tier).
+ * @var bool   $email_editable   Whether the email shows in clear and editable
+ *                               (the candidate's own row).
+ * @var bool   $email_revealable Whether the masked email has a Reveal button
+ *                               that enables the field once it holds the
+ *                               clear value (the reveal tier, #1863).
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.7.7
@@ -46,8 +49,15 @@ if ( $email_editable ) {
 	echo '<td><input id="ffc-cand-email" type="email" class="regular-text" name="email" value="' . esc_attr( $email ) . '">';
 	// §4 trigger 3 — internal reference, not surfaced to operators.
 	echo '<p class="description">' . esc_html__( 'Setting / changing the email re-runs the user promotion path: an existing WP user matched by email gets linked here, otherwise a new WP user is created.', 'ffcertificate' ) . '</p>';
+} elseif ( $email_revealable ) {
+	// #1863 — masked + disabled until revealed: the Reveal button fetches the
+	// clear value through the audited endpoint, names the field and enables
+	// it, so the address is posted only after a reveal.
+	echo '<td><input id="ffc-cand-email" type="text" class="regular-text ffc-pii-placeholder" value="' . esc_attr( $email ) . '" data-ffc-pii-field="email" data-ffc-pii-name="email" disabled>';
+	echo ' <button type="button" class="button button-secondary ffc-pii-reveal-btn" data-ffc-pii-candidate="' . esc_attr( (string) $id ) . '" data-ffc-pii-field="email">' . esc_html__( 'Reveal', 'ffcertificate' ) . '</button>';
+	echo '<p class="description">' . esc_html__( 'Reveal the email to edit it.', 'ffcertificate' ) . '</p>';
 } else {
-	// #739 §4.1 — masked + disabled for non-unmasked tiers; the value is not
+	// #739 §4.1 — masked + disabled for the masked tier; the value is not
 	// submitted and handle_save() preserves the stored address server-side.
 	echo '<td><input id="ffc-cand-email" type="text" class="regular-text ffc-input-readonly" value="' . esc_attr( $email ) . '" disabled>';
 	echo '<p class="description">' . esc_html__( 'The email is masked. Editing it requires the recruitment PII capability.', 'ffcertificate' ) . '</p>';

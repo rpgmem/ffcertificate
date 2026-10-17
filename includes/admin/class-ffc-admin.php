@@ -263,6 +263,7 @@ class Admin {
 				$table->views();
 				$table->search_box( __( 'Search', 'ffcertificate' ), 's' );
 				?>
+				<?php echo \FreeFormCertificate\Core\PiiReveal::page_button( 'ffc_view_certificates_pii' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value. ?>
 				<div class="ffc-table-responsive">
 					<?php $table->display(); ?>
 				</div>

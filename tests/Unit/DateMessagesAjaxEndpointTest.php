@@ -211,7 +211,8 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 		$r = $this->respond( array( DateMessagesAjaxEndpoint::class, 'preview' ) );
 
 		$this->assertTrue( $r->data['pii'] );
-		$this->assertSame( array( 'Person 1', 'Person 2' ), array_column( $r->data['rows'], 'name' ) );
+		// Names are masked too (#1863); the upcoming dates reveal them, audited.
+		$this->assertSame( array( 'P*** 1*', 'P*** 2*' ), array_column( $r->data['rows'], 'name' ) );
 		$this->assertStringNotContainsString( 'person1@example.org', (string) json_encode( $r->data ), 'The address is masked.' );
 		$this->assertSame( '2026-10-01', $r->data['rows'][0]['date'] );
 	}

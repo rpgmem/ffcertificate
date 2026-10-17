@@ -327,8 +327,10 @@ class AppointmentEmailHandler {
 				__( 'Time', 'ffcertificate' )     => $time_formatted,
 				__( 'Status', 'ffcertificate' )   => $this->get_status_label( $appointment['status'] ),
 				__( 'Name', 'ffcertificate' )     => $appointment['name'] ?? '-',
-				__( 'Email', 'ffcertificate' )    => $this->get_appointment_email( $appointment ),
-				__( 'Phone', 'ffcertificate' )    => $decrypted_phone ? $decrypted_phone : '-',
+				// Masked (#1863): an e-mail is a copy no reveal can audit; the
+				// Manage button opens the screen where staff reveal them.
+				__( 'Email', 'ffcertificate' )    => \FreeFormCertificate\Core\DocumentFormatter::mask_email( $this->get_appointment_email( $appointment ) ),
+				__( 'Phone', 'ffcertificate' )    => $decrypted_phone ? \FreeFormCertificate\Core\DocumentFormatter::mask_phone( $decrypted_phone ) : '-',
 				__( 'Notes', 'ffcertificate' )    => $appointment['user_notes'] ?? '-',
 			)
 		);
@@ -338,7 +340,7 @@ class AppointmentEmailHandler {
 				'appointment-admin-notification',
 				array(
 					'details_table' => $details_table,
-					'manage_url'    => admin_url( 'edit.php?post_type=ffc_self_scheduling' ),
+					'manage_url'    => admin_url( 'admin.php?page=ffc-appointments' ),
 				)
 			)
 		);

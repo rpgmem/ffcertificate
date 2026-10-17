@@ -268,9 +268,9 @@ class AppointmentsListTable extends \WP_List_Table {
 	/**
 	 * Email column (with decryption support).
 	 *
-	 * The address is masked for every tier, the unmasked one included, as on
-	 * the appointment detail view (#1822): whoever may reveal it (the unmasked
-	 * and reveal tiers of #739 §3.3) gets a "Reveal" button that fetches the
+	 * The address is masked for every viewer, as on the appointment detail
+	 * view (#1822): whoever may reveal it (the owner and the reveal tier,
+	 * #1863) gets a "Reveal" button that fetches the
 	 * clear value through the audited ffc_reveal_pii endpoint, so the
 	 * plaintext never sits in the list HTML.
 	 *
@@ -288,7 +288,6 @@ class AppointmentsListTable extends \WP_List_Table {
 
 		$can_reveal = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
 			'ffc_view_appointments_pii',
-			'ffc_appointments_admin',
 			isset( $item['user_id'] ) ? (int) $item['user_id'] : null
 		);
 		if ( ! $can_reveal ) {

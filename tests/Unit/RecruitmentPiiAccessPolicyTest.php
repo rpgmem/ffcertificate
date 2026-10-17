@@ -64,18 +64,20 @@ class RecruitmentPiiAccessPolicyTest extends TestCase {
 	// Tier resolution
 	// ------------------------------------------------------------------
 
-	public function test_manage_options_user_gets_unmasked_tier(): void {
+	public function test_manage_options_user_gets_reveal_tier(): void {
+		// The staff unmasked tier is retired (#1863).
 		$this->setUserCapsAndRoles( 10, array( 'manage_options' ) );
 		$this->assertSame(
-			RecruitmentPiiAccessPolicy::TIER_UNMASKED,
+			RecruitmentPiiAccessPolicy::TIER_REVEAL,
 			RecruitmentPiiAccessPolicy::resolve( $this->candidate() )
 		);
 	}
 
-	public function test_ffc_recruitment_admin_role_gets_unmasked_tier(): void {
+	public function test_ffc_recruitment_admin_role_without_the_cap_is_masked(): void {
+		// The role no longer unmasks anything; its PII cap is what reveals.
 		$this->setUserCapsAndRoles( 10, array(), array( 'ffc_recruitment_admin' ) );
 		$this->assertSame(
-			RecruitmentPiiAccessPolicy::TIER_UNMASKED,
+			RecruitmentPiiAccessPolicy::TIER_MASKED,
 			RecruitmentPiiAccessPolicy::resolve( $this->candidate() )
 		);
 	}
@@ -88,11 +90,11 @@ class RecruitmentPiiAccessPolicyTest extends TestCase {
 		);
 	}
 
-	public function test_candidate_owner_gets_reveal_tier_even_without_caps(): void {
+	public function test_candidate_owner_sees_their_own_data_unmasked_even_without_caps(): void {
 		// Owner of the data (linked WP user) — no caps, no role.
 		$this->setUserCapsAndRoles( 42, array(), array( 'subscriber' ) );
 		$this->assertSame(
-			RecruitmentPiiAccessPolicy::TIER_REVEAL,
+			RecruitmentPiiAccessPolicy::TIER_UNMASKED,
 			RecruitmentPiiAccessPolicy::resolve( $this->candidate( 42 ) )
 		);
 	}
@@ -123,8 +125,8 @@ class RecruitmentPiiAccessPolicyTest extends TestCase {
 		);
 	}
 
-	public function test_cap_path_wins_over_owner_path_for_higher_tier(): void {
-		// Owner of the record + admin role → unmasked (the higher tier wins).
+	public function test_owner_path_wins_over_the_cap_path(): void {
+		// Owner of the record + admin → their own data, unmasked.
 		$this->setUserCapsAndRoles( 42, array( 'manage_options' ) );
 		$this->assertSame(
 			RecruitmentPiiAccessPolicy::TIER_UNMASKED,
@@ -136,7 +138,7 @@ class RecruitmentPiiAccessPolicyTest extends TestCase {
 	// Convenience predicates
 	// ------------------------------------------------------------------
 
-	public function test_can_reveal_true_for_unmasked_and_reveal_tiers(): void {
+	public function test_can_reveal_true_for_owner_and_reveal_tiers(): void {
 		$this->setUserCapsAndRoles( 10, array( 'manage_options' ) );
 		$this->assertTrue( RecruitmentPiiAccessPolicy::can_reveal( $this->candidate() ) );
 
@@ -149,10 +151,14 @@ class RecruitmentPiiAccessPolicyTest extends TestCase {
 		$this->assertFalse( RecruitmentPiiAccessPolicy::can_reveal( $this->candidate( 42 ) ) );
 	}
 
-	public function test_should_audit_true_only_for_reveal_tier(): void {
-		// unmasked → no audit (high-trust roles, no noise).
+	public function test_should_audit_every_staff_reveal_but_not_the_owner(): void {
+		// Administrators are audited too since #1863.
 		$this->setUserCapsAndRoles( 10, array( 'manage_options' ) );
-		$this->assertFalse( RecruitmentPiiAccessPolicy::should_audit( $this->candidate() ) );
+		$this->assertTrue( RecruitmentPiiAccessPolicy::should_audit( $this->candidate() ) );
+
+		// The candidate reading their own row → no audit.
+		$this->setUserCapsAndRoles( 42, array() );
+		$this->assertFalse( RecruitmentPiiAccessPolicy::should_audit( $this->candidate( 42 ) ) );
 
 		// reveal → audit fires.
 		$this->setUserCapsAndRoles( 10, array( 'ffc_view_recruitment_pii' ) );

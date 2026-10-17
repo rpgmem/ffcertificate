@@ -139,6 +139,48 @@ describe('candidate-edit — PII reveal/hide', () => {
 	});
 });
 
+describe('candidate-edit — the General email revealed into its field (#1863)', () => {
+	function mountEmail() {
+		document.body.innerHTML = `<form><table><tr><td>
+			<input id="ffc-cand-email" type="text" class="regular-text ffc-pii-placeholder" value="j***@x.com" data-ffc-pii-field="email" data-ffc-pii-name="email" disabled>
+			<button type="button" class="button button-secondary ffc-pii-reveal-btn" data-ffc-pii-candidate="5" data-ffc-pii-field="email">Reveal</button>
+		</td></tr></table></form>`;
+		return {
+			input: document.getElementById('ffc-cand-email'),
+			btn: document.querySelector('.ffc-pii-reveal-btn'),
+			form: document.querySelector('form'),
+		};
+	}
+
+	it('fills, names and enables the field, so it posts only after a reveal', async () => {
+		const { input, btn, form } = mountEmail();
+		expect(new FormData(form).has('email')).toBe(false);
+		fetchMock.mockReturnValue(response({ status: 200, body: { value: 'jane@x.com' } }));
+
+		btn.click();
+		await flush();
+
+		expect(fetchMock.mock.calls[0][0]).toBe(REVEAL_ROOT + '5/reveal-pii');
+		expect(input.value).toBe('jane@x.com');
+		expect(input.disabled).toBe(false);
+		expect(input.type).toBe('email');
+		expect(new FormData(form).get('email')).toBe('jane@x.com');
+		expect(document.querySelector('.ffc-pii-reveal-btn')).toBeNull();
+	});
+
+	it('keeps the field disabled and unnamed when the reveal is refused', async () => {
+		const { input, form } = mountEmail();
+		fetchMock.mockReturnValue(response({ status: 403, body: { message: 'No.' } }));
+
+		document.querySelector('.ffc-pii-reveal-btn').click();
+		await flush();
+
+		expect(input.disabled).toBe(true);
+		expect(new FormData(form).has('email')).toBe(false);
+	});
+});
+
+
 // ── Adjutancy swap ───────────────────────────────────────────────────
 
 function mountSwap({ cid = '9', value = '3' } = {}) {

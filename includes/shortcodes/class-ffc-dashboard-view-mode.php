@@ -86,7 +86,8 @@ class DashboardViewMode {
 				/* translators: 1: Admin name, 2: User name */
 				esc_html__( 'You (%1$s) are viewing the dashboard as: %2$s', 'ffcertificate' ),
 				'<strong>' . esc_html( $admin->display_name ) . '</strong>',
-				'<strong>' . esc_html( $user->display_name ) . ' (' . esc_html( $user->user_email ) . ')</strong>'
+				// The address is the viewed user's personal data (#1863).
+				'<strong>' . esc_html( $user->display_name ) . ' (' . esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $user->user_email ) ) . ')</strong>'
 			),
 			__( 'Admin View Mode', 'ffcertificate' ),
 			array(

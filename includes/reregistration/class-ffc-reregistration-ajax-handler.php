@@ -45,12 +45,6 @@ final class ReregistrationAjaxHandler {
 	public const PII_CAPABILITY = 'ffc_view_reregistration_pii';
 
 	/**
-	 * Role granted the unmasked tier: the domain's admin role, as in the
-	 * certificates and appointments domains.
-	 */
-	public const PII_UNMASKED_ROLE = 'ffc_reregistration_admin';
-
-	/**
 	 * Submission details renderer (for the View Details modal).
 	 *
 	 * @var ReregistrationSubmissionDetailsRenderer
@@ -111,8 +105,8 @@ final class ReregistrationAjaxHandler {
 	 *
 	 * Gated by the PII policy rather than the manage cap (#1815): a viewer of
 	 * the list may open it only when the policy lets them reveal, the masked
-	 * tier gets a 403, and every open served writes an audit row, at every
-	 * tier — the same rule as `ffc_reveal_pii`.
+	 * tier gets a 403, and every open served writes an audit row — the same
+	 * rule as `ffc_reveal_pii`.
 	 *
 	 * @return void
 	 */
@@ -136,7 +130,7 @@ final class ReregistrationAjaxHandler {
 
 		$owner_id = isset( $submission->user_id ) ? (int) $submission->user_id : 0;
 		$owner    = $owner_id > 0 ? $owner_id : null;
-		$tier     = \FreeFormCertificate\Core\PiiAccessPolicy::resolve( self::PII_CAPABILITY, self::PII_UNMASKED_ROLE, $owner );
+		$tier     = \FreeFormCertificate\Core\PiiAccessPolicy::resolve( self::PII_CAPABILITY, $owner );
 		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === $tier ) {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to view this submission\'s personal data.', 'ffcertificate' ) ), 403 );
 		}

@@ -55,6 +55,12 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 	private const CAP = 'ffc_export_appointments';
 
 	/**
+	 * PII cap that puts the personal columns in clear (#1863); without it
+	 * they are exported masked.
+	 */
+	private const PII_CAP = 'ffc_view_appointments_pii';
+
+	/**
 	 * Nonce action shared by start / batch / download.
 	 */
 	private const NONCE = 'ffc_appointments_export';
@@ -204,6 +210,7 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 	public function build_context( array $filters ): array {
 		return array(
 			'dynamic_keys' => $this->scan_dynamic_keys( $filters ),
+			'pii'          => \FreeFormCertificate\Core\PiiExport::allowed( self::PII_CAP ),
 		);
 	}
 
@@ -285,7 +292,7 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 	 * @return array<int, mixed>
 	 */
 	public function format_row( array $row, array $context ): array {
-		return $this->format_csv_row( $row, $context['dynamic_keys'] );
+		return $this->format_csv_row( $row, $context['dynamic_keys'], ! empty( $context['pii'] ) );
 	}
 
 	/**
@@ -308,7 +315,11 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 	 * @return void
 	 */
 	public function on_complete( string $job_id, array $job ): void {
-		unset( $job_id, $job );
+		unset( $job_id );
+		// An export with personal data in clear is a bulk reveal (#1863).
+		if ( ! empty( $job['context']['pii'] ) ) {
+			\FreeFormCertificate\Core\PiiExport::log( self::TYPE, (int) ( $job['processed'] ?? 0 ) );
+		}
 	}
 
 	/**
@@ -399,9 +410,10 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 	 *
 	 * @param array<string, mixed> $row          Row.
 	 * @param array<int, string>   $dynamic_keys Dynamic keys.
+	 * @param bool                 $clear        Whether personal data goes in clear (#1863).
 	 * @return array<int, mixed>
 	 */
-	private function format_csv_row( array $row, array $dynamic_keys ): array {
+	private function format_csv_row( array $row, array $dynamic_keys, bool $clear = true ): array {
 		// Calendar title (cached).
 		$calendar_title = '';
 		if ( ! empty( $row['calendar_id'] ) ) {
@@ -409,9 +421,9 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 		}
 
 		// Decrypt sensitive fields (encrypted → plain fallback).
-		$email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
-		$phone   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'phone' );
-		$user_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' );
+		$email   = \FreeFormCertificate\Core\PiiExport::cell( 'email', \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' ), $clear );
+		$phone   = \FreeFormCertificate\Core\PiiExport::cell( 'phone', \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'phone' ), $clear );
+		$user_ip = \FreeFormCertificate\Core\PiiExport::cell( 'user_ip', \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' ), $clear );
 
 		// Consent given (Yes/No).
 		$consent_given = '';
@@ -479,7 +491,7 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 			if ( is_array( $value ) ) {
 				$value = implode( ', ', $value );
 			}
-			$line[] = $value;
+			$line[] = \FreeFormCertificate\Core\PiiExport::cell( (string) $key, $value, $clear );
 		}
 
 		return $line;

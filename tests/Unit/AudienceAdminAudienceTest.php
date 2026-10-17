@@ -72,6 +72,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_create_nonce' )->justReturn( 'reveal-nonce' );
 		$this->policy = Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
 		$this->policy->shouldReceive( 'can_reveal' )->andReturnUsing( fn() => $this->can_reveal )->byDefault();
+		// The members table's "Reveal this page" asks the same question (#1863).
+		$this->policy->shouldReceive( 'can_reveal_any' )->andReturnUsing( fn() => $this->can_reveal )->byDefault();
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -1055,7 +1057,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	public function test_members_table_masks_the_account_email_at_every_tier( bool $can_reveal ): void {
 		$this->can_reveal = $can_reveal;
 		$this->policy->shouldReceive( 'can_reveal' )
-			->with( 'ffc_view_appointments_pii', 'ffc_appointments_admin', Mockery::type( 'int' ) )
+			->with( 'ffc_view_audiences_pii', Mockery::type( 'int' ) )
 			->andReturnUsing( fn() => $this->can_reveal );
 		$_GET['action'] = 'members';
 		$_GET['id']     = '5';
@@ -1088,6 +1090,8 @@ class AudienceAdminAudienceTest extends TestCase {
 				str_contains( $output, 'data-type="audience_account" data-field="email" data-submission-id="' . $member . '" data-nonce="reveal-nonce"' )
 			);
 		}
-		$this->assertSame( $can_reveal ? 2 : 0, substr_count( $output, 'ffc-reveal-pii' ) );
+		$this->assertSame( $can_reveal ? 2 : 0, substr_count( $output, 'ffc-reveal-pii ' ) );
+		// One "Reveal this page" over the table, for the reveal tier (#1863).
+		$this->assertSame( $can_reveal ? 1 : 0, substr_count( $output, 'ffc-reveal-pii-page' ) );
 	}
 }

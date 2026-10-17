@@ -1158,6 +1158,9 @@ class AdminUserCustomFieldsTest extends TestCase {
 			->andReturn(array( 'phone_ext' => '4321' ));
 		Functions\when('esc_html_e')->alias(static function ($t) { echo $t; });
 		Functions\when('wp_nonce_field')->justReturn('');
+		// The user's own profile: their sensitive field is theirs to see (#1863).
+		Functions\when('get_current_user_id')->justReturn(10);
+		Functions\when('user_can')->justReturn(false);
 
 		ob_start();
 		AdminUserCustomFields::render_section($user);
@@ -1165,6 +1168,96 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		$this->assertMatchesRegularExpression('/name="ffc_cf_23"[^>]*value="4321"/', $output);
 		$this->assertStringNotContainsString('stale', $output);
+	}
+
+	/**
+	 * Another user's sensitive field on user-edit.php (#1863).
+	 *
+	 * @param bool $can_reveal Whether the viewer holds the audience PII cap.
+	 * @return string The rendered section.
+	 */
+	private function render_another_users_sensitive_field( bool $can_reveal ): string {
+		$user     = new \WP_User(10);
+		$user->ID = 10;
+		$audience = (object) [ 'id' => 1, 'name' => 'Staff', 'color' => '#fff' ];
+		$rf       = (object) [
+			'id' => 23, 'field_key' => 'rf', 'field_label' => 'RF', 'field_type' => 'text',
+			'field_profile_key' => 'rf', 'is_sensitive' => 1, 'field_mask' => null, 'validation_rules' => null,
+			'is_required' => 1, 'source_audience_id' => 1, 'source_audience_name' => 'Staff', 'field_options' => '',
+		];
+
+		$this->audience_repo_mock->shouldReceive('get_user_audiences')->with(10)->andReturn([$audience]);
+		$this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')->with(1, true)->andReturn([$rf]);
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(10, true)->andReturn([$rf]);
+		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn([]);
+		Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager')
+			->shouldReceive('get_extended_profile')->andReturn(array( 'rf' => '5181780' ));
+		Functions\when('esc_html_e')->alias(static function ($t) { echo $t; });
+		Functions\when('wp_nonce_field')->justReturn('');
+		Functions\when('wp_create_nonce')->justReturn('reveal-nonce');
+		Functions\when('get_current_user_id')->justReturn(3);
+		Functions\when('user_can')->alias(static fn($uid, $cap) => $can_reveal && 'ffc_view_audiences_pii' === $cap);
+
+		ob_start();
+		AdminUserCustomFields::render_section($user);
+		return (string) ob_get_clean();
+	}
+
+	public function test_render_section_masks_another_users_sensitive_field_with_a_reveal_button(): void {
+		$output = $this->render_another_users_sensitive_field(true);
+
+		$this->assertStringNotContainsString('5181780', $output, 'The clear value never reaches the HTML.');
+		$this->assertMatchesRegularExpression('/name="ffc_cf_23"[^>]*value="518\.\*\*\*\.0"[^>]*data-ffc-pii-field="cf_23"[^>]*data-ffc-pii-editable="1" disabled/', $output);
+		$this->assertStringContainsString('class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="user_profile" data-field="cf_23" data-submission-id="10" data-nonce="reveal-nonce"', $output);
+	}
+
+	public function test_render_section_masks_another_users_sensitive_field_without_a_button_for_the_masked_tier(): void {
+		$output = $this->render_another_users_sensitive_field(false);
+
+		$this->assertStringNotContainsString('5181780', $output);
+		$this->assertStringNotContainsString('ffc-reveal-pii', $output);
+		$this->assertStringContainsString('Masked. Revealing it requires the audience PII capability.', $output);
+	}
+
+	public function test_save_section_keeps_a_masked_sensitive_field_nobody_revealed(): void {
+		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_10']                    = 'Engineering';
+		// ffc_cf_12 is absent: it stayed disabled, masked.
+
+		$plain     = (object) array( 'id' => 10, 'field_type' => 'text', 'field_label' => 'Department' );
+		$sensitive = (object) array( 'id' => 12, 'field_type' => 'text', 'field_label' => 'CPF', 'field_profile_key' => 'cpf', 'is_sensitive' => 1 );
+		$snapshot  = (object) array( 'id' => 13, 'field_type' => 'text', 'field_label' => 'RG', 'field_key' => 'rg', 'is_sensitive' => 1 );
+
+		Functions\when('wp_verify_nonce')->justReturn(true);
+		Functions\when('current_user_can')->justReturn(true);
+		Functions\when('get_current_user_id')->justReturn(3);
+		Functions\when('user_can')->justReturn(true);
+
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$plain, $sensitive, $snapshot]);
+		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn(array( 'field_13' => 'MG-1234' ));
+
+		$this->custom_field_writer_mock->shouldReceive('save_user_data')
+			->once()
+			->with(5, array( 'field_10' => 'Engineering', 'field_13' => 'MG-1234' ));
+
+		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
+		$manager->shouldReceive('get_extended_profile')->andReturn(array( 'cpf' => '51817842080' ));
+		$manager->shouldNotReceive('update_extended_profile');
+
+		AdminUserCustomFields::save_section(5);
+	}
+
+	public function test_sensitive_values_lists_only_sensitive_free_text_fields(): void {
+		$plain     = (object) array( 'id' => 10, 'field_type' => 'text', 'field_label' => 'Department', 'field_key' => 'dept' );
+		$sensitive = (object) array( 'id' => 12, 'field_type' => 'text', 'field_label' => 'CPF', 'field_profile_key' => 'cpf', 'is_sensitive' => 1 );
+		$select    = (object) array( 'id' => 14, 'field_type' => 'select', 'field_label' => 'Union', 'field_key' => 'sindicato', 'is_sensitive' => 1 );
+
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$plain, $sensitive, $select]);
+		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn(array( 'field_10' => 'Eng', 'field_14' => 'X' ));
+		Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager')
+			->shouldReceive('get_extended_profile')->andReturn(array( 'cpf' => '51817842080' ));
+
+		$this->assertSame( array( 12 => '51817842080' ), AdminUserCustomFields::sensitive_values(5) );
 	}
 
 	public function test_save_section_writes_a_sensitive_dependent_select_to_the_profile_as_sensitive(): void {

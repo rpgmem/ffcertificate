@@ -48,6 +48,8 @@ class DateMessagesDigestTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The detailed digest links to the screen where names are revealed (#1863).
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
 
 		$this->sent  = array();
 		$this->users = array(
@@ -60,6 +62,7 @@ class DateMessagesDigestTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
@@ -187,8 +190,12 @@ class DateMessagesDigestTest extends TestCase {
 
 		Digest::send( 7 );
 
-		$this->assertStringContainsString( 'Ana', $this->sent['admin@example.org'] );
-		$this->assertStringNotContainsString( 'Ana', $this->sent['viewer@example.org'], 'A viewer without the PII capability gets the counts only.' );
+		// Masked even for a manager who may see names (#1863), with a link
+		// to the screen where a name is revealed.
+		$this->assertStringContainsString( '<li>A**</li>', $this->sent['admin@example.org'] );
+		$this->assertStringNotContainsString( '<li>Ana</li>', $this->sent['admin@example.org'] );
+		$this->assertStringContainsString( 'https://example.com/wp-admin/admin.php?page=ffc-date-messages&tab=upcoming', $this->sent['admin@example.org'] );
+		$this->assertStringNotContainsString( 'A**', $this->sent['viewer@example.org'], 'A viewer without the PII capability gets the counts only.' );
 	}
 
 	public function test_a_run_already_reported_sends_nothing(): void {

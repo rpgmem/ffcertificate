@@ -27,6 +27,12 @@ class AudienceAdminImportTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		// The PII export rule (#1863): the exporter holds the PII cap unless a
+		// test says otherwise, and a masked cell asks is_email().
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 		// Preload so pcov attributes the coverage these tests drive through the
 		// export sources; pcov skips a class first autoloaded mid-test (#772).
 		class_exists( '\\FreeFormCertificate\Audience\AudienceMembersExportSource' );

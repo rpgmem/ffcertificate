@@ -43,6 +43,12 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 	private const CAP = 'ffc_export_certificates';
 
 	/**
+	 * PII cap that puts the personal columns in clear (#1863); without it
+	 * they are exported masked.
+	 */
+	private const PII_CAP = 'ffc_view_certificates_pii';
+
+	/**
 	 * Nonce action shared by start / batch / download.
 	 */
 	private const NONCE = 'ffc_csv_export';
@@ -183,6 +189,7 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 		return array(
 			'dynamic_keys'         => $this->scan_dynamic_keys( $filters['form_ids'], (string) $filters['status'] ),
 			'include_edit_columns' => $this->repository->hasEditInfo(),
+			'pii'                  => \FreeFormCertificate\Core\PiiExport::allowed( self::PII_CAP ),
 		);
 	}
 
@@ -280,7 +287,7 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 	 * @return array<int, mixed>
 	 */
 	public function format_row( array $row, array $context ): array {
-		return $this->format_csv_row( $row, $context['dynamic_keys'], (bool) $context['include_edit_columns'] );
+		return $this->format_csv_row( $row, $context['dynamic_keys'], (bool) $context['include_edit_columns'], ! empty( $context['pii'] ) );
 	}
 
 	/**
@@ -315,6 +322,11 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 		 * @param array<string, mixed> $job       Full job state.
 		 */
 		do_action( 'ffc_export_completed', $job_id, $job['file'], (int) $job['processed'], $job );
+
+		// An export with personal data in clear is a bulk reveal (#1863).
+		if ( ! empty( $job['context']['pii'] ) ) {
+			\FreeFormCertificate\Core\PiiExport::log( self::TYPE, (int) $job['processed'] );
+		}
 	}
 
 	/**
@@ -396,15 +408,16 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 	 * @param array<string, mixed> $row                  Row.
 	 * @param array<int, string>   $dynamic_keys         Dynamic keys.
 	 * @param bool                 $include_edit_columns Include edit columns.
+	 * @param bool                 $clear                Whether personal data goes in clear (#1863).
 	 * @return array<int, mixed>
 	 */
-	private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
+	private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false, bool $clear = true ): array {
 		$form_display = $this->get_form_title_cached( (int) $row['form_id'] );
 
-		$email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
-		$user_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' );
-		$cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf' );
-		$rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'rf' );
+		$email   = \FreeFormCertificate\Core\PiiExport::cell( 'email', \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' ), $clear );
+		$user_ip = \FreeFormCertificate\Core\PiiExport::cell( 'user_ip', \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' ), $clear );
+		$cpf_val = \FreeFormCertificate\Core\PiiExport::cell( 'cpf', \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf' ), $clear );
+		$rf_val  = \FreeFormCertificate\Core\PiiExport::cell( 'rf', \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'rf' ), $clear );
 
 		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 		// Format for human eyes in the CSV; admins reading raw would expect a
@@ -449,7 +462,7 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 		$data = $this->decode_json_field( $row, 'data', 'data_encrypted' );
 		foreach ( $dynamic_keys as $key ) {
 			$value  = $data[ $key ] ?? '';
-			$line[] = is_array( $value ) ? implode( ', ', $value ) : $value;
+			$line[] = \FreeFormCertificate\Core\PiiExport::cell( (string) $key, is_array( $value ) ? implode( ', ', $value ) : $value, $clear );
 		}
 
 		return $line;

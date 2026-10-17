@@ -37,6 +37,12 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		// The PII export rule (#1863): the exporter holds the PII cap unless a
+		// test says otherwise, and a masked cell asks is_email().
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 		class_exists( '\\FreeFormCertificate\\SelfScheduling\\AppointmentExportSource' );
 
 		Functions\when( '__' )->returnArg();
@@ -145,10 +151,25 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 	// format_row() / format_csv_row()
 	// ==================================================================
 
+	public function test_format_row_masks_the_personal_columns_without_the_pii_cap(): void {
+		// #1863: an exporter without ffc_view_appointments_pii gets the same
+		// columns, masked; the frozen context decides, not the live cap.
+		$this->calendars->shouldReceive( 'findById' )->with( 3 )->andReturn( array( 'title' => 'Room A' ) );
+		Functions\when( 'wp_cache_get' )->justReturn( array() );
+
+		$result = $this->source->format_row( $this->sample_row(), array( 'dynamic_keys' => array( 'ramal' ), 'pii' => false ) );
+
+		$this->assertSame( 'Jane Doe', $result[4], 'The name is not masked.' );
+		$this->assertSame( 'j***@example.com', $result[5] );
+		$this->assertSame( '***-**34', $result[6] );
+		$this->assertSame( '203.0.***.***', $result[25] );
+		$this->assertSame( '42', $result[27], 'A column that is not personal stays.' );
+	}
+
 	public function test_format_row_layout_and_pii(): void {
 		$this->calendars->shouldReceive( 'findById' )->with( 3 )->andReturn( array( 'title' => 'Room A' ) );
 
-		$result = $this->source->format_row( $this->sample_row(), array( 'dynamic_keys' => array( 'ramal', 'setor' ) ) );
+		$result = $this->source->format_row( $this->sample_row(), array( 'dynamic_keys' => array( 'ramal', 'setor' ), 'pii' => true ) );
 
 		$this->assertCount( 29, $result ); // 27 fixed + 2 dynamic.
 		$this->assertSame( 7, $result[0] );
@@ -169,13 +190,13 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->calendars->shouldReceive( 'findById' )->andReturn( array( 'title' => 'X' ) );
 		$row           = $this->sample_row();
 		$row['status'] = 'weird';
-		$result        = $this->source->format_row( $row, array( 'dynamic_keys' => array() ) );
+		$result        = $this->source->format_row( $row, array( 'dynamic_keys' => array(), 'pii' => true ) );
 		$this->assertSame( 'weird', $result[10] );
 	}
 
 	public function test_format_row_deleted_calendar_shows_placeholder(): void {
 		$this->calendars->shouldReceive( 'findById' )->with( 3 )->andReturn( null );
-		$result = $this->source->format_row( $this->sample_row(), array( 'dynamic_keys' => array() ) );
+		$result = $this->source->format_row( $this->sample_row(), array( 'dynamic_keys' => array(), 'pii' => true ) );
 		$this->assertSame( '(Deleted)', $result[1] );
 	}
 
@@ -187,7 +208,7 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 
 		$row                 = $this->sample_row();
 		$row['consent_date'] = 1747731600; // A valid unix ts.
-		$result              = $this->source->format_row( $row, array( 'dynamic_keys' => array() ) );
+		$result              = $this->source->format_row( $row, array( 'dynamic_keys' => array(), 'pii' => true ) );
 
 		$this->assertNotSame( '', $result[14] ); // Consent Date rendered.
 	}

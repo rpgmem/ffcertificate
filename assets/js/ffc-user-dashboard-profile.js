@@ -20,7 +20,7 @@
 
     // Profile shows three multi-value fields (names, emails, CPFs) that all
     // share the same single/list/fallback pattern with different list classes.
-    function renderListField(label, listClass, items, fallback) {
+    function renderListField(label, listClass, items, fallback, revealField) {
         var html = '<div class="ffc-profile-field"><label>' + label + '</label>';
         if (items && items.length > 1) {
             html += '<ul class="' + listClass + '">';
@@ -31,8 +31,56 @@
         } else {
             html += '<div class="ffc-field-value">' + esc(fallback || '-') + '</div>';
         }
+        html += revealButton(revealField);
         html += '</div>';
         return html;
+    }
+
+    /**
+     * "View as user" (#1863): the email addresses, phone and birth date of
+     * the viewed account arrive masked, and each is revealed on request
+     * through the audited /user/profile/reveal route. Nothing to reveal on
+     * the owner's own profile.
+     */
+    function isMasked(profile, field) {
+        return !!(profile && profile.pii_masked && !(profile.revealed && profile.revealed[field]));
+    }
+
+    function revealButton(field) {
+        var profile = FFCDashboard.panels.profile.state;
+        if (!field || !isMasked(profile, field) || !profile.can_reveal) {
+            return '';
+        }
+        return ' <button type="button" class="button ffc-profile-reveal-btn" data-field="' + escAttr(field) + '">' +
+            esc(ffcDashboard.strings.reveal || 'Reveal') + '</button>';
+    }
+
+    function revealField(field, $btn) {
+        var panel = FFCDashboard.panels.profile;
+        var url = ffcDashboard.restUrl + 'user/profile/reveal';
+        if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
+
+        $btn.prop('disabled', true);
+        return FFC.rest(url, { method: 'POST', data: { field: field }, nonce: ffcDashboard.nonce })
+            .then(function (response) {
+                var state = panel.state || {};
+                state.revealed = state.revealed || {};
+                state.revealed[field] = true;
+                if (field === 'email') {
+                    state.email = response.value;
+                    state.emails = response.values || [];
+                } else if (field === 'phone') {
+                    state.phone = response.value;
+                } else if (field === 'birth_date') {
+                    state.birth_date = response.value;
+                    state.birth_date_display = response.display;
+                }
+                panel.render(state);
+            })
+            .catch(function () {
+                $btn.prop('disabled', false);
+                window.alert(ffcDashboard.strings.revealError || 'Unable to reveal this value.');
+            });
     }
 
     // defaultOn: a key that means RECEIVE when absent (date messages are sent
@@ -63,7 +111,13 @@
         html += '<div class="ffc-profile-field"><label for="ffc-edit-phone">' + (s.phone || 'Phone:') + '</label>';
         // (DD) 98765-4321: area code plus up to nine digits, masked by the
         // same formatter the reregistration form uses.
-        html += '<input type="tel" id="ffc-edit-phone" value="' + escAttr(maskedPhone(profile.phone)) + '" maxlength="15" data-mask="phone" inputmode="numeric" /></div>';
+        if (isMasked(profile, 'phone')) {
+            // Masked in view-as until revealed (#1863): shown, never posted.
+            html += '<input type="text" id="ffc-edit-phone" value="' + escAttr(profile.phone) + '" disabled />';
+            html += '<span class="ffc-field-hint">' + esc(s.revealToEdit || 'Reveal the value to edit it.') + '</span></div>';
+        } else {
+            html += '<input type="tel" id="ffc-edit-phone" value="' + escAttr(maskedPhone(profile.phone)) + '" maxlength="15" data-mask="phone" inputmode="numeric" /></div>';
+        }
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-department">' + (s.department || 'Department:') + '</label>';
         html += '<input type="text" id="ffc-edit-department" value="' + escAttr(profile.department) + '" maxlength="250" /></div>';
@@ -72,7 +126,12 @@
         html += '<input type="text" id="ffc-edit-organization" value="' + escAttr(profile.organization) + '" maxlength="250" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-birth-date">' + (s.birthDate || 'Birth date:') + '</label>';
-        html += '<input type="date" id="ffc-edit-birth-date" value="' + escAttr(profile.birth_date) + '" /></div>';
+        if (isMasked(profile, 'birth_date')) {
+            html += '<input type="text" id="ffc-edit-birth-date" value="' + escAttr(profile.birth_date_display) + '" disabled />';
+            html += '<span class="ffc-field-hint">' + esc(s.revealToEdit || 'Reveal the value to edit it.') + '</span></div>';
+        } else {
+            html += '<input type="date" id="ffc-edit-birth-date" value="' + escAttr(profile.birth_date) + '" /></div>';
+        }
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-notes">' + (s.notesLabel || 'Notes:') + '</label>';
         html += '<textarea id="ffc-edit-notes" rows="3" maxlength="1000" placeholder="' + (s.notesPlaceholder || 'Personal notes...') + '">' + esc(profile.notes) + '</textarea></div>';
@@ -106,12 +165,18 @@
     function saveProfile() {
         var data = {
             display_name: $('#ffc-edit-display-name').val(),
-            phone: $('#ffc-edit-phone').val(),
             department: $('#ffc-edit-department').val(),
             organization: $('#ffc-edit-organization').val(),
-            notes: $('#ffc-edit-notes').val(),
-            birth_date: $('#ffc-edit-birth-date').val()
+            notes: $('#ffc-edit-notes').val()
         };
+        // A field still masked (view as user, #1863) is left out, so its
+        // mask can never overwrite the stored value.
+        if (!$('#ffc-edit-phone').prop('disabled')) {
+            data.phone = $('#ffc-edit-phone').val();
+        }
+        if (!$('#ffc-edit-birth-date').prop('disabled')) {
+            data.birth_date = $('#ffc-edit-birth-date').val();
+        }
 
         var $saveBtn = $('.ffc-profile-save-btn');
         var $status = $('.ffc-profile-save-status');
@@ -239,6 +304,10 @@
 
         bindEvents: function () {
             $(document).on('click', '.ffc-profile-edit-btn', function (e) { e.preventDefault(); showEditForm(); });
+            $(document).on('click', '.ffc-profile-reveal-btn', function (e) {
+                e.preventDefault();
+                revealField($(this).data('field'), $(this));
+            });
             $(document).on('click', '.ffc-profile-save-btn', function (e) { e.preventDefault(); saveProfile(); });
             $(document).on('click', '.ffc-profile-cancel-btn', function (e) {
                 e.preventDefault();
@@ -290,11 +359,11 @@
             var html = '<div class="ffc-profile-info">';
 
             html += renderListField(s.name, 'ffc-name-list', profile.names, profile.display_name);
-            html += renderListField(s.linkedEmails, 'ffc-email-list', profile.emails, profile.email);
+            html += renderListField(s.linkedEmails, 'ffc-email-list', profile.emails, profile.email, 'email');
             html += renderListField(s.cpfRf, 'ffc-cpf-list', profile.cpfs_masked, profile.cpf_masked);
 
             html += '<div class="ffc-profile-field"><label>' + (s.phone || 'Phone:') + '</label>';
-            html += '<div class="ffc-field-value">' + esc(profile.phone || '-') + '</div></div>';
+            html += '<div class="ffc-field-value">' + esc(profile.phone || '-') + '</div>' + (profile.phone ? revealButton('phone') : '') + '</div>';
 
             html += '<div class="ffc-profile-field"><label>' + (s.department || 'Department:') + '</label>';
             html += '<div class="ffc-field-value">' + esc(profile.department || '-') + '</div></div>';
@@ -303,7 +372,7 @@
             html += '<div class="ffc-field-value">' + esc(profile.organization || '-') + '</div></div>';
 
             html += '<div class="ffc-profile-field"><label>' + (s.birthDate || 'Birth date:') + '</label>';
-            html += '<div class="ffc-field-value">' + esc(profile.birth_date_display || '-') + '</div></div>';
+            html += '<div class="ffc-field-value">' + esc(profile.birth_date_display || '-') + '</div>' + (profile.birth_date_display ? revealButton('birth_date') : '') + '</div>';
 
             if (profile.notes) {
                 html += '<div class="ffc-profile-field"><label>' + (s.notesLabel || 'Notes:') + '</label>';

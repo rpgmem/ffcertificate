@@ -238,8 +238,12 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertMaskedWithReveal( $this->emailCellFor( 'unmasked' ) );
 	}
 
-	public function test_column_email_appointments_admin_role_is_masked_with_reveal_button(): void {
-		$this->assertMaskedWithReveal( $this->emailCellFor( 'admin_role' ) );
+	public function test_column_email_appointments_admin_role_without_the_pii_cap_gets_no_reveal_button(): void {
+		// The role alone unmasks nothing since #1863: its PII cap is what
+		// reveals, and this user holds the role without it.
+		$out = $this->emailCellFor( 'admin_role' );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
 	}
 
 	public function test_column_email_reveal_tier_is_masked_with_reveal_button(): void {

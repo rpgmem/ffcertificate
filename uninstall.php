@@ -284,6 +284,7 @@ $ffcertificate_options = array(
 	'ffc_admin_caps_version_v6',
 	'ffc_admin_role_assigned_v1',
 	'ffc_admin_role_assigned_v2',
+	'ffc_audiences_pii_cap_v1',
 	'ffc_audience_cap_off_subscriber_v1',
 	'ffc_audience_email_tokens_migrated_v1',
 	'ffc_delete_caps_granted_v1',
