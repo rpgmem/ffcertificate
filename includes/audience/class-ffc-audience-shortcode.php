@@ -68,7 +68,7 @@ class AudienceShortcode {
 		self::enqueue_styles();
 
 		$is_logged_in = is_user_logged_in();
-		$has_bypass   = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+		$has_bypass   = AudienceScheduleRepository::user_has_bypass_capability();
 		$specific_id  = absint( $atts['schedule_id'] );
 
 		// Handle non-logged-in users.
@@ -188,8 +188,12 @@ class AudienceShortcode {
 			'environmentId'       => absint( $atts['environment_id'] ),
 			'view'                => sanitize_text_field( $atts['view'] ),
 			'schedules'           => array_map(
-				function ( $s ) {
+				function ( $s ) use ( $user_id ) {
 					return array(
+						// What the booking form may offer (#1859); the server
+						// decides again on every booking.
+						'canBypass'              => AudienceScheduleRepository::user_has_bypass( (int) $s->id, $user_id ),
+						'canOverrideConflicts'   => AudienceScheduleRepository::user_can_override_conflicts( (int) $s->id, $user_id ),
 						'id'                     => (int) $s->id,
 						'name'                   => $s->name,
 						'environmentLabel'       => AudienceScheduleRepository::get_environment_label( $s, true ),
@@ -579,8 +583,8 @@ class AudienceShortcode {
 	 * @return list<ScheduleRow>
 	 */
 	private static function get_user_schedules( int $user_id, int $specific_id = 0 ): array {
-		// Admin can access all.
-		if ( user_can( $user_id, 'manage_options' ) ) {
+		// Admin and audience-bypass holders can access all.
+		if ( AudienceScheduleRepository::user_has_bypass_capability( $user_id ) ) {
 			if ( $specific_id > 0 ) {
 				$schedule = AudienceScheduleRepository::get_by_id( $specific_id );
 				return $schedule ? array( $schedule ) : array();
@@ -847,6 +851,19 @@ class AudienceShortcode {
 					'events'                 => __( 'Events', 'ffcertificate' ),
 					'noEvents'               => __( 'No events this month.', 'ffcertificate' ),
 					'multipleAudiences'      => __( 'Multiple audiences', 'ffcertificate' ),
+					// The "all spaces" option of the filter (#1859): "All" before
+					// the calendar's own plural label.
+					'all'                    => __( 'All', 'ffcertificate' ),
+					/* translators: %s: environment label (plural) */
+					'allOf'                  => __( 'All %s', 'ffcertificate' ),
+					// Why a space cannot be booked on a date (#1859).
+					'reasonClosed'           => __( 'Closed', 'ffcertificate' ),
+					'reasonHoliday'          => __( 'Holiday', 'ffcertificate' ),
+					'reasonOutsideHours'     => __( 'Outside hours', 'ffcertificate' ),
+					'reasonPast'             => __( 'Past date', 'ffcertificate' ),
+					'reasonBeyondWindow'     => __( 'Beyond the booking window', 'ffcertificate' ),
+					'noOpenEnvironments'     => __( 'No space is open on this date.', 'ffcertificate' ),
+					'override'               => \FreeFormCertificate\Core\OverrideWarning::strings(),
 				),
 			)
 		);

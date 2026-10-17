@@ -120,6 +120,12 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 			10,
 			2
 		);
+		Functions\expect( 'add_action' )->once()->with(
+			'ffcertificate_audience_booking_overridden',
+			array( AudienceNotificationHandler::class, 'send_booking_overridden_notification' ),
+			10,
+			3
+		);
 
 		AudienceNotificationHandler::init();
 	}
@@ -370,6 +376,44 @@ class AudienceNotificationHandlerFlowTest extends TestCase {
 
 		$this->assertContains( 'ops@example.com', $recipients );   // admin
 		$this->assertContains( 'member@example.com', $recipients ); // affected user
+	}
+
+	public function test_overridden_emails_the_owner_the_admin_cancellation_and_the_others_the_usual_notice(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
+
+		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
+		$reader->shouldReceive( 'get_by_id' )->andReturn( $this->booking( array( 'created_by' => 2, 'cancelled_by' => 3 ) ) );
+		$reader->shouldReceive( 'get_booking_audiences' )->andReturn( array() );
+		// The owner (2) is also a participant: told once, by the new e-mail.
+		$reader->shouldReceive( 'get_booking_users' )->andReturn( array( 2, 20 ) );
+
+		$env = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
+		$env->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'schedule_id' => 5, 'name' => 'Room A' ) );
+
+		$sched = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$sched->shouldReceive( 'get_by_id' )->andReturn( $this->schedule( array( 'notify_on_cancellation' => 1 ) ) );
+		$sched->shouldReceive( 'get_environment_label' )->andReturn( 'Room' );
+
+		$sent   = array();
+		$mailer = Mockery::mock( 'alias:FreeFormCertificate\Scheduling\SchedulingMailer' );
+		$mailer->shouldReceive( 'send' )->andReturnUsing(
+			static function ( $to, $subject, $body ) use ( &$sent ) {
+				$sent[] = array( $to, $subject, $body );
+				return true;
+			}
+		);
+
+		Functions\when( 'get_user_by' )->alias(
+			fn( $field, $id ) => $this->wp_user( (int) $id, 'u' . (int) $id . '@example.com', 'User ' . (int) $id )
+		);
+
+		AudienceNotificationHandler::send_booking_overridden_notification( 1, 2, 'Overridden by a priority booking' );
+
+		$this->assertSame( array( 'u2@example.com', 'u20@example.com' ), array_column( $sent, 0 ) );
+		$this->assertStringContainsString( 'cancelled by an administrator', $sent[0][1] );
+		$this->assertStringContainsString( 'Overridden by a priority booking', $sent[0][2] );
+		$this->assertStringContainsString( 'Room A', $sent[0][2] );
+		$this->assertStringNotContainsString( 'cancelled by an administrator', $sent[1][1], 'The other participants get the usual cancellation notice.' );
 	}
 
 	public function test_cancelled_returns_when_booking_missing(): void {

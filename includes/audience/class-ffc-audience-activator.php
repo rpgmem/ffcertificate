@@ -123,6 +123,7 @@ class AudienceActivator {
             booking_label_plural varchar(50) DEFAULT NULL COMMENT 'Custom plural label for booking badge',
             audience_badge_format enum('name','parent_name') DEFAULT 'name' COMMENT 'How audience badges display: name only or parent: child',
             is_isolated tinyint(1) DEFAULT 0 COMMENT 'Ignore conflicts from other schedules',
+            admin_bypass tinyint(1) DEFAULT 1 COMMENT 'Audience bypass holders may book outside the rules',
             PRIMARY KEY (id),
             KEY idx_status (status),
             KEY idx_created_by (created_by)
@@ -448,6 +449,7 @@ class AudienceActivator {
 			self::migrate_schedule_booking_label_columns();
 			self::migrate_schedule_isolated_column();
 			self::migrate_schedule_admin_notification_columns();
+			self::migrate_schedule_admin_bypass_column();
 			// One-shot: rewrite stored email templates {token} -> {{token}} (#653).
 			AudienceEmailTokenMigration::maybe_migrate();
 		}
@@ -686,6 +688,27 @@ class AudienceActivator {
 			'admin_notification_emails',
 			"text DEFAULT NULL COMMENT 'Comma-separated admin recipients (empty = site admin)'",
 			'notify_admin_on_cancellation'
+		);
+	}
+
+	/**
+	 * Migrate schedules table to add the admin_bypass column (#1859).
+	 *
+	 * The per-calendar "Admin bypass" toggle, mirroring the one personal
+	 * calendars keep in their config. It defaults on, so an existing calendar
+	 * keeps letting administrators book outside its rules after the update.
+	 *
+	 * @since 6.40.0
+	 * @return void
+	 */
+	private static function migrate_schedule_admin_bypass_column(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_schedules';
+
+		self::add_column_if_missing(
+			$table_name,
+			'admin_bypass',
+			"tinyint(1) DEFAULT 1 COMMENT 'Audience bypass holders may book outside the rules'"
 		);
 	}
 

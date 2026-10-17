@@ -153,8 +153,9 @@
                 api.renderCalendar();
             });
 
-            // Day click - scoped to audience calendar only
-            $('#ffc-audience-calendar').on('click', '.ffc-day:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month)', function() {
+            // Day click - scoped to audience calendar only. A closed or
+            // past day opens only for a bypass holder (#1859).
+            $('#ffc-audience-calendar').on('click', '.ffc-day:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month), .ffc-day.ffc-bypassable:not(.ffc-other-month)', function() {
                 var date = $(this).data('date');
                 if (date) {
                     api.openDayModal(date);
@@ -195,6 +196,13 @@
                     $('#booking-time-row').show();
                     $('#booking-start-time').attr('required', 'required').val('');
                     $('#booking-end-time').attr('required', 'required').val('');
+                }
+            });
+
+            // The reasons under the space follow the space and the times (#1859).
+            $('#booking-environment-id, #booking-start-time, #booking-end-time, #booking-all-day').on('change', function() {
+                if (typeof api.updateEnvironmentStatus === 'function') {
+                    api.updateEnvironmentStatus();
                 }
             });
 

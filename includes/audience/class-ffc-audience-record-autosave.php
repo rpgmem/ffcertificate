@@ -37,6 +37,7 @@ class AudienceRecordAutosave {
 		'notify_admin_on_cancellation',
 		'show_event_list',
 		'is_isolated',
+		'admin_bypass',
 	);
 
 	/**

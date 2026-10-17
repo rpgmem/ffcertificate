@@ -126,6 +126,14 @@ class CapabilityManager {
 		// from `ffc_bypass_appointments` (which never bypasses capacity).
 		'ffc_bypass_appointment_capacity',
 		'ffc_manage_audiences',
+		// Audience bypass (#1859). Book a shared space outside its rules --
+		// closed days, holidays, opening hours, past dates, the advance window
+		// and an occupied slot -- after confirming a warning, on a calendar
+		// whose "Admin bypass" toggle is on. Split from
+		// `ffc_bypass_appointments`, which no longer reaches audience
+		// calendars. Held by `ffc_administrator` through
+		// `get_all_capabilities()`; no other role carries it yet (#1860).
+		'ffc_bypass_audiences',
 		'ffc_view_activity_log',
 		'ffc_manage_custom_fields',
 		'ffc_view_as_user',

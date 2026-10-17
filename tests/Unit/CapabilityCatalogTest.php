@@ -159,6 +159,7 @@ class CapabilityCatalogTest extends TestCase {
 			array(
 				'ffc_bypass_appointments'         => 'frontend',
 				'ffc_bypass_appointment_capacity' => 'frontend',
+				'ffc_bypass_audiences'            => 'frontend',
 				'ffc_view_forms_api'              => 'api',
 				'ffc_submit_forms_api'            => 'api',
 			),

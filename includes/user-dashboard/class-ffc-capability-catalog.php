@@ -294,6 +294,11 @@ final class CapabilityCatalog {
 						'label'       => __( 'Delete audiences', 'ffcertificate' ),
 						'description' => __( 'Delete audiences, calendars, environments and bookings.', 'ffcertificate' ),
 					),
+					'ffc_bypass_audiences' => array(
+						'label'       => __( 'Audience calendar bypass', 'ffcertificate' ),
+						'description' => __( 'Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on (#1859).', 'ffcertificate' ),
+						'surface'     => 'frontend',
+					),
 				),
 			),
 			array(

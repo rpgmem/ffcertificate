@@ -46,6 +46,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Booking flow', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Publish a calendar with the shortcode:', 'ffcertificate' ); ?> <code>[ffc_audience schedule_id="0" environment_id="0" view="month"]</code>. <?php esc_html_e( 'schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin\'s REST API and can target one or more audiences or an individual, and are cancelled with a required reason.', 'ffcertificate' ); ?> <?php esc_html_e( 'The Shortcode column of Audience Calendars shows each calendar\'s shortcode with a copy button, and the Environments view shows each environment\'s, tied to its calendar.', 'ffcertificate' ); ?></p>
 
+	<h4><?php esc_html_e( 'Booking rules', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'Every booking is checked on the server, whoever makes it: the calendar and the space must be active; the date must not be in the past, beyond the calendar\'s future days limit (counted in the site\'s time zone), a global or calendar holiday, or a day the space is closed; and both the start and the end must fall inside the space\'s opening hours. An all-day booking takes the space\'s whole opening window for that day. Two bookings may not overlap in one space.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'With every space of a calendar shown ("All" in the space filter), a day is open when at least one active space opens on it, and the booking form lists only the spaces open that day. A day on which no space opens renders closed and cannot be picked.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'Admin bypass and Override Conflicts', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'Each calendar has an Admin bypass toggle (General tab, on by default). While it is on, holders of manage_options or ffc_bypass_audiences may open closed days and book any space, the closed ones marked with their reasons (closed, holiday, outside hours, past date, beyond the booking window). Turn it off to apply every rule to them too.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled, and its owner receives the "booking cancelled by an administrator" email with the reason.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Either way the booking first opens one warning listing every rule it breaks, conflicts included. Its "I agree" button unlocks after 15 seconds and Cancel works at once; the server saves nothing without that confirmation, and each confirmed booking is written to the Activity Log with its reasons.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Each schedule independently notifies affected users on booking and cancellation, and can attach an ICS calendar invite. Two opt-in admin toggles (off by default) also notify a recipient list (comma-separated; blank falls back to the site admin) on new bookings and cancellations.', 'ffcertificate' ); ?></p>
 
@@ -62,6 +71,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><code>ffc_view_audiences</code> — <?php esc_html_e( 'view the Scheduling menu and audience pages.', 'ffcertificate' ); ?> <?php esc_html_e( 'On its own it opens them read-only: the calendar, environment and audience edit forms and the members screen show their fields disabled, with no Save, Add or Remove, under a read-only notice.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_manage_audiences</code> — <?php esc_html_e( 'create audiences, schedules, environments and members.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_import_audiences</code> / <code>ffc_export_audiences</code> / <code>ffc_delete_audiences</code> — <?php esc_html_e( 'import, export, delete.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_bypass_audiences</code> — <?php esc_html_e( 'book outside the calendar rules and over an occupied slot, after the warning, on calendars whose Admin bypass toggle is on; also see every calendar and cancel any booking. Held by FFC Administrator. ffc_bypass_appointments no longer reaches audience calendars.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_view_own_audience_bookings</code> — <?php esc_html_e( 'the end-user cap; booking/cancel rights come from per-schedule permissions.', 'ffcertificate' ); ?></li>
 	</ul>
 </div>
