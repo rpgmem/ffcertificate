@@ -58,10 +58,8 @@ class TabGeolocationTest extends TestCase {
 			return abs( (int) $val );
 		} );
 
-		// The tab's init() registers an admin_enqueue_scripts hook;
-		// Brain\Monkey's hook layer rejects anonymous-class callbacks
-		// (used by test_render_processes_post_submission_and_shows_success),
-		// so neutralise add_action for the whole suite.
+		// The tab's init() registers an admin_enqueue_scripts hook, which no
+		// test here asserts; neutralise add_action for the whole suite.
 		Functions\when( 'add_action' )->justReturn( true );
 
 		$this->tab = new TabGeolocation();
@@ -70,7 +68,7 @@ class TabGeolocationTest extends TestCase {
 	protected function tearDown(): void {
 		unset( $_POST['ffc_save_geolocation'] );
 		unset( $_POST['ip_api_service'], $_POST['api_fallback'] );
-		unset( $_POST['gps_fallback'], $_POST['gps_fallback_preset'], $_POST['gps_fallback_cases'] );
+		unset( $_POST['gps_fallback'], $_POST['gps_fallback_preset'], $_POST['gps_fallback_cases'], $_POST['gps_fallback_custom'] );
 		unset( $_POST['both_fail_fallback'], $_POST['ip_api_enabled'], $_POST['ip_api_cascade'] );
 		unset( $_POST['ipinfo_api_key'], $_POST['ip_cache_enabled'], $_POST['ip_cache_ttl'] );
 		unset( $_POST['gps_cache_ttl'], $_POST['admin_bypass_datetime'], $_POST['admin_bypass_geo'] );
@@ -294,6 +292,63 @@ class TabGeolocationTest extends TestCase {
 		);
 	}
 
+	public function test_save_settings_the_customize_toggle_saves_the_custom_preset(): void {
+		// The screen posts `custom` as the "Customize per case" toggle
+		// (#1758); the steps are then disabled and post nothing.
+		$_POST['ip_api_service']      = 'ip-api';
+		$_POST['api_fallback']        = 'gps_only';
+		$_POST['both_fail_fallback']  = 'block';
+		$_POST['gps_fallback_custom'] = '1';
+		$_POST['gps_fallback_cases']  = array(
+			'permission_denied'    => 'block',
+			'no_api'               => 'allow',
+			'position_unavailable' => 'block',
+			'timeout'              => 'allow',
+			'safety_timer'         => 'block',
+		);
+
+		$captured_settings = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
+			if ( $key === 'ffc_geolocation_settings' ) {
+				$captured_settings = $value;
+			}
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertSame( 'custom', $captured_settings['gps_fallback_preset'] );
+		$this->assertSame( 'allow', $captured_settings['gps_fallback_cases']['no_api'] );
+		$this->assertSame( 'block', $captured_settings['gps_fallback_cases']['permission_denied'] );
+	}
+
+	public function test_save_settings_the_customize_toggle_off_saves_the_chosen_step(): void {
+		$_POST['ip_api_service']      = 'ip-api';
+		$_POST['api_fallback']        = 'gps_only';
+		$_POST['both_fail_fallback']  = 'block';
+		$_POST['gps_fallback_preset'] = 'tolerant';
+		$_POST['gps_fallback_cases']  = array( 'timeout' => 'block' );
+
+		$captured_settings = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
+			if ( $key === 'ffc_geolocation_settings' ) {
+				$captured_settings = $value;
+			}
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertSame( 'tolerant', $captured_settings['gps_fallback_preset'] );
+		$this->assertSame( TabGeolocation::preset_to_cases( 'tolerant' ), $captured_settings['gps_fallback_cases'], 'The grid is ignored unless the toggle is on.' );
+	}
+
 	public function test_save_settings_invalid_preset_falls_back_to_hybrid(): void {
 		$_POST['ip_api_service']     = 'ip-api';
 		$_POST['api_fallback']       = 'gps_only';
@@ -434,66 +489,11 @@ class TabGeolocationTest extends TestCase {
 		}
 	}
 
-	// ==================================================================
-	// render() — POST submission (form save)
-	// ==================================================================
+	// render()'s POST branch is exercised by the real-render tests at the end
+	// of this file, against the shipped view. A test that re-implemented
+	// render() with its own save and notice was removed in #1811: it asserted
+	// against its own copy, so it stayed green whatever the product did.
 
-	public function test_render_processes_post_submission_and_shows_success(): void {
-		$_POST['ffc_save_geolocation'] = '1';
-		$_POST['ip_api_service']       = 'ip-api';
-		$_POST['api_fallback']         = 'gps_only';
-		$_POST['gps_fallback_preset']  = 'hybrid';
-		$_POST['both_fail_fallback']   = 'block';
-
-		Functions\when( 'check_admin_referer' )->justReturn( true );
-		Functions\when( 'update_option' )->justReturn( true );
-		Functions\when( 'get_option' )->justReturn( array() );
-		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
-			return array_merge( $defaults, $args );
-		} );
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-		// The render() includes a view file — stub it with a temp file
-		$tmp_dir = sys_get_temp_dir() . '/ffc_test_geo_' . getmypid();
-		@mkdir( $tmp_dir, 0777, true );
-		file_put_contents(
-			$tmp_dir . '/ffc-tab-geolocation.php',
-			'<?php echo "geo-view"; ?>'
-		);
-
-		// Use subclass to override the view path
-		$tab = new class( $tmp_dir ) extends TabGeolocation {
-			private $view_dir;
-			public function __construct( string $dir ) {
-				$this->view_dir = $dir;
-				parent::__construct();
-			}
-			public function render(): void {
-				// phpcs:ignore WordPress.Security.NonceVerification.Missing
-				if ( $_POST && isset( $_POST['ffc_save_geolocation'] ) ) {
-					check_admin_referer( 'ffc_geolocation_nonce' );
-					$ref = new \ReflectionMethod( parent::class, 'save_settings' );
-					$ref->setAccessible( true );
-					$ref->invoke( $this );
-					echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Geolocation settings saved successfully!', 'ffcertificate' ) . '</p></div>';
-				}
-				$ref = new \ReflectionMethod( parent::class, 'get_settings' );
-				$ref->setAccessible( true );
-				$settings = $ref->invoke( $this );
-				include $this->view_dir . '/ffc-tab-geolocation.php';
-			}
-		};
-
-		ob_start();
-		$tab->render();
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( 'Geolocation settings saved successfully!', $output );
-		$this->assertStringContainsString( 'geo-view', $output );
-
-		@unlink( $tmp_dir . '/ffc-tab-geolocation.php' );
-		@rmdir( $tmp_dir );
-	}
 	// ==================================================================
 	// enqueue_scripts() + handle_location_delete()
 	// ==================================================================
@@ -780,6 +780,7 @@ class TabGeolocationTest extends TestCase {
 		}
 
 		$this->assertStringContainsString( 'Geolocation settings saved successfully!', $output );
+		$this->assertStringContainsString( 'name="ffc_save_geolocation"', $output, 'render() must go on to include the shipped view after saving' );
 	}
 
 	public function test_render_does_not_save_for_view_only_user(): void {
@@ -871,6 +872,9 @@ class TabGeolocationTest extends TestCase {
 			$output = ob_get_clean();
 		}
 
-		$this->assertIsString( $output );
+		// The shipped view's submit button: present only if render() reached
+		// the include, which `assertIsString` on an empty buffer never proved.
+		$this->assertStringContainsString( 'name="ffc_save_geolocation"', $output );
+		$this->assertStringNotContainsString( 'Geolocation settings saved successfully!', $output );
 	}
 }

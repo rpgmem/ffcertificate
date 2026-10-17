@@ -53,7 +53,8 @@ async function shot( page, name, settle = 300 ) {
 async function setDarkMode( page, value ) {
 	await open( page, admin( 'admin.php?page=ffc-settings&tab=general' ) );
 	const saved = page.waitForResponse( ( r ) => r.url().includes( 'admin-ajax.php' ) && r.request().method() === 'POST' );
-	await page.selectOption( '#ffc_dark_mode', value );
+	// Dark Mode is a segmented control: one radio per value, visually hidden.
+	await page.locator( `input[name="ffc_settings[dark_mode]"][value="${ value }"]` ).check( { force: true } );
 	await saved;
 }
 

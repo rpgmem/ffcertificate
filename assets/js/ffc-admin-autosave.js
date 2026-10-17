@@ -87,6 +87,12 @@
         // one radio per option: its badge goes after the whole control, once.
         // Inside it the badge would also break `input:checked + label`.
         var $anchor = $field.closest('.ffc-control-toggle, .ffc-control-steps, .ffc-control-segmented');
+        // A table saved as one field (#1759) is marked on its rows
+        // container, where a <span> sibling is not valid: the badge goes
+        // after the table.
+        if (!$anchor.length && $field.is('tbody')) {
+            $anchor = $field.closest('table');
+        }
         if (!$anchor.length) {
             $anchor = $field;
         }
@@ -94,10 +100,14 @@
         if ($existing.length) {
             return $existing;
         }
-        var $badge = $('<span class="' + BADGE_CLASS + '" aria-live="polite" hidden></span>');
+        var $badge = $('<span class="' + BADGE_CLASS + ' ffc-status" role="status" aria-live="polite" hidden></span>');
         $anchor.after($badge);
         return $badge;
     }
+
+    // The badge is the shared status line beside a control (#1843):
+    // `BADGE_CLASS` only locates it, `.ffc-status` draws it.
+    var BADGE_STATES = { saving: 'busy', saved: 'success', error: 'error' };
 
     /**
      * Show one of three badge states: 'saving' | 'saved' | 'error'.
@@ -107,15 +117,11 @@
      * @param {string}  [text]
      */
     function setBadgeState($badge, state, text) {
-        $badge
-            .removeClass(BADGE_CLASS + '--saving ' + BADGE_CLASS + '--saved ' + BADGE_CLASS + '--error')
-            .addClass(BADGE_CLASS + '--' + state)
-            .text(text || '')
-            .removeAttr('hidden');
+        window.FFC.status($badge, BADGE_STATES[state] || '', text || '');
     }
 
     function hideBadge($badge) {
-        $badge.attr('hidden', 'hidden').text('');
+        window.FFC.status($badge, '', '');
     }
 
     /**
@@ -132,13 +138,16 @@
      *
      * @param {string}          key   The allowlisted setting key that was saved.
      * @param {string|string[]} value The value that reached the server.
+     * @param {Object}          [response] What the endpoint returned, for a
+     *                          save whose server side changed more than the
+     *                          field (the operator access hash, #1755).
      */
-    function announceSaved(key, value) {
+    function announceSaved(key, value, response) {
         if (typeof window.CustomEvent !== 'function') {
             return;
         }
         document.dispatchEvent(new window.CustomEvent('ffc:setting-saved', {
-            detail: { key: key, value: value },
+            detail: { key: key, value: value, response: response || {} },
         }));
     }
 
@@ -212,14 +221,30 @@
          * It was written twice while the form-meta path was its own handler.
          * That is what #1116 converged: one copy now covers both endpoints.
          *
+         * A container saved as one field (a table, #1759) has no validity of
+         * its own, so it is as valid as the controls inside it.
+         *
          * @returns {boolean} True when the field may be saved.
          */
         function isSaveable() {
             var el = $field[0];
+            if (el && typeof el.checkValidity !== 'function') {
+                $field.find('input, select, textarea').each(function () {
+                    if (typeof this.checkValidity === 'function' && !this.checkValidity()) {
+                        el = this;
+                        return false;
+                    }
+                    return true;
+                });
+            }
+            // The browser's reason goes under the field, in the field-message
+            // standard (#1844), and leaves once the field saves again.
             if (!el || typeof el.checkValidity !== 'function' || el.checkValidity()) {
+                window.FFC.clearFieldMessage($field.add($field.find('[data-ffc-message-id]')));
                 return true;
             }
-            setBadgeState($badge, 'error', (el.validationMessage || invalidTxt));
+            hideBadge($badge);
+            window.FFC.fieldMessage(el, 'error', el.validationMessage || invalidTxt);
             if (typeof el.reportValidity === 'function') {
                 el.reportValidity();
             }
@@ -246,10 +271,10 @@
                 payload.nonce = autosaveCfg.nonce;
             }
             window.FFC.request(config.action || 'ffc_update_setting', payload, config.request)
-                .then(function () {
+                .then(function (data) {
                     setBadgeState($badge, 'saved', saved);
                     lingerTimer = setTimeout(function () { hideBadge($badge); }, SAVED_LINGER);
-                    announceSaved(config.key, value);
+                    announceSaved(config.key, value, data);
                 })
                 .catch(function (err) {
                     setBadgeState($badge, 'error', (err && err.message) ? err.message : errorTxt);
@@ -319,6 +344,36 @@
     }
 
     /**
+     * Configuration for the per-record variant (#1757), or null when this
+     * screen has none.
+     *
+     * One nonce covers every record on the screen; which record a field
+     * belongs to rides on the field itself, as `data-ffc-autosave-record`
+     * (`entity:id`), and {@link bootVariant} reads it per field.
+     *
+     * @returns {Object|null}
+     */
+    function recordBase() {
+        var cfg = window.ffcRecordAutosave;
+        if (!cfg || !cfg.ajaxUrl) {
+            return null;
+        }
+        return {
+            action:  cfg.action || 'ffc_update_record',
+            request: { nonce: cfg.nonce, ajaxUrl: cfg.ajaxUrl },
+            strings: cfg.strings || {},
+            payloadFrom: function ($input) {
+                var parts = String($input.attr('data-ffc-autosave-record') || '').split(':');
+                var id = parseInt(parts[1], 10);
+                if (parts.length !== 2 || !parts[0] || !(id > 0)) {
+                    return null;
+                }
+                return { entity: parts[0], id: id };
+            },
+        };
+    }
+
+    /**
      * Configuration for the settings variant.
      *
      * Only strings — the nonce is read at save time from the same
@@ -372,6 +427,14 @@
             $input.data('ffcAutoSaveBound', true);
 
             var config = $.extend({ key: key }, base || {});
+            if (config.payloadFrom) {
+                var extra = config.payloadFrom($input);
+                delete config.payloadFrom;
+                if (!extra) {
+                    return;
+                }
+                config.payload = $.extend({}, config.payload || {}, extra);
+            }
             var debounceAttr = $input.attr('data-ffc-autosave-debounce');
             if (debounceAttr && !isNaN(parseInt(debounceAttr, 10))) {
                 config.debounce = parseInt(debounceAttr, 10);
@@ -384,6 +447,12 @@
                 var $radios = $('[' + attr + '="' + key + '"]:radio');
                 $radios.not($input).data('ffcAutoSaveBound', true);
                 config.$group = $radios;
+            }
+            // A field whose value no single control holds -- a whole table
+            // (#1759) -- registers its reader under its key before boot.
+            var transforms = window.FFC.Admin.autoSaveTransforms || {};
+            if (typeof transforms[key] === 'function') {
+                config.transform = transforms[key];
             }
             if (isMulti) {
                 var $group = $('[' + attr + '="' + key + '"][data-ffc-autosave-multi]');
@@ -400,9 +469,11 @@
     /**
      * Scan the DOM for autosave-tagged inputs and wire each one.
      *
-     * Two attributes, one widget (#1116): `data-ffc-autosave-key` saves a
-     * WP option through `ffc_update_setting`, `data-ffc-autosave-form-key`
-     * saves per-post meta through `ffc_update_form_meta`. They were two
+     * Three attributes, one widget (#1116, #1757): `data-ffc-autosave-key`
+     * saves a WP option through `ffc_update_setting`,
+     * `data-ffc-autosave-form-key` saves per-post meta through
+     * `ffc_update_form_meta`, and `data-ffc-autosave-record-key` saves one
+     * column of a record through `ffc_update_record`. They were two
      * independent implementations until the validity guard of #1114 had to
      * be written twice to reach both.
      *
@@ -416,6 +487,10 @@
         var formMeta = formMetaBase();
         if (formMeta) {
             bootVariant('data-ffc-autosave-form-key', formMeta);
+        }
+        var record = recordBase();
+        if (record) {
+            bootVariant('data-ffc-autosave-record-key', record);
         }
     }
     window.FFC.Admin.bootAutoSaveFields = bootAutoSaveFields;

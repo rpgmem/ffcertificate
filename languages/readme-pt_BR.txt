@@ -42,13 +42,14 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 * **Agendamentos de grupos** - Agende atividades para públicos inteiros ou para usuários individuais.
 * **Importação e exportação em CSV** - Importe e exporte públicos e membros, com criação de usuários.
 * **Detecção de conflitos** - Os conflitos são verificados antes de um agendamento ser confirmado.
+* **Shortcodes** - A lista de Calendários de Público-alvo mostra o shortcode de cada calendário e de cada ambiente, com um botão de copiar.
 * **Notificações por e-mail** - Notificações automáticas de novos agendamentos e de cancelamentos.
 
 = Recadastramento =
 
 * **Gestão de campanhas** - Campanhas de recadastramento ligadas a públicos, com períodos configuráveis.
 * **Campos personalizados** - Campos personalizados por público (texto, área de texto, número, data, seleção, caixa de seleção) com validação, além de um conjunto padrão de campos de identificação, contato e vínculo funcional.
-* **Notificações por e-mail** - E-mails de convite, lembrete e confirmação com modelos editáveis.
+* **Notificações por e-mail** - E-mails de convite, lembrete e confirmação com modelos editáveis. Com a campanha ativa, a execução diária do recadastramento envia os convites em lotes.
 * **Fluxo de aprovação** - Aprovação manual ou automática, com uma tela de análise para o administrador.
 * **Ficha em PDF** - Uma ficha em PDF de cada envio, a partir de um modelo personalizável.
 * **Integração com o painel** - Os usuários veem os avisos de recadastramento, enviam o formulário e baixam a ficha pelo painel.
@@ -79,12 +80,12 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 * **Sistema de tickets** - Importe códigos de acesso de uso único para dar acesso exclusivo ao formulário.
 * **Lista de permitidos / bloqueados** - Permita ou bloqueie documentos específicos.
 * **Captcha e honeypot** - Um honeypot em todo formulário público, mais um desafio de matemática, um desafio de prova de trabalho ALTCHA, ou os dois (ALTCHA com o de matemática como reserva quando o JavaScript está desligado).
-* **Criptografia de dados** - E-mail, CPF/RF, endereço IP e outros campos sensíveis são criptografados no banco (AES-256), com hashes com sal para as buscas.
+* **Criptografia de dados** - E-mail, CPF/RF, endereço IP e outros campos sensíveis são criptografados no banco (AES-256), com hashes com sal para as buscas. Na tela, eles começam mascarados para todos, administradores incluídos, e cada Revelar é gravado no Registro de Atividades.
 
 = Administração =
 
-* **Registro de Atividades** - Trilha de auditoria das ações de administradores e usuários.
-* **Painel do usuário** - Painel pessoal no site, com certificados, agendamentos, agendamentos de grupo, recadastramento e perfil.
+* **Registro de Atividades** - Trilha de auditoria das ações de administradores e usuários, cada uma com um nome legível.
+* **Painel do usuário** - Painel pessoal no site, com certificados, agendamentos, agendamentos de grupo, recadastramento e perfil. Ele segue a paleta do plugin, o Modo Escuro e o Design Público.
 * **Exportação em CSV** - Exportações em lotes, à prova de tempo limite, de envios, agendamentos e outros dados.
 * **Migrações de dados** - Configurações → Migrações roda migrações em lotes com acompanhamento do progresso.
 * **Ferramentas de manutenção** - Limpe URLs curtas obsoletas, desligue o Acesso Público de Operador nos formulários que já terminaram e audite como os envios estão ligados aos usuários do WordPress. A auditoria só gera relatório.
@@ -92,9 +93,9 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 * **Resolução de identidade** - Uma auditoria de registros de identidade conflitantes (CPF/RF e e-mails compartilhados ou inválidos) entre os armazenamentos do plugin, com ações de aceitar e resolver.
 * **E-mail** - Configurações de SMTP próprias, um layout de e-mail configurável compartilhado por todas as mensagens e uma chave geral para desligar todos os e-mails.
 * **API REST** - Endpoints REST para integrações externas.
-* **Capacidades e funções** - Permissões granulares e delegáveis, com três estados por área (oculto / só visualiza / visualiza e edita), funções dedicadas e editores por usuário e por função, para delegar o plugin sem conceder o papel de administrador do WordPress.
-* **Modo Escuro** - Um tema escuro para o painel (desligado, ligado ou seguindo o sistema operacional).
-* **Design Público** - Configurações → Design Público dá a todas as telas públicas as cores de destaque, de campo, de dica e de erro do site, o arredondamento dos cantos, a largura do formulário e a fonte. Vem desligado, vale só para o tema claro e avisa quando um par de cores fica abaixo do contraste mínimo da WCAG.
+* **Capacidades e funções** - Permissões granulares e delegáveis, com três estados por área (oculto / só visualiza / visualiza e edita), funções dedicadas (entre elas uma função de administrador, que pode revelar dados pessoais, em cada módulo que os guarda) e editores por usuário e por função, para delegar o plugin sem conceder o papel de administrador do WordPress.
+* **Modo Escuro** - Um tema escuro para as telas do administrador e as páginas públicas (desligado, ligado ou seguindo o sistema operacional).
+* **Design Público** - Configurações → Design Público dá a todas as telas públicas as cores de destaque, de campo, de dica e de erro do site, os cantos dos campos e dos cartões, a largura do formulário e a fonte. O painel do usuário também o segue. Vem desligado, vale só para o tema claro e avisa quando um par de cores fica abaixo do contraste mínimo da WCAG.
 
 = Integrações =
 
@@ -103,11 +104,15 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 * **Geolocalização por IP** - Geofencing por IP através do ip-api.com ou do ipinfo.io (o ipinfo.io exige uma chave de API).
 * **Atualizações pelo GitHub** - As atualizações do plugin vêm das Releases do projeto no GitHub, pela tela de atualizações normal do WordPress, e o SHA-256 de cada pacote é conferido antes da instalação.
 
+= Software livre, gratuito para sempre =
+
+O Free Form Certificate é software livre (AGPLv3 ou posterior), desenvolvido e mantido por servidores públicos no Brasil. É gratuito para sempre: não existe nem existirá edição paga, recurso bloqueado ou assinatura. A declaração completa de princípios está em Configurações → Documentação → Sobre o projeto.
+
 == Installation ==
 
 1. Envie a pasta `ffcertificate` para `/wp-content/plugins/`.
 2. Ative o plugin no menu "Plugins" do WordPress.
-3. Vá em Certificado → Adicionar Novo Formulário para criar seu primeiro formulário.
+3. Vá em Certificados → Adicionar Novo Formulário para criar seu primeiro formulário.
 4. Coloque o shortcode `[ffc_form id="FORM_ID"]` em qualquer página ou post.
 5. Opcional: ligue ou desligue módulos em Configurações → Módulos, e instale a linha de cron do servidor mostrada em Configurações → Tarefas Agendadas para que as tarefas em segundo plano rodem na hora certa.
 
@@ -115,7 +120,7 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 
 = Como crio um formulário? =
 
-1. Vá em Certificado → Adicionar Novo Formulário.
+1. Vá em Certificados → Adicionar Novo Formulário.
 2. Dê um título e adicione campos com o Construtor de formulários.
 3. Escolha e ajuste o layout do certificado.
 4. Salve e copie o shortcode gerado.
@@ -130,7 +135,7 @@ O plugin cria uma página `/valid` na ativação. Você também pode colocar `[f
 
 = Como crio um calendário? =
 
-1. Vá em Agendamento → Calendários Pessoais → Novo Calendário Pessoal.
+1. Vá em Agendamento → Calendários Pessoais e clique em Novo Calendário Pessoal.
 2. Configure o expediente, a duração dos horários e a capacidade.
 3. Coloque o shortcode `[ffc_self_scheduling id="CALENDAR_ID"]` em qualquer página.
 

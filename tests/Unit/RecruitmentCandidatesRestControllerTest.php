@@ -35,6 +35,11 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Candidate responses ask the PII policy (#1863); by default the
+		// caller is staff with the PII cap, not the candidate.
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -249,6 +254,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 
 		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
 		$df->shouldReceive( 'mask_email' )->andReturnUsing( fn( $e ) => 'masked:' . $e )->byDefault();
+		$df->shouldReceive( 'mask_any' )->andReturnUsing( fn( $k, $v ) => 'masked:' . $k . ':' . $v )->byDefault();
 		$df->shouldReceive( 'format_cpf' )->andReturnUsing( fn( $v ) => 'cpf:' . $v )->byDefault();
 		$df->shouldReceive( 'format_rf' )->andReturnUsing( fn( $v ) => 'rf:' . $v )->byDefault();
 
@@ -275,12 +281,29 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertSame( 5, $data['id'] );
 		$this->assertSame( 12, $data['user_id'] );
 		$this->assertSame( 'Jane Doe', $data['name'] );
+		// Staff get the identifiers masked and reveal them one at a time
+		// through reveal-pii, audited (#1863).
+		$this->assertSame( 'masked:cpf:51817842080', $data['cpf'] );
+		$this->assertSame( 'masked:rf:5181780', $data['rf'] );
+		$this->assertSame( 'masked:jane@example.com', $data['email'] );
+		$this->assertSame( 'masked:jane@example.com', $data['email_masked'] );
+		$this->assertTrue( $data['pii_masked'] );
+		$this->assertSame( '11999998888', $data['phone'] );
+		$this->assertTrue( $data['is_pcd'] );
+	}
+
+	public function test_get_candidate_gives_the_candidate_their_own_data_in_clear(): void {
+		$this->stub_shape_helpers();
+		Functions\when( 'get_current_user_id' )->justReturn( 12 );
+		$row = $this->make_candidate_row();
+		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $row );
+
+		$data = $this->controller->get_candidate( $this->make_request( array( 'id' => 5 ) ) )->get_data();
+
 		$this->assertSame( '51817842080', $data['cpf'] );
 		$this->assertSame( '5181780', $data['rf'] );
 		$this->assertSame( 'jane@example.com', $data['email'] );
-		$this->assertSame( 'masked:jane@example.com', $data['email_masked'] );
-		$this->assertSame( '11999998888', $data['phone'] );
-		$this->assertTrue( $data['is_pcd'] );
+		$this->assertFalse( $data['pii_masked'] );
 	}
 
 	public function test_get_candidate_shapes_null_user_and_empty_encrypted_fields(): void {

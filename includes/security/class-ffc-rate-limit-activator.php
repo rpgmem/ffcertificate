@@ -26,6 +26,12 @@ class RateLimitActivator {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
+	 * Schema version stored in `ffc_rate_limit_db_version` once the tables
+	 * are current; maybe_create_tables() skips the body when they match.
+	 */
+	public const DB_VERSION = '1.2.0';
+
+	/**
 	 * Create tables.
 	 *
 	 * @return bool
@@ -132,7 +138,7 @@ class RateLimitActivator {
 
 		dbDelta( $sql_signals );
 
-		update_option( 'ffc_rate_limit_db_version', '1.2.0' );
+		update_option( 'ffc_rate_limit_db_version', self::DB_VERSION );
 		return true;
 	}
 
@@ -143,7 +149,7 @@ class RateLimitActivator {
 	 */
 	public static function maybe_create_tables(): void {
 		$stored = get_option( 'ffc_rate_limit_db_version', '' );
-		if ( '1.2.0' === $stored ) {
+		if ( self::DB_VERSION === $stored ) {
 			return;
 		}
 		self::create_tables();

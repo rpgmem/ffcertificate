@@ -14,7 +14,76 @@
 
 (function(window) {
     'use strict';
-    
+
+    /**
+     * What each message kind puts on the message and on its control (#1844).
+     * The classes are written out whole so a scan for who emits them finds
+     * them; `Core\FieldMessage` carries the same map for the server side.
+     */
+    var FIELD_KINDS = {
+        error: { message: 'is-error', icon: 'ffc-icon-error', control: 'is-invalid', role: 'alert', invalid: true },
+        warning: { message: 'is-warning', icon: 'ffc-icon-warning', control: 'is-warning', role: 'status', invalid: false }
+    };
+
+    var fieldMessageCount = 0;
+
+    /**
+     * The message id for a control: `ffc-msg-` plus its id, else its name,
+     * with anything an id cannot hold turned into a hyphen — the rule
+     * `Core\FieldMessage::id()` applies, so a server-printed message is found.
+     */
+    function fieldMessageId(key) {
+        return 'ffc-msg-' + String(key).replace(/[^A-Za-z0-9_-]/g, '-');
+    }
+
+    function controlMessageId(control) {
+        var key = control.id || control.getAttribute('name') || '';
+        if (!key) {
+            fieldMessageCount += 1;
+            key = 'field-' + fieldMessageCount;
+        }
+        return fieldMessageId(key);
+    }
+
+    function placeFieldMessage(message, control, options) {
+        var within = options.within && jQuery(options.within)[0];
+        if (within) {
+            within.appendChild(message);
+            return;
+        }
+        var anchor = options.after && jQuery(options.after)[0];
+        if (!anchor) {
+            anchor = control;
+            if (control.type === 'checkbox' || control.type === 'radio') {
+                anchor = control.closest('.ffc-radio-group, .ffc-checkbox-group, [role="group"], [role="radiogroup"]')
+                    || control.closest('label')
+                    || control;
+            }
+        }
+        if (anchor.parentNode) {
+            anchor.parentNode.insertBefore(message, anchor.nextSibling);
+        }
+    }
+
+    function addIdToken(el, attr, id) {
+        var tokens = (el.getAttribute(attr) || '').split(/\s+/).filter(Boolean);
+        if (tokens.indexOf(id) === -1) {
+            tokens.push(id);
+        }
+        el.setAttribute(attr, tokens.join(' '));
+    }
+
+    function removeIdToken(el, attr, id) {
+        var tokens = (el.getAttribute(attr) || '').split(/\s+/).filter(function(token) {
+            return token && token !== id;
+        });
+        if (tokens.length) {
+            el.setAttribute(attr, tokens.join(' '));
+        } else {
+            el.removeAttribute(attr);
+        }
+    }
+
     /**
      * Initialize global FFC namespace
      */
@@ -432,6 +501,438 @@
                     $field.prop('required', false).attr('data-ffc-required-off', '');
                 }
             });
+        },
+
+        /**
+         * Show a message under a field and put the field in its state (#1844).
+         *
+         * One shape for every field the plugin draws: the label, the control,
+         * this message, then the hint and the counter. An error marks the
+         * control `is-invalid` with `aria-invalid` and is announced with
+         * `role="alert"`; a warning marks it `is-warning`, is announced
+         * politely with `role="status"` and does not block anything; `valid`
+         * removes any message and marks the control `is-valid`.
+         *
+         * The message's id is APPENDED to `aria-describedby`, so a hint the
+         * control already names keeps being read; clearing removes that id
+         * and nothing else. The text goes in as `textContent`, never as HTML.
+         *
+         * The message goes after the control, or after the group that holds
+         * a checkbox or radio, so it never lands between a box and its label.
+         * `options.after` names another element to follow, and
+         * `options.within` a container to append it to, for a field whose
+         * layout the default cannot read (a table row, a cascade of selects);
+         * `options.id` keys a message several controls share, as the server
+         * keys it.
+         * A message the server already printed — same id, see
+         * `Core\FieldMessage` — is reused where it stands.
+         *
+         * @param {Element|jQuery|string} input   The control, or every control of one group.
+         * @param {string}                kind    'error', 'warning' or 'valid'.
+         * @param {string}                [text]  The message, plain text.
+         * @param {Object}                [options] `after` or `within` (an Element or jQuery), `id`.
+         * @return {Element|null} The message element; null for 'valid' or no control.
+         */
+        fieldMessage: function(input, kind, text, options) {
+            var $controls = jQuery(input);
+            if (!$controls.length) {
+                return null;
+            }
+            var spec = FIELD_KINDS[kind];
+            if (!spec) {
+                this.clearFieldMessage($controls);
+                if (kind === 'valid') {
+                    $controls.addClass('is-valid');
+                }
+                return null;
+            }
+
+            options = options || {};
+            var first = $controls[0];
+            var id = options.id
+                ? fieldMessageId(options.id)
+                : (first.getAttribute('data-ffc-message-id') || controlMessageId(first));
+            var message = document.getElementById(id);
+            if (!message || !message.classList.contains('ffc-field-message')) {
+                message = document.createElement('span');
+                message.id = id;
+                placeFieldMessage(message, first, options);
+            }
+
+            message.className = 'ffc-field-message ' + spec.message + ' ' + spec.icon;
+            message.setAttribute('role', spec.role);
+            message.removeAttribute('hidden');
+            message.textContent = text === null || typeof text === 'undefined' ? '' : String(text);
+
+            $controls.each(function() {
+                this.classList.remove('is-invalid', 'is-warning', 'is-valid');
+                this.classList.add(spec.control);
+                if (spec.invalid) {
+                    this.setAttribute('aria-invalid', 'true');
+                } else {
+                    this.removeAttribute('aria-invalid');
+                }
+                this.setAttribute('data-ffc-message-id', id);
+                addIdToken(this, 'aria-describedby', id);
+            });
+
+            return message;
+        },
+
+        /**
+         * Remove a field's message and state, as `fieldMessage()` set them.
+         *
+         * Only the message's own id leaves `aria-describedby`; a hint id the
+         * control carried before stays. A message shared by several controls
+         * is removed with the last of them.
+         *
+         * @param {Element|jQuery|string} input The control, or every control of one group.
+         */
+        clearFieldMessage: function(input) {
+            jQuery(input).each(function() {
+                var id = this.getAttribute('data-ffc-message-id');
+                if (id) {
+                    removeIdToken(this, 'aria-describedby', id);
+                    this.removeAttribute('data-ffc-message-id');
+                    // A message several controls share stays while any of
+                    // them still points at it.
+                    var message = document.getElementById(id);
+                    if (message && message.classList.contains('ffc-field-message') && message.parentNode
+                        && !document.querySelector('[data-ffc-message-id="' + id + '"]')) {
+                        message.parentNode.removeChild(message);
+                    }
+                }
+                this.classList.remove('is-invalid', 'is-warning', 'is-valid');
+                this.removeAttribute('aria-invalid');
+            });
+        },
+
+        /**
+         * The localized "This field is required." every field message uses
+         * for an empty required control.
+         *
+         * @return {string}
+         */
+        requiredMessage: function() {
+            var strings = (window.ffcCoreConfig && window.ffcCoreConfig.strings) || {};
+            return strings.fieldRequired || 'This field is required.';
+        },
+
+        /**
+         * Build a system notice (#1842): the JS twin of `Core\Notice::render()`,
+         * printing the same markup, so no script hand-writes it.
+         *
+         * Every string lands through `textContent`, never `innerHTML`, so a
+         * message from the server or a translation cannot become markup.
+         *
+         * @param {string} tone  info | warning | danger | success | neutral; anything else is info.
+         * @param {string} icon  A `.ffc-icon-*` class name without the prefix (`clock`).
+         * @param {string|string[]} text  The message; a list prints one paragraph each.
+         * @param {string} [title]  Optional bold title.
+         * @param {Object} [options]
+         * @param {string} [options.role]  status (default) | alert | note.
+         * @param {string} [options.live]  polite | assertive.
+         * @param {string} [options.hook]  A `data-ffc-notice` value a script finds it by.
+         * @param {Node[]} [options.children]  Nodes appended after the text (a button).
+         * @return {HTMLElement}
+         */
+        notice: function(tone, icon, text, title, options) {
+            var fallbacks = { info: 'info', warning: 'warning', danger: 'error', success: 'success', neutral: 'info' };
+            var opts = options || {};
+            if (!Object.prototype.hasOwnProperty.call(fallbacks, tone)) {
+                tone = 'info';
+            }
+            if (typeof icon !== 'string' || !/^[a-z0-9-]+$/.test(icon)) {
+                icon = fallbacks[tone];
+            }
+
+            var notice = document.createElement('div');
+            notice.className = 'ffc-notice ffc-notice-' + tone;
+            notice.setAttribute('role', ['status', 'alert', 'note'].indexOf(opts.role) !== -1 ? opts.role : 'status');
+            if (opts.live === 'polite' || opts.live === 'assertive') {
+                notice.setAttribute('aria-live', opts.live);
+            }
+            if (typeof opts.hook === 'string' && opts.hook !== '') {
+                notice.setAttribute('data-ffc-notice', opts.hook);
+            }
+
+            var mark = document.createElement('span');
+            mark.className = 'ffc-notice-icon ffc-icon-' + icon;
+            mark.setAttribute('aria-hidden', 'true');
+
+            var body = document.createElement('div');
+            body.className = 'ffc-notice-body';
+            if (title) {
+                var strong = document.createElement('strong');
+                strong.className = 'ffc-notice-title';
+                strong.textContent = String(title);
+                body.appendChild(strong);
+            }
+            (Array.isArray(text) ? text : [text]).forEach(function(paragraph) {
+                if (paragraph === null || typeof paragraph === 'undefined' || paragraph === '') {
+                    return;
+                }
+                var p = document.createElement('p');
+                p.className = 'ffc-notice-text';
+                p.textContent = String(paragraph);
+                body.appendChild(p);
+            });
+            (opts.children || []).forEach(function(child) {
+                if (child) {
+                    body.appendChild(child);
+                }
+            });
+
+            notice.appendChild(mark);
+            notice.appendChild(body);
+            return notice;
+        },
+
+        /**
+         * The override warning (#1859): one dialog listing every rule a
+         * booking breaks, with an "I agree" button that stays disabled for a
+         * countdown.
+         *
+         * Audience calendars and personal calendars both open it when a
+         * bypass holder books outside the rules. It is the plugin's modal
+         * (`.ffc-shortcode.ffc-modal`, appended to `<body>`) carrying a
+         * warning notice, so it needs no style of its own. The countdown is
+         * shown on the button every second and announced twice through a
+         * polite live region — when it starts and when it ends — so a screen
+         * reader is told what to wait for without hearing every tick. Cancel,
+         * Escape and the backdrop answer at once; focus starts on Cancel,
+         * stays inside the dialog, and returns where it was.
+         *
+         * @param {Object}   options
+         * @param {Array}    options.reasons  `{code, message}` entries or plain strings.
+         * @param {Object}   [options.strings] Localized words (`OverrideWarning::strings()`).
+         * @param {number}   [options.seconds] Countdown length; `strings.seconds`, else 15.
+         * @return {Promise<boolean>} True when the person agreed.
+         */
+        overrideConfirm: function(options) {
+            var opts = options || {};
+            var s = opts.strings || {};
+            var seconds = parseInt(opts.seconds || s.seconds, 10);
+            if (!(seconds >= 0)) {
+                seconds = 15;
+            }
+            var words = {
+                title: s.title || 'Book outside the rules?',
+                intro: s.intro || 'This booking breaks the following rules:',
+                logged: s.logged || '',
+                agree: s.agree || 'I agree',
+                agreeIn: s.agreeIn || 'I agree (%d)',
+                cancel: s.cancel || 'Cancel',
+                countdownStart: s.countdownStart || 'You can confirm in %d seconds.',
+                countdownEnd: s.countdownEnd || 'You can confirm now.'
+            };
+            var reasons = (opts.reasons || []).map(function(r) {
+                return (r && typeof r === 'object') ? String(r.message || r.code || '') : String(r);
+            }).filter(function(text) { return text !== ''; });
+
+            var uid = 'ffc-override-' + Date.now().toString(36);
+            var previous = document.activeElement;
+
+            var dialog = document.createElement('div');
+            dialog.className = 'ffc-shortcode ffc-modal ffc-override-dialog';
+            dialog.setAttribute('role', 'alertdialog');
+            dialog.setAttribute('aria-modal', 'true');
+            dialog.setAttribute('aria-labelledby', uid + '-title');
+            dialog.setAttribute('aria-describedby', uid + '-body');
+
+            var backdrop = document.createElement('div');
+            backdrop.className = 'ffc-modal-backdrop';
+
+            var content = document.createElement('div');
+            content.className = 'ffc-modal-content';
+
+            var header = document.createElement('div');
+            header.className = 'ffc-modal-header';
+            var title = document.createElement('h3');
+            title.id = uid + '-title';
+            title.textContent = words.title;
+            header.appendChild(title);
+
+            var body = document.createElement('div');
+            body.className = 'ffc-modal-body';
+            body.id = uid + '-body';
+
+            var list = document.createElement('ul');
+            list.className = 'ffc-override-reasons';
+            reasons.forEach(function(text) {
+                var item = document.createElement('li');
+                item.textContent = text;
+                list.appendChild(item);
+            });
+            body.appendChild(this.notice('warning', 'warning', words.logged, words.intro, {
+                role: 'note',
+                hook: 'override-reasons',
+                children: [list]
+            }));
+
+            var live = document.createElement('p');
+            live.className = 'ffc-override-countdown';
+            live.setAttribute('role', 'status');
+            live.setAttribute('aria-live', 'polite');
+            body.appendChild(live);
+
+            var footer = document.createElement('div');
+            footer.className = 'ffc-modal-footer';
+            var cancel = document.createElement('button');
+            cancel.type = 'button';
+            cancel.className = 'ffc-btn ffc-btn-secondary';
+            cancel.setAttribute('data-ffc-override', 'cancel');
+            cancel.textContent = words.cancel;
+            var agree = document.createElement('button');
+            agree.type = 'button';
+            agree.className = 'ffc-btn ffc-btn-primary';
+            agree.setAttribute('data-ffc-override', 'agree');
+            footer.appendChild(cancel);
+            footer.appendChild(agree);
+
+            content.appendChild(header);
+            content.appendChild(body);
+            content.appendChild(footer);
+            dialog.appendChild(backdrop);
+            dialog.appendChild(content);
+            document.body.appendChild(dialog);
+
+            return new Promise(function(resolve) {
+                var left = seconds;
+                var timer = null;
+                var done = false;
+
+                function label() {
+                    agree.textContent = left > 0 ? words.agreeIn.replace('%d', left) : words.agree;
+                    agree.disabled = left > 0;
+                    agree.setAttribute('aria-disabled', left > 0 ? 'true' : 'false');
+                }
+
+                function finish(answer) {
+                    if (done) {
+                        return;
+                    }
+                    done = true;
+                    if (timer) {
+                        clearInterval(timer);
+                    }
+                    document.removeEventListener('keydown', onKey, true);
+                    if (dialog.parentNode) {
+                        dialog.parentNode.removeChild(dialog);
+                    }
+                    if (previous && typeof previous.focus === 'function') {
+                        previous.focus();
+                    }
+                    resolve(answer);
+                }
+
+                function onKey(e) {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        finish(false);
+                        return;
+                    }
+                    if (e.key !== 'Tab') {
+                        return;
+                    }
+                    var focusable = [cancel, agree].filter(function(el) { return !el.disabled; });
+                    var first = focusable[0];
+                    var last = focusable[focusable.length - 1];
+                    if (focusable.indexOf(document.activeElement) === -1) {
+                        e.preventDefault();
+                        first.focus();
+                    } else if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+
+                cancel.addEventListener('click', function() { finish(false); });
+                backdrop.addEventListener('click', function() { finish(false); });
+                agree.addEventListener('click', function() {
+                    if (!agree.disabled) {
+                        finish(true);
+                    }
+                });
+                document.addEventListener('keydown', onKey, true);
+
+                label();
+                if (left > 0) {
+                    live.textContent = words.countdownStart.replace('%d', left);
+                    timer = setInterval(function() {
+                        left -= 1;
+                        label();
+                        if (left <= 0) {
+                            clearInterval(timer);
+                            timer = null;
+                            live.textContent = words.countdownEnd;
+                        }
+                    }, 1000);
+                } else {
+                    live.textContent = words.countdownEnd;
+                }
+
+                cancel.focus();
+            });
+        },
+
+        /**
+         * Set a status line beside a control (#1843): `.ffc-status` plus one
+         * state class, a registry icon and the text, announced politely.
+         *
+         * One look for every "saving… / saved / failed" next to a button or
+         * a field, in the admin and on the dashboard. The text lands through
+         * `textContent`, so a server message cannot become markup. A call
+         * with no state and no text clears the line and hides it.
+         *
+         * @param {HTMLElement|jQuery|string} target The line, or a selector for it.
+         * @param {string} [state] busy | success | error | warning; anything else is plain.
+         * @param {string} [text]  The text.
+         * @return {HTMLElement|null} The line.
+         */
+        status: function(target, state, text) {
+            var el = target && target.jquery ? target[0] : (typeof target === 'string' ? document.querySelector(target) : target);
+            if (!el || !el.classList) {
+                return null;
+            }
+            var icons = { busy: 'sync', success: 'success', error: 'error', warning: 'warning' };
+            var known = Object.prototype.hasOwnProperty.call(icons, state);
+            var value = (text === null || typeof text === 'undefined') ? '' : String(text);
+
+            el.classList.add('ffc-status');
+            el.classList.remove('is-busy', 'is-success', 'is-error', 'is-warning');
+            if (!el.hasAttribute('role')) {
+                el.setAttribute('role', 'status');
+            }
+            if (!el.hasAttribute('aria-live')) {
+                el.setAttribute('aria-live', 'polite');
+            }
+            while (el.firstChild) {
+                el.removeChild(el.firstChild);
+            }
+
+            if (!known && value === '') {
+                el.setAttribute('hidden', 'hidden');
+                return el;
+            }
+
+            if (known) {
+                el.classList.add('is-' + state);
+                var mark = document.createElement('span');
+                mark.className = 'ffc-status-icon ffc-icon-' + icons[state] + ('busy' === state ? ' ffc-icon-spin' : '');
+                mark.setAttribute('aria-hidden', 'true');
+                el.appendChild(mark);
+            }
+            var label = document.createElement('span');
+            label.className = 'ffc-status-text';
+            label.textContent = value;
+            el.appendChild(label);
+            el.removeAttribute('hidden');
+            return el;
         },
 
         /**

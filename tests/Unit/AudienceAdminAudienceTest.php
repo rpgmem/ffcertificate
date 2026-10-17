@@ -20,9 +20,17 @@ class AudienceAdminAudienceTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var Mockery\MockInterface Alias mock of Core\PiiAccessPolicy. */
+	private $policy;
+
+	/** @var bool What the policy answers for a listed account (#1824). */
+	private $can_reveal = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// handle_actions() acts only on its own screen (#1771).
+		$_GET['page'] = 'ffc-scheduling-audiences';
 
 		// pcov does not record lines for files first autoloaded mid-test-method,
 		// so the extracted renderer's coverage would attribute to nothing.
@@ -51,10 +59,21 @@ class AudienceAdminAudienceTest extends TestCase {
 		} );
 		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
+		// The editor renders its Members tab (#1761).
+		Functions\when( 'wp_nonce_url' )->justReturn( '/remove' );
+		Functions\when( 'get_user_by' )->alias(
+			static fn( $field, $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
+		);
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
+		// The account email is masked (#1824). Whether a row gets a Reveal
+		// button is the policy's answer, set per test through
+		// $this->can_reveal; the tiers themselves are AudienceAccountEmailTest's.
+		Functions\when( 'is_email' )->justReturn( true );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'reveal-nonce' );
+		$this->policy = Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
+		$this->policy->shouldReceive( 'can_reveal' )->andReturnUsing( fn() => $this->can_reveal )->byDefault();
+		// The members table's "Reveal this page" asks the same question (#1863).
+		$this->policy->shouldReceive( 'can_reveal_any' )->andReturnUsing( fn() => $this->can_reveal )->byDefault();
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -131,7 +150,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_page_renders_list_by_default(): void {
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 		Functions\when( 'wp_trim_words' )->returnArg();
 
@@ -150,7 +169,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_list_renders_hierarchical_rows(): void {
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 
 		$child  = (object) array(
@@ -189,6 +208,60 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertStringContainsString( 'Delete', $output );
 	}
 
+	/**
+	 * Row actions by tier (#1769): Edit / Deactivate need
+	 * `ffc_manage_audiences`, Delete needs `ffc_delete_audiences`.
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool, 2: bool}>
+	 */
+	public function row_action_tiers(): array {
+		return array(
+			'view-only tier'       => array( array( 'ffc_view_audiences' ), false, false ),
+			'manage tier'          => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true, false ),
+			'manage + delete tier' => array( array( 'ffc_view_audiences', 'ffc_manage_audiences', 'ffc_delete_audiences' ), true, true ),
+		);
+	}
+
+	/**
+	 * Grant exactly the given capabilities.
+	 *
+	 * @param list<string> $caps Capabilities held.
+	 */
+	private function grant( array $caps ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+	}
+
+	/**
+	 * @dataProvider row_action_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_manage Whether Edit / Deactivate render.
+	 * @param bool         $can_delete Whether Delete renders.
+	 */
+	public function test_row_actions_render_only_for_the_cap_their_handler_checks( array $caps, bool $can_manage, bool $can_delete ): void {
+		$this->grant( $caps );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
+		$child  = (object) array( 'id' => 2, 'name' => 'Child Aud', 'color' => '#00ff00', 'status' => 'inactive', 'children' => array() );
+		$parent = (object) array( 'id' => 1, 'name' => 'Parent Aud', 'color' => '#ff0000', 'status' => 'active', 'children' => array( $child ) );
+		$repo   = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_hierarchical' )->andReturn( array( $parent ) );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 1 );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		// Members stays for every tier: its screen opens on the menu's own
+		// `ffc_view_audiences`.
+		$this->assertSame( 2, substr_count( $output, 'Members</a>' ) );
+		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'Edit</a>' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'Deactivate' ) );
+		$this->assertSame( $can_delete, str_contains( $output, 'Delete' ) );
+	}
+
 	// ==================================================================
 	// render_form()
 	// ==================================================================
@@ -196,7 +269,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	public function test_render_form_edit_renders_custom_fields_section(): void {
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
@@ -213,6 +286,9 @@ class AudienceAdminAudienceTest extends TestCase {
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
+		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) )->byDefault();
 		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $audience );
 		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
 		$repo->shouldReceive( 'get_children' )->with( 5 )->andReturn( array() );
@@ -228,14 +304,21 @@ class AudienceAdminAudienceTest extends TestCase {
 		$page->render_page();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( 'Reregistration Fields', $output );
 		$this->assertStringContainsString( 'ffc-add-custom-field', $output );
-		// A boxed screen: the audience and its fields each sit in a card whose
-		// heading carries an icon (#1629).
+		// A boxed screen of vertical tabs (#1761): the audience, its members
+		// and its fields, each panel titled with its icon. The Members tab
+		// keeps its two cards.
 		$this->assertMatchesRegularExpression( '/<div class="wrap ffc-admin-page ffc-page-scheduling-audiences ffc-boxed">/', $output );
-		$this->assertStringContainsString( '<h2 class="ffc-icon-users">', $output );
-		$this->assertStringContainsString( '<h2 class="ffc-icon-clipboard">', $output );
+		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
+		$this->assertSame( array( 'audience', 'members', 'fields' ), $panels[1] );
+		$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-users" aria-hidden="true"></span>Audience</h2>', $output );
+		$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-user-check" aria-hidden="true"></span>Members (2)</h2>', $output );
+		$this->assertStringContainsString( '<span class="ffc-vtabs__label">Members (2)</span>', $output, 'the tab carries the count the list shows' );
+		$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-clipboard" aria-hidden="true"></span>Reregistration fields</h2>', $output );
+		$this->assertStringContainsString( '<section id="ffc-tabpanel-audience" class="ffc-vtabs__panel is-active"', $output, 'the edit URL opens Audience' );
 		$this->assertSame( 2, substr_count( $output, '<div class="card">' ) );
+		$this->assertSame( substr_count( $output, '<section' ), substr_count( $output, '</section>' ), 'every panel is closed' );
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
 		unset( $_GET['action'], $_GET['id'] );
 	}
 
@@ -323,7 +406,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	public function test_render_form_edit_with_breadcrumb_and_custom_fields(): void {
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
@@ -339,6 +422,9 @@ class AudienceAdminAudienceTest extends TestCase {
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
+		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) )->byDefault();
 		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $audience );
 		$repo->shouldReceive( 'get_possible_parents' )->with( 5 )->andReturn(
 			array( (object) array( 'id' => 1, 'name' => 'Top', 'depth' => 0 ) )
@@ -386,22 +472,30 @@ class AudienceAdminAudienceTest extends TestCase {
 	}
 
 	// ==================================================================
-	// render_members()
+	// The Members tab (#1761)
 	// ==================================================================
 
 	public function test_render_members_lists_users(): void {
 		$_GET['action'] = 'members';
 		$_GET['id']     = '5';
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'get_user_by' )->alias(
 			static fn( $field, $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
 		);
+		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
+		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
+		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		$repo->shouldReceive( 'get_children' )->andReturn( array() );
 		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
+		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) )->byDefault();
 		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp' ) );
 		$repo->shouldReceive( 'get_members' )->with( 5 )->andReturn( array( 7, 8 ) );
 
@@ -411,11 +505,158 @@ class AudienceAdminAudienceTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'User7', $output );
-		$this->assertStringContainsString( '8@e.com', $output );
+		// The email is masked (#1824).
+		$this->assertStringContainsString( '8***@e.com', $output );
+		$this->assertStringNotContainsString( '8@e.com', $output );
 		$this->assertStringContainsString( 'ffc-boxed', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-plus">', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-users">', $output );
+		// The old members URL opens the editor on its Members tab.
+		$this->assertStringContainsString( '<section id="ffc-tabpanel-members" class="ffc-vtabs__panel is-active"', $output );
+		$this->assertStringContainsString( 'id="ffc-tabnav-members" class="ffc-vtabs__tab is-active" role="tab" aria-controls="ffc-tabpanel-members" aria-selected="true"', $output );
+		$this->assertStringContainsString( 'name="audience_name"', $output, 'the Audience tab is there too' );
 		unset( $_GET['action'], $_GET['id'] );
+	}
+
+	public function test_members_tab_and_heading_count_only_the_rows_the_table_renders(): void {
+		// User 9 was deleted but its member row survived: the table skips it,
+		// and the tab label and the card heading both read the count the
+		// audiences list shows, which skips it too (#1795).
+		$_GET['action'] = 'members';
+		$_GET['id']     = '5';
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
+		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'get_user_by' )->alias(
+			static fn( $field, $id ) => 9 === $id ? false : (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
+		);
+		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
+		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
+		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_children' )->andReturn( array() );
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
+		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp' ) );
+		$repo->shouldReceive( 'get_members' )->with( 5 )->andReturn( array( 7, 8, 9 ) );
+		$repo->shouldReceive( 'get_member_count' )->with( 5 )->andReturn( 2 );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'Members (2)', $output, 'the tab label' );
+		$this->assertStringContainsString( 'Current Members (2)', $output, 'the card heading' );
+		$this->assertStringNotContainsString( '(3)', $output, 'the orphan row is counted nowhere' );
+		$this->assertSame( 2, substr_count( $output, '@e.com' ), 'the table renders the two users that exist' );
+		unset( $_GET['action'], $_GET['id'] );
+	}
+
+	/**
+	 * Which tab the editor opens: `?tab=` when it names a tab, the Members
+	 * tab after a member is added or removed, else Audience.
+	 *
+	 * @return array<string, array{0: array<string, string>, 1: array<string, string>, 2: string}>
+	 */
+	public function opening_tabs(): array {
+		return array(
+			'plain edit URL'          => array( array( 'action' => 'edit' ), array(), 'audience' ),
+			'?tab= names a tab'       => array( array( 'action' => 'edit', 'tab' => 'fields' ), array(), 'fields' ),
+			'?tab= names no tab'      => array( array( 'action' => 'edit', 'tab' => 'nope' ), array(), 'audience' ),
+			'members URL'             => array( array( 'action' => 'members' ), array(), 'members' ),
+			'members URL, ?tab='      => array( array( 'action' => 'members', 'tab' => 'audience' ), array(), 'audience' ),
+			'member removed redirect' => array( array( 'action' => 'members', 'message' => 'member_removed' ), array(), 'members' ),
+			'add-members POST'        => array( array( 'action' => 'edit' ), array( 'ffc_action' => 'add_members' ), 'members' ),
+			'save POST'               => array( array( 'action' => 'edit' ), array( 'ffc_action' => 'save_audience' ), 'audience' ),
+		);
+	}
+
+	/**
+	 * @dataProvider opening_tabs
+	 *
+	 * @param array<string, string> $get    Query arguments.
+	 * @param array<string, string> $post   Posted fields.
+	 * @param string                $opened Tab expected open.
+	 */
+	public function test_editor_opens_the_tab_the_request_names( array $get, array $post, string $opened ): void {
+		$_GET  = array_merge( array( 'page' => 'ffc-scheduling-audiences', 'id' => '5' ), $get );
+		$_POST = $post;
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
+		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
+		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp', 'status' => 'active', 'parent_id' => null ) );
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
+		$repo->shouldReceive( 'get_children' )->andReturn( array() );
+		$repo->shouldReceive( 'get_members' )->andReturn( array() );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 0 );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+		$_POST  = array();
+
+		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)" class="ffc-vtabs__panel is-active"/', $output, $open );
+		$this->assertSame( array( $opened ), $open[1] );
+		preg_match_all( '/aria-selected="true"/', $output, $selected );
+		$this->assertCount( 1, $selected[0], 'one tab selected' );
+	}
+
+	public function test_fields_tab_follows_the_custom_fields_caps(): void {
+		// View-only on audiences and nothing on custom fields: no fields tab,
+		// as the section did not render before the tabs.
+		$this->grant( array( 'ffc_view_audiences' ) );
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '5';
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp', 'status' => 'active', 'parent_id' => null ) );
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
+		$repo->shouldReceive( 'get_members' )->andReturn( array() );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 0 );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
+		$this->assertSame( array( 'audience', 'members' ), $panels[1] );
+		$this->assertStringNotContainsString( 'ffc-tab-fields', $output );
+	}
+
+	public function test_new_audience_has_only_the_audience_tab(): void {
+		$_GET['action'] = 'new';
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
+		$repo->shouldNotReceive( 'get_member_count' );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
+		$this->assertSame( array( 'audience' ), $panels[1] );
+		$this->assertStringContainsString( 'Add New Audience', $output );
 	}
 
 	public function test_render_members_missing_audience_dies(): void {
@@ -583,7 +824,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_actions_removes_member_and_redirects(): void {
-		$_GET = array( 'remove_user' => '7', 'id' => '5', '_wpnonce' => 'n' );
+		$_GET = array( 'page' => 'ffc-scheduling-audiences', 'remove_user' => '7', 'id' => '5', '_wpnonce' => 'n' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
@@ -596,6 +837,21 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'message=member_removed' );
 		$page->handle_actions();
+	}
+
+	public function test_handle_actions_ignores_a_remove_member_request_on_another_screen(): void {
+		// The coordinator runs this handler on every ffc-scheduling* screen;
+		// `remove_user` was the one action it performed without checking
+		// which screen it was on (#1771).
+		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'remove_user' => '7', 'id' => '5', '_wpnonce' => 'n' );
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo_w->shouldNotReceive( 'remove_member' );
+
+		( new AudienceAdminAudience( 'ffc-scheduling' ) )->handle_actions();
+		$this->addToAssertionCount( 1 );
 	}
 
 	// ==================================================================
@@ -663,5 +919,179 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'permission to delete' );
 		$page->handle_actions();
+	}
+
+	/**
+	 * Edit-screen tiers (#1777): view-only renders read-only, manage edits.
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public function edit_screen_tiers(): array {
+		return array(
+			'view-only tier' => array( array( 'ffc_view_audiences' ), false ),
+			'manage tier'    => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true ),
+		);
+	}
+
+	/**
+	 * Record each submit button as a marker carrying its label.
+	 */
+	private function capture_submit_buttons(): void {
+		Functions\when( 'submit_button' )->alias(
+			static function ( $text = null ) {
+				echo '[submit:' . $text . ']';
+			}
+		);
+	}
+
+	/**
+	 * @dataProvider edit_screen_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_manage Whether the screen is editable.
+	 */
+	public function test_edit_form_renders_read_only_without_manage( array $caps, bool $can_manage ): void {
+		$this->grant( $caps );
+		$this->capture_submit_buttons();
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '5';
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
+		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) )->byDefault();
+		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
+			(object) array( 'id' => 5, 'name' => 'Grp', 'color' => '#123456', 'status' => 'active', 'parent_id' => null, 'allow_self_join' => 1 )
+		);
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'value="Grp"', $output, 'every tier sees the record' );
+		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
+		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '[submit:Update Audience]' ) );
+		if ( ! $can_manage ) {
+			$open  = (int) strpos( $output, '<fieldset disabled' );
+			$close = (int) strpos( $output, '</fieldset>' );
+			foreach ( array( 'name="audience_name"', 'name="audience_color"', 'name="audience_parent"', 'name="audience_status"', 'name="audience_self_join"' ) as $field ) {
+				$at = (int) strpos( $output, $field );
+				$this->assertTrue( $at > $open && $at < $close, $field . ' sits inside the lock' );
+			}
+		}
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+	}
+
+	/**
+	 * @dataProvider edit_screen_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $can_manage Whether members can be added and removed.
+	 */
+	public function test_members_screen_offers_no_writes_without_manage( array $caps, bool $can_manage ): void {
+		$this->grant( $caps );
+		$this->capture_submit_buttons();
+		$_GET['action'] = 'members';
+		$_GET['id']     = '5';
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_nonce_url' )->justReturn( '/remove' );
+		Functions\when( 'get_user_by' )->alias(
+			static fn( $field, $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
+		);
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
+		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) )->byDefault();
+		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp' ) );
+		$repo->shouldReceive( 'get_members' )->with( 5 )->andReturn( array( 7, 8 ) );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		// Every tier sees the members, with the email masked (#1824).
+		$this->assertStringContainsString( 'User7', $output );
+		$this->assertStringContainsString( '8***@e.com', $output );
+		$this->assertStringNotContainsString( '8@e.com', $output );
+
+		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '<h2 class="ffc-icon-plus">' ), 'the Add Members box' );
+		$this->assertSame( $can_manage, str_contains( $output, 'id="user_search"' ) );
+		$this->assertSame( $can_manage, str_contains( $output, '[submit:Add Selected Members]' ) );
+		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'Remove this member?' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'column-actions' ) );
+		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+	}
+
+	/**
+	 * @return array<string, array{0: bool}>
+	 */
+	public static function reveal_tiers(): array {
+		return array(
+			'may reveal (unmasked or reveal tier)' => array( true ),
+			'masked tier'                          => array( false ),
+		);
+	}
+
+	/**
+	 * The members table masks each account email for every tier and draws
+	 * the audited Reveal button only for a viewer the policy lets reveal,
+	 * asking with the appointments gate and the member as owner (#1824).
+	 *
+	 * @dataProvider reveal_tiers
+	 *
+	 * @param bool $can_reveal What the policy answers.
+	 */
+	public function test_members_table_masks_the_account_email_at_every_tier( bool $can_reveal ): void {
+		$this->can_reveal = $can_reveal;
+		$this->policy->shouldReceive( 'can_reveal' )
+			->with( 'ffc_view_audiences_pii', Mockery::type( 'int' ) )
+			->andReturnUsing( fn() => $this->can_reveal );
+		$_GET['action'] = 'members';
+		$_GET['id']     = '5';
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
+		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
+		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_children' )->andReturn( array() );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 );
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
+		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp' ) );
+		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		foreach ( array( 7, 8 ) as $member ) {
+			$this->assertStringNotContainsString( $member . '@e.com', $output, 'no tier receives the clear address' );
+			$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">' . $member . '***@e.com</span>', $output );
+			$this->assertSame(
+				$can_reveal,
+				str_contains( $output, 'data-type="audience_account" data-field="email" data-submission-id="' . $member . '" data-nonce="reveal-nonce"' )
+			);
+		}
+		$this->assertSame( $can_reveal ? 2 : 0, substr_count( $output, 'ffc-reveal-pii ' ) );
+		// One "Reveal this page" over the table, for the reveal tier (#1863).
+		$this->assertSame( $can_reveal ? 1 : 0, substr_count( $output, 'ffc-reveal-pii-page' ) );
 	}
 }

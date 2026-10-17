@@ -23,6 +23,7 @@ beforeAll(() => {
 			failed: 'The search could not be completed.',
 		},
 	};
+	if (!window.FFC || !window.FFC.notice) { loadScript('assets/js/ffc-core.js'); }
 	loadScript('assets/js/ffc-identity-search.js');
 });
 
@@ -225,7 +226,7 @@ describe('the identity account-search dialog', () => {
 		vi.advanceTimersByTime(400);
 
 		const $results = window.$('#ffc-identity-dialog-results');
-		expect($results.find('.notice-error').length).toBe(1);
+		expect($results.find('.ffc-notice-danger').length).toBe(1);
 		expect($results.find('.ffc-identity-dialog-result').length).toBe(0);
 	});
 

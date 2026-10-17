@@ -25,6 +25,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $ffc_dm_rows = is_array( $upcoming['rows'] ?? null ) ? $upcoming['rows'] : array();
+// Names arrive masked (#1863); each row reveals its own, audited, and the
+// page button reveals them all in one audited request.
+$ffc_dm_can_reveal   = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal_any( DateMessagesAdminPage::PII_CAP );
+$ffc_dm_reveal_nonce = $ffc_dm_can_reveal ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';
 ?>
 <form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
 	<input type="hidden" name="page" value="<?php echo esc_attr( DateMessagesAdminPage::MENU_SLUG ); ?>">
@@ -67,6 +71,7 @@ $ffc_dm_rows = is_array( $upcoming['rows'] ?? null ) ? $upcoming['rows'] : array
 <?php if ( array() === $ffc_dm_rows ) : ?>
 	<p><?php esc_html_e( 'Nobody falls on these dates.', 'ffcertificate' ); ?></p>
 <?php else : ?>
+	<?php echo \FreeFormCertificate\Core\PiiReveal::page_button( DateMessagesAdminPage::PII_CAP ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value. ?>
 	<table class="widefat striped">
 		<thead>
 			<tr>
@@ -93,7 +98,13 @@ $ffc_dm_rows = is_array( $upcoming['rows'] ?? null ) ? $upcoming['rows'] : array
 						echo esc_html( false === $ffc_dm_day ? '' : wp_date( _x( 'F j', 'day and month, without the year', 'ffcertificate' ), $ffc_dm_day->getTimestamp(), wp_timezone() ) );
 						?>
 					</td>
-					<td><?php echo esc_html( (string) $ffc_dm_row['name'] ); ?></td>
+					<td>
+						<span class="ffc-pii-row"><span class="ffc-pii-value" data-field="name"><?php echo esc_html( (string) $ffc_dm_row['name'] ); ?></span>
+						<?php if ( $ffc_dm_can_reveal ) : ?>
+							<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="<?php echo esc_attr( DateMessagesAdminPage::REVEAL_TYPE ); ?>" data-field="name" data-submission-id="<?php echo esc_attr( (string) $ffc_dm_row['user_id'] ); ?>" data-nonce="<?php echo esc_attr( $ffc_dm_reveal_nonce ); ?>"><?php esc_html_e( 'Reveal', 'ffcertificate' ); ?></button>
+						<?php endif; ?>
+						</span>
+					</td>
 					<?php if ( array() !== $upcoming_audiences ) : ?>
 						<td><?php echo esc_html( (string) ( $ffc_dm_row['audiences'] ?? '' ) ); ?></td>
 					<?php endif; ?>

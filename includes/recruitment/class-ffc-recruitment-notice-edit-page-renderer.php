@@ -87,7 +87,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// Pre-render the column-toggles grid (already-escaped HTML) so the
 		// template can reference it without reaching back into a private
 		// renderer helper.
-		$columns_toggles = self::render_columns_toggles( (string) $notice->public_columns_config );
+		$columns_toggles = self::render_columns_toggles( (string) $notice->public_columns_config, (int) $notice->id );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/general-section.php';
 	}
@@ -103,10 +103,13 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * Stored as the same JSON shape `parse_columns_config()` already
 	 * consumes, so the public shortcode side needs no change.
 	 *
+	 * A switchable column saves the moment it flips (#1757).
+	 *
 	 * @param string $current_json Stored `public_columns_config` JSON.
+	 * @param int    $notice_id    Notice id, for the record autosave.
 	 * @return string
 	 */
-	private static function render_columns_toggles( string $current_json ): string {
+	private static function render_columns_toggles( string $current_json, int $notice_id = 0 ): string {
 		$labels = self::columns_label_map();
 
 		$decoded = json_decode( $current_json, true );
@@ -158,6 +161,7 @@ final class RecruitmentNoticeEditPageRenderer {
 						'name'    => 'public_columns[' . $key . ']',
 						'id'      => $id_attr,
 						'checked' => $checked,
+						'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'recruitment_notice', $notice_id, $key ),
 						'label'   => $label,
 					)
 				);

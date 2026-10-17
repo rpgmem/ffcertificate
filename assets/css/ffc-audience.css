@@ -19,7 +19,7 @@
 }
 
 /* When inside a wrapper with event list, let the wrapper handle sizing */
-.ffc-shortcode .ffc-calendar-wrapper .ffc-audience-calendar {
+.ffc-shortcode.ffc-calendar-wrapper .ffc-audience-calendar {
     max-width: none;
     margin: 0;
 }
@@ -194,6 +194,18 @@
     box-shadow: none;
 }
 
+/* A closed, past or out-of-window day that a bypass holder may still open
+   (#1859): it keeps the look of what it is, and only the pointer and the
+   hover say it can be picked — behind the override warning. */
+.ffc-shortcode .ffc-day.ffc-bypassable {
+    cursor: pointer;
+}
+
+.ffc-shortcode .ffc-day.ffc-bypassable:hover {
+    border-color: var(--ffc-warning-border);
+    box-shadow: var(--ffc-shadow-sm);
+}
+
 .ffc-shortcode .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month) {
     border-color: var(--ffc-success);
     border-width: 2px;
@@ -316,24 +328,6 @@
     grid-column: 1 / -1;
 }
 
-/* Notice Messages */
-.ffc-shortcode .ffc-audience-notice {
-    padding: var(--ffc-spacing-2xl);
-    border-radius: var(--ffc-radius-sm);
-    margin: var(--ffc-spacing-2xl) 0;
-    text-align: center;
-}
-
-.ffc-shortcode .ffc-audience-notice.ffc-notice-warning {
-    background: var(--ffc-warning-bg);
-    border: 1px solid var(--ffc-warning);
-}
-
-.ffc-shortcode .ffc-audience-notice.ffc-notice-info {
-    background: var(--ffc-info-bg);
-    border: 1px solid var(--ffc-primary);
-}
-
 /* Buttons — base classes consolidated in ffc-common.css */
 
 /* Modal — moved to ffc-common.css (#1140): a shared component, and the
@@ -349,6 +343,12 @@
     display: block;
     font-weight: 600;
     margin-bottom: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-base);
+}
+
+/* The new-booking dialog's chosen date, a `<p>` the script fills: it had no
+   size of its own and took the theme's (#1832). */
+.ffc-shortcode .ffc-booking-date-display {
     font-size: var(--ffc-font-size-base);
 }
 
@@ -374,13 +374,6 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--ffc-spacing-xl);
-}
-
-.ffc-shortcode .ffc-char-count {
-    font-size: var(--ffc-font-size-xs);
-    color: var(--ffc-gray-600);
-    float: right;
-    margin-top: var(--ffc-spacing-2xs);
 }
 
 /* User Search/Select */
@@ -440,32 +433,9 @@
     min-height: 100px;
 }
 
-/* Conflict Warning */
-.ffc-shortcode .ffc-conflict-warning {
-    background: var(--ffc-warning-bg);
-    border: 1px solid var(--ffc-warning);
-    border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-xl);
-    margin-top: var(--ffc-spacing-xl);
-}
-
-.ffc-shortcode .ffc-conflict-warning .ffc-icon-warning {
-    color: var(--ffc-warning);
-    float: left;
-    margin-right: var(--ffc-spacing-md);
-    font-size: var(--ffc-font-size-2xl);
-}
-
-.ffc-shortcode .ffc-conflict-warning p {
-    margin: 0 0 var(--ffc-spacing-md);
-}
-
-.ffc-shortcode .ffc-conflict-details {
-    font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-gray-600);
-    margin-top: var(--ffc-spacing-md);
-}
-
+/* Conflict notices (`.ffc-notice`, #1842): the booking form's script builds
+   them inside #ffc-conflict-warning / #ffc-conflict-error, and moves the
+   acknowledgement below into the warning. */
 .ffc-shortcode .ffc-conflict-acknowledge {
     display: flex;
     align-items: flex-start;
@@ -478,28 +448,6 @@
 
 .ffc-shortcode .ffc-conflict-acknowledge input[type="checkbox"] {
     margin-top: var(--ffc-spacing-3xs);
-}
-
-/* Hard Conflict Error */
-.ffc-shortcode .ffc-conflict-error {
-    background: var(--ffc-danger-bg);
-    border: 1px solid var(--ffc-danger);
-    border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-xl);
-    margin-top: var(--ffc-spacing-xl);
-}
-
-.ffc-shortcode .ffc-conflict-error .ffc-icon-error {
-    color: var(--ffc-danger);
-    float: left;
-    margin-right: var(--ffc-spacing-md);
-    font-size: var(--ffc-font-size-2xl);
-}
-
-.ffc-shortcode .ffc-conflict-error-details {
-    font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-gray-700);
-    margin-top: var(--ffc-spacing-2xs);
 }
 
 /* Day Detail Bookings */
@@ -529,6 +477,8 @@
 
 .ffc-shortcode .ffc-booking-description {
     margin: var(--ffc-spacing-md) 0;
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
 }
 
 .ffc-shortcode .ffc-booking-meta {
@@ -637,11 +587,11 @@
     }
 
     /* Side layout becomes below on mobile */
-    .ffc-shortcode .ffc-calendar-wrapper.ffc-event-list-side {
+    .ffc-shortcode.ffc-calendar-wrapper.ffc-event-list-side {
         flex-direction: column;
     }
 
-    .ffc-shortcode .ffc-event-list-side .ffc-event-list-panel {
+    .ffc-shortcode.ffc-event-list-side .ffc-event-list-panel {
         width: 100%;
         max-height: 300px;
     }
@@ -667,28 +617,34 @@
    EVENT LIST PANEL
    ========================================================================== */
 
-/* Wrapper for calendar + event list */
-.ffc-shortcode .ffc-calendar-wrapper {
+/* Wrapper for calendar + event list. The wrapper is a plugin root itself
+   (#1832): the panel is the calendar's SIBLING, not its child, so while the
+   root class sat only on `#ffc-audience-calendar` every rule below read
+   `.ffc-shortcode .ffc-calendar-wrapper …` and matched nothing — the panel
+   rendered with the theme's sizes and none of its layout. The wrapper rules
+   are written as a compound for the same reason: the root class is on the
+   wrapper, not above it. */
+.ffc-shortcode.ffc-calendar-wrapper {
     max-width: 600px;
     margin: 0 auto;
 }
 
-.ffc-shortcode .ffc-calendar-wrapper.ffc-has-event-list {
+.ffc-shortcode.ffc-calendar-wrapper.ffc-has-event-list {
     max-width: 1120px;
 }
 
-.ffc-shortcode .ffc-calendar-wrapper.ffc-has-event-list.ffc-event-list-side {
+.ffc-shortcode.ffc-calendar-wrapper.ffc-has-event-list.ffc-event-list-side {
     display: flex;
     gap: var(--ffc-spacing-2xl);
     align-items: flex-start;
 }
 
-.ffc-shortcode .ffc-calendar-wrapper.ffc-event-list-side .ffc-audience-calendar {
+.ffc-shortcode.ffc-calendar-wrapper.ffc-event-list-side .ffc-audience-calendar {
     flex: 1;
     min-width: 0;
 }
 
-.ffc-shortcode .ffc-calendar-wrapper.ffc-event-list-below .ffc-audience-calendar {
+.ffc-shortcode.ffc-calendar-wrapper.ffc-event-list-below .ffc-audience-calendar {
     max-width: 600px;
 }
 
@@ -700,14 +656,14 @@
     overflow: hidden;
 }
 
-.ffc-shortcode .ffc-event-list-side .ffc-event-list-panel {
+.ffc-shortcode.ffc-event-list-side .ffc-event-list-panel {
     width: 500px;
     flex-shrink: 0;
     max-height: 700px;
     overflow-y: auto;
 }
 
-.ffc-shortcode .ffc-event-list-below .ffc-event-list-panel {
+.ffc-shortcode.ffc-event-list-below .ffc-event-list-panel {
     max-width: 600px;
     margin-top: var(--ffc-spacing-2xl);
 }
@@ -811,7 +767,7 @@
 }
 
 /* Below layout: items in a more horizontal format */
-.ffc-shortcode .ffc-event-list-below .ffc-event-list-content {
+.ffc-shortcode.ffc-event-list-below .ffc-event-list-content {
     max-height: 300px;
     overflow-y: auto;
 }
@@ -841,4 +797,57 @@
     .ffc-shortcode .ffc-badge-holiday {
         border: 1px solid CanvasText;
     }
+}
+
+/* Event list: a holiday's accent stripe. It lived in a script-written
+   `style=""` until #1837. */
+.ffc-shortcode .ffc-event-list-item.ffc-event-list-holiday {
+    border-left: 3px solid var(--ffc-warning);
+}
+
+/* Booking form: why a space cannot be booked on the chosen date (#1859).
+   The select lists only open spaces to most people; a bypass holder sees
+   every space, the restricted ones carrying the reasons in their name and,
+   for the selected one, as tags under the field. */
+.ffc-shortcode .ffc-env-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-2xs);
+    margin: var(--ffc-spacing-2xs) 0 0;
+}
+
+.ffc-shortcode .ffc-env-status[hidden] {
+    display: none;
+}
+
+.ffc-shortcode .ffc-env-reason-tag {
+    display: inline-block;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+    border: 1px solid var(--ffc-warning-border);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-shortcode .ffc-env-reason-tag.ffc-env-reason-holiday,
+.ffc-shortcode .ffc-env-reason-tag.ffc-env-reason-closed_day {
+    border-color: var(--ffc-danger-border);
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+@media (forced-colors: active) {
+    /* Reason tags: read, not clicked — the border keeps the tag shape. */
+    .ffc-shortcode .ffc-env-reason-tag,
+    .ffc-shortcode .ffc-env-reason-tag.ffc-env-reason-holiday,
+    .ffc-shortcode .ffc-env-reason-tag.ffc-env-reason-closed_day {
+        border: 1px solid CanvasText;
+    }
+}
+
+.ffc-shortcode #booking-environment-id option.ffc-env-option-restricted {
+    color: var(--ffc-warning-text);
+    background: var(--ffc-warning-bg);
 }

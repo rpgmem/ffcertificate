@@ -161,18 +161,17 @@ class FormEditorBuilderMetabox {
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=certificates' ) ); ?>"><?php esc_html_e( 'Settings → Certificates', 'ffcertificate' ); ?></a>
 		</p>
 		<?php if ( array() !== $missing ) : ?>
-			<div class="notice notice-warning inline ffc-required-fields-missing">
-				<p>
-					<?php esc_html_e( 'This form lacks required fields:', 'ffcertificate' ); ?>
-					<?php echo implode( ', ', array_map( static fn( array $row ): string => '<code>' . esc_html( $row['name'] ) . '</code>', $missing ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each name is escaped above. ?>
-				</p>
-				<p>
-					<button type="button" class="button ffc-add-required-fields" data-ffc-required-fields="<?php echo esc_attr( (string) wp_json_encode( $missing ) ); ?>">
-						<span class="ffc-icon-plus" aria-hidden="true"></span>
-						<?php esc_html_e( 'Add the required fields', 'ffcertificate' ); ?>
-					</button>
-				</p>
-			</div>
+			<?php
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'warning',
+				'<p>' . esc_html__( 'This form lacks required fields:', 'ffcertificate' ) . ' '
+					. implode( ', ', array_map( static fn( array $row ): string => '<code>' . esc_html( $row['name'] ) . '</code>', $missing ) ) . '</p>'
+					. '<p><button type="button" class="button ffc-add-required-fields" data-ffc-required-fields="' . esc_attr( (string) wp_json_encode( $missing ) ) . '">'
+					. '<span class="ffc-icon-plus" aria-hidden="true"></span> '
+					. esc_html__( 'Add the required fields', 'ffcertificate' ) . '</button></p>',
+				array( 'classes' => array( 'ffc-required-fields-missing' ) )
+			);
+			?>
 		<?php endif; ?>
 		</div>
 		<div class="ffc-builder-actions ffc-mt-2xl">
@@ -254,17 +253,8 @@ class FormEditorBuilderMetabox {
 			<div class="ffc-field-row-header">
 				<span class="ffc-sort-handle">
 					<span class="ffc-icon-grip" aria-hidden="true"></span>
-					<span class="ffc-field-title"><strong>
-					<?php
-					if ( $is_info ) {
-						esc_html_e( 'Info Block', 'ffcertificate' );
-					} elseif ( $is_embed ) {
-						esc_html_e( 'Embed', 'ffcertificate' );
-					} else {
-						esc_html_e( 'Field', 'ffcertificate' );
-					}
-					?>
-					</strong></span>
+					<?php // The row is named by its type (#1756), which cannot change once the row exists. ?>
+					<span class="ffc-field-title"><strong><?php echo esc_html( self::field_type_labels()[ (string) $type ] ?? __( 'Field', 'ffcertificate' ) ); ?></strong></span>
 					<?php if ( $is_locked ) : ?>
 						<span class="ffc-required-tag-badge" id="<?php echo esc_attr( $lock_id ); ?>"><span class="ffc-icon-lock" aria-hidden="true"></span> <?php esc_html_e( 'Required field', 'ffcertificate' ); ?></span>
 					<?php endif; ?>
@@ -291,18 +281,14 @@ class FormEditorBuilderMetabox {
 					<label><?php esc_html_e( 'Variable Name (Tag)', 'ffcertificate' ); ?></label>
 					<input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][name]" value="<?php echo esc_attr( $name ); ?>" placeholder="<?php esc_attr_e( 'ex: course_name', 'ffcertificate' ); ?>" class="ffc-w100"<?php echo $is_locked ? ' readonly aria-describedby="' . esc_attr( $lock_id ) . '"' : ''; ?>>
 				</div>
-				<div class="ffc-grid-item">
-					<label><?php esc_html_e( 'Type', 'ffcertificate' ); ?></label>
-					<?php if ( $is_locked ) : ?>
-						<?php // A disabled select posts nothing; the value travels in the hidden input, and the save handler forces it anyway (#1741). ?>
-						<input type="hidden" name="ffc_fields[<?php echo esc_attr( $index ); ?>][type]" value="<?php echo esc_attr( (string) $type ); ?>">
-					<?php endif; ?>
-					<select<?php echo $is_locked ? '' : ' name="ffc_fields[' . esc_attr( $index ) . '][type]"'; ?> class="ffc-field-type-selector ffc-w100"<?php echo $is_locked ? ' disabled aria-describedby="' . esc_attr( $lock_id ) . '"' : ''; ?>>
-						<?php foreach ( self::field_types_ordered() as $type_slug => $type_label ) : ?>
-							<option value="<?php echo esc_attr( $type_slug ); ?>" <?php selected( $type, $type_slug ); ?>><?php echo esc_html( $type_label ); ?></option>
-						<?php endforeach; ?>
-					</select>
-				</div>
+				<?php
+				// The type is chosen once, from the Add New Field menu, and is
+				// not edited afterwards (#1756): a submission already stored
+				// under this field holds values of its type. It travels in a
+				// hidden input, and the save handler keeps the stored type of a
+				// field it already knows.
+				?>
+				<input type="hidden" class="ffc-field-type-selector" name="ffc_fields[<?php echo esc_attr( $index ); ?>][type]" value="<?php echo esc_attr( (string) $type ); ?>">
 				<div class="ffc-grid-item ffc-flex-center ffc-standard-row<?php echo $is_display_only ? ' ffc-hidden' : ''; ?>">
 					<?php
 					// A locked field is always required; its toggle is shown on

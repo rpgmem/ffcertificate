@@ -64,7 +64,8 @@ class AudienceAdminAudience {
 					AudienceAdminAudienceRenderer::render_form( $this->menu_slug, $id );
 					break;
 				case 'members':
-					AudienceAdminAudienceRenderer::render_members( $this->menu_slug, $id );
+					// The members screen is the editor's Members tab (#1761); its URL opens it.
+					AudienceAdminAudienceRenderer::render_form( $this->menu_slug, $id, 'members' );
 					break;
 				default:
 					AudienceAdminAudienceRenderer::render_list( $this->menu_slug );
@@ -81,6 +82,12 @@ class AudienceAdminAudience {
 	 */
 	public function handle_actions(): void {
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			return;
+		}
+
+		// The coordinator calls this on every `ffc-scheduling*` screen (#1771):
+		// act only on this one.
+		if ( RequestInput::get_get_string( 'page' ) !== $this->menu_slug . '-audiences' ) {
 			return;
 		}
 

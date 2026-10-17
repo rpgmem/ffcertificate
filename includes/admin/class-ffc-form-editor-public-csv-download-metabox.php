@@ -109,12 +109,13 @@ class FormEditorPublicCsvDownloadMetabox {
 							'id'      => 'ffc_csv_public_enabled',
 							'checked' => '1' === (string) $enabled,
 							'label'   => __( 'Allow operators with the hash to use this form\'s public surface.', 'ffcertificate' ),
+							'data'    => array( 'ffc-autosave-form-key' => 'csv_public_enabled' ),
 						)
 					);
 					?>
 
 					<?php if ( '' === $date_end ) : ?>
-						<p class="description ffc-warning-text">
+						<p class="description ffc-text-danger">
 							<strong><?php esc_html_e( 'Warning:', 'ffcertificate' ); ?></strong>
 							<?php esc_html_e( 'This form has no end date configured in the "Geolocation & Date/Time Restrictions" metabox. You must set an end date before public downloads will work — downloads are only released after the form has ended.', 'ffcertificate' ); ?>
 						</p>
@@ -256,10 +257,11 @@ class FormEditorPublicCsvDownloadMetabox {
 							value="<?php echo $has_custom_limit ? esc_attr( (string) $limit ) : ''; ?>" placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
 					<p class="description">
 						<?php
+						// The count sits in its own span so the Reset counter button can rewrite it.
 						printf(
 							/* translators: 1: current count, 2: effective limit (per-form or inherited global) */
-							esc_html__( 'Maximum number of CSV downloads allowed via the public page. Current usage: %1$d of %2$d.', 'ffcertificate' ),
-							(int) $count,
+							esc_html__( 'Maximum number of CSV downloads allowed via the public page. Current usage: %1$s of %2$d.', 'ffcertificate' ),
+							'<span class="ffc-csv-public-count">' . (int) $count . '</span>', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- an integer inside a literal span.
 							(int) $limit
 						);
 						?>
@@ -287,84 +289,96 @@ class FormEditorPublicCsvDownloadMetabox {
 				</th>
 				<td>
 					<?php
-					if ( '' === $hash ) :
-						?>
+					$share_link = FormPublicCsvActions::share_link( $post->ID, $hash );
+					$csv_page   = (string) \FreeFormCertificate\Settings\SettingsReader::get( 'csv_download_page_url', '' );
+					$nonce      = wp_create_nonce( FormPublicCsvActions::AJAX_ACTION );
+					?>
+					<p class="description ffc-csv-public-nohash<?php echo '' === $hash ? '' : ' ffc-hidden'; ?>">
+						<?php esc_html_e( 'A hash is generated as soon as Public Operator Access is enabled above.', 'ffcertificate' ); ?>
+					</p>
+					<div class="ffc-csv-public-share<?php echo '' === $hash ? ' ffc-hidden' : ''; ?>">
+						<input type="text"
+							id="ffc_csv_public_link"
+							value="<?php echo esc_attr( $share_link ); ?>"
+							readonly
+							class="large-text code"
+							onclick="this.select();">
+						<button type="button"
+							class="button button-secondary ffc-copy-link"
+							data-ffc-copy-target="#ffc_csv_public_link"
+							aria-live="polite">
+							<?php esc_html_e( 'Copy link', 'ffcertificate' ); ?>
+						</button>
+					</div>
+					<?php if ( '' === $csv_page ) : ?>
 						<p class="description">
-							<?php esc_html_e( 'A hash will be generated automatically when you enable Public Operator Access above and save the form.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Append this query string to the page that contains the [ffc_csv_download] shortcode. Set "CSV Download Page URL" in Settings → General to make this a full URL instead.', 'ffcertificate' ); ?>
 						</p>
-						<?php
-					else :
-						$csv_download_page_url = (string) \FreeFormCertificate\Settings\SettingsReader::get( 'csv_download_page_url', '' );
-						$ffc_query_string      = 'form_id=' . $post->ID . '&hash=' . $hash;
-						$share_link            = '' !== $csv_download_page_url
-							? $csv_download_page_url . ( str_contains( $csv_download_page_url, '?' ) ? '&' : '?' ) . $ffc_query_string
-							: '?' . $ffc_query_string;
-						?>
-						<div class="ffc-csv-public-share">
-							<input type="text"
-								id="ffc_csv_public_link"
-								value="<?php echo esc_attr( $share_link ); ?>"
-								readonly
-								class="large-text code"
-								onclick="this.select();">
-							<button type="button"
-								class="button button-secondary ffc-copy-link"
-								data-ffc-copy-target="#ffc_csv_public_link"
-								aria-live="polite">
-								<?php esc_html_e( 'Copy link', 'ffcertificate' ); ?>
-							</button>
-						</div>
-						<?php if ( '' === $csv_download_page_url ) : ?>
-							<p class="description">
-								<?php esc_html_e( 'Append this query string to the page that contains the [ffc_csv_download] shortcode. Set "CSV Download Page URL" in Settings → General to make this a full URL instead.', 'ffcertificate' ); ?>
-							</p>
-						<?php endif; ?>
 					<?php endif; ?>
 
-					<p class="ffc-mt-md">
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'  => 'ffc_csv_public[regenerate_hash]',
-								'id'    => 'ffc_csv_public_regenerate_hash',
-								'label' => __( 'Regenerate hash on save (invalidates the current link).', 'ffcertificate' ),
-							)
-						);
-						?>
+					<p class="ffc-csv-public-actions ffc-mt-md">
+						<button type="button"
+							class="button button-secondary ffc-csv-public-action ffc-icon-sync"
+							data-op="regenerate"
+							data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
+							data-nonce="<?php echo esc_attr( $nonce ); ?>"
+							data-confirm="<?php esc_attr_e( 'Generate a new hash? The current link stops working at once.', 'ffcertificate' ); ?>"
+							data-done="<?php esc_attr_e( 'New hash generated.', 'ffcertificate' ); ?>">
+							<?php esc_html_e( 'Regenerate hash', 'ffcertificate' ); ?>
+						</button>
+						<button type="button"
+							class="button button-secondary ffc-csv-public-action ffc-icon-restore"
+							data-op="reset"
+							data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
+							data-nonce="<?php echo esc_attr( $nonce ); ?>"
+							data-confirm="<?php esc_attr_e( 'Reset the download counter to zero?', 'ffcertificate' ); ?>"
+							data-done="<?php esc_attr_e( 'Counter reset.', 'ffcertificate' ); ?>">
+							<?php esc_html_e( 'Reset counter', 'ffcertificate' ); ?>
+						</button>
+						<span class="ffc-csv-public-action-status ffc-status" role="status" aria-live="polite" hidden></span>
 					</p>
-					<p>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'  => 'ffc_csv_public[reset_counter]',
-								'id'    => 'ffc_csv_public_reset_counter',
-								'label' => __( 'Reset the download counter to zero on save.', 'ffcertificate' ),
-							)
-						);
-						?>
+					<p class="description">
+						<?php esc_html_e( 'Both act at once, without saving the form. Regenerating invalidates the link already shared.', 'ffcertificate' ); ?>
 					</p>
 				</td>
 			</tr>
 
 			<?php
-			$cpf_mode      = (string) get_post_meta( $post->ID, '_ffc_csv_public_cpf_mode', true );
+			$cpf_mode      = FormPublicCsvActions::cpf_mode( $post->ID );
 			$cpf_whitelist = (string) get_post_meta( $post->ID, '_ffc_csv_public_cpf_whitelist', true );
-			if ( '' === $cpf_mode ) {
-				$cpf_mode = 'none';
-			}
 			?>
 			<tr class="ffc-csv-public-sub">
 				<th scope="row">
-					<label for="ffc_csv_public_cpf_mode"><?php esc_html_e( 'Require CPF for download', 'ffcertificate' ); ?></label>
+					<?php esc_html_e( 'Require CPF for download', 'ffcertificate' ); ?>
 				</th>
 				<td>
-					<select name="ffc_csv_public[cpf_mode]" id="ffc_csv_public_cpf_mode">
-						<option value="none" <?php selected( $cpf_mode, 'none' ); ?>><?php esc_html_e( 'No — only Form ID + Hash', 'ffcertificate' ); ?></option>
-						<option value="audit" <?php selected( $cpf_mode, 'audit' ); ?>><?php esc_html_e( 'Audit — require CPF, but do not match against any list', 'ffcertificate' ); ?></option>
-						<option value="participants" <?php selected( $cpf_mode, 'participants' ); ?>><?php esc_html_e( 'Participants — CPF must match a submission', 'ffcertificate' ); ?></option>
-						<option value="owner" <?php selected( $cpf_mode, 'owner' ); ?>><?php esc_html_e( 'Owner — CPF must match the form author', 'ffcertificate' ); ?></option>
-						<option value="whitelist" <?php selected( $cpf_mode, 'whitelist' ); ?>><?php esc_html_e( 'Whitelist — CPF must be in the list below', 'ffcertificate' ); ?></option>
-					</select>
+					<?php
+					// From the loosest check to the strictest, so a scale (#1755).
+					\FreeFormCertificate\Admin\AdminUI::render_steps(
+						array(
+							'name'         => 'ffc_csv_public[cpf_mode]',
+							'id'           => 'ffc_csv_public_cpf_mode',
+							'legend'       => __( 'Require CPF for download', 'ffcertificate' ),
+							'value'        => $cpf_mode,
+							'default'      => FormPublicCsvActions::DEFAULT_CPF_MODE,
+							'options'      => array(
+								'none'         => __( 'No', 'ffcertificate' ),
+								'audit'        => __( 'Audit', 'ffcertificate' ),
+								'participants' => __( 'Participants', 'ffcertificate' ),
+								'owner'        => __( 'Owner', 'ffcertificate' ),
+								'whitelist'    => __( 'Whitelist', 'ffcertificate' ),
+							),
+							'descriptions' => array(
+								'none'         => __( 'Only Form ID + Hash.', 'ffcertificate' ),
+								'audit'        => __( 'Require a CPF, without matching it against any list.', 'ffcertificate' ),
+								'participants' => __( 'The CPF must match a submission.', 'ffcertificate' ),
+								'owner'        => __( 'The CPF must match the form author.', 'ffcertificate' ),
+								'whitelist'    => __( 'The CPF must be in the list below.', 'ffcertificate' ),
+							),
+							'data'         => array( 'ffc-autosave-form-key' => 'csv_public_cpf_mode' ),
+						)
+					);
+					?>
 					<p class="description">
 						<?php esc_html_e( 'When set to anything other than "No", every download attempt (with success/failure flag and the CPF encrypted at rest) is recorded in an audit log on this form, capped at the most recent 100 attempts. Use the "Download audit log (CSV)" button below to export.', 'ffcertificate' ); ?>
 					</p>

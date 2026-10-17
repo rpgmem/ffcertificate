@@ -62,6 +62,8 @@ class VerificationHandlerTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( '' );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
 		Functions\when( 'do_action' )->justReturn( null );
@@ -87,6 +89,8 @@ class VerificationHandlerTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( '' );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_parse_args' )->alias( function( $args, $defaults = array() ) {
 			if ( is_array( $args ) ) {

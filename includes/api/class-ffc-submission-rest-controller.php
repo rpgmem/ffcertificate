@@ -80,6 +80,11 @@ class SubmissionRestController {
 						'default'           => '',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
+					'reveal'   => array(
+						'default'           => false,
+						'sanitize_callback' => 'rest_sanitize_boolean',
+						'description'       => 'Return the personal data in clear, for a caller the PII policy lets reveal; the read is recorded in the activity log.',
+					),
 				),
 			)
 		);
@@ -93,10 +98,15 @@ class SubmissionRestController {
 				'callback'            => array( $this, 'get_submission' ),
 				'permission_callback' => array( $this, 'check_admin_permission' ),
 				'args'                => array(
-					'id' => array(
+					'id'     => array(
 						'validate_callback' => function ( $param ) {
 							return is_numeric( $param );
 						},
+					),
+					'reveal' => array(
+						'default'           => false,
+						'sanitize_callback' => 'rest_sanitize_boolean',
+						'description'       => 'Return the personal data in clear, for a caller the PII policy lets reveal; the read is recorded in the activity log.',
 					),
 				),
 			)
@@ -164,8 +174,10 @@ class SubmissionRestController {
 			);
 
 			$result = $this->submission_repository->findPaginated( $args );
+			$reveal = (bool) $request->get_param( 'reveal' );
 
 			$submissions = array();
+			$revealed    = array();
 			foreach ( $result['items'] as $item ) {
 				$data = array();
 				if ( ! empty( $item['data'] ) ) {
@@ -180,7 +192,10 @@ class SubmissionRestController {
 				$rf    = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'rf' );
 
 				$owner = isset( $item['user_id'] ) ? (int) $item['user_id'] : null;
-				$pii   = $this->shape_submission_pii( $email, $cpf, $rf, $data, (int) $item['id'], $owner );
+				$pii   = $this->shape_submission_pii( $email, $cpf, $rf, $data, $owner, $reveal );
+				if ( $pii['audited'] ) {
+					$revealed[] = (int) $item['id'];
+				}
 
 				$submissions[] = array(
 					'id'              => (int) $item['id'],
@@ -192,6 +207,21 @@ class SubmissionRestController {
 					'cpf'             => $pii['cpf'],
 					'rf'              => $pii['rf'],
 					'data'            => $pii['data'],
+				);
+			}
+
+			// One audit row for the page, naming every record revealed (#1863),
+			// as the admin list's "Reveal this page" writes.
+			if ( array() !== $revealed ) {
+				\FreeFormCertificate\Core\ActivityLog::log(
+					'submission_pii_revealed',
+					\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+					array(
+						'field_key'  => 'rest_api',
+						'record_ids' => $revealed,
+					),
+					get_current_user_id(),
+					0
 				);
 			}
 
@@ -261,7 +291,16 @@ class SubmissionRestController {
 			$rf    = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'rf' );
 
 			$owner = isset( $submission['user_id'] ) ? (int) $submission['user_id'] : null;
-			$pii   = $this->shape_submission_pii( $email, $cpf, $rf, $data, (int) $submission['id'], $owner );
+			$pii   = $this->shape_submission_pii( $email, $cpf, $rf, $data, $owner, (bool) $request->get_param( 'reveal' ) );
+			if ( $pii['audited'] ) {
+				\FreeFormCertificate\Core\ActivityLog::log(
+					'submission_pii_revealed',
+					\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+					array( 'field_key' => 'rest_api' ),
+					get_current_user_id(),
+					(int) $submission['id']
+				);
+			}
 
 			$response = array(
 				'id'              => (int) $submission['id'],
@@ -363,7 +402,9 @@ class SubmissionRestController {
 					// must be masked per-key (cpf/rf/rg/email) before returning it,
 					// matching the /valid page renderer. Skipping this leaked the
 					// full form-collected PII to any caller with a valid auth code.
-					'data'            => $this->mask_data_pii( $data ),
+					// #1861 — and the keys the public verification page hides
+					// (the one-use ticket among them) never leave here either.
+					'data'            => $this->mask_data_pii( array_diff_key( $data, array_flip( \FreeFormCertificate\Frontend\VerificationResponseRenderer::SKIP_FIELDS ) ) ),
 				),
 				'message'     => __( 'Certificate is valid and authentic.', 'ffcertificate' ),
 			);
@@ -412,56 +453,47 @@ class SubmissionRestController {
 
 	/**
 	 * Shape a submission's PII fields (email / cpf / rf / data) by the caller's
-	 * access tier, mirroring the wp-admin submission screens (#838 S2).
+	 * access tier, mirroring the wp-admin submission screens (#838 S2, #1863).
 	 *
 	 * The surface gate ({@see check_admin_permission()}) is the read-only `view`
 	 * tier, which is PII-blind by design — so the plaintext PII is masked by
-	 * default and revealed only for the unmasked (`ffc_certificates_admin` role /
-	 * super-admin) and reveal (`ffc_view_certificates_pii` cap) tiers. The reveal
-	 * tier is audited per record, exactly as the admin reveal endpoint does, so
-	 * the REST surface can no longer bulk-extract certificate PII without a trail.
+	 * default, for every caller. It comes back in clear for the record's owner,
+	 * and for a caller the policy lets reveal (`ffc_view_certificates_pii`, a
+	 * WordPress administrator) only when the request asks for it with
+	 * `reveal=1` — the REST twin of the Reveal button. That read is audited by
+	 * the caller, once per record or once per list page, so the REST surface
+	 * cannot bulk-extract certificate PII without a trail.
 	 *
-	 * @param string|null          $email         Decrypted e-mail, or null/empty.
-	 * @param string|null          $cpf           Decrypted CPF, or null/empty.
-	 * @param string|null          $rf            Decrypted RF, or null/empty.
-	 * @param array<string, mixed> $data          Decrypted `data` blob.
-	 * @param int                  $submission_id Submission ID (audit object id).
-	 * @param int|null             $owner         Owner user id (self-view clause).
-	 * @return array{email: ?string, cpf: ?string, rf: ?string, data: array<string, mixed>}
+	 * @param string|null          $email  Decrypted e-mail, or null/empty.
+	 * @param string|null          $cpf    Decrypted CPF, or null/empty.
+	 * @param string|null          $rf     Decrypted RF, or null/empty.
+	 * @param array<string, mixed> $data   Decrypted `data` blob.
+	 * @param int|null             $owner  Owner user id (self-view clause).
+	 * @param bool                 $reveal Whether the request asked to reveal.
+	 * @return array{email: ?string, cpf: ?string, rf: ?string, data: array<string, mixed>, audited: bool}
 	 */
-	private function shape_submission_pii( ?string $email, ?string $cpf, ?string $rf, array $data, int $submission_id, ?int $owner ): array {
-		$tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
-			'ffc_view_certificates_pii',
-			'ffc_certificates_admin',
-			$owner
-		);
+	private function shape_submission_pii( ?string $email, ?string $cpf, ?string $rf, array $data, ?int $owner, bool $reveal ): array {
+		$tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve( 'ffc_view_certificates_pii', $owner );
 
-		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === $tier ) {
+		$clear = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED === $tier
+			|| ( $reveal && \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier );
+
+		if ( ! $clear ) {
 			return array(
-				'email' => ! empty( $email ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email ) : null,
-				'cpf'   => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $cpf ) : null,
-				'rf'    => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $rf ) : null,
-				'data'  => $this->mask_data_pii( $data ),
-			);
-		}
-
-		// Reveal / unmasked tier — plaintext. Audit only the `reveal` tier; the
-		// unmasked `_admin` / super-admin tier is exempt, matching reveal_pii().
-		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier ) {
-			\FreeFormCertificate\Core\ActivityLog::log(
-				'submission_pii_revealed',
-				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-				array( 'field_key' => 'rest_api' ),
-				get_current_user_id(),
-				$submission_id
+				'email'   => ! empty( $email ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email ) : null,
+				'cpf'     => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $cpf ) : null,
+				'rf'      => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $rf ) : null,
+				'data'    => $this->mask_data_pii( $data ),
+				'audited' => false,
 			);
 		}
 
 		return array(
-			'email' => ! empty( $email ) ? $email : null,
-			'cpf'   => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $cpf ) : null,
-			'rf'    => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $rf ) : null,
-			'data'  => $data,
+			'email'   => ! empty( $email ) ? $email : null,
+			'cpf'     => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $cpf ) : null,
+			'rf'      => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $rf ) : null,
+			'data'    => $data,
+			'audited' => \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier,
 		);
 	}
 

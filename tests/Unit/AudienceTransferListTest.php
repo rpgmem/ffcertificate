@@ -52,6 +52,7 @@ class AudienceTransferListTest extends TestCase {
 		Functions\when( 'esc_attr' )->alias( static fn( $s ) => htmlspecialchars( (string) $s, ENT_QUOTES ) );
 		Functions\when( 'esc_html_e' )->alias( static fn( $s ) => print $s );
 		Functions\when( 'esc_attr_e' )->alias( static fn( $s ) => print $s );
+		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
 			->shouldReceive( 'get_hierarchical' )->twice()->with( 'active' )
@@ -68,7 +69,10 @@ class AudienceTransferListTest extends TestCase {
 
 		ob_start();
 		AudienceTransferList::render( array(), 'rereg_audience_ids[]', true );
-		$this->assertStringContainsString( 'data-required="1"', (string) ob_get_clean() );
+		$required = (string) ob_get_clean();
+		$this->assertStringContainsString( 'data-required="1"', $required );
+		// The message the field-message standard shows under an empty picker (#1844).
+		$this->assertStringContainsString( 'data-required-message="Select at least one audience."', $required );
 	}
 
 	public function test_enqueue_brings_the_script_and_its_sheet(): void {
@@ -89,7 +93,7 @@ class AudienceTransferListTest extends TestCase {
 		$this->assertSame(
 			array(
 				array( 'style', 'ffc-audience-transfer-list', array( 'ffc-common' ) ),
-				array( 'script', 'ffc-audience-transfer-list', array( 'jquery' ) ),
+				array( 'script', 'ffc-audience-transfer-list', array( 'jquery', 'ffc-core' ) ),
 			),
 			$handles
 		);

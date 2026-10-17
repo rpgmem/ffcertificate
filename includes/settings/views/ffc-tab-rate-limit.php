@@ -394,19 +394,13 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 					}
 				}
 
-				// Inline styles keep the badge self-contained (no CSS rebuild).
-				$ffcertificate_badge_styles = array(
-					'cookie' => 'background:#cfe2ff;color:#084298;',
-					'strong' => 'background:#d1e7dd;color:#0f5132;',
-					'weak'   => 'background:#e2e3e5;color:#41464b;',
-				);
 				$ffcertificate_badge_labels = array(
 					'cookie' => __( 'Cookie', 'ffcertificate' ),
 					'strong' => __( 'Strong', 'ffcertificate' ),
 					'weak'   => __( 'Weak', 'ffcertificate' ),
 				);
 
-				$ffcertificate_render_signal = static function ( $key, $label, $group ) use ( $ffcertificate_s, $ffcertificate_badge_styles, $ffcertificate_badge_labels ) {
+				$ffcertificate_render_signal = static function ( $key, $label, $group ) use ( $ffcertificate_s, $ffcertificate_badge_labels ) {
 					$checked = in_array( $key, (array) $ffcertificate_s['device']['signals_enabled'], true );
 					echo '<p class="ffc-device-signal-row">';
 					\FreeFormCertificate\Admin\AdminUI::render_toggle(
@@ -423,9 +417,8 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 						)
 					);
 					printf(
-						' <span class="ffc-signal-badge ffc-signal-badge--%1$s" style="%2$s">%3$s</span>',
+						' <span class="ffc-signal-badge ffc-signal-badge--%1$s">%2$s</span>',
 						esc_attr( $group ),
-						esc_attr( $ffcertificate_badge_styles[ $group ] ),
 						esc_html( $ffcertificate_badge_labels[ $group ] )
 					);
 					echo '</p>';

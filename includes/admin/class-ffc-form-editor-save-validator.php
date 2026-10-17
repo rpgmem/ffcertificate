@@ -234,8 +234,8 @@ class FormEditorSaveValidator {
 
 		// Validate datetime order (#159 S2). Date/time order checks live in
 		// `Geofence::analyze_datetime_order()` so the metabox renderer can
-		// reuse the same map to paint `ffc-input-invalid` on the offending
-		// inputs without duplicating the rules.
+		// reuse the same map to put the invalid state (`is-invalid`, #1844) on
+		// the offending inputs without duplicating the rules.
 		$datetime_errors = \FreeFormCertificate\Security\Geofence::analyze_datetime_order( $config );
 		if ( ! empty( $datetime_errors ) ) {
 			// Dedupe — the helper repeats the same message across paired

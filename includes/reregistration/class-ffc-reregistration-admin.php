@@ -44,6 +44,11 @@ class ReregistrationAdmin {
 	public const MENU_SLUG = 'ffc-reregistration';
 
 	/**
+	 * `?page=` of the Custom Fields submenu.
+	 */
+	public const CUSTOM_FIELDS_SLUG = 'ffc-custom-fields';
+
+	/**
 	 * Required capability.
 	 */
 	private const CAPABILITY = 'ffc_manage_reregistration';
@@ -169,7 +174,7 @@ class ReregistrationAdmin {
 			__( 'Custom Fields', 'ffcertificate' ),
 			__( 'Custom Fields', 'ffcertificate' ),
 			self::CAPABILITY,
-			'ffc-custom-fields',
+			self::CUSTOM_FIELDS_SLUG,
 			array( ReregistrationCustomFieldsPage::class, 'render' )
 		);
 	}
@@ -235,6 +240,9 @@ class ReregistrationAdmin {
 
 		// The campaign form's audience picker is the shared component (#1648).
 		\FreeFormCertificate\Audience\AudienceTransferList::enqueue();
+
+		// The campaign's toggles save per record (#1757).
+		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 
 		wp_enqueue_script(
 			'ffc-reregistration-admin',
@@ -420,6 +428,10 @@ class ReregistrationAdmin {
 			}
 		}
 
+		if ( 'scheduled' === \FreeFormCertificate\Core\RequestInput::get_get_string( 'invitations' ) ) {
+			add_settings_error( 'ffc_reregistration', 'ffc_invitations_scheduled', self::invitations_scheduled_message(), 'info' );
+		}
+
 		// Campaign CRUD.
 		$this->handle_save();
 		$this->handle_delete();
@@ -434,6 +446,42 @@ class ReregistrationAdmin {
 		// drives the unified ffc_export_* dispatcher via ReregistrationExportSource
 		// (registered in ReregistrationLoader), so there is no page-action handler
 		// here any more.
+	}
+
+	/**
+	 * The redirect argument that asks the edit screen to announce the
+	 * invitations: present only when the campaign sends them.
+	 *
+	 * @param array<string, mixed> $data The saved campaign fields.
+	 * @return string `&invitations=scheduled`, or ''.
+	 */
+	private static function invitations_notice_arg( array $data ): string {
+		return empty( $data['email_invitation_enabled'] ) ? '' : '&invitations=scheduled';
+	}
+
+	/**
+	 * What the operator is told after activating a campaign that sends
+	 * invitations (#1762): nobody was mailed yet, and when they will be.
+	 *
+	 * The time is the next run of the daily reregistration event, which is
+	 * the one that sends them. When it is not scheduled -- WP-Cron cleared, a
+	 * deactivation half-undone -- the sentence says so instead of inventing a
+	 * time.
+	 *
+	 * @return string
+	 */
+	public static function invitations_scheduled_message(): string {
+		$next = wp_next_scheduled( 'ffcertificate_reregistration_expire_hook' );
+
+		if ( false === $next ) {
+			return __( 'No invitation was sent yet. They go out with the daily reregistration run, which is not scheduled on this site right now; check Settings → Scheduled Tasks.', 'ffcertificate' );
+		}
+
+		return sprintf(
+			/* translators: %s: date and time of the next daily run */
+			__( 'No invitation was sent yet. They go out with the next daily reregistration run, on %s, in batches. Until then you can still change or deactivate the campaign.', 'ffcertificate' ),
+			\FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $next )
+		);
 	}
 
 	/**
@@ -502,27 +550,35 @@ class ReregistrationAdmin {
 			 * starts working without a second fix.
 			 *
 			 * Seeding still runs after, for members added since.
+			 *
+			 * The invitations themselves no longer go out here (#1762): the
+			 * daily run sends them, so a campaign activated by mistake can be
+			 * taken back before anybody is mailed. The redirect carries a flag
+			 * so the screen says when that run is.
 			 */
+			$notice = '';
 			if ( 'active' === $data['status'] && 'active' !== $prev_status ) {
 				ReregistrationRepository::reopen_expired_submissions( $id );
 				ReregistrationSubmissionWriter::create_for_audience_members( $id, $audience_ids );
-				ReregistrationEmailHandler::send_invitations( $id );
+				$notice = self::invitations_notice_arg( $data );
 			}
 
-			wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&view=edit&id=' . $id . '&message=updated' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&view=edit&id=' . $id . '&message=updated' . $notice ) );
 			exit;
 		} else {
 			$new_id = ReregistrationRepository::create( $data );
 			if ( $new_id ) {
 				ReregistrationRepository::set_audience_ids( $new_id, $audience_ids );
 
-				// If creating as active, also create submissions and send invitations.
+				// Created as active: seed the submissions now; the invitations
+				// wait for the daily run, as on activation (#1762).
+				$notice = '';
 				if ( 'active' === $data['status'] ) {
 					ReregistrationSubmissionWriter::create_for_audience_members( $new_id, $audience_ids );
-					ReregistrationEmailHandler::send_invitations( $new_id );
+					$notice = self::invitations_notice_arg( $data );
 				}
 
-				wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&view=edit&id=' . $new_id . '&message=created' ) );
+				wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&view=edit&id=' . $new_id . '&message=created' . $notice ) );
 				exit;
 			}
 		}

@@ -17,9 +17,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Handles the Environments admin sub-page rendering and actions.
+ * Handles the Environments admin screen rendering and actions.
+ *
+ * Since #1761 the screen is a view of the Audience Calendars page
+ * (`page=ffc-scheduling-calendars&view=environments`), printed inside that
+ * page's `wrap` by AudienceAdminCalendar. The previous slug
+ * (`page=ffc-scheduling-environments`) stays registered as a hidden page and
+ * redirects here; this class still accepts it, so a form posted to it saves.
+ *
+ * @phpstan-import-type EnvironmentRow from AudienceEnvironmentRepository
  */
 class AudienceAdminEnvironment {
+
+	/**
+	 * The `view` query value that selects this screen on the calendars page.
+	 */
+	public const VIEW = 'environments';
+
+	/**
+	 * Opening time a day takes when its field is left empty — the default
+	 * the Working Hours description names.
+	 */
+	private const DEFAULT_START = '08:00';
+
+	/**
+	 * Closing time a day takes when its field is left empty.
+	 */
+	private const DEFAULT_END = '18:00';
 
 	/**
 	 * Menu slug used to build admin URLs.
@@ -38,31 +62,54 @@ class AudienceAdminEnvironment {
 	}
 
 	/**
-	 * Render environments page
+	 * URL of the Environments view.
+	 *
+	 * The one place that spells the location, so every link — the list's own
+	 * actions, the Dashboard, the Settings tab, the calendar list's count —
+	 * moves together (#1761).
+	 *
+	 * @param string $menu_slug The parent menu slug.
+	 * @param string $query     Extra query string, starting with `&` (e.g. `&action=new`).
+	 * @return string
+	 */
+	public static function view_url( string $menu_slug, string $query = '' ): string {
+		return admin_url( 'admin.php?page=' . $menu_slug . '-calendars&view=' . self::VIEW . $query );
+	}
+
+	/**
+	 * Whether the current request is for this screen: its view on the
+	 * calendars page, or the previous slug.
+	 *
+	 * @return bool
+	 */
+	public function is_own_request(): bool {
+		$page = RequestInput::get_get_string( 'page' );
+		if ( $this->menu_slug . '-environments' === $page ) {
+			return true;
+		}
+		return $this->menu_slug . '-calendars' === $page && self::VIEW === RequestInput::get_get_string( 'view' );
+	}
+
+	/**
+	 * Render the Environments view — the list, or the add/edit form.
+	 *
+	 * Prints no `wrap`: the Audience Calendars page that hosts the view
+	 * owns it (AudienceAdminCalendar::render_page()).
 	 *
 	 * @return void
 	 */
-	public function render_page(): void {
-		$action = \FreeFormCertificate\Core\RequestInput::get_get_string( 'action', 'list' );
+	public function render_view(): void {
+		$action = RequestInput::get_get_string( 'action', 'list' );
 		$id     = RequestInput::get_get_int( 'id' );
 
-		// The add/edit form is a boxed screen (`.ffc-boxed`); the list keeps
-		// the plain list-table screen.
-		$boxed = in_array( $action, array( 'new', 'edit' ), true );
-		?>
-		<div class="wrap ffc-admin-page ffc-page-scheduling-environments <?php echo $boxed ? 'ffc-boxed' : ''; ?>">
-			<?php
-			switch ( $action ) {
-				case 'new':
-				case 'edit':
-					$this->render_form( $id );
-					break;
-				default:
-					$this->render_list();
-			}
-			?>
-		</div>
-		<?php
+		switch ( $action ) {
+			case 'new':
+			case 'edit':
+				$this->render_form( $id );
+				break;
+			default:
+				$this->render_list();
+		}
 	}
 
 	/**
@@ -99,7 +146,12 @@ class AudienceAdminEnvironment {
 				return strnatcasecmp( $a->name, $b->name );
 			}
 		);
-		$add_url = admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&action=new' );
+		// Add New carries the calendar filter the list applies, so the form
+		// opens on that calendar (#1801); render_form() validates it.
+		$add_url = self::view_url(
+			$this->menu_slug,
+			'&action=new' . ( $filter_schedule > 0 ? '&schedule_id=' . (int) $filter_schedule : '' )
+		);
 
 		// Dynamic label: use filtered schedule's label or default.
 		$env_label = $filter_schedule > 0
@@ -113,27 +165,84 @@ class AudienceAdminEnvironment {
 		<?php endif; ?>
 		<hr class="wp-header-end">
 
-		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 
-		<!-- Filter form -->
-		<form method="get" class="ffc-filter-form">
-			<input type="hidden" name="page" value="<?php echo esc_attr( $this->menu_slug . '-environments' ); ?>">
-			<select name="schedule_id">
-				<option value=""><?php esc_html_e( 'All Calendars', 'ffcertificate' ); ?></option>
-				<?php foreach ( $schedules as $schedule ) : ?>
-					<option value="<?php echo esc_attr( (string) $schedule->id ); ?>" <?php selected( $filter_schedule, $schedule->id ); ?>>
-						<?php echo esc_html( $schedule->name ); ?>
-					</option>
-				<?php endforeach; ?>
-			</select>
-			<?php submit_button( __( 'Filter', 'ffcertificate' ), 'secondary', 'filter', false ); ?>
-		</form>
+		<?php AudienceAdminCalendar::render_view_switch( $this->menu_slug, self::VIEW ); ?>
 
+		<!-- Filters: one row in the table navigation, as on the other lists (#1761) -->
+		<div class="tablenav top">
+			<form method="get">
+				<input type="hidden" name="page" value="<?php echo esc_attr( $this->menu_slug . '-calendars' ); ?>">
+				<input type="hidden" name="view" value="<?php echo esc_attr( self::VIEW ); ?>">
+				<select name="schedule_id">
+					<option value=""><?php esc_html_e( 'All Calendars', 'ffcertificate' ); ?></option>
+					<?php foreach ( $schedules as $schedule ) : ?>
+						<option value="<?php echo esc_attr( (string) $schedule->id ); ?>" <?php selected( $filter_schedule, $schedule->id ); ?>>
+							<?php echo esc_html( $schedule->name ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+				<?php submit_button( __( 'Filter', 'ffcertificate' ), 'secondary', 'filter', false ); ?>
+			</form>
+		</div>
+
+		<?php
+		$this->render_table( $environments, $schedule_name_map, $env_label );
+		?>
+
+		<!-- Styles in ffc-audience-admin.css -->
+		<?php
+	}
+
+	/**
+	 * The Environments tab of one calendar's editor (#1761): the list this
+	 * page renders, filtered to the calendar, with its Add New. The rows link
+	 * to this page's own screens, so editing an environment works as it does
+	 * from the list.
+	 *
+	 * @param int $schedule_id Calendar id.
+	 * @return void
+	 */
+	public function render_calendar_tab( int $schedule_id ): void {
+		$environments = AudienceEnvironmentRepository::get_all( array( 'schedule_id' => $schedule_id ) );
+		$schedule     = AudienceScheduleRepository::get_by_id( $schedule_id );
+		$env_label    = AudienceScheduleRepository::get_environment_label( $schedule_id );
+		usort(
+			$environments,
+			static function ( $a, $b ) {
+				return strnatcasecmp( $a->name, $b->name );
+			}
+		);
+		// Add New carries the calendar, so the form opens with it chosen (#1796).
+		$add_url = self::view_url( $this->menu_slug, '&action=new&schedule_id=' . $schedule_id );
+		?>
+		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
+		<p><a href="<?php echo esc_url( $add_url ); ?>" class="button"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a></p>
+		<?php endif; ?>
+		<?php
+		$this->render_table( $environments, array( $schedule_id => $schedule ? (string) $schedule->name : '' ), $env_label );
+	}
+
+	/**
+	 * The environments table, shared by the list and a calendar's tab.
+	 *
+	 * @param array<int, object> $environments      Rows, already in display order.
+	 * @param array<int, string> $schedule_name_map Calendar id => name.
+	 * @param string             $env_label         Plural label for the empty row.
+	 * @phpstan-param list<EnvironmentRow> $environments
+	 * @return void
+	 */
+	private function render_table( array $environments, array $schedule_name_map, string $env_label ): void {
+		// Row actions render only for the cap handle_actions() checks (#1769).
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+		$can_delete = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' );
+		?>
 		<table class="wp-list-table widefat fixed striped ffc-environments-table">
 			<thead>
 				<tr>
 					<th scope="col" class="column-color"><?php esc_html_e( 'Color', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th>
+					<th scope="col" class="column-shortcode"><?php esc_html_e( 'Shortcode', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-calendar"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
 					<th scope="col" class="column-actions"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
@@ -142,7 +251,7 @@ class AudienceAdminEnvironment {
 			<tbody>
 				<?php if ( empty( $environments ) ) : ?>
 					<tr>
-						<td colspan="5">
+						<td colspan="6">
 							<?php
 							/* translators: %s: environment label (e.g. "Environments", "Rooms") */
 							printf( esc_html__( 'No %s found.', 'ffcertificate' ), esc_html( mb_strtolower( $env_label ) ) );
@@ -153,7 +262,7 @@ class AudienceAdminEnvironment {
 					<?php foreach ( $environments as $env ) : ?>
 						<?php
 						$schedule_name      = $schedule_name_map[ (int) $env->schedule_id ] ?? '—';
-						$edit_url           = admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&action=edit&id=' . $env->id );
+						$edit_url           = self::view_url( $this->menu_slug, '&action=edit&id=' . $env->id );
 						$is_active          = ( 'active' === $env->status );
 						$env_label_singular = mb_strtolower( AudienceScheduleRepository::get_environment_label( isset( $env->schedule_id ) ? (int) $env->schedule_id : null, true ) );
 
@@ -161,12 +270,12 @@ class AudienceAdminEnvironment {
 						$delete_url     = '';
 						if ( $is_active ) {
 							$deactivate_url = wp_nonce_url(
-								admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&action=deactivate&id=' . $env->id ),
+								self::view_url( $this->menu_slug, '&action=deactivate&id=' . $env->id ),
 								'deactivate_environment_' . $env->id
 							);
 						} else {
 							$delete_url = wp_nonce_url(
-								admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&action=delete&id=' . $env->id ),
+								self::view_url( $this->menu_slug, '&action=delete&id=' . $env->id ),
 								'delete_environment_' . $env->id
 							);
 						}
@@ -181,6 +290,14 @@ class AudienceAdminEnvironment {
 									<p class="description"><?php echo esc_html( wp_trim_words( $env->description, 15 ) ); ?></p>
 								<?php endif; ?>
 							</td>
+							<td class="column-shortcode">
+								<?php
+								// Pinned to its calendar: `environment_id` alone shows every
+								// calendar the visitor may see with this one preselected;
+								// the calendar id keeps it to the one it belongs to.
+								\FreeFormCertificate\Admin\AdminUI::render_shortcode_copy( '[ffc_audience schedule_id="' . (int) $env->schedule_id . '" environment_id="' . (int) $env->id . '"]' );
+								?>
+							</td>
 							<td class="column-calendar">
 								<?php echo esc_html( $schedule_name ); ?>
 							</td>
@@ -190,9 +307,11 @@ class AudienceAdminEnvironment {
 								</span>
 							</td>
 							<td class="column-actions">
-								<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
-								<?php if ( $is_active ) : ?>
-									<a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('
+								<?php if ( $can_manage ) : ?>
+									<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a>
+								<?php endif; ?>
+								<?php if ( $is_active && $can_manage ) : ?>
+									| <a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('
 									<?php
 										/* translators: %s: environment label (singular) */
 										printf( esc_attr__( 'Are you sure you want to deactivate this %s?', 'ffcertificate' ), esc_attr( $env_label_singular ) );
@@ -200,7 +319,8 @@ class AudienceAdminEnvironment {
 										');">
 										<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
 									</a>
-								<?php else : ?>
+								<?php elseif ( ! $is_active && $can_delete ) : ?>
+									<?php echo $can_manage ? '|' : ''; ?>
 									<a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('
 									<?php
 										/* translators: %s: environment label (singular) */
@@ -217,7 +337,6 @@ class AudienceAdminEnvironment {
 			</tbody>
 		</table>
 
-		<!-- Styles in ffc-audience-admin.css -->
 		<?php
 	}
 
@@ -229,6 +348,9 @@ class AudienceAdminEnvironment {
 	 */
 	private function render_form( int $id ): void {
 		$environment = null;
+		// 3-state (#1777): the screen opens on `ffc_view_audiences`, the save on
+		// `ffc_manage_audiences`. Without it the form renders read-only.
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
 
 		// Get the schedule for dynamic label.
 		$schedule_id = 0;
@@ -238,6 +360,8 @@ class AudienceAdminEnvironment {
 				wp_die( esc_html__( 'Environment not found.', 'ffcertificate' ) );
 			}
 			$schedule_id = (int) ( $environment->schedule_id ?? 0 );
+		} else {
+			$schedule_id = $this->requested_schedule_id();
 		}
 
 		$schedule_id_or_null = $schedule_id ? $schedule_id : null;
@@ -251,7 +375,19 @@ class AudienceAdminEnvironment {
 			: sprintf( __( 'Add New %s', 'ffcertificate' ), $env_label_singular );
 
 		$schedules = AudienceScheduleRepository::get_all( array( 'status' => 'active' ) );
-		$back_url  = admin_url( 'admin.php?page=' . $this->menu_slug . '-environments' );
+		$back_url  = self::view_url( $this->menu_slug );
+
+		// The select lists active calendars only, so an environment whose
+		// calendar was deactivated would show "Select a calendar" and the
+		// required check would block its save (#1771). Keep its own calendar
+		// in the list, labelled as inactive.
+		$listed_ids = array_map( static fn( $schedule ) => (int) $schedule->id, $schedules );
+		if ( $schedule_id > 0 && ! in_array( $schedule_id, $listed_ids, true ) ) {
+			$current_schedule = AudienceScheduleRepository::get_by_id( $schedule_id );
+			if ( $current_schedule ) {
+				$schedules[] = $current_schedule;
+			}
+		}
 
 		// Parse working hours.
 		$working_hours = array();
@@ -269,7 +405,10 @@ class AudienceAdminEnvironment {
 			?>
 		</a>
 
-		<?php settings_errors( 'ffc_audience' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
+		<?php if ( ! $can_manage ) : ?>
+			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
+		<?php endif; ?>
 
 		<?php // The heading is the calendar's own label for an environment ("Room", "Service"). ?>
 		<div class="card">
@@ -279,17 +418,27 @@ class AudienceAdminEnvironment {
 			<input type="hidden" name="environment_id" value="<?php echo esc_attr( (string) $id ); ?>">
 			<input type="hidden" name="ffc_action" value="save_environment">
 
+			<?php if ( ! $can_manage ) : ?>
+				<?php // A disabled fieldset disables every control inside it. ?>
+				<fieldset disabled class="ffc-readonly-lock">
+			<?php endif; ?>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
-						<label for="environment_schedule"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
+						<label for="environment_schedule"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 					</th>
 					<td>
 						<select name="environment_schedule" id="environment_schedule" required>
 							<option value=""><?php esc_html_e( 'Select a calendar', 'ffcertificate' ); ?></option>
-							<?php foreach ( $schedules as $schedule ) : ?>
-								<option value="<?php echo esc_attr( (string) $schedule->id ); ?>" <?php selected( $environment->schedule_id ?? '', $schedule->id ); ?>>
-									<?php echo esc_html( $schedule->name ); ?>
+							<?php
+							foreach ( $schedules as $schedule ) :
+								$schedule_label = 'active' === (string) ( $schedule->status ?? 'active' )
+									? (string) $schedule->name
+									/* translators: %s: calendar name */
+									: sprintf( __( '%s (inactive)', 'ffcertificate' ), (string) $schedule->name );
+								?>
+								<option value="<?php echo esc_attr( (string) $schedule->id ); ?>" <?php selected( $schedule_id > 0 ? $schedule_id : '', $schedule->id ); ?>>
+									<?php echo esc_html( $schedule_label ); ?>
 								</option>
 							<?php endforeach; ?>
 						</select>
@@ -297,7 +446,7 @@ class AudienceAdminEnvironment {
 				</tr>
 				<tr>
 					<th scope="row">
-						<label for="environment_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
+						<label for="environment_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 					</th>
 					<td>
 						<input type="text" name="environment_name" id="environment_name" class="regular-text"
@@ -344,8 +493,8 @@ class AudienceAdminEnvironment {
 							);
 							foreach ( $days as $key => $label ) :
 								$closed = isset( $working_hours[ $key ]['closed'] ) && $working_hours[ $key ]['closed'];
-								$start  = $working_hours[ $key ]['start'] ?? '08:00';
-								$end    = $working_hours[ $key ]['end'] ?? '18:00';
+								$start  = $working_hours[ $key ]['start'] ?? self::DEFAULT_START;
+								$end    = $working_hours[ $key ]['end'] ?? self::DEFAULT_END;
 								?>
 								<div class="ffc-day-row">
 									<label class="ffc-day-label"><?php echo esc_html( $label ); ?></label>
@@ -388,22 +537,61 @@ class AudienceAdminEnvironment {
 					</td>
 				</tr>
 			</tbody></table>
-
-			<?php
-			submit_button(
-				$id > 0
-				/* translators: %s: environment label (singular, e.g. "Room") */
-				? sprintf( __( 'Update %s', 'ffcertificate' ), $env_label_singular )
-				/* translators: %s: environment label (singular, e.g. "Room") */
-				: sprintf( __( 'Create %s', 'ffcertificate' ), $env_label_singular )
-			);
-			?>
+			<?php if ( ! $can_manage ) : ?>
+				</fieldset>
+			<?php else : ?>
+				<?php
+				submit_button(
+					$id > 0
+					/* translators: %s: environment label (singular, e.g. "Room") */
+					? sprintf( __( 'Update %s', 'ffcertificate' ), $env_label_singular )
+					/* translators: %s: environment label (singular, e.g. "Room") */
+					: sprintf( __( 'Create %s', 'ffcertificate' ), $env_label_singular )
+				);
+				?>
+			<?php endif; ?>
 		</form>
 		</div>
 
 		<!-- Styles in ffc-audience-admin.css -->
 		<!-- Scripts in ffc-audience-admin.js -->
 		<?php
+	}
+
+	/**
+	 * The calendar a new environment opens with: the `schedule_id` the
+	 * calendar editor's Environments tab passes to Add New (#1796).
+	 *
+	 * The value comes from the URL, so it is honoured only when it names a
+	 * calendar that exists; anything else leaves the select on "Select a
+	 * calendar", as a plain Add New does.
+	 *
+	 * @return int Calendar id, or 0 when none is requested or it is unknown.
+	 */
+	private function requested_schedule_id(): int {
+		$requested = RequestInput::get_get_int( 'schedule_id' );
+		if ( $requested <= 0 ) {
+			return 0;
+		}
+		return AudienceScheduleRepository::get_by_id( $requested ) ? $requested : 0;
+	}
+
+	/**
+	 * The working hours stored for an environment, keyed by day.
+	 *
+	 * @param int $id Environment ID (0 for a new one, which has none).
+	 * @return array<string, mixed>
+	 */
+	private function stored_working_hours( int $id ): array {
+		if ( $id <= 0 ) {
+			return array();
+		}
+		$environment = AudienceEnvironmentRepository::get_by_id( $id );
+		if ( ! $environment || empty( $environment->working_hours ) ) {
+			return array();
+		}
+		$hours = json_decode( $environment->working_hours, true );
+		return is_array( $hours ) ? $hours : array();
 	}
 
 	/**
@@ -416,8 +604,14 @@ class AudienceAdminEnvironment {
 			return;
 		}
 
+		// The coordinator calls this on every `ffc-scheduling*` screen (#1771):
+		// act only on this one — the Environments view, or its legacy slug (#1761).
+		if ( ! $this->is_own_request() ) {
+			return;
+		}
+
 		// Show feedback for redirect-based actions.
-		if ( isset( $_GET['message'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
+		if ( isset( $_GET['message'] ) ) {
 			$msg      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'message' );
 			$label    = AudienceScheduleRepository::get_environment_label( 0, true );
 			$messages = array(
@@ -443,14 +637,30 @@ class AudienceAdminEnvironment {
 
 			// Process working hours.
 			$working_hours = array();
+			$stored_hours  = null;
 			if ( isset( $_POST['working_hours'] ) && is_array( $_POST['working_hours'] ) ) {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The array is iterated, not consumed: wp_unslash() is applied to the array and every leaf is sanitized inside the loop with sanitize_key()/sanitize_text_field().
 				foreach ( wp_unslash( $_POST['working_hours'] ) as $day => $hours ) {
-					$day                   = sanitize_key( $day );
+					$day   = sanitize_key( $day );
+					$times = array();
+					foreach ( array( 'start', 'end' ) as $edge ) {
+						if ( isset( $hours[ $edge ] ) ) {
+							$times[ $edge ] = sanitize_text_field( $hours[ $edge ] );
+							continue;
+						}
+						// A closed day's time inputs are disabled, so the
+						// browser does not post them: keep what is stored
+						// rather than reset the day to the default (#1771).
+						if ( null === $stored_hours ) {
+							$stored_hours = $this->stored_working_hours( $id );
+						}
+						$times[ $edge ] = (string) ( $stored_hours[ $day ][ $edge ] ?? '' );
+					}
 					$working_hours[ $day ] = array(
 						'closed' => isset( $hours['closed'] ) ? true : false,
-						'start'  => isset( $hours['start'] ) ? sanitize_text_field( $hours['start'] ) : '08:00',
-						'end'    => isset( $hours['end'] ) ? sanitize_text_field( $hours['end'] ) : '18:00',
+						// An empty time means the documented default.
+						'start'  => '' !== $times['start'] ? $times['start'] : self::DEFAULT_START,
+						'end'    => '' !== $times['end'] ? $times['end'] : self::DEFAULT_END,
 					);
 				}
 			}
@@ -475,24 +685,24 @@ class AudienceAdminEnvironment {
 			} else {
 				$new_id = AudienceEnvironmentRepository::create( $data );
 				if ( $new_id ) {
-					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&action=edit&id=' . $new_id . '&message=created' ) );
+					wp_safe_redirect( self::view_url( $this->menu_slug, '&action=edit&id=' . $new_id . '&message=created' ) );
 					exit;
 				}
 			}
 		}
 
 		// Handle deactivate (active items get deactivated instead of deleted).
-		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
+		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'deactivate_environment_' . $id ) ) {
 				AudienceEnvironmentRepository::update( $id, array( 'status' => 'inactive' ) );
-				wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&message=deactivated' ) );
+				wp_safe_redirect( self::view_url( $this->menu_slug, '&message=deactivated' ) );
 				exit;
 			}
 		}
 
 		// Handle delete (only inactive items can be permanently deleted).
-		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
+		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) ) {
 			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
 				wp_die( esc_html__( 'You do not have permission to delete environments.', 'ffcertificate' ) );
 			}
@@ -501,7 +711,7 @@ class AudienceAdminEnvironment {
 				$env = AudienceEnvironmentRepository::get_by_id( $id );
 				if ( $env && 'active' !== $env->status ) {
 					AudienceEnvironmentRepository::delete( $id );
-					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&message=deleted' ) );
+					wp_safe_redirect( self::view_url( $this->menu_slug, '&message=deleted' ) );
 					exit;
 				}
 			}

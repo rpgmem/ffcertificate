@@ -279,4 +279,34 @@ class CaptchaSettingsTest extends TestCase {
 		$this->assertSame( 600, CaptchaSettings::MINT_WINDOW_DEFAULT );
 		$this->assertSame( CaptchaSettings::MINT_WINDOW_DEFAULT, CaptchaSettings::mint_window() );
 	}
+
+	// ==================================================================
+	// The mode a new install starts with (#1758)
+	// ==================================================================
+
+	public function test_a_new_install_served_over_https_starts_on_altcha_only(): void {
+		Functions\when( 'is_ssl' )->justReturn( true );
+		Functions\when( 'home_url' )->justReturn( 'http://example.com' );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url, $part = -1 ) => parse_url( (string) $url, $part ) );
+
+		$this->assertSame( AltchaCaptcha::ID, CaptchaSettings::fresh_install_provider() );
+	}
+
+	public function test_a_new_install_whose_home_url_is_https_starts_on_altcha_only(): void {
+		// Activation behind a proxy that terminates TLS can read is_ssl() as
+		// false while the site itself is served over HTTPS.
+		Functions\when( 'is_ssl' )->justReturn( false );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url, $part = -1 ) => parse_url( (string) $url, $part ) );
+
+		$this->assertSame( AltchaCaptcha::ID, CaptchaSettings::fresh_install_provider() );
+	}
+
+	public function test_a_new_install_without_https_starts_on_the_math_challenge(): void {
+		Functions\when( 'is_ssl' )->justReturn( false );
+		Functions\when( 'home_url' )->justReturn( 'http://example.com' );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url, $part = -1 ) => parse_url( (string) $url, $part ) );
+
+		$this->assertSame( 'math', CaptchaSettings::fresh_install_provider() );
+	}
 }

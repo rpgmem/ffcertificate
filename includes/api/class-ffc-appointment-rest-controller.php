@@ -3,7 +3,7 @@
  * Appointment REST Controller
  *
  * Handles appointment-related REST API endpoints:
- *   POST   /calendars/{id}/appointments – Create appointment
+ *   POST   /calendars/{id}/appointments – Create appointment (authenticated, `ffc_manage_appointments`)
  *   GET    /appointments/{id}           – Get appointment details
  *   DELETE /appointments/{id}           – Cancel appointment
  *
@@ -46,23 +46,21 @@ class AppointmentRestController {
 	public function register_routes(): void {
 		// POST /calendars/{id}/appointments - Create appointment.
 		//
-		// Public-by-design — anonymous visitors create bookings here
-		// (the [ffc_self_scheduling] shortcode submits to this route to
-		// reserve a slot). Locking this behind a permission gate would
-		// require every booking visitor to register for a WordPress
-		// account first, defeating the public booking flow. The handler
-		// defends with: required-field validation, calendar visibility
-		// checks (private calendars 403 anonymous callers), slot
-		// availability re-check inside a SELECT ... FOR UPDATE
-		// transaction, email format validation, and the IP-keyed rate-
-		// limit pool. See issue #139.
+		// Authenticated (#1861). The public booking form does not use this
+		// route: the [ffc_self_scheduling] shortcode posts to the
+		// `ffc_book_appointment` AJAX action, which carries the nonce and
+		// the captcha. This route books in the name and email the caller
+		// sends, which is an operator's act on the appointments domain, so
+		// it needs `ffc_manage_appointments` -- not the self-scoped
+		// `ffc_book_own_appointments`, which would let any end user book in
+		// someone else's name.
 		register_rest_route(
 			$this->namespace,
 			'/calendars/(?P<id>\d+)/appointments',
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'create_appointment' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( $this, 'check_create_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -83,10 +81,15 @@ class AppointmentRestController {
 				'callback'            => array( $this, 'get_appointment' ),
 				'permission_callback' => array( $this, 'check_appointment_access' ),
 				'args'                => array(
-					'id' => array(
+					'id'     => array(
 						'validate_callback' => function ( $param ) {
 							return is_numeric( $param );
 						},
+					),
+					'reveal' => array(
+						'default'           => false,
+						'sanitize_callback' => 'rest_sanitize_boolean',
+						'description'       => 'Return the email and phone in clear, for a caller the PII policy lets reveal; the read is recorded in the activity log.',
 					),
 				),
 			)
@@ -187,6 +190,9 @@ class AppointmentRestController {
 						array( 'status' => 429 )
 					);
 				}
+
+				// A check that never records never trips (#1861).
+				\FreeFormCertificate\Security\RateLimiter::record_attempt( 'ip', $ip );
 			}
 
 			$appointment_data = array(
@@ -197,11 +203,15 @@ class AppointmentRestController {
 				'email'            => \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( $params['email'] ) ),
 				'phone'            => isset( $params['phone'] ) ? sanitize_text_field( $params['phone'] ) : '',
 				'user_notes'       => isset( $params['notes'] ) ? sanitize_textarea_field( $params['notes'] ) : '',
-				'custom_data'      => isset( $params['custom_data'] ) ? $params['custom_data'] : array(),
+				// Sanitised as the booking form's AJAX handler does (#1861).
+				'custom_data'      => \FreeFormCertificate\Core\RequestInput::text_array( $params['custom_data'] ?? array() ),
 				'consent_given'    => isset( $params['consent'] ) ? 1 : 0,
 				'consent_text'     => isset( $params['consent_text'] ) ? sanitize_textarea_field( $params['consent_text'] ) : '',
 				'user_ip'          => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+				// A bypass holder's explicit confirmation of a booking outside
+				// the calendar's rules; without it the answer is a 409 (#1859).
+				'confirm_override' => ! empty( $params['confirm_override'] ),
 			);
 
 			if ( is_user_logged_in() ) {
@@ -279,6 +289,25 @@ class AppointmentRestController {
 			$email_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
 			$phone_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' );
 
+			// #1863 — the booker sees their own email and phone; anyone else
+			// reaching this route (a holder of the scheduling bypass) gets them
+			// masked, unless the policy lets them reveal and the request asks
+			// with `reveal=1`, which is audited like the admin Reveal button.
+			$owner = (int) ( $appointment['user_id'] ?? 0 );
+			$tier  = \FreeFormCertificate\Core\PiiAccessPolicy::resolve( 'ffc_view_appointments_pii', $owner > 0 ? $owner : null );
+			if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier && $request->get_param( 'reveal' ) ) {
+				\FreeFormCertificate\Core\ActivityLog::log(
+					'appointment_pii_revealed',
+					\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+					array( 'field_key' => 'rest_api' ),
+					get_current_user_id(),
+					(int) $appointment['id']
+				);
+			} elseif ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED !== $tier ) {
+				$email_display = \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $email_display );
+				$phone_display = \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) $phone_display );
+			}
+
 			return rest_ensure_response(
 				array(
 					'id'               => (int) $appointment['id'],
@@ -350,6 +379,16 @@ class AppointmentRestController {
 				array( 'status' => 500 )
 			);
 		}
+	}
+
+	/**
+	 * Permission callback for `POST /calendars/{id}/appointments` (#1861).
+	 *
+	 * @since 6.40.0
+	 * @return bool
+	 */
+	public function check_create_permission(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' );
 	}
 
 	/**

@@ -192,9 +192,27 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 			)
 		);
 
-		$this->assertStringContainsString( '<input type="hidden" name="ffc_fields[0][type]" value="email">', $html );
-		$this->assertMatchesRegularExpression( '/<select class="ffc-field-type-selector ffc-w100" disabled/', $html, 'The visible select posts nothing.' );
+		$this->assertStringContainsString( '<input type="hidden" class="ffc-field-type-selector" name="ffc_fields[0][type]" value="email">', $html );
+		$this->assertStringContainsString( '<span class="ffc-field-title"><strong>Email</strong></span>', $html, 'The configured type titles the row.' );
 		$this->assertStringContainsString( 'value="E-mail"', $html, 'The label stays the operator\'s.' );
+	}
+
+	/**
+	 * #1756 — a row is titled by its type, and no row offers to change it.
+	 */
+	public function test_rows_are_titled_by_type_and_offer_no_type_select(): void {
+		$html = $this->render(
+			array(
+				array( 'name' => 'course', 'type' => 'radio', 'label' => 'Course' ),
+				array( 'type' => 'info', 'label' => '' ),
+			)
+		);
+
+		$this->assertStringContainsString( '<strong>Radio Buttons</strong>', $html );
+		$this->assertStringContainsString( '<strong>Info Block</strong>', $html );
+		$this->assertStringNotContainsString( '<strong>Field</strong>', $html );
+		$this->assertDoesNotMatchRegularExpression( '/<select[^>]*name="ffc_fields\[\d+\]\[type\]"/', $html );
+		$this->assertStringContainsString( 'name="ffc_fields[0][type]" value="radio"', $html );
 	}
 
 	/**

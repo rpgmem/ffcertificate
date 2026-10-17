@@ -70,15 +70,15 @@ class TabSMTP extends SettingsTab {
 	 */
 	public function render(): void {
 		// Include view file.
-		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-smtp.php';
+		$view_file = $this->view_path( 'ffc-tab-smtp.php' );
 
 		if ( file_exists( $view_file ) ) {
 			$settings = $this;
 			include $view_file;
 		} else {
-			wp_admin_notice(
-				esc_html__( 'SMTP settings view file not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'SMTP settings view file not found.', 'ffcertificate' )
 			);
 		}
 	}

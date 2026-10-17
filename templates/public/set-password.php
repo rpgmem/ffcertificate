@@ -35,9 +35,19 @@ $ffc_messages = array(
 		<p><?php esc_html_e( 'Choose a password to finish setting up your account. You will go straight to your dashboard.', 'ffcertificate' ); ?></p>
 
 		<?php if ( '' !== $ffc_error && isset( $ffc_messages[ $ffc_error ] ) ) : ?>
-			<div class="ffc-dashboard-notice ffc-notice-warning" role="alert">
-				<p><?php echo esc_html( $ffc_messages[ $ffc_error ] ); ?></p>
-			</div>
+			<?php
+			$ffc_notice = \FreeFormCertificate\Core\Notice::render(
+				'warning',
+				'warning',
+				$ffc_messages[ $ffc_error ],
+				'',
+				array(
+					'role' => 'alert',
+					'hook' => 'set-password-error',
+				)
+			);
+			echo $ffc_notice; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+			?>
 		<?php endif; ?>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-password-form">

@@ -53,7 +53,6 @@ beforeAll(() => {
 		lgpd: 'Privacy',
 	});
 	window.ffcDashboard.restUrl = 'https://x.test/wp-json/ffc/v1/';
-	window.ffcDashboard.logoutUrl = 'https://x.test/logout';
 
 	const dash = document.getElementById('ffc-dashboard');
 	if (dash && ! document.getElementById('ffc-tabpanel-profile')) {
@@ -258,6 +257,9 @@ describe('profile.changePassword', () => {
 		// Render the read view so the password form fields exist
 		// (#ffc-current-password etc. are inside .ffc-password-form).
 		panel().render(PROFILE_FIXTURE);
+		// The form is open when the user saves; a hidden control cannot take
+		// the focus (jsdom 30.1.2 enforces it, as browsers do).
+		window.$('#ffc-tabpanel-profile .ffc-password-form').show();
 	});
 
 	function setPasswords(current, neu, conf) {
@@ -266,28 +268,50 @@ describe('profile.changePassword', () => {
 		document.getElementById('ffc-confirm-password').value = conf;
 	}
 
-	it('rejects when any field is blank (no AJAX call)', () => {
+	// Each rule is said under its field, in the field-message standard
+	// (#1844); the status line is left for the server's answer.
+	function messageOf(id) {
+		const field = document.getElementById(id);
+		const msgId = field.getAttribute('data-ffc-message-id');
+		return msgId ? document.getElementById(msgId) : null;
+	}
+
+	it('rejects when any field is blank (no AJAX call), under each blank field', () => {
 		const spy = mockAjax(() => ({}));
 		setPasswords('', '', '');
 		window.$('.ffc-password-save-btn').trigger('click');
 		expect(spy).not.toHaveBeenCalled();
-		expect(document.querySelector('.ffc-password-status').textContent).toBe('All fields required');
+		['ffc-current-password', 'ffc-new-password', 'ffc-confirm-password'].forEach((id) => {
+			expect(messageOf(id).textContent).toBe('This field is required.');
+			expect(document.getElementById(id).getAttribute('aria-invalid')).toBe('true');
+		});
+		expect(document.querySelector('.ffc-password-status').textContent).toBe('');
+		expect(document.activeElement.id).toBe('ffc-current-password');
 	});
 
-	it('rejects when new + confirm mismatch', () => {
+	it('rejects when new + confirm mismatch, under the confirmation', () => {
 		const spy = mockAjax(() => ({}));
 		setPasswords('old', 'abcdefgh', 'abcdefgi');
 		window.$('.ffc-password-save-btn').trigger('click');
 		expect(spy).not.toHaveBeenCalled();
-		expect(document.querySelector('.ffc-password-status').textContent).toBe('Passwords do not match');
+		expect(messageOf('ffc-confirm-password').textContent).toBe('Passwords do not match');
+		expect(messageOf('ffc-new-password')).toBeNull();
 	});
 
-	it('rejects when new password is shorter than 8 chars', () => {
+	it('rejects when new password is shorter than 8 chars, under the new password', () => {
 		const spy = mockAjax(() => ({}));
 		setPasswords('old', 'short', 'short');
 		window.$('.ffc-password-save-btn').trigger('click');
 		expect(spy).not.toHaveBeenCalled();
-		expect(document.querySelector('.ffc-password-status').textContent).toBe('Min 8 characters');
+		expect(messageOf('ffc-new-password').textContent).toBe('Min 8 characters');
+	});
+
+	it('marks the three fields required, with the one marker', () => {
+		['ffc-current-password', 'ffc-new-password', 'ffc-confirm-password'].forEach((id) => {
+			expect(document.getElementById(id).required).toBe(true);
+			const marker = document.querySelector('label[for="' + id + '"] .ffc-required');
+			expect(marker.getAttribute('aria-hidden')).toBe('true');
+		});
 	});
 
 	it('on success: clears the password fields and shows the response message', async () => {
@@ -655,16 +679,169 @@ describe('profile — attribute escaping (S12)', () => {
 		expect(input.hasAttribute('onmouseover')).toBe(false);
 	});
 
-	it('encodes a double quote in an audience-group color inside the style attribute', () => {
+	it('drops an audience-group color that is not hex instead of writing it into the style attribute', () => {
 		const payload = 'red" onmouseover="alert(1)';
 		panel().render({
 			...PROFILE_FIXTURE,
-			audience_groups: [ { name: 'Alpha', color: payload } ],
+			audience_groups: [ { name: 'Alpha', color: payload, text_color: '#000000' } ],
 		});
-		const chip = document.querySelector('#ffc-tabpanel-profile span[style*="background-color"]');
+		const chip = document.querySelector('#ffc-tabpanel-profile .ffc-profile-group-tag');
 		expect(chip).not.toBeNull();
-		// The group name still renders and no rogue handler broke out of style="…".
+		// The group name still renders, nothing broke out of the attribute, and
+		// the tag keeps the neutral pair `.ffc-pill-row-color` declares (#1826).
 		expect(chip.textContent).toBe('Alpha');
 		expect(chip.hasAttribute('onmouseover')).toBe(false);
+		expect(chip.hasAttribute('style')).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
+// Palette, not literals (#1826)
+// ----------------------------------------------------------------------
+
+describe('profile — group tags and status lines follow the palette (#1826)', () => {
+	it('paints a group tag with the colour pair the REST payload carries', () => {
+		panel().render({
+			...PROFILE_FIXTURE,
+			audience_groups: [ { name: 'Pale', color: '#ffeb3b', text_color: '#000000' } ],
+		});
+		const chip = document.querySelector('#ffc-tabpanel-profile .ffc-profile-group-tag');
+		expect(chip.classList.contains('ffc-pill-row-color')).toBe(true);
+		expect(chip.getAttribute('style')).toBe('--ffc-badge-row-bg:#ffeb3b;--ffc-badge-row-text:#000000;');
+		expect(chip.closest('.ffc-profile-groups')).not.toBeNull();
+	});
+
+	it('reports a password field error through the standard classes, never an inline colour', () => {
+		panel().render(PROFILE_FIXTURE);
+		window.$('.ffc-password-save-btn').trigger('click');
+		const msg = document.querySelector('.ffc-password-form .ffc-field-message');
+		expect(msg.classList.contains('is-error')).toBe(true);
+		expect(msg.getAttribute('style') || '').not.toMatch(/color/);
+		expect(document.getElementById('ffc-current-password').getAttribute('style') || '').not.toMatch(/color/);
+	});
+
+	it('swaps the tone class rather than stacking it', () => {
+		panel().render(PROFILE_FIXTURE);
+		const $status = window.$('.ffc-password-status');
+		window.FFCDashboard.helpers.setStatus($status, 'Saving…', 'busy');
+		window.FFCDashboard.helpers.setStatus($status, 'Done', 'success');
+		expect($status[0].className).toBe('ffc-password-status ffc-status is-success');
+	});
+
+	it('leaves no colour literal or inline margin in the rendered profile', () => {
+		panel().render({
+			...PROFILE_FIXTURE,
+			audience_groups: [ { name: 'G', color: '#123456', text_color: '#ffffff' } ],
+		});
+		const html = document.getElementById('ffc-tabpanel-profile').innerHTML;
+		expect(html).not.toMatch(/(?<!--ffc-badge-row-(?:bg|text):)#[0-9a-fA-F]{3,6}\b/);
+		expect(html).not.toMatch(/margin-(?:top|left)/);
+	});
+});
+
+// ----------------------------------------------------------------------
+// View as user (#1863): masked fields revealed one at a time, audited
+// ----------------------------------------------------------------------
+
+describe('profile — view as user', () => {
+	const VIEWED = {
+		...PROFILE_FIXTURE,
+		email: 'm***@example.com',
+		emails: ['m***@example.com'],
+		phone: '** *****-**00',
+		birth_date: '',
+		birth_date_display: '**/**/****',
+		pii_masked: true,
+		can_reveal: true,
+	};
+
+	beforeEach(() => {
+		window.ffcDashboard.strings.reveal = 'Reveal';
+		window.ffcDashboard.strings.revealError = 'Unable to reveal this value.';
+		window.ffcDashboard.strings.revealToEdit = 'Reveal the value to edit it.';
+		window.ffcDashboard.viewAsUserId = 5;
+	});
+
+	afterEach(() => {
+		window.ffcDashboard.viewAsUserId = 0;
+	});
+
+	it('draws a Reveal button beside each masked field and none on the owner profile', () => {
+		panel().render({ ...VIEWED });
+		expect(window.$('.ffc-profile-reveal-btn').map((i, b) => window.$(b).data('field')).get()).toEqual(['email', 'phone', 'birth_date']);
+
+		panel().render({ ...PROFILE_FIXTURE });
+		expect(window.$('.ffc-profile-reveal-btn').length).toBe(0);
+	});
+
+	it('draws no Reveal button for a viewer the policy keeps masked', () => {
+		panel().render({ ...VIEWED, can_reveal: false });
+		expect(window.$('.ffc-profile-reveal-btn').length).toBe(0);
+	});
+
+	it('posts the field to user/profile/reveal for the viewed user and shows the clear value', async () => {
+		panel().render({ ...VIEWED });
+		const spy = mockAjaxSuccess({ field: 'phone', value: '11 99999-0000' });
+
+		window.$('.ffc-profile-reveal-btn[data-field="phone"]').trigger('click');
+		await flush();
+
+		const call = spy.mock.calls[0][0];
+		expect(call.method).toBe('POST');
+		expect(call.url).toContain('user/profile/reveal?viewAsUserId=5');
+		expect(JSON.parse(call.data)).toEqual({ field: 'phone' });
+		expect(document.getElementById('ffc-tabpanel-profile').textContent).toContain('11 99999-0000');
+		expect(window.$('.ffc-profile-reveal-btn[data-field="phone"]').length).toBe(0);
+		expect(window.$('.ffc-profile-reveal-btn[data-field="email"]').length).toBe(1);
+	});
+
+	it('reveals every linked email at once', async () => {
+		panel().render({ ...VIEWED });
+		mockAjaxSuccess({ field: 'email', value: 'maria@example.com', values: ['maria@example.com', 'm.silva@example.com'] });
+
+		window.$('.ffc-profile-reveal-btn[data-field="email"]').trigger('click');
+		await flush();
+
+		expect(window.$('.ffc-email-list li').map((i, li) => window.$(li).text()).get()).toEqual(['maria@example.com', 'm.silva@example.com']);
+	});
+
+	it('keeps a masked phone and birth date out of the save until they are revealed', () => {
+		panel().render({ ...VIEWED });
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		expect(document.getElementById('ffc-edit-phone').disabled).toBe(true);
+		expect(document.getElementById('ffc-edit-birth-date').disabled).toBe(true);
+
+		const spy = mockAjaxSuccess(VIEWED);
+		window.$('.ffc-profile-save-btn').trigger('click');
+
+		const payload = JSON.parse(spy.mock.calls[0][0].data);
+		expect(payload).not.toHaveProperty('phone');
+		expect(payload).not.toHaveProperty('birth_date');
+		expect(payload.department).toBe('TI');
+	});
+
+	it('edits a field normally once it is revealed', async () => {
+		panel().render({ ...VIEWED });
+		mockAjaxSuccess({ field: 'birth_date', value: '1990-05-20', display: '20/05/1990' });
+		window.$('.ffc-profile-reveal-btn[data-field="birth_date"]').trigger('click');
+		await flush();
+		vi.restoreAllMocks();
+
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		const input = document.getElementById('ffc-edit-birth-date');
+		expect(input.disabled).toBe(false);
+		expect(input.value).toBe('1990-05-20');
+	});
+
+	it('re-enables the button and alerts when the reveal fails', async () => {
+		panel().render({ ...VIEWED });
+		mockAjaxError({ status: 403, responseJSON: { message: 'No.' } });
+		window.alert = vi.fn();
+
+		window.$('.ffc-profile-reveal-btn[data-field="phone"]').trigger('click');
+		await flush();
+
+		expect(window.alert).toHaveBeenCalledWith('Unable to reveal this value.');
+		expect(window.$('.ffc-profile-reveal-btn[data-field="phone"]').prop('disabled')).toBe(false);
 	});
 });

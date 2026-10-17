@@ -28,7 +28,10 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Audience\AudienceAdminPage;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Recruitment\RecruitmentAdminPage;
+use FreeFormCertificate\Reregistration\ReregistrationAdmin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -39,6 +42,48 @@ if ( ! defined( 'ABSPATH' ) ) {
  * for FFC operator roles.
  */
 final class AdminMenuVisibility {
+
+	/**
+	 * `?page=` of the Appointments list, registered by
+	 * `SelfScheduling\SelfSchedulingAdmin::add_submenu_pages()`.
+	 */
+	public const APPOINTMENTS_PAGE = 'ffc-appointments';
+
+	/**
+	 * Post type of the Personal Calendars, registered by
+	 * `SelfScheduling\SelfSchedulingCPT::register_calendar_cpt()`.
+	 */
+	public const PERSONAL_CALENDAR_POST_TYPE = 'ffc_self_scheduling';
+
+	/**
+	 * `admin_action_*` the Personal Calendars "Duplicate" row action posts to.
+	 */
+	public const DUPLICATE_CALENDAR_ACTION = 'ffc_duplicate_calendar';
+
+	/**
+	 * Suffixes `AudienceAdminPage::add_admin_menus()` appends to its menu slug.
+	 *
+	 * @var list<string>
+	 */
+	public const AUDIENCE_SCREEN_SUFFIXES = array( 'dashboard', 'calendars', 'environments', 'audiences', 'bookings', 'settings' );
+
+	/**
+	 * `?page=` of the Short URLs list, registered by
+	 * `UrlShortener\UrlShortenerAdminPage::register_menu()`.
+	 */
+	public const SHORT_URLS_PAGE = 'ffc-short-urls';
+
+	/**
+	 * `?page=` of the Date Messages screen, registered by
+	 * `DateMessages\DateMessagesAdminPage::register_menu()`.
+	 */
+	public const DATE_MESSAGES_PAGE = 'ffc-date-messages';
+
+	/**
+	 * `?page=` of the QR Code Generator, registered by
+	 * `UrlShortener\QrGeneratorPage::register_menu()`.
+	 */
+	public const QR_GENERATOR_PAGE = 'ffc-qr-generator';
 
 	/**
 	 * Per-role visibility policy. Each entry is consumed at three
@@ -76,150 +121,290 @@ final class AdminMenuVisibility {
 		);
 		$shared_admin_bar_nodes = array( 'new-content', 'comments' );
 
+		// The Scheduling screens (#1769). The audience half is derived from
+		// the menu's own slug; the self-scheduling half is literal, because
+		// naming SelfScheduling here would add an Admin → SelfScheduling
+		// edge (AdminMenuVisibilitySchedulingTest holds the literals to the
+		// registrations).
+		$personal_calendars = 'edit.php?post_type=' . self::PERSONAL_CALENDAR_POST_TYPE;
+		$audience_screens   = array( AudienceAdminPage::MENU_SLUG );
+		foreach ( self::AUDIENCE_SCREEN_SUFFIXES as $suffix ) {
+			$audience_screens[] = AudienceAdminPage::MENU_SLUG . '-' . $suffix;
+		}
+
+		// The Certificates screens (#1776). The forms' list is also the parent
+		// of the Dashboard and Submissions submenus, whose menu links take the
+		// `edit.php?post_type=ffc_form&page=…` form; the certificate roles hold
+		// no forms capability, so they land on the Dashboard instead.
+		$forms_list          = 'edit.php?post_type=' . CPT::POST_TYPE;
+		$certificate_screens = array( CertificatesDashboard::MENU_SLUG, $forms_list, Admin::SUBMISSIONS_PAGE );
+		// The forms side: the forms' list (and its editor), the Document
+		// Templates list and their read-only sample-data preview.
+		$form_screens = array( $forms_list, 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE, 'admin.php?action=' . CertTemplateAdminScreen::PREVIEW_ACTION );
+		// The forms' write actions, page-less `admin.php?action=…` URLs whose
+		// handlers all check `ffc_manage_forms` (#1781): form Duplicate and
+		// the Document Templates row and toolbar actions.
+		$form_write_actions = array(
+			'admin.php?action=' . CPT::DUPLICATE_ACTION,
+			'admin.php?action=' . CertTemplateAdminScreen::TOGGLE_ACTION,
+			'admin.php?action=' . CertTemplateAdminScreen::DUPLICATE_ACTION,
+			'admin.php?action=' . CertTemplateAdminScreen::EXPORT_ACTION,
+			'admin.php?action=' . CertTemplateAdminScreen::RESTORE_ACTION,
+		);
+
 		return array(
 			// Certificates ladder.
 			'ffc_certificates_viewer'     => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
+				'landing_page'         => CertificatesDashboard::MENU_SLUG,
+				'allowed_pages'        => $certificate_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_certificates_operator'   => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
+				'landing_page'         => CertificatesDashboard::MENU_SLUG,
+				'allowed_pages'        => $certificate_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_certificates_manager'    => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
+				'landing_page'         => CertificatesDashboard::MENU_SLUG,
+				'allowed_pages'        => $certificate_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_certificates_admin'      => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-submissions', 'ffc-settings' ),
+				'landing_page'         => CertificatesDashboard::MENU_SLUG,
+				'allowed_pages'        => $certificate_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			// Forms (certificate-form structure).
 			'ffc_forms_viewer'            => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-settings' ),
+				'landing_page'         => $forms_list,
+				'allowed_pages'        => $form_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_forms_manager'           => array(
-				'landing_page'         => 'edit.php?post_type=ffc_form',
-				'allowed_pages'        => array( 'edit.php?post_type=ffc_form', 'ffc-settings' ),
+				'landing_page'         => $forms_list,
+				'allowed_pages'        => array_merge( $form_screens, $form_write_actions ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Appointments ladder.
+			// Appointments ladder. Every tier holds `ffc_view_appointments`
+			// and nothing on the calendars or audiences side, so the
+			// Appointments list (and its detail view, same slug) is the
+			// whole Scheduling surface its capabilities open.
 			'ffc_appointments_viewer'     => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => self::APPOINTMENTS_PAGE,
+				'allowed_pages'        => array( self::APPOINTMENTS_PAGE ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_appointments_operator'   => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => self::APPOINTMENTS_PAGE,
+				'allowed_pages'        => array( self::APPOINTMENTS_PAGE ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_appointments_admin'      => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => self::APPOINTMENTS_PAGE,
+				'allowed_pages'        => array( self::APPOINTMENTS_PAGE ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_appointments_manager'    => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-appointments', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => self::APPOINTMENTS_PAGE,
+				'allowed_pages'        => array( self::APPOINTMENTS_PAGE ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Calendars (self-scheduling structure).
+			// Calendars (self-scheduling structure): the Personal Calendars
+			// post type. Its list entry also opens `post.php` / `post-new.php`
+			// for that post type (see block_url_access()).
 			'ffc_calendars_viewer'        => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => $personal_calendars,
+				'allowed_pages'        => array( $personal_calendars ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_calendars_manager'       => array(
-				'landing_page'         => 'ffc-self-scheduling',
-				'allowed_pages'        => array( 'ffc-self-scheduling', 'ffc-self-scheduling-settings' ),
+				'landing_page'         => $personal_calendars,
+				'allowed_pages'        => array( $personal_calendars, 'admin.php?action=' . self::DUPLICATE_CALENDAR_ACTION ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Audiences ladder.
+			// Audiences ladder: every screen under the Scheduling menu that is
+			// gated on `ffc_view_audiences`.
 			'ffc_audiences_viewer'        => array(
-				'landing_page'         => 'ffc-scheduling',
-				'allowed_pages'        => array( 'ffc-scheduling', 'ffc-audiences', 'ffc-environments', 'ffc-aud-import', 'ffc-aud-settings' ),
+				'landing_page'         => AudienceAdminPage::MENU_SLUG,
+				'allowed_pages'        => $audience_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_audiences_operator'      => array(
-				'landing_page'         => 'ffc-scheduling',
-				'allowed_pages'        => array( 'ffc-scheduling', 'ffc-audiences', 'ffc-environments', 'ffc-aud-import', 'ffc-aud-settings' ),
+				'landing_page'         => AudienceAdminPage::MENU_SLUG,
+				'allowed_pages'        => $audience_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_audiences_manager'       => array(
-				'landing_page'         => 'ffc-scheduling',
-				'allowed_pages'        => array( 'ffc-scheduling', 'ffc-audiences', 'ffc-environments', 'ffc-aud-import', 'ffc-aud-settings' ),
+				'landing_page'         => AudienceAdminPage::MENU_SLUG,
+				'allowed_pages'        => $audience_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Reregistration ladder.
+			'ffc_audiences_admin'         => array(
+				'landing_page'         => AudienceAdminPage::MENU_SLUG,
+				'allowed_pages'        => $audience_screens,
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Reregistration ladder. Custom Fields is registered under
+			// `ffc_manage_reregistration`, so only the manager lists it (#1782).
 			'ffc_reregistration_viewer'   => array(
-				'landing_page'         => 'ffc-reregistration',
-				'allowed_pages'        => array( 'ffc-reregistration', 'ffc-custom-fields' ),
+				'landing_page'         => ReregistrationAdmin::MENU_SLUG,
+				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_reregistration_operator' => array(
-				'landing_page'         => 'ffc-reregistration',
-				'allowed_pages'        => array( 'ffc-reregistration', 'ffc-custom-fields' ),
+				'landing_page'         => ReregistrationAdmin::MENU_SLUG,
+				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_reregistration_manager'  => array(
-				'landing_page'         => 'ffc-reregistration',
-				'allowed_pages'        => array( 'ffc-reregistration', 'ffc-custom-fields' ),
+				'landing_page'         => ReregistrationAdmin::MENU_SLUG,
+				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG, ReregistrationAdmin::CUSTOM_FIELDS_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Cross-domain read-only.
+			'ffc_reregistration_admin'    => array(
+				'landing_page'         => ReregistrationAdmin::MENU_SLUG,
+				'allowed_pages'        => array( ReregistrationAdmin::MENU_SLUG, ReregistrationAdmin::CUSTOM_FIELDS_SLUG ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Cross-domain read-only: every screen one of its view caps opens
+			// (#1776). Writes stay with each handler's own capability check.
+			// It lands on the Certificates dashboard since the activity log,
+			// its old landing, became the FFC Administrator's alone (#1860).
 			'ffc_readonly'                => array(
-				'landing_page'         => 'admin.php?page=ffc-settings&tab=activity_log',
-				'allowed_pages'        => array( 'ffc-settings', 'ffc-recruitment' ),
+				'landing_page'         => CertificatesDashboard::MENU_SLUG,
+				'allowed_pages'        => array_values(
+					array_unique(
+						array_merge(
+							$certificate_screens,
+							$form_screens,
+							array( ReregistrationAdmin::MENU_SLUG, RecruitmentAdminPage::PAGE_SLUG, self::APPOINTMENTS_PAGE, $personal_calendars, self::SHORT_URLS_PAGE, self::DATE_MESSAGES_PAGE ),
+							$audience_screens
+						)
+					)
+				),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
-			// Recruitment ladder (every tier shares the recruitment landing).
+			// Recruitment ladder (every tier shares the recruitment landing; its
+			// settings are a tab of that screen, not FFC Settings, #1782).
 			'ffc_recruitment_viewer'      => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment' ),
+				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
+				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_recruitment_operator'    => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment' ),
+				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
+				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_recruitment_manager'     => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment', 'ffc-settings' ),
+				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
+				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
 			'ffc_recruitment_admin'       => array(
-				'landing_page'         => 'ffc-recruitment',
-				'allowed_pages'        => array( 'ffc-recruitment', 'ffc-settings' ),
+				'landing_page'         => RecruitmentAdminPage::PAGE_SLUG,
+				'allowed_pages'        => array( RecruitmentAdminPage::PAGE_SLUG ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Short URLs ladder (#1860). The QR generator is registered under
+			// `ffc_manage_url_shortener`, so only the manager tiers list it.
+			'ffc_url_shortener_viewer'    => array(
+				'landing_page'         => self::SHORT_URLS_PAGE,
+				'allowed_pages'        => array( self::SHORT_URLS_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_url_shortener_operator'  => array(
+				'landing_page'         => self::SHORT_URLS_PAGE,
+				'allowed_pages'        => array( self::SHORT_URLS_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_url_shortener_manager'   => array(
+				'landing_page'         => self::SHORT_URLS_PAGE,
+				'allowed_pages'        => array( self::SHORT_URLS_PAGE, self::QR_GENERATOR_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_url_shortener_admin'     => array(
+				'landing_page'         => self::SHORT_URLS_PAGE,
+				'allowed_pages'        => array( self::SHORT_URLS_PAGE, self::QR_GENERATOR_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// Date Messages ladder (#1860): one screen, its tabs included.
+			'ffc_date_messages_viewer'    => array(
+				'landing_page'         => self::DATE_MESSAGES_PAGE,
+				'allowed_pages'        => array( self::DATE_MESSAGES_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_date_messages_operator'  => array(
+				'landing_page'         => self::DATE_MESSAGES_PAGE,
+				'allowed_pages'        => array( self::DATE_MESSAGES_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_date_messages_manager'   => array(
+				'landing_page'         => self::DATE_MESSAGES_PAGE,
+				'allowed_pages'        => array( self::DATE_MESSAGES_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_date_messages_admin'     => array(
+				'landing_page'         => self::DATE_MESSAGES_PAGE,
+				'allowed_pages'        => array( self::DATE_MESSAGES_PAGE ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			// FFC Settings ladder (#1860): the Settings page; each tab gates
+			// itself on its own capability.
+			'ffc_settings_viewer'         => array(
+				'landing_page'         => Settings::MENU_SLUG,
+				'allowed_pages'        => array( Settings::MENU_SLUG ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_settings_operator'       => array(
+				'landing_page'         => Settings::MENU_SLUG,
+				'allowed_pages'        => array( Settings::MENU_SLUG ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_settings_manager'        => array(
+				'landing_page'         => Settings::MENU_SLUG,
+				'allowed_pages'        => array( Settings::MENU_SLUG ),
+				'hide_core_menus'      => $shared_hidden_menus,
+				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
+			),
+			'ffc_settings_admin'          => array(
+				'landing_page'         => Settings::MENU_SLUG,
+				'allowed_pages'        => array( Settings::MENU_SLUG ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
@@ -323,6 +508,14 @@ final class AdminMenuVisibility {
 		// `admin.php?page=…` — check the page slug against the allow-list.
 		if ( 'admin.php' === $current_page ) {
 			$page = RequestInput::get_get_key( 'page' );
+			// `admin.php?action=…` with no page dispatches `admin_action_*`
+			// (the calendar and form "Duplicate" row actions, the Document
+			// Templates actions); only an action the
+			// role lists passes, and the handler checks its own capability.
+			$action = RequestInput::get_get_key( 'action' );
+			if ( '' === $page && '' !== $action && in_array( 'admin.php?action=' . $action, $policy['allowed_pages'], true ) ) {
+				return;
+			}
 			foreach ( $policy['allowed_pages'] as $allowed ) {
 				if ( $page === $allowed || 'admin.php?page=' . $page === $allowed ) {
 					return;
@@ -343,6 +536,27 @@ final class AdminMenuVisibility {
 			foreach ( $policy['allowed_pages'] as $allowed ) {
 				if ( $current_page === $allowed || str_starts_with( $candidate, $allowed ) ) {
 					return;
+				}
+				// A post type's list (`edit.php?post_type=X`) opens every screen
+				// of that post type: the list whatever order its filters put in
+				// the query string, `post-new.php?post_type=X`, and `post.php`
+				// for a post of type X — read from `?post=` on a GET and from
+				// `post_ID` on the editor's save POST (#1769).
+				if ( ! str_starts_with( $allowed, 'edit.php?post_type=' ) ) {
+					continue;
+				}
+				$post_type = substr( $allowed, strlen( 'edit.php?post_type=' ) );
+				if ( in_array( $current_page, array( 'edit.php', 'post-new.php' ), true ) && RequestInput::get_get_key( 'post_type' ) === $post_type ) {
+					return;
+				}
+				if ( 'post.php' === $current_page ) {
+					$post_id = RequestInput::get_get_int( 'post' );
+					if ( 0 === $post_id ) {
+						$post_id = RequestInput::get_post_int( 'post_ID' );
+					}
+					if ( $post_id > 0 && get_post_type( $post_id ) === $post_type ) {
+						return;
+					}
 				}
 			}
 		}

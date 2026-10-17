@@ -169,9 +169,9 @@ class AdminActivityLogPage {
 			include $view_file;
 		} else {
 			echo '<div class="ffc-settings-wrap"><h2 class="ffc-icon-history">' . esc_html__( 'Activity Log', 'ffcertificate' ) . '</h2>';
-			wp_admin_notice(
-				esc_html__( 'View file not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'View file not found.', 'ffcertificate' )
 			);
 			echo '</div>';
 		}
@@ -198,11 +198,10 @@ class AdminActivityLogPage {
 				</a>
 			</p>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'warning',
 				(string) ob_get_clean(),
 				array(
-					'type'               => 'warning',
-					'paragraph_wrap'     => false,
 					// Inline, or WordPress's common.js lifts the notice above
 					// the settings tabs and the card is left empty.
 					'additional_classes' => array( 'inline' ),
@@ -252,6 +251,7 @@ class AdminActivityLogPage {
 			'pdf_generated'                                => __( 'PDF Generated', 'ffcertificate' ),
 			'certificate_emailed'                          => __( 'Certificate Emailed', 'ffcertificate' ),
 			'csv_downloaded'                               => __( 'CSV Downloaded', 'ffcertificate' ),
+			'pii_exported'                                 => __( 'Personal Data Exported', 'ffcertificate' ),
 			'captcha_fallback_used'                        => __( 'Captcha: fallback used', 'ffcertificate' ),
 
 			// Submission lifecycle.
@@ -276,6 +276,7 @@ class AdminActivityLogPage {
 			'profile_updated'                              => __( 'Profile Updated', 'ffcertificate' ),
 			'user_email_changed'                           => __( 'User Email Changed', 'ffcertificate' ),
 			'user_profile_read_full'                       => __( 'Full Profile Viewed', 'ffcertificate' ),
+			'user_profile_pii_revealed'                    => __( 'Profile Personal Data Revealed', 'ffcertificate' ),
 			'user_data_anonymized'                         => __( 'User Data Anonymized', 'ffcertificate' ),
 			'privacy_request_created'                      => __( 'Privacy Request Created', 'ffcertificate' ),
 			'privacy_data_erased'                          => __( 'Privacy Data Erased', 'ffcertificate' ),
@@ -283,11 +284,18 @@ class AdminActivityLogPage {
 			// Scheduling.
 			'appointment_created'                          => __( 'Appointment Created', 'ffcertificate' ),
 			'appointment_cancelled'                        => __( 'Appointment Cancelled', 'ffcertificate' ),
+			'appointment_pii_revealed'                     => __( 'Appointment Personal Data Revealed', 'ffcertificate' ),
+			'appointment_booked_with_override'             => __( 'Appointment Booked Outside the Rules', 'ffcertificate' ),
+			'audience_account_email_revealed'              => __( 'Audience Account Email Revealed', 'ffcertificate' ),
+			'audience_booking_override'                    => __( 'Audience Booking Made Outside the Rules', 'ffcertificate' ),
 
 			// Reregistration.
 			'reregistration_submitted'                     => __( 'Reregistration Submitted', 'ffcertificate' ),
 			'reregistration_invitations_sent'              => __( 'Reregistration Invitations Sent', 'ffcertificate' ),
 			'reregistration_reminders_sent'                => __( 'Reregistration Reminders Sent', 'ffcertificate' ),
+			'reregistration_pii_revealed'                  => __( 'Reregistration Personal Data Revealed', 'ffcertificate' ),
+			'reregistration_details_viewed'                => __( 'Reregistration Details Viewed', 'ffcertificate' ),
+			'date_messages_pii_revealed'                   => __( 'Date Messages Personal Data Revealed', 'ffcertificate' ),
 			'custom_field_sensitive_demotion_refused'      => __( 'Sensitive Field Demotion Refused', 'ffcertificate' ),
 
 			// Recruitment.

@@ -81,14 +81,16 @@ class FormEditorRestrictionMetabox {
 					</p>
 
 					<?php
+					// The last column names the field each restriction needs: on
+					// with that field empty, the tab's dot reads as pending (#1755).
 					$ffc_restriction_rows = array(
-						'password'  => array( 'ffc_restriction_password', $password_active, __( 'Single Password', 'ffcertificate' ), __( 'Shared password for all users', 'ffcertificate' ) ),
-						'allowlist' => array( 'ffc_restriction_allowlist', $allowlist_active, __( 'Allowlist (CPF/RF)', 'ffcertificate' ), __( 'Only approved CPF/RF can submit', 'ffcertificate' ) ),
-						'denylist'  => array( 'ffc_restriction_denylist', $denylist_active, __( 'Denylist (CPF/RF)', 'ffcertificate' ), __( 'Blocked CPF/RF cannot submit', 'ffcertificate' ) ),
-						'ticket'    => array( 'ffc_restriction_ticket', $ticket_active, __( 'Ticket (Unique Codes)', 'ffcertificate' ), __( 'Requires valid ticket (consumed after use)', 'ffcertificate' ) ),
+						'password'  => array( 'ffc_restriction_password', $password_active, __( 'Single Password', 'ffcertificate' ), __( 'Shared password for all users', 'ffcertificate' ), '[name="ffc_config[validation_code]"]' ),
+						'allowlist' => array( 'ffc_restriction_allowlist', $allowlist_active, __( 'Allowlist (CPF/RF)', 'ffcertificate' ), __( 'Only approved CPF/RF can submit', 'ffcertificate' ), '[name="ffc_config[allowed_users_list]"]' ),
+						'denylist'  => array( 'ffc_restriction_denylist', $denylist_active, __( 'Denylist (CPF/RF)', 'ffcertificate' ), __( 'Blocked CPF/RF cannot submit', 'ffcertificate' ), '[name="ffc_config[denied_users_list]"]' ),
+						'ticket'    => array( 'ffc_restriction_ticket', $ticket_active, __( 'Ticket (Unique Codes)', 'ffcertificate' ), __( 'Requires valid ticket (consumed after use)', 'ffcertificate' ), '#ffc_generated_list' ),
 					);
 					foreach ( $ffc_restriction_rows as $ffc_key => $ffc_row ) :
-						list( $ffc_id, $ffc_active, $ffc_title, $ffc_hint ) = $ffc_row;
+						list( $ffc_id, $ffc_active, $ffc_title, $ffc_hint, $ffc_requires ) = $ffc_row;
 						?>
 						<div class="ffc-restriction-label">
 							<?php
@@ -98,7 +100,10 @@ class FormEditorRestrictionMetabox {
 									'id'      => $ffc_id,
 									'checked' => (bool) $ffc_active,
 									'label'   => $ffc_title,
-									'data'    => array( 'ffc-autosave-form-key' => 'restriction_' . $ffc_key ),
+									'data'    => array(
+										'ffc-autosave-form-key' => 'restriction_' . $ffc_key,
+										'ffc-requires' => $ffc_requires,
+									),
 								)
 							);
 							?>
@@ -174,7 +179,7 @@ class FormEditorRestrictionMetabox {
 					<div class="ffc-admin-flex-row ffc-mb-2xs">
 						<input type="number" id="ffc_qty_codes" value="10" min="1" max="500" class="ffc-input-small">
 						<button type="button" class="button button-secondary" id="ffc_btn_generate_codes"><?php esc_html_e( 'Generate Tickets', 'ffcertificate' ); ?></button>
-						<span id="ffc_gen_status" class="ffc-gen-status"></span>
+						<span id="ffc_gen_status" class="ffc-status" role="status" aria-live="polite" hidden></span>
 					</div>
 					<textarea name="ffc_config[generated_codes_list]"
 								id="ffc_generated_list"

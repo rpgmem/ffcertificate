@@ -6,7 +6,7 @@
  *   GET  /forms             – List published forms
  *   GET  /forms/{id}        – Get single form (full payload incl. background)
  *   GET  /forms/{id}/schema – Lightweight read-only form metadata for integrations
- *   POST /forms/{id}/submit – Submit a form
+ *   POST /forms/{id}/submit – Submit a form (authenticated, `ffc_submit_forms_api`)
  *
  * @package FreeFormCertificate\API
  * @since 4.6.1
@@ -16,6 +16,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
+use FreeFormCertificate\Frontend\Submission;
+use FreeFormCertificate\Frontend\Submission\SubmissionContext;
+use FreeFormCertificate\Frontend\Submission\SubmissionRejected;
 use FreeFormCertificate\Repositories\FormRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -150,23 +153,19 @@ class FormRestController {
 
 		// POST /forms/{id}/submit - Submit a form.
 		//
-		// Public-by-design — anonymous visitors submit certificate forms
-		// here (the plugin's primary public flow). Locking this behind a
-		// permission gate would break every "fill in the form to receive
-		// your certificate" deployment. The handler defends with: form
-		// publish-state check, geofence (date/time + IP geolocation), CPF/RF
-		// algorithm validation, email format validation, and three rate-
-		// limit pools (IP, email, CPF) — see submit_form() body. CSRF on
-		// REST endpoints is handled by WordPress's nonce/header model;
-		// origin validation is enforced by the submit form_processor used
-		// by the same flow. See issue #139.
+		// Authenticated (#1861). The public web form does not use this
+		// route: it posts to the `ffc_submit_form` AJAX action, which carries
+		// the nonce and the captcha. This route is for integrations, which
+		// authenticate with an Application Password whose user holds
+		// `ffc_submit_forms_api`; the handler then runs the web form's own
+		// validation stages (see submit_form()).
 		register_rest_route(
 			$this->namespace,
 			'/forms/(?P<id>\d+)/submit',
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'submit_form' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( $this, 'permission_submit_forms_api' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -187,6 +186,16 @@ class FormRestController {
 	 */
 	public function permission_read_forms_api(): bool {
 		return current_user_can( 'ffc_view_forms_api' );
+	}
+
+	/**
+	 * Permission callback for `POST /forms/{id}/submit` (#1861).
+	 *
+	 * @since 6.40.0
+	 * @return bool
+	 */
+	public function permission_submit_forms_api(): bool {
+		return current_user_can( 'ffc_submit_forms_api' );
 	}
 
 	/**
@@ -497,31 +506,39 @@ class FormRestController {
 
 	/**
 	 * POST /forms/{id}/submit
-	 * Submit a form via API
+	 *
+	 * Runs the web form's submission stages over the JSON body (#1861):
+	 * only the fields the form defines are read, hidden fields keep the
+	 * form's value, every field rule is enforced, the access restrictions
+	 * (password, allowlist, denylist, ticket) and the quiz apply, the rate
+	 * limits are checked AND recorded, and the authentication code is always
+	 * generated here. Stages the web form runs that do not apply to an
+	 * authenticated integration are left out: the nonce and the captcha (the
+	 * capability is the gate), the browser's device signals and the
+	 * schedule-exception token, and the PDF/HTML response.
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function submit_form( $request ) {
 		try {
-			$form_id = $request->get_param( 'id' );
+			$form_id = (int) $request->get_param( 'id' );
 			$params  = $request->get_json_params();
 
 			if ( empty( $params ) ) {
 				return new \WP_Error(
 					'no_data',
-					'No data provided in request body',
+					__( 'No data provided in request body', 'ffcertificate' ),
 					array( 'status' => 400 )
 				);
 			}
 
-			// Verify form exists and is published.
 			$form = get_post( $form_id );
 
 			if ( ! $form || 'ffc_form' !== $form->post_type ) {
 				return new \WP_Error(
 					'form_not_found',
-					'Form not found',
+					__( 'Form not found', 'ffcertificate' ),
 					array( 'status' => 404 )
 				);
 			}
@@ -529,169 +546,39 @@ class FormRestController {
 			if ( 'publish' !== $form->post_status ) {
 				return new \WP_Error(
 					'form_not_published',
-					'Form is not published',
+					__( 'Form is not published', 'ffcertificate' ),
 					array( 'status' => 403 )
 				);
 			}
 
-			if ( ! $this->form_repository ) {
-				return new \WP_Error( 'form_repo_unavailable', 'Form repository not available', array( 'status' => 500 ) );
-			}
+			// The code is the certificate's proof of authenticity, so it is
+			// never the caller's to choose; the form id is the route's.
+			unset( $params['auth_code'] );
+			$params['form_id'] = $form_id;
 
-			// Get form configuration and fields.
-			$form_config = $this->form_repository->getConfig( $form_id );
-			$form_fields = $this->form_repository->getFields( $form_id );
+			$ctx        = new SubmissionContext();
+			$ctx->input = $params;
 
-			// Sanitize submission data.
-			$submission_data = \FreeFormCertificate\Core\DataSanitizer::recursive_sanitize( $params );
-
-			// Validate required fields.
-			$validation_errors = $this->validate_required_fields( $submission_data, $form_fields );
-			if ( ! empty( $validation_errors ) ) {
-				return new \WP_Error(
-					'validation_failed',
-					'Validation failed: ' . implode( ', ', $validation_errors ),
-					array(
-						'status' => 400,
-						'errors' => $validation_errors,
-					)
-				);
-			}
-
-			// Validate CPF if present.
-			if ( ! empty( $submission_data['cpf_rf'] ) ) {
-				$cpf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $submission_data['cpf_rf'] );
-
-				if ( strlen( $cpf ) === 11 ) {
-					if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $cpf ) ) {
-						return new \WP_Error(
-							'invalid_cpf',
-							'Invalid CPF. Please check the number and try again.',
-							array( 'status' => 400 )
-						);
-					}
-				} elseif ( strlen( $cpf ) === 7 ) {
-					if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_rf( $cpf ) ) {
-						return new \WP_Error(
-							'invalid_rf',
-							'Invalid RF. Must contain only numbers.',
-							array( 'status' => 400 )
-						);
-					}
-				} else {
-					return new \WP_Error(
-						'invalid_cpf_rf',
-						'CPF/RF must be exactly 7 or 11 digits',
-						array( 'status' => 400 )
-					);
+			$handler = new \FreeFormCertificate\Submissions\SubmissionHandler();
+			try {
+				foreach ( $this->submission_stages( $handler ) as $stage ) {
+					$stage->apply( $ctx );
 				}
-
-				$submission_data['cpf_rf'] = $cpf;
+			} catch ( SubmissionRejected $rejected ) {
+				return $this->rejection_error( $rejected->get_payload() );
 			}
 
-			// Validate email if present.
-			if ( ! empty( $submission_data['email'] ) ) {
-				if ( ! is_email( $submission_data['email'] ) ) {
-					return new \WP_Error(
-						'invalid_email',
-						'Invalid email address',
-						array( 'status' => 400 )
-					);
-				}
-			}
-
-			// Geofence validation (date/time + IP geolocation).
-			if ( class_exists( '\FreeFormCertificate\Security\Geofence' ) ) {
-				$geofence_config    = \FreeFormCertificate\Security\Geofence::get_form_config( $form_id );
-				$should_validate_ip = false;
-
-				if ( $geofence_config && ! empty( $geofence_config['geo_enabled'] ) && ! empty( $geofence_config['geo_ip_enabled'] ) ) {
-					$should_validate_ip = true;
-				}
-
-				$geofence_check = \FreeFormCertificate\Security\Geofence::can_access_form(
-					$form_id,
-					array(
-						'check_datetime' => true,
-						'check_geo'      => $should_validate_ip,
-					)
-				);
-
-				if ( ! $geofence_check['allowed'] ) {
-					return new \WP_Error(
-						'geofence_blocked',
-						$geofence_check['message'] ?? '',
-						array(
-							'status' => 403,
-							'reason' => $geofence_check['reason'] ?? '',
-						)
-					);
-				}
-			}
-
-			// Rate limiting check.
-			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
-				$ip       = \FreeFormCertificate\Core\RequestInput::get_user_ip();
-				$ip_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $ip );
-				if ( ! $ip_check['allowed'] ) {
-					return new \WP_Error(
-						'rate_limit_exceeded',
-						'Too many requests. Please try again later.',
-						array( 'status' => 429 )
-					);
-				}
-
-				if ( ! empty( $submission_data['email'] ) ) {
-					$email_check = \FreeFormCertificate\Security\RateLimiter::check_email_limit( $submission_data['email'] );
-					if ( ! $email_check['allowed'] ) {
-						return new \WP_Error(
-							'rate_limit_exceeded',
-							'Too many submissions from this email. Please try again later.',
-							array( 'status' => 429 )
-						);
-					}
-				}
-
-				if ( ! empty( $submission_data['cpf_rf'] ) ) {
-					$cpf_check = \FreeFormCertificate\Security\RateLimiter::check_cpf_limit( $submission_data['cpf_rf'] );
-					if ( ! $cpf_check['allowed'] ) {
-						return new \WP_Error(
-							'rate_limit_exceeded',
-							'Too many submissions with this CPF/RF. Please try again later.',
-							array( 'status' => 429 )
-						);
-					}
-				}
-			}
-
-			// Use SubmissionHandler to process submission.
-			if ( ! class_exists( '\FreeFormCertificate\Submissions\SubmissionHandler' ) ) {
-				return new \WP_Error(
-					'handler_not_found',
-					'Submission handler not available',
-					array( 'status' => 500 )
-				);
-			}
-
-			$handler    = new \FreeFormCertificate\Submissions\SubmissionHandler();
-			$user_email = isset( $submission_data['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( $submission_data['email'] ) ) : '';
-			$result     = $handler->process_submission( $form_id, $form->post_title, $submission_data, $user_email, $form_fields, $form_config );
-
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
-
-			$submission_id = (int) $result;
-			$auth_code     = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
+			$auth_code = isset( $ctx->submission_data['auth_code'] ) && is_scalar( $ctx->submission_data['auth_code'] )
+				? (string) $ctx->submission_data['auth_code']
+				: '';
 
 			$response = array(
-				'success'       => true,
-				'submission_id' => $submission_id,
-				'auth_code'     => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
-				'message'       => __( 'Form submitted successfully', 'ffcertificate' ),
+				'success'        => true,
+				'submission_id'  => $ctx->submission_id,
+				'auth_code'      => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
+				'message'        => __( 'Form submitted successfully', 'ffcertificate' ),
+				'validation_url' => home_url( '/validate-certificate/' ),
 			);
-
-			$response['validation_url'] = home_url( '/validate-certificate/' );
 
 			return rest_ensure_response( $response );
 
@@ -706,31 +593,48 @@ class FormRestController {
 	}
 
 	/**
-	 * Validate required fields
+	 * The web form's submission stages the REST route runs, in the web
+	 * form's order ({@see \FreeFormCertificate\Frontend\FormProcessor}).
 	 *
-	 * @param array<string, mixed>             $data Submission data.
-	 * @param array<int, array<string, mixed>> $fields Form fields configuration.
-	 * @return array<int, string> Array of validation errors
+	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler.
+	 * @return list<Submission\IpRateLimitGuard|Submission\FormConfigResolver|Submission\PreflightGuard|Submission\FieldSanitizer|Submission\FieldRulesGuard|Submission\GeofenceGuard|Submission\RateLimitGuard|Submission\AccessRestrictionGuard|Submission\SubmissionPersister>
 	 */
-	private function validate_required_fields( array $data, array $fields ): array {
-		$errors = array();
+	protected function submission_stages( \FreeFormCertificate\Submissions\SubmissionHandler $handler ): array {
+		return array(
+			new Submission\IpRateLimitGuard(),
+			new Submission\FormConfigResolver(),
+			new Submission\PreflightGuard(),
+			new Submission\FieldSanitizer(),
+			new Submission\FieldRulesGuard(),
+			new Submission\GeofenceGuard(),
+			new Submission\RateLimitGuard(),
+			new Submission\AccessRestrictionGuard(),
+			new Submission\SubmissionPersister( $handler ),
+		);
+	}
 
-		if ( empty( $fields ) ) {
-			return $errors;
+	/**
+	 * Turn a stage's rejection payload into a REST error.
+	 *
+	 * The payload is the one the web form sends; the raw repository error
+	 * (`detail`) is dropped, as the web form shows it to nobody either.
+	 *
+	 * @param array<string, mixed> $payload Rejection payload.
+	 * @return \WP_Error
+	 */
+	private function rejection_error( array $payload ): \WP_Error {
+		$status = 400;
+		if ( ! empty( $payload['rate_limit'] ) ) {
+			$status = 429;
+		} elseif ( ! empty( $payload['geofence_blocked'] ) ) {
+			$status = 403;
 		}
 
-		foreach ( $fields as $field ) {
-			if ( isset( $field['required'] ) && $field['required'] ) {
-				$field_name = isset( $field['name'] ) ? $field['name'] : '';
+		$message = isset( $payload['message'] ) && is_scalar( $payload['message'] ) ? (string) $payload['message'] : '';
+		unset( $payload['message'], $payload['detail'] );
+		$payload['status'] = $status;
 
-				if ( empty( $field_name ) || ! isset( $data[ $field_name ] ) || trim( $data[ $field_name ] ) === '' ) {
-					$field_label = isset( $field['label'] ) ? $field['label'] : $field_name;
-					$errors[]    = $field_label . ' is required';
-				}
-			}
-		}
-
-		return $errors;
+		return new \WP_Error( 'submission_rejected', $message, $payload );
 	}
 
 	/**

@@ -33,17 +33,10 @@ class DashboardAssetManagerTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'add_action' )->justReturn( true );
-
-		// Define constants if not defined
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '4.12.0' );
-		}
 
 		// Mock $wpdb (needed by ReregistrationSubmissionRepository)
 		global $wpdb;

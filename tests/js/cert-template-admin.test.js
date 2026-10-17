@@ -8,6 +8,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// The real status line helper (#1843); the tests replace only FFC.request.
+loadScript('assets/js/ffc-core.js');
+const ffcStatus = window.FFC.status;
+
 // Install a mock window.FFC.request. Pass { reject: true } to simulate an
 // AJAX failure; otherwise it resolves with the given `resolve` data.
 function installFFC(result) {
@@ -16,7 +20,7 @@ function installFFC(result) {
 			? Promise.reject(new Error('fail'))
 			: Promise.resolve(result ? result.resolve : undefined)
 	);
-	window.FFC = { request };
+	window.FFC = { request, status: ffcStatus };
 	return request;
 }
 
@@ -46,7 +50,7 @@ function mount(cfg, { withTitle = true, checked = true } = {}) {
 		<label class="ffc-control-toggle">
 			<input type="checkbox" id="ffc_template_visible" name="ffc_template_visible" value="1" ${checked ? 'checked' : ''}>
 		</label>
-		<span id="ffc_template_visible_status" class="ffc-autosave-status"></span>
+		<span id="ffc_template_visible_status" class="ffc-status"></span>
 	`;
 	loadScript('assets/js/ffc-cert-template-admin.js');
 }
@@ -95,7 +99,7 @@ describe('ffc-cert-template-admin', () => {
 
 		const $status = window.$('#ffc_template_visible_status');
 		expect($status.text()).toBe('Saved');
-		expect($status.hasClass('ffc-saved')).toBe(true);
+		expect($status.hasClass('is-success')).toBe(true);
 	});
 
 	it('shows the "Save failed" status on AJAX failure', async () => {
@@ -107,7 +111,7 @@ describe('ffc-cert-template-admin', () => {
 
 		const $status = window.$('#ffc_template_visible_status');
 		expect($status.text()).toBe('Save failed');
-		expect($status.hasClass('ffc-error')).toBe(true);
+		expect($status.hasClass('is-error')).toBe(true);
 	});
 
 	it('locks the title field when the template is a shipped default', () => {

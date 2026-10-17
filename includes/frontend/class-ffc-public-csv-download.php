@@ -195,9 +195,12 @@ class PublicCsvDownload {
 
 			<?php if ( $flash ) : ?>
 				<div class="ffc-verify-result ffc-pcd-message">
-					<div class="<?php echo esc_attr( 'error' === $flash['type'] ? 'ffc-verify-error' : 'ffc-verify-success' ); ?>">
-						<?php echo esc_html( $flash['message'] ); ?>
-					</div>
+					<?php
+					$flash_notice = 'error' === $flash['type']
+						? \FreeFormCertificate\Core\Notice::render( 'danger', 'error', (string) $flash['message'], '', array( 'role' => 'alert' ) )
+						: \FreeFormCertificate\Core\Notice::render( 'success', 'success', (string) $flash['message'] );
+					echo $flash_notice; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+					?>
 				</div>
 			<?php endif; ?>
 
@@ -207,7 +210,7 @@ class PublicCsvDownload {
 
 				<div class="ffc-form-field">
 					<label for="ffc-pcd-form-id">
-						<?php esc_html_e( 'Form ID', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
+						<?php esc_html_e( 'Form ID', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span>
 					</label>
 					<input
 						type="number"
@@ -223,7 +226,7 @@ class PublicCsvDownload {
 
 				<div class="ffc-form-field">
 					<label for="ffc-pcd-hash">
-						<?php esc_html_e( 'Access Hash', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
+						<?php esc_html_e( 'Access Hash', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span>
 					</label>
 					<input
 						type="text"
@@ -242,7 +245,7 @@ class PublicCsvDownload {
 							<label for="ffc-pcd-cpf" class="ffc-consent-text">
 								<?php esc_html_e( 'CPF', 'ffcertificate' ); ?>
 								<?php if ( 'optional' !== $cpf_mode ) : ?>
-									<span class="ffc-required">*</span>
+									<span class="ffc-required" aria-hidden="true">*</span>
 								<?php endif; ?>
 							</label>
 							<input

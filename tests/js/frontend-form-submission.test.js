@@ -110,8 +110,28 @@ describe('frontend.handleFormSubmission', () => {
 		expect(spy).not.toHaveBeenCalled();
 		// First required field is marked invalid.
 		const input = document.querySelector('input[name="name"]');
-		expect(input.classList.contains('ffc-field-error')).toBe(true);
+		expect(input.classList.contains('is-invalid')).toBe(true);
 		expect(input.getAttribute('aria-invalid')).toBe('true');
+	});
+
+	it('focuses the first invalid input, never the mask message after it (#1840)', async () => {
+		document.body.innerHTML = `
+			<form class="ffc-submission-form">
+				<input type="text" name="cpf_rf" value="123" />
+				<span class="ffc-field-message" role="alert">Invalid CPF</span>
+				<input type="text" name="name" required />
+				<button type="submit">Send</button>
+			</form>
+		`;
+		const $form = window.$('form.ffc-submission-form');
+		const spy = mockAjax(() => ({}));
+		$form.trigger('submit');
+		await flush();
+		expect(spy).not.toHaveBeenCalled();
+		const input = document.querySelector('input[name="name"]');
+		expect(input.classList.contains('is-invalid')).toBe(true);
+		expect(document.activeElement).toBe(input);
+		expect(document.querySelector('.ffc-field-message').classList.contains('is-invalid')).toBe(false);
 	});
 
 	it('inserts an accessible alert above the form when validation fails', async () => {
@@ -119,7 +139,7 @@ describe('frontend.handleFormSubmission', () => {
 		mockAjax(() => ({}));
 		$form.trigger('submit');
 		await flush();
-		const alert = document.querySelector('.ffc-accessible-alert');
+		const alert = document.querySelector('[data-ffc-notice="accessible-alert"]');
 		expect(alert).not.toBeNull();
 		expect(alert.textContent).toContain('Please fill all required fields');
 		expect(alert.getAttribute('role')).toBe('alert');
@@ -205,21 +225,33 @@ describe('frontend.handleFormSubmission', () => {
 		delete window.ffcGeneratePDF;
 	});
 
-	it('clears a stale error class from a required field that now has a value', async () => {
+	it('says "required" under an empty required field, and withdraws it once filled', async () => {
 		const $form = setupForm({ withRequired: true });
 		const input = document.querySelector('input[name="name"]');
-		// Pre-mark as invalid (as a prior failed submit would have).
-		input.classList.add('ffc-field-error');
-		input.setAttribute('aria-invalid', 'true');
-		input.value = 'Filled';
+		input.setAttribute('aria-describedby', 'name-hint');
 		mockAjax((opts) => { opts.success({ success: true, data: { html: '<div>ok</div>' } }); return {}; });
 
 		$form.trigger('submit');
 		await flush();
 
-		// The validation loop took the else-branch and cleared the markers.
-		expect(input.classList.contains('ffc-field-error')).toBe(false);
+		// The field-message standard (#1844): the state, the announced
+		// message, and its id APPENDED to the hint the field already names.
+		expect(input.classList.contains('is-invalid')).toBe(true);
+		expect(input.getAttribute('aria-invalid')).toBe('true');
+		const id = input.getAttribute('data-ffc-message-id');
+		expect(input.getAttribute('aria-describedby')).toBe('name-hint ' + id);
+		const msg = document.getElementById(id);
+		expect(msg.textContent).toBe('This field is required.');
+		expect(msg.getAttribute('role')).toBe('alert');
+
+		input.value = 'Filled';
+		$form.trigger('submit');
+		await flush();
+
+		expect(input.classList.contains('is-invalid')).toBe(false);
 		expect(input.getAttribute('aria-invalid')).toBeNull();
+		expect(input.getAttribute('aria-describedby')).toBe('name-hint');
+		expect(document.getElementById(id)).toBeNull();
 	});
 
 	it('on a resolved-but-null response: shows the generic error and re-enables submit', async () => {
@@ -333,7 +365,12 @@ describe('frontend.handleFormSubmission', () => {
 		});
 		$form.trigger('submit');
 		await flush();
-		expect(showSpy).toHaveBeenCalledWith('Slow down', 30);
+		// The refused form and the label it had before "Processing…" (#1846).
+		expect(showSpy).toHaveBeenCalledTimes(1);
+		const [message, wait, form, label] = showSpy.mock.calls[0];
+		expect([message, wait]).toEqual(['Slow down', 30]);
+		expect(window.$(form)[0]).toBe($form[0]);
+		expect(label).toBe('Send');
 	});
 
 	it('on generic error: shows the connection-error alert', async () => {
@@ -344,7 +381,7 @@ describe('frontend.handleFormSubmission', () => {
 		});
 		$form.trigger('submit');
 		await flush();
-		const alert = document.querySelector('.ffc-accessible-alert');
+		const alert = document.querySelector('[data-ffc-notice="accessible-alert"]');
 		expect(alert).not.toBeNull();
 		expect(alert.textContent).toContain('Connection error');
 	});
@@ -367,11 +404,11 @@ describe('frontend.showAccessibleAlert (via required-field validation)', () => {
 		// First submit → first alert.
 		window.$('form').trigger('submit');
 		await flush();
-		expect(document.querySelectorAll('.ffc-accessible-alert').length).toBe(1);
+		expect(document.querySelectorAll('[data-ffc-notice="accessible-alert"]').length).toBe(1);
 		// Second submit → still only one alert.
 		window.$('form').trigger('submit');
 		await flush();
-		expect(document.querySelectorAll('.ffc-accessible-alert').length).toBe(1);
+		expect(document.querySelectorAll('[data-ffc-notice="accessible-alert"]').length).toBe(1);
 	});
 
 	it('schedules the alert auto-hide after 8 seconds', () => {
@@ -387,7 +424,7 @@ describe('frontend.showAccessibleAlert (via required-field validation)', () => {
 			mockAjax(() => ({}));
 			window.$('form').trigger('submit');
 			// The validation path runs synchronously before any AJAX.
-			expect(document.querySelectorAll('.ffc-accessible-alert').length).toBe(1);
+			expect(document.querySelectorAll('[data-ffc-notice="accessible-alert"]').length).toBe(1);
 			// Drive the 8s auto-hide timer body (line 100) — the fadeOut call
 			// inside it runs without throwing under fake timers.
 			expect(() => vi.advanceTimersByTime(8000)).not.toThrow();

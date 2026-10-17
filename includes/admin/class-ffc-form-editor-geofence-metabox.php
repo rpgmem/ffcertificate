@@ -36,6 +36,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormEditorGeofenceMetabox {
 
 	/**
+	 * The key of the one message the date/time order rule shows under Date
+	 * Range (#1844); `ffc-geofence-admin.js` reads the same id.
+	 */
+	public const DATETIME_ORDER_MESSAGE = 'ffc_geofence_datetime_order';
+
+	/**
 	 * Read the persisted geofence config blob.
 	 *
 	 * @param WP_Post $post The post object.
@@ -114,10 +120,14 @@ class FormEditorGeofenceMetabox {
 		// config has an order error (e.g. an import wrote `date_end <
 		// date_start`).
 		$invalid_fields     = Geofence::analyze_datetime_order( $config );
-		$invalid_attr       = static function ( string $field ) use ( $invalid_fields ): string {
-			return isset( $invalid_fields[ $field ] ) ? ' class="ffc-input-invalid"' : '';
+		$datetime_order_msg = $invalid_fields ? (string) reset( $invalid_fields ) : '';
+		// The field-message standard (#1844): one message for the order rule,
+		// under Date Range, which every input that breaks it names.
+		$invalid_attr = static function ( string $field ) use ( $invalid_fields, $datetime_order_msg ): string {
+			return isset( $invalid_fields[ $field ] )
+				? \FreeFormCertificate\Core\FieldMessage::control_attributes( self::DATETIME_ORDER_MESSAGE, $datetime_order_msg )
+				: '';
 		};
-		$datetime_order_msg = $invalid_fields ? reset( $invalid_fields ) : '';
 		?>
 		<div class="ffc-geofence-container">
 			<!-- Sentinel: ensures ffc_geofence is always in POST even when all fields are disabled -->
@@ -144,9 +154,9 @@ class FormEditorGeofenceMetabox {
 					<tr>
 						<th><label><?php esc_html_e( 'From — To', 'ffcertificate' ); ?></label></th>
 						<td>
-							<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_start]" value="<?php echo esc_attr( $class_time_start ); ?>"<?php echo $invalid_attr( 'class_time_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- closure returns pre-built class attribute. ?>></label>
+							<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_start]" value="<?php echo esc_attr( $class_time_start ); ?>"<?php echo $invalid_attr( 'class_time_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldMessage::control_attributes() escapes every value. ?>></label>
 							&nbsp;&nbsp;
-							<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_end]" value="<?php echo esc_attr( $class_time_end ); ?>"<?php echo $invalid_attr( 'class_time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $invalid_attr returns one of two literals — ' class="ffc-input-invalid"' or the empty string — so there is no dynamic value to escape. ?>></label>
+							<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_end]" value="<?php echo esc_attr( $class_time_end ); ?>"<?php echo $invalid_attr( 'class_time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldMessage::control_attributes() escapes every value. ?>></label>
 						</td>
 					</tr>
 				</tbody></table>
@@ -176,7 +186,11 @@ class FormEditorGeofenceMetabox {
 									'id'      => 'ffc_geofence_datetime_enabled',
 									'checked' => '1' === (string) $datetime_enabled,
 									'label'   => __( 'Restrict form access by date and time', 'ffcertificate' ),
-									'data'    => array( 'ffc-autosave-form-key' => 'geofence_datetime_enabled' ),
+									'data'    => array(
+										'ffc-autosave-form-key' => 'geofence_datetime_enabled',
+										// On with no date and no time, the window restricts nothing (#1755).
+										'ffc-requires' => '#ffc_geofence_date_start, #ffc_geofence_date_end, [name="ffc_geofence[time_start]"], [name="ffc_geofence[time_end]"]',
+									),
 								)
 							);
 							?>
@@ -206,25 +220,23 @@ class FormEditorGeofenceMetabox {
 					<tr>
 						<th><label><?php esc_html_e( 'Date Range', 'ffcertificate' ); ?></label></th>
 						<td>
-							<label><?php esc_html_e( 'Start:', 'ffcertificate' ); ?> <input type="date" id="ffc_geofence_date_start" name="ffc_geofence[date_start]" value="<?php echo esc_attr( $date_start ); ?>"<?php echo $invalid_attr( 'date_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- closure returns pre-built class attribute. ?>></label>
+							<label><?php esc_html_e( 'Start:', 'ffcertificate' ); ?> <input type="date" id="ffc_geofence_date_start" name="ffc_geofence[date_start]" value="<?php echo esc_attr( $date_start ); ?>"<?php echo $invalid_attr( 'date_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldMessage::control_attributes() escapes every value. ?>></label>
 							<span class="ffc-collapsed-target<?php echo esc_attr( $multi_day_collapsed_class ); ?>"
 								data-ffc-master="ffc_geofence_multi_day"
 								aria-hidden="<?php echo esc_attr( $multi_day_aria ); ?>">
 								&nbsp;&nbsp;
-								<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" id="ffc_geofence_date_end" name="ffc_geofence[date_end]" value="<?php echo esc_attr( $date_end ); ?>" min="<?php echo esc_attr( $date_end_min ); ?>"<?php echo $invalid_attr( 'date_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $invalid_attr returns one of two literals — ' class="ffc-input-invalid"' or the empty string — so there is no dynamic value to escape. ?>></label>
+								<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" id="ffc_geofence_date_end" name="ffc_geofence[date_end]" value="<?php echo esc_attr( $date_end ); ?>" min="<?php echo esc_attr( $date_end_min ); ?>"<?php echo $invalid_attr( 'date_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldMessage::control_attributes() escapes every value. ?>></label>
 							</span>
 							<p class="description"><?php esc_html_e( 'Leave empty for no date restriction. Format: YYYY-MM-DD', 'ffcertificate' ); ?></p>
-							<p class="description ffc-datetime-order-error<?php echo $datetime_order_msg ? '' : ' ffc-hidden'; ?>">
-								<?php echo esc_html( $datetime_order_msg ); ?>
-							</p>
+							<?php echo \FreeFormCertificate\Core\FieldMessage::render( self::DATETIME_ORDER_MESSAGE, $datetime_order_msg ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render() escapes the id, the classes and the text. ?>
 						</td>
 					</tr>
 					<tr>
 						<th><label><?php esc_html_e( 'Time Range', 'ffcertificate' ); ?></label></th>
 						<td>
-							<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_start]" value="<?php echo esc_attr( $time_start ); ?>"<?php echo $invalid_attr( 'time_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $invalid_attr returns one of two literals — ' class="ffc-input-invalid"' or the empty string — so there is no dynamic value to escape. ?>></label>
+							<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_start]" value="<?php echo esc_attr( $time_start ); ?>"<?php echo $invalid_attr( 'time_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldMessage::control_attributes() escapes every value. ?>></label>
 							&nbsp;&nbsp;
-							<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_end]" value="<?php echo esc_attr( $time_end ); ?>"<?php echo $invalid_attr( 'time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $invalid_attr returns one of two literals — ' class="ffc-input-invalid"' or the empty string — so there is no dynamic value to escape. ?>></label>
+							<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_end]" value="<?php echo esc_attr( $time_end ); ?>"<?php echo $invalid_attr( 'time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldMessage::control_attributes() escapes every value. ?>></label>
 							<p class="description"><?php esc_html_e( 'Leave empty for 24/7 access. Default: 00:00 to 23:59', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
@@ -327,11 +339,21 @@ class FormEditorGeofenceMetabox {
 					<tr>
 						<th><label for="ffc_geofence_schedule_default_mode"><?php esc_html_e( 'Default Modal Mode', 'ffcertificate' ); ?></label></th>
 						<td>
-							<select id="ffc_geofence_schedule_default_mode" name="ffc_geofence[schedule_default_mode]">
-								<option value="now" <?php selected( $schedule_default_mode, 'now' ); ?>><?php esc_html_e( 'Now — pre-fill end time with the current moment', 'ffcertificate' ); ?></option>
-								<option value="manual" <?php selected( $schedule_default_mode, 'manual' ); ?>><?php esc_html_e( 'Manual — let the operator type both ends', 'ffcertificate' ); ?></option>
-							</select>
-							<p class="description"><?php esc_html_e( 'Which mode the operator exception modal opens in by default. Operators can flip the toggle on a per-exception basis.', 'ffcertificate' ); ?></p>
+							<?php // Two values, so a toggle (#1755): checked posts `now`, the hidden input before it `manual`. ?>
+							<input type="hidden" name="ffc_geofence[schedule_default_mode]" value="manual">
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[schedule_default_mode]',
+									'id'      => 'ffc_geofence_schedule_default_mode',
+									'value'   => 'now',
+									'checked' => 'now' === $schedule_default_mode,
+									'label'   => __( 'Open on the current time', 'ffcertificate' ),
+									'data'    => array( 'ffc-autosave-form-key' => 'geofence_schedule_default_mode' ),
+								)
+							);
+							?>
+							<p class="description"><?php esc_html_e( 'On: the operator exception modal opens with the end time filled in with the current moment. Off: the operator types both ends. Operators can flip it on each exception.', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>
 					</tbody>
@@ -431,27 +453,38 @@ class FormEditorGeofenceMetabox {
 				<tr>
 					<th><label><?php esc_html_e( 'Validation Methods', 'ffcertificate' ); ?></label></th>
 					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'ffc_geofence[geo_gps_enabled]',
-								'checked' => '1' === (string) $geo_gps_enabled,
-								'label'   => __( 'GPS (Browser geolocation)', 'ffcertificate' ),
-							)
-						);
-						?>
-						<br>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'     => 'ffc_geofence[geo_ip_enabled]',
-								'id'       => 'ffc_geofence_geo_ip_enabled',
-								'checked'  => '1' === (string) $geo_ip_enabled,
-								'disabled' => ! $global_ip_api_enabled,
-								'label'    => __( 'IP Address (backend validation)', 'ffcertificate' ),
-							)
-						);
-						?>
+						<div class="ffc-restriction-label">
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'ffc_geofence[geo_gps_enabled]',
+									'id'      => 'ffc_geofence_geo_gps_enabled',
+									'checked' => '1' === (string) $geo_gps_enabled,
+									'label'   => __( 'GPS (Browser geolocation)', 'ffcertificate' ),
+									'data'    => array(
+										'ffc-autosave-form-key' => 'geofence_geo_gps_enabled',
+										// GPS with no allowed area admits no one (#1755). Only the
+										// source on screen counts: the other is `.ffc-hidden`.
+										'ffc-requires' => '[name="ffc_geofence[geo_area_location_ids][]"], [name="ffc_geofence[geo_areas]"]',
+									),
+								)
+							);
+							?>
+						</div>
+						<div class="ffc-restriction-label">
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'     => 'ffc_geofence[geo_ip_enabled]',
+									'id'       => 'ffc_geofence_geo_ip_enabled',
+									'checked'  => '1' === (string) $geo_ip_enabled,
+									'disabled' => ! $global_ip_api_enabled,
+									'label'    => __( 'IP Address (backend validation)', 'ffcertificate' ),
+									'data'     => array( 'ffc-autosave-form-key' => 'geofence_geo_ip_enabled' ),
+								)
+							);
+							?>
+						</div>
 						<?php if ( ! $global_ip_api_enabled ) : ?>
 							<p class="description ffc-text-warning ffc-icon-warning">
 								<?php

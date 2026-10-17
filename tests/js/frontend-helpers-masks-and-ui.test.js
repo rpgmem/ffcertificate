@@ -90,10 +90,10 @@ describe('FFC.Frontend.Masks.applyCpfRf — input mask', () => {
 
 	it('removes invalid/valid classes on input', () => {
 		const $input = setup();
-		$input.addClass('ffc-valid ffc-invalid');
+		$input.addClass('is-valid is-invalid');
 		$input.val('123').trigger('input');
-		expect($input.hasClass('ffc-valid')).toBe(false);
-		expect($input.hasClass('ffc-invalid')).toBe(false);
+		expect($input.hasClass('is-valid')).toBe(false);
+		expect($input.hasClass('is-invalid')).toBe(false);
 	});
 });
 
@@ -111,26 +111,26 @@ describe('FFC.Frontend.Masks.applyCpfRf — blur validation', () => {
 
 	it('clears classes when the value is empty', () => {
 		const $input = setup('');
-		$input.addClass('ffc-invalid').attr('aria-invalid', 'true');
+		$input.addClass('is-invalid').attr('aria-invalid', 'true');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-invalid')).toBe(false);
+		expect($input.hasClass('is-invalid')).toBe(false);
 		expect($input.attr('aria-invalid')).toBeUndefined();
 	});
 
-	it('marks valid CPF with .ffc-valid', () => {
+	it('marks valid CPF with .is-valid', () => {
 		// 529.982.247-25 is a known-valid CPF; the digits-only value 52998224725
 		// satisfies the mod-11 check.
 		const $input = setup('529.982.247-25');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-valid')).toBe(true);
-		expect($input.hasClass('ffc-invalid')).toBe(false);
+		expect($input.hasClass('is-valid')).toBe(true);
+		expect($input.hasClass('is-invalid')).toBe(false);
 	});
 
-	it('marks invalid CPF with .ffc-invalid and adds an error span', () => {
+	it('marks invalid CPF with .is-invalid and adds an error span', () => {
 		const $input = setup('123.456.789-00');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-invalid')).toBe(true);
-		const $err = $input.next('.ffc-field-error');
+		expect($input.hasClass('is-invalid')).toBe(true);
+		const $err = $input.next('.ffc-field-message');
 		expect($err.length).toBe(1);
 		expect($err.text()).toContain('Invalid CPF');
 	});
@@ -138,23 +138,63 @@ describe('FFC.Frontend.Masks.applyCpfRf — blur validation', () => {
 	it('flags a wrong-length value with the generic message', () => {
 		const $input = setup('12345');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-invalid')).toBe(true);
-		const $err = $input.next('.ffc-field-error');
+		expect($input.hasClass('is-invalid')).toBe(true);
+		const $err = $input.next('.ffc-field-message');
 		expect($err.text()).toContain('Enter a valid CPF or RF');
+	});
+
+	it('injects no <style> of its own: the look lives in ffc-frontend.css (#1840)', () => {
+		document.head.querySelectorAll('style').forEach((el) => el.remove());
+		const $input = setup('123.456.789-00');
+		$input.trigger('blur');
+		expect(document.getElementById('ffc-validation-styles')).toBeNull();
+		expect(document.head.querySelectorAll('style').length).toBe(0);
+	});
+
+	it('gives the message its own name, not the input-state class (#1840)', () => {
+		const $input = setup('123.456.789-00');
+		$input.trigger('blur');
+		const $err = $input.next('.ffc-field-message');
+		expect($err.attr('role')).toBe('alert');
+		expect($err.hasClass('is-invalid')).toBe(false);
+		expect($input.attr('aria-invalid')).toBe('true');
+		expect($input.attr('aria-describedby')).toBe($err.attr('id'));
+	});
+
+	// #1844: the message used to REPLACE aria-describedby, so the hint the
+	// renderer linked stopped being read while the error stood.
+	it('appends the message to the hint it already names, and gives it back on a fix', () => {
+		const $input = setup('123.456.789-00');
+		$input.attr('aria-describedby', 'cpf_rf-hint');
+		$input.trigger('blur');
+		const id = $input.next('.ffc-field-message').attr('id');
+		expect($input.attr('aria-describedby')).toBe('cpf_rf-hint ' + id);
+
+		$input.val('529.982.247-25').trigger('blur');
+		expect($input.attr('aria-describedby')).toBe('cpf_rf-hint');
+		expect($input.next('.ffc-field-message').length).toBe(0);
+	});
+
+	it('withdraws the verdict as soon as the value changes', () => {
+		const $input = setup('123.456.789-00');
+		$input.trigger('blur');
+		$input.val('1').trigger('input');
+		expect($input.hasClass('is-invalid')).toBe(false);
+		expect($input.next('.ffc-field-message').length).toBe(0);
 	});
 
 	it('replaces a prior error span rather than stacking', () => {
 		const $input = setup('12345');
 		$input.trigger('blur');
 		$input.trigger('blur');
-		expect($input.nextAll('.ffc-field-error').length).toBe(1);
+		expect($input.nextAll('.ffc-field-message').length).toBe(1);
 	});
 
-	it('marks a valid 7-digit RF with .ffc-valid', () => {
+	it('marks a valid 7-digit RF with .is-valid', () => {
 		const $input = setup('123.456-7');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-valid')).toBe(true);
-		expect($input.hasClass('ffc-invalid')).toBe(false);
+		expect($input.hasClass('is-valid')).toBe(true);
+		expect($input.hasClass('is-invalid')).toBe(false);
 	});
 
 	it('flags an invalid 7-digit RF with the rfInvalid message', () => {
@@ -164,25 +204,25 @@ describe('FFC.Frontend.Masks.applyCpfRf — blur validation', () => {
 		// confirming a VALID RF clears any prior error span.
 		const $input = setup('1234567');
 		$input.trigger('blur');
-		expect($input.hasClass('ffc-valid')).toBe(true);
+		expect($input.hasClass('is-valid')).toBe(true);
 	});
 
 	it('clears an existing error span when the value becomes valid', () => {
 		const $input = setup('12345'); // invalid → spawns an error span
 		$input.trigger('blur');
-		expect($input.next('.ffc-field-error').length).toBe(1);
+		expect($input.next('.ffc-field-message').length).toBe(1);
 
 		// Now make it a valid CPF and re-blur → the valid branch fades the
 		// prior error span out (line 227).
 		$input.val('529.982.247-25').trigger('blur');
-		expect($input.hasClass('ffc-valid')).toBe(true);
+		expect($input.hasClass('is-valid')).toBe(true);
 	});
 
 	it('keeps the error visible and blocks the submit until the value changes (#1734)', () => {
 		vi.useFakeTimers();
 		const $input = setup('123.456.789-00'); // invalid CPF
 		$input.trigger('blur');
-		const $err = $input.next('.ffc-field-error');
+		const $err = $input.next('.ffc-field-message');
 		expect($err.length).toBe(1);
 		vi.advanceTimersByTime(10000);
 		expect($err.css('display')).not.toBe('none');
@@ -217,7 +257,7 @@ describe('FFC.Frontend.Masks.applyCpfRf — blur validation', () => {
 		try {
 			const $input = setup('123.456.789-00');
 			$input.trigger('blur');
-			expect($input.next('.ffc-field-error').text()).toBe('CSV CPF bad');
+			expect($input.next('.ffc-field-message').text()).toBe('CSV CPF bad');
 		} finally {
 			delete window.ffc_csv_download;
 		}
@@ -281,9 +321,24 @@ describe('FFC.Frontend.UI.showFormSuccess (generic branch)', () => {
 		const $form = window.$('.ffc-form');
 		window.FFC.Frontend.UI.showFormSuccess($form);
 
-		expect($form.find('.ffc-form-success').length).toBe(1);
-		expect($form.find('.ffc-form-success').text()).toContain('Success!');
-		expect($form.find('.ffc-form-success').text()).toContain('Your submission was successful.');
+		expect($form.find('[data-ffc-notice="form-success"]').length).toBe(1);
+		expect($form.find('[data-ffc-notice="form-success"]').text()).toContain('Success!');
+		expect($form.find('[data-ffc-notice="form-success"]').text()).toContain('Your submission was successful.');
+	});
+
+	it('styles the block through classes, not inline declarations (#1840)', () => {
+		document.body.innerHTML = `<form class="ffc-form"></form>`;
+		const $form = window.$('.ffc-form');
+		window.FFC.Frontend.UI.showFormSuccess($form);
+
+		const $box = $form.find('[data-ffc-notice="form-success"]');
+		expect($box.attr('style')).toBeUndefined();
+		// The shared success notice (#1842).
+		expect($box.attr('class')).toBe('ffc-notice ffc-notice-success');
+		expect($box.find('.ffc-notice-icon.ffc-icon-success').length).toBe(1);
+		expect($box.find('strong.ffc-notice-title').text()).toBe('Success!');
+		expect($box.find('p.ffc-notice-text').text()).toBe('Your submission was successful.');
+		expect($box.find('[style]').length).toBe(0);
 	});
 
 	it('renders provided html verbatim when supplied', () => {
@@ -352,15 +407,16 @@ describe('FFC.Frontend.UI.refreshCaptcha', () => {
 		expect($form.find('input[name="ffc_captcha_hash"]').val()).toBe('old-hash');
 	});
 
-	it('flashes the captcha input then resets its background after 100ms', () => {
+	it('leaves no inline style on the captcha input (#1840)', () => {
 		vi.useFakeTimers();
 		const $form = mountMath();
 		window.FFC.Frontend.UI.refreshCaptcha($form, MATH);
+		vi.advanceTimersByTime(1000);
 		const $ans = $form.find('input[name="ffc_captcha_ans"]');
-		// Flash colour applied immediately.
-		expect($ans.css('background-color')).toBe('rgb(255, 251, 204)');
-		vi.advanceTimersByTime(100);
-		expect($ans.css('background-color')).toBe('rgb(255, 255, 255)');
+		// The flash it used to paint never showed (the sheet's `!important`
+		// ground beats an inline declaration), and the white it left behind
+		// would have stayed white in the dark theme.
+		expect($ans.attr('style')).toBeUndefined();
 		vi.useRealTimers();
 	});
 
@@ -454,53 +510,56 @@ describe('FFC.Frontend.UI.refreshCaptcha', () => {
 // ----------------------------------------------------------------------
 
 describe('FFC.Frontend.RateLimit', () => {
+	// The certificate form's own markup: no `.ffc-form` class (#1846).
 	beforeEach(() => {
 		document.body.innerHTML = `
-			<form class="ffc-form">
-				<input type="text" name="x">
-				<button type="submit">Send</button>
-			</form>
+			<div class="ffc-shortcode ffc-form-wrapper">
+				<h2 class="ffc-form-title">T</h2>
+				<form class="ffc-submission-form">
+					<input type="text" name="x">
+					<button type="submit" class="ffc-submit-btn">Submit</button>
+				</form>
+			</div>
 		`;
 	});
+	const $form = () => window.$('.ffc-submission-form');
 
 	it('show() injects a notice with the message and disables the submit button', () => {
-		// Use real timers — the IIFE's setTimeout(updateDisplay, 1000) will
-		// be controlled below; for now just exercise the entry path.
-		window.FFC.Frontend.RateLimit.show('Too many tries', 30);
+		window.FFC.Frontend.RateLimit.show('Too many tries', 30, $form());
 
-		expect(window.$('.ffc-rate-limit-notice').length).toBe(1);
-		expect(window.$('.ffc-rate-limit-notice').text()).toContain('Too many tries');
-		expect(window.$('.ffc-form button[type="submit"]').prop('disabled')).toBe(true);
+		expect(window.$('[data-ffc-notice="rate-limit"]').length).toBe(1);
+		expect(window.$('[data-ffc-notice="rate-limit"]').text()).toContain('Too many tries');
+		expect($form().find('button[type="submit"]').prop('disabled')).toBe(true);
 		expect(window.FFC.Frontend.RateLimit.blocked).toBe(true);
 
-		// Cleanup so the test's setTimeout countdown doesn't bleed into
-		// subsequent suites.
+		// Cleanup so the countdown does not bleed into later suites.
 		window.FFC.Frontend.RateLimit.enable();
 	});
 
-	it('enable() removes the notice and re-enables the button', () => {
-		window.FFC.Frontend.RateLimit.show('msg', 10);
-		window.FFC.Frontend.RateLimit.enable();
+	it('enable() removes the notice and gives the button its label back', () => {
+		window.FFC.Frontend.RateLimit.show('msg', 10, $form());
+		window.FFC.Frontend.RateLimit.enable($form());
 
-		expect(window.$('.ffc-rate-limit-notice').length).toBe(0);
-		expect(window.$('.ffc-form button[type="submit"]').prop('disabled')).toBe(false);
-		expect(window.$('.ffc-form button[type="submit"]').text()).toBe('Send');
+		expect(window.$('[data-ffc-notice="rate-limit"]').length).toBe(0);
+		expect($form().find('button[type="submit"]').prop('disabled')).toBe(false);
+		expect($form().find('button[type="submit"]').text()).toBe('Submit');
 		expect(window.FFC.Frontend.RateLimit.blocked).toBe(false);
 	});
 
-	it('startCountdown formats mm:ss and decrements (fake timers)', () => {
+	it('the countdown formats mm:ss and decrements (fake timers)', () => {
 		vi.useFakeTimers();
-		window.FFC.Frontend.RateLimit.show('msg', 75);
+		window.FFC.Frontend.RateLimit.show('msg', 75, $form());
+		const count = () => window.$('[data-ffc-notice="rate-limit"] strong').text();
 
 		// Immediately after show: 1:15.
-		expect(window.$('#ffc-countdown').text()).toBe('1:15');
+		expect(count()).toBe('1:15');
 
 		vi.advanceTimersByTime(1000);
-		expect(window.$('#ffc-countdown').text()).toBe('1:14');
+		expect(count()).toBe('1:14');
 
 		vi.advanceTimersByTime(75000);
-		// After 75 more seconds enable() is called and the notice is gone.
-		expect(window.$('.ffc-rate-limit-notice').length).toBe(0);
+		// The wait is over: the notice is gone.
+		expect(window.$('[data-ffc-notice="rate-limit"]').length).toBe(0);
 
 		vi.useRealTimers();
 	});

@@ -37,6 +37,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
+	<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Notice lifecycle', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A notice moves through these statuses; the public shortcode exposes the classification from preliminary onward:', 'ffcertificate' ); ?></p>
 	<table class="widefat striped">
@@ -84,10 +86,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-lock"><?php esc_html_e( 'Privacy:', 'ffcertificate' ); ?></strong>
+			<strong><?php esc_html_e( 'Privacy:', 'ffcertificate' ); ?></strong>
 			<?php esc_html_e( 'CPF, RF and email are stored encrypted and shown masked by default in both the admin lists and the public queue; unmasking requires the ffc_view_recruitment_pii capability, and a candidate can always see their own data. Convocation emails always mask these fields.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'icon' => 'lock' )
+	);
+	?>
 </div>

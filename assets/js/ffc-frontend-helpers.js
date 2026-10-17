@@ -171,8 +171,8 @@ $inputs.each(function() {
                     
                     $(this).val(masked);
                     
-                    // Remove validation styling while typing
-                    $(this).removeClass('ffc-invalid ffc-valid');
+                    // A new value withdraws the verdict on the old one.
+                    window.FFC.clearFieldMessage(this);
                     if (this.setCustomValidity) {
                         this.setCustomValidity('');
                     }
@@ -184,8 +184,7 @@ $inputs.each(function() {
                     
                     // Skip if empty (not required check)
                     if (value.length === 0) {
-                        $(this).removeClass('ffc-invalid ffc-valid').removeAttr('aria-invalid aria-describedby');
-                        $(this).next('.ffc-field-error').remove();
+                        window.FFC.clearFieldMessage(this);
                         if (this.setCustomValidity) {
                             this.setCustomValidity('');
                         }
@@ -223,10 +222,6 @@ $inputs.each(function() {
                         errorMsg = strings.enterValidCpfRf || 'Enter a valid CPF (11 digits) or RF (7 digits)';
                     }
                     
-                    // Apply visual feedback with ARIA
-                    var inputId = $(this).attr('id') || $(this).attr('name') || 'cpfrf';
-                    var errorId = 'ffc-error-' + inputId;
-
                     // The browser's own validation carries the verdict, so an
                     // invalid CPF/RF blocks the submit instead of reaching the
                     // server first (#1734).
@@ -234,26 +229,17 @@ $inputs.each(function() {
                         this.setCustomValidity(isValid ? '' : errorMsg);
                     }
 
+                    // The message and the state are the field-message
+                    // standard (#1844): its id is appended to the hint the
+                    // field already names, never put in its place. It stays
+                    // until the value changes, as long as the submit is blocked.
                     if (isValid) {
-                        $(this).removeClass('ffc-invalid').addClass('ffc-valid')
-                               .removeAttr('aria-invalid aria-describedby');
-                        $(this).next('.ffc-field-error').fadeOut(function() { $(this).remove(); });
+                        window.FFC.fieldMessage(this, 'valid');
                     } else {
-                        $(this).removeClass('ffc-valid').addClass('ffc-invalid')
-                               .attr('aria-invalid', 'true')
-                               .attr('aria-describedby', errorId);
-
-                        // Show error message near field
-                        var $errorSpan = $(this).next('.ffc-field-error');
-                        if ($errorSpan.length === 0) {
-                            $errorSpan = $('<span class="ffc-field-error" role="alert"></span>').insertAfter($(this));
-                        }
-                        // Stays until the value changes: the submit is blocked
-                        // for as long as it stands.
-                        $errorSpan.attr('id', errorId).text(errorMsg).fadeIn();
+                        window.FFC.fieldMessage(this, 'error', errorMsg);
                     }
                 });
-                
+
                 // Apply on paste
                 $input.on('paste.cpfrf', function() {
                     var $this = $(this);
@@ -268,14 +254,8 @@ $inputs.each(function() {
                 }
             });
             
-            // Add CSS for validation states if not exists
-            if (!$('#ffc-validation-styles').length) {
-                $('<style id="ffc-validation-styles">' +
-                    'input.ffc-valid { border-color: #00a32a !important; background: #f0f9ff; }' +
-                    'input.ffc-invalid { border-color: #d63638 !important; background: #fff3f3; }' +
-                    '.ffc-field-error { display: block; color: #d63638; font-size: 12px; margin-top: 5px; animation: ffcSlideDown 0.3s ease; }' +
-                '</style>').appendTo('head');
-            }
+            // The look of the states and of the message is the
+            // field-message standard in ffc-common.css (#1844).
         },
         
         /**
@@ -427,20 +407,6 @@ $inputs.each(function() {
      * UI MODULE
      * ==========================================================================
      */
-    /**
-     * Escape HTML entities to prevent XSS
-     * @param {string} str - String to escape
-     * @returns {string} Escaped string
-     */
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str).replace(/&/g, '&amp;')
-                          .replace(/</g, '&lt;')
-                          .replace(/>/g, '&gt;')
-                          .replace(/"/g, '&quot;')
-                          .replace(/'/g, '&#39;');
-    }
-
     var UI = {
 
         /**
@@ -451,45 +417,26 @@ $inputs.each(function() {
          */
         showFormError: function($form, message) {
             // Remove existing error messages
-            $form.find('.ffc-form-error').remove();
-            
-            // Create error HTML with styling
-            var $error = $('<div class="ffc-form-error"></div>')
-                .css({
-                    'background': '#f8d7da',
-                    'color': '#721c24',
-                    'padding': '15px 20px',
-                    'margin': '0 0 20px 0',
-                    'border-radius': '5px',
-                    'border': '1px solid #f5c6cb',
-                    'font-size': '14px',
-                    'line-height': '1.5',
-                    'animation': 'ffcSlideDown 0.3s ease'
-                })
-                .html('<strong>' + (escapeHtml(message).indexOf('Error') === 0 ? '' : 'Error: ') + '</strong>' + escapeHtml(message));
-            
-            // Add slide down animation if not exists
-            if (!$('#ffc-slide-animation').length) {
-                $('<style id="ffc-slide-animation">@keyframes ffcSlideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }</style>')
-                    .appendTo('head');
-            }
-            
+            $form.find('[data-ffc-notice="form-error"]').remove();
+
+            var error = window.FFC.notice('danger', 'error', message, '', { role: 'alert', hook: 'form-error' });
+
             // Insert at top of form
-            $form.prepend($error);
-            
+            $form.prepend(error);
+
             // Scroll to error (smooth)
             $('html, body').animate({
-                scrollTop: $error.offset().top - 100
+                scrollTop: $(error).offset().top - 100
             }, 300);
-            
+
             // Auto-remove after 10 seconds
             setTimeout(function() {
-                $error.fadeOut(300, function() {
+                $(error).fadeOut(300, function() {
                     $(this).remove();
                 });
             }, 10000);
         },
-        
+
         /**
          * Show success message in form
          * 
@@ -498,31 +445,25 @@ $inputs.each(function() {
          */
         showFormSuccess: function($form, html) {
             // Remove existing messages
-            $form.find('.ffc-form-error, .ffc-form-success').remove();
-            
+            $form.find('[data-ffc-notice="form-error"], [data-ffc-notice="form-success"]').remove();
+
             // If html provided, use it directly
             if (html && html.trim().length > 0) {
                 $form.html(html);
                 return;
             }
-            
+
             // Otherwise show generic success
-            var $success = $('<div class="ffc-form-success"></div>')
-                .css({
-                    'background': '#d4edda',
-                    'color': '#155724',
-                    'padding': '20px',
-                    'margin': '0 0 20px 0',
-                    'border-radius': '5px',
-                    'border': '1px solid #c3e6cb',
-                    'text-align': 'center',
-                    'animation': 'ffcSlideDown 0.3s ease'
-                })
-                .html('<h3 style="margin: 0 0 10px 0; font-size: 20px;"><span class="ffc-icon-success" aria-hidden="true"></span>' + (ffc_ajax.strings.success || 'Success!') + '</h3><p style="margin: 0;">' + (ffc_ajax.strings.submissionSuccessful || 'Your submission was successful.') + '</p>');
-            
-            $form.html($success);
+            var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+            $form.html(window.FFC.notice(
+                'success',
+                'success',
+                strings.submissionSuccessful || 'Your submission was successful.',
+                strings.success || 'Success!',
+                { role: 'status', hook: 'form-success' }
+            ));
         },
-        
+
         /**
          * Hand the visitor a fresh challenge after the server refused one.
          *
@@ -597,16 +538,11 @@ $inputs.each(function() {
 
             // Clear and focus input
             if ($captchaInput.length) {
+                // The cleared, focused field is the whole cue. A yellow
+                // flash used to be painted inline here and never showed:
+                // `.ffc-captcha-row .ffc-input` sets its ground with
+                // `!important`, which beats an inline declaration (#1840).
                 $captchaInput.val('').focus();
-
-                // Add visual feedback (flash animation)
-                $captchaInput.css('background-color', '#fffbcc');
-                setTimeout(function() {
-                    $captchaInput.css({
-                        'background-color': '#fff',
-                        'transition': 'background-color 0.5s'
-                    });
-                }, 100);
             }
         },
 
@@ -648,57 +584,101 @@ $inputs.each(function() {
      */
     var RateLimit = {
         blocked: false,
-        waitSeconds: 0,
-        countdownInterval: null,
-        
+
         /**
-         * Show rate limit notice with countdown
-         * 
+         * The countdowns running now, one per refused form, so two forms on
+         * one page never share a notice, a timer or a button (#1846).
+         *
+         * @type {Array<{form: Element, stop: Function}>}
+         */
+        active: [],
+
+        /**
+         * Show the rate-limit notice with a countdown on the form that was
+         * refused, and hold its submit button until the wait is over.
+         *
+         * The form comes from the caller, the one whose submit got the
+         * refusal. It used to be `$('.ffc-form')`, a class no public form
+         * carries, so the certificate form never showed the notice (#1846).
+         *
          * @param {string} message - Rate limit message
          * @param {number} waitSeconds - Seconds to wait
+         * @param {jQuery|Element} form - The form that was refused
+         * @param {string} [label] - The button's label to restore at the end;
+         *                           defaults to its text now
          */
-        show: function(message, waitSeconds) {
+        show: function(message, waitSeconds, form, label) {
+            var $form = $(form).first();
+            if (!$form.length) {
+                return;
+            }
+            this.enable($form);
             this.blocked = true;
-            this.waitSeconds = waitSeconds;
 
-            var $form = $('.ffc-form');
-            var $btn = $form.find('button[type="submit"]');
-
-            // 6.6.4 Sprint 6 — compute the initial mm:ss synchronously
-            // so the user sees the actual remaining time on first paint
-            // instead of a "0:00" flicker that updates ~1s later.
-            var initialDisplay = this._formatRemaining(waitSeconds);
+            var self = this;
+            var $btn = $form.find('button[type="submit"]').first();
+            var restoreLabel = typeof label === 'string' ? label : $btn.text();
+            var remaining = Math.max(0, parseInt(waitSeconds, 10) || 0);
 
             // role="status" + aria-live="polite" so the countdown
             // changes are announced by screen readers without
             // interrupting their current speech (assertive would be
             // wrong for ticking values).
-            $form.prepend(
-                '<div class="ffc-rate-limit-notice" role="status" aria-live="polite">' +
-                    '<div class="ffc-rate-limit-icon ffc-icon-clock" aria-hidden="true"></div>' +
-                    '<div class="ffc-rate-limit-message">' +
-                        $('<span>').text(message)[0].outerHTML +
-                        ' <strong id="ffc-countdown">' + initialDisplay + '</strong>' +
-                    '</div>' +
-                '</div>'
-            );
+            var text = document.createElement('p');
+            var countdown = document.createElement('strong');
+            text.className = 'ffc-notice-text';
+            countdown.textContent = this._formatRemaining(remaining);
+            text.appendChild(document.createTextNode(message + ' '));
+            text.appendChild(countdown);
+            var notice = window.FFC.notice('warning', 'clock', '', '', {
+                role: 'status',
+                live: 'polite',
+                hook: 'rate-limit',
+                children: [text]
+            });
 
-            // Disable button with countdown — initial display already correct.
+            // A response to the submit, so it sits directly above the form,
+            // where the accessible alert goes too; the notices that frame the
+            // form (bypass, quiz, schedule) stay above the title (#1842).
+            $form.before(notice);
+
             var waitText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings.wait || 'Wait...' : 'Wait...';
-            $btn.prop('disabled', true).html(
-                $('<span>').text(waitText)[0].outerHTML
-                + ' (<span id="ffc-countdown-btn">' + initialDisplay + '</span>)'
-            );
+            var buttonCount = document.createElement('span');
+            buttonCount.textContent = this._formatRemaining(remaining);
+            $btn.prop('disabled', true).empty()
+                .append(document.createTextNode(waitText + ' ('), buttonCount, document.createTextNode(')'));
 
-            // Start countdown
-            this.startCountdown();
+            var timer = null;
+            var state = {
+                form: $form[0],
+                stop: function() {
+                    clearTimeout(timer);
+                    if (notice.parentNode) {
+                        notice.parentNode.removeChild(notice);
+                    }
+                    $btn.prop('disabled', false).text(restoreLabel);
+                }
+            };
+            this.active.push(state);
+
+            // show() painted the initial mm:ss synchronously; the first tick
+            // is one second later.
+            var tick = function() {
+                remaining--;
+                if (remaining <= 0) {
+                    self.enable($form);
+                    return;
+                }
+                countdown.textContent = self._formatRemaining(remaining);
+                buttonCount.textContent = countdown.textContent;
+                timer = setTimeout(tick, 1000);
+            };
+            timer = setTimeout(tick, 1000);
         },
 
         /**
          * 6.6.4 Sprint 6 — format seconds into mm:ss for the
-         * countdown display. Extracted so the initial render
-         * (synchronous, in show()) and the tick loop (async, in
-         * startCountdown()) share the formatting and never drift.
+         * countdown display, shared by the first paint and every tick.
          *
          * @param {number} remaining Seconds remaining.
          * @returns {string} mm:ss formatted.
@@ -709,44 +689,23 @@ $inputs.each(function() {
             var secs = remaining % 60;
             return mins + ':' + (secs < 10 ? '0' : '') + secs;
         },
-        
-        /**
-         * Start countdown timer
-         */
-        startCountdown: function() {
-            var self = this;
-            // 6.6.4 Sprint 6 — start from waitSeconds - 1 because show()
-            // already painted waitSeconds as the initial value. First
-            // tick happens 1 second after show().
-            var remaining = this.waitSeconds - 1;
 
-            var updateDisplay = function() {
-                if (remaining <= 0) {
-                    self.enable();
-                    return;
+        /**
+         * End the wait on one form: remove its notice and give its submit
+         * button back its label. Without a form, end every wait.
+         *
+         * @param {jQuery|Element} [form]
+         */
+        enable: function(form) {
+            var target = form ? $(form)[0] : null;
+            this.active = this.active.filter(function(state) {
+                if (target && state.form !== target) {
+                    return true;
                 }
-
-                var display = self._formatRemaining(remaining);
-                $('#ffc-countdown').text(display);
-                $('#ffc-countdown-btn').text(display);
-
-                remaining--;
-                setTimeout(updateDisplay, 1000);
-            };
-
-            // Schedule first tick 1s after the initial render. show()
-            // already painted the correct initial mm:ss synchronously.
-            setTimeout(updateDisplay, 1000);
-        },
-        
-        /**
-         * Enable form after rate limit expires
-         */
-        enable: function() {
-            this.blocked = false;
-            $('.ffc-rate-limit-notice').remove();
-            var sendText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings.send || 'Send' : 'Send';
-            $('.ffc-form button[type="submit"]').prop('disabled', false).text(sendText);
+                state.stop();
+                return false;
+            });
+            this.blocked = this.active.length > 0;
         }
     };
     

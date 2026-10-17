@@ -33,6 +33,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * address or the date -- and only to a manager who may see that on screen
  * (`ffc_view_date_messages_pii`, or an administrator). Every other manager on
  * the same rule receives the counts.
+ *
+ * AND THEY TRAVEL MASKED (#1863). An e-mail is a copy nobody can audit, so
+ * even the detailed list carries each name masked, with a link to the screen
+ * where the manager reveals it -- audited, like every other reveal.
  */
 final class Digest {
 
@@ -119,8 +123,9 @@ final class Digest {
 					'target_from' => $from,
 					'target_to'   => $to,
 					'counts'      => $counts,
-					'names'       => $may_see_names ? $names : null,
+					'names'       => $may_see_names ? array_map( array( \FreeFormCertificate\Core\DocumentFormatter::class, 'mask_name' ), $names ) : null,
 					'names_limit' => self::NAMES_LIMIT,
+					'screen_url'  => admin_url( 'admin.php?page=' . DateMessagesAdminPage::MENU_SLUG . '&tab=upcoming' ),
 				)
 			);
 

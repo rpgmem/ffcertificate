@@ -33,7 +33,7 @@ class AudienceAdminBookingsTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'selected' )->justReturn( '' );
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'date_i18n' )->alias( function ( $f, $t = null ) { return date( $f, $t ?? time() ); } );
 		Functions\when( 'get_option' )->justReturn( 'Y-m-d' );
 		Functions\when( 'wp_trim_words' )->returnArg();
@@ -49,10 +49,6 @@ class AudienceAdminBookingsTest extends TestCase {
 		// the check (false ⇒ button hidden) so the view renders without the
 		// real capability API.
 		Functions\when( 'current_user_can' )->justReturn( false );
-
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();

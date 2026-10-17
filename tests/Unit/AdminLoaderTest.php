@@ -44,6 +44,7 @@ class AdminLoaderTest extends TestCase {
 		'SettingsAjaxEndpoint',
 		'QrDesignPreviewAjaxEndpoint',
 		'FormMetaAjaxEndpoint',
+		'FormPublicCsvActions',
 		'LocationsAjaxEndpoint',
 		'CacheActionsAjaxEndpoint',
 		'FormFeaturesAjaxEndpoint',
@@ -79,6 +80,9 @@ class AdminLoaderTest extends TestCase {
 			Mockery::mock( 'alias:FreeFormCertificate\Admin\\' . $cls )
 				->shouldReceive( 'init' )->once();
 		}
+		// The record autosave endpoint lives in Core (#1757).
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RecordAutosave' )
+			->shouldReceive( 'init' )->once();
 	}
 
 	public function test_init_wires_every_admin_module_class(): void {

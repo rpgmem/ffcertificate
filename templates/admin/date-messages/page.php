@@ -7,6 +7,7 @@
  * @var string                                                $tab         Current tab: rules, edit, send, history, settings.
  * @var array<string, mixed>                                  $outcome     Outcome of the last write ('type', 'message', 'draft').
  * @var bool                                                  $can_manage  Whether the user may change anything.
+ * @var bool                                                  $can_test    Whether the user may send a test to themselves.
  * @var array<int, \FreeFormCertificate\DateMessages\Rule>    $rules       Every rule.
  * @var array<int, string>                                    $audiences   Audience id => indented name.
  * @var array<int, string>                                    $managers    User id => "Name <email>", on the editor only.
@@ -81,12 +82,9 @@ $ffc_dm_icons = array(
 
 	<?php if ( isset( $outcome['message'] ) && is_string( $outcome['message'] ) && '' !== $outcome['message'] ) : ?>
 		<?php
-		wp_admin_notice(
-			esc_html( $outcome['message'] ),
-			array(
-				'type'        => 'success' === ( $outcome['type'] ?? '' ) ? 'success' : 'error',
-				'dismissible' => true,
-			)
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'success' === ( $outcome['type'] ?? '' ) ? 'success' : 'error',
+			esc_html( $outcome['message'] )
 		);
 		?>
 	<?php endif; ?>

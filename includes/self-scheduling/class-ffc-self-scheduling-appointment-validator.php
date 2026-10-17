@@ -51,6 +51,25 @@ class AppointmentValidator {
 	private $waitlist_requested = false;
 
 	/**
+	 * The rules the last validate() let a bypass holder break (#1859).
+	 *
+	 * Each entry is `array{code: string, message: string}`, in the order the
+	 * checks run. The caller logs them once the booking is saved.
+	 *
+	 * @var list<array{code: string, message: string}>
+	 */
+	private $override_reasons = array();
+
+	/**
+	 * Set by {@see self::override_reasons()}: validate() then evaluates the
+	 * rules only — no capacity, identity or contact checks — and never asks
+	 * for the confirmation.
+	 *
+	 * @var bool
+	 */
+	private $collect_only = false;
+
+	/**
 	 * Constructor
 	 *
 	 * @param \FreeFormCertificate\Repositories\AppointmentRepository $appointment_repository Appointment repository.
@@ -77,6 +96,22 @@ class AppointmentValidator {
 		$has_bypass               = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
 		$is_custom                = 'custom' === ( $calendar['schedule_type'] ?? 'regular' );
 		$this->waitlist_requested = false;
+		$this->override_reasons   = array();
+
+		// A rule a bypass holder may break (#1859). Without the bypass the
+		// first one refuses the booking, as before; with it, each is collected
+		// and the booking goes through only once the holder confirms them all.
+		$reasons = array();
+		$rule    = static function ( \WP_Error $error ) use ( $has_bypass, &$reasons ): ?\WP_Error {
+			if ( ! $has_bypass ) {
+				return $error;
+			}
+			$reasons[] = array(
+				'code'    => (string) $error->get_error_code(),
+				'message' => $error->get_error_message(),
+			);
+			return null;
+		};
 
 		// 1. Validate required fields.
 		if ( empty( $data['appointment_date'] ) || empty( $data['start_time'] ) ) {
@@ -97,48 +132,64 @@ class AppointmentValidator {
 		$now                   = time();
 		$appointment_timestamp = self::wall_clock_to_timestamp( $data['appointment_date'], $data['start_time'] );
 
-		if ( $appointment_timestamp < $now && ! $has_bypass ) {
-			return new \WP_Error( 'past_date', __( 'Cannot book appointments in the past.', 'ffcertificate' ) );
+		if ( $appointment_timestamp < $now ) {
+			$refused = $rule( new \WP_Error( 'past_date', __( 'Cannot book appointments in the past.', 'ffcertificate' ) ) );
+			if ( $refused ) {
+				return $refused;
+			}
 		}
 
-		// 5. Validate advance booking window (minimum) - bypass skips.
-		if ( ! $has_bypass && $calendar['advance_booking_min'] > 0 ) {
+		// 5. Validate advance booking window (minimum) - bypass confirms.
+		if ( $calendar['advance_booking_min'] > 0 ) {
 			$min_advance = $now + ( $calendar['advance_booking_min'] * 3600 );
 			if ( $appointment_timestamp < $min_advance ) {
-				return new \WP_Error(
-					'too_soon',
-					sprintf(
-						/* translators: %d: minimum number of hours for advance booking */
-						__( 'Appointments must be booked at least %d hours in advance.', 'ffcertificate' ),
-						$calendar['advance_booking_min']
+				$refused = $rule(
+					new \WP_Error(
+						'too_soon',
+						sprintf(
+							/* translators: %d: minimum number of hours for advance booking */
+							__( 'Appointments must be booked at least %d hours in advance.', 'ffcertificate' ),
+							$calendar['advance_booking_min']
+						)
 					)
 				);
+				if ( $refused ) {
+					return $refused;
+				}
 			}
 		}
 
-		// 6. Validate advance booking window (maximum) - bypass skips. Not applied
-		// in custom mode (#941): the bookable dates are explicit by construction.
-		if ( ! $has_bypass && ! $is_custom && $calendar['advance_booking_max'] > 0 ) {
+		// 6. Validate advance booking window (maximum) - bypass confirms. Not
+		// applied in custom mode (#941): the bookable dates are explicit by construction.
+		if ( ! $is_custom && $calendar['advance_booking_max'] > 0 ) {
 			$max_advance = $now + ( $calendar['advance_booking_max'] * 86400 );
 			if ( $appointment_timestamp > $max_advance ) {
-				return new \WP_Error(
-					'too_far',
-					sprintf(
-						/* translators: %d: maximum number of days for advance booking */
-						__( 'Appointments cannot be booked more than %d days in advance.', 'ffcertificate' ),
-						$calendar['advance_booking_max']
+				$refused = $rule(
+					new \WP_Error(
+						'too_far',
+						sprintf(
+							/* translators: %d: maximum number of days for advance booking */
+							__( 'Appointments cannot be booked more than %d days in advance.', 'ffcertificate' ),
+							$calendar['advance_booking_max']
+						)
 					)
 				);
+				if ( $refused ) {
+					return $refused;
+				}
 			}
 		}
 
-		// 7. Check global holidays and blocked dates (bypass skips)
-		if ( ! $has_bypass ) {
-			if ( \FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday( $data['appointment_date'] ) ) {
-				return new \WP_Error( 'date_blocked', __( 'This date is a holiday.', 'ffcertificate' ) );
+		// 7. Check global holidays and blocked dates (bypass confirms).
+		if ( \FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday( $data['appointment_date'] ) ) {
+			$refused = $rule( new \WP_Error( 'date_blocked', __( 'This date is a holiday.', 'ffcertificate' ) ) );
+			if ( $refused ) {
+				return $refused;
 			}
-			if ( $this->blocked_date_repository->isDateBlocked( $data['calendar_id'], $data['appointment_date'], $data['start_time'] ) ) {
-				return new \WP_Error( 'date_blocked', __( 'This date/time is not available.', 'ffcertificate' ) );
+		} elseif ( $this->blocked_date_repository->isDateBlocked( $data['calendar_id'], $data['appointment_date'], $data['start_time'] ) ) {
+			$refused = $rule( new \WP_Error( 'date_blocked', __( 'This date/time is not available.', 'ffcertificate' ) ) );
+			if ( $refused ) {
+				return $refused;
 			}
 		}
 
@@ -156,39 +207,48 @@ class AppointmentValidator {
 			}
 			$slot_capacity = (int) $block['capacity'];
 		} else {
-			if ( ! $has_bypass && ! $this->is_within_working_hours( $data['appointment_date'], $data['start_time'], $calendar ) ) {
-				return new \WP_Error( 'outside_hours', __( 'Selected time is outside working hours.', 'ffcertificate' ) );
+			if ( ! $this->is_within_working_hours( $data['appointment_date'], $data['start_time'], $calendar ) ) {
+				$refused = $rule( new \WP_Error( 'outside_hours', __( 'Selected time is outside working hours.', 'ffcertificate' ) ) );
+				if ( $refused ) {
+					return $refused;
+				}
 			}
 			$slot_capacity = (int) $calendar['max_appointments_per_slot'];
 		}
 
 		// 8b. Per-user block cap (#941 phase 3) — custom mode only. Counts the
-		// user's active + waitlisted bookings in this calendar; bypass skips.
-		if ( $is_custom && ! $has_bypass ) {
+		// user's active + waitlisted bookings in this calendar; bypass confirms.
+		if ( $is_custom ) {
 			$block_cap = (int) ( $calendar['max_blocks_per_user'] ?? 0 );
 			if ( $block_cap > 0 ) {
 				$identifier = $this->resolve_user_identifier( $data );
 				if ( null !== $identifier && $this->count_user_blocks( $identifier, (int) $data['calendar_id'] ) >= $block_cap ) {
-					return new \WP_Error(
-						'block_limit',
-						sprintf(
-							/* translators: %d: maximum number of bookings */
-							_n(
-								'You have reached the maximum of %d booking for this calendar.',
-								'You have reached the maximum of %d bookings for this calendar.',
-								$block_cap,
-								'ffcertificate'
-							),
-							$block_cap
+					$refused = $rule(
+						new \WP_Error(
+							'block_limit',
+							sprintf(
+								/* translators: %d: maximum number of bookings */
+								_n(
+									'You have reached the maximum of %d booking for this calendar.',
+									'You have reached the maximum of %d bookings for this calendar.',
+									$block_cap,
+									'ffcertificate'
+								),
+								$block_cap
+							)
 						)
 					);
+					if ( $refused ) {
+						return $refused;
+					}
 				}
 			}
 		}
 
 		// 9. Check slot/block capacity. Enforced for everyone EXCEPT holders of the
-		// dedicated overbook capability (#941) — the one manual override.
-		if ( ! current_user_can( 'ffc_bypass_appointment_capacity' ) ) {
+		// dedicated overbook capability (#941) — the one manual override. Never
+		// part of the bypass, and not part of a rules-only read (#1859).
+		if ( ! $this->collect_only && ! current_user_can( 'ffc_bypass_appointment_capacity' ) ) {
 			$is_available = $this->appointment_repository->isSlotAvailable(
 				$data['calendar_id'],
 				$data['appointment_date'],
@@ -208,17 +268,20 @@ class AppointmentValidator {
 			}
 		}
 
-		// 10. Check daily limit — bypass skips. Not applied in custom mode (#941):
+		// 10. Check daily limit — bypass confirms. Not applied in custom mode (#941):
 		// per-block capacity is the control, not a per-date total.
-		if ( ! $has_bypass && ! $is_custom && $calendar['slots_per_day'] > 0 ) {
+		if ( ! $is_custom && $calendar['slots_per_day'] > 0 ) {
 			$daily_count = $this->get_daily_appointment_count( $data['calendar_id'], $data['appointment_date'], $use_lock );
 			if ( $daily_count >= $calendar['slots_per_day'] ) {
-				return new \WP_Error( 'daily_limit', __( 'Daily booking limit reached for this date.', 'ffcertificate' ) );
+				$refused = $rule( new \WP_Error( 'daily_limit', __( 'Daily booking limit reached for this date.', 'ffcertificate' ) ) );
+				if ( $refused ) {
+					return $refused;
+				}
 			}
 		}
 
-		// 11. Check minimum interval between bookings — bypass skips.
-		if ( ! $has_bypass && ! empty( $calendar['minimum_interval_between_bookings'] ) && $calendar['minimum_interval_between_bookings'] > 0 ) {
+		// 11. Check minimum interval between bookings — bypass confirms.
+		if ( ! empty( $calendar['minimum_interval_between_bookings'] ) && $calendar['minimum_interval_between_bookings'] > 0 ) {
 			$user_identifier = null;
 
 			if ( ! empty( $data['user_id'] ) ) {
@@ -234,9 +297,42 @@ class AppointmentValidator {
 				$interval_check = $this->check_booking_interval( $user_identifier, $data['calendar_id'], $interval_hours );
 
 				if ( is_wp_error( $interval_check ) ) {
-					return $interval_check;
+					$refused = $rule( $interval_check );
+					if ( $refused ) {
+						return $refused;
+					}
 				}
 			}
+		}
+
+		// Business hours restriction for booking — bypass confirms.
+		if ( ! empty( $calendar['restrict_booking_to_hours'] ) ) {
+			$working_hours = $calendar['working_hours'] ?? array();
+			if ( ! empty( $working_hours ) ) {
+				$now          = current_time( 'mysql' );
+				$now_ts_raw   = strtotime( $now );
+				$now_ts       = $now_ts_raw ? $now_ts_raw : time();
+				$current_date = gmdate( 'Y-m-d', $now_ts );
+				$current_time = gmdate( 'H:i', $now_ts );
+
+				$is_working_day  = \FreeFormCertificate\Scheduling\WorkingHoursService::is_working_day( $current_date, $working_hours );
+				$is_within_hours = \FreeFormCertificate\Scheduling\WorkingHoursService::is_within_working_hours( $current_date, $current_time, $working_hours );
+
+				if ( ! $is_working_day || ! $is_within_hours ) {
+					$refused = $rule( new \WP_Error( 'outside_business_hours', __( 'Booking is available only during business hours.', 'ffcertificate' ) ) );
+					if ( $refused ) {
+						return $refused;
+					}
+				}
+			}
+		}
+
+		$this->override_reasons = $reasons;
+
+		// A rules-only read stops here: the identity and contact checks below
+		// belong to the booking itself.
+		if ( $this->collect_only ) {
+			return true;
 		}
 
 		// 12. Validate user permissions (capability AND calendar config)
@@ -253,25 +349,6 @@ class AppointmentValidator {
 		$scheduling_visibility = $calendar['scheduling_visibility'] ?? 'public';
 		if ( 'private' === $scheduling_visibility && ! is_user_logged_in() && ! $has_bypass ) {
 			return new \WP_Error( 'login_required', __( 'You must be logged in to book this calendar.', 'ffcertificate' ) );
-		}
-
-		// Business hours restriction for booking — bypass skips.
-		if ( ! $has_bypass && ! empty( $calendar['restrict_booking_to_hours'] ) ) {
-			$working_hours = $calendar['working_hours'] ?? array();
-			if ( ! empty( $working_hours ) ) {
-				$now          = current_time( 'mysql' );
-				$now_ts_raw   = strtotime( $now );
-				$now_ts       = $now_ts_raw ? $now_ts_raw : time();
-				$current_date = gmdate( 'Y-m-d', $now_ts );
-				$current_time = gmdate( 'H:i', $now_ts );
-
-				$is_working_day  = \FreeFormCertificate\Scheduling\WorkingHoursService::is_working_day( $current_date, $working_hours );
-				$is_within_hours = \FreeFormCertificate\Scheduling\WorkingHoursService::is_within_working_hours( $current_date, $current_time, $working_hours );
-
-				if ( ! $is_working_day || ! $is_within_hours ) {
-					return new \WP_Error( 'outside_business_hours', __( 'Booking is available only during business hours.', 'ffcertificate' ) );
-				}
-			}
 		}
 
 		// 13. Validate email (if not logged in)
@@ -297,7 +374,68 @@ class AppointmentValidator {
 			return new \WP_Error( 'invalid_cpf_rf', __( 'CPF/RF must be 7 digits (RF) or 11 digits (CPF).', 'ffcertificate' ) );
 		}
 
+		// A bypass holder breaking a rule confirms it explicitly (#1859).
+		// Without the flag nothing is saved, and the answer lists every reason.
+		if ( ! empty( $reasons ) && empty( $data['confirm_override'] ) ) {
+			return self::confirmation_required( $reasons );
+		}
+
 		return true;
+	}
+
+	/**
+	 * The rules a bypass holder would break with this booking (#1859).
+	 *
+	 * The read the booking form makes before it submits: it lets the warning
+	 * open, and the countdown run, before the captcha is spent on the real
+	 * submission. Empty for anyone without the bypass on this calendar —
+	 * they are refused by validate() instead — and for data too incomplete
+	 * to judge.
+	 *
+	 * @param array<string, mixed> $data     Appointment data (date, time, user).
+	 * @param array<string, mixed> $calendar Calendar configuration.
+	 * @return list<array{code: string, message: string}>
+	 */
+	public function override_reasons( array $data, array $calendar ): array {
+		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+		if ( ! \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id ) ) {
+			return array();
+		}
+
+		$this->collect_only = true;
+		try {
+			$result = $this->validate( $data, $calendar );
+		} finally {
+			$this->collect_only = false;
+		}
+
+		return true === $result ? $this->override_reasons : array();
+	}
+
+	/**
+	 * The rules the last validate() let a bypass holder break.
+	 *
+	 * @return list<array{code: string, message: string}>
+	 */
+	public function get_override_reasons(): array {
+		return $this->override_reasons;
+	}
+
+	/**
+	 * The refusal a bypass holder gets before confirming (#1859).
+	 *
+	 * @param list<array{code: string, message: string}> $reasons Every rule broken.
+	 * @return \WP_Error
+	 */
+	public static function confirmation_required( array $reasons ): \WP_Error {
+		return new \WP_Error(
+			'override_confirmation_required',
+			__( 'This booking breaks the calendar rules. Confirm to book anyway.', 'ffcertificate' ),
+			array(
+				'status'  => 409,
+				'reasons' => $reasons,
+			)
+		);
 	}
 
 	/**

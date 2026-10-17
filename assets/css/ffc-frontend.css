@@ -9,19 +9,16 @@
    1. CORE INPUT STYLE
    ========================================================================== */
 
-/* A control does not inherit the font: the browser gives fields and buttons
-   its own (Arial, or the system's), so the labels read in the form's font and
-   the fields beside them in another. The size, the weight and the line height
-   stay each control's own rule. */
-.ffc-shortcode :is(input, select, textarea, button) {
-    font-family: inherit;
-}
+/* The controls inherit the font from a rule in `ffc-common.css`, which every
+   `.ffc-shortcode` surface loads (#1826). */
 .ffc-shortcode .ffc-input {
     width: 100% !important; /* ← 100% of the field (already 450px) */
     max-width: none !important; /* ← Drops the old cap */
     height: 45px !important;
     padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) !important;
-    border: 1px solid var(--ffc-border) !important;
+    /* The field states in `ffc-common.css` set the custom property; the
+       `!important` here would otherwise hide them (#1844). */
+    border: 1px solid var(--ffc-field-state-border, var(--ffc-border)) !important;
     border-radius: var(--ffc-radius-sm) !important;
     font-size: var(--ffc-font-size-xl) !important;
     line-height: 1.5 !important;
@@ -60,9 +57,9 @@
     background: var(--ffc-bg-card);
     border-radius: var(--ffc-radius-lg);
     box-shadow: var(--ffc-shadow-md);
-    display: flex; /* ← CENTRALIZAÇÃO */
-    flex-direction: column; /* ← CENTRALIZAÇÃO */
-    align-items: center; /* ← CENTRALIZAÇÃO */
+    display: flex; /* ← centring */
+    flex-direction: column; /* ← centring */
+    align-items: center; /* ← centring */
 }
 
 .ffc-shortcode .ffc-form-title {
@@ -71,18 +68,26 @@
     color: var(--ffc-text);
     text-align: center;
     font-weight: 600;
-    width: 100%; /* ← Título pega largura total */
+    width: 100%; /* ← the title takes the full width */
 }
 
 /* ============================================
    FORM FIELDS
    ============================================ */
 .ffc-shortcode .ffc-submission-form {
-    width: 100%; /* ← Form pega largura total do wrapper */
+    width: 100%; /* ← the form takes the wrapper's full width */
     max-width: calc(var(--ffc-form-width) - 150px);
-    display: flex; /* ← CENTRALIZAÇÃO */
-    flex-direction: column; /* ← CENTRALIZAÇÃO */
-    align-items: stretch; /* ← Elementos pegam largura total */
+    display: flex; /* ← centring */
+    flex-direction: column; /* ← centring */
+    align-items: stretch; /* ← the children take the full width */
+}
+
+/* A system notice in the form card takes the form's column, so the notices
+   above the title line up with the fields below it (#1842). */
+.ffc-shortcode.ffc-form-wrapper > .ffc-notice {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: calc(var(--ffc-form-width) - 150px);
 }
 
 /* 6.7.1 — When the form is replaced by the success card (after submit,
@@ -98,7 +103,7 @@
 
 .ffc-shortcode .ffc-form-field {
     margin-bottom: var(--ffc-spacing-2xl);
-    width: 100%; /* ← Campo pega largura total do form (450px) */
+    width: 100%; /* ← the field takes the form's full width (450px) */
 }
 
 .ffc-shortcode .ffc-form-field label {
@@ -110,11 +115,18 @@
     text-transform: none;
 }
 
-.ffc-shortcode .ffc-form-field label .ffc-required,
-.ffc-shortcode .ffc-field-legend .ffc-required {
-    color: var(--ffc-danger);
-    font-weight: 700;
-    margin-left: 3px;
+/* The help line under a restriction field (the ticket code): the step the
+   consent description uses, instead of whatever the theme gives `p` (#1832). */
+.ffc-shortcode .ffc-restriction-field .description {
+    font-size: var(--ffc-font-size-sm);
+    line-height: 1.5;
+}
+
+/* The heading of the legacy verification result, which `ffc-frontend.js`
+   still builds when a response carries no `html` block. It had no rule at
+   all; the root net leaves headings alone, so it is named here (#1832). */
+.ffc-shortcode .ffc-verification-success h3 {
+    font-size: var(--ffc-font-size-xl);
 }
 
 .ffc-shortcode .ffc-radio-group {
@@ -154,30 +166,17 @@
     cursor: not-allowed;
 }
 
-.ffc-shortcode .ffc-field-hint,
-.ffc-shortcode .ffc-field-counter {
-    margin: var(--ffc-spacing-xs) 0 0;
-    font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-text-secondary);
-}
-
-.ffc-shortcode .ffc-field-legend + .ffc-field-hint {
-    margin: 0 0 var(--ffc-spacing-sm);
+/* The hint and the counter sit in `.ffc-field-foot`, under the control and
+   its message; their look is in `ffc-common.css` (#1844). */
+.ffc-shortcode .ffc-field-foot {
+    margin-top: var(--ffc-spacing-xs);
 }
 
 /* A control keeps the bottom margin every field has; what follows it
    directly is pulled up under it, so it reads as part of the field. */
-.ffc-shortcode .ffc-input + .ffc-length-counter,
-.ffc-shortcode .ffc-input + .ffc-field-hint {
+.ffc-shortcode .ffc-input + .ffc-field-message,
+.ffc-shortcode .ffc-input + .ffc-field-foot {
     margin-top: calc(var(--ffc-spacing-xl) * -1 + var(--ffc-spacing-xs));
-}
-
-.ffc-shortcode .ffc-length-counter {
-    text-align: right;
-}
-
-.ffc-shortcode .ffc-length-counter.is-below-min {
-    color: var(--ffc-warning-text);
 }
 
 /* Per-question verdict after a quiz attempt (#1730): the word carries the
@@ -210,29 +209,21 @@
     border-radius: var(--ffc-radius-sm);
     width: 100%;
     box-sizing: border-box;
-}
-
-/* 6.7.1 — Schedule-exception banner ON the form (#369 / 6.7.0). Distinct
-   from `.ffc-schedule-exception-block` on `/valid` (audit context). Pre-
-   6.7.1 the banner inherited only `.ffc-form-info-block` styling, which
-   left it (a) wider than the 450px form fields below — banner sits at
-   the form-wrapper level (~540px after padding) — and (b) typographically
-   loose because the base info-block sets no font-size and the inner
-   `<strong>` + `<p>` rendered at the WP theme default. Three overrides
-   below align it visually with the rest of the form and the `/valid`
-   notice patterns. */
-.ffc-shortcode .ffc-schedule-exception-banner {
-    max-width: calc(var(--ffc-form-width) - 150px);
-    margin-left: auto;
-    margin-right: auto;
-    border: 2px solid var(--ffc-primary);
-    border-left-width: 2px; /* override the 4px solid from .ffc-form-info-block */
-}
-
-.ffc-shortcode .ffc-schedule-exception-banner p {
-    margin: 0;
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
+}
+
+/* A theme that sizes `p` would otherwise win over the block's size, which is
+   how the quiz leave-window notice rendered larger than the form (#1828).
+   Named rather than inherited, so the typography budget still reads it. */
+.ffc-shortcode .ffc-form-info-block p {
+    margin: 0 0 var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-base);
+    line-height: inherit;
+}
+
+.ffc-shortcode .ffc-form-info-block p:last-child {
+    margin-bottom: 0;
 }
 
 .ffc-shortcode .ffc-info-title {
@@ -248,8 +239,12 @@
     color: var(--ffc-text-secondary);
 }
 
+/* The block's line height is restated on its paragraphs and list items: a
+   theme's `p { line-height }` sits on the tag and beats the inherited 1.6,
+   and this is text that runs over several lines (#1832). */
 .ffc-shortcode .ffc-info-content p {
     margin: 0 0 var(--ffc-spacing-sm) 0;
+    line-height: 1.6;
 }
 
 .ffc-shortcode .ffc-info-content p:last-child {
@@ -269,6 +264,12 @@
 .ffc-shortcode .ffc-info-content ol {
     margin: var(--ffc-spacing-sm) 0;
     padding-left: var(--ffc-spacing-2xl);
+}
+
+/* The block's list items, like its paragraphs, read the block's step (#1832). */
+.ffc-shortcode .ffc-info-content li {
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.6;
 }
 
 /* ============================================
@@ -358,12 +359,6 @@
 .ffc-shortcode .ffc-consent-text a:hover {
     color: var(--ffc-link-hover);
     text-decoration: none;
-}
-
-.ffc-shortcode .ffc-consent-text .ffc-required {
-    color: var(--ffc-danger);
-    font-weight: 700;
-    margin-left: 3px;
 }
 
 .ffc-shortcode .ffc-consent-description {
@@ -499,7 +494,7 @@ details.ffc-consent-description > p {
     margin-top: 25px;
     padding-top: 25px;
     border-top: 1px solid var(--ffc-border-light);
-    width: 100%; /* ← Pega largura total do form (450px) */
+    width: 100%; /* ← takes the form's full width (450px) */
 }
 
 /* .ffc-honeypot-field defined in ffc-common.css */
@@ -592,21 +587,21 @@ details.ffc-consent-description > p {
 
 .ffc-shortcode .ffc-captcha-row {
     margin-bottom: var(--ffc-spacing-2xl);
-    padding: var(--ffc-spacing-2xl); /* ← Padding confortável */
-    background: var(--ffc-primary-light); /* ← DESTAQUE: fundo azul claro */
-    border: 2px solid var(--ffc-primary); /* ← DESTAQUE: borda azul */
-    border-radius: var(--ffc-radius-lg); /* ← DESTAQUE: bordas arredondadas */
-    box-shadow: 0 2px 8px var(--ffc-focus-ring); /* ← DESTAQUE: sombra suave */
+    padding: var(--ffc-spacing-2xl); /* ← comfortable padding */
+    background: var(--ffc-primary-light); /* ← emphasis: a light accent ground */
+    border: 2px solid var(--ffc-primary); /* ← emphasis: an accent border */
+    border-radius: var(--ffc-radius-lg); /* ← emphasis: rounded corners */
+    box-shadow: 0 2px 8px var(--ffc-focus-ring); /* ← emphasis: a soft shadow */
     width: 100%; /* ← 100% do security-container (450px) */
-    box-sizing: border-box; /* ← Padding incluído na largura */
+    box-sizing: border-box; /* ← padding included in the width */
 }
 
 .ffc-shortcode .ffc-captcha-row label {
     display: block;
     margin-bottom: var(--ffc-spacing-md);
-    font-weight: 600; /* ← DESTAQUE: negrito mais forte */
-    color: var(--ffc-primary); /* ← DESTAQUE: cor azul */
-    font-size: var(--ffc-font-size-xl); /* ← DESTAQUE: fonte um pouco maior */
+    font-weight: 600; /* ← emphasis: a heavier weight */
+    color: var(--ffc-primary); /* ← emphasis: the accent colour */
+    font-size: var(--ffc-font-size-xl); /* ← emphasis: a slightly larger size */
 }
 
 .ffc-shortcode .ffc-captcha-row .ffc-input {
@@ -614,14 +609,14 @@ details.ffc-consent-description > p {
        repaints a control's ground carries both halves, so they cannot diverge
        later. A control does not inherit `color` (#1126). */
     color: var(--ffc-text);
-    border: 2px solid var(--ffc-primary) !important; /* ← DESTAQUE: borda azul mais grossa */
+    border: 2px solid var(--ffc-primary) !important; /* ← emphasis: a thicker accent border */
     background: var(--ffc-bg-input) !important;
-    margin-bottom: 0 !important; /* ← Remove margem inferior */
+    margin-bottom: 0 !important; /* ← no bottom margin */
 }
 
 .ffc-shortcode .ffc-captcha-row .ffc-input:focus {
-    border-color: var(--ffc-primary-hover); /* ← DESTAQUE: azul mais escuro no focus */
-    box-shadow: 0 0 0 3px var(--ffc-focus-ring); /* ← Sombra mais visível */
+    border-color: var(--ffc-primary-hover); /* ← emphasis: a darker accent on focus */
+    box-shadow: 0 0 0 3px var(--ffc-focus-ring); /* ← a more visible shadow */
 }
 
 /* ============================================
@@ -638,7 +633,7 @@ details.ffc-consent-description > p {
     font-weight: 600;
     cursor: pointer;
     transition: background var(--ffc-transition-slow), transform 0.1s;
-    box-sizing: border-box; /* ← Padding incluído */
+    box-sizing: border-box; /* ← padding included */
 }
 
 .ffc-shortcode .ffc-submit-btn:hover {
@@ -658,29 +653,6 @@ details.ffc-consent-description > p {
     background: var(--ffc-border);
     cursor: not-allowed;
     transform: none;
-}
-
-/* ============================================
-   MESSAGES
-   ============================================ */
-.ffc-shortcode .ffc-message {
-    margin-top: var(--ffc-spacing-2xl);
-    padding: var(--ffc-spacing-xl);
-    border-radius: var(--ffc-radius-sm);
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-}
-
-.ffc-shortcode .ffc-message.ffc-success {
-    background: var(--ffc-success-bg);
-    color: var(--ffc-success-text);
-    border: 1px solid var(--ffc-success-border);
-}
-
-.ffc-shortcode .ffc-message.ffc-error {
-    background: var(--ffc-danger-bg);
-    color: var(--ffc-danger-text);
-    border: 1px solid var(--ffc-danger-border);
 }
 
 /* ============================================
@@ -770,44 +742,6 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-verify-result {
     margin-top: var(--ffc-spacing-2xl);
     width: 100%;
-}
-
-.ffc-shortcode .ffc-verify-error {
-    padding: var(--ffc-spacing-xl);
-    background: var(--ffc-danger-bg);
-    color: var(--ffc-danger-text);
-    border: 1px solid var(--ffc-danger-border);
-    border-radius: var(--ffc-radius-sm);
-    font-size: var(--ffc-font-size-xl);
-}
-
-.ffc-shortcode .ffc-verify-success {
-    padding: var(--ffc-spacing-2xl);
-    background: var(--ffc-success-bg);
-    color: var(--ffc-success-text);
-    border: 1px solid var(--ffc-success-border);
-    border-radius: var(--ffc-radius-sm);
-}
-
-.ffc-shortcode .ffc-verify-success h3 {
-    margin: 0 0 var(--ffc-spacing-xl) 0;
-    font-size: var(--ffc-font-size-xl);
-}
-
-.ffc-shortcode .ffc-verify-success p {
-    margin: var(--ffc-spacing-md) 0;
-    font-size: var(--ffc-font-size-xl);
-}
-
-.ffc-shortcode .ffc-verify-success hr {
-    margin: var(--ffc-spacing-xl) 0;
-    border: none;
-    border-top: 1px solid var(--ffc-success-border);
-}
-
-.ffc-shortcode .ffc-verify-success h4 {
-    margin: var(--ffc-spacing-xl) 0 var(--ffc-spacing-md) 0;
-    font-size: var(--ffc-font-size-xl);
 }
 
 /* ============================================
@@ -1026,9 +960,8 @@ details.ffc-consent-description > p {
    Per-submission override audit block (#369 / 6.7.0). Wrapped in a
    soft-amber notice with a left border so it carries its own
    salience without needing the oversized explanatory paragraph
-   that pre-polish drafts shipped. Palette mirrors the existing
-   `.ffc-preflight-banner` (#dba617 / #fcf9e8 / #674008) for
-   plugin-wide consistency. The `<hr>` separator that used to
+   that pre-polish drafts shipped. It reads the warning tokens, like
+   the warning `.ffc-notice` (#1842). The `<hr>` separator that used to
    precede the block is intentionally removed — the colored card
    provides enough visual break from the rows above.
    ============================================ */
@@ -1154,41 +1087,6 @@ details.ffc-consent-description > p {
     margin: var(--ffc-spacing-2xl) 0 0 0;
     color: var(--ffc-text-muted);
     font-size: var(--ffc-font-size-lg);
-}
-
-/* Geofence blocked message */
-.ffc-shortcode .ffc-geofence-blocked {
-    background: var(--ffc-warning-bg);
-    border-left: 4px solid var(--ffc-warning-border);
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    margin: var(--ffc-spacing-2xl) 0;
-    border-radius: var(--ffc-radius-sm);
-}
-
-.ffc-shortcode .ffc-geofence-blocked p {
-    margin: 0;
-    color: var(--ffc-warning-text);
-    font-size: var(--ffc-font-size-base);
-}
-
-.ffc-shortcode .ffc-geofence-reload-btn {
-    margin-top: var(--ffc-spacing-lg);
-}
-
-/* Admin bypass message (informational - blue theme) */
-.ffc-shortcode .ffc-geofence-admin-bypass {
-    background: var(--ffc-info-bg);
-    border-left: 4px solid var(--ffc-info-border);
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    margin: 0 0 var(--ffc-spacing-2xl) 0;
-    border-radius: var(--ffc-radius-sm);
-}
-
-.ffc-shortcode .ffc-geofence-admin-bypass p {
-    margin: 0;
-    color: var(--ffc-info-text);
-    font-size: var(--ffc-font-size-base);
-    font-weight: 500;
 }
 
 /* [ffc_geofence]: the bypass shows as a badge over the content (#1668). */
@@ -1425,38 +1323,9 @@ details.ffc-consent-description > p {
     margin: var(--ffc-spacing-2xs) 0;
 }
 
-/* 6.6.4 — pre-flight permission banners (cookies / GPS).
-   Yellow warning, non-blocking visually but the form is hidden behind.
-   Includes a "try anyway" CTA so permissive users can proceed. */
-.ffc-preflight-banner {
-    border: 1px solid var(--ffc-warning-border);
-    background: var(--ffc-warning-bg);
-    color: var(--ffc-warning-text);
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-xl);
-    border-radius: var(--ffc-radius-md);
-    margin: var(--ffc-spacing-lg) 0;
-    text-align: left;
-}
-
-.ffc-preflight-banner-title {
-    display: block;
-    font-size: var(--ffc-font-size-lg);
-    margin-bottom: var(--ffc-spacing-xs);
-    color: var(--ffc-warning-text);
-}
-
-.ffc-preflight-banner-body,
-.ffc-preflight-banner-how {
-    margin: var(--ffc-spacing-xs) 0;
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-}
-
-.ffc-preflight-banner-how {
-    color: var(--ffc-warning-text);
-    font-style: italic;
-}
-
+/* 6.6.4 — the "try anyway" CTA of the pre-flight banners (cookies / GPS),
+   so permissive users can proceed. The banner itself is a warning
+   `.ffc-notice` (#1842). */
 .ffc-preflight-try-anyway {
     display: inline-block;
     margin-top: var(--ffc-spacing-md);
@@ -1633,33 +1502,6 @@ details.ffc-consent-description > p {
 
 .ffc-public-csv-download .ffc-info-list-locations li a:hover {
     text-decoration: underline;
-}
-
-/* Alerts */
-.ffc-public-csv-download .ffc-info-alert {
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
-    border-radius: var(--ffc-radius-sm, 6px);
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-    margin-top: var(--ffc-spacing-lg);
-}
-
-.ffc-public-csv-download .ffc-info-alert-warning {
-    background: var(--ffc-warning-bg);
-    border: 1px solid var(--ffc-warning-border);
-    color: var(--ffc-warning-text);
-}
-
-.ffc-public-csv-download .ffc-info-alert-info {
-    background: var(--ffc-info-bg);
-    border: 1px solid var(--ffc-info-border);
-    color: var(--ffc-info-text);
-}
-
-.ffc-public-csv-download .ffc-info-alert-success {
-    background: var(--ffc-success-bg);
-    border: 1px solid var(--ffc-success-border);
-    color: var(--ffc-success-text);
 }
 
 /* Action buttons */
@@ -1980,18 +1822,6 @@ details.ffc-consent-description > p {
     box-shadow: 0 0 0 3px var(--ffc-focus-ring);
 }
 
-/* Client-side validation error state — set via .ffc-extend-end-input-invalid
-   in ffc-csv-extend-end.js (was previously a JS inline border-color). */
-.ffc-extend-end-modal .ffc-extend-end-input-invalid {
-    border-color: var(--ffc-danger);
-}
-
-.ffc-extend-end-error {
-    margin: var(--ffc-spacing-xs) 0 0;
-    font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-danger);
-}
-
 .ffc-open-early-actions {
     display: flex;
     justify-content: flex-end;
@@ -2131,8 +1961,8 @@ details.ffc-consent-description > p {
 #ffc-preview-iframe {
     display: block;
     border: none;
-    /* Branco nos dois temas: o iframe mostra a pré-visualização do certificado,
-       e o papel do documento é branco por definição (#1126). */
+    /* White in both themes: the iframe shows the certificate preview, and the
+       document's paper is white by definition (#1126). */
     background: #fff;
 }
 
@@ -2169,60 +1999,9 @@ details.ffc-consent-description > p {
    Renders above [ffc_form] / [ffc_csv_download] when the page is
    loaded inside Facebook / Instagram / WhatsApp / Android WebView,
    inviting the user to switch to Chrome/Safari for a reliable
-   download. Visual matches the existing .ffc-info-alert family.
+   download. The banner is the shared `.ffc-notice` (#1842); only its
+   two buttons are styled here.
    ============================================ */
-
-.ffc-webview-warning {
-    display: flex;
-    gap: var(--ffc-spacing-xl);
-    align-items: flex-start;
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    margin: 0 0 var(--ffc-spacing-3xl) 0;
-    background: var(--ffc-warning-bg);
-    border: 1px solid var(--ffc-warning-border);
-    border-left: 4px solid var(--ffc-warning);
-    border-radius: var(--ffc-radius-lg);
-    box-shadow: var(--ffc-shadow-sm);
-}
-
-/* 26px literal: the warning icon's glyph — a glyph box, not text. Same
-   reason as .ffc-open-early-close above. */
-.ffc-webview-warning-icon {
-    font-size: 26px;
-    line-height: 1;
-    color: var(--ffc-warning-text);
-    flex-shrink: 0;
-}
-
-.ffc-webview-warning-icon::before {
-    margin-right: 0;
-}
-
-.ffc-webview-warning-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.ffc-webview-warning-content h3 {
-    margin: 0 0 var(--ffc-spacing-xs) 0;
-    font-size: var(--ffc-font-size-lg);
-    font-weight: 600;
-    color: var(--ffc-warning-text);
-    line-height: 1.3;
-}
-
-.ffc-webview-warning-content p {
-    margin: 0 0 var(--ffc-spacing-lg) 0;
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-    color: var(--ffc-text);
-}
-
-.ffc-webview-warning-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--ffc-spacing-md);
-}
 
 .ffc-webview-warning-open,
 .ffc-webview-warning-dismiss {
@@ -2260,15 +2039,6 @@ details.ffc-consent-description > p {
 }
 
 @media (max-width: 600px) {
-    .ffc-webview-warning {
-        flex-direction: column;
-        gap: var(--ffc-spacing-sm);
-        padding: var(--ffc-spacing-xl);
-    }
-    .ffc-webview-warning-actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
     .ffc-webview-warning-open,
     .ffc-webview-warning-dismiss {
         width: 100%;
@@ -2277,84 +2047,36 @@ details.ffc-consent-description > p {
 }
 
 /* ============================================
-   v6.3.10 - "Already submitted" friendly notice (ffc-already-submitted-notice.js)
-   Soft info banner shown above the certificate form when this device has
-   succeeded submitting the same form_id before. Visual sibling of the
-   v6.3.7 .ffc-webview-warning, but in an info-blue tone instead of warning
-   amber, since this isn't a problem — it's a heads-up for users who
-   wandered back looking to re-download their certificate.
+   v6.3.10 - "Already submitted" notice (ffc-already-submitted-notice.js):
+   its dismiss button. The notice itself is an info `.ffc-notice` (#1842).
    ============================================ */
-
-.ffc-already-submitted-notice {
-    display: flex;
-    gap: var(--ffc-spacing-xl);
-    align-items: flex-start;
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    margin: 0 0 var(--ffc-spacing-3xl) 0;
-    background: var(--ffc-info-bg);
-    border: 1px solid var(--ffc-info-border);
-    border-left: 4px solid var(--ffc-primary);
-    border-radius: var(--ffc-radius-lg);
-    box-shadow: var(--ffc-shadow-sm);
-}
-
-.ffc-already-submitted-icon {
-    font-size: var(--ffc-font-size-2xl);
-    line-height: 1;
-    color: var(--ffc-primary);
-    flex-shrink: 0;
-    font-weight: 700;
-}
-
-.ffc-already-submitted-icon::before {
-    margin-right: 0;
-}
-
-.ffc-already-submitted-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.ffc-already-submitted-content h3 {
-    margin: 0 0 var(--ffc-spacing-xs) 0;
-    font-size: var(--ffc-font-size-lg);
-    font-weight: 600;
-    color: var(--ffc-info-text);
-    line-height: 1.3;
-}
-
-.ffc-already-submitted-content p {
-    margin: 0 0 var(--ffc-spacing-lg) 0;
-    font-size: var(--ffc-font-size-base);
-    line-height: 1.5;
-    color: var(--ffc-info-text);
-}
 
 .ffc-already-submitted-dismiss {
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-sm);
     font-weight: 600;
     background: transparent;
-    color: var(--ffc-primary);
+    color: var(--ffc-info-text);
     border: 1px solid var(--ffc-info-border);
     border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     transition: background var(--ffc-transition-base), border-color var(--ffc-transition-base);
 }
 
+/* The button follows the notice's info tone, which Public Design may set,
+   rather than the accent (#1842). */
 .ffc-already-submitted-dismiss:hover,
 .ffc-already-submitted-dismiss:focus-visible {
-    background: var(--ffc-primary-light);
-    border-color: var(--ffc-primary);
-    outline: none;
+    background: var(--ffc-bg-card);
+    color: var(--ffc-info-text);
+}
+
+.ffc-already-submitted-dismiss:focus-visible {
+    outline: 2px solid var(--ffc-info-border);
+    outline-offset: 1px;
 }
 
 @media (max-width: 600px) {
-    .ffc-already-submitted-notice {
-        flex-direction: column;
-        gap: var(--ffc-spacing-sm);
-        padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
-    }
     .ffc-already-submitted-dismiss {
         width: 100%;
         text-align: center;
@@ -2368,7 +2090,7 @@ details.ffc-consent-description > p {
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    /* Controls: without a contour, a button stops looking clickable. */
     .ffc-extend-end-modal .ffc-info-btn-primary,
     .ffc-open-early-modal .ffc-info-btn-primary,
     .ffc-public-csv-download .ffc-info-btn-primary,
@@ -2408,4 +2130,13 @@ details.ffc-consent-description > p {
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
     color: var(--ffc-text);
+}
+
+/* Schedule-exception modal: the validation line under the two time fields.
+   It lived in a `style=""` attribute until #1837; the selector outranks
+   `.ffc-open-early-body p`, whose margin the attribute used to beat. */
+.ffc-open-early-body .ffc-schedule-exception-error {
+    margin: var(--ffc-spacing-xs) 0 0;
+    color: var(--ffc-danger);
+    font-size: var(--ffc-font-size-sm);
 }

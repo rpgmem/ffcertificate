@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for includes/self-scheduling/views/appointments-list.php.
@@ -62,9 +63,6 @@ class AppointmentsListViewTest extends TestCase {
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( null );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 	}
 
 	protected function tearDown(): void {
@@ -205,18 +203,9 @@ class AppointmentsListViewTest extends TestCase {
 			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
 			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
-		// #739 §3.3 — the detail view resolves a PII tier; pin it unmasked.
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Core\PiiAccessPolicy' => array(
-					'TIER_UNMASKED' => 'unmasked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_MASKED'   => 'masked',
-				),
-			)
-		);
+		// #739 §3.3 — the detail view asks whether the viewer may reveal PII.
 		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-			->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
+			->shouldReceive( 'can_reveal' )->andReturn( true );
 
 		$appt = array(
 			'id'               => 5,
@@ -247,9 +236,28 @@ class AppointmentsListViewTest extends TestCase {
 		$this->assertStringContainsString( 'Alice', $out );
 	}
 
-	public function test_view_appointment_detail_reveal_tier_masks_with_button(): void {
+	/**
+	 * Render the detail view of appointment 5 under the REAL PII policy and
+	 * the REAL mask helpers, with the viewer's tier chosen through `user_can`.
+	 *
+	 * @param string               $tier unmasked | reveal | masked.
+	 * @param array<string, mixed> $pii  The decrypted email / cpf / rf.
+	 * @return string The rendered HTML.
+	 */
+	private function render_detail_as( string $tier, array $pii ): string {
 		$_GET['appointment'] = '5';
 		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
+		// manage_options is the unmasked tier; the domain PII cap alone is
+		// the reveal tier; neither is the masked tier (PiiAccessPolicy::resolve).
+		Functions\when( 'user_can' )->alias(
+			static function ( $uid, $cap ) use ( $tier ) {
+				if ( 'manage_options' === $cap ) {
+					return 'unmasked' === $tier;
+				}
+				return 'ffc_view_appointments_pii' === $cap && 'reveal' === $tier;
+			}
+		);
 
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
@@ -259,35 +267,19 @@ class AppointmentsListViewTest extends TestCase {
 			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
 			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
-		Mockery::getConfiguration()->setConstantsMap(
+		$appt = array_merge(
 			array(
-				'FreeFormCertificate\Core\PiiAccessPolicy' => array(
-					'TIER_UNMASKED' => 'unmasked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_MASKED'   => 'masked',
-				),
-			)
-		);
-		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-			->shouldReceive( 'resolve' )->andReturn( 'reveal' );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
-			->shouldReceive( 'mask_email' )->andReturn( 'm***@x.com' )
-			->shouldReceive( 'mask_cpf' )->andReturn( '***.***.**1-01' )
-			->shouldReceive( 'mask_rf' )->andReturn( '**.***.**8' )
-			->shouldReceive( 'format_document' )->andReturn( 'PLAIN' );
-
-		$appt = array(
-			'id'               => 5,
-			'status'           => 'confirmed',
-			'calendar_id'      => 7,
-			'appointment_date' => '2026-05-20',
-			'start_time'       => '09:00:00',
-			'end_time'         => '10:00:00',
-			'name'             => 'Alice',
-			'created_at'       => '2026-05-01',
-			'email'            => 'alice@x.com',
-			'cpf'              => '51817842080',
+				'id'               => 5,
+				'status'           => 'confirmed',
+				'calendar_id'      => 7,
+				'appointment_date' => '2026-05-20',
+				'start_time'       => '09:00:00',
+				'end_time'         => '10:00:00',
+				'name'             => 'Alice',
+				'created_at'       => '2026-05-01',
+				'user_id'          => 42,
+			),
+			$pii
 		);
 		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
 		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( $appt );
@@ -300,12 +292,76 @@ class AppointmentsListViewTest extends TestCase {
 
 		ob_start();
 		$this->include_view();
-		$out = ob_get_clean();
+		return (string) ob_get_clean();
+	}
 
-		$this->assertStringContainsString( 'ffc-reveal-pii', $out );
-		$this->assertStringContainsString( 'data-type="appointment"', $out );
-		$this->assertStringContainsString( 'ffc-pii-value', $out );
-		$this->assertStringContainsString( 'm***@x.com', $out );
+	/**
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public function tier_provider(): array {
+		return array(
+			'unmasked tier: masked, with a button' => array( 'unmasked', true ),
+			'reveal tier: masked, with a button'   => array( 'reveal', true ),
+			'masked tier: masked, no button'       => array( 'masked', false ),
+		);
+	}
+
+	/**
+	 * #1813 — every tier sees the masked value, the unmasked one included;
+	 * whoever may reveal gets the button, and the clear value never reaches
+	 * the HTML.
+	 *
+	 * @dataProvider tier_provider
+	 */
+	public function test_view_appointment_detail_masks_pii_for_every_tier( string $tier, bool $has_button ): void {
+		$out = $this->render_detail_as(
+			$tier,
+			array(
+				'email' => 'alice@example.com',
+				'cpf'   => Identifiers::CPF_A,
+				'rf'    => Identifiers::RF_A,
+			)
+		);
+
+		// The existing masked formats, from the real DocumentFormatter.
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">a***@example.com</span>', $out );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="cpf">518.***.***-80</span>', $out );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="rf">518.***.0</span>', $out );
+
+		// The clear value is absent, raw or formatted.
+		$this->assertStringNotContainsString( 'alice@example.com', $out );
+		$this->assertStringNotContainsString( Identifiers::CPF_A, $out );
+		$this->assertStringNotContainsString( '518.178.420-80', $out );
+		$this->assertStringNotContainsString( Identifiers::RF_A, $out );
+
+		preg_match_all( '/<button[^>]*class="button button-small ffc-reveal-pii ffc-icon-eye"[^>]*>/', $out, $buttons );
+		if ( $has_button ) {
+			$this->assertCount( 3, $buttons[0] );
+			foreach ( array( 'email', 'cpf', 'rf' ) as $field ) {
+				$this->assertStringContainsString(
+					'class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="appointment" data-field="' . $field . '" data-submission-id="5" data-nonce="nonce123"',
+					$out
+				);
+			}
+		} else {
+			$this->assertSame( array(), $buttons[0] );
+			$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
+			$this->assertStringNotContainsString( 'nonce123', $out );
+		}
+	}
+
+	/**
+	 * An empty value renders a dash and offers nothing to reveal, even to a
+	 * viewer who may reveal; absent CPF and RF rows are not drawn at all.
+	 */
+	public function test_view_appointment_detail_empty_pii_shows_dash_without_button(): void {
+		$out = $this->render_detail_as( 'unmasked', array( 'email' => '' ) );
+
+		$this->assertStringContainsString( '<tr><th>E-mail</th><td>-</td></tr>', $out );
+		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
+		$this->assertStringNotContainsString( 'ffc-pii-value', $out );
+		$this->assertStringNotContainsString( '<tr><th>CPF</th>', $out );
+		$this->assertStringNotContainsString( '<tr><th>RF</th>', $out );
 	}
 
 	public function test_view_detail_not_found_shows_notice(): void {
@@ -350,11 +406,39 @@ class AppointmentsListViewTest extends TestCase {
 		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
 		$cal_repo->shouldReceive( 'getActiveCalendars' )->andReturn( array() );
 
+		// The list's "Reveal this page" asks the policy (#1863); this viewer
+		// holds the appointments PII cap.
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_appointments_pii' === $cap );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'page-nonce' );
+
 		ob_start();
 		$this->include_view();
 		$out = ob_get_clean();
 
 		$this->assertStringContainsString( 'Appointments', $out );
 		$this->assertStringContainsString( 'Export CSV', $out );
+		$this->assertStringContainsString( 'class="button ffc-reveal-pii-page ffc-icon-eye" data-nonce="page-nonce"', $out );
+	}
+
+	public function test_the_list_offers_no_page_reveal_without_the_pii_cap(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturn( '' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
+		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appt_repo->shouldReceive( 'findAll' )->andReturn( array() );
+		$appt_repo->shouldReceive( 'count' )->andReturn( 0 );
+		Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' )
+			->shouldReceive( 'getActiveCalendars' )->andReturn( array() );
+		Functions\when( 'user_can' )->justReturn( false );
+
+		ob_start();
+		$this->include_view();
+		$out = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'ffc-reveal-pii-page', $out );
 	}
 }

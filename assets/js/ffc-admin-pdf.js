@@ -7,7 +7,7 @@
  * Dependencies:
  * - jQuery
  * - WordPress Media API (wp.media)
- * - FFC Core (for notifications via window.FFC.Admin.showNotification)
+ * - FFC Core (for notifications via window.FFC.Admin.notify)
  * - window.ffcGeneratePDF() - Shared PDF generator module
  *
  * @since 3.1.0
@@ -78,12 +78,12 @@
         // tripped CodeQL's "DOM text reinterpreted as HTML" sink even
         // though the strings come from wp_localize_script.
         var $modal = $(
-            '<div id="ffc-template-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-template-modal-title" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;">' +
-                '<div style="background:#fff;padding:30px;border-radius:8px;max-width:500px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.3);">' +
-                    '<h2 id="ffc-template-modal-title" style="margin:0 0 20px 0;font-size:20px;"></h2>' +
-                    '<div class="ffc-template-list" style="max-height:400px;overflow-y:auto;"></div>' +
-                    '<div style="margin-top:20px;text-align:right;">' +
-                        '<button id="ffc-modal-cancel" class="button" style="margin-right:10px;"></button>' +
+            '<div id="ffc-template-modal" class="ffc-template-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-template-modal-title">' +
+                '<div class="ffc-template-modal-box">' +
+                    '<h2 id="ffc-template-modal-title" class="ffc-template-modal-title"></h2>' +
+                    '<div class="ffc-template-list"></div>' +
+                    '<div class="ffc-template-modal-actions">' +
+                        '<button id="ffc-modal-cancel" class="button"></button>' +
                     '</div>' +
                 '</div>' +
             '</div>'
@@ -96,9 +96,9 @@
         var customBadge = strings.templateCustomBadge || 'My template';
         templates.forEach(function(template) {
             var $opt = $(
-                '<div class="ffc-template-option" style="padding:15px;margin:10px 0;border:2px solid #ddd;border-radius:4px;cursor:pointer;transition:all 0.2s;">' +
-                    '<strong style="font-size:16px;"></strong>' +
-                    '<div style="color:#666;font-size:13px;margin-top:5px;"></div>' +
+                '<div class="ffc-template-option">' +
+                    '<strong class="ffc-template-option-label"></strong>' +
+                    '<div class="ffc-template-option-kind"></div>' +
                 '</div>'
             );
             // Templates are addressed by DB post id (#865). `data-file` went
@@ -111,12 +111,6 @@
         });
 
         $('body').append($modal);
-
-        // Hover effect
-        $('.ffc-template-option').hover(
-            function() { $(this).css({'border-color': '#2271b1', 'background': '#f0f6fc'}); },
-            function() { $(this).css({'border-color': '#ddd', 'background': 'transparent'}); }
-        );
 
         // Cancel button
         $('#ffc-modal-cancel').on('click', function() {
@@ -173,7 +167,7 @@
     // that could not be reached anyway: `discover_layout_templates()` returns
     // pool entries only, each with a real post id, so the id is never 0.
     function loadTemplateFile(templateId, displayName) {
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
         var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
         var strings = ajaxData.strings || {};
         var ajaxUrl = ajaxData.ajax_url || (typeof ajaxurl !== 'undefined' ? ajaxurl : '');
@@ -207,14 +201,14 @@
                         }
                         var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
                         var successMsg = successTemplate.replace('%s', displayName || '');
-                        showNotification('✓ ' + successMsg, 'success', 3000);
+                        showNotification(successMsg, 'success', 3000);
                     } else {
                         var fieldMsg = strings.htmlFieldNotFound || 'HTML field not found.';
-                        showNotification('✗ ' + fieldMsg, 'error');
+                        showNotification(fieldMsg, 'error');
                     }
                 } else {
                     var notFoundMsg = strings.templateFileNotFound || 'Template not found. It may have been removed from the template pool.';
-                    showNotification('✗ ' + notFoundMsg, 'error', 8000);
+                    showNotification(notFoundMsg, 'error', 8000);
                 }
             })
             .fail(function(jqXHR) {
@@ -226,14 +220,14 @@
                 } else {
                     errorMsg = strings.networkError || 'Network error. Check your connection.';
                 }
-                showNotification('✗ ' + errorMsg, 'error', 8000);
+                showNotification(errorMsg, 'error', 8000);
             });
     }
 
     // Save the current layout HTML as a new template in the DB pool (#865).
     $(document).on('click', '#ffc_save_as_model_btn', function(e) {
         e.preventDefault();
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
         var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
         var strings = ajaxData.strings || {};
 
@@ -267,13 +261,13 @@
         })
             .done(function(response) {
                 if (response && response.success) {
-                    showNotification('✓ ' + (strings.templateSaved || 'Template saved!'), 'success', 3000);
+                    showNotification((strings.templateSaved || 'Template saved!'), 'success', 3000);
                 } else {
-                    showNotification('✗ ' + (strings.error || 'Error: '), 'error', 8000);
+                    showNotification((strings.error || 'Error: '), 'error', 8000);
                 }
             })
             .fail(function() {
-                showNotification('✗ ' + (strings.connectionError || 'Connection error.'), 'error', 8000);
+                showNotification((strings.connectionError || 'Connection error.'), 'error', 8000);
             });
     });
 
@@ -284,7 +278,7 @@
     // Import HTML file button
     $(document).on('click', '#ffc_btn_import_html', function(e) {
         e.preventDefault();
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
 
         // Try to find file input
         var $fileInput = $('#ffc_import_html_file');
@@ -295,7 +289,7 @@
         if ($fileInput.length) {
             $fileInput.click();
         } else {
-            var $tempInput = $('<input type="file" accept=".html" style="display:none">');
+            var $tempInput = $('<input type="file" accept=".html" hidden>');
             $('body').append($tempInput);
 
             $tempInput.on('change', function(e) {
@@ -338,7 +332,7 @@
 
         if (!file) return;
 
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
         var reader = new FileReader();
@@ -575,7 +569,7 @@
 
     $(document).on('click', '#ffc_btn_media_lib', function(e) {
         e.preventDefault();
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
         // Check if wp.media is available
@@ -625,8 +619,7 @@
                 // `alt=""`: the preview is decorative — the URL it shows sits
                 // in the text field immediately above it.
                 $preview.html('').append(
-                    $('<img>').attr({ src: attachment.url, alt: '' })
-                        .css({ 'max-width': '200px', 'height': 'auto' })
+                    $('<img>').attr({ src: attachment.url, alt: '', 'class': 'ffc-bg-image-preview-img' })
                 );
             }
 
@@ -649,7 +642,7 @@
 
     $(document).on('click', '#ffc_btn_insert_image', function(e) {
         e.preventDefault();
-        var showNotification = window.FFC.Admin.showNotification || function() {};
+        var showNotification = window.FFC.Admin.notify || function() {};
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
         if (typeof wp === 'undefined' || typeof wp.media === 'undefined') {

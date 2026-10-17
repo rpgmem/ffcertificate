@@ -17,6 +17,7 @@ namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\ActivityLog;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Security\RateCounter;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -43,6 +44,18 @@ class PreflightTelemetry {
 		'gps_denied',
 		'gps_prompt',
 	);
+
+	/**
+	 * Rows one visitor (IP hash) may write per window (#1861). A real
+	 * visitor hits a banner a handful of times; the endpoint is anonymous,
+	 * so without a cap a script could fill the activity log.
+	 */
+	public const MAX_PER_WINDOW = 20;
+
+	/**
+	 * Throttle window, in seconds.
+	 */
+	public const WINDOW_SECONDS = 3600;
 
 	/**
 	 * Wire the AJAX hooks.
@@ -85,6 +98,16 @@ class PreflightTelemetry {
 		// learning the IP itself.
 		$ip      = RequestInput::get_user_ip();
 		$ip_hash = '' !== $ip ? substr( hash( 'sha256', $ip . wp_salt( 'auth' ) ), 0, 12 ) : '';
+
+		// Persistent per-visitor throttle (a transient, so it holds without
+		// an object cache). Over the cap the request still succeeds -- the
+		// banner is telemetry, nothing the visitor should see fail -- but
+		// writes nothing.
+		$throttle_key = 'ffc_preflight_log_' . ( '' !== $ip_hash ? $ip_hash : 'unknown' );
+		if ( RateCounter::get( $throttle_key ) >= self::MAX_PER_WINDOW ) {
+			wp_send_json_success( array( 'logged' => false ) );
+		}
+		RateCounter::increment( $throttle_key, self::WINDOW_SECONDS );
 
 		// `'info'` matches ActivityLog::LEVEL_INFO. Literal used here
 		// rather than the const to keep unit-test mocks simple (Mockery

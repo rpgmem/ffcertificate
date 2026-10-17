@@ -270,18 +270,15 @@ class TabGeolocation extends SettingsTab {
 			// match every other settings-mutation path.
 			if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 				$this->save_settings();
-				wp_admin_notice(
-					esc_html__( 'Geolocation settings saved successfully!', 'ffcertificate' ),
-					array(
-						'type'        => 'success',
-						'dismissible' => true,
-					)
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
+					esc_html__( 'Geolocation settings saved successfully!', 'ffcertificate' )
 				);
 			}
 		}
 
 		$settings = $this->get_settings();
-		include FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-geolocation.php';
+		include $this->view_path( 'ffc-tab-geolocation.php' );
 	}
 
 	/**
@@ -295,8 +292,13 @@ class TabGeolocation extends SettingsTab {
 
 		// GPS fallback: preset + per-case matrix. For tolerant/hybrid/
 		// strict presets the cases snap to the preset defaults; for the
-		// 'custom' preset each case is read from POST and validated.
-		$preset_raw = sanitize_key( wp_unslash( $_POST['gps_fallback_preset'] ?? '' ) );
+		// 'custom' preset each case is read from POST and validated. The
+		// screen posts `custom` as its own "Customize per case" toggle
+		// (#1758), whose steps are then disabled and post nothing; a
+		// `gps_fallback_preset=custom` is still accepted.
+		$preset_raw = isset( $_POST['gps_fallback_custom'] )
+			? 'custom'
+			: sanitize_key( wp_unslash( $_POST['gps_fallback_preset'] ?? '' ) );
 		$preset     = in_array( $preset_raw, array( 'tolerant', 'hybrid', 'strict', 'custom' ), true )
 			? $preset_raw
 			: 'hybrid';

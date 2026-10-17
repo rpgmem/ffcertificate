@@ -31,6 +31,7 @@ class FormEditorMetaboxRendererTest extends TestCase {
 		// lands unmocked. Pin it to the same locale the fallback would have
 		// produced, so the behaviour under test is chosen rather than inherited.
 		Functions\when( 'get_locale' )->justReturn( 'en_US' );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( '_x' )->returnArg();
@@ -83,13 +84,6 @@ class FormEditorMetaboxRendererTest extends TestCase {
 		// The email metabox now also localizes the "Restore Default Text"
 		// button data; stub it alongside the enqueue.
 		Functions\when( 'wp_localize_script' )->justReturn( null );
-
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', '/tmp/ffc_test/' );
-		}
 
 		$this->renderer = new FormEditorMetaboxRenderer();
 	}
@@ -218,7 +212,7 @@ class FormEditorMetaboxRendererTest extends TestCase {
 		$this->assertStringContainsString( 'aria-selected="false"', $output );
 
 		// Registry icons are present in the nav and in each panel title.
-		$this->assertStringContainsString( 'ffc-form-tabs__icon ffc-icon-file', $output );
+		$this->assertStringContainsString( 'ffc-vtabs__icon ffc-icon-file', $output );
 		$this->assertStringNotContainsString( 'dashicons', $output );
 	}
 
@@ -241,5 +235,59 @@ class FormEditorMetaboxRendererTest extends TestCase {
 			}
 		}
 		$this->assertStringContainsString( 'data-ffc-state-on="On" data-ffc-state-off="Off"', $output );
+	}
+
+	/**
+	 * Every field a dot waits for (#1755) must exist in the panels, or the tab
+	 * reads as pending forever. Selectors are `#id` or `[name="…"]` only, so
+	 * each part can be checked against the markup.
+	 */
+	public function test_every_requirement_names_a_field_the_panels_render(): void {
+		// The selectors carry quotes, so escape attributes as WordPress does.
+		Functions\when( 'esc_attr' )->alias( static fn( $v ) => htmlspecialchars( (string) $v, ENT_QUOTES ) );
+		$post              = Mockery::mock( 'WP_Post' );
+		$post->ID          = 10;
+		$post->post_status = 'publish';
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => '_ffc_form_fields' === $key ? array() : '' );
+
+		ob_start();
+		$this->renderer->render_tabbed_container( $post );
+		$output = (string) ob_get_clean();
+
+		preg_match_all( '/data-ffc-(?:requires|tab-needs)="([^"]+)"/', $output, $m );
+		$this->assertGreaterThanOrEqual( 7, count( $m[1] ), 'Four restrictions, the date window and GPS require a field, and the Time tab needs the schedule.' );
+		// A part may be absent on purpose -- the location picker prints only
+		// when locations are registered -- but every list must reach a field.
+		foreach ( $m[1] as $list ) {
+			$found = 0;
+			foreach ( array_map( 'trim', explode( ',', html_entity_decode( $list, ENT_QUOTES ) ) ) as $selector ) {
+				if ( 1 === preg_match( '/^#([\w-]+)$/', $selector, $id ) ) {
+					$found += (int) str_contains( $output, 'id="' . $id[1] . '"' );
+					continue;
+				}
+				$this->assertSame( 1, preg_match( '/^\[name="([^"]+)"\]$/', $selector, $name ), "$selector is neither #id nor [name]" );
+				$found += (int) str_contains( $output, 'name="' . htmlspecialchars( $name[1], ENT_QUOTES ) . '"' );
+			}
+			$this->assertGreaterThan( 0, $found, "No field of '$list' is in the panels, so its dot would read as pending forever" );
+		}
+		$this->assertStringContainsString( 'data-ffc-state-pending="Incomplete"', $output );
+	}
+
+	public function test_the_time_tab_needs_the_schedule_only_while_the_tag_is_required(): void {
+		Functions\when( 'esc_attr' )->alias( static fn( $v ) => htmlspecialchars( (string) $v, ENT_QUOTES ) );
+		$post              = Mockery::mock( 'WP_Post' );
+		$post->ID          = 10;
+		$post->post_status = 'publish';
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => '_ffc_form_fields' === $key ? array() : '' );
+
+		Functions\when( 'get_option' )->justReturn( array( 'required_certificate_tags' => "{{auth_code}}\n{{schedule}}" ) );
+		ob_start();
+		$this->renderer->render_tabbed_container( $post );
+		$this->assertMatchesRegularExpression( '/id="ffc-tabnav-time"[^>]*data-ffc-tab-needs="[^"]*class_time_start/', (string) ob_get_clean() );
+
+		Functions\when( 'get_option' )->justReturn( array( 'required_certificate_tags' => '{{auth_code}}', 'required_form_fields' => array() ) );
+		ob_start();
+		$this->renderer->render_tabbed_container( $post );
+		$this->assertDoesNotMatchRegularExpression( '/data-ffc-tab-needs=/', (string) ob_get_clean() );
 	}
 }

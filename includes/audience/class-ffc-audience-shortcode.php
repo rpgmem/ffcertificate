@@ -68,7 +68,7 @@ class AudienceShortcode {
 		self::enqueue_styles();
 
 		$is_logged_in = is_user_logged_in();
-		$has_bypass   = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+		$has_bypass   = AudienceScheduleRepository::user_has_bypass_capability();
 		$specific_id  = absint( $atts['schedule_id'] );
 
 		// Handle non-logged-in users.
@@ -167,10 +167,18 @@ class AudienceShortcode {
 				}
 			);
 			if ( ! empty( $private_schedules ) ) {
-				$bypass_notice = '<div class="ffc-admin-bypass-notice">'
-					. '<span class="ffc-badge ffc-badge-private">' . esc_html__( 'Private', 'ffcertificate' ) . '</span> '
-					. esc_html__( 'You are viewing this calendar as an administrator (bypass active).', 'ffcertificate' )
-					. '</div>';
+				$bypass_notice = \FreeFormCertificate\Core\Notice::render(
+					'info',
+					'unlock',
+					'<span class="ffc-badge ffc-badge-private">' . esc_html__( 'Private', 'ffcertificate' ) . '</span> '
+					. esc_html__( 'You are viewing this calendar as an administrator (bypass active).', 'ffcertificate' ),
+					'',
+					array(
+						'role' => 'note',
+						'html' => true,
+						'hook' => 'admin-bypass',
+					)
+				);
 			}
 		}
 
@@ -180,8 +188,12 @@ class AudienceShortcode {
 			'environmentId'       => absint( $atts['environment_id'] ),
 			'view'                => sanitize_text_field( $atts['view'] ),
 			'schedules'           => array_map(
-				function ( $s ) {
+				function ( $s ) use ( $user_id ) {
 					return array(
+						// What the booking form may offer (#1859); the server
+						// decides again on every booking.
+						'canBypass'              => AudienceScheduleRepository::user_has_bypass( (int) $s->id, $user_id ),
+						'canOverrideConflicts'   => AudienceScheduleRepository::user_can_override_conflicts( (int) $s->id, $user_id ),
 						'id'                     => (int) $s->id,
 						'name'                   => $s->name,
 						'environmentLabel'       => AudienceScheduleRepository::get_environment_label( $s, true ),
@@ -218,7 +230,9 @@ class AudienceShortcode {
 	private static function render_calendar_html( array $schedules, array $config, array $atts, bool $show_booking_modal ): string {
 		$show_event_list     = ! empty( $config['showEventList'] );
 		$event_list_position = $config['eventListPosition'] ?? 'side';
-		$wrapper_class       = 'ffc-calendar-wrapper';
+		// The wrapper is a plugin root (#1832): the event-list panel is the
+		// calendar's sibling, so without the root class here no rule reaches it.
+		$wrapper_class = 'ffc-shortcode ffc-calendar-wrapper';
 		if ( $show_event_list ) {
 			$wrapper_class .= ' ffc-has-event-list ffc-event-list-' . esc_attr( $event_list_position );
 		}
@@ -338,7 +352,7 @@ class AudienceShortcode {
 
 						<div class="ffc-form-group">
 							<label for="booking-environment-id">
-								<?php echo esc_html( $first_env_label_singular ); ?> *
+								<?php echo esc_html( $first_env_label_singular ); ?> <span class="ffc-required" aria-hidden="true">*</span>
 							</label>
 							<select name="environment_id" id="booking-environment-id" required>
 								<!-- Populated by JavaScript -->
@@ -354,17 +368,17 @@ class AudienceShortcode {
 
 						<div class="ffc-form-row" id="booking-time-row">
 							<div class="ffc-form-group">
-								<label for="booking-start-time"><?php esc_html_e( 'Start Time', 'ffcertificate' ); ?> *</label>
+								<label for="booking-start-time"><?php esc_html_e( 'Start Time', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 								<input type="time" name="start_time" id="booking-start-time" required>
 							</div>
 							<div class="ffc-form-group">
-								<label for="booking-end-time"><?php esc_html_e( 'End Time', 'ffcertificate' ); ?> *</label>
+								<label for="booking-end-time"><?php esc_html_e( 'End Time', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 								<input type="time" name="end_time" id="booking-end-time" required>
 							</div>
 						</div>
 
 						<div class="ffc-form-group">
-							<label for="booking-type"><?php esc_html_e( 'Booking Type', 'ffcertificate' ); ?> *</label>
+							<label for="booking-type"><?php esc_html_e( 'Booking Type', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 							<select name="booking_type" id="booking-type" required>
 								<option value="audience"><?php esc_html_e( 'Audience Groups', 'ffcertificate' ); ?></option>
 								<option value="individual"><?php esc_html_e( 'Individual Users', 'ffcertificate' ); ?></option>
@@ -372,14 +386,14 @@ class AudienceShortcode {
 						</div>
 
 						<div class="ffc-form-group" id="audience-select-group">
-							<label for="booking-audiences"><?php esc_html_e( 'Select Audiences', 'ffcertificate' ); ?> *</label>
+							<label for="booking-audiences"><?php esc_html_e( 'Select Audiences', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 							<select name="audience_ids[]" id="booking-audiences" multiple class="ffc-multiselect">
 								<!-- Populated by JavaScript -->
 							</select>
 						</div>
 
 						<div class="ffc-form-group" id="user-select-group" style="display: none;">
-							<label for="booking-users"><?php esc_html_e( 'Select Users', 'ffcertificate' ); ?> *</label>
+							<label for="booking-users"><?php esc_html_e( 'Select Users', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 							<input type="text" id="booking-user-search" placeholder="<?php esc_attr_e( 'Search users...', 'ffcertificate' ); ?>">
 							<div id="booking-user-results" class="ffc-user-results"></div>
 							<div id="booking-selected-users" class="ffc-selected-users"></div>
@@ -387,27 +401,25 @@ class AudienceShortcode {
 						</div>
 
 						<div class="ffc-form-group">
-							<label for="booking-description"><?php esc_html_e( 'Description', 'ffcertificate' ); ?> *</label>
+							<label for="booking-description"><?php esc_html_e( 'Description', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
 							<textarea name="description" id="booking-description" rows="3" required minlength="15" maxlength="300"
 										placeholder="<?php esc_attr_e( 'Describe the purpose of this booking (15-300 characters)', 'ffcertificate' ); ?>"></textarea>
-							<span class="ffc-char-count"><span id="desc-char-count">0</span>/300</span>
+							<div class="ffc-field-foot">
+								<span class="ffc-field-counter" aria-hidden="true" data-ffc-counter-for="booking-description"><span id="desc-char-count">0</span>/300</span>
+							</div>
 						</div>
 
-						<!-- Soft Conflict Warning -->
-						<div class="ffc-conflict-warning ffc-conflict-soft" id="ffc-conflict-warning" style="display: none;">
-							<span class="ffc-icon-warning" aria-hidden="true"></span>
-							<div class="ffc-conflict-details" id="ffc-conflict-details"></div>
+						<!-- Soft conflict warning: ffc-audience-booking-form.js builds the
+							notice (#1842) and moves the acknowledgement into it. -->
+						<div id="ffc-conflict-warning" style="display: none;">
 							<label class="ffc-conflict-acknowledge">
 								<input type="checkbox" id="ffc-conflict-acknowledge">
 								<?php esc_html_e( 'I am aware of the conflicts and want to proceed.', 'ffcertificate' ); ?>
 							</label>
 						</div>
 
-						<!-- Hard Conflict Error -->
-						<div class="ffc-conflict-error" id="ffc-conflict-error" style="display: none;">
-							<span class="ffc-icon-error" aria-hidden="true"></span>
-							<div class="ffc-conflict-error-details" id="ffc-conflict-error-details"></div>
-						</div>
+						<!-- Hard conflict error: the script builds the notice here. -->
+						<div id="ffc-conflict-error" style="display: none;"></div>
 					</form>
 				</div>
 				<div class="ffc-modal-footer">
@@ -551,14 +563,16 @@ class AudienceShortcode {
 	 * @return string HTML output
 	 */
 	private static function render_no_access(): string {
-		ob_start();
-		?>
-		<div class="ffc-audience-notice ffc-notice-info">
-			<p><?php esc_html_e( 'You do not have access to any calendars.', 'ffcertificate' ); ?></p>
-		</div>
-		<?php
-		$output = ob_get_clean();
-		return is_string( $output ) ? $output : '';
+		return \FreeFormCertificate\Core\Notice::render(
+			'info',
+			'lock',
+			__( 'You do not have access to any calendars.', 'ffcertificate' ),
+			'',
+			array(
+				'role' => 'note',
+				'hook' => 'audience-no-access',
+			)
+		);
 	}
 
 	/**
@@ -569,8 +583,8 @@ class AudienceShortcode {
 	 * @return list<ScheduleRow>
 	 */
 	private static function get_user_schedules( int $user_id, int $specific_id = 0 ): array {
-		// Admin can access all.
-		if ( user_can( $user_id, 'manage_options' ) ) {
+		// Admin and audience-bypass holders can access all.
+		if ( AudienceScheduleRepository::user_has_bypass_capability( $user_id ) ) {
 			if ( $specific_id > 0 ) {
 				$schedule = AudienceScheduleRepository::get_by_id( $specific_id );
 				return $schedule ? array( $schedule ) : array();
@@ -837,6 +851,19 @@ class AudienceShortcode {
 					'events'                 => __( 'Events', 'ffcertificate' ),
 					'noEvents'               => __( 'No events this month.', 'ffcertificate' ),
 					'multipleAudiences'      => __( 'Multiple audiences', 'ffcertificate' ),
+					// The "all spaces" option of the filter (#1859): "All" before
+					// the calendar's own plural label.
+					'all'                    => __( 'All', 'ffcertificate' ),
+					/* translators: %s: environment label (plural) */
+					'allOf'                  => __( 'All %s', 'ffcertificate' ),
+					// Why a space cannot be booked on a date (#1859).
+					'reasonClosed'           => __( 'Closed', 'ffcertificate' ),
+					'reasonHoliday'          => __( 'Holiday', 'ffcertificate' ),
+					'reasonOutsideHours'     => __( 'Outside hours', 'ffcertificate' ),
+					'reasonPast'             => __( 'Past date', 'ffcertificate' ),
+					'reasonBeyondWindow'     => __( 'Beyond the booking window', 'ffcertificate' ),
+					'noOpenEnvironments'     => __( 'No space is open on this date.', 'ffcertificate' ),
+					'override'               => \FreeFormCertificate\Core\OverrideWarning::strings(),
 				),
 			)
 		);

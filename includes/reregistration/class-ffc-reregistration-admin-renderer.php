@@ -237,7 +237,41 @@ final class ReregistrationAdminRenderer {
 		// Statuses that can be sent back to draft for user revision.
 		$can_return_to_draft = in_array( $sub->status, array( 'submitted', 'approved', 'rejected' ), true );
 
+		// PII (#1815). The email is masked for every viewer: the clear value is fetched through the audited
+		// `ffc_reveal_pii` endpoint, so it never sits in the list's HTML. The
+		// same policy decides whether "View Details" is drawn, because the
+		// modal it opens shows the decrypted CPF / RF / RG.
+		$owner_id       = isset( $sub->user_id ) ? (int) $sub->user_id : 0;
+		$pii_tier       = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
+			ReregistrationAjaxHandler::PII_CAPABILITY,
+			$owner_id > 0 ? $owner_id : null
+		);
+		$can_reveal_pii = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED !== $pii_tier;
+		$email_masked   = self::mask_email( (string) ( $sub->user_email ?? '' ) );
+		$reveal_nonce   = $can_reveal_pii ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';
+
+		// The Record button asks the endpoint's own question (#1815).
+		$can_generate_record = ReregistrationAjaxHandler::can_generate_record();
+
 		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/submission-row.php';
+	}
+
+	/**
+	 * Mask an email for the submissions list (#1815).
+	 *
+	 * `DocumentFormatter::mask_email()` hands back a value it does not
+	 * recognise as an email unchanged, which would print it in clear; such a
+	 * value is replaced whole instead.
+	 *
+	 * @param string $email Stored email, possibly empty.
+	 * @return string Masked email, or '' when there is none.
+	 */
+	private static function mask_email( string $email ): string {
+		if ( '' === $email ) {
+			return '';
+		}
+		$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
+		return $masked === $email ? '***' : $masked;
 	}
 
 	// ─────────────────────────────────────────────.

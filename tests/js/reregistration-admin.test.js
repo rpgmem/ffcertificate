@@ -377,6 +377,33 @@ describe('rereg-admin — submission details modal', () => {
 		expect(window.$('.ffc-rereg-modal-body').text()).toContain('Forbidden');
 	});
 
+	it('writes the server error as text, never as markup (#1843)', async () => {
+		mountModalFixture();
+		await reload();
+		window.__ffcPwned = false;
+		vi.spyOn(window.$, 'post').mockImplementation(() => ({
+			done: function (cb) {
+				cb({ success: false, data: { message: '<img src=x onerror="window.__ffcPwned=true"><b>bold</b>' } });
+				return { fail: () => ({}) };
+			},
+		}));
+
+		window.$('.ffc-view-details-btn').trigger('click');
+		await flush();
+
+		const body = document.querySelector('.ffc-rereg-modal-body');
+		expect(body.querySelector('img')).toBeNull();
+		expect(body.querySelector('b')).toBeNull();
+		expect(body.textContent).toContain('<img src=x');
+		expect(window.__ffcPwned).toBe(false);
+		// The standard component, not a core .notice painted as a paragraph.
+		const notice = body.querySelector('.ffc-notice.ffc-notice-danger');
+		expect(notice).not.toBeNull();
+		expect(notice.getAttribute('role')).toBe('alert');
+		expect(notice.querySelector('.ffc-notice-icon').classList.contains('ffc-icon-error')).toBe(true);
+		expect(body.querySelector('.notice')).toBeNull();
+	});
+
 	it('on network failure: renders the localised error', async () => {
 		mountModalFixture();
 		await reload();

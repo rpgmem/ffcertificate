@@ -123,4 +123,57 @@ class BadgeHtmlTest extends TestCase {
 		$this->assertStringContainsString( '--ffc-badge-row-bg:#e9ecef', $html );
 	}
 
+	/**
+	 * A script that builds the same badge from a REST payload gets the same
+	 * pair `render_with_row_color()` prints (#1826), so the two cannot
+	 * disagree about the text over a colour an operator picked.
+	 */
+	public function test_row_colors_is_the_pair_the_rendered_badge_carries(): void {
+		$pair = BadgeHtml::row_colors( '#FFEB3B' );
+		$html = BadgeHtml::render_with_row_color( 'b', '#FFEB3B', 'L' );
+
+		$this->assertSame(
+			array(
+				'color'      => '#ffeb3b',
+				'text_color' => '#000000',
+			),
+			$pair
+		);
+		$this->assertStringContainsString( '--ffc-badge-row-bg:' . $pair['color'] . ';--ffc-badge-row-text:' . $pair['text_color'] . ';', $html );
+		$this->assertSame( '#ffffff', BadgeHtml::row_colors( '#1d2327' )['text_color'] );
+	}
+
+	/**
+	 * Every badge keeps its own keys and gains the pair; an entry that is not
+	 * an array is dropped rather than passed through.
+	 */
+	public function test_with_row_colors_adds_the_pair_to_each_badge(): void {
+		$out = BadgeHtml::with_row_colors(
+			array(
+				array(
+					'name'  => 'A',
+					'color' => '#000',
+				),
+				'not a badge',
+				array( 'name' => 'B' ),
+			)
+		);
+
+		$this->assertSame(
+			array(
+				array(
+					'name'       => 'A',
+					'color'      => '#000',
+					'text_color' => '#ffffff',
+				),
+				array(
+					'name'       => 'B',
+					'color'      => '#e9ecef',
+					'text_color' => '#000000',
+				),
+			),
+			$out
+		);
+	}
+
 }

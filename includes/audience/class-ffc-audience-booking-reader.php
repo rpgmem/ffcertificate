@@ -589,6 +589,39 @@ class AudienceBookingReader {
 	}
 
 	/**
+	 * The JOIN and WHERE fragments that restrict a booking query by schedule.
+	 *
+	 * Both fragments are literals chosen here; the table name and the ids
+	 * travel as placeholder values.
+	 *
+	 * @param int|null   $scope_schedule_id     Restrict to this schedule.
+	 * @param int[]|null $readable_schedule_ids Restrict to these schedules (non-empty when set).
+	 * @return array{0: string, 1: string, 2: list<string>, 3: list<int>} JOIN, WHERE, JOIN values, WHERE values.
+	 */
+	private static function schedule_scope_clause( ?int $scope_schedule_id, ?array $readable_schedule_ids ): array {
+		$where        = '';
+		$where_values = array();
+		if ( $scope_schedule_id ) {
+			$where        = 'AND env.schedule_id = %d';
+			$where_values = array( $scope_schedule_id );
+		}
+		if ( null !== $readable_schedule_ids && array() !== $readable_schedule_ids ) {
+			$ids          = array_values( array_map( 'intval', $readable_schedule_ids ) );
+			$where       .= ' AND env.schedule_id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')';
+			$where_values = array_merge( $where_values, $ids );
+		}
+		if ( '' === $where ) {
+			return array( '', '', array(), array() );
+		}
+		return array(
+			'INNER JOIN %i env ON b.environment_id = env.id',
+			$where,
+			array( AudienceEnvironmentRepository::get_table_name() ),
+			$where_values,
+		);
+	}
+
+	/**
 	 * Check for user conflicts across environments
 	 *
 	 * @param string     $date Date (Y-m-d).
@@ -598,6 +631,7 @@ class AudienceBookingReader {
 	 * @param array<int> $user_ids Individual user IDs to check.
 	 * @param int|null   $exclude_booking_id Booking ID to exclude.
 	 * @param int|null   $scope_schedule_id When set, restrict to this schedule only.
+	 * @param int[]|null $readable_schedule_ids When set, restrict to bookings in these schedules (#1861).
 	 * @return array{bookings: list<BookingRow>, affected_users: array<int>}
 	 */
 	public static function get_user_conflicts(
@@ -607,7 +641,8 @@ class AudienceBookingReader {
 		array $audience_ids,
 		array $user_ids,
 		?int $exclude_booking_id = null,
-		?int $scope_schedule_id = null
+		?int $scope_schedule_id = null,
+		?array $readable_schedule_ids = null
 	): array {
 		$wpdb          = self::db();
 		$table         = self::get_table_name();
@@ -623,7 +658,7 @@ class AudienceBookingReader {
 		}
 		$all_user_ids = array_unique( $all_user_ids );
 
-		if ( empty( $all_user_ids ) ) {
+		if ( empty( $all_user_ids ) || array() === $readable_schedule_ids ) {
 			return array(
 				'bookings'       => array(),
 				'affected_users' => array(),
@@ -633,18 +668,9 @@ class AudienceBookingReader {
 		$placeholders   = implode( ',', array_fill( 0, count( $all_user_ids ), '%d' ) );
 		$exclude_clause = $exclude_booking_id ? $wpdb->prepare( 'AND b.id != %d', $exclude_booking_id ) : '';
 
-		// Isolated schedule: JOIN environments and restrict to schedule.
-		$env_join         = '';
-		$env_where        = '';
-		$env_join_tables  = array(); // %i table name for JOIN
-		$env_where_values = array(); // %d schedule_id for WHERE
-		if ( $scope_schedule_id ) {
-			$env_table        = AudienceEnvironmentRepository::get_table_name();
-			$env_join         = 'INNER JOIN %i env ON b.environment_id = env.id';
-			$env_where        = 'AND env.schedule_id = %d';
-			$env_join_tables  = array( $env_table );
-			$env_where_values = array( $scope_schedule_id );
-		}
+		// Isolated schedule, or a caller who may read only some schedules:
+		// JOIN environments and restrict by schedule.
+		list( $env_join, $env_where, $env_join_tables, $env_where_values ) = self::schedule_scope_clause( $scope_schedule_id, $readable_schedule_ids );
 
 		$values = array( $date, $end_time, $start_time, $start_time, $end_time, $start_time, $end_time );
 		$values = array_merge( $values, $all_user_ids, $all_user_ids );
@@ -709,38 +735,31 @@ class AudienceBookingReader {
 	 * @param array<int> $audience_ids Audience IDs to check.
 	 * @param int|null   $exclude_booking_id Booking ID to exclude (for updates).
 	 * @param int|null   $scope_schedule_id When set, restrict to this schedule only.
+	 * @param int[]|null $readable_schedule_ids When set, restrict to bookings in these schedules (#1861).
 	 * @return list<BookingRow> Bookings with matched audience info
 	 */
 	public static function get_audience_same_day_bookings(
 		string $date,
 		array $audience_ids,
 		?int $exclude_booking_id = null,
-		?int $scope_schedule_id = null
+		?int $scope_schedule_id = null,
+		?array $readable_schedule_ids = null
 	): array {
 		$wpdb            = self::db();
 		$table           = self::get_table_name();
 		$ba_table        = self::get_booking_audiences_table_name();
 		$audiences_table = AudienceReader::get_table_name();
 
-		if ( empty( $audience_ids ) ) {
+		if ( empty( $audience_ids ) || array() === $readable_schedule_ids ) {
 			return array();
 		}
 
 		$placeholders   = implode( ',', array_fill( 0, count( $audience_ids ), '%d' ) );
 		$exclude_clause = $exclude_booking_id ? $wpdb->prepare( 'AND b.id != %d', $exclude_booking_id ) : '';
 
-		// Isolated schedule: JOIN environments and restrict to schedule.
-		$env_join         = '';
-		$env_where        = '';
-		$env_join_tables  = array(); // %i table name for JOIN
-		$env_where_values = array(); // %d schedule_id for WHERE
-		if ( $scope_schedule_id ) {
-			$env_table        = AudienceEnvironmentRepository::get_table_name();
-			$env_join         = 'INNER JOIN %i env ON b.environment_id = env.id';
-			$env_where        = 'AND env.schedule_id = %d';
-			$env_join_tables  = array( $env_table );
-			$env_where_values = array( $scope_schedule_id );
-		}
+		// Isolated schedule, or a caller who may read only some schedules:
+		// JOIN environments and restrict by schedule.
+		list( $env_join, $env_where, $env_join_tables, $env_where_values ) = self::schedule_scope_clause( $scope_schedule_id, $readable_schedule_ids );
 
 		$values = array( $date );
 		$values = array_merge( $values, $audience_ids );

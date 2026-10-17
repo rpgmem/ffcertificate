@@ -231,3 +231,37 @@ describe('ffc-qr-design.js', () => {
 		expect(window.$('#ffc-qr-design-checks').hasClass('is-warning')).toBe(true);
 	});
 });
+
+describe('ffc-qr-design.js — colour text box (#1844)', () => {
+	function mountPair() {
+		document.body.innerHTML = `
+			<div class="ffc-qr-field"><span class="ffc-qr-color">
+				<input type="color" id="fg" value="#112233">
+				<input type="text" id="fg-hex" class="ffc-qr-color__hex" value="#112233" data-ffc-qr-hex-for="fg" data-ffc-invalid-message="Enter a colour as #rrggbb.">
+			</span></div>`;
+		window.FFC.QrDesign.bindColorPairs(window.$(document.body));
+		return window.$('#fg-hex');
+	}
+
+	it('says why a text is not a colour, under the pair', () => {
+		const $hex = mountPair();
+		$hex.val('#zz').trigger('input');
+		expect($hex.hasClass('is-invalid')).toBe(true);
+		expect($hex.attr('aria-invalid')).toBe('true');
+		const $msg = window.$('.ffc-qr-color').next('.ffc-field-message');
+		expect($msg.attr('id')).toBe('ffc-msg-fg-hex');
+		expect($msg.text()).toBe('Enter a colour as #rrggbb.');
+		expect($hex.attr('aria-describedby')).toBe('ffc-msg-fg-hex');
+	});
+
+	it('withdraws it on a good colour, and on blur back to the picker', () => {
+		const $hex = mountPair();
+		$hex.val('#zz').trigger('input');
+		$hex.val('#abcdef').trigger('input');
+		expect(window.$('.ffc-field-message').length).toBe(0);
+		$hex.val('nope').trigger('input');
+		$hex.trigger('blur');
+		expect(window.$('.ffc-field-message').length).toBe(0);
+		expect($hex.val()).toBe('#abcdef');
+	});
+});

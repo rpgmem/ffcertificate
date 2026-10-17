@@ -218,28 +218,37 @@ class Shortcodes {
 		ob_start();
 		?>
 		<div class="<?php echo esc_attr( $wrapper_class ); ?>" id="ffc-form-<?php echo esc_attr( (string) $form_id ); ?>">
+			<?php
+			// System notices sit above the title, after the admin-bypass ones
+			// the geofence script prepends to the wrapper (#1842).
+			if ( null !== $schedule_exception ) {
+				$schedule_notice = \FreeFormCertificate\Core\Notice::render(
+					'info',
+					'clock',
+					sprintf(
+						/* translators: 1: override start time HH:MM, 2: override end time HH:MM. "baseline" displayed when the operator did not override that end. */
+						__( '%1$s to %2$s. This submission will be recorded with the adjusted schedule.', 'ffcertificate' ),
+						'' !== (string) ( $schedule_exception['start'] ?? '' ) ? (string) $schedule_exception['start'] : __( 'baseline', 'ffcertificate' ),
+						'' !== (string) ( $schedule_exception['end'] ?? '' ) ? (string) $schedule_exception['end'] : __( 'baseline', 'ffcertificate' )
+					),
+					__( 'Schedule exception active:', 'ffcertificate' ),
+					array(
+						'role' => 'status',
+						'live' => 'polite',
+						'hook' => 'schedule-exception',
+					)
+				);
+				echo $schedule_notice; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+			}
+			if ( null !== $quiz_leave ) {
+				echo $this->quiz_leave_notice( $leave_level ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+			}
+			?>
 			<h2 class="ffc-form-title"><?php echo esc_html( $form_title ); ?></h2>
-			<?php if ( null !== $schedule_exception ) : ?>
-				<div class="ffc-form-info-block ffc-schedule-exception-banner" role="status" aria-live="polite">
-					<p>
-						<strong><?php esc_html_e( 'Schedule exception active:', 'ffcertificate' ); ?></strong>
-						<?php
-						echo esc_html(
-							sprintf(
-								/* translators: 1: override start time HH:MM, 2: override end time HH:MM. "baseline" displayed when the operator did not override that end. */
-								__( '%1$s to %2$s. This submission will be recorded with the adjusted schedule.', 'ffcertificate' ),
-								'' !== (string) ( $schedule_exception['start'] ?? '' ) ? (string) $schedule_exception['start'] : __( 'baseline', 'ffcertificate' ),
-								'' !== (string) ( $schedule_exception['end'] ?? '' ) ? (string) $schedule_exception['end'] : __( 'baseline', 'ffcertificate' )
-							)
-						);
-						?>
-					</p>
-				</div>
-			<?php endif; ?>
 			<form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>"<?php echo null !== $quiz_leave ? $this->quiz_leave_attributes( $quiz_leave, $leave_level ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped in quiz_leave_attributes(). ?>>
 				<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form_id ); ?>">
 				<?php if ( null !== $quiz_leave ) : ?>
-					<?php $this->render_quiz_leave_notice( $form_id, $leave_level ); ?>
+					<?php $this->render_quiz_leave_dialog( $form_id ); ?>
 				<?php endif; ?>
 				<?php if ( null !== $schedule_exception && '' !== $schedule_exception_cookie ) : ?>
 					<input type="hidden" name="ffc_schedule_exception_token" value="<?php echo esc_attr( $schedule_exception_cookie ); ?>">
@@ -265,7 +274,7 @@ class Shortcodes {
 					?>
 					<div class="ffc-form-field ffc-restriction-field">
 						<label for="ffc_password">
-							<?php esc_html_e( 'Password', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
+							<?php esc_html_e( 'Password', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span>
 						</label>
 						<input type="password"
 								class="ffc-input"
@@ -285,7 +294,7 @@ class Shortcodes {
 					?>
 					<div class="ffc-form-field ffc-restriction-field">
 						<label for="ffc_ticket">
-							<?php esc_html_e( 'Ticket Code', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
+							<?php esc_html_e( 'Ticket Code', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span>
 						</label>
 						<input type="text"
 								class="ffc-input ffc-ticket-input ffc-uppercase"
@@ -322,7 +331,7 @@ class Shortcodes {
 								)
 							);
 							?>
-							<span class="ffc-required">*</span>
+							<span class="ffc-required" aria-hidden="true">*</span>
 						</span>
 					</label>
 					
@@ -363,7 +372,6 @@ class Shortcodes {
 				</div>
 
 				<button type="submit" class="ffc-submit-btn"><?php esc_html_e( 'Submit', 'ffcertificate' ); ?></button>
-				<div class="ffc-message" role="alert" aria-live="assertive"></div>
 			</form>
 		</div>
 		<?php
@@ -415,28 +423,40 @@ class Shortcodes {
 	}
 
 	/**
-	 * The notice a reset quiz shows before the participant starts, the
-	 * leave counter it posts, and the dialog it opens on return (#1731).
+	 * The notice a reset quiz shows before the participant starts (#1731).
+	 * It is a system notice, so it sits above the form title (#1842).
+	 *
+	 * @param string $level A {@see \FreeFormCertificate\Core\QuizLeaveLevel} value.
+	 * @return string
+	 */
+	private function quiz_leave_notice( string $level ): string {
+		return \FreeFormCertificate\Core\Notice::render(
+			'info',
+			'eye',
+			\FreeFormCertificate\Core\QuizLeaveLevel::STRICT === $level
+				? __( 'Switching to another tab, minimising the browser or clicking another window clears your answers, and the number of times you leave is recorded with your submission.', 'ffcertificate' )
+				: __( 'Switching to another tab or minimising the browser clears your answers, and the number of times you leave is recorded with your submission.', 'ffcertificate' ),
+			__( 'Stay on this page while you answer.', 'ffcertificate' ),
+			array(
+				'role' => 'note',
+				'hook' => 'quiz-leave',
+			)
+		);
+	}
+
+	/**
+	 * The leave counter a reset quiz posts, and the dialog it opens on
+	 * return (#1731).
 	 *
 	 * The dialog is markup rather than a script string, so it is translated
 	 * where every other string of the form is.
 	 *
-	 * @param int    $form_id Form ID.
-	 * @param string $level   A {@see \FreeFormCertificate\Core\QuizLeaveLevel} value.
+	 * @param int $form_id Form ID.
 	 */
-	private function render_quiz_leave_notice( int $form_id, string $level ): void {
+	private function render_quiz_leave_dialog( int $form_id ): void {
 		$title_id = 'ffc-quiz-leave-title-' . $form_id;
 		$text_id  = 'ffc-quiz-leave-text-' . $form_id;
 		?>
-		<div class="ffc-form-info-block ffc-quiz-leave-notice" role="note">
-			<p><strong><?php esc_html_e( 'Stay on this page while you answer.', 'ffcertificate' ); ?></strong>
-			<?php if ( \FreeFormCertificate\Core\QuizLeaveLevel::STRICT === $level ) : ?>
-				<?php esc_html_e( 'Switching to another tab, minimising the browser or clicking another window clears your answers, and the number of times you leave is recorded with your submission.', 'ffcertificate' ); ?>
-			<?php else : ?>
-				<?php esc_html_e( 'Switching to another tab or minimising the browser clears your answers, and the number of times you leave is recorded with your submission.', 'ffcertificate' ); ?>
-			<?php endif; ?>
-			</p>
-		</div>
 		<input type="hidden" name="ffc_quiz_focus_losses" value="0" class="ffc-quiz-focus-losses">
 		<div class="ffc-modal ffc-quiz-leave-overlay" role="alertdialog" aria-modal="true" aria-labelledby="<?php echo esc_attr( $title_id ); ?>" aria-describedby="<?php echo esc_attr( $text_id ); ?>" hidden>
 			<div class="ffc-modal-backdrop"></div>

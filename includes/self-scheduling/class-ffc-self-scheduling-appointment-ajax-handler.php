@@ -52,6 +52,36 @@ class AppointmentAjaxHandler {
 		add_action( 'wp_ajax_nopriv_ffc_cancel_appointment', array( $this, 'ajax_cancel_appointment' ) );
 		add_action( 'wp_ajax_ffc_get_month_bookings', array( $this, 'ajax_get_month_bookings' ) );
 		add_action( 'wp_ajax_nopriv_ffc_get_month_bookings', array( $this, 'ajax_get_month_bookings' ) );
+		// Logged-in only: the bypass it reports on needs an account (#1859).
+		add_action( 'wp_ajax_ffc_check_booking_override', array( $this, 'ajax_check_booking_override' ) );
+	}
+
+	/**
+	 * AJAX: the rules a booking would break, for a bypass holder (#1859).
+	 *
+	 * The booking form asks before it submits, so the warning opens — and its
+	 * countdown runs — before the captcha is spent on the submission itself.
+	 * It answers an empty list to anyone without the bypass on the calendar.
+	 *
+	 * @return void
+	 */
+	public function ajax_check_booking_override(): void {
+		check_ajax_referer( 'ffc_self_scheduling_nonce', 'nonce' );
+
+		$calendar_id = $this->get_post_int( 'calendar_id' );
+		$date        = $this->get_post_param( 'date' );
+		$time        = $this->get_post_param( 'time' );
+
+		if ( ! $calendar_id || ! $date || ! $time ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid parameters.', 'ffcertificate' ) ) );
+		}
+
+		$reasons = $this->handler->get_override_reasons( $calendar_id, $date, $time );
+		if ( is_wp_error( $reasons ) ) {
+			wp_send_json_error( array( 'message' => $reasons->get_error_message() ) );
+		}
+
+		wp_send_json_success( array( 'reasons' => $reasons ) );
 	}
 
 	/**
@@ -108,6 +138,8 @@ class AppointmentAjaxHandler {
 				'consent_text'     => isset( $_POST['consent_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['consent_text'] ) ) : '',
 				'user_ip'          => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+				// A bypass holder's "I agree" to booking outside the rules (#1859).
+				'confirm_override' => '1' === $this->get_post_param( 'confirm_override' ),
 			);
 
 			if ( is_user_logged_in() ) {
@@ -128,6 +160,8 @@ class AppointmentAjaxHandler {
 						array(
 							'code'    => $result->get_error_code(),
 							'message' => $result->get_error_message(),
+							// Every rule a bypass holder must confirm (#1859).
+							'reasons' => self::error_reasons( $result ),
 						)
 					)
 				);
@@ -354,6 +388,12 @@ class AppointmentAjaxHandler {
 				wp_send_json_error( array( 'message' => __( 'Invalid calendar.', 'ffcertificate' ) ) );
 			}
 
+			// A private calendar's month is not the anonymous visitor's to read (#1861).
+			$calendar = $this->handler->get_calendar_repository()->findById( $calendar_id );
+			if ( is_array( $calendar ) && $this->handler->is_hidden_from_visitor( $calendar ) ) {
+				wp_send_json_error( array( 'message' => AppointmentHandler::hidden_calendar_error()->get_error_message() ) );
+			}
+
 			$start_date = sprintf( '%04d-%02d-01', $year, $month );
 			$start_ts   = strtotime( $start_date );
 			$end_date   = gmdate( 'Y-m-t', $start_ts ? $start_ts : time() );
@@ -410,5 +450,16 @@ class AppointmentAjaxHandler {
 				)
 			);
 		}
+	}
+
+	/**
+	 * The reasons an override refusal carries, or an empty list (#1859).
+	 *
+	 * @param \WP_Error $error The refusal.
+	 * @return list<array{code: string, message: string}>
+	 */
+	private static function error_reasons( \WP_Error $error ): array {
+		$data = $error->get_error_data();
+		return is_array( $data ) && isset( $data['reasons'] ) && is_array( $data['reasons'] ) ? array_values( $data['reasons'] ) : array();
 	}
 }

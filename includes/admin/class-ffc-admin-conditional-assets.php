@@ -97,15 +97,29 @@ class AdminConditionalAssets {
 			$this->enqueue_submission_edit_assets();
 		}
 
-		// Appointment detail page — shared masked-PII reveal handler (#739 §3.3).
-		if ( $this->is_appointment_detail_page() ) {
-			$this->enqueue_pii_reveal_assets( $s );
+		// Appointments list and detail view — shared masked-PII reveal handler
+		// (#739 §3.3); the list's email column carries reveal buttons (#1822).
+		if ( $this->is_appointments_page() ) {
+			$this->enqueue_pii_reveal_assets();
+		}
+
+		// Reregistration submissions list — the masked email's Reveal (#1815).
+		if ( $this->is_reregistration_submissions_page() ) {
+			$this->enqueue_pii_reveal_assets();
+		}
+
+		// Audience screens: members and calendar user-access rows carry the
+		// masked account email with reveal buttons (#1824).
+		if ( $this->is_audience_account_page() ) {
+			$this->enqueue_pii_reveal_assets();
 		}
 
 		// Submissions list page (when filtered by a single form): "Move to form…" modal.
+		// Its email column carries reveal buttons too (#1822).
 		if ( $this->is_submissions_list_page() ) {
 			$this->enqueue_move_submissions_assets();
 			$this->enqueue_submissions_bulk_assets();
+			$this->enqueue_pii_reveal_assets();
 		}
 
 		// Certificates Dashboard (calendar view).
@@ -414,32 +428,22 @@ class AdminConditionalAssets {
 		);
 
 		// Shared masked-PII reveal handler (#739 §3.3).
-		$this->enqueue_pii_reveal_assets( $s );
+		$this->enqueue_pii_reveal_assets();
 	}
 
 	/**
-	 * Enqueue the shared masked-PII reveal script (#739 §3.3). Used on both the
-	 * submission edit page and the appointment detail page; `ffc-core` (which
-	 * provides `FFC.request`) is already enqueued on every FFC admin screen.
+	 * Enqueue the shared masked-PII reveal script (#739 §3.3). Used on the
+	 * submission edit page and list, on the appointments list and detail
+	 * view, on the reregistration submissions list (#1815) and on the
+	 * audience and audience-calendar screens (#1824); each reveal
+	 * button carries its own nonce, and `ffc-core` (which
+	 * provides `FFC.request`) is registered on every admin screen. The same
+	 * script serves the "Reveal this page" button (#1863).
 	 *
-	 * @param string $s Asset minification suffix.
 	 * @return void
 	 */
-	private function enqueue_pii_reveal_assets( string $s ): void {
-		wp_enqueue_script(
-			'ffc-pii-reveal',
-			FFC_PLUGIN_URL . "assets/js/ffc-pii-reveal{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
-		wp_localize_script(
-			'ffc-pii-reveal',
-			'ffcPiiReveal',
-			array(
-				'reveal_error' => __( 'Unable to reveal this value.', 'ffcertificate' ),
-			)
-		);
+	private function enqueue_pii_reveal_assets(): void {
+		\FreeFormCertificate\Core\PiiReveal::enqueue_assets();
 	}
 
 	/**
@@ -453,13 +457,42 @@ class AdminConditionalAssets {
 	}
 
 	/**
-	 * Check if current page is the appointment detail view (the single-record
-	 * screen that renders masked CPF / RF / email with reveal controls).
+	 * Check if current page is a reregistration campaign's submissions list
+	 * (`page=ffc-reregistration&view=submissions`), whose email column is
+	 * masked with a reveal control (#1815).
 	 *
 	 * @return bool
 	 */
-	private function is_appointment_detail_page(): bool {
-		return 'ffc-appointments' === RequestInput::get_get_key( 'page' )
-			&& RequestInput::has_get( 'appointment' );
+	private function is_reregistration_submissions_page(): bool {
+		return 'ffc-reregistration' === RequestInput::get_get_key( 'page' )
+			&& 'submissions' === RequestInput::get_get_key( 'view' );
+	}
+
+	/**
+	 * Check if current page is the appointments screen: the list, whose email
+	 * column carries reveal buttons (#1822), or the detail view of one record
+	 * (`&appointment=`), which renders masked CPF / RF / email with reveal
+	 * controls.
+	 *
+	 * @return bool
+	 */
+	private function is_appointments_page(): bool {
+		return 'ffc-appointments' === RequestInput::get_get_key( 'page' );
+	}
+
+	/**
+	 * Check if current page lists accounts with their email on an audience
+	 * screen (#1824): the audiences page (its Members tab) or the audience
+	 * calendars page (its User access tab, whose rows the "add user" AJAX
+	 * handler also returns).
+	 *
+	 * @return bool
+	 */
+	private function is_audience_account_page(): bool {
+		return in_array(
+			RequestInput::get_get_key( 'page' ),
+			array( 'ffc-scheduling-audiences', 'ffc-scheduling-calendars' ),
+			true
+		);
 	}
 }

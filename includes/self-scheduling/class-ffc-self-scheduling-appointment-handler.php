@@ -155,7 +155,8 @@ class AppointmentHandler {
 		// === BEGIN TRANSACTION: Atomic validate + insert ===.
 		$this->appointment_repository->begin_transaction();
 
-		$is_waitlist = false;
+		$is_waitlist      = false;
+		$override_reasons = array();
 
 		try {
 			// Validate with row-level locks (FOR UPDATE) to prevent concurrent overbooking.
@@ -164,6 +165,11 @@ class AppointmentHandler {
 				$this->appointment_repository->rollback();
 				return $validation;
 			}
+
+			// The rules a bypass holder confirmed breaking (#1859); the flag
+			// itself is not a column.
+			$override_reasons = $this->validator->get_override_reasons();
+			unset( $data['confirm_override'] );
 
 			// The slot was full but the calendar's waitlist had room (#941 phase 2):
 			// store this booking as a queued `waitlist` entry rather than an active
@@ -197,6 +203,23 @@ class AppointmentHandler {
 			return new \WP_Error( 'booking_error', __( 'An error occurred while booking. Please try again.', 'ffcertificate' ) );
 		}
 		// === END TRANSACTION ===.
+
+		// A booking confirmed over the calendar's rules is recorded (#1859).
+		if ( ! empty( $override_reasons ) ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'appointment_booked_with_override',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'appointment_id'   => (int) $appointment_id,
+					'calendar_id'      => (int) $data['calendar_id'],
+					'appointment_date' => (string) $data['appointment_date'],
+					'start_time'       => (string) $data['start_time'],
+					'reasons'          => array_column( $override_reasons, 'code' ),
+					'confirmed_at'     => time(),
+				),
+				get_current_user_id()
+			);
+		}
 
 		// Everything from here on is *after* the commit: the appointment row
 		// exists and the booking is real. A failure in the notification hook,
@@ -266,6 +289,36 @@ class AppointmentHandler {
 	}
 
 	/**
+	 * The rules a booking would break, for a bypass holder to confirm (#1859).
+	 *
+	 * Read by the booking form before it submits, so the warning and its
+	 * countdown happen before the captcha is spent. Empty for anyone without
+	 * the bypass on the calendar: they are refused on submit instead.
+	 *
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date        Date (Y-m-d).
+	 * @param string $time        Start time (H:i).
+	 * @return list<array{code: string, message: string}>|\WP_Error
+	 */
+	public function get_override_reasons( int $calendar_id, string $date, string $time ) {
+		$calendar = $this->calendar_repository->findById( $calendar_id );
+		if ( ! $calendar ) {
+			return new \WP_Error( 'invalid_calendar', __( 'Calendar not found.', 'ffcertificate' ) );
+		}
+
+		$data = array(
+			'calendar_id'      => $calendar_id,
+			'appointment_date' => $date,
+			'start_time'       => $time,
+		);
+		if ( is_user_logged_in() ) {
+			$data['user_id'] = get_current_user_id();
+		}
+
+		return $this->validator->override_reasons( $data, $calendar );
+	}
+
+	/**
 	 * Record a post-commit failure without failing the booking.
 	 *
 	 * @param string     $stage          Which post-commit step threw.
@@ -287,6 +340,37 @@ class AppointmentHandler {
 	}
 
 	/**
+	 * Whether a private calendar is hidden from the current visitor.
+	 *
+	 * The shortcode's rule (`SelfSchedulingShortcode::render()`): a calendar
+	 * whose `visibility` is private shows nothing to a visitor who is neither
+	 * logged in nor holds the scheduling bypass. The slot and month reads
+	 * apply the same rule, so they do not answer for a calendar the page
+	 * would not show (#1861).
+	 *
+	 * @since 6.40.0
+	 * @param array<string, mixed> $calendar Calendar row.
+	 * @return bool
+	 */
+	public function is_hidden_from_visitor( array $calendar ): bool {
+		if ( 'private' !== ( $calendar['visibility'] ?? 'public' ) || is_user_logged_in() ) {
+			return false;
+		}
+		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+		return ! \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
+	}
+
+	/**
+	 * The error a read of a calendar hidden from the visitor answers with.
+	 *
+	 * @since 6.40.0
+	 * @return \WP_Error
+	 */
+	public static function hidden_calendar_error(): \WP_Error {
+		return new \WP_Error( 'calendar_private', __( 'This calendar requires authentication.', 'ffcertificate' ), array( 'status' => 403 ) );
+	}
+
+	/**
 	 * Get available time slots for a date
 	 *
 	 * @param int    $calendar_id Calendar ID.
@@ -303,6 +387,10 @@ class AppointmentHandler {
 
 		if ( 'active' !== $calendar['status'] ) {
 			return new \WP_Error( 'calendar_inactive', __( 'Calendar is not active.', 'ffcertificate' ) );
+		}
+
+		if ( $this->is_hidden_from_visitor( $calendar ) ) {
+			return self::hidden_calendar_error();
 		}
 
 		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;

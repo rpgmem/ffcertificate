@@ -50,17 +50,31 @@ A built-in short-link domain with click counts, plus a QR code generator for lin
 
 ## More
 
-- **User dashboard:** a front-end page where each person finds their certificates, appointments, group events, reregistrations and profile.
+- **User dashboard:** a front-end page where each person finds their certificates, appointments, group events, reregistrations and profile, drawn in the plugin's palette and following Dark Mode and Public Design.
 - **Reregistration:** campaigns with per-audience custom fields, approval and PDF records.
 - **Recruitment:** public-tender notices, candidate classification lists, convocations and a public queue.
-- **Privacy:** e-mail, CPF/RF, IP addresses and other sensitive fields are encrypted at rest, and a reveal is logged.
+- **Privacy:** e-mail, CPF/RF, IP addresses and other sensitive fields are encrypted at rest and start masked on screen for every viewer, administrators included; each reveal is logged.
 - **Administration:** granular capabilities (hidden, view only, view and edit), an activity log, batched CSV exports, data migrations, a scheduled-tasks screen that generates the server cron line, and one e-mail layout shared by every message.
 - **Dark mode:** for the plugin's admin screens and public pages, either always on or following the operating system.
-- **Public design:** an optional setting that gives every public screen the site's accent and field colours, corners, form width and font, and warns about hard-to-read colour pairs.
+- **Public design:** an optional setting that gives every public screen the site's accent and field colours, the corners of fields and cards, form width and font, and warns about hard-to-read colour pairs.
 
 | User dashboard | Dark mode |
 | --- | --- |
 | ![User dashboard](docs/screenshots/14-user-dashboard.png) | ![Dark mode](docs/screenshots/13-dark-mode.png) |
+
+## Free software, made by public servants
+
+Free Form Certificate is developed and maintained by public servants in Brazil and distributed as [free software](https://en.wikipedia.org/wiki/Free_software) under the [GNU AGPLv3](https://www.gnu.org/licenses/agpl-3.0.html) or later. What is built with public resources should return to the public.
+
+- **Free of charge, always.** There is no paid edition and there never will be: no locked feature, no subscription, no "pro" version.
+- **Free to use, study and adapt.** Any public body, school or organisation may install, modify and redistribute it. The AGPL only asks that improvements you distribute, or offer as a network service, stay free as well.
+- **Built to be replicated.** Each module can be switched on or off, so another school network or public body can adopt the same solution without depending on a vendor.
+- **Accessible, and careful with personal data.** Screens follow the [WCAG](https://en.wikipedia.org/wiki/Web_Content_Accessibility_Guidelines) accessibility guidelines, offer a dark mode and work on a phone. CPF, RF and e-mail are stored encrypted, in line with Brazil's data protection law, the [LGPD](https://en.wikipedia.org/wiki/General_Personal_Data_Protection_Law).
+- **Your data stays with you.** The plugin collects no usage data and shows no advertising. It runs on your own server, and its only outbound calls are the update check and the optional services you choose to enable.
+- **Transparent by default.** The source code, every change and the list of known problems are public, and each change goes through automated tests before it is released.
+- **Open to collaboration.** Suggestions, bug reports and contributions are welcome here.
+
+**Our goal:** to give public institutions a reliable, accessible and secure way to issue documents, run campaigns and serve people online, at no cost and without vendor lock-in, and to show that public servants can build digital public goods of high technical quality.
 
 ## Installation
 

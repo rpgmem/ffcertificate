@@ -73,10 +73,6 @@ class FrontendShortcodesTest extends TestCase {
 			}
 		);
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		$this->shortcodes = new Shortcodes();
 	}
 
@@ -204,24 +200,14 @@ class FrontendShortcodesTest extends TestCase {
 	public function test_render_verification_page_includes_template_when_no_token(): void {
 		unset( $_GET['token'] );
 
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', '/tmp/ffc_test_dir/' );
-		}
-
-		// Create a minimal template file
-		@mkdir( '/tmp/ffc_test_dir/templates', 0777, true );
-		file_put_contents( '/tmp/ffc_test_dir/templates/verification-page.php', '<div class="ffc-verification-form">FORM</div>' );
-
+		// `tests/bootstrap.php` points FFC_PLUGIN_DIR at the repository, so
+		// this renders the shipped `templates/verification-page.php`.
 		Functions\when( 'wp_rand' )->justReturn( 2 );
 		Functions\when( 'wp_hash' )->justReturn( 'hash' );
 
 		$html = $this->shortcodes->render_verification_page( array() );
 
 		$this->assertStringContainsString( 'ffc-verification-form', $html );
-
-		// Cleanup
-		@unlink( '/tmp/ffc_test_dir/templates/verification-page.php' );
-		@rmdir( '/tmp/ffc_test_dir/templates' );
 	}
 
 	// ==================================================================
@@ -403,7 +389,14 @@ class FrontendShortcodesTest extends TestCase {
 
 		// `esc_attr` is an identity stub here, so the JSON arrives unencoded.
 		$this->assertStringContainsString( 'data-ffc-quiz-leave="["q1"]"', $html, 'Only the scored question is cleared.' );
-		$this->assertStringContainsString( 'ffc-quiz-leave-notice', $html );
+		$this->assertStringContainsString( 'data-ffc-notice="quiz-leave"', $html );
+		$this->assertStringContainsString( 'ffc-icon-eye', $html );
+		$this->assertStringContainsString( '<strong class="ffc-notice-title">Stay on this page while you answer.</strong>', $html );
+		// A system notice sits above the title; the counter and the dialog
+		// stay inside the form, which posts the one and opens the other (#1842).
+		$this->assertLessThan( strpos( $html, 'ffc-form-title' ), strpos( $html, 'data-ffc-notice="quiz-leave"' ), 'The notice precedes the title.' );
+		$this->assertGreaterThan( strpos( $html, '<form' ), strpos( $html, 'name="ffc_quiz_focus_losses"' ), 'The counter is posted with the form.' );
+		$this->assertStringNotContainsString( 'ffc-form-info-block', $html, 'Not the operator\'s Info block.' );
 		$this->assertStringContainsString( 'name="ffc_quiz_focus_losses"', $html );
 		$this->assertMatchesRegularExpression( '/class="ffc-modal ffc-quiz-leave-overlay" role="alertdialog" aria-modal="true"[^>]*hidden>/', $html );
 	}
@@ -633,7 +626,7 @@ class FrontendShortcodesTest extends TestCase {
 	public function test_render_form_omits_schedule_exception_banner_when_no_cookie(): void {
 		$html = $this->render_form_with();
 
-		$this->assertStringNotContainsString( 'ffc-schedule-exception-banner', $html );
+		$this->assertStringNotContainsString( 'data-ffc-notice="schedule-exception"', $html );
 		$this->assertStringNotContainsString( 'ffc_schedule_exception_token', $html );
 	}
 
@@ -642,7 +635,7 @@ class FrontendShortcodesTest extends TestCase {
 
 		$html = $this->render_form_with();
 
-		$this->assertStringNotContainsString( 'ffc-schedule-exception-banner', $html );
+		$this->assertStringNotContainsString( 'data-ffc-notice="schedule-exception"', $html );
 		$this->assertStringNotContainsString( 'ffc_schedule_exception_token', $html );
 	}
 
@@ -658,7 +651,9 @@ class FrontendShortcodesTest extends TestCase {
 		$html = $this->render_form_with();
 
 		// Banner present + carries both override values.
-		$this->assertStringContainsString( 'ffc-schedule-exception-banner', $html );
+		$this->assertStringContainsString( 'data-ffc-notice="schedule-exception"', $html );
+		$this->assertStringContainsString( '<div class="ffc-notice ffc-notice-info" role="status" aria-live="polite" data-ffc-notice="schedule-exception"><span class="ffc-notice-icon ffc-icon-clock" aria-hidden="true"></span>', $html );
+		$this->assertLessThan( strpos( $html, 'ffc-form-title' ), strpos( $html, 'data-ffc-notice="schedule-exception"' ), 'The banner sits above the title (#1842).' );
 		$this->assertStringContainsString( '08:00', $html );
 		$this->assertStringContainsString( '17:30', $html );
 		// Hidden input carries the exact cookie value (no re-sign).
@@ -680,7 +675,7 @@ class FrontendShortcodesTest extends TestCase {
 
 		$html = $this->render_form_with();
 
-		$this->assertStringContainsString( 'ffc-schedule-exception-banner', $html );
+		$this->assertStringContainsString( 'data-ffc-notice="schedule-exception"', $html );
 		$this->assertStringContainsString( 'baseline', $html );
 		$this->assertStringContainsString( '17:30', $html );
 	}
@@ -699,7 +694,7 @@ class FrontendShortcodesTest extends TestCase {
 
 		$html = $this->render_form_with();
 
-		$this->assertStringNotContainsString( 'ffc-schedule-exception-banner', $html );
+		$this->assertStringNotContainsString( 'data-ffc-notice="schedule-exception"', $html );
 		$this->assertStringNotContainsString( 'ffc_schedule_exception_token', $html );
 	}
 
@@ -728,7 +723,7 @@ class FrontendShortcodesTest extends TestCase {
 
 		$html = $this->render_form_with();
 
-		$this->assertStringNotContainsString( 'ffc-schedule-exception-banner', $html );
+		$this->assertStringNotContainsString( 'data-ffc-notice="schedule-exception"', $html );
 		$this->assertStringNotContainsString( 'ffc_schedule_exception_token', $html );
 	}
 

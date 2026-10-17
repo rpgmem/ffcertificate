@@ -112,6 +112,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->validator = Mockery::mock( 'FreeFormCertificate\SelfScheduling\AppointmentValidator' );
 		// Default: no waitlist diversion (#941 phase 2). Waitlist-specific tests override.
 		$this->validator->shouldReceive( 'is_waitlist_requested' )->andReturn( false )->byDefault();
+		$this->validator->shouldReceive( 'get_override_reasons' )->andReturn( array() )->byDefault();
 
 		$this->setPrivate( 'calendar_repository', $this->calendarRepo );
 		$this->setPrivate( 'appointment_repository', $this->appointmentRepo );
@@ -219,6 +220,52 @@ class AppointmentHandlerTest extends TestCase {
 		$this->assertTrue( $result['requires_approval'] );
 	}
 
+	/**
+	 * A booking a bypass holder confirmed over the rules is logged, and the
+	 * confirmation flag never reaches the row (#1859).
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_process_logs_a_confirmed_override_and_strips_the_flag(): void {
+		\Mockery::getConfiguration()->setConstantsMap(
+			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_WARNING' => 'warning' ) )
+		);
+		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
+		$log->shouldReceive( 'log' )->once()->with(
+			'appointment_booked_with_override',
+			'warning',
+			Mockery::on( static fn( array $c ): bool => 102 === $c['appointment_id'] && array( 'too_far' ) === $c['reasons'] ),
+			Mockery::any()
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar( array( 'requires_approval' => 0 ) ) );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->validator->shouldReceive( 'validate' )->andReturn( true );
+		$this->validator->shouldReceive( 'get_override_reasons' )->andReturn( array( array( 'code' => 'too_far', 'message' => 'Too far' ) ) );
+		$this->appointmentRepo->shouldReceive( 'createAppointment' )->once()
+			->with( Mockery::on( static fn( $data ) => ! array_key_exists( 'confirm_override', $data ) ) )
+			->andReturn( 102 );
+		$this->appointmentRepo->shouldReceive( 'commit' )->once();
+		$this->appointmentRepo->shouldReceive( 'findById' )->with( 102 )->andReturn( array( 'id' => 102, 'confirmation_token' => 't' ) );
+
+		$result = $this->handler->process_appointment(
+			array(
+				'calendar_id'      => 1,
+				'appointment_date' => '2026-03-01',
+				'start_time'       => '10:00',
+				'consent_given'    => '1',
+				'user_ip'          => '1.2.3.4',
+				'confirm_override' => true,
+			)
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['success'] );
+		\Mockery::getConfiguration()->setConstantsMap( array() );
+	}
+
 	public function test_process_status_confirmed_without_approval(): void {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
 			$this->makeCalendar( array( 'requires_approval' => 0 ) )
@@ -314,6 +361,42 @@ class AppointmentHandlerTest extends TestCase {
 		$result = $this->handler->get_available_slots( 1, '2026-03-01' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
+	}
+
+	public function test_available_slots_of_a_private_calendar_are_hidden_from_an_anonymous_visitor(): void {
+		// Same rule as the shortcode (#1861): not logged in, no bypass.
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn(
+			$this->makeCalendar( array( 'visibility' => 'private' ) )
+		);
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->never();
+
+		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'calendar_private', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+	}
+
+	public function test_a_private_calendar_is_visible_to_a_logged_in_visitor(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+
+		$this->assertFalse( $this->handler->is_hidden_from_visitor( $this->makeCalendar( array( 'visibility' => 'private' ) ) ) );
+	}
+
+	public function test_a_private_calendar_is_visible_with_the_scheduling_bypass(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_bypass_appointments' === $cap );
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+
+		$this->assertFalse( $this->handler->is_hidden_from_visitor( $this->makeCalendar( array( 'visibility' => 'private', 'post_id' => 5 ) ) ) );
+	}
+
+	public function test_a_public_calendar_is_never_hidden(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+
+		$this->assertFalse( $this->handler->is_hidden_from_visitor( $this->makeCalendar( array( 'visibility' => 'public' ) ) ) );
 	}
 
 	public function test_available_slots_generates_from_working_hours(): void {

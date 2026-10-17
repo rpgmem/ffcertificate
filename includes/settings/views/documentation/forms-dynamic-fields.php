@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="card">
 	<h3 id="forms-dynamic-fields" class="ffc-icon-layout"><?php esc_html_e( 'Dynamic Fields (Form Builder)', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'A form\'s input fields are defined on the Fields tab ("Form Builder (Fields)") of the form editor\'s "Certificate Form Configuration" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A form\'s input fields are defined on the Fields tab ("Form Builder (Fields)") of the form editor\'s "Certificate Form Configuration" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails. Each field is titled by its type, chosen once from the Add New Field menu; to change a type, remove the field and add it again, because the answers already stored under it hold values of the old type.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Every field is a token', 'ffcertificate' ); ?></h4>
@@ -56,7 +56,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</ul>
 
 	<h4><?php esc_html_e( 'Required Form Fields', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'A new form starts with the fields listed under Settings → Certificates → Required Form Fields, with the label and type given there. By default they are:', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A new form starts with every row of Settings → Certificates → Required data whose "Required in the form" switch is on, with the label and type given there. By default they are:', 'ffcertificate' ); ?></p>
 	<ul>
 		<li><code>name</code> — <?php esc_html_e( 'the participant\'s full name (required): at least two words and 4 characters, checked in the browser and on the server.', 'ffcertificate' ); ?></li>
 		<li><code>email</code> — <?php esc_html_e( 'the participant\'s email (required); used to deliver the certificate. An address that is not valid is refused as such, not as a missing one.', 'ffcertificate' ); ?></li>
@@ -67,10 +67,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<p><?php esc_html_e( 'Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as "da" and "de" in lowercase.', 'ffcertificate' ); ?></p>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'CPF/RF validation is by field name, not by type.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'A field named cpf_rf is validated on submit as a Brazilian document: non-digits are stripped and the value must be exactly 11 digits (CPF, check-digit validated) or 7 digits (RF); the browser masks it and blocks the submit while the number is invalid. The RF check digit is enforced only when Settings → General → RF check digit is on (off by default). There is no separate "CPF field type" — the name is what triggers it. In the PDF, the cpf, cpf_rf and rg tokens are formatted with punctuation (e.g. 000.000.000-00 for a CPF, 000.000-0 for an RF), not masked.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'CPF/RF validation is by field name, not by type.', 'ffcertificate' ) )
+	);
+	?>
 </div>

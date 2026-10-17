@@ -213,7 +213,7 @@ describe('csv-download — onSubmitInfo', () => {
 		window.$('.ffc-public-csv-download form').trigger('submit');
 		await flush();
 
-		expect(window.$('.ffc-info-alert-warning').text()).toContain('No end date');
+		expect(window.$('.ffc-notice.ffc-notice-warning').text()).toContain('No end date');
 	});
 
 	it('renders the disabled download button when status.can_download is false', async () => {
@@ -997,8 +997,21 @@ describe('csv-info-screen — status messages + disabled button variants', () =>
 			download_blocked_reason: 'active',
 			end_date_formatted: '31/12/2026',
 		}));
-		expect(window.$('.ffc-info-alert-info').length).toBe(1);
-		expect(window.$('.ffc-info-alert-info').text().length).toBeGreaterThan(0);
+		expect(window.$('.ffc-notice.ffc-notice-info').length).toBe(1);
+		expect(window.$('.ffc-notice.ffc-notice-info').text().length).toBeGreaterThan(0);
+	});
+
+	it('renders the status as the shared notice: a note, its icon, text never markup, no inline style (#1842)', async () => {
+		await renderInfoWith(infoWithStatus({
+			download_blocked_reason: 'active',
+			end_date_formatted: '<img src=x onerror=alert(1)>',
+		}));
+		const notice = document.querySelector('.ffc-notice.ffc-notice-info');
+		expect(notice.getAttribute('role')).toBe('note');
+		expect(notice.querySelector('.ffc-notice-icon.ffc-icon-clock')).not.toBeNull();
+		expect(notice.querySelector('img')).toBeNull();
+		expect(notice.textContent).toContain('<img src=x onerror=alert(1)>');
+		expect(notice.outerHTML).not.toContain('style=');
 	});
 
 	it('shows the before-start message when reason=active and before_start is true', async () => {
@@ -1007,28 +1020,28 @@ describe('csv-info-screen — status messages + disabled button variants', () =>
 			before_start: true,
 			start_date_formatted: '01/01/2027',
 		}));
-		expect(window.$('.ffc-info-alert-info').text()).toContain('01/01/2027');
+		expect(window.$('.ffc-notice.ffc-notice-info').text()).toContain('01/01/2027');
 	});
 
 	it('shows the quota-exhausted warning for reason=quota_exhausted', async () => {
 		await renderInfoWith(infoWithStatus({ download_blocked_reason: 'quota_exhausted' }));
-		expect(window.$('.ffc-info-alert-warning').length).toBeGreaterThanOrEqual(1);
+		expect(window.$('.ffc-notice.ffc-notice-warning').length).toBeGreaterThanOrEqual(1);
 	});
 
 	it('shows the download-disabled info message for reason=download_disabled', async () => {
 		await renderInfoWith(infoWithStatus({ download_blocked_reason: 'download_disabled' }));
-		expect(window.$('.ffc-info-alert-info').length).toBe(1);
+		expect(window.$('.ffc-notice.ffc-notice-info').length).toBe(1);
 	});
 
 	it('shows the download-ready success message when no blocked reason', async () => {
 		await renderInfoWith(infoWithStatus({ can_download: true }));
-		expect(window.$('.ffc-info-alert-success').length).toBe(1);
+		expect(window.$('.ffc-notice.ffc-notice-success').length).toBe(1);
 	});
 
 	it('suppresses the status message (returns empty) for reason=no_end_date', async () => {
 		await renderInfoWith(infoWithStatus({ has_end_date: false, download_blocked_reason: 'no_end_date' }));
-		expect(window.$('.ffc-info-alert-info').length).toBe(0);
-		expect(window.$('.ffc-info-alert-success').length).toBe(0);
+		expect(window.$('.ffc-notice.ffc-notice-info').length).toBe(0);
+		expect(window.$('.ffc-notice.ffc-notice-success').length).toBe(0);
 	});
 
 	it('renders the admin-disabled cert-preview button (disabled)', async () => {

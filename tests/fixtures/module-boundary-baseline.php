@@ -11,6 +11,7 @@
 return array(
 	'API>Audience',
 	'API>Core',
+	'API>Frontend',
 	'API>Generators',
 	'API>Repositories',
 	'API>Reregistration',
@@ -22,6 +23,7 @@ return array(
 	'API>UserDashboard',
 	'Admin>Audience',
 	'Admin>Core',
+	'Admin>DateMessages',
 	'Admin>Frontend',
 	'Admin>Generators',
 	'Admin>Maintenance',
@@ -36,7 +38,6 @@ return array(
 	'Audience>Admin',
 	'Audience>Core',
 	'Audience>Integrations',
-	'Audience>Repositories',
 	'Audience>Reregistration',
 	'Audience>Scheduling',
 	'Audience>Settings',

@@ -30,6 +30,7 @@ class FormEditorTest extends TestCase {
 		Functions\when( 'add_meta_box' )->justReturn( true );
 		Functions\when( 'remove_meta_box' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_register_script' )->justReturn( true );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'wp_unslash' )->returnArg();
@@ -38,19 +39,6 @@ class FormEditorTest extends TestCase {
 		// default to "no pending errors" (the dedicated tests override these).
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_transient' )->justReturn( false );
-
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '4.12.0' );
-		}
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', '/tmp/ffc_test/' );
-		}
 
 		$this->json_responses = array();
 		$responses = &$this->json_responses;
@@ -154,7 +142,7 @@ class FormEditorTest extends TestCase {
 		$editor->enqueue_scripts( 'post.php' );
 
 		$this->assertContains( 'ffc-geofence-admin', $enqueued );
-		$this->assertContains( 'ffc-form-editor-tabs', $enqueued );
+		$this->assertContains( 'ffc-vertical-tabs', $enqueued );
 	}
 
 	public function test_enqueue_scripts_localizes_error_tabs_when_save_failed(): void {
@@ -182,7 +170,7 @@ class FormEditorTest extends TestCase {
 		$editor->enqueue_scripts( 'post.php' );
 
 		$this->assertArrayHasKey( 'ffcFormTabsErrors', $localized );
-		$this->assertSame( 'ffc-form-editor-tabs', $localized['ffcFormTabsErrors']['handle'] );
+		$this->assertSame( 'ffc-vertical-tabs', $localized['ffcFormTabsErrors']['handle'] );
 		$this->assertSame( array( 'geolocation' ), $localized['ffcFormTabsErrors']['data'] );
 	}
 

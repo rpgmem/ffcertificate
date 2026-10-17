@@ -2,7 +2,7 @@
  * URL Shortener Admin JavaScript
  *
  * Handles: copy to clipboard, QR download (PNG/SVG), create short URL,
- * regenerate, and toast notifications.
+ * regenerate; outcomes are reported through FFC.Admin.notify().
  *
  * @since 5.1.0
  */
@@ -12,19 +12,14 @@
     var settings = window.ffcUrlShortener || {};
 
     /**
-     * Show a brief toast notification.
+     * Report through the admin's one toast, FFC.Admin.notify() (#1843): a
+     * page notice with an icon and a live region, which the short-URL toast
+     * this replaced never had.
      */
     function showToast(message, type) {
-        var $toast = $('<div class="ffc-shorturl-toast ffc-shorturl-toast--' + (type || 'success') + '">')
-            .text(message)
-            .appendTo('body');
-        setTimeout(function () {
-            $toast.addClass('ffc-shorturl-toast--visible');
-        }, 10);
-        setTimeout(function () {
-            $toast.removeClass('ffc-shorturl-toast--visible');
-            setTimeout(function () { $toast.remove(); }, 300);
-        }, 2000);
+        if (window.FFC && window.FFC.Admin && typeof window.FFC.Admin.notify === 'function') {
+            window.FFC.Admin.notify(message, type === 'error' ? 'error' : 'success', type === 'error' ? 8000 : 2000);
+        }
     }
 
     /**
@@ -210,11 +205,11 @@
                     var i18n = settings.i18n || {};
                     if (err && err.fromServer) {
                         $modal.find('.ffc-qr-modal__preview')
-                            .html('<p style="color:#dc3232;"></p>')
+                            .html('<p class="ffc-qr-modal__error"></p>')
                             .find('p').text(err.message || i18n.error || 'Error');
                     } else {
                         $modal.find('.ffc-qr-modal__preview')
-                            .html('<p style="color:#dc3232;"></p>')
+                            .html('<p class="ffc-qr-modal__error"></p>')
                             .find('p').text(i18n.qrLoadFailed || 'Failed to load QR Code');
                     }
                 });

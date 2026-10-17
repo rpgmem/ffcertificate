@@ -53,7 +53,7 @@ beforeAll(() => {
 						<td colspan="11">
 							<div class="ffc-field-options-container"><textarea class="ffc-field-choices"></textarea></div>
 							<textarea class="ffc-field-help"></textarea>
-							<div class="ffc-field-detail-row">
+							<div class="ffc-field-validation-container">
 								<select class="ffc-field-format"><option value="">-</option><option value="custom_regex">regex</option></select>
 								<input type="text" class="ffc-field-regex" style="display:none">
 								<input type="text" class="ffc-field-regex-msg" style="display:none">
@@ -97,7 +97,7 @@ beforeEach(async () => {
 						<td colspan="11">
 							<div class="ffc-field-options-container" style="display:none"><textarea class="ffc-field-choices"></textarea></div>
 							<textarea class="ffc-field-help"></textarea>
-							<div class="ffc-field-detail-row">
+							<div class="ffc-field-validation-container">
 								<select class="ffc-field-format"><option value="">-</option><option value="custom_regex">regex</option></select>
 								<input type="text" class="ffc-field-regex" style="display:none">
 								<input type="text" class="ffc-field-regex-msg" style="display:none">
@@ -231,7 +231,7 @@ describe('custom-fields-admin — saveFields', () => {
 		await flush();
 
 		expect(window.$('#ffc-custom-fields-status').text()).toBe('Saved');
-		expect(window.$('#ffc-custom-fields-status').hasClass('ffc-status-success')).toBe(true);
+		expect(window.$('#ffc-custom-fields-status').hasClass('is-success')).toBe(true);
 
 		// After 800ms timer, location.reload() fires.
 		vi.advanceTimersByTime(800);
@@ -259,7 +259,7 @@ describe('custom-fields-admin — saveFields', () => {
 		await flush();
 
 		expect(window.$('#ffc-custom-fields-status').text()).toBe('Bad key');
-		expect(window.$('#ffc-custom-fields-status').hasClass('ffc-status-error')).toBe(true);
+		expect(window.$('#ffc-custom-fields-status').hasClass('is-error')).toBe(true);
 	});
 
 	it('on network failure: shows the localised error status', async () => {
@@ -278,7 +278,7 @@ describe('custom-fields-admin — saveFields', () => {
 		await flush();
 
 		expect(window.$('#ffc-custom-fields-status').text()).toBe('Error');
-		expect(window.$('#ffc-custom-fields-status').hasClass('ffc-status-error')).toBe(true);
+		expect(window.$('#ffc-custom-fields-status').hasClass('is-error')).toBe(true);
 	});
 
 	it('re-enables the save button after a failed save', async () => {
@@ -426,8 +426,15 @@ describe('custom-fields-admin — row UI handlers', () => {
 	it('onFieldTypeChange hides the format row for working_hours type', async () => {
 		window.$('.ffc-field-type').val('working_hours').trigger('change');
 		await flush();
-		// The .ffc-field-detail-row containing .ffc-field-format hides.
-		expect(window.$('.ffc-field-format').closest('.ffc-field-detail-row').css('display')).toBe('none');
+		// The fixture mirrors the renderer's markup: the format select sits in
+		// .ffc-field-validation-container. It used to hide a
+		// .ffc-field-detail-row that the renderer never prints, so the format
+		// select stayed visible (#1771).
+		expect(window.$('.ffc-field-validation-container').css('display')).toBe('none');
+
+		window.$('.ffc-field-type').val('text').trigger('change');
+		await flush();
+		expect(window.$('.ffc-field-validation-container').css('display')).not.toBe('none');
 	});
 
 	it('onFormatChange shows regex inputs only when format=custom_regex', async () => {
@@ -567,7 +574,7 @@ describe('custom-fields-admin — replicateFieldOptions', () => {
 		expect(postSpy.mock.calls[0][1].audience_id).toBe(9);
 		const $status = window.$('#ffc-custom-fields-status');
 		expect($status.text()).toBe('Replicated to 4 audiences');
-		expect($status.hasClass('ffc-status-success')).toBe(true);
+		expect($status.hasClass('is-success')).toBe(true);
 		// Button re-enabled by the trailing .then.
 		expect(window.$('#ffc-replicate-field-options').prop('disabled')).toBe(false);
 	});
@@ -580,7 +587,7 @@ describe('custom-fields-admin — replicateFieldOptions', () => {
 		await flush();
 		const $status = window.$('#ffc-custom-fields-status');
 		expect($status.text()).toBe('Boom');
-		expect($status.hasClass('ffc-status-error')).toBe(true);
+		expect($status.hasClass('is-error')).toBe(true);
 		expect(window.$('#ffc-replicate-field-options').prop('disabled')).toBe(false);
 	});
 });

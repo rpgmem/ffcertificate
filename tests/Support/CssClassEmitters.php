@@ -224,8 +224,15 @@ final class CssClassEmitters {
 			 * (`"don't"`), and from there on reads the file with parity swapped.
 			 * That is how the first version failed to find `.ffc-timeslot-full`.
 			 * It is the same reason `CssSelectors` has to be quote-aware.
+			 *
+			 * A segment may also be joined by `__`, the BEM element separator
+			 * of the component islands: `$container.find( '.ffc-vtabs__tab' )`.
+			 * Stopping at the `__` recorded only the block, so the element's
+			 * emitter went unseen -- hidden for as long as the component was
+			 * named `ffc-form-tabs`, because the unrelated runtime prefix
+			 * `ffc-form-` happened to cover every element (#1788).
 			 */
-			if ( preg_match_all( '/\.(ffc-[a-z0-9]+(?:-{1,2}[a-z0-9]+)*)/i', $src, $m ) ) {
+			if ( preg_match_all( '/\.(ffc-[a-z0-9]+(?:(?:-{1,2}|__)[a-z0-9]+)*)/i', $src, $m ) ) {
 				foreach ( $m[1] as $token ) {
 					$add_literal( $token, $file );
 				}
@@ -280,7 +287,8 @@ final class CssClassEmitters {
 				 * Without it the scan found no emitter for the dashboard's three
 				 * `past-*` classes, and #1170 would have renamed them blind.
 				 */
-				if ( preg_match_all( '/(["\'])\s*((?:ffc-)?[a-z][a-z0-9]*(?:-[a-z0-9]+)+)\s*\1/i', $window, $m ) ) {
+				// `__` joins a BEM element, as in shape 3b.
+				if ( preg_match_all( '/(["\'])\s*((?:ffc-)?[a-z][a-z0-9]*(?:(?:-|__)[a-z0-9]+)+)\s*\1/i', $window, $m ) ) {
 					foreach ( $m[2] as $token ) {
 						$add_literal( $token, $file );
 					}
@@ -313,7 +321,7 @@ final class CssClassEmitters {
 						}
 
 						foreach ( $tokens as $token ) {
-							if ( preg_match( '/^(?:ffc-)?[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/i', $token ) ) {
+							if ( preg_match( '/^(?:ffc-)?[a-z][a-z0-9]*(?:(?:-|__)[a-z0-9]+)+$/i', $token ) ) {
 								$add_literal( $token, $file );
 							}
 						}

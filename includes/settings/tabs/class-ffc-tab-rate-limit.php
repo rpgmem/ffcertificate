@@ -193,15 +193,15 @@ class TabRateLimit extends SettingsTab {
 			// directly, so gate the save here (matches every sibling path).
 			if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 				$this->save_settings();
-				wp_admin_notice(
-					esc_html__( 'Settings saved!', 'ffcertificate' ),
-					array( 'type' => 'success' )
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'success',
+					esc_html__( 'Settings saved!', 'ffcertificate' )
 				);
 			}
 		}
 
 		$settings = $this->get_settings();
-		include FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-rate-limit.php';
+		include $this->view_path( 'ffc-tab-rate-limit.php' );
 	}
 
 	/**

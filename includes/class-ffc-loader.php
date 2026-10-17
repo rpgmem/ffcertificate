@@ -518,6 +518,12 @@ class Loader {
 		// WP-Cron never runs with is_admin() true.
 		\FreeFormCertificate\Core\ScheduledTasks::init();
 
+		// Build the "Required data" table from the two settings it replaces
+		// (#1759). One-shot and option-flagged like the `ensure_*` migrations
+		// below, but on `init`: the default labels it may write are
+		// translated, and translations load too early before `init`.
+		add_action( 'init', array( \FreeFormCertificate\Settings\RequiredData::class, 'maybe_migrate' ), 5 );
+
 		$this->ensure_admin_capabilities();
 		$this->ensure_admin_role_assigned();
 		$this->ensure_taxonomy_renamed();
@@ -530,6 +536,9 @@ class Loader {
 		$this->ensure_identities_cap_granted();
 		$this->ensure_identity_verbs_cap_granted();
 		$this->ensure_grade_cap_granted();
+		$this->ensure_reregistration_pii_cap_granted();
+		$this->ensure_audiences_pii_cap_granted();
+		$this->ensure_forms_api_submit_cap_granted();
 		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_url_shortener_export_cap_granted();
@@ -585,7 +594,32 @@ class Loader {
 			if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentActivator' ) ) {
 				\FreeFormCertificate\UserDashboard\RoleRegistrar::register_recruitment_manager_role();
 			}
+
+			$this->ensure_role_tiers_applied();
 		}
+	}
+
+	/**
+	 * One-time alignment of the stored FFC roles with the #1860 tiers and
+	 * labels: removes the caps a tier no longer owns and rewrites the stored
+	 * role names. Flagged by `ffc_role_tiers_v1`.
+	 *
+	 * Here rather than with the other one-shots on `plugins_loaded` for two
+	 * reasons: the labels are translated, which must wait for `init`; and it
+	 * has to come AFTER every seeding migration, which on a fresh install
+	 * hands an FFC role caps its tier does not own (see
+	 * `CapabilityMigrator::role_tier_removals()`).
+	 *
+	 * @since 6.40.0
+	 * @return void
+	 */
+	private function ensure_role_tiers_applied(): void {
+		$flag = 'ffc_role_tiers_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_role_tiers();
+		update_option( $flag, '1', true );
 	}
 
 	/**
@@ -726,6 +760,60 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_grade_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration seeding `ffc_submit_forms_api` (#1861) onto every
+	 * user and role already holding `ffc_view_forms_api`.
+	 *
+	 * @since 6.40.0
+	 * @return void
+	 */
+	private function ensure_forms_api_submit_cap_granted(): void {
+		$flag = 'ffc_forms_api_submit_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_forms_api_submit_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration seeding `ffc_view_reregistration_pii` (#1815) onto
+	 * every user and role already holding `ffc_manage_reregistration`.
+	 *
+	 * @since 6.40.0
+	 * @return void
+	 */
+	private function ensure_reregistration_pii_cap_granted(): void {
+		$flag = 'ffc_reregistration_pii_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_reregistration_pii_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration seeding `ffc_view_audiences_pii` (#1863) onto every
+	 * user and role already holding `ffc_manage_audiences`.
+	 *
+	 * @since 6.40.0
+	 * @return void
+	 */
+	private function ensure_audiences_pii_cap_granted(): void {
+		$flag = 'ffc_audiences_pii_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_audiences_pii_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -1071,6 +1159,10 @@ class Loader {
 		if ( SettingsReader::module_enabled( 'reregistration' ) ) {
 			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
 			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
+			// Invitations wait for this run since #1762, instead of going out
+			// the moment a campaign is activated. After `expire_overdue`, so a
+			// campaign that has just closed is not swept.
+			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_pending_invitations' ) );
 
 			// Continuation of a reminder batch (#1232 step 2). It needs `2`
 			// accepted arguments: the payload carries the campaign id and the
@@ -1078,6 +1170,7 @@ class Loader {
 			// above -- an event already enqueued when the module is turned off
 			// fires as a no-op and resumes when it comes back.
 			add_action( ReregistrationEmailHandler::REMINDER_BATCH_HOOK, array( ReregistrationEmailHandler::class, 'send_reminder_batch' ), 10, 2 );
+			add_action( ReregistrationEmailHandler::INVITATION_BATCH_HOOK, array( ReregistrationEmailHandler::class, 'send_invitation_batch' ), 10, 2 );
 		}
 		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
 			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
@@ -1125,7 +1218,9 @@ class Loader {
 	 */
 	public function register_frontend_assets(): void {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_register_script( 'ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		// ffc-core dep: the helpers build their notices with FFC.notice() (#1842)
+		// and their field messages with FFC.fieldMessage() (#1844).
+		wp_register_script( 'ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 
 		// ffc-core ships `window.FFC.request()` (the AJAX helper used by the
 		// JS files migrated in #277). The admin enqueues ffc-core directly;
@@ -1138,6 +1233,7 @@ class Loader {
 			'ffcCoreConfig',
 			array(
 				'version' => FFC_VERSION,
+				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
 			)
 		);
 
@@ -1195,6 +1291,7 @@ class Loader {
 			'ffcCoreConfig',
 			array(
 				'version' => FFC_VERSION,
+				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
 			)
 		);
 	}

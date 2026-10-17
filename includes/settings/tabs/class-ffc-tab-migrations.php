@@ -54,14 +54,14 @@ class TabMigrations extends SettingsTab {
 	 */
 	public function render(): void {
 		// Include view file.
-		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-migrations.php';
+		$view_file = $this->view_path( 'ffc-tab-migrations.php' );
 
 		if ( file_exists( $view_file ) ) {
 			include $view_file;
 		} else {
-			wp_admin_notice(
-				esc_html__( 'Migrations view file not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'Migrations view file not found.', 'ffcertificate' )
 			);
 		}
 	}

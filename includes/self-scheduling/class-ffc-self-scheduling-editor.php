@@ -109,15 +109,19 @@ class SelfSchedulingEditor {
 			FFC_VERSION
 		);
 
-		// The collapsible `.ffc-section` the rules and email boxes are split
-		// into (#1629), and the script that keeps their chips live and opens
-		// one holding a field the browser rejects.
+		// The vertical tabs the settings are split into (#1761) and the
+		// collapsible `.ffc-section` the Emails tab still holds (#1629), both
+		// components of this sheet. The tab script is the shared one: it
+		// switches panels, draws the state dots, and opens the tab holding a
+		// field the browser rejects; the sections script does the same for a
+		// closed section and keeps its chips live.
 		wp_enqueue_style(
 			'ffc-admin-components',
 			FFC_PLUGIN_URL . "assets/css/ffc-admin-components{$s}.css",
 			array( 'ffc-common' ),
 			FFC_VERSION
 		);
+		AdminUI::enqueue_vertical_tabs();
 		wp_enqueue_script(
 			'ffc-admin-sections',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-sections{$s}.js",
@@ -167,44 +171,18 @@ class SelfSchedulingEditor {
 	/**
 	 * Add custom metaboxes for calendar editor
 	 *
+	 * The normal column is one box with vertical tabs (#1761), in the form
+	 * editor's pattern; the occupancy report is its last tab rather than a
+	 * box of its own. The side cards stay as they were.
+	 *
 	 * @return void
 	 */
 	public function add_custom_metaboxes(): void {
-		// Main configuration.
+		// Main configuration: every setting, one tab per subject.
 		add_meta_box(
 			'ffc_self_scheduling_box_config',
 			__( 'Calendar Configuration', 'ffcertificate' ),
 			array( $this, 'render_box_config' ),
-			'ffc_self_scheduling',
-			'normal',
-			'high'
-		);
-
-		// Working hours.
-		add_meta_box(
-			'ffc_self_scheduling_box_hours',
-			__( 'Working Hours & Availability', 'ffcertificate' ),
-			array( $this, 'render_box_hours' ),
-			'ffc_self_scheduling',
-			'normal',
-			'high'
-		);
-
-		// Booking rules.
-		add_meta_box(
-			'ffc_self_scheduling_box_rules',
-			__( 'Booking Rules & Restrictions', 'ffcertificate' ),
-			array( $this, 'render_box_rules' ),
-			'ffc_self_scheduling',
-			'normal',
-			'high'
-		);
-
-		// Email notifications.
-		add_meta_box(
-			'ffc_self_scheduling_box_email',
-			__( 'Email Notifications', 'ffcertificate' ),
-			array( $this, 'render_box_email' ),
 			'ffc_self_scheduling',
 			'normal',
 			'high'
@@ -231,20 +209,213 @@ class SelfSchedulingEditor {
 				'side',
 				'default'
 			);
-
-			// Occupancy report (#941 phase 3) — custom-mode calendars only.
-			$occupancy_config = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
-			if ( is_array( $occupancy_config ) && 'custom' === ( $occupancy_config['schedule_type'] ?? 'regular' ) ) {
-				add_meta_box(
-					'ffc_self_scheduling_occupancy',
-					__( 'Occupancy Report', 'ffcertificate' ),
-					array( $this, 'render_box_occupancy' ),
-					'ffc_self_scheduling',
-					'normal',
-					'default'
-				);
-			}
 		}
+	}
+
+	/**
+	 * Whether the calendar shows its occupancy report (#941 phase 3): a saved
+	 * calendar whose stored mode is custom. The same condition that used to
+	 * register the report as its own box, now deciding whether it is a tab.
+	 *
+	 * @param int $post_id Calendar post id.
+	 * @return bool
+	 */
+	private function shows_occupancy( int $post_id ): bool {
+		if ( $post_id <= 0 ) {
+			return false;
+		}
+		$config = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
+		return is_array( $config ) && 'custom' === ( $config['schedule_type'] ?? 'regular' );
+	}
+
+	/**
+	 * The editor's tabs, in display order (#1761).
+	 *
+	 * The two tabs whose feature has an on/off switch draw a state dot that
+	 * follows it, as their section chips did; the others are settings every
+	 * calendar has.
+	 *
+	 * @param bool $occupancy Whether the occupancy tab exists.
+	 * @return array<int, array{key: string, icon: string, label: string, title: string, masters: array<int, string>}>
+	 */
+	private static function tab_definitions( bool $occupancy ): array {
+		$tabs = array(
+			array(
+				'key'     => 'calendar',
+				'icon'    => 'ffc-icon-calendar',
+				'label'   => __( 'Calendar', 'ffcertificate' ),
+				'title'   => __( 'Calendar', 'ffcertificate' ),
+				'masters' => array(),
+			),
+			array(
+				'key'     => 'slots',
+				'icon'    => 'ffc-icon-clock',
+				'label'   => __( 'Slots & hours', 'ffcertificate' ),
+				'title'   => __( 'Booking slots', 'ffcertificate' ),
+				'masters' => array(),
+			),
+			array(
+				'key'     => 'window',
+				'icon'    => 'ffc-icon-history',
+				'label'   => __( 'Booking window', 'ffcertificate' ),
+				'title'   => __( 'Booking window', 'ffcertificate' ),
+				'masters' => array(),
+			),
+			array(
+				'key'     => 'cancellation',
+				'icon'    => 'ffc-icon-cross',
+				'label'   => __( 'Cancellation', 'ffcertificate' ),
+				'title'   => __( 'Cancellation', 'ffcertificate' ),
+				'masters' => array( 'allow_cancellation' ),
+			),
+			array(
+				'key'     => 'approval',
+				'icon'    => 'ffc-icon-user-check',
+				'label'   => __( 'Approval & waitlist', 'ffcertificate' ),
+				'title'   => __( 'Approval and waitlist', 'ffcertificate' ),
+				'masters' => array(),
+			),
+			array(
+				'key'     => 'access',
+				'icon'    => 'ffc-icon-eye',
+				'label'   => __( 'Who can see and book', 'ffcertificate' ),
+				'title'   => __( 'Who can see and book', 'ffcertificate' ),
+				'masters' => array(),
+			),
+			array(
+				'key'     => 'bypass',
+				'icon'    => 'ffc-icon-shield',
+				'label'   => __( 'Administrator bypass', 'ffcertificate' ),
+				'title'   => __( 'Administrator bypass', 'ffcertificate' ),
+				'masters' => array( 'admin_bypass' ),
+			),
+			array(
+				'key'     => 'emails',
+				'icon'    => 'ffc-icon-email',
+				'label'   => __( 'Emails', 'ffcertificate' ),
+				'title'   => __( 'Email Notifications', 'ffcertificate' ),
+				'masters' => array(),
+			),
+		);
+		if ( $occupancy ) {
+			$tabs[] = array(
+				'key'     => 'occupancy',
+				'icon'    => 'ffc-icon-chart',
+				'label'   => __( 'Occupancy', 'ffcertificate' ),
+				'title'   => __( 'Occupancy Report', 'ffcertificate' ),
+				'masters' => array(),
+			);
+		}
+		return $tabs;
+	}
+
+	/**
+	 * Print a tab's one-line summary, the hint its collapsible section carried.
+	 *
+	 * @param string $hint Translated hint.
+	 * @return void
+	 */
+	private static function render_tab_hint( string $hint ): void {
+		echo '<p class="description">' . esc_html( $hint ) . '</p>';
+	}
+
+	/**
+	 * Render the calendar configuration metabox: every setting, in tabs.
+	 *
+	 * The nonce the save handler checks is printed here, once, ahead of the
+	 * tabs; every field below sits in a panel that stays in the DOM while
+	 * hidden, so the save reads them all whichever tab is open.
+	 *
+	 * @param object $post Post object.
+	 * @phpstan-param \WP_Post $post
+	 * @return void
+	 */
+	public function render_box_config( object $post ): void {
+		$config      = $this->config_with_defaults( (int) $post->ID );
+		$mode_locked = $this->calendar_has_appointments( (int) $post->ID );
+
+		wp_nonce_field( 'ffc_self_scheduling_config_nonce', 'ffc_self_scheduling_config_nonce' );
+
+		AdminUI::render_vertical_tabs(
+			self::tab_definitions( $this->shows_occupancy( (int) $post->ID ) ),
+			function ( string $key ) use ( $post, $config, $mode_locked ): void {
+				switch ( $key ) {
+					case 'calendar':
+						$this->render_tab_calendar( $config );
+						break;
+					case 'slots':
+						$this->render_tab_slots( $config, $mode_locked );
+						$this->render_working_hours( $post, $mode_locked );
+						break;
+					case 'window':
+						$this->render_tab_window( $config );
+						break;
+					case 'cancellation':
+						$this->render_tab_cancellation( $config );
+						break;
+					case 'approval':
+						$this->render_tab_approval( $config );
+						break;
+					case 'access':
+						$this->render_tab_access( $config );
+						break;
+					case 'bypass':
+						$this->render_tab_bypass( $config );
+						break;
+					case 'emails':
+						$this->render_tab_emails( $post );
+						break;
+					case 'occupancy':
+						$this->render_box_occupancy( $post );
+						break;
+				}
+			}
+		);
+	}
+
+	/**
+	 * The stored calendar configuration, every key filled with its default.
+	 *
+	 * @param int $post_id Calendar post id.
+	 * @return array<string, mixed>
+	 */
+	private function config_with_defaults( int $post_id ): array {
+		$config = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
+		if ( ! is_array( $config ) ) {
+			$config = array();
+		}
+
+		// Backward compatibility: calendars saved before the per-calendar admin
+		// bypass toggle existed implicitly had the bypass on (hardcoded in
+		// CalendarRepository::userHasSchedulingBypass). Preserve that by
+		// treating a missing key as "enabled".
+		$admin_bypass_default = array_key_exists( 'admin_bypass', $config ) ? (int) $config['admin_bypass'] : 1;
+
+		$defaults = array(
+			'description'                       => '',
+			'schedule_type'                     => 'regular',
+			'slot_duration'                     => 30,
+			'slot_interval'                     => 0,
+			'slots_per_day'                     => 0,
+			'max_appointments_per_slot'         => 1,
+			'status'                            => 'active',
+			'advance_booking_min'               => 0,
+			'advance_booking_max'               => 30,
+			'allow_cancellation'                => 1,
+			'cancellation_min_hours'            => 24,
+			'minimum_interval_between_bookings' => 24,
+			'requires_approval'                 => 0,
+			'waitlist_enabled'                  => 0,
+			'waitlist_capacity'                 => 0,
+			'max_blocks_per_user'               => 0,
+			'visibility'                        => 'public',
+			'scheduling_visibility'             => 'public',
+			'restrict_viewing_to_hours'         => 0,
+			'restrict_booking_to_hours'         => 0,
+			'admin_bypass'                      => $admin_bypass_default,
+		);
+
+		return array_merge( $defaults, $config );
 	}
 
 	/**
@@ -318,46 +489,13 @@ class SelfSchedulingEditor {
 	}
 
 	/**
-	 * Render calendar configuration metabox
+	 * Calendar tab: what the calendar is, and whether it takes bookings.
 	 *
-	 * @param object $post Post object.
-	 * @phpstan-param \WP_Post $post
+	 * @param array<string, mixed> $config Configuration with defaults.
 	 * @return void
 	 */
-	public function render_box_config( object $post ): void {
-		$config = get_post_meta( $post->ID, '_ffc_self_scheduling_config', true );
-		if ( ! is_array( $config ) ) {
-			$config = array();
-		}
-
-		$defaults = array(
-			'description'               => '',
-			'schedule_type'             => 'regular',
-			'slot_duration'             => 30,
-			'slot_interval'             => 0,
-			'slots_per_day'             => 0,
-			'max_appointments_per_slot' => 1,
-			'status'                    => 'active',
-		);
-
-		$config = array_merge( $defaults, $config );
-
-		// Mode is locked once the calendar has bookings (#941): switching would
-		// orphan existing appointments.
-		$mode_locked = $this->calendar_has_appointments( (int) $post->ID );
-
-		wp_nonce_field( 'ffc_self_scheduling_config_nonce', 'ffc_self_scheduling_config_nonce' );
-		?>
-		<div class="ffc-sections">
-		<?php
-		AdminUI::render_section_open(
-			array(
-				'title' => __( 'Calendar', 'ffcertificate' ),
-				'hint'  => __( 'What the calendar is, and whether it takes bookings.', 'ffcertificate' ),
-				'icon'  => 'event',
-				'open'  => true,
-			)
-		);
+	private function render_tab_calendar( array $config ): void {
+		self::render_tab_hint( __( 'What the calendar is, and whether it takes bookings.', 'ffcertificate' ) );
 		?>
 		<table class="form-table">
 			<tr>
@@ -380,15 +518,19 @@ class SelfSchedulingEditor {
 			</tr>
 		</table>
 		<?php
-		AdminUI::render_section_close();
-		AdminUI::render_section_open(
-			array(
-				'title' => __( 'Booking slots', 'ffcertificate' ),
-				'hint'  => __( 'Weekly hours or exact blocks, and how each slot is sized.', 'ffcertificate' ),
-				'icon'  => 'clock',
-				'open'  => true,
-			)
-		);
+	}
+
+	/**
+	 * Slots & hours tab, first half: the scheduling mode and how each slot is
+	 * sized. The mode is locked once the calendar has bookings (#941):
+	 * switching would orphan existing appointments.
+	 *
+	 * @param array<string, mixed> $config      Configuration with defaults.
+	 * @param bool                 $mode_locked Whether the calendar has bookings.
+	 * @return void
+	 */
+	private function render_tab_slots( array $config, bool $mode_locked ): void {
+		self::render_tab_hint( __( 'Weekly hours or exact blocks, and how each slot is sized.', 'ffcertificate' ) );
 		?>
 		<table class="form-table">
 			<tr>
@@ -433,8 +575,6 @@ class SelfSchedulingEditor {
 				</td>
 			</tr>
 		</table>
-		<?php AdminUI::render_section_close(); ?>
-		</div>
 		<?php
 	}
 
@@ -468,13 +608,16 @@ class SelfSchedulingEditor {
 	}
 
 	/**
-	 * Render working hours metabox
+	 * Slots & hours tab, second half: the weekly working hours (regular mode)
+	 * or the custom blocks (custom mode). Once its own box, so it keeps that
+	 * box's title as a heading.
 	 *
-	 * @param object $post Post object.
+	 * @param object $post        Post object.
+	 * @param bool   $mode_locked Whether the calendar has bookings.
 	 * @phpstan-param \WP_Post $post
 	 * @return void
 	 */
-	public function render_box_hours( object $post ): void {
+	private function render_working_hours( object $post, bool $mode_locked ): void {
 		$working_hours = get_post_meta( $post->ID, '_ffc_self_scheduling_working_hours', true );
 		if ( ! is_array( $working_hours ) ) {
 			$working_hours = array(
@@ -521,9 +664,9 @@ class SelfSchedulingEditor {
 		if ( ! is_array( $custom_slots ) ) {
 			$custom_slots = array();
 		}
-		$mode_locked = $this->calendar_has_appointments( (int) $post->ID );
 
 		?>
+		<h3><?php esc_html_e( 'Working Hours & Availability', 'ffcertificate' ); ?></h3>
 		<div id="ffc-working-hours-wrapper" class="ffc-regular-only">
 			<p><?php esc_html_e( 'Define which days and times appointments can be booked:', 'ffcertificate' ); ?></p>
 
@@ -604,53 +747,13 @@ class SelfSchedulingEditor {
 	}
 
 	/**
-	 * Render booking rules metabox
+	 * Booking window tab: how far ahead, and how often, a person may book.
 	 *
-	 * @param object $post Post object.
-	 * @phpstan-param \WP_Post $post
+	 * @param array<string, mixed> $config Configuration with defaults.
 	 * @return void
 	 */
-	public function render_box_rules( object $post ): void {
-		$config = get_post_meta( $post->ID, '_ffc_self_scheduling_config', true );
-		if ( ! is_array( $config ) ) {
-			$config = array();
-		}
-
-		// Backward compatibility: calendars saved before the per-calendar admin
-		// bypass toggle existed implicitly had the bypass on (hardcoded in
-		// CalendarRepository::userHasSchedulingBypass). Preserve that by
-		// treating a missing key as "enabled".
-		$admin_bypass_default = array_key_exists( 'admin_bypass', $config ) ? (int) $config['admin_bypass'] : 1;
-
-		$defaults = array(
-			'advance_booking_min'               => 0,
-			'advance_booking_max'               => 30,
-			'allow_cancellation'                => 1,
-			'cancellation_min_hours'            => 24,
-			'minimum_interval_between_bookings' => 24,
-			'requires_approval'                 => 0,
-			'waitlist_enabled'                  => 0,
-			'waitlist_capacity'                 => 0,
-			'max_blocks_per_user'               => 0,
-			'visibility'                        => 'public',
-			'scheduling_visibility'             => 'public',
-			'restrict_viewing_to_hours'         => 0,
-			'restrict_booking_to_hours'         => 0,
-			'admin_bypass'                      => $admin_bypass_default,
-		);
-
-		$config = array_merge( $defaults, $config );
-		?>
-		<div class="ffc-sections">
-		<?php
-		AdminUI::render_section_open(
-			array(
-				'title' => __( 'Booking window', 'ffcertificate' ),
-				'hint'  => __( 'How far ahead, and how often, a person may book.', 'ffcertificate' ),
-				'icon'  => 'clock',
-				'open'  => true,
-			)
-		);
+	private function render_tab_window( array $config ): void {
+		self::render_tab_hint( __( 'How far ahead, and how often, a person may book.', 'ffcertificate' ) );
 		?>
 		<table class="form-table">
 			<tr>
@@ -683,16 +786,17 @@ class SelfSchedulingEditor {
 			</tr>
 		</table>
 		<?php
-		AdminUI::render_section_close();
-		AdminUI::render_section_open(
-			array(
-				'title'  => __( 'Cancellation', 'ffcertificate' ),
-				'hint'   => __( 'Whether people can cancel their own bookings, and until when.', 'ffcertificate' ),
-				'icon'   => 'x',
-				'master' => 'allow_cancellation',
-				'on'     => (bool) $config['allow_cancellation'],
-			)
-		);
+	}
+
+	/**
+	 * Cancellation tab. Its nav dot follows `allow_cancellation`, as the
+	 * section chip did.
+	 *
+	 * @param array<string, mixed> $config Configuration with defaults.
+	 * @return void
+	 */
+	private function render_tab_cancellation( array $config ): void {
+		self::render_tab_hint( __( 'Whether people can cancel their own bookings, and until when.', 'ffcertificate' ) );
 		?>
 		<table class="form-table">
 			<tr>
@@ -719,14 +823,16 @@ class SelfSchedulingEditor {
 			</tr>
 		</table>
 		<?php
-		AdminUI::render_section_close();
-		AdminUI::render_section_open(
-			array(
-				'title' => __( 'Approval and waitlist', 'ffcertificate' ),
-				'hint'  => __( 'Manual review of each booking, and a queue for full slots.', 'ffcertificate' ),
-				'icon'  => 'user-check',
-			)
-		);
+	}
+
+	/**
+	 * Approval & waitlist tab.
+	 *
+	 * @param array<string, mixed> $config Configuration with defaults.
+	 * @return void
+	 */
+	private function render_tab_approval( array $config ): void {
+		self::render_tab_hint( __( 'Manual review of each booking, and a queue for full slots.', 'ffcertificate' ) );
 		?>
 		<table class="form-table">
 			<tr>
@@ -769,14 +875,17 @@ class SelfSchedulingEditor {
 			</tr>
 		</table>
 		<?php
-		AdminUI::render_section_close();
-		AdminUI::render_section_open(
-			array(
-				'title' => __( 'Who can see and book', 'ffcertificate' ),
-				'hint'  => __( 'Visibility of the calendar, and the hours it can be seen or booked in.', 'ffcertificate' ),
-				'icon'  => 'eye',
-			)
-		);
+	}
+
+	/**
+	 * Who can see and book tab. A private calendar forces private scheduling;
+	 * `ffc-calendar-editor.js` keeps that rule live.
+	 *
+	 * @param array<string, mixed> $config Configuration with defaults.
+	 * @return void
+	 */
+	private function render_tab_access( array $config ): void {
+		self::render_tab_hint( __( 'Visibility of the calendar, and the hours it can be seen or booked in.', 'ffcertificate' ) );
 		?>
 		<table class="form-table">
 			<tr>
@@ -842,16 +951,17 @@ class SelfSchedulingEditor {
 			</tr>
 		</table>
 		<?php
-		AdminUI::render_section_close();
-		AdminUI::render_section_open(
-			array(
-				'title'  => __( 'Administrator bypass', 'ffcertificate' ),
-				'hint'   => __( 'Whether administrators are held to the rules above.', 'ffcertificate' ),
-				'icon'   => 'shield',
-				'master' => 'admin_bypass',
-				'on'     => (bool) $config['admin_bypass'],
-			)
-		);
+	}
+
+	/**
+	 * Administrator bypass tab. Its nav dot follows `admin_bypass`, as the
+	 * section chip did.
+	 *
+	 * @param array<string, mixed> $config Configuration with defaults.
+	 * @return void
+	 */
+	private function render_tab_bypass( array $config ): void {
+		self::render_tab_hint( __( 'Whether administrators are held to the rules above.', 'ffcertificate' ) );
 		?>
 		<table class="form-table">
 			<tr>
@@ -871,21 +981,19 @@ class SelfSchedulingEditor {
 				</td>
 			</tr>
 		</table>
-		<?php AdminUI::render_section_close(); ?>
-		</div>
-
-		<!-- Toggle logic handled by ffc-calendar-editor.js -->
 		<?php
 	}
 
 	/**
-	 * Render email configuration metabox
+	 * Emails tab. It holds three subjects, so they stay collapsible sections
+	 * inside the tab -- the form editor's pattern -- with the chips that say
+	 * whether the administrator notice and the confirmation are on.
 	 *
 	 * @param object $post Post object.
 	 * @phpstan-param \WP_Post $post
 	 * @return void
 	 */
-	public function render_box_email( object $post ): void {
+	private function render_tab_emails( object $post ): void {
 		$email_config = get_post_meta( $post->ID, '_ffc_self_scheduling_email_config', true );
 		if ( ! is_array( $email_config ) ) {
 			$email_config = array();
@@ -922,7 +1030,7 @@ class SelfSchedulingEditor {
 			<tr>
 				<th><?php esc_html_e( 'Notifications', 'ffcertificate' ); ?></th>
 				<td>
-					<div class="ffc-email-toggles">
+					<div class="ffc-control-toggle-stack">
 						<?php
 						AdminUI::render_toggle(
 							array(
@@ -1082,9 +1190,11 @@ class SelfSchedulingEditor {
 					<input type="text" readonly id="ffc-calendar-shortcode" value="<?php echo esc_attr( '[ffc_self_scheduling id="' . $post->ID . '"]' ); ?>" onclick="this.select();" class="ffc-shortcode-input code" />
 					<button type="button" class="button ffc-copy-link ffc-icon-copy" data-ffc-copy-target="#ffc-calendar-shortcode"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
 				</div>
-
-				<p class="ffc-shortcode-preview-label"><strong><?php esc_html_e( 'Preview:', 'ffcertificate' ); ?></strong></p>
-				<p><a href="<?php echo esc_url( add_query_arg( 'calendar_preview', $post->ID, home_url( '/' ) ) ); ?>" target="_blank" class="button button-secondary ffc-icon-eye"><?php esc_html_e( 'Preview Calendar', 'ffcertificate' ); ?></a></p>
+				<?php
+				// No "Preview Calendar" button (#1770): the link it printed was read by nothing,
+				// and the calendar is a live booking form, so a preview would create real
+				// appointments and send real e-mails. Place the shortcode on a draft page instead.
+				?>
 			<?php else : ?>
 				<p class="description"><?php esc_html_e( 'Publish this calendar to generate the shortcode.', 'ffcertificate' ); ?></p>
 			<?php endif; ?>

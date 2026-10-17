@@ -53,6 +53,8 @@ class DateMessagesAdminPageTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Manager addresses and upcoming names are masked (#1863).
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 
 		$_POST         = array();
 		$_GET          = array();
@@ -269,7 +271,7 @@ class DateMessagesAdminPageTest extends TestCase {
 			}
 		);
 
-		$this->assertSame( array( 1 => 'Admin <admin@example.org>' ), DateMessagesAdminPage::manager_options() );
+		$this->assertSame( array( 1 => 'Admin <a***@example.org>' ), DateMessagesAdminPage::manager_options() );
 		$this->assertSame(
 			array( 'manage_options', 'ffc_view_date_messages', 'ffc_manage_date_messages', 'ffc_view_date_messages_pii' ),
 			$queried['capability__in']
@@ -477,9 +479,6 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_assets_load_on_this_screen_only_and_carry_both_nonces(): void {
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.org/p/' );
-		}
 		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
 		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )->shouldReceive( 'defaults' )->andReturn(
 			array(
@@ -520,7 +519,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertSame( array(), $styles );
 
 		( new DateMessagesAdminPage() )->enqueue( 'ffc_form_page_ffc-date-messages' );
-		$this->assertSame( array( 'ffc-date-messages-admin', 'ffc-audience-transfer-list', 'ffc-email-restore-default' ), $scripts );
+		$this->assertSame( array( 'ffc-date-messages-admin', 'ffc-audience-transfer-list', 'ffc-core', 'ffc-admin-js', 'ffc-admin-autosave', 'ffc-email-restore-default' ), $scripts, 'the last three are the record autosave (#1757)' );
 		$this->assertSame( array( 'ffc-admin-settings', 'wp-color-picker', 'ffc-audience-transfer-list' ), $styles, 'the vertical tab layout lives in that sheet; the body appearance colours use core\'s picker; the rule editor\'s audience picker brings its own' );
 		$this->assertSame( 1, $media, 'the background image comes from the Media Library' );
 		$this->assertSame( 'nonce-ffc_date_messages_message_preview', $localized['ffcDateMessages']['messageNonce'] );
@@ -806,9 +805,6 @@ class DateMessagesAdminPageTest extends TestCase {
 	 */
 	private function render_screen( array $get, $outcome = false ): string {
 		$_GET = $get;
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', dirname( __DIR__, 2 ) . '/' );
-		}
 		Mockery::getConfiguration()->setConstantsMap(
 			array(
 				'FreeFormCertificate\DateMessages\DateMessagesCron' => array( 'CRON_HOOK' => 'ffc_date_messages_daily' ),
@@ -883,7 +879,7 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 
-		$this->assertStringContainsString( '<div class="notice notice-success">Rule saved.</div>', $html );
+		$this->assertStringContainsString( '<div class="notice notice-success"><span class="ffc-admin-notice-icon ffc-icon-success ffc-icon-tone-success" aria-hidden="true"></span>Rule saved.</div>', $html );
 		$this->assertStringContainsString( '<strong>08:00</strong>', $html );
 		$this->assertStringContainsString( 'The daily run is not scheduled.', $html );
 		$this->assertStringNotContainsString( 'Add rule', $html, 'a view-only operator gets no add button' );
@@ -913,7 +909,7 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 
-		$this->assertStringContainsString( '<div class="notice notice-error">That rule no longer exists.</div>', $html );
+		$this->assertStringContainsString( '<div class="notice notice-error"><span class="ffc-admin-notice-icon ffc-icon-error ffc-icon-tone-danger" aria-hidden="true"></span>That rule no longer exists.</div>', $html );
 		$this->assertStringContainsString( 'aria-labelledby="ffc-date-messages-tabnav-rules"', $html );
 	}
 
@@ -962,6 +958,10 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+
 		$html = $this->render_screen(
 			array(
 				'tab'         => 'upcoming',
@@ -971,8 +971,11 @@ class DateMessagesAdminPageTest extends TestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'Maria', $html );
-		$this->assertMatchesRegularExpression( '/<td>Maria<\/td>\s*<td>Schools<\/td>/', $html );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="name">Maria</span>', $html );
+		$this->assertMatchesRegularExpression( '/data-field="name">Maria<\/span>.*?<\/td>\s*<td>Schools<\/td>/s', $html );
+		// Each name reveals on its own, and the page reveals them all (#1863).
+		$this->assertStringContainsString( 'data-type="date_messages_person" data-field="name" data-submission-id="42"', $html );
+		$this->assertStringContainsString( 'ffc-reveal-pii-page', $html );
 	}
 
 	/**

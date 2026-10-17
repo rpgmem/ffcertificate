@@ -60,7 +60,6 @@ class IdentifierIdiomTest extends TestCase {
 		'includes/core/class-ffc-document-formatter.php'                               => 'Validates and formats a value whose kind is already known, and its own auto-detection carries a third kind (12 digits = auth code) plus an unknown-length branch that returns the input untouched -- a display decision, not a storage one.',
 		'includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php' => 'Entry validation: rejects any length that is neither 7 nor 11.',
 		'includes/frontend/submission/class-ffc-field-sanitizer.php'                   => 'Entry validation on the public certificate form.',
-		'includes/api/class-ffc-form-rest-controller.php'                              => 'Entry validation on the REST submission route.',
 		'includes/api/class-ffc-operator-certificates-rest-controller.php'             => 'Entry validation on the operator REST route.',
 	);
 

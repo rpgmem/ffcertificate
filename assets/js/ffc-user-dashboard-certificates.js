@@ -17,7 +17,7 @@
             if ($container.length === 0) return;
 
             if (typeof ffcDashboard.canViewCertificates !== 'undefined' && !ffcDashboard.canViewCertificates) {
-                $container.html('<div class="ffc-error">' + ffcDashboard.strings.noPermission + '</div>');
+                $container.empty().append(FFC.notice('danger', 'error', ffcDashboard.strings.noPermission, '', { role: 'alert' }));
                 return;
             }
 
@@ -35,7 +35,7 @@
                     self.render(self.state, 1);
                 })
                 .catch(function () {
-                    $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
+                    $container.empty().append(FFC.notice('danger', 'error', ffcDashboard.strings.error, '', { role: 'alert' }));
                 });
         },
 
@@ -93,7 +93,7 @@
                 html += '<td>' + helpers.esc(cert.auth_code) + '</td>';
                 html += '<td>';
                 if (cert.magic_link) {
-                    html += '<a href="' + helpers.escAttr(cert.magic_link) + '" class="button ffc-btn-pdf" target="_blank" rel="noopener noreferrer">' + ffcDashboard.strings.downloadPdf + '</a>';
+                    html += '<a href="' + helpers.escAttr(cert.magic_link) + '" class="button button-primary ffc-btn-pdf ffc-icon-download" target="_blank" rel="noopener noreferrer">' + ffcDashboard.strings.downloadPdf + '</a>';
                 }
                 html += '</td>';
                 html += '</tr>';

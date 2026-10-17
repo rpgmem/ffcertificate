@@ -54,6 +54,9 @@ afterEach(() => {
 async function loadAdmin() {
 	if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 	loadScript('assets/js/ffc-qr-raster.js');
+	// The admin's one toast (#1843); ffc-admin.js provides it on the page.
+	window.FFC.Admin = window.FFC.Admin || {};
+	window.FFC.Admin.notify = vi.fn();
 	loadScript('assets/js/ffc-url-shortener-admin.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
@@ -63,25 +66,18 @@ async function loadAdmin() {
 // ----------------------------------------------------------------------
 
 describe('url-shortener — toast', () => {
-	it('appends a toast to <body> with the success class then removes it on fade-out timeout', async () => {
+	it('reports a copy through FFC.Admin.notify(), the one toast system (#1843)', async () => {
 		document.body.innerHTML = `<button class="ffc-copy-shorturl" data-url="https://x/abc">Copy</button>`;
 		await loadAdmin();
 
-		vi.useFakeTimers();
 		window.$('.ffc-copy-shorturl').trigger('click');
 		await flush();
-		// Wait for the clipboard promise.
 		await Promise.resolve();
 		await Promise.resolve();
 
-		// Toast inserted, eventually gets the --visible modifier and is removed.
-		expect(document.querySelectorAll('.ffc-shorturl-toast').length).toBeGreaterThanOrEqual(1);
-		vi.advanceTimersByTime(20);
-		expect(document.querySelector('.ffc-shorturl-toast--visible')).not.toBeNull();
-		// Total lifetime: 2000ms visible + 300ms fade-out.
-		vi.advanceTimersByTime(2300);
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Copied!', 'success', 2000);
+		// The bespoke toast, which had no live region, is gone.
 		expect(document.querySelector('.ffc-shorturl-toast')).toBeNull();
-		vi.useRealTimers();
 	});
 });
 
@@ -128,10 +124,7 @@ describe('url-shortener — copy fallback', () => {
 		window.$('.ffc-copy-shorturl').trigger('click');
 		await flush();
 
-		const toast = document.querySelector('.ffc-shorturl-toast');
-		expect(toast).not.toBeNull();
-		expect(toast.classList.contains('ffc-shorturl-toast--error')).toBe(true);
-		expect(toast.textContent).toBe('Copy failed');
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Copy failed', 'error', 8000);
 	});
 });
 
@@ -211,9 +204,7 @@ describe('url-shortener — QR download', () => {
 		window.$('.ffc-download-qr').trigger('click');
 		await flush();
 
-		const toast = document.querySelector('.ffc-shorturl-toast--error');
-		expect(toast).not.toBeNull();
-		expect(toast.textContent).toBe('No such code');
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('No such code', 'error', 8000);
 		// Button re-enabled.
 		expect(window.$('.ffc-download-qr').prop('disabled')).toBe(false);
 	});
@@ -226,8 +217,7 @@ describe('url-shortener — QR download', () => {
 		window.$('.ffc-download-qr').trigger('click');
 		await flush();
 
-		const toast = document.querySelector('.ffc-shorturl-toast--error');
-		expect(toast.textContent).toBe('Error');
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Error', 'error', 8000);
 	});
 });
 
@@ -275,7 +265,7 @@ describe('url-shortener — regenerate', () => {
 		await flush();
 
 		expect(stubLocation.reload).toHaveBeenCalled();
-		expect(document.querySelector('.ffc-shorturl-toast').textContent).toBe('Regenerated!');
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Regenerated!', 'success', 2000);
 
 		Object.defineProperty(window, 'location', {
 			configurable: true,
@@ -293,8 +283,7 @@ describe('url-shortener — regenerate', () => {
 		window.$('.ffc-regenerate-shorturl').trigger('click');
 		await flush();
 
-		const toast = document.querySelector('.ffc-shorturl-toast--error');
-		expect(toast.textContent).toBe('Quota exceeded');
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Quota exceeded', 'error', 8000);
 	});
 
 	it('shows the localised error on network failure', async () => {
@@ -306,8 +295,7 @@ describe('url-shortener — regenerate', () => {
 		window.$('.ffc-regenerate-shorturl').trigger('click');
 		await flush();
 
-		const toast = document.querySelector('.ffc-shorturl-toast--error');
-		expect(toast.textContent).toBe('Error');
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Error', 'error', 8000);
 	});
 });
 
@@ -528,7 +516,13 @@ describe('url-shortener — designed QR rasterising', () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { data: 'PHN2Zy8+', filename: 'qr-abc.png', mime: 'image/png', rasterize: true } } }));
 
 		window.$('.ffc-download-qr').trigger('click');
-		await new Promise((r) => setTimeout(r, 5));
+		// Wait for the outcome rather than a fixed delay: the image stub
+		// resolves on a timer, and a loaded CI runner can take longer than
+		// any fixed sleep short enough to keep the suite fast.
+		await vi.waitFor(() => {
+			expect(blobs.length).toBeGreaterThan(0);
+			expect(window.$('.ffc-download-qr').prop('disabled')).toBe(false);
+		}, { timeout: 2000, interval: 5 });
 
 		// Every earlier test re-loaded the script, so several delegated
 		// handlers answer one click; each must have saved the PNG.

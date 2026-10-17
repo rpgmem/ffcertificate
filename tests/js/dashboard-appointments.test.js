@@ -72,14 +72,15 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		const headers = document.querySelectorAll('#ffc-tabpanel-appointments h3');
 		expect(headers.length).toBe(3);
 		const labels = Array.from(headers).map((h) => h.textContent);
-		expect(labels).toEqual(['Upcoming', 'Past', 'Cancelled']);
+		// Each heading carries its section's total (#1836).
+		expect(labels).toEqual(['Upcoming (1)', 'Past (1)', 'Cancelled (1)']);
 	});
 
 	it('omits sections that have no items', () => {
 		// Only upcoming → only one section.
 		panel().render([makeAppt(), makeAppt()], 1);
 		expect(document.querySelectorAll('#ffc-tabpanel-appointments h3').length).toBe(1);
-		expect(document.querySelector('#ffc-tabpanel-appointments h3').textContent).toBe('Upcoming');
+		expect(document.querySelector('#ffc-tabpanel-appointments h3').textContent).toBe('Upcoming (2)');
 	});
 
 	it("applies 'ffc-row-cancelled' / 'ffc-row-past' classes to the right rows", () => {
@@ -112,6 +113,8 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		const buttons = document.querySelectorAll('#ffc-tabpanel-appointments .ffc-btn-receipt');
 		expect(buttons.length).toBe(1);
 		expect(buttons[0].getAttribute('href')).toBe('https://x.test/receipt/1');
+		// The icon is the registry's document class (#1826), not a data: mask.
+		expect(buttons[0].classList.contains('ffc-icon-file')).toBe(true);
 	});
 
 	it('escapes HTML in the calendar_title cell so injected markup cannot execute', () => {
@@ -141,8 +144,8 @@ describe('FFCDashboard.panels.appointments.render', () => {
 			makeAppt({ status: 'confirmed', status_label: 'Confirmed' }),
 			makeAppt({ status: 'completed', status_label: 'Done', appointment_date_raw: FAR_PAST }),
 		], 1);
-		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-dashboard-status.ffc-dashboard-status-confirmed').length).toBe(1);
-		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-dashboard-status.ffc-dashboard-status-completed').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-pill.ffc-dashboard-status-confirmed').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-pill.ffc-dashboard-status-completed').length).toBe(1);
 	});
 
 	// #1151: the badge was `appointment-status status-<state>` — the only

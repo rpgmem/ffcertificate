@@ -20,10 +20,8 @@ class CertTemplateSeederTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		class_exists( '\\FreeFormCertificate\\Admin\\CertTemplateSeeder' );
-		// The seeder reads the real bundled seed files under the plugin root.
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', dirname( __DIR__, 2 ) . '/' );
-		}
+		// FFC_PLUGIN_DIR is the repository root (tests/bootstrap.php), so the
+		// seeder reads the real bundled seed files.
 		Functions\when( '__' )->returnArg();
 	}
 

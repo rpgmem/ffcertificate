@@ -182,7 +182,7 @@ class Frontend {
 			// pre-open + manual-tap fallbacks still cover anyone who
 			// dismisses the banner and proceeds.
 			if ( $has_form || $has_csv_download ) {
-				wp_enqueue_script( 'ffc-webview-warning', FFC_PLUGIN_URL . "assets/js/ffc-webview-warning{$s}.js", array(), FFC_VERSION, true );
+				wp_enqueue_script( 'ffc-webview-warning', FFC_PLUGIN_URL . "assets/js/ffc-webview-warning{$s}.js", array( 'ffc-core' ), FFC_VERSION, true );
 				wp_localize_script(
 					'ffc-webview-warning',
 					'ffc_webview_warning',
@@ -206,9 +206,10 @@ class Frontend {
 			// submission succeeds. Only enqueued where [ffc_form] renders.
 			if ( $has_form ) {
 				// Shuffle, character counters, the checkbox cap and "choose at
-				// least one" (#1729). Footer, no dependency: it reads the form's
-				// markup and listens on the document.
-				wp_enqueue_script( 'ffc-form-fields', FFC_PLUGIN_URL . "assets/js/ffc-form-fields{$s}.js", array(), FFC_VERSION, true );
+				// least one" (#1729). Footer: it reads the form's markup and
+				// listens on the document; ffc-core carries the field message
+				// it shows when the checkbox cap is reached (#1844).
+				wp_enqueue_script( 'ffc-form-fields', FFC_PLUGIN_URL . "assets/js/ffc-form-fields{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 				wp_localize_script(
 					'ffc-form-fields',
 					'ffcFormFields',
@@ -228,7 +229,7 @@ class Frontend {
 				// it reads the form's markup, which carries its own strings.
 				wp_enqueue_script( 'ffc-quiz-leave', FFC_PLUGIN_URL . "assets/js/ffc-quiz-leave{$s}.js", array(), FFC_VERSION, true );
 
-				wp_enqueue_script( 'ffc-already-submitted-notice', FFC_PLUGIN_URL . "assets/js/ffc-already-submitted-notice{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+				wp_enqueue_script( 'ffc-already-submitted-notice', FFC_PLUGIN_URL . "assets/js/ffc-already-submitted-notice{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 				wp_localize_script(
 					'ffc-already-submitted-notice',
 					'ffc_already_submitted',

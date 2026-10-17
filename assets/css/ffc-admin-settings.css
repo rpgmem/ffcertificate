@@ -679,7 +679,7 @@
 }
 
 .ffc-doc-example pre {
-    /* Tema de editor: escuro nos dois temas por definição, como o
+    /* An editor theme: dark in both themes by definition, like
        ffc-code-editor-dark.css (#1126). */
     background: #1e1e1e;
     color: #d4d4d4;
@@ -743,24 +743,6 @@
     color: var(--ffc-success);
     font-weight: 700;
     font-size: var(--ffc-font-size-lg);
-}
-
-/* Alerts */
-.ffc-alert {
-    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
-    border-radius: var(--ffc-radius-sm);
-    margin: var(--ffc-spacing-2xl) 0;
-    border-left: 4px solid;
-}
-
-.ffc-alert p {
-    margin: 0;
-}
-
-.ffc-alert-info {
-    background: var(--ffc-info-bg);
-    border-color: var(--ffc-info-border);
-    color: var(--ffc-info-text);
 }
 
 /* Tables in Documentation */
@@ -836,7 +818,7 @@
 
 /* ==========================================================================
    VERTICAL TABS — WooCommerce "Product data" style.
-   Mirrors the certificate form-editor tabs pattern (.ffc-form-tabs__*),
+   Mirrors the shared vertical-tab component (.ffc-vtabs__*),
    keeping the page-reload save model: only the active tab renders in the
    DOM; clicking a tab follows the `?tab=<id>` link.
    ========================================================================== */
@@ -1138,10 +1120,6 @@ html:has(.ffc-settings-back-to-top) {
    also loads there but these classes are kept feature-local to avoid
    coupling the views to the shared utility names. */
 
-.ffc-set-my-10 {
-    margin: var(--ffc-spacing-md) 0;
-}
-
 .ffc-set-my-12 {
     margin: var(--ffc-spacing-lg) 0;
 }
@@ -1203,18 +1181,6 @@ html:has(.ffc-settings-back-to-top) {
     flex-wrap: wrap;
 }
 
-/* 3-state Settings — read-only lock.
-   A viewer with `ffc_view_settings` but not `ffc_manage_settings` gets the
-   whole active tab body wrapped in `<fieldset disabled>` so every control is
-   inert. Strip the default fieldset chrome (border / padding / margin) so the
-   read-only render is visually identical to the editable one. */
-.ffc-settings-readonly-lock {
-    border: 0;
-    margin: 0;
-    padding: 0;
-    min-width: 0;
-}
-
 /* 6.18.0 (#890 slice 1) — component styles lifted from inline styles across the
    settings tabs (advanced / rate-limit / geolocation / general). */
 
@@ -1255,11 +1221,6 @@ html:has(.ffc-settings-back-to-top) {
 }
 
 /* General tab: date/time format divergence notice body. */
-.ffc-settings-divergence-notice {
-    margin: var(--ffc-spacing-xl) 0;
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
-}
-
 .ffc-settings-divergence-notice p {
     margin: 0 0 var(--ffc-spacing-sm);
 }
@@ -1323,12 +1284,6 @@ html:has(.ffc-settings-back-to-top) {
     width: 6em;
 }
 
-.ffc-inline-status {
-    margin-left: var(--ffc-spacing-sm);
-    font-style: italic;
-    color: var(--ffc-text-muted);
-}
-
 /* #1563 — QR Code tab: design controls beside a live preview. */
 .ffc-qr-design-layout {
     display: flex;
@@ -1385,16 +1340,89 @@ html:has(.ffc-settings-back-to-top) {
     padding: 0 var(--ffc-spacing-lg);
 }
 
-/* Settings → Certificates → Required Form Fields (#1741): the inputs fill
+/* Settings → Certificates → Required data (#1741, #1759): the inputs fill
    their cells instead of `.regular-text`'s fixed width, which pushed the
-   Type and Remove columns past the card. */
-.ffc-required-fields-table input[type="text"],
-.ffc-required-fields-table select {
+   switch and Remove columns past the card. */
+.ffc-required-data-table input[type="text"],
+.ffc-required-data-table select {
     width: 100%;
     max-width: none;
 }
 
-.ffc-required-fields-table td:last-child {
+.ffc-required-data-table td:last-child {
     width: 1%;
     white-space: nowrap;
+}
+
+/* Rules that lived in `style=""` attributes until #1837. An inline
+   declaration beats every class, so each selector here carries enough
+   specificity to keep winning where the attribute used to. */
+
+/* General → automatic deletion: the "Delete after (days)" line sits just
+   under its switch. */
+.ffc-settings-wrap .ffc-cleanup-days-row {
+    margin-top: .6em;
+}
+
+/* Rate Limit → device signals: the strength badge beside each signal. */
+.ffc-signal-badge--cookie {
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+}
+
+.ffc-signal-badge--strong {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-signal-badge--weak {
+    background: var(--ffc-gray-200);
+    color: var(--ffc-gray-700);
+}
+
+@media (forced-colors: active) {
+    /* The badge paints a ground and nothing else; forced colors discard the
+       ground, so the contour is what keeps it a badge. Invisible to this
+       guard while the colours lived in a `style=""` (#1837). */
+    .ffc-signal-badge--cookie,
+    .ffc-signal-badge--strong,
+    .ffc-signal-badge--weak {
+        border: 1px solid CanvasText;
+    }
+}
+
+/* Templates → current assignments, and the two IP Diagnostics tables: a
+   narrow lookup table, not a full-width list. */
+.ffc-settings-wrap .ffc-template-assignments,
+.ffc-settings-wrap .ffc-ip-headers-table,
+.ffc-settings-wrap .ffc-ip-scenarios-table {
+    max-width: 640px;
+}
+
+.ffc-settings-wrap .ffc-ip-headers-table {
+    margin: var(--ffc-spacing-sm) 0 var(--ffc-spacing-2xs);
+}
+
+.ffc-settings-wrap .ffc-ip-scenarios-table {
+    margin: 14px 0 var(--ffc-spacing-2xs);
+}
+
+/* IP Diagnostics → custom proxies: the Cloudflare warning under the field. */
+.ffc-settings-wrap .ffc-notice.ffc-ip-cloudflare-warning {
+    margin: var(--ffc-spacing-sm) 0 0;
+    max-width: 560px;
+}
+
+/* Email Texts → the email index: a group heading row lets the stripe show
+   through. It looks dead in the light theme, where nothing paints a body
+   `th`, and is not: the dark theme's `table.widefat th` ground would land on
+   it, which the `style=""` this replaced was quietly preventing. The selector
+   matches that rule's (0,3,2) and wins by coming later. */
+.ffc-settings-wrap table.ffc-email-index th.ffc-email-index-group {
+    background: transparent;
+}
+
+/* Date Messages → the per-rule action buttons sit on one line. */
+.ffc-dm-rule-action {
+    display: inline;
 }

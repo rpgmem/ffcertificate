@@ -55,10 +55,6 @@ class AdminSubmissionEditPageTest extends TestCase {
 		);
 		class_exists( '\\FreeFormCertificate\\Admin\\AdminSubmissionEditPage' );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
@@ -436,6 +432,52 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-user-search-input', $html );
 	}
 
+	/**
+	 * @return array<string, array{0: list<string>, 1: list<string>, 2: bool}>
+	 */
+	public static function account_email_tiers(): array {
+		return array(
+			'WordPress admin (reveal)'                     => array( array( 'manage_options' ), array(), true ),
+			// The role unmasks nothing on its own since #1863.
+			'certificates admin role without the cap'      => array( array(), array( 'ffc_certificates_admin' ), false ),
+			'certificates admin role with its cap (reveal)' => array( array( 'ffc_view_certificates_pii' ), array( 'ffc_certificates_admin' ), true ),
+			'certificates PII cap (reveal)'                => array( array( 'ffc_view_certificates_pii' ), array(), true ),
+			'no PII access (masked)'                       => array( array( 'ffc_view_certificates' ), array(), false ),
+		);
+	}
+
+	/**
+	 * The linked account's email is masked at every tier, behind the same
+	 * gate and Reveal button as the submission's own values (#1824). It used
+	 * to print in clear for every viewer of the screen.
+	 *
+	 * @dataProvider account_email_tiers
+	 *
+	 * @param list<string> $caps   Viewer caps.
+	 * @param list<string> $roles  Viewer roles.
+	 * @param bool         $button Whether a Reveal button is drawn.
+	 */
+	public function test_render_masks_the_linked_account_email_at_every_tier( array $caps, array $roles, bool $button ): void {
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => in_array( $cap, $caps, true ) );
+		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => $roles ) );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'user_id' => 9 ) ) );
+		Functions\when( 'get_userdata' )->alias(
+			static fn( $id ) => 9 === (int) $id ? (object) array( 'display_name' => 'Jane Doe', 'user_email' => 'jane@x.com' ) : false
+		);
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Jane Doe', $html );
+		$this->assertStringNotContainsString( 'jane@x.com', $html, 'no tier receives the clear address' );
+		$this->assertStringContainsString( '<span class="ffc-user-email">(<span class="ffc-pii-row"><span class="ffc-pii-value" data-field="account_email">j***@x.com</span>', $html );
+		$this->assertSame(
+			$button ? 1 : 0,
+			substr_count( $html, '<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="account_email" data-submission-id="42" data-nonce="nonce123">Reveal</button>' )
+		);
+	}
+
 	public function test_render_masks_cpf_and_email_for_an_administrator_and_offers_reveal(): void {
 		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
 
@@ -447,9 +489,67 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/<input type="email" name="user_email"[^>]*data-ffc-pii-editable="1" disabled required>/', $html, 'the masked email is not posted until revealed' );
 		$this->assertStringContainsString( 'data-field="email"', $html );
 		$this->assertStringContainsString( 'data-field="cpf"', $html );
-		$this->assertSame( 2, substr_count( $html, 'class="button button-small ffc-reveal-pii' ) );
+		// Email, CPF and the IP under System Information and under the consent.
+		$this->assertSame( 4, substr_count( $html, 'class="button button-small ffc-reveal-pii' ) );
 		$this->assertStringContainsString( 'data-submission-id="42"', $html );
 		$this->assertStringContainsString( 'Reveal the email to edit it.', $html );
+	}
+
+	public function test_render_puts_each_reveal_button_on_its_value_row(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		// The email and the CPF: the masked value and its button share one row (#1760).
+		$this->assertMatchesRegularExpression( '#<span class="ffc-pii-row">\s*<input type="email" name="user_email"[^>]*>\s*<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="email"#', $html );
+		$this->assertMatchesRegularExpression( '#<span class="ffc-pii-row"><input type="text" value="518\.\*\*\*\.\*\*\*-80"[^>]*data-ffc-pii-field="cpf"[^>]*><button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="cpf"#', $html );
+	}
+
+	public function test_render_masks_both_ip_displays_behind_reveal(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'user_ip' => '203.0.113.7' ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( '203.0.113.7', $html, 'the clear IP never sits in the page' );
+		$this->assertSame( 2, substr_count( $html, 'value="203.0.***.***"' ), 'System Information and the consent both show the masked IP' );
+		$this->assertSame( 2, preg_match_all( '#data-ffc-pii-field="ip" readonly aria-label="[^"]+"><button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="ip"#', $html ) );
+		$this->assertStringContainsString( 'This IP is encrypted in the database.', $html );
+	}
+
+	public function test_render_without_the_pii_capability_shows_the_ip_masked_with_no_reveal(): void {
+		Functions\when( 'user_can' )->justReturn( false );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'user_ip' => '2001:db8::1' ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( '2001:db8::1', $html );
+		$this->assertSame( 2, substr_count( $html, 'value="2001:db8:0:0:****:****:****:****"' ) );
+		$this->assertStringNotContainsString( 'data-field="ip"', $html );
+	}
+
+	public function test_render_draws_every_record_section_as_the_shared_section(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		// Participant Data, Form answers and System Information open; consent closed.
+		$this->assertSame( 3, substr_count( $html, '<details class="ffc-section" open data-ffc-section>' ) );
+		$this->assertSame( 1, substr_count( $html, '<details class="ffc-section" data-ffc-section>' ) );
+		foreach ( array( 'Participant Data', 'Form answers', 'System Information', 'LGPD Consent Status' ) as $title ) {
+			$this->assertMatchesRegularExpression( '#<span class="ffc-section__icon"><svg[^>]*>.*?</svg></span><span class="ffc-section__text"><span class="ffc-section__title">' . preg_quote( $title, '#' ) . '</span>#s', $html, $title . ' has the section icon heading' );
+		}
+		// The record sections no longer use the card heading; only the side panel does.
+		$this->assertStringNotContainsString( 'ffc-edit-card__title ffc-icon-info', $html );
+		$this->assertStringNotContainsString( 'ffc-edit-card__title ffc-icon-list', $html );
+		$this->assertSame( 1, substr_count( $html, 'ffc-edit-card__title ffc-icon-user' ), 'only the Linked User card keeps the user icon card' );
 	}
 
 	public function test_render_without_the_pii_capability_masks_and_offers_no_reveal(): void {

@@ -189,14 +189,30 @@ class CapabilityManagerTest extends TestCase {
 			'ffc_audiences_viewer',
 			'ffc_audiences_operator',
 			'ffc_audiences_manager',
+			'ffc_audiences_admin',
 			// Reregistration ladder.
 			'ffc_reregistration_viewer',
 			'ffc_reregistration_operator',
 			'ffc_reregistration_manager',
+			'ffc_reregistration_admin',
 			// Recruitment ladder.
 			'ffc_recruitment_viewer',
 			'ffc_recruitment_operator',
+			'ffc_recruitment_manager',
 			'ffc_recruitment_admin',
+			// Short URLs, Date Messages and FFC Settings ladders (#1860).
+			'ffc_url_shortener_viewer',
+			'ffc_url_shortener_operator',
+			'ffc_url_shortener_manager',
+			'ffc_url_shortener_admin',
+			'ffc_date_messages_viewer',
+			'ffc_date_messages_operator',
+			'ffc_date_messages_manager',
+			'ffc_date_messages_admin',
+			'ffc_settings_viewer',
+			'ffc_settings_operator',
+			'ffc_settings_manager',
+			'ffc_settings_admin',
 		);
 		foreach ( $expected_slugs as $slug ) {
 			$this->assertArrayHasKey( $slug, $created, "Missing role: {$slug}" );
@@ -276,6 +292,16 @@ class CapabilityManagerTest extends TestCase {
 		$this->assertArrayNotHasKey( 'ffc_view_certificates_pii', $created['ffc_certificates_operator'] );
 		$this->assertTrue( $created['ffc_appointments_manager']['ffc_view_appointments_pii'] );
 		$this->assertTrue( $created['ffc_appointments_admin']['ffc_view_appointments_pii'] );
+		// Reregistration joins the carve (#1815): the manager holds the reveal
+		// cap, the viewer and operator do not.
+		$this->assertTrue( $created['ffc_reregistration_manager']['ffc_view_reregistration_pii'] );
+		$this->assertArrayNotHasKey( 'ffc_view_reregistration_pii', $created['ffc_reregistration_viewer'] );
+		$this->assertArrayNotHasKey( 'ffc_view_reregistration_pii', $created['ffc_reregistration_operator'] );
+		// …and the admin tier holds every reregistration cap, the manager's set.
+		$this->assertSame( $created['ffc_reregistration_manager'], $created['ffc_reregistration_admin'] );
+		foreach ( array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration', 'ffc_import_reregistration', 'ffc_view_reregistration_pii' ) as $cap ) {
+			$this->assertTrue( $created['ffc_reregistration_admin'][ $cap ], "ffc_reregistration_admin must grant {$cap}" );
+		}
 
 		// CPT-domain pairs: viewer holds the new view cap, manager adds manage.
 		$this->assertTrue( $created['ffc_forms_viewer']['ffc_view_forms'] );
@@ -304,7 +330,6 @@ class CapabilityManagerTest extends TestCase {
 			'ffc_view_audiences',
 			'ffc_view_reregistration',
 			'ffc_view_custom_fields',
-			'ffc_view_activity_log',
 			'ffc_view_recruitment',
 			'ffc_view_recruitment_settings',
 			'ffc_view_recruitment_reasons',
@@ -313,12 +338,17 @@ class CapabilityManagerTest extends TestCase {
 			$this->assertTrue( $operator[ $view_cap ], "ffc_readonly must grant {$view_cap}" );
 		}
 		// …but never write caps, the Settings page, raw PII, the REST
-		// integrator cap, or impersonation.
+		// integrator cap, impersonation, or -- since #1860 -- the activity
+		// log and identity resolution, which are FFC Administrator's alone.
 		foreach ( array(
+			'ffc_view_activity_log',
+			'ffc_export_activity_log',
+			'ffc_manage_identities',
 			'ffc_manage_certificates',
 			'ffc_manage_audiences',
 			'ffc_view_settings',
 			'ffc_view_recruitment_pii',
+			'ffc_view_reregistration_pii',
 			'ffc_view_forms_api',
 			'ffc_view_as_user',
 		) as $forbidden ) {
@@ -1071,6 +1101,177 @@ class CapabilityManagerTest extends TestCase {
 		$this->assertTrue( $user_added['ffc_manage_settings_dangerzone'] ?? null );
 		$this->assertTrue( $role_added['ffc_manage_settings_smtp'] ?? null );
 		$this->assertTrue( $role_added['ffc_manage_settings_dangerzone'] ?? null );
+	}
+
+	// ------------------------------------------------------------------
+	// Reregistration PII cap (#1815)
+	// ------------------------------------------------------------------
+
+	public function test_reregistration_pii_cap_is_registered(): void {
+		$this->assertContains( 'ffc_view_reregistration_pii', CapabilityManager::get_all_capabilities() );
+	}
+
+	public function test_reregistration_pii_cap_grant_map_seeds_from_the_manage_cap(): void {
+		$this->assertSame(
+			array( 'ffc_manage_reregistration' => array( 'ffc_view_reregistration_pii' ) ),
+			CapabilityMigrator::reregistration_pii_cap_grant_map()
+		);
+	}
+
+	public function test_migrate_reregistration_pii_cap_grant_seeds_holders_and_is_idempotent(): void {
+		Functions\when( 'get_users' )->justReturn( array( 1, 2, 3 ) );
+
+		// 1: a manager, seeded. 2: a manager who already holds it, untouched.
+		// 3: a manager cap explicitly DENIED, which is not a holder.
+		$users = array();
+		$added = array();
+		foreach ( array(
+			1 => array( 'ffc_manage_reregistration' => true ),
+			2 => array( 'ffc_manage_reregistration' => true, 'ffc_view_reregistration_pii' => true ),
+			3 => array( 'ffc_manage_reregistration' => false ),
+		) as $id => $caps ) {
+			$user       = Mockery::mock( 'WP_User' );
+			$user->caps = $caps;
+			$user->shouldReceive( 'add_cap' )->andReturnUsing(
+				function ( $cap, $val = true ) use ( &$added, $id, $user ) {
+					$added[]            = array( $id, $cap, $val );
+					$user->caps[ $cap ] = $val;
+				}
+			);
+			$users[ $id ] = $user;
+		}
+		Functions\when( 'get_userdata' )->alias( static fn ( $id ) => $users[ $id ] ?? false );
+
+		$role               = Mockery::mock( 'WP_Role' );
+		$role->capabilities = array( 'ffc_manage_reregistration' => true );
+		$role_added         = array();
+		$role->shouldReceive( 'add_cap' )->andReturnUsing(
+			function ( $cap, $val = true ) use ( &$role_added, $role ) {
+				$role_added[]               = $cap;
+				$role->capabilities[ $cap ] = $val;
+			}
+		);
+		$wp_roles        = Mockery::mock();
+		$wp_roles->roles = array( 'ffc_reregistration_manager' => array() );
+		Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+		Functions\when( 'get_role' )->justReturn( $role );
+
+		$first  = CapabilityMigrator::migrate_reregistration_pii_cap_grant();
+		$second = CapabilityMigrator::migrate_reregistration_pii_cap_grant();
+
+		$this->assertSame( array( array( 1, 'ffc_view_reregistration_pii', true ) ), $added );
+		$this->assertSame( array( 'ffc_view_reregistration_pii' ), $role_added );
+		$this->assertSame( array( 'ffc_view_reregistration_pii' => 1 ), $first );
+		$this->assertSame( array( 'ffc_view_reregistration_pii' => 0 ), $second, 'A second run seeds nobody.' );
+	}
+
+	// ------------------------------------------------------------------
+	// Audiences PII cap (#1863)
+	// ------------------------------------------------------------------
+
+	public function test_audiences_pii_cap_is_registered_and_held_by_the_manager_tier(): void {
+		Functions\when( '__' )->returnArg();
+		$this->assertContains( 'ffc_view_audiences_pii', CapabilityManager::get_all_capabilities() );
+
+		$roles = CapabilityManager::module_roles_definition();
+		$this->assertContains( 'ffc_view_audiences_pii', $roles['ffc_audiences_manager']['caps'] );
+		$this->assertContains( 'ffc_view_audiences_pii', $roles['ffc_audiences_admin']['caps'] );
+		$this->assertNotContains( 'ffc_view_audiences_pii', $roles['ffc_audiences_operator']['caps'] );
+		$this->assertNotContains( 'ffc_view_audiences_pii', $roles['ffc_audiences_viewer']['caps'] );
+		$this->assertNotContains( 'ffc_view_audiences_pii', $roles['ffc_readonly']['caps'] );
+	}
+
+	public function test_audiences_pii_cap_grant_map_seeds_from_the_manage_cap(): void {
+		$this->assertSame(
+			array( 'ffc_manage_audiences' => array( 'ffc_view_audiences_pii' ) ),
+			CapabilityMigrator::audiences_pii_cap_grant_map()
+		);
+	}
+
+	public function test_migrate_audiences_pii_cap_grant_seeds_holders_and_is_idempotent(): void {
+		Functions\when( 'get_users' )->justReturn( array( 1, 2, 3 ) );
+
+		// 1: a manager, seeded. 2: a manager who already holds it, untouched.
+		// 3: a manager cap explicitly DENIED, which is not a holder.
+		$users = array();
+		$added = array();
+		foreach ( array(
+			1 => array( 'ffc_manage_audiences' => true ),
+			2 => array( 'ffc_manage_audiences' => true, 'ffc_view_audiences_pii' => true ),
+			3 => array( 'ffc_manage_audiences' => false ),
+		) as $id => $caps ) {
+			$user       = Mockery::mock( 'WP_User' );
+			$user->caps = $caps;
+			$user->shouldReceive( 'add_cap' )->andReturnUsing(
+				function ( $cap, $val = true ) use ( &$added, $id, $user ) {
+					$added[]            = array( $id, $cap, $val );
+					$user->caps[ $cap ] = $val;
+				}
+			);
+			$users[ $id ] = $user;
+		}
+		Functions\when( 'get_userdata' )->alias( static fn ( $id ) => $users[ $id ] ?? false );
+
+		$role               = Mockery::mock( 'WP_Role' );
+		$role->capabilities = array( 'ffc_manage_audiences' => true );
+		$role_added         = array();
+		$role->shouldReceive( 'add_cap' )->andReturnUsing(
+			function ( $cap, $val = true ) use ( &$role_added, $role ) {
+				$role_added[]               = $cap;
+				$role->capabilities[ $cap ] = $val;
+			}
+		);
+		$wp_roles        = Mockery::mock();
+		$wp_roles->roles = array( 'ffc_audiences_manager' => array() );
+		Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+		Functions\when( 'get_role' )->justReturn( $role );
+
+		$first  = CapabilityMigrator::migrate_audiences_pii_cap_grant();
+		$second = CapabilityMigrator::migrate_audiences_pii_cap_grant();
+
+		$this->assertSame( array( array( 1, 'ffc_view_audiences_pii', true ) ), $added );
+		$this->assertSame( array( 'ffc_view_audiences_pii' ), $role_added );
+		$this->assertSame( array( 'ffc_view_audiences_pii' => 1 ), $first );
+		$this->assertSame( array( 'ffc_view_audiences_pii' => 0 ), $second, 'A second run seeds nobody.' );
+	}
+
+	public function test_forms_api_submit_cap_is_registered(): void {
+		$this->assertContains( 'ffc_submit_forms_api', CapabilityManager::get_all_capabilities() );
+	}
+
+	public function test_forms_api_submit_cap_grant_map_seeds_from_the_read_cap(): void {
+		$this->assertSame(
+			array( 'ffc_view_forms_api' => array( 'ffc_submit_forms_api' ) ),
+			CapabilityMigrator::forms_api_submit_cap_grant_map()
+		);
+	}
+
+	public function test_migrate_forms_api_submit_cap_grant_seeds_read_holders_only(): void {
+		Functions\when( 'get_users' )->justReturn( array( 1, 2 ) );
+
+		$users = array();
+		$added = array();
+		foreach ( array(
+			1 => array( 'ffc_view_forms_api' => true ),
+			2 => array( 'ffc_view_certificates' => true ),
+		) as $id => $caps ) {
+			$user       = Mockery::mock( 'WP_User' );
+			$user->caps = $caps;
+			$user->shouldReceive( 'add_cap' )->andReturnUsing(
+				function ( $cap, $val = true ) use ( &$added, $id, $user ) {
+					$added[]            = array( $id, $cap, $val );
+					$user->caps[ $cap ] = $val;
+				}
+			);
+			$users[ $id ] = $user;
+		}
+		Functions\when( 'get_userdata' )->alias( static fn ( $id ) => $users[ $id ] ?? false );
+		$wp_roles        = Mockery::mock();
+		$wp_roles->roles = array();
+		Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+
+		$this->assertSame( array( 'ffc_submit_forms_api' => 1 ), CapabilityMigrator::migrate_forms_api_submit_cap_grant() );
+		$this->assertSame( array( array( 1, 'ffc_submit_forms_api', true ) ), $added );
 	}
 
 	public function test_admin_capabilities_contains_export_tier(): void {

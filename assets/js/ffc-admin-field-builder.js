@@ -50,6 +50,12 @@
         ];
     }
 
+    // The row is titled by its type (#1756).
+    function typeLabel(type) {
+        var match = getFieldTypes().filter(function(t) { return t.value === type; })[0];
+        return match ? match.label : type;
+    }
+
     function typeDescription(type) {
         var map = (typeof ffc_ajax !== 'undefined' && ffc_ajax.fieldTypeDescriptions) ? ffc_ajax.fieldTypeDescriptions : {};
         return map[type] || '';
@@ -201,10 +207,6 @@
             }
         });
 
-        $container.on('change', '.ffc-field-type-selector', function() {
-            applyType($(this).closest('.ffc-field-row'), $(this).val());
-        });
-
         $container.on('click', '.ffc-choice-add', function(e) {
             e.preventDefault();
             var $row = addChoice($(this).siblings('.ffc-choice-list'), '');
@@ -330,7 +332,9 @@
         });
 
         $('#ffc-fields-container').append($row);
+        // The type is picked here, once: the row carries it in a hidden input.
         $row.find('.ffc-field-type-selector').val(fieldType);
+        $row.find('.ffc-field-title strong').text(typeLabel(fieldType));
         applyType($row, fieldType);
         makeChoicesSortable($row);
         $row.find('input[type="text"]').first().trigger('focus');
@@ -345,15 +349,14 @@
     function lockRequiredRow($row, field) {
         var index = String($row.attr('data-index'));
         var lockId = 'ffc_field_lock_' + index;
-        var $select = $row.find('.ffc-field-type-selector');
 
         $row.addClass('ffc-field-row-required-tag');
         $row.find('input[name$="[label]"]').first().val(field.label || field.name);
         $row.find('input[name$="[name]"]').first().val(field.name).prop('readonly', true).attr('aria-describedby', lockId);
 
-        // A disabled select posts nothing, so the type travels in a hidden input.
-        $select.removeAttr('name').prop('disabled', true).attr('aria-describedby', lockId);
-        $('<input type="hidden">').attr('name', 'ffc_fields[' + index + '][type]').val(field.type).insertBefore($select);
+        // The configured type wins, as it does on save (#1741).
+        $row.find('.ffc-field-type-selector').val(field.type);
+        $row.find('.ffc-field-title strong').text(typeLabel(field.type));
 
         $row.find('.ffc-field-required').prop('checked', true).prop('disabled', true);
         $row.find('.ffc-remove-field').prop('disabled', true).attr('aria-describedby', lockId);

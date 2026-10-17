@@ -107,7 +107,7 @@ class FormEditor {
 		wp_enqueue_script(
 			'ffc-geofence-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-geofence-admin{$s}.js",
-			array( 'jquery', 'ffc-geofence-validation' ),
+			array( 'jquery', 'ffc-core', 'ffc-geofence-validation' ),
 			FFC_VERSION,
 			true
 		);
@@ -115,13 +115,7 @@ class FormEditor {
 		// Vertical-tab behaviour for the configuration metabox. Pure
 		// progressive enhancement (jQuery only) — the panels stay usable
 		// stacked if this fails to load.
-		wp_enqueue_script(
-			'ffc-form-editor-tabs',
-			FFC_PLUGIN_URL . "assets/js/ffc-form-editor-tabs{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		AdminUI::enqueue_vertical_tabs();
 
 		// Collapsible sections inside the tabs (#1614): live on/off chips,
 		// and opening the section that holds a control the browser rejected.
@@ -146,7 +140,7 @@ class FormEditor {
 			 *
 			 * @phpstan-ignore argument.type
 			 */
-			wp_localize_script( 'ffc-form-editor-tabs', 'ffcFormTabsErrors', $error_tabs );
+			wp_localize_script( AdminUI::VERTICAL_TABS_HANDLE, 'ffcFormTabsErrors', $error_tabs );
 		}
 
 		// Required-tag list for the client-side save guard: block the submit
@@ -161,7 +155,7 @@ class FormEditor {
 		);
 
 		wp_localize_script(
-			'ffc-form-editor-tabs',
+			AdminUI::VERTICAL_TABS_HANDLE,
 			'ffcFormRequiredTags',
 			array(
 				'tags'    => $required_tags,

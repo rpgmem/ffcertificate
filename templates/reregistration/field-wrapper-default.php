@@ -7,7 +7,8 @@
  * prepares the locals and includes this file (method locals + self::
  * sibling renderers resolve in the including method scope).
  *
- * Expected in scope: $field, $field_id, $field_name, $value, $required, $rules.
+ * Expected in scope: $field, $field_id, $field_name, $value, $required, $rules,
+ * $error (a message the server already has for the field, or '').
  *
  * @package FreeFormCertificate\Reregistration
  * @since   6.16.0
@@ -27,10 +28,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php
 				if ( $required ) :
 					?>
-					<span class="ffc-required">*</span><?php endif; ?>
+					<span class="ffc-required" aria-hidden="true">*</span><?php endif; ?>
 			</label>
 
-			<?php self::render_input( $field, $field_id, $field_name, $value, $required, $rules ); ?>
+			<?php self::render_input( $field, $field_id, $field_name, $value, $required, $rules, $error ); ?>
 
-			<span class="ffc-field-error" role="alert"></span>
+			<?php echo \FreeFormCertificate\Core\FieldMessage::render( $field_id, $error ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render() escapes the id, the classes and the text. ?>
 		</div>

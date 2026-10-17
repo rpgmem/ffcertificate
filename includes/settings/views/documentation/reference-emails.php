@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <!-- Emails & Delivery Section -->
 <div class="card">
 	<h3 id="reference-emails" class="ffc-icon-send"><?php esc_html_e( 'Emails & Delivery', 'ffcertificate' ); ?></h3>
-	<p><?php esc_html_e( 'Every email the plugin sends — certificate delivery, admin notifications, recruitment convocations, booking confirmations, reregistration invitations, audience notices — goes through one shared pipeline with one configurable look.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Every email the plugin sends — certificate delivery, admin notifications, recruitment convocations, booking confirmations, reregistration invitations, audience notices — goes through one shared pipeline with one configurable look.', 'ffcertificate' ); ?> <?php esc_html_e( 'The notices sent to staff carry personal data masked (CPF, RF, e-mail, phone, names in the Date Messages summary), with a link to the screen where it can be revealed and audited.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'The one pipeline', 'ffcertificate' ); ?></h4>
@@ -26,9 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><?php esc_html_e( 'This means every email shares the same branded look, and one global switch can turn all of them off.', 'ffcertificate' ); ?></p>
 	</div>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Three email tabs.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'The email settings live in the Communication group as three sibling tabs, read in this order:', 'ffcertificate' ); ?>
 		</p>
 		<ul>
@@ -36,7 +35,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><strong><?php esc_html_e( 'Email Model', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the shared chrome (header / body card / footer) that wraps every email, with a live preview and a test-send.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Email texts', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the per-email subject + body editor for every plugin email, plus a read-only "All plugin emails" directory.', 'ffcertificate' ); ?></li>
 		</ul>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Three email tabs.', 'ffcertificate' ) )
+	);
+	?>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'SMTP setup', 'ffcertificate' ); ?></h4>
@@ -45,11 +50,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><strong><?php esc_html_e( 'WordPress default:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'uses the server\'s PHP mail(). Simple, but frequently flagged as spam.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Custom SMTP (recommended):', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'authenticate against a real provider (host, port, user, password, TLS). The "Popular SMTP Providers" box lists common presets and appears when Custom SMTP is selected.', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'While the total-mail-queue plugin is active it manages delivery: the choice is locked to WordPress default, and the one saved here applies again when it is deactivated.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'The "Email Model" chrome', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'The Email Model tab styles the shell shared by every email: header band (logo or site name, colors, alignment, padding), body card (colors, font, size, width), footer (colors + tokenized text) and outer wrapper. It has a live preview and a "Restore default model" button. You edit only the chrome here — the message text of each email is separate, on the Email texts tab.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'Below it, "Send a test email" sends one message to your own address. It needs ffc_test_settings_smtp or ffc_manage_settings_smtp, so the FFC Settings - Operator role can check delivery without being able to change the transport or the model.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'A Date Messages rule can give its own message body a background image, colours and a text column; the header, footer, width and padding stay the ones set here.', 'ffcertificate' ); ?> <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages', 'ffcertificate' ); ?></a>.</p>
 	</div>
 
@@ -68,7 +75,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><strong><?php esc_html_e( 'Certificates', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Certificate delivered to the user', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Personal Calendars', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Booking confirmation, approval, cancellation, reminder, waitlist-promotion, added-to-waitlist, and the "calendar deleted → appointment cancelled" notice', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Campaign invitation, reminder and confirmation', 'ffcertificate' ); ?></td></tr>
-				<tr><td><strong><?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'New scheduled activity and activity-cancelled notices', 'ffcertificate' ); ?></td></tr>
+				<tr><td><strong><?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'New scheduled activity and activity-cancelled notices, and the "booking cancelled by an administrator" notice sent to the owner of a booking an override replaced', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Recruitment call (convocation)', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Date messages', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Birthday message — the default text a new rule starts from', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Account access', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Access-granted notice, sent when a user gains plugin capabilities — only while "Access Granted Notification" is on in the SMTP tab, which it is not by default', 'ffcertificate' ); ?></td></tr>
@@ -125,10 +132,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</ul>
 	</div>
 
-	<div class="ffc-alert ffc-alert-info ffc-mt-2xl">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Not receiving email?', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Check the "Disable all emails" toggle (SMTP tab), configure Custom SMTP, and see Troubleshooting → "Emails not arriving".', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array(
+			'title'   => __( 'Not receiving email?', 'ffcertificate' ),
+			'classes' => array( 'ffc-mt-2xl' ),
+		)
+	);
+	?>
 </div>

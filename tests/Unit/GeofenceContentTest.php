@@ -462,6 +462,7 @@ class GeofenceContentTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-geofence-handle="5.0.', $html );
 		$this->assertStringContainsString( 'data-ffc-geofence-config="', $html );
 		$this->assertStringContainsString( '<noscript>', $html );
+		$this->assertMatchesRegularExpression( '#<noscript><div class="ffc-notice ffc-notice-warning" role="status" data-ffc-notice="geofence-blocked"><span class="ffc-notice-icon ffc-icon-map-pin" aria-hidden="true"></span>.*This content needs JavaScript to check your access\.</p></div></div></noscript>#', $html, 'The no-script fallback is a warning notice (#1842).' );
 	}
 
 	public function test_a_shortcode_with_nothing_to_check_renders_its_content(): void {
@@ -480,6 +481,8 @@ class GeofenceContentTest extends TestCase {
 		$this->assertStringNotContainsString( 'TOP SECRET', $html );
 		$this->assertStringNotContainsString( 'data-ffc-geofence-handle', $html );
 		$this->assertStringContainsString( 'This content is not available.', $html );
+		$this->assertStringContainsString( '<div class="ffc-notice ffc-notice-warning" role="status" data-ffc-notice="geofence-blocked">', $html, 'A warning notice (#1842).' );
+		$this->assertStringContainsString( 'ffc-icon-map-pin', $html );
 	}
 
 	// ------------------------------------------------------------------

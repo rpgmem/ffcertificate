@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\SubmissionsList;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * @covers \FreeFormCertificate\Admin\SubmissionsList
@@ -45,10 +46,6 @@ class SubmissionsListTest extends TestCase {
 		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
 		Functions\when( 'get_option' )->justReturn( 'Y-m-d H:i' );
 
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		// SubmissionsList extends WP_List_Table which needs $wpdb.
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
@@ -76,17 +73,7 @@ class SubmissionsListTest extends TestCase {
 	 * Alias-mock the static collaborator classes used across column/render paths.
 	 */
 	private function stubStaticCollaborators( bool $can_manage = true, bool $can_edit = true, string $pii_tier = 'unmasked' ): void {
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Core\PiiAccessPolicy' => array(
-					'TIER_UNMASKED' => 'unmasked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_MASKED'   => 'masked',
-				),
-			)
-		);
-		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-			->shouldReceive( 'resolve' )->andReturn( $pii_tier );
+		$this->driveTier( $pii_tier );
 
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
 			->shouldReceive( 'mask_email' )->andReturnUsing( fn( $e ) => 'MASKED:' . (string) $e );
@@ -123,6 +110,28 @@ class SubmissionsListTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' )
 			->shouldReceive( 'generate_magic_link' )->andReturnUsing( fn( $token ) => 'https://magic/' . $token )
 			->shouldReceive( 'get_submission_magic_link' )->andReturnUsing( fn( $id, $h ) => $id > 0 ? 'https://magic/byid/' . $id : '' );
+	}
+
+	/**
+	 * Put the current user (id 7) in one tier of the real PiiAccessPolicy for
+	 * the certificates domain, through the WordPress functions it reads.
+	 *
+	 * @param string $tier unmasked (manage_options) | admin_role
+	 *                     (ffc_certificates_admin) | reveal (the PII cap) | masked.
+	 */
+	private function driveTier( string $tier ): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'get_user_by' )->justReturn(
+			(object) array( 'roles' => 'admin_role' === $tier ? array( 'ffc_certificates_admin' ) : array( 'ffc_certificates_viewer' ) )
+		);
+		Functions\when( 'user_can' )->alias(
+			static function ( $uid, $cap ) use ( $tier ) {
+				if ( 'manage_options' === $cap ) {
+					return 'unmasked' === $tier;
+				}
+				return 'ffc_view_certificates_pii' === $cap && 'reveal' === $tier;
+			}
+		);
 	}
 
 	private function makeList( $handler = null ): SubmissionsList {
@@ -198,25 +207,69 @@ class SubmissionsListTest extends TestCase {
 		$this->assertSame( '12', $out );
 	}
 
-	public function test_column_default_email_unmasked_tier_shows_plaintext(): void {
-		$this->stubStaticCollaborators();
+	/**
+	 * The email cell as rendered for one tier, for submission 42 owned by
+	 * user 99 (not the viewer, so the owner clause stays out of it).
+	 */
+	private function emailCellFor( string $tier ): string {
+		$this->stubStaticCollaborators( true, true, $tier );
 		$list = $this->makeList();
-		$out  = $this->call_protected( $list, 'column_default', array( array( 'email' => 'a@b.com' ), 'email' ) );
-		$this->assertSame( 'a@b.com', $out );
+		return $this->call_protected( $list, 'column_default', array( array( 'id' => 42, 'user_id' => 99, 'email' => 'a@b.com' ), 'email' ) );
 	}
 
-	public function test_column_default_email_masked_tier_masks(): void {
+	private function assertMaskedWithReveal( string $out ): void {
+		$this->assertStringNotContainsString( 'a@b.com', str_replace( 'MASKED:a@b.com', '', $out ), 'The clear address must not reach the list HTML.' );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringContainsString( 'class="button button-small ffc-reveal-pii ffc-icon-eye"', $out );
+		$this->assertStringContainsString( 'data-type="submission"', $out );
+		$this->assertStringContainsString( 'data-field="email" data-submission-id="42" data-nonce="test_nonce"', $out );
+	}
+
+	public function test_column_default_email_unmasked_tier_is_masked_with_reveal_button(): void {
+		$this->assertMaskedWithReveal( $this->emailCellFor( 'unmasked' ) );
+	}
+
+	public function test_column_email_certificates_admin_role_without_the_pii_cap_gets_no_reveal_button(): void {
+		// The role alone unmasks nothing since #1863: its PII cap is what
+		// reveals, and this user holds the role without it.
+		$out = $this->emailCellFor( 'admin_role' );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
+	}
+
+	public function test_column_default_email_reveal_tier_is_masked_with_reveal_button(): void {
+		$this->assertMaskedWithReveal( $this->emailCellFor( 'reveal' ) );
+	}
+
+	public function test_column_default_email_masked_tier_masks_without_button(): void {
+		$out = $this->emailCellFor( 'masked' );
+		$this->assertSame( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
+	}
+
+	public function test_column_default_email_owner_gets_reveal_button(): void {
 		$this->stubStaticCollaborators( true, true, 'masked' );
 		$list = $this->makeList();
-		$out  = $this->call_protected( $list, 'column_default', array( array( 'email' => 'a@b.com' ), 'email' ) );
-		$this->assertSame( 'MASKED:a@b.com', $out );
+		$out  = $this->call_protected( $list, 'column_default', array( array( 'id' => 42, 'user_id' => 7, 'email' => 'a@b.com' ), 'email' ) );
+		$this->assertMaskedWithReveal( $out );
 	}
 
-	public function test_column_default_email_empty_returns_empty(): void {
+	public function test_column_default_email_empty_returns_empty_without_button(): void {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
-		$out  = $this->call_protected( $list, 'column_default', array( array( 'email' => '' ), 'email' ) );
+		$out  = $this->call_protected( $list, 'column_default', array( array( 'id' => 42, 'email' => '' ), 'email' ) );
 		$this->assertSame( '', $out );
+	}
+
+	public function test_reveal_nonce_is_created_once_per_render(): void {
+		$this->stubStaticCollaborators();
+		$nonces = CallLog::record( 'wp_create_nonce', 'test_nonce' );
+		$list   = $this->makeList();
+
+		$this->call_protected( $list, 'column_default', array( array( 'id' => 1, 'email' => 'a@b.com' ), 'email' ) );
+		$this->call_protected( $list, 'column_default', array( array( 'id' => 2, 'email' => 'c@d.com' ), 'email' ) );
+
+		$this->assertSame( 1, $nonces->count() );
 	}
 
 	public function test_column_default_unknown_returns_empty(): void {

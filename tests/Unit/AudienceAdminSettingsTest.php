@@ -42,7 +42,7 @@ class AudienceAdminSettingsTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
@@ -65,10 +65,6 @@ class AudienceAdminSettingsTest extends TestCase {
 		// wp_count_posts returns an object
 		$counts = (object) array( 'publish' => 2, 'draft' => 0, 'trash' => 0 );
 		Functions\when( 'wp_count_posts' )->justReturn( $counts );
-
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -295,6 +291,17 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertStringContainsString( 'id="ffc_aud_private_display_mode-2" name="ffc_aud_private_display_mode" value="show_message" checked', $html, 'The default is the middle position.' );
 	}
 
+	public function test_audience_tab_environments_button_opens_the_environments_view(): void {
+		// #1761: Environments is a view of Audience Calendars.
+		$_GET['tab'] = 'audience';
+		Functions\when( 'admin_url' )->returnArg();
+
+		$html = $this->render( $this->page() );
+
+		$this->assertMatchesRegularExpression( '/<a href="admin\.php\?page=ffc-scheduling-calendars&view=environments" class="button">\s*Environments\s*<\/a>/', $html );
+		$this->assertStringNotContainsString( 'ffc-scheduling-environments', $html );
+	}
+
 	public function test_render_page_import_tab_delegates_to_the_import_page(): void {
 		$_GET['tab'] = 'import';
 		$import      = \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class );
@@ -329,6 +336,94 @@ class AudienceAdminSettingsTest extends TestCase {
 
 		$this->assertStringContainsString( 'id="ffc-scheduling-tabpanel-receipt"', $html );
 		$this->assertStringContainsString( '<span class="ffc-settings-tabs__label">Receipt</span>', $html );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function every_tab(): array {
+		return array(
+			'general'         => array( 'general' ),
+			'self-scheduling' => array( 'self-scheduling' ),
+			'audience'        => array( 'audience' ),
+			'import'          => array( 'import' ),
+			'extension tab'   => array( 'receipt' ),
+		);
+	}
+
+	/**
+	 * @dataProvider every_tab
+	 */
+	public function test_render_page_prints_the_notices_once_on_every_tab( string $tab ): void {
+		// Only the Import & Export tab printed `ffc_audience` notices, so the
+		// "… settings saved." and `?message=holiday_*` feedback of the other
+		// tabs never showed (#1771).
+		$_GET['tab'] = $tab;
+		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
+		\Brain\Monkey\Filters\expectApplied( 'ffc_scheduling_settings_tabs' )->andReturnUsing(
+			static function ( $tabs ) {
+				$tabs['receipt'] = array( 'label' => 'Receipt', 'icon' => 'ffc-icon-file' );
+				return $tabs;
+			}
+		);
+		$calls = array();
+		Functions\when( 'get_settings_errors' )->alias(
+			static function ( ...$args ) use ( &$calls ) {
+				$calls[] = $args;
+				return array();
+			}
+		);
+
+		$this->render( $this->page() );
+
+		$this->assertSame( array( array( 'ffc_audience' ) ), $calls );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function holiday_messages(): array {
+		return array(
+			'added'   => array( 'holiday_added', 'Holiday added successfully.' ),
+			'deleted' => array( 'holiday_deleted', 'Holiday deleted successfully.' ),
+		);
+	}
+
+	/**
+	 * @dataProvider holiday_messages
+	 */
+	public function test_global_holiday_redirect_message_becomes_a_notice( string $message, string $text ): void {
+		$_POST   = array();
+		$_GET    = array( 'page' => 'ffc-scheduling-settings', 'tab' => 'general', 'message' => $message );
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $msg, $type ) use ( &$notices ) {
+				$notices[] = array( $setting, $msg, $type );
+				return true;
+			}
+		);
+
+		try {
+			$this->page()->handle_global_holiday_actions();
+		} finally {
+			$_GET = array();
+		}
+
+		$this->assertSame( array( array( 'ffc_audience', $text, 'success' ) ), $notices );
+	}
+
+	public function test_global_holiday_message_is_ignored_on_another_screen(): void {
+		$_POST = array();
+		$_GET  = array( 'page' => 'ffc-scheduling-calendars', 'message' => 'holiday_deleted' );
+		$log   = CallLog::record( 'add_settings_error', true );
+
+		try {
+			$this->page()->handle_global_holiday_actions();
+		} finally {
+			$_GET = array();
+		}
+
+		$this->assertSame( 0, $log->count() );
 	}
 
 	// ==================================================================

@@ -121,6 +121,31 @@ class FormEditorSaveHandler {
 	}
 
 	/**
+	 * The type of every named field the form already stores, by name.
+	 *
+	 * @param int $post_id The post ID.
+	 * @return array<string, string> name => type.
+	 */
+	private static function stored_field_types( int $post_id ): array {
+		$stored = get_post_meta( $post_id, '_ffc_form_fields', true );
+		$types  = array();
+		if ( ! is_array( $stored ) ) {
+			return $types;
+		}
+		foreach ( $stored as $field ) {
+			if ( ! is_array( $field ) ) {
+				continue;
+			}
+			$name = is_scalar( $field['name'] ?? null ) ? (string) $field['name'] : '';
+			$type = is_scalar( $field['type'] ?? null ) ? (string) $field['type'] : '';
+			if ( '' !== $name && '' !== $type && ! isset( $types[ $name ] ) ) {
+				$types[ $name ] = $type;
+			}
+		}
+		return $types;
+	}
+
+	/**
 	 * Persist the form-fields meta (`_ffc_form_fields`).
 	 *
 	 * @param int $post_id The post ID.
@@ -134,6 +159,7 @@ class FormEditorSaveHandler {
 
 		$clean_fields  = array();
 		$quiz_warnings = array();
+		$stored_types  = self::stored_field_types( $post_id );
 		foreach ( $rows as $index => $field ) {
 			// A row that is not an array is not a row. The `empty()` chain
 			// below already skipped it — `empty( $string['label'] )` is
@@ -149,10 +175,17 @@ class FormEditorSaveHandler {
 			}
 
 			$type = sanitize_key( ArrayValue::string( $field, 'type' ) );
+			$name = sanitize_key( ArrayValue::string( $field, 'name' ) );
+			// A field the form already has keeps its type (#1756): the editor
+			// no longer offers the choice, and the submissions stored under it
+			// hold values of that type. Matched by name, because a row's index
+			// moves when rows are sorted or removed.
+			if ( '' !== $name && isset( $stored_types[ $name ] ) ) {
+				$type = $stored_types[ $name ];
+			}
 			// A required field keeps the type Settings → Certificates gives
-			// it, whatever the request says: the editor locks the select, an
-			// edited page could still post another (#1741).
-			$required_row = FormEditorSaveValidator::required_field( sanitize_key( ArrayValue::string( $field, 'name' ) ) );
+			// it, whatever the request says (#1741).
+			$required_row = FormEditorSaveValidator::required_field( $name );
 			if ( null !== $required_row ) {
 				$type = $required_row['type'];
 			}
@@ -160,7 +193,7 @@ class FormEditorSaveHandler {
 
 			$row = array(
 				'label'         => sanitize_text_field( ArrayValue::string( $field, 'label' ) ),
-				'name'          => sanitize_key( ArrayValue::string( $field, 'name' ) ),
+				'name'          => $name,
 				'type'          => $type,
 				// A required field is always required: the editor disables
 				// its toggle (#1734).
@@ -564,24 +597,11 @@ class FormEditorSaveHandler {
 					update_post_meta( $post_id, '_ffc_csv_public_limit', absint( $limit_raw ) );
 				}
 
-				// Hash handling: auto-generate on first enable, or regenerate on request.
-				$stored_hash    = get_post_meta( $post_id, '_ffc_csv_public_hash', true );
-				$current_hash   = is_scalar( $stored_hash ) ? (string) $stored_hash : '';
-				$regenerate     = ! empty( $public_raw['regenerate_hash'] );
-				$needs_new_hash = $regenerate || '' === $current_hash;
-
-				if ( $needs_new_hash ) {
-					try {
-						$new_hash = bin2hex( random_bytes( 16 ) );
-					} catch ( \Exception $e ) {
-						$new_hash = wp_generate_password( 32, false, false );
-					}
-					update_post_meta( $post_id, '_ffc_csv_public_hash', $new_hash );
-				}
-
-				// Counter reset (explicit opt-in).
-				if ( ! empty( $public_raw['reset_counter'] ) ) {
-					update_post_meta( $post_id, '_ffc_csv_public_count', 0 );
+				// Hash: generated when there is none. Regenerating it and
+				// resetting the counter are buttons on the Operator tab, which
+				// act at once instead of on the next save (#1755).
+				if ( '' === FormPublicCsvActions::hash( $post_id ) ) {
+					FormPublicCsvActions::regenerate_hash( $post_id );
 				}
 
 				// CPF gate mode for the public download. On the very first
@@ -590,7 +610,7 @@ class FormEditorSaveHandler {
 				// so newly-enabled public downloads always log who pulled
 				// them. On subsequent saves, respect the user's explicit
 				// choice — including 'none' if they actively pick it.
-				$valid_modes = array( 'none', 'audit', 'participants', 'owner', 'whitelist' );
+				$valid_modes = FormPublicCsvActions::CPF_MODES;
 				$mode_raw    = sanitize_key( ArrayValue::string( $public_raw, 'cpf_mode', 'none' ) );
 				if ( ! in_array( $mode_raw, $valid_modes, true ) ) {
 					$mode_raw = 'none';
@@ -758,13 +778,10 @@ class FormEditorSaveHandler {
 			?>
 			<p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $error_tags, 'is_scalar' ) ) ) ); ?></code>.</p>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
 				(string) ob_get_clean(),
-				array(
-					'type'           => 'error',
-					'dismissible'    => true,
-					'paragraph_wrap' => false,
-				)
+				array( 'paragraph_wrap' => false )
 			);
 		}
 
@@ -780,13 +797,10 @@ class FormEditorSaveHandler {
 				<?php endforeach; ?>
 			</ul>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
 				(string) ob_get_clean(),
-				array(
-					'type'           => 'warning',
-					'dismissible'    => true,
-					'paragraph_wrap' => false,
-				)
+				array( 'paragraph_wrap' => false )
 			);
 		}
 
@@ -797,13 +811,10 @@ class FormEditorSaveHandler {
 			?>
 			<p><strong><?php esc_html_e( 'Warning! The form lacks these required fields:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $missing_fields, 'is_scalar' ) ) ) ); ?></code>. <?php esc_html_e( 'The Fields tab can add them: “Add the required fields”.', 'ffcertificate' ); ?></p>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
 				(string) ob_get_clean(),
-				array(
-					'type'           => 'error',
-					'dismissible'    => true,
-					'paragraph_wrap' => false,
-				)
+				array( 'paragraph_wrap' => false )
 			);
 		}
 
@@ -827,13 +838,10 @@ class FormEditorSaveHandler {
 				<a href="<?php echo esc_url( $migrations_url ); ?>"><?php esc_html_e( 'Settings → Data Migrations → Rewrite html/ Image References', 'ffcertificate' ); ?></a>.
 			</p>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
 				(string) ob_get_clean(),
-				array(
-					'type'           => 'warning',
-					'dismissible'    => true,
-					'paragraph_wrap' => false,
-				)
+				array( 'paragraph_wrap' => false )
 			);
 		}
 
@@ -852,13 +860,10 @@ class FormEditorSaveHandler {
 				<?php endforeach; ?>
 			</ul>
 			<?php
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
 				(string) ob_get_clean(),
-				array(
-					'type'           => 'error',
-					'dismissible'    => true,
-					'paragraph_wrap' => false,
-				)
+				array( 'paragraph_wrap' => false )
 			);
 		}
 	}

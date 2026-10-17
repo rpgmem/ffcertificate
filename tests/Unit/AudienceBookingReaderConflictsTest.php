@@ -174,6 +174,37 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 		);
 	}
 
+	public function test_get_audience_same_day_bookings_restricted_to_readable_schedules(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		AudienceBookingReader::get_audience_same_day_bookings( '2026-05-04', array( 4 ), null, null, array( 7, 8 ) );
+
+		$query = $this->preparedWith( 'a.name AS audience_name' );
+		$this->assertStringContainsString( 'INNER JOIN %i env ON b.environment_id = env.id', $query[0] );
+		$this->assertStringContainsString( 'AND env.schedule_id IN (%d,%d)', $query[0] );
+		$this->assertSame( array( 7, 8 ), array_slice( $query, -2 ), 'The readable schedule ids bind last.' );
+	}
+
+	public function test_user_conflicts_restricted_to_readable_schedules_and_to_the_isolated_one(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		AudienceBookingReader::get_user_conflicts( '2026-05-04', '09:00', '10:00', array(), array( 30 ), null, 3, array( 3, 9 ) );
+
+		$query = $this->preparedWith( 'SELECT DISTINCT b.*' );
+		$this->assertStringContainsString( 'AND env.schedule_id = %d AND env.schedule_id IN (%d,%d)', $query[0] );
+		$this->assertSame( array( 3, 3, 9 ), array_slice( $query, -3 ) );
+	}
+
+	public function test_no_readable_schedule_queries_nothing(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->never();
+
+		$this->assertSame( array(), AudienceBookingReader::get_audience_same_day_bookings( '2026-05-04', array( 4 ), null, null, array() ) );
+		$this->assertSame(
+			array( 'bookings' => array(), 'affected_users' => array() ),
+			AudienceBookingReader::get_user_conflicts( '2026-05-04', '09:00', '10:00', array(), array( 30 ), null, null, array() )
+		);
+	}
+
 	public function test_get_audience_same_day_bookings_returns_empty_on_a_failed_query(): void {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
 

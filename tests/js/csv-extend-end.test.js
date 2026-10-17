@@ -244,9 +244,14 @@ describe('csv extend-end — validation', () => {
 		window.$('.ffc-extend-end-confirm').trigger('click');
 		await flush();
 		expect(window.$('.ffc-extend-end-modal').length).toBe(1); // not closed
-		const $err = window.$('.ffc-extend-end-error');
-		expect($err.attr('hidden')).toBeUndefined();
+		// The field-message standard (#1844): under the input, announced,
+		// and named by the input's aria-describedby.
+		const $input = window.$('.ffc-extend-end-input');
+		const $err = window.$('.ffc-extend-end-modal .ffc-field-message');
 		expect($err.text()).toContain('valid time');
+		expect($err.attr('role')).toBe('alert');
+		expect($input.hasClass('is-invalid')).toBe(true);
+		expect($input.attr('aria-describedby')).toBe($err.attr('id'));
 	});
 
 	it('rejects a time at or before the current close', async () => {
@@ -254,7 +259,7 @@ describe('csv extend-end — validation', () => {
 		window.$('.ffc-extend-end-input').val('17:00'); // <= current 18:00
 		window.$('.ffc-extend-end-confirm').trigger('click');
 		await flush();
-		expect(window.$('.ffc-extend-end-error').text()).toContain('later than the current close');
+		expect(window.$('.ffc-extend-end-modal .ffc-field-message').text()).toContain('later than the current close');
 	});
 
 	it('rejects a time later than the current close but earlier than "now"', async () => {
@@ -270,7 +275,7 @@ describe('csv extend-end — validation', () => {
 		window.$('.ffc-extend-end-input').val('10:00');
 		window.$('.ffc-extend-end-confirm').trigger('click');
 		vi.useRealTimers();
-		expect(window.$('.ffc-extend-end-error').text()).toContain('future');
+		expect(window.$('.ffc-extend-end-modal .ffc-field-message').text()).toContain('future');
 	});
 
 	it('clears the inline error on the next keystroke', async () => {
@@ -278,10 +283,11 @@ describe('csv extend-end — validation', () => {
 		window.$('.ffc-extend-end-input').val('17:00');
 		window.$('.ffc-extend-end-confirm').trigger('click');
 		await flush();
-		expect(window.$('.ffc-extend-end-error').attr('hidden')).toBeUndefined();
+		expect(window.$('.ffc-extend-end-modal .ffc-field-message').length).toBe(1);
 
 		window.$('.ffc-extend-end-input').val('19:00').trigger('input');
-		expect(window.$('.ffc-extend-end-error').attr('hidden')).toBe('hidden');
+		expect(window.$('.ffc-extend-end-modal .ffc-field-message').length).toBe(0);
+		expect(window.$('.ffc-extend-end-input').hasClass('is-invalid')).toBe(false);
 	});
 });
 

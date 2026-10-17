@@ -85,6 +85,21 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		expect(headers).toEqual(['Active', 'Completed']);
 	});
 
+	it('wraps each group in its own section, heading and table together (#1837)', () => {
+		panel().render([
+			makeRereg({ is_active: true, title: 'Open' }),
+			makeRereg({ is_active: false, title: 'Done' }),
+		], 1);
+		const sections = Array.from(document.querySelectorAll('#ffc-tabpanel-reregistrations section.ffc-dashboard-section'));
+		expect(sections.map((el) => el.getAttribute('data-section'))).toEqual(['active', 'completed']);
+		sections.forEach((el) => {
+			expect(el.querySelector(':scope > h3')).not.toBeNull();
+			expect(el.querySelector(':scope > table.ffc-reregistrations-table')).not.toBeNull();
+		});
+		// The pager stays outside the sections: it pages the whole list.
+		expect(document.querySelector('#ffc-tabpanel-reregistrations section .ffc-pagination')).toBeNull();
+	});
+
 	it("applies 'ffc-row-past' to completed rows", () => {
 		panel().render([
 			makeRereg({ is_active: false, title: 'Done' }),
@@ -100,6 +115,7 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		const buttons = document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-rereg-open-form');
 		expect(buttons.length).toBe(1);
 		expect(buttons[0].getAttribute('data-reregistration-id')).toBe('10');
+		expect(buttons[0].classList.contains('ffc-icon-edit')).toBe(true);
 	});
 
 	it('renders the Download Record link only when both can_download and magic_link present', () => {
@@ -110,6 +126,8 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		], 1);
 		const buttons = document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-btn-pdf');
 		expect(buttons.length).toBe(1);
+		// The icon is the registry's download class (#1826), not a data: mask.
+		expect(buttons[0].classList.contains('ffc-icon-download')).toBe(true);
 	});
 
 	it('attaches the prefixed status class with the status value', () => {
@@ -117,8 +135,8 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 			makeRereg({ status: 'approved', status_label: 'Approved', reregistration_id: 1 }),
 			makeRereg({ status: 'rejected', status_label: 'Rejected', reregistration_id: 2 }),
 		], 1);
-		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-dashboard-status.ffc-dashboard-status-approved').length).toBe(1);
-		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-dashboard-status.ffc-dashboard-status-rejected').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-pill.ffc-dashboard-status-approved').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-pill.ffc-dashboard-status-rejected').length).toBe(1);
 	});
 
 	// #1151 — the same badge, the same rename, the second of its two emitters.

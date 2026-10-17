@@ -5,6 +5,7 @@
  * Included from page.php; see it for the variables in scope.
  *
  * @var bool                                          $can_manage Whether the user may change anything.
+ * @var bool                                          $can_test   Whether the user may send a test to themselves.
  * @var \FreeFormCertificate\DateMessages\Rule|null   $editing    Rule being edited, null for a new one.
  * @var array<string, mixed>                          $draft      Values submitted by a save that failed.
  * @var array<int, string>                            $audiences  Audience id => name.
@@ -207,31 +208,45 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 		<tr>
 			<th scope="row"><?php esc_html_e( 'Text position', 'ffcertificate' ); ?></th>
 			<td>
-				<fieldset>
-					<legend class="screen-reader-text"><?php esc_html_e( 'Text position', 'ffcertificate' ); ?></legend>
-					<?php
-					foreach (
-						array(
+				<?php
+				// No order between the three, so segmented (#1757).
+				\FreeFormCertificate\Admin\AdminUI::render_segmented(
+					array(
+						'name'    => 'rule[appearance][position]',
+						'id'      => 'ffc-dm-appearance-position',
+						'legend'  => __( 'Text position', 'ffcertificate' ),
+						'options' => array(
 							'full'  => __( 'Full width', 'ffcertificate' ),
 							'left'  => __( 'On the left', 'ffcertificate' ),
 							'right' => __( 'On the right', 'ffcertificate' ),
-						) as $ffc_dm_pos => $ffc_dm_pos_label
-					) :
-						?>
-						<label><input type="radio" name="rule[appearance][position]" value="<?php echo esc_attr( $ffc_dm_pos ); ?>" <?php checked( (string) $ffc_dm_app['position'], $ffc_dm_pos ); ?>> <?php echo esc_html( $ffc_dm_pos_label ); ?></label>&emsp;
-					<?php endforeach; ?>
-				</fieldset>
+						),
+						'value'   => (string) $ffc_dm_app['position'],
+						'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'appearance_position' ),
+					)
+				);
+				?>
 			</td>
 		</tr>
 		<tr>
 			<th scope="row"><?php esc_html_e( 'Text area width', 'ffcertificate' ); ?></th>
 			<td>
-				<fieldset>
-					<legend class="screen-reader-text"><?php esc_html_e( 'Text area width', 'ffcertificate' ); ?></legend>
-					<?php foreach ( \FreeFormCertificate\Core\EmailBodyAppearance::WIDTHS as $ffc_dm_width ) : ?>
-						<label><input type="radio" name="rule[appearance][text_width]" value="<?php echo esc_attr( (string) $ffc_dm_width ); ?>" <?php checked( (int) $ffc_dm_app['text_width'], $ffc_dm_width ); ?>> <?php echo esc_html( $ffc_dm_width . '%' ); ?></label>&emsp;
-					<?php endforeach; ?>
-				</fieldset>
+				<?php
+				// A wider column is more of the same thing, so steps (#1757).
+				$ffc_dm_widths = array();
+				foreach ( \FreeFormCertificate\Core\EmailBodyAppearance::WIDTHS as $ffc_dm_width ) {
+					$ffc_dm_widths[ (string) $ffc_dm_width ] = $ffc_dm_width . '%';
+				}
+				\FreeFormCertificate\Admin\AdminUI::render_steps(
+					array(
+						'name'    => 'rule[appearance][text_width]',
+						'id'      => 'ffc-dm-appearance-text-width',
+						'legend'  => __( 'Text area width', 'ffcertificate' ),
+						'options' => $ffc_dm_widths,
+						'value'   => (string) (int) $ffc_dm_app['text_width'],
+						'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'appearance_text_width' ),
+					)
+				);
+				?>
 				<p class="description"><?php esc_html_e( 'Used when the text sits on one side. On phones the text takes the full width, over the image.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
@@ -253,6 +268,7 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 						'id'      => 'ffc-dm-send-to-user',
 						'checked' => $ffc_dm_flag( $ffc_dm_values['send_to_user'] ),
 						'label'   => __( 'E-mail each person on their date', 'ffcertificate' ),
+						'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'send_to_user' ),
 					)
 				);
 				?>
@@ -268,6 +284,7 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 						'id'      => 'ffc-dm-is-active',
 						'checked' => $ffc_dm_flag( $ffc_dm_values['is_active'] ),
 						'label'   => __( 'Active (the daily run sends it)', 'ffcertificate' ),
+						'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'is_active' ),
 					)
 				);
 				?>
@@ -289,6 +306,7 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 						'id'      => 'ffc-dm-digest-enabled',
 						'checked' => $ffc_dm_flag( $ffc_dm_values['digest_enabled'] ),
 						'label'   => __( 'E-mail a summary of each run, 24 hours after it starts', 'ffcertificate' ),
+						'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'digest_enabled' ),
 					)
 				);
 				?>
@@ -323,7 +341,7 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 		<label><?php esc_html_e( 'To', 'ffcertificate' ); ?> <input type="date" class="ffc-dm-to" value="<?php echo esc_attr( $ffc_dm_target ); ?>"></label>
 		<button type="button" class="button ffc-dm-preview-button"><?php esc_html_e( 'Preview recipients', 'ffcertificate' ); ?></button>
 		<button type="button" class="button ffc-dm-message-button"><?php esc_html_e( 'Preview message', 'ffcertificate' ); ?></button>
-		<?php if ( $can_manage ) : ?>
+		<?php if ( $can_test ) : ?>
 			<button type="button" class="button ffc-dm-test-button"><?php esc_html_e( 'Send test to me', 'ffcertificate' ); ?></button>
 		<?php endif; ?>
 		<p class="description"><?php esc_html_e( 'The dates are the dates in the profile (such as birthdays), not the day the message goes out.', 'ffcertificate' ); ?></p>

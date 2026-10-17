@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 
+use FreeFormCertificate\Core\Notice;
 use FreeFormCertificate\Core\PasswordInvite;
 use FreeFormCertificate\Core\RequestInput;
 
@@ -172,6 +173,11 @@ class DashboardShortcode {
 
 			<div class="ffc-dashboard-summary" id="ffc-dashboard-summary"></div>
 
+			<?php
+			// The tab bar holds the tablist and, outside it, the Log Out link,
+			// so the link shows on every tab without being read as a tab (#1840).
+			?>
+			<div class="ffc-dashboard-tabbar">
 			<nav class="ffc-dashboard-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Dashboard', 'ffcertificate' ); ?>">
 				<?php if ( $can_view_certificates ) : ?>
 					<button class="ffc-tab <?php echo esc_attr( 'certificates' === $current_tab ? 'is-active' : '' ); ?>"
@@ -181,7 +187,7 @@ class DashboardShortcode {
 							aria-selected="<?php echo esc_attr( 'certificates' === $current_tab ? 'true' : 'false' ); ?>"
 							aria-controls="ffc-tabpanel-certificates"
 							tabindex="<?php echo esc_attr( 'certificates' === $current_tab ? '0' : '-1' ); ?>">
-						<span class="ffc-icon-scroll" aria-hidden="true"></span> <?php esc_html_e( 'Certificates', 'ffcertificate' ); ?>
+						<span class="ffc-icon-scroll" aria-hidden="true"></span><?php esc_html_e( 'Certificates', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
@@ -193,7 +199,7 @@ class DashboardShortcode {
 							aria-selected="<?php echo esc_attr( 'appointments' === $current_tab ? 'true' : 'false' ); ?>"
 							aria-controls="ffc-tabpanel-appointments"
 							tabindex="<?php echo esc_attr( 'appointments' === $current_tab ? '0' : '-1' ); ?>">
-						<span class="ffc-icon-calendar" aria-hidden="true"></span> <?php esc_html_e( 'Personal Schedule', 'ffcertificate' ); ?>
+						<span class="ffc-icon-calendar" aria-hidden="true"></span><?php esc_html_e( 'Personal Schedule', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
@@ -205,7 +211,7 @@ class DashboardShortcode {
 							aria-selected="<?php echo esc_attr( 'audience' === $current_tab ? 'true' : 'false' ); ?>"
 							aria-controls="ffc-tabpanel-audience"
 							tabindex="<?php echo esc_attr( 'audience' === $current_tab ? '0' : '-1' ); ?>">
-						<span class="ffc-icon-users" aria-hidden="true"></span> <?php esc_html_e( 'Group Schedule', 'ffcertificate' ); ?>
+						<span class="ffc-icon-users" aria-hidden="true"></span><?php esc_html_e( 'Group Schedule', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
@@ -217,7 +223,7 @@ class DashboardShortcode {
 							aria-selected="<?php echo esc_attr( 'reregistrations' === $current_tab ? 'true' : 'false' ); ?>"
 							aria-controls="ffc-tabpanel-reregistrations"
 							tabindex="<?php echo esc_attr( 'reregistrations' === $current_tab ? '0' : '-1' ); ?>">
-						<span class="ffc-icon-file" aria-hidden="true"></span> <?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?>
+						<span class="ffc-icon-file" aria-hidden="true"></span><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
@@ -243,6 +249,11 @@ class DashboardShortcode {
 					<span class="ffc-icon-user" aria-hidden="true"></span><?php esc_html_e( 'Profile', 'ffcertificate' ); ?>
 				</button>
 			</nav>
+
+			<a href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>" class="ffc-logout-link">
+				<span class="ffc-icon-logout" aria-hidden="true"></span><?php esc_html_e( 'Log Out', 'ffcertificate' ); ?>
+			</a>
+			</div>
 
 			<?php if ( $can_view_certificates ) : ?>
 				<div class="ffc-tab-content <?php echo esc_attr( 'certificates' === $current_tab ? 'is-active' : '' ); ?>"
@@ -333,16 +344,28 @@ class DashboardShortcode {
 			}
 		}
 
+		// The notice is a plugin root of its own and loads the dashboard's
+		// sheets: before #1832 it loaded none, and sat outside any root.
+		DashboardAssetManager::enqueue_styles();
+
 		ob_start();
 		?>
-		<div class="ffc-dashboard-notice ffc-notice-warning">
-			<p><?php esc_html_e( 'You must be logged in to view your dashboard.', 'ffcertificate' ); ?></p>
-			<p>
-				<?php $permalink = get_permalink(); ?>
-				<a href="<?php echo esc_url( wp_login_url( $permalink ? $permalink : '' ) ); ?>" class="button">
-					<?php esc_html_e( 'Login', 'ffcertificate' ); ?>
-				</a>
-			</p>
+		<div class="ffc-shortcode">
+			<?php
+			$permalink   = get_permalink();
+			$notice_html = Notice::render(
+				'warning',
+				'lock',
+				__( 'You must be logged in to view your dashboard.', 'ffcertificate' ),
+				'',
+				array(
+					'role'    => 'note',
+					'hook'    => 'login-required',
+					'actions' => '<a href="' . esc_url( wp_login_url( $permalink ? $permalink : '' ) ) . '" class="button">' . esc_html__( 'Login', 'ffcertificate' ) . '</a>',
+				)
+			);
+			echo $notice_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+			?>
 		</div>
 		<?php
 		$login_required_html = ob_get_clean();
@@ -393,14 +416,16 @@ class DashboardShortcode {
 		$settings = get_option( 'ffc_user_access_settings', array() );
 		$message  = $settings['redirect_message'] ?? __( 'You were redirected from the admin panel. Use this dashboard to access your certificates.', 'ffcertificate' );
 
-		ob_start();
-		?>
-		<div class="ffc-dashboard-notice ffc-notice-info">
-			<p><?php echo esc_html( $message ); ?></p>
-		</div>
-		<?php
-		$redirect_html = ob_get_clean();
-		return $redirect_html ? $redirect_html : '';
+		return Notice::render(
+			'info',
+			'info',
+			(string) $message,
+			'',
+			array(
+				'role' => 'note',
+				'hook' => 'admin-redirect',
+			)
+		);
 	}
 
 	/**
@@ -421,46 +446,20 @@ class DashboardShortcode {
 			return '';
 		}
 
-		ob_start();
+		$html = '';
 		foreach ( $reregistrations as $rereg ) {
+			$title    = (string) $rereg['title'];
+			$pdf_link = '';
+			if ( ! empty( $rereg['magic_link'] ) ) {
+				$pdf_link = '<a href="' . esc_url( $rereg['magic_link'] ) . '" class="button button-primary ffc-btn-pdf ffc-icon-download" target="_blank" rel="noopener">'
+					. esc_html__( 'Download Record', 'ffcertificate' ) . '</a>';
+			}
+
 			if ( ! $rereg['can_submit'] ) {
-				// Show completed status.
 				if ( 'approved' === $rereg['submission_status'] ) {
-					?>
-					<div class="ffc-dashboard-notice ffc-notice-info ffc-rereg-banner ffc-rereg-completed">
-						<div class="ffc-dashboard-header">
-							<div>
-								<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-								<p class="ffc-m-2xs-0"><?php esc_html_e( 'Your reregistration has been approved.', 'ffcertificate' ); ?></p>
-							</div>
-							<?php if ( ! empty( $rereg['magic_link'] ) ) : ?>
-							<div>
-								<a href="<?php echo esc_url( $rereg['magic_link'] ); ?>" class="button ffc-btn-pdf" target="_blank" rel="noopener">
-									<?php esc_html_e( 'Download Record', 'ffcertificate' ); ?>
-								</a>
-							</div>
-							<?php endif; ?>
-						</div>
-					</div>
-					<?php
+					$html .= self::reregistration_banner( 'success', 'success', $title, esc_html__( 'Your reregistration has been approved.', 'ffcertificate' ), $pdf_link );
 				} elseif ( 'submitted' === $rereg['submission_status'] ) {
-					?>
-					<div class="ffc-dashboard-notice ffc-notice-info ffc-rereg-banner ffc-rereg-pending-review">
-						<div class="ffc-dashboard-header">
-							<div>
-								<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-								<p class="ffc-m-2xs-0"><?php esc_html_e( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ); ?></p>
-							</div>
-							<?php if ( ! empty( $rereg['magic_link'] ) ) : ?>
-							<div>
-								<a href="<?php echo esc_url( $rereg['magic_link'] ); ?>" class="button ffc-btn-pdf" target="_blank" rel="noopener">
-									<?php esc_html_e( 'Download Record', 'ffcertificate' ); ?>
-								</a>
-							</div>
-							<?php endif; ?>
-						</div>
-					</div>
-					<?php
+					$html .= self::reregistration_banner( 'info', 'clock', $title, esc_html__( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ), $pdf_link );
 				} else {
 					/*
 					 * Every other non-submittable status (#1125). The two `if`s
@@ -477,70 +476,82 @@ class DashboardShortcode {
 					 * instead of a blank screen: a silent `continue` is what
 					 * made this defect cost a smoke run to find.
 					 */
-					?>
-					<div class="ffc-dashboard-notice ffc-notice-info ffc-rereg-banner">
-						<div class="ffc-dashboard-header">
-							<div>
-								<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-								<p class="ffc-m-2xs-0">
-									<?php
-									echo esc_html(
-										sprintf(
-											/* translators: %s: submission status label. */
-											__( 'Status: %s', 'ffcertificate' ),
-											\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_status_label( (string) $rereg['submission_status'] )
-										)
-									);
-									?>
-								</p>
-							</div>
-						</div>
-					</div>
-					<?php
+					$html .= self::reregistration_banner(
+						'info',
+						'info',
+						$title,
+						esc_html(
+							sprintf(
+								/* translators: %s: submission status label. */
+								__( 'Status: %s', 'ffcertificate' ),
+								\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_status_label( (string) $rereg['submission_status'] )
+							)
+						)
+					);
 				}
 				continue;
 			}
 
 			$end_date  = \FreeFormCertificate\Core\DateFormatter::format_date( $rereg['end_date'] );
 			$days_left = max( 0, (int) ( ( strtotime( $rereg['end_date'] ) - time() ) / 86400 ) );
-			$urgency   = $days_left <= 3 ? 'ffc-rereg-urgent' : '';
-			?>
-			<div class="ffc-dashboard-notice ffc-notice-warning ffc-rereg-banner <?php echo esc_attr( $urgency ); ?>"
-				data-reregistration-id="<?php echo esc_attr( $rereg['id'] ); ?>">
-				<div class="ffc-dashboard-header">
-					<div>
-						<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-						<p class="ffc-m-2xs-0">
-							<?php
-							/* translators: %s: deadline date */
-							echo esc_html( sprintf( __( 'Deadline: %s', 'ffcertificate' ), $end_date ) );
-							if ( $days_left <= 7 ) {
-								echo ' — ';
-								/* translators: %d: number of days remaining */
-								echo '<strong>' . esc_html( sprintf( _n( '%d day left', '%d days left', $days_left, 'ffcertificate' ), $days_left ) ) . '</strong>';
-							}
-							?>
-						</p>
-					</div>
-					<div>
-						<button type="button" class="button button-primary ffc-rereg-open-form"
-								data-reregistration-id="<?php echo esc_attr( $rereg['id'] ); ?>">
-							<?php
-							if ( 'in_progress' === $rereg['submission_status'] ) {
-								esc_html_e( 'Continue Reregistration', 'ffcertificate' );
-							} elseif ( 'rejected' === $rereg['submission_status'] ) {
-								esc_html_e( 'Resubmit Reregistration', 'ffcertificate' );
-							} else {
-								esc_html_e( 'Complete Reregistration', 'ffcertificate' );
-							}
-							?>
-						</button>
-					</div>
-				</div>
-			</div>
-			<?php
+
+			/* translators: %s: deadline date */
+			$deadline = esc_html( sprintf( __( 'Deadline: %s', 'ffcertificate' ), $end_date ) );
+			if ( $days_left <= 7 ) {
+				/* translators: %d: number of days remaining */
+				$deadline .= ' — <strong>' . esc_html( sprintf( _n( '%d day left', '%d days left', $days_left, 'ffcertificate' ), $days_left ) ) . '</strong>';
+			}
+
+			if ( 'in_progress' === $rereg['submission_status'] ) {
+				$label = __( 'Continue Reregistration', 'ffcertificate' );
+			} elseif ( 'rejected' === $rereg['submission_status'] ) {
+				$label = __( 'Resubmit Reregistration', 'ffcertificate' );
+			} else {
+				$label = __( 'Complete Reregistration', 'ffcertificate' );
+			}
+			$open_button = '<button type="button" class="button button-primary ffc-rereg-open-form" data-reregistration-id="' . esc_attr( (string) $rereg['id'] ) . '">'
+				. esc_html( $label ) . '</button>';
+
+			// Three days or fewer is urgent: the danger tone, where the old
+			// banner repainted its warning one by hand.
+			$html .= self::reregistration_banner(
+				$days_left <= 3 ? 'danger' : 'warning',
+				'clock',
+				$title,
+				$deadline,
+				$open_button,
+				(string) $rereg['id']
+			);
 		}
-		$rereg_banner_html = ob_get_clean();
-		return $rereg_banner_html ? $rereg_banner_html : '';
+
+		return $html;
+	}
+
+	/**
+	 * One reregistration banner of the dashboard: a notice titled with the
+	 * campaign, its state, and the action that state allows (#1842).
+	 *
+	 * @param string $tone      Notice tone.
+	 * @param string $icon      Registry icon.
+	 * @param string $title     Campaign title, plain text.
+	 * @param string $text_html The state line, already escaped.
+	 * @param string $actions   The banner's link or button, already escaped.
+	 * @param string $rereg_id  The campaign id the open-form script and the
+	 *                          post-submit hide look the banner up by; '' for
+	 *                          a banner with nothing to open.
+	 * @return string
+	 */
+	private static function reregistration_banner( string $tone, string $icon, string $title, string $text_html, string $actions = '', string $rereg_id = '' ): string {
+		$args = array(
+			'role'    => 'note',
+			'html'    => true,
+			'hook'    => 'rereg-banner',
+			'actions' => $actions,
+		);
+		if ( '' !== $rereg_id ) {
+			$args['attrs'] = array( 'data-reregistration-id' => $rereg_id );
+		}
+
+		return Notice::render( $tone, $icon, $text_html, $title, $args );
 	}
 }

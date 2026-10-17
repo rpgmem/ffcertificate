@@ -272,4 +272,28 @@ class WorkingHoursServiceTest extends TestCase {
 		$ranges = WorkingHoursService::get_day_ranges( '2025-01-06', array() );
 		$this->assertSame( array(), $ranges );
 	}
+
+	// ------------------------------------------------------------------
+	// is_range_within_working_hours() (#1859)
+	// ------------------------------------------------------------------
+
+	public function test_range_checks_the_end_as_well_as_the_start(): void {
+		// Monday 09:00-17:00: a booking from 16:30 to 18:00 starts open and
+		// ends after closing, which the start-only check let through.
+		$this->assertTrue( WorkingHoursService::is_within_working_hours( '2025-01-06', '16:30', $this->keyed_hours() ) );
+		$this->assertFalse( WorkingHoursService::is_range_within_working_hours( '2025-01-06', '16:30', '18:00', $this->keyed_hours() ) );
+	}
+
+	public function test_range_may_end_at_closing_time(): void {
+		$this->assertTrue( WorkingHoursService::is_range_within_working_hours( '2025-01-06', '16:00', '17:00', $this->keyed_hours() ) );
+	}
+
+	public function test_range_refuses_a_start_before_opening_and_a_closed_day(): void {
+		$this->assertFalse( WorkingHoursService::is_range_within_working_hours( '2025-01-06', '08:00', '10:00', $this->keyed_hours() ) );
+		$this->assertFalse( WorkingHoursService::is_range_within_working_hours( '2025-01-05', '10:00', '11:00', $this->keyed_hours() ) );
+	}
+
+	public function test_range_is_unrestricted_without_hours(): void {
+		$this->assertTrue( WorkingHoursService::is_range_within_working_hours( '2025-01-06', '22:00', '23:00', array() ) );
+	}
 }

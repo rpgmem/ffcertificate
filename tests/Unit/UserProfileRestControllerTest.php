@@ -29,6 +29,9 @@ class UserProfileRestControllerTest extends TestCase {
 	/** @var Mockery\MockInterface Mock UserManager */
 	private $user_manager_mock;
 
+	/** @var Mockery\MockInterface Alias mock of ActivityLog */
+	private $activity_log_mock;
+
 	/** @var Mockery\MockInterface Mock RateLimiter */
 	private $rate_limiter_mock;
 
@@ -92,10 +95,14 @@ class UserProfileRestControllerTest extends TestCase {
 		// get_full_profile after the #322 wire-up) calls this static.
 		$cap_manager_mock->shouldReceive( 'get_all_capabilities' )->andReturn( array() )->byDefault();
 
-		$activity_log_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLog' );
+		Mockery::getConfiguration()->setConstantsMap(
+			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
+		);
+		$activity_log_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
 		$activity_log_mock->shouldReceive( 'log_profile_updated' )->byDefault();
 		$activity_log_mock->shouldReceive( 'log_password_changed' )->byDefault();
 		$activity_log_mock->shouldReceive( 'log_privacy_request' )->byDefault();
+		$this->activity_log_mock = $activity_log_mock;
 
 		$this->rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
 		$this->rate_limiter_mock->shouldReceive( 'check_user_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
@@ -143,11 +150,12 @@ class UserProfileRestControllerTest extends TestCase {
 	// Route registration
 	// ------------------------------------------------------------------
 
-	public function test_register_routes_creates_three_endpoints(): void {
+	public function test_register_routes_creates_four_endpoints(): void {
 		$ctrl = new UserProfileRestController( 'ffc/v1' );
 		$ctrl->register_routes();
 
-		$this->assertCount( 3, $this->registered_routes );
+		// Profile, reveal (#1863), password, privacy request.
+		$this->assertCount( 4, $this->registered_routes );
 	}
 
 	public function test_profile_route_registered(): void {
@@ -275,6 +283,128 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->assertSame( array( 'subscriber' ), $result['roles'] );
 		$this->assertArrayHasKey( 'member_since', $result );
 		$this->assertArrayHasKey( 'audience_groups', $result );
+	}
+
+	// ------------------------------------------------------------------
+	// View as user (#1863)
+	// ------------------------------------------------------------------
+
+	/**
+	 * An administrator (uid 1) viewing user 5's dashboard.
+	 *
+	 * @return void
+	 */
+	private function view_as_user_five(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' === $cap );
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 1 === $uid && 'manage_options' === $cap );
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
+		$user = $this->make_user( 5 );
+		Functions\when( 'get_user_by' )->justReturn( $user );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->user_manager_mock->shouldReceive( 'get_extended_profile' )
+			->with( 5, array( 'birth_date' ) )
+			->andReturn( array( 'birth_date' => '1990-05-20' ) );
+	}
+
+	public function test_view_as_masks_the_users_email_phone_and_birth_date(): void {
+		$this->view_as_user_five();
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->get_user_profile( $this->make_request( array( 'viewAsUserId' => 5 ) ) );
+
+		$this->assertSame( 5, $result['user_id'] );
+		$this->assertSame( 'j***@example.com', $result['email'] );
+		$this->assertSame( array( 'j***@example.com' ), $result['emails'] );
+		$this->assertSame( '(**) *****-**00', $result['phone'] );
+		$this->assertSame( '', $result['birth_date'] );
+		$this->assertSame( '**/**/****', $result['birth_date_display'] );
+		$this->assertTrue( $result['pii_masked'] );
+		$this->assertTrue( $result['can_reveal'] );
+		$this->assertStringNotContainsString( 'john@example.com', (string) json_encode( $result ) );
+	}
+
+	public function test_the_owner_sees_their_own_profile_in_clear(): void {
+		$this->stub_profile_reload();
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->get_user_profile( $this->make_request() );
+
+		$this->assertSame( 'john@example.com', $result['email'] );
+		$this->assertFalse( $result['pii_masked'] );
+		$this->assertFalse( $result['can_reveal'] );
+	}
+
+	public function test_reveal_serves_one_field_in_view_as_and_audits_it(): void {
+		$this->view_as_user_five();
+		$this->activity_log_mock->shouldReceive( 'log' )->once()
+			->with( 'user_profile_pii_revealed', 'info', array( 'field_key' => 'phone', 'view_as' => true, 'subject_user_id' => 5 ), 1, 0 )
+			->andReturn( true );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'phone' ) ) );
+
+		$this->assertSame( array( 'field' => 'phone', 'value' => '(11) 99999-0000' ), $result );
+	}
+
+	public function test_reveal_returns_every_linked_email_and_the_birth_date_display(): void {
+		$this->view_as_user_five();
+		$this->activity_log_mock->shouldReceive( 'log' )->twice()->andReturn( true );
+		$ctrl = new UserProfileRestController( 'ffc/v1' );
+
+		$email = $ctrl->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'email' ) ) );
+		$birth = $ctrl->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'birth_date' ) ) );
+
+		$this->assertSame( 'john@example.com', $email['value'] );
+		$this->assertSame( array( 'john@example.com' ), $email['values'] );
+		$this->assertSame( '1990-05-20', $birth['value'] );
+		$this->assertNotSame( '', $birth['display'] );
+	}
+
+	public function test_reveal_refuses_outside_view_as(): void {
+		$this->stub_profile_reload();
+		$this->activity_log_mock->shouldNotReceive( 'log' );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'field' => 'phone' ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_reveal_not_view_as', $result->get_error_code() );
+	}
+
+	public function test_reveal_refuses_a_non_admin_asking_for_someone_else(): void {
+		// viewAsUserId is honoured only for manage_options: anyone else reads
+		// their own profile, which has nothing to reveal.
+		Functions\when( 'get_current_user_id' )->justReturn( 9 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->activity_log_mock->shouldNotReceive( 'log' );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'phone' ) ) );
+
+		$this->assertSame( 'ffc_reveal_not_view_as', $result->get_error_code() );
+	}
+
+	public function test_reveal_refuses_an_unsupported_field(): void {
+		$this->view_as_user_five();
+		$this->activity_log_mock->shouldNotReceive( 'log' );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'cpf' ) ) );
+
+		$this->assertSame( 'ffc_reveal_unsupported', $result->get_error_code() );
+	}
+
+	public function test_view_as_save_never_writes_a_masked_phone_back(): void {
+		$this->view_as_user_five();
+		$this->user_manager_mock->shouldReceive( 'update_profile' )->once()
+			->with( 5, array( 'department' => 'Ops' ) )
+			->andReturn( true );
+
+		( new UserProfileRestController( 'ffc/v1' ) )->update_user_profile(
+			$this->make_request(
+				array(
+					'viewAsUserId' => 5,
+					'phone'        => '(**) *****-**00',
+					'department'   => 'Ops',
+				)
+			)
+		);
 	}
 
 	// ------------------------------------------------------------------
@@ -594,12 +724,46 @@ class UserProfileRestControllerTest extends TestCase {
 			static fn( $q ) => ( is_string( $q ) && false !== strpos( $q, 'ffc_audience_members' ) ) ? 'wp_ffc_audience_members' : null
 		);
 		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceReader' )
-			->shouldReceive( 'get_user_audience_badges' )->andReturn( array( array( 'name' => 'Group A' ) ) );
+			->shouldReceive( 'get_user_audience_badges' )->andReturn(
+				array(
+					array(
+						'name'  => 'Group A',
+						'color' => '#FFEB3B',
+					),
+					array(
+						'name'  => 'Group B',
+						'color' => '#1d2327',
+					),
+					array( 'name' => 'Group C' ),
+				)
+			);
 
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->get_user_profile( $this->make_request() );
 
 		$this->assertIsArray( $result );
-		$this->assertSame( array( array( 'name' => 'Group A' ) ), $result['audience_groups'] );
+		// The tag's text colour is computed server-side over the group's own
+		// colour (#1826): dark over a pale yellow, light over a near-black, and
+		// a group with no valid colour falls back to the neutral badge ground.
+		$this->assertSame(
+			array(
+				array(
+					'name'       => 'Group A',
+					'color'      => '#ffeb3b',
+					'text_color' => '#000000',
+				),
+				array(
+					'name'       => 'Group B',
+					'color'      => '#1d2327',
+					'text_color' => '#ffffff',
+				),
+				array(
+					'name'       => 'Group C',
+					'color'      => '#e9ecef',
+					'text_color' => '#000000',
+				),
+			),
+			$result['audience_groups']
+		);
 	}
 
 	public function test_get_user_profile_wraps_exception(): void {

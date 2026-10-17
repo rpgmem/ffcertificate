@@ -46,11 +46,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Safe by design:', 'ffcertificate' ); ?></strong>
+			<strong><?php esc_html_e( 'Safe by design:', 'ffcertificate' ); ?></strong>
 			<?php esc_html_e( 'Always run the preview first. Deletions (short URLs) are permanent; disabling Public Operator Access is reversible (re-enable on the form editor); the link audit only reports — resolve each finding on the Identity Resolution screen or by hand.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean()
+	);
+	?>
 	<p class="description"><a href="#feature-identity-resolution"><?php esc_html_e( 'See Identity Resolution.', 'ffcertificate' ); ?></a> · <a href="#operations-migrations"><?php esc_html_e( 'See Data Migrations.', 'ffcertificate' ); ?></a></p>
 </div>

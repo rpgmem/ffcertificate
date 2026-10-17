@@ -40,10 +40,6 @@ class PreflightStatsServiceTest extends TestCase {
 		// is "empty cache", which is the path these tests measure.
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
-
-		if ( ! defined( 'DAY_IN_SECONDS' ) ) {
-			define( 'DAY_IN_SECONDS', 86400 );
-		}
 	}
 
 	protected function tearDown(): void {

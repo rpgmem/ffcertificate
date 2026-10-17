@@ -52,6 +52,12 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 	private const CAP = 'ffc_export_reregistration';
 
 	/**
+	 * PII cap that puts the personal columns in clear (#1863); without it
+	 * the Reregistration Operator, who exports, receives them masked.
+	 */
+	private const PII_CAP = 'ffc_view_reregistration_pii';
+
+	/**
 	 * Nonce action shared by start / batch / download.
 	 */
 	private const NONCE = 'ffc_reregistration_export';
@@ -162,6 +168,7 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 		return array(
 			'fields' => $this->get_custom_fields_for_reregistration( $rereg ),
 			'title'  => (string) $rereg->title,
+			'pii'    => \FreeFormCertificate\Core\PiiExport::allowed( self::PII_CAP ),
 		);
 	}
 
@@ -248,17 +255,23 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 			? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['reviewed_at'] )
 			: '';
 
-		$line = array(
+		$clear = ! empty( $context['pii'] );
+		$line  = array(
 			$row['user_id'] ?? '',
 			$row['user_name'] ?? '',
-			$row['user_email'] ?? '',
+			\FreeFormCertificate\Core\PiiExport::cell( 'email', $row['user_email'] ?? '', $clear ),
 			$row['status'] ?? '',
 			$submitted_at_display,
 			$reviewed_at_display,
 		);
 
 		foreach ( $fields as $field ) {
-			$line[] = $this->stringify_value( $field, $values[ (string) $field->field_key ] ?? '' );
+			$cell = $this->stringify_value( $field, $values[ (string) $field->field_key ] ?? '' );
+			// A field the campaign marks sensitive is masked as a personal
+			// key is, whatever its name (#1863).
+			$line[] = ! $clear && ! empty( $field->is_sensitive )
+				? \FreeFormCertificate\Core\DocumentFormatter::mask_any( (string) $field->field_key, $cell )
+				: \FreeFormCertificate\Core\PiiExport::cell( (string) $field->field_key, $cell, $clear );
 		}
 
 		return $line;
@@ -284,7 +297,11 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 	 * @return void
 	 */
 	public function on_complete( string $job_id, array $job ): void {
-		unset( $job_id, $job );
+		unset( $job_id );
+		// An export with personal data in clear is a bulk reveal (#1863).
+		if ( ! empty( $job['context']['pii'] ) ) {
+			\FreeFormCertificate\Core\PiiExport::log( self::TYPE, (int) ( $job['processed'] ?? 0 ) );
+		}
 	}
 
 	/**

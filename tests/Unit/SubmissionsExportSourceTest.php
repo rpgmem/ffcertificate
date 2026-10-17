@@ -26,6 +26,12 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		// The PII export rule (#1863): the exporter holds the PII cap unless a
+		// test says otherwise, and a masked cell asks is_email().
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 		class_exists( '\\FreeFormCertificate\Admin\SubmissionsExportSource' );
 
 		Functions\when( '__' )->returnArg();
@@ -390,6 +396,7 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 			array(
 				'dynamic_keys'         => array( 'city' ),
 				'include_edit_columns' => true,
+				'pii'                  => true,
 			),
 			$context
 		);
@@ -454,10 +461,23 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 			array(
 				'dynamic_keys'         => array(),
 				'include_edit_columns' => true,
+				'pii'                  => true,
 			)
 		);
 
 		$this->assertCount( 18, $row );
+	}
+
+	public function test_build_context_freezes_a_masked_export_for_an_exporter_without_the_pii_cap(): void {
+		Functions\when( 'user_can' )->justReturn( false );
+		$repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
+		$repo->shouldReceive( 'getExportKeysBatch' )->andReturn( array() );
+		$repo->shouldReceive( 'hasEditInfo' )->andReturn( false );
+		$this->set_repository( $repo );
+
+		$context = $this->source->build_context( array( 'form_ids' => null, 'status' => 'publish' ) );
+
+		$this->assertFalse( $context['pii'] );
 	}
 
 	public function test_completion_fires_the_action_and_the_other_hooks_are_inert(): void {

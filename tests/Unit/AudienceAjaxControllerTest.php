@@ -423,8 +423,40 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Error adding user permissions', $this->responses[0]['data']['message'] );
 	}
 
-	public function test_add_user_permission_succeeds_with_html(): void {
+	/**
+	 * The row draws the account email masked (#1824); the policy decides
+	 * whether it carries the Reveal button.
+	 *
+	 * @param bool $can_reveal What the policy answers.
+	 */
+	private function stubAccountEmail( bool $can_reveal ): void {
+		Functions\when( 'is_email' )->justReturn( true );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'wp_create_nonce' )->justReturn( 'reveal-nonce' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
+			->shouldReceive( 'can_reveal' )
+			->with( 'ffc_view_audiences_pii', 7 )
+			->andReturn( $can_reveal );
+	}
+
+	/**
+	 * @return array<string, array{0: bool}>
+	 */
+	public static function reveal_tiers(): array {
+		return array(
+			'may reveal' => array( true ),
+			'masked'     => array( false ),
+		);
+	}
+
+	/**
+	 * @dataProvider reveal_tiers
+	 *
+	 * @param bool $can_reveal What the policy answers.
+	 */
+	public function test_add_user_permission_succeeds_with_html( bool $can_reveal ): void {
 		$this->mockUtils();
+		$this->stubAccountEmail( $can_reveal );
 		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7' );
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
@@ -439,8 +471,41 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_add_user_permission() );
 
 		$this->assertTrue( $this->responses[0]['ok'] );
-		$this->assertStringContainsString( 'Jane', $this->responses[0]['data']['html'] );
-		$this->assertStringContainsString( 'jane@e.com', $this->responses[0]['data']['html'] );
+		$html = $this->responses[0]['data']['html'];
+		$this->assertStringContainsString( 'Jane', $html );
+		// The row the script inserts is masked by the server, never sent clear (#1824).
+		$this->assertStringNotContainsString( 'jane@e.com', $html );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">j***@e.com</span>', $html );
+		$this->assertSame(
+			$can_reveal,
+			str_contains( $html, 'data-type="audience_account" data-field="email" data-submission-id="7" data-nonce="reveal-nonce"' )
+		);
+	}
+
+	public function test_add_user_permission_row_uses_the_toggle_markup_of_the_page(): void {
+		$this->mockUtils();
+		$this->stubAccountEmail( false );
+		$_POST = array( '_wpnonce' => 'n', 'schedule_id' => '5', 'user_id' => '7' );
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
+		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5 ) );
+		$repo->shouldReceive( 'get_user_permissions' )->with( 5, 7 )->andReturn( null );
+		$repo->shouldReceive( 'set_user_permissions' )->andReturn( true );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 7, 'display_name' => 'Jane', 'user_email' => 'jane@e.com' ) );
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_add_user_permission() );
+
+		$html = $this->responses[0]['data']['html'];
+		// A row added by AJAX draws the same toggles as the initial render
+		// (#1771): three AdminUI toggles, can_book on and the other two off.
+		$this->assertSame( 3, substr_count( $html, 'class="ffc-control-toggle"' ) );
+		$this->assertSame( 3, substr_count( $html, 'ffc-control-toggle-track' ) );
+		$this->assertStringContainsString( 'name="ffc_perm_7_can_book" value="1" checked class="ffc-perm-toggle" data-perm="can_book"', $html );
+		$this->assertStringContainsString( 'name="ffc_perm_7_can_cancel_others" value="1" class="ffc-perm-toggle" data-perm="can_cancel_others"', $html );
+		$this->assertStringContainsString( 'name="ffc_perm_7_can_override_conflicts" value="1" class="ffc-perm-toggle" data-perm="can_override_conflicts"', $html );
 	}
 
 	// ── update_user_permission ─────────────────────────────────────────

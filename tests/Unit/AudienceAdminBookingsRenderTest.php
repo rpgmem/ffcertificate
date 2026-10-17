@@ -45,7 +45,7 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'selected' )->justReturn( '' );
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_trim_words' )->returnArg();
 
 		// DateFormatter → verbatim, deterministic output.
@@ -158,6 +158,98 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 
 		$this->assertStringNotContainsString( 'id="ffc-bookings-export-btn"', $output );
 		// Table still renders the row.
-		$this->assertStringContainsString( 'data-booking-id="101"', $output );
+		$this->assertStringContainsString( '<td>101</td>', $output );
+	}
+
+	/**
+	 * View and Cancel call AJAX handlers gated on `ffc_manage_audiences`, so
+	 * they render for that tier only (#1769).
+	 *
+	 * @return array<string, array{0: list<string>, 1: bool}>
+	 */
+	public function booking_action_tiers(): array {
+		return array(
+			'view-only tier' => array( array( 'ffc_view_audiences' ), false ),
+			'manage tier'    => array( array( 'ffc_view_audiences', 'ffc_manage_audiences' ), true ),
+		);
+	}
+
+	/**
+	 * @dataProvider booking_action_tiers
+	 *
+	 * @param list<string> $caps       Capabilities held.
+	 * @param bool         $sees_links Whether View / Cancel render.
+	 */
+	public function test_view_and_cancel_render_only_for_the_manage_tier( array $caps, bool $sees_links ): void {
+		$this->mock_repositories( array( $this->active_booking() ), false );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )
+			->andReturnUsing( static fn( string $cap ): bool => in_array( $cap, $caps, true ) );
+		Functions\when( 'get_users' )->justReturn( array() );
+
+		$page = new AudienceAdminBookings( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '<td>101</td>', $output, 'The row renders for both tiers.' );
+		$this->assertSame( $sees_links ? 1 : 0, substr_count( $output, 'ffc-view-booking' ) );
+		$this->assertSame( $sees_links ? 1 : 0, substr_count( $output, 'ffc-cancel-booking' ) );
+	}
+
+	/**
+	 * The title matches the menu item, the status filter says what the other
+	 * lists say, and every header carries a `column-*` class so the shared
+	 * Scheduling column rules apply (#1787).
+	 */
+	public function test_title_filter_label_and_header_classes_match_the_other_lists(): void {
+		$this->mock_repositories( array( $this->active_booking() ), false );
+		$this->mock_export_cap( false );
+		Functions\when( 'get_users' )->justReturn( array() );
+
+		$page = new AudienceAdminBookings( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '<h1 class="wp-heading-inline">Audience Bookings</h1>', $output );
+		$this->assertStringContainsString( '<option value="">All Statuses</option>', $output );
+		$this->assertStringNotContainsString( 'All Status<', $output );
+
+		preg_match_all( '#<th scope="col" class="([^"]*)"#', $output, $headers );
+		$this->assertSame(
+			array(
+				'manage-column column-id',
+				'manage-column column-date',
+				'manage-column column-time',
+				'manage-column column-environment',
+				'manage-column column-description',
+				'manage-column column-type',
+				'manage-column column-status',
+				'manage-column column-created_by',
+				'manage-column column-actions',
+			),
+			$headers[1],
+			'Every header names its column; status and actions are the ones the shared width rules read.'
+		);
+	}
+
+	public function test_individual_booking_type_shows_the_modal_label(): void {
+		$booking                = $this->active_booking();
+		$booking->booking_type  = 'individual';
+		$this->mock_repositories( array( $booking ), false );
+		$this->mock_export_cap( false );
+
+		Functions\when( 'get_users' )->justReturn( array() );
+
+		$page = new AudienceAdminBookings( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = ob_get_clean();
+
+		// The stored enum is `individual`; the list must label it the way the
+		// booking modal does, never echo the raw word.
+		$this->assertMatchesRegularExpression( '#<td>\s*Custom Users\s*</td>#', $output );
+		$this->assertDoesNotMatchRegularExpression( '#<td>\s*individual\s*</td>#', $output );
 	}
 }

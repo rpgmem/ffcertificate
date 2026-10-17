@@ -60,6 +60,23 @@ class RequestInput {
 		if ( ! is_array( $raw ) ) {
 			return $default;
 		}
+		return self::text_array( $raw );
+	}
+
+	/**
+	 * Sanitise a flat array the way {@see self::get_post_array()} does, for a
+	 * value that did not come from `$_POST` -- a REST route's JSON body
+	 * (#1861). Every element goes through `sanitize_text_field()`, keys are
+	 * preserved, and anything that is not an array becomes `[]`.
+	 *
+	 * @since 6.40.0
+	 * @param mixed $raw Unslashed value.
+	 * @return array<array-key, string>
+	 */
+	public static function text_array( $raw ): array {
+		if ( ! is_array( $raw ) ) {
+			return array();
+		}
 		return array_map( 'sanitize_text_field', $raw );
 	}
 

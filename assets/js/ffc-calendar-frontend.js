@@ -213,7 +213,7 @@
                 })
                 .catch(function () {
                     $loading.hide();
-                    $container.html('').append($('<p class="ffc-message ffc-message-error">').text(ffcCalendar.strings.error));
+                    $container.html('').append(FFC.notice('danger', 'error', ffcCalendar.strings.error, '', { role: 'alert' }));
                 });
         },
 
@@ -289,16 +289,20 @@
             // Waitlist notice (#941 phase 2): this slot is full, so the booking
             // joins the queue. Show/hide a banner atop the form accordingly.
             var $formWrapper = $('.ffc-booking-form-wrapper');
-            var $notice = $formWrapper.find('.ffc-waitlist-notice');
+            var $notice = $formWrapper.find('[data-ffc-notice="waitlist"]');
             if (this.selectedWaitlist) {
                 if (!$notice.length) {
-                    $notice = $('<div class="ffc-waitlist-notice" role="status"></div>');
+                    $notice = $(FFC.notice(
+                        'neutral',
+                        'users',
+                        ffcCalendar.strings.waitlistNotice ||
+                        'This time is full. Submitting adds you to the waitlist — you will be notified automatically if a spot opens up.',
+                        '',
+                        { role: 'status', hook: 'waitlist' }
+                    ));
                     $formWrapper.prepend($notice);
                 }
-                $notice.text(
-                    ffcCalendar.strings.waitlistNotice ||
-                    'This time is full. Submitting adds you to the waitlist — you will be notified automatically if a spot opens up.'
-                ).show();
+                $notice.show();
             } else if ($notice.length) {
                 $notice.hide();
             }
@@ -325,6 +329,12 @@
 
         /**
          * Submit booking
+         *
+         * A bypass holder is first told which rules the booking breaks
+         * (#1859): the server lists them, one warning shows them all with a
+         * countdown, and only an "I agree" submits — with the confirmation
+         * the server requires. Asking first keeps the captcha for the real
+         * submission.
          */
         submitBooking: function($form) {
             var self = this;
@@ -344,7 +354,62 @@
             $submitBtn.data('submitting', true);
             $submitBtn.prop('disabled', true).text(ffcCalendar.strings.loading);
 
+            if (!(self.config && self.config.canBypass)) {
+                self.sendBooking($form, false);
+                return;
+            }
+
+            FFC.request('ffc_check_booking_override', {
+                calendar_id: $form.find('[name="calendar_id"]').val(),
+                date: $form.find('[name="date"]').val(),
+                time: $form.find('[name="time"]').val()
+            }, { nonce: ffcCalendar.nonce, ajaxUrl: ffcCalendar.ajaxurl })
+                .then(function(data) {
+                    var reasons = (data && data.reasons) || [];
+                    if (!reasons.length) {
+                        self.sendBooking($form, false);
+                        return;
+                    }
+                    self.confirmOverride($form, reasons);
+                })
+                .catch(function() {
+                    // The server decides on the submission either way.
+                    self.sendBooking($form, false);
+                });
+        },
+
+        /**
+         * Open the override warning; on "I agree", submit with the
+         * confirmation (#1859).
+         */
+        confirmOverride: function($form, reasons) {
+            var self = this;
+            var $submitBtn = $form.find('button[type="submit"]');
+            FFC.overrideConfirm({ reasons: reasons, strings: (ffcCalendar.strings || {}).override })
+                .then(function(agreed) {
+                    if (agreed) {
+                        self.sendBooking($form, true);
+                        return;
+                    }
+                    $submitBtn.data('submitting', false);
+                    $submitBtn.prop('disabled', false).text(ffcCalendar.strings.submit || 'Book Appointment');
+                    $submitBtn.trigger('focus');
+                });
+        },
+
+        /**
+         * Send the booking.
+         *
+         * @param {jQuery}  $form     The booking form.
+         * @param {boolean} confirmed Carry the override confirmation (#1859).
+         */
+        sendBooking: function($form, confirmed) {
+            var self = this;
+            var $submitBtn = $form.find('button[type="submit"]');
             var formData = $form.serialize();
+            if (confirmed) {
+                formData += '&confirm_override=1';
+            }
             // The form carries `action` and `nonce` as hidden fields. Pull
             // `action` out to pass explicitly to FFC.request (the helper
             // re-appends it), and drop the form's baked-in `nonce` too:
@@ -369,6 +434,16 @@
                 })
                 .catch(function (err) {
                     $submitBtn.data('submitting', false);
+                    if (err && err.fromServer && err.data && err.data.code === 'override_confirmation_required' && !confirmed) {
+                        // The rules changed between the check and the submit:
+                        // show what the server listed, then ask again.
+                        if (err.data.refresh_captcha) {
+                            FFC.Frontend.UI.refreshCaptcha($form, err.data);
+                        }
+                        $submitBtn.data('submitting', true);
+                        self.confirmOverride($form, err.data.reasons || []);
+                        return;
+                    }
                     if (err && err.fromServer) {
                         if (err.data && err.data.refresh_captcha) {
                             // The shared implementation, not a private copy:
@@ -397,25 +472,36 @@
          * Validate form
          */
         validateForm: function($form) {
-            var isValid = true;
+            // Each empty required field says so under itself, in the
+            // field-message standard (#1844); the form-level message still
+            // sums it up next to the submit button.
+            var firstInvalid = null;
 
-            $form.find('[required]').each(function() {
-                if (!$(this).val() || $(this).val().trim() === '') {
-                    isValid = false;
+            $form.find('[required], #ffc-booking-consent').each(function() {
+                var empty = this.type === 'checkbox' ? !this.checked : !$(this).val() || $(this).val().trim() === '';
+                if (empty) {
+                    var message = this.id === 'ffc-booking-consent'
+                        ? ffcCalendar.strings.consentRequired
+                        : FFC.requiredMessage();
+                    FFC.fieldMessage(this, 'error', message);
+                    $(this).data('ffcEmptyRequired', true);
+                    firstInvalid = firstInvalid || this;
+                } else if ($(this).data('ffcEmptyRequired')) {
+                    // Only the message this check put there is withdrawn,
+                    // so the CPF/RF mask's verdict is left standing.
+                    FFC.clearFieldMessage(this);
+                    $(this).removeData('ffcEmptyRequired');
                 }
             });
 
-            if (!$('#ffc-booking-consent').is(':checked')) {
-                this.showError(ffcCalendar.strings.consentRequired);
-                return false;
+            if (!firstInvalid) {
+                return true;
             }
 
-            if (!isValid) {
-                this.showError(ffcCalendar.strings.fillRequired);
-                return false;
-            }
-
-            return true;
+            var consentOnly = firstInvalid.id === 'ffc-booking-consent';
+            this.showError(consentOnly ? ffcCalendar.strings.consentRequired : ffcCalendar.strings.fillRequired);
+            $(firstInvalid).trigger('focus');
+            return false;
         },
 
         /**
@@ -423,7 +509,7 @@
          */
         showError: function(message) {
             var $messages = $('.ffc-form-messages');
-            $messages.html('').append($('<div class="ffc-message ffc-message-error">').text(message));
+            $messages.html('').append(FFC.notice('danger', 'error', message, '', { role: 'note' }));
 
             // Scroll modal body to bottom to show the message
             var $modalContent = $('#ffc-self-scheduling-modal .ffc-modal-content');
@@ -488,7 +574,7 @@
 
             // Show email confirmation notice only if email was actually sent
             if (data.email_sent) {
-                $('.ffc-confirmation-notice').show();
+                $('.ffc-confirmation-email').show();
             }
 
             // Hide calendar, show confirmation
@@ -590,6 +676,9 @@
         } catch (e) {
             return;
         }
+
+        // Kept for the booking submit, which reads `canBypass` (#1859).
+        self.config = config;
 
         var calendarId = config.calendarId;
         var workingDays = config.workingDays || [];

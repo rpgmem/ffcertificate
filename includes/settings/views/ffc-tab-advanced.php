@@ -593,14 +593,9 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				</a>
 			</p>
 		<?php
-		wp_admin_notice(
-			(string) ob_get_clean(),
-			array(
-				'type'               => 'error',
-				'additional_classes' => array( 'inline' ),
-				'paragraph_wrap'     => false,
-				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
-			)
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'error',
+			(string) ob_get_clean()
 		);
 		?>
 	<?php elseif ( ! $ffc_kh_decpl ) : ?>
@@ -618,28 +613,18 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				?>
 			</p>
 		<?php
-		wp_admin_notice(
-			(string) ob_get_clean(),
-			array(
-				'type'               => 'info',
-				'additional_classes' => array( 'inline' ),
-				'paragraph_wrap'     => false,
-				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
-			)
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'info',
+			(string) ob_get_clean()
 		);
 		?>
 	<?php else : ?>
 		<?php ob_start(); ?>
 			<p><strong><?php esc_html_e( 'Healthy.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Encryption key and search-hash salt are strong and decoupled from the WordPress salts.', 'ffcertificate' ); ?></p>
 		<?php
-		wp_admin_notice(
-			(string) ob_get_clean(),
-			array(
-				'type'               => 'success',
-				'additional_classes' => array( 'inline' ),
-				'paragraph_wrap'     => false,
-				'attributes'         => array( 'style' => 'margin: 12px 0;' ),
-			)
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'success',
+			(string) ob_get_clean()
 		);
 		?>
 	<?php endif; ?>
@@ -760,14 +745,9 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				</a>
 			</p>
 			<?php
-			wp_admin_notice(
-				(string) ob_get_clean(),
-				array(
-					'type'               => $ffc_rot_type,
-					'additional_classes' => array( 'inline' ),
-					'paragraph_wrap'     => false,
-					'attributes'         => array( 'style' => 'margin: 12px 0;' ),
-				)
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				$ffc_rot_type,
+				(string) ob_get_clean()
 			);
 		}
 	}

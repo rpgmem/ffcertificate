@@ -140,6 +140,21 @@ class ActivityLog {
 			'user_email_changed'                 => 'users',
 			'privacy_data_erased'                => 'users',
 			'privacy_request_created'            => 'users',
+			// A sensitive profile field revealed on the user-edit screen (#1863).
+			'user_profile_pii_revealed'          => 'users',
+
+			// A CSV export with personal data in clear, and a person revealed
+			// on Date Messages' upcoming dates (#1863): disclosures with no
+			// prefix of their own, which would fall back to `submissions`.
+			'pii_exported'                       => 'data_access',
+			'date_messages_pii_revealed'         => 'data_access',
+
+			// An audience screen's account-email reveal (#1824) sits with the
+			// appointment reveals; without a prefix of its own it would fall
+			// back to `submissions`.
+			'audience_account_email_revealed'    => 'scheduling',
+			// A booking confirmed over the calendar's rules (#1859).
+			'audience_booking_override'          => 'scheduling',
 
 			'settings_changed'                   => 'system',
 			'access_denied'                      => 'system',

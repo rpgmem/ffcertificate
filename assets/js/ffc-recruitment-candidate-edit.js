@@ -54,7 +54,17 @@
             return r.json().then(function (d) { return { status: r.status, body: d }; });
         }).then(function (o) {
             btn.disabled = false;
-            if (o.status >= 200 && o.status < 300 && o.body && typeof o.body.value === 'string') {
+            if (o.status >= 200 && o.status < 300 && o.body && typeof o.body.value === 'string' && ph.tagName === 'INPUT') {
+                // A masked form field (the General email, #1863): it takes
+                // the clear value, its name and focus, so it is edited and
+                // posted only after a reveal. There is no hide path for it.
+                ph.value = o.body.value;
+                ph.name = ph.getAttribute('data-ffc-pii-name') || '';
+                ph.type = 'email';
+                ph.disabled = false;
+                btn.parentNode.removeChild(btn);
+                ph.focus();
+            } else if (o.status >= 200 && o.status < 300 && o.body && typeof o.body.value === 'string') {
                 btn.setAttribute('data-ffc-pii-mask', ph.textContent);
                 ph.textContent = o.body.value;
                 btn.textContent = strings.hide || 'Hide';
@@ -87,7 +97,7 @@
         if (!cid || !sel || !msg) {
             return;
         }
-        msg.textContent = '';
+        window.FFC.status(msg, '', '');
         btn.disabled = true;
 
         fetch(cfg.classRoot + encodeURIComponent(cid) + '/adjutancy', {
@@ -100,16 +110,13 @@
         }).then(function (res) {
             btn.disabled = false;
             if (res.ok && res.body && res.body.success) {
-                msg.textContent = strings.saved || 'Saved';
-                msg.style.color = '#1a7f37';
+                window.FFC.status(msg, 'success', strings.saved || 'Saved');
             } else {
-                msg.textContent = (strings.error || 'Error') + ': ' + ((res.body && res.body.message) || '');
-                msg.style.color = '#b91c1c';
+                window.FFC.status(msg, 'error', (strings.error || 'Error') + ': ' + ((res.body && res.body.message) || ''));
             }
         }).catch(function () {
             btn.disabled = false;
-            msg.textContent = strings.error || 'Error';
-            msg.style.color = '#b91c1c';
+            window.FFC.status(msg, 'error', strings.error || 'Error');
         });
     });
 

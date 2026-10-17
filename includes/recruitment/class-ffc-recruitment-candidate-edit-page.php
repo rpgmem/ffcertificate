@@ -82,9 +82,9 @@ final class RecruitmentCandidateEditPage {
 		$candidate    = $candidate_id > 0 ? RecruitmentCandidateReader::get_by_id( $candidate_id ) : null;
 		if ( null === $candidate ) {
 			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
-			wp_admin_notice(
-				esc_html__( 'Candidate not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'Candidate not found.', 'ffcertificate' )
 			);
 			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Candidates', 'ffcertificate' ) . '</a></p>';
 			return;
@@ -133,14 +133,17 @@ final class RecruitmentCandidateEditPage {
 		$id           = (int) $candidate->id;
 		$nonce_action = 'ffc_recruitment_save_candidate_' . $id;
 
-		// #739 §4.1 — the email is PII. Only the unmasked tier (WP admin /
-		// domain admin) edits it inline; every lower tier sees a masked,
-		// disabled field and handle_save() preserves the stored address for
-		// them (the write is gated server-side on the same tier, not a form
-		// flag). This mirrors the CPF/RF treatment in the Sensitive section.
-		$tier           = RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
-		$email_editable = RecruitmentPiiAccessPolicy::TIER_UNMASKED === $tier;
-		$email          = $email_editable
+		// #739 §4.1 / #1863 — the email is PII. It starts masked and disabled
+		// for every staff member; the reveal tier gets a "Reveal" button that
+		// fetches the clear value through the audited REST endpoint and only
+		// then enables the field, so the address is edited (and posted) only
+		// after a reveal, as on the submission edit page (#1655). The
+		// candidate's own row (the unmasked tier) shows it in clear.
+		$tier             = RecruitmentPiiAccessPolicy::resolve( $candidate, get_current_user_id() );
+		$email_editable   = RecruitmentPiiAccessPolicy::TIER_UNMASKED === $tier;
+		$email_revealable = RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier
+			&& '' !== (string) ( $candidate->email_encrypted ?? '' );
+		$email            = $email_editable
 			? self::resolve_general_email( $candidate )
 			: self::masked_general_email( $candidate );
 
@@ -591,12 +594,15 @@ final class RecruitmentCandidateEditPage {
 		// returns the wpdb int affected-rows, not the updated row.
 		$before = RecruitmentCandidateReader::get_by_id( $id );
 
-		// #739 §4.1 — only the unmasked PII tier may edit the email inline.
-		// Enforced on the loaded row (not a form flag), so a masked/reveal-tier
-		// operator can never overwrite or clear the stored address even by
-		// forging the field.
-		$email_editable = null !== $before
-			&& RecruitmentPiiAccessPolicy::TIER_UNMASKED === RecruitmentPiiAccessPolicy::resolve( $before, get_current_user_id() );
+		// #739 §4.1 / #1863 — the email is written only by whoever may see it
+		// (the candidate themselves, or the reveal tier), and only when the
+		// field was posted: it stays disabled, so out of the POST, until a
+		// reveal fills it. Enforced on the loaded row (not a form flag), so a
+		// masked-tier operator can never overwrite or clear the stored
+		// address even by forging the field.
+		$email_tier     = null !== $before ? RecruitmentPiiAccessPolicy::resolve( $before, get_current_user_id() ) : RecruitmentPiiAccessPolicy::TIER_MASKED;
+		$email_editable = RecruitmentPiiAccessPolicy::TIER_UNMASKED === $email_tier
+			|| ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $email_tier && isset( $_POST['email'] ) );
 
 		$update = array(
 			'name'  => $name,
@@ -901,7 +907,7 @@ final class RecruitmentCandidateEditPage {
 		}
 		$html .= '</select> ';
 		$html .= '<button type="button" class="button button-small ffc-adjutancy-swap-btn">' . esc_html__( 'Save', 'ffcertificate' ) . '</button>';
-		$html .= ' <span class="ffc-adjutancy-swap-msg" aria-live="polite"></span>';
+		$html .= ' <span class="ffc-adjutancy-swap-msg ffc-status" role="status" aria-live="polite" hidden></span>';
 		$html .= '</span>';
 		return $html;
 	}

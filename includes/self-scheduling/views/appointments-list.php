@@ -118,9 +118,9 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 			$ffcertificate_appointment = $ffcertificate_repo->findById( $ffc_self_scheduling_appointment_id );
 			if ( ! $ffcertificate_appointment ) {
 				echo '<div class="wrap ffc-admin-page ffc-page-appointments">';
-				wp_admin_notice(
-					esc_html__( 'Appointment not found.', 'ffcertificate' ),
-					array( 'type' => 'error' )
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'error',
+					esc_html__( 'Appointment not found.', 'ffcertificate' )
 				);
 				echo '</div>';
 				return;
@@ -149,43 +149,35 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 			$ffcertificate_cpf   = $ffcertificate_decrypted['cpf'] ?? '';
 			$ffcertificate_rf    = $ffcertificate_decrypted['rf'] ?? '';
 
-			// #739 §3.3 — mask CPF / RF / email unless the viewer holds the
-			// appointments PII tier (the domain `_admin` role or a WP super-admin).
-			// The `reveal` tier gets a masked value plus a button that fetches the
-			// plaintext through the audited ffc_reveal_pii endpoint.
-			$ffcertificate_pii_tier     = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
+			// #739 §3.3 / #1813 / #1863 — CPF / RF / email start masked for every
+			// viewer, as on the submission edit page (#1760). Whoever may reveal
+			// (the owner and the reveal tier) gets a button
+			// that fetches the clear value through the ffc_reveal_pii endpoint,
+			// so the plaintext never sits in this screen's HTML.
+			$ffcertificate_can_reveal   = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
 				'ffc_view_appointments_pii',
-				'ffc_appointments_admin',
 				(int) ( $ffcertificate_appointment['user_id'] ?? 0 )
 			);
-			$ffcertificate_pii_unmasked = ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED === $ffcertificate_pii_tier );
-			$ffcertificate_pii_reveal   = ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $ffcertificate_pii_tier );
-			$ffcertificate_reveal_nonce = wp_create_nonce( 'ffc_reveal_pii_nonce' );
+			$ffcertificate_reveal_nonce = $ffcertificate_can_reveal ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';
 
 			/**
-			 * Render one PII cell: a dash when empty, plaintext for the unmasked
-			 * tier, otherwise a masked value with an optional (reveal-tier)
-			 * "Reveal" button.
+			 * Render one PII cell: a dash when empty, otherwise the masked value
+			 * with a "Reveal" button when the viewer may reveal it.
 			 *
-			 * @param string $field            Field key (cpf | rf | email).
-			 * @param string $raw              Raw decrypted value (empty ⇒ dash).
-			 * @param string $unmasked_display Formatted plaintext for the unmasked tier.
-			 * @param string $masked_display   Masked placeholder for the other tiers.
+			 * @param string $field          Field key (cpf | rf | email | phone).
+			 * @param string $raw            Raw decrypted value (empty ⇒ dash).
+			 * @param string $masked_display Masked placeholder shown to every tier.
 			 * @return void
 			 */
-			$ffcertificate_render_pii = function ( string $field, string $raw, string $unmasked_display, string $masked_display ) use ( $ffcertificate_pii_unmasked, $ffcertificate_pii_reveal, $ffc_self_scheduling_appointment_id, $ffcertificate_reveal_nonce ) {
+			$ffcertificate_render_pii = function ( string $field, string $raw, string $masked_display ) use ( $ffcertificate_can_reveal, $ffc_self_scheduling_appointment_id, $ffcertificate_reveal_nonce ) {
 				if ( '' === $raw ) {
 					echo '-';
 					return;
 				}
-				if ( $ffcertificate_pii_unmasked ) {
-					echo esc_html( $unmasked_display );
-					return;
-				}
 				echo '<span class="ffc-pii-value" data-field="' . esc_attr( $field ) . '">' . esc_html( $masked_display ) . '</span>';
-				if ( $ffcertificate_pii_reveal ) {
+				if ( $ffcertificate_can_reveal ) {
 					printf(
-						' <button type="button" class="button button-small ffc-reveal-pii" data-type="appointment" data-field="%1$s" data-submission-id="%2$s" data-nonce="%3$s">%4$s</button>',
+						' <button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="appointment" data-field="%1$s" data-submission-id="%2$s" data-nonce="%3$s">%4$s</button>',
 						esc_attr( $field ),
 						esc_attr( (string) $ffc_self_scheduling_appointment_id ),
 						esc_attr( $ffcertificate_reveal_nonce ),
@@ -231,7 +223,12 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
 			// Render detail view.
 			?>
-			<div class="wrap ffc-admin-page ffc-page-appointments">
+			<?php
+			// Detail view: the shared boxed sections (`.ffc-boxed`, #1761), each
+			// a `.card` headed by its subject's icon, as on every other FFC
+			// detail and edit screen. Same rows, same order, same Reveal buttons.
+			?>
+			<div class="wrap ffc-admin-page ffc-page-appointments ffc-boxed">
 				<h1 class="wp-heading-inline">
 					<?php
 					printf(
@@ -244,65 +241,59 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 				<a href="<?php echo esc_url( $ffcertificate_appointments_url ); ?>" class="page-title-action"><?php esc_html_e( 'Back to List', 'ffcertificate' ); ?></a>
 				<hr class="wp-header-end">
 
-				<div id="poststuff">
-					<div id="post-body" class="metabox-holder columns-2">
-						<div id="post-body-content">
-							<div class="postbox">
-								<div class="postbox-header"><h2 class="hndle"><?php esc_html_e( 'Appointment Details', 'ffcertificate' ); ?></h2></div>
-								<div class="inside">
-									<table class="form-table">
-										<tr><th><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th><td><span class="ffc-status ffc-status-<?php echo esc_attr( $ffcertificate_appointment['status'] ); ?>"><?php echo esc_html( $ffcertificate_status_text ); ?></span></td></tr>
-										<tr><th><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_calendar_title ); ?></td></tr>
-										<tr><th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['appointment_date'] ?? '-' ); ?></td></tr>
-										<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( ( $ffcertificate_appointment['start_time'] ?? '' ) . ' - ' . ( $ffcertificate_appointment['end_time'] ?? '' ) ); ?></td></tr>
-										<tr><th><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_name ); ?></td></tr>
-										<tr><th><?php esc_html_e( 'E-mail', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'email', (string) $ffcertificate_email, (string) $ffcertificate_email, \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $ffcertificate_email ) ); ?></td></tr>
-										<tr><th><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_phone ? $ffcertificate_phone : '-' ); ?></td></tr>
-										<?php if ( ! empty( $ffcertificate_cpf ) ) : ?>
-										<tr><th><?php esc_html_e( 'CPF', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'cpf', (string) $ffcertificate_cpf, \FreeFormCertificate\Core\DocumentFormatter::format_document( $ffcertificate_cpf ), \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $ffcertificate_cpf ) ); ?></td></tr>
-										<?php endif; ?>
-										<?php if ( ! empty( $ffcertificate_rf ) ) : ?>
-										<tr><th><?php esc_html_e( 'RF', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'rf', (string) $ffcertificate_rf, \FreeFormCertificate\Core\DocumentFormatter::format_document( $ffcertificate_rf ), \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $ffcertificate_rf ) ); ?></td></tr>
-										<?php endif; ?>
-										<?php if ( ! empty( $ffcertificate_appointment['validation_code'] ) ) : ?>
-										<tr><th><?php esc_html_e( 'Validation Code', 'ffcertificate' ); ?></th><td><code><?php echo esc_html( \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $ffcertificate_appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT ) ); ?></code></td></tr>
-										<?php endif; ?>
-										<?php if ( ! empty( $ffcertificate_appointment['user_notes'] ) ) : ?>
-										<tr><th><?php esc_html_e( 'User Notes', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['user_notes'] ); ?></td></tr>
-										<?php endif; ?>
-										<?php if ( ! empty( $ffcertificate_appointment['admin_notes'] ) ) : ?>
-										<tr><th><?php esc_html_e( 'Admin Notes', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['admin_notes'] ); ?></td></tr>
-										<?php endif; ?>
-										<tr><th><?php esc_html_e( 'Created', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['created_at'] ?? '-' ); ?></td></tr>
-										<?php if ( ! empty( $ffcertificate_appointment['confirmation_token'] ) ) : ?>
-										<tr><th><?php esc_html_e( 'Confirmation Token', 'ffcertificate' ); ?></th><td><code><?php echo esc_html( $ffcertificate_appointment['confirmation_token'] ); ?></code></td></tr>
-										<?php endif; ?>
-									</table>
-
-									<?php if ( ! empty( $ffcertificate_custom_data ) ) : ?>
-									<h3><?php esc_html_e( 'Custom Fields', 'ffcertificate' ); ?></h3>
-									<table class="form-table">
-										<?php foreach ( $ffcertificate_custom_data as $ffcertificate_field_key => $ffcertificate_field_val ) : ?>
-										<tr>
-											<th><?php echo esc_html( ucwords( str_replace( array( '_', '-' ), ' ', $ffcertificate_field_key ) ) ); ?></th>
-											<td><?php echo esc_html( is_array( $ffcertificate_field_val ) ? implode( ', ', $ffcertificate_field_val ) : (string) $ffcertificate_field_val ); ?></td>
-										</tr>
-										<?php endforeach; ?>
-									</table>
-									<?php endif; ?>
-								</div>
-							</div>
-						</div>
-					</div>
+				<div class="card">
+					<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Appointment Details', 'ffcertificate' ); ?></h2>
+					<table class="form-table">
+						<tr><th><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th><td><span class="ffc-appointment-status ffc-appointment-status-<?php echo esc_attr( 'no_show' === $ffcertificate_appointment['status'] ? 'noshow' : $ffcertificate_appointment['status'] ); ?>"><?php echo esc_html( $ffcertificate_status_text ); ?></span></td></tr>
+						<tr><th><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_calendar_title ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['appointment_date'] ?? '-' ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( ( $ffcertificate_appointment['start_time'] ?? '' ) . ' - ' . ( $ffcertificate_appointment['end_time'] ?? '' ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_name ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'E-mail', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'email', (string) $ffcertificate_email, \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $ffcertificate_email ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'phone', (string) $ffcertificate_phone, \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) $ffcertificate_phone ) ); ?></td></tr>
+						<?php if ( ! empty( $ffcertificate_cpf ) ) : ?>
+						<tr><th><?php esc_html_e( 'CPF', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'cpf', (string) $ffcertificate_cpf, \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $ffcertificate_cpf ) ); ?></td></tr>
+						<?php endif; ?>
+						<?php if ( ! empty( $ffcertificate_rf ) ) : ?>
+						<tr><th><?php esc_html_e( 'RF', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'rf', (string) $ffcertificate_rf, \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $ffcertificate_rf ) ); ?></td></tr>
+						<?php endif; ?>
+						<?php if ( ! empty( $ffcertificate_appointment['validation_code'] ) ) : ?>
+						<tr><th><?php esc_html_e( 'Validation Code', 'ffcertificate' ); ?></th><td><code><?php echo esc_html( \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $ffcertificate_appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT ) ); ?></code></td></tr>
+						<?php endif; ?>
+						<?php if ( ! empty( $ffcertificate_appointment['user_notes'] ) ) : ?>
+						<tr><th><?php esc_html_e( 'User Notes', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['user_notes'] ); ?></td></tr>
+						<?php endif; ?>
+						<?php if ( ! empty( $ffcertificate_appointment['admin_notes'] ) ) : ?>
+						<tr><th><?php esc_html_e( 'Admin Notes', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['admin_notes'] ); ?></td></tr>
+						<?php endif; ?>
+						<tr><th><?php esc_html_e( 'Created', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['created_at'] ?? '-' ); ?></td></tr>
+						<?php if ( ! empty( $ffcertificate_appointment['confirmation_token'] ) ) : ?>
+						<tr><th><?php esc_html_e( 'Confirmation Token', 'ffcertificate' ); ?></th><td><code><?php echo esc_html( $ffcertificate_appointment['confirmation_token'] ); ?></code></td></tr>
+						<?php endif; ?>
+					</table>
 				</div>
+
+				<?php if ( ! empty( $ffcertificate_custom_data ) ) : ?>
+				<div class="card">
+					<h2 class="ffc-icon-list"><?php esc_html_e( 'Custom Fields', 'ffcertificate' ); ?></h2>
+					<table class="form-table">
+						<?php foreach ( $ffcertificate_custom_data as $ffcertificate_field_key => $ffcertificate_field_val ) : ?>
+						<tr>
+							<th><?php echo esc_html( ucwords( str_replace( array( '_', '-' ), ' ', $ffcertificate_field_key ) ) ); ?></th>
+							<td><?php echo esc_html( is_array( $ffcertificate_field_val ) ? implode( ', ', $ffcertificate_field_val ) : (string) $ffcertificate_field_val ); ?></td>
+						</tr>
+						<?php endforeach; ?>
+					</table>
+				</div>
+				<?php endif; ?>
 			</div>
 			<?php
 		} catch ( \Throwable $e ) {
 			echo '<div class="wrap ffc-admin-page ffc-page-appointments">';
 			echo '<h1>' . esc_html__( 'Appointment Details', 'ffcertificate' ) . '</h1>';
-			wp_admin_notice(
-				'<strong>' . esc_html__( 'Error loading appointment:', 'ffcertificate' ) . '</strong> ' . esc_html( $e->getMessage() ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				'<strong>' . esc_html__( 'Error loading appointment:', 'ffcertificate' ) . '</strong> ' . esc_html( $e->getMessage() )
 			);
 			echo '<p><a href="' . esc_url( $ffcertificate_appointments_url ) . '" class="button">' . esc_html__( 'Back to List', 'ffcertificate' ) . '</a></p>';
 			echo '</div>';
@@ -326,12 +317,9 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 // Display admin notices from transients.
 $ffcertificate_admin_notice = get_transient( 'ffc_admin_notice_' . get_current_user_id() );
 if ( $ffcertificate_admin_notice && is_array( $ffcertificate_admin_notice ) ) {
-	wp_admin_notice(
-		esc_html( $ffcertificate_admin_notice['message'] ),
-		array(
-			'type'        => 'error' === $ffcertificate_admin_notice['type'] ? 'error' : 'success',
-			'dismissible' => true,
-		)
+	\FreeFormCertificate\Core\AdminNotice::render(
+		'error' === $ffcertificate_admin_notice['type'] ? 'error' : 'success',
+		esc_html( $ffcertificate_admin_notice['message'] )
 	);
 	// Delete transient after displaying.
 	delete_transient( 'ffc_admin_notice_' . get_current_user_id() );
@@ -366,6 +354,7 @@ $ffcertificate_table->prepare_items();
 
 	<form method="get">
 		<input type="hidden" name="page" value="ffc-appointments" />
+		<?php echo \FreeFormCertificate\Core\PiiReveal::page_button( 'ffc_view_appointments_pii' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value. ?>
 		<?php $ffcertificate_table->display(); ?>
 	</form>
 </div>

@@ -8,6 +8,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-geofence-frontend.js');
 	loadScript('assets/js/ffc-geofence-datetime.js');
 	loadScript('assets/js/ffc-geofence-gps.js');
@@ -88,7 +89,7 @@ describe('GPS Permissions API pre-check', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 
-		expect(document.querySelector('.ffc-preflight-gps')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).toBeNull();
 		// validateGeolocation continued — form is now in loading state.
 		expect(document.querySelector('.ffc-form-wrapper').classList.contains('ffc-geofence-loading')).toBe(true);
 	});
@@ -100,11 +101,11 @@ describe('GPS Permissions API pre-check', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 
-		const banner = document.querySelector('.ffc-preflight-gps');
+		const banner = document.querySelector('[data-ffc-notice="preflight-gps"]');
 		expect(banner).not.toBeNull();
 		expect(banner.getAttribute('role')).toBe('alert');
-		expect(banner.querySelector('.ffc-preflight-banner-title').textContent).toBe('Location blocked');
-		expect(banner.querySelector('.ffc-preflight-banner-how').textContent).toBe('Desktop instructions');
+		expect(banner.querySelector('.ffc-notice-title').textContent).toBe('Location blocked');
+		expect(banner.querySelector('.ffc-notice-text + .ffc-notice-text').textContent).toBe('Desktop instructions');
 		// getCurrentPosition was NOT called.
 		expect(navigator.geolocation.getCurrentPosition).not.toHaveBeenCalled();
 	});
@@ -116,11 +117,11 @@ describe('GPS Permissions API pre-check', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 
-		expect(document.querySelector('.ffc-preflight-gps')).not.toBeNull();
+		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).not.toBeNull();
 		window.$('.ffc-preflight-try-anyway').trigger('click');
 
 		// Banner gone and validateGeolocation re-entered → loading state.
-		expect(document.querySelector('.ffc-preflight-gps')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).toBeNull();
 		expect(
 			document.querySelector('.ffc-form-wrapper').classList.contains('ffc-geofence-loading')
 		).toBe(true);
@@ -137,7 +138,7 @@ describe('GPS Permissions API pre-check', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 
-		expect(document.querySelector('.ffc-preflight-banner-how').textContent).toBe('iOS instructions');
+		expect(document.querySelector('.ffc-notice-text + .ffc-notice-text').textContent).toBe('iOS instructions');
 	});
 
 	it('prompt state: paints the explainer banner with Continue button', async () => {
@@ -147,9 +148,9 @@ describe('GPS Permissions API pre-check', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 
-		const banner = document.querySelector('.ffc-preflight-gps');
+		const banner = document.querySelector('[data-ffc-notice="preflight-gps"]');
 		expect(banner).not.toBeNull();
-		expect(banner.querySelector('.ffc-preflight-banner-title').textContent).toBe('We need your location');
+		expect(banner.querySelector('.ffc-notice-title').textContent).toBe('We need your location');
 		expect(banner.querySelector('.ffc-preflight-try-anyway').textContent).toBe('Continue');
 		// Native prompt not yet fired.
 		expect(navigator.geolocation.getCurrentPosition).not.toHaveBeenCalled();
@@ -165,7 +166,7 @@ describe('GPS Permissions API pre-check', () => {
 		window.$('.ffc-preflight-try-anyway').trigger('click');
 
 		// Banner removed.
-		expect(document.querySelector('.ffc-preflight-gps')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).toBeNull();
 		// validateGeolocation re-entered with preflightDone=true → flow advanced.
 		expect(document.querySelector('.ffc-form-wrapper').classList.contains('ffc-geofence-loading')).toBe(true);
 	});
@@ -177,7 +178,7 @@ describe('GPS Permissions API pre-check', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 
-		expect(document.querySelector('.ffc-preflight-gps')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).toBeNull();
 		expect(document.querySelector('.ffc-form-wrapper').classList.contains('ffc-geofence-loading')).toBe(true);
 	});
 
@@ -187,7 +188,7 @@ describe('GPS Permissions API pre-check', () => {
 		window.FFCGeofence.init();
 		await Promise.resolve();
 
-		expect(document.querySelector('.ffc-preflight-gps')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).toBeNull();
 		expect(document.querySelector('.ffc-form-wrapper').classList.contains('ffc-geofence-loading')).toBe(true);
 	});
 
@@ -198,14 +199,14 @@ describe('GPS Permissions API pre-check', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 
-		expect(document.querySelector('.ffc-preflight-gps')).not.toBeNull();
+		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).not.toBeNull();
 		expect(typeof status.onchange).toBe('function');
 
 		// User goes to Settings, grants location, comes back.
 		status.state = 'granted';
 		status.onchange();
 
-		expect(document.querySelector('.ffc-preflight-gps')).toBeNull();
+		expect(document.querySelector('[data-ffc-notice="preflight-gps"]')).toBeNull();
 		expect(document.querySelector('.ffc-form-wrapper').classList.contains('ffc-geofence-loading')).toBe(true);
 	});
 
@@ -217,7 +218,7 @@ describe('GPS Permissions API pre-check', () => {
 		await Promise.resolve();
 
 		// The visitor clicks "Continue": the banner goes and the check runs.
-		document.querySelector('.ffc-preflight-gps .ffc-preflight-try-anyway').click();
+		document.querySelector('[data-ffc-notice="preflight-gps"] .ffc-preflight-try-anyway').click();
 		expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
 
 		// Allowing the browser prompt is the change that fires onchange.
@@ -233,14 +234,14 @@ describe('GPS Permissions API pre-check', () => {
 		window.FFCGeofence.init();
 		await Promise.resolve();
 		await Promise.resolve();
-		expect(document.querySelectorAll('.ffc-preflight-banner')).toHaveLength(1);
+		expect(document.querySelectorAll('[data-ffc-notice^="preflight"]')).toHaveLength(1);
 
 		// The cached-page fragment refresh rechecks every form (#1668).
 		window.FFCGeofence.recheck();
 		await Promise.resolve();
 		await Promise.resolve();
 
-		expect(document.querySelectorAll('.ffc-preflight-banner')).toHaveLength(1);
+		expect(document.querySelectorAll('[data-ffc-notice^="preflight"]')).toHaveLength(1);
 	});
 
 	it('a block shown twice leaves one message', () => {
@@ -250,6 +251,6 @@ describe('GPS Permissions API pre-check', () => {
 		window.FFCGeofence.handleBlocked($w, 'message', 'Outside the area.');
 		window.FFCGeofence.handleBlocked($w, 'message', 'Outside the area.');
 
-		expect($w.find('.ffc-geofence-blocked')).toHaveLength(1);
+		expect($w.find('[data-ffc-notice="geofence-blocked"]')).toHaveLength(1);
 	});
 });

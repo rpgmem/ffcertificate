@@ -107,7 +107,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 									<button type="button" class="button button-small ffc-location-delete">
 										<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
 									</button>
-									<span class="ffc-autosave-badge" hidden></span>
+									<span class="ffc-autosave-badge ffc-status" role="status" aria-live="polite" hidden></span>
 								</td>
 							</tr>
 						<?php endforeach; ?>
@@ -175,7 +175,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							</button>
 						</td>
 						<td>
-							<span class="ffc-autosave-badge" hidden></span>
+							<span class="ffc-autosave-badge ffc-status" role="status" aria-live="polite" hidden></span>
 						</td>
 					</tr>
 				</tfoot>
@@ -369,12 +369,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<!-- GPS Failure Fallback -->
 				<tr>
 					<th scope="row">
-						<label for="ffc_gps_fallback_preset"><?php esc_html_e( 'When GPS Fails', 'ffcertificate' ); ?></label>
+						<?php esc_html_e( 'When GPS Fails', 'ffcertificate' ); ?>
 					</th>
 					<td>
 						<?php
 						$fallback_preset = $settings['gps_fallback_preset'] ?? 'hybrid';
 						$fallback_cases  = $settings['gps_fallback_cases'] ?? array();
+						$fallback_custom = 'custom' === $fallback_preset;
 						$case_labels     = array(
 							'permission_denied'    => __( 'User denied location permission', 'ffcertificate' ),
 							'no_api'               => __( 'Browser does not support geolocation', 'ffcertificate' ),
@@ -382,37 +383,57 @@ if ( ! defined( 'ABSPATH' ) ) {
 							'timeout'              => __( 'Browser timed out', 'ffcertificate' ),
 							'safety_timer'         => __( 'Device never responded (40 s safety timer)', 'ffcertificate' ),
 						);
+
+						// The three presets are a scale, from letting everyone
+						// through to blocking every failure (#1758). The per-case
+						// grid is the `custom` value, behind its own toggle; while
+						// it is on the scale does not apply, so it is disabled.
+						\FreeFormCertificate\Admin\AdminUI::render_steps(
+							array(
+								'name'         => 'gps_fallback_preset',
+								'id'           => 'ffc_gps_fallback_preset',
+								'value'        => $fallback_custom ? 'hybrid' : (string) $fallback_preset,
+								'default'      => 'hybrid',
+								'palette'      => 'severity',
+								'disabled'     => $fallback_custom,
+								'legend'       => __( 'When GPS Fails', 'ffcertificate' ),
+								'options'      => array(
+									'tolerant' => __( 'Tolerant', 'ffcertificate' ),
+									'hybrid'   => __( 'Hybrid', 'ffcertificate' ),
+									'strict'   => __( 'Strict', 'ffcertificate' ),
+								),
+								'descriptions' => array(
+									'tolerant' => __( 'Allow access on every failure.', 'ffcertificate' ),
+									'hybrid'   => __( 'Allow only when the user denied or the browser lacks support.', 'ffcertificate' ),
+									'strict'   => __( 'Block access on every failure.', 'ffcertificate' ),
+								),
+							)
+						);
 						?>
-						<select name="gps_fallback_preset" id="ffc_gps_fallback_preset">
-							<option value="tolerant" <?php selected( $fallback_preset, 'tolerant' ); ?>>
-								<?php esc_html_e( 'Tolerant — allow access on every failure', 'ffcertificate' ); ?>
-							</option>
-							<option value="hybrid" <?php selected( $fallback_preset, 'hybrid' ); ?>>
-								<?php esc_html_e( 'Hybrid — allow only when the user denied or the browser lacks support', 'ffcertificate' ); ?>
-							</option>
-							<option value="strict" <?php selected( $fallback_preset, 'strict' ); ?>>
-								<?php esc_html_e( 'Strict — block access on every failure', 'ffcertificate' ); ?>
-							</option>
-							<option value="custom" <?php selected( $fallback_preset, 'custom' ); ?>>
-								<?php esc_html_e( 'Custom — choose case by case', 'ffcertificate' ); ?>
-							</option>
-						</select>
 						<p class="description">
 							<?php esc_html_e( 'What to do when geolocation fails. Hybrid is recommended for most sites: the user is let through if they explicitly denied permission or their browser cannot run geolocation, but technical failures (timeout, location unavailable) keep the form locked.', 'ffcertificate' ); ?>
 						</p>
 
+						<p>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'gps_fallback_custom',
+									'id'      => 'ffc_gps_fallback_custom',
+									'checked' => $fallback_custom,
+									'label'   => __( 'Customize per case', 'ffcertificate' ),
+								)
+							);
+							?>
+						</p>
+
 						<?php
-						// The HTML `hidden` attribute is too weak vs. the WP admin
-						// CSS for `.widefat` (which forces display:table at author
-						// origin and wins the cascade), so initial visibility is
-						// driven by inline display:none instead. The companion JS
-						// toggles inline display via jQuery `.toggle()`.
-						// Layout (margin/max-width) now lives in the
-						// .ffc-gps-fallback-cases class; only the JS-toggled
-						// initial visibility stays inline.
-						$table_style = ( 'custom' !== $fallback_preset ) ? 'display: none;' : '';
+						// `.ffc-collapsed` is `display: none !important`, which
+						// beats the WP admin CSS forcing `.widefat` to a table;
+						// ffc-admin.js keeps it in step with the toggle.
 						?>
-						<table class="ffc-gps-fallback-cases widefat striped" style="<?php echo esc_attr( $table_style ); ?>">
+						<table class="ffc-gps-fallback-cases widefat striped ffc-collapsed-target<?php echo $fallback_custom ? '' : ' ffc-collapsed'; ?>"
+							data-ffc-master="ffc_gps_fallback_custom">
 							<thead>
 								<tr>
 									<th scope="col"><?php esc_html_e( 'Failure case', 'ffcertificate' ); ?></th>

@@ -474,6 +474,12 @@ msgstr ""
 msgid "%s deleted successfully."
 msgstr ""
 
+#. %s: calendar name
+#: includes/audience/class-ffc-audience-admin-environment.php:318
+#, php-format
+msgid "%s (inactive)"
+msgstr ""
+
 #. %s: field label
 #: includes/reregistration/class-ffc-custom-field-validator.php:191
 #, php-format
@@ -768,10 +774,6 @@ msgstr ""
 msgid "1 hour"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:215
-msgid "1 hour (default)"
-msgstr ""
-
 #: includes/security/class-ffc-rate-limit-checker.php:669
 msgid "1 minute"
 msgstr ""
@@ -784,24 +786,12 @@ msgstr ""
 msgid "1 week"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php:213
-msgid "15 minutes"
-msgstr ""
-
-#: includes/settings/views/documentation/config-cache.php:32
-msgid "15 minutes, 30 minutes, 1 hour (default) or 1 day."
-msgstr ""
-
 #: includes/security/class-ffc-email-limiter.php:64 includes/security/class-ffc-ip-limiter.php:78 includes/settings/views/ffc-tab-cache.php:216
 msgid "24 hours"
 msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:33
 msgid "3/day, 10/week, 30/month"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-cache.php:214
-msgid "30 minutes"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:67
@@ -974,10 +964,6 @@ msgstr ""
 msgid "A full administrator (manage_options) always sees every FFC menu"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:270
-msgid "A hash will be generated automatically when you enable Public Operator Access above and save the form."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:231
 msgid "A justification is required to proceed."
 msgstr ""
@@ -1007,15 +993,11 @@ msgid "A one-click link that downloads the participant's own certificate. The se
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:20
-msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in four boxes: Calendar Configuration, Working Hours & Availability, Booking Rules & Restrictions, and Email Notifications."
+msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in one Calendar Configuration box, split into tabs: Calendar, Slots & hours, Booking window, Cancellation, Approval & waitlist, Who can see and book, Administrator bypass, and Emails. A dot on the Cancellation and Administrator bypass tabs shows whether each is on."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:657
 msgid "A plugin update or deploy will delete these files and break the images. Use the \"Insert Image\" button to add them from the Media Library instead, or run"
-msgstr ""
-
-#: includes/settings/views/documentation/config-geolocation.php:45
-msgid "a preset (tolerant / hybrid / strict) or a custom per-case allow/block matrix (permission denied, no API, position unavailable, timeout, safety timer)."
 msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:42
@@ -1788,11 +1770,7 @@ msgstr ""
 msgid "All Schedules"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-bookings.php:148
-msgid "All Status"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:361 templates/admin/reregistration/submissions.php:53 templates/admin/reregistration/list.php:34
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:361 templates/admin/reregistration/submissions.php:53 templates/admin/reregistration/list.php:34 includes/audience/class-ffc-audience-admin-bookings.php:148
 msgid "All Statuses"
 msgstr ""
 
@@ -1958,16 +1936,8 @@ msgstr ""
 msgid "ALTCHA widget options"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-captcha.php:42 includes/settings/views/documentation/config-captcha.php:40
-msgid "ALTCHA, with the math challenge as fallback"
-msgstr ""
-
 #: includes/settings/views/documentation/operations-troubleshooting.php:61
 msgid "Always use inline styles"
-msgstr ""
-
-#: templates/admin/recruitment/admin-page/settings-tab.php:50
-msgid "Always — send the convocation email on every call"
 msgstr ""
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:106
@@ -2100,14 +2070,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:187
 msgid "Applies to the Certificate HTML editor on the form edit screen. \"Auto\" mirrors the admin Dark Mode setting (General tab); fresh installs default to Dark."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-general.php:217
-msgid "Applies to the Certificate HTML editor on the form edit screen. \"Auto\" mirrors the Dark Mode setting above; fresh installs default to Dark."
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:612
-msgid "Applies when the secure strategy is effective."
 msgstr ""
 
 #: templates/admin/reregistration/submissions.php:85
@@ -2448,10 +2410,6 @@ msgstr ""
 msgid "ask for a CPF and log it, but never block."
 msgstr ""
 
-#: templates/admin/recruitment/admin-page/settings-tab.php:52
-msgid "Ask — decide per call via a \"Notify by email\" checkbox on the call action"
-msgstr ""
-
 #: includes/settings/views/documentation/feature-record.php:71
 msgid "Assigned unit"
 msgstr ""
@@ -2488,10 +2446,6 @@ msgstr ""
 msgid "Attach"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-captcha.php:201 includes/settings/views/documentation/config-captcha.php:61
-msgid "Attribution"
-msgstr ""
-
 #: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:54 includes/audience/class-ffc-audience-admin-bookings.php:221 includes/audience/class-ffc-audience-admin-import.php:203 includes/audience/class-ffc-audience-loader.php:427 includes/audience/class-ffc-audience-booking-export-source.php:273 includes/audience/class-ffc-audience-admin-page.php:300 includes/audience/class-ffc-audience-admin-settings.php:78 templates/admin/reregistration/list.php:53 includes/settings/views/ffc-tab-advanced.php:494
 msgid "Audience"
 msgstr ""
@@ -2520,11 +2474,11 @@ msgstr ""
 msgid "Audience booking lifecycle — default text edited globally in the hub above; a schedule may still set its own."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-page.php:208 includes/audience/class-ffc-audience-admin-page.php:209
+#: includes/audience/class-ffc-audience-admin-page.php:208 includes/audience/class-ffc-audience-admin-page.php:209 includes/audience/class-ffc-audience-admin-bookings.php:91
 msgid "Audience Bookings"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-page.php:178 includes/audience/class-ffc-audience-admin-page.php:179 templates/admin/audience/audience-tab.php:30 includes/settings/views/ffc-tab-documentation.php:266
+#: includes/audience/class-ffc-audience-admin-page.php:178 includes/audience/class-ffc-audience-admin-page.php:179 includes/audience/class-ffc-audience-admin-calendar.php:81 templates/admin/audience/audience-tab.php:30 includes/settings/views/ffc-tab-documentation.php:266
 msgid "Audience Calendars"
 msgstr ""
 
@@ -2604,10 +2558,6 @@ msgstr ""
 msgid "Audit summary"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:340
-msgid "Audit — require CPF, but do not match against any list"
-msgstr ""
-
 #: includes/admin/class-ffc-admin-conditional-assets.php:205 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:182 includes/audience/class-ffc-audience-shortcode.php:812
 msgid "August"
 msgstr ""
@@ -2649,7 +2599,6 @@ msgstr ""
 #: includes/generators/class-ffc-pdf-html-renderer.php:275
 msgid "Authenticity:"
 msgstr ""
-
 
 msgid "Auto"
 msgstr ""
@@ -3154,10 +3103,6 @@ msgstr ""
 msgid "Booking Type"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-bookings.php:91
-msgid "Bookings"
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:203 includes/audience/class-ffc-audience-admin-calendar.php:377 includes/audience/class-ffc-audience-shortcode.php:758
 msgid "bookings"
 msgstr ""
@@ -3440,7 +3385,7 @@ msgstr ""
 msgid "Calendar:"
 msgstr ""
 
-#: includes/user-dashboard/class-ffc-capability-catalog.php:252 includes/audience/class-ffc-audience-admin-calendar.php:75
+#: includes/user-dashboard/class-ffc-capability-catalog.php:252
 msgid "Calendars"
 msgstr ""
 
@@ -4318,10 +4263,6 @@ msgstr ""
 msgid "Code"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:177
-msgid "Code Editor Theme"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-url-shortener.php:73
 msgid "Code Length"
 msgstr ""
@@ -4688,7 +4629,7 @@ msgstr ""
 msgid "Copy link"
 msgstr ""
 
-#: includes/admin/class-ffc-form-list-columns.php:210
+#: includes/admin/class-ffc-admin-ui.php:658
 msgid "Copy shortcode"
 msgstr ""
 
@@ -5354,10 +5295,6 @@ msgstr ""
 msgid "Custom Users"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:397
-msgid "Custom — choose case by case"
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:335
 msgid "Custom — specific date/time blocks, each with its own number of vacancies"
 msgstr ""
@@ -5404,9 +5341,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:72
 msgid "Danger Zone."
-msgstr ""
-
-msgid "Dark"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:191 includes/settings/views/documentation/config-general.php:30
@@ -5630,10 +5564,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:178 includes/settings/views/documentation/feature-url-shortener.php:60
 msgid "Default"
-msgstr ""
-
-#: includes/settings/views/documentation/config-captcha.php:34
-msgid "default"
 msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:131
@@ -6675,18 +6605,6 @@ msgstr ""
 msgid "Editor Preferences"
 msgstr ""
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:597
-msgid "Effective strategy"
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:541
-msgid "Effective strategy: Legacy"
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:540
-msgid "Effective strategy: Secure"
-msgstr ""
-
 #: includes/settings/views/documentation/reference-tokens.php:116
 msgid "Effective wall-clock schedule range — the per-submission \"Entry/exit exception\" override wins (Geofence: Schedule Exception), then the form-level Class Schedule baseline (Geofence → Time → Class Schedule), then the form's Time Range, then empty."
 msgstr ""
@@ -6829,10 +6747,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:74
 msgid "Emails not arriving"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-builder-metabox.php:214
-msgid "Embed"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:85 includes/admin/class-ffc-admin-assets-manager.php:627
@@ -7959,18 +7873,6 @@ msgstr ""
 msgid "FFC Appointments"
 msgstr ""
 
-#: includes/user-dashboard/class-ffc-capability-manager.php:767
-msgid "FFC Appointments - Administrator"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:758
-msgid "FFC Appointments - Operator"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:754
-msgid "FFC Appointments - Viewer"
-msgstr ""
-
 #: includes/privacy/class-ffc-privacy-handler.php:133 includes/privacy/class-ffc-privacy-exporters.php:499
 msgid "FFC Audience Bookings"
 msgstr ""
@@ -7979,32 +7881,8 @@ msgstr ""
 msgid "FFC Audience Groups"
 msgstr ""
 
-#: includes/user-dashboard/class-ffc-capability-manager.php:777
-msgid "FFC Audiences - Operator"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:773
-msgid "FFC Audiences - Viewer"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:802
-msgid "FFC Calendars - Viewer"
-msgstr ""
-
 #: includes/privacy/class-ffc-privacy-handler.php:121 includes/privacy/class-ffc-privacy-exporters.php:211
 msgid "FFC Certificates"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:748
-msgid "FFC Certificates - Administrator"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:737
-msgid "FFC Certificates - Operator"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:733
-msgid "FFC Certificates - Viewer"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-user-custom-fields.php:115
@@ -8015,20 +7893,12 @@ msgstr ""
 msgid "FFC End User"
 msgstr ""
 
-#: includes/user-dashboard/class-ffc-capability-manager.php:812
-msgid "FFC Forms - Viewer"
-msgstr ""
-
 #: includes/admin/class-ffc-admin-user-capabilities.php:171 includes/admin/class-ffc-admin-user-capabilities.php:187
 msgid "FFC Permissions"
 msgstr ""
 
 #: includes/privacy/class-ffc-privacy-handler.php:117 includes/privacy/class-ffc-privacy-exporters.php:121
 msgid "FFC Profile"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-manager.php:714
-msgid "FFC Read-Only (all modules)"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:833
@@ -9111,18 +8981,6 @@ msgstr ""
 msgid "Hide form completely"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-captcha.php:211
-msgid "Hide the \"Protected by ALTCHA\" footer"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-captcha.php:207
-msgid "Hide the ALTCHA logo"
-msgstr ""
-
-#: includes/settings/views/documentation/config-captcha.php:61
-msgid "hide the logo and/or the \"Protected by ALTCHA\" footer."
-msgstr ""
-
 #: includes/settings/views/documentation/config-modules.php:32
 msgid "Hides the certificate admin and stops public form submissions. While off, the daily expired-ticket cleanup is paused (unredeemed ticket codes of ended forms are not purged until it is re-enabled)."
 msgstr ""
@@ -9167,8 +9025,8 @@ msgstr ""
 msgid "Holiday deleted successfully."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:547
-msgid "Holidays / Closed Dates"
+#: includes/audience/class-ffc-audience-admin-calendar.php:225
+msgid "Closed dates"
 msgstr ""
 
 #: templates/admin/audience/general-tab.php:59
@@ -9333,10 +9191,6 @@ msgstr ""
 
 #. URI of the plugin
 msgid "https://github.com/rpgmem/ffcertificate"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:391
-msgid "Hybrid — allow only when the user denied or the browser lacks support"
 msgstr ""
 
 #. %s: value
@@ -9954,12 +9808,6 @@ msgstr ""
 msgid "IP:"
 msgstr ""
 
-#. %s: IP address
-#: includes/admin/class-ffc-admin-submission-edit-page.php:391
-#, php-format
-msgid "IP: %s"
-msgstr ""
-
 #: templates/submission-success.php:110
 msgid "iPhone / iPad: after the PDF opens, tap Share → \"Save to Files\" to keep it on your device."
 msgstr ""
@@ -10204,10 +10052,6 @@ msgstr ""
 msgid "Left"
 msgstr ""
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:600
-msgid "Legacy (current behaviour, spoofable) — the effective default until you switch"
-msgstr ""
-
 #: includes/admin/class-ffc-admin-activity-log-page.php:311
 msgid "Legacy Columns Dropped"
 msgstr ""
@@ -10238,10 +10082,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:366
 msgid "LGPD Consent Status"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-advanced.php:183
-msgid "Light"
 msgstr ""
 
 #: includes/settings/views/documentation/operations-updates.php:27
@@ -10781,10 +10621,6 @@ msgstr ""
 msgid "Mandatory Tags:"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:312
-msgid "Manual — let the operator type both ends"
-msgstr ""
-
 #: includes/settings/views/documentation/feature-url-shortener.php:25
 msgid "Manually"
 msgstr ""
@@ -10851,10 +10687,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:293
 msgid "Match threshold (N of 13)"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-captcha.php:36 includes/settings/views/documentation/config-captcha.php:34
-msgid "Math challenge only"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:327
@@ -10937,12 +10769,6 @@ msgstr ""
 msgid "Maximum number of blocks a single user may book in this custom calendar (0 = no limit). Waitlisted bookings count toward the limit."
 msgstr ""
 
-#. 1: current count, 2: effective limit (per-form or inherited global)
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:238
-#, php-format
-msgid "Maximum number of CSV downloads allowed via the public page. Current usage: %1$d of %2$d."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:362
 msgid "Maximum number of people per time slot (1 = exclusive)"
 msgstr ""
@@ -11003,10 +10829,10 @@ msgstr ""
 msgid "Members"
 msgstr ""
 
-#. %s: audience name
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:682
+#. translators: %d: number of members, as the audiences list counts them
 #, php-format
-msgid "Members of %s"
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:207
+msgid "Members (%d)"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:30
@@ -11399,10 +11225,6 @@ msgstr ""
 msgid "Never enables actual data logging, only operation status."
 msgstr ""
 
-#: templates/admin/recruitment/admin-page/settings-tab.php:51
-msgid "Never — do not send automatically"
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:871
 msgid "New adjutancy is the same as the current one."
 msgstr ""
@@ -11473,10 +11295,6 @@ msgstr ""
 
 #: templates/emails/audience-booking.php:24
 msgid "New scheduled activity"
-msgstr ""
-
-#: includes/settings/views/documentation/reference-emails.php:70
-msgid "New scheduled activity and activity-cancelled notices"
 msgstr ""
 
 #: templates/emails/audience-booking.php:23
@@ -11847,10 +11665,6 @@ msgstr ""
 msgid "No writable fields were supplied for this candidate update."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:339
-msgid "No — only Form ID + Hash"
-msgstr ""
-
 #: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:120
 msgid "None"
 msgstr ""
@@ -12010,10 +11824,6 @@ msgstr ""
 msgid "now"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:311
-msgid "Now — pre-fill end time with the current moment"
-msgstr ""
-
 #: includes/migrations/class-ffc-migration-registry.php:89
 msgid "NULL the plaintext context column on activity log rows that already store the JSON in context_encrypted."
 msgstr ""
@@ -12110,7 +11920,6 @@ msgstr ""
 msgid "on"
 msgstr ""
 
-
 #: includes/settings/views/documentation/config-captcha.php:60
 msgid "on activation, on focus, on page load or on submit. Verifying on load spends the work before anyone decides to submit, and a challenge started too early can expire while the form is still being filled in."
 msgstr ""
@@ -12128,7 +11937,7 @@ msgid "On by default, but only unlocks after the form's end date has passed and 
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:41
-msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy Report meta box shows each block's live booked / capacity, occupancy % and waitlist length."
+msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy tab, shown once a custom calendar is saved, lists each block's live booked / capacity, occupancy % and waitlist length."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:713
@@ -12489,10 +12298,6 @@ msgstr ""
 msgid "Own data only:"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:342
-msgid "Owner — CPF must match the form author"
-msgstr ""
-
 #: templates/admin/settings/email-model-box.php:31 templates/admin/settings/email-model-box.php:41 templates/admin/settings/email-model-box.php:52
 msgid "Padding (px)"
 msgstr ""
@@ -12559,10 +12364,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-booking-export-source.php:204
 msgid "Participants"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:341
-msgid "Participants — CPF must match a submission"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-quiz-metabox.php:64
@@ -13282,10 +13083,6 @@ msgstr ""
 msgid "Preview affected posts"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:923
-msgid "Preview Calendar"
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:515
 msgid "Preview Certificate"
 msgstr ""
@@ -13475,10 +13272,6 @@ msgstr ""
 msgid "Public"
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:92
-msgid "Public (IP rate-limited)."
-msgstr ""
-
 #: includes/frontend/class-ffc-public-csv-download.php:587 includes/frontend/class-ffc-public-csv-download.php:657 includes/frontend/class-ffc-public-csv-download.php:729
 msgid "Public access is disabled for this form."
 msgstr ""
@@ -13521,10 +13314,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:90
 msgid "Public — read-only form structure."
-msgstr ""
-
-#: includes/settings/views/documentation/developer-hooks-api.php:91
-msgid "Public."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:133 includes/self-scheduling/class-ffc-self-scheduling-editor.php:703
@@ -13740,10 +13529,6 @@ msgstr ""
 msgid "Re-save Settings → Permalinks once to flush WordPress rewrite rules"
 msgstr ""
 
-#: includes/settings/views/documentation/config-activity-log.php:35
-msgid "reach the tab and inspect the audit trail. Deliberately independent of the settings view capability, so an audit-only operator can read the log without any other settings access."
-msgstr ""
-
 #: includes/settings/views/documentation/config-captcha.php:43
 msgid "Reach, not strength: the server accepts either proof, so an attacker picks the cheaper one and the effective security equals the math challenge alone."
 msgstr ""
@@ -13818,6 +13603,13 @@ msgstr ""
 
 #: includes/admin/class-ffc-settings.php:581
 msgid "Read-only — you can view these settings but do not have permission to change them."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:215
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:719
+#: includes/audience/class-ffc-audience-admin-calendar.php:198
+#: includes/audience/class-ffc-audience-admin-environment.php:283
+msgid "Read-only — you can view this page but do not have permission to change it."
 msgstr ""
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:30
@@ -14035,10 +13827,6 @@ msgstr ""
 
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:180
 msgid "Regenerate"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:307
-msgid "Regenerate hash on save (invalidates the current link)."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:28
@@ -14349,10 +14137,6 @@ msgstr ""
 msgid "Required"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:193
-msgid "Required Certificate Tags"
-msgstr ""
-
 #: includes/settings/views/documentation/config-advanced.php:32
 msgid "Required certificate tags"
 msgstr ""
@@ -14429,8 +14213,8 @@ msgstr ""
 msgid "Reregistration record"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:357
-msgid "Reregistration Fields"
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:213
+msgid "Reregistration fields"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:195
@@ -14515,10 +14299,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:987
 msgid "Reset ID counter to 1"
-msgstr ""
-
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:318
-msgid "Reset the download counter to zero on save."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:587
@@ -14662,7 +14442,7 @@ msgid "Reveal the decrypted CPF / RF / email on a submission (audited). Without 
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:246
-msgid "Reveal the decrypted CPF / RF / email on an appointment (audited). Without it the values stay masked (#739)."
+msgid "Reveal the decrypted CPF / RF / email on an appointment, and the account email on the audience screens (audited). Without it the values stay masked (#739, #1824)."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php:82
@@ -15234,10 +15014,6 @@ msgstr ""
 msgid "seconds"
 msgstr ""
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:598
-msgid "Secure (trusted-proxy model) — real client behind Cloudflare / a configured proxy, unspoofable (recommended)"
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:545
 msgid "Secure does not trust the forged header for this request."
 msgstr ""
@@ -15486,10 +15262,6 @@ msgstr ""
 msgid "Selected time is outside working hours."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-page.php:299
-msgid "Self"
-msgstr ""
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:523
 msgid "Self-service"
 msgstr ""
@@ -15538,10 +15310,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-email-metabox.php:63
 msgid "Send Email to User?"
-msgstr ""
-
-#: templates/admin/reregistration/form.php:93
-msgid "Send invitation email when activated"
 msgstr ""
 
 #: templates/admin/reregistration/form.php:165
@@ -15612,10 +15380,6 @@ msgstr ""
 msgid "Sending…"
 msgstr ""
 
-#: templates/admin/reregistration/form.php:162
-msgid "Sends the invitation to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
-msgstr ""
-
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:436 includes/audience/class-ffc-audience-admin-audience-renderer.php:573
 msgid "Sensitive"
 msgstr ""
@@ -15654,10 +15418,6 @@ msgstr ""
 
 #: includes/core/class-ffc-email-template-options.php:93
 msgid "Sent by {{site_title}}"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-reregistration.php:39
-msgid "sent to all members when the campaign is activated."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:407
@@ -16410,10 +16170,6 @@ msgstr ""
 msgid "Street address"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:394
-msgid "Strict — block access on every failure"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-rate-limit.php:357
 msgid "Strong"
 msgstr ""
@@ -16508,6 +16264,12 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:99 includes/generators/class-ffc-pdf-generator.php:65 includes/reregistration/class-ffc-reregistration-ajax-handler.php:97
 msgid "Submission not found."
+msgstr ""
+
+msgid "Appointment Personal Data Revealed"
+msgstr ""
+
+msgid "Audience Account Email Revealed"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:253
@@ -16741,10 +16503,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:756
 msgid "Switch off Public Operator Access (and its sub-features) on published forms whose collection period ended more than the grace window ago. The access token and other settings are preserved, so access can be re-enabled later if needed."
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:122
-msgid "Switch the effective strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers."
 msgstr ""
 
 #: includes/settings/views/documentation/operations-maintenance.php:40
@@ -17109,10 +16867,6 @@ msgstr ""
 msgid "the CPF must match the form author's account CPF."
 msgstr ""
 
-#: includes/settings/views/documentation/forms-public-operator-access.php:53
-msgid "The CSV can additionally require the operator to prove a CPF before it releases. Modes:"
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:502
 msgid "The CSV download is not available for this form."
 msgstr ""
@@ -17200,10 +16954,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:68
 msgid "the end-user self-service caps."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-rest-controller.php:604
-msgid "The environment is closed at this time."
 msgstr ""
 
 #: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:34
@@ -18290,10 +18040,6 @@ msgstr ""
 msgid "Tokens available in the body:"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:388
-msgid "Tolerant — allow access on every failure"
-msgstr ""
-
 #: includes/frontend/class-ffc-verification-handler.php:707
 msgid "Too many attempts. Please try again in 1 minute."
 msgstr ""
@@ -18848,8 +18594,8 @@ msgstr ""
 msgid "User Access"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-calendar.php:446
-msgid "User Access & Permissions"
+#: includes/audience/class-ffc-audience-admin-calendar.php:220
+msgid "User access"
 msgstr ""
 
 #: includes/admin/class-ffc-settings-save-handler.php:570 includes/settings/tabs/class-ffc-tab-user-access.php:106
@@ -19788,10 +19534,6 @@ msgstr ""
 msgid "Which record template the reregistration PDF uses is chosen in Settings → Reregistration."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:314
-msgid "Which mode the operator exception modal opens in by default. Operators can flip the toggle on a per-exception basis."
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-templates.php:208
 msgid "Which receipt template each scheduling mode uses is chosen in Scheduling → Settings → Receipt."
 msgstr ""
@@ -19816,10 +19558,6 @@ msgstr ""
 msgid "Whitelist"
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:343
-msgid "Whitelist — CPF must be in the list below"
-msgstr ""
-
 #: templates/admin/recruitment/candidate-edit/history-section.php:39
 msgid "Who"
 msgstr ""
@@ -19842,10 +19580,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:122
 msgid "Why no captcha / geofence / per-IP limit here?"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-captcha.php:204
-msgid "Widget attribution"
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-field-options.php:143
@@ -20882,7 +20616,7 @@ msgid "load answers from a spreadsheet. Separate from manage on purpose: it writ
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:66
-msgid "reveal the decrypted CPF / RF / e-mail on an appointment, which is audited. Without it those values stay masked, even for an operator who can manage appointments."
+msgid "reveal the decrypted CPF / RF / e-mail on an appointment, and the e-mail in the appointments list, with the Reveal button; every reveal is audited. Without it those values stay masked, even for an operator who can manage appointments. The appointment detail and the list mask them for administrators and the appointments admin role too; they reveal them the same way."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:104
@@ -21919,9 +21653,6 @@ msgstr ""
 msgid "Expired ticket cleanup"
 msgstr ""
 
-msgid "Reregistration expiry and automated reminders"
-msgstr ""
-
 msgid "Appointment reminder scan"
 msgstr ""
 
@@ -22843,9 +22574,6 @@ msgstr ""
 msgid "or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Date Messages, Developer)."
 msgstr ""
 
-msgid "Colours of the certificate HTML editor on the form screen: Auto (follows Dark Mode), Light or Dark. New installs default to Dark."
-msgstr ""
-
 msgid "Off by default. When switched on, the daily cleanup permanently deletes published submissions older than the \"Delete after (days)\" window (default 365)."
 msgstr ""
 
@@ -23176,9 +22904,6 @@ msgstr ""
 msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change →\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
 msgstr ""
 
-msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails."
-msgstr ""
-
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
 msgstr ""
 
@@ -23198,9 +22923,6 @@ msgid "You pick where the allowed GPS area comes from; IP validation reuses the 
 msgstr ""
 
 msgid "Public Operator Access (formerly \"Public CSV Download\") lets a trusted operator who does NOT have a WordPress login interact with a single form through a secret, per-form link. It is enabled on the Operator tab (\"Public Operator Access\") of the form editor's \"Certificate Form Configuration\" box."
-msgstr ""
-
-msgid "The hash is the only credential — treat the link as a password. Set the base page under Settings → General (\"CSV Download Page URL\") so the editor shows the full link instead of just the query string. The hash is regenerated on demand (\"Regenerate hash on save\") and is deliberately NOT copied when a form is duplicated. A separate option resets the download counter to zero on save."
 msgstr ""
 
 msgid "The CPF gate is checked again when the operator uses Start Form Early or Postpone Close."
@@ -23233,7 +22955,7 @@ msgstr ""
 msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form)."
 msgstr ""
 
-msgid "Reveal the decrypted CPF / RF / email on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
+msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
 msgstr ""
 
 msgid "Minimum interval between bookings"
@@ -23266,10 +22988,12 @@ msgstr ""
 msgid "view or manage the appointments booked on those calendars."
 msgstr ""
 
-msgid "Go to Scheduling → Audiences, edit an audience, and use its Reregistration Fields section"
+#: includes/settings/views/documentation/feature-audiences.php:62
+msgid "Go to Scheduling → Audiences, edit an audience, and open its Reregistration fields tab"
 msgstr ""
 
-msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the section is hidden."
+#: includes/settings/views/documentation/feature-audiences.php:67
+msgid "Viewing the field definitions needs ffc_view_custom_fields and editing them needs ffc_manage_custom_fields; without either, the tab is hidden."
 msgstr ""
 
 msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data; fields mapped to a profile key (such as CPF, RF, RG or birth date) are also written, encrypted, to the plugin user profile."
@@ -23281,7 +23005,13 @@ msgstr ""
 msgid "Admin pages"
 msgstr ""
 
-msgid "Besides the calendars, environments and audiences, the Scheduling menu has a Dashboard and an Audience Bookings list of every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
+msgid "The Scheduling menu lists Dashboard, Personal Calendars, Appointments, Audience Calendars, Audiences, Audience Bookings and Settings. A new personal calendar is added with the Add New button of Personal Calendars or the Dashboard's quick action."
+msgstr ""
+
+msgid "Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar's row opens that calendar's environments."
+msgstr ""
+
+msgid "Audience Bookings lists every booking (exportable as CSV with ffc_export_audiences). Global holidays, set on the Scheduling → Settings → General tab, block bookings on those dates."
 msgstr ""
 
 msgid "The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
@@ -23315,9 +23045,6 @@ msgid "Change Password, and Privacy & Data (LGPD) buttons to request an export o
 msgstr ""
 
 msgid "View as user:"
-msgstr ""
-
-msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\")."
 msgstr ""
 
 msgid "The identity/contact/address/employment fields live on the plugin's user profile and are mapped to the reregistration and audience data, so a user's details stay consistent across a certificate PDF, a record and their profile. WordPress's first and last name follow the plugin's full name (first word / the rest), and editing First/Last Name on the user-edit screen updates it back."
@@ -23384,9 +23111,6 @@ msgid "Preview recipients and test send"
 msgstr ""
 
 msgid "Sends one rule to everyone whose date falls in a chosen range of up to 31 days, in batches handed to wp_mail(). People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs."
-msgstr ""
-
-msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen."
 msgstr ""
 
 msgid "Daily schedule"
@@ -23459,9 +23183,6 @@ msgid "E-mail, CPF, RF, the client IP and the submission's extra form data are s
 msgstr ""
 
 msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
-msgstr ""
-
-msgid "On screen, CPF/RF and e-mail are masked unless the operator holds the matching PII capability. Revealing recruitment PII writes an activity-log entry (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
 msgstr ""
 
 msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
@@ -23593,9 +23314,6 @@ msgstr ""
 msgid "fires when a submissions export finishes; the other exports do not fire it."
 msgstr ""
 
-msgid "Public — books an appointment."
-msgstr ""
-
 msgid "Read or cancel one appointment — requires access to that appointment."
 msgstr ""
 
@@ -23612,9 +23330,6 @@ msgid "ffc_view_certificates (personal data stays masked without the PII capabil
 msgstr ""
 
 msgid "Logged-in — the current candidate's own recruitment data."
-msgstr ""
-
-msgid "The plugin's only authenticated write API: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.18.0."
 msgstr ""
 
 msgid "Activity Log: Encrypt Client IPs"
@@ -24013,7 +23728,10 @@ msgstr ""
 msgid "Approval and waitlist"
 msgstr ""
 
-msgid "Booking Rules & Restrictions"
+msgid "Slots & hours"
+msgstr ""
+
+msgid "Approval & waitlist"
 msgstr ""
 
 msgid "Booking slots"
@@ -24112,9 +23830,6 @@ msgstr ""
 msgid "Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
 msgstr ""
 
-msgid "Independently of the settings above, an account whose roles are all FFC operator roles (a module viewer, operator or manager, or FFC Read-Only) sees a scoped wp-admin: the core menus it has no use for (Posts, Comments, Tools, Plugins and the like) are hidden, the admin bar is pruned, and opening an admin page outside its module redirects to the module's own screen. Its profile, the dashboard home and the AJAX endpoints stay reachable."
-msgstr ""
-
 msgid "Off, On (always dark), or Auto (follow the operating system). Applies to the plugin's admin screens and to what it shows visitors: the public forms, the user dashboard and the scheduling, audience and recruitment shortcodes. Certificates and other PDFs are always light."
 msgstr ""
 
@@ -24146,9 +23861,6 @@ msgid "The daily run sends every active rule once a day, for that day's dates on
 msgstr ""
 
 msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
-msgstr ""
-
-msgid "The plugin registers one role per module tier — viewer, operator, manager — plus \"FFC Administrator\", \"FFC Read-Only (all modules)\" and \"FFC End User\", which is given automatically to people who submit a form with a CPF or RF. The roles the plugin currently registers:"
 msgstr ""
 
 msgid "The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. WordPress administrators (manage_options) always hold every FFC capability."
@@ -24283,9 +23995,6 @@ msgstr ""
 msgid "Acknowledgment notice (\"Termo de Ciência\") HTML — editable per-audience in the Reregistration Fields section, with a shipped default fallback."
 msgstr ""
 
-msgid "Activate the campaign — a submission is created for every audience member and invitation emails go out."
-msgstr ""
-
 msgid "Administrators can schedule activities for audiences (groups) in configured environments."
 msgstr ""
 
@@ -24401,21 +24110,6 @@ msgid "Every email the plugin sends — certificate delivery, admin notification
 msgstr ""
 
 msgid "Failed to load QR Code"
-msgstr ""
-
-msgid "FFC Appointments - Manager"
-msgstr ""
-
-msgid "FFC Audiences - Manager"
-msgstr ""
-
-msgid "FFC Calendars - Manager"
-msgstr ""
-
-msgid "FFC Certificates - Manager"
-msgstr ""
-
-msgid "FFC Forms - Manager"
 msgstr ""
 
 msgid "FFC Recruitment - Manager"
@@ -24556,6 +24250,9 @@ msgstr ""
 msgid "view the Scheduling menu and audience pages."
 msgstr ""
 
+msgid "On its own it opens them read-only: the calendar, environment and audience edit forms and the members screen show their fields disabled, with no Save, Add or Remove, under a read-only notice."
+msgstr ""
+
 msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."
 msgstr ""
 
@@ -24646,9 +24343,6 @@ msgstr ""
 msgid "Everyone, or the members of the audiences chosen in the two-column picker — the same one the reregistration campaign uses. Belonging to any one of them is enough, and members of their sub-audiences are included; choosing an audience brings its sub-audiences along."
 msgstr ""
 
-msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators."
-msgstr ""
-
 msgid "QR Code in the Certificate"
 msgstr ""
 
@@ -24688,13 +24382,7 @@ msgstr ""
 msgid "Reveal the email to edit it."
 msgstr ""
 
-msgid "On the edit screen the CPF/RF and the email start masked for everyone, administrators included. An operator who may see them uses Reveal to fetch the value, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
-msgstr ""
-
-msgid "Administrators (manage_options) hold all of the above and, like the certificates admin role, see personal data unmasked on the list without a reveal step; the edit screen masks it for them too. See Capabilities & Roles."
-msgstr ""
-
-msgid "In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes."
+msgid "On the edit screen the CPF/RF, the email and the IP start masked for everyone, administrators included. The IP is the address the submission and its consent were recorded from, so it is masked both under System Information and under the consent status. An operator who may see them uses the Reveal button beside each value to fetch it, and every reveal writes an Activity Log entry while the Activity Log is on. The email can be edited only after it is revealed; saving without revealing it keeps the stored address."
 msgstr ""
 
 msgid "Certificates → Dashboard opens with a summary row (forms in the month shown, submissions today and over the last 7 days, GeoFence windows open now) above a calendar of forms by GeoFence start date, or by publication date when a form has none. Picking a day lists its forms beside the calendar. It needs ffc_view_certificates."
@@ -24946,6 +24634,20 @@ msgstr ""
 msgid "Of the fields and buttons; 0 makes them square. Default: %1$d px, up to %2$d."
 msgstr ""
 
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "Card corners"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php
+#, php-format
+msgid "Of the cards: the form and verification card, the user dashboard and the cards inside it; 0 makes them square. Default: %1$d px, up to %2$d."
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php
+#, php-format
+msgid "The corner radius of the cards is a setting of its own: the form and verification card, the user dashboard and the cards inside it (0 makes them square). It defaults to %d px, a little rounder than the fields, and applies in both themes."
+msgstr ""
+
 #: includes/settings/views/ffc-tab-public-design.php:91
 msgid "Form width"
 msgstr ""
@@ -24953,14 +24655,6 @@ msgstr ""
 #: includes/settings/views/ffc-tab-public-design.php:97
 #, php-format
 msgid "The widest a form or verification card grows; its fields are 150 px narrower. On a narrower screen it fills the space it has. Default: %1$d px, from %2$d to %3$d."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-public-design.php:106
-msgid "The site theme's"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-public-design.php:107
-msgid "The plugin's (the system font)"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-public-design.php
@@ -25519,16 +25213,8 @@ msgstr ""
 msgid "(when the form has an Event Schedule)"
 msgstr ""
 
-#: includes/settings/views/documentation/forms-dynamic-fields.php:59
-msgid "A new form starts with the fields listed under Settings → Certificates → Required Form Fields, with the label and type given there. By default they are:"
-msgstr ""
-
 #: includes/settings/views/documentation/forms-dynamic-fields.php:66
 msgid "A required field is drawn with an amber border and a \"Required field\" badge: it is always required, its variable name and type cannot change and it cannot be removed; only its label can. A form missing one shows a warning naming it, with an \"Add the required fields\" button that adds them."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-certificates.php:125
-msgid "Add required field"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:172
@@ -25537,14 +25223,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-certificates.php:36
 msgid "Field name"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-certificates.php:92
-msgid "Fields every certificate form must have. A new form starts with them; in the form editor their name, type and required flag are locked, and only the label can change. Email is always required: the certificate is sent to it."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-certificates.php:81
-msgid "One tag per line (with braces). Every certificate layout must contain them. {{auth_code}} is always required — certificate verification depends on it. {{schedule}} is required only of a form that has an Event Schedule."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:58
@@ -25561,14 +25239,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:794
 msgid "The Fields tab can add them: “Add the required fields”."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-certificates.php:128
-msgid "The certificate layout prints a field through its name in braces, such as {{cpf_rf}}. A name takes lowercase letters, digits and underscores."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-certificates.php:34
-msgid "The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Certificates → Required Certificate Tags. {{auth_code}} cannot be removed, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The fields every form must have are a separate list on the same tab, Required Form Fields: by default name, cpf_rf and email, each with its label and type; email cannot be removed."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:166
@@ -25831,4 +25501,1178 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:465
 msgid "GPS only"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:297
+msgid "A hash is generated as soon as Public Operator Access is enabled above."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:366
+msgid "Audit"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:341
+msgid "Both act at once, without saving the form. Regenerating invalidates the link already shared."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:335
+msgid "Counter reset."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:325
+msgid "Generate a new hash? The current link stops working at once."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-metabox-renderer.php:245
+msgid "Incomplete"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:263
+#, php-format
+msgid "Maximum number of CSV downloads allowed via the public page. Current usage: %1$s of %2$d."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:326
+msgid "New hash generated."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php:348
+msgid "On: the operator exception modal opens with the end time filled in with the current moment. Off: the operator types both ends. Operators can flip it on each exception."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:372
+msgid "Only Form ID + Hash."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-geofence-metabox.php:343
+msgid "Open on the current time"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:368
+msgid "Owner"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:327
+msgid "Regenerate hash"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:373
+msgid "Require a CPF, without matching it against any list."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:336
+msgid "Reset counter"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:334
+msgid "Reset the download counter to zero?"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:376
+msgid "The CPF must be in the list below."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:374
+msgid "The CPF must match a submission."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:375
+msgid "The CPF must match the form author."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-public-operator-access.php
+msgid "The hash is the only credential — treat the link as a password. Set the base page under Settings → General (\"CSV Download Page URL\") so the editor shows the full link instead of just the query string. The hash is generated the moment Public Operator Access is switched on, and is deliberately NOT copied when a form is duplicated. Two buttons act at once, without saving the form: \"Regenerate hash\" (the link already shared stops working) and \"Reset counter\" (the download counter goes back to zero)."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-public-operator-access.php
+msgid "The CSV can additionally require the operator to prove a CPF before it releases. The modes form a scale from the loosest to the strictest, and a form that never chose one uses audit:"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches: hollow when off, green when on, and amber while something switched on still lacks the field it needs (a password, a list, the tickets, a date or time, an allowed area for GPS) or, when Settings → Certificates requires {{schedule}}, while the event schedule is empty. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php:20
+msgid "A form's input fields are defined on the Fields tab (\"Form Builder (Fields)\") of the form editor's \"Certificate Form Configuration\" box — a sortable list of fields. Each field has a Variable Name (Tag); that tag is the machine key that becomes a {{token}} on the certificate PDF and in emails. Each field is titled by its type, chosen once from the Add New Field menu; to change a type, remove the field and add it again, because the answers already stored under it hold values of the old type."
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Reregistration expiry, invitations and automated reminders"
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Reregistration invitation batch (one per batch)"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "No invitation was sent yet. They go out with the daily reregistration run, which is not scheduled on this site right now; check Settings → Scheduled Tasks."
+msgstr ""
+
+#. translators: %s: date and time of the next daily run
+#: includes/reregistration/class-ffc-reregistration-admin.php
+#, php-format
+msgid "No invitation was sent yet. They go out with the next daily reregistration run, on %s, in batches. Until then you can still change or deactivate the campaign."
+msgstr ""
+
+#: templates/admin/reregistration/form.php
+msgid "Send invitation email (daily run after activation)"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. Members who join later get theirs on the following run. The Send invitations button sends them right away."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "Activate the campaign — a submission is created for every audience member at once. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is."
+msgstr ""
+
+#: templates/admin/reregistration/form.php
+msgid "Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "Unknown record type."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "You do not have permission to change this record."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "That record no longer exists."
+msgstr ""
+
+#: includes/core/class-ffc-record-autosave.php
+msgid "This field cannot be saved here."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The calendar could not be saved."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Self-join is set on the parent audience."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "The audience could not be saved."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-record-autosave.php
+msgid "The campaign could not be saved."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-record-autosave.php
+msgid "The notice could not be saved."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-record-autosave.php
+msgid "The reason could not be saved."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Never"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Ask"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Always"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Calling a candidate never sends the convocation email."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Each call asks, through a \"Notify by email\" checkbox on the call action."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Every call sends the convocation email."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "The status is the exception: it changes only on Save."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A new calendar starts public."
+msgstr ""
+
+#: includes/admin/class-ffc-settings-ajax-endpoint.php
+msgid "The table could not be read. Reload the page and try again."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "Filled in by the plugin"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "Required in the form"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "Required in the certificate HTML"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "Required data"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "What every certificate needs, in one table. Required in the form: a new form starts with the field, and in the form editor its name, type and required flag are locked; only the label can change. Required in the certificate HTML: every certificate layout must print the field through its name in braces, such as {{cpf_rf}}. Changes save as you make them."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "Add required data"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "A name takes lowercase letters, digits and underscores. Email is always required in the form: the certificate is sent to it. {{auth_code}} is always required in the certificate HTML: verification depends on it. A tag the plugin fills in itself, such as {{schedule}}, has no form field; {{schedule}} is asked only of a form that has an Event Schedule."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "What a certificate requires is one table, Settings → Certificates → Required data. Each row has a name, a label, a type and two switches. Required in the form: a new form starts with the field, and the form editor locks it and refuses a form without it. Required in the certificate HTML: the form editor refuses to save a layout that lacks the {{tag}}. By default name and cpf_rf are required in both, email in the form and {{auth_code}} and {{schedule}} in the HTML. Email cannot leave the form and {{auth_code}} cannot leave the HTML. A tag the plugin fills in itself, such as {{schedule}}, has the HTML switch only, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The table saves as you change it."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-dynamic-fields.php
+msgid "A new form starts with every row of Settings → Certificates → Required data whose \"Required in the form\" switch is on, with the label and type given there. By default they are:"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-captcha.php:233
+msgid "\"Protected by ALTCHA\" footer"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php:226
+msgid "1 h"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php:224
+msgid "15 min"
+msgstr ""
+
+#: includes/settings/views/documentation/config-cache.php:34
+msgid "15 minutes, 30 minutes, 1 hour or 24 hours. A new install starts at 15 minutes; an install that never saved the tab keeps 1 hour."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php:227
+msgid "24 h"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php:225
+msgid "30 min"
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:40 includes/settings/views/ffc-tab-captcha.php:41
+msgid "ALTCHA + Math"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-captcha.php:225
+msgid "On: the widget on the public form shows the ALTCHA logo beside the challenge. Off: the logo is hidden and only the challenge remains."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-captcha.php:234
+msgid "On: a \"Protected by ALTCHA\" line linking to altcha.org appears at the bottom of the widget. Off: the line is hidden. The challenge works the same either way."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-captcha.php:222
+msgid "ALTCHA logo"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:606
+msgid "Active strategy"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:547
+msgid "Active strategy: Legacy"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:546
+msgid "Active strategy: Secure"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:406
+msgid "Allow access on every failure."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:407
+msgid "Allow only when the user denied or the browser lacks support."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:240
+msgid "Always dark."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:239
+msgid "Always light."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:248
+msgid "Applies to the Certificate HTML editor on the form edit screen. On is the default."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:631
+msgid "Applies when the secure strategy is active."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:121
+msgid "Arial, on every device."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:408
+msgid "Block access on every failure."
+msgstr ""
+
+#: includes/settings/views/documentation/config-general.php:33
+msgid "Colours of the certificate HTML editor on the form screen: Off (always light), On (always dark) or Auto (follows Dark Mode). On is the default."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:424
+msgid "Customize per case"
+msgstr ""
+
+#: includes/settings/views/documentation/config-general.php:33 includes/settings/views/ffc-tab-general.php:219 includes/settings/views/ffc-tab-general.php:232
+msgid "Dark Mode in the Code Editor"
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:62 includes/settings/views/ffc-tab-captcha.php:209
+msgid "Display"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:241
+msgid "Follows the Dark Mode setting above."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:402
+msgid "Hybrid"
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:46 includes/settings/views/ffc-tab-captcha.php:46
+msgid "Math"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:616
+msgid "On: the real client behind Cloudflare or a configured proxy, which cannot be spoofed (recommended). Off: Legacy, the current behaviour, which trusts forwarded headers and can be spoofed; it stays the default until you switch."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:115
+msgid "Plugin"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:613
+msgid "Secure (trusted-proxy model)"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:127
+msgid "Switch the active strategy to Secure (trusted-proxy) below, so forged headers can no longer spoof rate-limiting, geofencing or the activity log. Ideally, also put Cloudflare in front of this site for an unspoofable client IP (free plan). The current default (Legacy) trusts client-supplied headers."
+msgstr ""
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:23
+msgid "The Active strategy toggle switches between the two: on is Secure, off is Legacy."
+msgstr ""
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:28
+msgid "The Custom proxy CIDRs field appears only in the Custom mode, the only one that reads it."
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:53
+msgid "The mode is a scale, from the one that reaches every visitor on the left to the strongest on the right. A new install starts on ALTCHA only when the site is served over HTTPS and on Math otherwise; an existing install keeps the mode it has, and one that never saved the tab stays on Math."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:120
+msgid "The plugin's font (the system font)."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:119
+msgid "The site theme's font."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php:114
+msgid "Theme"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:401
+msgid "Tolerant"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-smtp.php:148
+msgid "Total Mail Queue is active and manages email delivery, so WP Default is used. The choice saved here is kept and applies again when Total Mail Queue is deactivated."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-emails.php:48
+msgid "While the total-mail-queue plugin is active it manages delivery: the choice is locked to WordPress default, and the one saved here applies again when it is deactivated."
+msgstr ""
+
+#: includes/settings/views/documentation/config-geolocation.php:46
+msgid "a scale of three presets, from Tolerant (allow on every failure) through Hybrid to Strict (block on every failure). Turn on \"Customize per case\" to set allow or block for each case instead: permission denied, no API, position unavailable, timeout, safety timer."
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:62
+msgid "whether the widget shows the ALTCHA logo and the \"Protected by ALTCHA\" footer. A new install shows the logo and hides the footer."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:208
+msgid "Event list & badges"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:29
+msgid "The editors"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:30
+msgid "A calendar is edited in vertical tabs: General, Notifications and Event list & badges, then, once the calendar is saved, its environments (the Environments list of that calendar), User access and Closed dates. One Save button beside the tabs saves the first three together; the shortcode sits beside it."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:30
+msgid "Add New on the Environments tab opens the environment form with that calendar already chosen."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:31
+msgid "An audience is edited in three tabs: Audience, Members (add and remove members) and Reregistration fields. The member count in the audiences list opens the Members tab."
+msgstr ""
+
+msgid "The linked user's account email in the side panel is masked the same way, with its own Reveal button and the same audit."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:41
+msgid "The Shortcode column of Audience Calendars shows each calendar's shortcode with a copy button, and the Environments view shows each environment's, tied to its calendar."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:325
+msgid "Reveal reregistration PII"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:326
+msgid "Reveal a submitter's email and open a submission's details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed (#1815)."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-ajax-handler.php:127
+msgid "You do not have permission to view this submission's personal data."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:291
+msgid "Reregistration Personal Data Revealed"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:292
+msgid "Reregistration Details Viewed"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:152
+msgid "reveal a submitter's email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:895
+msgid "FFC Reregistration - Administrator"
+msgstr ""
+
+msgid "Each action is listed by a readable name, such as \"Appointment Personal Data Revealed\" or \"Audience Account Email Revealed\"; an action with no name of its own shows its code, with spaces for the underscores."
+msgstr ""
+
+msgid "The dashboard is drawn with the plugin's own palette and icons, so it follows Dark Mode, and its fields, buttons and status badges look like those of the public forms. With Public Design switched on it also takes the design's font, accent colour, field corners and card corners."
+msgstr ""
+
+msgid "Add New on a calendar's Environments tab, or on the Environments view filtered to one calendar, opens the new environment with that calendar already chosen."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgctxt "dashboard section heading: cancelled items"
+msgid "Cancelled"
+msgstr ""
+
+#. translators: {start}, {end}: first and last item shown; {total}: items in the section. Keep the braces.
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "{start}–{end} of {total}"
+msgstr ""
+
+#. translators: {section}: section heading, such as Upcoming. Keep the braces.
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Pagination: {section}"
+msgstr ""
+
+#. translators: {page}: page number. Keep the braces.
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Page {page}"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "The personal-calendar and group-calendar tabs split the list into Upcoming, Past and Cancelled, each heading showing how many items it holds. Each section pages on its own, 5 upcoming, 3 past and 2 cancelled items at a time, and the filter bar brings every section back to its first page."
+msgstr ""
+
+#: includes/core/class-ffc-public-design.php
+msgid "information notices on their background"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "Information notices (bar and text)"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "The background of the information notices (the administrator bypass, the quiz and schedule notices, \"already submitted\") is a light shade of their colour, made for you. Their colour is checked against that background, at 4.5:1."
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php
+msgid "The colour of the information notices (the administrator bypass, the quiz and schedule notices, \"already submitted\") draws their bar and their text; their background is a light shade of it, made automatically, and the warning measures the colour against that background. Left at its default, the notices keep the plugin's own blue pair."
+msgstr ""
+
+#: includes/settings/views/documentation/overview.php
+msgid "Messages on the admin screens"
+msgstr ""
+
+#: includes/settings/views/documentation/overview.php
+msgid "Three kinds, each with its own look. The result of an action appears at the top of the screen with an icon: a success or a note can be closed, while a warning or an error stays until the problem is gone. A box inside a page, with a coloured bar and an icon, explains or warns about that part of the screen. A short line beside a button or a switch shows its progress: saving, saved or failed."
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php
+msgid "The information colour applies to the public pages only; the notes inside the admin screens keep the admin's own colours."
+msgstr ""
+
+#: includes/settings/views/documentation/config-user-access.php
+msgid "Saving the tab shows a confirmation at the top of the screen."
+msgstr ""
+
+#: templates/admin/qr/design-fields.php
+msgid "Enter a colour as #rrggbb."
+msgstr ""
+
+#: templates/admin/audience/transfer-list.php
+msgid "Select at least one audience."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-documentation.php
+#: includes/settings/views/documentation/about-project.php
+msgid "About this project"
+msgstr ""
+
+#. translators: %s: link to the "About this project" topic below
+#: includes/settings/views/ffc-tab-documentation.php
+#, php-format
+msgid "Free software under the AGPLv3 or later, made in Brazil: free of charge forever, with no paid edition, locked feature or subscription. %s"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Free software, made by public servants"
+msgstr ""
+
+#. translators: 1: link to an article on free software, 2: link to the GNU AGPLv3 license
+#: includes/settings/views/documentation/about-project.php
+#, php-format
+msgid "Free Form Certificate is developed and maintained by public servants in Brazil and distributed as %1$s under the %2$s license. We believe that what is built with public resources should return to the public."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "https://en.wikipedia.org/wiki/Free_software"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "free software"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Free of charge, always."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "There is no paid edition and there never will be: no locked feature, no subscription, no \"pro\" version. Every function described here is available to any institution."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Free to use, study and adapt."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Any public body, school or organisation may install, modify and redistribute it. The AGPL only asks that improvements you distribute, or offer as a network service, stay free as well."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Built to be replicated."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Each module can be switched on or off, so another school network or public body can adopt the same solution without depending on a vendor."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Accessible, and careful with personal data."
+msgstr ""
+
+#. translators: 1: link to an article on the WCAG accessibility guidelines, 2: link to an article on Brazil's data protection law (LGPD)
+#: includes/settings/views/documentation/about-project.php
+#, php-format
+msgid "Screens follow the %1$s accessibility guidelines, offer a dark mode and work on a phone. CPF, RF and e-mail are stored encrypted, in line with Brazil's data protection law, the %2$s."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "https://en.wikipedia.org/wiki/Web_Content_Accessibility_Guidelines"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "https://en.wikipedia.org/wiki/General_Personal_Data_Protection_Law"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Your data stays with you."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "The plugin collects no usage data and shows no advertising. It runs on your own server, and its only outbound calls are the update check and the optional services you choose to enable."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Transparent by default."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "The source code, every change (the changelog) and the list of known problems are public. Each change goes through automated tests before it is released."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Open to collaboration."
+msgstr ""
+
+#. translators: %s: link to the plugin's source repository
+#: includes/settings/views/documentation/about-project.php
+#, php-format
+msgid "Suggestions, bug reports and contributions are welcome in the %s."
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "repository"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "Our goal"
+msgstr ""
+
+#: includes/settings/views/documentation/about-project.php
+msgid "To give public institutions a reliable, accessible and secure way to issue documents, run campaigns and serve people online, at no cost and without vendor lock-in, and to show that public servants can build digital public goods of high technical quality."
+msgstr ""
+
+msgid "Submit forms via REST API"
+msgstr ""
+
+msgid "Lets an integration submit a form through the REST API, with the same checks as the public form. Creates submissions and may create accounts and send email."
+msgstr ""
+
+msgid "Public (rate-limited). Returns the certificate with personal data masked, without the fields the verification page hides."
+msgstr ""
+
+msgid "Authenticated — Application Password + ffc_submit_forms_api. Runs the same checks as the public form; see the Forms API below."
+msgstr ""
+
+msgid "Public (IP rate-limited). A private calendar answers only a logged-in user or one with the scheduling bypass."
+msgstr ""
+
+msgid "Authenticated — ffc_manage_appointments. Books in the name and email sent; the public booking form does not use this route."
+msgstr ""
+
+msgid "Logged-in — the environment must belong to a schedule the caller may read, and only bookings in readable schedules are reported."
+msgstr ""
+
+msgid "submit a form. Needs ffc_submit_forms_api, which existing holders of ffc_view_forms_api received automatically on update. The JSON body carries the form's fields and ffc_lgpd_consent set to 1; the checks are the public form's: only the fields the form defines are stored, hidden fields keep the form's value, field rules, password, allowlist, denylist and ticket restrictions, quiz scoring and the rate limits all apply, and the authentication code is always generated by the plugin. The public form itself does not use this route."
+msgstr ""
+
+msgid "An authenticated write API for issuance: a field-operator app issues certificates over WordPress Application Passwords (HTTP Basic auth, so capability checks work with no nonce). Added in 6.18.0."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-capabilities.php:39
+msgid "A module whose screens split into parts names the part in its roles: Certificates - Submissions and Certificates - Forms, Personal Calendars - Bookings and Personal Calendars - Setup. Forms and Setup have no day-to-day or administrator action, so they keep Viewer and Manager only. Beside the modules sit \"FFC Administrator\", which holds every FFC capability, \"FFC Read-only\", which sees every module masked, and \"FFC End User\", given automatically to people who submit a form with a CPF or RF. The activity log and identity resolution belong to FFC Administrator alone among these roles. The roles the plugin currently registers:"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-identity-resolution.php:53
+msgid "Among the FFC roles only FFC Administrator holds these three; no module role and not FFC Read-only carries them. WordPress administrators keep them too."
+msgstr ""
+
+#: includes/settings/views/documentation/config-activity-log.php:38
+msgid "Among the FFC roles only FFC Administrator holds these two: the log records what every other role did, so no module role and not FFC Read-only carries it. WordPress administrators keep it too."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:298
+msgid "Audience calendar bypass"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-emails.php:59
+msgid "Below it, \"Send a test email\" sends one message to your own address. It needs ffc_test_settings_smtp or ffc_manage_settings_smtp, so the FFC Settings - Operator role can check delivery without being able to change the transport or the model."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:299
+msgid "Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on (#1859)."
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php:168
+msgid "Each module ships four roles, \"FFC <module> - Viewer / Operator / Manager / Administrator\", each holding everything the tier below it holds; the activity log and identity resolution are given to FFC Administrator only. Adding a capability here widens one role, it does not change the tiers of the others."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-capabilities.php:32
+msgid "Every module has four roles, named \"FFC <module> - <tier>\" after the module's menu, each tier holding everything the one below it holds:"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:989
+msgid "FFC Audience Calendars - Administrator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:985
+msgid "FFC Audience Calendars - Manager"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:981
+msgid "FFC Audience Calendars - Operator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:977
+msgid "FFC Audience Calendars - Viewer"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:940
+msgid "FFC Certificates - Forms - Manager"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:936
+msgid "FFC Certificates - Forms - Viewer"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:930
+msgid "FFC Certificates - Submissions - Administrator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:925
+msgid "FFC Certificates - Submissions - Manager"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:921
+msgid "FFC Certificates - Submissions - Operator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:917
+msgid "FFC Certificates - Submissions - Viewer"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1066
+msgid "FFC Date Messages - Administrator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1062
+msgid "FFC Date Messages - Manager"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1058
+msgid "FFC Date Messages - Operator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1054
+msgid "FFC Date Messages - Viewer"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:961
+msgid "FFC Personal Calendars - Bookings - Administrator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:957
+msgid "FFC Personal Calendars - Bookings - Manager"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:953
+msgid "FFC Personal Calendars - Bookings - Operator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:949
+msgid "FFC Personal Calendars - Bookings - Viewer"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:971
+msgid "FFC Personal Calendars - Setup - Manager"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:967
+msgid "FFC Personal Calendars - Setup - Viewer"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:898
+msgid "FFC Read-only"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1084
+msgid "FFC Settings - Administrator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1080
+msgid "FFC Settings - Manager"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1076
+msgid "FFC Settings - Operator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1072
+msgid "FFC Settings - Viewer"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1048
+msgid "FFC Short URLs - Administrator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1044
+msgid "FFC Short URLs - Manager"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1040
+msgid "FFC Short URLs - Operator"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-manager.php:1036
+msgid "FFC Short URLs - Viewer"
+msgstr ""
+
+#: includes/settings/views/documentation/config-user-access.php:42
+msgid "Independently of the settings above, an account whose roles are all FFC operator roles (a module viewer, operator, manager or administrator, or FFC Read-only) sees a scoped wp-admin: the core menus it has no use for (Posts, Comments, Tools, Plugins and the like) are hidden, the admin bar is pruned, and opening an admin page outside its module redirects to the module's own screen. Its profile, the dashboard home and the AJAX endpoints stay reachable."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-capabilities.php:36
+msgid "Manager"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:392
+msgid "Send a sample of a rule, with fictional values, to your own address. Managing date messages allows it too (#1860)."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:391
+msgid "Send date-message tests"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:423
+msgid "Send the Email Model test message to your own address, without being able to change the transport. Managing SMTP settings allows it too (#1860)."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:422
+msgid "Send the SMTP test email"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-capabilities.php:34
+msgid "Viewer"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-capabilities.php:37
+msgid "also holds the module's bypass and settings, where it has them; elsewhere it equals the Manager."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-capabilities.php:36
+msgid "also manages, exports and deletes, and may reveal personal data."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-capabilities.php:35
+msgid "also performs the module's day-to-day actions: editing and grading submissions, approving and cancelling bookings, importing members, exporting, calling candidates, sending a test."
+msgstr ""
+
+#: includes/settings/views/documentation/config-activity-log.php:35
+msgid "reach the tab and inspect the audit trail. Independent of the settings view capability, so it can be granted to an account without any other settings access."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-capabilities.php:34
+msgid "sees the module's screens, with personal data masked."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:114
+msgid "send a rule's test, with sample values, to your own address. Managing date messages allows it too. Previewing the recipients and the message needs only the view capability."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "A booking that breaks one of those rules first opens a warning listing every rule it breaks; its \"I agree\" button unlocks after 15 seconds, the server saves nothing without that confirmation, and each confirmed booking is written to the Activity Log. Capacity is never bypassed."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Admin bypass and Override Conflicts"
+msgstr ""
+
+#: templates/emails/audience-admin-cancellation.php
+msgid "An administrator booked this space at the same time as your booking, so your booking was cancelled."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Appointment Booked Outside the Rules"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Audience Booking Made Outside the Rules"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Audience booking cancelled by an administrator"
+msgstr ""
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "Audience booking cancelled by an administrator:"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Beyond the booking window"
+msgstr ""
+
+#: includes/core/class-ffc-override-warning.php
+msgid "Book outside the rules?"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Booking cancelled by an administrator"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Booking rules"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Each calendar has an Admin bypass toggle (General tab, on by default). While it is on, holders of manage_options or ffc_bypass_audiences may open closed days and book any space, the closed ones marked with their reasons (closed, holiday, outside hours, past date, beyond the booking window). Turn it off to apply every rule to them too."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Either way the booking first opens one warning listing every rule it breaks, conflicts included. Its \"I agree\" button unlocks after 15 seconds and Cancel works at once; the server saves nothing without that confirmation, and each confirmed booking is written to the Activity Log with its reasons."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Every booking is checked on the server, whoever makes it: the calendar and the space must be active; the date must not be in the past, beyond the calendar's future days limit (counted in the site's time zone), a global or calendar holiday, or a day the space is closed; and both the start and the end must fall inside the space's opening hours. An all-day booking takes the space's whole opening window for that day. Two bookings may not overlap in one space."
+msgstr ""
+
+#: includes/core/class-ffc-override-warning.php
+msgid "I agree"
+msgstr ""
+
+#: includes/core/class-ffc-override-warning.php
+msgid "I agree (%d)"
+msgstr ""
+
+#: includes/core/class-ffc-override-warning.php
+msgid "If you confirm, the booking is saved and recorded in the activity log with these reasons."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "It applies to personal calendars only; audience calendars have their own ffc_bypass_audiences."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "Let bypass holders book outside the rules"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-emails.php
+msgid "New scheduled activity and activity-cancelled notices, and the \"booking cancelled by an administrator\" notice sent to the owner of a booking an override replaced"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "No space is open on this date."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Outside hours"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "Overridden by a priority booking: the space is no longer available at this time."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Past date"
+msgstr ""
+
+#: templates/emails/audience-admin-cancellation.php
+msgid "Please choose another time or space for your activity."
+msgstr ""
+
+#: includes/core/class-ffc-override-warning.php
+msgid "Read the reasons. You can confirm in %d seconds."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php
+msgid "Sent to the owner of a booking an override took the slot of — text edited globally in the hub above."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "The booking falls outside the opening hours of this space."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "This booking breaks the calendar rules. Confirm to book anyway."
+msgstr ""
+
+#: includes/core/class-ffc-override-warning.php
+msgid "This booking breaks the following rules:"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "This space is closed on this day."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php
+msgid "When enabled, holders of manage_options or ffc_bypass_audiences may book on closed days and holidays, outside opening hours, in the past and beyond the future days limit, and over an existing booking, each time after confirming a warning that lists every rule the booking breaks. Disable this to apply every rule to them too."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "With every space of a calendar shown (\"All\" in the space filter), a day is open when at least one active space opens on it, and the booking form lists only the spaces open that day. A day on which no space opens renders closed and cannot be picked."
+msgstr ""
+
+#: includes/core/class-ffc-override-warning.php
+msgid "You can confirm now."
+msgstr ""
+
+#: templates/emails/audience-admin-cancellation.php
+msgid "Your booking was cancelled by an administrator"
+msgstr ""
+
+#: templates/emails/audience-admin-cancellation.php
+msgid "Your booking was cancelled by an administrator: {{schedule_name}}"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:75
+msgid "book outside the calendar rules and over an occupied slot, after the warning, on calendars whose Admin bypass toggle is on; also see every calendar and cancel any booking. Held by the FFC Audience Calendars - Administrator role and FFC Administrator. ffc_bypass_appointments no longer reaches audience calendars."
+msgstr ""
+
+#: includes/settings/views/documentation/email-texts-hub.php
+msgid "global only; a schedule does not override it."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:33
+msgid "A CSV export carries personal data in clear only for a holder of the module's PII capability, and each such export writes a \"Personal Data Exported\" activity-log entry; anyone else allowed to export receives the same columns masked."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:30
+msgid "A list offers \"Reveal this page\" above its masked values: it reveals every value listed at once and writes one activity-log entry naming the records."
+msgstr ""
+
+#: includes/settings/views/documentation/submissions-list.php:53
+msgid "Administrators (manage_options) hold all of the above. Personal data starts masked for everyone, on the list and on the edit screen alike: administrators reveal a value with the Reveal button, as a holder of ffc_view_certificates_pii does, the list also offers \"Reveal this page\", and every reveal is audited. A CSV export carries the personal columns in clear only with ffc_view_certificates_pii, and is recorded in the activity log. See Capabilities & Roles."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:298
+msgid "Date Messages Personal Data Revealed"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:34
+msgid "E-mails to staff (new submission and new appointment notices, the Date Messages summary) carry personal data masked, with a link to the screen where the recipient can reveal it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:80
+msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators. Names are masked, here and in the recipient preview; Reveal shows one and \"Reveal this page\" all of them, each recorded in the activity log."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-custom-fields.php:321
+msgid "Masked. Revealing it requires the audience PII capability."
+msgstr ""
+
+#: templates/emails/date-message-digest.php:72
+msgid "Names are masked in this e-mail. Open Date Messages to reveal them; each reveal is recorded in the activity log."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ajax.php:397
+msgid "Nothing to reveal."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:29
+msgid "On screen, CPF/RF, e-mail, phone and the other sensitive fields start masked for every member of staff, WordPress administrators and FFC Administrator included: nobody sees another person's data without revealing it. Each module reveals through its own capability (ffc_view_<module>_pii), held by the module's Manager and Administrator roles and by FFC Administrator; FFC Read-only never reveals. Every reveal on submissions, appointments, reregistration, the audience screens, the user-edit screen and Date Messages writes an activity-log entry. Revealing recruitment PII is logged too (repeat reveals of the same field within a minute are not logged again, and a recruitment setting can switch this audit off)."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:154
+msgid "On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand, and \"Reveal this page\" reveals every email listed. Every reveal and every opening of View Details writes an activity-log entry, whoever opens it. An export by the Operator, who holds no PII capability, carries the email and the sensitive fields masked."
+msgstr ""
+
+#: templates/emails/date-message-digest.php:74
+msgid "Open Date Messages"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:254
+msgid "Personal Data Exported"
+msgstr ""
+
+#: templates/emails/appointment-admin-notification.php:24
+msgid "Personal data is masked in this e-mail. Open the appointments screen to reveal it; each reveal is recorded in the activity log."
+msgstr ""
+
+#: templates/emails/submission-admin-notification.php:24
+msgid "Personal data is masked in this e-mail. Open the submissions screen to reveal it; each reveal is recorded in the activity log."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-capabilities.php:39
+msgid "Personal data stays masked for every tier. The Manager and the Administrator hold the module's ffc_view_<module>_pii capability, which reveals a value or a whole list page with the Reveal button; every reveal is recorded in the activity log. No role, FFC Administrator included, sees another person's data without revealing it, and FFC Read-only never reveals."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:279
+msgid "Profile Personal Data Revealed"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:298
+msgid "Reveal audience PII"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:299
+msgid "Reveal the email of a person listed on the audience screens and the sensitive custom fields on a user's profile, and export them in clear (audited). Without it they stay masked (#1863)."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-custom-fields.php:319 includes/shortcodes/class-ffc-dashboard-asset-manager.php:303
+msgid "Reveal the value to edit it."
+msgstr ""
+
+#: includes/core/class-ffc-pii-reveal.php:47
+msgid "Reveal this page"
+msgstr ""
+
+#: includes/core/class-ffc-pii-reveal.php:48
+msgid "Shows every masked value listed here. The reveal is recorded in the activity log."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:32
+msgid "The Members tab and a calendar's User access tab show each person's account email masked, for everyone. Holders of ffc_view_audiences_pii (the Audience Calendars Manager and Administrator roles, FFC Administrator and WordPress administrators) get a Reveal button beside each address and \"Reveal this page\" above the members list, and every reveal writes an Activity Log entry. The Viewer and Operator roles see the email masked."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:35
+msgid "The REST API returns personal data masked too. A caller allowed to reveal adds reveal=1 to a submission or appointment request to receive it in clear, and that read is audited."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:32
+msgid "The activity log and identity resolution belong to FFC Administrator and WordPress administrators alone. Those screens show the data they need unmasked, because the screens themselves are restricted."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-emails.php:20
+msgid "The notices sent to staff carry personal data masked (CPF, RF, e-mail, phone, names in the Date Messages summary), with a link to the screen where it can be revealed and audited."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:31
+msgid "The person the data belongs to sees their own data unmasked in their dashboard. An administrator using \"View as user\" sees it masked, and reveals a field with the same audited button."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:71
+msgid "The phone on the appointment detail is masked and revealed the same way, the list offers \"Reveal this page\", and an export carries e-mail, phone and IP in clear only with this capability. The audience screens reveal through ffc_view_audiences_pii since 6.40.0."
+msgstr ""
+
+#: includes/api/class-ffc-user-profile-rest-controller.php:399
+msgid "There is nothing to reveal on your own profile."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ajax.php:400
+msgid "Too many values to reveal at once."
+msgstr ""
+
+#: templates/emails/submission-admin-notification.php:26
+msgid "View Submissions"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:77
+msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators), and travel masked, with a link to Date Messages; everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen, listed by name with the e-mail masked."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ajax.php:434
+msgid "You do not have permission to reveal these values."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php:47
+msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\"). The other user's e-mail addresses, phone and birth date appear masked, each with a Reveal button that writes an activity-log entry, and a masked field cannot be saved over until it is revealed. The person themselves always sees their own data."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:74
+msgid "reveal the account email of the people on the Members and User access tabs and the sensitive custom fields on another user's profile, with an audited Reveal; a members export carries the email in clear only with it. Existing holders of ffc_manage_audiences received it on update."
 msgstr ""

@@ -28,6 +28,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SubmissionContext {
 
 	/**
+	 * Request values the stages read instead of `$_POST`, or null to read
+	 * `$_POST`. The REST submit route sets it to the JSON body, so it runs
+	 * the same stages as the web form (#1861). Read through
+	 * {@see SubmissionInput}, never directly.
+	 *
+	 * @var array<string, mixed>|null
+	 */
+	public ?array $input = null;
+
+	/**
 	 * Whether a valid schedule-exception token accompanied the request.
 	 *
 	 * @var bool

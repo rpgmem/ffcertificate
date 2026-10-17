@@ -424,6 +424,134 @@ class DocumentFormatter {
 	}
 
 	/**
+	 * Mask an IP address for privacy (#1760).
+	 *
+	 * IPv4 keeps its first two octets (`192.168.***.***`); IPv6 keeps its
+	 * first four groups, the network half, and masks the interface half
+	 * (`2001:db8:85a3:0:****:****:****:****`). A compressed IPv6 address is
+	 * expanded first, so the four groups kept are always the leading ones.
+	 * A value that is not an IP is masked whole rather than returned, so a
+	 * malformed stored value never reaches the page in clear.
+	 *
+	 * @since 6.40.0
+	 * @param string $ip IP address.
+	 * @return string Masked IP, or '' for an empty input.
+	 */
+	public static function mask_ip( string $ip ): string {
+		$ip = trim( $ip );
+		if ( '' === $ip ) {
+			return '';
+		}
+
+		if ( false !== filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
+			$octets = explode( '.', $ip );
+			return $octets[0] . '.' . $octets[1] . '.***.***';
+		}
+
+		if ( false !== filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
+			$packed = inet_pton( $ip );
+			if ( false !== $packed && 16 === strlen( $packed ) ) {
+				$groups = array_map(
+					static fn( string $pair ): string => dechex( (int) hexdec( $pair ) ),
+					str_split( bin2hex( $packed ), 4 )
+				);
+				return implode( ':', array_slice( $groups, 0, 4 ) ) . ':****:****:****:****';
+			}
+		}
+
+		return '***';
+	}
+
+	/**
+	 * Mask a phone number for privacy (#1863).
+	 *
+	 * Keeps the last two digits and replaces every other digit with `*`,
+	 * leaving the punctuation where it was, so `(11) 98765-4321` reads
+	 * `(**) *****-**21`. A value with fewer than four digits is masked whole.
+	 *
+	 * @since 6.40.0
+	 * @param string $phone Phone number, in any format.
+	 * @return string Masked phone, or '' for an empty input.
+	 */
+	public static function mask_phone( string $phone ): string {
+		$phone = trim( $phone );
+		if ( '' === $phone ) {
+			return '';
+		}
+
+		$digits = (int) preg_match_all( '/[0-9]/', $phone );
+		if ( $digits < 4 ) {
+			return '***';
+		}
+
+		$keep   = 2;
+		$seen   = 0;
+		$masked = '';
+		foreach ( str_split( $phone ) as $char ) {
+			if ( ctype_digit( $char ) ) {
+				++$seen;
+				$masked .= $seen > $digits - $keep ? $char : '*';
+			} else {
+				$masked .= $char;
+			}
+		}
+		return $masked;
+	}
+
+	/**
+	 * Mask a person's name for privacy (#1863): each word keeps its first
+	 * letter, so `Maria da Silva` reads `M*** d* S***`. Used where a name
+	 * travels with other personal data (a birthday), never for the names
+	 * every list prints to tell its rows apart.
+	 *
+	 * @since 6.40.0
+	 * @param string $name Name.
+	 * @return string Masked name, or '' for an empty input.
+	 */
+	public static function mask_name( string $name ): string {
+		$words = preg_split( '/\s+/u', trim( $name ), -1, PREG_SPLIT_NO_EMPTY );
+		if ( ! is_array( $words ) || array() === $words ) {
+			return '';
+		}
+
+		$out = array();
+		foreach ( $words as $word ) {
+			$first = function_exists( 'mb_substr' ) ? mb_substr( $word, 0, 1 ) : substr( $word, 0, 1 );
+			$len   = function_exists( 'mb_strlen' ) ? mb_strlen( $word ) : strlen( $word );
+			$out[] = $first . str_repeat( '*', max( 1, min( 3, $len - 1 ) ) );
+		}
+		return implode( ' ', $out );
+	}
+
+	/**
+	 * Mask any personal value by its field key (#1863): the dedicated mask
+	 * for a key {@see mask_field_value()} knows, a phone mask for a phone, and
+	 * for anything else its first character followed by `***`, so no value
+	 * passed here ever comes back in clear.
+	 *
+	 * @since 6.40.0
+	 * @param string $field_key Field key.
+	 * @param string $value     Clear value.
+	 * @return string Masked value, or '' for an empty input.
+	 */
+	public static function mask_any( string $field_key, string $value ): string {
+		if ( '' === $value ) {
+			return '';
+		}
+		if ( in_array( $field_key, array( 'phone', 'telefone', 'celular' ), true ) ) {
+			return self::mask_phone( $value );
+		}
+
+		$masked = self::mask_field_value( $field_key, $value );
+		if ( is_string( $masked ) && $masked !== $value ) {
+			return $masked;
+		}
+
+		$first = function_exists( 'mb_substr' ) ? mb_substr( $value, 0, 1 ) : substr( $value, 0, 1 );
+		return $first . '***';
+	}
+
+	/**
 	 * Mask one form-field value by its key, for surfaces that must not leak the
 	 * PII collected inside a submission's `data` blob (the public `/valid`
 	 * verification page and the `/verify` REST endpoint). Returns the raw masked

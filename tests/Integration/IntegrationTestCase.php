@@ -94,6 +94,65 @@ abstract class IntegrationTestCase extends TestCase {
 		$this->install_wp_boundary();
 	}
 
+	/**
+	 * Boot against an ESTABLISHED, up-to-date install instead of an empty
+	 * database: every table exists, and the two schemas gated on a stored
+	 * version rather than on `table_exists()` are current. Call from a
+	 * bootstrap smoke's setUp() after parent::setUp() (#1793).
+	 *
+	 * Without it the boot found no tables and fell through to `dbDelta()`,
+	 * and which `dbDelta` ran depended on the process: the no-op from the
+	 * bootstrap's `upgrade.php` stub, or — once an earlier test had stubbed
+	 * it through Brain\Monkey, as PluginActivationSmokeTest does — Patchwork's
+	 * leftover definition, which throws "not defined nor mocked". This chooses
+	 * the branch instead of inheriting it, so no chain reaches a `CREATE`.
+	 * `dbDelta` is deliberately NOT stubbed here: a stub stays defined for the
+	 * rest of the process, which is the order-dependence being fixed
+	 * (CLAUDE.md "Quality gates and testing" → "Test infrastructure").
+	 *
+	 * Not the default: PluginActivationSmokeTest needs the empty database so
+	 * that activation issues its `CREATE`s.
+	 */
+	protected function use_established_install(): void {
+		$GLOBALS['wpdb'] = new class() extends \wpdb {
+			/**
+			 * Substitutes the table name into the table-existence probe only;
+			 * every other query keeps the base stub's behaviour.
+			 *
+			 * @param string $query   Query with placeholders.
+			 * @param mixed  ...$args Placeholder values.
+			 * @return string
+			 */
+			public function prepare( $query, ...$args ) {
+				if ( 'SHOW TABLES LIKE %s' === $query && isset( $args[0] ) ) {
+					return "SHOW TABLES LIKE '" . $args[0] . "'";
+				}
+				return parent::prepare( $query, ...$args );
+			}
+
+			/**
+			 * Answers the table-existence probe with the table name.
+			 *
+			 * @param string|null $query Query.
+			 * @param int         $x     Column offset.
+			 * @param int         $y     Row offset.
+			 * @return mixed
+			 */
+			public function get_var( $query = null, $x = 0, $y = 0 ) {
+				if ( is_string( $query ) && 1 === preg_match( "/^SHOW TABLES LIKE '(.+)'$/", $query, $m ) ) {
+					return $m[1];
+				}
+				return parent::get_var( $query, $x, $y );
+			}
+		};
+
+		// These two re-run their dbDelta whenever the stored version differs,
+		// tables present or not. The versions are read from the code, so a
+		// bump there cannot leave this seed stale.
+		$this->options['ffc_rate_limit_db_version']   = \FreeFormCertificate\Security\RateLimitActivator::DB_VERSION;
+		$this->options['ffc_activity_log_db_version'] = ( new \ReflectionClassConstant( \FreeFormCertificate\Core\ActivityLog::class, 'DB_VERSION' ) )->getValue();
+	}
+
 	protected function tearDown(): void {
 		Monkey\tearDown();
 		unset( $GLOBALS['wpdb'] );
@@ -261,6 +320,7 @@ abstract class IntegrationTestCase extends TestCase {
 				'sanitize_text_field',
 				'sanitize_key',
 				'sanitize_title',
+				'sanitize_sql_orderby',
 				'wp_unslash',
 				'wp_kses_post',
 				'trailingslashit',
@@ -335,6 +395,10 @@ abstract class IntegrationTestCase extends TestCase {
 				'ffc_identities_cap_v1',
 				'ffc_identity_verbs_cap_v1',
 				'ffc_grade_cap_v1',
+				'ffc_reregistration_pii_cap_v1',
+				'ffc_audiences_pii_cap_v1',
+				'ffc_forms_api_submit_cap_v1',
+				'ffc_role_tiers_v1',
 			) as $flag
 		) {
 			$this->options[ $flag ] = '1';

@@ -181,7 +181,7 @@ describe('locations-crud — saveRow on blur', () => {
 		await new Promise((r) => setTimeout(r, 0));
 
 		const $badge = window.$('.ffc-location-row .ffc-autosave-badge').first();
-		expect($badge.hasClass('ffc-autosave-badge--saved')).toBe(true);
+		expect($badge.hasClass('is-success')).toBe(true);
 		expect($badge.text()).toBe('Saved');
 	});
 
@@ -202,7 +202,7 @@ describe('locations-crud — saveRow on blur', () => {
 		await new Promise((r) => setTimeout(r, 0));
 
 		const $badge = window.$('.ffc-location-row .ffc-autosave-badge').first();
-		expect($badge.hasClass('ffc-autosave-badge--error')).toBe(true);
+		expect($badge.hasClass('is-error')).toBe(true);
 		expect($badge.text()).toBe('Quota exceeded');
 	});
 
@@ -224,7 +224,7 @@ describe('locations-crud — saveRow on blur', () => {
 		await Promise.resolve(); await Promise.resolve();
 
 		const $badge = window.$('.ffc-location-row .ffc-autosave-badge').first();
-		expect($badge.hasClass('ffc-autosave-badge--saved')).toBe(true);
+		expect($badge.hasClass('is-success')).toBe(true);
 
 		vi.advanceTimersByTime(1800);
 		expect($badge.attr('hidden')).toBe('hidden');
@@ -363,7 +363,7 @@ describe('locations-crud — deleteRow', () => {
 
 		expect(window.$('.ffc-location-row').length).toBe(1);
 		const $badge = window.$('.ffc-location-row .ffc-autosave-badge');
-		expect($badge.hasClass('ffc-autosave-badge--error')).toBe(true);
+		expect($badge.hasClass('is-error')).toBe(true);
 		expect($badge.text()).toBe('In use');
 	});
 });
@@ -450,7 +450,7 @@ describe('locations-crud — addRow', () => {
 		expect(window.$('.ffc-location-row').length).toBe(0);
 		// Badge shows the server message.
 		const $badge = window.$('#ffc-location-new-row .ffc-autosave-badge');
-		expect($badge.hasClass('ffc-autosave-badge--error')).toBe(true);
+		expect($badge.hasClass('is-error')).toBe(true);
 		expect($badge.text()).toBe('Bad lat');
 	});
 
@@ -468,7 +468,7 @@ describe('locations-crud — addRow', () => {
 		await new Promise((r) => setTimeout(r, 0));
 
 		const $badge = window.$('#ffc-location-new-row .ffc-autosave-badge');
-		expect($badge.hasClass('ffc-autosave-badge--error')).toBe(true);
+		expect($badge.hasClass('is-error')).toBe(true);
 		expect($badge.text()).toBe('Failed');
 	});
 });

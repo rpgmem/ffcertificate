@@ -160,7 +160,7 @@ final class JsIdSelectors {
 	 * comment, and a naive scan would erase the rest of the line -- and with it
 	 * any lookup that came after.
 	 */
-	private static function strip_comments( string $src ): string {
+	public static function strip_comments( string $src ): string {
 		$out    = '';
 		$len    = strlen( $src );
 		$quote  = '';

@@ -62,7 +62,11 @@ class RoleRegistrarTest extends TestCase {
 
 		$prev = null;
 		foreach ( array_slice( $slugs, 3 ) as $slug ) {
-			$module = (string) preg_replace( '/^FFC\s+| - .*$/u', '', $labels[ $slug ] );
+			// Everything before the LAST " - " (the tier): a module's part
+			// stays in it, so "Certificates - Forms" sorts as one block (#1860).
+			$label  = $labels[ $slug ];
+			$cut    = strrpos( $label, ' - ' );
+			$module = (string) preg_replace( '/^FFC\s+/u', '', false === $cut ? $label : substr( $label, 0, $cut ) );
 			$tier   = 99;
 			foreach ( $tier_suffix as $suffix => $rank ) {
 				if ( str_ends_with( $slug, $suffix ) ) {

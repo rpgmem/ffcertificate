@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h1><?php echo esc_html( $title ); ?></h1>
 		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Reregistrations', 'ffcertificate' ); ?></a>
 
-		<?php settings_errors( 'ffc_reregistration' ); ?>
+		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_reregistration' ); ?>
 
 		<form method="post" action="" class="ffc-form">
 			<?php wp_nonce_field( 'save_reregistration', 'ffc_reregistration_nonce' ); ?>
@@ -32,22 +32,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<h2 class="ffc-icon-user-check"><?php esc_html_e( 'Campaign', 'ffcertificate' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
-					<th scope="row"><label for="rereg_title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label></th>
+					<th scope="row"><label for="rereg_title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label></th>
 					<td><input type="text" name="rereg_title" id="rereg_title" class="regular-text" value="<?php echo esc_attr( $item->title ?? '' ); ?>" required></td>
 				</tr>
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?> <span class="ffc-required">*</span></th>
+					<th scope="row"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></th>
 					<td>
 						<?php \FreeFormCertificate\Audience\AudienceTransferList::render( $selected_ids, 'rereg_audience_ids[]', true ); ?>
 						<p class="description ffc-transfer-member-count"></p>
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="rereg_start"><?php esc_html_e( 'Start Date', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label></th>
+					<th scope="row"><label for="rereg_start"><?php esc_html_e( 'Start Date', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label></th>
 					<td><input type="datetime-local" name="rereg_start_date" id="rereg_start" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', (int) strtotime( $item->start_date ) ) : '' ); ?>" required></td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="rereg_end"><?php esc_html_e( 'End Date', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label></th>
+					<th scope="row"><label for="rereg_end"><?php esc_html_e( 'End Date', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label></th>
 					<td><input type="datetime-local" name="rereg_end_date" id="rereg_end" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', (int) strtotime( $item->end_date ) ) : '' ); ?>" required></td>
 				</tr>
 				<tr>
@@ -71,6 +71,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'name'    => 'rereg_auto_approve',
 								'checked' => ! empty( $item->auto_approve ),
 								'label'   => __( 'Auto-approve submissions (no manual review needed)', 'ffcertificate' ),
+								'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'reregistration', $id, 'auto_approve' ),
 							)
 						);
 						?>
@@ -112,7 +113,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 									array(
 										'name'    => 'rereg_email_invitation',
 										'checked' => ! empty( $item->email_invitation_enabled ),
-										'label'   => __( 'Send invitation email when activated', 'ffcertificate' ),
+										'label'   => __( 'Send invitation email (daily run after activation)', 'ffcertificate' ),
+										'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'reregistration', $id, 'email_invitation_enabled' ),
 									)
 								);
 								?>
@@ -124,6 +126,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 										'name'    => 'rereg_email_reminder',
 										'checked' => ! empty( $item->email_reminder_enabled ),
 										'label'   => __( 'Send reminder email before deadline', 'ffcertificate' ),
+										'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'reregistration', $id, 'email_reminder_enabled' ),
 									)
 								);
 								?>
@@ -135,6 +138,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 										'name'    => 'rereg_email_confirmation',
 										'checked' => ! empty( $item->email_confirmation_enabled ),
 										'label'   => __( 'Send confirmation email after submission', 'ffcertificate' ),
+										'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'reregistration', $id, 'email_confirmation_enabled' ),
 									)
 								);
 								?>
@@ -181,7 +185,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<h2 class="ffc-icon-send"><?php esc_html_e( 'Invitations', 'ffcertificate' ); ?></h2>
 			<div class="inside">
 				<p class="description">
-					<?php esc_html_e( 'Sends the invitation to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished.', 'ffcertificate' ); ?>
+					<?php esc_html_e( 'Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished.', 'ffcertificate' ); ?>
 				</p>
 				<button type="button" class="button button-secondary" id="ffc-rereg-send-invitations" data-rereg-id="<?php echo esc_attr( (string) $id ); ?>">
 					<?php esc_html_e( 'Send invitations', 'ffcertificate' ); ?>

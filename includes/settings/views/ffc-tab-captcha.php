@@ -33,22 +33,19 @@ $ffc_is_ssl      = is_ssl();
  */
 $ffc_modes = array(
 	MathCaptcha::ID      => array(
-		'label'   => __( 'Math challenge only', 'ffcertificate' ),
+		'label'   => __( 'Math', 'ffcertificate' ),
 		'summary' => __( 'An arithmetic question the visitor answers. Works everywhere — no JavaScript, no HTTPS required.', 'ffcertificate' ),
 		'warning' => __( 'Weakest option against automation: the answer space is small, so a script that solves arithmetic gets through. Signed, expiring and single-use tokens stop a captured answer from being replayed, but they do not make the question harder.', 'ffcertificate' ),
-		'level'   => 'warning',
 	),
 	CompositeCaptcha::ID => array(
-		'label'   => __( 'ALTCHA, with the math challenge as fallback', 'ffcertificate' ),
+		'label'   => __( 'ALTCHA + Math', 'ffcertificate' ),
 		'summary' => __( 'Visitors with JavaScript solve a proof of work; everyone else answers the arithmetic question.', 'ffcertificate' ),
 		'warning' => __( 'This is reach, not strength. The server accepts either proof, so an attacker simply picks the cheaper one — the effective security equals the math challenge alone. Choose it when some of your visitors cannot run the widget.', 'ffcertificate' ),
-		'level'   => 'warning',
 	),
 	AltchaCaptcha::ID    => array(
 		'label'   => __( 'ALTCHA only', 'ffcertificate' ),
 		'summary' => __( 'Every visitor solves a proof of work in the browser. Nothing is sent to any third party.', 'ffcertificate' ),
 		'warning' => __( 'Requires JavaScript and HTTPS. A visitor with JavaScript disabled cannot submit the form at all — acceptable when the audience is known, such as staff filling in forms on a workstation.', 'ffcertificate' ),
-		'level'   => 'info',
 	),
 );
 ?>
@@ -63,12 +60,9 @@ $ffc_modes = array(
 
 	<?php if ( ! $ffc_is_ssl ) : ?>
 		<?php
-		wp_admin_notice(
-			esc_html__( 'This site is not being served over HTTPS. The ALTCHA widget refuses to run outside a secure connection, so the ALTCHA-only mode cannot be selected here — the fallback mode remains available.', 'ffcertificate' ),
-			array(
-				'type'               => 'warning',
-				'additional_classes' => array( 'inline' ),
-			)
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'warning',
+			esc_html__( 'This site is not being served over HTTPS. The ALTCHA widget refuses to run outside a secure connection, so the ALTCHA-only mode cannot be selected here — the fallback mode remains available.', 'ffcertificate' )
 		);
 		?>
 	<?php endif; ?>
@@ -82,25 +76,27 @@ $ffc_modes = array(
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Mode', 'ffcertificate' ); ?></th>
 				<td>
-					<fieldset>
-						<legend class="screen-reader-text"><?php esc_html_e( 'Captcha mode', 'ffcertificate' ); ?></legend>
-						<?php foreach ( $ffc_modes as $ffc_mode_id => $ffc_mode ) : ?>
-							<?php $ffc_blocked = ( AltchaCaptcha::ID === $ffc_mode_id && ! $ffc_is_ssl ); ?>
-							<p class="ffc-captcha-mode">
-								<label>
-									<input type="radio" name="ffc_settings[captcha_provider]"
-										value="<?php echo esc_attr( $ffc_mode_id ); ?>"
-										<?php checked( $ffc_provider, $ffc_mode_id ); ?>
-										<?php disabled( $ffc_blocked ); ?> />
-									<strong><?php echo esc_html( $ffc_mode['label'] ); ?></strong>
-								</label>
-								<span class="description ffc-captcha-mode-summary"><?php echo esc_html( $ffc_mode['summary'] ); ?></span>
-								<span class="description ffc-captcha-mode-note ffc-captcha-mode-note--<?php echo esc_attr( $ffc_mode['level'] ); ?>">
-									<?php echo esc_html( $ffc_mode['warning'] ); ?>
-								</span>
-							</p>
-						<?php endforeach; ?>
-					</fieldset>
+					<?php
+					/*
+					 * Steps from the weakest to the strongest, so the traffic palette
+					 * reads red, amber, green (#1758). Each step's consequence is its description, so the
+					 * warning still travels with the option. The ALTCHA-only stop
+					 * is disabled without HTTPS; the save handler refuses it too.
+					 */
+					\FreeFormCertificate\Admin\AdminUI::render_steps(
+						array(
+							'name'             => 'ffc_settings[captcha_provider]',
+							'id'               => 'ffc_captcha_provider',
+							'value'            => $ffc_provider,
+							'default'          => MathCaptcha::ID,
+							'palette'          => 'traffic',
+							'legend'           => __( 'Captcha mode', 'ffcertificate' ),
+							'options'          => array_map( static fn( array $mode ): string => $mode['label'], $ffc_modes ),
+							'descriptions'     => array_map( static fn( array $mode ): string => $mode['summary'] . ' ' . $mode['warning'], $ffc_modes ),
+							'disabled_options' => $ffc_is_ssl ? array() : array( AltchaCaptcha::ID ),
+						)
+					);
+					?>
 				</td>
 			</tr>
 			</tbody>
@@ -207,19 +203,36 @@ $ffc_modes = array(
 			</tr>
 
 			<tr>
-				<th scope="row"><?php esc_html_e( 'Attribution', 'ffcertificate' ); ?></th>
+				<th scope="row"><?php esc_html_e( 'Display', 'ffcertificate' ); ?></th>
 				<td>
-					<fieldset>
-						<legend class="screen-reader-text"><?php esc_html_e( 'Widget attribution', 'ffcertificate' ); ?></legend>
-						<label>
-							<input type="checkbox" name="ffc_settings[captcha_altcha_hide_logo]" value="1" <?php checked( $ffc_hide_logo, 1 ); ?> />
-							<?php esc_html_e( 'Hide the ALTCHA logo', 'ffcertificate' ); ?>
-						</label><br />
-						<label>
-							<input type="checkbox" name="ffc_settings[captcha_altcha_hide_footer]" value="1" <?php checked( $ffc_hide_footer, 1 ); ?> />
-							<?php esc_html_e( 'Hide the "Protected by ALTCHA" footer', 'ffcertificate' ); ?>
-						</label>
-					</fieldset>
+					<div class="ffc-control-toggle-stack">
+					<?php
+					/*
+					 * Worded as what is shown, so on means visible (#1758). The
+					 * stored keys still say what is hidden, so these post
+					 * `captcha_altcha_show_*` and the save handler inverts them.
+					 * Each description says what the visitor sees (#1816).
+					 */
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'        => 'ffc_settings[captcha_altcha_show_logo]',
+							'id'          => 'captcha_altcha_show_logo',
+							'checked'     => 1 !== $ffc_hide_logo,
+							'label'       => __( 'ALTCHA logo', 'ffcertificate' ),
+							'description' => __( 'On: the widget on the public form shows the ALTCHA logo beside the challenge. Off: the logo is hidden and only the challenge remains.', 'ffcertificate' ),
+						)
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'        => 'ffc_settings[captcha_altcha_show_footer]',
+							'id'          => 'captcha_altcha_show_footer',
+							'checked'     => 1 !== $ffc_hide_footer,
+							'label'       => __( '"Protected by ALTCHA" footer', 'ffcertificate' ),
+							'description' => __( 'On: a "Protected by ALTCHA" line linking to altcha.org appears at the bottom of the widget. Off: the line is hidden. The challenge works the same either way.', 'ffcertificate' ),
+						)
+					);
+					?>
+					</div>
 				</td>
 			</tr>
 			</tbody>

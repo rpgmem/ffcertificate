@@ -41,10 +41,6 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 		Functions\when( 'get_posts' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->alias( function ( $action, $name ) { echo "<input name=\"{$name}\" />"; } );
 
-		if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
-			define( 'FFC_PLUGIN_DIR', '/tmp/ffc_test/' );
-		}
-
 		$this->metabox = new FormEditorLayoutMetabox();
 	}
 

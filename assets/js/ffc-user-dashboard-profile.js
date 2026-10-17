@@ -16,10 +16,11 @@
     // Attribute-safe escape (encodes the double quote esc() leaves through) for
     // values interpolated into value="…"/style="…" attributes — #837 S12.
     var escAttr = helpers.escAttr;
+    var setStatus = helpers.setStatus;
 
     // Profile shows three multi-value fields (names, emails, CPFs) that all
     // share the same single/list/fallback pattern with different list classes.
-    function renderListField(label, listClass, items, fallback) {
+    function renderListField(label, listClass, items, fallback, revealField) {
         var html = '<div class="ffc-profile-field"><label>' + label + '</label>';
         if (items && items.length > 1) {
             html += '<ul class="' + listClass + '">';
@@ -30,8 +31,56 @@
         } else {
             html += '<div class="ffc-field-value">' + esc(fallback || '-') + '</div>';
         }
+        html += revealButton(revealField);
         html += '</div>';
         return html;
+    }
+
+    /**
+     * "View as user" (#1863): the email addresses, phone and birth date of
+     * the viewed account arrive masked, and each is revealed on request
+     * through the audited /user/profile/reveal route. Nothing to reveal on
+     * the owner's own profile.
+     */
+    function isMasked(profile, field) {
+        return !!(profile && profile.pii_masked && !(profile.revealed && profile.revealed[field]));
+    }
+
+    function revealButton(field) {
+        var profile = FFCDashboard.panels.profile.state;
+        if (!field || !isMasked(profile, field) || !profile.can_reveal) {
+            return '';
+        }
+        return ' <button type="button" class="button ffc-profile-reveal-btn" data-field="' + escAttr(field) + '">' +
+            esc(ffcDashboard.strings.reveal || 'Reveal') + '</button>';
+    }
+
+    function revealField(field, $btn) {
+        var panel = FFCDashboard.panels.profile;
+        var url = ffcDashboard.restUrl + 'user/profile/reveal';
+        if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
+
+        $btn.prop('disabled', true);
+        return FFC.rest(url, { method: 'POST', data: { field: field }, nonce: ffcDashboard.nonce })
+            .then(function (response) {
+                var state = panel.state || {};
+                state.revealed = state.revealed || {};
+                state.revealed[field] = true;
+                if (field === 'email') {
+                    state.email = response.value;
+                    state.emails = response.values || [];
+                } else if (field === 'phone') {
+                    state.phone = response.value;
+                } else if (field === 'birth_date') {
+                    state.birth_date = response.value;
+                    state.birth_date_display = response.display;
+                }
+                panel.render(state);
+            })
+            .catch(function () {
+                $btn.prop('disabled', false);
+                window.alert(ffcDashboard.strings.revealError || 'Unable to reveal this value.');
+            });
     }
 
     // defaultOn: a key that means RECEIVE when absent (date messages are sent
@@ -62,7 +111,13 @@
         html += '<div class="ffc-profile-field"><label for="ffc-edit-phone">' + (s.phone || 'Phone:') + '</label>';
         // (DD) 98765-4321: area code plus up to nine digits, masked by the
         // same formatter the reregistration form uses.
-        html += '<input type="tel" id="ffc-edit-phone" value="' + escAttr(maskedPhone(profile.phone)) + '" maxlength="15" data-mask="phone" inputmode="numeric" /></div>';
+        if (isMasked(profile, 'phone')) {
+            // Masked in view-as until revealed (#1863): shown, never posted.
+            html += '<input type="text" id="ffc-edit-phone" value="' + escAttr(profile.phone) + '" disabled />';
+            html += '<span class="ffc-field-hint">' + esc(s.revealToEdit || 'Reveal the value to edit it.') + '</span></div>';
+        } else {
+            html += '<input type="tel" id="ffc-edit-phone" value="' + escAttr(maskedPhone(profile.phone)) + '" maxlength="15" data-mask="phone" inputmode="numeric" /></div>';
+        }
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-department">' + (s.department || 'Department:') + '</label>';
         html += '<input type="text" id="ffc-edit-department" value="' + escAttr(profile.department) + '" maxlength="250" /></div>';
@@ -71,15 +126,20 @@
         html += '<input type="text" id="ffc-edit-organization" value="' + escAttr(profile.organization) + '" maxlength="250" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-birth-date">' + (s.birthDate || 'Birth date:') + '</label>';
-        html += '<input type="date" id="ffc-edit-birth-date" value="' + escAttr(profile.birth_date) + '" /></div>';
+        if (isMasked(profile, 'birth_date')) {
+            html += '<input type="text" id="ffc-edit-birth-date" value="' + escAttr(profile.birth_date_display) + '" disabled />';
+            html += '<span class="ffc-field-hint">' + esc(s.revealToEdit || 'Reveal the value to edit it.') + '</span></div>';
+        } else {
+            html += '<input type="date" id="ffc-edit-birth-date" value="' + escAttr(profile.birth_date) + '" /></div>';
+        }
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-notes">' + (s.notesLabel || 'Notes:') + '</label>';
         html += '<textarea id="ffc-edit-notes" rows="3" maxlength="1000" placeholder="' + (s.notesPlaceholder || 'Personal notes...') + '">' + esc(profile.notes) + '</textarea></div>';
 
-        html += '<div class="ffc-profile-edit-actions" style="margin-top: 15px;">';
+        html += '<div class="ffc-profile-edit-actions">';
         html += '<button type="button" class="button button-primary ffc-profile-save-btn">' + (s.save || 'Save') + '</button> ';
         html += '<button type="button" class="button ffc-profile-cancel-btn">' + (s.cancel || 'Cancel') + '</button>';
-        html += '<span class="ffc-profile-save-status" style="margin-left: 10px; display: none;"></span>';
+        html += '<span class="ffc-profile-save-status ffc-status" role="status" aria-live="polite" hidden></span>';
         html += '</div></div>';
 
         $container.html(html);
@@ -105,17 +165,23 @@
     function saveProfile() {
         var data = {
             display_name: $('#ffc-edit-display-name').val(),
-            phone: $('#ffc-edit-phone').val(),
             department: $('#ffc-edit-department').val(),
             organization: $('#ffc-edit-organization').val(),
-            notes: $('#ffc-edit-notes').val(),
-            birth_date: $('#ffc-edit-birth-date').val()
+            notes: $('#ffc-edit-notes').val()
         };
+        // A field still masked (view as user, #1863) is left out, so its
+        // mask can never overwrite the stored value.
+        if (!$('#ffc-edit-phone').prop('disabled')) {
+            data.phone = $('#ffc-edit-phone').val();
+        }
+        if (!$('#ffc-edit-birth-date').prop('disabled')) {
+            data.birth_date = $('#ffc-edit-birth-date').val();
+        }
 
         var $saveBtn = $('.ffc-profile-save-btn');
         var $status = $('.ffc-profile-save-status');
         $saveBtn.prop('disabled', true);
-        $status.text(ffcDashboard.strings.saving || 'Saving...').show().css('color', '#666');
+        setStatus($status, ffcDashboard.strings.saving || 'Saving...', 'busy').show();
 
         var url = ffcDashboard.restUrl + 'user/profile';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
@@ -128,7 +194,7 @@
             .catch(function (err) {
                 var msg = (ffcDashboard.strings.saveError || 'Error saving profile');
                 if (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) msg = err.xhr.responseJSON.message;
-                $status.text(msg).css('color', '#d63638');
+                setStatus($status, msg, 'error');
                 $saveBtn.prop('disabled', false);
             });
     }
@@ -140,22 +206,35 @@
         var confirmPwd = $('#ffc-confirm-password').val();
         var $status = $('.ffc-password-status');
 
-        if (!current || !newPwd || !confirmPwd) {
-            $status.text(s.passwordError || 'All fields required').css('color', '#d63638');
-            return;
-        }
-        if (newPwd !== confirmPwd) {
-            $status.text(s.passwordMismatch || 'Passwords do not match').css('color', '#d63638');
-            return;
-        }
-        if (newPwd.length < 8) {
-            $status.text(s.passwordTooShort || 'Min 8 characters').css('color', '#d63638');
+        // Each rule is said under the field it is about, in the
+        // field-message standard (#1844); the status line keeps the
+        // server's answer.
+        var $current = $('#ffc-current-password');
+        var $new = $('#ffc-new-password');
+        var $confirm = $('#ffc-confirm-password');
+        var checks = [
+            [$current, current ? '' : FFC.requiredMessage()],
+            [$new, !newPwd ? FFC.requiredMessage() : (newPwd.length < 8 ? (s.passwordTooShort || 'Min 8 characters') : '')],
+            [$confirm, !confirmPwd ? FFC.requiredMessage() : (newPwd && newPwd !== confirmPwd ? (s.passwordMismatch || 'Passwords do not match') : '')]
+        ];
+        var $first = null;
+        checks.forEach(function (check) {
+            if (check[1]) {
+                FFC.fieldMessage(check[0], 'error', check[1]);
+                $first = $first || check[0];
+            } else {
+                FFC.clearFieldMessage(check[0]);
+            }
+        });
+        if ($first) {
+            setStatus($status, '', '');
+            $first.trigger('focus');
             return;
         }
 
         var $btn = $('.ffc-password-save-btn');
         $btn.prop('disabled', true);
-        $status.text(s.saving || 'Saving...').css('color', '#666');
+        setStatus($status, s.saving || 'Saving...', 'busy');
 
         var url = ffcDashboard.restUrl + 'user/change-password';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
@@ -166,33 +245,33 @@
             nonce: ffcDashboard.nonce
         })
             .then(function (response) {
-                $status.text(response.message || s.passwordChanged || 'Password changed!').css('color', '#28a745');
-                $('#ffc-current-password, #ffc-new-password, #ffc-confirm-password').val('');
+                setStatus($status, response.message || s.passwordChanged || 'Password changed!', 'success');
+                FFC.clearFieldMessage($('#ffc-current-password, #ffc-new-password, #ffc-confirm-password').val(''));
                 $btn.prop('disabled', false);
             })
             .catch(function (err) {
                 var msg = s.passwordError || 'Error';
                 if (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) msg = err.xhr.responseJSON.message;
-                $status.text(msg).css('color', '#d63638');
+                setStatus($status, msg, 'error');
                 $btn.prop('disabled', false);
             });
     }
 
     function privacyRequest(type) {
         var $status = $('.ffc-lgpd-status');
-        $status.text(ffcDashboard.strings.loading || 'Loading...').css('color', '#666').show();
+        setStatus($status, ffcDashboard.strings.loading || 'Loading...', 'busy').show();
 
         var url = ffcDashboard.restUrl + 'user/privacy-request';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
         FFC.rest(url, { method: 'POST', data: { type: type }, nonce: ffcDashboard.nonce })
             .then(function (response) {
-                $status.text(response.message || ffcDashboard.strings.privacyRequestSent || 'Request sent!').css('color', '#28a745');
+                setStatus($status, response.message || ffcDashboard.strings.privacyRequestSent || 'Request sent!', 'success');
             })
             .catch(function (err) {
                 var msg = ffcDashboard.strings.privacyRequestError || 'Error';
                 if (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) msg = err.xhr.responseJSON.message;
-                $status.text(msg).css('color', '#d63638');
+                setStatus($status, msg, 'error');
             });
     }
 
@@ -212,11 +291,11 @@
                 if (response.preferences && FFCDashboard.panels.profile.state) {
                     FFCDashboard.panels.profile.state.preferences = response.preferences;
                 }
-                $status.text(ffcDashboard.strings.notifSaved || 'Saved').show();
+                setStatus($status, ffcDashboard.strings.notifSaved || 'Saved', 'success').show();
                 setTimeout(function () { $status.fadeOut(); }, 2000);
             })
             .catch(function () {
-                $status.text(ffcDashboard.strings.saveError || 'Error').css('color', '#d63638').show();
+                setStatus($status, ffcDashboard.strings.saveError || 'Error', 'error').show();
             });
     }
 
@@ -225,6 +304,10 @@
 
         bindEvents: function () {
             $(document).on('click', '.ffc-profile-edit-btn', function (e) { e.preventDefault(); showEditForm(); });
+            $(document).on('click', '.ffc-profile-reveal-btn', function (e) {
+                e.preventDefault();
+                revealField($(this).data('field'), $(this));
+            });
             $(document).on('click', '.ffc-profile-save-btn', function (e) { e.preventDefault(); saveProfile(); });
             $(document).on('click', '.ffc-profile-cancel-btn', function (e) {
                 e.preventDefault();
@@ -262,7 +345,7 @@
             FFC.rest(url, { nonce: ffcDashboard.nonce })
                 .then(function (response) { self.render(response); })
                 .catch(function () {
-                    $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
+                    $container.empty().append(FFC.notice('danger', 'error', ffcDashboard.strings.error, '', { role: 'alert' }));
                 });
         },
 
@@ -271,20 +354,16 @@
             this.state = profile;
             var s = ffcDashboard.strings;
 
-            var html = '';
-
-            if (ffcDashboard.logoutUrl) {
-                html += '<div class="ffc-profile-logout"><a href="' + ffcDashboard.logoutUrl + '" class="ffc-logout-link"><span class="ffc-icon-logout" aria-hidden="true"></span>' + (s.logout || 'Log Out') + '</a></div>';
-            }
-
-            html += '<div class="ffc-profile-info">';
+            // Log Out lives in the tab bar, printed by the shortcode, so it
+            // shows on every tab (#1840).
+            var html = '<div class="ffc-profile-info">';
 
             html += renderListField(s.name, 'ffc-name-list', profile.names, profile.display_name);
-            html += renderListField(s.linkedEmails, 'ffc-email-list', profile.emails, profile.email);
+            html += renderListField(s.linkedEmails, 'ffc-email-list', profile.emails, profile.email, 'email');
             html += renderListField(s.cpfRf, 'ffc-cpf-list', profile.cpfs_masked, profile.cpf_masked);
 
             html += '<div class="ffc-profile-field"><label>' + (s.phone || 'Phone:') + '</label>';
-            html += '<div class="ffc-field-value">' + esc(profile.phone || '-') + '</div></div>';
+            html += '<div class="ffc-field-value">' + esc(profile.phone || '-') + '</div>' + (profile.phone ? revealButton('phone') : '') + '</div>';
 
             html += '<div class="ffc-profile-field"><label>' + (s.department || 'Department:') + '</label>';
             html += '<div class="ffc-field-value">' + esc(profile.department || '-') + '</div></div>';
@@ -293,7 +372,7 @@
             html += '<div class="ffc-field-value">' + esc(profile.organization || '-') + '</div></div>';
 
             html += '<div class="ffc-profile-field"><label>' + (s.birthDate || 'Birth date:') + '</label>';
-            html += '<div class="ffc-field-value">' + esc(profile.birth_date_display || '-') + '</div></div>';
+            html += '<div class="ffc-field-value">' + esc(profile.birth_date_display || '-') + '</div>' + (profile.birth_date_display ? revealButton('birth_date') : '') + '</div>';
 
             if (profile.notes) {
                 html += '<div class="ffc-profile-field"><label>' + (s.notesLabel || 'Notes:') + '</label>';
@@ -303,9 +382,9 @@
             if (profile.audience_groups && profile.audience_groups.length > 0) {
                 html += '<div class="ffc-profile-field">';
                 html += '<label>' + (s.audienceGroups || 'Groups') + '</label>';
-                html += '<div class="ffc-field-value" style="display: flex; flex-wrap: wrap; gap: 6px;">';
+                html += '<div class="ffc-field-value ffc-profile-groups">';
                 profile.audience_groups.forEach(function (group) {
-                    html += '<span style="background-color: ' + escAttr(group.color || '#2271b1') + '; color: #fff; padding: 4px 12px; border-radius: 3px; font-size: 13px;">' + esc(group.name) + '</span>';
+                    html += helpers.rowColorTag('ffc-profile-group-tag', group);
                 });
                 html += '</div></div>';
             }
@@ -324,14 +403,15 @@
             html += '</div>';
 
             html += '<div class="ffc-password-form" style="display: none;">';
-            html += '<div class="ffc-profile-field"><label for="ffc-current-password">' + (s.currentPassword || 'Current Password') + '</label>';
-            html += '<input type="password" id="ffc-current-password" autocomplete="current-password" /></div>';
-            html += '<div class="ffc-profile-field"><label for="ffc-new-password">' + (s.newPassword || 'New Password') + '</label>';
-            html += '<input type="password" id="ffc-new-password" autocomplete="new-password" minlength="8" /></div>';
-            html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + '</label>';
-            html += '<input type="password" id="ffc-confirm-password" autocomplete="new-password" /></div>';
+            var req = ' <span class="ffc-required" aria-hidden="true">*</span>';
+            html += '<div class="ffc-profile-field"><label for="ffc-current-password">' + (s.currentPassword || 'Current Password') + req + '</label>';
+            html += '<input type="password" id="ffc-current-password" autocomplete="current-password" required /></div>';
+            html += '<div class="ffc-profile-field"><label for="ffc-new-password">' + (s.newPassword || 'New Password') + req + '</label>';
+            html += '<input type="password" id="ffc-new-password" autocomplete="new-password" minlength="8" required /></div>';
+            html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + req + '</label>';
+            html += '<input type="password" id="ffc-confirm-password" autocomplete="new-password" required /></div>';
             html += '<button type="button" class="button button-primary ffc-password-save-btn">' + (s.save || 'Save') + '</button>';
-            html += '<span class="ffc-password-status" style="margin-left: 10px;"></span>';
+            html += '<span class="ffc-password-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
             // Audience self-join section — populated by ffc-user-dashboard-audience-join.js.
@@ -351,16 +431,16 @@
                 html += buildToggle('notify_date_messages', s.notifDateMessages || 'Date messages (such as birthday greetings)', prefs, true);
             }
             html += '</div>';
-            html += '<span class="ffc-notif-status" style="margin-left: 10px; color: #28a745; display: none;"></span>';
+            html += '<span class="ffc-notif-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
             html += '<div class="ffc-profile-section ffc-lgpd-section">';
             html += '<h3>' + (s.privacySection || 'Privacy & Data (LGPD)') + '</h3>';
             html += '<p class="ffc-lgpd-desc">' + (s.exportDataDesc || 'Request a copy of all your personal data stored in the system.') + '</p>';
             html += '<button type="button" class="button ffc-lgpd-export-btn">' + (s.exportData || 'Export My Data') + '</button>';
-            html += '<p class="ffc-lgpd-desc" style="margin-top: 20px;">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
+            html += '<p class="ffc-lgpd-desc">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
             html += '<button type="button" class="button ffc-lgpd-delete-btn">' + (s.requestDeletion || 'Request Data Deletion') + '</button>';
-            html += '<span class="ffc-lgpd-status" style="margin-left: 10px; display: none;"></span>';
+            html += '<span class="ffc-lgpd-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
             $container.html(html);
@@ -379,7 +459,7 @@
             FFC.rest(url, { nonce: ffcDashboard.nonce })
                 .then(function (response) { self.render(response); })
                 .catch(function () {
-                    $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
+                    $container.empty().append(FFC.notice('danger', 'error', ffcDashboard.strings.error, '', { role: 'alert' }));
                 });
         }
     };

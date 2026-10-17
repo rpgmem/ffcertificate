@@ -30,6 +30,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Admin {
 
 	/**
+	 * `?page=` of the Submissions list, a submenu of the forms' post type.
+	 */
+	public const SUBMISSIONS_PAGE = 'ffc-submissions';
+
+	/**
 	 * Submission handler.
 	 *
 	 * @var \FreeFormCertificate\Submissions\SubmissionHandler
@@ -123,7 +128,7 @@ class Admin {
 			__( 'Submissions', 'ffcertificate' ),
 			__( 'Submissions', 'ffcertificate' ),
 			'ffc_view_certificates',
-			'ffc-submissions',
+			self::SUBMISSIONS_PAGE,
 			array( $this, 'display_submissions_page' )
 		);
 	}
@@ -258,6 +263,7 @@ class Admin {
 				$table->views();
 				$table->search_box( __( 'Search', 'ffcertificate' ), 's' );
 				?>
+				<?php echo \FreeFormCertificate\Core\PiiReveal::page_button( 'ffc_view_certificates_pii' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value. ?>
 				<div class="ffc-table-responsive">
 					<?php $table->display(); ?>
 				</div>
@@ -427,7 +433,7 @@ class Admin {
 		}
 
 		if ( $text ) {
-			echo "<div class='" . esc_attr( $type ) . " notice is-dismissible'><p>" . esc_html( $text ) . '</p></div>';
+			\FreeFormCertificate\Core\AdminNotice::render( $type, esc_html( $text ) );
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
@@ -464,7 +470,8 @@ class Admin {
 		}
 
 		if ( $moved > 0 ) {
-			wp_admin_notice(
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'success',
 				esc_html(
 					sprintf(
 						/* translators: 1: number of moved submissions, 2: target form title */
@@ -477,10 +484,6 @@ class Admin {
 						$moved,
 						$to_title
 					)
-				),
-				array(
-					'type'        => 'success',
-					'dismissible' => true,
 				)
 			);
 		}
@@ -504,22 +507,16 @@ class Admin {
 			if ( '' !== $ids_text ) {
 				$ffc_move_notice .= ' <strong>' . esc_html__( 'Conflict IDs:', 'ffcertificate' ) . '</strong> ' . esc_html( $ids_text );
 			}
-			wp_admin_notice(
-				$ffc_move_notice,
-				array(
-					'type'        => 'warning',
-					'dismissible' => true,
-				)
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
+				$ffc_move_notice
 			);
 		}
 
 		if ( 0 === $moved && 0 === $conflicts ) {
-			wp_admin_notice(
-				esc_html__( 'No submissions matched the selection.', 'ffcertificate' ),
-				array(
-					'type'        => 'warning',
-					'dismissible' => true,
-				)
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
+				esc_html__( 'No submissions matched the selection.', 'ffcertificate' )
 			);
 		}
 	}

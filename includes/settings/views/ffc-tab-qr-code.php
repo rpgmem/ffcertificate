@@ -110,7 +110,7 @@ $ffc_qr_name      = static fn( string $key ): string => 'ffc_settings[' . $key .
 
 		<div class="ffc-qr-design-preview">
 			<div id="ffc-qr-design-preview" class="ffc-qr-design-preview__image" aria-hidden="true"></div>
-			<p id="ffc-qr-design-checks" class="ffc-qr-design-preview__checks" role="status" aria-live="polite"></p>
+			<p id="ffc-qr-design-checks" class="ffc-qr-design-preview__checks ffc-status" role="status" aria-live="polite" hidden></p>
 		</div>
 	</div>
 </div>

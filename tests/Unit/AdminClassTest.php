@@ -57,6 +57,10 @@ class AdminClassTest extends TestCase {
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/edit.php' );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
+		// The submissions list asks whether to draw "Reveal this page"
+		// (#1863); this viewer holds no certificates PII cap.
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( false );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
@@ -75,16 +79,6 @@ class AdminClassTest extends TestCase {
 				throw new \RuntimeException( self::REDIRECTED );
 			}
 		);
-
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '4.12.0' );
-		}
 	}
 
 	protected function tearDown(): void {

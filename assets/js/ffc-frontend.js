@@ -85,9 +85,9 @@
      */
     function showAccessibleAlert(message, $context) {
         // Remove any previous transient alerts
-        $('.ffc-accessible-alert').remove();
+        $('[data-ffc-notice="accessible-alert"]').remove();
 
-        var $alert = $('<div class="ffc-accessible-alert ffc-message ffc-message-error" role="alert">').text(message);
+        var $alert = $(FFC.notice('danger', 'error', message, '', { role: 'alert', hook: 'accessible-alert' }));
 
         if ($context && $context.length) {
             $context.before($alert);
@@ -321,12 +321,13 @@
                 }
                 // Show error inline without destroying the form.
                 var errorMsg = err.message || (ffc_ajax.strings.error || 'Error');
-                var $errorDiv = $form.find('.ffc-verify-error');
-                if (!$errorDiv.length) {
-                    $form.find('.ffc-form-field').first().before('<div class="ffc-verify-error"></div>');
-                    $errorDiv = $form.find('.ffc-verify-error');
+                var notice = FFC.notice('danger', 'error', errorMsg, '', { role: 'alert', hook: 'verify-error' });
+                var $previous = $form.find('[data-ffc-notice="verify-error"]');
+                if ($previous.length) {
+                    $previous.replaceWith(notice);
+                } else {
+                    $form.find('.ffc-form-field').first().before(notice);
                 }
-                $errorDiv.html('').append($('<p class="ffc-message ffc-message-error">').text(errorMsg));
             });
     });
 
@@ -464,14 +465,20 @@
             var $submitBtn = $form.find('button[type="submit"]');
             var originalBtnText = $submitBtn.text();
             
-            // Basic validation
+            // Basic validation. An empty required field says so under
+            // itself, in the field-message standard (#1844); the summary
+            // alert below still names the problem for the whole form.
             var isValid = true;
             $form.find('[required]').each(function() {
+                // Only the message this check put there is withdrawn, so a
+                // CPF/RF verdict from the mask is left standing.
                 if (!$(this).val()) {
                     isValid = false;
-                    $(this).addClass('ffc-field-error').attr('aria-invalid', 'true');
-                } else {
-                    $(this).removeClass('ffc-field-error').removeAttr('aria-invalid');
+                    FFC.fieldMessage(this, 'error', FFC.requiredMessage());
+                    $(this).data('ffcEmptyRequired', true);
+                } else if ($(this).data('ffcEmptyRequired')) {
+                    FFC.clearFieldMessage(this);
+                    $(this).removeData('ffcEmptyRequired');
                 }
             });
             
@@ -487,7 +494,7 @@
             if (!isValid) {
                 showAccessibleAlert(ffc_ajax.strings.fillRequired || 'Please fill all required fields', $form);
                 // Focus the first invalid field
-                $form.find('.ffc-field-error').first().focus();
+                $form.find('.is-invalid').first().focus();
                 return;
             }
             
@@ -504,7 +511,24 @@
                         $submitBtn.prop('disabled', false).text(originalBtnText);
                         return;
                     }
-                    if (data.html) {
+                    // The quiz's "stay on this page" notice sits above the
+                    // title, outside the form the response replaces; it is
+                    // done once the attempt is in (#1842).
+                    $form.closest('.ffc-form-wrapper').find('[data-ffc-notice="quiz-leave"]').remove();
+                    if (data.html && data.quiz && data.quiz.pending) {
+                        // An attempt a person has still to grade (#1732) is
+                        // a system notice: it takes the place of the form
+                        // and sits above the title, like the form's other
+                        // notices (#1842).
+                        var $wrapper = $form.closest('.ffc-form-wrapper');
+                        var $title = $wrapper.children('.ffc-form-title').first();
+                        if ($title.length) {
+                            $title.before(data.html);
+                            $form.remove();
+                        } else {
+                            $form.html(data.html);
+                        }
+                    } else if (data.html) {
                         $form.html(data.html);
                         // Add PDF data to download button if available
                         if (data.pdf_data) {
@@ -535,8 +559,9 @@
                     // which FFC.request doesn't surface for connection
                     // errors. Server-issued protocol errors carry err.data.
                     if (err && err.data && err.data.rate_limit) {
-                        FFC.Frontend.RateLimit.show(err.data.message, err.data.wait_seconds);
-                        $submitBtn.prop('disabled', false).text(originalBtnText);
+                        // The helper holds the button until the wait ends
+                        // and then restores this label (#1846).
+                        FFC.Frontend.RateLimit.show(err.data.message, err.data.wait_seconds, $form, originalBtnText);
                         return;
                     }
                     if (err && err.fromServer) {

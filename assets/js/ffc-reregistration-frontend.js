@@ -59,7 +59,7 @@
             })
             .catch(function (err) {
                 var msg = (err && err.fromServer && err.message) || S.errorLoading || 'Error loading form.';
-                $panel.html('').append($('<div class="ffc-error">').text(msg));
+                $panel.html('').append(FFC.notice('danger', 'error', msg, '', { role: 'alert' }));
             });
     }
 
@@ -79,10 +79,10 @@
         initImportPrevious($container);
     }
 
-    /* ─── Importar o ciclo anterior ────────────────────── */
+    /* ─── Import the previous cycle ────────────────────── */
 
     function initImportPrevious($container) {
-        var $notice = $container.find('.ffc-rereg-import-notice');
+        var $notice = $container.find('[data-ffc-notice="rereg-import"]');
         if (!$notice.length) {
             return;
         }
@@ -212,10 +212,12 @@
 
     function validateField($field) {
         var $wrap = $field.closest('.ffc-rereg-field');
-        var $error = $wrap.find('.ffc-field-error');
         // `$.trim` was removed in jQuery 4; native String.prototype.trim
         // covers the same case and works across all supported runtimes.
-        var val = ($field.val() || '').trim();
+        // A checkbox's value is fixed; what it answers is whether it is ticked.
+        var val = $field.is(':checkbox')
+            ? ($field.prop('checked') ? '1' : '')
+            : ($field.val() || '').trim();
         var msg = '';
 
         // Required check
@@ -233,9 +235,28 @@
             );
         }
 
-        $wrap.toggleClass('has-error', !!msg);
-        $error.text(msg);
+        showFieldMessage($field, $wrap, msg);
         return !msg;
+    }
+
+    /**
+     * The field-message standard (#1844). The message goes at the end of
+     * the field's wrapper, where `Core\FieldMessage` would print it: a
+     * cascade of selects or the working-hours table has no single control
+     * to follow.
+     */
+    function showFieldMessage($field, $wrap, msg) {
+        if (msg) {
+            var options = { within: $wrap };
+            // The working-hours times have no id of their own: they share
+            // one message per field, as they shared one line before.
+            if (!$field.attr('id') && $wrap.attr('data-field-id')) {
+                options.id = 'ffc_rereg_field_' + $wrap.attr('data-field-id');
+            }
+            FFC.fieldMessage($field, 'error', msg, options);
+        } else {
+            FFC.clearFieldMessage($field);
+        }
     }
 
     /* ─── Save Draft ───────────────────────────────────── */
@@ -246,8 +267,8 @@
             var $status = $container.find('.ffc-rereg-status');
             var id = $container.find('[name="reregistration_id"]').val();
 
-            $btn.prop('disabled', true).text(S.saving || 'Salvando...');
-            $status.text('');
+            $btn.prop('disabled', true).text(S.saving || 'Saving...');
+            FFC.status($status, '', '');
 
             FFC.request(
                 'ffc_save_reregistration_draft',
@@ -255,14 +276,14 @@
                 { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
             )
                 .then(function () {
-                    $btn.prop('disabled', false).text(S.saveDraft || 'Salvar Rascunho');
-                    $status.text(S.draftSaved || 'Rascunho salvo.').addClass('ffc-status-ok');
-                    setTimeout(function () { $status.text('').removeClass('ffc-status-ok'); }, 3000);
+                    $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
+                    FFC.status($status, 'success', S.draftSaved || 'Draft saved.');
+                    setTimeout(function () { FFC.status($status, '', ''); }, 3000);
                 })
                 .catch(function (err) {
-                    $btn.prop('disabled', false).text(S.saveDraft || 'Salvar Rascunho');
-                    var msg = (err && err.fromServer && err.message) || S.errorSaving || 'Erro ao salvar rascunho.';
-                    $status.text(msg).addClass('ffc-status-err');
+                    $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
+                    var msg = (err && err.fromServer && err.message) || S.errorSaving || 'Error saving draft.';
+                    FFC.status($status, 'error', msg);
                 });
         });
     }
@@ -288,9 +309,9 @@
             });
 
             if (!valid) {
-                $container.find('.ffc-rereg-status').text(S.fixErrors || 'Por favor, corrija os erros abaixo.').addClass('ffc-status-err');
+                FFC.status($container.find('.ffc-rereg-status'), 'error', S.fixErrors || 'Please fix the errors below.');
                 // Scroll to first error
-                var $first = $container.find('.has-error:first');
+                var $first = $container.find('.ffc-field-message').first();
                 if ($first.length) {
                     $('html, body').animate({ scrollTop: $first.offset().top - 60 }, 300);
                 }
@@ -301,8 +322,8 @@
             var $status = $container.find('.ffc-rereg-status');
             var id = $container.find('[name="reregistration_id"]').val();
 
-            $btn.prop('disabled', true).text(S.submitting || 'Enviando...');
-            $status.text('').removeClass('ffc-status-err ffc-status-ok');
+            $btn.prop('disabled', true).text(S.submitting || 'Submitting...');
+            FFC.status($status, '', '');
 
             FFC.request(
                 'ffc_submit_reregistration',
@@ -310,21 +331,25 @@
                 { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
             )
                 .then(function (data) {
-                    var $notice = $('<div class="ffc-dashboard-notice ffc-notice-info">').append(
-                        $('<p>').text((data && data.message) || S.submitted || 'Recadastramento enviado com sucesso!')
+                    var notice = FFC.notice(
+                        'success',
+                        'success',
+                        (data && data.message) || S.submitted || 'Reregistration submitted successfully!',
+                        '',
+                        { role: 'status' }
                     );
-                    $container.find('#ffc-rereg-form').replaceWith($notice);
-                    $('.ffc-rereg-banner[data-reregistration-id="' + id + '"]').slideUp();
+                    $container.find('#ffc-rereg-form').replaceWith(notice);
+                    $('[data-ffc-notice="rereg-banner"][data-reregistration-id="' + id + '"]').slideUp();
                 })
                 .catch(function (err) {
-                    $btn.prop('disabled', false).text(S.submit || 'Enviar');
+                    $btn.prop('disabled', false).text(S.submit || 'Submit');
                     if (err && err.fromServer) {
                         if (err.data && err.data.errors) {
                             showServerErrors($container, err.data.errors);
                         }
-                        $status.text(err.message || S.errorSubmitting || 'Erro ao enviar.').addClass('ffc-status-err');
+                        FFC.status($status, 'error', err.message || S.errorSubmitting || 'Error submitting.');
                     } else {
-                        $status.text(S.errorSubmitting || 'Erro ao enviar.').addClass('ffc-status-err');
+                        FFC.status($status, 'error', S.errorSubmitting || 'Error submitting.');
                     }
                 });
         });
@@ -366,18 +391,15 @@
 
     function showServerErrors($container, errors) {
         // Clear previous errors
-        $container.find('.has-error').removeClass('has-error');
-        $container.find('.ffc-field-error').text('');
+        FFC.clearFieldMessage($container.find('[data-ffc-message-id]'));
 
         $.each(errors, function (name, msg) {
             var $input = $container.find('[name="' + name + '"]');
-            var $wrap = $input.closest('.ffc-rereg-field');
-            $wrap.addClass('has-error');
-            $wrap.find('.ffc-field-error').text(msg);
+            showFieldMessage($input, $input.closest('.ffc-rereg-field'), msg);
         });
 
         // Scroll to first error
-        var $first = $container.find('.has-error:first');
+        var $first = $container.find('.ffc-field-message').first();
         if ($first.length) {
             $('html, body').animate({ scrollTop: $first.offset().top - 60 }, 300);
         }

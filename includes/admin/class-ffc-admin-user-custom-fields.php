@@ -30,6 +30,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AdminUserCustomFields {
 
 	/**
+	 * Reveal capability for a sensitive custom field shown on another
+	 * user's edit screen (#1863). The fields come from audience memberships,
+	 * so the audience module's PII cap decides.
+	 */
+	public const PII_CAP = 'ffc_view_audiences_pii';
+
+	/**
+	 * The `ffc_reveal_pii` record type the Reveal buttons name.
+	 */
+	public const REVEAL_TYPE = 'user_profile';
+
+	/**
+	 * Field types whose stored value is free text a mask can stand in for.
+	 * A select, a checkbox or the working-hours grid carry no identifier.
+	 */
+	private const MASKABLE_TYPES = array( 'text', 'textarea', 'number', 'date' );
+
+	/**
 	 * Initialize hooks.
 	 *
 	 * @return void
@@ -60,13 +78,17 @@ class AdminUserCustomFields {
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 		wp_enqueue_style( 'ffc-custom-fields-admin', FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css", array( 'ffc-common' ), FFC_VERSION );
-		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		// `ffc-core` supplies `FFC.setRequiredWithin()`, which the collapse
 		// script uses to carry `required` with a section's visibility (#1120).
 		// Without it a collapsed section holding a required field blocks the
 		// profile save against a control nobody can see.
 		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-custom-fields-collapse', FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-collapse{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		// Another user's sensitive fields start masked, with Reveal (#1863).
+		if ( 'user-edit.php' === $hook ) {
+			\FreeFormCertificate\Core\PiiReveal::enqueue_assets();
+		}
 		// The same masks, dependent selects and dual-post toggle the
 		// reregistration form uses, so a field behaves alike on both screens.
 		wp_enqueue_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
@@ -145,6 +167,9 @@ class AdminUserCustomFields {
 			return;
 		}
 
+		// Another user's sensitive fields render masked (#1863); the owner,
+		// on their own profile, sees theirs as they are. The tier is asked
+		// only for a sensitive field that holds a value.
 		$user_data          = CustomFieldReader::get_user_data( $user->ID );
 		$profile            = self::profile_values( $user->ID, CustomFieldReader::get_all_for_user( $user->ID, true ) );
 		$rendered_field_ids = array();
@@ -199,7 +224,7 @@ class AdminUserCustomFields {
 										<label for="<?php echo esc_attr( $input_name ); ?>">
 											<?php echo esc_html( $field->field_label ); ?>
 											<?php if ( ! empty( $field->is_required ) ) : ?>
-												<span class="ffc-required">*</span>
+												<span class="ffc-required" aria-hidden="true">*</span>
 											<?php endif; ?>
 										</label>
 										<?php if ( (int) $field->source_audience_id !== (int) $audience->id ) : ?>
@@ -212,7 +237,14 @@ class AdminUserCustomFields {
 										<?php endif; ?>
 									</th>
 									<td>
-										<?php self::render_field_input( $field, $input_name, $value ); ?>
+										<?php
+										$pii_tier = self::is_maskable( $field ) && '' !== (string) $value ? \FreeFormCertificate\Core\PiiAccessPolicy::resolve( self::PII_CAP, $user->ID ) : null;
+										if ( null !== $pii_tier && self::is_masked_for( $field, $pii_tier ) ) {
+											self::render_masked_input( $field, $input_name, (string) $value, (int) $user->ID, \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $pii_tier );
+										} else {
+											self::render_field_input( $field, $input_name, $value );
+										}
+										?>
 										<?php
 										$options = $field->field_options;
 										if ( is_string( $options ) ) {
@@ -234,6 +266,87 @@ class AdminUserCustomFields {
 		<?php
 		// Collapsible-section wiring lives in assets/js/ffc-custom-fields-collapse.js
 		// (enqueued in enqueue_assets()); the markup above carries the data-target ids.
+	}
+
+	/**
+	 * Whether a field shows masked to a viewer at this tier (#1863): a
+	 * sensitive field of a free-text type, seen by anyone but its owner.
+	 *
+	 * @param object $field Field definition.
+	 * @param string $tier  The viewer's PII tier for this user.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return bool
+	 */
+	public static function is_masked_for( object $field, string $tier ): bool {
+		return self::is_maskable( $field ) && \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED !== $tier;
+	}
+
+	/**
+	 * Whether a field holds personal data a mask can stand in for: a
+	 * sensitive field of a free-text type.
+	 *
+	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return bool
+	 */
+	private static function is_maskable( object $field ): bool {
+		return ! empty( $field->is_sensitive ) && in_array( (string) $field->field_type, self::MASKABLE_TYPES, true );
+	}
+
+	/**
+	 * A sensitive value drawn masked and disabled, so it is neither shown nor
+	 * posted; for the reveal tier, a Reveal button fetches the clear value
+	 * through the audited `ffc_reveal_pii` endpoint and enables the field,
+	 * which is then edited and saved like any other (#1863). A field left
+	 * disabled is absent from the POST, and {@see save_section()} keeps what
+	 * is stored.
+	 *
+	 * @param object $field      Field definition.
+	 * @param string $input_name HTML input name.
+	 * @param string $value      Clear stored value.
+	 * @param int    $user_id    The user whose profile this is.
+	 * @param bool   $can_reveal Whether to draw the Reveal button.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return void
+	 */
+	private static function render_masked_input( object $field, string $input_name, string $value, int $user_id, bool $can_reveal ): void {
+		$pii_field = 'cf_' . (int) $field->id;
+		?>
+		<input type="text" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::mask_any( (string) $field->field_key, $value ) ); ?>" class="regular-text" data-ffc-pii-field="<?php echo esc_attr( $pii_field ); ?>" data-ffc-pii-editable="1" disabled>
+		<?php if ( $can_reveal ) : ?>
+			<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="<?php echo esc_attr( self::REVEAL_TYPE ); ?>" data-field="<?php echo esc_attr( $pii_field ); ?>" data-submission-id="<?php echo esc_attr( (string) $user_id ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'ffc_reveal_pii_nonce' ) ); ?>"><?php esc_html_e( 'Reveal', 'ffcertificate' ); ?></button>
+			<span class="description ffc-pii-reveal-hint"><?php esc_html_e( 'Reveal the value to edit it.', 'ffcertificate' ); ?></span>
+		<?php else : ?>
+			<span class="description"><?php esc_html_e( 'Masked. Revealing it requires the audience PII capability.', 'ffcertificate' ); ?></span>
+		<?php endif; ?>
+		<?php
+	}
+
+	/**
+	 * The clear values of a user's sensitive, maskable custom fields, by
+	 * field id: what a Reveal on the user-edit screen may serve (#1863).
+	 *
+	 * @param int $user_id User ID.
+	 * @return array<int, string> Field ID => clear value; empty values left out.
+	 */
+	public static function sensitive_values( int $user_id ): array {
+		$fields    = CustomFieldReader::get_all_for_user( $user_id, true );
+		$user_data = CustomFieldReader::get_user_data( $user_id );
+		$profile   = self::profile_values( $user_id, $fields );
+
+		$values = array();
+		foreach ( $fields as $field ) {
+			if ( empty( $field->is_sensitive ) || ! in_array( (string) $field->field_type, self::MASKABLE_TYPES, true ) ) {
+				continue;
+			}
+			$value = empty( $field->field_profile_key )
+				? ( $user_data[ 'field_' . $field->id ] ?? '' )
+				: ( $profile[ (string) $field->field_profile_key ] ?? '' );
+			if ( is_scalar( $value ) && '' !== (string) $value ) {
+				$values[ (int) $field->id ] = (string) $value;
+			}
+		}
+		return $values;
 	}
 
 	/**
@@ -332,10 +445,10 @@ class AdminUserCustomFields {
 						<thead>
 							<tr>
 								<th><?php esc_html_e( 'Day', 'ffcertificate' ); ?></th>
-								<th><?php esc_html_e( 'Entry 1', 'ffcertificate' ); ?> <span class="ffc-required">*</span></th>
+								<th><?php esc_html_e( 'Entry 1', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></th>
 								<th><?php esc_html_e( 'Exit 1', 'ffcertificate' ); ?></th>
 								<th><?php esc_html_e( 'Entry 2', 'ffcertificate' ); ?></th>
-								<th><?php esc_html_e( 'Exit 2', 'ffcertificate' ); ?> <span class="ffc-required">*</span></th>
+								<th><?php esc_html_e( 'Exit 2', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></th>
 								<th></th>
 							</tr>
 						</thead>
@@ -555,6 +668,15 @@ class AdminUserCustomFields {
 				}
 
 				$data[ $field_key ] = $clean;
+			} elseif ( self::is_maskable( $field ) && ! isset( $_POST[ $input_name ] )
+				&& self::is_masked_for( $field, \FreeFormCertificate\Core\PiiAccessPolicy::resolve( self::PII_CAP, $user_id ) ) ) {
+				// A masked sensitive field nobody revealed was disabled, so it
+				// did not post (#1863): keep what is stored. A profile-mapped
+				// one is simply left out of the patch.
+				if ( empty( $field->field_profile_key ) && isset( $existing[ $field_key ] ) ) {
+					$data[ $field_key ] = $existing[ $field_key ];
+				}
+				continue;
 			} else {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Checked via isset; sanitized via sanitize_text_field/sanitize_textarea_field below.
 				$raw_value = isset( $_POST[ $input_name ] ) ? wp_unslash( $_POST[ $input_name ] ) : '';
@@ -680,8 +802,8 @@ class AdminUserCustomFields {
 		}
 		delete_transient( $key );
 
-		printf(
-			'<div class="notice notice-warning is-dismissible"><p>%s</p></div>',
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'warning',
 			esc_html(
 				sprintf(
 					/* translators: %s: comma-separated list of custom field labels. */
@@ -734,10 +856,11 @@ class AdminUserCustomFields {
 			return;
 		}
 
-		printf(
-			'<div class="notice notice-warning is-dismissible"><p>%s</p><ul style="list-style:disc;margin-left:2em"><li>%s</li></ul></div>',
-			esc_html__( 'These working-hours rows were incomplete and were not saved. The first entry and the last exit are required; the middle shift is optional.', 'ffcertificate' ),
-			implode( '</li><li>', array_map( 'esc_html', $lines ) )
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'warning',
+			'<p>' . esc_html__( 'These working-hours rows were incomplete and were not saved. The first entry and the last exit are required; the middle shift is optional.', 'ffcertificate' ) . '</p>'
+				. '<ul class="ffc-working-hours-incomplete"><li>' . implode( '</li><li>', array_map( 'esc_html', $lines ) ) . '</li></ul>',
+			array( 'paragraph_wrap' => false )
 		);
 	}
 }

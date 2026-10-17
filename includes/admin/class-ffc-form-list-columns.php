@@ -176,13 +176,7 @@ class FormListColumns {
 				),
 			)
 		);
-		wp_enqueue_script(
-			'ffc-form-list-copy-shortcode',
-			FFC_PLUGIN_URL . "assets/js/ffc-form-list-copy-shortcode{$s}.js",
-			array(),
-			FFC_VERSION,
-			true
-		);
+		AdminUI::enqueue_shortcode_copy();
 	}
 
 	/**
@@ -301,7 +295,7 @@ class FormListColumns {
 				)
 			);
 		}
-		echo '<span class="ffc-features-badge" aria-live="polite" hidden></span>';
+		echo '<span class="ffc-features-badge ffc-status" role="status" aria-live="polite" hidden></span>';
 		echo '</div>';
 	}
 
@@ -318,18 +312,7 @@ class FormListColumns {
 				break;
 
 			case 'ffc_shortcode':
-				$shortcode = '[ffc_form id="' . $post_id . '"]';
-				printf(
-					'<span class="ffc-shortcode-cell">'
-					. '<code class="ffc-shortcode-code">%s</code>'
-					. '<button type="button" class="ffc-copy-shortcode" data-shortcode="%s" title="%s">'
-					. '<span class="ffc-icon-copy" aria-hidden="true"></span>'
-					. '</button>'
-					. '</span>',
-					esc_html( $shortcode ),
-					esc_attr( $shortcode ),
-					esc_attr__( 'Copy shortcode', 'ffcertificate' )
-				);
+				AdminUI::render_shortcode_copy( '[ffc_form id="' . $post_id . '"]' );
 				break;
 
 			case 'ffc_submissions':

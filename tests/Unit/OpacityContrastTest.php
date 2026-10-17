@@ -63,6 +63,7 @@ final class OpacityContrastTest extends TestCase {
 		),
 		'ffc-audience-admin.css'          => array(
 			'.ffc-selected-user .ffc-selected-user-remove' => 'the remove ×, a decorative glyph',
+			'.ffc-user-result.ffc-user-exists'             => 'a search result already in the audience: an INACTIVE component (not pickable, `cursor: default`), exempt under SC 1.4.3 -- the fade was written inline by the script until #1837',
 		),
 		'ffc-audience.css'                => array(
 			'.ffc-shortcode .ffc-day.ffc-other-month'  => 'neighbouring-month day: inactive component, not clickable — measured in #1185, 5.74:1 light and 5.55:1 dark with the fade included',
@@ -101,12 +102,6 @@ final class OpacityContrastTest extends TestCase {
 		),
 		'ffc-screenshots.css'             => array(
 			'.ffc-shots-button:disabled' => 'inactive component (a zoom button at its bound), exempt under SC 1.4.3',
-		),
-		'ffc-url-shortener-admin.css'     => array(
-			'.ffc-shorturl-toast' => 'opacity: 0 — the toast only appears through animation',
-		),
-		'ffc-user-dashboard.css'          => array(
-			'.ffc-audience-join-item .button.button-primary:disabled' => 'inactive component, exempt under SC 1.4.3',
 		),
 		'ffc-user-permissions.css'        => array(
 			'.ffc-cap-role[disabled]' => 'inactive component, exempt under SC 1.4.3',

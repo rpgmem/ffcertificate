@@ -51,6 +51,13 @@ class SubmissionsList extends \WP_List_Table {
 	private array $form_titles_cache = array();
 
 	/**
+	 * The ffc_reveal_pii nonce, created on the first row that needs it.
+	 *
+	 * @var string|null
+	 */
+	private ?string $reveal_nonce = null;
+
+	/**
 	 * The view, search and form filter the last prepare_items() ran with, so
 	 * the empty state can name what produced nothing.
 	 *
@@ -148,10 +155,10 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * Render the email column, masked unless the viewer holds the certificates
-	 * PII tier (#739 §3.3). The full address is never placed in the list HTML
-	 * for the masked/reveal tiers — reveal is offered on the submission detail
-	 * page, where each disclosure is audited.
+	 * Render the email column (#1822). The address is masked for every
+	 * viewer, as on the submission edit page: whoever may reveal it (the
+	 * owner and the reveal tier, #1863) gets a "Reveal" button that fetches the clear value through the audited ffc_reveal_pii
+	 * endpoint, so the plaintext never sits in the list HTML.
 	 *
 	 * @param array<string, mixed> $item Decrypted submission row.
 	 * @return string Escaped HTML for the cell.
@@ -162,16 +169,37 @@ class SubmissionsList extends \WP_List_Table {
 			return '';
 		}
 
-		$tier = \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
+		$html = '<span class="ffc-pii-value" data-field="email">'
+			. esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email ) )
+			. '</span>';
+
+		$can_reveal = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
 			'ffc_view_certificates_pii',
-			'ffc_certificates_admin',
 			isset( $item['user_id'] ) ? (int) $item['user_id'] : null
 		);
-		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED === $tier ) {
-			return esc_html( $email );
+		if ( ! $can_reveal ) {
+			return $html;
 		}
 
-		return esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email ) );
+		return $html . sprintf(
+			' <button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="submission" data-field="email" data-submission-id="%1$s" data-nonce="%2$s">%3$s</button>',
+			esc_attr( (string) ( $item['id'] ?? 0 ) ),
+			esc_attr( $this->reveal_nonce() ),
+			esc_html__( 'Reveal', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * The ffc_reveal_pii nonce the list's reveal buttons carry, created once
+	 * per render rather than once per row.
+	 *
+	 * @return string
+	 */
+	private function reveal_nonce(): string {
+		if ( null === $this->reveal_nonce ) {
+			$this->reveal_nonce = wp_create_nonce( 'ffc_reveal_pii_nonce' );
+		}
+		return $this->reveal_nonce;
 	}
 
 	/**

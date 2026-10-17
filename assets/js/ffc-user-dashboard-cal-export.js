@@ -16,11 +16,21 @@
 
     var pad2 = FFCDashboard.helpers.pad2;
 
+    // Icons come from the plugin's registry (`Core\Icons`, #1826) as
+    // `.ffc-icon-*` mask classes in `currentColor`, so each takes the colour of
+    // the text beside it and follows the dark theme and the Public Design
+    // accent. Google Calendar and Outlook have their own registry drawings in
+    // the house style, not brand logos.
+    function icon(cls) {
+        return '<span class="' + cls + '" aria-hidden="true"></span>';
+    }
+
     var calIcons = {
-        google: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" fill="#fff" stroke="#4285F4" stroke-width="1.5"/><path d="M1 5h14" stroke="#4285F4" stroke-width="1.5"/><circle cx="5" cy="9" r="1.2" fill="#EA4335"/><circle cx="8" cy="9" r="1.2" fill="#FBBC04"/><circle cx="11" cy="9" r="1.2" fill="#34A853"/><path d="M5 1v3M11 1v3" stroke="#4285F4" stroke-width="1.5" stroke-linecap="round"/></svg>',
-        outlook: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" fill="#fff" stroke="#0078D4" stroke-width="1.5"/><path d="M1 5h14" stroke="#0078D4" stroke-width="1.5"/><rect x="4" y="7" width="3" height="2.5" rx="0.5" fill="#0078D4"/><rect x="9" y="7" width="3" height="2.5" rx="0.5" fill="#0078D4" opacity="0.5"/><path d="M5 1v3M11 1v3" stroke="#0078D4" stroke-width="1.5" stroke-linecap="round"/></svg>',
-        ics: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 10V3M8 10l-2.5-2.5M8 10l2.5-2.5" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12h10" stroke="#666" stroke-width="1.5" stroke-linecap="round"/></svg>',
-        calendar: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="12" rx="2" fill="none" stroke="#fff" stroke-width="1.5"/><path d="M1 7h14" stroke="#fff" stroke-width="1.2"/><path d="M5 1v3M11 1v3" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>'
+        google: icon('ffc-icon-cal-google'),
+        outlook: icon('ffc-icon-cal-outlook'),
+        ics: icon('ffc-icon-download'),
+        calendar: icon('ffc-icon-calendar'),
+        caret: icon('ffc-icon-chevron-down')
     };
 
     function parseTime(timeStr) {
@@ -112,14 +122,14 @@
         var eventJson = JSON.stringify(event).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
 
         var html = '<div class="ffc-cal-export-wrap">';
-        html += '<button type="button" class="ffc-cal-export-btn">';
-        html += calIcons.calendar + ' ';
-        html += (ffcDashboard.strings.exportToCalendar || 'Exportar para Calendario');
-        html += ' &#9662;</button>';
+        html += '<button type="button" class="button button-primary ffc-cal-export-btn">';
+        html += calIcons.calendar;
+        html += (ffcDashboard.strings.exportToCalendar || 'Export to Calendar');
+        html += calIcons.caret + '</button>';
         html += '<div class="ffc-cal-export-dropdown">';
-        html += '<a href="' + googleUrl + '" target="_blank" rel="noopener noreferrer">' + calIcons.google + ' Google Calendar</a>';
-        html += '<a href="' + outlookUrl + '" target="_blank" rel="noopener noreferrer">' + calIcons.outlook + ' Outlook</a>';
-        html += '<a href="#" class="ffc-cal-export-ics" data-event="' + eventJson + '">' + calIcons.ics + ' ' + (ffcDashboard.strings.otherIcs || 'Outros (.ics)') + '</a>';
+        html += '<a href="' + googleUrl + '" target="_blank" rel="noopener noreferrer">' + calIcons.google + 'Google Calendar</a>';
+        html += '<a href="' + outlookUrl + '" target="_blank" rel="noopener noreferrer">' + calIcons.outlook + 'Outlook</a>';
+        html += '<a href="#" class="ffc-cal-export-ics" data-event="' + eventJson + '">' + calIcons.ics + (ffcDashboard.strings.otherIcs || 'Other (.ics)') + '</a>';
         html += '</div></div>';
         return html;
     }

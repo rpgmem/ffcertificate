@@ -159,7 +159,9 @@ class CapabilityCatalogTest extends TestCase {
 			array(
 				'ffc_bypass_appointments'         => 'frontend',
 				'ffc_bypass_appointment_capacity' => 'frontend',
+				'ffc_bypass_audiences'            => 'frontend',
 				'ffc_view_forms_api'              => 'api',
+				'ffc_submit_forms_api'            => 'api',
 			),
 			$tagged
 		);
@@ -227,6 +229,11 @@ class CapabilityCatalogTest extends TestCase {
 		$this->assertSame( 'manage', CapabilityCatalog::cap_tier( 'ffc_manage_settings_smtp' ) );
 		$this->assertSame( 'delete', CapabilityCatalog::cap_tier( 'ffc_delete_certificates' ) );
 		$this->assertSame( 'bypass', CapabilityCatalog::cap_tier( 'ffc_bypass_appointments' ) );
+		// A write cap must not fall back to the faintest tier (#1861).
+		$this->assertSame( 'submit', CapabilityCatalog::cap_tier( 'ffc_submit_forms_api' ) );
+		// `test` is a flow verb of its own (#1860).
+		$this->assertSame( 'test', CapabilityCatalog::cap_tier( 'ffc_test_date_messages' ) );
+		$this->assertSame( 'test', CapabilityCatalog::cap_tier( 'ffc_test_settings_smtp' ) );
 		// The _pii qualifier is promoted to its own reveal tier.
 		$this->assertSame( 'reveal', CapabilityCatalog::cap_tier( 'ffc_view_certificates_pii' ) );
 		$this->assertSame( 'reveal', CapabilityCatalog::cap_tier( 'ffc_view_appointments_pii' ) );
@@ -235,7 +242,7 @@ class CapabilityCatalogTest extends TestCase {
 	}
 
 	public function test_every_cataloged_cap_resolves_a_known_tier(): void {
-		$known = array( 'view', 'reveal', 'book', 'cancel', 'download', 'call', 'export', 'import', 'edit', 'manage', 'bypass', 'delete' );
+		$known = array( 'view', 'reveal', 'book', 'submit', 'test', 'cancel', 'download', 'call', 'export', 'import', 'edit', 'manage', 'bypass', 'delete' );
 		foreach ( CapabilityCatalog::all_slugs() as $slug ) {
 			$this->assertContains( CapabilityCatalog::cap_tier( $slug ), $known, $slug . ' resolved an unknown tier.' );
 		}

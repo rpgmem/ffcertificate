@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><?php esc_html_e( 'Create a campaign and link it to one or more audiences.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Set the start and end dates.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve.', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Activate the campaign — a submission is created for every audience member and invitation emails go out.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Activate the campaign — a submission is created for every audience member at once. Invitation emails are not sent at that moment: they go out with the next daily run, in batches, so a campaign activated by mistake can still be deactivated before anybody is mailed. The screen says when that run is.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Members see a banner on their dashboard and fill in the form there.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Admins review and approve or reject each submission (unless auto-approve is on).', 'ffcertificate' ); ?></li>
 		</ol>
@@ -36,10 +36,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<h4><?php esc_html_e( 'Campaign settings', 'ffcertificate' ); ?></h4>
 		<ul>
 			<li><strong><?php esc_html_e( 'Auto-approve', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'submissions are approved on submit instead of waiting for review.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'Invitation email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent to all members when the campaign is activated.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Invitation email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. Members who join later get theirs on the following run. The Send invitations button sends them right away.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Reminder email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent automatically when the deadline is within N days (default 7). Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Confirmation email', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sent after a member submits; carries the Record magic link.', 'ffcertificate' ); ?></li>
 		</ul>
+		<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?> <?php esc_html_e( 'The status is the exception: it changes only on Save.', 'ffcertificate' ); ?></p>
 		<p class="description"><?php esc_html_e( 'All three emails go through the shared Email Model chrome and the one pipeline.', 'ffcertificate' ); ?> <a href="#reference-emails"><?php esc_html_e( 'See Emails & Delivery', 'ffcertificate' ); ?></a>.</p>
 	</div>
 
@@ -148,7 +149,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><code>ffc_manage_reregistration</code> — <?php esc_html_e( 'create/edit campaigns, approve/reject, generate Records. Editing the field definitions needs ffc_manage_custom_fields.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_export_reregistration</code> / <code>ffc_delete_reregistration</code> — <?php esc_html_e( 'export CSV / delete a campaign.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_import_reregistration</code> — <?php esc_html_e( 'load answers from a spreadsheet. Separate from manage on purpose: it writes personal data for people who never opened the form.', 'ffcertificate' ); ?></li>
+			<li><code>ffc_view_reregistration_pii</code> — <?php esc_html_e( 'reveal a submitter\'s email on the submissions list and open View Details, which shows the decrypted CPF, RF and RG. Without it the email stays masked and View Details is not offered, even to someone who can manage campaigns. Existing managers received it automatically on update.', 'ffcertificate' ); ?></li>
 		</ul>
+		<p class="description"><?php esc_html_e( 'On the submissions list the email is masked for everyone, administrators included; the Reveal button fetches it on demand, and "Reveal this page" reveals every email listed. Every reveal and every opening of View Details writes an activity-log entry, whoever opens it. An export by the Operator, who holds no PII capability, carries the email and the sensitive fields masked.', 'ffcertificate' ); ?></p>
 		<p class="description"><?php esc_html_e( 'The member form itself is gated by login + audience membership, not a capability.', 'ffcertificate' ); ?></p>
 	</div>
 </div>

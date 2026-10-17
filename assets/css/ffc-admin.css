@@ -262,7 +262,7 @@
     height: 450px;
     font-family: Consolas, Monaco, monospace;
     font-size: var(--ffc-font-size-sm);
-    /* Editor de código: escuro nos dois temas por definição (#1126). */
+    /* Code editor: dark in both themes by definition (#1126). */
     background: #2c3338;
     color: #f0f0f1;
     padding: var(--ffc-spacing-xl);
@@ -285,12 +285,6 @@
     font-size: var(--ffc-font-size-xs);
 }
 
-.ffc-gen-status {
-    margin-left: var(--ffc-spacing-md);
-    color: var(--ffc-primary);
-    font-weight: 600;
-}
-
 .ffc-textarea-mono {
     font-family: 'Courier New', Courier, monospace;
     font-size: var(--ffc-font-size-xs);
@@ -303,19 +297,19 @@
    5. SUBMISSIONS TABLE - COMPLETE LAYOUT
    ========================================================================== */
 
-/* Remove limite de largura do container principal */
+/* Lift the width cap of the main container */
 .post-type-ffc_form .wrap {
     max-width: none !important;
 }
 
-/* Container responsivo da tabela */
+/* Responsive table container */
 .ffc-table-responsive {
     overflow-x: auto;
     margin-top: var(--ffc-spacing-2xl);
     width: 100%;
 }
 
-/* Tabela principal - LARGURA COMPLETA */
+/* Main table -- full width */
 .ffc-table-responsive table.wp-list-table {
     width: 100% !important;
     max-width: 100% !important;
@@ -323,18 +317,18 @@
     border-collapse: collapse;
 }
 
-/* Quebra de texto em emails e dados */
+/* Wrap long text in the email and data columns */
 .ffc-table-responsive table.wp-list-table td.column-email,
 .ffc-table-responsive table.wp-list-table td.column-data {
     overflow-wrap: break-word;
 }
 
-/* Botões de ação - alinhamento */
+/* Action buttons -- alignment */
 .ffc-table-responsive td.column-actions {
     white-space: normal;
 }
 
-/* Responsivo para telas menores */
+/* Responsive, for smaller screens */
 @media screen and (max-width: 782px) {
     .ffc-table-responsive table.wp-list-table {
         table-layout: auto;
@@ -357,18 +351,9 @@
 /* ==========================================================================
    6. SETTINGS & DOCUMENTATION
    ========================================================================== */
-.ffc-danger-zone {
-    margin-top: 40px;
-    padding: var(--ffc-spacing-2xl);
-    background: var(--ffc-bg-card);
-    border: 2px solid var(--ffc-danger);
-    border-radius: var(--ffc-radius-sm);
-}
-
-.ffc-danger-zone h2 {
-    color: var(--ffc-danger);
-    margin-top: 0;
-}
+/* The Danger Zone card (Settings → Advanced) is drawn by ffc-admin-settings.css:
+   one danger bar on the card. This sheet drew a second, 2px border around it
+   too, so the card wore both (#1843). */
 
 /* ==========================================================================
    7. SHORTCODE SIDEBAR METABOX
@@ -497,7 +482,7 @@
     border-color: var(--ffc-primary-hover);
 }
 
-/* Links de magic link - quebra de linha */
+/* Magic-link links -- line breaking */
 .ffc-admin-page .form-table td a[href*="token="] {
     display: inline-block;
     max-width: 100%;
@@ -510,7 +495,7 @@
     color: var(--ffc-link-hover);
 }
 
-/* Descrições mais legíveis */
+/* More legible descriptions */
 .ffc-admin-page .form-table .description strong {
     color: var(--ffc-text);
 }
@@ -535,19 +520,8 @@
     max-width: 1500px;
 }
 
-/* Warning Box */
-.ffc-migration-warning {
-    background: var(--ffc-warning-bg);
-    border-left: 4px solid var(--ffc-warning-border);
-    padding: var(--ffc-spacing-lg);
-    margin: var(--ffc-spacing-xl) 0;
-}
-
-.ffc-migration-warning p {
-    margin: 0;
-}
 /* ==========================================================================
-   CORREÇÕES SPRINT 3.0 - v3.0.0
+   FIXES -- v3.0.0
    ========================================================================== */
 
 
@@ -576,23 +550,6 @@
     align-items: center;
 }
 
-
-/* Inline autosave feedback for the template visibility toggle (edit screen). */
-.ffc-autosave-status {
-    display: inline-block;
-    margin-left: var(--ffc-spacing-sm);
-    font-size: var(--ffc-font-size-xs);
-    font-style: italic;
-    vertical-align: middle;
-}
-
-.ffc-autosave-status.ffc-saved {
-    color: var(--ffc-success);
-}
-
-.ffc-autosave-status.ffc-error {
-    color: var(--ffc-danger);
-}
 
 /* ==========================================================================
    GEOFENCE META BOX STYLES - v3.0.0
@@ -705,7 +662,6 @@
 
 /* Margin utilities (ffc-mb-xl and ffc-mt-xl in ffc-admin-utilities.css) */
 .ffc-ml-20 { margin-left: var(--ffc-spacing-2xl); }
-.ffc-m-2xs-0 { margin: var(--ffc-spacing-2xs) 0 0 0; }
 
 /* Form label blocks */
 .ffc-restriction-label {
@@ -825,18 +781,6 @@
     line-height: 1.3;
 }
 
-/* Inline warning text used by metaboxes (replaces inline style="color:#a00"). */
-.ffc-warning-text {
-    color: var(--ffc-danger-text);
-}
-
-/* Dashboard header flex */
-.ffc-dashboard-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
 /* Activity log details */
 .ffc-log-summary {
     cursor: pointer;
@@ -881,11 +825,6 @@ td .ffc-restriction-label {
     display: block;
 }
 
-/* Info card */
-.ffc-info-card {
-    background: var(--ffc-info-bg);
-    border-left: 4px solid var(--ffc-info-border);
-}
 
 /* ==========================================================================
    CERTIFICATE PREVIEW MODAL
@@ -896,7 +835,7 @@ td .ffc-restriction-label {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 999999;
+    z-index: var(--ffc-z-topmost);
     opacity: 0;
     transition: opacity 0.2s ease;
 }
@@ -1026,12 +965,15 @@ td .ffc-restriction-label {
 }
 
 /* ==========================================================================
-   FORM LIST TABLE — Column widths & shortcode copy button
+   FORM LIST TABLE — Column widths
    Migrated from class-ffc-form-list-columns.php (Sprint 2)
    ========================================================================== */
 .column-ffc_form_id { width: 60px; text-align: center; }
 .column-ffc_shortcode { width: 240px; }
 .column-ffc_submissions { width: 100px; }
+
+/* Shortcode copy button — AdminUI::render_shortcode_copy(), printed by the
+   forms list and the audience calendar and environment lists (#1814). */
 .ffc-shortcode-cell { display: inline-flex; align-items: center; gap: var(--ffc-spacing-2xs); }
 .ffc-shortcode-code { font-size: var(--ffc-font-size-xs); padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs); user-select: all; }
 .ffc-copy-shortcode {
@@ -1041,27 +983,6 @@ td .ffc-restriction-label {
 .ffc-copy-shortcode:hover { color: var(--ffc-primary); border-color: var(--ffc-primary); }
 .ffc-copy-shortcode .ffc-icon-copy::before { margin-right: 0; }
 .ffc-copy-shortcode.is-copied { color: var(--ffc-success-text); border-color: var(--ffc-success); }
-
-/* =========================================================================
- * Datetime order validation feedback (#159 S3).
- *
- * Applied via PHP on first paint when the persisted geofence config has an
- * order error, and toggled live by ffc-geofence-admin.js (S5) while the
- * operator edits the date/time inputs.
- * ========================================================================= */
-.ffc-input-invalid {
-	border-color: var(--ffc-danger) !important;
-	box-shadow: 0 0 0 1px var(--ffc-danger) !important;
-}
-.ffc-input-invalid:focus {
-	border-color: var(--ffc-danger) !important;
-	box-shadow: 0 0 0 1px var(--ffc-danger), 0 0 2px 1px var(--ffc-danger-hover) !important;
-}
-p.ffc-datetime-order-error {
-	color: var(--ffc-danger-text);
-	font-weight: 500;
-	margin-top: var(--ffc-spacing-2xs);
-}
 
 /* Registered-locations picker in the Geolocation tab (#1614). */
 .ffc-location-picker {
@@ -1089,198 +1010,9 @@ p.ffc-datetime-order-error {
 	color: var(--ffc-text-muted);
 }
 
-/* =========================================================================
- * Form-editor vertical tabs (WooCommerce "Product data" style).
- *
- * The seven content sections render inside one wrapper metabox: a vertical
- * nav on the left and stacked panels on the right. Panel hiding is gated on
- * `.is-ready`, which ffc-form-editor-tabs.js adds once it wires the tab
- * behaviour — so without JS the screen degrades to fully-visible stacked
- * panels (the pre-tabs layout).
- * ========================================================================= */
-.ffc-form-tabs {
-	display: flex;
-	align-items: flex-start;
-	margin: 0 -12px -12px;
-}
-
-.ffc-form-tabs__nav {
-	flex: 0 0 200px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-	background: var(--ffc-bg-alt);
-	border-right: 1px solid var(--ffc-border-light);
-}
-
-.ffc-form-tabs__nav-item {
-	margin: 0;
-}
-
-.ffc-form-tabs__tab {
-	display: flex;
-	align-items: center;
-	gap: var(--ffc-spacing-sm);
-	padding: var(--ffc-spacing-lg) var(--ffc-spacing-lg);
-	color: var(--ffc-text-secondary);
-	text-decoration: none;
-	font-weight: 500;
-	line-height: 1.3;
-	border-left: 3px solid transparent;
-	border-bottom: 1px solid var(--ffc-border-light);
-}
-
-.ffc-form-tabs__tab:hover {
-	background: var(--ffc-bg-card);
-	color: var(--ffc-link-hover);
-}
-
-.ffc-form-tabs__tab:focus {
-	color: var(--ffc-link-hover);
-	box-shadow: none;
-}
-
-.ffc-form-tabs__tab:focus-visible {
-	outline: 2px solid var(--ffc-primary);
-	outline-offset: -2px;
-}
-
-.ffc-form-tabs__tab .ffc-form-tabs__icon {
-	flex: 0 0 auto;
-	font-size: var(--ffc-font-size-lg);
-	color: var(--ffc-text-muted);
-}
-
-.ffc-form-tabs__icon::before {
-	margin-right: 0;
-}
-
-.ffc-form-tabs__tab.is-active {
-	background: var(--ffc-bg-card);
-	color: var(--ffc-primary);
-	border-left-color: var(--ffc-primary);
-}
-
-.ffc-form-tabs__tab.is-active .ffc-form-tabs__icon {
-	color: var(--ffc-primary);
-}
-
-/* Validation-error signalling — wired on in a later sprint. */
-.ffc-form-tabs__tab.has-error {
-	color: var(--ffc-danger);
-}
-
-.ffc-form-tabs__tab.has-error .ffc-form-tabs__icon {
-	color: var(--ffc-danger);
-}
-
-.ffc-form-tabs__error-dot {
-	width: 8px;
-	height: 8px;
-	margin-left: auto;
-	border-radius: var(--ffc-radius-full);
-	background: var(--ffc-danger);
-}
-
-/*
- * Feature state (#1614): a hollow dot while the tab's feature is off, a
- * filled one while it is on. The tab also carries the state as screen-reader
- * text, so the colour is never the only signal. An error dot replaces it.
- */
-.ffc-form-tabs__state {
-	flex: 0 0 auto;
-	width: 8px;
-	height: 8px;
-	margin-left: auto;
-	border: 1px solid var(--ffc-text-muted);
-	border-radius: var(--ffc-radius-full);
-	box-sizing: border-box;
-}
-
-.ffc-form-tabs__tab.is-on .ffc-form-tabs__state {
-	border-color: var(--ffc-success);
-	background: var(--ffc-success);
-}
-
-.ffc-form-tabs__tab.has-error .ffc-form-tabs__state {
-	display: none;
-}
-
-.ffc-form-tabs__panels {
-	flex: 1 1 auto;
-	min-width: 0;
-	padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xl) var(--ffc-spacing-xl);
-}
-
-.ffc-form-tabs__panel-title {
-	display: flex;
-	align-items: center;
-	gap: var(--ffc-spacing-sm);
-	margin: var(--ffc-spacing-2xs) 0 var(--ffc-spacing-xl);
-	padding-bottom: var(--ffc-spacing-md);
-	font-size: var(--ffc-font-size-lg);
-	font-weight: 600;
-	color: var(--ffc-text);
-	border-bottom: 2px solid var(--ffc-primary);
-}
-
-.ffc-form-tabs__panel-title .ffc-form-tabs__icon {
-	flex: 0 0 auto;
-	color: var(--ffc-primary);
-}
-
-/* Client-side required-tag save-guard banner (prepended to the Layout panel). */
-.ffc-form-tabs__required-warning {
-	margin: 0 0 var(--ffc-spacing-xl);
-}
-
-.ffc-form-tabs__required-warning code {
-	background: var(--ffc-bg-alt);
-}
-
 /* "Duplicate this form" link inside the Publish (Submit) box. */
 .misc-pub-section.ffc-duplicate-action .ffc-icon-copy {
 	color: var(--ffc-text-muted);
-}
-
-/* Panel hiding only kicks in once JS marks the container ready. */
-.ffc-form-tabs.is-ready .ffc-form-tabs__panel {
-	display: none;
-}
-
-.ffc-form-tabs.is-ready .ffc-form-tabs__panel.is-active {
-	display: block;
-}
-
-/* No-JS fallback: divide the stacked panels so they read as sections. */
-.ffc-form-tabs:not(.is-ready) .ffc-form-tabs__panel + .ffc-form-tabs__panel {
-	margin-top: var(--ffc-spacing-xl);
-	border-top: 1px solid var(--ffc-border-light);
-}
-
-/* Narrow screens: nav wraps above the panels as a horizontal strip. */
-@media screen and (max-width: 782px) {
-	.ffc-form-tabs {
-		flex-direction: column;
-	}
-
-	.ffc-form-tabs__nav {
-		display: flex;
-		flex: 1 1 auto;
-		flex-wrap: wrap;
-		border-right: none;
-		border-bottom: 1px solid var(--ffc-border-light);
-	}
-
-	.ffc-form-tabs__tab {
-		border-left: none;
-		border-bottom: 3px solid transparent;
-	}
-
-	.ffc-form-tabs__tab.is-active {
-		border-left: none;
-		border-bottom-color: var(--ffc-primary);
-	}
 }
 
 /* 6.18.0 (#890 slices 4-5) — component styles lifted from inline styles in the
@@ -1295,12 +1027,6 @@ p.ffc-datetime-order-error {
     border: 1px solid var(--ffc-border);
     vertical-align: middle;
     background-color: var(--ffc-color);
-}
-
-/* Block radio option in a fieldset (repeated per choice). */
-.ffc-radio-option {
-    display: block;
-    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 /* ==========================================================================
@@ -1324,7 +1050,7 @@ p.ffc-datetime-order-error {
 }
 
 /* ==========================================================================
-   PRE-FLIGHT STATS METABOX (#361, movido da gaveta de utilitários em #1171)
+   PRE-FLIGHT STATS METABOX (#361, moved out of the utilities drawer in #1171)
    ========================================================================== */
 
 /* 6.6.4 follow-up (#361 Sprint 3) — pre-flight stats badges in the
@@ -2636,4 +2362,70 @@ p.ffc-datetime-order-error {
     .ffc-page-identities .ffc-identity-chip-orphans {
         border: 1px solid CanvasText;
     }
+}
+
+/* Form editor → "Load template": the picker the script builds on the fly.
+   Its rules lived in `style=""` attributes and a hover written in JS until
+   #1837; the veil and the shadow now read the tokens every other modal of
+   the plugin reads. */
+.ffc-template-modal {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ffc-z-topmost);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ffc-bg-overlay);
+}
+
+.ffc-template-modal-box {
+    width: 90%;
+    max-width: 500px;
+    padding: 30px;
+    background: var(--ffc-bg-card);
+    border-radius: var(--ffc-radius-lg);
+    box-shadow: var(--ffc-shadow-lg);
+}
+
+.ffc-template-modal .ffc-template-modal-title {
+    margin: 0 0 var(--ffc-spacing-2xl);
+    font-size: var(--ffc-font-size-xl);
+}
+
+.ffc-template-modal .ffc-template-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.ffc-template-modal-actions {
+    margin-top: var(--ffc-spacing-2xl);
+    text-align: right;
+}
+
+.ffc-template-modal-actions .button {
+    margin-right: var(--ffc-spacing-md);
+}
+
+.ffc-template-option {
+    margin: var(--ffc-spacing-md) 0;
+    padding: var(--ffc-spacing-xl);
+    border: 2px solid var(--ffc-border-light);
+    border-radius: var(--ffc-radius-sm);
+    cursor: pointer;
+    transition: all var(--ffc-transition-base);
+}
+
+.ffc-template-option:hover {
+    background: var(--ffc-primary-light);
+    border-color: var(--ffc-primary);
+}
+
+.ffc-template-option-label {
+    font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-template-option-kind {
+    margin-top: var(--ffc-spacing-2xs);
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-sm);
 }

@@ -50,9 +50,17 @@ class EmailHandler {
 	/**
 	 * Configure custom SMTP settings
 	 *
+	 * Skipped while Total Mail Queue is active (#1758): it manages delivery,
+	 * so the plugin sends with WordPress's default, and the stored SMTP
+	 * choice applies again once the queue plugin is deactivated.
+	 *
 	 * @param PHPMailer $phpmailer PHPMailer instance.
 	 */
 	public function configure_custom_smtp( $phpmailer ): void {
+		if ( MailQueue::is_active() ) {
+			return;
+		}
+
 		$settings = \FreeFormCertificate\Settings\SettingsReader::all();
 
 		if ( isset( $settings['smtp_mode'] ) && 'custom' === $settings['smtp_mode'] ) {
@@ -256,9 +264,11 @@ class EmailHandler {
 		foreach ( $data as $k => $v ) {
 			$display_v = is_array( $v ) ? implode( ', ', $v ) : $v;
 
-			// Format documents (CPF, RF, RG).
-			if ( in_array( $k, array( 'cpf', 'cpf_rf', 'rg' ), true ) ) {
-				$display_v = \FreeFormCertificate\Core\DocumentFormatter::format_document( $display_v );
+			// Personal data travels masked (#1863): an e-mail is a copy no
+			// reveal can audit, so CPF, RF, RG, email and phone reach staff
+			// masked, and the link below opens the screen where they reveal.
+			if ( in_array( $k, array( 'cpf', 'cpf_rf', 'rg', 'rf', 'email', 'user_email', 'phone', 'telefone', 'celular' ), true ) ) {
+				$display_v = \FreeFormCertificate\Core\DocumentFormatter::mask_any( 'user_email' === $k ? 'email' : (string) $k, (string) $display_v );
 			}
 
 			// Format auth code with certificate prefix.
@@ -276,7 +286,13 @@ class EmailHandler {
 
 		// Email body → shared configurable chrome (#662 PR-8), like every other email.
 		$body = self::ffc_email_document(
-			self::ffc_render_email_partial( 'submission-admin-notification', array( 'details_table' => $details_table ) )
+			self::ffc_render_email_partial(
+				'submission-admin-notification',
+				array(
+					'details_table' => $details_table,
+					'manage_url'    => admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' ),
+				)
+			)
 		);
 
 		// Send to all admin emails (already validated by ffc_parse_admin_emails).

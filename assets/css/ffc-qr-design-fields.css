@@ -129,10 +129,6 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-.ffc-qr-color__hex.is-invalid {
-    border-color: var(--ffc-danger);
-}
-
 .ffc-qr-logo-thumb {
     display: block;
     max-width: 64px;

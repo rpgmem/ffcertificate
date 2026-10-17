@@ -47,7 +47,7 @@ class CertTemplateAdminScreen {
 	 * The `admin_action_{$action}` slug for the visibility toggle (list-screen
 	 * row action — a full-page nonce-protected navigation).
 	 */
-	private const TOGGLE_ACTION = 'ffc_toggle_cert_template_visibility';
+	public const TOGGLE_ACTION = 'ffc_toggle_cert_template_visibility';
 
 	/**
 	 * The `wp_ajax_{$action}` slug for the edit-screen visibility autosave. The
@@ -65,22 +65,22 @@ class CertTemplateAdminScreen {
 	/**
 	 * The `admin_action_{$action}` slug for duplicating a template.
 	 */
-	private const DUPLICATE_ACTION = 'ffc_duplicate_cert_template';
+	public const DUPLICATE_ACTION = 'ffc_duplicate_cert_template';
 
 	/**
 	 * The `admin_action_{$action}` slug for exporting a template as `.html`.
 	 */
-	private const EXPORT_ACTION = 'ffc_export_cert_template';
+	public const EXPORT_ACTION = 'ffc_export_cert_template';
 
 	/**
 	 * The `admin_action_{$action}` slug for the "Restore defaults" toolbar button.
 	 */
-	private const RESTORE_ACTION = 'ffc_restore_cert_templates';
+	public const RESTORE_ACTION = 'ffc_restore_cert_templates';
 
 	/**
 	 * The `admin_action_{$action}` slug for the sample-data preview page.
 	 */
-	private const PREVIEW_ACTION = 'ffc_preview_cert_template';
+	public const PREVIEW_ACTION = 'ffc_preview_cert_template';
 
 	/**
 	 * Script handle for the preview overlay.
@@ -835,7 +835,7 @@ class CertTemplateAdminScreen {
 			<span class="ffc-control-toggle-track" aria-hidden="true"></span>
 			<span class="ffc-control-toggle-label"><?php echo esc_html( $toggle_label ); ?></span>
 		</label>
-		<span id="ffc_template_visible_status" class="ffc-autosave-status" role="status" aria-live="polite"></span>
+		<span id="ffc_template_visible_status" class="ffc-status" role="status" aria-live="polite" hidden></span>
 		<p class="description">
 			<?php echo esc_html( $toggle_help ); ?>
 		</p>

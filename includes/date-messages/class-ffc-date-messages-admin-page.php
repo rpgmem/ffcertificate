@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\DateMessages;
 
+use FreeFormCertificate\UserDashboard\UserManager;
+
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Migrations\Strategies\BirthDateBackfillMigrationStrategy;
@@ -49,9 +51,21 @@ final class DateMessagesAdminPage {
 	public const MANAGE_CAP = 'ffc_manage_date_messages';
 
 	/**
-	 * See who receives: names in the recipient preview.
+	 * See who receives: the recipient preview and the upcoming dates, where
+	 * names stay masked until revealed (#1863).
 	 */
 	public const PII_CAP = 'ffc_view_date_messages_pii';
+
+	/**
+	 * The `ffc_reveal_pii` record type the upcoming dates' Reveal buttons
+	 * name: a person, by account ID (#1863).
+	 */
+	public const REVEAL_TYPE = 'date_messages_person';
+
+	/**
+	 * Send a rule's test to oneself, without managing the rules (#1860).
+	 */
+	public const TEST_CAP = 'ffc_test_date_messages';
 
 	/**
 	 * `admin_post` actions. Each nonce action equals its `admin_post`
@@ -116,6 +130,20 @@ final class DateMessagesAdminPage {
 	 */
 	public static function can_manage(): bool {
 		return Capabilities::current_user_can_admin_or( self::MANAGE_CAP );
+	}
+
+	/**
+	 * Whether the current user may send a rule's test to their own address.
+	 *
+	 * The operator tier's action (#1860): `ffc_test_date_messages` allows it
+	 * without allowing any change, and managing the rules still allows it.
+	 * The message and recipient previews stay with {@see self::can_view()},
+	 * as they were: they send and record nothing.
+	 *
+	 * @return bool
+	 */
+	public static function can_test(): bool {
+		return self::can_manage() || Capabilities::current_user_can_admin_or( self::TEST_CAP );
 	}
 
 	/**
@@ -209,8 +237,16 @@ final class DateMessagesAdminPage {
 			)
 		);
 
+		// The upcoming dates list names masked, with Reveal (#1863).
+		if ( self::can_view_pii() ) {
+			\FreeFormCertificate\Core\PiiReveal::enqueue_assets();
+		}
+
 		// The rule editor's audience picker is the shared component (#1648).
 		\FreeFormCertificate\Audience\AudienceTransferList::enqueue();
+
+		// The rule's toggles and appearance save per record (#1757).
+		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 
 		$defaults = MessageBuilder::defaults();
 		wp_enqueue_script(
@@ -277,6 +313,7 @@ final class DateMessagesAdminPage {
 
 		$outcome    = $this->take_outcome();
 		$can_manage = self::can_manage();
+		$can_test   = self::can_test();
 		$rules      = RuleReader::all();
 		$audiences  = self::audience_options();
 		$managers   = array();
@@ -373,12 +410,9 @@ final class DateMessagesAdminPage {
 				. esc_html__( 'Run it in Settings → Data Migrations.', 'ffcertificate' ) . '</a>';
 		}
 
-		wp_admin_notice(
-			$message,
-			array(
-				'type'        => 'warning',
-				'dismissible' => false,
-			)
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'warning',
+			$message
 		);
 	}
 
@@ -548,7 +582,7 @@ final class DateMessagesAdminPage {
 	 * date-messages capability. A summary about who received a message is
 	 * not for an account that could not open this screen.
 	 *
-	 * @return array<int, string> User id => "Name <email>".
+	 * @return array<int, string> User id => "Name <masked email>".
 	 */
 	public static function manager_options(): array {
 		$users = get_users(
@@ -562,7 +596,9 @@ final class DateMessagesAdminPage {
 		$options = array();
 		foreach ( $users as $user ) {
 			if ( $user instanceof \WP_User ) {
-				$options[ $user->ID ] = $user->display_name . ' <' . $user->user_email . '>';
+				// Staff addresses are personal data too (#1863): the name tells
+				// the accounts apart, the masked address confirms which.
+				$options[ $user->ID ] = $user->display_name . ' <' . \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $user->user_email ) . '>';
 			}
 		}
 		return $options;
@@ -756,6 +792,23 @@ final class DateMessagesAdminPage {
 			'rows'      => $rows,
 			'truncated' => $truncated,
 		);
+	}
+
+	/**
+	 * Whether the upcoming dates can list a person: an account with a birth
+	 * date on its profile. The reveal endpoint serves only those, so the
+	 * `date_messages_person` type cannot read any account's name by id.
+	 *
+	 * @param int $user_id Account ID.
+	 * @return bool
+	 */
+	public static function is_listed( int $user_id ): bool {
+		if ( $user_id <= 0 ) {
+			return false;
+		}
+		$extended = UserManager::get_extended_profile( $user_id, array( 'birth_date' ) );
+		$stored   = $extended['birth_date'] ?? '';
+		return is_string( $stored ) && '' !== $stored;
 	}
 
 	/**

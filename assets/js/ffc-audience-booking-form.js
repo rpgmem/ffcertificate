@@ -32,6 +32,7 @@
 
         // Reset form
         $('#ffc-booking-form')[0].reset();
+        FFC.clearFieldMessage($('#ffc-booking-form').find('input, select, textarea'));
         $('#booking-all-day').prop('checked', false);
         $('#booking-time-row').show();
         $('#booking-start-time').attr('required', 'required');
@@ -49,35 +50,36 @@
         $('#booking-date').val(date);
         $('.ffc-booking-date-display').text(dateDisplay);
 
-        // Populate environment select
+        // Populate environment select (#1859): the spaces of the calendar in
+        // view that open on this date. A bypass holder sees every space, the
+        // restricted ones named with their reasons and marked.
         var $envSelect = $('#booking-environment-id');
         $envSelect.empty();
 
         var schedules = state.config.schedules || [];
-        var allEnvironments = [];
+        var scope = api.scopeEnvironments(state.selectedSchedule, 0);
+        var hasMultipleSchedules = state.selectedSchedule > 0 ? false : schedules.length > 1;
+        var listed = 0;
 
-        // Get all environments from all schedules
-        for (var i = 0; i < schedules.length; i++) {
-            var envs = schedules[i].environments || [];
-            for (var j = 0; j < envs.length; j++) {
-                allEnvironments.push({
-                    id: envs[j].id,
-                    name: envs[j].name,
-                    scheduleName: schedules[i].name
-                });
+        scope.forEach(function(env) {
+            var reasons = api.environmentReasons(env, date);
+            if (reasons.length && !api.canBypass(env)) {
+                return;
             }
-        }
+            var label = hasMultipleSchedules ? env.schedule.name + ' - ' + env.name : env.name;
+            var $option = $('<option></option>').val(env.id).text(label);
+            if (reasons.length) {
+                $option
+                    .addClass('ffc-env-option-restricted')
+                    .attr('data-reasons', reasons.join(' '))
+                    .text(label + ' — ' + reasons.map(reasonLabel).join(', '));
+            }
+            $envSelect.append($option);
+            listed++;
+        });
 
-        // Add options to select
-        if (allEnvironments.length > 1) {
-            // Group by schedule if there are multiple schedules
-            var hasMultipleSchedules = schedules.length > 1;
-            allEnvironments.forEach(function(env) {
-                var label = hasMultipleSchedules ? env.scheduleName + ' - ' + env.name : env.name;
-                $envSelect.append('<option value="' + env.id + '">' + label + '</option>');
-            });
-        } else if (allEnvironments.length === 1) {
-            $envSelect.append('<option value="' + allEnvironments[0].id + '">' + allEnvironments[0].name + '</option>');
+        if (listed === 0) {
+            FFC.fieldMessage($envSelect, 'error', ffcAudience.strings.noOpenEnvironments || 'No space is open on this date.');
         }
 
         // Update environment label in the booking form
@@ -93,12 +95,15 @@
             currentSchedule = schedules[0];
         }
         if (currentSchedule && currentSchedule.environmentLabel) {
-            $('label[for="booking-environment-id"]').html(escapeHtml(currentSchedule.environmentLabel) + ' *');
+            $('label[for="booking-environment-id"]').html(escapeHtml(currentSchedule.environmentLabel) + ' <span class="ffc-required" aria-hidden="true">*</span>');
         }
 
-        // Set selected environment
+        // Set selected environment, when it is listed.
         var selectedEnv = environmentId || state.selectedEnvironment || '';
-        $envSelect.val(selectedEnv);
+        if (selectedEnv && $envSelect.find('option[value="' + parseInt(selectedEnv) + '"]').length) {
+            $envSelect.val(selectedEnv);
+        }
+        updateEnvironmentStatus();
 
         // Show audience select by default
         $('#booking-type').val('audience').trigger('change');
@@ -107,6 +112,72 @@
         $modal.show();
         $modal.find('.ffc-modal-close').focus();
         trapFocus($modal);
+    }
+
+    /**
+     * The short label of a reason code (#1859).
+     */
+    function reasonLabel(code) {
+        var S = ffcAudience.strings || {};
+        var labels = {
+            closed_day: S.reasonClosed || 'Closed',
+            holiday: S.reasonHoliday || 'Holiday',
+            outside_hours: S.reasonOutsideHours || 'Outside hours',
+            past_date: S.reasonPast || 'Past date',
+            beyond_window: S.reasonBeyondWindow || 'Beyond the booking window'
+        };
+        return labels[code] || code;
+    }
+
+    /**
+     * The environment the form has selected, as a scope entry.
+     */
+    function selectedEnvironment() {
+        var id = parseInt($('#booking-environment-id').val());
+        if (!id) {
+            return null;
+        }
+        var matches = api.scopeEnvironments(0, id);
+        return matches.length ? matches[0] : null;
+    }
+
+    /**
+     * Show, under the space, why it cannot be booked at the chosen date and
+     * times (#1859). Tags with token colours; hidden when nothing applies.
+     */
+    function updateEnvironmentStatus() {
+        var $select = $('#booking-environment-id');
+        var $status = $('#booking-environment-status');
+        if (!$status.length) {
+            $status = $('<div id="booking-environment-status" class="ffc-env-status" hidden></div>');
+            $select.after($status);
+        }
+        $status.empty();
+
+        var env = selectedEnvironment();
+        var date = $('#booking-date').val();
+        if (!env || !date) {
+            $status.attr('hidden', 'hidden');
+            return;
+        }
+
+        var allDay = $('#booking-all-day').is(':checked');
+        var reasons = api.environmentReasons(
+            env,
+            date,
+            allDay ? '' : $('#booking-start-time').val(),
+            allDay ? '' : $('#booking-end-time').val()
+        );
+
+        if (!reasons.length) {
+            $status.attr('hidden', 'hidden');
+            return;
+        }
+
+        reasons.forEach(function(code) {
+            $status.append($('<span></span>').addClass('ffc-env-reason-tag ffc-env-reason-' + code).text(reasonLabel(code)));
+        });
+        $status.removeAttr('hidden');
     }
 
     /**
@@ -184,14 +255,25 @@
                         $('#ffc-conflict-error').hide();
                         $('#ffc-conflict-acknowledge').prop('checked', false);
 
-                        if (isHardConflict) {
+                        if (isHardConflict && conflicts.can_override) {
+                            // HARD CONFLICT the person may override (#1859):
+                            // offer the booking; the warning lists it again.
+                            var overrideTimes = conflicts.bookings.map(function(b) { return b.start_time + '–' + b.end_time; }).join(', ');
+                            $('#ffc-conflict-error')
+                                .empty()
+                                .append(FFC.notice('warning', 'warning', overrideTimes, ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.', { role: 'status', hook: 'conflict-error' }))
+                                .show();
+                            $btn.hide();
+                            $('#ffc-create-booking-btn').show().prop('disabled', false);
+                        } else if (isHardConflict) {
                             // HARD CONFLICT — block booking
                             var errorMsg = ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.';
-                            var times = conflicts.bookings.map(function(b) { return escapeHtml(b.start_time) + '–' + escapeHtml(b.end_time); }).join(', ');
-                            var errorHtml = '<p><strong>' + escapeHtml(errorMsg) + '</strong></p><p>' + times + '</p>';
+                            var times = conflicts.bookings.map(function(b) { return b.start_time + '–' + b.end_time; }).join(', ');
 
-                            $('#ffc-conflict-error-details').html(errorHtml);
-                            $('#ffc-conflict-error').show();
+                            $('#ffc-conflict-error')
+                                .empty()
+                                .append(FFC.notice('danger', 'error', times, errorMsg, { role: 'alert', hook: 'conflict-error' }))
+                                .show();
 
                             // Hide check button, do NOT show create button
                             $btn.hide();
@@ -209,12 +291,10 @@
                                     }
                                     grouped[b.audience_name].push(b.start_time + '–' + b.end_time);
                                 });
-                                var lines = [];
+                                softWarnings.push(ffcAudience.strings.audienceSameDayWarning || 'This audience group already has a booking on this day:');
                                 for (var name in grouped) {
-                                    lines.push('<strong>' + escapeHtml(name) + '</strong>: ' + grouped[name].join(', '));
+                                    softWarnings.push(name + ': ' + grouped[name].join(', '));
                                 }
-                                var sameDayMsg = ffcAudience.strings.audienceSameDayWarning || 'This audience group already has a booking on this day:';
-                                softWarnings.push(sameDayMsg + '<br>' + lines.join('<br>'));
                             }
 
                             // User member overlap
@@ -227,8 +307,15 @@
 
                             if (softWarnings.length > 0) {
                                 // SOFT CONFLICT: show warning + require acknowledgment
-                                $('#ffc-conflict-details').html(softWarnings.join('<br><br>'));
-                                $('#ffc-conflict-warning').show();
+                                // The acknowledgement checkbox is markup of the
+                                // form, so it moves into the notice instead of
+                                // being rebuilt: its change handler stays bound.
+                                var $warning = $('#ffc-conflict-warning');
+                                var ack = $warning.find('.ffc-conflict-acknowledge').detach()[0];
+                                $warning
+                                    .empty()
+                                    .append(FFC.notice('warning', 'warning', softWarnings, '', { role: 'status', hook: 'conflict-warning', children: [ack] }))
+                                    .show();
                                 $('#ffc-create-booking-btn').show().prop('disabled', true);
                             } else {
                                 // NO CONFLICT: proceed directly
@@ -265,15 +352,29 @@
 
     /**
      * Create booking
+     *
+     * A booking that breaks a rule, or overrides a conflict, comes back as a
+     * 409 listing every reason (#1859). The person then reads them in one
+     * warning; agreeing sends the same booking again with the confirmation.
+     *
+     * @param {boolean} [confirmed] Send the override confirmation.
      */
-    function createBooking() {
+    function createBooking(confirmed) {
         if (!validateBookingForm()) {
             return;
         }
 
         var data = getBookingFormData();
+        if (confirmed === true) {
+            data.confirm_override = true;
+        }
 
-        $('#ffc-create-booking-btn').prop('disabled', true).text(ffcAudience.strings.loading);
+        var $btn = $('#ffc-create-booking-btn');
+        function restore() {
+            $btn.prop('disabled', false).text(ffcAudience.strings.createBooking);
+        }
+
+        $btn.prop('disabled', true).text(ffcAudience.strings.loading);
 
         FFC.rest(ffcAudience.restUrl + 'bookings', {
             method: 'POST',
@@ -286,57 +387,91 @@
                     api.closeModals();
                     api.renderCalendar();
                 } else {
-                    $('#ffc-create-booking-btn').prop('disabled', false).text(ffcAudience.strings.createBooking);
+                    restore();
                     alert((response && response.message) || ffcAudience.strings.error);
                 }
             })
-            .catch(function() {
-                $('#ffc-create-booking-btn').prop('disabled', false).text(ffcAudience.strings.createBooking);
-                alert(ffcAudience.strings.error);
+            .catch(function(err) {
+                var body = err && err.xhr && err.xhr.responseJSON;
+                if (body && body.code === 'override_confirmation_required' && confirmed !== true) {
+                    FFC.overrideConfirm({
+                        reasons: body.reasons || [],
+                        strings: (ffcAudience.strings || {}).override
+                    }).then(function(agreed) {
+                        if (agreed) {
+                            createBooking(true);
+                        } else {
+                            restore();
+                            $btn.trigger('focus');
+                        }
+                    });
+                    return;
+                }
+                restore();
+                alert((body && body.message) || ffcAudience.strings.error);
             });
     }
 
     /**
-     * Validate booking form
+     * Validate booking form.
+     *
+     * Each problem is said under its own field, in the field-message
+     * standard (#1844), instead of in an `alert()` that named one problem
+     * and hid the field it was about. Every field is checked, so all the
+     * problems show at once, and the first one takes the focus.
      */
     function validateBookingForm() {
+        var S = ffcAudience.strings;
         var isAllDay = $('#booking-all-day').is(':checked');
-        var startTime = $('#booking-start-time').val();
-        var endTime = $('#booking-end-time').val();
-        var description = $('#booking-description').val().trim();
+        var $start = $('#booking-start-time');
+        var $end = $('#booking-end-time');
+        var $description = $('#booking-description');
         var bookingType = $('#booking-type').val();
+        var invalid = [];
 
-        if (!isAllDay) {
-            if (!startTime || !endTime) {
-                alert(ffcAudience.strings.fillTimeFields || 'Please fill in the time fields.');
-                return false;
-            }
-
-            if (startTime >= endTime) {
-                alert(ffcAudience.strings.invalidTime);
-                return false;
+        function check($field, message) {
+            if (message) {
+                FFC.fieldMessage($field, 'error', message);
+                invalid.push($field[0]);
+            } else {
+                FFC.clearFieldMessage($field);
             }
         }
 
-        if (description.length < 15 || description.length > 300) {
-            alert(ffcAudience.strings.descriptionRequired);
-            return false;
+        if (isAllDay) {
+            FFC.clearFieldMessage($start.add($end));
+        } else {
+            var fill = S.fillTimeFields || 'Please fill in the time fields.';
+            check($start, $start.val() ? '' : fill);
+            check($end, !$end.val() ? fill : ($start.val() && $start.val() >= $end.val() ? S.invalidTime : ''));
         }
 
+        var length = ($description.val() || '').trim().length;
+        check($description, length < 15 || length > 300 ? S.descriptionRequired : '');
+
+        var $audiences = $('#booking-audiences');
+        var $users = $('#booking-user-search');
         if (bookingType === 'audience') {
-            var audiences = $('#booking-audiences').val();
-            if (!audiences || audiences.length === 0) {
-                alert(ffcAudience.strings.selectAudience);
-                return false;
-            }
+            var audiences = $audiences.val();
+            check($audiences, !audiences || audiences.length === 0 ? S.selectAudience : '');
+            FFC.clearFieldMessage($users);
         } else {
             var userIds = $('#booking-user-ids').val();
+            // The picker's chosen users sit under the search box; the
+            // message goes after them, where the choice shows.
             if (!userIds || userIds.trim() === '') {
-                alert(ffcAudience.strings.selectUser);
-                return false;
+                FFC.fieldMessage($users, 'error', S.selectUser, { after: $('#booking-selected-users') });
+                invalid.push($users[0]);
+            } else {
+                FFC.clearFieldMessage($users);
             }
+            FFC.clearFieldMessage($audiences);
         }
 
+        if (invalid.length) {
+            $(invalid[0]).trigger('focus');
+            return false;
+        }
         return true;
     }
 
@@ -378,5 +513,6 @@
     api.updateSelectedUsers = updateSelectedUsers;
     api.checkConflicts     = checkConflicts;
     api.createBooking      = createBooking;
+    api.updateEnvironmentStatus = updateEnvironmentStatus;
 
 })(jQuery);

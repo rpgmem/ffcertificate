@@ -19,19 +19,18 @@
     var strings = cfg.strings || {};
     var nonce   = cfg.nonce || '';
 
+    // The row's badge is the shared status line beside a control (#1843).
+    var STATES = { saving: 'busy', saved: 'success', error: 'error' };
+
     function setBadgeState($badge, state, text) {
         if (!$badge || !$badge.length) { return; }
-        $badge
-            .removeClass('ffc-features-badge--saving ffc-features-badge--saved ffc-features-badge--error')
-            .addClass('ffc-features-badge--' + state)
-            .text(text || '')
-            .removeAttr('hidden');
+        window.FFC.status($badge, STATES[state] || '', text || '');
     }
 
     function hideBadgeLater($badge) {
         if (!$badge || !$badge.length) { return; }
         setTimeout(function () {
-            $badge.attr('hidden', 'hidden').text('');
+            window.FFC.status($badge, '', '');
         }, 1800);
     }
 

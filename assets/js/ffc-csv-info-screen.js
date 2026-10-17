@@ -18,6 +18,16 @@
 	var strings = api.strings;
 	var esc     = api.esc;
 
+	/**
+	 * A system notice as markup, for the screen's string builder (#1842).
+	 * `FFC.notice()` sets every string through `textContent`, and serialising
+	 * the element escapes it again, so the message never becomes markup.
+	 * Read with the screen, so it takes the `note` role and is not announced.
+	 */
+	function notice(tone, icon, text) {
+		return window.FFC.notice(tone, icon, text, '', { role: 'note' }).outerHTML;
+	}
+
 	// ── Step 1: Request form info ───────────────────────────────
 
 	function onSubmitInfo(e) {
@@ -302,9 +312,7 @@
 
 		// No-end-date alert (relocated from the old datetime section).
 		if (!status.has_end_date) {
-			html += '<div class="ffc-info-alert ffc-info-alert-warning">';
-			html += esc(strings.noEndDateAlert || 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.');
-			html += '</div>';
+			html += notice('warning', 'warning', strings.noEndDateAlert || 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.');
 		}
 
 		html += '</div>';
@@ -392,15 +400,15 @@
 				msg = (strings.beforeStartMsg || 'The form collection has not started yet. It will begin on %s.')
 					.replace('%s', status.start_date_formatted || '');
 			}
-			html += '<div class="ffc-info-alert ffc-info-alert-info">' + esc(msg) + '</div>';
+			html += notice('info', 'clock', msg);
 		} else if (reason === 'quota_exhausted') {
-			html += '<div class="ffc-info-alert ffc-info-alert-warning">' + esc(strings.quotaExhausted || 'The download quota for this form has been exhausted.') + '</div>';
+			html += notice('warning', 'warning', strings.quotaExhausted || 'The download quota for this form has been exhausted.');
 		} else if (reason === 'download_disabled') {
 			// CSV Download sub-toggle (post-#241) is off — Start Early /
 			// Postpone Close may still be available on this same page.
-			html += '<div class="ffc-info-alert ffc-info-alert-info">' + esc(strings.csvDownloadDisabled || 'The CSV download is not available for this form.') + '</div>';
+			html += notice('info', 'info', strings.csvDownloadDisabled || 'The CSV download is not available for this form.');
 		} else if (!reason) {
-			html += '<div class="ffc-info-alert ffc-info-alert-success">' + esc(strings.downloadReady || 'The form collection period has ended. The CSV is ready for download.') + '</div>';
+			html += notice('success', 'success', strings.downloadReady || 'The form collection period has ended. The CSV is ready for download.');
 		}
 
 		return html;

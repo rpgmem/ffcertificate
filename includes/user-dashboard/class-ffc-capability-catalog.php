@@ -250,7 +250,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_view_appointments_pii'       => array(
 						'label'       => __( 'Reveal appointment PII', 'ffcertificate' ),
-						'description' => __( 'Reveal the decrypted CPF / RF / email on an appointment (audited). Without it the values stay masked (#739).', 'ffcertificate' ),
+						'description' => __( 'Reveal the decrypted CPF / RF / email on an appointment, and the account email on the audience screens (audited). Without it the values stay masked (#739, #1824).', 'ffcertificate' ),
 					),
 				),
 			),
@@ -274,25 +274,34 @@ final class CapabilityCatalog {
 				'label' => __( 'Audiences', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_audiences'   => array(
+					'ffc_view_audiences'     => array(
 						'label'       => __( 'View audiences', 'ffcertificate' ),
 						'description' => __( 'Read-only access to audiences and their members.', 'ffcertificate' ),
 					),
-					'ffc_manage_audiences' => array(
+					'ffc_manage_audiences'   => array(
 						'label'       => __( 'Manage audiences', 'ffcertificate' ),
 						'description' => __( 'Create audiences and manage their members.', 'ffcertificate' ),
 					),
-					'ffc_import_audiences' => array(
+					'ffc_import_audiences'   => array(
 						'label'       => __( 'Import audiences', 'ffcertificate' ),
 						'description' => __( 'Bulk-load members and audiences from CSV.', 'ffcertificate' ),
 					),
-					'ffc_export_audiences' => array(
+					'ffc_export_audiences'   => array(
 						'label'       => __( 'Export audiences', 'ffcertificate' ),
 						'description' => __( 'Download the members and audiences CSV exports.', 'ffcertificate' ),
 					),
-					'ffc_delete_audiences' => array(
+					'ffc_delete_audiences'   => array(
 						'label'       => __( 'Delete audiences', 'ffcertificate' ),
 						'description' => __( 'Delete audiences, calendars, environments and bookings.', 'ffcertificate' ),
+					),
+					'ffc_view_audiences_pii' => array(
+						'label'       => __( 'Reveal audience PII', 'ffcertificate' ),
+						'description' => __( 'Reveal the email of a person listed on the audience screens and the sensitive custom fields on a user\'s profile, and export them in clear (audited). Without it they stay masked (#1863).', 'ffcertificate' ),
+					),
+					'ffc_bypass_audiences'   => array(
+						'label'       => __( 'Audience calendar bypass', 'ffcertificate' ),
+						'description' => __( 'Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on (#1859).', 'ffcertificate' ),
+						'surface'     => 'frontend',
 					),
 				),
 			),
@@ -301,25 +310,29 @@ final class CapabilityCatalog {
 				'label' => __( 'Reregistration', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_reregistration'   => array(
+					'ffc_view_reregistration'     => array(
 						'label'       => __( 'View reregistration campaigns', 'ffcertificate' ),
 						'description' => __( 'Read-only access to the Reregistration admin page.', 'ffcertificate' ),
 					),
-					'ffc_manage_reregistration' => array(
+					'ffc_manage_reregistration'   => array(
 						'label'       => __( 'Manage reregistration campaigns', 'ffcertificate' ),
 						'description' => __( 'Access the Reregistration admin page.', 'ffcertificate' ),
 					),
-					'ffc_export_reregistration' => array(
+					'ffc_export_reregistration'   => array(
 						'label'       => __( 'Export reregistration submissions', 'ffcertificate' ),
 						'description' => __( 'Download a campaign\'s submissions as CSV.', 'ffcertificate' ),
 					),
-					'ffc_import_reregistration' => array(
+					'ffc_import_reregistration'   => array(
 						'label'       => __( 'Import reregistration submissions', 'ffcertificate' ),
 						'description' => __( 'Bulk-load a campaign\'s answers from CSV, creating the users a row needs.', 'ffcertificate' ),
 					),
-					'ffc_delete_reregistration' => array(
+					'ffc_delete_reregistration'   => array(
 						'label'       => __( 'Delete reregistration campaigns', 'ffcertificate' ),
 						'description' => __( 'Delete campaigns and their submissions (cascade).', 'ffcertificate' ),
+					),
+					'ffc_view_reregistration_pii' => array(
+						'label'       => __( 'Reveal reregistration PII', 'ffcertificate' ),
+						'description' => __( 'Reveal a submitter\'s email and open a submission\'s details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed (#1815).', 'ffcertificate' ),
 					),
 				),
 			),
@@ -378,6 +391,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Manage date messages', 'ffcertificate' ),
 						'description' => __( 'Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
 					),
+					'ffc_test_date_messages'     => array(
+						'label'       => __( 'Send date-message tests', 'ffcertificate' ),
+						'description' => __( 'Send a sample of a rule, with fictional values, to your own address. Managing date messages allows it too (#1860).', 'ffcertificate' ),
+					),
 					'ffc_view_date_messages_pii' => array(
 						'label'       => __( 'See who receives date messages', 'ffcertificate' ),
 						'description' => __( 'Lists people by name with their birthday (day and month) in the recipient preview and the upcoming-dates panel.', 'ffcertificate' ),
@@ -405,6 +422,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Run destructive maintenance', 'ffcertificate' ),
 						'description' => __( 'Execute the Settings danger-zone actions: data deletion, cleanup and migrations.', 'ffcertificate' ),
 					),
+					'ffc_test_settings_smtp'         => array(
+						'label'       => __( 'Send the SMTP test email', 'ffcertificate' ),
+						'description' => __( 'Send the Email Model test message to your own address, without being able to change the transport. Managing SMTP settings allows it too (#1860).', 'ffcertificate' ),
+					),
 					'ffc_manage_email_templates'     => array(
 						'label'       => __( 'Manage email templates', 'ffcertificate' ),
 						'description' => __( 'Edit the global default body and subject of the plugin emails.', 'ffcertificate' ),
@@ -431,6 +452,11 @@ final class CapabilityCatalog {
 					'ffc_view_forms_api'      => array(
 						'label'       => __( 'Read forms via REST API', 'ffcertificate' ),
 						'description' => __( 'For external integrators authenticating with Application Passwords.', 'ffcertificate' ),
+						'surface'     => 'api',
+					),
+					'ffc_submit_forms_api'    => array(
+						'label'       => __( 'Submit forms via REST API', 'ffcertificate' ),
+						'description' => __( 'Lets an integration submit a form through the REST API, with the same checks as the public form. Creates submissions and may create accounts and send email.', 'ffcertificate' ),
 						'surface'     => 'api',
 					),
 					'ffc_manage_identities'   => array(
@@ -648,8 +674,8 @@ final class CapabilityCatalog {
 	 * `view` (the faintest, safest assumption).
 	 *
 	 * @param string $slug Capability slug.
-	 * @return string One of: view, reveal, book, cancel, download, call, export,
-	 *                import, edit, manage, bypass, delete.
+	 * @return string One of: view, reveal, book, submit, test, cancel, download,
+	 *                call, export, import, edit, manage, bypass, delete.
 	 */
 	public static function cap_tier( string $slug ): string {
 		if ( str_ends_with( $slug, '_pii' ) ) {
@@ -660,6 +686,8 @@ final class CapabilityCatalog {
 		$known  = array(
 			'view',
 			'book',
+			'submit',
+			'test',
 			'cancel',
 			'download',
 			'call',

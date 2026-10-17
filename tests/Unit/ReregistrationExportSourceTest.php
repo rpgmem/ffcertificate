@@ -33,6 +33,12 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		// The PII export rule (#1863): the exporter holds the PII cap unless a
+		// test says otherwise, and a masked cell asks is_email().
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 		class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationExportSource' );
 
 		Functions\when( '__' )->returnArg();
@@ -108,7 +114,10 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 	// ==================================================================
 
 	public function test_format_row_layout_and_dynamic_values(): void {
-		$context = array( 'fields' => array( $this->field( 'ramal', 'Ramal' ), $this->field( 'setor', 'Setor' ) ) );
+		$context = array(
+			'fields' => array( $this->field( 'ramal', 'Ramal' ), $this->field( 'setor', 'Setor' ) ),
+			'pii'    => true,
+		);
 		$result  = $this->source->format_row( $this->sample_row(), $context );
 
 		$this->assertCount( 8, $result );
@@ -128,6 +137,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 				$this->field( 'agree', 'Agree', 'checkbox' ),
 				$this->field( 'unit', 'Unit', 'dependent_select' ),
 			),
+			'pii'    => true,
 		);
 		$row         = $this->sample_row();
 		$row['data'] = '{"fields":{"agree":"1","unit":{"parent":"North","child":"HQ"}}}';
@@ -137,6 +147,46 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertSame( 'North / HQ', $result[7] );
 	}
 
+	public function test_format_row_masks_the_email_and_sensitive_fields_without_the_pii_cap(): void {
+		$enc = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'looks_like_envelope' )->andReturn( false );
+		Functions\when( 'wp_cache_get' )->justReturn( array() );
+
+		$context = array(
+			'fields' => array( $this->field( 'cpf', 'CPF', 'text', 1 ), $this->field( 'setor', 'Setor' ) ),
+			'pii'    => false,
+		);
+		$row         = $this->sample_row();
+		$row['data'] = '{"fields":{"cpf":"51817842080","setor":"TI"}}';
+
+		$result = $this->source->format_row( $row, $context );
+
+		$this->assertSame( 'j***@example.com', $result[2] );
+		$this->assertSame( '518.***.***-80', $result[6] );
+		$this->assertSame( 'TI', $result[7] );
+	}
+
+	public function test_a_clear_export_is_recorded_and_a_masked_one_is_not(): void {
+		$calls = array();
+		Mockery::getConfiguration()->setConstantsMap(
+			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
+			->shouldReceive( 'log' )
+			->andReturnUsing(
+				static function ( ...$args ) use ( &$calls ) {
+					$calls[] = $args;
+					return true;
+				}
+			);
+
+		$this->source->on_complete( 'job', array( 'processed' => 12, 'context' => array( 'pii' => false ) ) );
+		$this->assertSame( array(), $calls );
+
+		$this->source->on_complete( 'job', array( 'processed' => 12, 'context' => array( 'pii' => true ) ) );
+		$this->assertSame( array( array( 'pii_exported', 'info', array( 'export' => 'reregistration', 'rows' => 12 ), 1, 0 ) ), $calls );
+	}
+
 	public function test_format_row_decrypts_sensitive(): void {
 		// The reader asks the VALUE whether it is an envelope before attempting
 		// (#1509), so the double answers that too.
@@ -144,7 +194,10 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$enc->shouldReceive( 'looks_like_envelope' )->with( 'CIPHER' )->andReturn( true );
 		$enc->shouldReceive( 'decrypt' )->with( 'CIPHER' )->andReturn( '123.456.789-00' );
 
-		$context = array( 'fields' => array( $this->field( 'cpf', 'CPF', 'text', 1 ) ) );
+		$context = array(
+			'fields' => array( $this->field( 'cpf', 'CPF', 'text', 1 ) ),
+			'pii'    => true,
+		);
 		$row         = $this->sample_row();
 		$row['data'] = '{"fields":{"cpf":"CIPHER"}}';
 
@@ -165,7 +218,10 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$enc->shouldReceive( 'decrypt' )->with( 'v2:ENVELOPE' )->andReturn( '123.456.789-00' );
 
 		// The field definition says NOT sensitive (last argument 0).
-		$context     = array( 'fields' => array( $this->field( 'cpf', 'CPF', 'text', 0 ) ) );
+		$context     = array(
+			'fields' => array( $this->field( 'cpf', 'CPF', 'text', 0 ) ),
+			'pii'    => true,
+		);
 		$row         = $this->sample_row();
 		$row['data'] = '{"fields":{"cpf":"v2:ENVELOPE"}}';
 
@@ -185,7 +241,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 
 		$row                 = $this->sample_row();
 		$row['submitted_at'] = 1747731600;
-		$result              = $this->source->format_row( $row, array( 'fields' => array() ) );
+		$result              = $this->source->format_row( $row, array( 'fields' => array(), 'pii' => true ) );
 
 		$this->assertNotSame( '', $result[4] );
 	}

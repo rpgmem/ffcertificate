@@ -35,6 +35,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><?php esc_html_e( 'Notification Preferences: an "Appointment reminder" toggle and, when the Date Messages module is on, a "Date messages (such as birthday greetings)" toggle that opts them out; both are on until turned off', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'The personal-calendar and group-calendar tabs split the list into Upcoming, Past and Cancelled, each heading showing how many items it holds. Each section pages on its own, 5 upcoming, 3 past and 2 cancelled items at a time, and the filter bar brings every section back to its first page.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The dashboard is drawn with the plugin\'s own palette and icons, so it follows Dark Mode, and its fields, buttons and status badges look like those of the public forms. With Public Design switched on it also takes the design\'s font, accent colour, field corners and card corners.', 'ffcertificate' ); ?> <a href="#config-public-design"><?php esc_html_e( 'Public Design', 'ffcertificate' ); ?></a></p>
 	</div>
 
 	<div class="ffc-doc-example">
@@ -42,7 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<ul>
 			<li><strong><?php esc_html_e( 'Must be logged in:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'the dashboard resolves data from the current user and shows nothing to anonymous visitors.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Own data only:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'records are matched to the current user (and their CPF/RF); a user never sees another user\'s data.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'View as user:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen ("Login as User").', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'View as user:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen ("Login as User"). The other user\'s e-mail addresses, phone and birth date appear masked, each with a Reveal button that writes an activity-log entry, and a masked field cannot be saved over until it is revealed. The person themselves always sees their own data.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Roles & capabilities:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'admin surfaces are gated separately by FFC capabilities — see the Capabilities & Roles reference page.', 'ffcertificate' ); ?></li>
 		</ul>
 	</div>

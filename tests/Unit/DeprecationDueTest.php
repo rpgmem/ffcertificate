@@ -51,9 +51,15 @@ use PHPUnit\Framework\TestCase;
  * `ffc_generate_ficha` alias carried one because it was written by hand, and
  * 6.28.0 removed it along with everything else that had a date.
  *
- * The tree currently holds NO open cycle, which is a legitimate state and not a
- * broken scan -- see the self-check below for why the difference is proven by
- * the canaries rather than by what happens to be in `includes/`.
+ * A tree with NO open cycle is a legitimate state and not a broken scan -- see
+ * the self-check below for why the difference is proven by the canaries rather
+ * than by what happens to be in `includes/`.
+ *
+ * Markers are also read from the plugin's own scripts in `assets/js/` (#1788):
+ * a deprecated JavaScript global is a cycle like any other, and a date nothing
+ * reads is the prose this guard exists to replace. There is no tokenizer for
+ * JavaScript here, so a script marker must open its comment line (`//`, `/*`
+ * or a docblock's `*`) -- which also keeps a marker inside a string out.
  *
  * @coversNothing
  */
@@ -128,6 +134,28 @@ class DeprecationDueTest extends TestCase {
 	}
 
 	/**
+	 * Every non-minified script under `assets/js/`.
+	 *
+	 * The minified copy is a build output of the same source and carries no
+	 * comments, so reading it would add nothing but a second chance to drift.
+	 *
+	 * @return list<string>
+	 */
+	private function js_files(): array {
+		$files = array();
+
+		foreach ( (array) glob( $this->root() . '/assets/js/*.js' ) as $path ) {
+			if ( '.min.js' !== substr( (string) $path, -7 ) ) {
+				$files[] = (string) $path;
+			}
+		}
+
+		sort( $files );
+
+		return $files;
+	}
+
+	/**
 	 * Every `@removal <version>` marker, as `file:line => version`.
 	 *
 	 * @return array<string, string>
@@ -138,6 +166,35 @@ class DeprecationDueTest extends TestCase {
 		foreach ( $this->php_files() as $path ) {
 			foreach ( $this->markers_in( (string) file_get_contents( $path ) ) as $line => $version ) {
 				$found[ $this->relative( $path ) . ':' . $line ] = $version;
+			}
+		}
+
+		foreach ( $this->js_files() as $path ) {
+			foreach ( $this->js_markers_in( (string) file_get_contents( $path ) ) as $line => $version ) {
+				$found[ $this->relative( $path ) . ':' . $line ] = $version;
+			}
+		}
+
+		return $found;
+	}
+
+	/**
+	 * The markers of one script, as `line => version`.
+	 *
+	 * A line counts only when a comment OPENS it -- `//`, `/*`, or the `*` of
+	 * a docblock continuation. That is narrower than reading every comment,
+	 * on purpose: telling a comment from a string or a regex literal in the
+	 * middle of a line needs a JavaScript tokenizer, and a marker is written
+	 * on a line of its own anyway.
+	 *
+	 * @return array<int, string>
+	 */
+	private function js_markers_in( string $source ): array {
+		$found = array();
+
+		foreach ( explode( "\n", $source ) as $offset => $line ) {
+			if ( 1 === preg_match( '#^\s*(?://|/\*|\*).*@removal\s+([0-9][0-9.]*[0-9])#', $line, $m ) ) {
+				$found[ $offset + 1 ] = $m[1];
 			}
 		}
 
@@ -311,7 +368,7 @@ class DeprecationDueTest extends TestCase {
 	 * The #1071 / #1094 rule every guard here carries, in the only form that
 	 * survives the tree having no open cycle at all -- which is where 6.28.0
 	 * left it, closing #1264's five filter aliases and #1313's two method
-	 * notices in one pass.
+	 * notices in one pass, and where it stood until #1788 opened the next.
 	 *
 	 * WHY IT NO LONGER NAMES A VERSION
 	 *
@@ -319,7 +376,7 @@ class DeprecationDueTest extends TestCase {
 	 * "named rather than counted so a shrinking cycle does not have to touch
 	 * this file". That was already known to break when the named cycle closed
 	 * -- #1245 did it once in 6.27.0 -- and the answer then was to re-point it
-	 * at the oldest open cycle. With ZERO cycles open there is nothing honest
+	 * at the oldest open cycle. With ZERO cycles open there was nothing honest
 	 * left to point at, and a marker kept alive so this assertion has something
 	 * to find would be a cycle existing for the guard's convenience.
 	 *
@@ -332,8 +389,8 @@ class DeprecationDueTest extends TestCase {
 	 * in the tree.
 	 *
 	 * What stays here is the half the canaries cannot cover: that the version
-	 * this guard compares against parses, and that the file walk is reaching
-	 * `includes/` rather than an empty or renamed directory.
+	 * this guard compares against parses, and that the file walks are reaching
+	 * `includes/` and `assets/js/` rather than an empty or renamed directory.
 	 */
 	public function test_the_scan_reaches_the_tree(): void {
 		$this->assertNotSame( '', $this->plugin_version(), 'The plugin header version did not parse.' );
@@ -381,6 +438,20 @@ class DeprecationDueTest extends TestCase {
 			count( $files ),
 			'The walk and an independent recount disagree about how many PHP files `includes/` holds.'
 			. ' The scan covers part of the tree and both directions below then police only that part.'
+		);
+
+		$scripts = 0;
+		foreach ( (array) scandir( $this->root() . '/assets/js' ) as $entry ) {
+			if ( '.js' === substr( (string) $entry, -3 ) && '.min.js' !== substr( (string) $entry, -7 ) ) {
+				++$scripts;
+			}
+		}
+
+		$this->assertNotSame( 0, $scripts, 'No script under assets/js/ -- the script half of direction A would be vacuously green.' );
+		$this->assertSame(
+			$scripts,
+			count( $this->js_files() ),
+			'The script walk and an independent recount disagree about how many scripts `assets/js/` holds.'
 		);
 	}
 
@@ -433,6 +504,31 @@ class DeprecationDueTest extends TestCase {
 			),
 			$this->markers_in( $source ),
 			'A marker must come from a docblock or a line comment -- never from a string literal or inline HTML.'
+		);
+	}
+
+	/**
+	 * Canary: a script marker must open its comment line.
+	 *
+	 * Over synthetic source, for the reason the PHP canary gives: what the tree
+	 * holds today is not evidence of what the scan would miss.
+	 */
+	public function test_the_script_marker_scan_reads_comment_lines_only(): void {
+		$source = "/**\n"
+			. " * @removal 9.9.9\n"
+			. " */\n"
+			. "var copy = 'kept until -- @removal 8.8.8';\n"
+			. "\t// @removal 7.7.7 -- an alias.\n"
+			. "/* @removal 6.6.6 */\n";
+
+		$this->assertSame(
+			array(
+				2 => '9.9.9',
+				5 => '7.7.7',
+				6 => '6.6.6',
+			),
+			$this->js_markers_in( $source ),
+			'A script marker must come from a line a comment opens -- never from a string literal.'
 		);
 	}
 

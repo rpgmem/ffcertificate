@@ -224,6 +224,7 @@ class LoaderTest extends TestCase {
 		$match = reset( $rate_limit );
 		$this->assertStringContainsString( 'ffc-frontend-helpers.min.js', $match['src'] );
 		$this->assertContains( 'jquery', $match['deps'] );
+		$this->assertContains( 'ffc-core', $match['deps'], 'The helpers build their notices with FFC.notice() (#1842).' );
 		$this->assertTrue( $match['in_footer'], 'ffc-rate-limit should be loaded in footer' );
 	}
 

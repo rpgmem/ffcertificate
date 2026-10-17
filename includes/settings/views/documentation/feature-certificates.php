@@ -30,19 +30,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><strong><?php esc_html_e( 'QR Code in the Certificate', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the {{qr_code}} verification placeholder', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Validation URL', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'building the certificate verification link', 'ffcertificate' ); ?></li>
 		</ul>
-		<p><?php esc_html_e( 'In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes.', 'ffcertificate' ); ?></p>
-		<p><?php esc_html_e( 'The form editor refuses to save a certificate layout that lacks a required tag — by default {{auth_code}}, {{name}} and {{cpf_rf}}, configurable under Settings → Certificates → Required Certificate Tags. {{auth_code}} cannot be removed, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The fields every form must have are a separate list on the same tab, Required Form Fields: by default name, cpf_rf and email, each with its label and type; email cannot be removed.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'In the form editor each tab opens into collapsible sections whose chip says On/Off, or the schedule, while closed, and each tab carries a dot that follows its switches: hollow when off, green when on, and amber while something switched on still lacks the field it needs (a password, a list, the tickets, a date or time, an allowed area for GPS) or, when Settings → Certificates requires {{schedule}}, while the event schedule is empty. A summary box in the sidebar shows what the saved form does, the shortcode has a Copy button, and the registered locations of a geofence are picked with checkboxes.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'What a certificate requires is one table, Settings → Certificates → Required data. Each row has a name, a label, a type and two switches. Required in the form: a new form starts with the field, and the form editor locks it and refuses a form without it. Required in the certificate HTML: the form editor refuses to save a layout that lacks the {{tag}}. By default name and cpf_rf are required in both, email in the form and {{auth_code}} and {{schedule}} in the HTML. Email cannot leave the form and {{auth_code}} cannot leave the HTML. A tag the plugin fills in itself, such as {{schedule}}, has the HTML switch only, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The table saves as you change it.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'The same tab holds the quiz focus-loss grace: how long, in milliseconds, a quiz window set to Strict may lose the focus before it counts as leaving (default 1000, up to 10000; 0 counts every loss).', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'The {{qr_code}} image follows the design set in Settings → QR Code (module shape, colours, logo, frame) when that design is switched on for certificates; otherwise a plain black-and-white code is drawn.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form.', 'ffcertificate' ); ?></p>
 	</div>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Templates come from a shared pool.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Certificate PDF layouts are managed as reusable, duplicable templates in the Document Templates hub — not edited inline per form only. The form editor selects which pool template it issues; the same pool also backs the reregistration record and the appointment receipt. Build or duplicate a layout once and reuse it across forms.', 'ffcertificate' ); ?> <a href="#document-templates-hub"><?php esc_html_e( 'See the Document Templates hub.', 'ffcertificate' ); ?></a>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Templates come from a shared pool.', 'ffcertificate' ) )
+	);
+	?>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Geofence: restrict where a form can be submitted', 'ffcertificate' ); ?></h4>

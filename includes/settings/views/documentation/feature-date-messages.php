@@ -20,12 +20,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<p><?php esc_html_e( 'Date Messages sends an e-mail on a date stored in each person\'s profile — today, their birthday. It has its own top-level "Date Messages" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs.', 'ffcertificate' ); ?></p>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'On, but silent until you create a rule.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'The module is enabled by default (Settings → Modules), but no rule ships with the plugin, so nothing is sent until an administrator creates a rule and activates it.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'On, but silent until you create a rule.', 'ffcertificate' ) )
+	);
+	?>
 
 	<h4><?php esc_html_e( 'Rules', 'ffcertificate' ); ?></h4>
 	<table class="widefat striped">
@@ -47,6 +52,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</table>
 	<p><?php esc_html_e( 'Rules can be edited, duplicated, activated or deactivated and deleted from the Rules tab. Deleting a rule keeps what it already sent in the history.', 'ffcertificate' ); ?></p>
 
+	<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Who receives a message', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'For each person whose date falls on the day, the first matching decision wins: outside the audience, opted out, no valid e-mail, already sent, otherwise will receive. Each person gets a rule\'s message once per occurrence of their date, however often the run repeats. People born on 29 February are reached on 28 February in a common year. The year of birth is never shown; {{age}} is computed from it.', 'ffcertificate' ); ?></p>
 	<p class="description"><?php esc_html_e( 'A birth date given before the profile field existed reaches the profile through a migration card in Settings → Data Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends.', 'ffcertificate' ); ?></p>
@@ -67,10 +74,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a delivery is recorded per date including its year.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators); everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators), and travel masked, with a link to Date Messages; everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen, listed by name with the e-mail masked.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Upcoming dates', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule\'s audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule\'s audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators. Names are masked, here and in the recipient preview; Reveal shows one and "Reveal this page" all of them, each recorded in the activity log.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Daily schedule', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The daily run sends every active rule once a day, for that day\'s dates only, at 08:00 in the site timezone by default. The Schedule tab shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site.', 'ffcertificate' ); ?></p>
@@ -104,6 +111,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<ul>
 		<li><code>ffc_view_date_messages</code> — <?php esc_html_e( 'read-only access to the rules, their send history and recipient totals.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_manage_date_messages</code> — <?php esc_html_e( 'create and edit rules and send manually. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_test_date_messages</code> — <?php esc_html_e( 'send a rule\'s test, with sample values, to your own address. Managing date messages allows it too. Previewing the recipients and the message needs only the view capability.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_view_date_messages_pii</code> — <?php esc_html_e( 'see people by name with their birthday (day and month) in the recipient preview, the upcoming dates and the manager summary.', 'ffcertificate' ); ?></li>
 	</ul>
 </div>

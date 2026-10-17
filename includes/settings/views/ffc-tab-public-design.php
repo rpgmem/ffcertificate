@@ -19,6 +19,7 @@ $ffc_colors = array(
 	'border' => __( 'Field borders', 'ffcertificate' ),
 	'muted'  => __( 'Hints and secondary text', 'ffcertificate' ),
 	'error'  => __( 'Errors', 'ffcertificate' ),
+	'info'   => __( 'Information notices (bar and text)', 'ffcertificate' ),
 );
 ?>
 
@@ -68,6 +69,7 @@ $ffc_colors = array(
 		</tbody>
 	</table>
 	<p class="description"><?php esc_html_e( 'The text on buttons is chosen for you, black or white, whichever reads best on the accent. A colour that reads poorly on white (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it.', 'ffcertificate' ); ?></p>
+	<p class="description"><?php esc_html_e( 'The background of the information notices (the administrator bypass, the quiz and schedule notices, "already submitted") is a light shade of their colour, made for you. Their colour is checked against that background, at 4.5:1.', 'ffcertificate' ); ?></p>
 </div>
 
 <div class="card">
@@ -88,6 +90,18 @@ $ffc_colors = array(
 				</td>
 			</tr>
 			<tr>
+				<th scope="row"><label for="public_design_card_radius"><?php esc_html_e( 'Card corners', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="number" id="public_design_card_radius" name="<?php echo esc_attr( $ffc_name( 'card_radius' ) ); ?>" value="<?php echo esc_attr( (string) $ffc_design->card_radius ); ?>" min="0" max="<?php echo esc_attr( (string) PublicDesign::RADIUS_MAX ); ?>" class="small-text" required> px
+					<p class="description">
+						<?php
+						/* translators: 1: default radius, 2: maximum, in pixels. */
+						echo esc_html( sprintf( __( 'Of the cards: the form and verification card, the user dashboard and the cards inside it; 0 makes them square. Default: %1$d px, up to %2$d.', 'ffcertificate' ), PublicDesign::DEFAULTS['card_radius'], PublicDesign::RADIUS_MAX ) );
+						?>
+					</p>
+				</td>
+			</tr>
+			<tr>
 				<th scope="row"><label for="public_design_width"><?php esc_html_e( 'Form width', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="public_design_width" name="<?php echo esc_attr( $ffc_name( 'width' ) ); ?>" value="<?php echo esc_attr( (string) $ffc_design->width ); ?>" min="<?php echo esc_attr( (string) PublicDesign::WIDTH_MIN ); ?>" max="<?php echo esc_attr( (string) PublicDesign::WIDTH_MAX ); ?>" step="10" class="small-text" required> px
@@ -102,11 +116,27 @@ $ffc_colors = array(
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Font', 'ffcertificate' ); ?></th>
 				<td>
-					<fieldset>
-						<label><input type="radio" name="<?php echo esc_attr( $ffc_name( 'font' ) ); ?>" value="theme" <?php checked( $ffc_design->font, 'theme' ); ?>> <?php esc_html_e( 'The site theme\'s', 'ffcertificate' ); ?></label><br>
-						<label><input type="radio" name="<?php echo esc_attr( $ffc_name( 'font' ) ); ?>" value="plugin" <?php checked( $ffc_design->font, 'plugin' ); ?>> <?php esc_html_e( 'The plugin\'s (the system font)', 'ffcertificate' ); ?></label><br>
-						<label><input type="radio" name="<?php echo esc_attr( $ffc_name( 'font' ) ); ?>" value="arial" <?php checked( $ffc_design->font, 'arial' ); ?>> <?php esc_html_e( 'Arial', 'ffcertificate' ); ?></label>
-					</fieldset>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_segmented(
+						array(
+							'name'         => $ffc_name( 'font' ),
+							'id'           => 'ffc_public_design_font',
+							'value'        => $ffc_design->font,
+							'default'      => PublicDesign::DEFAULTS['font'],
+							'legend'       => __( 'Font', 'ffcertificate' ),
+							'options'      => array(
+								'theme'  => __( 'Theme', 'ffcertificate' ),
+								'plugin' => __( 'Plugin', 'ffcertificate' ),
+								'arial'  => __( 'Arial', 'ffcertificate' ),
+							),
+							'descriptions' => array(
+								'theme'  => __( 'The site theme\'s font.', 'ffcertificate' ),
+								'plugin' => __( 'The plugin\'s font (the system font).', 'ffcertificate' ),
+								'arial'  => __( 'Arial, on every device.', 'ffcertificate' ),
+							),
+						)
+					);
+					?>
 				</td>
 			</tr>
 		</tbody>

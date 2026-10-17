@@ -8,33 +8,20 @@
  * the REST endpoint that powers the on-click "Reveal" button (issue
  * #330).
  *
- * Three-tier policy:
+ * It is a thin adapter over the shared {@see \FreeFormCertificate\Core\PiiAccessPolicy}
+ * and follows the same tiers (#1863):
  *
- *   - `unmasked` — the operator sees the plaintext value immediately, no
- *     toggle, no audit row written. Reserved for the highest-trust roles
- *     where every action is already assumed to be operator-driven and
- *     the noise of a per-field log would obscure real anomalies.
+ *   - `unmasked` — the candidate themselves, on a candidate row linked to
+ *     their account: their own data, no audit row.
+ *   - `reveal` — holders of `ffc_view_recruitment_pii` (the Recruitment
+ *     Manager and Administrator roles, FFC Administrator) and WordPress
+ *     administrators. A masked placeholder; clicking "Reveal" hits the REST
+ *     endpoint, which decrypts the value and writes an audit entry (subject
+ *     to dedup + the `audit_pii_reveals` setting).
+ *   - `masked` — everyone else. The button is not rendered.
  *
- *   - `reveal` — the operator sees a masked placeholder; clicking
- *     "Reveal" hits the REST endpoint, which decrypts and returns the
- *     value, and writes an audit entry (subject to dedup + the
- *     `audit_pii_reveals` setting). This is the everyday path for
- *     auditors / managers / the candidate themselves when they reach
- *     the screen.
- *
- *   - `masked` — the operator never sees the value, even by clicking
- *     anything. The button is not rendered.
- *
- * Resolution rules:
- *
- *   1. WordPress super-admins (`manage_options`) and members of the
- *      `ffc_recruitment_admin` role → `unmasked`.
- *   2. Users holding `ffc_view_recruitment_pii` (granular cap; assigned
- *      to managers and auditors by default) → `reveal`.
- *   3. The candidate themselves (when the row's `user_id` matches the
- *      requester) → `reveal`. Owner of the data always has the right
- *      to see their own information; the audit row marks the access.
- *   4. Everyone else → `masked`.
+ * Until #1863 WordPress administrators and `ffc_recruitment_admin` saw the
+ * plaintext with no audit; that tier is retired in every module.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.6.2
@@ -63,16 +50,11 @@ final class RecruitmentPiiAccessPolicy {
 	private const PII_CAP = 'ffc_view_recruitment_pii';
 
 	/**
-	 * The recruitment unmasked-tier role handed to the shared policy.
-	 */
-	private const UNMASKED_ROLE = 'ffc_recruitment_admin';
-
-	/**
 	 * Resolve the access tier for the given user against the given candidate.
 	 *
 	 * Thin recruitment adapter over {@see \FreeFormCertificate\Core\PiiAccessPolicy}
-	 * (the shared 3-tier engine, #739 §3.3): it pins the recruitment reveal cap
-	 * + unmasked role and derives the owner from the candidate row, then
+	 * (the shared engine, #739 §3.3): it pins the recruitment reveal cap
+	 * and derives the owner from the candidate row, then
 	 * delegates the tiering. The candidate row is the source of truth for the
 	 * owner check (its `user_id` column); pass null when the candidate isn't
 	 * loaded yet — the owner clause then short-circuits and the cap-only path
@@ -85,7 +67,6 @@ final class RecruitmentPiiAccessPolicy {
 	public static function resolve( ?object $candidate, ?int $user_id = null ): string {
 		return \FreeFormCertificate\Core\PiiAccessPolicy::resolve(
 			self::PII_CAP,
-			self::UNMASKED_ROLE,
 			self::owner_of( $candidate ),
 			$user_id
 		);
@@ -101,7 +82,6 @@ final class RecruitmentPiiAccessPolicy {
 	public static function can_reveal( ?object $candidate, ?int $user_id = null ): bool {
 		return \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal(
 			self::PII_CAP,
-			self::UNMASKED_ROLE,
 			self::owner_of( $candidate ),
 			$user_id
 		);
@@ -110,8 +90,8 @@ final class RecruitmentPiiAccessPolicy {
 	/**
 	 * Convenience predicate: does revealing fire an audit row?
 	 *
-	 * `unmasked` tier skips audit (high-trust roles, no noise); `reveal` tier
-	 * audits. The dedup + `audit_pii_reveals` setting are enforced caller-side
+	 * Every staff reveal audits; only the candidate reading their own row
+	 * does not. The dedup + `audit_pii_reveals` setting are enforced caller-side
 	 * (the reveal handler), not here.
 	 *
 	 * @param object|null $candidate Candidate row, or null.
@@ -121,7 +101,6 @@ final class RecruitmentPiiAccessPolicy {
 	public static function should_audit( ?object $candidate, ?int $user_id = null ): bool {
 		return \FreeFormCertificate\Core\PiiAccessPolicy::should_audit(
 			self::PII_CAP,
-			self::UNMASKED_ROLE,
 			self::owner_of( $candidate ),
 			$user_id
 		);

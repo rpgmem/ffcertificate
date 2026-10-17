@@ -11,6 +11,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\AppointmentsListTable;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Tests for the self-scheduling appointments WP_List_Table.
@@ -60,7 +61,7 @@ class AppointmentsListTableTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['calendar_id'], $_GET['status'] );
+		unset( $_GET['calendar_id'], $_GET['status'], $_GET['orderby'], $_GET['order'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -120,11 +121,12 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertStringContainsString( '#7', $html );
 		$this->assertStringContainsString( 'Confirm', $html );
 		$this->assertStringContainsString( 'ffc-appointment-cancel', $html );
-		$this->assertStringContainsString( 'View', $html );
+		$this->assertStringContainsString( '>View<', $html, 'A manager is offered the manage-gated detail view.' );
+		$this->assertStringContainsString( 'appointment=7', $html );
 		$this->assertStringContainsString( 'https://example.com/magic', $html );
 	}
 
-	public function test_column_id_readonly_cancelled_shows_only_view(): void {
+	public function test_column_id_readonly_cancelled_shows_no_row_action(): void {
 		Functions\when( 'current_user_can' )->justReturn( false ); // read-only viewer.
 		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
 
@@ -134,7 +136,10 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertStringContainsString( '#9', $html );
 		$this->assertStringNotContainsString( 'Confirm', $html );
 		$this->assertStringNotContainsString( 'ffc-appointment-cancel', $html );
-		$this->assertStringContainsString( 'View', $html );
+		// The detail view requires ffc_manage_appointments, so a read-only
+		// viewer is not offered it (#1769).
+		$this->assertStringNotContainsString( '>View<', $html );
+		$this->assertStringNotContainsString( 'appointment=9', $html );
 		$this->assertStringNotContainsString( 'View Receipt', $html ); // cancelled → no receipt.
 	}
 
@@ -187,45 +192,91 @@ class AppointmentsListTableTest extends TestCase {
 	}
 
 	/**
-	 * Alias-mock Core\PiiAccessPolicy with its TIER_* constants mapped and
-	 * resolve() pinned to the given tier.
+	 * Put the current user (id 7) in one tier of the real PiiAccessPolicy for
+	 * the appointments domain, through the WordPress functions it reads, and
+	 * stub the email decryption, the mask and the nonce around column_email().
 	 *
-	 * @param string $tier Tier resolve() should return.
-	 * @return void
+	 * @param string $tier unmasked (manage_options) | admin_role
+	 *                     (ffc_appointments_admin) | reveal (the PII cap) | masked.
+	 * @param string $email Decrypted address decrypt_field() returns.
 	 */
-	private function mockPiiPolicy( string $tier ): void {
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Core\PiiAccessPolicy' => array(
-					'TIER_UNMASKED' => 'unmasked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_MASKED'   => 'masked',
-				),
-			)
+	private function driveEmailColumn( string $tier, string $email = 'a@b.com' ): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'get_user_by' )->justReturn(
+			(object) array( 'roles' => 'admin_role' === $tier ? array( 'ffc_appointments_admin' ) : array( 'ffc_appointments_viewer' ) )
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-			->shouldReceive( 'resolve' )->andReturn( $tier );
-	}
+		Functions\when( 'user_can' )->alias(
+			static function ( $uid, $cap ) use ( $tier ) {
+				if ( 'manage_options' === $cap ) {
+					return 'unmasked' === $tier;
+				}
+				return 'ffc_view_appointments_pii' === $cap && 'reveal' === $tier;
+			}
+		);
+		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
 
-	public function test_column_email_unmasked_tier_shows_plaintext(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'decrypt_field' )->andReturn( 'a@b.com', '' );
-		$this->mockPiiPolicy( 'unmasked' );
-
-		$table = new AppointmentsListTable();
-		$this->assertSame( 'a@b.com', $table->column_email( array( 'email_encrypted' => 'X' ) ) );
-		$this->assertSame( '-', $table->column_email( array() ) );
-	}
-
-	public function test_column_email_masked_tier_masks(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'decrypt_field' )->andReturn( 'a@b.com' );
-		$this->mockPiiPolicy( 'masked' );
+			->shouldReceive( 'decrypt_field' )->andReturn( $email );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
 			->shouldReceive( 'mask_email' )->andReturnUsing( fn( $e ) => 'MASKED:' . (string) $e );
+	}
 
+	private function emailCellFor( string $tier ): string {
+		$this->driveEmailColumn( $tier );
 		$table = new AppointmentsListTable();
-		$this->assertSame( 'MASKED:a@b.com', $table->column_email( array( 'email_encrypted' => 'X' ) ) );
+		return $table->column_email( array( 'id' => 42, 'user_id' => 99, 'email_encrypted' => 'X' ) );
+	}
+
+	private function assertMaskedWithReveal( string $out ): void {
+		$this->assertStringNotContainsString( 'a@b.com', str_replace( 'MASKED:a@b.com', '', $out ), 'The clear address must not reach the list HTML.' );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringContainsString( 'class="button button-small ffc-reveal-pii ffc-icon-eye"', $out );
+		$this->assertStringContainsString( 'data-type="appointment" data-field="email" data-submission-id="42" data-nonce="test_nonce"', $out );
+	}
+
+	public function test_column_email_unmasked_tier_is_masked_with_reveal_button(): void {
+		$this->assertMaskedWithReveal( $this->emailCellFor( 'unmasked' ) );
+	}
+
+	public function test_column_email_appointments_admin_role_without_the_pii_cap_gets_no_reveal_button(): void {
+		// The role alone unmasks nothing since #1863: its PII cap is what
+		// reveals, and this user holds the role without it.
+		$out = $this->emailCellFor( 'admin_role' );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
+	}
+
+	public function test_column_email_reveal_tier_is_masked_with_reveal_button(): void {
+		$this->assertMaskedWithReveal( $this->emailCellFor( 'reveal' ) );
+	}
+
+	public function test_column_email_masked_tier_masks_without_button(): void {
+		$out = $this->emailCellFor( 'masked' );
+		$this->assertSame( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
+	}
+
+	public function test_column_email_owner_gets_reveal_button(): void {
+		$this->driveEmailColumn( 'masked' );
+		$table = new AppointmentsListTable();
+		$this->assertMaskedWithReveal( $table->column_email( array( 'id' => 42, 'user_id' => 7, 'email_encrypted' => 'X' ) ) );
+	}
+
+	public function test_column_email_empty_renders_dash_without_button(): void {
+		$this->driveEmailColumn( 'unmasked', '' );
+		$table = new AppointmentsListTable();
+		$this->assertSame( '-', $table->column_email( array( 'id' => 42 ) ) );
+	}
+
+	public function test_reveal_nonce_is_created_once_per_render(): void {
+		$this->driveEmailColumn( 'unmasked' );
+		$nonces = CallLog::record( 'wp_create_nonce', 'test_nonce' );
+		$table  = new AppointmentsListTable();
+
+		$table->column_email( array( 'id' => 1, 'email_encrypted' => 'X' ) );
+		$table->column_email( array( 'id' => 2, 'email_encrypted' => 'Y' ) );
+
+		$this->assertSame( 1, $nonces->count() );
 	}
 
 	public function test_column_time_formats_range(): void {
@@ -274,6 +325,145 @@ class AppointmentsListTableTest extends TestCase {
 
 		$this->assertSame( 9, $captured['calendar_id'] );
 		$this->assertSame( 'confirmed', $captured['status'] );
+	}
+
+	/**
+	 * ORDER BY column and direction the last prepare_items() handed to
+	 * findAll() (#1770).
+	 *
+	 * @var array<int, string>
+	 */
+	private $captured_order = array();
+
+	/**
+	 * Mock the repository and the request once, so prepare_items() can run
+	 * repeatedly in one test with a different query string each time.
+	 */
+	private function capture_order(): void {
+		$this->appt_repo->shouldReceive( 'findAll' )->andReturnUsing(
+			function ( $conditions, $order_by, $order ) {
+				$this->captured_order = array( $order_by, $order );
+				return array();
+			}
+		);
+
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
+	}
+
+	/**
+	 * Run prepare_items() under the given query string.
+	 *
+	 * @param array<string, string> $query Request query vars.
+	 * @return array<int, string>
+	 */
+	private function order_for( array $query ): array {
+		unset( $_GET['orderby'], $_GET['order'] );
+		foreach ( $query as $key => $value ) {
+			$_GET[ $key ] = $value;
+		}
+		$this->captured_order = array();
+
+		$table = new AppointmentsListTable();
+		$table->prepare_items();
+
+		return $this->captured_order;
+	}
+
+	public function test_prepare_items_default_order_is_created_at_desc(): void {
+		$this->capture_order();
+		$this->assertSame( array( 'created_at', 'DESC' ), $this->order_for( array() ) );
+	}
+
+	/**
+	 * Every sortable column the table declares must reach the query, in the
+	 * direction the header link asks for (#1770).
+	 */
+	public function test_prepare_items_sorts_by_every_declared_sortable_column(): void {
+		$this->capture_order();
+		$table   = new AppointmentsListTable();
+		$orderby = array_map(
+			static fn( $spec ) => $spec[0],
+			array_values( $table->get_sortable_columns() )
+		);
+
+		$this->assertNotEmpty( $orderby );
+		foreach ( $orderby as $column ) {
+			$this->assertSame(
+				array( $column, 'ASC' ),
+				$this->order_for( array( 'orderby' => $column, 'order' => 'asc' ) ),
+				"orderby={$column}&order=asc must sort by {$column} ASC."
+			);
+			$this->assertSame(
+				array( $column, 'DESC' ),
+				$this->order_for( array( 'orderby' => $column, 'order' => 'desc' ) ),
+				"orderby={$column}&order=desc must sort by {$column} DESC."
+			);
+		}
+	}
+
+	public function test_prepare_items_ignores_an_unlisted_orderby(): void {
+		$this->capture_order();
+		$this->assertSame(
+			array( 'created_at', 'DESC' ),
+			$this->order_for( array( 'orderby' => 'email_encrypted', 'order' => 'asc' ) )
+		);
+		$this->assertSame(
+			array( 'created_at', 'DESC' ),
+			$this->order_for( array( 'orderby' => 'id; DROP TABLE x', 'order' => 'asc' ) )
+		);
+	}
+
+	public function test_column_status_labels_waitlist(): void {
+		$table = new AppointmentsListTable();
+		$html  = $table->column_status( array( 'status' => 'waitlist' ) );
+
+		$this->assertStringContainsString( 'ffc-appointment-status-waitlist', $html );
+		$this->assertStringContainsString( '>Waitlist<', $html );
+	}
+
+	public function test_column_id_waitlist_editable_offers_cancel_but_not_confirm(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
+		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=' . $a );
+		Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' )
+			->shouldReceive( 'generate_magic_link' )->andReturn( 'https://example.com/magic' );
+
+		$table = new AppointmentsListTable();
+		$html  = $table->column_id( array( 'id' => 21, 'status' => 'waitlist', 'confirmation_token' => 'tok' ) );
+
+		$this->assertStringContainsString( 'ffc-appointment-cancel', $html );
+		$this->assertStringContainsString( 'ffc_cancel_appointment_21', $html );
+		// confirm() does not recount the slot, so it would overbook a full one.
+		$this->assertStringNotContainsString( 'Confirm', $html );
+	}
+
+	public function test_column_id_waitlist_readonly_offers_no_mutation(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'add_query_arg' )->alias( fn( $a, $u = '' ) => $u . '?' . http_build_query( (array) $a ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' )
+			->shouldReceive( 'generate_magic_link' )->andReturn( 'https://example.com/magic' );
+
+		$table = new AppointmentsListTable();
+		$html  = $table->column_id( array( 'id' => 21, 'status' => 'waitlist', 'confirmation_token' => 'tok' ) );
+
+		$this->assertStringNotContainsString( 'ffc-appointment-cancel', $html );
+		$this->assertStringNotContainsString( 'Confirm', $html );
+	}
+
+	public function test_extra_tablenav_offers_waitlist_status_filter(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturn( '' )
+			->shouldReceive( 'get_get_int' )->andReturn( 0 );
+
+		$table = new AppointmentsListTable();
+
+		ob_start();
+		$this->call_protected( $table, 'extra_tablenav', array( 'top' ) );
+		$out = ob_get_clean();
+
+		$this->assertStringContainsString( '<option value="waitlist"', $out );
 	}
 
 	public function test_extra_tablenav_returns_early_when_not_top(): void {

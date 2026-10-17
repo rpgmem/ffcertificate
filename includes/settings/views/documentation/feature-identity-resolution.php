@@ -50,6 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><code>ffc_split_identities</code> — <?php esc_html_e( 'open a new account from the queue.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_merge_identities</code> — <?php esc_html_e( 'merge two accounts.', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'Among the FFC roles only FFC Administrator holds these three; no module role and not FFC Read-only carries them. WordPress administrators keep them too.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<p class="description"><?php esc_html_e( 'New wrong RFs keep arriving while the RF check digit setting is off.', 'ffcertificate' ); ?> <a href="#config-general"><?php esc_html_e( 'See General.', 'ffcertificate' ); ?></a></p>

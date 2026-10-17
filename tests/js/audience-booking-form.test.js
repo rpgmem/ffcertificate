@@ -35,6 +35,8 @@ beforeAll(() => {
 	window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php', nonce: 'n', strings: {} };
 	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-audience.js');
+	// The form reads the space rules the calendar module registers (#1859).
+	loadScript('assets/js/ffc-audience-calendar.js');
 	loadScript('assets/js/ffc-audience-booking-form.js');
 	api = window.FFCAudience;
 });
@@ -63,9 +65,10 @@ function modalFixture() {
 				<input id="booking-user-ids" />
 				<textarea id="booking-description">A valid description here</textarea>
 				<span id="desc-char-count"></span>
-				<div id="ffc-conflict-warning" style="display:none"><div id="ffc-conflict-details"></div></div>
-				<div id="ffc-conflict-error" style="display:none"><div id="ffc-conflict-error-details"></div></div>
-				<input type="checkbox" id="ffc-conflict-acknowledge" />
+				<div id="ffc-conflict-warning" style="display:none">
+					<label class="ffc-conflict-acknowledge"><input type="checkbox" id="ffc-conflict-acknowledge" /> I am aware</label>
+				</div>
+				<div id="ffc-conflict-error" style="display:none"></div>
 				<button id="ffc-check-conflicts-btn">Check</button>
 				<button id="ffc-create-booking-btn" style="display:none">Create</button>
 			</div>
@@ -109,18 +112,20 @@ afterEach(() => {
 });
 
 describe('ffc-audience-booking-form — openBookingModal', () => {
+	// A future date: a past one lists no space to a caller without the
+	// bypass (#1859).
 	it('populates the environment select, sets the date display and shows the modal', () => {
-		api.openBookingModal('2026-06-10');
+		api.openBookingModal('2099-06-10');
 		const $opts = window.$('#booking-environment-id option');
 		expect($opts.length).toBe(2);
 		expect(window.$('.ffc-booking-date-display').text().length).toBeGreaterThan(0);
 		expect(window.$('#ffc-booking-modal').css('display')).not.toBe('none');
-		expect(window.$('#booking-date').val()).toBe('2026-06-10');
+		expect(window.$('#booking-date').val()).toBe('2099-06-10');
 		expect(window.$('label[for="booking-environment-id"]').html()).toContain('Room');
 	});
 
 	it('pre-selects the passed environment id', () => {
-		api.openBookingModal('2026-06-10', '20');
+		api.openBookingModal('2099-06-10', '20');
 		expect(window.$('#booking-environment-id').val()).toBe('20');
 	});
 
@@ -129,7 +134,7 @@ describe('ffc-audience-booking-form — openBookingModal', () => {
 			{ id: 1, name: 'Sched A', environments: [{ id: 10, name: 'Env A' }] },
 			{ id: 2, name: 'Sched B', environments: [{ id: 20, name: 'Env B' }] },
 		];
-		api.openBookingModal('2026-06-10');
+		api.openBookingModal('2099-06-10');
 		const labels = window.$('#booking-environment-id option').map((_, el) => el.textContent).get();
 		expect(labels).toContain('Sched A - Env A');
 		expect(labels).toContain('Sched B - Env B');
@@ -139,7 +144,7 @@ describe('ffc-audience-booking-form — openBookingModal', () => {
 		api.state.config.schedules = [
 			{ id: 1, name: 'Sched A', environments: [{ id: 10, name: 'Only Env' }] },
 		];
-		api.openBookingModal('2026-06-10');
+		api.openBookingModal('2099-06-10');
 		const $opts = window.$('#booking-environment-id option');
 		expect($opts.length).toBe(1);
 		expect($opts.eq(0).text()).toBe('Only Env');
@@ -151,7 +156,7 @@ describe('ffc-audience-booking-form — openBookingModal', () => {
 			{ id: 2, name: 'Sched B', environmentLabel: 'Sala 2', environments: [{ id: 20, name: 'Env B' }] },
 		];
 		api.state.selectedSchedule = 2;
-		api.openBookingModal('2026-06-10');
+		api.openBookingModal('2099-06-10');
 		expect(window.$('label[for="booking-environment-id"]').html()).toContain('Sala 2');
 	});
 });
@@ -199,22 +204,40 @@ describe('ffc-audience-booking-form — searchUsers', () => {
 });
 
 describe('ffc-audience-booking-form — validation guards (via checkConflicts)', () => {
-	it('blocks when time fields are empty', () => {
+	// Each problem is said under its field in the field-message standard,
+	// never in an alert() (#1844).
+	function messageFor(selector) {
+		const id = window.$(selector).attr('data-ffc-message-id');
+		return id ? window.$('#' + id) : window.$();
+	}
+
+	it('blocks when time fields are empty, under the empty field', () => {
 		setValidAudienceForm();
 		window.$('#booking-start-time').val('');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const restSpy = vi.spyOn(window.FFC, 'rest');
 		api.checkConflicts();
-		expect(alertSpy).toHaveBeenCalledWith('Please fill in the time fields.');
+		expect(alertSpy).not.toHaveBeenCalled();
 		expect(restSpy).not.toHaveBeenCalled();
+		const $start = window.$('#booking-start-time');
+		expect($start.hasClass('is-invalid')).toBe(true);
+		expect($start.attr('aria-invalid')).toBe('true');
+		expect(messageFor('#booking-start-time').text()).toBe('Please fill in the time fields.');
+		expect(messageFor('#booking-start-time').attr('role')).toBe('alert');
+		expect(window.$('#booking-end-time').hasClass('is-invalid')).toBe(false);
 	});
 
-	it('blocks when start >= end', () => {
+	it('blocks when start >= end, under the end time', () => {
 		setValidAudienceForm();
+		// The modal is open when the visitor validates; a hidden control
+		// cannot take the focus (jsdom 30.1.2 enforces it, as browsers do).
+		window.$('#ffc-booking-modal').show();
 		window.$('#booking-end-time').val('09:00');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		api.checkConflicts();
-		expect(alertSpy).toHaveBeenCalledWith('End must be after start.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(messageFor('#booking-end-time').text()).toBe('End must be after start.');
+		expect(document.activeElement).toBe(window.$('#booking-end-time')[0]);
 	});
 
 	it('blocks when the description is too short', () => {
@@ -222,7 +245,8 @@ describe('ffc-audience-booking-form — validation guards (via checkConflicts)',
 		window.$('#booking-description').val('too short');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		api.checkConflicts();
-		expect(alertSpy).toHaveBeenCalledWith('Description must be 15–300 chars.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(messageFor('#booking-description').text()).toBe('Description must be 15–300 chars.');
 	});
 
 	it('blocks an audience booking with no audience selected', () => {
@@ -230,16 +254,36 @@ describe('ffc-audience-booking-form — validation guards (via checkConflicts)',
 		window.$('#booking-audiences').val([]);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		api.checkConflicts();
-		expect(alertSpy).toHaveBeenCalledWith('Select an audience.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(messageFor('#booking-audiences').text()).toBe('Select an audience.');
 	});
 
-	it('blocks a user booking with no users selected', () => {
+	it('blocks a user booking with no users selected, after the chosen list', () => {
 		setValidAudienceForm();
 		window.$('#booking-type').val('users');
 		window.$('#booking-user-ids').val('');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		api.checkConflicts();
-		expect(alertSpy).toHaveBeenCalledWith('Select a user.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		const $msg = messageFor('#booking-user-search');
+		expect($msg.text()).toBe('Select a user.');
+		if (window.$('#booking-selected-users').length) {
+			expect(window.$('#booking-selected-users').next()[0]).toBe($msg[0]);
+		}
+	});
+
+	it('shows every problem at once and clears them once fixed', () => {
+		setValidAudienceForm();
+		window.$('#booking-start-time').val('');
+		window.$('#booking-description').val('short');
+		api.checkConflicts();
+		expect(window.$('.ffc-field-message').length).toBe(2);
+
+		setValidAudienceForm();
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, conflicts: {} });
+		api.checkConflicts();
+		expect(window.$('.ffc-field-message').length).toBe(0);
+		expect(window.$('#ffc-booking-form .is-invalid').length).toBe(0);
 	});
 
 	it('skips time validation for an all-day booking', () => {
@@ -286,7 +330,12 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
 		expect(window.$('#ffc-conflict-error').css('display')).not.toBe('none');
-		expect(window.$('#ffc-conflict-error-details').html()).toContain('09:00');
+		const notice = document.querySelector('#ffc-conflict-error [data-ffc-notice="conflict-error"]');
+		expect(notice.className).toBe('ffc-notice ffc-notice-danger');
+		expect(notice.getAttribute('role')).toBe('alert');
+		expect(notice.querySelector('.ffc-icon-error')).not.toBeNull();
+		expect(notice.querySelector('.ffc-notice-title').textContent).toBe('Already booked for this environment.');
+		expect(notice.querySelector('.ffc-notice-text').textContent).toBe('09:00–10:00');
 		expect(window.$('#ffc-create-booking-btn').css('display')).toBe('none');
 	});
 
@@ -298,7 +347,14 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
 		expect(window.$('#ffc-conflict-warning').css('display')).not.toBe('none');
-		expect(window.$('#ffc-conflict-details').html()).toContain('Sub');
+		const notice = document.querySelector('#ffc-conflict-warning [data-ffc-notice="conflict-warning"]');
+		expect(notice.className).toBe('ffc-notice ffc-notice-warning');
+		expect(notice.querySelector('.ffc-icon-warning')).not.toBeNull();
+		const lines = Array.from(notice.querySelectorAll('.ffc-notice-text')).map((p) => p.textContent);
+		expect(lines).toEqual(['This audience already has a booking today:', 'Sub: 11:00–12:00']);
+		// The acknowledgement moved into the notice, once, still the same node.
+		expect(notice.querySelectorAll('#ffc-conflict-acknowledge').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-conflict-acknowledge').length).toBe(1);
 		expect(window.$('#ffc-create-booking-btn').prop('disabled')).toBe(true);
 	});
 
@@ -310,7 +366,25 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
 		expect(window.$('#ffc-conflict-warning').css('display')).not.toBe('none');
-		expect(window.$('#ffc-conflict-details').html()).toContain('2 member(s) overlap.');
+		expect(window.$('#ffc-conflict-warning .ffc-notice-text').text()).toContain('2 member(s) overlap.');
+	});
+
+	it('prints audience names and times as text, never as markup, on a re-check too', async () => {
+		const rest = vi.spyOn(window.FFC, 'rest').mockResolvedValue({
+			success: true,
+			conflicts: { audience_same_day: [{ audience_name: '<img src=x>', start_time: '11:00', end_time: '12:00' }] },
+		});
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		const $warning = window.$('#ffc-conflict-warning');
+		expect($warning.find('img').length).toBe(0);
+		expect($warning.find('.ffc-notice').length).toBe(1);
+		expect($warning.text()).toContain('<img src=x>: 11:00–12:00');
+		expect($warning.find('#ffc-conflict-acknowledge').length).toBe(1);
+		expect($warning.html()).not.toContain('style=');
+		rest.mockRestore();
 	});
 
 	it('enables create directly when there is no conflict', async () => {

@@ -449,6 +449,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 				),
 			)
 		);
+		$this->visibleCalendar();
 		$this->handler->shouldReceive( 'get_appointment_repository' )->andReturn( $apptRepo );
 		$this->handler->shouldReceive( 'get_blocked_date_repository' )->andReturn( $blockedRepo );
 
@@ -486,6 +487,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$blockedRepo->shouldReceive( 'getBlockedDatesInRange' )
 			->andReturn( array() );
 
+		$this->visibleCalendar();
 		$this->handler->shouldReceive( 'get_appointment_repository' )->andReturn( $appointmentRepo );
 		$this->handler->shouldReceive( 'get_blocked_date_repository' )->andReturn( $blockedRepo );
 
@@ -498,5 +500,31 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$this->assertNotNull( $success );
 		$this->assertArrayHasKey( 'counts', $success );
 		$this->assertArrayHasKey( 'holidays', $success );
+	}
+
+	/** The calendar the month read loads, visible to this visitor. */
+	private function visibleCalendar(): void {
+		$calRepo = Mockery::mock( 'FreeFormCertificate\\Repositories\\CalendarRepository' );
+		$calRepo->shouldReceive( 'findById' )->andReturn( array( 'id' => 1, 'visibility' => 'public' ) );
+		$this->handler->shouldReceive( 'get_calendar_repository' )->andReturn( $calRepo );
+		$this->handler->shouldReceive( 'is_hidden_from_visitor' )->andReturn( false );
+	}
+
+	public function test_get_month_bookings_refuses_a_private_calendar_to_an_anonymous_visitor(): void {
+		$_POST['nonce']       = 'valid';
+		$_POST['calendar_id'] = '1';
+
+		$calendar = array( 'id' => 1, 'visibility' => 'private' );
+		$calRepo  = Mockery::mock( 'FreeFormCertificate\\Repositories\\CalendarRepository' );
+		$calRepo->shouldReceive( 'findById' )->with( 1 )->andReturn( $calendar );
+		$this->handler->shouldReceive( 'get_calendar_repository' )->andReturn( $calRepo );
+		$this->handler->shouldReceive( 'is_hidden_from_visitor' )->once()->with( $calendar )->andReturn( true );
+		$this->handler->shouldReceive( 'get_appointment_repository' )->never();
+
+		$this->callAjax( 'ajax_get_month_bookings' );
+
+		$error = $this->firstResponse( 'error' );
+		$this->assertNotNull( $error );
+		$this->assertSame( 'This calendar requires authentication.', $error['message'] );
 	}
 }

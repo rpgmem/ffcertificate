@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'What the viewer offers', 'ffcertificate' ); ?></h4>
 		<ul>
-			<li><strong><?php esc_html_e( 'Filters', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'narrow the table by level and by action, or search the entries by text.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Filters', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'narrow the table by level and by action, or search the entries by text.', 'ffcertificate' ); ?> <?php esc_html_e( 'Each action is listed by a readable name, such as "Appointment Personal Data Revealed" or "Audience Account Email Revealed"; an action with no name of its own shows its code, with spaces for the underscores.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Statistics', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'an activity summary for the last 30 days: the total, the counts by level and the most frequent actions.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'download the log as a CSV file, honouring the active filters. It runs as a timeout-safe background job, so a long history exports cleanly on shared hosting.', 'ffcertificate' ); ?></li>
 		</ul>
@@ -32,8 +32,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
 		<ul>
-			<li><code>ffc_view_activity_log</code> — <?php esc_html_e( 'reach the tab and inspect the audit trail. Deliberately independent of the settings view capability, so an audit-only operator can read the log without any other settings access.', 'ffcertificate' ); ?></li>
+			<li><code>ffc_view_activity_log</code> — <?php esc_html_e( 'reach the tab and inspect the audit trail. Independent of the settings view capability, so it can be granted to an account without any other settings access.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_export_activity_log</code> — <?php esc_html_e( 'download the audit trail as CSV. Split out from the view capability (rpgmem/ffcertificate#711) so a view-only operator cannot bulk-extract the trail.', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'Among the FFC roles only FFC Administrator holds these two: the log records what every other role did, so no module role and not FFC Read-only carries it. WordPress administrators keep it too.', 'ffcertificate' ); ?></p>
 	</div>
 </div>

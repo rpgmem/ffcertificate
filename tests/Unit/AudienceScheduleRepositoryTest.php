@@ -395,7 +395,7 @@ class AudienceScheduleRepositoryTest extends TestCase {
 	public function test_create_passes_correct_format_array(): void {
 		$this->wpdb->shouldReceive('insert')->once()->andReturnUsing(function($table, $data, $format) {
 			\PHPUnit\Framework\TestCase::assertSame(
-				array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%d'),
+				array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%d'),
 				$format
 			);
 			return 1;
@@ -586,6 +586,23 @@ class AudienceScheduleRepositoryTest extends TestCase {
 		$this->assertNotNull($result);
 		$this->assertSame(1, $result->can_book);
 		$this->assertSame(0, $result->can_cancel_others);
+	}
+
+	public function test_has_any_permission_counts_the_user_across_every_schedule(): void {
+		$this->wpdb->shouldReceive('prepare')
+			->once()
+			->with('SELECT COUNT(*) FROM %i WHERE user_id = %d', 'wp_ffc_audience_schedule_permissions', 5)
+			->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_var')->once()->with('QUERY')->andReturn('1');
+
+		$this->assertTrue(AudienceScheduleRepository::has_any_permission(5));
+	}
+
+	public function test_has_any_permission_returns_false_without_a_permission_row(): void {
+		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn(null);
+
+		$this->assertFalse(AudienceScheduleRepository::has_any_permission(5));
 	}
 
 	public function test_get_user_permissions_returns_null_when_not_found(): void {
@@ -874,14 +891,54 @@ class AudienceScheduleRepositoryTest extends TestCase {
 	// user_can_override_conflicts()
 	// ==================================================================
 
-	public function test_user_can_override_conflicts_returns_true_for_admin(): void {
+	public function test_user_can_override_conflicts_returns_true_for_admin_with_the_toggle_on(): void {
 		Functions\when('user_can')->alias(function($user_id, $cap) {
 			return $cap === 'manage_options';
 		});
 
+		// The override reaches an administrator through the bypass (#1859),
+		// so it reads the calendar's toggle.
+		$this->wpdb->shouldReceive('get_row')->once()->andReturn((object) ['id' => 10, 'admin_bypass' => '1']);
+
 		$result = AudienceScheduleRepository::user_can_override_conflicts(10, 1);
 
 		$this->assertTrue($result);
+	}
+
+	public function test_user_can_override_conflicts_is_off_for_admin_when_the_toggle_is_off(): void {
+		Functions\when('user_can')->alias(function($user_id, $cap) {
+			return $cap === 'manage_options';
+		});
+
+		$this->wpdb->shouldReceive('get_row')->twice()->andReturn(
+			(object) ['id' => 10, 'admin_bypass' => '0'],
+			null
+		);
+
+		$this->assertFalse(AudienceScheduleRepository::user_can_override_conflicts(10, 1));
+	}
+
+	public function test_bypass_capability_is_manage_options_or_the_audience_cap_and_not_the_appointments_one(): void {
+		Functions\when('user_can')->alias(function($user_id, $cap) {
+			return ( 7 === $user_id && 'ffc_bypass_audiences' === $cap ) || ( 8 === $user_id && 'ffc_bypass_appointments' === $cap );
+		});
+
+		$this->assertTrue(AudienceScheduleRepository::user_has_bypass_capability(7));
+		$this->assertFalse(AudienceScheduleRepository::user_has_bypass_capability(8), 'The personal-calendar bypass no longer reaches audience calendars (#1859).');
+	}
+
+	public function test_bypass_needs_the_calendar_toggle(): void {
+		Functions\when('user_can')->justReturn(true);
+
+		$this->wpdb->shouldReceive('get_row')->once()->andReturn((object) ['id' => 10, 'admin_bypass' => '0']);
+		$this->assertFalse(AudienceScheduleRepository::user_has_bypass(10, 1));
+	}
+
+	public function test_bypass_reads_a_row_without_the_column_as_on(): void {
+		$this->assertTrue(AudienceScheduleRepository::admin_bypass_enabled((object) ['id' => 10]));
+		$this->assertTrue(AudienceScheduleRepository::admin_bypass_enabled((object) ['id' => 10, 'admin_bypass' => null]));
+		$this->assertTrue(AudienceScheduleRepository::admin_bypass_enabled((object) ['id' => 10, 'admin_bypass' => '1']));
+		$this->assertFalse(AudienceScheduleRepository::admin_bypass_enabled((object) ['id' => 10, 'admin_bypass' => '0']));
 	}
 
 	public function test_user_can_override_conflicts_returns_true_when_permitted(): void {

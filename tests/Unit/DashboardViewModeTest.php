@@ -25,6 +25,8 @@ class DashboardViewModeTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The banner masks the viewed account's address (#1863).
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -33,6 +35,7 @@ class DashboardViewModeTest extends TestCase {
 		} );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
@@ -146,7 +149,10 @@ class DashboardViewModeTest extends TestCase {
 		$html = DashboardViewMode::render_admin_viewing_banner( 42 );
 
 		$this->assertStringContainsString( 'Admin View Mode', $html );
-		$this->assertStringContainsString( 'ffc-notice-admin-viewing', $html );
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-warning"', $html );
+		$this->assertStringContainsString( 'ffc-icon-eye', $html );
+		$this->assertStringContainsString( 'data-ffc-notice="admin-viewing"', $html );
+		$this->assertStringContainsString( '<strong class="ffc-notice-title">Admin View Mode</strong>', $html );
 		$this->assertStringContainsString( 'Exit View Mode', $html );
 	}
 
@@ -166,7 +172,9 @@ class DashboardViewModeTest extends TestCase {
 		$html = DashboardViewMode::render_admin_viewing_banner( 42 );
 
 		$this->assertStringContainsString( 'Jane Smith', $html );
-		$this->assertStringContainsString( 'jane@example.com', $html );
+		// The viewed account's address is masked (#1863).
+		$this->assertStringContainsString( 'j***@example.com', $html );
+		$this->assertStringNotContainsString( 'jane@example.com', $html );
 		$this->assertStringContainsString( 'Admin Boss', $html );
 	}
 

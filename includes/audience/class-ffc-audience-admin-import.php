@@ -55,17 +55,18 @@ class AudienceAdminImport {
 	 */
 	public function render_content(): void {
 		$audiences = AudienceReader::get_hierarchical();
+		// Notices are printed once by the Settings page that hosts this tab.
 		?>
-		<?php settings_errors( 'ffc_audience' ); ?>
-
 			<?php
 			// Import and export are both on the screen (#1631): a second row of
 			// tabs inside the vertical tabs hid half of it behind a click, and
-			// it was the only nested tab strip outside a list.
+			// it was the only nested tab strip outside a list. Each section is
+			// the shared `.card` every other Settings tab draws (#1761), two by
+			// two in a `.ffc-import-export-cards` row.
 			?>
-			<div class="ffc-import-sections">
+			<div class="ffc-import-export-cards">
 				<!-- Import Members -->
-				<div class="ffc-import-section">
+				<div class="card">
 					<h2 class="ffc-icon-upload"><?php esc_html_e( 'Import Members', 'ffcertificate' ); ?></h2>
 					<p class="description">
 						<?php esc_html_e( 'Import users as members of audience groups. Users will be created if they do not exist.', 'ffcertificate' ); ?>
@@ -81,7 +82,7 @@ class AudienceAdminImport {
 									<label for="members_csv"><?php esc_html_e( 'CSV File', 'ffcertificate' ); ?></label>
 								</th>
 								<td>
-									<input type="file" name="members_csv" id="members_csv" accept=".csv" required>
+									<input class="ffc-file-input" type="file" name="members_csv" id="members_csv" accept=".csv" required>
 									<p class="description">
 										<?php esc_html_e( 'Required columns: email. Optional: name, audience_id or audience_name, cpf, rf. When a row carries a CPF or RF, the person is matched by it first, so someone already registered under a different address is not given a second account.', 'ffcertificate' ); ?>
 									</p>
@@ -137,14 +138,14 @@ class AudienceAdminImport {
 					<div class="ffc-sample-csv">
 						<h4><?php esc_html_e( 'Sample CSV Format', 'ffcertificate' ); ?></h4>
 						<pre><?php echo esc_html( AudienceCsvImporter::get_sample_csv( 'members' ) ); ?></pre>
-						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-import&download_sample=members' ), 'download_sample' ) ); ?>" class="button">
+						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=import&download_sample=members' ), 'download_sample' ) ); ?>" class="button">
 							<?php esc_html_e( 'Download Sample', 'ffcertificate' ); ?>
 						</a>
 					</div>
 				</div>
 
 				<!-- Import Audiences -->
-				<div class="ffc-import-section">
+				<div class="card">
 					<h2 class="ffc-icon-upload"><?php esc_html_e( 'Import Audiences', 'ffcertificate' ); ?></h2>
 					<p class="description">
 						<?php esc_html_e( 'Import audience groups from a CSV file. Parent groups are created first, then children.', 'ffcertificate' ); ?>
@@ -160,7 +161,7 @@ class AudienceAdminImport {
 									<label for="audiences_csv"><?php esc_html_e( 'CSV File', 'ffcertificate' ); ?></label>
 								</th>
 								<td>
-									<input type="file" name="audiences_csv" id="audiences_csv" accept=".csv" required>
+									<input class="ffc-file-input" type="file" name="audiences_csv" id="audiences_csv" accept=".csv" required>
 									<p class="description">
 										<?php esc_html_e( 'Required columns: name. Optional: color, parent (parent audience name).', 'ffcertificate' ); ?>
 									</p>
@@ -174,17 +175,17 @@ class AudienceAdminImport {
 					<div class="ffc-sample-csv">
 						<h4><?php esc_html_e( 'Sample CSV Format', 'ffcertificate' ); ?></h4>
 						<pre><?php echo esc_html( AudienceCsvImporter::get_sample_csv( 'audiences' ) ); ?></pre>
-						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-import&download_sample=audiences' ), 'download_sample' ) ); ?>" class="button">
+						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=import&download_sample=audiences' ), 'download_sample' ) ); ?>" class="button">
 							<?php esc_html_e( 'Download Sample', 'ffcertificate' ); ?>
 						</a>
 					</div>
 				</div>
 
-			</div><!-- .ffc-import-sections -->
+			</div><!-- .ffc-import-export-cards -->
 
-			<div class="ffc-import-sections">
+			<div class="ffc-import-export-cards">
 				<!-- Export Members -->
-				<div class="ffc-import-section">
+				<div class="card">
 					<h2 class="ffc-icon-download"><?php esc_html_e( 'Export Members', 'ffcertificate' ); ?></h2>
 					<p class="description">
 						<?php esc_html_e( 'Export audience members to a CSV file. The file will contain email, name, and audience name columns.', 'ffcertificate' ); ?>
@@ -227,7 +228,7 @@ class AudienceAdminImport {
 				</div>
 
 				<!-- Export Audiences -->
-				<div class="ffc-import-section">
+				<div class="card">
 					<h2 class="ffc-icon-download"><?php esc_html_e( 'Export Audiences', 'ffcertificate' ); ?></h2>
 					<p class="description">
 						<?php esc_html_e( 'Export audience groups to a CSV file. The file will contain name, color, and parent columns.', 'ffcertificate' ); ?>
@@ -240,7 +241,7 @@ class AudienceAdminImport {
 						<?php submit_button( __( 'Export Audiences', 'ffcertificate' ), 'primary', 'export_audiences' ); ?>
 					</form>
 				</div>
-			</div><!-- .ffc-import-sections -->
+			</div><!-- .ffc-import-export-cards -->
 		<?php
 	}
 

@@ -47,13 +47,6 @@ class ReregistrationFormRendererTest extends TestCase {
 		$user_mock->user_registered = '2025-01-01 00:00:00';
 		Functions\when( 'get_userdata' )->justReturn( $user_mock );
 
-		if ( ! defined( 'ARRAY_A' ) ) {
-			define( 'ARRAY_A', 'ARRAY_A' );
-		}
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
@@ -171,7 +164,9 @@ class ReregistrationFormRendererTest extends TestCase {
 
 		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
 
-		$this->assertStringContainsString( 'ffc-rereg-import-notice', $html );
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-info"', $html );
+		$this->assertStringContainsString( 'data-ffc-notice="rereg-import"', $html );
+		$this->assertStringContainsString( 'ffc-rereg-import-btn', $html );
 		$this->assertStringContainsString( 'Recadastramento 2024', $html );
 	}
 
@@ -183,7 +178,7 @@ class ReregistrationFormRendererTest extends TestCase {
 
 		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
 
-		$this->assertStringNotContainsString( 'ffc-rereg-import-notice', $html );
+		$this->assertStringNotContainsString( 'data-ffc-notice="rereg-import"', $html );
 	}
 
 	public function test_render_acknowledgment_field_outputs_its_html(): void {
@@ -418,9 +413,12 @@ class ReregistrationFormRendererTest extends TestCase {
 		$unchecked = $this->renderInput( $field, '0', false );
 
 		$this->assertStringContainsString( "checked='checked'", $checked );
-		$this->assertStringContainsString( 'I agree <span class="ffc-required">*</span>', $checked );
+		$this->assertStringContainsString( 'I agree <span class="ffc-required" aria-hidden="true">*</span>', $checked );
 		$this->assertStringNotContainsString( 'checked=', $unchecked );
 		$this->assertStringNotContainsString( 'ffc-required', $unchecked );
+		// The control itself carries the constraint, not only the marker (#1850).
+		$this->assertMatchesRegularExpression( '/<input type="checkbox"[^>]* required[ >]/', $checked );
+		$this->assertStringNotContainsString( ' required', $unchecked );
 	}
 
 	public function test_render_input_number_carries_the_field_mask(): void {
@@ -558,6 +556,50 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringContainsString( 'id="ffc_rereg_field_9"', $html );
 		$this->assertStringContainsString( "checked='checked'", $html );
 		$this->assertStringNotContainsString( '<label for=', $html, 'A checkbox carries its label inline, not above.' );
+	}
+
+	public function test_render_field_prints_no_message_slot_without_an_error(): void {
+		$field = $this->makeField( array( 'id' => 3, 'field_key' => 'phone', 'field_type' => 'text', 'field_label' => 'Phone', 'is_required' => 1 ) );
+
+		ob_start();
+		ReregistrationFormRenderer::render_field( $field, '' );
+		$html = (string) ob_get_clean();
+
+		// The script inserts the message where it is needed (#1844); the old
+		// empty `.ffc-rereg-field-error` slot is gone.
+		$this->assertStringNotContainsString( 'ffc-rereg-field-error', $html );
+		$this->assertStringNotContainsString( 'ffc-field-message', $html );
+		$this->assertStringNotContainsString( 'aria-invalid', $html );
+		$this->assertStringContainsString( '<span class="ffc-required" aria-hidden="true">*</span>', $html );
+	}
+
+	public function test_render_field_prints_a_server_error_in_the_field_message_standard(): void {
+		$field = $this->makeField( array( 'id' => 3, 'field_key' => 'phone', 'field_type' => 'text', 'field_label' => 'Phone' ) );
+
+		ob_start();
+		ReregistrationFormRenderer::render_field( $field, '', 'Invalid phone.' );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString(
+			'<span id="ffc-msg-ffc_rereg_field_3" class="ffc-field-message is-error ffc-icon-error">Invalid phone.</span>',
+			$html
+		);
+		$this->assertStringContainsString( ' class="is-invalid" aria-invalid="true" data-ffc-message-id="ffc-msg-ffc_rereg_field_3" aria-describedby="ffc-msg-ffc_rereg_field_3"', $html );
+		// Label, control, message: the message follows the control.
+		$this->assertLessThan( strpos( $html, 'ffc-field-message' ), strpos( $html, 'id="ffc_rereg_field_3"' ) );
+	}
+
+	public function test_render_field_ties_a_checkbox_to_its_server_error(): void {
+		$this->stubRealSelectedAndChecked();
+		$field = $this->makeField( array( 'id' => 9, 'field_key' => 'agree', 'field_type' => 'checkbox', 'field_label' => 'I agree' ) );
+
+		ob_start();
+		ReregistrationFormRenderer::render_field( $field, '0', 'Tick to agree.' );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'aria-invalid="true"', $html );
+		$this->assertStringContainsString( 'id="ffc-msg-ffc_rereg_field_9"', $html );
+		$this->assertLessThan( strpos( $html, 'ffc-field-message' ), strpos( $html, '</label>' ) );
 	}
 
 	public function test_render_group_fieldset_prints_nothing_for_an_empty_group(): void {

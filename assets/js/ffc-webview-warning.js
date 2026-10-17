@@ -71,6 +71,10 @@
 	}
 
 	function maybeRender() {
+		// The banner is the shared notice; without ffc-core there is none.
+		if ( ! window.FFC || typeof window.FFC.notice !== 'function' ) {
+			return;
+		}
 		var cfg = window.ffc_webview_warning || {};
 		// Selectors to anchor the banner above. The first match wins.
 		var targetSelectors = [
@@ -100,25 +104,8 @@
 		var ctaContinue = s.continueAnyway || 'Continue anyway';
 		var iosHint     = s.iosInstructions || 'Tap the menu icon (•••) at the bottom of the app and choose "Open in Safari".';
 
-		var banner = document.createElement( 'div' );
-		banner.className = 'ffc-webview-warning';
-		banner.setAttribute( 'role', 'alert' );
-
-		var icon = document.createElement( 'div' );
-		icon.className = 'ffc-webview-warning-icon ffc-icon-warning';
-		icon.setAttribute( 'aria-hidden', 'true' );
-
-		var content = document.createElement( 'div' );
-		content.className = 'ffc-webview-warning-content';
-
-		var h = document.createElement( 'h3' );
-		h.textContent = title;
-
-		var p = document.createElement( 'p' );
-		p.textContent = body;
-
 		var actions = document.createElement( 'div' );
-		actions.className = 'ffc-webview-warning-actions';
+		actions.className = 'ffc-notice-actions';
 
 		var openBtn = document.createElement( 'button' );
 		openBtn.type = 'button';
@@ -133,6 +120,18 @@
 		dismissBtn.type = 'button';
 		dismissBtn.className = 'ffc-webview-warning-dismiss';
 		dismissBtn.textContent = ctaContinue;
+
+		actions.appendChild( openBtn );
+		actions.appendChild( dismissBtn );
+
+		// The shared notice (#1842): FFC.notice() sets every string through
+		// textContent, so neither the title nor the body can become markup.
+		var banner = window.FFC.notice( 'warning', 'warning', body, title, {
+			role: 'alert',
+			hook: 'webview-warning',
+			children: [ actions ]
+		} );
+
 		dismissBtn.addEventListener( 'click', function ( e ) {
 			e.preventDefault();
 			try { window.sessionStorage.setItem( STORAGE_KEY, '1' ); } catch ( err ) {}
@@ -140,14 +139,6 @@
 				banner.parentNode.removeChild( banner );
 			}
 		} );
-
-		actions.appendChild( openBtn );
-		actions.appendChild( dismissBtn );
-		content.appendChild( h );
-		content.appendChild( p );
-		content.appendChild( actions );
-		banner.appendChild( icon );
-		banner.appendChild( content );
 
 		anchor.parentNode.insertBefore( banner, anchor );
 	}

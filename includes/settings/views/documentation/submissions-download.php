@@ -26,10 +26,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Public validation page', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate\'s authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting.', 'ffcertificate' ); ?></p>
 
-	<div class="ffc-doc-note">
+	<?php ob_start(); ?>
 		<p>
-			<strong class="ffc-icon-info"><?php esc_html_e( 'Magic link vs. validation page.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'The magic link is for the participant (one-click download of their PDF); the public page is for anyone verifying authenticity by code. Both are emitted from the {{validation_url}} token, whose link DSL chooses which destination and link text to render.', 'ffcertificate' ); ?> <a href="#reference-validation-url"><?php esc_html_e( 'See Validation URL', 'ffcertificate' ); ?></a>. <?php esc_html_e( 'The QR code embedded in the PDF points at the same magic link.', 'ffcertificate' ); ?>
 		</p>
-	</div>
+	<?php
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		(string) ob_get_clean(),
+		array( 'title' => __( 'Magic link vs. validation page.', 'ffcertificate' ) )
+	);
+	?>
 </div>

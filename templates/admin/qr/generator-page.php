@@ -261,7 +261,7 @@ $ffc_qr_vcard_fields = array(
 							<tr data-ffc-qr-short-on>
 								<th scope="row"><label for="ffc-qr-short-title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label></th>
 								<td>
-									<input type="text" id="ffc-qr-short-title" class="regular-text" maxlength="255" aria-required="true">
+									<input type="text" id="ffc-qr-short-title" class="regular-text" maxlength="255" required aria-required="true">
 									<p class="description"><?php esc_html_e( 'Required: it names the short URL in the list.', 'ffcertificate' ); ?></p>
 								</td>
 							</tr>
@@ -365,7 +365,7 @@ $ffc_qr_vcard_fields = array(
 				<h2 class="ffc-qr-generator__panel-title ffc-icon-eye"><?php esc_html_e( 'Preview', 'ffcertificate' ); ?></h2>
 				<div id="ffc-qr-generator-preview" class="ffc-qr-generator__preview" aria-hidden="true"></div>
 				<p id="ffc-qr-generator-usage" class="ffc-qr-generator__usage"></p>
-				<p id="ffc-qr-generator-status" class="ffc-qr-generator__status" role="status" aria-live="polite"></p>
+				<p id="ffc-qr-generator-status" class="ffc-qr-generator__status ffc-status" role="status" aria-live="polite" hidden></p>
 				<div class="ffc-qr-generator__export">
 					<div class="ffc-qr-field">
 						<label class="ffc-qr-field__label" for="ffc-qr-format"><?php esc_html_e( 'Format', 'ffcertificate' ); ?></label>

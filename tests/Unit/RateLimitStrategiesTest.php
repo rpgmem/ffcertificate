@@ -31,7 +31,7 @@ class RateLimitStrategiesTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'get_transient' )->justReturn( false );
 		// NOTE: the real RateLimiter facade is left un-mocked so IpLimiter can
 		// read its CACHE_GROUP const (alias mocks define an empty class).
 	}
@@ -55,7 +55,7 @@ class RateLimitStrategiesTest extends TestCase {
 	}
 
 	public function test_ip_blocks_on_hour_limit(): void {
-		Functions\when( 'wp_cache_get' )->justReturn( 99 );
+		Functions\when( 'get_transient' )->justReturn( 99 );
 		Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimitRepository' );
 		$s       = array(
 			'ip' => array( 'enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 50, 'cooldown_seconds' => 0, 'message' => 'wait {time}' ),
@@ -68,7 +68,7 @@ class RateLimitStrategiesTest extends TestCase {
 	}
 
 	public function test_ip_allows_when_under_all_limits(): void {
-		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'get_transient' )->justReturn( false );
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimitRepository' );
 		$repo->shouldReceive( 'get_count_from_db' )->andReturn( 0 );
 		$s = array( 'ip' => array( 'enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 50, 'cooldown_seconds' => 30, 'message' => '' ) );

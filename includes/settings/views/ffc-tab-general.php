@@ -165,13 +165,10 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 			<?php endif; ?>
 		</ul>
 	<?php
-	wp_admin_notice(
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
 		(string) ob_get_clean(),
-		array(
-			'type'               => 'info',
-			'additional_classes' => array( 'inline', 'ffc-settings-divergence-notice' ),
-			'paragraph_wrap'     => false,
-		)
+		array( 'classes' => array( 'ffc-settings-divergence-notice' ) )
 	);
 	?>
 <?php endif; ?>
@@ -216,28 +213,36 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 				</tr>
 				<tr>
 					<th scope="row">
-						<?php esc_html_e( 'Code Editor Theme', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'Dark Mode in the Code Editor', 'ffcertificate' ); ?>
 					</th>
 					<td>
 						<?php
+						// The stored values stay `light` / `dark` / `auto` (#1758):
+						// only the wording and the order changed, to read like the
+						// Dark Mode row above.
 						\FreeFormCertificate\Admin\AdminUI::render_segmented(
 							array(
-								'name'    => 'ffc_settings[code_editor_theme]',
-								'id'      => 'code_editor_theme',
-								'value'   => (string) $ffcertificate_get_option( 'code_editor_theme', 'dark' ),
-								'default' => 'dark',
-								'legend'  => __( 'Code Editor Theme', 'ffcertificate' ),
-								'options' => array(
+								'name'         => 'ffc_settings[code_editor_theme]',
+								'id'           => 'code_editor_theme',
+								'value'        => (string) $ffcertificate_get_option( 'code_editor_theme', 'dark' ),
+								'default'      => 'dark',
+								'legend'       => __( 'Dark Mode in the Code Editor', 'ffcertificate' ),
+								'options'      => array(
+									'light' => __( 'Off', 'ffcertificate' ),
+									'dark'  => __( 'On', 'ffcertificate' ),
 									'auto'  => __( 'Auto', 'ffcertificate' ),
-									'light' => __( 'Light', 'ffcertificate' ),
-									'dark'  => __( 'Dark', 'ffcertificate' ),
 								),
-								'data'    => array( 'ffc-autosave-key' => 'code_editor_theme' ),
+								'descriptions' => array(
+									'light' => __( 'Always light.', 'ffcertificate' ),
+									'dark'  => __( 'Always dark.', 'ffcertificate' ),
+									'auto'  => __( 'Follows the Dark Mode setting above.', 'ffcertificate' ),
+								),
+								'data'         => array( 'ffc-autosave-key' => 'code_editor_theme' ),
 							)
 						);
 						?>
 						<p class="description">
-							<?php esc_html_e( 'Applies to the Certificate HTML editor on the form edit screen. "Auto" mirrors the Dark Mode setting above; fresh installs default to Dark.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Applies to the Certificate HTML editor on the form edit screen. On is the default.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -257,7 +262,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 							)
 						);
 						?>
-						<p style="margin-top:.6em;">
+						<p class="ffc-cleanup-days-row">
 							<label for="cleanup_days"><?php esc_html_e( 'Delete after (days):', 'ffcertificate' ); ?></label>
 							<input type="number" name="ffc_settings[cleanup_days]" id="cleanup_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'cleanup_days', 365 ) ); ?>" class="small-text" min="1" max="3650" data-ffc-autosave-key="cleanup_days" required>
 						</p>

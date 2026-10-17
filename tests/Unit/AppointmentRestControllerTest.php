@@ -35,6 +35,9 @@ class AppointmentRestControllerTest extends TestCase {
 	/** @var \Mockery\MockInterface Mock for RateLimiter (alias) */
 	private $rate_limiter_mock;
 
+	/** @var \Mockery\MockInterface Mock for RequestInput (alias) */
+	private $request_input_mock;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -75,10 +78,12 @@ class AppointmentRestControllerTest extends TestCase {
 
 		// Alias mocks for static-only classes
 		$utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' )->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault()
+		$this->request_input_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
+		$this->request_input_mock->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault()
 			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) )
+			->shouldReceive( 'text_array' )->andReturnUsing( static fn( $raw ) => is_array( $raw ) ? array_map( static fn( $v ) => is_scalar( $v ) ? strip_tags( (string) $v ) : '', $raw ) : array() )->byDefault();
 		$utils_mock->shouldReceive( 'debug_log' )->byDefault();
 
 		$encryption_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
@@ -89,6 +94,7 @@ class AppointmentRestControllerTest extends TestCase {
 		// RateLimiter alias
 		$this->rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
 		$this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
+		$this->rate_limiter_mock->shouldReceive( 'record_attempt' )->byDefault();
 		Functions\when( 'get_option' )->justReturn( array() );
 	}
 
@@ -120,13 +126,58 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertCount( 3, $this->registered_routes );
 	}
 
-	public function test_create_appointment_route_is_public(): void {
+	public function test_create_appointment_route_requires_a_capability(): void {
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
 		$ctrl->register_routes();
 
 		$route = $this->registered_routes[0];
 		$this->assertStringContainsString( 'appointments', $route['route'] );
-		$this->assertSame( '__return_true', $route['args']['permission_callback'] );
+		$this->assertSame( array( $ctrl, 'check_create_permission' ), $route['args']['permission_callback'] );
+	}
+
+	public function test_anonymous_caller_is_refused_by_the_create_permission(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$this->assertFalse( ( new AppointmentRestController( 'ffc/v1' ) )->check_create_permission() );
+	}
+
+	public function test_create_permission_admits_the_appointments_manager_only(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_appointments' === $cap );
+		$this->assertTrue( ( new AppointmentRestController( 'ffc/v1' ) )->check_create_permission() );
+
+		// The self-scoped booking cap is not enough to book in another's name.
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_book_own_appointments' === $cap );
+		$this->assertFalse( ( new AppointmentRestController( 'ffc/v1' ) )->check_create_permission() );
+	}
+
+	public function test_create_appointment_records_the_rate_limit_attempt(): void {
+		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
+		$this->rate_limiter_mock->shouldReceive( 'record_attempt' )->once()->with( 'ip', '127.0.0.1' );
+
+		( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
+			$this->make_request( array( 'id' => '3' ), $this->valid_booking() )
+		);
+	}
+
+	public function test_create_appointment_sanitizes_custom_data_like_the_booking_form(): void {
+		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
+		$captured = null;
+		$this->appointment_handler_mock->shouldReceive( 'process_appointment' )->andReturnUsing(
+			function ( $data ) use ( &$captured ) {
+				$captured = $data;
+				return array( 'appointment_id' => 9, 'requires_approval' => false );
+			}
+		);
+		$raw = array( 'school' => '<script>x</script>EMEF', 'nested' => array( 'a' => 'b' ) );
+		$this->request_input_mock->shouldReceive( 'text_array' )->once()->with( $raw )->andReturn( array( 'school' => 'EMEF', 'nested' => '' ) );
+
+		$booking                = $this->valid_booking();
+		$booking['custom_data'] = $raw;
+		( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
+			$this->make_request( array( 'id' => '3' ), $booking )
+		);
+
+		$this->assertSame( array( 'school' => 'EMEF', 'nested' => '' ), $captured['custom_data'] );
 	}
 
 	public function test_get_and_cancel_appointment_routes_require_access_check(): void {
@@ -301,7 +352,64 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertSame( 1, $result['calendar_id'] );
 		$this->assertSame( 'Test Calendar', $result['calendar_title'] );
 		$this->assertSame( 'confirmed', $result['status'] );
+		// A caller who is not the booker gets the address masked (#1863).
+		$this->assertSame( 'j***@example.com', $result['email'] );
+		$this->assertSame( '*********88', $result['phone'] );
+	}
+
+	/**
+	 * A booking owned by user 42.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function owned_appointment(): array {
+		return array(
+			'id'               => 10,
+			'calendar_id'      => 1,
+			'user_id'          => 42,
+			'appointment_date' => '2026-04-01',
+			'start_time'       => '09:00',
+			'end_time'         => '09:30',
+			'status'           => 'confirmed',
+			'name'             => 'Jane Doe',
+			'email'            => 'jane@example.com',
+			'phone'            => '11999998888',
+			'created_at'       => '2026-03-01 10:00:00',
+		);
+	}
+
+	public function test_get_appointment_gives_the_booker_their_own_email_and_phone(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 42 );
+		Functions\when( 'user_can' )->justReturn( false );
+		$this->appointment_repo_mock->shouldReceive( 'findById' )->andReturn( $this->owned_appointment() );
+		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'title' => 'Cal' ) );
+
+		$result = ( new AppointmentRestController( 'ffc/v1' ) )->get_appointment( $this->make_request( array( 'id' => '10' ) ) );
+
 		$this->assertSame( 'jane@example.com', $result['email'] );
+		$this->assertSame( '11999998888', $result['phone'] );
+	}
+
+	public function test_get_appointment_reveals_to_a_pii_holder_only_on_request_and_audits(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_appointments_pii' === $cap );
+		$this->appointment_repo_mock->shouldReceive( 'findById' )->andReturn( $this->owned_appointment() );
+		$this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'title' => 'Cal' ) );
+		Mockery::getConfiguration()->setConstantsMap(
+			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
+			->shouldReceive( 'log' )->once()
+			->with( 'appointment_pii_revealed', 'info', array( 'field_key' => 'rest_api' ), 5, 10 );
+		$ctrl = new AppointmentRestController( 'ffc/v1' );
+
+		$masked = $ctrl->get_appointment( $this->make_request( array( 'id' => '10' ) ) );
+		$this->assertSame( 'j***@example.com', $masked['email'] );
+		$this->assertSame( '*********88', $masked['phone'] );
+
+		$clear = $ctrl->get_appointment( $this->make_request( array( 'id' => '10', 'reveal' => true ) ) );
+		$this->assertSame( 'jane@example.com', $clear['email'] );
+		$this->assertSame( '11999998888', $clear['phone'] );
 	}
 
 	// ------------------------------------------------------------------

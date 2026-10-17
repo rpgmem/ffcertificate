@@ -3,6 +3,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// The real status line helper (#1843); the tests replace only FFC.request.
+loadScript('assets/js/ffc-core.js');
+const ffcStatus = window.FFC.status;
+
 // Mock window.FFC.request (ffc-core): resolve with each step's `resolve`
 // payload in sequence, or reject when `reject` is set. The backfill driver
 // awaits these, so tests flush microtasks between recursion steps.
@@ -14,7 +18,7 @@ function installFFC(sequence) {
 			? Promise.reject(new Error('fail'))
 			: Promise.resolve(step.resolve);
 	});
-	window.FFC = { request };
+	window.FFC = { request, status: ffcStatus };
 	return request;
 }
 

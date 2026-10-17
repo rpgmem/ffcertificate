@@ -150,10 +150,10 @@ class AudienceLoaderTest extends TestCase {
 			->atLeast()->once();
 		Functions\expect('wp_enqueue_script')
 			->atLeast()->once();
-		// Two wp_localize_script calls now: ffcAudienceAdmin (original)
-		// + ffcAdminAutosave (added when autosave infra was wired into the
-		// audience admin enqueue path).
-		Functions\expect('wp_localize_script')->twice();
+		// Three wp_localize_script calls now: ffcAudienceAdmin (original),
+		// ffcAdminAutosave (the settings autosave) and ffcRecordAutosave
+		// (the per-record autosave, #1757).
+		Functions\expect('wp_localize_script')->times(3);
 		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
 		Functions\when('rest_url')->justReturn('https://example.com/wp-json/ffc/v1/audience/');
 		Functions\when('wp_create_nonce')->justReturn('test-nonce');
@@ -276,7 +276,31 @@ class AudienceLoaderTest extends TestCase {
 		$this->assertContains('ffc-division-sector-editor', $log['scripts']);
 		$this->assertContains('ffc-custom-fields-admin', $log['scripts']);
 		$this->assertNotContains('ffc-batched-export', $log['scripts']);
-		$this->assertSame(array('ffcDivisionSectorEditor', 'ffcAudienceAdmin', 'ffcAdminAutosave'), $log['localized']);
+		$this->assertSame(array('ffcDivisionSectorEditor', 'ffcAudienceAdmin', 'ffcAdminAutosave', 'ffcRecordAutosave'), $log['localized']);
+	}
+
+	/**
+	 * Runs alone: it stubs `wp_style_is`, which a `function_exists()` guard in the
+	 * loader checks, and a definition left behind would change later tests.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_enqueue_admin_assets_on_the_calendars_page_loads_the_shortcode_copy(): void {
+		$log          = $this->recordAdminEnqueues(true);
+		$registered   = array();
+		$_GET['page'] = 'ffc-scheduling-calendars';
+		Functions\when('wp_register_script')->alias(static function ($handle, $src = '', $deps = array()) use (&$registered) {
+			$registered[] = array($handle, $src, $deps);
+		});
+
+		AudienceLoader::get_instance()->enqueue_admin_assets('scheduling_page_ffc-scheduling-calendars');
+		unset($_GET['page']);
+
+		// The calendar and environment lists print the shortcode copy button (#1814).
+		$this->assertContains('ffc-copy-shortcode', $log['scripts']);
+		$this->assertContains(array('ffc-form-list-copy-shortcode', false, array('ffc-copy-shortcode')), $registered);
+		$this->assertNotContains('ffc-batched-export', $log['scripts']);
 	}
 
 	/**
@@ -297,7 +321,8 @@ class AudienceLoaderTest extends TestCase {
 		$this->assertContains('ffc-batched-export', $log['scripts']);
 		$this->assertContains('ffc-progress-overlay', $log['styles']);
 		$this->assertNotContains('ffc-custom-fields-admin', $log['scripts']);
-		$this->assertSame(array('ffcAudienceAdmin', 'ffcAdminAutosave'), $log['localized']);
+		$this->assertNotContains('ffc-copy-shortcode', $log['scripts'], 'Only the calendars page prints a shortcode copy button.');
+		$this->assertSame(array('ffcAudienceAdmin', 'ffcAdminAutosave', 'ffcRecordAutosave'), $log['localized']);
 	}
 
 	// ==================================================================

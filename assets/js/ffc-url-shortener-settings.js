@@ -64,7 +64,7 @@
             // FFC.request rejects on !success; a resolved-but-empty payload
             // (success with null data) still counts as an error here.
             if (!data) {
-                $status.text(t('error', 'An error occurred.'));
+                window.FFC.status($status, 'error', t('error', 'An error occurred.'));
                 $button.prop('disabled', false);
                 return;
             }
@@ -75,7 +75,7 @@
             }
 
             if (data.done) {
-                $status.text(
+                window.FFC.status($status, 'success',
                     t('done', 'Done.') + ' ' +
                     created + ' ' + t('createdSuffix', 'short URLs created.')
                 );
@@ -86,11 +86,11 @@
             var progress = total > 0
                 ? created + ' / ' + total
                 : String(created);
-            $status.text(t('working', 'Generating…') + ' ' + progress);
+            window.FFC.status($status, 'busy', t('working', 'Generating…') + ' ' + progress);
 
             runBatch($button, $status, data.next_cursor || 0, created, total);
         }).catch(function () {
-            $status.text(t('error', 'An error occurred.'));
+            window.FFC.status($status, 'error', t('error', 'An error occurred.'));
             $button.prop('disabled', false);
         });
     }
@@ -101,7 +101,7 @@
             var $button = $(this);
             var $status = $('#ffc-url-shortener-backfill-status');
             $button.prop('disabled', true);
-            $status.text(t('working', 'Generating…'));
+            window.FFC.status($status, 'busy', t('working', 'Generating…'));
             runBatch($button, $status, 0, 0, 0);
         });
     }

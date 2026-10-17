@@ -22,6 +22,14 @@ class TabUserAccessTest extends TestCase {
 	/** @var TabUserAccess */
 	private $tab;
 
+	/**
+	 * Temporary view directory a test created, removed in tearDown() so a
+	 * failing assertion cannot leave it behind.
+	 *
+	 * @var string|null
+	 */
+	private $tmp_dir = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -54,6 +62,12 @@ class TabUserAccessTest extends TestCase {
 		unset( $_POST['ffc_user_access_nonce'], $_POST['block_wp_admin'], $_POST['blocked_roles'] );
 		unset( $_POST['redirect_url'], $_POST['redirect_message'] );
 		unset( $_POST['allow_admin_bar'], $_POST['bypass_for_admins'] );
+		if ( null !== $this->tmp_dir && is_dir( $this->tmp_dir ) ) {
+			foreach ( (array) glob( $this->tmp_dir . '/*' ) as $file ) {
+				unlink( (string) $file );
+			}
+			rmdir( $this->tmp_dir );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -133,26 +147,28 @@ class TabUserAccessTest extends TestCase {
 	// render() — view file missing (error branch)
 	// ==================================================================
 
-	public function test_render_outputs_error_when_view_file_missing(): void {
-		$tab = new class() extends TabUserAccess {
-			protected function init(): void {
-				$this->tab_id = 'user_access';
-				$this->tab_title = 'User Access';
-				$this->tab_icon = 'ffc-icon-users';
-				$this->tab_order = 60;
+	/**
+	 * The tab under test with only its view directory redirected, through the
+	 * `view_path()` seam: render() is the product's own (#1811).
+	 *
+	 * @param string $views_dir Directory the tab reads its view from.
+	 * @return TabUserAccess
+	 */
+	private function tab_with_views_in( string $views_dir ): TabUserAccess {
+		return new class( $views_dir ) extends TabUserAccess {
+			private string $views_dir;
+			public function __construct( string $views_dir ) {
+				$this->views_dir = $views_dir;
+				parent::__construct();
 			}
-			public function render(): void {
-				$view_file = '/tmp/nonexistent_path_12345/ffc-tab-user-access.php';
-				if ( file_exists( $view_file ) ) {
-					$settings = $this;
-					include $view_file;
-				} else {
-					echo '<div class="notice notice-error"><p>';
-					echo esc_html__( 'User Access settings view file not found.', 'ffcertificate' );
-					echo '</p></div>';
-				}
+			protected function view_path( string $file ): string {
+				return $this->views_dir . '/' . $file;
 			}
 		};
+	}
+
+	public function test_render_outputs_error_when_view_file_missing(): void {
+		$tab = $this->tab_with_views_in( sys_get_temp_dir() . '/ffc_test_no_such_view_dir_' . getmypid() );
 
 		ob_start();
 		$tab->render();
@@ -167,46 +183,23 @@ class TabUserAccessTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_includes_view_when_file_exists(): void {
-		$tmp_dir  = sys_get_temp_dir() . '/ffc_test_views_ua_' . getmypid();
-		$tmp_file = $tmp_dir . '/ffc-tab-user-access.php';
-
-		@mkdir( $tmp_dir, 0777, true );
-		file_put_contents( $tmp_file, '<?php echo "user-access-rendered"; ?>' );
-
-		$tab = new class( $tmp_dir ) extends TabUserAccess {
-			private $dir;
-			public function __construct( string $dir ) {
-				$this->dir = $dir;
-				parent::__construct();
-			}
-			protected function init(): void {
-				$this->tab_id = 'user_access';
-				$this->tab_title = 'User Access';
-				$this->tab_icon = 'ffc-icon-users';
-				$this->tab_order = 60;
-			}
-			public function render(): void {
-				$view_file = $this->dir . '/ffc-tab-user-access.php';
-				if ( file_exists( $view_file ) ) {
-					$settings = $this;
-					include $view_file;
-				} else {
-					echo '<div class="notice notice-error"><p>';
-					echo esc_html__( 'User Access settings view file not found.', 'ffcertificate' );
-					echo '</p></div>';
-				}
-			}
-		};
+		$this->tmp_dir = sys_get_temp_dir() . '/ffc_test_views_ua_' . getmypid();
+		if ( ! is_dir( $this->tmp_dir ) ) {
+			mkdir( $this->tmp_dir, 0777, true );
+		}
+		// The view reports what render() handed it: the shipped view reads
+		// `$settings->get_option()`, so `$settings` must be the tab itself.
+		file_put_contents(
+			$this->tmp_dir . '/ffc-tab-user-access.php',
+			'<?php echo ( $settings === $this ) ? "view-got-the-tab" : "view-got-something-else";'
+		);
 
 		ob_start();
-		$tab->render();
+		$this->tab_with_views_in( $this->tmp_dir )->render();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( 'user-access-rendered', $output );
+		$this->assertStringContainsString( 'view-got-the-tab', $output );
 		$this->assertStringNotContainsString( 'not found', $output );
-
-		@unlink( $tmp_file );
-		@rmdir( $tmp_dir );
 	}
 
 	// ==================================================================

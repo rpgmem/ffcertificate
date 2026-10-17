@@ -122,18 +122,24 @@
        100000 because the wp-admin bar is 99999 — that is the one number here
        with an external reason, and it is the reason it exists.
 
-       FOUR values were deliberately left out: 9999, 100001, 999999 and
+       Four values were left out of the scale: 9999, 100001, 999999 and
        2147483647 are four different answers to "be above the bar", and they
        are the signature of a stacking war. Collapsing them CHANGES the
        relative order on the screens where they coexist, which is a behaviour
        change rather than a conversion — it needs screen-by-screen
-       verification. They stay literal and visible in the guard's budget
-       until somebody does that. */
+       verification. 999999 is now named `topmost` (#1837) under its own
+       value, which collapses nothing; the other three stay literal and
+       visible in the guard's budget until somebody does that. */
     --ffc-z-raised: 1;
     --ffc-z-sticky: 10;
     --ffc-z-dropdown: 100;
     --ffc-z-overlay: 1000;
     --ffc-z-modal: 100000;
+    /* The full-screen editor overlays (certificate preview, template picker,
+       template preview) always sat at 999999. That number is an existing
+       answer to "above everything", not a new one: naming it keeps the order
+       between those overlays and every `modal` element exactly as it was. */
+    --ffc-z-topmost: 999999;
 
     /* Shadows */
     --ffc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -222,7 +228,7 @@
     /* Semantic Tokens - Interactive */
     --ffc-link: #2271b1;
     --ffc-link-hover: #135e96;
-    --ffc-focus-ring: rgba(34, 113, 177, 0.75);   /* composto 3,25:1 — a 0.4 dava 1,78:1 (#1132). */
+    --ffc-focus-ring: rgba(34, 113, 177, 0.75);   /* composited 3.25:1 -- at 0.4 it gave 1.78:1 (#1132). */
 }
 
 /* ==========================================================================
@@ -313,7 +319,59 @@
     /* Semantic Tokens - Interactive */
     --ffc-link: #5dabde;
     --ffc-link-hover: #7cbde8;
-    --ffc-focus-ring: rgba(93, 171, 222, 0.6);    /* composto 3,19:1 — a 0.4 dava 2,14:1 (#1132). */
+    --ffc-focus-ring: rgba(93, 171, 222, 0.6);    /* composited 3.19:1 -- at 0.4 it gave 2.14:1 (#1132). */
+}
+
+/* ==========================================================================
+   ROOT TEXT SIZE — the safety net under every public surface (#1832)
+   ==========================================================================
+
+   A plugin root names its own text size, and the text tags under it take
+   that size instead of the theme's. Without this, any text the component
+   rules forgot to size took it from the host document: the body's size when
+   the theme sizes only `body`, and the theme's own size for `p`, `li`,
+   `label`, `input` … when it sizes those (the #1829 shape). A render audit
+   measured both on every public surface.
+
+   It is a NET, not a rule that decides anything, and three properties keep it
+   that way. `SafetyNetTypographyTest` pins all three.
+
+   1. It comes FIRST, before any component rule. The tag list is inside
+      `:where()`, so the selector weighs one class, (0,1,0) — exactly what a
+      single-class component rule weighs, and every one of them comes later in
+      the cascade, so every component that sizes its text still wins. It is
+      not (0,0,0) on purpose: a theme's bare `p { … }` weighs (0,0,1), and a
+      net that loses to it catches nothing.
+   2. `inherit`, not a step. A tag under the root takes its PARENT's size, so a
+      component that sizes its container sizes everything inside it; the net
+      only stops the theme from re-sizing the inner tags. That is also why the
+      containers are listed: an inner `p` that inherits from a `div` the theme
+      sized would take the theme's size, so the chain from the root down is
+      closed. None of the listed tags has a size of its own in the user agent
+      except the form controls, so with no theme loaded the net changes only
+      the text that had no size at all, and the controls. `inherit` is not a
+      size, which is why it is one of this sheet's literals and the budget in
+      `TypographyTokensTest` names it.
+   3. No headings and no line height. A heading the plugin did not size takes
+      the user agent's relative size (`h3` is 1.17em of its parent), which is
+      a hierarchy; `inherit` would flatten it to body text, so an unsized
+      heading gets a named size in its component instead. And a root
+      `line-height` was measured re-flowing 1,275 elements with no theme
+      loaded at all, so line height is set per component, where text wraps.
+
+   `small` takes the scale's `sm` step rather than `inherit`: inheriting would
+   draw it at its parent's size, which is what `small` exists not to do. */
+.ffc-shortcode {
+    font-size: var(--ffc-font-size-base);
+}
+
+.ffc-shortcode :where(div, section, article, header, footer, nav, form, fieldset, details, summary, ul, ol, dl, table, caption, thead, tbody, tfoot, tr),
+.ffc-shortcode :where(p, li, dt, dd, label, legend, span, strong, em, b, i, a, td, th, button, input, select, textarea) {
+    font-size: inherit;
+}
+
+.ffc-shortcode :where(small) {
+    font-size: var(--ffc-font-size-sm);
 }
 
 /* ==========================================================================
@@ -369,6 +427,17 @@
 :root.ffc-dark-mode .ffc-rereg-form-container,
 :root.ffc-dark-mode .ffc-cancel-page {
     color: var(--ffc-text);
+}
+
+/* A control does not inherit the font: the browser gives fields and buttons
+   its own (Arial, or the system's), so the labels read in the surface's font
+   and the fields beside them in another. It lives here rather than in a
+   module sheet because every public surface needs it and every one loads
+   this sheet; the user dashboard, which loads no `ffc-frontend.css`, drew its
+   fields and buttons in the browser's font until #1826. The size, the weight
+   and the line height stay each control's own rule. */
+.ffc-shortcode :is(input, select, textarea, button, .button) {
+    font-family: inherit;
 }
 
 /* The CANVAS the base pair needs. Painting the text light and leaving core's
@@ -608,6 +677,22 @@
     border-color: var(--ffc-border-focus);
 }
 
+/* A primary button on a public surface. wp-admin keeps core's blue (see the
+   secondary rule above), but the front end loads no core button sheet, so
+   the dark `.button` rule above would paint a primary button as a secondary
+   one. The dark palette's own primary pair takes its place (#1826). */
+:root.ffc-dark-mode .ffc-shortcode .button-primary {
+    color: var(--ffc-text-on-primary);
+    background: var(--ffc-primary);
+    border-color: var(--ffc-primary);
+}
+
+:root.ffc-dark-mode .ffc-shortcode .button-primary:hover {
+    color: var(--ffc-text-on-primary);
+    background: var(--ffc-primary-hover);
+    border-color: var(--ffc-primary-hover);
+}
+
 /* A disabled primary button. Core declares its light ground with
    `!important`, so only `!important` reaches it. */
 :root.ffc-dark-mode .button-primary:disabled,
@@ -661,6 +746,36 @@
 /* The "Add title" placeholder over the post title field. */
 :root.ffc-dark-mode #titlediv #title-prompt-text {
     color: var(--ffc-text-muted);
+}
+
+/* One file control for every upload field (#1757): the browser draws the
+   "Choose File" part, so it takes the secondary button's look here. The
+   dark rule below overrides the colours on purpose. */
+.ffc-file-input {
+    max-width: 100%;
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-file-input::file-selector-button {
+    min-height: 30px;
+    margin-right: var(--ffc-spacing-sm);
+    padding: 0 var(--ffc-spacing-sm);
+    color: var(--ffc-primary);
+    font: inherit;
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-primary);
+    border-radius: var(--ffc-radius-sm);
+    cursor: pointer;
+}
+
+.ffc-file-input::file-selector-button:hover {
+    color: var(--ffc-primary-hover);
+    border-color: var(--ffc-primary-hover);
+}
+
+.ffc-file-input:focus-visible {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: 2px;
 }
 
 /* The file input's "Choose File" is drawn by the browser, not by core, so it
@@ -888,6 +1003,24 @@
 
 .ffc-shortcode .ffc-modal-body {
     padding: var(--ffc-spacing-2xl);
+    font-size: var(--ffc-font-size-base);
+}
+
+/* The dialog's own text is sized here, not left to the root (#1832): the
+   modal is appended to `<body>`, so before it carried the root class itself
+   its paragraph and its summary took the theme's body size. Naming the step
+   on each keeps the dialog's text one size whatever the page around it. The
+   summary is named under the modal only — the public cancellation page
+   draws it too, on a page of its own, at that page's size. */
+.ffc-shortcode .ffc-modal-body > p,
+.ffc-shortcode .ffc-modal-body .ffc-cancel-summary dt,
+.ffc-shortcode .ffc-modal-body .ffc-cancel-summary dd {
+    font-size: var(--ffc-font-size-base);
+    /* The dialog's running text wraps, so it carries a line height of its
+       own — on the tags, because a theme's `p { line-height }` sits on the
+       tag and beats anything inherited. Not on the body: every audience
+       dialog shares it, and their labels and badges are single lines. */
+    line-height: 1.5;
 }
 
 .ffc-shortcode .ffc-modal-footer {
@@ -902,18 +1035,43 @@
    and the sheet that styled `.ffc-form-group` is not loaded on the dashboard. */
 .ffc-shortcode .ffc-modal-body .ffc-form-group label {
     display: block;
+    font-size: var(--ffc-font-size-base);
     font-weight: 600;
     margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-shortcode .ffc-modal-body .ffc-form-group textarea {
     width: 100%;
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
     box-sizing: border-box;
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
     color: var(--ffc-text);
     background: var(--ffc-bg-input);
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);
+}
+
+/* The override warning (#1859): `FFC.overrideConfirm()` builds it from the
+   modal and a warning notice above, so only the list of reasons and the
+   countdown line are its own. Shared by audience and personal calendars,
+   which both load this sheet. */
+.ffc-shortcode .ffc-override-reasons {
+    margin: var(--ffc-spacing-sm) 0 0;
+    padding-left: var(--ffc-spacing-2xl);
+    list-style: disc;
+}
+
+.ffc-shortcode .ffc-override-reasons li {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
+}
+
+.ffc-shortcode .ffc-override-countdown {
+    margin: var(--ffc-spacing-lg) 0 0;
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-sm);
 }
 
 /* Service/when summary — the same pair the public cancellation page shows,
@@ -992,12 +1150,6 @@
     white-space: nowrap;
 }
 
-/* Status variants - Submission status */
-.ffc-status-pending {
-    background: var(--ffc-warning-bg);
-    color: var(--ffc-warning-text);
-}
-
 /* ==========================================================================
    LOADING STATES
    ========================================================================== */
@@ -1031,41 +1183,126 @@
 }
 
 /* ==========================================================================
-   RATE LIMIT NOTICE - Frontend & Admin
+   NOTICE — shared component (#1842)
+   One look for every system notice on the public screens: a 4px bar in the
+   tone's border colour, the tone's ground and text, a leading registry icon,
+   an optional bold title and the message. `Core\Notice::render()` and
+   `FFC.notice()` (ffc-core.js) print the markup, so no emitter hand-writes
+   it. It lives here because the forms, the verification page and the user
+   dashboard all load this sheet.
+
+   The tone rules are compounded with `.ffc-notice`. They were written that
+   way while the dashboard and audience notices still carried a bare
+   `ffc-notice-info` / `ffc-notice-warning` of their own; those moved here in
+   #1842 and their rules are gone, but the compound stays: a tone name is
+   generic enough that another component may reach for it, and the compound
+   keeps the tone from painting anything that is not a notice.
+
+   The info tone reads the three `--ffc-info-*` tokens, which Settings →
+   Public Design may override in the light theme (`Core\PublicDesign`).
    ========================================================================== */
 
-/**
- * Rate limit warning banner (created dynamically by ffc-frontend-helpers.js)
- * Moved from ffc-admin-settings.css -- these styles are needed on the frontend.
- */
-.ffc-rate-limit-notice {
-    background: var(--ffc-warning-bg);
-    border: 1px solid var(--ffc-warning-border);
-    border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-xl);
-    margin-bottom: var(--ffc-spacing-2xl);
+.ffc-notice {
     display: flex;
-    align-items: center;
     gap: var(--ffc-spacing-md);
+    align-items: flex-start;
+    margin: 0 0 var(--ffc-spacing-xl) 0;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
+    border-left: 4px solid;
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-base);
+    line-height: 1.5;
+    text-align: left;
 }
 
-.ffc-rate-limit-icon {
-    font-size: var(--ffc-font-size-2xl);
+.ffc-notice.ffc-notice-info {
+    border-left-color: var(--ffc-info-border);
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+}
+
+.ffc-notice.ffc-notice-warning {
+    border-left-color: var(--ffc-warning-border);
+    background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
-.ffc-rate-limit-icon::before {
+.ffc-notice.ffc-notice-danger {
+    border-left-color: var(--ffc-danger-border);
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-notice.ffc-notice-success {
+    border-left-color: var(--ffc-success-border);
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-notice.ffc-notice-neutral {
+    border-left-color: var(--ffc-border);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+}
+
+/* The icon sits on the first line of text: 1.5em is the line box. */
+.ffc-notice .ffc-notice-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    height: 1.5em;
+}
+
+.ffc-notice .ffc-notice-icon::before {
     margin-right: 0;
+    vertical-align: 0;
 }
 
-.ffc-rate-limit-message {
+.ffc-notice .ffc-notice-body {
     flex: 1;
-    color: var(--ffc-warning-text);
+    min-width: 0;
 }
 
-.ffc-rate-limit-message strong {
-    color: var(--ffc-danger);
-    font-family: monospace;
+.ffc-notice .ffc-notice-title {
+    display: block;
+    font-weight: 600;
+}
+
+.ffc-notice .ffc-notice-text {
+    margin: 0;
+    font-size: var(--ffc-font-size-base);
+    line-height: inherit;
+    color: inherit;
+}
+
+.ffc-notice .ffc-notice-title + .ffc-notice-text,
+.ffc-notice .ffc-notice-text + .ffc-notice-text {
+    margin-top: var(--ffc-spacing-2xs);
+}
+
+/* A body that brings its own blocks (`Notice::render()`'s `blocks`, the admin
+   callouts of #1843): they open and close flush with the box. */
+.ffc-notice .ffc-notice-body > :first-child {
+    margin-top: 0;
+}
+
+.ffc-notice .ffc-notice-body > :last-child {
+    margin-bottom: 0;
+}
+
+/* An action inside a notice (dismiss, reload, try anyway) starts on its own
+   line below the text. A row of them goes in `.ffc-notice-actions`, which
+   `Core\Notice::render()` prints from its `actions` argument. */
+.ffc-notice .ffc-notice-body > button {
+    margin-top: var(--ffc-spacing-md);
+}
+
+.ffc-notice .ffc-notice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-md);
+    align-items: center;
+    margin-top: var(--ffc-spacing-md);
 }
 
 /* Disabled submit buttons during rate limit */
@@ -1142,6 +1379,8 @@
 .ffc-icon-award::before,
 .ffc-icon-building::before,
 .ffc-icon-bulb::before,
+.ffc-icon-cal-google::before,
+.ffc-icon-cal-outlook::before,
 .ffc-icon-calendar::before,
 .ffc-icon-chart::before,
 .ffc-icon-checkmark::before,
@@ -1250,6 +1489,16 @@
 .ffc-icon-bulb::before {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z'/%3E%3C/svg%3E");
+}
+
+.ffc-icon-cal-google::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4'/%3E%3Cpath d='M14.6 11.6A3.6 3.6 0 1 0 15.6 15H12.4'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4'/%3E%3Cpath d='M14.6 11.6A3.6 3.6 0 1 0 15.6 15H12.4'/%3E%3C/svg%3E");
+}
+
+.ffc-icon-cal-outlook::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4'/%3E%3Cpath d='M3.5 10.5l8.5 5.5 8.5-5.5'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4'/%3E%3Cpath d='M3.5 10.5l8.5 5.5 8.5-5.5'/%3E%3C/svg%3E");
 }
 
 .ffc-icon-calendar::before {
@@ -1718,6 +1967,8 @@
     .ffc-icon-award::before,
     .ffc-icon-building::before,
     .ffc-icon-bulb::before,
+    .ffc-icon-cal-google::before,
+    .ffc-icon-cal-outlook::before,
     .ffc-icon-calendar::before,
     .ffc-icon-chart::before,
     .ffc-icon-checkmark::before,
@@ -1851,18 +2102,6 @@
 .ffc-scheduling-restricted .ffc-restricted-message a {
     color: var(--ffc-primary);
     font-weight: 600;
-}
-
-/* Admin bypass notice */
-/* 0.9em literal: relative to its parent, same reason as .ffc-calendar-title above. */
-.ffc-admin-bypass-notice {
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
-    margin-bottom: var(--ffc-spacing-xl);
-    background: var(--ffc-info-light);
-    border: 1px solid var(--ffc-info);
-    border-radius: var(--ffc-radius-sm);
-    font-size: 0.9em;
-    color: var(--ffc-info);
 }
 
 /* Badge — canonical base class (shared across admin + frontend) */
@@ -2141,6 +2380,14 @@
     color: inherit;
 }
 
+/* On a public surface the label sits in the host theme's document, whose
+   body or label size it would otherwise inherit -- on the dashboard that made
+   the notification toggles larger than every other line (#1827). wp-admin
+   keeps core's size, so the rule is scoped to the plugin's front-end root. */
+.ffc-shortcode .ffc-control-toggle {
+    font-size: var(--ffc-font-size-base);
+}
+
 /* Mark: the glyph rides above the knob; its shape, not its colour, says on or off. */
 .ffc-control-toggle-mark .ffc-control-toggle-track::before {
     content: "";
@@ -2165,6 +2412,28 @@
 
 .ffc-control-toggle-mark input[type="checkbox"]:disabled + .ffc-control-toggle-track::before {
     background-color: var(--ffc-gray-400);
+}
+
+/* Several toggles stacked in one cell (#1816): the container owns the rhythm,
+   so no screen spaces them with a <br /> or a margin of its own. A column of
+   flex items, because the base rule above keeps each toggle inline-flex at a
+   specificity a descendant override would have to fight; `flex-start` keeps
+   each one at its natural width. A toggle that carries a description
+   (render_toggle()'s `description`) is a block of two lines, so a stack of
+   those takes a wider gap to keep each pair visibly its own. */
+.ffc-control-toggle-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-sm);
+}
+
+.ffc-control-toggle-stack:has(> .ffc-control-toggle-field) {
+    gap: var(--ffc-spacing-lg);
+}
+
+.ffc-control-toggle-field .description {
+    margin: var(--ffc-spacing-2xs) 0 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2432,6 +2701,20 @@
     color: var(--ffc-text-muted);
 }
 
+/* One stop the site cannot run right now (`disabled_options`): it stays
+   named, but takes no colour and refuses the pointer. */
+.ffc-control-steps-stop:has(input:disabled) {
+    cursor: not-allowed;
+}
+
+.ffc-control-steps-stop:has(input:disabled) .ffc-control-steps-mark::after {
+    box-shadow: inset 0 0 0 2px var(--ffc-gray-300);
+}
+
+.ffc-control-steps-stop:has(input:disabled) .ffc-control-steps-label {
+    text-decoration: line-through;
+}
+
 /* Only the chosen step's description shows. */
 .ffc-control-steps-desc {
     display: none;
@@ -2671,33 +2954,50 @@
 }
 
 /* ==========================================================================
-   AUTO-SAVE BADGE — companion to FFC.Admin.autoSaveField.
-   Renders next to a field showing the live save state.
+   STATUS LINE — beside a control (#1843)
+   One look for every "saving… / saved / failed" next to a button or a field,
+   the autosave badges included: `.ffc-status` plus `is-busy`, `is-success`,
+   `is-error` or `is-warning`, a registry icon and the text. `FFC.status()`
+   (ffc-core.js) fills it; the PHP prints an empty
+   `<span class="ffc-status" role="status" aria-live="polite">`. It has no
+   ground of its own, so each state reads its `*-text` tone on whatever card or
+   page it sits on.
    ========================================================================== */
-.ffc-autosave-badge {
-    display: inline-block;
+.ffc-status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
     margin-left: var(--ffc-spacing-sm);
-    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
-    border-radius: 10px;
-    font-size: var(--ffc-font-size-xs);
+    font-size: var(--ffc-font-size-sm);
     font-weight: 500;
     line-height: 1.5;
+    color: var(--ffc-text-secondary);
     vertical-align: middle;
 }
 
-.ffc-autosave-badge--saving {
-    background: var(--ffc-bg-alt);
+.ffc-status[hidden] {
+    display: none;
+}
+
+.ffc-status .ffc-status-icon::before {
+    margin-right: 0;
+    vertical-align: 0;
+}
+
+.ffc-status.is-busy {
     color: var(--ffc-text-muted);
 }
 
-.ffc-autosave-badge--saved {
-    background: var(--ffc-success-light);
-    color: var(--ffc-success);
+.ffc-status.is-success {
+    color: var(--ffc-success-text);
 }
 
-.ffc-autosave-badge--error {
-    background: var(--ffc-danger-light);
+.ffc-status.is-error {
     color: var(--ffc-danger-text);
+}
+
+.ffc-status.is-warning {
+    color: var(--ffc-warning-text);
 }
 
 /* ==========================================================================
@@ -2715,29 +3015,10 @@
     margin: 0;
 }
 
-.ffc-features-badge {
-    display: inline-block;
-    margin-top: var(--ffc-spacing-2xs);
-    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
-    border-radius: 10px;
-    font-size: var(--ffc-font-size-2xs);
-    font-weight: 500;
-    line-height: 1.4;
-}
-
-.ffc-features-badge--saving {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text-muted);
-}
-
-.ffc-features-badge--saved {
-    background: var(--ffc-success-light);
-    color: var(--ffc-success);
-}
-
-.ffc-features-badge--error {
-    background: var(--ffc-danger-light);
-    color: var(--ffc-danger-text);
+/* The cell stacks its toggles, so the status line sits under them. */
+.ffc-features-cell .ffc-status {
+    margin: var(--ffc-spacing-2xs) 0 0;
+    font-size: var(--ffc-font-size-xs);
 }
 
 /* ==========================================================================
@@ -2748,58 +3029,6 @@
     opacity: 0.55;
     pointer-events: none;
     transition: opacity 0.15s ease;
-}
-
-/* ── Captcha settings: mode chooser (#1053) ─────────────────────────
-   Each mode carries a consequence rather than a preference, so the note
-   sits with its option instead of in a paragraph above the group. */
-.ffc-captcha-mode {
-    margin: 0 0 var(--ffc-spacing-xl);
-    max-width: 46em;
-}
-
-.ffc-captcha-mode-summary,
-.ffc-captcha-mode-note {
-    display: block;
-    /* Indented under the radio so the note reads as belonging to its option. */
-    margin-left: var(--ffc-spacing-3xl);
-}
-
-.ffc-captcha-mode-note {
-    margin-top: var(--ffc-spacing-2xs);
-    padding-left: var(--ffc-spacing-md);
-    border-left: 3px solid transparent;
-}
-
-.ffc-captcha-mode-note--warning {
-    border-left-color: var(--ffc-warning-border);
-}
-
-.ffc-captcha-mode-note--info {
-    border-left-color: var(--ffc-info-border);
-}
-
-/* ==========================================================================
-   EMAILS-DISABLED NOTICE (Core\EmailDisabledNotice)
-
-   These rules lived in a `style=""` inside the PHP, which made the notice
-   ignore dark mode on every screen that edits an email (#1126). They sit here,
-   and not in ffc-admin.css, because the notice appears on five different
-   surfaces — the form editor's metabox, the calendar editor and three settings
-   tabs — and ffc-common is the only sheet all five declare as a dependency.
-   ========================================================================== */
-
-.ffc-email-disabled-notice {
-    margin: 0 0 var(--ffc-spacing-xl);
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
-    border-left: 4px solid var(--ffc-warning-border);
-    background: var(--ffc-warning-bg);
-    color: var(--ffc-warning-text);
-    border-radius: 2px;
-}
-
-.ffc-email-disabled-notice p {
-    margin: 0;
 }
 
 /* ==========================================================================
@@ -2821,13 +3050,14 @@
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    /* Controls: without a contour, a button stops looking clickable. */
     .ffc-btn-danger,
     .ffc-btn-primary,
     .ffc-btn-secondary,
     .ffc-btn-success,
     :root.ffc-dark-mode .button,
     :root.ffc-dark-mode .button-secondary,
+    :root.ffc-dark-mode .ffc-shortcode .button-primary,
     :root.ffc-dark-mode .button.disabled,
     :root.ffc-dark-mode .button-primary.disabled,
     :root.ffc-dark-mode .button-primary[disabled],
@@ -2835,24 +3065,186 @@
         border: 1px solid ButtonText;
     }
 
-    /* Status badges: the text still says the state; the border
-       gives them their badge shape back. */
-    .ffc-autosave-badge--error,
-    .ffc-autosave-badge--saved,
-    .ffc-autosave-badge--saving,
-    .ffc-features-badge--error,
-    .ffc-features-badge--saved,
-    .ffc-features-badge--saving,
-    /* The per-row colour badge paints a ground and nothing else; under forced
+    /* The status line beside a control (#1843) paints no ground, so it
+       needs no contour here: its icon and text say the state.
+
+       The per-row colour badge paints a ground and nothing else; under forced
        colors the system discards that ground and bare text is left (#1193). */
-    .ffc-pill-row-color,
-    .ffc-status-pending {
+    .ffc-pill-row-color {
         border: 1px solid CanvasText;
+    }
+
+    /* A notice keeps its bar, but its ground was what set it apart from the
+       page; the contour closes the box around the message (#1842). */
+    .ffc-notice {
+        border: 1px solid CanvasText;
+        border-left-width: 4px;
     }
 }
 
-/* The asterisk beside a required admin field. Core's `.required` red measured
-   2,03:1 on the dark card; the danger token is tuned for both themes. */
-.ffc-admin-page .ffc-required {
-    color: var(--ffc-danger);
+/* ==========================================================================
+   FIELD FEEDBACK (#1844)
+
+   One shape for every field the plugin draws, public or admin: the label
+   with its required marker, the control, the message, then one row with
+   the hint on the left and the counter on the right. `FFC.fieldMessage()`
+   in `ffc-core.js` and `Core\FieldMessage` print the message and set the
+   control's state; nothing else does. This sheet is the one every screen
+   that draws a field loads, which is why the rules live here and not in a
+   module sheet.
+   ========================================================================== */
+
+/* The required marker. One rule, so the asterisk is the same red on every
+   screen; the marker is `aria-hidden` and the control carries `required`. */
+.ffc-required {
+    color: var(--ffc-danger-text);
+    font-weight: 600;
+}
+
+/* The message under a control. The icon is the registry's `.ffc-icon-error`
+   or `.ffc-icon-warning` mask on `::before`; it paints in `currentColor`. */
+.ffc-field-message {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-2xs);
+    margin-top: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-sm);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.ffc-field-message::before {
+    flex: 0 0 auto;
+    margin: 0.125em 0 0;
+}
+
+.ffc-field-message.is-error {
+    color: var(--ffc-danger-text);
+}
+
+.ffc-field-message.is-warning {
+    color: var(--ffc-warning-text);
+}
+
+/* The row under a field: the hint on the left, the counter on the right. */
+.ffc-field-foot {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ffc-spacing-md);
+    margin-top: var(--ffc-spacing-2xs);
+}
+
+.ffc-field-foot .ffc-field-hint {
+    margin: 0;
+}
+
+.ffc-field-hint,
+.ffc-field-counter {
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-secondary);
+}
+
+/* `aria-hidden`: the hint already says the limit, and a message says it
+   when it is reached; a counter read on every keystroke is noise. */
+.ffc-field-counter {
+    margin: 0 0 0 auto;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.ffc-field-counter.is-below-min {
+    color: var(--ffc-warning-text);
+}
+
+/* The control's state. The anchors are the roots under which the plugin
+   draws fields: its public shortcodes, its admin screens, the two post
+   editors it owns, the working-hours table (also on profile.php, where no
+   other root exists) and the public CSV dialog, which is appended to
+   `body`. `:not(#ffc-field-state)` matches every element — nothing carries
+   that id — and lifts the rule to id weight: a state has to show over the
+   resting border every component gives its controls, and those rules reach
+   (0,3,1) on the dashboard's working-hours table. Weight does that without
+   `!important`; `.ffc-shortcode .ffc-input`, the one rule that does set its
+   border `!important`, reads `--ffc-field-state-border` instead.
+   A checkbox or a radio takes no ring: its box is drawn by the browser,
+   and the message under its group carries the state.
+   The warning border is `--ffc-warning`, not `--ffc-warning-border`: the
+   latter measures 2.22:1 on a white field, under the 3:1 a state that only
+   colour carries needs; the signal colour measures 3.04:1. */
+:is(.ffc-shortcode, .ffc-admin-page, .post-type-ffc_form, .post-type-ffc_self_scheduling, .ffc-working-hours, .ffc-extend-end-modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea):not(#ffc-field-state).is-invalid {
+    --ffc-field-state-border: var(--ffc-danger-border);
+    border-color: var(--ffc-danger-border);
+    box-shadow: 0 0 0 1px var(--ffc-danger-border);
+}
+
+:is(.ffc-shortcode, .ffc-admin-page, .post-type-ffc_form, .post-type-ffc_self_scheduling, .ffc-working-hours, .ffc-extend-end-modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea):not(#ffc-field-state).is-warning {
+    --ffc-field-state-border: var(--ffc-warning);
+    border-color: var(--ffc-warning);
+    box-shadow: 0 0 0 1px var(--ffc-warning);
+}
+
+:is(.ffc-shortcode, .ffc-admin-page, .post-type-ffc_form, .post-type-ffc_self_scheduling, .ffc-working-hours, .ffc-extend-end-modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea):not(#ffc-field-state).is-valid {
+    --ffc-field-state-border: var(--ffc-success-border);
+    border-color: var(--ffc-success-border);
+}
+
+/* Focused, the state keeps its colour and the focus ring comes back
+   around it, so a keyboard user sees both. */
+:is(.ffc-shortcode, .ffc-admin-page, .post-type-ffc_form, .post-type-ffc_self_scheduling, .ffc-working-hours, .ffc-extend-end-modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea):not(#ffc-field-state):is(.is-invalid, .is-warning):focus {
+    box-shadow: 0 0 0 1px var(--ffc-field-state-border), 0 0 0 4px var(--ffc-focus-ring);
+}
+
+/* Forced colours drop the ring and force the border's colour, which leaves
+   an invalid field looking like any other; an outline is drawn instead. */
+@media (forced-colors: active) {
+    :is(.ffc-shortcode, .ffc-admin-page, .post-type-ffc_form, .post-type-ffc_self_scheduling, .ffc-working-hours, .ffc-extend-end-modal) :is(input:not([type="checkbox"], [type="radio"]), select, textarea):not(#ffc-field-state):is(.is-invalid, .is-warning) {
+        outline: 2px solid CanvasText;
+        outline-offset: 1px;
+    }
+}
+
+/* The background-image preview of the form editor and of the certificate
+   template editor: the thumbnail the media picker drops in. It lived in a
+   script-written inline style until #1837; it is here because the template
+   editor loads no other plugin sheet. */
+.ffc-bg-image-preview-img {
+    max-width: 200px;
+    height: auto;
+}
+
+/* Certificate templates → Preview: the full-screen overlay the list screen
+   builds on the fly. That screen loads only this sheet, which is why the
+   overlay is declared here (#1837). */
+.ffc-tpl-preview-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ffc-z-topmost);
+    display: flex;
+    flex-direction: column;
+    background: var(--ffc-bg-overlay);
+}
+
+.ffc-tpl-preview-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
+    background: var(--ffc-inverse-surface);
+    color: var(--ffc-inverse-on-surface);
+}
+
+.ffc-tpl-preview-bar .ffc-tpl-preview-title {
+    font-size: var(--ffc-font-size-base);
+}
+
+.ffc-tpl-preview-body {
+    flex: 1;
+    overflow: auto;
+    padding: var(--ffc-spacing-xl);
+}
+
+.ffc-tpl-preview-frame {
+    width: 100%;
+    height: 100%;
+    border: 0;
 }

@@ -1,10 +1,12 @@
 /**
- * FFC — vertical-tab behaviour for the certificate form editor.
+ * FFC — vertical tabs (`.ffc-vtabs`), the shared tab component of the admin
+ * editors: the certificate form editor, the personal calendar editor, and the
+ * audience calendar and audience editors.
  *
- * Progressive enhancement for the `[data-ffc-form-tabs]` container rendered
- * by FormEditorMetaboxRenderer::render_tabbed_container(). On init it adds
- * the `is-ready` class (which lets the CSS hide inactive panels), wires the
- * WAI-ARIA tablist interaction (click + roving-tabindex arrow keys), and
+ * Progressive enhancement for the `[data-ffc-vtabs]` container printed by
+ * `AdminUI::render_vertical_tabs()` or its streaming primitives. On init it
+ * adds the `is-ready` class (which lets the CSS hide inactive panels), wires
+ * the WAI-ARIA tablist interaction (click + roving-tabindex arrow keys), and
  * keeps the active tab in sync with a `#ffc-tab-<key>` URL hash so a panel
  * can be deep-linked and survives reload / back-forward.
  *
@@ -45,8 +47,35 @@
 		} );
 	}
 
+	/**
+	 * Re-initialise a TinyMCE editor (`wp_editor`) that started inside a
+	 * hidden panel and came up without a height, the way TinyMCE does when
+	 * its iframe is measured at `display:none` (#1761: the acknowledgment
+	 * notice in the audience editor's Reregistration fields tab). The editor
+	 * keeps its id, so its textarea and every script reading it are the same.
+	 *
+	 * @param {jQuery} $panel
+	 */
+	function refreshRichEditors( $panel ) {
+		var mce = window.tinymce;
+		if ( ! mce || typeof mce.get !== 'function' ) {
+			return;
+		}
+		$panel.find( 'textarea.wp-editor-area' ).each( function () {
+			var editor = mce.get( this.id );
+			if ( ! editor || ( typeof editor.isHidden === 'function' && editor.isHidden() ) ) {
+				return;
+			}
+			var frame = typeof editor.getContainer === 'function' ? editor.getContainer() : null;
+			if ( frame && 0 === frame.offsetHeight ) {
+				mce.execCommand( 'mceRemoveEditor', false, this.id );
+				mce.execCommand( 'mceAddEditor', false, this.id );
+			}
+		} );
+	}
+
 	function setupContainer( $container ) {
-		var $tabs = $container.find( '.ffc-form-tabs__tab' );
+		var $tabs = $container.find( '.ffc-vtabs__tab' );
 		if ( ! $tabs.length ) {
 			return;
 		}
@@ -82,6 +111,7 @@
 						$tab.trigger( 'focus' );
 					}
 					refreshCodeEditors( $panel );
+					refreshRichEditors( $panel );
 				}
 			} );
 
@@ -149,7 +179,7 @@
 
 		// Reflect external hash changes (back/forward, deep links) onto the
 		// active tab without rewriting the hash again.
-		$( window ).on( 'hashchange.ffcFormTabs', function () {
+		$( window ).on( 'hashchange.ffcVerticalTabs', function () {
 			var key = keyFromHash();
 			if ( key ) {
 				activate( key, { focus: false, updateHash: false } );
@@ -176,8 +206,8 @@
 				}
 				flagged = true;
 				$tab.addClass( 'has-error' );
-				if ( ! $tab.find( '.ffc-form-tabs__error-dot' ).length ) {
-					$tab.append( '<span class="ffc-form-tabs__error-dot" aria-hidden="true"></span>' );
+				if ( ! $tab.find( '.ffc-vtabs__error-dot' ).length ) {
+					$tab.append( '<span class="ffc-vtabs__error-dot" aria-hidden="true"></span>' );
 				}
 			} );
 			if ( flagged ) {
@@ -188,7 +218,7 @@
 
 		/** Remove the required-tag warning banner, if present. */
 		function removeRequiredWarning() {
-			$container.find( '.ffc-form-tabs__required-warning' ).remove();
+			$container.find( '.ffc-vtabs__required-warning' ).remove();
 		}
 
 		/**
@@ -204,19 +234,18 @@
 			if ( ! $panel.length ) {
 				return;
 			}
-			var $warn = $( '<div class="ffc-form-tabs__required-warning notice notice-error" role="alert"></div>' );
-			$warn.append( $( '<p></p>' ).append(
-				$( '<strong></strong>' ).text( cfg.message || 'Missing required tags:' )
-			) );
-			var $list = $( '<p></p>' );
+			// The `.ffc-notice` component (#1843): the message is its title and
+			// the tag list its body, each tag written as text.
+			var $list = $( '<p class="ffc-notice-text"></p>' );
 			missing.forEach( function ( tag, i ) {
 				if ( i ) {
 					$list.append( document.createTextNode( ', ' ) );
 				}
 				$list.append( $( '<code></code>' ).text( tag ) );
 			} );
-			$warn.append( $list );
-			$panel.prepend( $warn );
+			var warn = window.FFC.notice( 'danger', 'error', [], cfg.message || 'Missing required tags:', { role: 'alert', children: [ $list[ 0 ] ] } );
+			warn.classList.add( 'ffc-vtabs__required-warning' );
+			$panel.prepend( warn );
 		}
 
 		/**
@@ -267,34 +296,103 @@
 		}
 
 		/**
-		 * Draw an on/off dot on every tab whose feature has a master toggle
-		 * (`data-ffc-tab-masters`), kept in step with the toggles. A tab is
-		 * on when any of its masters is checked. The state is also written
-		 * as screen-reader text, so it is not carried by colour alone.
+		 * Draw a state dot on every tab whose feature has a master toggle
+		 * (`data-ffc-tab-masters`), kept in step with the page. A tab is on
+		 * when any of its masters is checked, and pending (#1755) when the
+		 * feature is on but a field it needs is empty:
+		 *
+		 * - a checked toggle in the panel names the fields it needs with
+		 *   `data-ffc-requires` (a selector list), and at least one of them
+		 *   must be filled;
+		 * - the tab itself may name fields it always needs, with
+		 *   `data-ffc-tab-needs`, and then reads as pending even when off.
+		 *
+		 * A field inside an `.ffc-hidden` block does not count: that is the
+		 * source the admin did not pick. The state is also written as
+		 * screen-reader text, so it is not carried by colour alone.
 		 */
 		function setupStateDots() {
-			var $nav = $container.find( '.ffc-form-tabs__nav' );
-			var onText  = String( $nav.attr( 'data-ffc-state-on' ) || 'On' );
-			var offText = String( $nav.attr( 'data-ffc-state-off' ) || 'Off' );
+			var $nav = $container.find( '.ffc-vtabs__nav' );
+			var text = {
+				on: String( $nav.attr( 'data-ffc-state-on' ) || 'On' ),
+				off: String( $nav.attr( 'data-ffc-state-off' ) || 'Off' ),
+				pending: String( $nav.attr( 'data-ffc-state-pending' ) || 'Incomplete' ),
+			};
+			var syncs = [];
+
+			// `querySelectorAll`, never `$( selector )`: the selector comes from
+			// an attribute, and jQuery would build HTML from a string that
+			// starts with `<`. An invalid selector matches nothing.
+			function filled( selector ) {
+				var found = false;
+				var nodes;
+				try {
+					nodes = document.querySelectorAll( selector );
+				} catch ( e ) {
+					return false;
+				}
+				$( nodes ).each( function () {
+					var $f = $( this );
+					if ( $f.closest( '.ffc-hidden' ).length ) {
+						return;
+					}
+					if ( $f.is( ':checkbox, :radio' ) ? $f.is( ':checked' ) : '' !== String( $f.val() || '' ).trim() ) {
+						found = true;
+						return false;
+					}
+				} );
+				return found;
+			}
+
 			$tabs.each( function () {
 				var $tab = $( this );
 				var ids  = String( $tab.attr( 'data-ffc-tab-masters' ) || '' ).split( /\s+/ ).filter( Boolean );
 				var $masters = $( ids.map( function ( id ) {
 					return document.getElementById( id );
 				} ).filter( Boolean ) );
-				if ( ! $masters.length || $tab.find( '.ffc-form-tabs__state' ).length ) {
+				if ( ! $masters.length || $tab.find( '.ffc-vtabs__state' ).length ) {
 					return;
 				}
-				var $dot = $( '<span class="ffc-form-tabs__state" aria-hidden="true"></span>' );
+				var $panel = $( '#' + $tab.attr( 'aria-controls' ) );
+				var needs  = String( $tab.attr( 'data-ffc-tab-needs' ) || '' );
+				var $dot = $( '<span class="ffc-vtabs__state" aria-hidden="true"></span>' );
 				var $sr  = $( '<span class="screen-reader-text"></span>' );
 				$tab.append( $dot, $sr );
 				function sync() {
 					var on = $masters.filter( ':checked' ).length > 0;
-					$tab.toggleClass( 'is-on', on ).toggleClass( 'is-off', ! on );
-					$sr.text( ' (' + ( on ? onText : offText ) + ')' );
+					var pending = '' !== needs && ! filled( needs );
+					if ( on && ! pending ) {
+						$panel.find( '[data-ffc-requires]:checked' ).each( function () {
+							if ( ! filled( String( $( this ).attr( 'data-ffc-requires' ) ) ) ) {
+								pending = true;
+								return false;
+							}
+						} );
+					}
+					var state = pending ? 'pending' : ( on ? 'on' : 'off' );
+					$tab.toggleClass( 'is-on', 'on' === state )
+						.toggleClass( 'is-off', 'off' === state )
+						.toggleClass( 'is-pending', 'pending' === state );
+					$sr.text( ' (' + text[ state ] + ')' );
 				}
 				$masters.on( 'change', sync );
+				syncs.push( sync );
 				sync();
+			} );
+
+			// Any field can move a dot -- a toggle, a list typed into, a
+			// location ticked -- so listen once, on the whole container. The
+			// sync waits a tick: the handler that shows the picked area source
+			// is delegated on `document`, which hears the event after us.
+			if ( ! syncs.length ) {
+				return; // A second init found every dot drawn; the listener is already bound.
+			}
+			$container.on( 'input change', function () {
+				setTimeout( function () {
+					syncs.forEach( function ( sync ) {
+						sync();
+					} );
+				}, 0 );
 			} );
 		}
 
@@ -306,7 +404,7 @@
 		 */
 		function setupInvalidReveal() {
 			$container[ 0 ].addEventListener( 'invalid', function ( e ) {
-				var panel = e.target && e.target.closest ? e.target.closest( '.ffc-form-tabs__panel' ) : null;
+				var panel = e.target && e.target.closest ? e.target.closest( '.ffc-vtabs__panel' ) : null;
 				if ( panel && ! panel.classList.contains( 'is-active' ) ) {
 					activate( panel.id.replace( PANEL_PREFIX, '' ), { focus: false, updateHash: false } );
 				}
@@ -316,9 +414,11 @@
 		setupStateDots();
 		setupInvalidReveal();
 
-		// Initial paint: honour a deep-link hash, else keep the first tab
-		// (already marked active server-side). Don't rewrite the hash on load.
-		var initialKey = keyFromHash() || tabKey( $tabs.first() );
+		// Initial paint: honour a deep-link hash, else keep the tab the server
+		// marked active (the audience editors open the tab a save or a
+		// `?tab=` names, #1761), else the first. Don't rewrite the hash on load.
+		var $marked    = $tabs.filter( '.is-active' ).first();
+		var initialKey = keyFromHash() || tabKey( $marked.length ? $marked : $tabs.first() );
 		activate( initialKey, { focus: false, updateHash: false } );
 
 		// A failed save overrides the initial tab so the operator lands on
@@ -330,14 +430,18 @@
 	}
 
 	function initTabs( root ) {
-		var $containers = root ? $( root ) : $( '[data-ffc-form-tabs]' );
+		var $containers = root ? $( root ) : $( '[data-ffc-vtabs]' );
 		$containers.each( function () {
 			setupContainer( $( this ) );
 		} );
 	}
 
 	window.FFC = window.FFC || {};
-	window.FFC.FormEditorTabs = { init: initTabs };
+	window.FFC.VerticalTabs = { init: initTabs };
+	// Deprecated alias: the name this object had while the component served
+	// only the certificate form editor (#1788). Nothing in the plugin reads it.
+	// @removal 6.41.0 -- a third-party script may still call it.
+	window.FFC.FormEditorTabs = window.FFC.VerticalTabs;
 
 	$( function () {
 		initTabs();

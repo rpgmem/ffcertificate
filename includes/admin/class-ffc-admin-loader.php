@@ -107,6 +107,10 @@ class AdminLoader {
 		SettingsAjaxEndpoint::init();
 		QrDesignPreviewAjaxEndpoint::init();
 		FormMetaAjaxEndpoint::init();
+		FormPublicCsvActions::init();
+		// The record autosave (#1757) lives in Core because the entities
+		// register from their own modules; it is wired here with its siblings.
+		\FreeFormCertificate\Core\RecordAutosave::init();
 		LocationsAjaxEndpoint::init();
 		CacheActionsAjaxEndpoint::init();
 		FormFeaturesAjaxEndpoint::init();

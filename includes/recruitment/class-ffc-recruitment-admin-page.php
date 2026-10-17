@@ -158,6 +158,44 @@ final class RecruitmentAdminPage {
 	}
 
 	/**
+	 * Whether the current user can open the Recruitment screen — the view OR
+	 * the manage tier (the 3-state model: a manage grant does not also need
+	 * the view one, #1782). WP admins always pass.
+	 *
+	 * @return bool
+	 */
+	public static function can_view(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::VIEW_CAP )
+			|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAP );
+	}
+
+	/**
+	 * The capability the Recruitment menu and its data tabs are registered with.
+	 *
+	 * WordPress gates a menu on ONE capability, while the screen opens for
+	 * view OR manage, so the menu names whichever of the two the user holds —
+	 * the shape `ReregistrationAdmin::menu_capability()` already has.
+	 *
+	 * @return string
+	 */
+	private static function menu_capability(): string {
+		return ! current_user_can( self::VIEW_CAP ) && current_user_can( self::CAP ) ? self::CAP : self::VIEW_CAP;
+	}
+
+	/**
+	 * The capability the Settings tab's submenu is registered with: its view
+	 * cap, or its manage cap for a user holding only that, matching
+	 * {@see self::can_view_settings()}.
+	 *
+	 * @return string
+	 */
+	private static function settings_menu_capability(): string {
+		return ! current_user_can( 'ffc_view_recruitment_settings' ) && current_user_can( 'ffc_manage_recruitment_settings' )
+			? 'ffc_manage_recruitment_settings'
+			: 'ffc_view_recruitment_settings';
+	}
+
+	/**
 	 * Hook callback for `admin_menu` (priority 10).
 	 *
 	 * Registered as a top-level menu (icon + sidebar entry) at position
@@ -167,10 +205,11 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	public static function register_menu(): void {
+		$menu_cap = self::menu_capability();
 		add_menu_page(
 			\FreeFormCertificate\Core\PluginAreas::label( 'recruitment' ),
 			\FreeFormCertificate\Core\PluginAreas::label( 'recruitment' ),
-			self::VIEW_CAP,
+			$menu_cap,
 			self::PAGE_SLUG,
 			array( self::class, 'render_page' ),
 			'none', // Drawn from the icon registry by AdminMenuIcons (#1640).
@@ -209,8 +248,9 @@ final class RecruitmentAdminPage {
 		);
 		foreach ( $tabs as $tab => $label ) {
 			// Settings tab carries its own view cap; the data tabs open read-only
-			// under the recruitment view cap (writes stay manage-gated).
-			$tab_cap = ( 'settings' === $tab ) ? 'ffc_view_recruitment_settings' : self::VIEW_CAP;
+			// under the recruitment view cap (writes stay manage-gated). Each
+			// names the manage cap when the user holds it without the view one.
+			$tab_cap = ( 'settings' === $tab ) ? self::settings_menu_capability() : $menu_cap;
 			add_submenu_page(
 				self::PAGE_SLUG,
 				$label,
@@ -262,7 +302,7 @@ final class RecruitmentAdminPage {
 		// 3-state: the admin UI opens read-only for ffc_view_recruitment;
 		// every write (edit screens, dispatch deletes, status changes, call,
 		// import) stays gated by its own cap.
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::VIEW_CAP ) ) {
+		if ( ! self::can_view() ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 		$can_edit = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAP );

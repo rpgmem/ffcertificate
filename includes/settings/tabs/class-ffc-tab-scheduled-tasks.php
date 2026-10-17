@@ -114,23 +114,23 @@ class TabScheduledTasks extends SettingsTab {
 			// user sees is only a UI affordance, so the save is gated here.
 			if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 				$invalid = ScheduledTasks::save_times( \FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'ffc_cron_times' ) );
-				wp_admin_notice(
+				\FreeFormCertificate\Core\AdminNotice::render(
+					array() === $invalid ? 'success' : 'warning',
 					array() === $invalid
 						? esc_html__( 'Times saved. Changed tasks were moved to their new time.', 'ffcertificate' )
-						: esc_html__( 'Times saved, except the ones that were not a valid time of day.', 'ffcertificate' ),
-					array( 'type' => array() === $invalid ? 'success' : 'warning' )
+						: esc_html__( 'Times saved, except the ones that were not a valid time of day.', 'ffcertificate' )
 				);
 			}
 		}
 
-		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-scheduled-tasks.php';
+		$view_file = $this->view_path( 'ffc-tab-scheduled-tasks.php' );
 
 		if ( file_exists( $view_file ) ) {
 			include $view_file;
 		} else {
-			wp_admin_notice(
-				esc_html__( 'Scheduled tasks view file not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'Scheduled tasks view file not found.', 'ffcertificate' )
 			);
 		}
 	}

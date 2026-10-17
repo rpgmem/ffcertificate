@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-working-hours.js');
 });
 
@@ -203,13 +204,13 @@ describe('ffc-working-hours — submit guard (#1128)', () => {
 	it('lets a complete row through', () => {
 		mountInForm([{ day: 1, entry1: '08:00', exit1: '', entry2: '', exit2: '17:00' }]);
 		expect(submit().isDefaultPrevented()).toBe(false);
-		expect(window.$('.ffc-wh-row-error').length).toBe(0);
+		expect(window.$('.ffc-wh-message-row .ffc-field-message').length).toBe(0);
 	});
 
 	it('lets a row with no times at all through — that is "I do not work this day"', () => {
 		mountInForm([{ day: 1, entry1: '', exit1: '', entry2: '', exit2: '' }]);
 		expect(submit().isDefaultPrevented()).toBe(false);
-		expect(window.$('.ffc-wh-row-error').length).toBe(0);
+		expect(window.$('.ffc-wh-message-row .ffc-field-message').length).toBe(0);
 	});
 
 	it('blocks a row missing the first entry', () => {
@@ -231,7 +232,7 @@ describe('ffc-working-hours — submit guard (#1128)', () => {
 		mountInForm([{ day: 1, entry1: '', exit1: '', entry2: '', exit2: '17:00' }]);
 		submit();
 
-		const $err = window.$('.ffc-wh-row-error');
+		const $err = window.$('.ffc-wh-message-row .ffc-field-message');
 		expect($err.length).toBe(1);
 		expect($err.text()).toContain('Entry 1');
 		expect($err.text()).not.toContain('Exit 2');
@@ -244,20 +245,30 @@ describe('ffc-working-hours — submit guard (#1128)', () => {
 		]);
 		submit();
 
-		const $rows = window.$('.ffc-wh-table tbody tr:not(.ffc-wh-row-error)');
-		expect($rows.eq(0).hasClass('ffc-wh-row-invalid')).toBe(false);
-		expect($rows.eq(1).hasClass('ffc-wh-row-invalid')).toBe(true);
+		// The field-message standard (#1844): the empty required time of the
+		// offending row takes the invalid state and names the message under it.
+		const $rows = window.$('.ffc-wh-table tbody tr:not(.ffc-wh-message-row)');
+		expect($rows.eq(0).find('.is-invalid').length).toBe(0);
+		const $entry = $rows.eq(1).find('.ffc-wh-entry1');
+		expect($entry.hasClass('is-invalid')).toBe(true);
+		expect($entry.attr('aria-invalid')).toBe('true');
+		expect($rows.eq(1).find('.ffc-wh-exit2').hasClass('is-invalid')).toBe(false);
+		const $msg = window.$('.ffc-wh-message-row .ffc-field-message');
+		expect($entry.attr('aria-describedby')).toBe($msg.attr('id'));
+		expect($msg.attr('role')).toBe('alert');
+		expect($rows.eq(1).next().hasClass('ffc-wh-message-row')).toBe(true);
 	});
 
 	it('clears the previous message on the next submit', () => {
 		mountInForm([{ day: 1, entry1: '', exit1: '', entry2: '', exit2: '17:00' }]);
 		submit();
-		expect(window.$('.ffc-wh-row-error').length).toBe(1);
+		expect(window.$('.ffc-wh-message-row .ffc-field-message').length).toBe(1);
 
 		window.$('.ffc-wh-entry1').val('08:00');
 		expect(submit().isDefaultPrevented()).toBe(false);
-		expect(window.$('.ffc-wh-row-error').length).toBe(0);
-		expect(window.$('.ffc-wh-row-invalid').length).toBe(0);
+		expect(window.$('.ffc-wh-message-row .ffc-field-message').length).toBe(0);
+		expect(window.$('.ffc-wh-message-row').length).toBe(0);
+		expect(window.$('.ffc-wh-table .is-invalid').length).toBe(0);
 	});
 
 	// The defect #1117 set out to remove: refusing a submit while pointing at a
@@ -278,6 +289,6 @@ describe('ffc-working-hours — submit guard (#1128)', () => {
 		mountInForm([{ day: 1, entry1: '', exit1: '', entry2: '', exit2: '17:00' }]);
 		submit();
 
-		expect(window.$('.ffc-wh-row-error').text()).toBe('Falta: Entrada 1');
+		expect(window.$('.ffc-wh-message-row .ffc-field-message').text()).toBe('Falta: Entrada 1');
 	});
 });

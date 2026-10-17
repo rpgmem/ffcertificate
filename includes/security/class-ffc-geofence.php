@@ -59,8 +59,8 @@ class Geofence {
 	 *
 	 * The same map is consumed in two places: the save handler turns
 	 * `array_values()` into the existing `ffc_geofence_error_*` transient, and
-	 * the metabox renderer turns `array_keys()` into the `ffc-input-invalid`
-	 * CSS class on the affected inputs.
+	 * the metabox renderer turns `array_keys()` into the invalid state of the
+	 * field-message standard on the affected inputs (#1844).
 	 *
 	 * @param array<string, mixed> $config Geofence config (cleaned or persisted).
 	 * @return array<string, string> Field name → error message. Empty if valid.

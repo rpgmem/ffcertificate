@@ -7,7 +7,8 @@
  * and captures the restriction inputs (password / ticket / cpf) onto the
  * context. Rejects on an invalid CPF/RF or an empty (post-sanitize) email.
  *
- * Runs after NonceGuard, so the $_POST reads here are nonce-verified.
+ * Runs after NonceGuard on the web form, so the $_POST reads (through
+ * SubmissionInput) are nonce-verified; the REST route reads its JSON body.
  *
  * @package FreeFormCertificate\Frontend\Submission
  */
@@ -15,8 +16,6 @@
 declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend\Submission;
-
-use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -58,9 +57,11 @@ class FieldSanitizer {
 				continue;
 			}
 
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified upstream; value unslashed and sanitized below.
-			if ( isset( $_POST[ $name ] ) ) {
-				$value = \FreeFormCertificate\Core\DataSanitizer::recursive_sanitize( wp_unslash( $_POST[ $name ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via recursive_sanitize().
+			// Only the fields the form defines are read: any other key in the
+			// request is ignored, on the web form and on the REST route alike.
+			$raw = SubmissionInput::raw( $ctx, (string) $name );
+			if ( null !== $raw ) {
+				$value = \FreeFormCertificate\Core\DataSanitizer::recursive_sanitize( $raw );
 
 				// Normalize name fields (proper capitalization with lowercase connectives).
 				if ( in_array( $name, $name_fields, true ) && is_string( $value ) && ! empty( $value ) ) {
@@ -123,8 +124,8 @@ class FieldSanitizer {
 		$submission_data['ffc_lgpd_consent'] = '1';
 
 		// Capture restriction fields (password/ticket) from POST.
-		$val_password = trim( RequestInput::get_post_string( 'ffc_password' ) );
-		$val_ticket   = strtoupper( trim( RequestInput::get_post_string( 'ffc_ticket' ) ) );
+		$val_password = trim( SubmissionInput::string( $ctx, 'ffc_password' ) );
+		$val_ticket   = strtoupper( trim( SubmissionInput::string( $ctx, 'ffc_ticket' ) ) );
 		$val_cpf      = isset( $submission_data['cpf_rf'] ) ? trim( (string) $submission_data['cpf_rf'] ) : '';
 
 		$ctx->submission_data = $submission_data;

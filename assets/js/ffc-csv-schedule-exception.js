@@ -67,7 +67,7 @@
 			+         '<label for="ffc-schedule-exception-end"><strong>' + esc(strings.scheduleExceptionEndLabel || 'New end:') + '</strong></label> '
 			+         '<input type="time" id="ffc-schedule-exception-end" class="ffc-extend-end-input ffc-schedule-exception-end" value="' + esc(opts.baselineEnd) + '">'
 			+       '</p>'
-			+       '<p class="ffc-schedule-exception-error" role="alert" style="color:#d63638;margin:6px 0 0;font-size:13px;" hidden></p>'
+			+       '<p class="ffc-schedule-exception-error" role="alert" hidden></p>'
 			+     '</div>'
 			+     '<div class="ffc-open-early-actions ffc-schedule-exception-actions">'
 			+       '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-schedule-exception-cancel" autofocus>'

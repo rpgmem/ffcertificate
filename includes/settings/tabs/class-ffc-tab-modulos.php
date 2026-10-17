@@ -58,15 +58,15 @@ class TabModulos extends SettingsTab {
 	 * Render.
 	 */
 	public function render(): void {
-		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-modulos.php';
+		$view_file = $this->view_path( 'ffc-tab-modulos.php' );
 
 		if ( file_exists( $view_file ) ) {
 			$settings = $this;
 			include $view_file;
 		} else {
-			wp_admin_notice(
-				esc_html__( 'Modules settings view file not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'Modules settings view file not found.', 'ffcertificate' )
 			);
 		}
 	}

@@ -44,6 +44,26 @@ class DashboardAssetManager {
 	}
 
 	/**
+	 * Enqueue the dashboard's stylesheets and the dark-mode toggle, no script.
+	 *
+	 * The whole dashboard needs them, and so does what the shortcode prints
+	 * when nobody is logged in: that notice used to load no plugin sheet at
+	 * all, so it wore the theme's sizes and colours (#1832). It is also what
+	 * `[ffc_recruitment_my_calls]` loads on a page of its own, because the
+	 * rules for that section live in the dashboard's sheet.
+	 */
+	public static function enqueue_styles(): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
+		// ffc-common carries the palette, the scale and the icon classes.
+		wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
+		wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+
+		// Without the toggle, `.ffc-dark-mode` never reaches <html> (#1126).
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+	}
+
+	/**
 	 * Enqueue dashboard assets
 	 *
 	 * @param int|false $view_as_user_id User ID in view-as mode.
@@ -78,12 +98,7 @@ class DashboardAssetManager {
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
-		// Enqueue CSS (ffc-common provides icon classes).
-		wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
-		wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array( 'ffc-common' ), FFC_VERSION );
-
-		// Dark mode.
-		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+		self::enqueue_styles();
 
 		// Enqueue JavaScript. The dashboard is split across 8 files since 6.5.2:
 		// `ffc-dashboard` is the core (handle preserved for backwards-compat with
@@ -103,7 +118,7 @@ class DashboardAssetManager {
 
 		// Working hours field component (shared).
 		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
-		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-working-hours',
 			'ffcWorkingHours',
@@ -202,7 +217,6 @@ class DashboardAssetManager {
 				'schedulingNonce'         => wp_create_nonce( 'ffc_self_scheduling_nonce' ),
 				'viewAsUserId'            => $view_as_user_id ? $view_as_user_id : false,
 				'isAdminViewing'          => $view_as_user_id && get_current_user_id() !== $view_as_user_id,
-				'logoutUrl'               => wp_logout_url( home_url() ),
 				// The date-messages opt-out toggle (#1538) is shown only while
 				// the module sends anything.
 				'dateMessagesEnabled'     => \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'date_messages' ),
@@ -266,7 +280,10 @@ class DashboardAssetManager {
 					'audiences'                => __( 'Audiences', 'ffcertificate' ),
 					'upcoming'                 => __( 'Upcoming', 'ffcertificate' ),
 					'past'                     => __( 'Past', 'ffcertificate' ),
-					'cancelled'                => __( 'Cancelled', 'ffcertificate' ),
+					// A section heading over several items, so plural where the
+					// language marks it (#1836); the status label stays the plain
+					// "Cancelled".
+					'cancelled'                => _x( 'Cancelled', 'dashboard section heading: cancelled items', 'ffcertificate' ),
 					// Profile.
 					'audienceGroups'           => __( 'Groups:', 'ffcertificate' ),
 					'notesLabel'               => __( 'Notes:', 'ffcertificate' ),
@@ -280,10 +297,13 @@ class DashboardAssetManager {
 					'cancel'                   => __( 'Cancel', 'ffcertificate' ),
 					'saving'                   => __( 'Saving...', 'ffcertificate' ),
 					'saveError'                => __( 'Error saving profile', 'ffcertificate' ),
+					// View as user (#1863): masked fields reveal on request.
+					'reveal'                   => __( 'Reveal', 'ffcertificate' ),
+					'revealError'              => __( 'Unable to reveal this value.', 'ffcertificate' ),
+					'revealToEdit'             => __( 'Reveal the value to edit it.', 'ffcertificate' ),
 					// Password change.
 					'securitySection'          => __( 'Security', 'ffcertificate' ),
 					'changePassword'           => __( 'Change Password', 'ffcertificate' ),
-					'logout'                   => __( 'Log Out', 'ffcertificate' ),
 					'currentPassword'          => __( 'Current Password', 'ffcertificate' ),
 					'newPassword'              => __( 'New Password', 'ffcertificate' ),
 					'confirmPassword'          => __( 'Confirm New Password', 'ffcertificate' ),
@@ -331,6 +351,15 @@ class DashboardAssetManager {
 					'next'                     => __( 'Next', 'ffcertificate' ),
 					'pageOf'                   => __( 'Page {current} of {total}', 'ffcertificate' ),
 					'perPage'                  => __( 'Per page:', 'ffcertificate' ),
+					// Per-section pager of the calendar tabs (#1836).
+					/* translators: {start}, {end}: first and last item shown; {total}: items in the section. Keep the braces. */
+					'sectionRange'             => __( '{start}–{end} of {total}', 'ffcertificate' ),
+					/* translators: {section}: section heading, such as Upcoming. Keep the braces. */
+					'sectionPagination'        => __( 'Pagination: {section}', 'ffcertificate' ),
+					/* translators: {page}: page number. Keep the braces. */
+					'pageNumber'               => __( 'Page {page}', 'ffcertificate' ),
+					'previousPage'             => __( 'Previous page', 'ffcertificate' ),
+					'nextPage'                 => __( 'Next page', 'ffcertificate' ),
 					// Reregistrations tab.
 					'noReregistrations'        => __( 'No reregistrations found.', 'ffcertificate' ),
 					'reregistrationTitle'      => __( 'Campaign', 'ffcertificate' ),

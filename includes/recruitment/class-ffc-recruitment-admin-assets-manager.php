@@ -133,10 +133,12 @@ final class RecruitmentAdminAssetsManager {
 		// extracted from inline <script> blocks (frontend-audit Item 3). The
 		// handlers are document-delegated and inert when their buttons aren't
 		// rendered, so enqueuing on every recruitment screen is harmless.
+		// ffc-core: the swap's outcome is the shared status line, FFC.status() (#1843).
+		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 		wp_enqueue_script(
 			'ffc-recruitment-candidate-edit',
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-candidate-edit{$s}.js",
-			array(),
+			array( 'ffc-core' ),
 			$js_ver,
 			true
 		);
@@ -165,7 +167,7 @@ final class RecruitmentAdminAssetsManager {
 		wp_enqueue_script(
 			'ffc-recruitment-candidates-import',
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-candidates-import{$s}.js",
-			array(),
+			array( 'ffc-core' ),
 			$js_ver,
 			true
 		);
@@ -297,6 +299,8 @@ final class RecruitmentAdminAssetsManager {
 				'strings' => \FreeFormCertificate\Admin\AdminUI::autosave_strings(),
 			)
 		);
+		// The notice and reason edit screens save their toggles per record (#1757).
+		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 
 		// Localize the REST root + nonce so the JS can post against the
 		// recruitment endpoints without an inline `<script>` block.

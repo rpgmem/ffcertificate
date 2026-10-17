@@ -5,34 +5,8 @@
  * @package FreeFormCertificate
  */
 
-/* ── Banner ──────────────────────────────────── */
-
-.ffc-rereg-banner .ffc-dashboard-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--ffc-spacing-xl);
-    flex-wrap: wrap;
-}
-
-.ffc-rereg-banner.ffc-rereg-urgent {
-    border-left-color: var(--ffc-danger-border);
-    background: var(--ffc-danger-bg);
-}
-
-.ffc-rereg-banner.ffc-rereg-urgent strong {
-    color: var(--ffc-danger-text);
-}
-
-.ffc-rereg-completed {
-    border-left-color: var(--ffc-success-border);
-    background: var(--ffc-success-bg);
-}
-
-.ffc-rereg-pending-review {
-    border-left-color: var(--ffc-primary);
-    background: var(--ffc-info-bg);
-}
+/* The dashboard's reregistration banners are `.ffc-notice` (#1842): their
+   tones live in ffc-common.css. */
 
 /* ── Header Bar ─────────────────────────────── */
 
@@ -116,10 +90,10 @@
     margin-bottom: var(--ffc-spacing-2xs);
 }
 
-.ffc-rereg-field label .ffc-required {
-    color: var(--ffc-danger-text);
-}
-
+/* The look of every field here -- ground, border, height, size, focus ring,
+   and the read-only state -- is the dashboard's one text field, declared in
+   `ffc-user-dashboard.css`, which this sheet depends on (#1827). Only the
+   width is the form's. */
 .ffc-rereg-field input[type="text"],
 .ffc-rereg-field input[type="email"],
 .ffc-rereg-field input[type="tel"],
@@ -127,36 +101,11 @@
 .ffc-rereg-field input[type="date"],
 .ffc-rereg-field textarea,
 .ffc-rereg-field select {
-    color: var(--ffc-text);
     width: 100%;
     max-width: 500px;
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    font-size: var(--ffc-font-size-base);
-    font-family: inherit;
-    background: var(--ffc-bg-card);
-    transition: border-color 0.15s, box-shadow 0.15s;
-    box-sizing: border-box;
-}
-
-.ffc-rereg-field input:focus,
-.ffc-rereg-field textarea:focus,
-.ffc-rereg-field select:focus {
-    border-color: var(--ffc-border-focus);
-    box-shadow: 0 0 0 1px var(--ffc-border-focus);
-    outline: none;
-}
-
-.ffc-rereg-field input[readonly],
-.ffc-rereg-field input[disabled] {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text-light);
-    cursor: not-allowed;
 }
 
 .ffc-rereg-field textarea {
-    resize: vertical;
     min-height: 72px;
 }
 
@@ -224,15 +173,14 @@
     padding: var(--ffc-spacing-2xs);
 }
 
-.ffc-wh-table select,
-.ffc-wh-table input[type="time"] {
+/* A grid cell, not a form row: the table keeps a compact size and takes
+   the dashboard field's paint (#1827). One element more specific than the
+   field rule in `ffc-user-dashboard.css`, which is what lets the size win. */
+.ffc-user-dashboard .ffc-wh-table :is(select, input[type="time"]) {
     width: 100%;
+    height: auto;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xs);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-sm);
-    font-family: inherit;
-    box-sizing: border-box;
 }
 
 .ffc-wh-remove {
@@ -254,7 +202,7 @@
     font-size: var(--ffc-font-size-sm);
 }
 
-/* ── Termo de Ciência ───────────────────────── */
+/* ── Acknowledgement term ────────────────────── */
 
 .ffc-rereg-termo-text {
     font-size: var(--ffc-font-size-sm);
@@ -271,25 +219,13 @@
     margin-bottom: var(--ffc-spacing-xs);
 }
 
-/* ── Validation Error ────────────────────────── */
-
-.ffc-rereg-field.has-error input,
-.ffc-rereg-field.has-error textarea,
-.ffc-rereg-field.has-error select {
-    border-color: var(--ffc-danger);
-    box-shadow: 0 0 0 1px var(--ffc-danger);
-}
-
-.ffc-field-error {
-    display: block;
-    color: var(--ffc-danger-text);
-    font-size: var(--ffc-font-size-xs);
-    margin-top: var(--ffc-spacing-2xs);
-    min-height: 0;
-}
-
-.ffc-field-error:empty {
-    display: none;
+/* The acknowledgment is HTML an administrator can edit, so its tags are
+   whatever they wrote: sized here, a theme that sizes `p` or `li` does not
+   re-size the legal text (#1832). Inline tags inside them inherit. */
+.ffc-rereg-termo-text p,
+.ffc-rereg-termo-text li {
+    font-size: var(--ffc-font-size-sm);
+    line-height: 1.6;
 }
 
 /* ── Actions ─────────────────────────────────── */
@@ -304,48 +240,10 @@
     flex-wrap: wrap;
 }
 
-.ffc-rereg-actions .button {
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
-    font-size: var(--ffc-font-size-sm);
-    font-weight: 500;
-    border-radius: var(--ffc-radius-md);
-    cursor: pointer;
-    transition: all 0.15s;
-    line-height: 1.4;
-}
-
-.ffc-rereg-actions .button-primary {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-    border: 1px solid var(--ffc-primary);
-}
-
-.ffc-rereg-actions .button-primary:hover {
-    background: var(--ffc-primary-hover);
-    border-color: var(--ffc-primary-hover);
-}
-
-.ffc-rereg-actions .button-primary:disabled {
-    background: var(--ffc-border-light);
-    border-color: var(--ffc-border-light);
-    cursor: not-allowed;
-}
-
+/* The buttons are the dashboard's button family (`ffc-user-dashboard.css`,
+   #1827); only their place in the row is the form's. */
 .ffc-rereg-actions .ffc-rereg-cancel-btn {
     margin-left: auto;
-}
-
-.ffc-rereg-status {
-    font-size: var(--ffc-font-size-sm);
-    font-weight: 500;
-}
-
-.ffc-rereg-status.ffc-status-ok {
-    color: var(--ffc-success-text);
-}
-
-.ffc-rereg-status.ffc-status-err {
-    color: var(--ffc-danger-text);
 }
 
 /* ── Responsive ──────────────────────────────── */
@@ -387,45 +285,13 @@
         align-items: stretch;
     }
 
-    .ffc-rereg-actions .button {
-        text-align: center;
-    }
-
     .ffc-rereg-actions .ffc-rereg-cancel-btn {
         margin-left: 0;
     }
-
-    .ffc-rereg-banner .ffc-dashboard-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .ffc-rereg-field input,
-    .ffc-rereg-field textarea,
-    .ffc-rereg-field select,
-    .ffc-rereg-actions .button {
-        transition: none;
-    }
-}
-
-/* ── Importar o ciclo anterior ──────────────── */
-
-.ffc-rereg-import-notice {
-    margin-bottom: var(--ffc-spacing-xl);
-    padding: var(--ffc-spacing-lg);
-    border: 1px solid var(--ffc-info-border);
-    border-radius: var(--ffc-radius-sm);
-    background: var(--ffc-info-bg);
-    color: var(--ffc-info-text);
-}
-
-.ffc-rereg-import-notice p {
-    margin: 0 0 var(--ffc-spacing-sm);
-}
+/* ── Import the previous cycle ──────────────── */
 
 .ffc-rereg-import-status {
-    margin-left: var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-sm);
 }

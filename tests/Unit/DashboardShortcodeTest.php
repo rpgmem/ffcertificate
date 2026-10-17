@@ -24,6 +24,7 @@ class DashboardShortcodeTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
@@ -98,11 +99,25 @@ class DashboardShortcodeTest extends TestCase {
 
 	public function test_render_shows_login_when_not_logged_in(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		$asset_helper = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '' );
+		$asset_helper->shouldReceive( 'enqueue_dark_mode' )->once();
+		$styles = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $handle ) use ( &$styles ) {
+				$styles[] = $handle;
+			}
+		);
 
 		$output = DashboardShortcode::render();
 
 		$this->assertStringContainsString( 'logged in', $output );
 		$this->assertStringContainsString( 'Login', $output );
+		// #1832: the notice is a plugin root and loads the sheets that style it.
+		$this->assertMatchesRegularExpression( '#<div class="ffc-shortcode">\s*<div class="ffc-notice ffc-notice-warning"#', $output );
+		$this->assertStringContainsString( 'data-ffc-notice="login-required"', $output );
+		$this->assertStringContainsString( '<div class="ffc-notice-actions"><a href=', $output );
+		$this->assertSame( array( 'ffc-common', 'ffc-dashboard' ), $styles );
 	}
 
 	// ==================================================================
@@ -224,6 +239,7 @@ class DashboardShortcodeTest extends TestCase {
 		$output = DashboardShortcode::render();
 
 		$this->assertStringContainsString( 'redirected from the admin panel', $output );
+		$this->assertStringContainsString( 'data-ffc-notice="admin-redirect"', $output );
 	}
 
 	// ==================================================================
@@ -281,6 +297,9 @@ class DashboardShortcodeTest extends TestCase {
 		// Every capability check returns true so all cap-gated tabs render.
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		// The tab bar prints the Log Out link (#1840).
+		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'wp_logout_url' )->alias( static fn( $redirect = '' ) => 'https://example.com/wp-login.php?action=logout&redirect_to=' . rawurlencode( $redirect ) . '&_wpnonce=abc' );
 
 		$view_mode = Mockery::mock( 'alias:\FreeFormCertificate\Shortcodes\DashboardViewMode' );
 		$view_mode->shouldReceive( 'get_view_as_user_id' )->andReturn( $view_as ? 55 : false )->byDefault();
@@ -332,6 +351,42 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-recruitment-body', $output );
 		// Reregistration form panel present when reregistrations tab visible.
 		$this->assertStringContainsString( 'ffc-rereg-form-panel', $output );
+	}
+
+	/**
+	 * Log Out sits in the tab bar, after the tablist and outside it, so it
+	 * shows on every tab without being announced as a tab (#1840).
+	 */
+	public function test_render_prints_log_out_in_the_tab_bar_outside_the_tablist(): void {
+		$this->wireFullRenderCollaborators( false );
+		$escaped = array();
+		Functions\when( 'esc_url' )->alias( static function ( $url ) use ( &$escaped ) {
+			$escaped[] = $url;
+			return str_replace( '&', '&#038;', $url );
+		} );
+
+		$output = DashboardShortcode::render();
+
+		$doc = new \DOMDocument();
+		libxml_use_internal_errors( true );
+		$doc->loadHTML( '<?xml encoding="utf-8"?>' . $output );
+		libxml_clear_errors();
+		$xpath = new \DOMXPath( $doc );
+
+		$links = $xpath->query( '//a[contains(concat(" ", normalize-space(@class), " "), " ffc-logout-link ")]' );
+		$this->assertSame( 1, $links->length, 'Exactly one Log Out link is printed.' );
+		$link = $links->item( 0 );
+		$this->assertSame( 'https://example.com/wp-login.php?action=logout&redirect_to=https%3A%2F%2Fexample.com&_wpnonce=abc', $link->getAttribute( 'href' ) );
+		$this->assertContains( 'https://example.com/wp-login.php?action=logout&redirect_to=https%3A%2F%2Fexample.com&_wpnonce=abc', $escaped, 'The URL goes through esc_url().' );
+		$this->assertStringContainsString( 'action=logout&#038;redirect_to=', $output, 'The printed attribute is the escaped URL.' );
+		$this->assertStringContainsString( 'Log Out', $link->textContent );
+		$this->assertSame( 1, $xpath->query( './/span[contains(@class, "ffc-icon-logout")]', $link )->length );
+
+		$parent = $link->parentNode;
+		$this->assertInstanceOf( \DOMElement::class, $parent );
+		$this->assertStringContainsString( 'ffc-dashboard-tabbar', $parent->getAttribute( 'class' ) );
+		$this->assertSame( 0, $xpath->query( 'ancestor::*[@role="tablist"]', $link )->length, 'The link is not inside the tablist.' );
+		$this->assertSame( 1, $xpath->query( '../nav[@role="tablist"]', $link )->length, 'The tablist is its sibling in the bar.' );
 	}
 
 	// ==================================================================
@@ -404,15 +459,17 @@ class DashboardShortcodeTest extends TestCase {
 		$output = DashboardShortcode::render();
 
 		$this->assertStringContainsString( 'Approved Campaign', $output );
-		$this->assertStringContainsString( 'ffc-rereg-completed', $output );
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-success"', $output );
 		$this->assertStringContainsString( 'Submitted Campaign', $output );
-		$this->assertStringContainsString( 'ffc-rereg-pending-review', $output );
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-info"', $output );
 		$this->assertStringContainsString( 'In Progress Campaign', $output );
 		$this->assertStringContainsString( 'Continue Reregistration', $output );
 		$this->assertStringContainsString( 'Rejected Campaign', $output );
 		$this->assertStringContainsString( 'Resubmit Reregistration', $output );
-		// Urgent class present for the near-deadline rejected banner.
-		$this->assertStringContainsString( 'ffc-rereg-urgent', $output );
+		// The near-deadline rejected banner takes the danger tone; the far
+		// ones keep the warning tone, and each carries its campaign id.
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-danger" role="note" data-ffc-notice="rereg-banner" data-reregistration-id="13"', $output );
+		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-warning" role="note" data-ffc-notice="rereg-banner" data-reregistration-id="12"', $output );
 		$this->assertStringContainsString( 'New Campaign', $output );
 		$this->assertStringContainsString( 'Complete Reregistration', $output );
 	}

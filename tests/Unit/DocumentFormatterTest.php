@@ -556,6 +556,66 @@ class DocumentFormatterTest extends TestCase {
 	}
 
 	// ==================================================================
+	// mask_phone / mask_name / mask_any (#1863)
+	// ==================================================================
+
+	public function test_mask_phone_keeps_the_last_two_digits_and_the_punctuation(): void {
+		$this->assertSame('(**) *****-**21', DocumentFormatter::mask_phone('(11) 98765-4321'));
+		$this->assertSame('*********88', DocumentFormatter::mask_phone('11999998888'));
+	}
+
+	public function test_mask_phone_masks_a_short_value_whole_and_an_empty_one_to_nothing(): void {
+		$this->assertSame('***', DocumentFormatter::mask_phone('123'));
+		$this->assertSame('', DocumentFormatter::mask_phone('  '));
+	}
+
+	public function test_mask_name_keeps_each_words_first_letter(): void {
+		$this->assertSame('M*** d* S***', DocumentFormatter::mask_name('Maria da Silva'));
+		$this->assertSame('Á***', DocumentFormatter::mask_name('Álvaro'));
+		$this->assertSame('', DocumentFormatter::mask_name('   '));
+	}
+
+	public function test_mask_any_uses_the_key_s_own_mask(): void {
+		$this->assertSame('518.***.***-80', DocumentFormatter::mask_any('cpf', '51817842080'));
+		$this->assertSame('a***@x.com', DocumentFormatter::mask_any('email', 'ana@x.com'));
+		$this->assertSame('*********88', DocumentFormatter::mask_any('telefone', '11999998888'));
+	}
+
+	public function test_mask_any_never_returns_a_value_its_mask_could_not_handle(): void {
+		// mask_cpf() hands back a value of an unknown length unchanged; the
+		// fallback still masks it, and so does a key no mask knows.
+		$this->assertSame('1***', DocumentFormatter::mask_any('cpf', '12345'));
+		$this->assertSame('M***', DocumentFormatter::mask_any('rg_estadual', 'MG-1234'));
+		$this->assertSame('', DocumentFormatter::mask_any('rg', ''));
+	}
+
+	// ==================================================================
+	// mask_ip (#1760)
+	// ==================================================================
+
+	public function test_mask_ip_keeps_the_first_two_ipv4_octets(): void {
+		$this->assertSame('203.0.***.***', DocumentFormatter::mask_ip('203.0.113.7'));
+	}
+
+	public function test_mask_ip_keeps_the_ipv6_network_half(): void {
+		$this->assertSame('2001:db8:85a3:0:****:****:****:****', DocumentFormatter::mask_ip('2001:0db8:85a3:0000:0000:8a2e:0370:7334'));
+	}
+
+	public function test_mask_ip_expands_a_compressed_ipv6_address_first(): void {
+		$this->assertSame('2001:db8:0:0:****:****:****:****', DocumentFormatter::mask_ip('2001:db8::1'));
+		$this->assertSame('0:0:0:0:****:****:****:****', DocumentFormatter::mask_ip('::1'));
+	}
+
+	public function test_mask_ip_masks_a_value_that_is_not_an_ip_whole(): void {
+		$this->assertSame('***', DocumentFormatter::mask_ip('not-an-ip'));
+	}
+
+	public function test_mask_ip_returns_empty_for_empty_input(): void {
+		$this->assertSame('', DocumentFormatter::mask_ip(''));
+		$this->assertSame('', DocumentFormatter::mask_ip('  '));
+	}
+
+	// ==================================================================
 	// mask_field_value — shared per-key PII masker (#838)
 	// ==================================================================
 

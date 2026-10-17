@@ -68,13 +68,6 @@ class IdentitySearchWiringTest extends TestCase {
 		$this->localised = array();
 		$this->granted   = array( 'manage_options' );
 
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.org/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '0.0.0' );
-		}
-
 		Functions\when( '__' )->returnArg( 1 );
 		Functions\when( 'admin_url' )->returnArg( 1 );
 		// The enqueue consults the MERGE capability before loading the merge

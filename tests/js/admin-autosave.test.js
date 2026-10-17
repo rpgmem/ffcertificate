@@ -89,7 +89,7 @@ describe('FFC.Admin.autoSaveField', () => {
 
 		const $badge = window.$('.ffc-autosave-badge');
 		expect($badge.text()).toBe('Saved');
-		expect($badge.hasClass('ffc-autosave-badge--saved')).toBe(true);
+		expect($badge.hasClass('is-success')).toBe(true);
 
 		vi.advanceTimersByTime(1800);
 		expect($badge.attr('hidden')).toBe('hidden');
@@ -103,7 +103,7 @@ describe('FFC.Admin.autoSaveField', () => {
 	it('announces ffc:setting-saved on document after a successful save', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" />';
 		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
-			success: true, data: {},
+			success: true, data: { share_link: '?x' },
 		})));
 		const seen = [];
 		const onSaved = (e) => seen.push(e.detail);
@@ -116,7 +116,9 @@ describe('FFC.Admin.autoSaveField', () => {
 		await Promise.resolve();
 
 		document.removeEventListener('ffc:setting-saved', onSaved);
-		expect(seen).toEqual([{ key: 'dark_mode', value: '1' }]);
+		// The response rides along for a save whose server side did more than
+		// write the field (the operator access hash, #1755).
+		expect(seen).toEqual([{ key: 'dark_mode', value: '1', response: { share_link: '?x' } }]);
 	});
 
 	it('stays silent when the save fails', async () => {
@@ -152,7 +154,7 @@ describe('FFC.Admin.autoSaveField', () => {
 
 		const $badge = window.$('.ffc-autosave-badge');
 		expect($badge.text()).toBe('Quota exceeded');
-		expect($badge.hasClass('ffc-autosave-badge--error')).toBe(true);
+		expect($badge.hasClass('is-error')).toBe(true);
 	});
 
 	it('honours a custom transform when extracting the value', () => {
@@ -442,7 +444,7 @@ describe('FFC.Admin.autoSaveField — extra branches', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 		const $badge = window.$('.ffc-autosave-badge');
-		expect($badge.hasClass('ffc-autosave-badge--saved')).toBe(true);
+		expect($badge.hasClass('is-success')).toBe(true);
 
 		// Trigger another change while the "Saved" linger timer is live.
 		window.$('#t').prop('checked', false).trigger('change');
@@ -593,7 +595,29 @@ describe('FFC.Admin.autoSaveField — browser validity (#1114)', () => {
 		vi.advanceTimersByTime(600);
 
 		expect(postSpy).not.toHaveBeenCalled();
-		expect(document.querySelector('.ffc-autosave-badge').className).toContain('--error');
+		// The reason goes under the field, in the field-message standard
+		// (#1844); the badge is not where a validation message lives.
+		const input = document.getElementById('n');
+		expect(input.classList.contains('is-invalid')).toBe(true);
+		expect(input.getAttribute('aria-invalid')).toBe('true');
+		const msg = document.getElementById(input.getAttribute('data-ffc-message-id'));
+		expect(msg.classList.contains('ffc-field-message')).toBe(true);
+		expect(msg.getAttribute('role')).toBe('alert');
+		expect(document.querySelector('.ffc-autosave-badge').hidden).toBe(true);
+	});
+
+	it('withdraws the field message once the value is valid again', () => {
+		document.body.innerHTML = '<input type="number" id="n" min="1" value="5" required>';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		window.FFC.Admin.autoSaveField(window.$('#n'), { key: 'ip_max_per_hour' });
+		window.$('#n').val('').trigger('input');
+		vi.advanceTimersByTime(600);
+		expect(document.querySelector('.ffc-field-message')).not.toBeNull();
+
+		window.$('#n').val('7').trigger('input');
+		vi.advanceTimersByTime(600);
+		expect(document.querySelector('.ffc-field-message')).toBeNull();
+		expect(document.getElementById('n').hasAttribute('aria-invalid')).toBe(false);
 	});
 
 	it('refuses a value below the declared min', () => {
@@ -707,5 +731,77 @@ describe('FFC.Admin.bootAutoSaveFields — two endpoints, one widget (#1116)', (
 		window.FFC.Admin.bootAutoSaveFields();
 
 		expect(spy).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('FFC.Admin.bootAutoSaveFields — the record variant (#1757)', () => {
+	afterEach(() => {
+		delete window.ffcRecordAutosave;
+		delete window.ffcAdminAutosave;
+	});
+
+	it('posts the record each field names, with the record endpoint nonce', () => {
+		window.ffcRecordAutosave = {
+			ajaxUrl: '/record/admin-ajax.php',
+			action: 'ffc_update_record',
+			nonce: 'rec-nonce',
+		};
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		document.body.innerHTML = `
+			<input type="checkbox" id="a" data-ffc-autosave-record-key="include_ics" data-ffc-autosave-record="audience_schedule:4">
+			<input type="checkbox" id="b" data-ffc-autosave-record-key="status" data-ffc-autosave-record="audience:9">
+		`;
+		window.FFC.Admin.bootAutoSaveFields();
+
+		window.$('#a').prop('checked', true).trigger('change');
+		window.$('#b').prop('checked', false).trigger('change');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).toHaveBeenCalledTimes(2);
+		const [url, first] = postSpy.mock.calls[0];
+		expect(url).toBe('/record/admin-ajax.php');
+		expect(first).toMatchObject({ action: 'ffc_update_record', nonce: 'rec-nonce', entity: 'audience_schedule', id: 4, key: 'include_ics', value: '1' });
+		expect(postSpy.mock.calls[1][1]).toMatchObject({ entity: 'audience', id: 9, key: 'status', value: '0' });
+	});
+
+	it('saves a checkbox group of one record as one list', () => {
+		window.ffcRecordAutosave = { ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'n' };
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		document.body.innerHTML = `
+			<input type="checkbox" value="denied" data-ffc-autosave-multi="1" data-ffc-autosave-record-key="applies_to" data-ffc-autosave-record="recruitment_reason:2">
+			<input type="checkbox" id="g" value="granted" data-ffc-autosave-multi="1" data-ffc-autosave-record-key="applies_to" data-ffc-autosave-record="recruitment_reason:2">
+		`;
+		window.FFC.Admin.bootAutoSaveFields();
+
+		window.$('#g').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1]).toMatchObject({ entity: 'recruitment_reason', id: 2, key: 'applies_to', value: ['granted'] });
+	});
+
+	it('leaves a field without a valid record unbound', () => {
+		window.ffcRecordAutosave = { ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'n' };
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(() => ({ destroy: () => {} }));
+		document.body.innerHTML = `
+			<input type="checkbox" data-ffc-autosave-record-key="flag">
+			<input type="checkbox" data-ffc-autosave-record-key="flag" data-ffc-autosave-record="thing:0">
+			<input type="checkbox" data-ffc-autosave-record-key="flag" data-ffc-autosave-record="thing:3">
+		`;
+		window.FFC.Admin.bootAutoSaveFields();
+
+		expect(spy).toHaveBeenCalledTimes(1);
+	});
+
+	it('stays off on a screen with no record config', () => {
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(() => ({ destroy: () => {} }));
+		document.body.innerHTML = '<input type="checkbox" data-ffc-autosave-record-key="flag" data-ffc-autosave-record="thing:3">';
+		window.FFC.Admin.bootAutoSaveFields();
+
+		expect(spy).not.toHaveBeenCalled();
 	});
 });

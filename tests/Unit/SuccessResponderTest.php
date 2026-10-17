@@ -68,13 +68,17 @@ class SuccessResponderTest extends TestCase {
 		$ctx->is_quiz          = true;
 		$ctx->awaiting_grading = true;
 		$ctx->pdf_data         = array( 'filename' => 'x.pdf' );
+		Functions\when( 'esc_attr' )->returnArg();
 
 		$this->responder()->apply( $ctx );
 
 		$this->assertNull( $ctx->response['pdf_data'] );
 		$this->assertSame( array( 'pending' => true ), $ctx->response['quiz'] );
 		$this->assertStringContainsString( 'A person will grade the open answers', $ctx->response['message'] );
-		$this->assertStringContainsString( 'class="ffc-form-info-block ffc-quiz-awaiting-grading" role="status"', $ctx->response['html'] );
+		// A system notice (#1842), not the operator's Info block.
+		$this->assertStringContainsString( '<div class="ffc-notice ffc-notice-info" role="status" data-ffc-notice="awaiting-grading">', $ctx->response['html'] );
+		$this->assertStringContainsString( 'ffc-icon-clock', $ctx->response['html'] );
+		$this->assertStringNotContainsString( 'ffc-form-info-block', $ctx->response['html'] );
 	}
 
 	public function test_custom_success_message_used_and_trimmed(): void {

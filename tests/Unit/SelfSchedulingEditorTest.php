@@ -36,6 +36,7 @@ class SelfSchedulingEditorTest extends TestCase {
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'add_meta_box' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'wp_register_script' )->justReturn( true );
 		Functions\when( 'wp_enqueue_style' )->justReturn( true );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
@@ -63,16 +64,6 @@ class SelfSchedulingEditorTest extends TestCase {
 		Functions\when( 'add_query_arg' )->justReturn( '/' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
-
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
-		if ( ! defined( 'FFC_VERSION' ) ) {
-			define( 'FFC_VERSION', '4.12.0' );
-		}
 	}
 
 	protected function tearDown(): void {
@@ -179,8 +170,9 @@ class SelfSchedulingEditorTest extends TestCase {
 		// render_toggle controls depend on.
 		$this->assertContains( 'ffc-common', $styles );
 		$this->assertContains( 'ffc-calendar-editor', $styles );
-		// The collapsible sections (#1629).
+		// The vertical tabs (#1761) and the sections inside the Emails tab (#1629).
 		$this->assertContains( 'ffc-admin-components', $styles );
+		$this->assertContains( 'ffc-vertical-tabs', $enqueued );
 		$this->assertContains( 'ffc-admin-sections', $enqueued );
 	}
 
@@ -219,131 +211,28 @@ class SelfSchedulingEditorTest extends TestCase {
 		$editor = new SelfSchedulingEditor();
 		$editor->add_custom_metaboxes();
 
-		$this->assertCount( 7, $titles );
+		// One tabbed box in the normal column, the shortcode and clean-up cards
+		// in the side (#1761); the occupancy report is a tab, not a box.
+		$this->assertSame( array( 'Calendar Configuration', 'How to Use / Shortcode', 'Clean Up Appointments' ), $titles );
 		foreach ( $titles as $title ) {
 			$this->assertDoesNotMatchRegularExpression( '/^\d+\./', $title );
 		}
 	}
 
 	// ==================================================================
-	// render_box_config()
+	// render_box_config() — every setting, in vertical tabs (#1761)
 	// ==================================================================
 
-	public function test_render_box_config_outputs_html(): void {
-		$post = Mockery::mock( 'WP_Post' );
+	/**
+	 * Render the configuration box for a post.
+	 *
+	 * @return string
+	 */
+	private function render_config(): string {
+		$post     = Mockery::mock( 'WP_Post' );
 		$post->ID = 10;
-
-		$editor = new SelfSchedulingEditor();
-		ob_start();
-		$editor->render_box_config( $post );
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( 'slot_duration', $output );
-		$this->assertStringContainsString( 'slot_interval', $output );
-	}
-
-	// ==================================================================
-	// render_box_hours()
-	// ==================================================================
-
-	public function test_render_box_hours_outputs_html(): void {
-		$post = Mockery::mock( 'WP_Post' );
-		$post->ID = 10;
-
-		$editor = new SelfSchedulingEditor();
-		ob_start();
-		$editor->render_box_hours( $post );
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( 'ffc-working-hours', $output );
-	}
-
-	// ==================================================================
-	// render_box_rules()
-	// ==================================================================
-
-	public function test_render_box_rules_outputs_html(): void {
-		$post = Mockery::mock( 'WP_Post' );
-		$post->ID = 10;
-
-		$editor = new SelfSchedulingEditor();
-		ob_start();
-		$editor->render_box_rules( $post );
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( 'advance_booking', $output );
-	}
-
-	public function test_render_box_rules_splits_into_sections_whose_icons_draw(): void {
-		// #1629: the rules were one flat table. Each group is a collapsible
-		// section; an icon name the registry does not know prints an empty
-		// span, which is what `calendar` / `cross` (class names, not drawing
-		// names) did on the first render.
-		$post = Mockery::mock( 'WP_Post' );
-		$post->ID = 10;
-
-		$editor = new SelfSchedulingEditor();
-		ob_start();
-		$editor->render_box_rules( $post );
-		$output = ob_get_clean();
-
-		$this->assertSame( 5, substr_count( $output, '<details class="ffc-section"' ) );
-		$this->assertSame( 5, substr_count( $output, '<span class="ffc-section__icon"><svg' ) );
-		$this->assertStringContainsString( 'data-ffc-section-master="allow_cancellation"', $output );
-		$this->assertStringContainsString( 'data-ffc-section-master="admin_bypass"', $output );
-		$this->assertSame( substr_count( $output, '<details' ), substr_count( $output, '</details>' ) );
-	}
-
-	public function test_render_box_config_sections_draw_their_icons(): void {
-		$post = Mockery::mock( 'WP_Post' );
-		$post->ID = 10;
-
-		$editor = new SelfSchedulingEditor();
-		ob_start();
-		$editor->render_box_config( $post );
-		$output = ob_get_clean();
-
-		$this->assertSame( 2, substr_count( $output, '<span class="ffc-section__icon"><svg' ) );
-	}
-
-	public function test_dependent_rows_start_hidden_with_a_real_style_attribute(): void {
-		// The rows used to print `esc_attr( 'style="display:none;"' )`, which
-		// escapes the quotes into an attribute nobody reads, so the deadline
-		// and waitlist-capacity rows always showed on load (#1629).
-		$post = Mockery::mock( 'WP_Post' );
-		$post->ID = 10;
-		Functions\when( 'esc_attr' )->alias(
-			static function ( $text ) {
-				return htmlspecialchars( (string) $text, ENT_QUOTES );
-			}
-		);
-		Functions\when( 'get_post_meta' )->justReturn(
-			array(
-				'allow_cancellation' => 0,
-				'waitlist_enabled'   => 0,
-			)
-		);
-
-		$editor = new SelfSchedulingEditor();
-		ob_start();
-		$editor->render_box_rules( $post );
-		$output = ob_get_clean();
-
-		$this->assertStringContainsString( '<tr class="ffc-cancellation-hours" style="display:none;">', $output );
-		$this->assertStringContainsString( '<tr class="ffc-waitlist-capacity" style="display:none;">', $output );
-		$this->assertStringNotContainsString( '&quot;display:none;&quot;', $output );
-	}
-
-	// ==================================================================
-	// render_box_email()
-	// ==================================================================
-
-	public function test_render_box_email_outputs_html(): void {
-		$post = Mockery::mock( 'WP_Post' );
-		$post->ID = 10;
-
-		Functions\when( 'get_option' )->justReturn( '' );
-		// The confirmation body now renders via wp_editor (TinyMCE).
+		// The administrator-recipients field prints the site address as its placeholder.
+		Functions\when( 'get_option' )->alias( static fn( $key ) => 'admin_email' === $key ? 'site@example.com' : array() );
 		Functions\when( 'wp_editor' )->alias(
 			static function ( $content, $id ) {
 				echo '<textarea id="' . $id . '">' . $content . '</textarea>';
@@ -352,29 +241,86 @@ class SelfSchedulingEditorTest extends TestCase {
 
 		$editor = new SelfSchedulingEditor();
 		ob_start();
-		$editor->render_box_email( $post );
-		$output = ob_get_clean();
+		$editor->render_box_config( $post );
+		return (string) ob_get_clean();
+	}
 
+	public function test_render_box_config_outputs_every_group(): void {
+		$output = $this->render_config();
+
+		$this->assertStringContainsString( 'slot_duration', $output );
+		$this->assertStringContainsString( 'slot_interval', $output );
+		$this->assertStringContainsString( 'ffc-working-hours', $output );
+		$this->assertStringContainsString( 'advance_booking', $output );
 		$this->assertStringContainsString( 'send_user_confirmation', $output );
 		// TinyMCE editor + the "Restore Default Text" button for the confirmation body.
 		$this->assertStringContainsString( 'id="user_confirmation_body"', $output );
 		$this->assertStringContainsString( 'ffc-email-restore-default', $output );
 	}
 
-	public function test_render_box_email_groups_into_three_sections(): void {
-		$post = Mockery::mock( 'WP_Post' );
-		$post->ID = 10;
-		Functions\when( 'get_option' )->justReturn( '' );
-		Functions\when( 'wp_editor' )->justReturn( null );
+	public function test_tabs_use_the_form_editor_component_and_registry_icons(): void {
+		$output = $this->render_config();
 
-		$editor = new SelfSchedulingEditor();
-		ob_start();
-		$editor->render_box_email( $post );
-		$output = ob_get_clean();
+		$this->assertStringContainsString( '<div class="ffc-vtabs" data-ffc-vtabs>', $output );
+		preg_match_all( '/<span class="ffc-vtabs__icon ([^"]+)"/', $output, $m );
+		// Each icon twice: in the nav and in the panel title.
+		$this->assertCount( 16, $m[1] );
+		foreach ( $m[1] as $class ) {
+			$this->assertMatchesRegularExpression( '/^ffc-icon-[a-z-]+$/', $class, 'A tab icon the registry does not know falls back to a dashicon' );
+		}
+		$this->assertStringNotContainsString( 'dashicons', $output );
+		// The first tab starts active; the others are reachable by the arrow keys.
+		$this->assertSame( 1, substr_count( $output, 'aria-selected="true"' ) );
+		$this->assertSame( 7, substr_count( $output, 'aria-selected="false"' ) );
+	}
 
+	public function test_the_occupancy_tab_exists_only_for_a_saved_custom_calendar(): void {
+		$this->assertStringNotContainsString( 'ffc-tabpanel-occupancy', $this->render_config() );
+
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => '_ffc_self_scheduling_config' === $key ? array( 'schedule_type' => 'custom' ) : ''
+		);
+		$output = $this->render_config();
+		$this->assertStringContainsString( 'id="ffc-tabpanel-occupancy"', $output );
+		$this->assertStringContainsString( 'Add custom blocks to see the occupancy report.', $output );
+	}
+
+	public function test_dependent_rows_start_hidden_with_a_real_style_attribute(): void {
+		// The rows used to print `esc_attr( 'style="display:none;"' )`, which
+		// escapes the quotes into an attribute nobody reads, so the deadline
+		// and waitlist-capacity rows always showed on load (#1629).
+		Functions\when( 'esc_attr' )->alias(
+			static function ( $text ) {
+				return htmlspecialchars( (string) $text, ENT_QUOTES );
+			}
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => '_ffc_self_scheduling_config' === $key
+				? array(
+					'allow_cancellation' => 0,
+					'waitlist_enabled'   => 0,
+				)
+				: ''
+		);
+
+		$output = $this->render_config();
+
+		$this->assertStringContainsString( '<tr class="ffc-cancellation-hours" style="display:none;">', $output );
+		$this->assertStringContainsString( '<tr class="ffc-waitlist-capacity" style="display:none;">', $output );
+		$this->assertStringNotContainsString( '&quot;display:none;&quot;', $output );
+	}
+
+	public function test_the_emails_tab_keeps_its_three_sections(): void {
+		// The Emails tab holds three subjects, so they stay collapsible
+		// sections inside it -- the only sections left on the screen.
+		$output = $this->render_config();
+
+		$this->assertSame( 3, substr_count( $output, '<details class="ffc-section"' ) );
 		$this->assertSame( 3, substr_count( $output, '<span class="ffc-section__icon"><svg' ) );
 		$this->assertStringContainsString( 'data-ffc-section-master="ffc_send_admin_notification"', $output );
 		$this->assertStringContainsString( 'data-ffc-section-master="ffc_send_user_confirmation"', $output );
+		$this->assertSame( substr_count( $output, '<details' ), substr_count( $output, '</details>' ) );
+		$this->assertSame( substr_count( $output, '<section' ), substr_count( $output, '</section>' ) );
 	}
 
 	// ==================================================================
@@ -446,6 +392,21 @@ class SelfSchedulingEditorTest extends TestCase {
 		// The shared copy button reads the read-only input it targets (#1629).
 		$this->assertStringContainsString( 'id="ffc-calendar-shortcode"', $output );
 		$this->assertStringContainsString( 'data-ffc-copy-target="#ffc-calendar-shortcode"', $output );
+	}
+
+	public function test_render_shortcode_metabox_prints_no_dead_preview_link(): void {
+		$post = Mockery::mock( 'WP_Post' );
+		$post->ID = 42;
+		$post->post_status = 'publish';
+
+		$editor = new SelfSchedulingEditor();
+		ob_start();
+		$editor->render_shortcode_metabox( $post );
+		$output = ob_get_clean();
+
+		// Nothing handles `calendar_preview`, and a live calendar would book for real (#1770).
+		$this->assertStringNotContainsString( 'calendar_preview', $output );
+		$this->assertStringNotContainsString( 'Preview Calendar', $output );
 	}
 
 	// ==================================================================

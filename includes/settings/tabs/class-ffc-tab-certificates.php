@@ -39,7 +39,7 @@ class TabCertificates extends SettingsTab {
 	}
 
 	/**
-	 * Load the autosave widget and the required-field table script.
+	 * Load the autosave widget and the "Required data" table script.
 	 *
 	 * @param string $hook Current admin page hook.
 	 */
@@ -47,29 +47,31 @@ class TabCertificates extends SettingsTab {
 		if ( ! $this->should_enqueue_on( $hook ) ) {
 			return;
 		}
+		$this->enqueue_autosave_infra();
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		// After the autosave widget: the table registers its reader with
+		// the widget before the widget boots (#1759).
 		wp_enqueue_script(
 			'ffc-certificate-settings',
 			FFC_PLUGIN_URL . "assets/js/ffc-certificate-settings{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-admin-autosave' ),
 			FFC_VERSION,
 			true
 		);
-		$this->enqueue_autosave_infra();
 	}
 
 	/**
 	 * Render the tab.
 	 */
 	public function render(): void {
-		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-certificates.php';
+		$view_file = $this->view_path( 'ffc-tab-certificates.php' );
 
 		if ( file_exists( $view_file ) ) {
 			include $view_file;
 		} else {
-			wp_admin_notice(
-				esc_html__( 'Certificates settings view file not found.', 'ffcertificate' ),
-				array( 'type' => 'error' )
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html__( 'Certificates settings view file not found.', 'ffcertificate' )
 			);
 		}
 	}

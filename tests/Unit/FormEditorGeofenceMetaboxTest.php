@@ -338,7 +338,29 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'class="ffc-section__chip is-off" data-ffc-section-master="ffc_geofence_schedule_exception_enabled"', $html );
 		$this->assertStringNotContainsString( 'display:none', $html, 'visibility is the shared class (#1614)' );
 		$this->assertStringNotContainsString( 'ffc-initially-hidden', $html );
-		$this->assertStringContainsString( 'class="description ffc-datetime-order-error ffc-hidden"', $html );
+		// No order error, so no message: the script inserts one when needed (#1844).
+		$this->assertStringNotContainsString( 'ffc-field-message', $html );
+		$this->assertStringNotContainsString( 'aria-invalid', $html );
+	}
+
+	public function test_a_stored_order_error_prints_one_field_message_both_dates_name(): void {
+		$html = $this->render(
+			array(
+				'datetime_enabled' => '1',
+				'date_start'       => '2026-06-30',
+				'date_end'         => '2026-06-01',
+			)
+		);
+
+		$this->assertSame( 1, substr_count( $html, 'class="ffc-field-message is-error ffc-icon-error"' ) );
+		$this->assertStringContainsString( 'id="ffc-msg-ffc_geofence_datetime_order"', $html );
+		$this->assertSame(
+			2,
+			substr_count( $html, ' class="is-invalid" aria-invalid="true" data-ffc-message-id="ffc-msg-ffc_geofence_datetime_order" aria-describedby="ffc-msg-ffc_geofence_datetime_order"' ),
+			'Both dates take the state and name the one message.'
+		);
+		$this->assertStringNotContainsString( 'ffc-input-invalid', $html );
+		$this->assertStringNotContainsString( 'ffc-datetime-order-error', $html );
 	}
 
 	public function test_time_behavior_is_a_segmented_control_keeping_the_stored_values(): void {

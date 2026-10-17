@@ -115,6 +115,42 @@ class AdminUITest extends TestCase {
 		$this->assertStringNotContainsString( 'title=', $html );
 	}
 
+	public function test_no_description_leaves_the_bare_label(): void {
+		$html = $this->capture( array( 'name' => 'k', 'label' => 'My toggle' ) );
+		$this->assertStringStartsWith( '<label class="ffc-control-toggle"', $html );
+		$this->assertStringNotContainsString( 'ffc-control-toggle-field', $html );
+		$this->assertStringNotContainsString( 'aria-describedby', $html );
+		$this->assertStringNotContainsString( 'class="description"', $html );
+	}
+
+	/**
+	 * A description wraps the toggle and its sentence in one block and ties
+	 * the sentence to the checkbox (#1816).
+	 */
+	public function test_description_wraps_the_toggle_and_describes_the_checkbox(): void {
+		$html = $this->capture(
+			array(
+				'name'        => 'opt[k]',
+				'id'          => 'k_id',
+				'label'       => 'My toggle',
+				'description' => 'What changes.',
+			)
+		);
+		$this->assertSame(
+			'<div class="ffc-control-toggle-field"><label class="ffc-control-toggle" for="k_id">'
+			. '<input type="checkbox" id="k_id" name="opt[k]" value="1" aria-describedby="k_id-description">'
+			. '<span class="ffc-control-toggle-track" aria-hidden="true"></span>'
+			. '<span class="ffc-control-toggle-label">My toggle</span></label>'
+			. '<p class="description" id="k_id-description">What changes.</p></div>',
+			$html
+		);
+	}
+
+	public function test_blank_description_is_ignored(): void {
+		$html = $this->capture( array( 'name' => 'k', 'description' => '   ' ) );
+		$this->assertStringNotContainsString( 'ffc-control-toggle-field', $html );
+	}
+
 	public function test_get_toggle_returns_markup_instead_of_echoing(): void {
 		ob_start();
 		$returned = AdminUI::get_toggle( array( 'name' => 'k', 'label' => 'My toggle' ) );
@@ -431,6 +467,15 @@ class AdminUITest extends TestCase {
 		$this->assertStringContainsString( 'ffc-control-steps-primary" disabled>', $html, 'A disabled fieldset disables every radio in it.' );
 	}
 
+	public function test_steps_disables_only_the_stops_named_in_disabled_options(): void {
+		// A value the site cannot run right now stays on the rail (#1758).
+		$html = $this->steps( array( 'disabled_options' => array( 2, 'nope' ) ) );
+		$this->assertSame( 1, substr_count( $html, ' disabled>' ) );
+		$this->assertStringContainsString( 'id="cfg-level-3" name="cfg[level]" value="2" disabled>', $html );
+		$this->assertStringContainsString( 'class="ffc-control-steps ffc-control-steps-primary">', $html, 'The group itself stays enabled.' );
+		$this->assertStringNotContainsString( ' disabled', $this->steps( array() ) );
+	}
+
 	public function test_steps_prints_a_description_per_value_given_tied_to_its_stop(): void {
 		$html = $this->steps( array( 'descriptions' => array( '2' => 'Also the focus.' ) ) );
 		$this->assertStringContainsString( '<span class="description ffc-control-steps-desc" data-step="3">Also the focus.</span>', $html );
@@ -507,7 +552,7 @@ class AdminUITest extends TestCase {
 	public function test_segmented_is_one_radio_per_option_with_its_visible_name(): void {
 		$html = $this->segmented( array( 'value' => 'on', 'id' => 'thm', 'legend' => 'Theme' ) );
 
-		$this->assertStringContainsString( '<fieldset class="ffc-control-segmented">', $html );
+		$this->assertStringContainsString( '<fieldset id="thm" class="ffc-control-segmented">', $html );
 		$this->assertSame( 3, substr_count( $html, 'type="radio"' ) );
 		$this->assertSame( 3, substr_count( $html, 'name="cfg[theme]"' ) );
 		$this->assertStringContainsString( '<legend class="screen-reader-text">Theme</legend>', $html );
@@ -519,7 +564,7 @@ class AdminUITest extends TestCase {
 	public function test_segmented_layout_parameters_become_classes(): void {
 		$this->assertStringContainsString( 'class="ffc-control-segmented ffc-control-segmented-sm ffc-control-segmented-fluid"', $this->segmented( array( 'size' => 'sm', 'fluid' => true ) ) );
 		$this->assertStringContainsString( 'class="ffc-control-segmented ffc-control-segmented-lg"', $this->segmented( array( 'size' => 'lg' ) ) );
-		$this->assertStringContainsString( '<fieldset class="ffc-control-segmented">', $this->segmented( array( 'size' => 'xl' ) ), 'An unknown size adds nothing.' );
+		$this->assertStringContainsString( '<fieldset id="cfg-theme" class="ffc-control-segmented">', $this->segmented( array( 'size' => 'xl' ) ), 'An unknown size adds nothing.' );
 	}
 
 	public function test_segmented_checks_the_default_and_then_the_first_when_the_value_is_not_one(): void {
@@ -536,7 +581,7 @@ class AdminUITest extends TestCase {
 			)
 		);
 		$this->assertSame( 3, substr_count( $html, ' data-ffc-autosave-key="dark_mode"' ) );
-		$this->assertStringContainsString( '<fieldset class="ffc-control-segmented" disabled>', $html, 'A disabled fieldset disables every radio in it.' );
+		$this->assertStringContainsString( '<fieldset id="cfg-theme" class="ffc-control-segmented" disabled>', $html, 'A disabled fieldset disables every radio in it.' );
 	}
 
 	public function test_segmented_prints_a_description_per_value_given_tied_to_its_option(): void {
@@ -586,5 +631,144 @@ class AdminUITest extends TestCase {
 		$this->segmented( array( 'options' => array( 'a' => 'A', 'b' => 'B' ) ) );
 		$this->segmented( array( 'options' => array_combine( range( 1, 6 ), range( 1, 6 ) ) ) );
 		$this->assertSame( array(), $notices, 'Two and six are still a segmented control.' );
+	}
+
+	public function test_vertical_tabs_enqueue_keeps_the_old_handle_as_an_alias(): void {
+		$enqueued   = array();
+		$registered = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$enqueued ) {
+				$enqueued[] = array( $handle, $src, $deps );
+			}
+		);
+		Functions\when( 'wp_register_script' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$registered ) {
+				$registered[] = array( $handle, $src, $deps );
+			}
+		);
+
+		AdminUI::enqueue_vertical_tabs();
+
+		// ffc-core first: the required-tag banner is drawn by FFC.notice() (#1843).
+		$this->assertCount( 2, $enqueued );
+		$this->assertSame( 'ffc-core', $enqueued[0][0] );
+		$this->assertSame( 'ffc-vertical-tabs', $enqueued[1][0] );
+		$this->assertStringContainsString( 'assets/js/ffc-vertical-tabs', $enqueued[1][1] );
+		$this->assertContains( 'ffc-core', $enqueued[1][2] );
+		$this->assertSame(
+			array( array( 'ffc-form-editor-tabs', false, array( 'ffc-vertical-tabs' ) ) ),
+			$registered,
+			'The handle the script had before #1788 must stay a source-less alias until its removal release.'
+		);
+	}
+
+	public function test_shortcode_copy_enqueue_keeps_the_old_handle_as_an_alias(): void {
+		$enqueued   = array();
+		$registered = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$enqueued ) {
+				$enqueued[] = array( $handle, $src, $deps );
+			}
+		);
+		Functions\when( 'wp_register_script' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$registered ) {
+				$registered[] = array( $handle, $src, $deps );
+			}
+		);
+
+		AdminUI::enqueue_shortcode_copy();
+
+		$this->assertCount( 1, $enqueued );
+		$this->assertSame( AdminUI::SHORTCODE_COPY_HANDLE, $enqueued[0][0] );
+		$this->assertStringContainsString( 'assets/js/ffc-copy-shortcode', $enqueued[0][1] );
+		$this->assertSame(
+			array( array( 'ffc-form-list-copy-shortcode', false, array( 'ffc-copy-shortcode' ) ) ),
+			$registered,
+			'The handle the script had before #1814 must stay a source-less alias until its removal release.'
+		);
+	}
+
+	public function test_render_shortcode_copy_escapes_the_shortcode_and_labels_the_button(): void {
+		$escape = static fn( $text ) => htmlspecialchars( (string) $text, ENT_QUOTES );
+		Functions\when( 'esc_html' )->alias( $escape );
+		Functions\when( 'esc_attr' )->alias( $escape );
+		Functions\when( '__' )->justReturn( 'Copy shortcode' );
+
+		ob_start();
+		AdminUI::render_shortcode_copy( '[ffc_audience schedule_id="7"]' );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<span class="ffc-shortcode-cell">', $html );
+		$this->assertStringContainsString( '<code class="ffc-shortcode-code">[ffc_audience schedule_id=&quot;7&quot;]</code>', $html );
+		$this->assertStringContainsString( 'data-shortcode="[ffc_audience schedule_id=&quot;7&quot;]"', $html );
+		$this->assertStringContainsString( '<button type="button" class="ffc-copy-shortcode"', $html );
+		$this->assertStringContainsString( 'aria-label="Copy shortcode"', $html, 'An icon-only button needs an accessible name.' );
+		$this->assertStringContainsString( 'title="Copy shortcode"', $html );
+		$this->assertStringContainsString( '<span class="ffc-icon-copy" aria-hidden="true"></span>', $html );
+		$this->assertStringNotContainsString( 'schedule_id="7"', $html, 'The raw quotes must never reach the markup.' );
+	}
+
+	public function test_render_vertical_tabs_prints_what_the_streaming_primitives_print(): void {
+		Functions\when( 'esc_attr__' )->returnArg();
+		$tabs = array(
+			array(
+				'key'     => 'general',
+				'icon'    => 'ffc-icon-settings',
+				'label'   => 'General',
+				'title'   => 'General settings',
+				'masters' => array(),
+			),
+			array(
+				'key'     => 'emails',
+				'icon'    => 'ffc-icon-email',
+				'label'   => 'Emails',
+				'title'   => 'Emails',
+				'masters' => array( 'send_mail' ),
+				'needs'   => '#to',
+			),
+		);
+
+		ob_start();
+		AdminUI::render_vertical_tabs(
+			$tabs,
+			static function ( string $key ): void {
+				echo 'body-' . $key;
+			}
+		);
+		$callback = (string) ob_get_clean();
+
+		ob_start();
+		AdminUI::vertical_tabs_open( $tabs, 'general' );
+		foreach ( $tabs as $tab ) {
+			AdminUI::vertical_tab_panel_open( $tab, 'general' );
+			echo 'body-' . $tab['key'];
+			AdminUI::vertical_tab_panel_close();
+		}
+		AdminUI::vertical_tabs_close();
+		$streamed = (string) ob_get_clean();
+
+		$this->assertSame( $callback, $streamed );
+		$this->assertStringStartsWith( '<div class="ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical" data-ffc-state-on="On" data-ffc-state-off="Off" data-ffc-state-pending="Incomplete">', $callback );
+		$this->assertStringContainsString( 'class="ffc-vtabs__tab" role="tab" aria-controls="ffc-tabpanel-emails" aria-selected="false" tabindex="-1" data-ffc-tab-masters="send_mail" data-ffc-tab-needs="#to">', $callback );
+		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-vtabs__panel is-active" role="tabpanel" aria-labelledby="ffc-tabnav-general" tabindex="0"><h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-settings" aria-hidden="true"></span>General settings</h2>body-general</section>', $callback );
+		$this->assertStringEndsWith( '</section></div></div>', $callback );
+	}
+
+	public function test_vertical_tabs_without_a_state_dot_print_no_state_texts(): void {
+		$tabs = array(
+			array(
+				'key'   => 'members',
+				'icon'  => 'ffc-icon-users',
+				'label' => 'Members',
+			),
+		);
+
+		ob_start();
+		AdminUI::vertical_tabs_open( $tabs, 'members', 'ffc-aud-editor__tabs' );
+		AdminUI::vertical_tab_panel_open( $tabs[0], 'members' );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringStartsWith( '<div class="ffc-aud-editor__tabs ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical"><li', $html );
+		$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-users" aria-hidden="true"></span>Members</h2>', $html, 'Without a title the panel heading is the label.' );
 	}
 }

@@ -446,9 +446,6 @@ class SettingsTest extends TestCase {
 	 * @return void
 	 */
 	private function arrange_url_cleanup_stubs(): void {
-		if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
-			define( 'MINUTE_IN_SECONDS', 60 );
-		}
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'update_option' )->justReturn( true );
@@ -545,9 +542,6 @@ class SettingsTest extends TestCase {
 	 * @return void
 	 */
 	private function arrange_pubaccess_stubs(): void {
-		if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
-			define( 'MINUTE_IN_SECONDS', 60 );
-		}
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'update_option' )->justReturn( true );
@@ -650,9 +644,6 @@ class SettingsTest extends TestCase {
 	}
 
 	public function test_handle_submission_audit_scans_and_redirects(): void {
-		if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
-			define( 'MINUTE_IN_SECONDS', 60 );
-		}
 		$_REQUEST['ffc_submission_audit'] = 'scan';
 		$_REQUEST['_wpnonce']             = 'ok';
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
@@ -688,7 +679,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
-		Functions\when( 'settings_errors' )->justReturn( null );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 
 		$tabs = array();
 		foreach ( $tab_ids as $tab_id ) {
@@ -749,7 +740,7 @@ class SettingsTest extends TestCase {
 		$html = $this->render_settings_page_html();
 
 		$this->assertStringContainsString( '<fieldset disabled', $html, 'View-only render must wrap the tab body in a disabled fieldset.' );
-		$this->assertStringContainsString( 'ffc-settings-readonly-lock', $html );
+		$this->assertStringContainsString( 'ffc-readonly-lock', $html );
 		$this->assertStringContainsString( 'Read-only', $html, 'A read-only banner must be shown.' );
 	}
 
@@ -760,7 +751,7 @@ class SettingsTest extends TestCase {
 		$html = $this->render_settings_page_html();
 
 		$this->assertStringNotContainsString( '<fieldset disabled', $html );
-		$this->assertStringNotContainsString( 'ffc-settings-readonly-lock', $html );
+		$this->assertStringNotContainsString( 'ffc-readonly-lock', $html );
 	}
 
 	// ==================================================================
@@ -816,7 +807,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
-		Functions\when( 'settings_errors' )->justReturn( null );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		// Holds the settings view cap but NOT the activity-log view cap.
 		Functions\when( 'current_user_can' )->alias(
 			static function ( $cap ) {
@@ -1063,7 +1054,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
-		Functions\when( 'settings_errors' )->justReturn( null );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
 		$tab = new class( $active_tab_id ) {
@@ -1148,7 +1139,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
-		Functions\when( 'settings_errors' )->justReturn( null );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
 		$tab = new class() {
@@ -1201,7 +1192,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
-		Functions\when( 'settings_errors' )->justReturn( null );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
 		// Ensure tabs start empty so display_settings_page triggers load_tabs().

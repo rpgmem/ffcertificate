@@ -55,6 +55,7 @@ if ( ! $ffcertificate_purge ) {
 	// compared it against the hooks the plugin schedules (#1538).
 	wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );
 	wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
+	wp_clear_scheduled_hook( 'ffc_reregistration_invitation_batch' );
 	wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
 	wp_clear_scheduled_hook( 'ffc_date_messages_batch' );
 	wp_clear_scheduled_hook( 'ffc_date_messages_digest' );
@@ -283,12 +284,14 @@ $ffcertificate_options = array(
 	'ffc_admin_caps_version_v6',
 	'ffc_admin_role_assigned_v1',
 	'ffc_admin_role_assigned_v2',
+	'ffc_audiences_pii_cap_v1',
 	'ffc_audience_cap_off_subscriber_v1',
 	'ffc_audience_email_tokens_migrated_v1',
 	'ffc_delete_caps_granted_v1',
 	'ffc_email_templates_cap_v1',
 	'ffc_export_caps_granted_v1',
 	'ffc_false_caps_stripped_v1',
+	'ffc_forms_api_submit_cap_v1',
 	'ffc_grade_cap_v1',
 	'ffc_identities_cap_v1',
 	'ffc_identity_verbs_cap_v1',
@@ -305,6 +308,9 @@ $ffcertificate_options = array(
 	'ffc_rbac_roles_renamed_v1',
 	'ffc_reasons_caps_wired_v1',
 	'ffc_recruitment_email_hub_v1',
+	'ffc_required_data_v1',
+	'ffc_reregistration_pii_cap_v1',
+	'ffc_role_tiers_v1',
 	'ffc_settings_split_caps_v1',
 	'ffc_taxonomy_caps_renamed_v1',
 	'ffc_url_shortener_export_cap_v1',
@@ -344,6 +350,7 @@ wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
 // See the cron-only block above (#1538).
 wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );
 wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
+wp_clear_scheduled_hook( 'ffc_reregistration_invitation_batch' );
 wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
 wp_clear_scheduled_hook( 'ffc_date_messages_batch' );
 wp_clear_scheduled_hook( 'ffc_date_messages_digest' );
@@ -411,14 +418,29 @@ foreach (
 		'ffc_audiences_viewer',
 		'ffc_audiences_operator',
 		'ffc_audiences_manager',
+		'ffc_audiences_admin',
 		// Reregistration ladder.
 		'ffc_reregistration_viewer',
 		'ffc_reregistration_operator',
 		'ffc_reregistration_manager',
+		'ffc_reregistration_admin',
 		// Recruitment ladder (manager removed above).
 		'ffc_recruitment_viewer',
 		'ffc_recruitment_operator',
 		'ffc_recruitment_admin',
+		// Short URLs, Date Messages and FFC Settings ladders (#1860).
+		'ffc_url_shortener_viewer',
+		'ffc_url_shortener_operator',
+		'ffc_url_shortener_manager',
+		'ffc_url_shortener_admin',
+		'ffc_date_messages_viewer',
+		'ffc_date_messages_operator',
+		'ffc_date_messages_manager',
+		'ffc_date_messages_admin',
+		'ffc_settings_viewer',
+		'ffc_settings_operator',
+		'ffc_settings_manager',
+		'ffc_settings_admin',
 		// Legacy slugs (pre-#739 renames) — harmless no-ops once migrated.
 		'ffc_operator',
 		'ffc_self_scheduling_manager',

@@ -20,11 +20,6 @@ class CertificatePreviewSamplesTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
-		// BrandingTokens' fallback logo URL (via get_map) needs the plugin URL.
-		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
-			define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
-		}
-
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
 		Functions\when( 'wp_date' )->alias( static fn( $fmt, $ts = null, $tz = null ) => '01/01/2026' );

@@ -4,9 +4,11 @@
  * - Shuffles the options of a field marked `data-ffc-shuffle`. It runs in
  *   the browser on purpose: a page cache would freeze an order the server
  *   chose, and every participant would see the same one.
- * - Counts characters under a text or textarea (`.ffc-length-counter`).
+ * - Counts characters under a text or textarea (the `.ffc-field-counter`
+ *   whose `data-ffc-counter-for` names it).
  * - Caps a checkbox group at `data-ffc-max-select`, disabling the boxes left
- *   unticked once the cap is reached.
+ *   unticked once the cap is reached and saying so in a field message.
+ *   The counter is `aria-hidden`; the message is what is announced (#1844).
  * - Makes a required checkbox group (`data-ffc-required`) refuse an empty
  *   answer through the browser's own validation: HTML `required` on a box
  *   would demand that box, not "at least one".
@@ -61,8 +63,13 @@
     }
 
     function lengthCounter(control) {
-        var next = control.nextElementSibling;
-        return next && next.classList.contains('ffc-length-counter') ? next : null;
+        if (!control.id || !control.matches || !control.matches('input, textarea')) {
+            return null;
+        }
+        var root = control.form || document;
+        return Array.prototype.filter.call(root.querySelectorAll('[data-ffc-counter-for]'), function(counter) {
+            return counter.getAttribute('data-ffc-counter-for') === control.id;
+        })[0] || null;
     }
 
     function updateLength(control) {
@@ -92,13 +99,21 @@
                 box.disabled = full && !box.checked;
                 box.closest('label').classList.toggle('is-disabled', box.disabled);
             });
-            var counter = group.querySelector('.ffc-select-counter');
+            var counter = group.querySelector('.ffc-field-counter');
             if (counter) {
-                var text = format(strings().selected || '%1$s of %2$s selected', [number(ticked), number(max)]);
+                counter.textContent = format(strings().selected || '%1$s of %2$s selected', [number(ticked), number(max)]);
+            }
+            // The limit is said in a warning under the boxes; it blocks
+            // nothing, the boxes left unticked are simply off.
+            var FFC = window.FFC;
+            if (FFC && typeof FFC.fieldMessage === 'function') {
                 if (full) {
-                    text += ' ' + (strings().limitReached || 'Untick one to choose another.');
+                    FFC.fieldMessage(all, 'warning', strings().limitReached || 'Untick one to choose another.');
+                    group.setAttribute('data-ffc-limit-shown', '1');
+                } else if (group.hasAttribute('data-ffc-limit-shown')) {
+                    FFC.clearFieldMessage(all);
+                    group.removeAttribute('data-ffc-limit-shown');
                 }
-                counter.textContent = text;
             }
         }
 
@@ -127,9 +142,9 @@
             }
         });
 
-        Array.prototype.forEach.call(scope.querySelectorAll('.ffc-length-counter'), function(counter) {
-            var control = counter.previousElementSibling;
-            if (control) {
+        Array.prototype.forEach.call(scope.querySelectorAll('[data-ffc-counter-for]'), function(counter) {
+            var control = document.getElementById(counter.getAttribute('data-ffc-counter-for'));
+            if (control && lengthCounter(control) === counter) {
                 updateLength(control);
             }
         });

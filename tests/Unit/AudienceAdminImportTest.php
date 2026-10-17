@@ -27,6 +27,12 @@ class AudienceAdminImportTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		// The PII export rule (#1863): the exporter holds the PII cap unless a
+		// test says otherwise, and a masked cell asks is_email().
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'user_can' )->justReturn( true );
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 		// Preload so pcov attributes the coverage these tests drive through the
 		// export sources; pcov skips a class first autoloaded mid-test (#772).
 		class_exists( '\\FreeFormCertificate\Audience\AudienceMembersExportSource' );
@@ -45,7 +51,7 @@ class AudienceAdminImportTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'settings_errors' )->justReturn( '' );
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
@@ -62,10 +68,6 @@ class AudienceAdminImportTest extends TestCase {
 		// echoing an inline <script>; stub the enqueue so the render path
 		// doesn't fatal under Brain\Monkey.
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
-
-		if ( ! defined( 'ABSPATH' ) ) {
-			define( 'ABSPATH', '/tmp/' );
-		}
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -105,9 +107,53 @@ class AudienceAdminImportTest extends TestCase {
 		// no second row of tabs to hide one of them.
 		$this->assertStringContainsString( '<h2 class="ffc-icon-upload">Import Members</h2>', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-download">Export Members</h2>', $output );
-		$this->assertSame( 2, substr_count( $output, '<div class="ffc-import-sections">' ) );
+		// Each section is the shared card, two rows of two (#1761).
+		$this->assertSame( 2, substr_count( $output, '<div class="ffc-import-export-cards">' ) );
+		$this->assertSame( 4, substr_count( $output, '<div class="card">' ) );
 		$this->assertStringNotContainsString( 'nav-tab', $output );
 		$this->assertStringNotContainsString( 'display: none', $output );
+	}
+
+	public function test_download_sample_links_point_at_the_settings_tab(): void {
+		// The legacy `page=ffc-scheduling-import` is 301-redirected before any
+		// handler runs, so a link there never reached the download (#1771).
+		$urls = array();
+		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+		Functions\when( 'wp_nonce_url' )->alias(
+			static function ( $url, $action ) use ( &$urls ) {
+				$urls[] = array( $url, $action );
+				return $url . '&_wpnonce=n';
+			}
+		);
+
+		$page = new AudienceAdminImport( 'ffc-scheduling' );
+		ob_start();
+		$page->render_content();
+		ob_end_clean();
+
+		$samples = array_values(
+			array_filter( $urls, static fn( $u ) => false !== strpos( $u[0], 'download_sample=' ) )
+		);
+		$this->assertSame(
+			array(
+				array( 'https://example.com/wp-admin/admin.php?page=ffc-scheduling-settings&tab=import&download_sample=members', 'download_sample' ),
+				array( 'https://example.com/wp-admin/admin.php?page=ffc-scheduling-settings&tab=import&download_sample=audiences', 'download_sample' ),
+			),
+			$samples
+		);
+	}
+
+	public function test_render_content_leaves_the_notices_to_the_hosting_settings_page(): void {
+		// The Settings page prints `ffc_audience` notices once for every tab;
+		// printing them here too would show each one twice (#1771).
+		$log = CallLog::record( 'get_settings_errors', array() );
+
+		$page = new AudienceAdminImport( 'ffc-scheduling' );
+		ob_start();
+		$page->render_content();
+		ob_end_clean();
+
+		$this->assertSame( 0, $log->count() );
 	}
 
 	// ==================================================================

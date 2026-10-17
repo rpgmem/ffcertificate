@@ -16,21 +16,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-		<div class="ffc-rereg-import-notice" role="status">
-			<p>
-				<?php
-				printf(
-					/* translators: %s: title of the previous approved campaign. */
-					esc_html__( 'You have an approved reregistration from %s. Do you want to bring those answers into this form?', 'ffcertificate' ),
-					'<strong>' . esc_html( $ffc_import_source_title ) . '</strong>'
-				);
-				?>
-			</p>
-			<p class="description">
-				<?php esc_html_e( 'Review every field afterwards — the data is from a previous cycle and may be out of date.', 'ffcertificate' ); ?>
-			</p>
-			<button type="button" class="button ffc-rereg-import-btn">
-				<?php esc_html_e( 'Bring previous answers', 'ffcertificate' ); ?>
-			</button>
-			<span class="ffc-rereg-import-status" role="status"></span>
-		</div>
+<?php
+$ffc_notice = \FreeFormCertificate\Core\Notice::render(
+	'info',
+	'history',
+	array(
+		sprintf(
+			/* translators: %s: title of the previous approved campaign. */
+			esc_html__( 'You have an approved reregistration from %s. Do you want to bring those answers into this form?', 'ffcertificate' ),
+			'<strong>' . esc_html( $ffc_import_source_title ) . '</strong>'
+		),
+		esc_html__( 'Review every field afterwards — the data is from a previous cycle and may be out of date.', 'ffcertificate' ),
+	),
+	'',
+	array(
+		'role'    => 'status',
+		'html'    => true,
+		'hook'    => 'rereg-import',
+		'actions' => '<button type="button" class="button ffc-rereg-import-btn">' . esc_html__( 'Bring previous answers', 'ffcertificate' ) . '</button>'
+			. '<span class="ffc-rereg-import-status" role="status"></span>',
+	)
+);
+echo $ffc_notice; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
