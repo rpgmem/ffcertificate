@@ -159,11 +159,13 @@ class AudienceWriter {
 		$format      = array();
 
 		$field_formats = array(
-			'name'            => '%s',
-			'color'           => '%s',
-			'parent_id'       => '%d',
-			'status'          => '%s',
-			'allow_self_join' => '%d',
+			'name'               => '%s',
+			'color'              => '%s',
+			'parent_id'          => '%d',
+			'status'             => '%s',
+			'allow_self_join'    => '%d',
+			'members_only'       => '%d',
+			'require_membership' => '%d',
 		);
 
 		foreach ( $data as $key => $value ) {
@@ -215,6 +217,26 @@ class AudienceWriter {
 		}
 		self::cascade_self_join( $id, $flags[1] );
 		return true;
+	}
+
+	/**
+	 * Write the two tree-access flags of a top-level audience (#1918).
+	 * "Keep at least one group" only exists under "Visible to members only",
+	 * so it is stored off whenever the first is off.
+	 *
+	 * @param int  $id                 Top-level audience ID.
+	 * @param bool $members_only       Hide the tree from non-members.
+	 * @param bool $require_membership Keep members from leaving their last group.
+	 * @return bool
+	 */
+	public static function set_tree_access( int $id, bool $members_only, bool $require_membership ): bool {
+		return self::update(
+			$id,
+			array(
+				'members_only'       => $members_only ? 1 : 0,
+				'require_membership' => $members_only && $require_membership ? 1 : 0,
+			)
+		);
 	}
 
 	/**

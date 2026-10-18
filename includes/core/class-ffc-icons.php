@@ -185,6 +185,7 @@ final class Icons {
 		'flag'           => '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
 		'replicate-down' => '<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/>',
 		'promote'        => '<path d="M12 21V8M6 14l6-6 6 6M4 3h16"/>',
+		'switch'         => '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/><path d="M14 5h3a2 2 0 0 1 2 2v3M17 8l2 2 2-2"/><path d="M10 19H7a2 2 0 0 1-2-2v-3M7 16l-2-2-2 2"/>',
 	);
 
 	/**
@@ -285,6 +286,7 @@ final class Icons {
 		'split'          => 'split',
 		'stack-plus'     => 'stack-plus',
 		'success'        => 'success',
+		'switch'         => 'switch',
 		'sync'           => 'sync',
 		'tag'            => 'tag',
 		'template-load'  => 'template-load',

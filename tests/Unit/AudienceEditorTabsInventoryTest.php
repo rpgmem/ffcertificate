@@ -196,6 +196,7 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		$reader->shouldReceive( 'get_children' )->andReturn( array( (object) array( 'id' => 6 ) ) );
 		$reader->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) );
 		$reader->shouldReceive( 'get_member_count' )->andReturn( 2 );
+		$reader->shouldReceive( 'get_ancestor_ids' )->andReturn( array( 5, 2 ) );
 
 		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
 		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
@@ -519,8 +520,24 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 			$this->assertSame( $expected, self::without_masked_email( self::without_tab_markup( $after ) ), 'action=' . $action );
 		}
 
-		$after_new = self::inventory( $this->render( 'ffc-scheduling-audiences', array( 'action' => 'new' ) ) );
-		$this->assertSame( $fixture[ 'audience-new-' . $tier ], self::without_tab_markup( $after_new ) );
+		// The new form is a top-level audience, so it carries the two
+		// tree-access controls (#1918) the fixture predates; assert them, then
+		// compare the rest.
+		$after_new   = self::inventory( $this->render( 'ffc-scheduling-audiences', array( 'action' => 'new' ) ) );
+		$tree_access = preg_grep( '/audience_(members_only|require_membership|tree_access)/', $after_new );
+		$this->assertSame(
+			array(
+				'field:input:checkbox:audience_members_only@save_audience',
+				'field:input:checkbox:audience_require_membership@save_audience',
+				'field:input:hidden:audience_tree_access=1@save_audience',
+				'id:audience_members_only',
+				'id:audience_members_only-description',
+				'id:audience_require_membership',
+				'id:audience_require_membership-description',
+			),
+			array_values( $tree_access )
+		);
+		$this->assertSame( $fixture[ 'audience-new-' . $tier ], self::without_tab_markup( array_values( array_diff( $after_new, $tree_access ) ) ) );
 	}
 
 	/**

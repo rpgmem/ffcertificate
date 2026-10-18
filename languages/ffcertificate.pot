@@ -27078,3 +27078,107 @@ msgstr ""
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "The cap is set under Scheduling → Settings → Audience Calendars → Self-Join, \"Groups per user\": from 1 to 20, 2 by default. Every membership in a group that allows self-join counts, however it was added; a user at the cap leaves a group before joining another, and the dashboard says how many groups they may join."
 msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "This group is open only to members of its audience."
+msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "This audience keeps its members in at least one group. Join or switch to another of its groups before leaving this one."
+msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "Choose the group to leave and the group to join."
+msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "You can only switch between groups of the same audience."
+msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "Error switching group"
+msgstr ""
+
+#. 1: group left, 2: group joined
+#: includes/api/class-ffc-user-audience-rest-controller.php
+#, php-format
+msgid "You left \"%1$s\" and joined \"%2$s\"."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "This setting is set on the top-level audience."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Turn on \"Visible to members only\" first."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Join groups panel"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Inherited from the top-level audience: visible to members only, and members keep at least one group."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Inherited from the top-level audience: visible to members only."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Inherited from the top-level audience: visible to every user."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Visible to members only"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "This audience and its children and grandchildren show in the dashboard's Join groups panel only to users who already belong to one of its groups, however they were added. Calendars and bookings are not affected."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Keep at least one group"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "A member cannot leave the last group they hold in this audience from the dashboard; they switch to another group instead. Needs \"Visible to members only\". Removing members here is not affected."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Switch to this"
+msgstr ""
+
+#. %s: name of the group the user switches to
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+#, php-format
+msgid "Replace which group with \"%s\"?"
+msgstr ""
+
+#. 1: group the user leaves, 2: group the user joins
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+#, php-format
+msgid "Leave \"%1$s\" and join \"%2$s\"?"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Two more switches on a top-level audience cover it and every child and grandchild; the groups below show the state read-only. \"Visible to members only\" hides the whole audience from the dashboard's Join groups panel for users who belong to none of its groups, however they were added (by you, by an import or by self-join), and the server refuses a join request from them; calendars, bookings and the rest of the dashboard are not affected. \"Keep at least one group\", available only while the first is on, stops a member from leaving the last group they hold in the audience: its Leave button is disabled with a line saying why and the server refuses the request. \"Leave all groups\" still leaves every other group, but in such an audience it keeps the group the user joined first (the earliest membership) and leaves the rest of it; a notice then names each group kept and the audience that requires it. Removing members on this screen is not affected."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "When a user is at the cap, or holds only one group of an audience that keeps its members, the other self-join groups of that audience offer \"Switch to this\": in one step the user leaves a group they hold there and joins the new one. With several groups held there, the dashboard asks which one to replace. A switch only moves between groups of the same top-level audience, so it never takes a user past the cap."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Some groups were kept"
+msgstr ""
+
+#. 1: group the user stays in, 2: top-level audience that requires at least one group
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+#, php-format
+msgid "You stay in \"%1$s\" because \"%2$s\" requires at least one group."
+msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "You left every group you could. Some audiences keep their members in at least one group."
+msgstr ""

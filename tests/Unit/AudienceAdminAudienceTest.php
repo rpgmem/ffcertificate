@@ -442,6 +442,11 @@ class AudienceAdminAudienceTest extends TestCase {
 		$repo->shouldReceive( 'get_ancestors' )->with( 5 )->andReturn(
 			array( (object) array( 'id' => 1, 'name' => 'Top', 'color' => '#aaa' ) )
 		);
+		// The tree-access pair is read on the top-level audience (#1918).
+		$repo->shouldReceive( 'get_ancestor_ids' )->with( 5 )->andReturn( array( 5, 1 ) );
+		$repo->shouldReceive( 'get_by_id' )->with( 1 )->andReturn(
+			(object) array( 'id' => 1, 'name' => 'Top', 'parent_id' => null, 'members_only' => '1', 'require_membership' => '1' )
+		);
 		// render_custom_fields_section: no view/manage cap -> early return.
 		Functions\when( 'current_user_can' )->justReturn( false );
 
@@ -453,6 +458,9 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertStringContainsString( 'Sub Group', $output );
 		$this->assertStringContainsString( 'ffc-breadcrumb', $output );
 		$this->assertStringContainsString( 'Top', $output );
+		$this->assertStringContainsString( 'Inherited from the top-level audience: visible to members only, and members keep at least one group.', $output );
+		$this->assertStringNotContainsString( 'name="audience_members_only"', $output, 'a child shows the state read-only' );
+		$this->assertStringNotContainsString( 'name="audience_tree_access"', $output );
 		unset( $_GET['action'], $_GET['id'] );
 	}
 
@@ -826,6 +834,124 @@ class AudienceAdminAudienceTest extends TestCase {
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		$page->handle_actions();
+	}
+
+	/**
+	 * @return iterable<string, array{0: array<string, string>, 1: bool, 2: bool}>
+	 */
+	public static function tree_access_posts(): iterable {
+		yield 'both on'               => array( array( 'audience_members_only' => '1', 'audience_require_membership' => '1' ), true, true );
+		yield 'members-only alone'    => array( array( 'audience_members_only' => '1' ), true, false );
+		yield 'both off (unchecked)'  => array( array(), false, false );
+	}
+
+	/**
+	 * The Save button writes the tree-access pair of a top-level audience
+	 * through the writer, which stores keep-at-least-one off without
+	 * members-only (#1918).
+	 *
+	 * @dataProvider tree_access_posts
+	 *
+	 * @param array<string, string> $posted       The toggles posted.
+	 * @param bool                  $members_only Expected first flag.
+	 * @param bool                  $keep         Expected second flag.
+	 */
+	public function test_handle_actions_update_saves_the_tree_access_pair( array $posted, bool $members_only, bool $keep ): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'add_settings_error' )->justReturn( true );
+
+		$_POST = array_merge(
+			array(
+				'ffc_action'           => 'save_audience',
+				'ffc_audience_nonce'   => 'n',
+				'audience_id'          => '5',
+				'audience_name'        => 'Top',
+				'audience_color'       => '#000000',
+				'audience_parent'      => '',
+				'audience_status'      => 'active',
+				'audience_tree_access' => '1',
+			),
+			$posted
+		);
+
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo_w->shouldReceive( 'update' )->once()->andReturn( true );
+		$repo_w->shouldReceive( 'set_tree_access' )->once()->with( 5, $members_only, $keep )->andReturn( true );
+
+		( new AudienceAdminAudience( 'ffc-scheduling' ) )->handle_actions();
+	}
+
+	public function test_handle_actions_update_of_a_child_leaves_the_tree_access_alone(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'add_settings_error' )->justReturn( true );
+
+		$_POST = array(
+			'ffc_action'            => 'save_audience',
+			'ffc_audience_nonce'    => 'n',
+			'audience_id'           => '5',
+			'audience_name'         => 'Child',
+			'audience_color'        => '#000000',
+			'audience_parent'       => '3',
+			'audience_status'       => 'active',
+			'audience_tree_access'  => '1',
+			'audience_members_only' => '1',
+		);
+
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo_w->shouldReceive( 'update' )->once()->andReturn( true );
+		$repo_w->shouldNotReceive( 'set_tree_access' );
+
+		( new AudienceAdminAudience( 'ffc-scheduling' ) )->handle_actions();
+	}
+
+	/**
+	 * A top-level audience draws both toggles with record autosave, the
+	 * second disabled while the first is off (#1918).
+	 *
+	 * @dataProvider tree_access_render_states
+	 *
+	 * @param string $members_only Stored first flag.
+	 * @param string $keep         Stored second flag.
+	 */
+	public function test_a_top_level_audience_renders_the_tree_access_toggles( string $members_only, string $keep ): void {
+		$this->grant( array( 'ffc_view_audiences', 'ffc_manage_audiences' ) );
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '5';
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 0 );
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
+		$repo->shouldReceive( 'get_members' )->andReturn( array() );
+		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
+			(object) array( 'id' => 5, 'name' => 'Top', 'color' => '#123456', 'status' => 'active', 'parent_id' => null, 'allow_self_join' => '0', 'members_only' => $members_only, 'require_membership' => $keep )
+		);
+		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		$on = '1' === $members_only;
+		$this->assertStringContainsString( '<input type="hidden" name="audience_tree_access" value="1">', $output );
+		$this->assertMatchesRegularExpression( '/name="audience_members_only" value="1"' . ( $on ? ' checked' : '' ) . ' data-ffc-autosave-record-key="members_only" data-ffc-autosave-record="audience:5"/', $output );
+		$this->assertMatchesRegularExpression( '/name="audience_require_membership" value="1"' . ( $on && '1' === $keep ? ' checked' : '' ) . ( $on ? '' : ' disabled' ) . ' data-ffc-autosave-record-key="require_membership"/', $output );
+	}
+
+	/**
+	 * @return iterable<string, array{0: string, 1: string}>
+	 */
+	public static function tree_access_render_states(): iterable {
+		yield 'both off'                  => array( '0', '0' );
+		yield 'members-only alone'        => array( '1', '0' );
+		yield 'both on'                   => array( '1', '1' );
+		yield 'stale keep, members-only off' => array( '0', '1' );
 	}
 
 	public function test_handle_actions_update_with_parent_skips_cascade(): void {

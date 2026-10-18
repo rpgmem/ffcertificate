@@ -507,6 +507,34 @@ class AudienceRepositoryTest extends TestCase {
 		$this->assertFalse( AudienceWriter::apply_self_join_scope( 1, 'mixed' ) );
 	}
 
+	/**
+	 * @return iterable<string, array{0: bool, 1: bool, 2: int, 3: int}>
+	 */
+	public static function tree_access_pairs(): iterable {
+		yield 'both on'                  => array( true, true, 1, 1 );
+		yield 'members-only alone'       => array( true, false, 1, 0 );
+		yield 'keep without members-only' => array( false, true, 0, 0 );
+		yield 'both off'                 => array( false, false, 0, 0 );
+	}
+
+	/**
+	 * "Keep at least one group" is stored off whenever "Visible to members
+	 * only" is off (#1918).
+	 *
+	 * @dataProvider tree_access_pairs
+	 */
+	public function test_set_tree_access_stores_keep_only_under_members_only( bool $members_only, bool $keep, int $stored_members_only, int $stored_keep ): void {
+		$this->wpdb->shouldReceive('update')->once()->with(
+			'wp_ffc_audiences',
+			array( 'members_only' => $stored_members_only, 'require_membership' => $stored_keep ),
+			array( 'id' => 1 ),
+			array( '%d', '%d' ),
+			array( '%d' )
+		)->andReturn( 1 );
+
+		$this->assertTrue( AudienceWriter::set_tree_access( 1, $members_only, $keep ) );
+	}
+
 	// ==================================================================
 	// get_hierarchical()
 	// ==================================================================

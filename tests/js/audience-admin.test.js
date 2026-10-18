@@ -952,3 +952,37 @@ describe('audience-admin — bookings CSV export', () => {
 		expect(() => window.$('#ffc-bookings-export-btn').trigger('click')).not.toThrow();
 	});
 });
+
+// ----------------------------------------------------------------------
+// bindEvents — "Keep at least one group" depends on "Visible to members
+// only" (#1918)
+// ----------------------------------------------------------------------
+
+describe('audience-admin — keep-at-least-one follows members-only', () => {
+	function form(membersOnly, keep) {
+		document.body.innerHTML = `
+			<form>
+				<input type="checkbox" id="audience_members_only" ${membersOnly ? 'checked' : ''}>
+				<input type="checkbox" id="audience_require_membership" ${keep ? 'checked' : ''} ${membersOnly ? '' : 'disabled'}>
+			</form>
+		`;
+	}
+
+	it('enables the second toggle when members-only turns on', async () => {
+		form(false, false);
+		await reload();
+
+		window.$('#audience_members_only').prop('checked', true).trigger('change');
+		expect(window.$('#audience_require_membership').prop('disabled')).toBe(false);
+		expect(window.$('#audience_require_membership').prop('checked')).toBe(false);
+	});
+
+	it('disables and clears the second toggle when members-only turns off', async () => {
+		form(true, true);
+		await reload();
+
+		window.$('#audience_members_only').prop('checked', false).trigger('change');
+		expect(window.$('#audience_require_membership').prop('disabled')).toBe(true);
+		expect(window.$('#audience_require_membership').prop('checked')).toBe(false);
+	});
+});

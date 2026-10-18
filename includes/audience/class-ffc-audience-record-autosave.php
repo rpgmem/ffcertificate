@@ -78,18 +78,20 @@ class AudienceRecordAutosave {
 			array(
 				'cap'    => 'ffc_manage_audiences',
 				'fields' => array(
-					'status'          => array(
+					'status'             => array(
 						'type' => 'map',
 						'map'  => array(
 							1 => 'active',
 							0 => 'inactive',
 						),
 					),
-					'allow_self_join' => array( 'type' => 'bool' ),
-					'self_join_scope' => array(
+					'allow_self_join'    => array( 'type' => 'bool' ),
+					'self_join_scope'    => array(
 						'type'    => 'enum',
 						'options' => AudienceSelfJoinScope::values(),
 					),
+					'members_only'       => array( 'type' => 'bool' ),
+					'require_membership' => array( 'type' => 'bool' ),
 				),
 				'exists' => static fn( int $id ): bool => null !== AudienceReader::get_by_id( $id ),
 				'save'   => array( self::class, 'save_audience' ),
@@ -130,6 +132,24 @@ class AudienceRecordAutosave {
 			if ( null === $audience || ! empty( $audience->parent_id ) ) {
 				return new \WP_Error( 'ffc_record_not_saved', __( 'Self-join is set on the parent audience.', 'ffcertificate' ) );
 			}
+		}
+
+		// The tree-access pair (#1918) is set on the top-level audience, and
+		// "Keep at least one group" only exists under "Visible to members only".
+		if ( 'members_only' === $key || 'require_membership' === $key ) {
+			$audience = AudienceReader::get_by_id( $id );
+			if ( null === $audience || ! empty( $audience->parent_id ) ) {
+				return new \WP_Error( 'ffc_record_not_saved', __( 'This setting is set on the top-level audience.', 'ffcertificate' ) );
+			}
+			$members_only = 'members_only' === $key ? (bool) $value : ! empty( $audience->members_only );
+			$require      = 'require_membership' === $key ? (bool) $value : ! empty( $audience->require_membership );
+			if ( 'require_membership' === $key && $require && ! $members_only ) {
+				return new \WP_Error( 'ffc_record_not_saved', __( 'Turn on "Visible to members only" first.', 'ffcertificate' ) );
+			}
+			if ( ! AudienceWriter::set_tree_access( $id, $members_only, $require ) ) {
+				return new \WP_Error( 'ffc_record_not_saved', __( 'The audience could not be saved.', 'ffcertificate' ) );
+			}
+			return true;
 		}
 
 		// No column holds it: the choice is written as two flags.

@@ -55,6 +55,17 @@
             });
             $('#audience_parent').trigger('change');
 
+            // "Keep at least one group" only exists under "Visible to members
+            // only" (#1918): it is disabled while that is off, and turning
+            // that off turns it off too — the server stores it off then.
+            $(document).on('change', '#audience_members_only', function() {
+                var keep = $(this).closest('form').find('#audience_require_membership');
+                keep.prop('disabled', !this.checked);
+                if (!this.checked) {
+                    keep.prop('checked', false);
+                }
+            });
+
             // User search (audience group member management)
             this.initUserSearch();
 

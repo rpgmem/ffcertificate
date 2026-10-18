@@ -335,6 +335,17 @@ class DashboardAssetManager {
 					'leaveAllGroups'           => __( 'Leave all groups', 'ffcertificate' ),
 					/* translators: %d: number of groups the user will leave */
 					'confirmLeaveAllGroups'    => __( 'Are you sure you want to leave all %d group(s)? This action cannot be undone.', 'ffcertificate' ),
+					// Members-only trees that keep their members in a group (#1918).
+					'switchGroup'              => __( 'Switch to this', 'ffcertificate' ),
+					'switchConfirm'            => __( 'Switch', 'ffcertificate' ),
+					/* translators: %s: name of the group the user switches to */
+					'switchWhich'              => __( 'Replace which group with "%s"?', 'ffcertificate' ),
+					/* translators: 1: group the user leaves, 2: group the user joins */
+					'confirmSwitchGroup'       => __( 'Leave "%1$s" and join "%2$s"?', 'ffcertificate' ),
+					'leaveLocked'              => __( 'This audience keeps its members in at least one group. Join or switch to another of its groups before leaving this one.', 'ffcertificate' ),
+					'leaveAllKeptTitle'        => __( 'Some groups were kept', 'ffcertificate' ),
+					/* translators: 1: group the user stays in, 2: top-level audience that requires at least one group */
+					'leaveAllKeptLine'         => __( 'You stay in "%1$s" because "%2$s" requires at least one group.', 'ffcertificate' ),
 					// Summary.
 					'summaryTitle'             => __( 'Overview', 'ffcertificate' ),
 					'totalCertificates'        => __( 'Certificates', 'ffcertificate' ),

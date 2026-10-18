@@ -253,9 +253,17 @@ class ActivatorSchemaGuardTest extends TestCase {
 		// install -- the case this test measures -- they have already run.
 		// Without that, the audience chain enters a repository whose `db()` is
 		// typed `: wpdb`, and the anonymous double here does not satisfy it.
+		// The audience columns' revision gate (#1918) is current on an
+		// established install: it answers its own constant, which is what
+		// "already run" means for it.
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default_value = false ) use ( $option, $stored ) {
-				return $key === $option ? $stored : '1';
+				if ( $key === $option ) {
+					return $stored;
+				}
+				return \FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION_OPTION === $key
+					? \FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION
+					: '1';
 			}
 		);
 		Functions\when( 'update_option' )->justReturn( true );

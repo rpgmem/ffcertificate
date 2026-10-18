@@ -56,7 +56,8 @@
 .ffc-user-dashboard .ffc-profile-reveal-btn,
 .ffc-user-dashboard .ffc-cancel-appointment,
 .ffc-user-dashboard .ffc-cal-export-btn,
-.ffc-audience-join-item .ffc-btn {
+.ffc-audience-join-item .ffc-btn,
+.ffc-audience-switch-picker .ffc-btn {
     min-height: 0;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-xs);
@@ -1169,6 +1170,43 @@
     align-items: center;
     gap: var(--ffc-spacing-sm);
     flex-shrink: 0;
+}
+
+/* Why a Leave button is disabled: the user's last group of an audience that
+   keeps its members in one (#1918). The left inset is the join row's 28px,
+   spelt from the ladder (24 + 4) so the text lines up with the group name
+   above it without adding a literal. */
+.ffc-audience-locked-note {
+    margin: 0;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg) var(--ffc-spacing-xs) calc(var(--ffc-spacing-3xl) + var(--ffc-spacing-2xs));
+    font-size: var(--ffc-font-size-xs);
+    color: var(--ffc-text-muted);
+    background: var(--ffc-bg);
+    border-bottom: 1px solid var(--ffc-border-light);
+}
+
+/* The picker's select sits on one line with the row's compact buttons, so it
+   takes their size rather than the 45px field: one class more than the
+   dashboard's field rule, as the filter bar does (#1836). */
+.ffc-user-dashboard .ffc-audience-switch-picker select {
+    height: auto;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+    font-size: var(--ffc-font-size-sm);
+    line-height: 1.4;
+}
+
+/* "Replace which group?" under a Switch, when the user holds several groups
+   of the tree (#1918), on the same left inset as the note above. */
+.ffc-audience-switch-picker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg) var(--ffc-spacing-sm) calc(var(--ffc-spacing-3xl) + var(--ffc-spacing-2xs));
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-audience-inline-toggle {
