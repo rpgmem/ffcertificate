@@ -135,25 +135,18 @@ class TabSmtpTest extends TestCase {
 		// Since the #976 split the SMTP tab is transport only: it enqueues its own
 		// ffc-smtp-settings plus the autosave infra (ffc-core, ffc-admin-autosave,
 		// ffc-section-collapse) for the "enable email sending" toggle. The Email
-		// Model + Restore-Default assets moved to their own tabs. asset_suffix()
-		// is called once here + once inside enqueue_autosave_infra = twice.
+		// Model + Restore-Default assets moved to their own tabs. The shared
+		// scripts are named by handle and declared once in AssetRegistry, which
+		// asserts their sources and dependencies (#1931).
 		$utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$utils_mock->shouldReceive( 'asset_suffix' )
-			->twice()
-			->andReturn( '.min' );
+		$utils_mock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
 
 		Functions\expect( 'wp_enqueue_script' )
 			->with( 'ffc-smtp-settings', Mockery::type( 'string' ), array( 'jquery' ), Mockery::type( 'string' ), true )
 			->once();
-		Functions\expect( 'wp_enqueue_script' )
-			->with( 'ffc-core', Mockery::type( 'string' ), array( 'jquery' ), Mockery::type( 'string' ), true )
-			->once();
-		Functions\expect( 'wp_enqueue_script' )
-			->with( 'ffc-admin-autosave', Mockery::type( 'string' ), array( 'jquery', 'ffc-core', 'ffc-admin-js' ), Mockery::type( 'string' ), true )
-			->once();
-		Functions\expect( 'wp_enqueue_script' )
-			->with( 'ffc-section-collapse', Mockery::type( 'string' ), array( 'jquery' ), Mockery::type( 'string' ), true )
-			->once();
+		foreach ( array( 'ffc-core', 'ffc-admin-autosave', 'ffc-section-collapse' ) as $ffc_handle ) {
+			Functions\expect( 'wp_enqueue_script' )->with( $ffc_handle )->once();
+		}
 		Functions\expect( 'wp_localize_script' )
 			->with( 'ffc-admin-autosave', 'ffcAdminAutosave', Mockery::on( function ( $arg ) {
 				return is_array( $arg ) && isset( $arg['nonce'] ) && is_string( $arg['nonce'] );

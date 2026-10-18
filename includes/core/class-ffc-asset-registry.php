@@ -163,8 +163,10 @@ final class AssetRegistry {
 	 * @return void
 	 */
 	public static function enqueue_scripts( string ...$handles ): void {
+		$s = AssetHelper::asset_suffix();
+
 		foreach ( $handles as $handle ) {
-			self::register( $handle );
+			self::register( $handle, $s );
 			\wp_enqueue_script( $handle );
 		}
 	}
@@ -175,8 +177,10 @@ final class AssetRegistry {
 	 * @return void
 	 */
 	private static function register_shared(): void {
+		$s = AssetHelper::asset_suffix();
+
 		foreach ( array_keys( self::SCRIPTS + self::bundles() ) as $handle ) {
-			self::register( $handle );
+			self::register( $handle, $s );
 		}
 	}
 
@@ -188,9 +192,10 @@ final class AssetRegistry {
 	 * being localized twice: it is attached only by the call that registered.
 	 *
 	 * @param string $handle A handle; one this class does not know is left alone.
+	 * @param string $s      The asset suffix, read once by the caller.
 	 * @return void
 	 */
-	private static function register( string $handle ): void {
+	private static function register( string $handle, string $s ): void {
 		$bundles = self::bundles();
 
 		if ( isset( $bundles[ $handle ] ) ) {
@@ -205,10 +210,8 @@ final class AssetRegistry {
 		list( $path, $deps ) = self::SCRIPTS[ $handle ];
 
 		foreach ( $deps as $dep ) {
-			self::register( $dep );
+			self::register( $dep, $s );
 		}
-
-		$s = AssetHelper::asset_suffix();
 
 		if ( \wp_register_script( $handle, FFC_PLUGIN_URL . $path . "{$s}.js", $deps, FFC_VERSION, true ) && 'ffc-core' === $handle ) {
 			\wp_localize_script( 'ffc-core', 'ffcCoreConfig', AssetHelper::core_script_config() );

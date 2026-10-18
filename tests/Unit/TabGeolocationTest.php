@@ -540,7 +540,9 @@ class TabGeolocationTest extends TestCase {
 		$handles = array();
 		Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) { $handles[] = $h; } );
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
-		Functions\when( 'wp_register_script' )->justReturn( true );
+		// false: the shared scripts are already registered, as the admin hook
+		// leaves them, so ffc-core's configuration is not built here (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 		Functions\when( 'admin_url' )->returnArg();
