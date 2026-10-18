@@ -132,8 +132,18 @@ class AudienceAdminAudience {
 				unset( $data['allow_self_join'] );
 			}
 
+			// The tree-access pair (#1918) is posted by a top-level audience
+			// only; a child shows its tree's state and posts nothing.
+			$tree_access = isset( $_POST['audience_tree_access'] ) && empty( $data['parent_id'] )
+				? array( ! empty( $_POST['audience_members_only'] ), ! empty( $_POST['audience_require_membership'] ) )
+				: null;
+
 			if ( $id > 0 ) {
 				AudienceWriter::update( $id, $data );
+
+				if ( null !== $tree_access ) {
+					AudienceWriter::set_tree_access( $id, $tree_access[0], $tree_access[1] );
+				}
 
 				if ( null !== $scope && '' !== $scope ) {
 					AudienceWriter::apply_self_join_scope( $id, $scope );
@@ -147,6 +157,9 @@ class AudienceAdminAudience {
 					unset( $data['allow_self_join'] );
 				}
 				$new_id = AudienceWriter::create( $data );
+				if ( $new_id && null !== $tree_access ) {
+					AudienceWriter::set_tree_access( (int) $new_id, $tree_access[0], $tree_access[1] );
+				}
 				if ( $new_id ) {
 					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $new_id . '&message=created' ) );
 					exit;

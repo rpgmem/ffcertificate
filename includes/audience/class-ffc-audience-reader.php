@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.12.0
  *
- * @phpstan-type AudienceRow \stdClass&object{id: numeric-string, name: string, color: string, parent_id: numeric-string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string, allow_self_join?: numeric-string, children?: list<\stdClass>, depth?: int<0, 2>}
+ * @phpstan-type AudienceRow \stdClass&object{id: numeric-string, name: string, color: string, parent_id: numeric-string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string, allow_self_join?: numeric-string, members_only?: numeric-string, require_membership?: numeric-string, children?: list<\stdClass>, depth?: int<0, 2>}
  */
 class AudienceReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;

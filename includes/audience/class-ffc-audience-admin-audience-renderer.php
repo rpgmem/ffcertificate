@@ -431,6 +431,75 @@ final class AudienceAdminAudienceRenderer {
 						<?php endif; ?>
 					</td>
 				</tr>
+				<?php
+				// Who sees the tree in the Join groups panel, and whether a
+				// member may leave its last group (#1918): set on the
+				// top-level audience, read by every child and grandchild.
+				$tree_access = $is_child
+					? AudienceTreeRules::access( AudienceTreeRules::root_id( $id ) )
+					: array(
+						'members_only'       => ! empty( $audience->members_only ),
+						'require_membership' => ! empty( $audience->members_only ) && ! empty( $audience->require_membership ),
+					);
+				?>
+				<tr>
+					<th scope="row">
+						<?php if ( $is_child ) : ?>
+							<?php esc_html_e( 'Join groups panel', 'ffcertificate' ); ?>
+						<?php else : ?>
+							<label for="audience_members_only"><?php esc_html_e( 'Join groups panel', 'ffcertificate' ); ?></label>
+						<?php endif; ?>
+					</th>
+					<td>
+						<?php if ( $is_child ) : ?>
+							<p class="description">
+								<?php
+								if ( $tree_access['require_membership'] ) {
+									esc_html_e( 'Inherited from the top-level audience: visible to members only, and members keep at least one group.', 'ffcertificate' );
+								} elseif ( $tree_access['members_only'] ) {
+									esc_html_e( 'Inherited from the top-level audience: visible to members only.', 'ffcertificate' );
+								} else {
+									esc_html_e( 'Inherited from the top-level audience: visible to every user.', 'ffcertificate' );
+								}
+								?>
+							</p>
+						<?php else : ?>
+							<?php if ( 0 === $id ) : ?>
+								<p class="description ffc-self-join-inherits" hidden><?php esc_html_e( 'Inherits from the audience above.', 'ffcertificate' ); ?></p>
+							<?php endif; ?>
+							<?php // The stack is a flex column, so `hidden` goes on a wrapper the sheet does not display. ?>
+							<div class="ffc-self-join-own">
+								<?php // Tells the save that the pair was offered, so an unchecked toggle means off. ?>
+								<input type="hidden" name="audience_tree_access" value="1">
+								<div class="ffc-control-toggle-stack">
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'        => 'audience_members_only',
+										'id'          => 'audience_members_only',
+										'checked'     => $tree_access['members_only'],
+										'label'       => __( 'Visible to members only', 'ffcertificate' ),
+										'description' => __( 'This audience and its children and grandchildren show in the dashboard\'s Join groups panel only to users who already belong to one of its groups, however they were added. Calendars and bookings are not affected.', 'ffcertificate' ),
+										'data'        => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience', $id, 'members_only' ),
+									)
+								);
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'        => 'audience_require_membership',
+										'id'          => 'audience_require_membership',
+										'checked'     => $tree_access['require_membership'],
+										'disabled'    => ! $tree_access['members_only'],
+										'label'       => __( 'Keep at least one group', 'ffcertificate' ),
+										'description' => __( 'A member cannot leave the last group they hold in this audience from the dashboard; they switch to another group instead. Needs "Visible to members only". Removing members here is not affected.', 'ffcertificate' ),
+										'data'        => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience', $id, 'require_membership' ),
+									)
+								);
+								?>
+								</div>
+							</div>
+						<?php endif; ?>
+					</td>
+				</tr>
 			</tbody></table>
 			<?php if ( ! $can_manage ) : ?>
 				</fieldset>

@@ -11,6 +11,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Admin action icons and a ratchet on core button classes** (#1904). Sixteen registry icons (unlink, merge, split, move, user-plus, ticket, template save/load, …) and `CoreButtonClassRatchetTest`, freezing WordPress's `.button*`, `page-title-action` and `submit_button()` per file.
 - **Self-join group limit is a setting** (#1916). Scheduling Settings → Audience Calendars → Self-Join sets how many self-join groups a user may belong to (1–20, default 2), replacing the hard-coded 2; the audience editor states the configured number.
+- **Members-only audience trees, keep-at-least-one and switch** (#1918). A top-level audience can hide its tree from non-members in Join groups and keep members in at least one group; "Switch to this" moves within a tree in one request. Join now mirrors Leave (`create`, login icon).
 
 ### Changed
 

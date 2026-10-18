@@ -259,6 +259,8 @@ class AudienceActivator {
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             allow_self_join tinyint(1) DEFAULT 0 COMMENT 'Allow users to join/leave from dashboard',
+            members_only tinyint(1) DEFAULT 0 COMMENT 'Top-level: tree hidden from the Join groups panel for non-members',
+            require_membership tinyint(1) DEFAULT 0 COMMENT 'Top-level: a member cannot leave the last group of the tree',
             PRIMARY KEY (id),
             KEY idx_parent (parent_id),
             KEY idx_status (status)
@@ -455,6 +457,7 @@ class AudienceActivator {
 		}
 
 		self::migrate_audience_self_join_column();
+		self::migrate_audience_tree_access_columns();
 		self::migrate_subscriber_cap_to_members();
 
 		update_option( $ffc_schema_option, FFC_VERSION );
@@ -733,6 +736,37 @@ class AudienceActivator {
 			$table_name,
 			'allow_self_join',
 			"tinyint(1) DEFAULT 0 COMMENT 'Allow users to join/leave from dashboard'"
+		);
+	}
+
+	/**
+	 * Migrate audiences table to add the two tree-access flags (#1918).
+	 *
+	 * Both are read on a top-level audience only and cover its whole tree:
+	 * `members_only` hides the tree from the dashboard's Join groups panel for
+	 * users who belong to none of its groups, and `require_membership` keeps a
+	 * member from leaving the last group they hold in it. Both default off, so
+	 * an existing tree behaves as before.
+	 *
+	 * @return void
+	 */
+	private static function migrate_audience_tree_access_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audiences';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		self::add_column_if_missing(
+			$table_name,
+			'members_only',
+			"tinyint(1) DEFAULT 0 COMMENT 'Top-level: tree hidden from the Join groups panel for non-members'"
+		);
+		self::add_column_if_missing(
+			$table_name,
+			'require_membership',
+			"tinyint(1) DEFAULT 0 COMMENT 'Top-level: a member cannot leave the last group of the tree'"
 		);
 	}
 

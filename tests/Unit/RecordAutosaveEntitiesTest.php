@@ -68,7 +68,7 @@ class RecordAutosaveEntitiesTest extends TestCase {
 			array_keys( $schedule['fields'] )
 		);
 		$this->assertSame( array( 1 => 'public', 0 => 'private' ), $schedule['fields']['visibility']['map'] );
-		$this->assertSame( array( 'status', 'allow_self_join', 'self_join_scope' ), array_keys( $this->registered['audience']['fields'] ) );
+		$this->assertSame( array( 'status', 'allow_self_join', 'self_join_scope', 'members_only', 'require_membership' ), array_keys( $this->registered['audience']['fields'] ) );
 		$this->assertSame(
 			array(
 				'type'    => 'enum',
@@ -153,6 +153,53 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )->shouldNotReceive( 'update' );
 
 		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_audience( 9, 'allow_self_join', 1 ) );
+	}
+
+	/**
+	 * Turning members-only on keeps the stored keep-at-least-one value; the
+	 * writer stores the pair (#1918).
+	 */
+	public function test_members_only_is_written_with_the_stored_keep_flag(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null, 'members_only' => '0', 'require_membership' => '1' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'set_tree_access' )->once()->with( 9, true, true )->andReturn( true );
+
+		$this->assertTrue( AudienceRecordAutosave::save_audience( 9, 'members_only', 1 ) );
+	}
+
+	public function test_turning_members_only_off_passes_through_the_writer(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null, 'members_only' => '1', 'require_membership' => '1' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'set_tree_access' )->once()->with( 9, false, true )->andReturn( true );
+
+		$this->assertTrue( AudienceRecordAutosave::save_audience( 9, 'members_only', 0 ) );
+	}
+
+	public function test_keep_one_group_saves_under_members_only(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null, 'members_only' => '1', 'require_membership' => '0' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'set_tree_access' )->once()->with( 9, true, true )->andReturn( true );
+
+		$this->assertTrue( AudienceRecordAutosave::save_audience( 9, 'require_membership', 1 ) );
+	}
+
+	public function test_keep_one_group_without_members_only_is_refused(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null, 'members_only' => '0', 'require_membership' => '0' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )->shouldNotReceive( 'set_tree_access' );
+
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_audience( 9, 'require_membership', 1 ) );
+	}
+
+	public function test_tree_access_on_a_child_audience_is_refused(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 9, 'parent_id' => 3 ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )->shouldNotReceive( 'set_tree_access' );
+
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_audience( 9, 'members_only', 1 ) );
 	}
 
 	public function test_an_audience_status_does_not_cascade(): void {
