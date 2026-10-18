@@ -75,7 +75,7 @@ echo '<p class="description">' . esc_html__( 'When on, the public shortcode will
 echo '</td></tr>';
 
 echo '</tbody></table>';
-submit_button( __( 'Save general', 'ffcertificate' ) );
+\FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save general', 'ffcertificate' ), array( 'value' => __( 'Save general', 'ffcertificate' ) ) );
 echo '</form>';
 
 echo '</div></div>';

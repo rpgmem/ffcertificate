@@ -156,7 +156,7 @@ final class RecruitmentReasonEditPage {
 		echo '</td></tr>';
 
 		echo '</tbody></table>';
-		submit_button( __( 'Save reason', 'ffcertificate' ) );
+		\FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save reason', 'ffcertificate' ), array( 'value' => __( 'Save reason', 'ffcertificate' ) ) );
 		echo '</form>';
 
 		echo '</div></div>';

@@ -78,6 +78,11 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 
 		$adminui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
 		$adminui->shouldReceive( 'render_toggle' )->andReturnNull()->byDefault();
+		$adminui->shouldReceive( 'render_save_button' )->andReturnUsing(
+			static function ( string $label ): void {
+				echo '<p class="submit"><button type="submit">' . $label . '</button></p>';
+			}
+		)->byDefault();
 
 		// RecruitmentReasonReader::get_by_id() returns the row under test;
 		// decode_applies_to() mirrors the real CSV-split contract. The

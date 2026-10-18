@@ -51,6 +51,21 @@ if ( empty( $transitions ) ) {
 	}
 } else {
 	echo '<p>';
+	// What a move does, by its direction (#1904): closing and reopening
+	// freeze and unfreeze, going back undoes a publication, and going
+	// forward publishes.
+	$ffc_rec_shape = static function ( string $target ) use ( $current ): array {
+		if ( 'closed' === $target ) {
+			return array( 'caution', 'lock' );
+		}
+		if ( 'closed' === $current ) {
+			return array( 'caution', 'unlock' );
+		}
+		if ( 'draft' === $target || ( 'preliminary' === $target && 'definitive' === $current ) ) {
+			return array( 'caution', 'restore' );
+		}
+		return array( 'neutral', 'promote' );
+	};
 	foreach ( $transitions as $target => $label ) {
 		$cfg          = isset( $modal_config[ $target ] ) ? $modal_config[ $target ] : null;
 		$consequences = wp_json_encode( $cfg ? $cfg['consequences'] : array() );
@@ -76,9 +91,15 @@ if ( empty( $transitions ) ) {
 		echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice->id ) . '">';
 		echo '<input type="hidden" name="target_status" value="' . esc_attr( $target ) . '">';
 		wp_nonce_field( $nonce_action );
-		echo '<button type="submit" class="button button-secondary">';
-		echo esc_html( $label );
-		echo '</button>';
+		$ffc_rec_button = $ffc_rec_shape( (string) $target );
+		\FreeFormCertificate\Core\Button::render(
+			array(
+				'label'    => $label,
+				'category' => $ffc_rec_button[0],
+				'icon'     => $ffc_rec_button[1],
+				'type'     => 'submit',
+			)
+		);
 		echo '</form>';
 	}
 	echo '</p>';

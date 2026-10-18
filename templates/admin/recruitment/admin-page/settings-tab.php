@@ -237,7 +237,7 @@ echo '</tbody></table>';
 echo '</div>';
 
 if ( $can_edit ) {
-	submit_button();
+	\FreeFormCertificate\Admin\AdminUI::render_save_button( '', array( 'value' => __( 'Save Changes', 'ffcertificate' ) ) );
 } else {
 	echo '</fieldset>';
 }

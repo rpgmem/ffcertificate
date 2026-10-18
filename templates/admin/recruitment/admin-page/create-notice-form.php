@@ -23,6 +23,15 @@ echo '<td><input id="ffc-notice-code" name="code" type="text" class="regular-tex
 echo '<tr><th><label for="ffc-notice-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
 echo '<td><input id="ffc-notice-name" name="name" type="text" class="regular-text" required></td></tr>';
 echo '</tbody></table>';
-echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
+echo '<p>';
+\FreeFormCertificate\Core\Button::render(
+	array(
+		'label'    => __( 'Create', 'ffcertificate' ),
+		'category' => 'create',
+		'icon'     => 'plus',
+		'type'     => 'submit',
+	)
+);
+echo '</p>';
 echo '</form>';
 echo '</div>';

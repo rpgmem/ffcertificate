@@ -21,7 +21,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h2 class="ffc-icon-code"><?php esc_html_e( 'Show on the site', 'ffcertificate' ); ?></h2>
 	<div class="ffc-shortcode-copy">
 		<input type="text" readonly id="ffc-notice-shortcode" class="ffc-shortcode-display code" value="<?php echo esc_attr( $shortcode ); ?>" onclick="this.select();">
-		<button type="button" class="button ffc-copy-link ffc-icon-copy" data-ffc-copy-target="#ffc-notice-shortcode"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+		<?php
+		\FreeFormCertificate\Core\Button::render(
+			array(
+				'label' => __( 'Copy', 'ffcertificate' ),
+				'icon'  => 'copy',
+				'class' => 'ffc-copy-link',
+				'attrs' => array(
+					'data-ffc-copy-target' => '#ffc-notice-shortcode',
+				),
+			)
+		);
+		?>
 	</div>
 	<p class="description">
 		<?php

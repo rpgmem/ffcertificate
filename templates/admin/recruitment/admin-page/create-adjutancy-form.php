@@ -29,6 +29,15 @@ echo '<td><input id="ffc-adj-color" name="color" type="color" value="' . esc_att
 echo '<p class="description">' . esc_html__( 'Background color for this adjutancy badge on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values silently fall back to the default.', 'ffcertificate' ) . '</p>';
 echo '</td></tr>';
 echo '</tbody></table>';
-echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
+echo '<p>';
+\FreeFormCertificate\Core\Button::render(
+	array(
+		'label'    => __( 'Create', 'ffcertificate' ),
+		'category' => 'create',
+		'icon'     => 'plus',
+		'type'     => 'submit',
+	)
+);
+echo '</p>';
 echo '</form>';
 echo '</div>';
