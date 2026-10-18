@@ -78,8 +78,10 @@ class SelfSchedulingShortcode {
 		);
 
 		// Enqueue FFC frontend styles.
+		// The handle the certificate form uses for the same sheet, so a page
+		// carrying both loads it once (#1922).
 		wp_enqueue_style(
-			'ffc-frontend',
+			'ffc-frontend-css',
 			FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css",
 			array( 'ffc-common' ),
 			FFC_VERSION
@@ -104,9 +106,13 @@ class SelfSchedulingShortcode {
 		// Enqueue FFC frontend helpers (for CPF/RF mask), with the shared
 		// field behaviours its mask and validators come from (#1920).
 		// ffc-core dep: ffc-frontend-helpers.js calls FFC.request() internally.
+		// `ffc-rate-limit` is the handle Loader registers for this file; a
+		// second handle loaded it twice on a page that also carries a
+		// certificate form, each copy with its own state (#1922). The source
+		// is repeated so the call still works where Loader did not register it.
 		wp_enqueue_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		wp_enqueue_script(
-			'ffc-frontend-helpers',
+			'ffc-rate-limit',
 			FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js",
 			array( 'jquery', 'ffc-core', 'ffc-field-behaviours' ),
 			FFC_VERSION,
@@ -152,7 +158,7 @@ class SelfSchedulingShortcode {
 		wp_enqueue_script(
 			'ffc-calendar-frontend',
 			FFC_PLUGIN_URL . "assets/js/ffc-calendar-frontend{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-calendar-core', 'ffc-frontend-helpers', 'ffc-pdf-generator' ),
+			array( 'jquery', 'ffc-core', 'ffc-calendar-core', 'ffc-rate-limit', 'ffc-pdf-generator' ),
 			FFC_VERSION,
 			true
 		);
