@@ -35,6 +35,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The ALTCHA challenge uses the widget's native format** (#1928). The server now issues and verifies ALTCHA's v2 challenge (a derived-key search, every parameter signed, the expiry included) instead of the original v1 shape, which ALTCHA 3.4.0 can no longer read. A widget left open across the update re-solves once. The vendored widget moves to ALTCHA 3.4.0.
 - **Shared scripts are registered in one place** (#1924). `Core\AssetRegistry` now registers `ffc-core`, the field behaviours, the front-end helpers, the captcha and the dynamic fragments that `Loader` used to; the admin screens enqueue `ffc-core` by handle, so its configuration is no longer printed twice.
 - **The identity audit query is split by what it does** (#1925). `IdentityConflictQuery` keeps the grouped account checks and the finding vocabulary; the check-digit scan, the per-account facts, the email and shape verdicts and the store probes are now their own classes, called directly. No behaviour change.
+- **The identity screen's view holds no derivation** (#1925). The panels by tier, cursors, coverage verdicts and counters are built by `IdentityResolutionScreen`, and the store, account, identifier and tier names come from `IdentityResolutionLabels`, both covered; the rendered page is byte-identical.
 
 ### Fixed
 

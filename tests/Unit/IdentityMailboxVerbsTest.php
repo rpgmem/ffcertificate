@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use Brain\Monkey;
+use Brain\Monkey\Functions;
+use FreeFormCertificate\Admin\IdentityResolutionLabels;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 use PHPUnit\Framework\TestCase;
 
@@ -29,6 +32,7 @@ use PHPUnit\Framework\TestCase;
  * another person's and the data can no longer separate them.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityQueue
+ * @covers \FreeFormCertificate\Admin\IdentityResolutionLabels
  */
 class IdentityMailboxVerbsTest extends TestCase {
 
@@ -104,7 +108,7 @@ class IdentityMailboxVerbsTest extends TestCase {
 	 * does offer. A note trimmed to the diagnosis alone would pass the first.
 	 */
 	public function test_the_tier_note_does_not_deny_the_verbs_the_tier_offers(): void {
-		$view = $this->view();
+		$view = $this->view() . (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-labels.php' );
 
 		$this->assertStringNotContainsString(
 			'No verb is offered here',
@@ -112,14 +116,17 @@ class IdentityMailboxVerbsTest extends TestCase {
 			'The panel denies the two verbs it renders, which is what shipped from 6.29.0 onwards.'
 		);
 
-		// ANCHORED ON THE NOTE CLOSURE, BECAUSE THE TIER IS A `case` IN SEVERAL
-		// SWITCHES. The first one in the file is the tier's LABEL (`One
-		// address, several people`), so anchoring on the `case` alone reads
-		// the wrong string and reports a note that says nothing -- which is
-		// how the first version of this test failed.
-		$note = (string) strstr( $view, '$ffc_identity_tier_note = static function' );
-		$note = (string) strstr( $note, 'case IdentityQueue::TIER_MAILBOX:' );
-		$note = (string) strstr( $note, "', 'ffcertificate' );", true );
+		// READ FROM THE FUNCTION, NOT FROM THE SOURCE (#1925). The note was a
+		// closure in the view, so this test anchored on its text; it is
+		// `IdentityResolutionLabels::tier_note()` now, and asking it is what the
+		// operator actually reads.
+		Monkey\setUp();
+		try {
+			Functions\when( '__' )->returnArg( 1 );
+			$note = IdentityResolutionLabels::tier_note( IdentityQueue::TIER_MAILBOX );
+		} finally {
+			Monkey\tearDown();
+		}
 
 		$this->assertNotSame( '', $note, 'The mailbox tier has no note at all, so nothing above the cards says what they are.' );
 
