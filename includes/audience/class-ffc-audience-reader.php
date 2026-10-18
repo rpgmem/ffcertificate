@@ -63,8 +63,9 @@ class AudienceReader {
 	private const CACHE_DOMAIN = 'audience';
 
 	/**
-	 * The "Children and grandchildren" self-join state when some descendants
-	 * allow it and others do not (#1896). Saving it changes nothing.
+	 * The self-join state of an audience's children and grandchildren when
+	 * some allow it and others do not (#1896): no choice can be read back, so
+	 * none is shown as selected (#1901).
 	 *
 	 * @var string
 	 */
@@ -701,6 +702,38 @@ class AudienceReader {
 			return self::DESCENDANTS_SELF_JOIN_MIXED;
 		}
 		return 1 === $values[0] ? '1' : '0';
+	}
+
+	/**
+	 * How many of an audience's children and grandchildren allow self-join,
+	 * and how many there are (#1901): what the screen states when they
+	 * disagree and no choice can be read back.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return array{allowed: int, total: int}
+	 */
+	public static function descendants_self_join_count( int $audience_id ): array {
+		$values = self::descendant_self_join_values( $audience_id );
+		return array(
+			'allowed' => (int) array_sum( $values ),
+			'total'   => count( $values ),
+		);
+	}
+
+	/**
+	 * The self-join value a group created under `$parent_id` starts with
+	 * (#1901): its top-level audience's choice for children and
+	 * grandchildren. On when every existing descendant allows it; off when
+	 * none does, when they disagree, and when the top-level audience has no
+	 * descendants yet — no row records a choice until one exists.
+	 *
+	 * @param int $parent_id The new group's parent.
+	 * @return int 1 or 0.
+	 */
+	public static function inherited_self_join( int $parent_id ): int {
+		$chain = self::get_ancestor_ids( $parent_id );
+		$root  = (int) end( $chain );
+		return '1' === self::descendants_self_join_state( $root ) ? 1 : 0;
 	}
 
 	/**

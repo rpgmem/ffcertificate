@@ -122,7 +122,7 @@ class TabTemplates extends SettingsTab {
 
 		$reregistration_url = admin_url( 'admin.php?page=ffc-settings&tab=reregistration' );
 		$receipt_url        = admin_url( 'admin.php?page=ffc-scheduling-settings&tab=receipt' );
-		$change_label       = __( 'Change →', 'ffcertificate' );
+		$change_label       = __( 'Change', 'ffcertificate' );
 		?>
 		<div class="card">
 		<h2 class="ffc-icon-list"><?php esc_html_e( 'Current assignments', 'ffcertificate' ); ?></h2>
