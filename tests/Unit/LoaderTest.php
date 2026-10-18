@@ -11,9 +11,10 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Loader;
 
 /**
- * Tests for Loader: hook registration and frontend asset registration.
+ * Tests for Loader: hook registration.
  *
- * Only the constructor wiring and register_frontend_assets() are tested here.
+ * Only the constructor wiring is tested here; the asset registration it wires
+ * is AssetRegistryTest's.
  * The init_plugin() method orchestrates dozens of concrete classes and is
  * intentionally excluded — it would require mocking the entire plugin graph.
  *
@@ -25,9 +26,6 @@ class LoaderTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface */
-	private $utils_mock;
-
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -36,16 +34,6 @@ class LoaderTest extends TestCase {
 	protected function tearDown(): void {
 		Monkey\tearDown();
 		parent::tearDown();
-	}
-
-	/**
-	 * Helper: stub the WP functions called by the constructor so it can
-	 * be instantiated without side-effect failures.
-	 */
-	private function stub_constructor_functions(): void {
-		Functions\when( 'add_action' )->justReturn( true );
-		Functions\when( 'register_activation_hook' )->justReturn( true );
-		Functions\when( 'register_deactivation_hook' )->justReturn( true );
 	}
 
 	// ==================================================================
@@ -89,17 +77,17 @@ class LoaderTest extends TestCase {
 		Functions\when( 'register_activation_hook' )->justReturn( true );
 		Functions\when( 'register_deactivation_hook' )->justReturn( true );
 
-		$loader = new Loader();
+		new Loader();
 
 		$enqueue = array_filter( $actions_added, function ( $entry ) {
 			return $entry['hook'] === 'wp_enqueue_scripts';
 		} );
 
+		// The registration itself lives in Core\AssetRegistry since #1924; the
+		// constructor is what wires it.
 		$this->assertNotEmpty( $enqueue, 'Constructor should register a wp_enqueue_scripts action' );
 		$match = reset( $enqueue );
-		$this->assertIsArray( $match['callback'] );
-		$this->assertSame( $loader, $match['callback'][0] );
-		$this->assertSame( 'register_frontend_assets', $match['callback'][1] );
+		$this->assertSame( array( \FreeFormCertificate\Core\AssetRegistry::class, 'register_frontend' ), $match['callback'] );
 	}
 
 	public function test_constructor_registers_activation_hooks(): void {
@@ -129,138 +117,7 @@ class LoaderTest extends TestCase {
 	}
 
 	// ==================================================================
-	// register_frontend_assets()
-	// ==================================================================
-
-	/**
-	 * Helper: create a Loader instance with constructor stubs, then set up
-	 * mocks for the WP asset functions used by register_frontend_assets().
-	 *
-	 * @return array{loader: Loader, registered_scripts: array, localized_scripts: array}
-	 */
-	private function build_loader_and_asset_spies(): array {
-		$this->stub_constructor_functions();
-
-		// Mock AssetHelper::asset_suffix() — alias mock works because
-		// @runTestsInSeparateProcesses gives us a fresh process. Created before
-		// the Loader, whose constructor already calls into AssetHelper.
-		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$this->utils_mock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-		$this->utils_mock->shouldReceive( 'register_dev_cache_busting' );
-		$this->utils_mock->shouldReceive( 'core_script_config' )->andReturn( array( 'version' => '1.0.0' ) );
-		$loader = new Loader();
-
-		$registered_scripts = [];
-		$localized_scripts  = [];
-
-		Functions\when( 'wp_register_script' )->alias(
-			function ( $handle, $src, $deps = [], $ver = false, $in_footer = false ) use ( &$registered_scripts ) {
-				$registered_scripts[] = [
-					'handle'    => $handle,
-					'src'       => $src,
-					'deps'      => $deps,
-					'ver'       => $ver,
-					'in_footer' => $in_footer,
-				];
-			}
-		);
-
-		Functions\when( 'wp_localize_script' )->alias(
-			function ( $handle, $object_name, $l10n ) use ( &$localized_scripts ) {
-				$localized_scripts[] = [
-					'handle'      => $handle,
-					'object_name' => $object_name,
-					'l10n'        => $l10n,
-				];
-			}
-		);
-
-		Functions\when( 'admin_url' )->alias( function ( $path = '' ) {
-			return 'https://example.com/wp-admin/' . ltrim( $path, '/' );
-		} );
-
-		// The captcha widget registers here too (#1053), and its localisation
-		// reads the site locale to key the widget's i18n store.
-		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
-		Functions\when( '__' )->returnArg();
-
-		return [
-			'loader'              => $loader,
-			'registered_scripts'  => &$registered_scripts,
-			'localized_scripts'   => &$localized_scripts,
-		];
-	}
-
-	public function test_register_frontend_assets_registers_the_captcha_widget(): void {
-		// Registered unconditionally here and enqueued by the provider at
-		// render time, so the widget reaches every surface that renders it
-		// rather than a list of page types that drifts.
-		$spies = $this->build_loader_and_asset_spies();
-		$spies['loader']->register_frontend_assets();
-
-		$handles = array_column( $spies['registered_scripts'], 'handle' );
-
-		$this->assertContains( 'ffc-altcha', $handles );
-		$this->assertContains( 'ffc-captcha', $handles );
-
-		$matches = array_filter(
-			$spies['registered_scripts'],
-			static fn( $entry ) => 'ffc-captcha' === $entry['handle']
-		);
-		$glue    = reset( $matches );
-
-		$this->assertContains( 'ffc-altcha', $glue['deps'], 'The glue writes to the store the bundle creates.' );
-		$this->assertContains( 'ffc-core', $glue['deps'], 'The glue listens for the rejection event ffc-core dispatches.' );
-	}
-
-	public function test_register_frontend_assets_registers_rate_limit_script(): void {
-		$spies = $this->build_loader_and_asset_spies();
-		$spies['loader']->register_frontend_assets();
-
-		$rate_limit = array_filter( $spies['registered_scripts'], function ( $entry ) {
-			return $entry['handle'] === 'ffc-rate-limit';
-		} );
-
-		$this->assertNotEmpty( $rate_limit, 'Should register the ffc-rate-limit script' );
-		$match = reset( $rate_limit );
-		$this->assertStringContainsString( 'ffc-frontend-helpers.min.js', $match['src'] );
-		$this->assertContains( 'jquery', $match['deps'] );
-		$this->assertContains( 'ffc-core', $match['deps'], 'The helpers build their notices with FFC.notice() (#1842).' );
-		$this->assertTrue( $match['in_footer'], 'ffc-rate-limit should be loaded in footer' );
-	}
-
-	public function test_register_frontend_assets_registers_dynamic_fragments_script(): void {
-		$spies = $this->build_loader_and_asset_spies();
-		$spies['loader']->register_frontend_assets();
-
-		$dynamic = array_filter( $spies['registered_scripts'], function ( $entry ) {
-			return $entry['handle'] === 'ffc-dynamic-fragments';
-		} );
-
-		$this->assertNotEmpty( $dynamic, 'Should register the ffc-dynamic-fragments script' );
-		$match = reset( $dynamic );
-		$this->assertStringContainsString( 'ffc-dynamic-fragments.min.js', $match['src'] );
-		$this->assertSame( [], $match['deps'], 'ffc-dynamic-fragments should have no dependencies' );
-		$this->assertTrue( $match['in_footer'], 'ffc-dynamic-fragments should be loaded in footer' );
-	}
-
-	public function test_register_frontend_assets_localizes_dynamic_fragments(): void {
-		$spies = $this->build_loader_and_asset_spies();
-		$spies['loader']->register_frontend_assets();
-
-		$localized = array_filter( $spies['localized_scripts'], function ( $entry ) {
-			return $entry['handle'] === 'ffc-dynamic-fragments';
-		} );
-
-		$this->assertNotEmpty( $localized, 'Should localize the ffc-dynamic-fragments script' );
-		$match = reset( $localized );
-		$this->assertSame( 'ffcDynamic', $match['object_name'] );
-		$this->assertArrayHasKey( 'ajaxUrl', $match['l10n'] );
-		$this->assertStringContainsString( 'admin-ajax.php', $match['l10n']['ajaxUrl'] );
-	}
-
-	// ==================================================================
-	// register_admin_core_assets() — 6.6.9
+	// Admin registration — 6.6.9, wired through Core\\AssetRegistry (#1924)
 	// ==================================================================
 
 	public function test_constructor_registers_admin_enqueue_scripts_hook(): void {
@@ -275,44 +132,11 @@ class LoaderTest extends TestCase {
 
 		$admin_hooks = array_filter( $actions_added, function ( $entry ) {
 			return $entry['hook'] === 'admin_enqueue_scripts'
-				&& is_array( $entry['callback'] )
-				&& $entry['callback'][1] === 'register_admin_core_assets';
+				&& array( \FreeFormCertificate\Core\AssetRegistry::class, 'register_admin' ) === $entry['callback'];
 		} );
 
 		$this->assertNotEmpty( $admin_hooks, '6.6.9 fix: ffc-core must register on every admin request.' );
 		$match = reset( $admin_hooks );
 		$this->assertSame( 1, $match['priority'], 'Priority 1 so dep is resolvable before module enqueues run at default priority 10.' );
-	}
-
-	public function test_register_admin_core_assets_registers_ffc_core(): void {
-		$spies = $this->build_loader_and_asset_spies();
-		// First call: handle not yet registered.
-		Functions\when( 'wp_script_is' )->justReturn( false );
-
-		$spies['loader']->register_admin_core_assets();
-
-		$core = array_filter( $spies['registered_scripts'], function ( $entry ) {
-			return $entry['handle'] === 'ffc-core';
-		} );
-
-		$this->assertNotEmpty( $core, 'Should register ffc-core on admin pages.' );
-		$match = reset( $core );
-		$this->assertStringContainsString( 'ffc-core.min.js', $match['src'] );
-		$this->assertContains( 'jquery', $match['deps'] );
-		$this->assertTrue( $match['in_footer'] );
-	}
-
-	public function test_register_admin_core_assets_is_noop_when_already_registered(): void {
-		$spies = $this->build_loader_and_asset_spies();
-		// AdminAssetsManager already enqueued ffc-core earlier in the request.
-		Functions\when( 'wp_script_is' )->justReturn( true );
-
-		$spies['loader']->register_admin_core_assets();
-
-		$core = array_filter( $spies['registered_scripts'], function ( $entry ) {
-			return $entry['handle'] === 'ffc-core';
-		} );
-
-		$this->assertEmpty( $core, 'Must not re-register when AdminAssetsManager already did it.' );
 	}
 }
