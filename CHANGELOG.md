@@ -20,6 +20,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **Calendar e-mail fields and recruitment placeholders** (#1873). The personal-calendar editor's admin addresses and subject take their WordPress width again instead of 100px, and Recruitment → Settings' From address and From name placeholders are translated.
+- **"View as user" reveals CPF/RF too** (#1888). The Profile tab offered Reveal for e-mails, phone and birth date but not for the identifiers; `/user/profile/reveal` now serves `cpf_rf`, formatted from the same rows as the masked list, under the same gate and audit row.
 
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 
