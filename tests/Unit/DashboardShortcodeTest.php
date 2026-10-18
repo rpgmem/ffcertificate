@@ -320,6 +320,9 @@ class DashboardShortcodeTest extends TestCase {
 		$frontend->shouldReceive( 'get_user_reregistrations' )
 			->andReturn( null === $reregistrations ? array() : $reregistrations )->byDefault();
 
+		// The approved banner's window is counted on the site clock (#1887).
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );
+
 		// DateFormatter is only reached by the actionable-banner branch, but
 		// alias-mock it unconditionally so it's stubbed whenever banners render.
 		$fmt = Mockery::mock( 'alias:\FreeFormCertificate\Core\DateFormatter' );
@@ -472,5 +475,93 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-warning" role="note" data-ffc-notice="rereg-banner" data-reregistration-id="12"', $output );
 		$this->assertStringContainsString( 'New Campaign', $output );
 		$this->assertStringContainsString( 'Complete Reregistration', $output );
+	}
+
+	// ==================================================================
+	// render() — the approved banner's window and its button (#1887)
+	// ==================================================================
+
+	/**
+	 * Two rows of a campaign that ended on 2020-01-01: one approved the day
+	 * after, one still awaiting review. The margins are years wide, so the
+	 * real clock the renderer reads cannot straddle the 30-day cut-off.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function endedCampaignRows(): array {
+		return array(
+			array(
+				'id'                => 20,
+				'title'             => 'Long Approved Campaign',
+				'can_submit'        => false,
+				'submission_status' => 'approved',
+				'magic_link'        => 'https://example.com/record/20',
+				'end_date'          => '2020-01-01 17:00:00',
+				'reviewed_at'       => gmmktime( 12, 0, 0, 1, 2, 2020 ),
+			),
+			array(
+				'id'                => 21,
+				'title'             => 'Still Pending Campaign',
+				'can_submit'        => false,
+				'submission_status' => 'submitted',
+				'magic_link'        => 'https://example.com/record/21',
+				'end_date'          => '2020-01-01 17:00:00',
+				'reviewed_at'       => null,
+			),
+		);
+	}
+
+	public function test_render_omits_an_approved_banner_past_its_window_and_keeps_the_submitted_one(): void {
+		$this->wireFullRenderCollaborators( false, $this->endedCampaignRows() );
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringNotContainsString( 'Long Approved Campaign', $output, 'Past the later of the end and the approval plus 30 days, the approved banner goes.' );
+		$this->assertStringNotContainsString( 'has been approved', $output );
+		$this->assertStringContainsString( 'Still Pending Campaign', $output, 'A submission awaiting review keeps its banner until a decision.' );
+		$this->assertStringContainsString( 'pending review', $output );
+	}
+
+	public function test_render_keeps_an_expired_approved_banner_when_the_window_is_zero(): void {
+		$this->wireFullRenderCollaborators( false, $this->endedCampaignRows() );
+		Functions\when( 'get_option' )->justReturn( array( 'rereg_approved_banner_days' => 0 ) );
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringContainsString( 'Long Approved Campaign', $output, '0 never hides, which is the behaviour before the setting.' );
+	}
+
+	public function test_render_shows_an_approved_banner_inside_its_window_with_the_family_sized_button(): void {
+		$this->wireFullRenderCollaborators(
+			false,
+			array(
+				array(
+					'id'                => 30,
+					'title'             => 'Recent Approved Campaign',
+					'can_submit'        => false,
+					'submission_status' => 'approved',
+					'magic_link'        => 'https://example.com/record/30',
+					'end_date'          => '2099-12-31 17:00:00',
+					'reviewed_at'       => gmmktime( 12, 0, 0, 1, 2, 2020 ),
+				),
+			)
+		);
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringContainsString( 'Recent Approved Campaign', $output );
+		$this->assertStringContainsString( 'has been approved', $output );
+
+		$doc = new \DOMDocument();
+		libxml_use_internal_errors( true );
+		$doc->loadHTML( '<?xml encoding="utf-8"?>' . $output );
+		libxml_clear_errors();
+		$xpath = new \DOMXPath( $doc );
+
+		$links = $xpath->query( '//*[@data-ffc-notice="rereg-banner"]//a[@href="https://example.com/record/30"]' );
+		$this->assertSame( 1, $links->length, 'The banner carries its Record link.' );
+		$classes = preg_split( '/\s+/', trim( $links->item( 0 )->getAttribute( 'class' ) ) );
+		$this->assertContains( 'ffc-rereg-banner-record', $classes );
+		$this->assertNotContains( 'ffc-btn-pdf', $classes, 'The compact table-row class stays off the banner.' );
 	}
 }

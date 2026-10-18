@@ -399,6 +399,10 @@ class ReregistrationFrontend {
 				'submission_id'     => $submission ? (int) $submission->id : 0,
 				'can_submit'        => in_array( $sub_status, self::SUBMITTABLE_STATUSES, true ),
 				'magic_link'        => $magic_link,
+				// Approval instant, unix UTC (category A); null when the
+				// submission was never reviewed. The dashboard counts the
+				// approved banner's window from it (#1887).
+				'reviewed_at'       => ( $submission && ! empty( $submission->reviewed_at ) ) ? (int) $submission->reviewed_at : null,
 			);
 		}
 

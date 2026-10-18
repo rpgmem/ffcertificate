@@ -22,6 +22,7 @@ use FreeFormCertificate\Admin\CertTemplateReader;
 use FreeFormCertificate\Admin\CertTemplateRecordResolver;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Core\PasswordInvite;
+use FreeFormCertificate\Core\ReregistrationBannerWindow;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -214,6 +215,20 @@ class TabReregistration extends SettingsTab {
 					?>
 				</span>
 			</p>
+			<h3 class="ffc-icon-checkmark"><?php esc_html_e( 'Approved banner on the dashboard', 'ffcertificate' ); ?></h3>
+			<p>
+				<label for="ffc_rereg_approved_banner_days"><strong><?php esc_html_e( 'Hide the approved banner after (days)', 'ffcertificate' ); ?></strong></label>
+				<input type="number" name="ffc_rereg_approved_banner_days" id="ffc_rereg_approved_banner_days"
+					class="small-text"
+					min="<?php echo esc_attr( (string) ReregistrationBannerWindow::MIN_DAYS ); ?>"
+					max="<?php echo esc_attr( (string) ReregistrationBannerWindow::MAX_DAYS ); ?>"
+					step="1"
+					required
+					value="<?php echo esc_attr( (string) ReregistrationBannerWindow::days() ); ?>">
+				<span class="description">
+					<?php esc_html_e( 'Counted from the later of the campaign\'s end and the approval. 0 keeps it visible.', 'ffcertificate' ); ?>
+				</span>
+			</p>
 			<?php AdminUI::render_save_button(); ?>
 		</form>
 		</div>
@@ -244,8 +259,20 @@ class TabReregistration extends SettingsTab {
 		// zero here would mean either "expires immediately" or "never expires"
 		// -- two different disasters (the #1114 lesson). The `required` in the
 		// markup is only the cheap half; the guard is this branch.
-		$raw = RequestInput::get_post_string( 'ffc_invite_password_link_hours', '' );
+		// The banner window follows the same rule: `0` is a real value here
+		// ("never hide"), so a cleared field read as `0` would silently turn
+		// the expiry off (#1887).
+		$updates = array();
+		$raw     = RequestInput::get_post_string( 'ffc_invite_password_link_hours', '' );
 		if ( '' !== $raw && is_numeric( $raw ) ) {
+			$updates['invite_password_link_hours'] = PasswordInvite::clamp_hours( (int) $raw );
+		}
+		$raw = RequestInput::get_post_string( 'ffc_rereg_approved_banner_days', '' );
+		if ( '' !== $raw && is_numeric( $raw ) ) {
+			$updates['rereg_approved_banner_days'] = ReregistrationBannerWindow::clamp_days( (int) $raw );
+		}
+
+		if ( ! empty( $updates ) ) {
 			$settings = get_option( 'ffc_settings', array() );
 			if ( ! is_array( $settings ) ) {
 				$settings = array();
@@ -253,8 +280,7 @@ class TabReregistration extends SettingsTab {
 			// Merge, never a rebuild: this tab does not go through
 			// `SettingsSaveHandler`, so it has to preserve everything the
 			// other tabs wrote on its own.
-			$settings['invite_password_link_hours'] = PasswordInvite::clamp_hours( (int) $raw );
-			update_option( 'ffc_settings', $settings );
+			update_option( 'ffc_settings', array_merge( $settings, $updates ) );
 		}
 
 		wp_safe_redirect( admin_url( 'admin.php?page=ffc-settings&tab=' . $this->tab_id . '&ffc_saved=1' ) );

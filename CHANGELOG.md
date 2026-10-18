@@ -16,6 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Close and remove buttons are the family's icon-only variant** (#1879). `icon_only` / `iconOnly` draws a square with a registry icon and the label as its `aria-label` and `title`; every hand-drawn `&times;`, public and admin, now uses it, and `IconOnlyButtonTest` keeps them out.
 - **Certificate screens use the button family** (#1880). Submit and Verify are primary with a check, full width through `.ffc-btn-block`; Download PDF primary, Copy and Start again neutral. The old classes stay as hooks with no styling; their rules left `ffc-frontend.css`.
 - **The public CSV screen uses the button family** (#1881). Download CSV is primary; Preview and Back neutral; Start now, Postpone close and the exception caution, as are their dialogs' confirms, with Cancel neutral. `.ffc-info-btn` is gone and `.ffc-btn-loading` is a family state, without the fade.
+- **The approved reregistration banner expires** (#1887). Settings → Reregistration → "Hide the approved banner after (days)", default 30, counts from the later of the campaign's end and the approval; 0 keeps it. Its Download Record button takes the family's size.
 
 ### Fixed
 
