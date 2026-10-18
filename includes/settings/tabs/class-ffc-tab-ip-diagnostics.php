@@ -73,24 +73,16 @@ class TabIpDiagnostics extends SettingsTab {
 	public function render(): void {
 		$can_edit = Capabilities::current_user_can_admin_or( 'ffc_manage_settings' );
 
-		if ( $can_edit && isset( $_POST['ffc_save_ip_diagnostics'] ) ) {
+		// A browser posts only the name of the submit button that was clicked,
+		// so Save and Refresh are two separate requests, each behind the same
+		// nonce and capability (#1894). A refresh never saves the form.
+		if ( $can_edit && isset( $_POST['ffc_ip_refresh_cloudflare'] ) ) {
 			check_admin_referer( 'ffc_ip_diagnostics_nonce' );
-			if ( isset( $_POST['ffc_ip_refresh_cloudflare'] ) ) {
-				/**
-				 * Fired to request an immediate Cloudflare CIDR refresh. The
-				 * Integrations refresh class listens for this; using the action
-				 * (not a class call) keeps this tab free of a module edge.
-				 */
-				// Literal hook string (not a constant) so WPCS sees the ffc_
-				// prefix; firing the action instead of calling the Integrations
-				// class keeps this tab free of a Settings→Integrations edge.
-				// Matches CloudflareCidrRefresh::REFRESH_ACTION.
-				do_action( 'ffc_cloudflare_cidr_refresh_now' );
-				$this->render_notice( __( 'Cloudflare IP ranges refresh requested.', 'ffcertificate' ), 'success' );
-			} else {
-				$this->save_settings();
-				$this->render_notice( __( 'IP resolution settings saved.', 'ffcertificate' ), 'success' );
-			}
+			$this->refresh_cloudflare_ranges();
+		} elseif ( $can_edit && isset( $_POST['ffc_save_ip_diagnostics'] ) ) {
+			check_admin_referer( 'ffc_ip_diagnostics_nonce' );
+			$this->save_settings();
+			$this->render_notice( __( 'IP resolution settings saved.', 'ffcertificate' ), 'success' );
 		}
 
 		$diag = $this->diagnostics();
@@ -108,6 +100,46 @@ class TabIpDiagnostics extends SettingsTab {
 			echo '</div>';
 		}
 		echo '</div>';
+	}
+
+	/**
+	 * Request an immediate Cloudflare CIDR refresh and report what it did.
+	 *
+	 * Fires the action rather than calling the Integrations class, which keeps
+	 * this tab free of a Settings→Integrations module edge; the literal hook
+	 * string (not a constant) lets WPCS see the ffc_ prefix, and matches
+	 * CloudflareCidrRefresh::REFRESH_ACTION. The outcome is read off the cache
+	 * option: a successful fetch rewrites it with a new `updated` time, while a
+	 * failed one leaves it untouched.
+	 */
+	private function refresh_cloudflare_ranges(): void {
+		$before = get_option( self::CF_CACHE_OPTION, null );
+
+		do_action( 'ffc_cloudflare_cidr_refresh_now' );
+
+		$after          = get_option( self::CF_CACHE_OPTION, null );
+		$before_updated = ( is_array( $before ) && isset( $before['updated'] ) ) ? (int) $before['updated'] : 0;
+		$after_updated  = ( is_array( $after ) && isset( $after['updated'] ) ) ? (int) $after['updated'] : 0;
+
+		if ( $after_updated > 0 && $after !== $before ) {
+			$count = isset( $after['count'] ) ? (int) $after['count'] : 0;
+			$this->render_notice(
+				sprintf(
+					/* translators: %d: number of Cloudflare IP ranges now cached */
+					_n( 'Cloudflare IP ranges refreshed: %d range cached.', 'Cloudflare IP ranges refreshed: %d ranges cached.', $count, 'ffcertificate' ),
+					$count
+				),
+				'success'
+			);
+			return;
+		}
+
+		$this->render_notice(
+			$before_updated > 0
+				? __( 'The Cloudflare IP ranges could not be fetched. The list fetched earlier stays in use.', 'ffcertificate' )
+				: __( 'The Cloudflare IP ranges could not be fetched. The bundled list stays in use.', 'ffcertificate' ),
+			'error'
+		);
 	}
 
 	/**
@@ -673,9 +705,28 @@ class TabIpDiagnostics extends SettingsTab {
 
 		echo '</tbody></table>';
 
-		submit_button( __( 'Save IP settings', 'ffcertificate' ), 'primary', 'ffc_save_ip_diagnostics', false );
-		echo ' ';
-		submit_button( __( 'Refresh Cloudflare ranges now', 'ffcertificate' ), 'secondary', 'ffc_ip_refresh_cloudflare', false );
+		echo '<p class="submit">';
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label'    => __( 'Save IP settings', 'ffcertificate' ),
+				'category' => 'primary',
+				'icon'     => 'save',
+				'type'     => 'submit',
+				'name'     => 'ffc_save_ip_diagnostics',
+				'value'    => '1',
+			)
+		);
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label'    => __( 'Refresh Cloudflare ranges now', 'ffcertificate' ),
+				'category' => 'neutral',
+				'icon'     => 'sync',
+				'type'     => 'submit',
+				'name'     => 'ffc_ip_refresh_cloudflare',
+				'value'    => '1',
+			)
+		);
+		echo '</p>';
 		echo '</form>';
 	}
 
