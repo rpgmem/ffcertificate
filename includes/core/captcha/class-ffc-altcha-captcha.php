@@ -297,8 +297,8 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 		);
 
 		/*
-		 * Only nine attributes exist on the 3.x element — auto, challenge,
-		 * configuration, display, language, name, theme, type, workers — so
+		 * Only ten attributes exist on the 3.x element — auto, challenge,
+		 * configuration, display, form, language, name, theme, type, workers — so
 		 * everything an administrator can set is split accordingly:
 		 * `CaptchaSettings::widget_attributes()` returns the two that ARE
 		 * attributes here, and `widget_configuration()` the rest, as JSON.

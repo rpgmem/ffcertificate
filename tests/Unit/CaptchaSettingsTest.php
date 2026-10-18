@@ -203,11 +203,11 @@ class CaptchaSettingsTest extends TestCase {
 	}
 
 	public function test_the_configuration_carries_only_non_attribute_options(): void {
-		// The 3.x element accepts nine attributes and these are not among
+		// The 3.x element accepts ten attributes and these are not among
 		// them; putting an actual attribute in here would silently do nothing.
 		$config = CaptchaSettings::widget_configuration();
 
-		foreach ( array( 'type', 'auto', 'display', 'theme', 'name', 'challenge', 'language', 'workers' ) as $attribute ) {
+		foreach ( array( 'type', 'auto', 'display', 'form', 'theme', 'name', 'challenge', 'language', 'workers' ) as $attribute ) {
 			$this->assertArrayNotHasKey( $attribute, $config );
 		}
 	}
