@@ -362,7 +362,17 @@ final class AudienceAdminAudienceRenderer {
 								)
 							);
 							?>
-							<p class="description"><?php esc_html_e( 'A group created under this audience starts with self-join off. Once the audience has groups below it, this becomes one choice that covers them too. Users can join up to 2 child groups.', 'ffcertificate' ); ?></p>
+							<p class="description">
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: %d: how many self-join groups one user may belong to (Scheduling Settings, Audience Calendars tab) */
+										__( 'A group created under this audience starts with self-join off. Once the audience has groups below it, this becomes one choice that covers them too. Users can join up to %d groups through self-join.', 'ffcertificate' ),
+										\FreeFormCertificate\Audience\AudienceSelfJoinLimit::get()
+									)
+								);
+								?>
+							</p>
 							</div>
 						<?php else : ?>
 							<?php

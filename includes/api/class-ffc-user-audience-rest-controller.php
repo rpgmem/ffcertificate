@@ -32,11 +32,6 @@ class UserAudienceRestController {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
-	 * Maximum number of self-join groups a user can belong to
-	 */
-	private const MAX_SELF_JOIN_GROUPS = 2;
-
-	/**
 	 * API namespace
 	 *
 	 * @var non-falsy-string
@@ -248,7 +243,7 @@ class UserAudienceRestController {
 					array(
 						'parents'      => array(),
 						'joined_count' => 0,
-						'max_groups'   => self::MAX_SELF_JOIN_GROUPS,
+						'max_groups'   => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
 					)
 				);
 			}
@@ -260,7 +255,7 @@ class UserAudienceRestController {
 					array(
 						'parents'      => array(),
 						'joined_count' => 0,
-						'max_groups'   => self::MAX_SELF_JOIN_GROUPS,
+						'max_groups'   => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
 					)
 				);
 			}
@@ -299,7 +294,7 @@ class UserAudienceRestController {
 				array(
 					'parents'      => $result,
 					'joined_count' => $joined_count,
-					'max_groups'   => self::MAX_SELF_JOIN_GROUPS,
+					'max_groups'   => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
 				)
 			);
 
@@ -435,11 +430,13 @@ class UserAudienceRestController {
 
 			$current_count = \FreeFormCertificate\Audience\AudienceQueryService::count_user_self_join_memberships( $user_id );
 
-			if ( $current_count >= self::MAX_SELF_JOIN_GROUPS ) {
+			$max_groups = \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get();
+
+			if ( $current_count >= $max_groups ) {
 				return new \WP_Error(
 					'max_groups_reached',
 					/* translators: %d: maximum number of groups */
-					sprintf( __( 'You can join a maximum of %d groups. Leave one first.', 'ffcertificate' ), self::MAX_SELF_JOIN_GROUPS ),
+					sprintf( __( 'You can join a maximum of %d groups. Leave one first.', 'ffcertificate' ), $max_groups ),
 					array( 'status' => 422 )
 				);
 			}

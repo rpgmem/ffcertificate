@@ -23020,8 +23020,8 @@ msgstr "Ver as definições dos campos exige ffc_view_custom_fields e editá-las
 msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data; fields mapped to a profile key (such as CPF, RF, RG or birth date) are also written, encrypted, to the plugin user profile."
 msgstr "As definições dos campos são armazenadas na tabela ffc_custom_fields. Os dados do usuário são armazenados como JSON em wp_usermeta, na chave ffc_custom_fields_data; os campos mapeados para uma chave de perfil (como CPF, RF, RG ou data de nascimento) também são gravados, criptografados, no perfil de usuário do plugin."
 
-msgid "An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed): an audience can let users join or leave its child groups from their dashboard, with a cap on how many child groups one user may join. Audiences also carry the custom fields used by reregistration."
-msgstr "Um público-alvo é um grupo nomeado de membros, com uma cor, um status ativo/inativo e uma hierarquia opcional de até 3 níveis. Os membros são importados ou entram por conta própria (quando permitido): um público-alvo pode permitir que os usuários entrem ou saiam dos seus grupos filhos pelo painel, com um limite de quantos grupos filhos um mesmo usuário pode integrar. Os públicos-alvo também carregam os campos personalizados usados no recadastramento."
+msgid "An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed): an audience can let users join or leave its child groups from their dashboard, with a cap on how many self-join groups one user may belong to. Audiences also carry the custom fields used by reregistration."
+msgstr "Um público-alvo é um grupo nomeado de membros, com uma cor, um status ativo/inativo e uma hierarquia opcional de até 3 níveis. Os membros são importados ou entram por conta própria (quando permitido): um público-alvo pode permitir que os usuários entrem ou saiam dos seus grupos filhos pelo painel, com um limite de quantos grupos de auto-adesão um mesmo usuário pode integrar. Os públicos-alvo também carregam os campos personalizados usados no recadastramento."
 
 msgid "Admin pages"
 msgstr "Páginas administrativas"
@@ -27086,9 +27086,11 @@ msgstr "Certificado não encontrado."
 msgid "Users can join/leave this group from their dashboard"
 msgstr "Os usuários podem entrar/sair deste grupo pelo painel"
 
+#. %d: how many self-join groups one user may belong to (Scheduling Settings, Audience Calendars tab)
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php
-msgid "A group created under this audience starts with self-join off. Once the audience has groups below it, this becomes one choice that covers them too. Users can join up to 2 child groups."
-msgstr "Um grupo criado sob este público-alvo começa com a auto-adesão desligada. Quando o público-alvo tiver grupos abaixo dele, isto vira uma única escolha que também vale para eles. Os usuários podem participar de até 2 grupos filhos."
+#, php-format
+msgid "A group created under this audience starts with self-join off. Once the audience has groups below it, this becomes one choice that covers them too. Users can join up to %d groups through self-join."
+msgstr "Um grupo criado sob este público-alvo começa com a auto-adesão desligada. Quando o público-alvo tiver grupos abaixo dele, isto vira uma única escolha que também vale para eles. Os usuários podem participar de até %d grupos por auto-adesão."
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php
 msgid "This audience only"
@@ -27145,3 +27147,25 @@ msgstr "Herda do público acima."
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "On the new-audience form, picking a parent audience replaces the self-join switch with \"Inherits from the audience above.\": the new group takes the value described above."
 msgstr "No formulário de novo público-alvo, escolher um público-alvo pai troca o interruptor de auto-adesão por \"Herda do público acima.\": o novo grupo recebe o valor descrito acima."
+
+#: templates/admin/audience/audience-tab.php
+msgid "Self-Join"
+msgstr "Auto-adesão"
+
+#: templates/admin/audience/audience-tab.php
+msgid "Users join and leave the groups that allow self-join from the Audiences tab of their dashboard."
+msgstr "Os usuários entram e saem dos grupos que permitem auto-adesão pela aba Públicos-alvo do seu painel."
+
+#: templates/admin/audience/audience-tab.php
+msgid "Groups per user"
+msgstr "Grupos por usuário"
+
+#. 1: lowest accepted value, 2: highest accepted value
+#: templates/admin/audience/audience-tab.php
+#, php-format
+msgid "How many self-join groups one user may belong to at once, from %1$d to %2$d. A user at the limit leaves a group before joining another. Every membership in a group that allows self-join counts, however it was added. Saved with the Save Settings button below."
+msgstr "Quantos grupos de auto-adesão um mesmo usuário pode integrar ao mesmo tempo, de %1$d a %2$d. Um usuário no limite sai de um grupo antes de entrar em outro. Toda participação em um grupo que permite auto-adesão conta, não importa como foi adicionada. Salvo pelo botão Salvar Configurações abaixo."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The cap is set under Scheduling → Settings → Audience Calendars → Self-Join, \"Groups per user\": from 1 to 20, 2 by default. Every membership in a group that allows self-join counts, however it was added; a user at the cap leaves a group before joining another, and the dashboard says how many groups they may join."
+msgstr "O limite é definido em Agendamento → Configurações → Calendários de Público-alvo → Auto-adesão, \"Grupos por usuário\": de 1 a 20, 2 por padrão. Toda participação em um grupo que permite auto-adesão conta, não importa como foi adicionada; um usuário no limite sai de um grupo antes de entrar em outro, e o painel informa quantos grupos ele pode integrar."

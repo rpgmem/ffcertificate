@@ -579,6 +579,82 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertSame( '', $written['ffc_aud_multiple_audiences_color'] );
 	}
 
+	/**
+	 * @return iterable<string, array{0: string, 1: int|null}>
+	 */
+	public static function posted_self_join_limits(): iterable {
+		yield 'in range' => array( '5', 5 );
+		yield 'above the ceiling clamps' => array( '99', 20 );
+		yield 'below the floor clamps' => array( '0', 1 );
+		yield 'empty keeps the stored value' => array( '', null );
+		yield 'not a number keeps the stored value' => array( 'many', null );
+	}
+
+	/**
+	 * The self-join limit is clamped on save, and a cleared or non-numeric
+	 * field writes nothing rather than a zero limit (#1916).
+	 *
+	 * @dataProvider posted_self_join_limits
+	 *
+	 * @param string   $posted   Posted value.
+	 * @param int|null $expected Written value, null for no write.
+	 */
+	public function test_audience_visibility_saves_the_self_join_limit( string $posted, ?int $expected ): void {
+		$written = $this->record_writes();
+		$this->record_notices();
+		$_POST = array(
+			'ffc_action'                   => 'save_aud_visibility_settings',
+			'ffc_aud_visibility_nonce'     => 'n',
+			'ffc_aud_max_self_join_groups' => $posted,
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		if ( null === $expected ) {
+			$this->assertArrayNotHasKey( 'ffc_aud_max_self_join_groups', $written->getArrayCopy() );
+			$this->assertArrayHasKey( 'ffc_aud_private_display_mode', $written->getArrayCopy(), 'the rest of the form still saves' );
+		} else {
+			$this->assertSame( $expected, $written['ffc_aud_max_self_join_groups'] );
+		}
+	}
+
+	public function test_self_join_limit_without_the_capability_is_not_saved(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$written = $this->record_writes();
+		$_POST   = array(
+			'ffc_action'                   => 'save_aud_visibility_settings',
+			'ffc_aud_visibility_nonce'     => 'n',
+			'ffc_aud_max_self_join_groups' => '5',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertCount( 0, $written );
+	}
+
+	public function test_audience_tab_draws_the_self_join_limit_field(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				if ( 'ffc_aud_max_self_join_groups' === $key ) {
+					return '6';
+				}
+				return false !== $default ? $default : '';
+			}
+		);
+		$_GET['tab'] = 'audience';
+
+		$html = $this->render( $this->page() );
+
+		$this->assertMatchesRegularExpression(
+			'/<input type="number" name="ffc_aud_max_self_join_groups" id="ffc_aud_max_self_join_groups" class="small-text" required\s+min="1"\s+max="20"\s+value="6">/',
+			$html
+		);
+		$form_end = (int) strpos( $html, '</form>' );
+		$this->assertLessThan( $form_end, (int) strpos( $html, 'name="ffc_aud_max_self_join_groups"' ), 'the Save button posts the limit too' );
+	}
+
 	public function test_audience_visibility_with_a_bad_nonce_writes_nothing(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
 		$written = $this->record_writes();

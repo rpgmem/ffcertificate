@@ -225,6 +225,7 @@ $ffcertificate_options = array(
 	'ffc_submission_date_unix_migrated',
 	'ffc_submitted_at_unix_migrated',
 	// Audience module options (audited gap — were never on the list).
+	'ffc_aud_max_self_join_groups',
 	'ffc_aud_multiple_audiences_color',
 	'ffc_aud_private_display_mode',
 	'ffc_aud_scheduling_message',
