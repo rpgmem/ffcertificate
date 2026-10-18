@@ -132,15 +132,30 @@ class AudienceAdminImport {
 							</tr>
 						</tbody></table>
 
-						<?php submit_button( __( 'Import Members', 'ffcertificate' ), 'primary', 'import_members' ); ?>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_save_button(
+							__( 'Import Members', 'ffcertificate' ),
+							array(
+								'icon'  => 'upload',
+								'name'  => 'import_members',
+								'value' => __( 'Import Members', 'ffcertificate' ),
+							)
+						);
+						?>
 					</form>
 
 					<div class="ffc-sample-csv">
 						<h4><?php esc_html_e( 'Sample CSV Format', 'ffcertificate' ); ?></h4>
 						<pre><?php echo esc_html( AudienceCsvImporter::get_sample_csv( 'members' ) ); ?></pre>
-						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=import&download_sample=members' ), 'download_sample' ) ); ?>" class="button">
-							<?php esc_html_e( 'Download Sample', 'ffcertificate' ); ?>
-						</a>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Download Sample', 'ffcertificate' ),
+								'icon'  => 'download',
+								'href'  => wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=import&download_sample=members' ), 'download_sample' ),
+							)
+						);
+						?>
 					</div>
 				</div>
 
@@ -169,15 +184,30 @@ class AudienceAdminImport {
 							</tr>
 						</tbody></table>
 
-						<?php submit_button( __( 'Import Audiences', 'ffcertificate' ), 'primary', 'import_audiences' ); ?>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_save_button(
+							__( 'Import Audiences', 'ffcertificate' ),
+							array(
+								'icon'  => 'upload',
+								'name'  => 'import_audiences',
+								'value' => __( 'Import Audiences', 'ffcertificate' ),
+							)
+						);
+						?>
 					</form>
 
 					<div class="ffc-sample-csv">
 						<h4><?php esc_html_e( 'Sample CSV Format', 'ffcertificate' ); ?></h4>
 						<pre><?php echo esc_html( AudienceCsvImporter::get_sample_csv( 'audiences' ) ); ?></pre>
-						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=import&download_sample=audiences' ), 'download_sample' ) ); ?>" class="button">
-							<?php esc_html_e( 'Download Sample', 'ffcertificate' ); ?>
-						</a>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Download Sample', 'ffcertificate' ),
+								'icon'  => 'download',
+								'href'  => wp_nonce_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=import&download_sample=audiences' ), 'download_sample' ),
+							)
+						);
+						?>
 					</div>
 				</div>
 
@@ -223,7 +253,16 @@ class AudienceAdminImport {
 							</tr>
 						</tbody></table>
 
-						<?php submit_button( __( 'Export Members', 'ffcertificate' ), 'primary', 'export_members' ); ?>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_save_button(
+							__( 'Export Members', 'ffcertificate' ),
+							array(
+								'icon'  => 'download',
+								'name'  => 'export_members',
+								'value' => __( 'Export Members', 'ffcertificate' ),
+							)
+						);
+						?>
 					</form>
 				</div>
 
@@ -238,7 +277,16 @@ class AudienceAdminImport {
 						<?php wp_nonce_field( 'ffc_export_audiences', 'ffc_export_audiences_nonce' ); ?>
 						<input type="hidden" name="ffc_action" value="export_audiences">
 
-						<?php submit_button( __( 'Export Audiences', 'ffcertificate' ), 'primary', 'export_audiences' ); ?>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_save_button(
+							__( 'Export Audiences', 'ffcertificate' ),
+							array(
+								'icon'  => 'download',
+								'name'  => 'export_audiences',
+								'value' => __( 'Export Audiences', 'ffcertificate' ),
+							)
+						);
+						?>
 					</form>
 				</div>
 			</div><!-- .ffc-import-export-cards -->

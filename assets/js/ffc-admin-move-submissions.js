@@ -54,13 +54,18 @@
 		$dialog.append( $error );
 
 		var $actions = $( '<p class="ffc-move-modal-actions"></p>' );
+		// The family's buttons (#1904): Cancel is neutral with the cross, and
+		// the confirm completes the dialog's work.
 		$actions.append(
-			$( '<button type="button" class="button ffc-move-modal-cancel"></button>' ).text( s.cancel )
+			window.FFC.button( { label: s.cancel, icon: 'cross', className: 'ffc-move-modal-cancel' } )
 		);
 		$actions.append(
-			$( '<button type="button" class="button button-primary ffc-move-modal-confirm"></button>' ).text(
-				s.confirm
-			)
+			window.FFC.button( {
+				label: s.confirm,
+				category: 'primary',
+				icon: 'move',
+				className: 'ffc-move-modal-confirm',
+			} )
 		);
 		$dialog.append( $actions );
 

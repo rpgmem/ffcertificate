@@ -9,6 +9,7 @@ import { loadScript } from './helpers.js';
 describe('ffc-cert-template-preview overlay', () => {
 	beforeAll(() => {
 		window.ffcCertTemplatePreview = { title: 'Preview!', close: 'Fechar' };
+		loadScript('assets/js/ffc-core.js');
 		loadScript('assets/js/ffc-cert-template-preview.js');
 	});
 
@@ -38,6 +39,7 @@ describe('ffc-cert-template-preview overlay', () => {
 		expect(frame.getAttribute('sandbox')).toBe('allow-same-origin');
 		expect(overlay.querySelector('.ffc-tpl-preview-title').textContent).toBe('Preview!');
 		expect(overlay.querySelector('.ffc-tpl-preview-close').textContent).toBe('Fechar');
+		expect(overlay.querySelector('.ffc-tpl-preview-close').className).toBe('ffc-btn ffc-btn-neutral ffc-icon-cross ffc-tpl-preview-close');
 	});
 
 	it('closes on the close button', () => {

@@ -155,16 +155,6 @@
     padding-top: var(--ffc-spacing-3xs);
 }
 
-.ffc-field-actions .button {
-    padding: 0 var(--ffc-spacing-xs);
-    min-height: 28px;
-    line-height: 26px;
-}
-
-.ffc-field-actions [class*="ffc-icon-"] {
-    font-size: var(--ffc-font-size-lg);
-}
-
 /* Sortable placeholder */
 .ffc-sortable-placeholder {
     border: 2px dashed var(--ffc-primary);

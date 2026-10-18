@@ -220,14 +220,14 @@ class AdminUITest extends TestCase {
 				'title'   => 'Nothing here',
 				'actions' => array(
 					array( 'label' => 'Clear', 'url' => '/clear' ),
-					array( 'label' => 'Create', 'url' => '/new', 'primary' => true ),
+					array( 'label' => 'Create', 'url' => '/new', 'category' => 'create', 'icon' => 'plus' ),
 					array( 'label' => 'No URL' ),
 					'not an array',
 				),
 			)
 		);
 
-		$this->assertStringContainsString( '<div class="ffc-empty-state__actions"><a href="/clear" class="button">Clear</a><a href="/new" class="button button-primary">Create</a></div>', $html );
+		$this->assertStringContainsString( '<div class="ffc-empty-state__actions"><a href="/clear" class="ffc-btn ffc-btn-neutral">Clear</a><a href="/new" class="ffc-btn ffc-btn-create ffc-icon-plus">Create</a></div>', $html );
 		$this->assertStringNotContainsString( 'No URL', $html );
 	}
 
@@ -579,6 +579,22 @@ class AdminUITest extends TestCase {
 		$this->assertStringContainsString( 'id="thm-2" name="cfg[theme]" value="on" checked', $html );
 		$this->assertSame( 1, substr_count( $html, ' checked' ) );
 		$this->assertStringContainsString( '<label class="ffc-control-segmented-option"><input type="radio" id="thm-3" name="cfg[theme]" value="auto"><span class="ffc-control-segmented-label">Auto</span></label>', $html );
+	}
+
+	/**
+	 * `allow_none` (#1901): a value no option describes checks nothing, and
+	 * the default does not stand in for it; a value that is an option is
+	 * still checked.
+	 */
+	public function test_segmented_allow_none_checks_nothing_for_an_unknown_value(): void {
+		foreach ( array( null, '', 'mixed' ) as $value ) {
+			$html = $this->segmented( array( 'value' => $value, 'default' => 'on', 'allow_none' => true ) );
+			$this->assertSame( 3, substr_count( $html, 'type="radio"' ) );
+			$this->assertStringNotContainsString( ' checked', $html, var_export( $value, true ) );
+		}
+
+		$this->assertSame( 1, substr_count( $this->segmented( array( 'value' => 'auto', 'allow_none' => true ) ), 'value="auto" checked' ) );
+		$this->assertSame( 1, substr_count( $this->segmented( array( 'value' => 'mixed' ) ), 'value="off" checked' ), 'without it the first option still stands in' );
 	}
 
 	public function test_segmented_layout_parameters_become_classes(): void {

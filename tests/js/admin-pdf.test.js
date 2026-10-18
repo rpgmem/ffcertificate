@@ -10,6 +10,15 @@ function installFFC() {
 	window.FFC = {
 		version: '6.6.1',
 		registerModule: vi.fn(),
+		// The shape of FFC.button() in ffc-core.js, for the modal's Cancel.
+		button: (o) => {
+			const b = document.createElement('button');
+			b.type = 'button';
+			b.id = o.id || '';
+			b.className = 'ffc-btn ffc-btn-' + (o.category || 'neutral') + ' ffc-icon-' + o.icon;
+			b.textContent = o.label;
+			return b;
+		},
 		Admin: {
 			notify: vi.fn(),
 		},

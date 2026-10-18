@@ -400,7 +400,7 @@ class FormListColumnsTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-icon-file', $html );
 		$this->assertStringContainsString( 'No forms yet', $html );
-		$this->assertStringContainsString( '<a href="https://example.test/wp-admin/post-new.php?post_type=ffc_form" class="button button-primary">Add New Form</a>', $html );
+		$this->assertStringContainsString( '<a href="https://example.test/wp-admin/post-new.php?post_type=ffc_form" class="ffc-btn ffc-btn-create ffc-icon-plus">Add New Form</a>', $html );
 	}
 
 	public function test_empty_state_hides_the_create_button_from_who_cannot_create(): void {
@@ -417,7 +417,7 @@ class FormListColumnsTest extends TestCase {
 			$html = $this->empty_state_for( $get );
 			$this->assertStringContainsString( 'ffc-icon-search', $html );
 			$this->assertStringContainsString( 'No forms match', $html );
-			$this->assertStringContainsString( '<a href="/cleared" class="button">Clear Filter</a>', $html );
+			$this->assertStringContainsString( '<a href="/cleared" class="ffc-btn ffc-btn-neutral ffc-icon-eraser">Clear Filter</a>', $html );
 		}
 	}
 

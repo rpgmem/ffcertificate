@@ -4,67 +4,16 @@
    ========================================================================== */
  
 /* ==========================================================================
-   BUTTONS - MODERN STYLE
+   ROW ACTIONS
+   The Edit / PDF / Trash / Restore / Delete buttons are the .ffc-btn family
+   (#1904): the category paints them, so the gradient PDF, the red Delete and
+   the green Restore that overrode core's `.button` with `!important` left
+   with it. What stays is the column's spacing.
    ========================================================================== */
 
-/* Edit Button - Primary Blue */
-.ffc-table-responsive .button {
+.ffc-submission-row-action {
     margin-right: var(--ffc-spacing-xs);
     margin-bottom: var(--ffc-spacing-2xs);
-    display: inline-block;
-    vertical-align: middle;
-    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
-    border-radius: var(--ffc-radius-sm);
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.ffc-table-responsive .button:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--ffc-shadow-md);
-}
-
-/* PDF Button - Modern Gradient */
-.ffc-table-responsive a[title*="PDF"] {
-    background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%) !important;
-    border-color: var(--ffc-primary-hover) !important;
-    color: var(--ffc-text-on-primary) !important;
-    box-shadow: var(--ffc-shadow-md);
-}
-
-.ffc-table-responsive .button[title*="PDF"]:hover {
-    background: linear-gradient(135deg, var(--ffc-primary-hover) 0%, var(--ffc-primary-hover) 100%) !important;
-    border-color: var(--ffc-primary-hover) !important;
-    box-shadow: var(--ffc-shadow-md);
-    transform: translateY(-1px);
-}
-
-/* Delete Button - Danger Red */
-.ffc-delete-btn {
-    background: var(--ffc-danger) !important;
-    border-color: var(--ffc-danger-hover) !important;
-    color: var(--ffc-text-on-danger) !important;
-    box-shadow: var(--ffc-shadow-md);
-}
-
-.ffc-delete-btn:hover {
-    background: var(--ffc-danger-hover) !important;
-    border-color: var(--ffc-danger-text) !important;
-    box-shadow: var(--ffc-shadow-md);
-}
-
-/* Restore Button - Success Green */
-.ffc-table-responsive .button[href*="action=restore"] {
-    background: var(--ffc-success) !important;
-    border-color: var(--ffc-success-hover) !important;
-    color: var(--ffc-text-on-success) !important;
-    box-shadow: var(--ffc-shadow-md);
-}
-
-.ffc-table-responsive .button[href*="action=restore"]:hover {
-    background: var(--ffc-success-hover) !important;
-    border-color: var(--ffc-success-hover) !important;
-    box-shadow: var(--ffc-shadow-md);
 }
 
 /* ==========================================================================
@@ -161,19 +110,14 @@
    ========================================================================== */
 
 @media screen and (max-width: 782px) {
-    .ffc-table-responsive .button {
-        margin-bottom: var(--ffc-spacing-xs);
-        display: block;
+    .ffc-submission-row-action {
+        display: flex;
         width: 100%;
-        text-align: center;
+        margin-bottom: var(--ffc-spacing-xs);
     }
     
     .ffc-table-responsive td.column-actions {
         padding: var(--ffc-spacing-md);
-    }
-    
-    .ffc-page-submissions .button::before {
-        margin-right: var(--ffc-spacing-xs);
     }
 }
 
@@ -287,10 +231,6 @@
     border-top: 1px solid var(--ffc-border);
 }
 
-.ffc-filter-btn .ffc-icon-filter {
-    font-size: var(--ffc-font-size-lg);
-}
-
 /* ==========================================================================
    ADMIN TOP ACTIONS - MODERN
    ========================================================================== */
@@ -305,17 +245,6 @@
 
 .ffc-admin-top-actions form {
     display: inline-block;
-}
-
-.ffc-admin-top-actions .button {
-    box-shadow: var(--ffc-shadow-sm);
-    border-radius: var(--ffc-radius-sm);
-    font-weight: 500;
-}
-
-.ffc-admin-top-actions .button:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--ffc-shadow-md);
 }
 
 /* ==========================================================================
@@ -349,9 +278,11 @@
     pointer-events: none;
 }
 
-/* Tooltip arrow - only for buttons without emoji icons */
-.button[title]:not([title*="PDF"]):not([href*="action=edit"]):not([href*="action=trash"]):not([href*="action=restore"]):not(.ffc-delete-btn):hover::before,
-.button[title]:not([title*="PDF"]):not([href*="action=edit"]):not([href*="action=trash"]):not([href*="action=restore"]):not(.ffc-delete-btn):focus-visible::before {
+/* Tooltip arrow - only for buttons whose `::before` is free: a registry icon
+   class draws its mask there. The list of row buttons this used to exclude by
+   href left with them (#1904). */
+.ffc-admin-page .button[title]:not([class*="ffc-icon-"]):hover::before,
+.ffc-admin-page .button[title]:not([class*="ffc-icon-"]):focus-visible::before {
     content: '';
     position: absolute;
     bottom: 100%;
@@ -377,7 +308,6 @@
    ========================================================================== */
 
 .ffc-table-responsive table.wp-list-table tbody tr,
-.ffc-table-responsive .button,
 .ffc-empty-data,
 .ffc-data-preview {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -392,19 +322,11 @@
     outline-offset: 2px;
 }
 
-.ffc-delete-btn:focus {
-    outline-color: var(--ffc-danger);
-}
-
 /* ==========================================================================
    REDUCED MOTION
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
-    .ffc-table-responsive .button {
-        transition: none;
-    }
-
     .ffc-table-responsive tbody tr {
         transition: none;
     }
@@ -415,7 +337,7 @@
    ========================================================================== */
 
 @media print {
-    .ffc-table-responsive .button {
+    .ffc-submission-row-action {
         display: none;
     }
     
@@ -431,11 +353,6 @@
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Controls: without a contour, a button stops looking clickable. */
-    .ffc-delete-btn {
-        border: 1px solid ButtonText;
-    }
-
     /* Status badges: the text still says the state; the border
        gives them their badge shape back. */
     .ffc-badge-muted,

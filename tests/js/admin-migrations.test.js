@@ -47,8 +47,8 @@ beforeEach(() => {
 			</div>
 			<div class="ffc-migration-actions">
 				<a href="?ffc_run_migration=my_migration&_wpnonce=x"
-				   class="button button-primary"
-				   data-confirm="Run my_migration?"><span></span>Run Migration</a>
+				   class="ffc-btn ffc-btn-caution ffc-icon-sync ffc-migration-run"
+				   data-confirm="Run my_migration?">Run Migration</a>
 				<p class="description">Click once to process all records automatically.</p>
 			</div>
 		</div>
@@ -66,7 +66,7 @@ describe('FFC admin-migrations — batch loop', () => {
 			processed: 100, total: 5000, migrated: 100, pending: 4900, percent: 2.0, is_complete: true,
 		});
 
-		window.$('.ffc-migration-actions a.button-primary').trigger('click');
+		window.$('.ffc-migration-actions a.ffc-migration-run').trigger('click');
 		await Promise.resolve(); await Promise.resolve();
 
 		expect(requestSpy).toHaveBeenCalledWith('ffc_migration_run_batch', {
@@ -79,7 +79,7 @@ describe('FFC admin-migrations — batch loop', () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const requestSpy = vi.spyOn(window.FFC, 'request');
 
-		window.$('.ffc-migration-actions a.button-primary').trigger('click');
+		window.$('.ffc-migration-actions a.ffc-migration-run').trigger('click');
 
 		expect(requestSpy).not.toHaveBeenCalled();
 	});
@@ -92,7 +92,7 @@ describe('FFC admin-migrations — batch loop', () => {
 			.mockResolvedValueOnce({ processed: 100, total: 5000, migrated: 200, pending: 4800, percent: 4.0,  is_complete: false })
 			.mockResolvedValueOnce({ processed: 32,  total: 5000, migrated: 232, pending: 4768, percent: 4.64, is_complete: true });
 
-		window.$('.ffc-migration-actions a.button-primary').trigger('click');
+		window.$('.ffc-migration-actions a.ffc-migration-run').trigger('click');
 		// First batch resolves.
 		await vi.runAllTicks(); await Promise.resolve(); await Promise.resolve();
 		// Advance the 300ms setTimeout for second batch.
@@ -114,7 +114,7 @@ describe('FFC admin-migrations — batch loop', () => {
 			processed: 100, total: 5000, migrated: 100, pending: 4900, percent: 2.0, is_complete: true,
 		});
 
-		window.$('.ffc-migration-actions a.button-primary').trigger('click');
+		window.$('.ffc-migration-actions a.ffc-migration-run').trigger('click');
 		await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
 
 		const $card = window.$('.ffc-migration-card');
@@ -131,23 +131,50 @@ describe('FFC admin-migrations — batch loop', () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('DB down'));
 
-		const $btn = window.$('.ffc-migration-actions a.button-primary');
+		const $btn = window.$('.ffc-migration-actions a.ffc-migration-run');
 		const originalHtml = $btn.html();
 		$btn.trigger('click');
 		await Promise.resolve(); await Promise.resolve();
 
-		expect($btn.prop('disabled')).toBe(false);
-		// Button HTML restored to original (span + label text).
+		expect($btn.hasClass('disabled')).toBe(false);
+		expect($btn.hasClass('ffc-btn-loading')).toBe(false);
+		expect($btn.attr('aria-disabled')).toBeUndefined();
+		// The label is restored; the icon rides on the class.
 		expect($btn.html()).toBe(originalHtml);
 		expect(window.$('.ffc-migration-actions .description').text()).toContain('DB down');
 	});
 
+	it('shows the busy state while the batches run', async () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'request').mockReturnValue(new Promise(() => {}));
+
+		const $btn = window.$('.ffc-migration-actions a.ffc-migration-run');
+		$btn.trigger('click');
+
+		expect($btn.hasClass('ffc-btn-loading')).toBe(true);
+		expect($btn.attr('aria-disabled')).toBe('true');
+		expect($btn.text()).toBe('Processing...');
+	});
+
+	it('swaps the icon to success when the walk completes', async () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'request').mockResolvedValue({ processed: 1, total: 1, migrated: 1, pending: 0, percent: 100, is_complete: true });
+
+		const $btn = window.$('.ffc-migration-actions a.ffc-migration-run');
+		$btn.trigger('click');
+		await Promise.resolve(); await Promise.resolve();
+
+		expect($btn.hasClass('ffc-icon-success')).toBe(true);
+		expect($btn.hasClass('ffc-icon-sync')).toBe(false);
+		expect($btn.hasClass('ffc-btn-loading')).toBe(false);
+	});
+
 	it('skips when href has no ffc_run_migration query (defensive)', () => {
-		document.querySelector('.button-primary').setAttribute('href', '#');
+		document.querySelector('.ffc-migration-run').setAttribute('href', '#');
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const requestSpy = vi.spyOn(window.FFC, 'request');
 
-		window.$('.ffc-migration-actions a.button-primary').trigger('click');
+		window.$('.ffc-migration-actions a.ffc-migration-run').trigger('click');
 
 		expect(requestSpy).not.toHaveBeenCalled();
 	});

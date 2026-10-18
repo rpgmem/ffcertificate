@@ -179,35 +179,6 @@ class MagicLinkHelper {
 	}
 
 	/**
-	 * Get magic link HTML (for display in admin)
-	 *
-	 * @param string $token Magic token.
-	 * @param bool   $with_copy_button Include copy button.
-	 * @return string HTML output
-	 */
-	public static function get_magic_link_html( string $token, bool $with_copy_button = true ): string {
-		if ( empty( $token ) ) {
-			return '<em>' . __( 'No magic token', 'ffcertificate' ) . '</em>';
-		}
-
-		$magic_link = self::generate_magic_link( $token );
-
-		$html  = '<a href="' . esc_url( $magic_link ) . '" target="_blank" class="ffc-magic-link">';
-		$html .= esc_html( $magic_link );
-		$html .= '</a>';
-
-		if ( $with_copy_button ) {
-			$html .= ' <button type="button" class="button button-small ffc-copy-magic-link" ';
-			$html .= 'data-url="' . esc_attr( $magic_link ) . '" ';
-			$html .= 'title="' . esc_attr__( 'Copy to clipboard', 'ffcertificate' ) . '">';
-			$html .= '<span class="ffc-icon-clipboard"></span>' . __( 'Copy', 'ffcertificate' );
-			$html .= '</button>';
-		}
-
-		return $html;
-	}
-
-	/**
 	 * Generate QR code URL for magic link
 	 *
 	 * @param string $token Magic token.

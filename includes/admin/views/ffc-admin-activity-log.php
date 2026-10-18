@@ -50,13 +50,26 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 					</select>
 				<?php endif; ?>
 
-				<input type="submit" class="button" value="<?php esc_attr_e( 'Filter', 'ffcertificate' ); ?>">
-
-				<?php if ( $level || $action || $search ) : ?>
-					<a href="<?php echo esc_url( $ffcertificate_base_url ); ?>" class="button">
-						<?php esc_html_e( 'Clear Filters', 'ffcertificate' ); ?>
-					</a>
-				<?php endif; ?>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Filter', 'ffcertificate' ),
+						'icon'  => 'filter',
+						'type'  => 'submit',
+					)
+				);
+				if ( $level || $action || $search ) {
+					// `ffc-log-clear` is the hook ffc-admin-activity-log.js resets the filters on.
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Clear Filters', 'ffcertificate' ),
+							'icon'  => 'eraser',
+							'href'  => $ffcertificate_base_url,
+							'class' => 'ffc-log-clear',
+						)
+					);
+				}
+				?>
 			</form>
 		</div>
 
@@ -73,7 +86,15 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 				<?php endif; ?>
 				<label for="ffc-log-search" class="screen-reader-text"><?php esc_html_e( 'Search activity logs', 'ffcertificate' ); ?></label>
 				<input type="search" id="ffc-log-search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search logs...', 'ffcertificate' ); ?>">
-				<input type="submit" class="button" value="<?php esc_attr_e( 'Search', 'ffcertificate' ); ?>">
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Search', 'ffcertificate' ),
+						'icon'  => 'search',
+						'type'  => 'submit',
+					)
+				);
+				?>
 			</form>
 
 			<?php
@@ -82,15 +103,21 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 			// current filters ride along via data-* so the export matches the
 			// on-screen query. No nonce link; the job nonce is localized.
 			?>
-			<button
-				type="button"
-				id="ffc-activitylog-export-btn"
-				class="button"
-				data-level="<?php echo esc_attr( (string) $level ); ?>"
-				data-log_action="<?php echo esc_attr( (string) $action ); ?>"
-				data-s="<?php echo esc_attr( (string) $search ); ?>">
-				<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
-			</button>		</div>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label' => __( 'Export CSV', 'ffcertificate' ),
+					'icon'  => 'download',
+					'id'    => 'ffc-activitylog-export-btn',
+					'attrs' => array(
+						'data-level'      => (string) $level,
+						'data-log_action' => (string) $action,
+						'data-s'          => (string) $search,
+					),
+				)
+			);
+			?>
+		</div>
 	</div>
 
 	<!-- Logs Table -->

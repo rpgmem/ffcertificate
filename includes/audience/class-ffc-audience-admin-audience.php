@@ -121,21 +121,31 @@ class AudienceAdminAudience {
 				'allow_self_join' => ! empty( $_POST['audience_self_join'] ) ? 1 : 0,
 			);
 
+			// A top-level audience with children posts the four-option choice
+			// (#1901) instead of the switch: the field is present, empty while
+			// the descendants disagree and nothing was picked, which changes
+			// neither the audience's own flag nor any descendant's.
+			$scope = isset( $_POST['audience_self_join_scope'] ) && empty( $data['parent_id'] )
+				? RequestInput::get_post_string( 'audience_self_join_scope' )
+				: null;
+			if ( null !== $scope ) {
+				unset( $data['allow_self_join'] );
+			}
+
 			if ( $id > 0 ) {
 				AudienceWriter::update( $id, $data );
 
-				// A top-level audience's own self-join no longer cascades
-				// (#1896): its children and grandchildren take the separate
-				// choice, which a mixed state leaves untouched.
-				if ( empty( $data['parent_id'] ) ) {
-					$descendants = RequestInput::get_post_string( 'audience_descendants_self_join' );
-					if ( '1' === $descendants || '0' === $descendants ) {
-						AudienceWriter::cascade_self_join( $id, (int) $descendants );
-					}
+				if ( null !== $scope && '' !== $scope ) {
+					AudienceWriter::apply_self_join_scope( $id, $scope );
 				}
 
 				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Audience updated successfully.', 'ffcertificate' ), 'success' );
 			} else {
+				// A new group under an audience takes the audience's choice
+				// for its children and grandchildren (#1901), not the switch.
+				if ( ! empty( $data['parent_id'] ) ) {
+					unset( $data['allow_self_join'] );
+				}
 				$new_id = AudienceWriter::create( $data );
 				if ( $new_id ) {
 					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $new_id . '&message=created' ) );

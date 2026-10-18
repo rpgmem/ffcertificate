@@ -78,17 +78,17 @@ class AudienceRecordAutosave {
 			array(
 				'cap'    => 'ffc_manage_audiences',
 				'fields' => array(
-					'status'                => array(
+					'status'          => array(
 						'type' => 'map',
 						'map'  => array(
 							1 => 'active',
 							0 => 'inactive',
 						),
 					),
-					'allow_self_join'       => array( 'type' => 'bool' ),
-					'descendants_self_join' => array(
+					'allow_self_join' => array( 'type' => 'bool' ),
+					'self_join_scope' => array(
 						'type'    => 'enum',
-						'options' => array( '1', '0', AudienceReader::DESCENDANTS_SELF_JOIN_MIXED ),
+						'options' => AudienceSelfJoinScope::values(),
 					),
 				),
 				'exists' => static fn( int $id ): bool => null !== AudienceReader::get_by_id( $id ),
@@ -113,28 +113,29 @@ class AudienceRecordAutosave {
 	}
 
 	/**
-	 * Save one audience field. Self-join is set on a top-level audience only,
-	 * in two choices (#1896): `allow_self_join` is the audience's own and does
-	 * not cascade; `descendants_self_join` is applied to every child and
-	 * grandchild, except `mixed`, which leaves them as they are.
+	 * Save one audience field. Self-join is set on a top-level audience only
+	 * (#1901): `allow_self_join` is the single switch of an audience without
+	 * children, and `self_join_scope` the four-option choice of one with
+	 * children, which writes the audience's own flag and every child's and
+	 * grandchild's.
 	 *
 	 * @param int    $id    Audience id.
-	 * @param string $key   Column, or `descendants_self_join`.
+	 * @param string $key   Column, or `self_join_scope`.
 	 * @param mixed  $value Typed value.
 	 * @return true|\WP_Error
 	 */
 	public static function save_audience( int $id, string $key, $value ) {
-		if ( 'allow_self_join' === $key || 'descendants_self_join' === $key ) {
+		if ( 'allow_self_join' === $key || 'self_join_scope' === $key ) {
 			$audience = AudienceReader::get_by_id( $id );
 			if ( null === $audience || ! empty( $audience->parent_id ) ) {
 				return new \WP_Error( 'ffc_record_not_saved', __( 'Self-join is set on the parent audience.', 'ffcertificate' ) );
 			}
 		}
 
-		// No column holds it: the choice is written to the descendants' rows.
-		if ( 'descendants_self_join' === $key ) {
-			if ( '1' === $value || '0' === $value ) {
-				AudienceWriter::cascade_self_join( $id, (int) $value );
+		// No column holds it: the choice is written as two flags.
+		if ( 'self_join_scope' === $key ) {
+			if ( ! AudienceWriter::apply_self_join_scope( $id, (string) $value ) ) {
+				return new \WP_Error( 'ffc_record_not_saved', __( 'The audience could not be saved.', 'ffcertificate' ) );
 			}
 			return true;
 		}

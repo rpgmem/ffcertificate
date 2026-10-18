@@ -46,10 +46,10 @@ beforeEach(() => {
 			<table class="wp-list-table widefat fixed striped">
 				<tbody>
 					<tr id="row-1"><td><input type="checkbox" name="submission[]" value="1"></td><td class="actions">
-						<a href="edit.php?page=ffc-submissions&action=trash&submission_id=1&_wpnonce=n1" class="button button-small">Trash</a>
+						<a href="edit.php?page=ffc-submissions&action=trash&submission_id=1&_wpnonce=n1" class="ffc-btn ffc-btn-danger ffc-icon-delete ffc-submission-row-action">Trash</a>
 					</td></tr>
 					<tr id="row-2"><td><input type="checkbox" name="submission[]" value="2"></td><td class="actions">
-						<a href="edit.php?page=ffc-submissions&action=delete&submission_id=2&_wpnonce=n2" class="button button-small ffc-delete-btn" data-confirm="Permanently delete?">Delete</a>
+						<a href="edit.php?page=ffc-submissions&action=delete&submission_id=2&_wpnonce=n2" class="ffc-btn ffc-btn-danger ffc-icon-delete ffc-submission-row-action" data-confirm="Permanently delete?">Delete</a>
 					</td></tr>
 					<tr id="row-3"><td><input type="checkbox" name="submission[]" value="3"></td><td></td></tr>
 				</tbody>
@@ -196,7 +196,7 @@ describe('Submissions bulk — per-row buttons', () => {
 	it('intercepts a per-row Trash click and posts a single-id payload', async () => {
 		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ message: '1 submission moved to trash.' });
 
-		window.$('#row-1 a.button-small').trigger('click');
+		window.$('#row-1 a.ffc-submission-row-action').trigger('click');
 		await Promise.resolve(); await Promise.resolve();
 
 		expect(requestSpy).toHaveBeenCalledWith('ffc_submissions_bulk_action', {
@@ -211,7 +211,7 @@ describe('Submissions bulk — per-row buttons', () => {
 		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const requestSpy = vi.spyOn(window.FFC, 'request');
 
-		window.$('#row-2 a.button-small').trigger('click');
+		window.$('#row-2 a.ffc-submission-row-action').trigger('click');
 
 		expect(confirmSpy).toHaveBeenCalledWith('Permanently delete?');
 		expect(requestSpy).not.toHaveBeenCalled();
@@ -223,7 +223,7 @@ describe('Submissions bulk — per-row buttons', () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ message: '1 submission permanently deleted.' });
 
-		window.$('#row-2 a.button-small').trigger('click');
+		window.$('#row-2 a.ffc-submission-row-action').trigger('click');
 		await Promise.resolve(); await Promise.resolve();
 
 		expect(requestSpy.mock.calls[0][1]).toMatchObject({ action_name: 'delete', ids: [2] });
@@ -234,13 +234,13 @@ describe('Submissions bulk — per-row buttons', () => {
 		document.body.innerHTML = `
 			<table><tr id="row-x">
 				<td>
-					<a href="edit.php?page=ffc-submissions&action=edit&submission_id=99" class="button-small">Edit</a>
+					<a href="edit.php?page=ffc-submissions&action=edit&submission_id=99" class="ffc-btn ffc-btn-neutral ffc-icon-edit ffc-submission-row-action">Edit</a>
 				</td>
 			</tr></table>
 		`;
 		const requestSpy = vi.spyOn(window.FFC, 'request');
 
-		window.$('#row-x a.button-small').trigger('click');
+		window.$('#row-x a.ffc-submission-row-action').trigger('click');
 
 		expect(requestSpy).not.toHaveBeenCalled();
 	});
@@ -249,12 +249,12 @@ describe('Submissions bulk — per-row buttons', () => {
 		document.body.innerHTML = `
 			<table><tr id="row-y">
 				<td>
-					<a href="edit.php?page=some-other-page&action=trash&submission_id=5" class="button button-small">Trash</a>
+					<a href="edit.php?page=some-other-page&action=trash&submission_id=5" class="ffc-btn ffc-btn-danger ffc-icon-delete ffc-submission-row-action">Trash</a>
 				</td>
 			</tr></table>
 		`;
 		const requestSpy = vi.spyOn(window.FFC, 'request');
-		window.$('#row-y a.button-small').trigger('click');
+		window.$('#row-y a.ffc-submission-row-action').trigger('click');
 		expect(requestSpy).not.toHaveBeenCalled();
 	});
 });

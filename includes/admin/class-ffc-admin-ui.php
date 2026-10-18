@@ -342,6 +342,9 @@ class AdminUI {
 	 *     label, 2 to 6 of them; keep the labels short);
 	 *   - `value` (the chosen value) and `default` (shown when `value` is not
 	 *     one of the options; the first option otherwise);
+	 *   - `allow_none` (bool): when `value` is not one of the options, no
+	 *     option is checked and `default` is ignored -- for a stored state no
+	 *     option describes, which the caller explains beside the control;
 	 *   - `id` (base id, derived from `name`) and `legend` (the group's name,
 	 *     read by screen readers);
 	 *   - `descriptions` (value => text; the chosen one shows under the row);
@@ -359,7 +362,7 @@ class AdminUI {
 		$default  = (string) ( $args['default'] ?? '' );
 		$default  = in_array( $default, $values, true ) ? $default : $values[0];
 		$value    = (string) ( $args['value'] ?? '' );
-		$value    = in_array( $value, $values, true ) ? $value : $default;
+		$value    = in_array( $value, $values, true ) || ! empty( $args['allow_none'] ) ? $value : $default;
 		$base_id  = self::control_id( $args, $name );
 		$data     = self::control_data_attrs( $args );
 		$disabled = ! empty( $args['disabled'] ) ? ' disabled' : '';
@@ -539,7 +542,8 @@ class AdminUI {
 	 *                                    without the `ffc-icon-` prefix, default
 	 *                                    `inbox`), `title` (required string), `text`
 	 *                                    (optional string), `actions` (optional list
-	 *                                    of `{label, url, primary?}`).
+	 *                                    of `{label, url, category?, icon?}`, drawn
+	 *                                    as `.ffc-btn` links, neutral by default).
 	 * @return string
 	 */
 	public static function get_empty_state( array $args ): string {
@@ -563,11 +567,13 @@ class AdminUI {
 			if ( ! is_array( $action ) || empty( $action['label'] ) || empty( $action['url'] ) ) {
 				continue;
 			}
-			$links .= sprintf(
-				'<a href="%s" class="button%s">%s</a>',
-				esc_url( (string) $action['url'] ),
-				empty( $action['primary'] ) ? '' : ' button-primary',
-				esc_html( (string) $action['label'] )
+			$links .= self::button(
+				array(
+					'label'    => (string) $action['label'],
+					'href'     => (string) $action['url'],
+					'category' => (string) ( $action['category'] ?? 'neutral' ),
+					'icon'     => (string) ( $action['icon'] ?? '' ),
+				)
 			);
 		}
 		if ( '' !== $links ) {

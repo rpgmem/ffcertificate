@@ -142,7 +142,16 @@ class AudienceAdminCalendar {
 		?>
 		<h1 class="wp-heading-inline"><?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?></h1>
 		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
-		<a href="<?php echo esc_url( $add_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label'    => __( 'Add New', 'ffcertificate' ),
+					'category' => 'create',
+					'icon'     => 'plus',
+					'href'     => $add_url,
+				)
+			);
+			?>
 		<?php endif; ?>
 		<hr class="wp-header-end">
 
@@ -631,9 +640,17 @@ class AudienceAdminCalendar {
 						<div id="ffc-user-search-results" class="ffc-aud-user-dropdown"></div>
 					</div>
 					<div>
-						<button type="button" id="ffc-add-user-btn" class="button button-secondary" disabled>
-							<?php esc_html_e( 'Add User', 'ffcertificate' ); ?>
-						</button>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Add User', 'ffcertificate' ),
+								'category' => 'create',
+								'icon'     => 'user-plus',
+								'id'       => 'ffc-add-user-btn',
+								'disabled' => true,
+							)
+						);
+						?>
 					</div>
 				</div>
 				<input type="hidden" id="ffc-selected-user-id" value="">
@@ -698,7 +715,18 @@ class AudienceAdminCalendar {
 						<input type="text" name="holiday_description" id="holiday_description" class="regular-text" placeholder="<?php esc_attr_e( 'e.g., Christmas Day', 'ffcertificate' ); ?>">
 					</div>
 					<div>
-						<?php submit_button( __( 'Add Holiday', 'ffcertificate' ), 'secondary', 'submit', false ); ?>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Add Holiday', 'ffcertificate' ),
+								'category' => 'create',
+								'icon'     => 'plus',
+								'type'     => 'submit',
+								'name'     => 'submit',
+								'value'    => __( 'Add Holiday', 'ffcertificate' ),
+							)
+						);
+						?>
 					</div>
 				</div>
 			</form>
@@ -730,10 +758,18 @@ class AudienceAdminCalendar {
 									admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&action=edit&id=' . $id . '&delete_holiday=' . $holiday->id ),
 									'delete_holiday_' . $holiday->id
 								);
+								// The confirm is ffc-core's delegated `[data-confirm]` (#1904),
+								// not an inline onclick the family refuses.
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label'    => __( 'Delete', 'ffcertificate' ),
+										'category' => 'danger',
+										'icon'     => 'delete',
+										'href'     => $delete_url,
+										'attrs'    => array( 'data-confirm' => __( 'Delete this holiday?', 'ffcertificate' ) ),
+									)
+								);
 								?>
-								<a href="<?php echo esc_url( $delete_url ); ?>" class="button button-small" onclick="return confirm('<?php esc_attr_e( 'Delete this holiday?', 'ffcertificate' ); ?>');">
-									<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
-								</a>
 							</td>
 							<?php endif; ?>
 						</tr>
@@ -753,7 +789,17 @@ class AudienceAdminCalendar {
 			<div class="card">
 				<h2 class="ffc-icon-save"><?php esc_html_e( 'Save', 'ffcertificate' ); ?></h2>
 				<?php // Outside the form it posts, so it names the form. ?>
-				<?php submit_button( $id > 0 ? __( 'Update Calendar', 'ffcertificate' ) : __( 'Create Calendar', 'ffcertificate' ), 'primary', 'submit', true, array( 'form' => 'ffc-schedule-form' ) ); ?>
+				<?php
+				$save_label = $id > 0 ? __( 'Update Calendar', 'ffcertificate' ) : __( 'Create Calendar', 'ffcertificate' );
+				\FreeFormCertificate\Admin\AdminUI::render_save_button(
+					$save_label,
+					array(
+						'icon'  => $id > 0 ? 'save' : 'plus',
+						'value' => $save_label,
+						'attrs' => array( 'form' => 'ffc-schedule-form' ),
+					)
+				);
+				?>
 			</div>
 			<?php endif; ?>
 			<?php if ( $id > 0 ) : ?>
@@ -814,7 +860,16 @@ class AudienceAdminCalendar {
 				</td>
 			<?php endforeach; ?>
 			<td>
-				<button type="button" class="button button-small button-link-delete ffc-remove-user-btn"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Remove', 'ffcertificate' ),
+						'category' => 'danger',
+						'icon'     => 'user-minus',
+						'class'    => 'ffc-remove-user-btn',
+					)
+				);
+				?>
 			</td>
 		</tr>
 		<?php

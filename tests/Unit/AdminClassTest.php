@@ -314,7 +314,7 @@ class AdminClassTest extends TestCase {
 		$html = ob_get_clean();
 
 		$this->assertStringContainsString( 'Export All CSV', $html );
-		$this->assertStringContainsString( 'class="button"', $html );
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-download" id="ffc-csv-export-btn"', $html );
 	}
 
 	public function test_render_list_page_export_filtered_button_with_filters(): void {
@@ -333,7 +333,8 @@ class AdminClassTest extends TestCase {
 		$html = ob_get_clean();
 
 		$this->assertStringContainsString( 'Export Filtered CSV', $html );
-		$this->assertStringContainsString( 'button-primary', $html );
+		// Neutral either way: exporting is not the screen's work (#1904).
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-download" id="ffc-csv-export-btn"', $html );
 		$this->assertStringContainsString( 'data-status="trash"', $html );
 	}
 

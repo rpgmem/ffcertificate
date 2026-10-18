@@ -202,16 +202,6 @@
     margin-top: var(--ffc-spacing-md);
 }
 
-.ffc-unlink-user-btn {
-    color: var(--ffc-danger);
-    border-color: var(--ffc-danger);
-}
-
-.ffc-unlink-user-btn:hover {
-    background: var(--ffc-danger);
-    color: var(--ffc-text-on-danger);
-    border-color: var(--ffc-danger);
-}
 
 /* User search section */
 .ffc-user-search-form {

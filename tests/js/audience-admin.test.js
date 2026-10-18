@@ -164,6 +164,66 @@ describe('audience-admin — colour picker hex text', () => {
 });
 
 // ----------------------------------------------------------------------
+// bindEvents — a new audience under a parent inherits self-join (#1901)
+// ----------------------------------------------------------------------
+
+describe('audience-admin — new audience inherits self-join from its parent', () => {
+	function form(parent) {
+		document.body.innerHTML = `
+			<form>
+				<select id="audience_parent">
+					<option value="">None</option>
+					<option value="3" ${'3' === parent ? 'selected' : ''}>Parent</option>
+				</select>
+				<p class="ffc-self-join-inherits" hidden>Inherits from the audience above.</p>
+				<div class="ffc-self-join-own"><input type="checkbox" name="audience_self_join"></div>
+			</form>
+		`;
+	}
+
+	it('shows the switch while no parent is picked', async () => {
+		form('');
+		await reload();
+
+		expect(window.$('.ffc-self-join-inherits').prop('hidden')).toBe(true);
+		expect(window.$('.ffc-self-join-own').prop('hidden')).toBe(false);
+	});
+
+	it('swaps the switch for the inherit line when a parent is picked, and back', async () => {
+		form('');
+		await reload();
+
+		window.$('#audience_parent').val('3').trigger('change');
+		expect(window.$('.ffc-self-join-inherits').prop('hidden')).toBe(false);
+		expect(window.$('.ffc-self-join-own').prop('hidden')).toBe(true);
+
+		window.$('#audience_parent').val('').trigger('change');
+		expect(window.$('.ffc-self-join-inherits').prop('hidden')).toBe(true);
+		expect(window.$('.ffc-self-join-own').prop('hidden')).toBe(false);
+	});
+
+	it('starts on the inherit line when the form opens with a parent picked', async () => {
+		form('3');
+		await reload();
+
+		expect(window.$('.ffc-self-join-inherits').prop('hidden')).toBe(false);
+		expect(window.$('.ffc-self-join-own').prop('hidden')).toBe(true);
+	});
+
+	it('leaves an edit form without the inherit line alone', async () => {
+		document.body.innerHTML = `
+			<form>
+				<select id="audience_parent"><option value="3" selected>Parent</option></select>
+				<div class="ffc-self-join-own"></div>
+			</form>
+		`;
+		await reload();
+
+		expect(window.$('.ffc-self-join-own').prop('hidden')).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
 // initUserSearch — autocomplete for audience-group member management
 // ----------------------------------------------------------------------
 
