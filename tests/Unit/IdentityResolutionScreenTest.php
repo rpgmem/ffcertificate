@@ -290,4 +290,45 @@ class IdentityResolutionScreenTest extends TestCase {
 		$this->assertSame( array( $one['current'] ), IdentityResolutionScreen::shown( $one ) );
 		$this->assertSame( $list['items'], IdentityResolutionScreen::shown( $list ) );
 	}
+
+	/**
+	 * The toggle keeps every other listed tier and flips this one.
+	 */
+	public function test_the_list_toggle_flips_one_tier_and_keeps_the_others(): void {
+		$screen = new IdentityResolutionScreen(
+			array(
+				self::panel( IdentityQueue::TIER_MECHANICAL, 2, 'mech-1', true ),
+				self::panel( IdentityQueue::TIER_SHARED, 3, '', true ),
+				self::panel( IdentityQueue::TIER_ISOLATED, 1 ),
+			),
+			array(),
+			array(),
+			array(),
+			0
+		);
+
+		$this->assertSame( array( IdentityQueue::TIER_MECHANICAL ), $screen->toggle( IdentityQueue::TIER_SHARED, true ), 'A listing panel leaves the list.' );
+		$this->assertSame(
+			array( IdentityQueue::TIER_MECHANICAL, IdentityQueue::TIER_SHARED, IdentityQueue::TIER_ISOLATED ),
+			$screen->toggle( IdentityQueue::TIER_ISOLATED, false ),
+			'A stepping panel joins the list, after the ones already in it.'
+		);
+	}
+
+	/**
+	 * The acknowledgement is owed only to the finding the refusal named.
+	 */
+	public function test_a_refusal_is_owed_to_the_finding_it_named_only(): void {
+		$refusal = array(
+			'type'    => 'error',
+			'text'    => 'Refused',
+			'code'    => 'ffc_identity_repair_unacknowledged',
+			'subject' => 'hashI',
+		);
+
+		$this->assertTrue( IdentityResolutionScreen::refused( $refusal, 'hashI' ) );
+		$this->assertFalse( IdentityResolutionScreen::refused( $refusal, 'hashJ' ), 'Another finding was not refused.' );
+		$this->assertFalse( IdentityResolutionScreen::refused( array_merge( $refusal, array( 'code' => 'other' ) ), 'hashI' ), 'Another refusal asks for nothing.' );
+		$this->assertFalse( IdentityResolutionScreen::refused( false, 'hashI' ), 'No outcome refuses nothing.' );
+	}
 }

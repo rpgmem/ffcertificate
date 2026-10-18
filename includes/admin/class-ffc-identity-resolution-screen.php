@@ -336,6 +336,39 @@ final class IdentityResolutionScreen {
 	}
 
 	/**
+	 * The tiers a panel's "list / one at a time" toggle leaves listed.
+	 *
+	 * The toggle carries every OTHER listed tier plus or minus this one, so
+	 * one category can be scanned whole while the rest stay one at a time.
+	 *
+	 * @param string $tier    The panel's tier.
+	 * @param bool   $listing Whether that panel is listing now.
+	 * @return array<int, string>
+	 */
+	public function toggle( string $tier, bool $listing ): array {
+		$others = array_values( array_diff( $this->listed, array( $tier ) ) );
+
+		return $listing ? $others : array_merge( $others, array( $tier ) );
+	}
+
+	/**
+	 * Whether the last write was refused for want of an acknowledgement, on
+	 * this finding.
+	 *
+	 * What decides that a correction's acknowledgement box is drawn already
+	 * checked-for, rather than hidden behind a preflight (#1478, #1487).
+	 *
+	 * @param mixed  $outcome The outcome the last handler left, or false.
+	 * @param string $subject The finding a form acts on.
+	 * @return bool
+	 */
+	public static function refused( $outcome, string $subject ): bool {
+		return is_array( $outcome )
+			&& 'ffc_identity_repair_unacknowledged' === (string) ( $outcome['code'] ?? '' )
+			&& (string) ( $outcome['subject'] ?? '' ) === $subject;
+	}
+
+	/**
 	 * What a panel renders: the one finding it is on, or all of them.
 	 *
 	 * @param array<string, mixed> $panel The panel.
