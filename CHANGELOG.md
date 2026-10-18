@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Admin action icons and a ratchet on core button classes** (#1904). Sixteen registry icons (unlink, merge, split, move, user-plus, ticket, template save/load, …) and `CoreButtonClassRatchetTest`, freezing WordPress's `.button*`, `page-title-action` and `submit_button()` per file.
+
 ### Changed
 
 - **Every toggle shows its on/off mark** (#1873). The ✓/✗ on the knob is now `AdminUI::render_toggle()`'s default, and the hand-built toggles (user dashboard notifications, template visibility) carry it too; `'mark' => false` opts a toggle out.
