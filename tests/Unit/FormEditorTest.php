@@ -23,6 +23,10 @@ class FormEditorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -259,8 +263,8 @@ class FormEditorTest extends TestCase {
 		$editor->enqueue_scripts( 'post.php' );
 
 		$this->assertArrayHasKey( 'ffc-admin-autosave', $enqueued, 'The metabox toggles have no listener without this script.' );
-		$this->assertContains( 'ffc-core', $enqueued['ffc-admin-autosave'], 'The widget calls FFC.request, which ffc-core defines.' );
-		$this->assertContains( 'ffc-admin-js', $enqueued['ffc-admin-autosave'], 'The widget attaches to the FFC.Admin namespace ffc-admin.js creates.' );
+		// Its dependencies on ffc-core and ffc-admin-js are declared once, in
+		// AssetRegistry, and asserted there (#1931).
 		$this->assertArrayHasKey( 'ffc-core', $enqueued );
 
 		$this->assertArrayHasKey( 'ffcFormMetaAutosave', $localized );

@@ -68,13 +68,7 @@ class SelfSchedulingEditor {
 		// uses to carry `required` with the four blocks it shows and hides
 		// (#1117). Without it the editor still works — the sync is guarded
 		// — but a hidden required field would block the save.
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			'ffc-calendar-editor',
 			FFC_PLUGIN_URL . "assets/js/ffc-calendar-editor{$s}.js",
@@ -84,13 +78,7 @@ class SelfSchedulingEditor {
 		);
 
 		// "Restore Default Text" for the Confirmation Email Body editor (#662).
-		wp_enqueue_script(
-			'ffc-email-restore-default',
-			FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-email-restore-default' );
 		wp_localize_script(
 			'ffc-email-restore-default',
 			'ffcEmailRestoreDefaults',
@@ -122,13 +110,7 @@ class SelfSchedulingEditor {
 			FFC_VERSION
 		);
 		AdminUI::enqueue_vertical_tabs();
-		wp_enqueue_script(
-			'ffc-admin-sections',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-sections{$s}.js",
-			array(),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-sections' );
 
 		wp_enqueue_style(
 			'ffc-calendar-editor',

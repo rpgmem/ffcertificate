@@ -296,31 +296,11 @@ abstract class SettingsTab {
 	 * inputs (toggles, etc.) backed by `SettingsAjaxEndpoint`.
 	 */
 	protected function enqueue_autosave_infra(): void {
-		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-admin-autosave',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-admin-autosave' );
 		// Section-collapse helper — wires `data-ffc-section-master` /
 		// `data-ffc-section` so the standard "hide subsections when the
 		// master toggle is off" UX works on every tab without bespoke JS.
-		wp_enqueue_script(
-			'ffc-section-collapse',
-			FFC_PLUGIN_URL . "assets/js/ffc-section-collapse{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-section-collapse' );
 		// Endpoint-specific nonce — the global ffc_ajax.nonce is created
 		// for `ffc_admin_pdf_nonce` and won't verify against
 		// `SettingsAjaxEndpoint::AJAX_ACTION` (`ffc_update_setting`).

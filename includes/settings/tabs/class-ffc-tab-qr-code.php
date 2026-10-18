@@ -65,13 +65,7 @@ class TabQrCode extends SettingsTab {
 		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 		wp_enqueue_style( 'ffc-qr-design-fields', FFC_PLUGIN_URL . "assets/css/ffc-qr-design-fields{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 
-		wp_enqueue_script(
-			self::SCRIPT_HANDLE,
-			FFC_PLUGIN_URL . "assets/js/ffc-qr-design{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( self::SCRIPT_HANDLE );
 		wp_localize_script(
 			self::SCRIPT_HANDLE,
 			'ffcQrDesign',

@@ -21,6 +21,10 @@ class AdminUITest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( '__' )->returnArg();
@@ -693,7 +697,7 @@ class AdminUITest extends TestCase {
 		$this->assertContains( 'ffc-core', $enqueued[1][2] );
 		$this->assertSame(
 			array( array( 'ffc-form-editor-tabs', false, array( 'ffc-vertical-tabs' ) ) ),
-			$registered,
+			array_values( array_filter( $registered, static fn( $r ) => 'ffc-form-editor-tabs' === $r[0] ) ),
 			'The handle the script had before #1788 must stay a source-less alias until its removal release.'
 		);
 	}

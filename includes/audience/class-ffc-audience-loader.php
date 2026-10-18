@@ -282,20 +282,7 @@ class AudienceLoader {
 		// Bookings page: the batched CSV export button drives the shared
 		// window.FFCBatchedExport engine (#772) via the unified dispatcher.
 		if ( 'ffc-scheduling-bookings' === $page ) {
-			wp_enqueue_script(
-				'ffc-core',
-				FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-				array( 'jquery' ),
-				FFC_VERSION,
-				true
-			);
-			wp_enqueue_script(
-				'ffc-batched-export',
-				FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
-				array( 'jquery', 'ffc-core' ),
-				FFC_VERSION,
-				true
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-batched-export' );
 			// Shared progress-overlay modal styles (#786): the batched-export
 			// driver renders window.FFCProgressOverlay, identical to the public
 			// download.
@@ -326,34 +313,7 @@ class AudienceLoader {
 		// Autosave infra so the "Create users…" toggle on the CSV import tab
 		// (and any future autosave-keyed input on scheduling pages) binds
 		// to SettingsAjaxEndpoint. Mirrors SettingsTab::enqueue_autosave_infra().
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-admin-js',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-admin-autosave',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-section-collapse',
-			FFC_PLUGIN_URL . "assets/js/ffc-section-collapse{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-admin-js', 'ffc-admin-autosave', 'ffc-section-collapse' );
 		wp_localize_script(
 			'ffc-admin-autosave',
 			'ffcAdminAutosave',
@@ -401,13 +361,7 @@ class AudienceLoader {
 		// Frontend JS. `ffc-core` provides window.FFC.request() used by
 		// ffc-audience.js — without it, the AJAX call near the bottom of
 		// the file throws `FFC is not defined` and breaks the calendar.
-		wp_enqueue_script(
-			'ffc-audience',
-			FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-audience' );
 	}
 
 	/**

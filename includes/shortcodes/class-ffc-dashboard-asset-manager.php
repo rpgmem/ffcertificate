@@ -112,13 +112,13 @@ class DashboardAssetManager {
 		wp_enqueue_script( 'ffc-dashboard-reregistrations', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-reregistrations{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
 		// `ffc-field-behaviours` masks the profile's phone like the
 		// reregistration form's.
-		wp_enqueue_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-field-behaviours' );
 		wp_enqueue_script( 'ffc-dashboard-profile', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-profile{$s}.js", array( 'ffc-dashboard', 'ffc-field-behaviours' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-audience-join', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-audience-join{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-profile' ), FFC_VERSION, true );
 
 		// Working hours field component (shared).
 		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
-		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-working-hours' );
 		wp_localize_script(
 			'ffc-working-hours',
 			'ffcWorkingHours',

@@ -247,13 +247,7 @@ final class DateMessagesAdminPage {
 		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 
 		$defaults = MessageBuilder::defaults();
-		wp_enqueue_script(
-			'ffc-email-restore-default',
-			FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$suffix}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-email-restore-default' );
 		wp_localize_script(
 			'ffc-email-restore-default',
 			'ffcEmailRestoreDefaults',

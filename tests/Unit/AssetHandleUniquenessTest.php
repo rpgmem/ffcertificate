@@ -85,6 +85,22 @@ final class AssetHandleUniquenessTest extends TestCase {
 		$this->assertGreaterThan( (int) ( 0.9 * $count ), count( $this->asset_calls() ), 'Most calls name a file of ours; far fewer means the path reader broke.' );
 	}
 
+	/**
+	 * The registry's map is read as text; the count must match the map PHP
+	 * itself holds, or a shape the reading missed would leave its files out.
+	 */
+	public function test_the_registry_reading_matches_the_registry(): void {
+		$scripts = ( new \ReflectionClassConstant( \FreeFormCertificate\Core\AssetRegistry::class, 'SCRIPTS' ) )->getValue();
+		$bundles = array( 'html2canvas', 'jspdf' );
+
+		$read = array_column( AssetEnqueues::registered(), 'asset', 'handle' );
+
+		$this->assertSame( array_merge( array_keys( $scripts ), $bundles ), array_keys( $read ) );
+		$this->assertNotContains( null, $read, 'Every registered handle names a file of ours.' );
+		$this->assertSame( 'assets/js/ffc-frontend-helpers.js', $read['ffc-rate-limit'] );
+		$this->assertSame( 'libs/js/jspdf-{FFC_JSPDF_VERSION}.umd.min.js', $read['jspdf'] );
+	}
+
 	public function test_the_path_reader_normalises_every_suffix_shape(): void {
 		$this->assertSame( 'assets/js/ffc-core.js', AssetEnqueues::asset( 'FFC_PLUGIN_URL."assets/js/ffc-core{$s}.js"' ) );
 		$this->assertSame( 'assets/js/ffc-core.js', AssetEnqueues::asset( 'FFC_PLUGIN_URL."assets/js/ffc-core{$ffc_s}.js"' ) );
@@ -113,7 +129,12 @@ final class AssetHandleUniquenessTest extends TestCase {
 	 * @return list<array{file: string, line: int, function: string, handle: ?string, asset: ?string, self_named: bool}>
 	 */
 	private function asset_calls(): array {
-		return array_values( array_filter( AssetEnqueues::calls(), static fn ( array $c ): bool => null !== $c['asset'] ) );
+		return array_values(
+			array_filter(
+				array_merge( AssetEnqueues::calls(), AssetEnqueues::registered() ),
+				static fn ( array $c ): bool => null !== $c['asset']
+			)
+		);
 	}
 
 	/**

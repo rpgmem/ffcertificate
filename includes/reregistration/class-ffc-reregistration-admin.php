@@ -215,20 +215,7 @@ class ReregistrationAdmin {
 		// Shared batched-export driver (#772): the submissions "Export CSV" button
 		// drives the unified ffc_export_* dispatcher through window.FFCBatchedExport,
 		// which needs FFC.request from ffc-core.
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-batched-export',
-			FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-batched-export' );
 		// Shared progress-overlay modal styles (#786): the batched-export driver
 		// renders window.FFCProgressOverlay, identical to the public download.
 		wp_enqueue_style(
@@ -338,9 +325,7 @@ class ReregistrationAdmin {
 
 		// Enqueue PDF libraries on submissions view.
 		if ( 'submissions' === $view ) {
-			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
-			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', array(), FFC_JSPDF_VERSION, true );
-			wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.min.js', array( 'html2canvas', 'jspdf' ), FFC_VERSION, true );
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'html2canvas', 'jspdf', 'ffc-pdf-generator' );
 		}
 	}
 

@@ -44,6 +44,10 @@ class AdminUserCustomFieldsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		class_exists('\\FreeFormCertificate\\Admin\\AdminUserCustomFields');
 
@@ -1127,7 +1131,8 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		AdminUserCustomFields::enqueue_assets('user-edit.php');
 
-		$this->assertSame( array( 'jquery', 'ffc-core' ), $scripts['ffc-field-behaviours'] ?? null );
+		// Its dependencies are AssetRegistry's to declare (#1931).
+		$this->assertArrayHasKey( 'ffc-field-behaviours', $scripts );
 		$this->assertSame( array( 'jquery', 'ffc-field-behaviours' ), $scripts['ffc-admin-user-fields'] ?? null );
 		$this->assertSame( 'I hold', $localize['ffcAdminUserFields']['strings']['dualPostShowValue'] ?? null );
 	}

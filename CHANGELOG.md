@@ -49,6 +49,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Linked-user actions below the card** (#1914). On the submission edit screen the account email's Reveal and View Profile join Unlink and Link to Another User in one row below the user card, and the email loses its stray parentheses.
 - **No mask shows a value in clear** (#1920). A CPF, RF or e-mail that did not fit its shape, and a 9-digit RG, were printed unmasked; such values now mask as `a***`. The IP Diagnostics tab and the profile's birth date used shapes of their own; they use the shared ones.
 - **A page with a certificate form and a personal calendar loads each shared file once** (#1922). The calendar enqueued `ffc-frontend-helpers.js` and `ffc-frontend.css` under handles of its own, so both loaded twice and the helpers ran two copies of their state. It now uses the form's handles, and a guard refuses one asset file under two handles.
+- **One registration per shared script** (#1931). Scripts more than one screen loads are declared once in `Core\AssetRegistry` and enqueued by handle, so a screen can no longer win with its own path or dependencies; the QR raster and short-URL scripts now load minified in production, and the reregistration PDF follows `SCRIPT_DEBUG`.
 
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 
