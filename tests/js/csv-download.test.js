@@ -738,7 +738,7 @@ describe('csv-download — schedule exception modal', () => {
 		const $confirm = window.$('.ffc-schedule-exception-confirm');
 		expect($confirm.hasClass('ffc-btn')).toBe(true);
 		expect($confirm.hasClass('ffc-btn-caution')).toBe(true);
-		expect($confirm.hasClass('ffc-icon-user-check')).toBe(true);
+		expect($confirm.hasClass('ffc-icon-user-clock')).toBe(true);
 		expect(window.$('.ffc-schedule-exception-modal [class*="ffc-info-btn"]').length).toBe(0);
 	});
 
@@ -1125,7 +1125,7 @@ describe('csv-info-screen — status messages + disabled button variants', () =>
 		['.ffc-btn-cert-preview', 'neutral', 'eye'],
 		['.ffc-btn-open-early', 'caution', 'clock'],
 		['.ffc-btn-extend-end', 'caution', 'calendar-check'],
-		['.ffc-btn-schedule-exception', 'caution', 'user-check'],
+		['.ffc-btn-schedule-exception', 'caution', 'user-clock'],
 		['.ffc-btn-download-csv', 'primary', 'download'],
 		['.ffc-info-back', 'neutral', 'chevron-left'],
 	];

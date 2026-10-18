@@ -117,6 +117,9 @@ final class Icons {
 		'layout'         => '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
 		'qr'             => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20.5 14v.01M14 20.5h.01M17.5 20.5H21v-3.5"/>',
 		'user-check'     => '<circle cx="10" cy="8" r="4"/><path d="M3 21c1.4-3.8 4-5.8 7-5.8 1.6 0 3 .5 4.2 1.5M15.5 18.5l2 2 4-4.5"/>',
+		// A schedule exception: a time opened for one participant (#1881),
+		// chosen by the maintainer from three options.
+		'user-clock'     => '<circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 9-5.2"/><circle cx="17" cy="16" r="4.5"/><path d="M17 14v2l1.5 1"/>',
 		'history'        => '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7.5V12l3 2"/>',
 		'gauge'          => '<path d="M4.2 17a9 9 0 1 1 15.6 0"/><path d="M12.9 12.8L16 8.5"/><circle cx="12" cy="14" r="1.6"/>',
 		'network'        => '<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/>',
@@ -258,6 +261,7 @@ final class Icons {
 		'upload'         => 'upload',
 		'user'           => 'user',
 		'user-check'     => 'user-check',
+		'user-clock'     => 'user-clock',
 		'users'          => 'users',
 		'warning'        => 'warning',
 		'wrench'         => 'wrench',
