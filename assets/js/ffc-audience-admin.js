@@ -41,6 +41,20 @@
                 $(this).siblings('.ffc-color-input-value, .ffc-color-value').text(this.value);
             });
 
+            // New audience: a group picked as parent hands its self-join
+            // choice down (#1901), so the switch gives way to a line saying so.
+            $(document).on('change', '#audience_parent', function() {
+                var form = $(this).closest('form');
+                var inherits = form.find('.ffc-self-join-inherits');
+                if (!inherits.length) {
+                    return;
+                }
+                var hasParent = '' !== $(this).val();
+                inherits.prop('hidden', !hasParent);
+                form.find('.ffc-self-join-own').prop('hidden', hasParent);
+            });
+            $('#audience_parent').trigger('change');
+
             // User search (audience group member management)
             this.initUserSearch();
 

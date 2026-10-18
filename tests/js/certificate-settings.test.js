@@ -108,15 +108,17 @@ describe('required-data autosave', () => {
 		expect(JSON.parse(payload.value)[0]).toEqual({ name: 'name', label: 'Full Name', type: 'text', form: true, html: false });
 	});
 
-	it('saves when a label is typed and when a row is removed', () => {
+	it('saves when a label is typed and when a row is removed', async () => {
 		const post = boot();
 
+		// The async variant also settles the first save's promise: a field
+		// keeps one save in flight, so the second would otherwise queue.
 		window.$('[name="ffc_settings[required_data][0][label]"]').val('Name').trigger('input');
-		vi.advanceTimersByTime(400);
+		await vi.advanceTimersByTimeAsync(400);
 		expect(JSON.parse(post.mock.calls[0][1].value)[0].label).toBe('Name');
 
 		window.$('.ffc-required-data-remove').eq(0).trigger('click');
-		vi.advanceTimersByTime(400);
+		await vi.advanceTimersByTimeAsync(400);
 		expect(post).toHaveBeenCalledTimes(2);
 		expect(JSON.parse(post.mock.calls[1][1].value).map((r) => r.name)).toEqual(['email', 'schedule']);
 	});

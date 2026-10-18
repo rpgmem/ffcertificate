@@ -402,6 +402,8 @@ class SelfSchedulingShortcodeTest extends TestCase {
 
 		// Booking form is replaced by the scheduling-restricted message.
 		$this->assertStringContainsString( 'ffc-scheduling-restricted', $result );
+		$this->assertStringContainsString( 'ffc-notice ffc-notice-warning', $result );
+		$this->assertStringContainsString( 'Please log in to book.', $result );
 		$this->assertStringNotContainsString( 'ffc-self-scheduling-form', $result );
 	}
 }

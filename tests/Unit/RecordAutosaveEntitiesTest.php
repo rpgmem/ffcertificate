@@ -72,13 +72,13 @@ class RecordAutosaveEntitiesTest extends TestCase {
 			array_keys( $schedule['fields'] )
 		);
 		$this->assertSame( array( 1 => 'public', 0 => 'private' ), $schedule['fields']['visibility']['map'] );
-		$this->assertSame( array( 'status', 'allow_self_join', 'descendants_self_join' ), array_keys( $this->registered['audience']['fields'] ) );
+		$this->assertSame( array( 'status', 'allow_self_join', 'self_join_scope' ), array_keys( $this->registered['audience']['fields'] ) );
 		$this->assertSame(
 			array(
 				'type'    => 'enum',
-				'options' => array( '1', '0', 'mixed' ),
+				'options' => array( 'off', 'self', 'all', 'descendants' ),
 			),
-			$this->registered['audience']['fields']['descendants_self_join']
+			$this->registered['audience']['fields']['self_join_scope']
 		);
 	}
 
@@ -107,46 +107,48 @@ class RecordAutosaveEntitiesTest extends TestCase {
 	}
 
 	/**
-	 * @return iterable<string, array{0: string, 1: int}>
+	 * @return iterable<string, array{0: string}>
 	 */
-	public static function descendants_choices(): iterable {
-		yield 'on' => array( '1', 1 );
-		yield 'off' => array( '0', 0 );
+	public static function scope_choices(): iterable {
+		foreach ( array( 'off', 'self', 'all', 'descendants' ) as $scope ) {
+			yield $scope => array( $scope );
+		}
 	}
 
 	/**
-	 * @dataProvider descendants_choices
+	 * The four-option choice (#1901) goes through the writer, which sets the
+	 * audience's own flag and every descendant's.
 	 *
-	 * @param string $value    The posted choice.
-	 * @param int    $cascaded The flag written to every descendant.
+	 * @dataProvider scope_choices
+	 *
+	 * @param string $scope The chosen option.
 	 */
-	public function test_the_descendants_choice_cascades_and_leaves_the_parent_row_alone( string $value, int $cascaded ): void {
+	public function test_the_scope_choice_is_applied_through_the_writer( string $scope ): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
 			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null ) );
 		$writer = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 		$writer->shouldNotReceive( 'update' );
-		$writer->shouldReceive( 'cascade_self_join' )->once()->with( 9, $cascaded );
+		$writer->shouldReceive( 'apply_self_join_scope' )->once()->with( 9, $scope )->andReturn( true );
 
-		$this->assertTrue( AudienceRecordAutosave::save_audience( 9, 'descendants_self_join', $value ) );
+		$this->assertTrue( AudienceRecordAutosave::save_audience( 9, 'self_join_scope', $scope ) );
 	}
 
-	public function test_a_mixed_descendants_choice_writes_nothing(): void {
+	public function test_a_failed_scope_write_is_an_error(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
 			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null ) );
-		$writer = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$writer->shouldNotReceive( 'update' );
-		$writer->shouldNotReceive( 'cascade_self_join' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'apply_self_join_scope' )->once()->andReturn( false );
 
-		$this->assertTrue( AudienceRecordAutosave::save_audience( 9, 'descendants_self_join', 'mixed' ) );
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_audience( 9, 'self_join_scope', 'all' ) );
 	}
 
-	public function test_the_descendants_choice_on_a_child_audience_is_refused(): void {
+	public function test_the_scope_choice_on_a_child_audience_is_refused(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
 			->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 9, 'parent_id' => 3 ) );
 		$writer = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$writer->shouldNotReceive( 'cascade_self_join' );
+		$writer->shouldNotReceive( 'apply_self_join_scope' );
 
-		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_audience( 9, 'descendants_self_join', '1' ) );
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_audience( 9, 'self_join_scope', 'all' ) );
 	}
 
 	public function test_self_join_on_a_child_audience_is_refused(): void {
