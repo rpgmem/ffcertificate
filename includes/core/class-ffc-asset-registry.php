@@ -52,7 +52,7 @@ final class AssetRegistry {
 	 * reasons, that screen enqueues it first; it is not added here, or every
 	 * other screen would load it too.
 	 *
-	 * @var array<string, array{0: string, 1: list<string>}>
+	 * @var array<non-empty-string, array{0: non-empty-string, 1: list<non-empty-string>}>
 	 */
 	private const SCRIPTS = array(
 		'ffc-core'                  => array( 'assets/js/ffc-core', array( 'jquery' ) ),
@@ -191,8 +191,8 @@ final class AssetRegistry {
 	 * says so by returning false, which is what keeps `ffcCoreConfig` from
 	 * being localized twice: it is attached only by the call that registered.
 	 *
-	 * @param string $handle A handle; one this class does not know is left alone.
-	 * @param string $s      The asset suffix, read once by the caller.
+	 * @param non-empty-string $handle A handle; one this class does not know is left alone.
+	 * @param string           $s      The asset suffix, read once by the caller.
 	 * @return void
 	 */
 	private static function register( string $handle, string $s ): void {
@@ -224,7 +224,7 @@ final class AssetRegistry {
 	 * The file name carries the version, so bumping the constant without
 	 * renaming the file 404s loudly instead of serving the old bundle (#1203).
 	 *
-	 * @return array<string, array{0: string, 1: string}>
+	 * @return array<non-empty-string, array{0: non-empty-string, 1: string}>
 	 */
 	private static function bundles(): array {
 		return array(
