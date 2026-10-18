@@ -131,14 +131,29 @@ class DocumentFormatter {
 			return false;
 		}
 
-		// THE SETTING IS THE FILTER'S DEFAULT, NOT A SECOND SWITCH
-		//
-		// The same shape as `ffc_ip_resolver_mode`, whose documentation says
-		// it is "normally set from the IP Diagnostics tab": an administrator
-		// decides from the screen, and code can still override. Two
-		// independent switches would mean an operator turning it on in the
-		// admin while a filter silently keeps it off, with nothing on the
-		// page saying so.
+		if ( ! self::rf_check_digit_enforced() ) {
+			return true;
+		}
+
+		return self::rf_check_digit_matches( $rf );
+	}
+
+	/**
+	 * Whether an RF must also carry a matching check digit: what
+	 * {@see validate_rf()} enforces, and what the browser is told so its
+	 * check agrees with the server's (#1920).
+	 *
+	 * THE SETTING IS THE FILTER'S DEFAULT, NOT A SECOND SWITCH. The same shape
+	 * as `ffc_ip_resolver_mode`, whose documentation says it is "normally set
+	 * from the IP Diagnostics tab": an administrator decides from the screen,
+	 * and code can still override. Two independent switches would mean an
+	 * operator turning it on in the admin while a filter silently keeps it
+	 * off, with nothing on the page saying so.
+	 *
+	 * @since 6.41.0
+	 * @return bool
+	 */
+	public static function rf_check_digit_enforced(): bool {
 		$enforce = SettingsReader::get_bool( self::SETTING_CHECK_DIGIT, false );
 
 		/**
@@ -147,11 +162,7 @@ class DocumentFormatter {
 		 * @since 6.28.2
 		 * @param bool $enforce The `validate_rf_check_digit` setting; false unless an administrator turned it on.
 		 */
-		if ( ! apply_filters( 'ffc_validate_rf_check_digit', $enforce ) ) {
-			return true;
-		}
-
-		return self::rf_check_digit_matches( $rf );
+		return (bool) apply_filters( 'ffc_validate_rf_check_digit', $enforce );
 	}
 
 	/**
@@ -344,15 +355,219 @@ class DocumentFormatter {
 		}
 	}
 
+	// ─────────────────────────────────────────────.
+	// REDACTION (#1920).
+	//
+	// One rule per kind of personal data. A caller names the kind, or a
+	// field key that {@see kind_for_key()} maps to one, and gets back the
+	// one masked shape for that kind. No mask ever returns its input: a
+	// value that does not fit its kind's shape falls back to the generic
+	// mask, so a malformed stored value never reaches a page in clear.
+	// ─────────────────────────────────────────────.
+
 	/**
-	 * Mask CPF/RF for privacy
+	 * A CPF, or a CPF/RF field told apart by its length (11 or 7 digits).
+	 *
+	 * @since 6.41.0
+	 */
+	public const MASK_CPF = 'cpf';
+
+	/**
+	 * A functional registration (RF).
+	 *
+	 * @since 6.41.0
+	 */
+	public const MASK_RF = 'rf';
+
+	/**
+	 * A national identity card number (CIN, formerly RG).
+	 *
+	 * @since 6.41.0
+	 */
+	public const MASK_CIN = 'cin';
+
+	/**
+	 * An email address.
+	 *
+	 * @since 6.41.0
+	 */
+	public const MASK_EMAIL = 'email';
+
+	/**
+	 * A phone number.
+	 *
+	 * @since 6.41.0
+	 */
+	public const MASK_PHONE = 'phone';
+
+	/**
+	 * A person's name. Never picked by a field key: whether a name is masked
+	 * is the screen's decision (#1863), so a caller asks for it by kind.
+	 *
+	 * @since 6.41.0
+	 */
+	public const MASK_NAME = 'name';
+
+	/**
+	 * A date of birth.
+	 *
+	 * @since 6.41.0
+	 */
+	public const MASK_BIRTH_DATE = 'birth_date';
+
+	/**
+	 * An IP address.
+	 *
+	 * @since 6.41.0
+	 */
+	public const MASK_IP = 'ip';
+
+	/**
+	 * Any other personal value.
+	 *
+	 * @since 6.41.0
+	 */
+	public const MASK_GENERIC = 'generic';
+
+	/**
+	 * Field key => kind: the one list of keys that carry personal data in
+	 * every module, read by the masks, the exports and the emails alike.
+	 * The keys are stored values (form field names, profile keys,
+	 * reregistration `field_key`s), which is why some are Portuguese.
+	 */
+	private const KEY_KINDS = array(
+		'cpf'                 => self::MASK_CPF,
+		'cpf_rf'              => self::MASK_CPF,
+		'rf'                  => self::MASK_RF,
+		'rg'                  => self::MASK_CIN,
+		'cin'                 => self::MASK_CIN,
+		'email'               => self::MASK_EMAIL,
+		'user_email'          => self::MASK_EMAIL,
+		'account_email'       => self::MASK_EMAIL,
+		'email_institucional' => self::MASK_EMAIL,
+		'phone'               => self::MASK_PHONE,
+		'telefone'            => self::MASK_PHONE,
+		'celular'             => self::MASK_PHONE,
+		'birth_date'          => self::MASK_BIRTH_DATE,
+		'data_nascimento'     => self::MASK_BIRTH_DATE,
+		'ip'                  => self::MASK_IP,
+		'user_ip'             => self::MASK_IP,
+	);
+
+	/**
+	 * Input mask (a custom field's `field_mask` or validation format) =>
+	 * kind, so a custom field holding a CPF or a phone under a key of its own
+	 * still gets that kind's mask.
+	 */
+	private const INPUT_MASK_KINDS = array(
+		'cpf'   => self::MASK_CPF,
+		'rf'    => self::MASK_RF,
+		'cin'   => self::MASK_CIN,
+		'phone' => self::MASK_PHONE,
+		'email' => self::MASK_EMAIL,
+	);
+
+	/**
+	 * The kind of personal data a field key carries, or null when the key
+	 * is not personal.
+	 *
+	 * @since 6.41.0
+	 * @param string $field_key  Field or column key.
+	 * @param string $input_mask The field's input mask or format, when it has one.
+	 * @return string|null One of the MASK_* kinds.
+	 */
+	public static function kind_for_key( string $field_key, string $input_mask = '' ): ?string {
+		if ( '' !== $input_mask && isset( self::INPUT_MASK_KINDS[ $input_mask ] ) ) {
+			return self::INPUT_MASK_KINDS[ $input_mask ];
+		}
+		return self::KEY_KINDS[ $field_key ] ?? null;
+	}
+
+	/**
+	 * Mask a value as its kind.
+	 *
+	 * @since 6.41.0
+	 * @param string $kind  One of the MASK_* kinds; an unknown one masks as generic.
+	 * @param string $value Clear value.
+	 * @return string Masked value, or '' for an empty input.
+	 */
+	public static function mask( string $kind, string $value ): string {
+		switch ( $kind ) {
+			case self::MASK_CPF:
+				return self::mask_cpf( $value );
+			case self::MASK_RF:
+				return self::mask_rf( $value );
+			case self::MASK_CIN:
+				return self::mask_cin( $value );
+			case self::MASK_EMAIL:
+				return self::mask_email( $value );
+			case self::MASK_PHONE:
+				return self::mask_phone( $value );
+			case self::MASK_NAME:
+				return self::mask_name( $value );
+			case self::MASK_BIRTH_DATE:
+				return self::mask_birth_date( $value );
+			case self::MASK_IP:
+				return self::mask_ip( $value );
+			default:
+				return self::mask_generic( $value );
+		}
+	}
+
+	/**
+	 * The shape of a kind's mask with no data in it, for a value that is
+	 * shown masked before it is decrypted (the reveal fetches the real one).
+	 *
+	 * @since 6.41.0
+	 * @param string $kind One of the MASK_* kinds.
+	 * @return string
+	 */
+	public static function mask_placeholder( string $kind ): string {
+		switch ( $kind ) {
+			case self::MASK_CPF:
+				return '***.***.***-**';
+			case self::MASK_RF:
+				return '***.***-*';
+			case self::MASK_CIN:
+				return '**.***.***-*';
+			case self::MASK_EMAIL:
+				return '***@***';
+			case self::MASK_PHONE:
+				return '(**) *****-****';
+			case self::MASK_BIRTH_DATE:
+				return '**/**/****';
+			default:
+				return '***';
+		}
+	}
+
+	/**
+	 * The generic mask: the first character, then `***`.
+	 *
+	 * @since 6.41.0
+	 * @param string $value Clear value.
+	 * @return string Masked value, or '' for an empty input.
+	 */
+	public static function mask_generic( string $value ): string {
+		$value = trim( $value );
+		if ( '' === $value ) {
+			return '';
+		}
+		$first = function_exists( 'mb_substr' ) ? mb_substr( $value, 0, 1 ) : substr( $value, 0, 1 );
+		return $first . '***';
+	}
+
+	/**
+	 * Mask a CPF (`123.***.***-45`), or an RF entered in a CPF/RF field
+	 * (7 digits, `123.***-4`).
 	 *
 	 * @since 2.10.0
+	 * @since 6.41.0 A value of any other length masks as generic instead of being returned.
 	 * @param string $value CPF or RF to mask.
-	 * @return string Masked document
+	 * @return string Masked document, or '' for an empty input.
 	 */
 	public static function mask_cpf( string $value ): string {
-		if ( empty( $value ) ) {
+		if ( '' === trim( $value ) ) {
 			return '';
 		}
 
@@ -360,67 +575,126 @@ class DocumentFormatter {
 
 		if ( strlen( $clean ) === 11 ) {
 			return substr( $clean, 0, 3 ) . '.***.***-' . substr( $clean, -2 );
-		} elseif ( strlen( $clean ) === 7 ) {
-			return substr( $clean, 0, 3 ) . '.***-' . substr( $clean, -1 );
+		}
+		if ( strlen( $clean ) === 7 ) {
+			return self::mask_rf( $clean );
 		}
 
-		return $value;
+		return self::mask_generic( $value );
 	}
 
 	/**
-	 * Mask RF (Registro Funcional) for privacy.
+	 * Mask an RF (Registro Funcional): the first three digits and the last,
+	 * in the shape it is typed in, `123.***-4`.
 	 *
-	 * RF is a Brazilian employee/civil-servant registration number whose
-	 * length varies by state and agency (typically 4–15 digits). Unlike CPF,
-	 * there is no canonical national format, so this mask is length-agnostic:
-	 *
-	 *   - input < 4 digits → returned unchanged (too short to mask meaningfully)
-	 *   - input ≥ 4 digits → first 3 digits, then `***`, then last 1 digit
-	 *
-	 * Non-digit characters are stripped before masking. The result format is
-	 * dot-separated to match the visual style of {@see self::mask_cpf()}:
-	 * `XXX.***.X` for typical 7-digit RFs, `XXX.***.X` for longer RFs too.
-	 *
-	 * Used by the recruitment public shortcode (sprint 11) when the
-	 * `rf_masked` column is opted-in via `notice.public_columns_config`, and
-	 * by the candidate-self dashboard (sprint 12).
+	 * RF length varies by agency, so the shape is the same for any length;
+	 * a value under six digits would show most of itself through that shape
+	 * and masks as generic instead.
 	 *
 	 * @since 6.0.0
+	 * @since 6.41.0 `123.***-4` (was `123.***.4`); short values mask as generic.
 	 * @param string $value RF to mask (with or without punctuation).
-	 * @return string Masked RF, or the original input when too short.
+	 * @return string Masked RF, or '' for an empty input.
 	 */
 	public static function mask_rf( string $value ): string {
-		if ( '' === $value ) {
+		if ( '' === trim( $value ) ) {
 			return '';
 		}
 
 		$clean = DataSanitizer::normalize_cpf_rf( $value );
 
-		if ( strlen( $clean ) < 4 ) {
-			return $value;
+		if ( strlen( $clean ) < 6 ) {
+			return self::mask_generic( $value );
 		}
 
-		return substr( $clean, 0, 3 ) . '.***.' . substr( $clean, -1 );
+		return substr( $clean, 0, 3 ) . '.***-' . substr( $clean, -1 );
 	}
 
 	/**
-	 * Mask email address for privacy
+	 * Mask a CIN or RG: its first two digits, `12.***.***-*`.
+	 *
+	 * @since 6.41.0
+	 * @param string $value CIN/RG to mask.
+	 * @return string Masked value, or '' for an empty input.
+	 */
+	public static function mask_cin( string $value ): string {
+		if ( '' === trim( $value ) ) {
+			return '';
+		}
+
+		$clean = preg_replace( '/[^0-9Xx]/', '', $value ) ?? '';
+		if ( strlen( $clean ) < 6 ) {
+			return self::mask_generic( $value );
+		}
+
+		return substr( $clean, 0, 2 ) . '.***.***-*';
+	}
+
+	/**
+	 * Mask an email address: the first letter and the domain, `m***@domain`.
 	 *
 	 * @since 3.2.0
+	 * @since 6.41.0 A value that is not an email masks as generic instead of being returned.
 	 * @param string $email Email address to mask.
-	 * @return string Masked email
+	 * @return string Masked email, or '' for an empty input.
 	 */
 	public static function mask_email( string $email ): string {
-		if ( empty( $email ) || ! is_email( $email ) ) {
-			return $email;
+		$email = trim( $email );
+		if ( '' === $email ) {
+			return '';
 		}
 
 		$parts = explode( '@', $email );
-		if ( count( $parts ) !== 2 ) {
-			return $email;
+		if ( ! is_email( $email ) || count( $parts ) !== 2 ) {
+			return self::mask_generic( $email );
 		}
 
 		return substr( $parts[0], 0, 1 ) . '***@' . $parts[1];
+	}
+
+	/**
+	 * Mask a date of birth: the day and month in the site's date format,
+	 * the year hidden (`15/03/****` under `d/m/Y`).
+	 *
+	 * @since 6.41.0
+	 * @param string $value Date as stored (`Y-m-d`) or as typed (`d/m/Y`).
+	 * @return string Masked date, or '' for an empty input.
+	 */
+	public static function mask_birth_date( string $value ): string {
+		$value = trim( $value );
+		if ( '' === $value ) {
+			return '';
+		}
+
+		// A date that does not round-trip (30 February) is not a date.
+		$utc  = new \DateTimeZone( 'UTC' );
+		$date = null;
+		foreach ( array( 'Y-m-d', 'd/m/Y' ) as $shape ) {
+			$parsed = \DateTimeImmutable::createFromFormat( '!' . $shape, $value, $utc );
+			if ( false !== $parsed && $parsed->format( $shape ) === $value ) {
+				$date = $parsed;
+				break;
+			}
+		}
+		if ( null === $date ) {
+			return self::mask_placeholder( self::MASK_BIRTH_DATE );
+		}
+
+		$format = class_exists( DateFormatter::class ) ? DateFormatter::resolve_date_format() : 'd/m/Y';
+		// Every year token becomes escaped asterisks, so the format prints
+		// them literally; a format with no year shows day and month only.
+		$format = strtr(
+			$format,
+			array(
+				'Y' => '\*\*\*\*',
+				'o' => '\*\*\*\*',
+				'y' => '\*\*',
+			)
+		);
+
+		return function_exists( 'wp_date' )
+			? (string) wp_date( $format, $date->getTimestamp(), $utc )
+			: $date->format( $format );
 	}
 
 	/**
@@ -524,67 +798,44 @@ class DocumentFormatter {
 	}
 
 	/**
-	 * Mask any personal value by its field key (#1863): the dedicated mask
-	 * for a key {@see mask_field_value()} knows, a phone mask for a phone, and
-	 * for anything else its first character followed by `***`, so no value
-	 * passed here ever comes back in clear.
+	 * Mask any personal value by its field key (#1863): the mask of the
+	 * key's kind ({@see kind_for_key()}), and the generic mask for a key that
+	 * names none, so no value passed here ever comes back in clear.
 	 *
 	 * @since 6.40.0
-	 * @param string $field_key Field key.
-	 * @param string $value     Clear value.
+	 * @since 6.41.0 Reads the one key map; takes the field's input mask.
+	 * @param string $field_key  Field key.
+	 * @param string $value      Clear value.
+	 * @param string $input_mask The field's input mask or format, when it has one.
 	 * @return string Masked value, or '' for an empty input.
 	 */
-	public static function mask_any( string $field_key, string $value ): string {
-		if ( '' === $value ) {
-			return '';
-		}
-		if ( in_array( $field_key, array( 'phone', 'telefone', 'celular' ), true ) ) {
-			return self::mask_phone( $value );
-		}
-
-		$masked = self::mask_field_value( $field_key, $value );
-		if ( is_string( $masked ) && $masked !== $value ) {
-			return $masked;
-		}
-
-		$first = function_exists( 'mb_substr' ) ? mb_substr( $value, 0, 1 ) : substr( $value, 0, 1 );
-		return $first . '***';
+	public static function mask_any( string $field_key, string $value, string $input_mask = '' ): string {
+		return self::mask( self::kind_for_key( $field_key, $input_mask ) ?? self::MASK_GENERIC, $value );
 	}
 
 	/**
 	 * Mask one form-field value by its key, for surfaces that must not leak the
-	 * PII collected inside a submission's `data` blob (the public `/valid`
-	 * verification page and the `/verify` REST endpoint). Returns the raw masked
-	 * value — callers that render to HTML escape it themselves.
-	 *
-	 * PII keys `cpf` / `cpf_rf` / `rg` → {@see mask_cpf()}, `rf` → {@see mask_rf()},
-	 * `email` → {@see mask_email()}. Every other key (course, hours, grade, …) is
-	 * returned unchanged: masking a legitimate non-PII field would corrupt the
-	 * certificate's own content. Empty or non-scalar values pass through as-is.
+	 * personal data collected inside a submission's `data` blob (the public
+	 * `/valid` verification page and the `/verify` REST endpoint). A key
+	 * {@see kind_for_key()} knows is masked as its kind; every other key
+	 * (course, hours, grade, …) is returned unchanged, because masking a
+	 * legitimate non-personal field would corrupt the certificate's own
+	 * content. Empty or non-scalar values pass through as-is. Callers that
+	 * render to HTML escape the result themselves.
 	 *
 	 * @since 6.18.0
+	 * @since 6.41.0 Reads the one key map, so phone, birth date and IP keys are masked too.
 	 * @param string $field_key The field key.
 	 * @param mixed  $value     The field value.
-	 * @return mixed The masked value for PII keys, otherwise the original value.
+	 * @return mixed The masked value for personal keys, otherwise the original value.
 	 */
 	public static function mask_field_value( string $field_key, $value ) {
 		if ( empty( $value ) || ! is_scalar( $value ) ) {
 			return $value;
 		}
 
-		if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ), true ) ) {
-			return self::mask_cpf( (string) $value );
-		}
-
-		if ( 'rf' === $field_key ) {
-			return self::mask_rf( (string) $value );
-		}
-
-		if ( 'email' === $field_key ) {
-			return self::mask_email( (string) $value );
-		}
-
-		return $value;
+		$kind = self::kind_for_key( $field_key );
+		return null === $kind ? $value : self::mask( $kind, (string) $value );
 	}
 
 	/**

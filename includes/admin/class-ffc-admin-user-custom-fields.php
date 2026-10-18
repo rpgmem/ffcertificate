@@ -314,7 +314,7 @@ class AdminUserCustomFields {
 	private static function render_masked_input( object $field, string $input_name, string $value, int $user_id, bool $can_reveal ): void {
 		$pii_field = 'cf_' . (int) $field->id;
 		?>
-		<input type="text" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::mask_any( (string) $field->field_key, $value ) ); ?>" class="regular-text" data-ffc-pii-field="<?php echo esc_attr( $pii_field ); ?>" data-ffc-pii-editable="1" disabled>
+		<input type="text" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::mask_any( (string) $field->field_key, $value, self::mask_for( $field ) ) ); ?>" class="regular-text" data-ffc-pii-field="<?php echo esc_attr( $pii_field ); ?>" data-ffc-pii-editable="1" disabled>
 		<?php if ( $can_reveal ) : ?>
 			<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="<?php echo esc_attr( self::REVEAL_TYPE ); ?>" data-field="<?php echo esc_attr( $pii_field ); ?>" data-submission-id="<?php echo esc_attr( (string) $user_id ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'ffc_reveal_pii_nonce' ) ); ?>"><?php esc_html_e( 'Reveal', 'ffcertificate' ); ?></button>
 			<span class="description ffc-pii-reveal-hint"><?php esc_html_e( 'Reveal the value to edit it.', 'ffcertificate' ); ?></span>

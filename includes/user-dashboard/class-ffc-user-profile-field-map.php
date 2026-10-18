@@ -83,9 +83,6 @@ final class UserProfileFieldMap {
 	 *                    mirror may declare a `transform` ('month_day',
 	 *                    'first_name', 'last_name') to store a derived slice
 	 *                    instead of the value itself.
-	 *   - masker:        optional symbolic name of the MASKED transform; 'cpf'
-	 *                    delegates to DocumentFormatter::mask_cpf. Omit for fields
-	 *                    whose MASKED view is the FULL view (non-sensitive).
 	 *   - value_type:    optional; 'birth_date' makes the service store the
 	 *                    canonical form from Core\BirthDate::normalize() and
 	 *                    refuse a value that is not a date (#1538).
@@ -162,7 +159,6 @@ final class UserProfileFieldMap {
 			'sensitive'   => true,
 			'hashable'    => true,
 			'hash_column' => 'cpf_hash',
-			'masker'      => 'cpf',
 		),
 		'rf'           => array(
 			'storage'     => self::STORAGE_USERMETA,
@@ -170,7 +166,6 @@ final class UserProfileFieldMap {
 			'sensitive'   => true,
 			'hashable'    => true,
 			'hash_column' => 'rf_hash',
-			'masker'      => 'cpf',
 		),
 		'rg'           => array(
 			'storage'   => self::STORAGE_USERMETA,

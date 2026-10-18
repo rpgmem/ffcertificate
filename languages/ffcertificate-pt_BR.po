@@ -26544,6 +26544,10 @@ msgid "A CSV export carries personal data in clear only for a holder of the modu
 msgstr "Uma exportação CSV traz dados pessoais em claro somente para quem tem a capacidade de dados pessoais do módulo, e cada exportação desse tipo grava uma entrada \"Dados Pessoais Exportados\" no registro de atividades; qualquer outra pessoa autorizada a exportar recebe as mesmas colunas mascaradas."
 
 #: includes/settings/views/documentation/reference-privacy.php:30
+msgid "Each kind of data has one masked shape, the same on every screen, export and e-mail: CPF 123.***.***-45, RF 123.***-4, CIN/RG 12.***.***-*, e-mail m***@domain, phone (**) *****-**21, birth date with the year hidden in the site's date format (15/03/****), IP 192.168.***.***; any other sensitive value keeps only its first character. A value that does not fit its shape is masked whole rather than shown. A custom field masked as a CPF, RF, CIN or phone takes that shape whatever its key, and the public verification page masks a phone, birth date or IP field it shows."
+msgstr "Cada tipo de dado tem um único formato mascarado, o mesmo em todas as telas, exportações e e-mails: CPF 123.***.***-45, RF 123.***-4, CIN/RG 12.***.***-*, e-mail m***@dominio, telefone (**) *****-**21, data de nascimento com o ano oculto no formato de data do site (15/03/****), IP 192.168.***.***; qualquer outro valor sensível mantém só o primeiro caractere. Um valor que não se encaixa no seu formato é mascarado por inteiro em vez de exibido. Um campo personalizado mascarado como CPF, RF, CIN ou telefone recebe esse formato qualquer que seja sua chave, e a página pública de verificação mascara um campo de telefone, data de nascimento ou IP que exiba."
+
+#: includes/settings/views/documentation/reference-privacy.php:31
 msgid "A list offers \"Reveal this page\" above its masked values: it reveals every value listed at once and writes one activity-log entry naming the records."
 msgstr "Uma lista oferece \"Revelar esta página\" acima dos valores mascarados: revela de uma vez todos os valores listados e grava uma única entrada no registro de atividades com os registros revelados."
 

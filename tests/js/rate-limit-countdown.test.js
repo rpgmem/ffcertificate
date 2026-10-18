@@ -21,6 +21,7 @@ beforeAll(async () => {
 		strings: { wait: 'Wait', send: 'Send', processing: 'Processing…', error: 'Error' },
 	};
 	loadScript('assets/js/ffc-core.js');
+	loadScript('assets/js/ffc-field-behaviours.js');
 	loadScript('assets/js/ffc-frontend-helpers.js');
 	loadScript('assets/js/ffc-frontend.js');
 	await new Promise((r) => setTimeout(r, 0));

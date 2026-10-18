@@ -35,13 +35,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class PiiExport {
 
 	/**
-	 * Keys that carry personal data in every module, beyond the
-	 * {@see SensitiveFieldRegistry} ones: the shapes the forms and the
-	 * reregistration campaigns name them by.
-	 */
-	private const PERSONAL_KEYS = array( 'cpf', 'rf', 'cpf_rf', 'rg', 'email', 'user_email', 'phone', 'telefone', 'celular', 'user_ip', 'ip' );
-
-	/**
 	 * Whether the current user's export may carry personal data in clear.
 	 *
 	 * @param string $pii_cap The module reveal cap.
@@ -58,7 +51,8 @@ final class PiiExport {
 	 * @return bool
 	 */
 	public static function is_personal( string $key ): bool {
-		if ( in_array( $key, self::PERSONAL_KEYS, true ) ) {
+		// The one key map (#1920), then the sensitive fields the registry knows.
+		if ( null !== DocumentFormatter::kind_for_key( $key ) ) {
 			return true;
 		}
 		$static = SensitiveFieldRegistry::universal_sensitive_keys();
@@ -79,10 +73,7 @@ final class PiiExport {
 		if ( $clear || ! is_scalar( $value ) || '' === (string) $value || ! self::is_personal( $key ) ) {
 			return $value;
 		}
-		if ( in_array( $key, array( 'user_ip', 'ip' ), true ) ) {
-			return DocumentFormatter::mask_ip( (string) $value );
-		}
-		return DocumentFormatter::mask_any( 'user_email' === $key ? 'email' : $key, (string) $value );
+		return DocumentFormatter::mask_any( $key, (string) $value );
 	}
 
 	/**

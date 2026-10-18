@@ -119,7 +119,7 @@ class AudienceAccountEmailTest extends TestCase {
 		$html = AudienceAccountEmail::render( self::MEMBER, 'not-an-address' );
 
 		$this->assertStringNotContainsString( 'not-an-address', $html );
-		$this->assertStringContainsString( 'data-field="email">***</span>', $html );
+		$this->assertStringContainsString( 'data-field="email">n***</span>', $html );
 	}
 
 	public function test_no_email_draws_nothing(): void {
