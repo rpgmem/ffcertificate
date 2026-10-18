@@ -308,7 +308,7 @@ class AdminConditionalAssets {
 		wp_enqueue_script(
 			'ffc-admin-move-submissions',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-move-submissions{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

@@ -423,9 +423,9 @@ class TabMigrationsTest extends TestCase {
 	/**
 	 * It stays out of the auto-run driver's reach.
 	 *
-	 * `ffc-admin-migrations.js` binds `.ffc-migration-actions a.button-primary`
-	 * and pulls `ffc_run_migration` out of the href. A primary class here
-	 * would hand this link to a loop that cannot find a key in it.
+	 * `ffc-admin-migrations.js` binds `.ffc-migration-actions a.ffc-migration-run`
+	 * and pulls `ffc_run_migration` out of the href. That hook here would
+	 * hand this link to a loop that cannot find a key in it.
 	 */
 	public function test_the_recheck_control_is_not_the_driver_s_button(): void {
 		$view  = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
@@ -436,13 +436,13 @@ class TabMigrationsTest extends TestCase {
 
 		$anchor = substr( $block, (int) $start );
 
-		$this->assertStringContainsString( 'class="button button-secondary ffc-icon-sync"', $anchor );
-		$this->assertStringNotContainsString( 'button-primary', $anchor );
+		$this->assertStringContainsString( "'href'     => \$ffcertificate_rearm_url", $anchor );
+		$this->assertStringNotContainsString( 'ffc-migration-run', $anchor );
 
 		// The driver's own selector, asserted here so a rename on either side
 		// fails rather than silently re-coupling the two.
 		$this->assertStringContainsString(
-			'.ffc-migration-actions a.button-primary',
+			'.ffc-migration-actions a.ffc-migration-run',
 			(string) file_get_contents( __DIR__ . '/../../assets/js/ffc-admin-migrations.js' )
 		);
 	}

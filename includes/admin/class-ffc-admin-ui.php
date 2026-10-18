@@ -539,7 +539,8 @@ class AdminUI {
 	 *                                    without the `ffc-icon-` prefix, default
 	 *                                    `inbox`), `title` (required string), `text`
 	 *                                    (optional string), `actions` (optional list
-	 *                                    of `{label, url, primary?}`).
+	 *                                    of `{label, url, category?, icon?}`, drawn
+	 *                                    as `.ffc-btn` links, neutral by default).
 	 * @return string
 	 */
 	public static function get_empty_state( array $args ): string {
@@ -563,11 +564,13 @@ class AdminUI {
 			if ( ! is_array( $action ) || empty( $action['label'] ) || empty( $action['url'] ) ) {
 				continue;
 			}
-			$links .= sprintf(
-				'<a href="%s" class="button%s">%s</a>',
-				esc_url( (string) $action['url'] ),
-				empty( $action['primary'] ) ? '' : ' button-primary',
-				esc_html( (string) $action['label'] )
+			$links .= self::button(
+				array(
+					'label'    => (string) $action['label'],
+					'href'     => (string) $action['url'],
+					'category' => (string) ( $action['category'] ?? 'neutral' ),
+					'icon'     => (string) ( $action['icon'] ?? '' ),
+				)
 			);
 		}
 		if ( '' !== $links ) {

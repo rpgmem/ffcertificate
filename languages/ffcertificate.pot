@@ -4634,10 +4634,6 @@ msgstr ""
 msgid "Copy this Shortcode:"
 msgstr ""
 
-#: includes/generators/class-ffc-magic-link-helper.php:202
-msgid "Copy to clipboard"
-msgstr ""
-
 #: templates/admin/url-shortener/short-urls-page.php:346
 msgid "Copy URL"
 msgstr ""
@@ -11477,10 +11473,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:116
 msgid "No locations registered yet."
-msgstr ""
-
-#: includes/generators/class-ffc-magic-link-helper.php:190
-msgid "No magic token"
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-public-shortcode.php:318

@@ -9,27 +9,8 @@
  */
 
 return array(
-	'assets/js/ffc-admin-activity-log.js' => array(
-		'button' => 1,
-	),
-	'assets/js/ffc-admin-migrations.js' => array(
-		'button-primary' => 1,
-	),
-	'assets/js/ffc-admin-move-submissions.js' => array(
-		'button' => 2,
-		'button-primary' => 1,
-	),
-	'assets/js/ffc-admin-pdf.js' => array(
-		'button' => 1,
-	),
-	'assets/js/ffc-admin-submissions-bulk.js' => array(
-		'button-small' => 1,
-	),
 	'assets/js/ffc-calendar-editor.js' => array(
 		'button' => 2,
-	),
-	'assets/js/ffc-cert-template-preview.js' => array(
-		'button' => 1,
 	),
 	'assets/js/ffc-division-sector-editor.js' => array(
 		'button' => 2,
@@ -40,10 +21,6 @@ return array(
 		'button-primary' => 1,
 		'button-secondary' => 1,
 	),
-	'assets/js/ffc-locations-crud.js' => array(
-		'button' => 1,
-		'button-small' => 1,
-	),
 	'assets/js/ffc-qr-generator.js' => array(
 		'button' => 1,
 		'button-small' => 1,
@@ -52,58 +29,9 @@ return array(
 		'button' => 3,
 		'button-primary' => 2,
 	),
-	'includes/admin/class-ffc-admin-submission-edit-page.php' => array(
-		'button' => 10,
-		'button-primary' => 2,
-		'button-secondary' => 2,
-		'button-small' => 2,
-	),
-	'includes/admin/class-ffc-admin-ui.php' => array(
-		'button' => 1,
-		'button-primary' => 1,
-	),
-	'includes/admin/class-ffc-admin.php' => array(
-		'button' => 2,
-		'button-primary' => 1,
-	),
-	'includes/admin/class-ffc-cert-template-admin-screen.php' => array(
-		'button' => 3,
-	),
 	'includes/admin/class-ffc-cert-template-receipt-settings.php' => array(
 		'button' => 2,
 		'submit_button()' => 1,
-	),
-	'includes/admin/class-ffc-form-editor-builder-metabox.php' => array(
-		'button' => 4,
-		'button-link' => 1,
-		'button-link-delete' => 1,
-		'button-primary' => 1,
-	),
-	'includes/admin/class-ffc-form-editor-email-metabox.php' => array(
-		'button' => 1,
-	),
-	'includes/admin/class-ffc-form-editor-layout-metabox.php' => array(
-		'button' => 6,
-		'button-primary' => 1,
-	),
-	'includes/admin/class-ffc-form-editor-public-csv-download-metabox.php' => array(
-		'button' => 4,
-		'button-secondary' => 3,
-	),
-	'includes/admin/class-ffc-form-editor-restriction-metabox.php' => array(
-		'button' => 1,
-		'button-secondary' => 1,
-	),
-	'includes/admin/class-ffc-form-editor-shortcode-metabox.php' => array(
-		'button' => 1,
-	),
-	'includes/admin/class-ffc-submissions-list.php' => array(
-		'button' => 10,
-		'button-primary' => 1,
-		'button-small' => 6,
-	),
-	'includes/admin/views/ffc-admin-activity-log.php' => array(
-		'button' => 4,
 	),
 	'includes/admin/views/identity-resolution-page.php' => array(
 		'button' => 20,
@@ -147,13 +75,6 @@ return array(
 		'button' => 2,
 		'submit_button()' => 4,
 	),
-	'includes/core/class-ffc-pii-reveal.php' => array(
-		'button' => 1,
-	),
-	'includes/generators/class-ffc-magic-link-helper.php' => array(
-		'button' => 1,
-		'button-small' => 1,
-	),
 	'includes/recruitment/class-ffc-recruitment-adjutancy-edit-page.php' => array(
 		'submit_button()' => 1,
 	),
@@ -190,31 +111,6 @@ return array(
 		'button' => 2,
 		'button-small' => 1,
 		'page-title-action' => 2,
-	),
-	'includes/settings/views/ffc-tab-geolocation.php' => array(
-		'button' => 3,
-		'button-primary' => 2,
-		'button-small' => 1,
-	),
-	'includes/settings/views/ffc-tab-migrations.php' => array(
-		'button' => 17,
-		'button-primary' => 7,
-		'button-secondary' => 10,
-	),
-	'includes/settings/views/ffc-tab-rate-limit.php' => array(
-		'button' => 1,
-		'button-primary' => 1,
-	),
-	'includes/settings/views/ffc-tab-scheduled-tasks.php' => array(
-		'button' => 2,
-		'button-primary' => 1,
-	),
-	'includes/settings/views/ffc-tab-smtp.php' => array(
-		'button' => 1,
-	),
-	'includes/settings/views/ffc-tab-user-access.php' => array(
-		'button' => 1,
-		'button-primary' => 1,
 	),
 	'includes/url-shortener/class-ffc-url-shortener-meta-box.php' => array(
 		'button' => 4,

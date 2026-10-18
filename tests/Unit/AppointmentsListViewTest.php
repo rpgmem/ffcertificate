@@ -417,7 +417,7 @@ class AppointmentsListViewTest extends TestCase {
 
 		$this->assertStringContainsString( 'Appointments', $out );
 		$this->assertStringContainsString( 'Export CSV', $out );
-		$this->assertStringContainsString( 'class="button ffc-reveal-pii-page ffc-icon-eye" data-nonce="page-nonce"', $out );
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii-page" data-nonce="page-nonce"', $out );
 	}
 
 	public function test_the_list_offers_no_page_reveal_without_the_pii_cap(): void {

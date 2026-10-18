@@ -82,14 +82,15 @@
                 '<div class="ffc-template-modal-box">' +
                     '<h2 id="ffc-template-modal-title" class="ffc-template-modal-title"></h2>' +
                     '<div class="ffc-template-list"></div>' +
-                    '<div class="ffc-template-modal-actions">' +
-                        '<button id="ffc-modal-cancel" class="button"></button>' +
-                    '</div>' +
+                    '<div class="ffc-template-modal-actions"></div>' +
                 '</div>' +
             '</div>'
         );
         $modal.find('#ffc-template-modal-title').text(selectTemplateText);
-        $modal.find('#ffc-modal-cancel').text(cancelText);
+        // The family's button (#1904); FFC.button() sets the label as text.
+        $modal.find('.ffc-template-modal-actions').append(
+            window.FFC.button({ label: cancelText, icon: 'cross', id: 'ffc-modal-cancel' })
+        );
 
         var $list = $modal.find('.ffc-template-list');
         var defaultBadge = strings.templateDefaultBadge || 'Default template';

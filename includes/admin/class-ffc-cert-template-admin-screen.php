@@ -422,7 +422,14 @@ class CertTemplateAdminScreen {
 			admin_url( 'admin.php?action=' . self::RESTORE_ACTION ),
 			self::RESTORE_ACTION
 		);
-		echo '<a href="' . esc_url( $url ) . '" class="button">' . esc_html__( 'Restore defaults', 'ffcertificate' ) . '</a>';
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label'    => __( 'Restore defaults', 'ffcertificate' ),
+				'category' => 'caution',
+				'icon'     => 'restore',
+				'href'     => $url,
+			)
+		);
 	}
 
 	/**
@@ -601,7 +608,7 @@ class CertTemplateAdminScreen {
 		wp_enqueue_script(
 			self::PREVIEW_HANDLE,
 			FFC_PLUGIN_URL . "assets/js/ffc-cert-template-preview{$suffix}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);
@@ -758,14 +765,23 @@ class CertTemplateAdminScreen {
 		if ( ! $is_default ) {
 			?>
 			<div class="ffc-action-group">
-				<button type="button" class="button" id="ffc_btn_media_lib">
-					<span class="ffc-icon-image" aria-hidden="true"></span>
-					<?php esc_html_e( 'Background Image', 'ffcertificate' ); ?>
-				</button>
-				<button type="button" class="button" id="ffc_btn_insert_image">
-					<span class="ffc-icon-image" aria-hidden="true"></span>
-					<?php esc_html_e( 'Insert Image', 'ffcertificate' ); ?>
-				</button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Background Image', 'ffcertificate' ),
+						'icon'  => 'image',
+						'id'    => 'ffc_btn_media_lib',
+					)
+				);
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Insert Image', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'image-plus',
+						'id'       => 'ffc_btn_insert_image',
+					)
+				);
+				?>
 			</div>
 			<?php
 		}

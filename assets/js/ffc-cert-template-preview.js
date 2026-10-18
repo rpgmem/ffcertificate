@@ -25,7 +25,6 @@
 			'<div id="ffc-tpl-preview-overlay" class="ffc-tpl-preview-overlay" role="dialog" aria-modal="true">' +
 				'<div class="ffc-tpl-preview-bar">' +
 					'<strong class="ffc-tpl-preview-title"></strong>' +
-					'<button type="button" class="button ffc-tpl-preview-close"></button>' +
 				'</div>' +
 				'<div class="ffc-tpl-preview-body">' +
 					'<iframe class="ffc-tpl-preview-frame" sandbox="allow-same-origin"></iframe>' +
@@ -35,7 +34,11 @@
 
 		$overlay.attr('aria-label', titleText);
 		$overlay.find('.ffc-tpl-preview-title').text(titleText);
-		$overlay.find('.ffc-tpl-preview-close').text(closeText);
+		// The family's close (#1904): neutral with the cross; FFC.button()
+		// writes the label as text.
+		$overlay.find('.ffc-tpl-preview-bar').append(
+			window.FFC.button({ label: closeText, icon: 'cross', className: 'ffc-tpl-preview-close' })
+		);
 		// src set via attr() (not string concat) so the URL stays a literal
 		// attribute value and never a markup sink.
 		$overlay.find('.ffc-tpl-preview-frame').attr('src', url);

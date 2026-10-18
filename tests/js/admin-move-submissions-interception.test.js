@@ -40,6 +40,7 @@ describe('ffc-admin-move-submissions — bulk-action interception', () => {
 		document.body.innerHTML = `
 			<form id="posts-filter"><select name="action"><option value="move_to_form"></option></select><input type="submit" /></form>
 		`;
+		loadScript('assets/js/ffc-core.js');
 		loadScript('assets/js/ffc-admin-move-submissions.js');
 		// Submitting the form shouldn't open a modal (or do anything special).
 		window.$('#posts-filter').trigger('submit');
@@ -53,6 +54,7 @@ describe('ffc-admin-move-submissions — bulk-action interception', () => {
 				<input type="submit" />
 			</form>
 		`;
+		loadScript('assets/js/ffc-core.js');
 		loadScript('assets/js/ffc-admin-move-submissions.js');
 		await new Promise((r) => setTimeout(r, 0));
 
@@ -79,6 +81,7 @@ describe('ffc-admin-move-submissions — bulk-action interception', () => {
 				<input type="submit" />
 			</form>
 		`;
+		loadScript('assets/js/ffc-core.js');
 		loadScript('assets/js/ffc-admin-move-submissions.js');
 		await new Promise((r) => setTimeout(r, 0));
 

@@ -352,11 +352,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 		);
 		?>
 
-		<p class="submit">
-			<button type="submit" name="save_settings" class="button button-primary">
-				<?php esc_html_e( 'Save Changes', 'ffcertificate' ); ?>
-			</button>
-		</p>
+		<?php \FreeFormCertificate\Admin\AdminUI::render_save_button( '', array( 'name' => 'save_settings' ) ); ?>
 	</form>
 
 	<?php

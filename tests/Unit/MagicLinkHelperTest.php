@@ -138,37 +138,6 @@ class MagicLinkHelperTest extends TestCase {
 	}
 
 	// ==================================================================
-	// get_magic_link_html()
-	// ==================================================================
-
-	public function test_html_with_token_contains_link(): void {
-		$token = 'abcdef1234567890abcdef1234567890';
-		$html = MagicLinkHelper::get_magic_link_html( $token );
-		$this->assertStringContainsString( '<a href=', $html );
-		$this->assertStringContainsString( $token, $html );
-		$this->assertStringContainsString( 'ffc-magic-link', $html );
-	}
-
-	public function test_html_with_copy_button(): void {
-		$token = 'abcdef1234567890abcdef1234567890';
-		$html = MagicLinkHelper::get_magic_link_html( $token, true );
-		$this->assertStringContainsString( 'ffc-copy-magic-link', $html );
-		$this->assertStringContainsString( 'Copy', $html );
-	}
-
-	public function test_html_without_copy_button(): void {
-		$token = 'abcdef1234567890abcdef1234567890';
-		$html = MagicLinkHelper::get_magic_link_html( $token, false );
-		$this->assertStringNotContainsString( 'ffc-copy-magic-link', $html );
-	}
-
-	public function test_html_empty_token_returns_no_token_message(): void {
-		$html = MagicLinkHelper::get_magic_link_html( '' );
-		$this->assertStringContainsString( 'No magic token', $html );
-		$this->assertStringContainsString( '<em>', $html );
-	}
-
-	// ==================================================================
 	// get_magic_link_qr_code()
 	// ==================================================================
 
