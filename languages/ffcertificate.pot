@@ -26837,5 +26837,5 @@ msgid "Counted from the later of the campaign's end and the approval. 0 keeps it
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php
-msgid "Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration (\"Hide the approved banner after (days)\", default 30) has passed since the later of the campaign's end and the approval; 0 keeps it. The dashboard's Reregistration tab keeps listing it, and a campaign the daily run has already expired shows no banner at all."
+msgid "Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration (\"Hide the approved banner after (days)\", default 30) has passed since the later of the campaign's end and the approval, even after the daily run has expired the campaign; 0 never hides it. The dashboard's Reregistration tab keeps listing it either way."
 msgstr ""

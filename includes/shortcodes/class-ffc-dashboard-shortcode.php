@@ -448,7 +448,13 @@ class DashboardShortcode {
 			return '';
 		}
 
-		$reregistrations = \FreeFormCertificate\Reregistration\ReregistrationFrontend::get_user_reregistrations( $user_id );
+		// Active campaigns, then the expired ones whose approved banner is
+		// still inside its window (#1887). The second set is approved-only,
+		// so it can only reach the approved branch below.
+		$reregistrations = array_merge(
+			\FreeFormCertificate\Reregistration\ReregistrationFrontend::get_user_reregistrations( $user_id ),
+			\FreeFormCertificate\Reregistration\ReregistrationFrontend::get_recently_expired_approved( $user_id )
+		);
 
 		if ( empty( $reregistrations ) ) {
 			return '';

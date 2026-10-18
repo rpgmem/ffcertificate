@@ -39,6 +39,9 @@ class DashboardShortcodeTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'wp_login_url' )->justReturn( 'https://example.com/login' );
 		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/dashboard' );
+		// The approved banner's window is counted on the site clock, and the
+		// real ReregistrationFrontend reads it whenever banners load (#1887).
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );
 
 		// Mock $wpdb for ReregistrationSubmissionRepository
 		global $wpdb;
@@ -288,7 +291,7 @@ class DashboardShortcodeTest extends TestCase {
 	 * Wire up every collaborator the full render path touches so all tab
 	 * branches are exercised. Alias-mocks the shortcode's direct collaborators.
 	 */
-	private function wireFullRenderCollaborators( bool $view_as = false, ?array $reregistrations = null ): void {
+	private function wireFullRenderCollaborators( bool $view_as = false, ?array $reregistrations = null, array $expired_approved = array() ): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
@@ -319,9 +322,8 @@ class DashboardShortcodeTest extends TestCase {
 		$frontend = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationFrontend' );
 		$frontend->shouldReceive( 'get_user_reregistrations' )
 			->andReturn( null === $reregistrations ? array() : $reregistrations )->byDefault();
-
-		// The approved banner's window is counted on the site clock (#1887).
-		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );
+		// Expired campaigns whose approved banner is still in its window (#1887).
+		$frontend->shouldReceive( 'get_recently_expired_approved' )->andReturn( $expired_approved )->byDefault();
 
 		// DateFormatter is only reached by the actionable-banner branch, but
 		// alias-mock it unconditionally so it's stubbed whenever banners render.
@@ -563,5 +565,34 @@ class DashboardShortcodeTest extends TestCase {
 		$classes = preg_split( '/\s+/', trim( $links->item( 0 )->getAttribute( 'class' ) ) );
 		$this->assertContains( 'ffc-rereg-banner-record', $classes );
 		$this->assertNotContains( 'ffc-btn-pdf', $classes, 'The compact table-row class stays off the banner.' );
+	}
+
+	/**
+	 * An expired campaign reaches the dashboard only as the approved banner
+	 * with its Record link, never as an actionable one (#1887).
+	 */
+	public function test_render_shows_an_expired_campaign_from_the_approved_source_as_the_approved_banner(): void {
+		$this->wireFullRenderCollaborators(
+			false,
+			array(),
+			array(
+				array(
+					'id'                => 40,
+					'title'             => 'Ended Last Week Campaign',
+					'can_submit'        => false,
+					'submission_status' => 'approved',
+					'magic_link'        => 'https://example.com/record/40',
+					'end_date'          => gmdate( 'Y-m-d 17:00:00', time() - ( 7 * 86400 ) ),
+					'reviewed_at'       => time() - ( 10 * 86400 ),
+				),
+			)
+		);
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringContainsString( 'Ended Last Week Campaign', $output );
+		$this->assertStringContainsString( 'has been approved', $output );
+		$this->assertStringContainsString( 'https://example.com/record/40', $output );
+		$this->assertStringNotContainsString( 'data-reregistration-id="40"', $output, 'No form to open: it is not the actionable banner.' );
 	}
 }

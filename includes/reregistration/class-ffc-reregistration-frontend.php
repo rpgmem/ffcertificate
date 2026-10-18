@@ -408,4 +408,75 @@ class ReregistrationFrontend {
 
 		return $result;
 	}
+
+	/**
+	 * Most expired campaigns {@see self::get_recently_expired_approved()} reads.
+	 */
+	public const EXPIRED_APPROVED_LIMIT = 20;
+
+	/**
+	 * Expired campaigns whose approved banner is still inside its window (#1887).
+	 *
+	 * The dashboard keeps an approved member's banner after the daily run has
+	 * expired the campaign, until `rereg_approved_banner_days` days after the
+	 * later of the end and the approval. Rows have the shape of
+	 * {@see self::get_user_reregistrations()}, always `approved` and never
+	 * submittable, so the renderer can only draw them as the approved banner.
+	 * Kept apart from that method on purpose: its other consumers (the REST
+	 * summary) count active campaigns, and must not start counting these.
+	 *
+	 * With the window at 0 ("never hide") there is no date bound, only the
+	 * user, the approved status and {@see self::EXPIRED_APPROVED_LIMIT}.
+	 *
+	 * @param int $user_id User ID.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public static function get_recently_expired_approved( int $user_id ): array {
+		$days = \FreeFormCertificate\Core\ReregistrationBannerWindow::days();
+		$now  = time();
+		$tz   = wp_timezone();
+
+		$end_since      = null;
+		$reviewed_since = 0;
+		if ( $days > 0 ) {
+			// One day of slack: the exact cut-off is decided per row below,
+			// so the query only has to keep every row that might qualify.
+			$span           = $days + 1;
+			$end_since      = ( new \DateTimeImmutable( '@' . $now ) )->setTimezone( $tz )->sub( new \DateInterval( 'P' . $span . 'D' ) )->format( 'Y-m-d 00:00:00' );
+			$reviewed_since = $now - ( $span * 86400 );
+		}
+
+		$campaigns = ReregistrationRepository::get_expired_with_approved_submission( $user_id, $end_since, $reviewed_since, self::EXPIRED_APPROVED_LIMIT );
+		$result    = array();
+
+		foreach ( $campaigns as $rereg ) {
+			$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( (int) $rereg->id, $user_id );
+			if ( ! $submission || 'approved' !== $submission->status ) {
+				continue;
+			}
+
+			$reviewed_at = ! empty( $submission->reviewed_at ) ? (int) $submission->reviewed_at : null;
+			if ( \FreeFormCertificate\Core\ReregistrationBannerWindow::approved_banner_expired( (string) $rereg->end_date, $reviewed_at, $days, $now, $tz ) ) {
+				continue;
+			}
+
+			$token = ReregistrationSubmissionWriter::ensure_magic_token( $submission );
+
+			$result[] = array(
+				'id'                => (int) $rereg->id,
+				'title'             => $rereg->title,
+				'audience_name'     => $rereg->audience_name ?? '',
+				'start_date'        => $rereg->start_date,
+				'end_date'          => $rereg->end_date,
+				'auto_approve'      => ! empty( $rereg->auto_approve ),
+				'submission_status' => 'approved',
+				'submission_id'     => (int) $submission->id,
+				'can_submit'        => false,
+				'magic_link'        => \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $token ),
+				'reviewed_at'       => $reviewed_at,
+			);
+		}
+
+		return $result;
+	}
 }
