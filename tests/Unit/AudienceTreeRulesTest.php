@@ -31,6 +31,9 @@ class AudienceTreeRulesTest extends TestCase {
 	/** @var list<array<string, mixed>> Memberships the members query answers. */
 	private array $memberships = array();
 
+	/** @var array<int, mixed> Arguments of the last prepare(). */
+	private array $bound = array();
+
 	/** @var list<int> Self-join group ids the leave-all query answers. */
 	private array $self_join_ids = array();
 
@@ -38,7 +41,7 @@ class AudienceTreeRulesTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
-		$parents = array( 1 => null, 2 => 1, 3 => 1, 4 => 2, 9 => null );
+		$parents = array( 1 => null, 2 => 1, 3 => 1, 4 => 2, 9 => null, 10 => 9 );
 		$reader  = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceReader' );
 		$reader->shouldReceive( 'get_ancestor_ids' )->andReturnUsing(
 			static function ( int $id ) use ( $parents ): array {
@@ -51,14 +54,28 @@ class AudienceTreeRulesTest extends TestCase {
 			}
 		);
 		$reader->shouldReceive( 'get_descendant_ids' )->andReturnUsing(
-			static fn( int $id ): array => 1 === $id ? array( 2, 4, 3 ) : array()
+			static fn( int $id ): array => 1 === $id ? array( 2, 4, 3 ) : ( 9 === $id ? array( 10 ) : array() )
 		);
 		$reader->shouldReceive( 'get_by_id' )->andReturnUsing( fn( int $id ) => $this->rows[ $id ] ?? null );
 
+		$this->rows[9] = (object) array( 'id' => '9', 'name' => 'Clubs', 'parent_id' => null, 'members_only' => '0', 'require_membership' => '0' );
+
 		$this->wpdb         = Mockery::mock( 'wpdb' );
 		$this->wpdb->prefix = 'wp_';
-		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => $sql );
-		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing( fn() => $this->memberships );
+		// The memberships query binds the tree's ids after the two tables and
+		// the user: answer only the rows of that tree.
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->bound = is_array( $args[0] ?? null ) ? $args[0] : $args;
+				return $sql;
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function () {
+				$ids = array_map( 'intval', array_slice( $this->bound, 3 ) );
+				return array_values( array_filter( $this->memberships, static fn( $row ) => in_array( (int) $row['id'], $ids, true ) ) );
+			}
+		);
 		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing( fn() => $this->self_join_ids );
 		$GLOBALS['wpdb'] = $this->wpdb;
 	}
@@ -79,10 +96,19 @@ class AudienceTreeRulesTest extends TestCase {
 		);
 	}
 
-	private function member_of( array $groups ): void {
+	/**
+	 * @param array<int, bool> $groups   Group id => allows self-join.
+	 * @param array<int, int>  $joined   Group id => membership row id (join order); defaults to the group id.
+	 */
+	private function member_of( array $groups, array $joined = array() ): void {
 		$this->memberships = array();
 		foreach ( $groups as $id => $self_join ) {
-			$this->memberships[] = array( 'id' => (string) $id, 'name' => 'G' . $id, 'allow_self_join' => $self_join ? '1' : '0' );
+			$this->memberships[] = array(
+				'id'              => (string) $id,
+				'name'            => 'G' . $id,
+				'allow_self_join' => $self_join ? '1' : '0',
+				'membership_id'   => (string) ( $joined[ $id ] ?? $id ),
+			);
 		}
 	}
 
@@ -119,13 +145,13 @@ class AudienceTreeRulesTest extends TestCase {
 		$this->assertTrue( AudienceTreeRules::can_see( 1, 5 ) );
 	}
 
-	public function test_memberships_reads_ids_names_and_self_join(): void {
+	public function test_memberships_reads_ids_names_self_join_and_join_order(): void {
 		$this->member_of( array( 2 => true, 4 => false ) );
 
 		$this->assertSame(
 			array(
-				array( 'id' => 2, 'name' => 'G2', 'self_join' => true ),
-				array( 'id' => 4, 'name' => 'G4', 'self_join' => false ),
+				array( 'id' => 2, 'name' => 'G2', 'self_join' => true, 'membership_id' => 2 ),
+				array( 'id' => 4, 'name' => 'G4', 'self_join' => false, 'membership_id' => 4 ),
 			),
 			AudienceTreeRules::memberships( 1, 5 )
 		);
@@ -152,27 +178,46 @@ class AudienceTreeRulesTest extends TestCase {
 		$this->assertFalse( AudienceTreeRules::is_last_kept_group( 3, 5 ) );
 	}
 
-	public function test_leave_all_is_blocked_when_every_group_held_is_self_join(): void {
+	/**
+	 * Several groups held in a kept tree: the earliest membership row stays,
+	 * whatever the names' order.
+	 */
+	public function test_leave_all_keeps_the_group_joined_first(): void {
 		$this->top( true, true );
-		$this->self_join_ids = array( '2', '3' );
-		$this->member_of( array( 2 => true, 3 => true ) );
+		$this->self_join_ids = array( '2', '3', '4' );
+		$this->member_of( array( 2 => true, 3 => true, 4 => true ), array( 2 => 40, 3 => 12, 4 => 31 ) );
 
-		$this->assertSame( array( array( 'id' => 1, 'name' => 'Staff' ) ), AudienceTreeRules::trees_blocking_leave_all( 5 ) );
+		$this->assertSame(
+			array( array( 'tree_id' => 1, 'tree_name' => 'Staff', 'group_id' => 3, 'group_name' => 'G3' ) ),
+			AudienceTreeRules::groups_kept_on_leave_all( 5 )
+		);
 	}
 
-	public function test_leave_all_is_free_when_an_admin_added_group_remains(): void {
+	public function test_leave_all_keeps_nothing_when_an_admin_added_group_remains(): void {
 		$this->top( true, true );
 		$this->self_join_ids = array( '2' );
 		$this->member_of( array( 2 => true, 4 => false ) );
 
-		$this->assertSame( array(), AudienceTreeRules::trees_blocking_leave_all( 5 ) );
+		$this->assertSame( array(), AudienceTreeRules::groups_kept_on_leave_all( 5 ) );
 	}
 
-	public function test_leave_all_is_free_without_keep(): void {
+	public function test_leave_all_keeps_nothing_without_keep(): void {
 		$this->top( true, false );
 		$this->self_join_ids = array( '2' );
 		$this->member_of( array( 2 => true ) );
 
-		$this->assertSame( array(), AudienceTreeRules::trees_blocking_leave_all( 5 ) );
+		$this->assertSame( array(), AudienceTreeRules::groups_kept_on_leave_all( 5 ) );
+	}
+
+	/** One kept tree beside an open one: only the kept tree holds a group back. */
+	public function test_leave_all_keeps_one_group_per_kept_tree_only(): void {
+		$this->top( true, true );
+		$this->self_join_ids = array( '2', '10' );
+		$this->member_of( array( 2 => true, 10 => true ) );
+
+		$this->assertSame(
+			array( array( 'tree_id' => 1, 'tree_name' => 'Staff', 'group_id' => 2, 'group_name' => 'G2' ) ),
+			AudienceTreeRules::groups_kept_on_leave_all( 5 )
+		);
 	}
 }

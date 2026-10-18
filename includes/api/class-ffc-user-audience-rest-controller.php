@@ -254,11 +254,11 @@ class UserAudienceRestController {
 			if ( ! self::table_exists( $audiences_table ) || ! self::column_exists( $audiences_table, 'allow_self_join' ) ) {
 				return rest_ensure_response(
 					array(
-						'parents'           => array(),
-						'joined_count'      => 0,
-						'max_groups'        => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
-						'trees'             => array(),
-						'leave_all_blocked' => array(),
+						'parents'         => array(),
+						'joined_count'    => 0,
+						'max_groups'      => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
+						'trees'           => array(),
+						'leave_all_keeps' => array(),
 					)
 				);
 			}
@@ -268,11 +268,11 @@ class UserAudienceRestController {
 			if ( empty( $all ) ) {
 				return rest_ensure_response(
 					array(
-						'parents'           => array(),
-						'joined_count'      => 0,
-						'max_groups'        => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
-						'trees'             => array(),
-						'leave_all_blocked' => array(),
+						'parents'         => array(),
+						'joined_count'    => 0,
+						'max_groups'      => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
+						'trees'           => array(),
+						'leave_all_keeps' => array(),
 					)
 				);
 			}
@@ -333,11 +333,11 @@ class UserAudienceRestController {
 
 			return rest_ensure_response(
 				array(
-					'parents'           => $result,
-					'joined_count'      => $joined_count,
-					'max_groups'        => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
-					'trees'             => $tree_list,
-					'leave_all_blocked' => array_column( AudienceTreeRules::trees_blocking_leave_all( $user_id ), 'name' ),
+					'parents'         => $result,
+					'joined_count'    => $joined_count,
+					'max_groups'      => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
+					'trees'           => $tree_list,
+					'leave_all_keeps' => AudienceTreeRules::groups_kept_on_leave_all( $user_id ),
 				)
 			);
 
@@ -618,7 +618,9 @@ class UserAudienceRestController {
 	/**
 	 * POST /user/audience-group/leave-all
 	 *
-	 * Leave all self-joinable audience groups at once.
+	 * Leave all self-joinable audience groups at once, except one group in
+	 * each tree that keeps its members in at least one (#1918): the one the
+	 * user joined first.
 	 *
 	 * @since 5.1.0
 	 * @param \WP_REST_Request $request REST request.
@@ -637,37 +639,37 @@ class UserAudienceRestController {
 			$audiences_table = $wpdb->prefix . 'ffc_audiences';
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
-			// A tree that must keep the user would lose every group they hold
-			// there: refuse the whole action rather than leave part of it
-			// done (#1918).
-			$blocked = AudienceTreeRules::trees_blocking_leave_all( $user_id );
-			if ( array() !== $blocked ) {
-				return new \WP_Error(
-					'keep_one_group',
-					sprintf(
-						/* translators: %s: comma-separated names of top-level audiences */
-						__( 'Nothing was left. These audiences keep their members in at least one group: %s. Leave the other groups one by one.', 'ffcertificate' ),
-						implode( ', ', array_column( $blocked, 'name' ) )
-					),
-					array( 'status' => 409 )
-				);
+			// A tree that must keep the user keeps the group they joined
+			// first; every other self-join membership goes (#1918).
+			$kept     = AudienceTreeRules::groups_kept_on_leave_all( $user_id );
+			$kept_ids = array_map( 'intval', array_column( $kept, 'group_id' ) );
+			$args     = array( $members_table, $audiences_table, $user_id );
+			$exclude  = '';
+			if ( array() !== $kept_ids ) {
+				$exclude = ' AND m.audience_id NOT IN (' . implode( ',', array_fill( 0, count( $kept_ids ), '%d' ) ) . ')';
+				$args    = array_merge( $args, $kept_ids );
 			}
 
-			// Delete all memberships where the audience allows self-join.
-			$deleted = $wpdb->query(
-				$wpdb->prepare(
-					'DELETE m FROM %i m INNER JOIN %i a ON a.id = m.audience_id WHERE m.user_id = %d AND a.allow_self_join = 1',
-					$members_table,
-					$audiences_table,
-					$user_id
-				)
+			// Delete the memberships where the audience allows self-join.
+			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The replacements are one array: two tables, the user and one id per %d in $exclude.
+			$sql = $wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $exclude is ' AND m.audience_id NOT IN (%d,…)' with one %d per kept id, bound in $args.
+				"DELETE m FROM %i m INNER JOIN %i a ON a.id = m.audience_id WHERE m.user_id = %d AND a.allow_self_join = 1{$exclude}",
+				$args
 			);
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above.
+			$deleted = is_string( $sql ) ? $wpdb->query( $sql ) : 0;
 
+			// `kept` names, per tree, the group left in place, so the
+			// dashboard can say what stayed and why.
 			return rest_ensure_response(
 				array(
 					'success' => true,
 					'removed' => (int) $deleted,
-					'message' => __( 'You left all groups.', 'ffcertificate' ),
+					'kept'    => $kept,
+					'message' => array() === $kept
+						? __( 'You left all groups.', 'ffcertificate' )
+						: __( 'You left every group you could. Some audiences keep their members in at least one group.', 'ffcertificate' ),
 				)
 			);
 

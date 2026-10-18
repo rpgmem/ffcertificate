@@ -4,8 +4,8 @@
  *
  * The two tree-access settings of a top-level audience (#1918), and the
  * questions the dashboard's Join groups panel and its REST routes ask of
- * them: may this user see the tree, may they leave this group, would
- * "Leave all groups" empty a tree that must keep them.
+ * them: may this user see the tree, may they leave this group, and which
+ * group "Leave all groups" keeps in a tree that must keep them.
  *
  * @package FreeFormCertificate\Audience
  * @since   6.41.0
@@ -63,7 +63,7 @@ class AudienceTreeRules {
 	 *
 	 * @param int $root_id Top-level audience ID.
 	 * @param int $user_id User ID.
-	 * @return list<array{id: int, name: string, self_join: bool}>
+	 * @return list<array{id: int, name: string, self_join: bool, membership_id: int}>
 	 */
 	public static function memberships( int $root_id, int $user_id ): array {
 		if ( $root_id <= 0 || $user_id <= 0 ) {
@@ -76,7 +76,7 @@ class AudienceTreeRules {
 
 		$sql = $wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$placeholders} is %d repeated to match count( $ids ); the tables go through %i and the ids are bound as a single array.
-			"SELECT a.id, a.name, a.allow_self_join FROM %i m INNER JOIN %i a ON a.id = m.audience_id WHERE m.user_id = %d AND a.id IN ({$placeholders}) ORDER BY a.name ASC",
+			"SELECT a.id, a.name, a.allow_self_join, m.id AS membership_id FROM %i m INNER JOIN %i a ON a.id = m.audience_id WHERE m.user_id = %d AND a.id IN ({$placeholders}) ORDER BY a.name ASC",
 			array_merge( array( $wpdb->prefix . 'ffc_audience_members', $wpdb->prefix . 'ffc_audiences', $user_id ), $ids )
 		);
 		if ( ! is_string( $sql ) ) {
@@ -95,9 +95,10 @@ class AudienceTreeRules {
 				continue;
 			}
 			$out[] = array(
-				'id'        => (int) ( $row['id'] ?? 0 ),
-				'name'      => (string) ( $row['name'] ?? '' ),
-				'self_join' => 1 === (int) ( $row['allow_self_join'] ?? 0 ),
+				'id'            => (int) ( $row['id'] ?? 0 ),
+				'name'          => (string) ( $row['name'] ?? '' ),
+				'self_join'     => 1 === (int) ( $row['allow_self_join'] ?? 0 ),
+				'membership_id' => (int) ( $row['membership_id'] ?? 0 ),
 			);
 		}
 		return $out;
@@ -136,14 +137,17 @@ class AudienceTreeRules {
 	}
 
 	/**
-	 * The trees "Leave all groups" would empty although they must keep the
-	 * user: every group the user holds there is a self-join one, which is
-	 * what that action removes.
+	 * The group "Leave all groups" keeps in each tree that must keep the
+	 * user (#1918): a tree where every group the user holds is a self-join
+	 * one, which is what that action removes, keeps the group the user joined
+	 * first (the earliest membership row). A tree where the user also holds a
+	 * group that does not allow self-join keeps that one anyway, so nothing
+	 * is kept on purpose there.
 	 *
 	 * @param int $user_id User ID.
-	 * @return list<array{id: int, name: string}> Top-level audiences.
+	 * @return list<array{tree_id: int, tree_name: string, group_id: int, group_name: string}>
 	 */
-	public static function trees_blocking_leave_all( int $user_id ): array {
+	public static function groups_kept_on_leave_all( int $user_id ): array {
 		if ( $user_id <= 0 ) {
 			return array();
 		}
@@ -166,20 +170,33 @@ class AudienceTreeRules {
 			$roots[ self::root_id( (int) $group_id ) ] = true;
 		}
 
-		$blocked = array();
+		$kept = array();
 		foreach ( array_keys( $roots ) as $root_id ) {
 			if ( ! self::access( $root_id )['require_membership'] ) {
 				continue;
 			}
-			$held = self::memberships( $root_id, $user_id );
-			if ( array() !== $held && count( $held ) === count( array_filter( array_column( $held, 'self_join' ) ) ) ) {
-				$root      = AudienceReader::get_by_id( $root_id );
-				$blocked[] = array(
-					'id'   => $root_id,
-					'name' => null !== $root ? (string) $root->name : '',
-				);
+			$held  = self::memberships( $root_id, $user_id );
+			$first = null;
+			foreach ( $held as $membership ) {
+				if ( ! $membership['self_join'] ) {
+					$first = null;
+					break;
+				}
+				if ( null === $first || $membership['membership_id'] < $first['membership_id'] ) {
+					$first = $membership;
+				}
 			}
+			if ( null === $first ) {
+				continue;
+			}
+			$root   = AudienceReader::get_by_id( $root_id );
+			$kept[] = array(
+				'tree_id'    => $root_id,
+				'tree_name'  => null !== $root ? (string) $root->name : '',
+				'group_id'   => $first['id'],
+				'group_name' => $first['name'],
+			);
 		}
-		return $blocked;
+		return $kept;
 	}
 }

@@ -1,6 +1,6 @@
 // Members-only trees, keep-at-least-one and switch in the Join groups panel
 // (#1918): what the panel draws from the payload's `trees`, `leave_locked`
-// and `leave_all_blocked`, and the requests its buttons send.
+// and `leave_all_keeps`, and the requests its buttons send.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
@@ -16,7 +16,8 @@ beforeAll(() => {
 		switchWhich: 'Replace which group with "%s"?',
 		confirmSwitchGroup: 'Leave "%1$s" and join "%2$s"?',
 		leaveLocked: 'Keep one group.',
-		leaveAllBlocked: 'Blocked by: %s.',
+		leaveAllKeptTitle: 'Some groups were kept',
+		leaveAllKeptLine: 'You stay in "%1$s" because "%2$s" requires at least one group.',
 		confirmLeaveAllGroups: 'Confirm leave all %d?',
 		cancel: 'Cancel',
 		error: 'Generic error',
@@ -43,7 +44,7 @@ afterEach(() => {
 
 // Top-level 1 "Staff" (header) over 2 "Morning", 3 "Evening", 4 "Night".
 function payload(opts) {
-	const o = Object.assign({ member: [2], locked: 0, held: [{ id: 2, name: 'Morning' }], total: 1, keep: true, max: 3, joined: 1, blocked: [] }, opts);
+	const o = Object.assign({ member: [2], locked: 0, held: [{ id: 2, name: 'Morning' }], total: 1, keep: true, max: 3, joined: 1, keeps: [] }, opts);
 	const child = (id, name) => {
 		const node = { id, name, color: '', joinable: true, is_member: o.member.indexOf(id) !== -1, tree_id: 1 };
 		if (o.locked === id) node.leave_locked = true;
@@ -54,7 +55,7 @@ function payload(opts) {
 		max_groups: o.max,
 		joined_count: o.joined,
 		trees: [{ id: 1, members_only: true, require_membership: o.keep, total: o.total, held: o.held }],
-		leave_all_blocked: o.blocked,
+		leave_all_keeps: o.keeps,
 	};
 }
 
@@ -94,22 +95,69 @@ describe('audience-join — keep at least one group', () => {
 		const sw = row(3).querySelector('.ffc-audience-switch-btn');
 		expect(sw).not.toBeNull();
 		expect(sw.classList.contains('ffc-btn-caution')).toBe(true);
-		expect(sw.classList.contains('ffc-icon-move')).toBe(true);
+		expect(sw.classList.contains('ffc-icon-switch')).toBe(true);
 		expect(sw.textContent).toBe('Switch to this');
 	});
 
-	it('alerts and sends nothing when Leave all would empty a kept tree', async () => {
-		await render(payload({ locked: 2, blocked: ['Staff'] }));
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-		const confirmSpy = vi.spyOn(window, 'confirm');
-		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+	it('names the group Leave all keeps in the confirm', async () => {
+		await render(payload({ locked: 2, keeps: [{ tree_id: 1, tree_name: 'Staff', group_id: 2, group_name: 'Morning' }] }));
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
 		window.$('.ffc-leave-all-groups-btn').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Blocked by: Staff.');
-		expect(confirmSpy).not.toHaveBeenCalled();
-		expect(ajaxSpy).not.toHaveBeenCalled();
+		expect(confirmSpy).toHaveBeenCalledWith('Confirm leave all 1?\n\nYou stay in "Morning" because "Staff" requires at least one group.');
+	});
+
+	it('after Leave all, shows a notice naming each kept group and its audience', async () => {
+		await render(payload({ locked: 2 }));
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const kept = [
+			{ tree_id: 1, tree_name: 'Staff', group_id: 2, group_name: 'Morning' },
+			{ tree_id: 9, tree_name: 'Clubs', group_id: 10, group_name: 'Chess' },
+		];
+		vi.spyOn(window.$, 'ajax').mockImplementationOnce((opts) => {
+			expect(opts.url).toContain('/user/audience-group/leave-all');
+			opts.success({ success: true, removed: 2, kept });
+			return {};
+		});
+		// The profile reload renders the panel again.
+		window.FFCDashboard.panels.profile.reload = vi.fn(() => render(payload({ locked: 2 })));
+
+		window.$('.ffc-leave-all-groups-btn').trigger('click');
+		await flushPromises();
+		await flushPromises();
+
+		const notice = document.querySelector('#ffc-audience-join-section .ffc-notice');
+		expect(notice).not.toBeNull();
+		expect(notice.classList.contains('ffc-notice-info')).toBe(true);
+		expect(notice.querySelector('.ffc-notice-title').textContent).toBe('Some groups were kept');
+		expect(Array.from(notice.querySelectorAll('.ffc-notice-text')).map((p) => p.textContent)).toEqual([
+			'You stay in "Morning" because "Staff" requires at least one group.',
+			'You stay in "Chess" because "Clubs" requires at least one group.',
+		]);
+		expect(alertSpy).not.toHaveBeenCalled();
+
+		// Shown once: the next render has no notice.
+		await render(payload({ locked: 2 }));
+		expect(document.querySelector('#ffc-audience-join-section .ffc-notice')).toBeNull();
+	});
+
+	it('shows no notice when Leave all kept nothing', async () => {
+		await render(payload({ keep: false }));
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.$, 'ajax').mockImplementationOnce((opts) => {
+			opts.success({ success: true, removed: 1, kept: [] });
+			return {};
+		});
+		window.FFCDashboard.panels.profile.reload = vi.fn(() => render(payload({ keep: false })));
+
+		window.$('.ffc-leave-all-groups-btn').trigger('click');
+		await flushPromises();
+		await flushPromises();
+
+		expect(document.querySelector('#ffc-audience-join-section .ffc-notice')).toBeNull();
 	});
 
 	it('runs Leave all as before when no tree blocks it', async () => {

@@ -84,7 +84,7 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->tree->shouldReceive( 'memberships' )->andReturn( array() )->byDefault();
 		$this->tree->shouldReceive( 'can_see' )->andReturn( true )->byDefault();
 		$this->tree->shouldReceive( 'is_last_kept_group' )->andReturn( false )->byDefault();
-		$this->tree->shouldReceive( 'trees_blocking_leave_all' )->andReturn( array() )->byDefault();
+		$this->tree->shouldReceive( 'groups_kept_on_leave_all' )->andReturn( array() )->byDefault();
 
 		// Global $wpdb mock
 		$this->wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -973,7 +973,8 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->one_tree( true );
 		$this->tree->shouldReceive( 'access' )->with( 1 )->andReturn( array( 'members_only' => true, 'require_membership' => true ) );
 		$this->tree->shouldReceive( 'memberships' )->with( 1, 5 )->andReturn( array( array( 'id' => 2, 'name' => 'Morning', 'self_join' => true ) ) );
-		$this->tree->shouldReceive( 'trees_blocking_leave_all' )->with( 5 )->andReturn( array( array( 'id' => 1, 'name' => 'Staff' ) ) );
+		$keeps = array( array( 'tree_id' => 1, 'tree_name' => 'Staff', 'group_id' => 2, 'group_name' => 'Morning' ) );
+		$this->tree->shouldReceive( 'groups_kept_on_leave_all' )->with( 5 )->andReturn( $keeps );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->get_joinable_groups( $this->make_request() );
 
@@ -981,7 +982,7 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertTrue( $children[0]['leave_locked'] );
 		$this->assertArrayNotHasKey( 'leave_locked', $children[1] );
 		$this->assertSame( array( array( 'id' => 2, 'name' => 'Morning' ) ), $result['trees'][0]['held'] );
-		$this->assertSame( array( 'Staff' ), $result['leave_all_blocked'] );
+		$this->assertSame( $keeps, $result['leave_all_keeps'] );
 	}
 
 	public function test_no_group_is_locked_while_another_of_the_tree_is_held(): void {
@@ -1041,17 +1042,67 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertTrue( $result['success'] );
 	}
 
-	public function test_leave_all_is_refused_when_a_keep_tree_would_empty(): void {
+	/**
+	 * Runs leave-all with what the rules keep, and returns the response and
+	 * the arguments bound to the DELETE.
+	 *
+	 * @param list<array<string, mixed>> $kept What groups_kept_on_leave_all() answers.
+	 * @return array{0: mixed, 1: array<int, mixed>, 2: string}
+	 */
+	private function leave_all_with( array $kept ): array {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$this->tree->shouldReceive( 'trees_blocking_leave_all' )->with( 5 )->andReturn( array( array( 'id' => 1, 'name' => 'Staff' ) ) );
-		$this->wpdb->shouldNotReceive( 'query' );
+		$this->tree->shouldReceive( 'groups_kept_on_leave_all' )->with( 5 )->andReturn( $kept );
+
+		$bound = array();
+		$sql   = '';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $query, $args = array() ) use ( &$bound, &$sql ) {
+				$sql   = (string) $query;
+				$bound = is_array( $args ) ? $args : array();
+				return 'DELETE';
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->once()->with( 'DELETE' )->andReturn( 4 );
 
 		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->leave_all_audience_groups( $this->make_request() );
+		return array( $result, $bound, $sql );
+	}
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'keep_one_group', $result->get_error_code() );
-		$this->assertStringContainsString( 'Staff', $result->get_error_message() );
+	/** Mixed trees: one kept tree holds back its first group, the rest goes. */
+	public function test_leave_all_keeps_the_first_group_of_a_kept_tree(): void {
+		$kept = array( array( 'tree_id' => 1, 'tree_name' => 'Staff', 'group_id' => 3, 'group_name' => 'Evening' ) );
+
+		list( $result, $bound, $sql ) = $this->leave_all_with( $kept );
+
+		$this->assertStringContainsString( 'NOT IN (%d)', $sql );
+		$this->assertSame( array( 'wp_ffc_audience_members', 'wp_ffc_audiences', 5, 3 ), $bound );
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 4, $result['removed'] );
+		$this->assertSame( $kept, $result['kept'] );
+	}
+
+	/** Several kept trees: one group held back in each, all excluded at once. */
+	public function test_leave_all_keeps_one_group_in_each_kept_tree(): void {
+		$kept = array(
+			array( 'tree_id' => 1, 'tree_name' => 'Staff', 'group_id' => 3, 'group_name' => 'Evening' ),
+			array( 'tree_id' => 9, 'tree_name' => 'Clubs', 'group_id' => 10, 'group_name' => 'Chess' ),
+		);
+
+		list( $result, $bound, $sql ) = $this->leave_all_with( $kept );
+
+		$this->assertStringContainsString( 'NOT IN (%d,%d)', $sql );
+		$this->assertSame( array( 'wp_ffc_audience_members', 'wp_ffc_audiences', 5, 3, 10 ), $bound );
+		$this->assertSame( $kept, $result['kept'] );
+	}
+
+	public function test_leave_all_without_a_kept_tree_leaves_everything(): void {
+		list( $result, $bound, $sql ) = $this->leave_all_with( array() );
+
+		$this->assertStringNotContainsString( 'NOT IN', $sql );
+		$this->assertSame( array( 'wp_ffc_audience_members', 'wp_ffc_audiences', 5 ), $bound );
+		$this->assertSame( array(), $result['kept'] );
+		$this->assertSame( 'You left all groups.', $result['message'] );
 	}
 
 	/** Groups 2 and 3 share top-level 1; group 8 belongs to top-level 7. */

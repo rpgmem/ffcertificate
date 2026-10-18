@@ -27178,12 +27178,6 @@ msgstr "Este grupo está aberto apenas aos membros do seu público-alvo."
 msgid "This audience keeps its members in at least one group. Join or switch to another of its groups before leaving this one."
 msgstr "Este público-alvo mantém seus membros em pelo menos um grupo. Entre ou troque para outro dos seus grupos antes de sair deste."
 
-#. %s: comma-separated names of top-level audiences
-#: includes/api/class-ffc-user-audience-rest-controller.php
-#, php-format
-msgid "Nothing was left. These audiences keep their members in at least one group: %s. Leave the other groups one by one."
-msgstr "Você não saiu de nenhum grupo. Estes públicos-alvo mantêm seus membros em pelo menos um grupo: %s. Saia dos outros grupos um a um."
-
 #: includes/api/class-ffc-user-audience-rest-controller.php
 msgid "Choose the group to leave and the group to join."
 msgstr "Escolha o grupo do qual sair e o grupo no qual entrar."
@@ -27259,9 +27253,23 @@ msgid "Leave \"%1$s\" and join \"%2$s\"?"
 msgstr "Sair de \"%1$s\" e entrar em \"%2$s\"?"
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "Two more switches on a top-level audience cover it and every child and grandchild; the groups below show the state read-only. \"Visible to members only\" hides the whole audience from the dashboard's Join groups panel for users who belong to none of its groups, however they were added (by you, by an import or by self-join), and the server refuses a join request from them; calendars, bookings and the rest of the dashboard are not affected. \"Keep at least one group\", available only while the first is on, stops a member from leaving the last group they hold in the audience: its Leave button is disabled with a line saying why, the server refuses the request, and \"Leave all groups\" does nothing and names the audience. Removing members on this screen is not affected."
-msgstr "Mais duas chaves em um público-alvo de nível superior valem para ele e para todos os filhos e netos; os grupos abaixo mostram o estado somente para leitura. \"Visível apenas para membros\" oculta todo o público-alvo do painel Participar de grupos para os usuários que não pertencem a nenhum dos seus grupos, seja qual for a forma como foram adicionados (por você, por uma importação ou por auto-adesão), e o servidor recusa um pedido de entrada deles; calendários, agendamentos e o resto do painel do usuário não são afetados. \"Manter pelo menos um grupo\", disponível apenas enquanto a primeira estiver ativa, impede que um membro saia do último grupo que tem no público-alvo: o botão Deixar fica desativado com uma linha explicando o motivo, o servidor recusa o pedido e \"Sair de todos os grupos\" não faz nada e indica o público-alvo. A remoção de membros nesta tela não é afetada."
+msgid "Two more switches on a top-level audience cover it and every child and grandchild; the groups below show the state read-only. \"Visible to members only\" hides the whole audience from the dashboard's Join groups panel for users who belong to none of its groups, however they were added (by you, by an import or by self-join), and the server refuses a join request from them; calendars, bookings and the rest of the dashboard are not affected. \"Keep at least one group\", available only while the first is on, stops a member from leaving the last group they hold in the audience: its Leave button is disabled with a line saying why and the server refuses the request. \"Leave all groups\" still leaves every other group, but in such an audience it keeps the group the user joined first (the earliest membership) and leaves the rest of it; a notice then names each group kept and the audience that requires it. Removing members on this screen is not affected."
+msgstr "Mais duas chaves em um público-alvo de nível superior valem para ele e para todos os filhos e netos; os grupos abaixo mostram o estado somente para leitura. \"Visível apenas para membros\" oculta todo o público-alvo do painel Participar de grupos para os usuários que não pertencem a nenhum dos seus grupos, seja qual for a forma como foram adicionados (por você, por uma importação ou por auto-adesão), e o servidor recusa um pedido de entrada deles; calendários, agendamentos e o resto do painel do usuário não são afetados. \"Manter pelo menos um grupo\", disponível apenas enquanto a primeira estiver ativa, impede que um membro saia do último grupo que tem no público-alvo: o botão Deixar fica desativado com uma linha explicando o motivo e o servidor recusa o pedido. \"Sair de todos os grupos\" continua saindo de todos os outros grupos, mas, nesse público-alvo, mantém o grupo em que o usuário entrou primeiro (a adesão mais antiga) e sai do resto dele; depois, um aviso indica cada grupo mantido e o público-alvo que o exige. A remoção de membros nesta tela não é afetada."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "When a user is at the cap, or holds only one group of an audience that keeps its members, the other self-join groups of that audience offer \"Switch to this\": in one step the user leaves a group they hold there and joins the new one. With several groups held there, the dashboard asks which one to replace. A switch only moves between groups of the same top-level audience, so it never takes a user past the cap."
 msgstr "Quando um usuário está no limite, ou tem apenas um grupo de um público-alvo que mantém seus membros, os outros grupos de auto-adesão desse público-alvo oferecem \"Trocar para este\": em um só passo, o usuário sai de um grupo que tem ali e entra no novo. Com vários grupos ali, o painel pergunta qual substituir. Uma troca só acontece entre grupos do mesmo público-alvo de nível superior, então nunca leva um usuário além do limite."
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Some groups were kept"
+msgstr "Alguns grupos foram mantidos"
+
+#. 1: group the user stays in, 2: top-level audience that requires at least one group
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+#, php-format
+msgid "You stay in \"%1$s\" because \"%2$s\" requires at least one group."
+msgstr "Você continua em \"%1$s\" porque \"%2$s\" exige pelo menos um grupo."
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "You left every group you could. Some audiences keep their members in at least one group."
+msgstr "Você saiu de todos os grupos possíveis. Alguns públicos-alvo mantêm seus membros em pelo menos um grupo."

@@ -6,9 +6,9 @@
  * and switch actions that reload the profile panel on success.
  *
  * A tree may keep its members in at least one group (#1918): the server
- * marks that last group `leave_locked`, offers "Switch to this" on the
- * tree's other groups, and lists the trees that stop "Leave all groups"
- * in `leave_all_blocked`.
+ * marks that last group `leave_locked` and offers "Switch to this" on the
+ * tree's other groups. "Leave all groups" keeps the first group joined in
+ * each such tree; the panel says which, in a notice above the list.
  *
  * Not a full panel (no tab, no pagination). Exposed at
  * `FFCDashboard.audienceJoin.load()` and called by the profile panel's
@@ -26,6 +26,23 @@
     var lastData = null;
     var treesById = {};
     var namesById = {};
+    // Lines of the notice "Leave all groups" leaves for the next render.
+    var pendingKept = null;
+
+    // "You stay in <group> because <audience> requires at least one group."
+    function keptLines(kept) {
+        var line = ffcDashboard.strings.leaveAllKeptLine || 'You stay in "%1$s" because "%2$s" requires at least one group.';
+        return kept.map(function (k) {
+            return line.replace('%1$s', k.group_name).replace('%2$s', k.tree_name);
+        });
+    }
+
+    function keptNotice() {
+        if (!pendingKept) return null;
+        var notice = window.FFC.notice('info', 'info', pendingKept, ffcDashboard.strings.leaveAllKeptTitle || 'Some groups were kept', { role: 'status' });
+        pendingKept = null;
+        return notice;
+    }
 
     function renderJoinableGroups(data) {
         var $section = $('#ffc-audience-join-section');
@@ -37,7 +54,7 @@
         (data.trees || []).forEach(function (tree) { treesById[tree.id] = tree; });
 
         if (parents.length === 0) {
-            $section.empty();
+            $section.empty().append(keptNotice());
             return;
         }
 
@@ -87,7 +104,7 @@
                 out += window.FFC.buttonHtml({
                     label: s.switchGroup || 'Switch to this',
                     category: 'caution',
-                    icon: 'move',
+                    icon: 'switch',
                     className: 'ffc-audience-switch-btn',
                     attrs: { 'data-id': node.id, 'data-tree': node.tree_id }
                 });
@@ -165,6 +182,7 @@
         html += renderNodes(parents, 0, null);
 
         $section.html(html);
+        $section.prepend(keptNotice());
 
         $section.on('click', '.ffc-audience-accordion-toggle', function () {
             var $btn = $(this);
@@ -256,7 +274,7 @@
             html += '<option value="' + g.id + '">' + esc(g.name) + '</option>';
         });
         html += '</select>';
-        html += window.FFC.buttonHtml({ label: s.switchConfirm || 'Switch', category: 'caution', icon: 'move', className: 'ffc-audience-switch-confirm', attrs: { 'data-id': toId } });
+        html += window.FFC.buttonHtml({ label: s.switchConfirm || 'Switch', category: 'caution', icon: 'switch', className: 'ffc-audience-switch-confirm', attrs: { 'data-id': toId } });
         html += window.FFC.buttonHtml({ label: s.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-audience-switch-cancel' });
         html += '</div>';
         $trigger.closest('.ffc-audience-join-item').after(html);
@@ -264,15 +282,6 @@
     }
 
     function leaveAllGroups() {
-        // A tree that must keep the user would lose every group they hold
-        // there: say so and do nothing (#1918). The server refuses too.
-        var blocked = (lastData && lastData.leave_all_blocked) || [];
-        if (blocked.length > 0) {
-            alert((ffcDashboard.strings.leaveAllBlocked || 'Nothing was left. These audiences keep their members in at least one group: %s. Leave the other groups one by one.')
-                .replace('%s', blocked.join(', ')));
-            return;
-        }
-
         var profile = FFCDashboard.panels.profile.state;
         var groups = profile && profile.audience_groups;
         var count = groups ? groups.length : 0;
@@ -280,6 +289,12 @@
 
         var msg = (ffcDashboard.strings.confirmLeaveAllGroups || 'Are you sure you want to leave all %d group(s)? This action cannot be undone.')
             .replace('%d', count);
+        // A tree that keeps its members stays at one group (#1918): say which
+        // before asking.
+        var keeps = (lastData && lastData.leave_all_keeps) || [];
+        if (keeps.length > 0) {
+            msg += '\n\n' + keptLines(keeps).join('\n');
+        }
         if (!confirm(msg)) return;
 
         var $btn = $('.ffc-leave-all-groups-btn');
@@ -289,7 +304,11 @@
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
 
         FFC.rest(url, { method: 'POST', data: {}, nonce: ffcDashboard.nonce })
-            .then(function () { FFCDashboard.panels.profile.reload(); })
+            .then(function (res) {
+                var kept = (res && res.kept) || [];
+                pendingKept = kept.length > 0 ? keptLines(kept) : null;
+                FFCDashboard.panels.profile.reload();
+            })
             .catch(function (err) {
                 var m = (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
                 alert(m);

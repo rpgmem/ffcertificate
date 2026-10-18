@@ -343,8 +343,9 @@ class DashboardAssetManager {
 					/* translators: 1: group the user leaves, 2: group the user joins */
 					'confirmSwitchGroup'       => __( 'Leave "%1$s" and join "%2$s"?', 'ffcertificate' ),
 					'leaveLocked'              => __( 'This audience keeps its members in at least one group. Join or switch to another of its groups before leaving this one.', 'ffcertificate' ),
-					/* translators: %s: comma-separated names of top-level audiences */
-					'leaveAllBlocked'          => __( 'Nothing was left. These audiences keep their members in at least one group: %s. Leave the other groups one by one.', 'ffcertificate' ),
+					'leaveAllKeptTitle'        => __( 'Some groups were kept', 'ffcertificate' ),
+					/* translators: 1: group the user stays in, 2: top-level audience that requires at least one group */
+					'leaveAllKeptLine'         => __( 'You stay in "%1$s" because "%2$s" requires at least one group.', 'ffcertificate' ),
 					// Summary.
 					'summaryTitle'             => __( 'Overview', 'ffcertificate' ),
 					'totalCertificates'        => __( 'Certificates', 'ffcertificate' ),
