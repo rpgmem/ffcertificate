@@ -26,6 +26,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A parent audience sets self-join for itself and for its descendants apart** (#1896). "This audience" no longer cascades; "Children and grandchildren" is applied to every descendant and reads Mixed, leaving them as they are, when they disagree. No schema change.
 - ⚠ **The dashboard masks the owner's own data** (#1897). CPF/RF, e-mails, phone and birth date arrive masked from `GET /user/profile` and `/user/certificates`, each with Reveal; the owner's reveal writes no log row, "view as user" stays audited. PDFs, receipts and e-mails are unchanged.
 - **Settings and certificate screens use the button family** (#1904). Settings tabs, migrations, the activity log, submissions, the form editor and certificate templates print `.ffc-btn` buttons by category and icon; scripts read their own hooks, not core classes.
+- **Self-join on an audience with children is one four-option choice, and new children inherit it** (#1901). Off, This audience only, This audience + children and grandchildren, Children and grandchildren only; with the groups below in disagreement none is selected and a notice gives the counts. A new child starts on when every descendant is on. On the new-audience form a picked parent replaces the switch with "Inherits from the audience above."
 
 ### Fixed
 

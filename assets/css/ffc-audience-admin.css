@@ -145,6 +145,16 @@
     font-size: var(--ffc-font-size-lg);
 }
 
+/* Self-join scope (#1901): the notice stating a mixed state leaves once an
+   option is picked, since the choice then applies to every group. */
+.ffc-self-join-scope .ffc-self-join-mixed {
+    margin: var(--ffc-spacing-xs) 0 0;
+}
+
+.ffc-self-join-scope:has(input:checked) .ffc-self-join-mixed {
+    display: none;
+}
+
 /* Working Hours */
 .ffc-working-hours {
     background: var(--ffc-bg-alt);
