@@ -1328,15 +1328,6 @@ td .ffc-restriction-label {
     white-space: nowrap;
 }
 
-/* 44px, against wp-admin's own 30: the controls beside these write
-   irreversibly, and this is a screen worked by repeated clicking. */
-.ffc-page-identities .ffc-identity-panel-step {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    padding: 0 var(--ffc-spacing-sm);
-}
-
 /* A SQUARE, BECAUSE THE LABEL IS NOW THE GLYPH (#1421).
 
    The word left the two steppers -- it survives as `aria-label` and as the
@@ -1353,21 +1344,10 @@ td .ffc-restriction-label {
     padding: 0;
 }
 
-.ffc-page-identities .ffc-identity-panel-step [class*="ffc-icon-chevron"] {
-    font-size: var(--ffc-font-size-lg);
-    line-height: 1;
-}
-
-.ffc-page-identities .ffc-identity-panel-step [class*="ffc-icon-chevron"]::before {
-    margin-right: 0;
-}
-
-/* `aria-disabled` rather than `disabled`, because these are links and a link
+/* `aria-disabled` rather than `disabled`, because a step is a link and a link
    has no disabled state — the attribute is what tells a screen reader, and
-   this is what tells everybody else. The fade is on an INACTIVE control,
-   which SC 1.4.3 exempts; `OpacityContrastTest` carries the reason. */
+   the family's disabled grey (#1904) is what tells everybody else. */
 .ffc-page-identities .ffc-identity-panel-step[aria-disabled="true"] {
-    opacity: 0.5;
     pointer-events: none;
 }
 
@@ -1737,14 +1717,14 @@ td .ffc-restriction-label {
 
 /* A TARGET THE SIZE OF A FINGER, ON THE COLUMN THAT WRITES (#1421).
 
-   wp-admin's `.button` is about 30px tall, which is a pointer's target and
+   The admin button is 34px tall (#1904), which is a pointer's target and
    not a touch one. Every control in this column commits or refuses an
    irreversible write to somebody's records, and the operator reaching it on
    a tablet is the same operator working a 96-finding list -- so the column
    takes the 44px of WCAG 2.5.5, which is what the mockup draws. Scoped to
    this column on purpose: it is not an opinion about every button in
    wp-admin, only about the ones that move records. */
-.ffc-page-identities .ffc-identity-card-act .button {
+.ffc-page-identities .ffc-identity-card-act .ffc-btn {
     min-height: 44px;
     padding-top: var(--ffc-spacing-2xs);
     padding-bottom: var(--ffc-spacing-2xs);
@@ -1790,7 +1770,7 @@ td .ffc-restriction-label {
 
 /* THE FIELDS MATCH THE BUTTONS THEY SIT BESIDE (#1421 completed).
 
-   The 44px above went on `.button` alone, so a 44px button stood next to a
+   The 44px above went on the button alone, so a 44px button stood next to a
    ~30px wp-admin input and the row read as misaligned -- the buttons looked
    oversized when it was the fields that were short. The mockup draws both at
    44, and a target that commits a write is not more reachable than the field
@@ -1805,7 +1785,7 @@ td .ffc-restriction-label {
 .ffc-page-identities .ffc-identity-card-act input[type="text"],
 .ffc-page-identities .ffc-identity-card-act input[type="email"],
 .ffc-page-identities .ffc-identity-card-act input[type="number"],
-.ffc-page-identities .ffc-identity-card-act .button {
+.ffc-page-identities .ffc-identity-card-act .ffc-btn {
     vertical-align: middle;
 }
 
@@ -1824,36 +1804,6 @@ td .ffc-restriction-label {
 .ffc-page-identities .ffc-identity-card-act input[type="number"] {
     min-height: 44px;
     width: 14em;
-}
-
-/* WEIGHT IS THE ONE THING THE PROMOTION CANNOT BORROW.
-
-   Everything else about these buttons is already wp-admin's: the mockup's
-   `#2271b1` / `#f6f7f7` / `#1d2327` ARE `--ffc-primary` / `--ffc-bg-alt` /
-   `--ffc-text`, i.e. what core paints on `.button-primary` and `.button`
-   unaided. Re-declaring them here would be a colour literal, and tokenizing
-   them would be worse -- the dark theme redefines those tokens while
-   wp-admin's own chrome follows the user's colour scheme instead, so our
-   primary would stop matching every other primary on the screen. Core's
-   `.button-primary` is normal weight; the mockup's is 600, and that is the
-   difference this rule is for. */
-.ffc-page-identities .ffc-identity-card-act .button-primary {
-    font-weight: 600;
-}
-
-/* The search button carries a glyph before its word, so it stops being a
-   text box: `inline-flex` is what puts the two on one baseline, since an
-   icon box is a square that a button's own line-height cannot centre.
-   Sized to the label rather than to its own default, or the glyph reads as
-   the control and the word as its caption. */
-.ffc-page-identities .ffc-identity-find {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ffc-spacing-3xs);
-}
-
-.ffc-page-identities .ffc-identity-find .ffc-icon-search::before {
-    margin-right: 0;
 }
 
 @media screen and (max-width: 782px) {
@@ -2076,7 +2026,7 @@ td .ffc-restriction-label {
     border-top: 1px solid var(--ffc-border);
 }
 
-.ffc-page-identities .ffc-identity-dialog-foot .button {
+.ffc-page-identities .ffc-identity-dialog-foot .ffc-btn {
     min-height: 44px;
 }
 
@@ -2254,7 +2204,7 @@ td .ffc-restriction-label {
     list-style: disc;
 }
 
-.ffc-page-identities .ffc-identity-merge-one .button {
+.ffc-page-identities .ffc-identity-merge-one .ffc-btn {
     min-height: 44px;
 }
 

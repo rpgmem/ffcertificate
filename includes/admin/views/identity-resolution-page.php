@@ -38,6 +38,7 @@
 // runs -- and PHPStan cannot see it, because `phpstan.neon.dist` excludes
 // `includes/admin/views` as markup. `ViewClassImportTest` is what watches
 // this list now.
+use FreeFormCertificate\Admin\AdminUI;
 use FreeFormCertificate\Admin\IdentityQueuePanels;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Core\DateFormatter;
@@ -245,30 +246,29 @@ $ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identi
 					$ffc_identity_step_label = 'previous' === $ffc_identity_step
 						? __( 'Previous', 'ffcertificate' )
 						: __( 'Next', 'ffcertificate' );
-					// The chevron is a dashicon, the way every other glyph in
-					// this plugin is -- and not a `content: '\f341'` rule,
-					// which would need the font named in our own sheet and is
-					// the shape `CssNamespaceAnchorTest` exists to bound.
-					$ffc_identity_step_class = 'button button-secondary ffc-identity-panel-step ffc-identity-panel-step-' . $ffc_identity_step;
-					$ffc_identity_step_icon  = 'previous' === $ffc_identity_step
-						? 'ffc-icon-chevron-left'
-						: 'ffc-icon-chevron-right';
+					// Icon-only family buttons (#1904): the chevron is the
+					// button's own registry icon, the label its accessible name.
+					$ffc_identity_step_icon  = 'previous' === $ffc_identity_step ? 'chevron-left' : 'chevron-right';
+					$ffc_identity_step_class = 'ffc-identity-panel-step ffc-identity-panel-step-' . $ffc_identity_step;
 					?>
 					<?php if ( '' !== (string) $panel[ $ffc_identity_step ] ) : ?>
-						<a class="<?php echo esc_attr( $ffc_identity_step_class ); ?>"
-							aria-label="<?php echo esc_attr( $ffc_identity_step_label ); ?>"
-							title="<?php echo esc_attr( $ffc_identity_step_label ); ?>"
-							href="<?php echo esc_url( $ffc_identity_url( $tier, (string) $panel[ $ffc_identity_step ], $ffc_identity_listed ) ); ?>">
-							<span class="<?php echo esc_attr( $ffc_identity_step_icon ); ?>" aria-hidden="true"></span>
-						</a>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label'     => $ffc_identity_step_label,
+								'icon'      => $ffc_identity_step_icon,
+								'icon_only' => true,
+								'class'     => $ffc_identity_step_class,
+								'href'      => $ffc_identity_url( $tier, (string) $panel[ $ffc_identity_step ], $ffc_identity_listed ),
+							)
+						);
+						?>
 					<?php else : ?>
-						<?php // Rendered and disabled rather than absent, so the controls do not move under the pointer as the operator walks the list. ?>
-						<span class="<?php echo esc_attr( $ffc_identity_step_class ); ?> disabled"
+						<?php // Rendered and disabled rather than absent, so the controls do not move under the pointer as the operator walks the list. By hand: a disabled step has nowhere to go, so it is a span, not a link. ?>
+						<span class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-<?php echo esc_attr( $ffc_identity_step_icon ); ?> <?php echo esc_attr( $ffc_identity_step_class ); ?> disabled"
 							aria-disabled="true"
 							aria-label="<?php echo esc_attr( $ffc_identity_step_label ); ?>"
-							title="<?php echo esc_attr( $ffc_identity_step_label ); ?>">
-							<span class="<?php echo esc_attr( $ffc_identity_step_icon ); ?>" aria-hidden="true"></span>
-						</span>
+							title="<?php echo esc_attr( $ffc_identity_step_label ); ?>"></span>
 					<?php endif; ?>
 				<?php endforeach; ?>
 			<?php endif; ?>
@@ -760,9 +760,15 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 					<?php wp_nonce_field( IdentityResolutionPage::RESCAN_NONCE ); ?>
 					<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RESCAN_ACTION ); ?>">
-					<button type="submit" class="button button-secondary">
-						<?php esc_html_e( 'Read the queue again', 'ffcertificate' ); ?>
-					</button>
+					<?php
+					AdminUI::render_button(
+						array(
+							'label' => __( 'Read the queue again', 'ffcertificate' ),
+							'icon'  => 'sync',
+							'type'  => 'submit',
+						)
+					);
+					?>
 				</form>
 			</div>
 		<?php endif; ?>
@@ -842,9 +848,16 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				<?php esc_html_e( 'A category holding nothing does not appear — not here, and not below.', 'ffcertificate' ); ?>
 			</span>
 			<?php if ( '' !== $ffc_identity_export_url ) : ?>
-				<a class="button button-secondary ffc-identity-counts-export" href="<?php echo esc_url( $ffc_identity_export_url ); ?>">
-					<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
-				</a>
+				<?php
+				AdminUI::render_button(
+					array(
+						'label' => __( 'Export CSV', 'ffcertificate' ),
+						'icon'  => 'download',
+						'class' => 'ffc-identity-counts-export',
+						'href'  => $ffc_identity_export_url,
+					)
+				);
+				?>
 			<?php endif; ?>
 		</div>
 	<?php endif; ?>
@@ -1090,13 +1103,21 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					// so every string is escaped at the output point.
 					?>
 					<p>
-						<button type="button" class="button button-secondary ffc-identity-preview"
-							data-ffc-a="<?php echo esc_attr( (string) $ffc_identity_who[0] ); ?>"
-							data-ffc-b="<?php echo esc_attr( (string) $ffc_identity_who[1] ); ?>"
-							data-ffc-region="ffc-merge-preview-<?php echo esc_attr( $ffc_identity_id ); ?>"
-							data-ffc-ack="ffc-merge-ack-<?php echo esc_attr( $ffc_identity_id ); ?>">
-							<?php esc_html_e( 'Show what would move', 'ffcertificate' ); ?>
-						</button>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label' => __( 'Show what would move', 'ffcertificate' ),
+								'icon'  => 'eye',
+								'class' => 'ffc-identity-preview',
+								'attrs' => array(
+									'data-ffc-a'      => (string) $ffc_identity_who[0],
+									'data-ffc-b'      => (string) $ffc_identity_who[1],
+									'data-ffc-region' => 'ffc-merge-preview-' . $ffc_identity_id,
+									'data-ffc-ack'    => 'ffc-merge-ack-' . $ffc_identity_id,
+								),
+							)
+						);
+						?>
 					</p>
 
 					<div class="ffc-identity-preview-region" id="ffc-merge-preview-<?php echo esc_attr( $ffc_identity_id ); ?>"
@@ -1132,10 +1153,17 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						</label>
 					</p>
 					<p>
-						<button type="submit" class="button button-primary"
-							id="ffc-merge-go-<?php echo esc_attr( $ffc_identity_id ); ?>">
-							<?php esc_html_e( 'Merge this pair', 'ffcertificate' ); ?>
-						</button>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label'    => __( 'Merge this pair', 'ffcertificate' ),
+								'category' => 'primary',
+								'icon'     => 'merge',
+								'type'     => 'submit',
+								'id'       => 'ffc-merge-go-' . $ffc_identity_id,
+							)
+						);
+						?>
 					</p>
 				</form>
 			</div>
@@ -1186,9 +1214,15 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						<input type="text" inputmode="numeric" pattern="[0-9]{7,11}" maxlength="11" size="12" required
 							id="ffc-correct-<?php echo esc_attr( (string) ( $ffc_identity_pair['subject'] ?? '' ) . '-' . (string) $ffc_identity_account ); ?>"
 							name="ffc_rf" placeholder="<?php esc_attr_e( 'The confirmed number', 'ffcertificate' ); ?>">
-						<button type="submit" class="button button-secondary">
-							<?php esc_html_e( 'Correct theirs', 'ffcertificate' ); ?>
-						</button>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label' => __( 'Correct theirs', 'ffcertificate' ),
+								'icon'  => 'edit',
+								'type'  => 'submit',
+							)
+						);
+						?>
 						<?php $ffc_identity_ack( (string) ( $ffc_identity_pair['subject'] ?? '' ) ); ?>
 					</form>
 				<?php endforeach; ?>
@@ -1458,9 +1492,16 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							// promoting one of two destinations is the screen
 							// answering a question it is asking.
 							?>
-							<button type="submit" class="button button-primary">
-								<?php esc_html_e( 'Consolidate', 'ffcertificate' ); ?>
-							</button>
+							<?php
+							AdminUI::render_button(
+								array(
+									'label'    => __( 'Consolidate', 'ffcertificate' ),
+									'category' => 'primary',
+									'icon'     => 'merge',
+									'type'     => 'submit',
+								)
+							);
+							?>
 							<?php $ffc_identity_ack( $ffc_identity_wrong ); ?>
 						</form>
 						<?php
@@ -1598,15 +1639,22 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								// committing, which is not the same as being
 								// the only way to give one.
 								?>
-								<button type="button" class="button button-secondary ffc-identity-find"
-									data-ffc-subject="<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
-									data-ffc-field="<?php echo esc_attr( $ffc_identity_field ); ?>"
-									data-ffc-input="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
-									data-ffc-split="ffc-split-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
-									data-ffc-submit="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
-									<span class="ffc-icon-search" aria-hidden="true"></span>
-									<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
-								</button>
+								<?php
+								AdminUI::render_button(
+									array(
+										'label' => __( 'Search…', 'ffcertificate' ),
+										'icon'  => 'search',
+										'class' => 'ffc-identity-find',
+										'attrs' => array(
+											'data-ffc-subject' => (string) $ffc_identity_move,
+											'data-ffc-field'   => $ffc_identity_field,
+											'data-ffc-input'   => 'ffc-relink-' . (string) $ffc_identity_move,
+											'data-ffc-split'   => 'ffc-split-form-' . (string) $ffc_identity_move,
+											'data-ffc-submit'  => 'ffc-relink-go-' . (string) $ffc_identity_move,
+										),
+									)
+								);
+								?>
 								<?php
 								// THE HASH LEAVES THE LABEL AND STAYS IN THE NAME.
 								//
@@ -1681,7 +1729,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 										<?php esc_html_e( 'HR confirmed these records are this person’s, not the shared account’s.', 'ffcertificate' ); ?>
 									</label>
 								<?php endif; ?>
-								<button type="submit" class="button button-secondary"
+								<?php // By hand with the family's classes: the label carries a screen-reader-only prefix, more than a label (#1904). ?>
+								<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-move"
 									id="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
 									<?php esc_html_e( 'Move', 'ffcertificate' ); ?>
 									<span class="screen-reader-text">
@@ -1777,9 +1826,15 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									data-ffc-move-submit="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
 									<?php endif; ?>
 									name="ffc_email" placeholder="<?php esc_attr_e( 'New account e-mail', 'ffcertificate' ); ?>">
-								<button type="submit" class="button button-secondary">
-									<?php esc_html_e( 'Split off', 'ffcertificate' ); ?>
-								</button>
+								<?php
+								AdminUI::render_button(
+									array(
+										'label' => __( 'Split off', 'ffcertificate' ),
+										'icon'  => 'split',
+										'type'  => 'submit',
+									)
+								);
+								?>
 								<?php
 								// Printed disabled-free and hidden; the dialog
 								// shows it and disables the fields above when a
@@ -1878,7 +1933,16 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					</select>
 					</label>
 					<p>
-					<button type="submit" class="button button-secondary"><?php esc_html_e( 'Accept as unresolvable', 'ffcertificate' ); ?></button>
+					<?php
+					AdminUI::render_button(
+						array(
+							'label'    => __( 'Accept as unresolvable', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'flag',
+							'type'     => 'submit',
+						)
+					);
+					?>
 					</p>
 					</form>
 					</details>
@@ -2256,17 +2320,31 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							// correction -- and the answer carries an
 							// account, never an identifier.
 							?>
-							<button type="button" class="button button-secondary ffc-identity-check"
-								data-ffc-subject="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
-								data-ffc-field="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf' ) ) ); ?>"
-								data-ffc-value="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
-								data-ffc-verdict="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
-								data-ffc-ack="ffc-ack-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
-								<?php esc_html_e( 'Check', 'ffcertificate' ); ?>
-							</button>
-							<button type="submit" class="button button-primary">
-								<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
-							</button>
+							<?php
+							$ffc_identity_subject = (string) ( $ffc_identity_row['subject'] ?? '' );
+							AdminUI::render_button(
+								array(
+									'label' => __( 'Check', 'ffcertificate' ),
+									'icon'  => 'file-check',
+									'class' => 'ffc-identity-check',
+									'attrs' => array(
+										'data-ffc-subject' => $ffc_identity_subject,
+										'data-ffc-field'   => str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf' ) ),
+										'data-ffc-value'   => 'ffc-rf-' . $ffc_identity_subject,
+										'data-ffc-verdict' => 'ffc-check-' . $ffc_identity_subject,
+										'data-ffc-ack'     => 'ffc-ack-' . $ffc_identity_subject,
+									),
+								)
+							);
+							AdminUI::render_button(
+								array(
+									'label'    => __( 'Correct', 'ffcertificate' ),
+									'category' => 'primary',
+									'icon'     => 'edit',
+									'type'     => 'submit',
+								)
+							);
+							?>
 							<?php $ffc_identity_ack( (string) ( $ffc_identity_row['subject'] ?? '' ), true ); ?>
 							<div class="ffc-identity-verdict" id="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
 								aria-live="polite"
@@ -2348,7 +2426,16 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					</select>
 					</label>
 					<p>
-					<button type="submit" class="button button-secondary"><?php esc_html_e( 'Accept as unresolvable', 'ffcertificate' ); ?></button>
+					<?php
+					AdminUI::render_button(
+						array(
+							'label'    => __( 'Accept as unresolvable', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'flag',
+							'type'     => 'submit',
+						)
+					);
+					?>
 					</p>
 					</form>
 					</details>
@@ -2510,9 +2597,16 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<input type="hidden" name="ffc_check" value="<?php echo esc_attr( $ffc_identity_ar_check ); ?>">
 							<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_ar_field ); ?>">
 							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( $ffc_identity_ar_subject ); ?>">
-							<button type="submit" class="button button-secondary">
-								<?php esc_html_e( 'Put back in the queue', 'ffcertificate' ); ?>
-							</button>
+							<?php
+							AdminUI::render_button(
+								array(
+									'label'    => __( 'Put back in the queue', 'ffcertificate' ),
+									'category' => 'caution',
+									'icon'     => 'restore',
+									'type'     => 'submit',
+								)
+							);
+							?>
 						</form>
 					</td>
 				</tr>
@@ -2651,19 +2745,33 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						<input type="number" inputmode="numeric" min="1" step="1" size="6" required
 							id="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
 							name="ffc_account" placeholder="<?php esc_attr_e( 'Account #', 'ffcertificate' ); ?>">
-						<button type="button" class="button button-secondary ffc-identity-find"
-							data-ffc-subject="<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
-							data-ffc-field="<?php echo esc_attr( (string) $ffc_identity_orphan['field'] ); ?>"
-							data-ffc-input="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
-							data-ffc-split="ffc-orphan-open-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
-							data-ffc-submit="ffc-orphan-link-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-							<span class="ffc-icon-search" aria-hidden="true"></span>
-							<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
-						</button>
-						<button type="submit" class="button button-primary"
-							id="ffc-orphan-link-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-							<?php esc_html_e( 'Link', 'ffcertificate' ); ?>
-						</button>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label' => __( 'Search…', 'ffcertificate' ),
+								'icon'  => 'search',
+								'class' => 'ffc-identity-find',
+								'attrs' => array(
+									'data-ffc-subject' => (string) $ffc_identity_orphan['hash'],
+									'data-ffc-field'   => (string) $ffc_identity_orphan['field'],
+									'data-ffc-input'   => 'ffc-orphan-account-' . (string) $ffc_identity_orphan['hash'],
+									'data-ffc-split'   => 'ffc-orphan-open-' . (string) $ffc_identity_orphan['hash'],
+									'data-ffc-submit'  => 'ffc-orphan-link-' . (string) $ffc_identity_orphan['hash'],
+								),
+							)
+						);
+						?>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label'    => __( 'Link', 'ffcertificate' ),
+								'category' => 'primary',
+								'icon'     => 'link',
+								'type'     => 'submit',
+								'id'       => 'ffc-orphan-link-' . (string) $ffc_identity_orphan['hash'],
+							)
+						);
+						?>
 						<span class="ffc-identity-chosen" id="ffc-orphan-chosen-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>" hidden></span>
 					</form>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
@@ -2701,9 +2809,16 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						<input type="email" size="22" required
 							id="ffc-orphan-email-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
 							name="ffc_email" placeholder="<?php esc_attr_e( 'E-mail', 'ffcertificate' ); ?>">
-						<button type="submit" class="button button-secondary">
-							<?php esc_html_e( 'Open the account', 'ffcertificate' ); ?>
-						</button>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label'    => __( 'Open the account', 'ffcertificate' ),
+								'category' => 'create',
+								'icon'     => 'user-plus',
+								'type'     => 'submit',
+							)
+						);
+						?>
 						<span class="ffc-identity-split-barred description" hidden>
 							<?php esc_html_e( 'A destination account is chosen, so opening a new one is not available. Clear the destination to open one instead.', 'ffcertificate' ); ?>
 						</span>
@@ -2775,12 +2890,26 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				</p>
 			</div>
 			<div class="ffc-identity-dialog-foot">
-				<button type="button" class="button button-primary" id="ffc-identity-dialog-confirm" disabled>
-					<?php esc_html_e( 'Select this account', 'ffcertificate' ); ?>
-				</button>
-				<button type="button" class="button" data-ffc-dialog-dismiss>
-					<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
-				</button>
+				<?php
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'Select this account', 'ffcertificate' ),
+						'category' => 'primary',
+						'icon'     => 'user-check',
+						'id'       => 'ffc-identity-dialog-confirm',
+						'disabled' => true,
+					)
+				);
+				AdminUI::render_button(
+					array(
+						'label' => __( 'Cancel', 'ffcertificate' ),
+						'icon'  => 'cross',
+						'attrs' => array(
+							'data-ffc-dialog-dismiss' => true,
+						),
+					)
+				);
+				?>
 				<span class="description"><?php esc_html_e( 'Selecting only chooses the destination. Writing asks for a confirmation afterwards.', 'ffcertificate' ); ?></span>
 			</div>
 		</div>

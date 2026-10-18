@@ -309,7 +309,7 @@ class IdentityAcknowledgementPathTest extends TestCase {
 	 * the window between page load and the JS that would have stripped it.
 	 */
 	public function test_the_repair_form_ships_the_box_hidden_and_not_required(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\ButtonMarkup::args_as_attributes( (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' ) );
 
 		// SELECTED BY THE PREFLIGHT, NOT BY THE ACTION OR BY ORDER.
 		//
