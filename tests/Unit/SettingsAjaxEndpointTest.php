@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\SettingsAjaxEndpoint;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Tests for the generic admin settings AJAX endpoint introduced in 6.5.4.
@@ -18,9 +19,22 @@ class SettingsAjaxEndpointTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/**
+	 * The `$wpdb` an earlier test left in the process, restored on teardown.
+	 *
+	 * @var mixed
+	 */
+	private $previous_wpdb;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		// The write takes a database lock (#1902). Without a `$wpdb` it is
+		// skipped, so every test chooses one rather than inheriting it.
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']     = null;
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias( function ( $key ) {
@@ -48,6 +62,7 @@ class SettingsAjaxEndpointTest extends TestCase {
 
 	protected function tearDown(): void {
 		unset( $_POST['key'], $_POST['value'], $_POST['nonce'] );
+		$GLOBALS['wpdb'] = $this->previous_wpdb;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -240,6 +255,159 @@ class SettingsAjaxEndpointTest extends TestCase {
 
 		$this->assertSame( 'preserved', $captured_option['unrelated'] );
 		$this->assertTrue( $captured_option['admin_bypass_geo'] );
+	}
+
+	// ==================================================================
+	// handle() — concurrent saves (#1902)
+	// ==================================================================
+
+	/**
+	 * A `$wpdb` double that answers GET_LOCK / RELEASE_LOCK and logs them.
+	 *
+	 * @param mixed    $grant What GET_LOCK returns ('1', '0' or null).
+	 * @param string[] $log   Receives 'lock' / 'release' in call order.
+	 */
+	private function lock_db( $grant, array &$log ): object {
+		return new class( $grant, $log ) {
+			/** @var string */
+			public $options = 'wp_options';
+			/** @var mixed */
+			private $grant;
+			/** @var string[] */
+			private $log;
+
+			/**
+			 * @param mixed    $grant Lock answer.
+			 * @param string[] $log   Call log.
+			 */
+			public function __construct( $grant, array &$log ) {
+				$this->grant = $grant;
+				$this->log   = &$log;
+			}
+
+			/**
+			 * @param string $sql  Query.
+			 * @param mixed  ...$args Values.
+			 */
+			public function prepare( $sql, ...$args ): string {
+				return $sql;
+			}
+
+			/**
+			 * @param string $sql Query.
+			 * @return mixed
+			 */
+			public function get_var( $sql ) {
+				if ( false !== strpos( $sql, 'RELEASE_LOCK' ) ) {
+					$this->log[] = 'release';
+					return '1';
+				}
+				$this->log[] = 'lock';
+				return $this->grant;
+			}
+		};
+	}
+
+	/**
+	 * The option as this request booted with it, and as the database holds
+	 * it after another save landed: get_option() answers the first until
+	 * the request drops its boot-time `alloptions`.
+	 *
+	 * @param string[] $log Receives 'flush' when `alloptions` is dropped.
+	 */
+	private function stale_until_flushed( array &$log ): void {
+		$flushed = false;
+		Functions\when( 'wp_cache_delete' )->alias(
+			function ( $key, $group = '' ) use ( &$flushed, &$log ) {
+				if ( 'alloptions' === $key && 'options' === $group ) {
+					$flushed = true;
+					$log[]   = 'flush';
+				}
+				return true;
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			function () use ( &$flushed, &$log ) {
+				$log[] = 'read';
+				return $flushed
+					? array( 'debug_pdf_generator' => true )
+					: array();
+			}
+		);
+	}
+
+	public function test_handle_keeps_a_key_another_request_saved_after_this_one_booted(): void {
+		$log     = array();
+		$written = null;
+		$this->stale_until_flushed( $log );
+		Functions\when( 'update_option' )->alias(
+			function ( $name, $value ) use ( &$written, &$log ) {
+				$log[]   = 'write';
+				$written = $value;
+				return true;
+			}
+		);
+		$GLOBALS['wpdb'] = $this->lock_db( '1', $log );
+		$_POST           = array( 'nonce' => 'x', 'key' => 'debug_email_handler', 'value' => '1' );
+
+		try {
+			SettingsAjaxEndpoint::handle();
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringStartsWith( 'json_success', $e->getMessage() );
+		}
+
+		// The other save's key survives: the array was read after the flush.
+		$this->assertSame(
+			array(
+				'debug_pdf_generator' => true,
+				'debug_email_handler' => true,
+			),
+			$written
+		);
+		// And the read-modify-write sits inside the lock.
+		$this->assertSame( array( 'lock', 'flush', 'read', 'write', 'release' ), $log );
+	}
+
+	public function test_handle_refuses_when_the_lock_times_out_and_writes_nothing(): void {
+		$log = array();
+		$this->stale_until_flushed( $log );
+		$writes = CallLog::record( 'update_option', true );
+		$GLOBALS['wpdb'] = $this->lock_db( '0', $log );
+		$_POST           = array( 'nonce' => 'x', 'key' => 'debug_email_handler', 'value' => '1' );
+
+		try {
+			SettingsAjaxEndpoint::handle();
+			$this->fail( 'A lock that timed out must not answer success.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringStartsWith( 'json_error', $e->getMessage() );
+		}
+
+		$this->assertSame( 0, $writes->count() );
+		$this->assertSame( array( 'lock' ), $log );
+	}
+
+	public function test_handle_still_reads_fresh_when_the_server_cannot_lock(): void {
+		$log     = array();
+		$written = null;
+		$this->stale_until_flushed( $log );
+		Functions\when( 'update_option' )->alias(
+			function ( $name, $value ) use ( &$written ) {
+				$written = $value;
+				return true;
+			}
+		);
+		// GET_LOCK answering NULL is an error, not a timeout.
+		$GLOBALS['wpdb'] = $this->lock_db( null, $log );
+		$_POST           = array( 'nonce' => 'x', 'key' => 'debug_email_handler', 'value' => '1' );
+
+		try {
+			SettingsAjaxEndpoint::handle();
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringStartsWith( 'json_success', $e->getMessage() );
+		}
+
+		$this->assertTrue( $written['debug_pdf_generator'] );
+		$this->assertNotContains( 'release', $log, 'A lock never granted is never released.' );
 	}
 
 	public function test_handle_treats_non_array_existing_option_as_empty(): void {

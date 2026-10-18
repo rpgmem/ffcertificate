@@ -166,19 +166,31 @@ class FormEditorBuilderMetabox {
 				'warning',
 				'<p>' . esc_html__( 'This form lacks required fields:', 'ffcertificate' ) . ' '
 					. implode( ', ', array_map( static fn( array $row ): string => '<code>' . esc_html( $row['name'] ) . '</code>', $missing ) ) . '</p>'
-					. '<p><button type="button" class="button ffc-add-required-fields" data-ffc-required-fields="' . esc_attr( (string) wp_json_encode( $missing ) ) . '">'
-					. '<span class="ffc-icon-plus" aria-hidden="true"></span> '
-					. esc_html__( 'Add the required fields', 'ffcertificate' ) . '</button></p>',
+					. '<p>' . \FreeFormCertificate\Admin\AdminUI::button(
+						array(
+							'label'    => __( 'Add the required fields', 'ffcertificate' ),
+							'category' => 'create',
+							'icon'     => 'plus',
+							'class'    => 'ffc-add-required-fields',
+							'attrs'    => array( 'data-ffc-required-fields' => (string) wp_json_encode( $missing ) ),
+						)
+					) . '</p>',
 				array( 'classes' => array( 'ffc-required-fields-missing' ) )
 			);
 			?>
 		<?php endif; ?>
 		</div>
 		<div class="ffc-builder-actions ffc-mt-2xl">
-			<button type="button" class="button button-primary ffc-add-field">
-				<span class="ffc-icon-plus" aria-hidden="true"></span>
-				<?php esc_html_e( 'Add New Field', 'ffcertificate' ); ?>
-			</button>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label'    => __( 'Add New Field', 'ffcertificate' ),
+					'category' => 'create',
+					'icon'     => 'plus',
+					'class'    => 'ffc-add-field',
+				)
+			);
+			?>
 		</div>
 
 		<div class="ffc-field-template ffc-hidden">
@@ -259,7 +271,20 @@ class FormEditorBuilderMetabox {
 						<span class="ffc-required-tag-badge" id="<?php echo esc_attr( $lock_id ); ?>"><span class="ffc-icon-lock" aria-hidden="true"></span> <?php esc_html_e( 'Required field', 'ffcertificate' ); ?></span>
 					<?php endif; ?>
 				</span>
-				<button type="button" class="button button-link-delete ffc-remove-field"<?php echo $is_locked ? ' disabled aria-describedby="' . esc_attr( $lock_id ) . '"' : ''; ?>><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Remove', 'ffcertificate' ),
+						'category' => 'danger',
+						'icon'     => 'delete',
+						'class'    => 'ffc-remove-field',
+						'disabled' => $is_locked,
+						'attrs'    => array(
+							'aria-describedby' => $is_locked ? $lock_id : null,
+						),
+					)
+				);
+				?>
 			</div>
 
 			<div class="ffc-field-row-grid">
@@ -351,11 +376,30 @@ class FormEditorBuilderMetabox {
 								<input type="number" name="ffc_fields[<?php echo esc_attr( $index ); ?>][choice_points][]" value="<?php echo esc_attr( isset( $option_points[ $choice_i ] ) && '' !== $points ? (string) $option_points[ $choice_i ] : '' ); ?>" step="1" class="small-text ffc-choice-points-input" placeholder="0">
 								<span aria-hidden="true"><?php esc_html_e( 'pts', 'ffcertificate' ); ?></span>
 							</label>
-							<button type="button" class="button-link ffc-choice-remove" aria-label="<?php esc_attr_e( 'Remove option', 'ffcertificate' ); ?>"><span class="ffc-icon-cross" aria-hidden="true"></span></button>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label'     => __( 'Remove option', 'ffcertificate' ),
+									'category'  => 'danger',
+									'icon'      => 'cross',
+									'icon_only' => true,
+									'class'     => 'ffc-choice-remove',
+								)
+							);
+							?>
 						</li>
 					<?php endforeach; ?>
 				</ol>
-				<button type="button" class="button ffc-choice-add"><span class="ffc-icon-plus" aria-hidden="true"></span> <?php esc_html_e( 'Add option', 'ffcertificate' ); ?></button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Add option', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'class'    => 'ffc-choice-add',
+					)
+				);
+				?>
 				<div class="ffc-field-settings">
 					<?php
 					\FreeFormCertificate\Admin\AdminUI::render_toggle(

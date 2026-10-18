@@ -103,7 +103,15 @@ $ffcertificate_method_labels = array(
 			);
 			?>
 		</p>
-		<p><button type="submit" name="ffc_save_cron_times" value="1" class="button button-primary"><?php esc_html_e( 'Save times', 'ffcertificate' ); ?></button></p>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_save_button(
+			__( 'Save times', 'ffcertificate' ),
+			array(
+				'name'  => 'ffc_save_cron_times',
+				'value' => '1',
+			)
+		);
+		?>
 		</form>
 	</div>
 
@@ -179,7 +187,16 @@ $ffcertificate_method_labels = array(
 					<td>
 						<input type="text" id="ffc-crontab-line" class="large-text code" readonly value="<?php echo esc_attr( $ffcertificate_lines['wp_cli'][ $ffcertificate_default_min ] ?? '' ); ?>">
 						<p>
-							<button type="button" class="button ffc-copy-link" data-ffc-copy-target="#ffc-crontab-line"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Copy', 'ffcertificate' ),
+									'icon'  => 'copy',
+									'class' => 'ffc-copy-link',
+									'attrs' => array( 'data-ffc-copy-target' => '#ffc-crontab-line' ),
+								)
+							);
+							?>
 						</p>
 						<p class="description"><?php esc_html_e( 'Add it with "crontab -e" as the user that owns the WordPress files, or paste it into your hosting panel\'s cron section.', 'ffcertificate' ); ?></p>
 					</td>

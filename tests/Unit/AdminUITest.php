@@ -220,14 +220,14 @@ class AdminUITest extends TestCase {
 				'title'   => 'Nothing here',
 				'actions' => array(
 					array( 'label' => 'Clear', 'url' => '/clear' ),
-					array( 'label' => 'Create', 'url' => '/new', 'primary' => true ),
+					array( 'label' => 'Create', 'url' => '/new', 'category' => 'create', 'icon' => 'plus' ),
 					array( 'label' => 'No URL' ),
 					'not an array',
 				),
 			)
 		);
 
-		$this->assertStringContainsString( '<div class="ffc-empty-state__actions"><a href="/clear" class="button">Clear</a><a href="/new" class="button button-primary">Create</a></div>', $html );
+		$this->assertStringContainsString( '<div class="ffc-empty-state__actions"><a href="/clear" class="ffc-btn ffc-btn-neutral">Clear</a><a href="/new" class="ffc-btn ffc-btn-create ffc-icon-plus">Create</a></div>', $html );
 		$this->assertStringNotContainsString( 'No URL', $html );
 	}
 

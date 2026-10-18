@@ -181,13 +181,10 @@
     margin: 0;
 }
 
+/* An icon-only `.ffc-btn` (#1904): the family draws it; the row only keeps it
+   from shrinking. */
 .ffc-choice-remove {
-    flex: 0 0 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 32px;
-    color: var(--ffc-danger);
+    flex: none;
 }
 
 .ffc-field-settings {
@@ -338,14 +335,6 @@
     .ffc-table-responsive table.wp-list-table td.column-actions {
         white-space: normal;
     }
-    
-    .ffc-table-responsive .button {
-        display: inline-block;
-        margin: var(--ffc-spacing-3xs);
-        font-size: var(--ffc-font-size-2xs);
-        padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
-        line-height: 1.5;
-    }
 }
 
 /* ==========================================================================
@@ -432,17 +421,6 @@
     color: var(--ffc-text);
 }
 
-.ffc-remove-field {
-    color: var(--ffc-danger);
-    cursor: pointer;
-    text-decoration: none;
-    font-size: var(--ffc-font-size-sm);
-}
-
-.ffc-remove-field:hover {
-    color: var(--ffc-danger-text);
-}
-
 /* ==========================================================================
    HIGHLIGHTS
    ========================================================================== */
@@ -507,9 +485,9 @@
 /* NOTE: the former per-id overrides here (padding/font-size/inline-block on
    #ffc_btn_import_html / #ffc_btn_media_lib / #ffc_load_template_btn) were
    removed — they over-sized those three buttons and broke icon centering by
-   overriding the unified `.ffc-action-group .button` toolbar (inline-flex).
-   All layout-action buttons now share that single rule for consistent
-   sizing, borders, and icon alignment. */
+   overriding the toolbar's shared sizing. The buttons are the `.ffc-btn`
+   family since #1904, which sizes and aligns them; the toolbar below only
+   lays them out. */
 
 /* ==========================================================================
    17. DATA MIGRATIONS TAB STYLES
@@ -541,12 +519,6 @@
 .ffc-template-loader {
     display: flex;
     gap: var(--ffc-spacing-xs);
-    align-items: center;
-}
-
-.ffc-action-group .button,
-.ffc-template-loader .button {
-    display: inline-flex;
     align-items: center;
 }
 
@@ -2361,7 +2333,7 @@ td .ffc-restriction-label {
     text-align: right;
 }
 
-.ffc-template-modal-actions .button {
+.ffc-template-modal-actions .ffc-btn {
     margin-right: var(--ffc-spacing-md);
 }
 

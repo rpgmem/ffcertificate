@@ -180,7 +180,16 @@ class TabRateLimitTest extends TestCase {
 			->andReturn( array( 'today' => 0, 'month' => 0, 'by_type' => array(), 'top_ips' => array() ) )
 			->byDefault();
 		Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' )
-			->shouldReceive( 'render_toggle' )->andReturnNull()->byDefault();
+			->shouldReceive( 'render_toggle' )->andReturnNull()->byDefault()
+			->getMock()
+			->shouldReceive( 'render_save_button' )
+			->andReturnUsing(
+				static function ( $label = '', $args = array() ) {
+					// Prints the name the view asks for, so a test can see the view reached its end.
+					echo '<button name="' . htmlspecialchars( (string) ( $args['name'] ?? 'submit' ) ) . '"></button>';
+				}
+			)
+			->byDefault();
 	}
 
 	/**

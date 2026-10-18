@@ -242,7 +242,19 @@ class AdminSubmissionEditPage {
 		}
 		?>
 		<p class="ffc-edit-actions">
-			<button type="submit" form="ffc-grade-form" class="button button-primary"><?php esc_html_e( 'Save grades and send the result', 'ffcertificate' ); ?></button>
+			<?php
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Save grades and send the result', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'save',
+					'type'     => 'submit',
+					'attrs'    => array(
+						'form' => 'ffc-grade-form',
+					),
+				)
+			);
+			?>
 		</p>
 		<p class="description"><?php esc_html_e( 'Saving decides the attempt: a pass issues the document, and the participant is emailed the result either way.', 'ffcertificate' ); ?></p>
 		</div>
@@ -328,12 +340,12 @@ class AdminSubmissionEditPage {
 		if ( ! $this->reveal_context() ) {
 			return '';
 		}
-		return sprintf(
-			'<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="%1$s" data-submission-id="%2$s" data-nonce="%3$s">%4$s</button>',
-			esc_attr( $field ),
-			esc_attr( (string) ( $this->sub_array['id'] ?? 0 ) ),
-			esc_attr( $this->reveal_nonce ),
-			esc_html__( 'Reveal', 'ffcertificate' )
+		return \FreeFormCertificate\Core\PiiReveal::field_button(
+			array(
+				'field'         => $field,
+				'submission-id' => (string) ( $this->sub_array['id'] ?? 0 ),
+				'nonce'         => $this->reveal_nonce,
+			)
 		);
 	}
 
@@ -395,8 +407,23 @@ class AdminSubmissionEditPage {
 		self::card_open( __( 'Save', 'ffcertificate' ), 'save' );
 		?>
 		<p class="ffc-edit-actions">
-			<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Changes', 'ffcertificate' ); ?></button>
-			<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'ffcertificate' ); ?></a>
+			<?php
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Save Changes', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'save',
+					'type'     => 'submit',
+				)
+			);
+			AdminUI::render_button(
+				array(
+					'label' => __( 'Cancel', 'ffcertificate' ),
+					'icon'  => 'cross',
+					'href'  => admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' ),
+				)
+			);
+			?>
 		</p>
 		</div>
 		<?php
@@ -418,8 +445,29 @@ class AdminSubmissionEditPage {
 			<a href="<?php echo esc_url( $magic_link ); ?>" target="_blank" rel="noopener" class="ffc-magic-link"><?php echo esc_html( $magic_link ); ?></a>
 		</p>
 		<p class="ffc-edit-actions">
-			<button type="button" class="button ffc-copy-magic-link ffc-icon-copy" data-url="<?php echo esc_attr( $magic_link ); ?>"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
-			<a href="<?php echo esc_url( $magic_link ); ?>" target="_blank" rel="noopener" class="button ffc-icon-external"><?php esc_html_e( 'Open certificate', 'ffcertificate' ); ?></a>
+			<?php
+			AdminUI::render_button(
+				array(
+					'label' => __( 'Copy', 'ffcertificate' ),
+					'icon'  => 'copy',
+					'class' => 'ffc-copy-magic-link',
+					'attrs' => array(
+						'data-url' => $magic_link,
+					),
+				)
+			);
+			AdminUI::render_button(
+				array(
+					'label' => __( 'Open certificate', 'ffcertificate' ),
+					'icon'  => 'external',
+					'href'  => $magic_link,
+					'attrs' => array(
+						'target' => '_blank',
+						'rel'    => 'noopener',
+					),
+				)
+			);
+			?>
 		</p>
 		<p class="description"><?php esc_html_e( 'Anyone with this link can download the certificate.', 'ffcertificate' ); ?></p>
 		</div>
@@ -568,17 +616,40 @@ class AdminSubmissionEditPage {
 									<span class="ffc-user-email">(<?php echo $this->masked_account_email( (string) $current_user->user_email ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- masked_account_email() escapes every value. ?>)</span>
 									<span class="ffc-user-id">ID: <?php echo esc_html( (string) $current_user_id ); ?></span>
 								</span>
-								<a href="<?php echo esc_url( get_edit_user_link( $current_user_id ) ); ?>" target="_blank" class="button button-small ffc-icon-external">
-									<?php esc_html_e( 'View Profile', 'ffcertificate' ); ?>
-								</a>
+								<?php
+								AdminUI::render_button(
+									array(
+										'label' => __( 'View Profile', 'ffcertificate' ),
+										'icon'  => 'external',
+										'href'  => (string) get_edit_user_link( $current_user_id ),
+										'attrs' => array(
+											'target' => '_blank',
+										),
+									)
+								);
+								?>
 							</div>
 							<div class="ffc-unlink-action">
-								<button type="button" class="button button-secondary ffc-unlink-user-btn" data-confirm="<?php esc_attr_e( 'Are you sure you want to unlink this user from the submission?', 'ffcertificate' ); ?>">
-									<?php esc_html_e( 'Unlink User', 'ffcertificate' ); ?>
-								</button>
-								<button type="button" class="button button-secondary ffc-relink-user-btn">
-									<?php esc_html_e( 'Link to Another User', 'ffcertificate' ); ?>
-								</button>
+								<?php
+								AdminUI::render_button(
+									array(
+										'label'    => __( 'Unlink User', 'ffcertificate' ),
+										'category' => 'caution',
+										'icon'     => 'unlink',
+										'class'    => 'ffc-unlink-user-btn',
+										'attrs'    => array(
+											'data-confirm' => __( 'Are you sure you want to unlink this user from the submission?', 'ffcertificate' ),
+										),
+									)
+								);
+								AdminUI::render_button(
+									array(
+										'label' => __( 'Link to Another User', 'ffcertificate' ),
+										'icon'  => 'link',
+										'class' => 'ffc-relink-user-btn',
+									)
+								);
+								?>
 								<p class="description">
 									<?php esc_html_e( 'Removes the link between this submission and the WordPress user.', 'ffcertificate' ); ?>
 									<?php esc_html_e( 'An unlinked submission has no account, which is the state the identity queue adopts.', 'ffcertificate' ); ?>
@@ -606,9 +677,18 @@ class AdminSubmissionEditPage {
 						<?php endif; ?>
 						<div class="ffc-user-search-form">
 							<input type="text" id="ffc-user-search-input" class="regular-text" placeholder="<?php esc_attr_e( 'Search by name, email, ID or CPF/RF...', 'ffcertificate' ); ?>">
-							<button type="button" class="button ffc-search-user-btn" data-nonce="<?php echo esc_attr( $nonce ); ?>">
-								<?php esc_html_e( 'Search', 'ffcertificate' ); ?>
-							</button>
+							<?php
+							AdminUI::render_button(
+								array(
+									'label' => __( 'Search', 'ffcertificate' ),
+									'icon'  => 'search',
+									'class' => 'ffc-search-user-btn',
+									'attrs' => array(
+										'data-nonce' => $nonce,
+									),
+								)
+							);
+							?>
 							<span class="spinner" id="ffc-search-spinner"></span>
 						</div>
 						<div id="ffc-user-search-results" class="ffc-user-search-results ffc-hidden">

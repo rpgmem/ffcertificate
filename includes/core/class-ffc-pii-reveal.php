@@ -41,11 +41,42 @@ final class PiiReveal {
 			return '';
 		}
 
-		return sprintf(
-			'<p><button type="button" class="button ffc-reveal-pii-page ffc-icon-eye" data-nonce="%1$s">%2$s</button> <span class="description">%3$s</span></p>',
-			esc_attr( wp_create_nonce( 'ffc_reveal_pii_nonce' ) ),
-			esc_html__( 'Reveal this page', 'ffcertificate' ),
-			esc_html__( 'Shows every masked value listed here. The reveal is recorded in the activity log.', 'ffcertificate' )
+		return '<p>' . Button::html(
+			array(
+				'label' => __( 'Reveal this page', 'ffcertificate' ),
+				'icon'  => 'eye',
+				'class' => 'ffc-reveal-pii-page',
+				'attrs' => array( 'data-nonce' => wp_create_nonce( 'ffc_reveal_pii_nonce' ) ),
+			)
+		) . ' <span class="description">' . esc_html__( 'Shows every masked value listed here. The reveal is recorded in the activity log.', 'ffcertificate' ) . '</span></p>';
+	}
+
+	/**
+	 * The per-value Reveal button (#1904): one markup for every screen that
+	 * draws one, so the family classes and the `.ffc-reveal-pii` hook
+	 * `assets/js/ffc-pii-reveal.js` reads cannot drift apart between copies.
+	 *
+	 * The caller decides whether the user may reveal; this only draws.
+	 *
+	 * @param array<string, string|int> $data The `data-*` attributes the
+	 *                                        endpoint reads, without the
+	 *                                        `data-` prefix (`field`,
+	 *                                        `nonce`, a record id).
+	 * @return string Escaped HTML.
+	 */
+	public static function field_button( array $data ): string {
+		$attrs = array();
+		foreach ( $data as $key => $value ) {
+			$attrs[ 'data-' . $key ] = (string) $value;
+		}
+
+		return Button::html(
+			array(
+				'label' => __( 'Reveal', 'ffcertificate' ),
+				'icon'  => 'eye',
+				'class' => 'ffc-reveal-pii',
+				'attrs' => $attrs,
+			)
 		);
 	}
 

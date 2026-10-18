@@ -22,6 +22,8 @@ class PiiRevealTest extends TestCase {
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $action ) => 'nonce:' . $action );
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
 	}
 
 	protected function tearDown(): void {
@@ -34,8 +36,20 @@ class PiiRevealTest extends TestCase {
 
 		$html = PiiReveal::page_button( 'ffc_view_certificates_pii' );
 
-		$this->assertStringContainsString( '<button type="button" class="button ffc-reveal-pii-page ffc-icon-eye" data-nonce="nonce:ffc_reveal_pii_nonce">Reveal this page</button>', $html );
+		$this->assertStringContainsString( '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii-page" data-nonce="nonce:ffc_reveal_pii_nonce">Reveal this page</button>', $html );
 		$this->assertStringContainsString( 'recorded in the activity log', $html );
+	}
+
+	public function test_the_field_button_carries_the_hook_and_its_data(): void {
+		$html = PiiReveal::field_button(
+			array(
+				'field'         => 'email',
+				'submission-id' => 42,
+				'nonce'         => 'n1',
+			)
+		);
+
+		$this->assertSame( '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-field="email" data-submission-id="42" data-nonce="n1">Reveal</button>', $html );
 	}
 
 	public function test_no_page_button_without_the_module_cap(): void {

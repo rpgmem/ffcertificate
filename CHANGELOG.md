@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Admin action icons and a ratchet on core button classes** (#1904). Sixteen registry icons (unlink, merge, split, move, user-plus, ticket, template save/load, …) and `CoreButtonClassRatchetTest`, freezing WordPress's `.button*`, `page-title-action` and `submit_button()` per file.
+
 ### Changed
 
 - **Every toggle shows its on/off mark** (#1873). The ✓/✗ on the knob is now `AdminUI::render_toggle()`'s default, and the hand-built toggles (user dashboard notifications, template visibility) carry it too; `'mark' => false` opts a toggle out.
@@ -21,6 +25,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"My Calls" is grouped by status** (#1889). Called cards with the date, days left and an .ics download, then Waiting (final first, 5 per page) and Closed (2 per page); a call still "called" the day after its date shows as Deadline passed, with reversals behind an i button.
 - **A parent audience sets self-join for itself and for its descendants apart** (#1896). "This audience" no longer cascades; "Children and grandchildren" is applied to every descendant and reads Mixed, leaving them as they are, when they disagree. No schema change.
 - ⚠ **The dashboard masks the owner's own data** (#1897). CPF/RF, e-mails, phone and birth date arrive masked from `GET /user/profile` and `/user/certificates`, each with Reveal; the owner's reveal writes no log row, "view as user" stays audited. PDFs, receipts and e-mails are unchanged.
+- **Settings and certificate screens use the button family** (#1904). Settings tabs, migrations, the activity log, submissions, the form editor and certificate templates print `.ffc-btn` buttons by category and icon; scripts read their own hooks, not core classes.
 - **Self-join on an audience with children is one four-option choice, and new children inherit it** (#1901). Off, This audience only, This audience + children and grandchildren, Children and grandchildren only; with the groups below in disagreement none is selected and a notice gives the counts. A new child starts on when every descendant is on. On the new-audience form a picked parent replaces the switch with "Inherits from the audience above."
 
 ### Fixed
@@ -29,6 +34,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"View as user" reveals CPF/RF too** (#1888). The Profile tab offered Reveal for e-mails, phone and birth date but not for the identifiers; `/user/profile/reveal` now serves `cpf_rf`, formatted from the same rows as the masked list, under the same gate and audit row.
 - **"Refresh Cloudflare ranges now" works** (#1894). Settings → IP Diagnostics handled it only inside the Save branch, so the click did nothing. It now runs alone, with the same nonce and capability, and says how many ranges are cached or that the fetch failed; both buttons join the button family.
 - **Verify on a failed magic link** (#1893). The error card's Verify button no longer also fires the PDF download handler, and the code typed there is carried to the reloaded verification form, which opens with it filled in; the captcha is still required.
+- **One-line Open and Change buttons, and a compact owner Reveal** (#1903). Settings → Email texts' "Open" and Document Templates' "Change" drop the trailing arrow that wrapped onto a second line beside the icon; the dashboard's Reveal on Certificates and Profile takes the compact row size of "View PDF".
+- **Settings autosave keeps every change** (#1902). Two saves overlapping on a slow host both started from the option as their request booted, so the last erased the other under "Saved". The write now re-reads the option under a database lock, and a field sends one save at a time.
 
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 
