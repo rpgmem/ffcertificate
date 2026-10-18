@@ -73,7 +73,7 @@
 			// because it moves one participant's window (#1881).
 			+     '<div class="ffc-open-early-actions ffc-schedule-exception-actions">'
 			+       FFC.buttonHtml({ label: strings.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-schedule-exception-cancel', attrs: { autofocus: true } })
-			+       FFC.buttonHtml({ label: strings.scheduleExceptionConfirm || 'Create exception', category: 'caution', icon: 'user-check', className: 'ffc-schedule-exception-confirm' })
+			+       FFC.buttonHtml({ label: strings.scheduleExceptionConfirm || 'Create exception', category: 'caution', icon: 'user-clock', className: 'ffc-schedule-exception-confirm' })
 			+     '</div>'
 			+   '</div>'
 			+ '</div>';
