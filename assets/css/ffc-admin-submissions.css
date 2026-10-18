@@ -1,6 +1,9 @@
 /* ==========================================================================
    FREE FORM CERTIFICATE - ADMIN SUBMISSIONS PAGE
-   v2.9.16 - MODERN DESIGN
+   Loaded on the submissions screen only (#1923). It loaded on every FFC
+   screen until then, carrying a tooltip family and a focus ring for core's
+   `.button`, which no FFC screen prints any more (#1904). The focus ring
+   left; the tooltip moved to ffc-admin-components.css, on `.ffc-btn-icon`.
    ========================================================================== */
  
 /* ==========================================================================
@@ -248,62 +251,6 @@
 }
 
 /* ==========================================================================
-   HOVER TOOLTIPS
-   ========================================================================== */
-
-.ffc-admin-page .button[title] {
-    position: relative;
-}
-
-/* Hover AND focus: a tooltip only a pointer can reach is a label a
-   keyboard user does not have (WCAG 1.4.13). The focus half was missing
-   until #1421, which is when the identity steppers started depending on
-   it -- their word is now the tooltip and the `aria-label`. */
-.ffc-admin-page .button[title]:hover::after,
-.ffc-admin-page .button[title]:focus-visible::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-bottom: var(--ffc-spacing-sm);
-    padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
-    background: var(--ffc-inverse-surface);
-    color: var(--ffc-inverse-on-surface);
-    font-size: var(--ffc-font-size-xs);
-    white-space: nowrap;
-    border-radius: var(--ffc-radius-sm);
-    box-shadow: var(--ffc-shadow-md);
-    z-index: var(--ffc-z-overlay);
-    pointer-events: none;
-}
-
-/* Tooltip arrow - only for buttons whose `::before` is free: a registry icon
-   class draws its mask there. The list of row buttons this used to exclude by
-   href left with them (#1904). */
-.ffc-admin-page .button[title]:not([class*="ffc-icon-"]):hover::before,
-.ffc-admin-page .button[title]:not([class*="ffc-icon-"]):focus-visible::before {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 4px solid transparent;
-    border-top-color: var(--ffc-inverse-surface);
-    z-index: var(--ffc-z-overlay);
-}
-
-/* Hide tooltip on mobile */
-@media screen and (max-width: 782px) {
-    .ffc-admin-page .button[title]:hover::after,
-    .ffc-admin-page .button[title]:focus-visible::after,
-    .ffc-admin-page .button[title]:hover::before,
-    .ffc-admin-page .button[title]:focus-visible::before {
-        display: none;
-    }
-}
-
-/* ==========================================================================
    TRANSITIONS & ANIMATIONS
    ========================================================================== */
 
@@ -311,15 +258,6 @@
 .ffc-empty-data,
 .ffc-data-preview {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ==========================================================================
-   ACCESSIBILITY
-   ========================================================================== */
-
-.ffc-admin-page .button:focus {
-    outline: 2px solid var(--ffc-primary);
-    outline-offset: 2px;
 }
 
 /* ==========================================================================

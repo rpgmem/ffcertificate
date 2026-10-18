@@ -376,7 +376,7 @@ class AdminAssetsManager {
 	 * 3. ffc-admin-utilities (admin utilities, depends on common)
 	 * 3b. ffc-admin-components (shared admin components, depends on common)
 	 * 4. ffc-admin-css (general admin, depends on pdf-core, common, utilities)
-	 * 5. ffc-admin-submissions-css (submissions page, depends on admin)
+	 * 5. ffc-admin-submissions-css (the submissions screen only, depends on admin)
 	 * 6. Conditional: ffc-admin-settings (only on settings page)
 	 * 7. Conditional: ffc-admin-submission-edit (only on edit page)
 	 */
@@ -390,7 +390,12 @@ class AdminAssetsManager {
 		// duplicating the chain.
 		self::enqueue_admin_base_styles();
 
-		// 5. Submissions page styles (depends on ffc-admin.css)
+		// 5. Submissions page styles (depends on ffc-admin.css), on that
+		// screen only: is_ffc_page() matches every `?page=ffc-*`, and the
+		// sheet's name says one screen (#1923).
+		if ( Admin::SUBMISSIONS_PAGE !== RequestInput::get_get_string( 'page' ) ) {
+			return;
+		}
 		wp_enqueue_style(
 			'ffc-admin-submissions-css',
 			FFC_PLUGIN_URL . "assets/css/ffc-admin-submissions{$s}.css",

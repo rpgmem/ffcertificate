@@ -441,3 +441,42 @@
         border-bottom-color: var(--ffc-primary);
     }
 }
+
+/* Icon-only button tooltip (#1923). An icon-only button has no visible
+   label, so its `title` is drawn on hover AND on keyboard focus: a tooltip
+   only a pointer can reach is a label a keyboard user does not have (WCAG
+   1.4.13) -- the identity steppers rely on it (#1421). `::after` only,
+   because `::before` carries the icon mask; a busy button keeps its ring.
+   It lived in ffc-admin-submissions.css on core's `.button` until #1904 took
+   that class off every FFC screen, which left it matching nothing. */
+.ffc-admin-page .ffc-btn-icon[title] {
+    position: relative;
+}
+
+.ffc-admin-page .ffc-btn-icon[title]:not(.ffc-btn-loading):hover::after,
+.ffc-admin-page .ffc-btn-icon[title]:not(.ffc-btn-loading):focus-visible::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
+    background: var(--ffc-inverse-surface);
+    color: var(--ffc-inverse-on-surface);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: normal;
+    white-space: nowrap;
+    border-radius: var(--ffc-radius-sm);
+    box-shadow: var(--ffc-shadow-md);
+    z-index: var(--ffc-z-overlay);
+    pointer-events: none;
+}
+
+/* Phones: no hover, and a tooltip over a 28px target covers its neighbours. */
+@media screen and (max-width: 782px) {
+    .ffc-admin-page .ffc-btn-icon[title]:not(.ffc-btn-loading):hover::after,
+    .ffc-admin-page .ffc-btn-icon[title]:not(.ffc-btn-loading):focus-visible::after {
+        display: none;
+    }
+}

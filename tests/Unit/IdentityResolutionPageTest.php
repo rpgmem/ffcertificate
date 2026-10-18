@@ -1686,8 +1686,10 @@ class IdentityResolutionPageTest extends TestCase {
 
 		// THE CSS HALF, ASSERTED HERE BECAUSE NOTHING ELSE DOES. The tooltip
 		// this markup now relies on was hover-only, so a keyboard reached an
-		// arrow with no visible label at all.
-		$sheet = (string) file_get_contents( __DIR__ . '/../../assets/css/ffc-admin-submissions.css' );
+		// arrow with no visible label at all. It reads the family's icon-only
+		// class since #1923: the core `.button` rule it replaced had matched
+		// nothing from the day #1904 moved the steppers to the family.
+		$sheet = (string) file_get_contents( __DIR__ . '/../../assets/css/ffc-admin-components.css' );
 
 		// THE RULE, NOT THE SELECTOR ANYWHERE IN THE SHEET. The phone
 		// `@media` block below carries the same selector in order to HIDE the
@@ -1695,7 +1697,7 @@ class IdentityResolutionPageTest extends TestCase {
 		// switches the thing off -- which is how the first version of this
 		// assertion survived the mutation it exists for.
 		$this->assertStringContainsString(
-			".ffc-admin-page .button[title]:hover::after,\n.ffc-admin-page .button[title]:focus-visible::after {",
+			".ffc-admin-page .ffc-btn-icon[title]:not(.ffc-btn-loading):hover::after,\n.ffc-admin-page .ffc-btn-icon[title]:not(.ffc-btn-loading):focus-visible::after {",
 			$sheet,
 			'A tooltip only a pointer can reach is a label a keyboard user does not have.'
 		);
