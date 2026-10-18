@@ -249,6 +249,10 @@ describe('rereg-admin — record PDF download', () => {
 			{ template: 'x', filename: 'rec.pdf' },
 			'rec.pdf',
 		);
+		// Restored as plain text: the icon is the button's class (#1904).
+		const btn = document.querySelector('.ffc-record-btn');
+		expect(btn.disabled).toBe(false);
+		expect(btn.children.length).toBe(0);
 	});
 
 	it('on success but no window.ffcGeneratePDF: shows an alert', async () => {
