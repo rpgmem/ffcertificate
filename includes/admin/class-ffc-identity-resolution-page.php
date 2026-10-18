@@ -1618,6 +1618,18 @@ class IdentityResolutionPage {
 			return $this->separations()->proposal( $hash, $field );
 		};
 
+		// WHAT THE VIEW DERIVES, DERIVED HERE (#1925). The panels by tier, the
+		// cursors, the coverage strips and the counters were loops at the top
+		// of the view, where neither PHPStan nor the coverage gate reads. Built
+		// after the orphans because the counter of what is left counts them.
+		$ffc_identity_screen = new IdentityResolutionScreen(
+			$ffc_identity_panels,
+			$ffc_identity_findings,
+			$ffc_identity_coverage,
+			$ffc_identity_capped,
+			count( $ffc_identity_orphans )
+		);
+
 		require __DIR__ . '/views/identity-resolution-page.php';
 	}
 }

@@ -12,7 +12,7 @@
  *
  * @var array<int, array<string, mixed>> $ffc_identity_findings Findings from the check-digit scan.
  * @var array{type: string, text: string, code?: string, subject?: string}|false $ffc_identity_outcome Outcome of the last write, if any; a refusal carries its code and the finding it named.
- * @var array<string, array{stores: int, examined: int, unreadable: int}> $ffc_identity_coverage What each scan read, per identifier column.
+ * @var IdentityResolutionScreen                                       $ffc_identity_screen   What the page derived: panels, cursors, coverage strips, counters.
  * @var bool                                                              $ffc_identity_rf_gate  Whether the submission form requires the RF check digit.
  * @var array<int, string>                                       $ffc_identity_capped   Checks that returned a full page.
  * @var int                                                      $ffc_identity_taken_at When the list was taken (unix).
@@ -40,7 +40,9 @@
 // this list now.
 use FreeFormCertificate\Admin\AdminUI;
 use FreeFormCertificate\Admin\IdentityQueuePanels;
+use FreeFormCertificate\Admin\IdentityResolutionLabels;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
+use FreeFormCertificate\Admin\IdentityResolutionScreen;
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Maintenance\IdentityAcceptance;
 use FreeFormCertificate\Maintenance\IdentityCheckDigitScan;
@@ -51,105 +53,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// TWO CAPS, AND ONLY ONE OF THEM WAS EVER REPORTED.
+// WHAT IS DERIVED RATHER THAN FETCHED IS `$ffc_identity_screen` (#1925).
 //
-// This flag is the check-digit SCAN's own: `IdentityCheckDigitScan::check_digit_failures()` stops
-// after `RF_SCAN_LIMIT` distinct stored values and emits a row saying so.
-// `$ffc_identity_capped` is the other one -- each of the three checks behind
-// this worklist is asked for `LIMIT` findings, and a check that returns a full
-// page has more. That second cap said nothing at all until #1397, so a queue
-// holding 140 findings of one kind looked exactly like one holding 100.
-//
-// THE SCAN'S CAP IS PER COLUMN NOW (#1486), so this records WHICH. Two columns
-// are scanned and each stops at its own cap, so one flag for both would report
-// a truncated RF scan on the CPF strip and the other way round.
-$ffc_identity_truncated         = false;
-$ffc_identity_truncated_columns = array();
+// The panels by tier, the cursors, the scan's own cap, the coverage strips and
+// the counters used to be computed here, ahead of the markup -- where neither
+// PHPStan nor the coverage gate reads, since this directory is carved out of
+// both. `IdentityResolutionScreen` computes them now, and the names and
+// sentences live in `IdentityResolutionLabels`.
 
-foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
-	if ( ! empty( $ffc_identity_finding[ IdentityConflictQuery::COLUMN_SCAN_TRUNCATED ] ) ) {
-		$ffc_identity_truncated = true;
-
-		$ffc_identity_truncated_columns[ (string) ( $ffc_identity_finding['identifier_column'] ?? '' ) ] = true;
-	}
-}
-
-// ONE PANEL PER TIER, AND THE TIERS WITH NOTHING IN THEM ARE ABSENT.
-//
-// `IdentityQueuePanels` already dropped those and put the rest in the order
-// of effort, so this is a lookup rather than a second opinion: the counters
-// and the panels below are the same list.
-$ffc_identity_by_tier = array();
-
-foreach ( $ffc_identity_panels as $ffc_identity_panel ) {
-	$ffc_identity_by_tier[ (string) $ffc_identity_panel['tier'] ] = $ffc_identity_panel;
-}
-
-// Every panel's own cursor, so a link that moves ONE panel carries the
-// others where they already are. Derived from the panels rather than passed
-// in, which is what stops the links from disagreeing with what is rendered.
-$ffc_identity_cursors = array();
-$ffc_identity_listed  = array();
-
-foreach ( $ffc_identity_panels as $ffc_identity_panel ) {
-	$ffc_identity_tier_key = (string) $ffc_identity_panel['tier'];
-
-	$ffc_identity_cursors[ $ffc_identity_tier_key ] = (string) ( $ffc_identity_panel['current'][ IdentityQueue::COLUMN_KEY ] ?? '' );
-
-	if ( ! empty( $ffc_identity_panel['list'] ) ) {
-		$ffc_identity_listed[] = $ffc_identity_tier_key;
-	}
-}
-
-/**
- * A screen URL with one panel moved and every other panel left alone.
- *
- * @param string             $tier   The panel to move.
- * @param string             $key    The finding to show, or '' to leave it.
- * @param array<int, string> $listed Tiers showing their whole list.
- * @return string
- */
-$ffc_identity_url = static function ( $tier, $key, $listed ) use ( $ffc_identity_cursors ) {
-	$at = $ffc_identity_cursors;
-
-	if ( '' !== (string) $tier ) {
-		$at[ (string) $tier ] = (string) $key;
-	}
-
-	$args = array(
-		'page'                      => IdentityResolutionPage::MENU_SLUG,
-		IdentityQueuePanels::ARG_AT => array_filter( $at ),
-	);
-
-	if ( array() !== $listed ) {
-		$args[ IdentityQueuePanels::ARG_LIST ] = implode( ',', $listed );
-	}
-
-	return add_query_arg( $args, admin_url( 'edit.php?post_type=ffc_form' ) );
-};
-
-/**
- * What a panel renders: the one finding it is on, or all of them.
- *
- * @param array<string, mixed> $panel The panel.
- * @return array<int, array<string, mixed>>
- */
-$ffc_identity_shown = static function ( $panel ) {
-	return empty( $panel['list'] )
-		? array( $panel['current'] )
-		: (array) $panel['items'];
-};
-
-/**
- * An account as a person reads it: the name WordPress holds, then the id.
- *
- * The NAME is what makes a merge confirmable — "keep 5784 or 6092?" is not a
- * question anybody can answer. The document stays a hash prefix, because that
- * is the identifier and this screen never shows one.
- *
- * @param int $user_id The account.
- * @return string
- */
 /**
  * A panel's header: what it is, where the operator is in it, and the way out.
  *
@@ -164,7 +75,7 @@ $ffc_identity_shown = static function ( $panel ) {
  * @param string               $note   One line on what the tier is.
  * @return void
  */
-$ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identity_url, $ffc_identity_listed ) {
+$ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identity_screen ) {
 	$tier  = (string) $panel['tier'];
 	$total = (int) $panel['total'];
 	$list  = ! empty( $panel['list'] );
@@ -183,12 +94,11 @@ $ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identi
 
 	// The toggle carries every OTHER listed tier plus or minus this one, so
 	// one category can be scanned whole while the rest stay one at a time.
-	$others = array_values( array_diff( $ffc_identity_listed, array( $tier ) ) );
+	$others = array_values( array_diff( $ffc_identity_screen->listed, array( $tier ) ) );
 	$toggle = $list ? $others : array_merge( $others, array( $tier ) );
 	// The tier is part of the class, so the chip is coloured by what the
-	// finding IS rather than by a decision taken in the markup. The four
-	// values come from `IdentityQueuePanels::ORDER`, never from the request.
-	$chip = 'ffc-identity-chip-' . preg_replace( '/[^a-z]/', '', $tier );
+	// finding IS rather than by a decision taken in the markup.
+	$chip = IdentityResolutionLabels::chip_class( $tier );
 	?>
 	<div class="ffc-identity-panel">
 	<div class="ffc-identity-panel-head">
@@ -260,7 +170,7 @@ $ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identi
 								'icon'      => $ffc_identity_step_icon,
 								'icon_only' => true,
 								'class'     => $ffc_identity_step_class,
-								'href'      => $ffc_identity_url( $tier, (string) $panel[ $ffc_identity_step ], $ffc_identity_listed ),
+								'href'      => $ffc_identity_screen->url( $tier, (string) $panel[ $ffc_identity_step ], $ffc_identity_screen->listed ),
 							)
 						);
 						?>
@@ -273,7 +183,7 @@ $ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identi
 					<?php endif; ?>
 				<?php endforeach; ?>
 			<?php endif; ?>
-			<a class="ffc-identity-panel-toggle" href="<?php echo esc_url( $ffc_identity_url( '', '', $toggle ) ); ?>">
+			<a class="ffc-identity-panel-toggle" href="<?php echo esc_url( $ffc_identity_screen->url( '', '', $toggle ) ); ?>">
 				<?php
 				echo $list
 					? esc_html__( 'One at a time', 'ffcertificate' )
@@ -299,90 +209,6 @@ $ffc_identity_foot = static function () {
 	?>
 	</div></div>
 	<?php
-};
-
-/**
- * A store, as an operator reads it.
- *
- * THE QUERIES DO NOT AGREE ON THE SHAPE, AND THE SCREEN SHOWED BOTH.
- *
- * `IdentityStores::label()` strips the site prefix and the `ffc_`
- * before handing a store name out, so its findings say `submissions`.
- * `IdentityOrphanQuery` keys its rows by the FULL prefixed table, so its
- * findings say `wp_ffc_submissions`. Both reach this screen, and until this
- * was written both reached it raw -- which is how a card came to read
- * `self_scheduling_appointments|user_profiles`, a machine name joined by the
- * query's own internal separator.
- *
- * So this normalises first and then translates. A store nobody has mapped
- * still renders as its normalised self rather than as nothing: an unknown
- * name is worth less than a known one and worth far more than a blank.
- *
- * `user_profiles` is named for what it IS. It is the identity index, not a
- * record store, and listing it beside submissions without saying so invites
- * the reading that the person has a record there.
- *
- * @param string $store The store, in either shape.
- * @return string
- */
-$ffc_identity_store_name = static function ( $store ) {
-	$key = (string) $store;
-
-	if ( isset( $GLOBALS['wpdb'] ) && is_object( $GLOBALS['wpdb'] ) && isset( $GLOBALS['wpdb']->prefix ) ) {
-		$prefix = (string) $GLOBALS['wpdb']->prefix;
-
-		if ( '' !== $prefix && 0 === strpos( $key, $prefix ) ) {
-			$key = substr( $key, strlen( $prefix ) );
-		}
-	}
-
-	if ( 0 === strpos( $key, 'ffc_' ) ) {
-		$key = substr( $key, 4 );
-	}
-
-	switch ( $key ) {
-		case 'submissions':
-			return __( 'submissions', 'ffcertificate' );
-		case 'self_scheduling_appointments':
-			return __( 'appointments', 'ffcertificate' );
-		case 'recruitment_candidate':
-			return __( 'candidacies', 'ffcertificate' );
-		case 'user_profiles':
-			return __( 'the identity index', 'ffcertificate' );
-		default:
-			return $key;
-	}
-};
-
-/**
- * A list of stores, in the reader's own language.
- *
- * `wp_sprintf_l()` is WordPress's own list joiner, so the comma and the
- * "and" come from core's translations rather than from a separator invented
- * here -- which is the whole defect this replaces: the screen was printing
- * `IdentityConflictQuery::RELATED_SEPARATOR`, a `|` that exists to survive a
- * `GROUP_CONCAT` and was never meant to be read.
- *
- * @param string $joined The stores as the query joined them.
- * @return string
- */
-$ffc_identity_store_list = static function ( $joined ) use ( $ffc_identity_store_name ) {
-	$parts = array_filter( array_map( 'trim', explode( IdentityConflictQuery::RELATED_SEPARATOR, (string) $joined ) ) );
-
-	if ( array() === $parts ) {
-		return '';
-	}
-
-	return wp_sprintf_l( '%l', array_map( $ffc_identity_store_name, $parts ) );
-};
-
-$ffc_identity_named = static function ( $user_id ) {
-	$user = get_userdata( (int) $user_id );
-	$name = ( $user && '' !== (string) $user->display_name ) ? (string) $user->display_name : '';
-
-	return '' === $name
-		? sprintf( /* translators: %d: account id. */ __( 'Account #%d', 'ffcertificate' ), (int) $user_id )
-		: sprintf( /* translators: 1: person's name, 2: account id. */ __( '%1$s (#%2$d)', 'ffcertificate' ), $name, (int) $user_id );
 };
 
 /**
@@ -457,100 +283,6 @@ $ffc_identity_ack = static function ( $subject, $preflight = false ) use ( $ffc_
 	<?php
 };
 
-/**
- * The label above the "corrected number" box, naming which identifier (#1486).
- *
- * It said "Corrected RF" while the scan behind it was RF-only. The scan reads
- * CPF too now, so a fixed label would name the wrong identifier on half the
- * findings -- to a screen reader, which is the only place this label is read.
- *
- * The two names stay UNTRANSLATED because they are not English words: `RF` is
- * *Registro Funcional* and `CPF` *Cadastro de Pessoa Física*, proper nouns an
- * operator reads the same way in either language, the way `CLAUDE.md` records
- * for the domain terms the database stores.
- *
- * An unknown column falls back to the neutral sentence rather than guessing a
- * name, because a wrong name is worse than no name here.
- *
- * @param string $column The finding's `identifier_column`.
- * @return string
- */
-$ffc_identity_identifier_name = static function ( $column ) {
-	switch ( (string) $column ) {
-		case 'rf_hash':
-			return 'RF';
-		case 'cpf_hash':
-			return 'CPF';
-		default:
-			return '';
-	}
-};
-
-$ffc_identity_corrected_label = static function ( $column ) use ( $ffc_identity_identifier_name ) {
-	$name = $ffc_identity_identifier_name( $column );
-
-	if ( '' === $name ) {
-		return __( 'The corrected number', 'ffcertificate' );
-	}
-
-	/* translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated. */
-	return sprintf( __( 'Corrected %s', 'ffcertificate' ), $name );
-};
-
-/**
- * One tier's name, as an operator reads it.
- *
- * @param string $tier The tier.
- * @return string
- */
-$ffc_identity_tier_label = static function ( $tier ) {
-	switch ( $tier ) {
-		case IdentityQueue::TIER_MECHANICAL:
-			return __( 'One is mistyped', 'ffcertificate' );
-		case IdentityQueue::TIER_SHARED:
-			return __( 'Two accounts, one number', 'ffcertificate' );
-		case IdentityQueue::TIER_ISOLATED:
-			return __( 'Numbers to correct', 'ffcertificate' );
-		case IdentityQueue::TIER_MAILBOX:
-			return __( 'One address, several people', 'ffcertificate' );
-		default:
-			return __( 'Needs a decision', 'ffcertificate' );
-	}
-};
-
-/**
- * What the operator is being told to do about one tier.
- *
- * @param string $tier The tier.
- * @return string
- */
-$ffc_identity_tier_note = static function ( $tier ) {
-	switch ( $tier ) {
-		case IdentityQueue::TIER_MECHANICAL:
-			return __( 'The check digits identify which of the two is wrong, and the other one is this account\'s. No value has to be asked for.', 'ffcertificate' );
-		case IdentityQueue::TIER_SHARED:
-			return __( 'One number is stored against more than one account. That is a merge, not a correction: the decision is which account survives.', 'ffcertificate' );
-		case IdentityQueue::TIER_MAILBOX:
-			// THIS SENTENCE DENIED THE BUTTONS SITTING NEXT TO IT (#1461).
-			//
-			// It ended by stating that no verb was offered here and that the
-			// operator should read the account and decide with HR -- true
-			// while the tier was classified and then refused every verb.
-			// #1461 gave it two, and four releases went by
-			// with the panel telling the operator not to act while the cards
-			// beside it offered move and split -- found in a screenshot of the
-			// shipped screen, where the denial and the two buttons are visible
-			// in one frame.
-			//
-			// `with HR` survives because it is still true and is the load
-			// bearing half: the move makes the operator tick an
-			// acknowledgement that HR confirmed whose the records are. What
-			// goes is the claim that there is nowhere to put that answer.
-			return __( 'The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. The decision is per number and it is made with HR: each one moves to the account it belongs to, or splits onto a new one.', 'ffcertificate' );
-		default:
-			return __( 'The check digits do not single one out — none fails, or more than one does. Confirm with HR which number is this person\'s.', 'ffcertificate' );
-	}
-};
 ?>
 <div class="wrap ffc-admin-page ffc-page-identities">
 	<h1><?php esc_html_e( 'Identity Resolution', 'ffcertificate' ); ?></h1>
@@ -595,86 +327,18 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	// A column ABSENT from the coverage was never scanned, which is different
 	// again from one that found no store, and it simply draws no strip -- the
 	// screen states what it measured and stays silent about the rest.
-	// A HELD LIST THAT LOST ITS READINGS MUST SAY SO, NOT GO QUIET.
-	//
-	// An absent record means "nobody scanned this column", and drawing no strip
-	// is right for that. But the worklist transient can come back with no
-	// coverage at all -- written by an older release, or truncated -- and there
-	// the absence is a LOST READING, not a column nobody asked about. Left to
-	// the rule above it would render silence, which an operator reads as
-	// "nothing to report": the #1071 failure wearing a cache, and strictly
-	// worse than the zeroes it used to show. So an empty record becomes one
-	// UNNAMED strip, which the verdict below states as having read nothing.
-	if ( array() === $ffc_identity_coverage ) {
-		$ffc_identity_coverage = array(
-			'' => array(
-				'stores'     => 0,
-				'examined'   => 0,
-				'unreadable' => 0,
-			),
-		);
-	}
+	// A HELD LIST THAT LOST ITS READINGS, AND THE READING ACROSS BOTH COLUMNS
+	// THE EMPTY-QUEUE BRANCHES NEED, ARE `IdentityResolutionScreen`'s to decide.
 
-	// THE EMPTY-QUEUE BRANCHES NEED ONE READING ACROSS BOTH COLUMNS, AND THEY
-	// WERE SILENTLY READING A LOOP LEFTOVER (#1500, fixing #1499).
-	//
-	// Those branches were written when coverage was one flat record, and #1499
-	// moved the three counters inside the per-column loop below without moving
-	// them. After the loop they hold whichever column ran LAST -- CPF -- so an
-	// install where RF read 3,014 values and CPF read 12,705 reported 12,705 as
-	// the whole reading and said "RF" about it. No test caught it because the
-	// fixtures supply one column, and with one column the leftover happens to be
-	// the right answer: the same trap as a test exercising the path that already
-	// works.
-	//
-	// `stores` is a MAX and the other two are SUMS, which is not an oversight.
-	// The same three tables are probed per column, so adding them would claim
-	// six; but "something was scanned" is true if ANY column found a store.
-	// Values examined and values unread are per value, so they add.
-	$ffc_identity_all = array(
-		'stores'     => 0,
-		'examined'   => 0,
-		'unreadable' => 0,
-	);
-
-	foreach ( $ffc_identity_coverage as $ffc_identity_read ) {
-		$ffc_identity_all['stores']      = max( $ffc_identity_all['stores'], (int) ( $ffc_identity_read['stores'] ?? 0 ) );
-		$ffc_identity_all['examined']   += (int) ( $ffc_identity_read['examined'] ?? 0 );
-		$ffc_identity_all['unreadable'] += (int) ( $ffc_identity_read['unreadable'] ?? 0 );
-	}
-
-	foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :
-		$ffc_identity_examined   = (int) ( $ffc_identity_read['examined'] ?? 0 );
-		$ffc_identity_unreadable = (int) ( $ffc_identity_read['unreadable'] ?? 0 );
-		$ffc_identity_stores     = (int) ( $ffc_identity_read['stores'] ?? 0 );
-		$ffc_identity_scan_name  = $ffc_identity_identifier_name( (string) $ffc_identity_column );
-		$ffc_identity_scan_cap   = ! empty( $ffc_identity_truncated_columns[ (string) $ffc_identity_column ] );
-
-		// Read nothing: no store carries the columns this check needs, or every
-		// value it found was unreadable. Both are what an encryption key that
-		// does not match the data looks like, and neither is evidence about the
-		// numbers themselves.
-		$ffc_identity_read_none = 0 === $ffc_identity_stores
-			|| ( $ffc_identity_examined > 0 && $ffc_identity_examined === $ffc_identity_unreadable );
-
-		// Read part of it: something was skipped, or a cap cut the reading
-		// short. `$ffc_identity_capped` is the per-check cap and
-		// `$ffc_identity_scan_cap` this column's own scan cap — two different
-		// limits, and either one makes the counters below counts of what was
-		// read rather than of what there is.
-		$ffc_identity_read_part = ! $ffc_identity_read_none
-			&& ( $ffc_identity_unreadable > 0
-				|| 0 === $ffc_identity_examined
-				|| $ffc_identity_scan_cap
-				|| array() !== $ffc_identity_capped );
-
-		if ( $ffc_identity_read_none ) {
-			$ffc_identity_scan_state = 'none';
-		} elseif ( $ffc_identity_read_part ) {
-			$ffc_identity_scan_state = 'partial';
-		} else {
-			$ffc_identity_scan_state = 'whole';
-		}
+	foreach ( $ffc_identity_screen->strips as $ffc_identity_strip ) :
+		$ffc_identity_examined   = $ffc_identity_strip['examined'];
+		$ffc_identity_unreadable = $ffc_identity_strip['unreadable'];
+		$ffc_identity_stores     = $ffc_identity_strip['stores'];
+		$ffc_identity_scan_name  = $ffc_identity_strip['name'];
+		$ffc_identity_scan_cap   = $ffc_identity_strip['scan_cap'];
+		$ffc_identity_read_none  = $ffc_identity_strip['read_none'];
+		$ffc_identity_read_part  = $ffc_identity_strip['read_part'];
+		$ffc_identity_scan_state = $ffc_identity_strip['state'];
 		?>
 	<div class="ffc-identity-scan ffc-identity-scan-<?php echo esc_attr( $ffc_identity_scan_state ); ?>">
 		<p class="ffc-identity-scan-verdict">
@@ -779,7 +443,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	<?php
 	// THE COUNTERS ARE THE PANELS, COUNTED — NEVER A SECOND OPINION.
 	//
-	// Both this strip and the bodies below read `$ffc_identity_panels`, which
+	// Both this strip and the bodies below read `$ffc_identity_screen->panels`, which
 	// `IdentityQueuePanels::build()` already emptied of the tiers holding
 	// nothing. So a category absent here is absent below by construction, and
 	// the two cannot drift into disagreeing about how many findings there are.
@@ -788,11 +452,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	// and its panel is therefore not drawn: the finding exists and is
 	// somebody's to resolve, and a counter that hid it would report a shorter
 	// queue to the operator least able to see why.
-	$ffc_identity_remaining = count( $ffc_identity_orphans );
-
-	foreach ( $ffc_identity_panels as $ffc_identity_panel ) {
-		$ffc_identity_remaining += (int) $ffc_identity_panel['total'];
-	}
+	$ffc_identity_remaining = $ffc_identity_screen->remaining;
 	?>
 	<?php if ( $ffc_identity_remaining > 0 ) : ?>
 		<div class="ffc-identity-counts">
@@ -805,15 +465,15 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				);
 				?>
 			</span>
-			<?php foreach ( $ffc_identity_panels as $ffc_identity_panel ) : ?>
+			<?php foreach ( $ffc_identity_screen->panels as $ffc_identity_panel ) : ?>
 				<?php
 				// The same derivation the panel heading makes, from the same
 				// value: the tier decides the class, never the markup.
 				$ffc_identity_tier = (string) $ffc_identity_panel['tier'];
-				$ffc_identity_chip = 'ffc-identity-chip-' . preg_replace( '/[^a-z]/', '', $ffc_identity_tier );
+				$ffc_identity_chip = IdentityResolutionLabels::chip_class( $ffc_identity_tier );
 				?>
 				<span class="ffc-identity-count <?php echo esc_attr( $ffc_identity_chip ); ?>">
-					<?php echo esc_html( $ffc_identity_tier_label( $ffc_identity_tier ) ); ?>
+					<?php echo esc_html( IdentityResolutionLabels::tier_label( $ffc_identity_tier ) ); ?>
 					<strong><?php echo esc_html( number_format_i18n( (int) $ffc_identity_panel['total'] ) ); ?></strong>
 				</span>
 			<?php endforeach; ?>
@@ -891,20 +551,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	// condition reuses the partition that decided the order rather than
 	// restating which tiers are which -- a second list would agree with a
 	// reordering that broke it.
-	$ffc_identity_to_correct = 0;
-	$ffc_identity_to_judge   = 0;
-
-	foreach ( $ffc_identity_panels as $ffc_identity_panel ) {
-		$ffc_identity_tier = (string) $ffc_identity_panel['tier'];
-
-		if ( in_array( $ffc_identity_tier, IdentityQueuePanels::CORRECTIONS, true ) ) {
-			$ffc_identity_to_correct += (int) $ffc_identity_panel['total'];
-		} elseif ( in_array( $ffc_identity_tier, IdentityQueuePanels::JUDGEMENTS, true ) ) {
-			$ffc_identity_to_judge += (int) $ffc_identity_panel['total'];
-		}
-	}
 	?>
-	<?php if ( $ffc_identity_to_correct > 0 && $ffc_identity_to_judge > 0 ) : ?>
+	<?php if ( $ffc_identity_screen->to_correct > 0 && $ffc_identity_screen->to_judge > 0 ) : ?>
 		<?php
 		\FreeFormCertificate\Core\AdminNotice::callout(
 			'info',
@@ -929,7 +577,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		?>
 	<?php endif; ?>
 
-	<?php if ( $ffc_identity_truncated ) : ?>
+	<?php if ( $ffc_identity_screen->truncated ) : ?>
 		<?php
 		\FreeFormCertificate\Core\AdminNotice::callout(
 			'warning',
@@ -946,15 +594,15 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	// that refuses them. The panel goes; the findings stay countable, because
 	// `IdentityQueuePanels` built them either way and the tier still exists.
 	?>
-	<?php if ( isset( $ffc_identity_by_tier[ IdentityQueue::TIER_SHARED ] ) && $ffc_identity_may_merge ) : ?>
+	<?php if ( isset( $ffc_identity_screen->by_tier[ IdentityQueue::TIER_SHARED ] ) && $ffc_identity_may_merge ) : ?>
 		<?php
-		$ffc_identity_panel = $ffc_identity_by_tier[ IdentityQueue::TIER_SHARED ];
-		$ffc_identity_pairs = $ffc_identity_shown( $ffc_identity_panel );
+		$ffc_identity_panel = $ffc_identity_screen->by_tier[ IdentityQueue::TIER_SHARED ];
+		$ffc_identity_pairs = IdentityResolutionScreen::shown( $ffc_identity_panel );
 
 		$ffc_identity_head(
 			$ffc_identity_panel,
-			$ffc_identity_tier_label( IdentityQueue::TIER_SHARED ),
-			$ffc_identity_tier_note( IdentityQueue::TIER_SHARED )
+			IdentityResolutionLabels::tier_label( IdentityQueue::TIER_SHARED ),
+			IdentityResolutionLabels::tier_note( IdentityQueue::TIER_SHARED )
 		);
 		?>
 		<p class="description">
@@ -1037,7 +685,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									/* translators: 1: how many records. 2: the store holding them. */
 									__( '%1$s in %2$s', 'ffcertificate' ),
 									number_format_i18n( (int) $ffc_identity_n ),
-									$ffc_identity_store_name( $ffc_identity_store )
+									IdentityResolutionLabels::store_name( $ffc_identity_store )
 								);
 							}
 
@@ -1061,7 +709,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									class="ffc-identity-keep"
 									value="<?php echo esc_attr( (string) $ffc_identity_account ); ?>">
 								<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_account ) ) ); ?>">
-									<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
+									<?php echo esc_html( IdentityResolutionLabels::account( $ffc_identity_account ) ); ?>
 								</a>
 							</label>
 							<p class="description ffc-identity-pair-evidence">
@@ -1209,7 +857,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						<?php // The scope. Without it the rewrite would reach the other login's rows too, since both carry this hash. ?>
 						<input type="hidden" name="ffc_account_scope" value="<?php echo esc_attr( (string) $ffc_identity_account ); ?>">
 						<label for="ffc-correct-<?php echo esc_attr( (string) ( $ffc_identity_pair['subject'] ?? '' ) . '-' . (string) $ffc_identity_account ); ?>">
-							<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
+							<?php echo esc_html( IdentityResolutionLabels::account( $ffc_identity_account ) ); ?>
 						</label>
 						<?php // `text` with `inputmode`, never `number`: a leading zero is a digit here, not formatting. ?>
 						<input type="text" inputmode="numeric" pattern="[0-9]{7,11}" maxlength="11" size="12" required
@@ -1247,17 +895,17 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	$ffc_identity_account_tiers = array( IdentityQueue::TIER_MECHANICAL, IdentityQueue::TIER_DECISION, IdentityQueue::TIER_MAILBOX );
 	?>
 	<?php foreach ( $ffc_identity_account_tiers as $ffc_identity_this_tier ) : ?>
-		<?php if ( ! isset( $ffc_identity_by_tier[ $ffc_identity_this_tier ] ) ) : ?>
+		<?php if ( ! isset( $ffc_identity_screen->by_tier[ $ffc_identity_this_tier ] ) ) : ?>
 			<?php continue; ?>
 		<?php endif; ?>
 		<?php
-		$ffc_identity_panel     = $ffc_identity_by_tier[ $ffc_identity_this_tier ];
-		$ffc_identity_accountal = $ffc_identity_shown( $ffc_identity_panel );
+		$ffc_identity_panel     = $ffc_identity_screen->by_tier[ $ffc_identity_this_tier ];
+		$ffc_identity_accountal = IdentityResolutionScreen::shown( $ffc_identity_panel );
 
 		$ffc_identity_head(
 			$ffc_identity_panel,
-			$ffc_identity_tier_label( (string) $ffc_identity_this_tier ),
-			$ffc_identity_tier_note( (string) $ffc_identity_this_tier )
+			IdentityResolutionLabels::tier_label( (string) $ffc_identity_this_tier ),
+			IdentityResolutionLabels::tier_note( (string) $ffc_identity_this_tier )
 		);
 		?>
 		<?php
@@ -1320,7 +968,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<?php foreach ( $ffc_identity_who as $ffc_identity_account ) : ?>
 								<?php // The NAME, then the number. A finding an operator has to act on is about a person, and `#4821` is not a person. ?>
 								<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_account ) ) ); ?>">
-									<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
+									<?php echo esc_html( IdentityResolutionLabels::account( $ffc_identity_account ) ); ?>
 								</a>
 							<?php endforeach; ?>
 						<?php endif; ?>
@@ -1444,7 +1092,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					// sentence above would imply. The stores are what say how
 					// far the write reaches, and they are read rather than
 					// derived.
-					$ffc_identity_where = $ffc_identity_store_list( $ffc_identity_item[ IdentityConflictQuery::COLUMN_STORES ] ?? '' );
+					$ffc_identity_where = IdentityResolutionLabels::store_list( $ffc_identity_item[ IdentityConflictQuery::COLUMN_STORES ] ?? '' );
 					?>
 					<?php if ( '' !== $ffc_identity_where ) : ?>
 						<p class="ffc-identity-card-where">
@@ -1986,13 +1634,13 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	<?php
 	$ffc_identity_rows = array();
 
-	if ( isset( $ffc_identity_by_tier[ IdentityQueue::TIER_ISOLATED ] ) ) {
-		$ffc_identity_panel = $ffc_identity_by_tier[ IdentityQueue::TIER_ISOLATED ];
-		$ffc_identity_rows  = $ffc_identity_shown( $ffc_identity_panel );
+	if ( isset( $ffc_identity_screen->by_tier[ IdentityQueue::TIER_ISOLATED ] ) ) {
+		$ffc_identity_panel = $ffc_identity_screen->by_tier[ IdentityQueue::TIER_ISOLATED ];
+		$ffc_identity_rows  = IdentityResolutionScreen::shown( $ffc_identity_panel );
 
 		$ffc_identity_head(
 			$ffc_identity_panel,
-			$ffc_identity_tier_label( IdentityQueue::TIER_ISOLATED ),
+			IdentityResolutionLabels::tier_label( IdentityQueue::TIER_ISOLATED ),
 			__( 'A stored RF or CPF whose own check digit does not match, and which no action above corrects: the account holds only this one, the row belongs to a candidacy that carries no account until promotion, or the card naming it can only move, split or merge — none of which touches a number. The correct value comes from HR.', 'ffcertificate' )
 		);
 
@@ -2029,7 +1677,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	}
 	?>
 
-	<?php if ( array() === $ffc_identity_panels ) : ?>
+	<?php if ( array() === $ffc_identity_screen->panels ) : ?>
 		<?php
 		// AN EMPTY LIST MEANS THREE DIFFERENT THINGS AND ONLY ONE IS GOOD NEWS.
 		//
@@ -2041,14 +1689,14 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		// Read once, above, where the strip states them: three names for one
 		// set of numbers is how a screen comes to disagree with itself.
 		?>
-		<?php if ( 0 === $ffc_identity_all['stores'] ) : ?>
+		<?php if ( 0 === $ffc_identity_screen->all['stores'] ) : ?>
 			<?php
 			\FreeFormCertificate\Core\AdminNotice::callout(
 				'warning',
 				esc_html__( 'Nothing was scanned: no store on this install carries an RF or a CPF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result.', 'ffcertificate' )
 			);
 			?>
-		<?php elseif ( $ffc_identity_all['examined'] > 0 && $ffc_identity_all['examined'] === $ffc_identity_all['unreadable'] ) : ?>
+		<?php elseif ( $ffc_identity_screen->all['examined'] > 0 && $ffc_identity_screen->all['examined'] === $ffc_identity_screen->all['unreadable'] ) : ?>
 			<?php
 			\FreeFormCertificate\Core\AdminNotice::callout(
 				'error',
@@ -2056,12 +1704,12 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					sprintf(
 						/* translators: %s: how many distinct stored values were found. */
 						__( 'Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result.', 'ffcertificate' ),
-						number_format_i18n( $ffc_identity_all['examined'] )
+						number_format_i18n( $ffc_identity_screen->all['examined'] )
 					)
 				)
 			);
 			?>
-		<?php elseif ( 0 === $ffc_identity_all['examined'] ) : ?>
+		<?php elseif ( 0 === $ffc_identity_screen->all['examined'] ) : ?>
 			<?php
 			// FOUR STATES, NOT THREE. The first pass at this fixed the two
 			// obvious unread cases and left THIS one falling into the
@@ -2080,7 +1728,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					sprintf(
 						/* translators: %s: how many stores were scanned. */
 						__( 'No stored RF or CPF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured one yet — worth looking into on one that has.', 'ffcertificate' ),
-						number_format_i18n( $ffc_identity_all['stores'] )
+						number_format_i18n( $ffc_identity_screen->all['stores'] )
 					)
 				)
 			);
@@ -2102,9 +1750,9 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				printf(
 					/* translators: 1: values checked, 2: how many findings are accepted, 3: values that could not be read. */
 					esc_html__( 'Nothing left to work: %1$s stored values checked, and the %2$s finding(s) that remain are recorded below as impossible to resolve. This is not the same as every value being sound. %3$s could not be read and were not checked.', 'ffcertificate' ),
-					esc_html( number_format_i18n( $ffc_identity_all['examined'] ) ),
+					esc_html( number_format_i18n( $ffc_identity_screen->all['examined'] ) ),
 					esc_html( number_format_i18n( count( $ffc_identity_accepted ) ) ),
-					esc_html( number_format_i18n( $ffc_identity_all['unreadable'] ) )
+					esc_html( number_format_i18n( $ffc_identity_screen->all['unreadable'] ) )
 				);
 				?>
 			</p>
@@ -2114,8 +1762,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				printf(
 					/* translators: 1: values checked, 2: values that could not be read. */
 					esc_html__( 'Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked.', 'ffcertificate' ),
-					esc_html( number_format_i18n( $ffc_identity_all['examined'] ) ),
-					esc_html( number_format_i18n( $ffc_identity_all['unreadable'] ) )
+					esc_html( number_format_i18n( $ffc_identity_screen->all['examined'] ) ),
+					esc_html( number_format_i18n( $ffc_identity_screen->all['unreadable'] ) )
 				);
 				?>
 			</p>
@@ -2225,7 +1873,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						<?php else : ?>
 							<?php foreach ( $ffc_identity_accounts as $ffc_identity_account ) : ?>
 								<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_account ) ) ); ?>">
-									<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
+									<?php echo esc_html( IdentityResolutionLabels::account( $ffc_identity_account ) ); ?>
 								</a>
 							<?php endforeach; ?>
 						<?php endif; ?>
@@ -2241,7 +1889,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						printf(
 							/* translators: 1: the stores holding the records, comma separated. 2: how many records carry the value. */
 							esc_html__( 'Appears in %1$s · %2$s records', 'ffcertificate' ),
-							esc_html( $ffc_identity_store_list( $ffc_identity_row[ IdentityConflictQuery::COLUMN_STORES ] ?? '' ) ),
+							esc_html( IdentityResolutionLabels::store_list( $ffc_identity_row[ IdentityConflictQuery::COLUMN_STORES ] ?? '' ) ),
 							esc_html( number_format_i18n( (int) ( $ffc_identity_row[ IdentityConflictQuery::ALIAS_ROW_COUNT ] ?? 0 ) ) )
 						);
 						?>
@@ -2256,7 +1904,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					<p class="ffc-identity-card-rows">
 						<?php foreach ( $ffc_identity_by_store as $ffc_identity_store => $ffc_identity_ids ) : ?>
 							<span class="ffc-identity-card-rowset">
-								<strong><?php echo esc_html( $ffc_identity_store_name( $ffc_identity_store ) ); ?></strong>
+								<strong><?php echo esc_html( IdentityResolutionLabels::store_name( $ffc_identity_store ) ); ?></strong>
 								<code><?php echo esc_html( implode( ', ', array_map( 'strval', $ffc_identity_ids ) ) ); ?></code>
 							</span>
 						<?php endforeach; ?>
@@ -2304,7 +1952,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							// correctly off the finding.
 							?>
 							<label class="screen-reader-text" for="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
-								<?php echo esc_html( $ffc_identity_corrected_label( (string) ( $ffc_identity_row['identifier_column'] ?? '' ) ) ); ?>
+								<?php echo esc_html( IdentityResolutionLabels::corrected_label( (string) ( $ffc_identity_row['identifier_column'] ?? '' ) ) ); ?>
 							</label>
 							<input type="text" inputmode="numeric" pattern="[0-9]{7,11}" maxlength="11" size="12" required
 								id="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
@@ -2556,20 +2204,20 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				<tr>
 					<td><code><?php echo esc_html( strtoupper( $ffc_identity_ar_field ) ); ?></code></td>
 					<td>
-						<?php echo esc_html( $ffc_identity_tier_label( (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_TIER ] ?? '' ) ) ); ?>
+						<?php echo esc_html( IdentityResolutionLabels::tier_label( (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_TIER ] ?? '' ) ) ); ?>
 						<br>
 						<?php if ( $ffc_identity_ar_is_hash ) : ?>
 							<code><?php echo esc_html( substr( $ffc_identity_ar_subject, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
 						<?php else : ?>
 							<?php
-							// `$ffc_identity_named`, the resolver the cards
+							// `IdentityResolutionLabels::account()`, the resolver the cards
 							// above already use, rather than a label of this
 							// panel's own: it answers with the person's name
 							// when the account is live and with `Account #438`
 							// when it is not -- which is exactly what this row
 							// needs, because an acceptance OUTLIVES the account
 							// it was taken about (see `IdentityAcceptance`).
-							echo esc_html( $ffc_identity_named( $ffc_identity_ar_subject ) );
+							echo esc_html( IdentityResolutionLabels::account( $ffc_identity_ar_subject ) );
 							?>
 						<?php endif; ?>
 					</td>
@@ -2690,7 +2338,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						</span>
 						<?php foreach ( $ffc_identity_orphan['accounts'] as $ffc_identity_orphan_account ) : ?>
 							<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_orphan_account ) ) ); ?>">
-								<?php echo esc_html( $ffc_identity_named( $ffc_identity_orphan_account ) ); ?>
+								<?php echo esc_html( IdentityResolutionLabels::account( $ffc_identity_orphan_account ) ); ?>
 							</a>
 						<?php endforeach; ?>
 					</div>
@@ -2722,7 +2370,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					<p class="ffc-identity-card-rows">
 						<?php foreach ( $ffc_identity_orphan['stores'] as $ffc_identity_orphan_store => $ffc_identity_orphan_ids ) : ?>
 							<span class="ffc-identity-card-rowset">
-								<strong><?php echo esc_html( $ffc_identity_store_name( $ffc_identity_orphan_store ) ); ?></strong>
+								<strong><?php echo esc_html( IdentityResolutionLabels::store_name( $ffc_identity_orphan_store ) ); ?></strong>
 								<code><?php echo esc_html( implode( ', ', array_map( 'strval', $ffc_identity_orphan_ids ) ) ); ?></code>
 							</span>
 						<?php endforeach; ?>

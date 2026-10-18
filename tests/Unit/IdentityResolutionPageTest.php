@@ -615,14 +615,17 @@ class IdentityResolutionPageTest extends TestCase {
 	public function test_the_view_separates_the_four_empty_states(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
-		$this->assertStringContainsString( '0 === $ffc_identity_stores', $view, 'No store scanned is its own state.' );
+		// The per-column verdicts are `IdentityResolutionScreen`'s now (#1925)
+		// and `IdentityResolutionScreenTest` drives them; what stays here is the
+		// view's own empty-queue branches and their order.
+		$this->assertStringContainsString( "0 === \$ffc_identity_screen->all['stores']", $view, 'No store scanned is its own state.' );
 		// THESE MOVED TO THE CROSS-COLUMN TOTAL (#1500). The per-column names
 		// still exist inside the coverage strip's loop, so probing them here
 		// would pass on the strip while the empty-queue branches read a
 		// leftover -- which is the defect `test_the_empty_queue_notices_read_every_column`
 		// exists for.
-		$this->assertStringContainsString( "\$ffc_identity_all['examined'] === \$ffc_identity_all['unreadable']", $view, 'Nothing readable is its own state.' );
-		$this->assertStringContainsString( "0 === \$ffc_identity_all['examined']", $view, 'Nothing FOUND is its own state, distinct from nothing readable.' );
+		$this->assertStringContainsString( "\$ffc_identity_screen->all['examined'] === \$ffc_identity_screen->all['unreadable']", $view, 'Nothing readable is its own state.' );
+		$this->assertStringContainsString( "0 === \$ffc_identity_screen->all['examined']", $view, 'Nothing FOUND is its own state, distinct from nothing readable.' );
 		$this->assertStringContainsString( 'this is not a clean result', $view, 'Both unread states must say so.' );
 
 		// Anchored on the opening of each LITERAL, never on a fragment: a
@@ -664,9 +667,9 @@ class IdentityResolutionPageTest extends TestCase {
 		// The read moved inside a per-column loop (#1486), so what is probed is
 		// the loop that opens it -- the ordering this test exists for is
 		// unchanged, and the assertion has to name what the view now says.
-		$read  = strpos( $view, 'foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :' );
+		$read  = strpos( $view, 'foreach ( $ffc_identity_screen->strips as $ffc_identity_strip ) :' );
 		$strip = strpos( $view, 'class="ffc-identity-scan ' );
-		$empty = strpos( $view, 'array() === $ffc_identity_panels' );
+		$empty = strpos( $view, 'array() === $ffc_identity_screen->panels' );
 
 		$this->assertIsInt( $read, 'The view must read what the scan covered.' );
 		$this->assertIsInt( $strip, 'The view must draw the coverage strip.' );
@@ -733,20 +736,11 @@ class IdentityResolutionPageTest extends TestCase {
 	public function test_the_strip_refuses_to_call_a_partial_scan_whole(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
-		$this->assertStringContainsString( '$ffc_identity_read_none = 0 === $ffc_identity_stores', $view, 'No store scanned must reach the unread verdict.' );
-		$this->assertStringContainsString( '$ffc_identity_examined === $ffc_identity_unreadable', $view, 'Nothing readable must reach the unread verdict.' );
-		$this->assertStringContainsString( '$ffc_identity_read_part = ! $ffc_identity_read_none', $view, 'The partial verdict must be reachable only when the scan read something.' );
-		$this->assertStringContainsString( '|| $ffc_identity_scan_cap', $view, "The scan's own cap must make the reading partial." );
-		$this->assertStringContainsString( '|| array() !== $ffc_identity_capped', $view, 'A check that returned a full page must make the reading partial.' );
-
-		// THE CAP IS READ PER COLUMN (#1486), which is what this probe pins: two
-		// scans run and each stops at its own, so one flag for both would report
-		// a truncated RF scan on the CPF strip and the other way round.
-		$this->assertStringContainsString(
-			'$ffc_identity_scan_cap   = ! empty( $ffc_identity_truncated_columns[ (string) $ffc_identity_column ] );',
-			$view,
-			"Each strip must read its own column's cap, not any column's."
-		);
+		// WHICH VERDICT A STRIP GETS IS DECIDED BY `IdentityResolutionScreen`
+		// (#1925), and `IdentityResolutionScreenTest` drives every condition
+		// that used to be pinned here as source text -- no store, nothing
+		// readable, a scan cap per column, a capped check. What the view still
+		// owns is that it renders the three verdicts in that order.
 
 		// The whole-reading verdict is the `else` of both, so it cannot be
 		// reached while either flag is set. Anchored on the branch rather than
@@ -775,15 +769,13 @@ class IdentityResolutionPageTest extends TestCase {
 	public function test_the_counters_are_derived_from_the_panels(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
+		// THE SUM IS `IdentityResolutionScreen`'s (#1925), and
+		// `IdentityResolutionScreenTest` measures it over panels and orphans.
+		// What the view must still do is print that one number.
 		$this->assertStringContainsString(
-			'$ffc_identity_remaining += (int) $ffc_identity_panel[\'total\'];',
+			'$ffc_identity_remaining = $ffc_identity_screen->remaining;',
 			$view,
-			'The remaining count must be the panels summed.'
-		);
-		$this->assertStringContainsString(
-			'$ffc_identity_remaining = count( $ffc_identity_orphans );',
-			$view,
-			'Orphans are a population of their own and must be counted as one.'
+			'The remaining count must be the one the screen derived from the panels.'
 		);
 
 		// The strip derives its chip class from the tier exactly as the panel
@@ -791,9 +783,10 @@ class IdentityResolutionPageTest extends TestCase {
 		// below.
 		$this->assertSame(
 			2,
-			substr_count( $view, "'ffc-identity-chip-' . preg_replace( '/[^a-z]/', '', " ),
-			'The chip class must be derived from the tier in both places, and nowhere else.'
+			substr_count( $view, 'IdentityResolutionLabels::chip_class( ' ),
+			'The chip class must be derived from the tier in both places, through one function.'
 		);
+		$this->assertStringNotContainsString( "preg_replace( '/[^a-z]/'", $view, 'And never spelled out in the view again.' );
 	}
 
 	/**
@@ -1303,25 +1296,28 @@ class IdentityResolutionPageTest extends TestCase {
 	 * one closure that normalises both, and that none reads the raw column.
 	 */
 	public function test_every_store_name_is_rendered_through_the_map(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view   = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$labels = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-labels.php' );
 
-		$this->assertStringContainsString( '$ffc_identity_store_name = static function', $view, 'The screen needs one place that names a store.' );
-		$this->assertStringContainsString( '$ffc_identity_store_list = static function', $view, 'And one place that joins a list of them.' );
+		// The one place that names a store, and the one that joins a list of
+		// them, are `IdentityResolutionLabels` (#1925); its test measures both.
+		$this->assertStringContainsString( 'public static function store_name(', $labels, 'The screen needs one place that names a store.' );
+		$this->assertStringContainsString( 'public static function store_list(', $labels, 'And one place that joins a list of them.' );
 
 		// The list joiner is WordPress's own, so the comma and the "and" come
 		// from core's translations rather than from a separator invented here.
-		$this->assertStringContainsString( 'wp_sprintf_l(', $view, "The list must be joined the way WordPress joins lists." );
+		$this->assertStringContainsString( 'wp_sprintf_l(', $labels, "The list must be joined the way WordPress joins lists." );
 
 		// Four render sites: the account cards, the isolated card's sentence,
 		// and the per-store row ids on the isolated and orphan cards.
 		$this->assertSame(
 			2,
-			substr_count( $view, '$ffc_identity_store_list(' ),
+			substr_count( $view, 'IdentityResolutionLabels::store_list(' ),
 			'Both sentences that name several stores must go through the joiner.'
 		);
 		$this->assertSame(
 			2,
-			substr_count( $view, 'esc_html( $ffc_identity_store_name(' ),
+			substr_count( $view, 'esc_html( IdentityResolutionLabels::store_name(' ),
 			'Both row-id lists must name their store through the map.'
 		);
 
@@ -1842,13 +1838,9 @@ class IdentityResolutionPageTest extends TestCase {
 	public function test_a_lost_reading_renders_as_having_read_nothing(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
-		$empty = strpos( $view, 'if ( array() === $ffc_identity_coverage ) {' );
-		$loop  = strpos( $view, 'foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :' );
-
-		$this->assertIsInt( $empty, 'An empty coverage record must be given a strip of its own.' );
-		$this->assertIsInt( $loop );
-		$this->assertLessThan( $loop, $empty, 'The substitution must happen before the loop, or the loop draws nothing.' );
-
+		// The substitution of an unnamed strip for an empty record is
+		// `IdentityResolutionScreen`'s (#1925), measured in its test. The view
+		// must still carry the verdict that names no identifier.
 		$this->assertStringContainsString(
 			"esc_html_e( 'This scan read nothing', 'ffcertificate' );",
 			$view,
@@ -1928,25 +1920,17 @@ class IdentityResolutionPageTest extends TestCase {
 	public function test_the_empty_queue_notices_read_every_column(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
-		$aggregate = strpos( $view, '$ffc_identity_all = array(' );
-		$loop      = strpos( $view, 'foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :' );
+		// THE TOTAL IS `IdentityResolutionScreen::$all` (#1925), taken over every
+		// column before any strip is drawn; its test measures the MAX and the
+		// two SUMS. What stays here is that the branches read it.
+		$loop = strpos( $view, 'foreach ( $ffc_identity_screen->strips as $ffc_identity_strip ) :' );
 
-		$this->assertIsInt( $aggregate, 'The view must total the coverage across columns.' );
-		$this->assertLessThan( $loop, $aggregate, 'The total must be taken before the per-column loop, not from its leftovers.' );
-
-		// `stores` is a MAX and the other two are SUMS: the same tables are
-		// probed per column, so adding them would claim six where there are
-		// three, while "something was scanned" is true if ANY column found one.
-		$this->assertStringContainsString(
-			"\$ffc_identity_all['stores']      = max( \$ffc_identity_all['stores'],",
-			$view,
-			'Stores must not be summed across columns -- the same tables are probed for each.'
-		);
+		$this->assertIsInt( $loop, 'The view must draw a strip per column.' );
 
 		foreach ( array(
-			"0 === \$ffc_identity_all['stores']",
-			"\$ffc_identity_all['examined'] > 0 && \$ffc_identity_all['examined'] === \$ffc_identity_all['unreadable']",
-			"0 === \$ffc_identity_all['examined']",
+			"0 === \$ffc_identity_screen->all['stores']",
+			"\$ffc_identity_screen->all['examined'] > 0 && \$ffc_identity_screen->all['examined'] === \$ffc_identity_screen->all['unreadable']",
+			"0 === \$ffc_identity_screen->all['examined']",
 		) as $branch ) {
 			$this->assertStringContainsString(
 				$branch,
@@ -1993,30 +1977,25 @@ class IdentityResolutionPageTest extends TestCase {
 	 * reason that partition was named rather than spelled out.
 	 */
 	public function test_the_order_of_work_advice_needs_both_halves_of_the_queue(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view   = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$screen = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-screen.php' );
 
 		$this->assertStringContainsString(
-			'if ( $ffc_identity_to_correct > 0 && $ffc_identity_to_judge > 0 ) :',
+			'if ( $ffc_identity_screen->to_correct > 0 && $ffc_identity_screen->to_judge > 0 ) :',
 			$view,
 			'The advice must need a correction and a judgement, not either alone.'
 		);
 
+		// The two totals are counted by `IdentityResolutionScreen` (#1925) from
+		// the panels, through the partition that ordered them; its test measures
+		// the sums.
 		foreach ( array( 'IdentityQueuePanels::CORRECTIONS', 'IdentityQueuePanels::JUDGEMENTS' ) as $partition ) {
 			$this->assertStringContainsString(
 				$partition,
-				$view,
+				$screen,
 				sprintf( 'The tiers must be read from the partition that ordered them, never listed again: %s', $partition )
 			);
 		}
-
-		// COUNTED FROM THE PANELS, never from a query of its own -- this view's
-		// own rule, stated where it sums them: the counters are the panels
-		// counted and never a second opinion.
-		$this->assertMatchesRegularExpression(
-			'/\$ffc_identity_to_correct \+= \(int\) \$ffc_identity_panel\[\x27total\x27\];/',
-			$view,
-			'The correction total must come from the panels the screen already draws.'
-		);
 	}
 
 	/**
@@ -2210,7 +2189,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * was which. Shape cannot decide it either, which is the trap
 	 * `IdentityConflictQuery` already records: a hex prefix can be all digits.
 	 *
-	 * It resolves the account through `$ffc_identity_named`, the resolver the
+	 * It resolves the account through `IdentityResolutionLabels::account()`, the resolver the
 	 * cards above already use, which answers `Account #438` when the account
 	 * is gone -- and it can be gone, because an acceptance deliberately
 	 * outlives the account it was taken about.
@@ -2233,7 +2212,7 @@ class IdentityResolutionPageTest extends TestCase {
 		);
 
 		$this->assertStringContainsString(
-			'$ffc_identity_named( $ffc_identity_ar_subject )',
+			'IdentityResolutionLabels::account( $ffc_identity_ar_subject )',
 			$row,
 			'An account subject is resolved, not truncated as though it were a hash.'
 		);
