@@ -111,10 +111,8 @@ class IdentitySearchWiringTest extends TestCase {
 	 * @return string
 	 */
 	private static function view(): string {
-		$path = dirname( __DIR__, 2 ) . '/includes/admin/views/identity-resolution-page.php';
-
 		// Buttons built from `Core\Button` arguments name their ids as keys (#1904).
-		return \FreeFormCertificate\Tests\Support\ButtonMarkup::args_as_attributes( (string) file_get_contents( $path ) );
+		return \FreeFormCertificate\Tests\Support\ButtonMarkup::args_as_attributes( \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined() );
 	}
 
 	/**
