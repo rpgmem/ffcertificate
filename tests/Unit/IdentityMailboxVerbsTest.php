@@ -42,7 +42,7 @@ class IdentityMailboxVerbsTest extends TestCase {
 	 * @return string
 	 */
 	private function view(): string {
-		return (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		return \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 	}
 
 	/**
