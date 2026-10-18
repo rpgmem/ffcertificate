@@ -283,7 +283,7 @@ class IdentityAgreement {
 	 * made by reading values into this class either, because then every
 	 * comparison would decrypt.
 	 *
-	 * `IdentityConflictQuery::check_digit_verdicts()` already answers per HASH,
+	 * `IdentityCheckDigitScan::check_digit_verdicts()` already answers per HASH,
 	 * decrypting internally. So the verb fetches and this decides, which leaves
 	 * this method testable with no database and keeps the I/O where the verb is
 	 * already doing I/O.
@@ -296,7 +296,7 @@ class IdentityAgreement {
 	 *
 	 * `VERDICT_UNREADABLE` DELIBERATELY DOES NOT REFUSE. Not having read a value
 	 * is not evidence that it is wrong -- the rule
-	 * `IdentityConflictQuery::rf_check_digit_failures()` already states for its
+	 * `IdentityCheckDigitScan::check_digit_failures()` already states for its
 	 * own scan, and the #1071 / #1094 rule generally. Refusing there would make a
 	 * mismatched encryption key look like a data defect and block every merge on
 	 * an install whose key does not match its rows.

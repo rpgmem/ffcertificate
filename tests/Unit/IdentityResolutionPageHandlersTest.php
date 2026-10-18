@@ -12,6 +12,8 @@ use FreeFormCertificate\Admin\IdentityQueuePanels;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Maintenance\IdentityAcceptance;
 use FreeFormCertificate\Maintenance\IdentityAdoption;
+use FreeFormCertificate\Maintenance\IdentityAccountFacts;
+use FreeFormCertificate\Maintenance\IdentityCheckDigitScan;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityMerge;
 use FreeFormCertificate\Maintenance\IdentityOrphanQuery;
@@ -199,6 +201,14 @@ class IdentityResolutionPageHandlersTest extends TestCase {
 
 			protected function conflicts(): IdentityConflictQuery {
 				return $this->seam( 'conflicts' );
+			}
+
+			protected function scans(): IdentityCheckDigitScan {
+				return $this->seam( 'scans' );
+			}
+
+			protected function facts(): IdentityAccountFacts {
+				return $this->seam( 'facts' );
 			}
 		};
 	}
@@ -811,7 +821,9 @@ class IdentityResolutionPageHandlersTest extends TestCase {
 		$query = Mockery::mock( IdentityConflictQuery::class );
 		$query->shouldReceive( 'multiple_identities' )->andReturn( array() );
 		$query->shouldReceive( 'shared_identities' )->andReturn( array() );
-		$query->shouldReceive( 'check_digit_failures_of_both' )->andReturn(
+
+		$scan = Mockery::mock( IdentityCheckDigitScan::class );
+		$scan->shouldReceive( 'check_digit_failures_of_both' )->andReturn(
 			array(
 				array(
 					IdentityConflictQuery::COLUMN_RELATED  => '7',
@@ -820,8 +832,9 @@ class IdentityResolutionPageHandlersTest extends TestCase {
 				),
 			)
 		);
-		$query->shouldReceive( 'account_facts' )->andReturn( array() );
-		$query->shouldReceive( 'scan_coverage' )->andReturn(
+		$facts = Mockery::mock( IdentityAccountFacts::class );
+		$facts->shouldReceive( 'of' )->andReturn( array() );
+		$scan->shouldReceive( 'scan_coverage' )->andReturn(
 			array(
 				'rf_hash' => array(
 					'stores'     => 3,
@@ -854,6 +867,8 @@ class IdentityResolutionPageHandlersTest extends TestCase {
 		$page = $this->page(
 			array(
 				'conflicts'   => $query,
+				'scans'       => $scan,
+				'facts'       => $facts,
 				'acceptances' => $accepted,
 				'namer'       => $namer,
 				'orphans'     => $orphans,

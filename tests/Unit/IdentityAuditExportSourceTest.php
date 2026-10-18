@@ -11,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\IdentityAcceptance;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 use FreeFormCertificate\Maintenance\IdentityAuditExportSource;
+use FreeFormCertificate\Maintenance\IdentityAccountFacts;
+use FreeFormCertificate\Maintenance\IdentityCheckDigitScan;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\SubmissionLinkAuditor;
 use FreeFormCertificate\Repositories\SubmissionRepository;
@@ -163,7 +165,8 @@ class IdentityAuditExportSourceTest extends TestCase {
 		$conflicts = Mockery::mock( IdentityConflictQuery::class );
 		$conflicts->shouldReceive( 'shared_identities' )->andReturn( array() );
 		$conflicts->shouldReceive( 'unindexed_links' )->andReturn( array() );
-		$conflicts->shouldReceive( 'account_facts' )->andReturn( array() );
+		$facts = Mockery::mock( IdentityAccountFacts::class );
+		$facts->shouldReceive( 'of' )->andReturn( array() );
 		$conflicts->shouldReceive( 'multiple_identities' )->andReturn(
 			array(
 				array(
@@ -173,7 +176,8 @@ class IdentityAuditExportSourceTest extends TestCase {
 				),
 			)
 		);
-		$conflicts->shouldReceive( 'check_digit_failures_of_both' )->andReturn(
+		$scan = Mockery::mock( IdentityCheckDigitScan::class );
+		$scan->shouldReceive( 'check_digit_failures_of_both' )->andReturn(
 			array(
 				array(
 					'subject'           => 'hash-of-the-accepted-rf',
@@ -209,9 +213,15 @@ class IdentityAuditExportSourceTest extends TestCase {
 			),
 		);
 
-		$auditor = new class( $repo, $conflicts, $record ) extends SubmissionLinkAuditor {
+		$auditor = new class( $repo, $conflicts, $scan, $facts, $record ) extends SubmissionLinkAuditor {
 			/** @var IdentityConflictQuery */
 			private $double;
+
+			/** @var IdentityCheckDigitScan */
+			private $scan_double;
+
+			/** @var IdentityAccountFacts */
+			private $facts_double;
 
 			/** @var array<string, array<string, mixed>> */
 			private $record;
@@ -219,12 +229,30 @@ class IdentityAuditExportSourceTest extends TestCase {
 			/**
 			 * @param SubmissionRepository                $repository Repository double.
 			 * @param IdentityConflictQuery               $double     Cross-store double.
+			 * @param IdentityCheckDigitScan              $scan       Check-digit double.
+			 * @param IdentityAccountFacts                $facts      Account-facts double.
 			 * @param array<string, array<string, mixed>> $record     Acceptance records.
 			 */
-			public function __construct( $repository, $double, array $record ) {
+			public function __construct( $repository, $double, $scan, $facts, array $record ) {
 				parent::__construct( $repository );
-				$this->double = $double;
-				$this->record = $record;
+				$this->double       = $double;
+				$this->scan_double  = $scan;
+				$this->facts_double = $facts;
+				$this->record       = $record;
+			}
+
+			/**
+			 * @return IdentityCheckDigitScan
+			 */
+			protected function scans(): IdentityCheckDigitScan {
+				return $this->scan_double;
+			}
+
+			/**
+			 * @return IdentityAccountFacts
+			 */
+			protected function facts(): IdentityAccountFacts {
+				return $this->facts_double;
 			}
 
 			/**

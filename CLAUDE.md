@@ -660,7 +660,7 @@ The account it could never clear held the capability through a **role**. A role'
 
 The looping card had none of the three.
 
-**The neighbouring rule, from the same arc: a scan that read nothing must never render as clean.** `IdentityConflictQuery::rf_check_digit_failures()` returns failures only, and returns none when no store carries the three columns it needs *and* when nothing decrypts — which is the ordinary state of a staging site whose key does not match the data. A screen that prints "every stored RF satisfies its check digit" off an empty list is claiming something it never measured. That is the #1071 / #1094 rule reaching past the guards it was written for: it binds any surface that reports an absence, not only CI.
+**The neighbouring rule, from the same arc: a scan that read nothing must never render as clean.** `IdentityCheckDigitScan::check_digit_failures()` returns failures only, and returns none when no store carries the three columns it needs *and* when nothing decrypts — which is the ordinary state of a staging site whose key does not match the data. A screen that prints "every stored RF satisfies its check digit" off an empty list is claiming something it never measured. That is the #1071 / #1094 rule reaching past the guards it was written for: it binds any surface that reports an absence, not only CI.
 
 ### Captcha architecture (one contract, three modes — #1053)
 

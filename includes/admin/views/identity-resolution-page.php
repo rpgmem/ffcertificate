@@ -43,6 +43,7 @@ use FreeFormCertificate\Admin\IdentityQueuePanels;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Maintenance\IdentityAcceptance;
+use FreeFormCertificate\Maintenance\IdentityCheckDigitScan;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 
@@ -52,7 +53,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // TWO CAPS, AND ONLY ONE OF THEM WAS EVER REPORTED.
 //
-// This flag is the check-digit SCAN's own: `rf_check_digit_failures()` stops
+// This flag is the check-digit SCAN's own: `IdentityCheckDigitScan::check_digit_failures()` stops
 // after `RF_SCAN_LIMIT` distinct stored values and emits a row saying so.
 // `$ffc_identity_capped` is the other one -- each of the three checks behind
 // this worklist is asked for `LIMIT` findings, and a check that returns a full
@@ -305,7 +306,7 @@ $ffc_identity_foot = static function () {
  *
  * THE QUERIES DO NOT AGREE ON THE SHAPE, AND THE SCREEN SHOWED BOTH.
  *
- * `IdentityConflictQuery::label()` strips the site prefix and the `ffc_`
+ * `IdentityStores::label()` strips the site prefix and the `ffc_`
  * before handing a store name out, so its findings say `submissions`.
  * `IdentityOrphanQuery` keys its rows by the FULL prefixed table, so its
  * findings say `wp_ffc_submissions`. Both reach this screen, and until this
@@ -1001,7 +1002,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			// at the radio. `account_activity` reached the audit CSV and the
 			// Migrations table and never this form at all.
 			//
-			// Read for this pair only, through the same `account_facts()` the
+			// Read for this pair only, through the same `IdentityAccountFacts::of()` the
 			// export reads, so the screen and the CSV cannot disagree.
 			$ffc_identity_pair_facts = $ffc_identity_facts( $ffc_identity_who );
 			?>
@@ -2140,7 +2141,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			$ffc_identity_accounts = IdentityConflictQuery::parse_accounts(
 				$ffc_identity_row[ IdentityConflictQuery::COLUMN_RELATED ] ?? ''
 			);
-			$ffc_identity_by_store = IdentityConflictQuery::parse_row_ids(
+			$ffc_identity_by_store = IdentityCheckDigitScan::parse_row_ids(
 				$ffc_identity_row[ IdentityConflictQuery::COLUMN_ROW_IDS ] ?? ''
 			);
 			// NOT `$ffc_identity_who`: the shared panel already uses that

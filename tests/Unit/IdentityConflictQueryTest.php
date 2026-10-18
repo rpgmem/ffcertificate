@@ -8,7 +8,10 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Maintenance\IdentityAccountFacts;
+use FreeFormCertificate\Maintenance\IdentityCheckDigitScan;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
+use FreeFormCertificate\Maintenance\IdentityFindingVerdicts;
 
 /**
  * The cross-store identity questions (#1313 PR 10, #1333).
@@ -18,7 +21,18 @@ use FreeFormCertificate\Maintenance\IdentityConflictQuery;
  * contract — the "presence, never truth" limit this project records for every
  * static guard. What a real database proves lives in the `fresh-install` job.
  *
+ * ONE FILE FOR THE FAMILY, NOT ONE PER CLASS (#1925). The query was split by
+ * cohesion into the classes covered below, and every one of them reads the
+ * same four stores through the same `$wpdb` harness -- the schema probes, the
+ * placeholder substitution, the per-column suppression buckets. Copying that
+ * harness into four files would be four places for it to drift; each test
+ * names the class it exercises instead.
+ *
  * @covers \FreeFormCertificate\Maintenance\IdentityConflictQuery
+ * @covers \FreeFormCertificate\Maintenance\IdentityStores
+ * @covers \FreeFormCertificate\Maintenance\IdentityFindingVerdicts
+ * @covers \FreeFormCertificate\Maintenance\IdentityCheckDigitScan
+ * @covers \FreeFormCertificate\Maintenance\IdentityAccountFacts
  */
 class IdentityConflictQueryTest extends TestCase {
 
@@ -171,10 +185,11 @@ class IdentityConflictQueryTest extends TestCase {
 	/**
 	 * Capture the statements a call issues.
 	 *
-	 * @param callable $run Invoked with the query object.
+	 * @param callable    $run     Invoked with the subject.
+	 * @param object|null $subject What to run against; the query by default.
 	 * @return array<int, string>
 	 */
-	private function statements( callable $run ): array {
+	private function statements( callable $run, ?object $subject = null ): array {
 		$seen = array();
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $query ) use ( &$seen ) {
@@ -183,7 +198,7 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		$run( new IdentityConflictQuery() );
+		$run( $subject ?? new IdentityConflictQuery() );
 
 		return $seen;
 	}
@@ -690,7 +705,7 @@ class IdentityConflictQueryTest extends TestCase {
 		Functions\when( 'get_users' )->justReturn( array( '355' ) );
 		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 
-		$facts = ( new IdentityConflictQuery() )->account_facts( array( 355, 5276 ) );
+		$facts = ( new IdentityAccountFacts() )->of( array( 355, 5276 ) );
 
 		$this->assertSame( IdentityConflictQuery::STATUS_EXISTS, $facts[355]['status'] );
 		$this->assertSame(
@@ -716,12 +731,12 @@ class IdentityConflictQueryTest extends TestCase {
 			)
 		);
 
-		$facts = ( new IdentityConflictQuery() )->account_facts( array( 355 ) );
+		$facts = ( new IdentityAccountFacts() )->of( array( 355 ) );
 
 		$this->assertSame( array( 'submissions' => 3, 'user_profiles' => 1 ), $facts[355]['rows'] );
 		$this->assertSame(
 			'submissions:3,user_profiles:1',
-			IdentityConflictQuery::format_account_rows( $facts[355]['rows'] )
+			IdentityAccountFacts::format_account_rows( $facts[355]['rows'] )
 		);
 	}
 
@@ -750,7 +765,7 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		( new IdentityConflictQuery() )->account_facts( array( 1, 2, 3 ) );
+		( new IdentityAccountFacts() )->of( array( 1, 2, 3 ) );
 
 		$this->assertCount( 1, $asked, 'Existence is one call for the whole set, bounded by `include`.' );
 		$this->assertSame( array( 1, 2, 3 ), $asked[0]['include'] );
@@ -785,7 +800,7 @@ class IdentityConflictQueryTest extends TestCase {
 		$before = count( $seen );
 		$seen   = array();
 
-		( new IdentityConflictQuery() )->account_facts( range( 1, 9 ) );
+		( new IdentityAccountFacts() )->of( range( 1, 9 ) );
 
 		$this->assertSame(
 			$before,
@@ -802,7 +817,7 @@ class IdentityConflictQueryTest extends TestCase {
 		Functions\expect( 'get_users' )->never();
 		$this->wpdb->shouldReceive( 'get_results' )->never();
 
-		$this->assertSame( array(), ( new IdentityConflictQuery() )->account_facts( array( 0, -3, '', 'abc' ) ) );
+		$this->assertSame( array(), ( new IdentityAccountFacts() )->of( array( 0, -3, '', 'abc' ) ) );
 	}
 
 	/**
@@ -813,7 +828,7 @@ class IdentityConflictQueryTest extends TestCase {
 	 * a store the probe did not resolve on this install.
 	 */
 	public function test_an_account_owning_nothing_formats_empty(): void {
-		$this->assertSame( '', IdentityConflictQuery::format_account_rows( array() ) );
+		$this->assertSame( '', IdentityAccountFacts::format_account_rows( array() ) );
 	}
 
 	/**
@@ -865,7 +880,66 @@ class IdentityConflictQueryTest extends TestCase {
 	 * @return IdentityConflictQuery
 	 */
 	private function query_reading( array $plain ): IdentityConflictQuery {
-		return new class( $plain ) extends IdentityConflictQuery {
+		$verdicts = $this->verdicts_reading( $plain );
+
+		return new class( $verdicts ) extends IdentityConflictQuery {
+
+			/**
+			 * @var IdentityFindingVerdicts
+			 */
+			private IdentityFindingVerdicts $double;
+
+			/**
+			 * @param IdentityFindingVerdicts $double Verdicts reading from a map.
+			 */
+			public function __construct( IdentityFindingVerdicts $double ) {
+				$this->double = $double;
+			}
+
+			protected function verdicts(): IdentityFindingVerdicts {
+				return $this->double;
+			}
+		};
+	}
+
+	/**
+	 * Verdicts whose one key-touching seam answers from a map.
+	 *
+	 * @param array<string, string> $plain Ciphertext → plaintext.
+	 * @return IdentityFindingVerdicts
+	 */
+	private function verdicts_reading( array $plain ): IdentityFindingVerdicts {
+		return new class( $plain ) extends IdentityFindingVerdicts {
+
+			/**
+			 * @var array<string, string>
+			 */
+			private array $plain;
+
+			/**
+			 * @param array<string, string> $plain Ciphertext → plaintext.
+			 */
+			public function __construct( array $plain ) {
+				$this->plain = $plain;
+			}
+
+			protected function decrypt( string $cipher ): ?string {
+				return $this->plain[ $cipher ] ?? null;
+			}
+		};
+	}
+
+	/**
+	 * A check-digit scan whose key-touching seam answers from a map.
+	 *
+	 * The scan keeps its own seam rather than sharing the verdicts' one, for
+	 * the reason `IdentityCheckDigitScan::decrypt()` records (#1925).
+	 *
+	 * @param array<string, string> $plain Ciphertext → plaintext.
+	 * @return IdentityCheckDigitScan
+	 */
+	private function scan_reading( array $plain ): IdentityCheckDigitScan {
+		return new class( $plain ) extends IdentityCheckDigitScan {
 
 			/**
 			 * @var array<string, string>
@@ -1108,7 +1182,7 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		return ( new IdentityConflictQuery() )->account_facts( $ids );
+		return ( new IdentityAccountFacts() )->of( $ids );
 	}
 
 	/**
@@ -1220,7 +1294,7 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		( new IdentityConflictQuery() )->account_facts( array( 438 ) );
+		( new IdentityAccountFacts() )->of( array( 438 ) );
 
 		$this->assertNotEmpty( $seen, 'No activity statement ran at all, so this proves nothing.' );
 		$this->assertStringNotContainsString( 'wp_ffc_user_profiles', $seen[0] );
@@ -1255,7 +1329,7 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		return $this->query_reading( $plain )->check_digit_failures( $column, $limit );
+		return $this->scan_reading( $plain )->check_digit_failures( $column, $limit );
 	}
 
 	/**
@@ -1321,7 +1395,7 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		$this->query_reading( array() )->check_digit_failures( 'rf_hash', 50 );
+		$this->scan_reading( array() )->check_digit_failures( 'rf_hash', 50 );
 
 		$this->assertNotSame( '', $sql, 'The scan composed no statement to inspect.' );
 
@@ -1456,7 +1530,7 @@ class IdentityConflictQueryTest extends TestCase {
 		// raising the cap leaves this loop one short of it, the scan finishes,
 		// and the test that exists to prove truncation reports itself passes
 		// having exercised no truncation at all.
-		$cap = ( new \ReflectionClass( IdentityConflictQuery::class ) )
+		$cap = ( new \ReflectionClass( IdentityCheckDigitScan::class ) )
 			->getConstant( 'CHECK_DIGIT_SCAN_LIMIT' );
 
 		$this->assertIsInt( $cap, 'The cap could not be read, so nothing below measures anything.' );
@@ -1482,9 +1556,10 @@ class IdentityConflictQueryTest extends TestCase {
 		$this->without_ciphertext = array( 'wp_ffc_user_profiles' );
 
 		$seen = $this->statements(
-			static function ( IdentityConflictQuery $query ): void {
+			static function ( IdentityCheckDigitScan $query ): void {
 				$query->check_digit_failures( 'rf_hash', 10 );
-			}
+			},
+			new IdentityCheckDigitScan()
 		);
 
 		$this->assertNotEmpty( $seen, 'No statement ran at all, so this proves nothing.' );
@@ -1500,9 +1575,10 @@ class IdentityConflictQueryTest extends TestCase {
 		$this->without_row_id     = array( 'wp_ffc_self_scheduling_appointments' );
 
 		$seen = $this->statements(
-			static function ( IdentityConflictQuery $query ): void {
+			static function ( IdentityCheckDigitScan $query ): void {
 				$query->check_digit_failures( 'rf_hash', 10 );
-			}
+			},
+			new IdentityCheckDigitScan()
 		);
 
 		$this->assertNotEmpty( $seen, 'No statement ran at all, so this proves nothing.' );
@@ -1517,9 +1593,10 @@ class IdentityConflictQueryTest extends TestCase {
 	 */
 	public function test_the_scan_does_not_filter_on_an_account(): void {
 		$seen = $this->statements(
-			static function ( IdentityConflictQuery $query ): void {
+			static function ( IdentityCheckDigitScan $query ): void {
 				$query->check_digit_failures( 'rf_hash', 10 );
-			}
+			},
+			new IdentityCheckDigitScan()
 		);
 
 		$this->assertNotEmpty( $seen, 'No statement ran at all, so this proves nothing.' );
@@ -1558,7 +1635,7 @@ class IdentityConflictQueryTest extends TestCase {
 				'submissions'  => array( 4, 9 ),
 				'appointments' => array( 12 ),
 			),
-			IdentityConflictQuery::parse_row_ids( 'submissions:4,9|appointments:12' )
+			IdentityCheckDigitScan::parse_row_ids( 'submissions:4,9|appointments:12' )
 		);
 	}
 
@@ -1572,7 +1649,7 @@ class IdentityConflictQueryTest extends TestCase {
 	public function test_a_repeated_store_accumulates(): void {
 		$this->assertSame(
 			array( 'submissions' => array( 1, 2 ) ),
-			IdentityConflictQuery::parse_row_ids( 'submissions:1|submissions:2' )
+			IdentityCheckDigitScan::parse_row_ids( 'submissions:1|submissions:2' )
 		);
 	}
 
@@ -1586,7 +1663,7 @@ class IdentityConflictQueryTest extends TestCase {
 		foreach ( array( '', 'submissions', 'submissions:', ':4', 'submissions:abc', null, 42, array() ) as $bad ) {
 			$this->assertSame(
 				array(),
-				IdentityConflictQuery::parse_row_ids( $bad ),
+				IdentityCheckDigitScan::parse_row_ids( $bad ),
 				sprintf( 'A value the parser cannot read must yield an empty array: %s', var_export( $bad, true ) )
 			);
 		}
@@ -1632,7 +1709,7 @@ class IdentityConflictQueryTest extends TestCase {
 		);
 
 		// Neither ciphertext is in the map, so neither decrypts.
-		$query    = $this->query_reading( array() );
+		$query    = $this->scan_reading( array() );
 		$findings = $query->check_digit_failures( 'rf_hash', 50 );
 		$coverage = $query->scan_coverage();
 
@@ -1656,7 +1733,7 @@ class IdentityConflictQueryTest extends TestCase {
 		);
 
 		// 1234561 satisfies the digit: 7·1+6·2+5·3+4·4+3·5+2·6 = 77, 77 mod 11 = 0, dv = 1.
-		$query = $this->query_reading( array( 'cipherA' => '1234561' ) );
+		$query = $this->scan_reading( array( 'cipherA' => '1234561' ) );
 		$query->check_digit_failures( 'rf_hash', 50 );
 		$coverage = $query->scan_coverage();
 
@@ -1673,7 +1750,7 @@ class IdentityConflictQueryTest extends TestCase {
 	 * about a column it never looked at.
 	 */
 	public function test_a_column_nobody_scanned_has_no_record(): void {
-		$this->assertSame( array(), ( new IdentityConflictQuery() )->scan_coverage() );
+		$this->assertSame( array(), ( new IdentityCheckDigitScan() )->scan_coverage() );
 	}
 
 	/**
@@ -1694,7 +1771,7 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		$query = $this->query_reading( array( 'cipherA' => '1234561' ) );
+		$query = $this->scan_reading( array( 'cipherA' => '1234561' ) );
 
 		$query->check_digit_failures( 'rf_hash', 50 );
 		$query->check_digit_failures( 'cpf_hash', 50 );
@@ -1727,7 +1804,7 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		return $this->query_reading( $plain )->check_digit_verdicts( 'rf_hash', $ask );
+		return $this->scan_reading( $plain )->check_digit_verdicts( 'rf_hash', $ask );
 	}
 
 	/**
@@ -1787,7 +1864,7 @@ class IdentityConflictQueryTest extends TestCase {
 
 		$this->assertSame(
 			array(),
-			$this->query_reading( array() )->check_digit_verdicts( 'phone_hash', array( 'hashA' ) )
+			$this->scan_reading( array() )->check_digit_verdicts( 'phone_hash', array( 'hashA' ) )
 		);
 	}
 
@@ -1811,7 +1888,7 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		$this->query_reading( array() )->check_digit_verdicts( 'rf_hash', array( 'hashA', 'hashB' ) );
+		$this->scan_reading( array() )->check_digit_verdicts( 'rf_hash', array( 'hashA', 'hashB' ) );
 
 		$this->assertStringContainsString( 'rf_hash AS h', $sql, $sql );
 		$this->assertStringContainsString( 'MIN(rf_encrypted) AS c', $sql, $sql );
@@ -1827,10 +1904,11 @@ class IdentityConflictQueryTest extends TestCase {
 	public function test_every_reader_answers_empty_when_no_store_is_installed(): void {
 		$this->without_table = array( 'wp_ffc_' );
 		$query               = new IdentityConflictQuery();
+		$scan                = new IdentityCheckDigitScan();
 
 		$this->assertSame( array(), $query->unindexed_links() );
 		$this->assertSame( array(), $query->shared_identities() );
-		$this->assertSame( array(), $query->check_digit_failures_of_both() );
+		$this->assertSame( array(), $scan->check_digit_failures_of_both() );
 		Functions\when( 'get_users' )->justReturn( array( '7' ) );
 		$this->assertSame(
 			array(
@@ -1845,12 +1923,12 @@ class IdentityConflictQueryTest extends TestCase {
 					'activity' => '',
 				),
 			),
-			$query->account_facts( array( 7, '8', 'x', 0 ) ),
+			( new IdentityAccountFacts() )->of( array( 7, '8', 'x', 0 ) ),
 			'Without stores an account is still classified as present or missing, with nothing to count.'
 		);
 		$this->assertSame(
 			array( 'h1' => IdentityConflictQuery::VERDICT_ABSENT ),
-			$query->check_digit_verdicts( 'rf_hash', array( 'h1', ' h1 ', '' ) ),
+			$scan->check_digit_verdicts( 'rf_hash', array( 'h1', ' h1 ', '' ) ),
 			'A hash no store could answer for is ABSENT, never missing, and each is asked once.'
 		);
 	}
@@ -1867,7 +1945,7 @@ class IdentityConflictQueryTest extends TestCase {
 	 * The shape of two identifiers that are not one typo apart.
 	 */
 	public function test_shape_names_unrelated_values_and_skips_single_identifier_findings(): void {
-		$shape = new \ReflectionMethod( IdentityConflictQuery::class, 'shape' );
+		$shape = new \ReflectionMethod( IdentityFindingVerdicts::class, 'shape' );
 		$shape->setAccessible( true );
 
 		$this->assertSame( '', $shape->invoke( null, array( 'a' => '1234567' ), 'rf', 1 ), 'One identifier has no shape to name.' );
@@ -1883,12 +1961,28 @@ class IdentityConflictQueryTest extends TestCase {
 		);
 	}
 
-	public function test_the_default_decryption_seam_reads_real_ciphertext(): void {
-		$query   = new IdentityConflictQuery();
-		$decrypt = new \ReflectionMethod( $query, 'decrypt' );
+	/**
+	 * Both seams that touch the key read real ciphertext by default.
+	 *
+	 * @return array<string, array{0: object}>
+	 */
+	public function decrypting_subjects(): array {
+		return array(
+			'verdicts' => array( new IdentityFindingVerdicts() ),
+			'scan'     => array( new IdentityCheckDigitScan() ),
+		);
+	}
+
+	/**
+	 * @dataProvider decrypting_subjects
+	 *
+	 * @param object $subject A class carrying the `decrypt()` seam.
+	 */
+	public function test_the_default_decryption_seam_reads_real_ciphertext( object $subject ): void {
+		$decrypt = new \ReflectionMethod( $subject, 'decrypt' );
 		$decrypt->setAccessible( true );
 
-		$this->assertSame( '1234567', $decrypt->invoke( $query, (string) \FreeFormCertificate\Core\Encryption::encrypt( '1234567' ) ) );
-		$this->assertNull( $decrypt->invoke( $query, 'not-a-ciphertext' ) );
+		$this->assertSame( '1234567', $decrypt->invoke( $subject, (string) \FreeFormCertificate\Core\Encryption::encrypt( '1234567' ) ) );
+		$this->assertNull( $decrypt->invoke( $subject, 'not-a-ciphertext' ) );
 	}
 }

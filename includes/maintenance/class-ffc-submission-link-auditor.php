@@ -203,7 +203,7 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 			// The one check that judges a single stored value rather than an
 			// account, and the only one that can see a person who mistyped
 			// once on their only row (#1345).
-			'check_digit'                     => $conflicts->check_digit_failures_of_both( $limit ),
+			'check_digit'                     => $this->scans()->check_digit_failures_of_both( $limit ),
 		);
 
 		$checks = $this->with_account_facts( $checks );
@@ -321,7 +321,7 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 			return $checks;
 		}
 
-		$facts = $this->conflicts()->account_facts( array_keys( $wanted ) );
+		$facts = $this->facts()->of( array_keys( $wanted ) );
 
 		foreach ( $checks as $check => $rows ) {
 			foreach ( $rows as $index => $row ) {
@@ -339,7 +339,7 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 					$fact = $facts[ $id ] ?? array();
 
 					// An account the facts pass did not answer for stays
-					// `missing`, which is the same default `account_facts()`
+					// `missing`, which is the same default `IdentityAccountFacts::of()`
 					// seeds: an absent answer must never read as a live
 					// account.
 					$statuses[] = $fact['status'] ?? IdentityConflictQuery::STATUS_MISSING;
@@ -348,7 +348,7 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 
 					$counts[] = (string) $id
 						. IdentityConflictQuery::ACCOUNT_ROWS_ASSIGN
-						. IdentityConflictQuery::format_account_rows( $rows_for );
+						. IdentityAccountFacts::format_account_rows( $rows_for );
 
 					// An account with no activity anywhere reports an empty
 					// value in its own position rather than dropping out of
@@ -424,6 +424,26 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 	 */
 	protected function conflicts(): IdentityConflictQuery {
 		return new IdentityConflictQuery();
+	}
+
+	/**
+	 * The check-digit scan, as a seam for the reason `conflicts()` is one.
+	 *
+	 * @since 6.41.0
+	 * @return IdentityCheckDigitScan
+	 */
+	protected function scans(): IdentityCheckDigitScan {
+		return new IdentityCheckDigitScan();
+	}
+
+	/**
+	 * The per-account facts, as a seam for the reason `conflicts()` is one.
+	 *
+	 * @since 6.41.0
+	 * @return IdentityAccountFacts
+	 */
+	protected function facts(): IdentityAccountFacts {
+		return new IdentityAccountFacts();
 	}
 
 	/**
