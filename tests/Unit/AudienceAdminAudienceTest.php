@@ -731,26 +731,62 @@ class AudienceAdminAudienceTest extends TestCase {
 	}
 
 	/**
-	 * @return iterable<string, array{0: array<string, string>, 1: int|null}>
+	 * A new group under an audience is created without the posted switch, so
+	 * the writer gives it the audience's choice for its descendants (#1901).
 	 */
-	public static function descendants_posts(): iterable {
-		yield 'descendants on, parent off' => array( array( 'audience_self_join' => '0', 'audience_descendants_self_join' => '1' ), 1 );
-		yield 'descendants off, parent on' => array( array( 'audience_self_join' => '1', 'audience_descendants_self_join' => '0' ), 0 );
-		yield 'descendants mixed' => array( array( 'audience_self_join' => '1', 'audience_descendants_self_join' => 'mixed' ), null );
-		yield 'no descendants control' => array( array( 'audience_self_join' => '1' ), null );
+	public function test_a_new_child_audience_leaves_self_join_to_the_writer(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
+
+		$_POST = array(
+			'ffc_action'         => 'save_audience',
+			'ffc_audience_nonce' => 'n',
+			'audience_id'        => '0',
+			'audience_name'      => 'New Child',
+			'audience_color'     => '#abcabc',
+			'audience_parent'    => '3',
+			'audience_status'    => 'active',
+			'audience_self_join' => '1',
+		);
+
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo_w->shouldReceive( 'create' )->once()->with(
+			Mockery::on( static fn( $d ) => 3 === $d['parent_id'] && ! array_key_exists( 'allow_self_join', $d ) )
+		)->andReturn( 51 );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'message=created' );
+		$page->handle_actions();
 	}
 
 	/**
-	 * The two self-join choices of a parent (#1896): the audience's own
-	 * value goes to its row only, the descendants' choice to every child
-	 * and grandchild, and a mixed or absent choice touches none of them.
+	 * @return iterable<string, array{0: array<string, string>, 1: int|null, 2: string|null}>
+	 */
+	public static function self_join_posts(): iterable {
+		yield 'switch on, no children' => array( array( 'audience_self_join' => '1' ), 1, null );
+		yield 'switch off, no children' => array( array(), 0, null );
+		foreach ( array( 'off', 'self', 'all', 'descendants' ) as $scope ) {
+			yield "scope {$scope}" => array( array( 'audience_self_join_scope' => $scope ), null, $scope );
+		}
+		yield 'scope offered, none picked' => array( array( 'audience_self_join_scope' => '' ), null, null );
+	}
+
+	/**
+	 * The self-join field of a top-level audience (#1901): the switch writes
+	 * the audience's own row; the four-option choice goes through the writer,
+	 * which sets the audience and every descendant, and an empty choice (the
+	 * mixed state left alone) touches neither the row's flag nor any other.
 	 *
-	 * @dataProvider descendants_posts
+	 * @dataProvider self_join_posts
 	 *
 	 * @param array<string, string> $self_join The self-join fields posted.
-	 * @param int|null              $cascaded  The value cascaded, or null for none.
+	 * @param int|null              $own       The own flag in the update, null when absent.
+	 * @param string|null           $scope     The choice applied, or null for none.
 	 */
-	public function test_handle_actions_update_applies_the_two_self_join_choices( array $self_join, ?int $cascaded ): void {
+	public function test_handle_actions_update_applies_the_self_join_field( array $self_join, ?int $own, ?string $scope ): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'add_settings_error' )->justReturn( true );
 
@@ -766,15 +802,18 @@ class AudienceAdminAudienceTest extends TestCase {
 			),
 			$self_join
 		);
-		$own = (int) $self_join['audience_self_join'];
 
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldReceive( 'update' )->once()->with( 5, Mockery::on( static fn( $d ) => $own === $d['allow_self_join'] ) )->andReturn( true );
-		if ( null === $cascaded ) {
-			$repo_w->shouldNotReceive( 'cascade_self_join' );
+		$repo_w->shouldReceive( 'update' )->once()->with(
+			5,
+			Mockery::on( static fn( $d ) => null === $own ? ! array_key_exists( 'allow_self_join', $d ) : $own === $d['allow_self_join'] )
+		)->andReturn( true );
+		$repo_w->shouldNotReceive( 'cascade_self_join' );
+		if ( null === $scope ) {
+			$repo_w->shouldNotReceive( 'apply_self_join_scope' );
 		} else {
-			$repo_w->shouldReceive( 'cascade_self_join' )->once()->with( 5, $cascaded );
+			$repo_w->shouldReceive( 'apply_self_join_scope' )->once()->with( 5, $scope )->andReturn( true );
 		}
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
@@ -1030,26 +1069,30 @@ class AudienceAdminAudienceTest extends TestCase {
 	}
 
 	/**
-	 * @return iterable<string, array{0: string|null, 1: string|null}>
+	 * @return iterable<string, array{0: string, 1: string|null, 2: string|null}>
 	 */
-	public static function descendants_render_states(): iterable {
-		yield 'no children: one switch' => array( null, null );
-		yield 'every descendant on' => array( '1', '1' );
-		yield 'every descendant off' => array( '0', '0' );
-		yield 'descendants disagree' => array( 'mixed', 'mixed' );
+	public static function self_join_render_states(): iterable {
+		yield 'no children: one switch' => array( '1', null, null );
+		yield 'off everywhere' => array( '0', '0', 'off' );
+		yield 'this audience only' => array( '1', '0', 'self' );
+		yield 'audience and descendants' => array( '1', '1', 'all' );
+		yield 'descendants only' => array( '0', '1', 'descendants' );
+		yield 'descendants disagree, audience on' => array( '1', 'mixed', null );
+		yield 'descendants disagree, audience off' => array( '0', 'mixed', null );
 	}
 
 	/**
-	 * A parent shows two self-join choices (#1896): a toggle for itself and
-	 * a segmented control for its children and grandchildren, whose state is
-	 * read back from their rows; Mixed is offered only while it holds.
+	 * A top-level audience with children shows one four-option choice
+	 * (#1901), read back from its own row and its descendants'; while they
+	 * disagree no option is checked and a notice states the real state.
 	 *
-	 * @dataProvider descendants_render_states
+	 * @dataProvider self_join_render_states
 	 *
-	 * @param string|null $state   What the reader derives.
-	 * @param string|null $checked The descendants option checked, null when there is no such control.
+	 * @param string      $own     The audience's own flag.
+	 * @param string|null $state   What the reader derives for the descendants.
+	 * @param string|null $checked The option checked, null for none.
 	 */
-	public function test_a_parent_renders_its_own_and_its_descendants_self_join( ?string $state, ?string $checked ): void {
+	public function test_a_parent_renders_one_self_join_choice( string $own, ?string $state, ?string $checked ): void {
 		$this->grant( array( 'ffc_view_audiences', 'ffc_manage_audiences' ) );
 		$this->capture_submit_buttons();
 		$_GET['action'] = 'edit';
@@ -1058,43 +1101,50 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 
-		// An alias mock carries no class constants; the renderer reads this one.
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Audience\AudienceReader' => array( 'DESCENDANTS_SELF_JOIN_MIXED' => 'mixed' ),
-			)
-		);
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 		$repo->shouldReceive( 'get_member_count' )->andReturn( 0 );
 		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
 		$repo->shouldReceive( 'get_members' )->andReturn( array() );
 		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
-			(object) array( 'id' => 5, 'name' => 'Grp', 'color' => '#123456', 'status' => 'active', 'parent_id' => null, 'allow_self_join' => '0' )
+			(object) array( 'id' => 5, 'name' => 'Grp', 'color' => '#123456', 'status' => 'active', 'parent_id' => null, 'allow_self_join' => $own )
 		);
 		$repo->shouldReceive( 'descendants_self_join_state' )->once()->with( 5 )->andReturn( $state );
+		if ( 'mixed' === $state ) {
+			$repo->shouldReceive( 'descendants_self_join_count' )->once()->with( 5 )->andReturn( array( 'allowed' => 3, 'total' => 7 ) );
+		} else {
+			$repo->shouldNotReceive( 'descendants_self_join_count' );
+		}
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
 		$page->render_page();
 		$output = (string) ob_get_clean();
 
-		$this->assertMatchesRegularExpression( '/<input type="checkbox" id="audience_self_join" name="audience_self_join" value="1"[^>]*data-ffc-autosave-record-key="allow_self_join"/', $output );
-		$this->assertStringNotContainsString( 'id="audience_self_join" name="audience_self_join" value="1" checked', $output, 'the parent\'s own value is its row\'s' );
-
-		if ( null === $checked ) {
-			$this->assertStringNotContainsString( 'audience_descendants_self_join', $output );
+		if ( null === $state ) {
+			$this->assertMatchesRegularExpression( '/<input type="checkbox" id="audience_self_join" name="audience_self_join" value="1" checked[^>]*data-ffc-autosave-record-key="allow_self_join"/', $output );
+			$this->assertStringNotContainsString( 'audience_self_join_scope', $output );
 			return;
 		}
 
+		$this->assertStringNotContainsString( 'name="audience_self_join"', $output, 'the switch gives way to the choice' );
 		$form_end = (int) strpos( $output, '</form>' );
-		$this->assertLessThan( $form_end, (int) strpos( $output, 'name="audience_descendants_self_join"' ), 'the Save button posts the choice too' );
-		$this->assertMatchesRegularExpression(
-			'/name="audience_descendants_self_join" value="' . $checked . '" checked data-ffc-autosave-record-key="descendants_self_join" data-ffc-autosave-record="audience:5"/',
-			$output
-		);
-		$this->assertSame( 1, substr_count( $output, 'name="audience_descendants_self_join" value="' . $checked . '" checked' ) );
-		$this->assertSame( 'mixed' === $state, str_contains( $output, 'value="mixed"' ), 'Mixed is offered only while the descendants disagree' );
+		$this->assertLessThan( $form_end, (int) strpos( $output, 'name="audience_self_join_scope"' ), 'the Save button posts the choice too' );
+		$this->assertStringContainsString( '<input type="hidden" name="audience_self_join_scope" value="">', $output, 'an unpicked choice still posts, empty' );
+		foreach ( array( 'off', 'self', 'all', 'descendants' ) as $option ) {
+			$this->assertMatchesRegularExpression(
+				'/name="audience_self_join_scope" value="' . $option . '"' . ( $option === $checked ? ' checked' : '' ) . ' data-ffc-autosave-record-key="self_join_scope" data-ffc-autosave-record="audience:5"/',
+				$output
+			);
+		}
+		$this->assertSame( null === $checked ? 0 : 1, substr_count( $output, '" checked data-ffc-autosave-record-key="self_join_scope"' ) );
+
+		if ( null === $checked ) {
+			$this->assertStringContainsString( 'ffc-self-join-mixed', $output );
+			$this->assertStringContainsString( '1' === $own ? 'This audience allows self-join; 3 of 7' : 'This audience does not allow self-join; 3 of 7', $output );
+		} else {
+			$this->assertStringNotContainsString( 'ffc-self-join-mixed', $output );
+		}
 	}
 
 	/**
