@@ -26581,16 +26581,13 @@ msgid "The notices sent to staff carry personal data masked (CPF, RF, e-mail, ph
 msgstr ""
 
 #: includes/settings/views/documentation/reference-privacy.php:31
-msgid "The person the data belongs to sees their own data unmasked in their dashboard. An administrator using \"View as user\" sees it masked, and reveals a field with the same audited button."
+msgid "The person the data belongs to sees their own data masked in their dashboard too, and reveals it with the same button, without an activity-log entry. An administrator using \"View as user\" sees it masked, and each reveal is audited. Documents the person asks for themselves (a certificate PDF, a receipt, an e-mail) carry their data in clear."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:71
 msgid "The phone on the appointment detail is masked and revealed the same way, the list offers \"Reveal this page\", and an export carries e-mail, phone and IP in clear only with this capability. The audience screens reveal through ffc_view_audiences_pii since 6.40.0."
 msgstr ""
 
-#: includes/api/class-ffc-user-profile-rest-controller.php:399
-msgid "There is nothing to reveal on your own profile."
-msgstr ""
 
 #: includes/admin/class-ffc-admin-ajax.php:400
 msgid "Too many values to reveal at once."
@@ -26609,7 +26606,7 @@ msgid "You do not have permission to reveal these values."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:47
-msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\"). The other user's e-mail addresses, phone and birth date appear masked, each with a Reveal button that writes an activity-log entry, and a masked field cannot be saved over until it is revealed. The person themselves always sees their own data."
+msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\"). The other user's personal data appears masked, as it does to its owner, and each Reveal there writes an activity-log entry."
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php:74
@@ -26990,4 +26987,16 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php
 msgid "Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration (\"Hide the approved banner after (days)\", default 30) has passed since the later of the campaign's end and the approval, even after the daily run has expired the campaign; 0 never hides it. The dashboard's Reregistration tab keeps listing it either way."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Masked personal data:"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "the person's own CPF/RF, e-mail addresses, phone and birth date appear masked on every tab, each with a Reveal button, so a shared or projected screen does not show them. Revealing one's own data writes no activity-log entry, and a masked field cannot be saved over until it is revealed. Documents the person downloads (a certificate PDF, a receipt, a record) keep printing the values in clear."
+msgstr ""
+
+#: includes/api/class-ffc-user-certificates-rest-controller.php
+msgid "Certificate not found."
 msgstr ""
