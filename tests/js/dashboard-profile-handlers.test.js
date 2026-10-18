@@ -766,7 +766,7 @@ describe('profile — view as user', () => {
 		window.ffcDashboard.viewAsUserId = 0;
 	});
 
-	it('draws a Reveal button beside each masked field and none on the owner profile', () => {
+	it('draws a Reveal button beside each masked field and none on a payload that is not masked', () => {
 		panel().render({ ...VIEWED });
 		expect(window.$('.ffc-profile-reveal-btn').map((i, b) => window.$(b).data('field')).get()).toEqual(['email', 'cpf_rf', 'phone', 'birth_date']);
 
@@ -811,7 +811,7 @@ describe('profile — view as user', () => {
 		expect(window.$('.ffc-profile-reveal-btn[data-field="email"]').length).toBe(1);
 	});
 
-	it('draws no CPF/RF Reveal on the owner profile, where the identifiers stay masked (#1888)', () => {
+	it('draws no CPF/RF Reveal on a payload that is not masked (#1888)', () => {
 		panel().render({ ...PROFILE_FIXTURE, cpfs_masked: ['123.***.***-01', '765.***-1'] });
 		expect(window.$('.ffc-cpf-list li').length).toBe(2);
 		expect(window.$('.ffc-profile-reveal-btn[data-field="cpf_rf"]').length).toBe(0);
@@ -880,5 +880,54 @@ describe('profile — view as user', () => {
 
 		expect(window.alert).toHaveBeenCalledWith('Unable to reveal this value.');
 		expect(window.$('.ffc-profile-reveal-btn[data-field="phone"]').prop('disabled')).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
+// The owner's own profile (#1897): masked, with the same Reveal buttons
+// ----------------------------------------------------------------------
+
+describe('profile — the owner', () => {
+	const OWN = {
+		...PROFILE_FIXTURE,
+		email: 'm***@example.com',
+		emails: ['m***@example.com', 'm***@work.example'],
+		cpfs_masked: ['123.***.***-01'],
+		cpf_masked: '123.***.***-01',
+		phone: '(**) *****-**00',
+		birth_date: '',
+		birth_date_display: '**/**/****',
+		pii_masked: true,
+		can_reveal: true,
+	};
+
+	beforeEach(() => {
+		window.ffcDashboard.strings.reveal = 'Reveal';
+		window.ffcDashboard.viewAsUserId = 0;
+	});
+
+	it('shows every personal field masked, each with a Reveal button', () => {
+		panel().render({ ...OWN });
+
+		expect(window.$('.ffc-profile-reveal-btn').map((i, b) => window.$(b).data('field')).get()).toEqual(['email', 'cpf_rf', 'phone', 'birth_date']);
+		const text = document.getElementById('ffc-tabpanel-profile').textContent;
+		expect(text).toContain('m***@example.com');
+		expect(text).toContain('123.***.***-01');
+		expect(text).toContain('(**) *****-**00');
+		expect(text).toContain('**/**/****');
+	});
+
+	it('reveals through user/profile/reveal without naming an account', async () => {
+		panel().render({ ...OWN });
+		const spy = mockAjaxSuccess({ field: 'phone', value: '(11) 99999-0000' });
+
+		window.$('.ffc-profile-reveal-btn[data-field="phone"]').trigger('click');
+		await flush();
+
+		const call = spy.mock.calls[0][0];
+		expect(call.url).toBe('https://x.test/wp-json/ffc/v1/user/profile/reveal');
+		expect(JSON.parse(call.data)).toEqual({ field: 'phone' });
+		expect(document.getElementById('ffc-tabpanel-profile').textContent).toContain('(11) 99999-0000');
+		expect(window.$('.ffc-profile-reveal-btn[data-field="phone"]').length).toBe(0);
 	});
 });

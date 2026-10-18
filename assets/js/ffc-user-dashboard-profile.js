@@ -37,10 +37,9 @@
     }
 
     /**
-     * "View as user" (#1863): the email addresses, phone, birth date and
-     * CPF/RF (#1888) of the viewed account arrive masked, and each is revealed on request
-     * through the audited /user/profile/reveal route. Nothing to reveal on
-     * the owner's own profile.
+     * The email addresses, phone, birth date and CPF/RF arrive masked, and
+     * each is revealed on request through /user/profile/reveal: by the owner
+     * without an audit row (#1897), in "view as user" audited (#1863, #1888).
      */
     function isMasked(profile, field) {
         return !!(profile && profile.pii_masked && !(profile.revealed && profile.revealed[field]));
@@ -123,7 +122,7 @@
         // (DD) 98765-4321: area code plus up to nine digits, masked by the
         // same formatter the reregistration form uses.
         if (isMasked(profile, 'phone')) {
-            // Masked in view-as until revealed (#1863): shown, never posted.
+            // Masked until revealed (#1863, #1897): shown, never posted.
             html += '<input type="text" id="ffc-edit-phone" value="' + escAttr(profile.phone) + '" disabled />';
             html += '<span class="ffc-field-hint">' + esc(s.revealToEdit || 'Reveal the value to edit it.') + '</span></div>';
         } else {
@@ -180,7 +179,7 @@
             organization: $('#ffc-edit-organization').val(),
             notes: $('#ffc-edit-notes').val()
         };
-        // A field still masked (view as user, #1863) is left out, so its
+        // A field still masked (#1863, #1897) is left out, so its
         // mask can never overwrite the stored value.
         if (!$('#ffc-edit-phone').prop('disabled')) {
             data.phone = $('#ffc-edit-phone').val();

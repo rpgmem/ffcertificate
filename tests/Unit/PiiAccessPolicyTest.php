@@ -77,6 +77,23 @@ class PiiAccessPolicyTest extends TestCase {
 		$this->assertTrue( PiiAccessPolicy::can_reveal( self::CAP, 5, 5 ) );
 	}
 
+	public function test_on_screen_the_owner_reveals_their_own_record_without_audit(): void {
+		// #1897: the dashboard draws the owner's data masked, theirs to
+		// reveal; resolve() keeps `unmasked` for what the owner asks for.
+		Functions\when( 'user_can' )->justReturn( false );
+		$this->assertSame( PiiAccessPolicy::TIER_OWNER_REVEAL, PiiAccessPolicy::resolve_on_screen( self::CAP, 5, 5 ) );
+		$this->assertSame( PiiAccessPolicy::TIER_UNMASKED, PiiAccessPolicy::resolve( self::CAP, 5, 5 ) );
+		$this->assertFalse( PiiAccessPolicy::should_audit( self::CAP, 5, 5 ) );
+	}
+
+	public function test_on_screen_a_non_owner_gets_the_answer_resolve_gives(): void {
+		Functions\when( 'user_can' )->alias(
+			static fn( $uid, $cap ) => 1 === $uid && self::CAP === $cap
+		);
+		$this->assertSame( PiiAccessPolicy::TIER_REVEAL, PiiAccessPolicy::resolve_on_screen( self::CAP, 5, 1 ) );
+		$this->assertSame( PiiAccessPolicy::TIER_MASKED, PiiAccessPolicy::resolve_on_screen( self::CAP, 5, 9 ) );
+	}
+
 	public function test_owner_clause_wins_over_the_cap(): void {
 		Functions\when( 'user_can' )->justReturn( true );
 		$this->assertSame( PiiAccessPolicy::TIER_UNMASKED, PiiAccessPolicy::resolve( self::CAP, 5, 5 ) );

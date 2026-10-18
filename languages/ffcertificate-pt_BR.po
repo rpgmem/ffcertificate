@@ -26676,16 +26676,13 @@ msgid "The notices sent to staff carry personal data masked (CPF, RF, e-mail, ph
 msgstr "Os avisos enviados à equipe levam os dados pessoais mascarados (CPF, RF, e-mail, telefone, nomes no resumo de Mensagens de Datas), com um link para a tela onde eles podem ser revelados e auditados."
 
 #: includes/settings/views/documentation/reference-privacy.php:31
-msgid "The person the data belongs to sees their own data unmasked in their dashboard. An administrator using \"View as user\" sees it masked, and reveals a field with the same audited button."
-msgstr "A pessoa dona dos dados vê seus próprios dados desmascarados no seu painel. Um administrador que usa \"Visualizar como usuário\" os vê mascarados e revela um campo com o mesmo botão auditado."
+msgid "The person the data belongs to sees their own data masked in their dashboard too, and reveals it with the same button, without an activity-log entry. An administrator using \"View as user\" sees it masked, and each reveal is audited. Documents the person asks for themselves (a certificate PDF, a receipt, an e-mail) carry their data in clear."
+msgstr "A pessoa dona dos dados também vê seus próprios dados mascarados no seu painel, e os revela com o mesmo botão, sem entrada no log de atividades. Um administrador que usa \"Visualizar como usuário\" os vê mascarados, e cada revelação é auditada. Os documentos que a própria pessoa solicita (um PDF de certificado, um comprovante, um e-mail) trazem seus dados em claro."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:71
 msgid "The phone on the appointment detail is masked and revealed the same way, the list offers \"Reveal this page\", and an export carries e-mail, phone and IP in clear only with this capability. The audience screens reveal through ffc_view_audiences_pii since 6.40.0."
 msgstr "O telefone no detalhe do agendamento é mascarado e revelado da mesma forma, a lista oferece \"Revelar esta página\", e uma exportação traz e-mail, telefone e IP em claro somente com esta capacidade. As telas de públicos-alvo revelam pela ffc_view_audiences_pii desde a 6.40.0."
 
-#: includes/api/class-ffc-user-profile-rest-controller.php:399
-msgid "There is nothing to reveal on your own profile."
-msgstr "Não há nada a revelar no seu próprio perfil."
 
 #: includes/admin/class-ffc-admin-ajax.php:400
 msgid "Too many values to reveal at once."
@@ -26704,8 +26701,8 @@ msgid "You do not have permission to reveal these values."
 msgstr "Você não tem permissão para revelar esses valores."
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:47
-msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\"). The other user's e-mail addresses, phone and birth date appear masked, each with a Reveal button that writes an activity-log entry, and a masked field cannot be saved over until it is revealed. The person themselves always sees their own data."
-msgstr "quem tem ffc_view_as_user pode abrir o painel como outro usuário, sob um aviso, a partir da lista de usuários ou da tela de edição de usuário (\"Entrar como Usuário\"). Os endereços de e-mail, o telefone e a data de nascimento do outro usuário aparecem mascarados, cada um com um botão Revelar que grava uma entrada no registro de atividades, e um campo mascarado não pode ser salvo por cima até ser revelado. A própria pessoa sempre vê seus próprios dados."
+msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\"). The other user's personal data appears masked, as it does to its owner, and each Reveal there writes an activity-log entry."
+msgstr "quem tem ffc_view_as_user pode abrir o painel como outro usuário, sob um aviso, a partir da lista de usuários ou da tela de edição de usuário (\"Entrar como Usuário\"). Os dados pessoais do outro usuário aparecem mascarados, como aparecem para o próprio dono, e cada Revelar ali registra uma entrada no log de atividades."
 
 #: includes/settings/views/documentation/scheduling-audiences.php:74
 msgid "reveal the account email of the people on the Members and User access tabs and the sensitive custom fields on another user's profile, with an audited Reveal; a members export carries the email in clear only with it. Existing holders of ffc_manage_audiences received it on update."
@@ -27123,3 +27120,15 @@ msgstr "Aplicado a todos os grupos abaixo deste quando muda."
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "A top-level audience with child groups sets self-join in two choices. \"This audience\" is its own and changes nothing below it; with it off, the dashboard shows the audience as a heading over the groups below it that users can join. \"Children and grandchildren\" is applied to every group below it when it changes. When those groups disagree, it reads Mixed and leaves each one as it is until you pick On or Off. An audience without child groups keeps one switch."
 msgstr "Um público-alvo de nível superior com grupos filhos define a entrada por conta própria em duas escolhas. \"Este público-alvo\" é a dele e não muda nada abaixo; desligada, o painel mostra o público-alvo como título acima dos grupos abaixo dele em que os usuários podem entrar. \"Filhos e netos\" é aplicada a todos os grupos abaixo dele quando muda. Quando esses grupos divergem, ela mostra Misto e deixa cada um como está até você escolher Ligado ou Desligado. Um público-alvo sem grupos filhos mantém um único interruptor."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Masked personal data:"
+msgstr "Dados pessoais mascarados:"
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "the person's own CPF/RF, e-mail addresses, phone and birth date appear masked on every tab, each with a Reveal button, so a shared or projected screen does not show them. Revealing one's own data writes no activity-log entry, and a masked field cannot be saved over until it is revealed. Documents the person downloads (a certificate PDF, a receipt, a record) keep printing the values in clear."
+msgstr "o CPF/RF, os endereços de e-mail, o telefone e a data de nascimento da própria pessoa aparecem mascarados em todas as abas, cada um com um botão Revelar, para que uma tela compartilhada ou projetada não os mostre. Revelar os próprios dados não registra entrada no log de atividades, e um campo mascarado não pode ser salvo por cima até ser revelado. Os documentos que a pessoa baixa (um PDF de certificado, um comprovante, uma ficha) continuam a imprimir os valores em claro."
+
+#: includes/api/class-ffc-user-certificates-rest-controller.php
+msgid "Certificate not found."
+msgstr "Certificado não encontrado."

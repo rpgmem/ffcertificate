@@ -18,6 +18,12 @@
  *   - `masked` — never shown; the reveal control is not rendered. Everyone
  *     else, FFC Read-only included.
  *
+ * On screen the owner answer is `owner_reveal` instead ({@see resolve_on_screen()},
+ * #1897): the user dashboard draws the owner's own data masked, behind a
+ * Reveal that writes no audit row, so a shared or projected screen does not
+ * show it to whoever is looking. `unmasked` keeps its meaning for what the
+ * owner asks for themselves -- a PDF, a receipt, an e-mail.
+ *
  * Until #1863 a third group -- WordPress administrators and each module's
  * `_admin` role -- resolved to `unmasked` and saw plaintext with no audit.
  * That tier is retired: staff always reveal, and every reveal leaves a row in
@@ -43,6 +49,12 @@ final class PiiAccessPolicy {
 	public const TIER_UNMASKED = 'unmasked';
 	public const TIER_REVEAL   = 'reveal';
 	public const TIER_MASKED   = 'masked';
+
+	/**
+	 * The owner, on a screen (#1897): masked, revealed on request, and the
+	 * reveal is not audited. Only {@see resolve_on_screen()} answers it.
+	 */
+	public const TIER_OWNER_REVEAL = 'owner_reveal';
 
 	/**
 	 * Resolve the access tier for a user against a record.
@@ -73,6 +85,25 @@ final class PiiAccessPolicy {
 		}
 
 		return self::TIER_MASKED;
+	}
+
+	/**
+	 * Resolve the tier for drawing the data on a screen (#1897).
+	 *
+	 * The same answer as {@see resolve()}, except for the owner, who gets
+	 * `owner_reveal` instead of `unmasked`: their own data is drawn masked
+	 * and revealed on request, without an audit row. A document the owner
+	 * asks for keeps asking {@see resolve()}.
+	 *
+	 * @since 6.41.0
+	 * @param string   $pii_cap       The module reveal cap.
+	 * @param int|null $owner_user_id The record owner's user id, or null.
+	 * @param int|null $user_id       User to check; defaults to the current user.
+	 * @return string One of TIER_OWNER_REVEAL / TIER_REVEAL / TIER_MASKED.
+	 */
+	public static function resolve_on_screen( string $pii_cap, ?int $owner_user_id = null, ?int $user_id = null ): string {
+		$tier = self::resolve( $pii_cap, $owner_user_id, $user_id );
+		return self::TIER_UNMASKED === $tier ? self::TIER_OWNER_REVEAL : $tier;
 	}
 
 	/**

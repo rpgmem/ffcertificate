@@ -3,7 +3,8 @@
  * User Certificates REST Controller
  *
  * Handles:
- *   GET /user/certificates – Current user's certificates
+ *   GET  /user/certificates        – Current user's certificates
+ *   POST /user/certificates/reveal – One certificate's e-mail, in clear (#1897)
  *
  * @package FreeFormCertificate\API
  * @since 4.12.7  Extracted from UserDataRestController
@@ -23,6 +24,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class UserCertificatesRestController {
 
 	use UserContextTrait;
+
+	/**
+	 * The certificates module's reveal capability, asked in "view as user".
+	 */
+	private const PII_CAP = 'ffc_view_certificates_pii';
 
 	/**
 	 * API namespace
@@ -51,6 +57,111 @@ class UserCertificatesRestController {
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_user_certificates' ),
 				'permission_callback' => 'is_user_logged_in',
+			)
+		);
+
+		// The e-mail of one listed certificate, masked in the list (#1897).
+		register_rest_route(
+			$this->namespace,
+			'/user/certificates/reveal',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'reveal_certificate_email' ),
+				'permission_callback' => 'is_user_logged_in',
+				'args'                => array(
+					'id' => array(
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * POST /user/certificates/reveal — the e-mail of one certificate the
+	 * dashboard lists masked (#1897).
+	 *
+	 * The owner reveals their own certificate: the account is always the
+	 * current user, the record must be theirs, and no audit row is written.
+	 * In "view as user" the administrator reveals the viewed account's
+	 * certificate when the PII policy lets them, and one audit row names it.
+	 *
+	 * @since 6.41.0
+	 * @param \WP_REST_Request $request REST request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function reveal_certificate_email( $request ) {
+		$ctx     = $this->resolve_user_context( $request );
+		$view_as = $ctx['is_view_as'];
+		$user_id = $view_as ? $ctx['user_id'] : get_current_user_id();
+		if ( $user_id <= 0 ) {
+			return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
+		}
+
+		$denied = new \WP_Error( 'ffc_reveal_denied', __( 'You do not have permission to reveal this field.', 'ffcertificate' ), array( 'status' => 403 ) );
+
+		// Someone who may not view as another user asked for one: refused.
+		if ( ! $view_as && null !== $request->get_param( 'viewAsUserId' ) && \FreeFormCertificate\Core\ArrayValue::int( array( 'id' => $request->get_param( 'viewAsUserId' ) ), 'id' ) !== $user_id ) {
+			return $denied;
+		}
+
+		if ( ! $this->user_has_capability( 'ffc_view_own_certificates', $user_id, $view_as ) ) {
+			return $denied;
+		}
+
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === \FreeFormCertificate\Core\PiiAccessPolicy::resolve_on_screen( self::PII_CAP, $user_id ) ) {
+			return $denied;
+		}
+
+		global $wpdb;
+		$id         = \FreeFormCertificate\Core\ArrayValue::int( array( 'id' => $request->get_param( 'id' ) ), 'id' );
+		$submission = null;
+		if ( $id > 0 ) {
+			// The owner is part of the query, so a certificate of anyone
+			// else's is not found rather than refused after being read.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One row of the plugin's own submissions table, read once for a reveal.
+			$submission = $wpdb->get_row(
+				$wpdb->prepare(
+					'SELECT * FROM %i WHERE id = %d AND user_id = %d',
+					\FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table(),
+					$id,
+					$user_id
+				),
+				ARRAY_A
+			);
+		}
+		if ( ! is_array( $submission )
+			|| in_array( \FreeFormCertificate\Core\ArrayValue::string( $submission, 'status' ), \FreeFormCertificate\Core\SubmissionStatus::NOT_A_CERTIFICATE, true ) ) {
+			return new \WP_Error( 'ffc_certificate_not_found', __( 'Certificate not found.', 'ffcertificate' ), array( 'status' => 404 ) );
+		}
+
+		/**
+		 * A row of the submissions table, read with ARRAY_A, so every key is a
+		 * column name.
+		 *
+		 * @var array<string, mixed> $submission
+		 */
+		$email = (string) \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'email' );
+
+		if ( $view_as ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'submission_pii_revealed',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'field_key'       => 'email',
+					'view_as'         => true,
+					'subject_user_id' => $user_id,
+				),
+				get_current_user_id(),
+				$id
+			);
+		}
+
+		return rest_ensure_response(
+			array(
+				'id'    => $id,
+				'value' => $email,
 			)
 		);
 	}
@@ -167,6 +278,9 @@ class UserCertificatesRestController {
 				array(
 					'certificates' => $certificates,
 					'total'        => count( $certificates ),
+					// Each e-mail is masked; whether the reader may reveal it
+					// through /user/certificates/reveal (#1897).
+					'can_reveal'   => \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED !== \FreeFormCertificate\Core\PiiAccessPolicy::resolve_on_screen( self::PII_CAP, $user_id ),
 				)
 			);
 
