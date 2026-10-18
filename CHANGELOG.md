@@ -28,6 +28,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"View as user" reveals CPF/RF too** (#1888). The Profile tab offered Reveal for e-mails, phone and birth date but not for the identifiers; `/user/profile/reveal` now serves `cpf_rf`, formatted from the same rows as the masked list, under the same gate and audit row.
 - **"Refresh Cloudflare ranges now" works** (#1894). Settings → IP Diagnostics handled it only inside the Save branch, so the click did nothing. It now runs alone, with the same nonce and capability, and says how many ranges are cached or that the fetch failed; both buttons join the button family.
 - **Verify on a failed magic link** (#1893). The error card's Verify button no longer also fires the PDF download handler, and the code typed there is carried to the reloaded verification form, which opens with it filled in; the captcha is still required.
+- **One-line Open and Change buttons, and a compact owner Reveal** (#1903). Settings → Email texts' "Open" and Document Templates' "Change" drop the trailing arrow that wrapped onto a second line beside the icon; the dashboard's Reveal on Certificates and Profile takes the compact row size of "View PDF".
 
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 
