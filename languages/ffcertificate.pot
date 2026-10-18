@@ -4201,8 +4201,19 @@ msgstr ""
 msgid "Cloudflare detected — CF-Connecting-IP is authoritative."
 msgstr ""
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:89
-msgid "Cloudflare IP ranges refresh requested."
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:129
+#, php-format
+msgid "Cloudflare IP ranges refreshed: %d range cached."
+msgid_plural "Cloudflare IP ranges refreshed: %d ranges cached."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:139
+msgid "The Cloudflare IP ranges could not be fetched. The list fetched earlier stays in use."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:140
+msgid "The Cloudflare IP ranges could not be fetched. The bundled list stays in use."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:449
