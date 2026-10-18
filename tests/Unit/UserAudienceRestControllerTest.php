@@ -632,6 +632,81 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertSame( 'max_groups_reached', $result->get_error_code() );
 	}
 
+	/**
+	 * Stub the stored self-join limit (#1916); every other option keeps the
+	 * value setUp() gives it.
+	 *
+	 * @param mixed $limit Raw stored value.
+	 */
+	private function store_self_join_limit( $limit ): void {
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_aud_max_self_join_groups' === $key ? $limit : 'F j, Y'
+		);
+	}
+
+	public function test_get_joinable_groups_reports_the_configured_limit(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->store_self_join_limit( '5' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audiences' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'allow_self_join' ) ) );
+		$this->query_service->shouldReceive( 'find_user_joinable_audiences' )->andReturn(
+			array(
+				array( 'id' => 1, 'parent_id' => null, 'name' => 'Solo', 'color' => '#333', 'allow_self_join' => true, 'is_member' => false ),
+			)
+		);
+
+		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
+			->get_joinable_groups( $this->make_request() );
+
+		$this->assertSame( 5, $result['max_groups'] );
+	}
+
+	/**
+	 * @return iterable<string, array{0: mixed, 1: int}>
+	 */
+	public static function stored_limits(): iterable {
+		yield 'in range' => array( '4', 4 );
+		yield 'above the ceiling' => array( '99', 20 );
+		yield 'below the floor' => array( '0', 1 );
+		yield 'negative' => array( -3, 1 );
+		yield 'not a number' => array( 'abc', 2 );
+	}
+
+	/**
+	 * The join is refused exactly at the clamped limit, and allowed one below.
+	 *
+	 * @dataProvider stored_limits
+	 *
+	 * @param mixed $stored   Raw stored value.
+	 * @param int   $expected The limit it reads as.
+	 */
+	public function test_join_audience_group_enforces_the_configured_limit( $stored, int $expected ): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->store_self_join_limit( $stored );
+		$group = (object) array( 'status' => 'active', 'allow_self_join' => 1, 'parent_id' => 1, 'name' => 'G' );
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $group );
+		$this->reader->shouldReceive( 'is_member' )->andReturn( false );
+		$count = $expected;
+		$this->query_service->shouldReceive( 'count_user_self_join_memberships' )->andReturnUsing(
+			static function () use ( &$count ) {
+				return $count;
+			}
+		);
+		$ctrl = new UserAudienceRestController( 'ffc/v1' );
+
+		$refused = $ctrl->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
+		$this->assertInstanceOf( \WP_Error::class, $refused );
+		$this->assertSame( 'max_groups_reached', $refused->get_error_code() );
+		$this->assertStringContainsString( 'maximum of ' . $expected . ' groups', $refused->get_error_message() );
+
+		$count   = $expected - 1;
+		$allowed = $ctrl->join_audience_group( $this->make_request( array( 'group_id' => 10 ) ) );
+		$this->assertIsArray( $allowed );
+		$this->assertTrue( $allowed['success'] );
+	}
+
 	public function test_join_audience_group_succeeds(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );

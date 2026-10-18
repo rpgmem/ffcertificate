@@ -10,6 +10,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Admin action icons and a ratchet on core button classes** (#1904). Sixteen registry icons (unlink, merge, split, move, user-plus, ticket, …) and `CoreButtonClassRatchetTest`, which held WordPress's `.button*`, `page-title-action` and `submit_button()` per file and now blocks at zero.
+- **Admin action icons and a ratchet on core button classes** (#1904). Sixteen registry icons (unlink, merge, split, move, user-plus, ticket, template save/load, …) and `CoreButtonClassRatchetTest`, freezing WordPress's `.button*`, `page-title-action` and `submit_button()` per file.
+- **Self-join group limit is a setting** (#1916). Scheduling Settings → Audience Calendars → Self-Join sets how many self-join groups a user may belong to (1–20, default 2), replacing the hard-coded 2; the audience editor states the configured number.
 
 ### Changed
 

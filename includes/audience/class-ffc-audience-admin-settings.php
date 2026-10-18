@@ -220,6 +220,7 @@ class AudienceAdminSettings {
 		$visibility_message       = get_option( 'ffc_aud_visibility_message', __( 'To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate' ) );
 		$scheduling_message       = get_option( 'ffc_aud_scheduling_message', __( 'To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate' ) );
 		$multiple_audiences_color = get_option( 'ffc_aud_multiple_audiences_color', '' );
+		$max_self_join_groups     = AudienceSelfJoinLimit::get();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/audience-tab.php';
 	}
@@ -291,6 +292,13 @@ class AudienceAdminSettings {
 				''
 			);
 			update_option( 'ffc_aud_multiple_audiences_color', $ma_color );
+
+			// A cleared or non-numeric field is "not supplied", never a zero
+			// limit: keep what is stored (#1916).
+			$max_groups = RequestInput::get_post_string( AudienceSelfJoinLimit::OPTION, '' );
+			if ( '' !== $max_groups && is_numeric( $max_groups ) ) {
+				update_option( AudienceSelfJoinLimit::OPTION, AudienceSelfJoinLimit::clamp( $max_groups ) );
+			}
 
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Audience visibility settings saved.', 'ffcertificate' ), 'success' );
 		}

@@ -23,6 +23,9 @@ class AudienceAdminAudienceTest extends TestCase {
 	/** @var Mockery\MockInterface Alias mock of Core\PiiAccessPolicy. */
 	private $policy;
 
+	/** @var mixed The stored self-join limit, null for none (#1916). */
+	private $self_join_limit = null;
+
 	/** @var bool What the policy answers for a listed account (#1824). */
 	private $can_reveal = false;
 
@@ -59,6 +62,11 @@ class AudienceAdminAudienceTest extends TestCase {
 		} );
 		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
+		// The self-join description names the configured limit (#1916); every
+		// other option reads its default.
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => ( 'ffc_aud_max_self_join_groups' === $key && null !== $this->self_join_limit ) ? $this->self_join_limit : $default
+		);
 		// The editor renders its Members tab (#1761).
 		Functions\when( 'wp_nonce_url' )->justReturn( '/remove' );
 		Functions\when( 'get_user_by' )->alias(
@@ -1055,6 +1063,38 @@ class AudienceAdminAudienceTest extends TestCase {
 			}
 		}
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+	}
+
+	/**
+	 * The switch's description states the configured self-join limit, not
+	 * the number that used to be hard-coded (#1916).
+	 */
+	public function test_the_self_join_switch_names_the_configured_limit(): void {
+		$this->self_join_limit = '7';
+		$this->grant( array( 'ffc_view_audiences', 'ffc_manage_audiences' ) );
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '5';
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 0 );
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
+		$repo->shouldReceive( 'get_members' )->andReturn( array() );
+		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
+			(object) array( 'id' => 5, 'name' => 'Grp', 'color' => '#123456', 'status' => 'active', 'parent_id' => null, 'allow_self_join' => '1' )
+		);
+		$repo->shouldReceive( 'descendants_self_join_state' )->with( 5 )->andReturn( null );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Users can join up to 7 groups through self-join.', $output );
+		$this->assertStringNotContainsString( 'up to 2', $output );
 	}
 
 	/**
