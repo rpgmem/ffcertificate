@@ -9,7 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **Admin action icons and a ratchet on core button classes** (#1904). Sixteen registry icons (unlink, merge, split, move, user-plus, ticket, template save/load, …) and `CoreButtonClassRatchetTest`, freezing WordPress's `.button*`, `page-title-action` and `submit_button()` per file.
+- **Admin action icons and a ratchet on core button classes** (#1904). Sixteen registry icons (unlink, merge, split, move, user-plus, ticket, …) and `CoreButtonClassRatchetTest`, which held WordPress's `.button*`, `page-title-action` and `submit_button()` per file and now blocks at zero.
 
 ### Changed
 
@@ -25,7 +25,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"My Calls" is grouped by status** (#1889). Called cards with the date, days left and an .ics download, then Waiting (final first, 5 per page) and Closed (2 per page); a call still "called" the day after its date shows as Deadline passed, with reversals behind an i button.
 - **A parent audience sets self-join for itself and for its descendants apart** (#1896). "This audience" no longer cascades; "Children and grandchildren" is applied to every descendant and reads Mixed, leaving them as they are, when they disagree. No schema change.
 - ⚠ **The dashboard masks the owner's own data** (#1897). CPF/RF, e-mails, phone and birth date arrive masked from `GET /user/profile` and `/user/certificates`, each with Reveal; the owner's reveal writes no log row, "view as user" stays audited. PDFs, receipts and e-mails are unchanged.
-- **Admin screens use the button family** (#1904). Settings, migrations, the activity log, certificates, personal and audience calendars, bookings and scheduling settings print `.ffc-btn` buttons by category and icon; scripts read their own hooks, not core classes.
+- **Every admin screen uses the button family** (#1904). Settings, certificates, scheduling, audiences, reregistration, recruitment, date messages, short URLs, QR and identity print `.ffc-btn` buttons by category and icon; a rule or short URL switches on and off with a toggle.
 
 ### Fixed
 
