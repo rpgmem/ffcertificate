@@ -471,7 +471,11 @@ class AdminSubmissionEditPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'Jane Doe', $html );
 		$this->assertStringNotContainsString( 'jane@x.com', $html, 'no tier receives the clear address' );
-		$this->assertStringContainsString( '<span class="ffc-user-email">(<span class="ffc-pii-row"><span class="ffc-pii-value" data-field="account_email">j***@x.com</span>', $html );
+		$this->assertStringContainsString( '<span class="ffc-user-email"><span class="ffc-pii-value" data-field="account_email">j***@x.com</span></span>', $html );
+		// The Reveal sits in the actions row below the card, before View Profile.
+		$actions = (string) strstr( $html, '<div class="ffc-linked-user-actions">' );
+		$this->assertStringContainsString( 'View Profile', $actions );
+		$this->assertSame( $button, false !== strpos( $actions, 'data-field="account_email"' ) );
 		$this->assertSame(
 			$button ? 1 : 0,
 			substr_count( $html, '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-field="account_email" data-submission-id="42" data-nonce="nonce123">Reveal</button>' )

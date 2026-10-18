@@ -190,15 +190,18 @@ describe('ffc-pii-reveal', () => {
 		expect(window.$('#r2 .ffc-reveal-pii').length).toBe(0);
 	});
 
-	it('reveals the linked account email without touching the submission email (#1824)', async () => {
+	it('reveals the linked account email from the actions row below its card, without touching the submission email (#1824)', async () => {
 		document.body.innerHTML = `<form>
 			<p class="ffc-edit-field"><span class="ffc-pii-row">
 				<input type="email" name="user_email" data-ffc-pii-field="email" data-ffc-pii-editable="1" value="s***@x.com" disabled />
 				<button class="ffc-reveal-pii" id="sub" data-field="email" data-submission-id="12" data-nonce="n">Reveal</button>
 			</span></p>
-			<span class="ffc-user-email">(<span class="ffc-pii-row"><span class="ffc-pii-value" data-field="account_email">a***@x.com</span>
-				<button class="ffc-reveal-pii" id="acct" data-field="account_email" data-submission-id="12" data-nonce="n">Reveal</button>
-			</span>)</span>
+			<div class="ffc-linked-user-display">
+				<div class="ffc-current-user"><span class="ffc-user-email"><span class="ffc-pii-value" data-field="account_email">a***@x.com</span></span></div>
+				<div class="ffc-linked-user-actions">
+					<button class="ffc-reveal-pii" id="acct" data-field="account_email" data-submission-id="12" data-nonce="n">Reveal</button>
+				</div>
+			</div>
 		</form>`;
 		window.FFC.request = vi.fn(() => Promise.resolve({ field: 'account_email', value: 'account@x.com' }));
 
