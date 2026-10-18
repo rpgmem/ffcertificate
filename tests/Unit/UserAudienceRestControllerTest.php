@@ -494,6 +494,40 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->assertSame( 1, $result['joined_count'] );
 	}
 
+	public function test_get_joinable_groups_descendants_only_parent_is_a_header_over_buttons(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audiences' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'allow_self_join' ) ) );
+
+		// The "descendants only" shape the split self-join produces (#1896):
+		// the parent's own flag off, its children and grandchild on.
+		$flat = array(
+			array( 'id' => 1, 'parent_id' => null, 'name' => 'Parent', 'color' => '#000', 'allow_self_join' => false, 'is_member' => false ),
+			array( 'id' => 2, 'parent_id' => 1, 'name' => 'Child A', 'color' => '#111', 'allow_self_join' => true, 'is_member' => false ),
+			array( 'id' => 3, 'parent_id' => 1, 'name' => 'Child B', 'color' => '#222', 'allow_self_join' => true, 'is_member' => false ),
+			array( 'id' => 4, 'parent_id' => 2, 'name' => 'Grandchild', 'color' => '#333', 'allow_self_join' => true, 'is_member' => true ),
+		);
+		$this->query_service->shouldReceive( 'find_user_joinable_audiences' )->andReturn( $flat );
+
+		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
+			->get_joinable_groups( $this->make_request() );
+
+		$this->assertCount( 1, $result['parents'] );
+		$parent = $result['parents'][0];
+		$this->assertSame( 1, $parent['id'] );
+		$this->assertArrayNotHasKey( 'joinable', $parent, 'the parent is a header without a button' );
+
+		$children = array_column( $parent['children'], null, 'id' );
+		$this->assertSame( array( 2, 3 ), array_keys( $children ) );
+		$this->assertTrue( $children[2]['joinable'] );
+		$this->assertTrue( $children[3]['joinable'] );
+		$this->assertSame( 4, $children[2]['children'][0]['id'] );
+		$this->assertTrue( $children[2]['children'][0]['joinable'] );
+		$this->assertSame( 1, $result['joined_count'] );
+	}
+
 	public function test_get_joinable_groups_returns_500_on_exception(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );

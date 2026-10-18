@@ -124,19 +124,20 @@ class AudienceAdminAudience {
 			if ( $id > 0 ) {
 				AudienceWriter::update( $id, $data );
 
-				// Cascade allow_self_join to children if this is a parent.
+				// A top-level audience's own self-join no longer cascades
+				// (#1896): its children and grandchildren take the separate
+				// choice, which a mixed state leaves untouched.
 				if ( empty( $data['parent_id'] ) ) {
-					AudienceWriter::cascade_self_join( $id, (int) $data['allow_self_join'] );
+					$descendants = RequestInput::get_post_string( 'audience_descendants_self_join' );
+					if ( '1' === $descendants || '0' === $descendants ) {
+						AudienceWriter::cascade_self_join( $id, (int) $descendants );
+					}
 				}
 
 				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Audience updated successfully.', 'ffcertificate' ), 'success' );
 			} else {
 				$new_id = AudienceWriter::create( $data );
 				if ( $new_id ) {
-					// Cascade to children (if creating a parent from template/import).
-					if ( empty( $data['parent_id'] ) ) {
-						AudienceWriter::cascade_self_join( $new_id, (int) $data['allow_self_join'] );
-					}
 					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $new_id . '&message=created' ) );
 					exit;
 				}

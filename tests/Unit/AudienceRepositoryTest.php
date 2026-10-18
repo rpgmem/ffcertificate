@@ -351,6 +351,50 @@ class AudienceRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
+	// descendants_self_join_state() (#1896)
+	// ==================================================================
+
+	/**
+	 * Answer `get_children()` from a parent id => rows map: the prepared
+	 * arguments carry the parent id, and get_results() reads it back.
+	 *
+	 * @param array<int, list<object>> $tree Children per parent id.
+	 */
+	private function children_tree( array $tree ): void {
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			static fn( $sql, $args ) => 'children:' . (int) ( $args[1] ?? 0 )
+		);
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			static fn( $sql ) => $tree[ (int) substr( (string) $sql, strlen( 'children:' ) ) ] ?? array()
+		);
+	}
+
+	/**
+	 * @return iterable<string, array{0: array<int, list<object>>, 1: ?string}>
+	 */
+	public static function descendants_states(): iterable {
+		$row = static fn( int $id, int $flag ): object => (object) array( 'id' => (string) $id, 'parent_id' => '1', 'allow_self_join' => (string) $flag );
+
+		yield 'no children' => array( array(), null );
+		yield 'every child and grandchild on' => array( array( 1 => array( $row( 2, 1 ), $row( 3, 1 ) ), 2 => array( $row( 4, 1 ) ) ), '1' );
+		yield 'every child and grandchild off' => array( array( 1 => array( $row( 2, 0 ) ), 2 => array( $row( 4, 0 ) ) ), '0' );
+		yield 'children on, a grandchild off' => array( array( 1 => array( $row( 2, 1 ), $row( 3, 1 ) ), 3 => array( $row( 5, 0 ) ) ), 'mixed' );
+		yield 'children off, a grandchild on' => array( array( 1 => array( $row( 2, 0 ) ), 2 => array( $row( 4, 1 ) ) ), 'mixed' );
+	}
+
+	/**
+	 * @dataProvider descendants_states
+	 *
+	 * @param array<int, list<object>> $tree     Children per parent id.
+	 * @param string|null              $expected The derived state.
+	 */
+	public function test_descendants_self_join_state_is_derived_from_every_level( array $tree, ?string $expected ): void {
+		$this->children_tree( $tree );
+
+		$this->assertSame( $expected, AudienceReader::descendants_self_join_state( 1 ) );
+	}
+
+	// ==================================================================
 	// get_hierarchical()
 	// ==================================================================
 
