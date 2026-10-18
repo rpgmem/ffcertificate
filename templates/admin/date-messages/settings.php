@@ -48,7 +48,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 				?>
 			</p>
 			<p>
-				<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=scheduled_tasks' ) ); ?>"><?php esc_html_e( 'Change it in Scheduled Tasks', 'ffcertificate' ); ?></a>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Change it in Scheduled Tasks', 'ffcertificate' ),
+						'icon'  => 'clock',
+						'href'  => admin_url( 'admin.php?page=ffc-settings&tab=scheduled_tasks' ),
+					)
+				);
+				?>
 			</p>
 			<p class="description"><?php esc_html_e( 'Every daily task of the plugin has its time chosen on that one screen, which also shows the server line that keeps scheduled tasks running.', 'ffcertificate' ); ?></p>
 		</td>
