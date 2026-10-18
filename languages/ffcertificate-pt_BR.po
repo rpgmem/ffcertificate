@@ -3905,8 +3905,8 @@ msgid "Change Password"
 msgstr "Alterar a Senha"
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:124
-msgid "Change →"
-msgstr "Alterar →"
+msgid "Change"
+msgstr "Alterar"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:436
 msgid "Changed your mind?"
@@ -12081,8 +12081,8 @@ msgid "Open the new notice and attach the relevant adjutancies + import the cand
 msgstr "Abra o novo edital e anexe as matérias relevantes + importe o arquivo CSV de candidatos."
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:340
-msgid "Open →"
-msgstr "Abrir →"
+msgid "Open"
+msgstr "Abrir"
 
 #: includes/frontend/class-ffc-frontend.php:565
 msgid "Opening the participant form in a new tab…"
@@ -22926,8 +22926,8 @@ msgstr "Divisão / Setor (veja a nota sobre seleção dependente abaixo para cad
 msgid "The certificate PDF a form issues on submission (the default kind). Three ready-made certificate models ship."
 msgstr "O PDF do certificado que um formulário emite no envio (o tipo padrão). Três modelos de certificado prontos acompanham o plugin."
 
-msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change →\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
-msgstr "Uma visão geral somente leitura, \"Atribuições atuais\", na aba Modelos de documento, mostra qual modelo do acervo os comprovantes de agendamento (Regular e Personalizado) e a ficha de recadastramento estão usando no momento, com um link \"Alterar →\" para as configurações do próprio recurso. Cada linha aparece apenas para usuários que podem visualizar aquele recurso, e os certificados não têm linha porque cada formulário escolhe o seu. A visão geral é apenas informativa — os controles de seleção (e suas permissões) continuam em cada recurso."
+msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
+msgstr "Uma visão geral somente leitura, \"Atribuições atuais\", na aba Modelos de documento, mostra qual modelo do acervo os comprovantes de agendamento (Regular e Personalizado) e a ficha de recadastramento estão usando no momento, com um link \"Alterar\" para as configurações do próprio recurso. Cada linha aparece apenas para usuários que podem visualizar aquele recurso, e os certificados não têm linha porque cada formulário escolhe o seu. A visão geral é apenas informativa — os controles de seleção (e suas permissões) continuam em cada recurso."
 
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
 msgstr "Campos de nome (chaves como name, nome, nome_completo, full_name ou participante) são normalizados no envio para a capitalização correta, mantendo em minúsculas conectivos como \"da\" e \"de\"."
@@ -23075,8 +23075,8 @@ msgstr "Ver como usuário:"
 msgid "The identity/contact/address/employment fields live on the plugin's user profile and are mapped to the reregistration and audience data, so a user's details stay consistent across a certificate PDF, a record and their profile. WordPress's first and last name follow the plugin's full name (first word / the rest), and editing First/Last Name on the user-edit screen updates it back."
 msgstr "Os campos de identidade/contato/endereço/vínculo ficam no perfil de usuário do plugin e são mapeados para os dados de recadastramento e de público-alvo, de modo que os dados do usuário permanecem consistentes entre o PDF do certificado, a ficha e o perfil. O nome e o sobrenome do WordPress acompanham o nome completo do plugin (primeira palavra / o restante), e editar Nome/Sobrenome na tela de edição do usuário atualiza o nome completo de volta."
 
-msgid "A read-only index at the bottom of the tab lists the plugin's emails, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open →\" deep-link to where it is configured. It is discoverability only — it moves no controls."
-msgstr "Um índice somente leitura no fim da aba lista os e-mails do plugin, agrupados por recurso, cada um com uma linha de finalidade, um estado de personalização (Texto editável / Apenas ativar/desativar / Padrão do sistema) e um link \"Abrir →\" para onde é configurado. Ele serve apenas para descoberta — não move nenhum controle."
+msgid "A read-only index at the bottom of the tab lists the plugin's emails, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open\" deep-link to where it is configured. It is discoverability only — it moves no controls."
+msgstr "Um índice somente leitura no fim da aba lista os e-mails do plugin, agrupados por recurso, cada um com uma linha de finalidade, um estado de personalização (Texto editável / Apenas ativar/desativar / Padrão do sistema) e um link \"Abrir\" para onde é configurado. Ele serve apenas para descoberta — não move nenhum controle."
 
 msgid "See Date Messages"
 msgstr "Ver Mensagens por Data"
