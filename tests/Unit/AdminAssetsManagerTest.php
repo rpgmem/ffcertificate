@@ -171,6 +171,27 @@ class AdminAssetsManagerTest extends TestCase {
 		$this->assertContains('ffc-common', $enqueued_styles);
 		$this->assertContains('ffc-admin-utilities', $enqueued_styles);
 		$this->assertContains('ffc-admin-css', $enqueued_styles);
+		$this->assertNotContains('ffc-admin-submissions-css', $enqueued_styles, 'The submissions sheet loads on its own screen only (#1923).');
+	}
+
+	public function test_the_submissions_sheet_loads_on_the_submissions_screen(): void {
+		global $post_type;
+		$post_type     = 'ffc_form';
+		$_GET['page']  = 'ffc-submissions';
+
+		$enqueued_styles = [];
+		Functions\when('wp_enqueue_media')->justReturn(true);
+		Functions\when('wp_enqueue_script')->justReturn(true);
+		Functions\when('wp_enqueue_style')->alias(function ($handle) use (&$enqueued_styles) {
+			$enqueued_styles[] = $handle;
+		});
+		Functions\when('wp_localize_script')->justReturn(true);
+		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+		Functions\when('wp_create_nonce')->justReturn('test_nonce');
+
+		( new AdminAssetsManager() )->enqueue_admin_assets('ffc_form_page_ffc-submissions');
+		unset( $_GET['page'] );
+
 		$this->assertContains('ffc-admin-submissions-css', $enqueued_styles);
 	}
 
