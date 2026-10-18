@@ -182,8 +182,8 @@ class UtilsTest extends TestCase {
 		$this->assertSame( '123.***-7', DocumentFormatter::mask_cpf( '1234567' ) );
 	}
 
-	public function test_mask_cpf_other_length_returned_as_is(): void {
-		$this->assertSame( '12345', DocumentFormatter::mask_cpf( '12345' ) );
+	public function test_mask_cpf_other_length_masks_as_generic(): void {
+		$this->assertSame( '1***', DocumentFormatter::mask_cpf( '12345' ) );
 	}
 
 	public function test_mask_cpf_empty(): void {
@@ -631,7 +631,7 @@ class UtilsTest extends TestCase {
 
 	public function test_mask_email_invalid(): void {
 		Functions\when( 'is_email' )->justReturn( false );
-		$this->assertSame( 'not-an-email', DocumentFormatter::mask_email( 'not-an-email' ) );
+		$this->assertSame( 'n***', DocumentFormatter::mask_email( 'not-an-email' ) );
 	}
 
 	public function test_mask_email_empty(): void {

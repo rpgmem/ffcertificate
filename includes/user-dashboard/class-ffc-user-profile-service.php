@@ -388,7 +388,8 @@ final class UserProfileService {
 				continue;
 			}
 
-			$out[ $field ] = self::mask( $plain, $spec['masker'] ?? null );
+			// The field name is the key the one mask map reads (#1920).
+			$out[ $field ] = DocumentFormatter::mask_any( $field, $plain );
 		}
 		return $out;
 	}
@@ -676,34 +677,6 @@ final class UserProfileService {
 	// ==================================================================
 	// Utilities
 	// ==================================================================
-
-	/**
-	 * Mask a plaintext value using the symbolic masker identifier.
-	 *
-	 * @param string      $plain  Plain value (empty yields empty).
-	 * @param string|null $masker Masker identifier from the field map.
-	 * @return string
-	 */
-	private static function mask( string $plain, ?string $masker ): string {
-		if ( '' === $plain ) {
-			return '';
-		}
-		if ( 'cpf' === $masker && class_exists( DocumentFormatter::class ) ) {
-			// mask_cpf returns string; empty output means the input was
-			// not a CPF-shaped value — fall through to the generic mask.
-			$masked = DocumentFormatter::mask_cpf( $plain );
-			if ( '' !== $masked ) {
-				return $masked;
-			}
-		}
-		// Fallback mask: keep the first and last characters, replace the
-		// middle with asterisks. Never returns the plaintext.
-		$len = strlen( $plain );
-		if ( $len <= 2 ) {
-			return str_repeat( '*', $len );
-		}
-		return $plain[0] . str_repeat( '*', $len - 2 ) . $plain[ $len - 1 ];
-	}
 
 	/**
 	 * Whether any of the requested fields is flagged sensitive.

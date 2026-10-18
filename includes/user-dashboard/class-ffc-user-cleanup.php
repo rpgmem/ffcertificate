@@ -285,12 +285,8 @@ class UserCleanup {
 
 		// Log the change.
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-			$old_masked = class_exists( '\FreeFormCertificate\Core\Utils' )
-				? \FreeFormCertificate\Core\DocumentFormatter::mask_email( $old_email )
-				: '***';
-			$new_masked = class_exists( '\FreeFormCertificate\Core\Utils' )
-				? \FreeFormCertificate\Core\DocumentFormatter::mask_email( $new_email )
-				: '***';
+			$old_masked = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $old_email );
+			$new_masked = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $new_email );
 
 			\FreeFormCertificate\Core\ActivityLog::log(
 				'user_email_changed',

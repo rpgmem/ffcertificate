@@ -381,10 +381,6 @@ class AdminSubmissionEditPage {
 	 */
 	private function masked_account_email( string $email ): string {
 		$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
-		if ( $masked === $email ) {
-			// mask_email() hands back an address it cannot parse unchanged.
-			$masked = '' === $email ? '' : '***';
-		}
 		return '<span class="ffc-pii-value" data-field="account_email">' . esc_html( $masked ) . '</span>';
 	}
 

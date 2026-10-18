@@ -361,7 +361,8 @@ class TabIpDiagnostics extends SettingsTab {
 
 	/**
 	 * Mask an IP unless the viewer holds full admin (own-request IP, low risk,
-	 * but the tab respects the "mask unless PII cap" convention).
+	 * but the tab respects the "mask unless PII cap" convention). The mask is
+	 * the shared one (#1920).
 	 *
 	 * @param string $ip IP address (or '' / non-IP).
 	 * @return string Display string.
@@ -373,14 +374,7 @@ class TabIpDiagnostics extends SettingsTab {
 		if ( current_user_can( 'manage_options' ) ) {
 			return $ip;
 		}
-		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
-			$p = explode( '.', $ip );
-			return $p[0] . '.' . $p[1] . '.' . $p[2] . '.xxx';
-		}
-		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
-			return implode( ':', array_slice( explode( ':', $ip ), 0, 3 ) ) . ':…';
-		}
-		return '—';
+		return \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $ip );
 	}
 
 	/**
@@ -514,7 +508,7 @@ class TabIpDiagnostics extends SettingsTab {
 			} else {
 				$masked = $this->mask_ip( $value );
 				// Non-IP header (a list, or the CF-Ray token): show a safe prefix.
-				$display = '—' === $masked ? mb_substr( $value, 0, 60 ) : $masked;
+				$display = false === filter_var( $value, FILTER_VALIDATE_IP ) ? mb_substr( $value, 0, 60 ) : $masked;
 				$shown   = '<code>' . esc_html( $display ) . '</code>';
 				if ( $label === $authoritative ) {
 					$situation = '<span class="ffc-text-success ffc-icon-checkmark">'

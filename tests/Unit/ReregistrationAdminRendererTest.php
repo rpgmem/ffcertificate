@@ -492,7 +492,7 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submission_row( 'ffc-reregistration', $row, 7, false ) );
 
 		$this->assertStringNotContainsString( 'not-an-address', $html );
-		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">***</span>', $html );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">n***</span>', $html );
 	}
 
 	public function test_a_row_without_an_email_shows_a_dash_and_no_reveal(): void {

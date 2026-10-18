@@ -4,10 +4,13 @@
  * The reregistration form on the dashboard and the "FFC" section of the
  * wp-admin user screen render the same fields from the same definitions, so
  * they share one implementation of what those fields do in the browser:
- * - input masks (`data-mask`: cpf, phone, cep, rf, number, cin)
+ * - input masks (`data-mask`: cpf, cpf_rf, phone, cep, rf, number, cin); the
+ *   public forms' CPF/RF mask formats through these too, so every screen
+ *   types a document the same way (#1920)
  * - dependent selects (`.ffc-dependent-select` → a hidden JSON input)
  * - the dual-post toggle (the accumulation fields follow `acumulo_cargos`)
- * - format checks (`cpf`, `email`, `phone`, `custom_regex`)
+ * - format checks (`cpf`, `email`, `phone`, `custom_regex`) and the CPF and RF
+ *   validators every screen shares
  *
  * Every function takes the container it works in, so a screen wires only the
  * part of the page that holds fields, and binds directly on the elements --
@@ -64,6 +67,12 @@
                 return v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
             }
             return v;
+        },
+        // A field that takes either: up to seven digits read as an RF,
+        // more as a CPF -- the length is what tells them apart.
+        cpf_rf: function (value) {
+            var v = value.replace(/\D/g, '').substring(0, 11);
+            return v.length <= 7 ? MASKS.rf(v) : MASKS.cpf(v);
         },
         number: function (value) {
             return value.replace(/\D/g, '');
@@ -213,6 +222,28 @@
     }
 
     /**
+     * RF: seven digits and, when the site enforces it, a matching check
+     * digit -- the server's own rule (`DocumentFormatter::validate_rf()`),
+     * whose switch arrives as `ffcCoreConfig.rfCheckDigit`.
+     */
+    function validateRf(rf) {
+        rf = String(rf).replace(/\D/g, '');
+        if (!/^\d{7}$/.test(rf)) {
+            return false;
+        }
+        if (!(window.ffcCoreConfig && window.ffcCoreConfig.rfCheckDigit)) {
+            return true;
+        }
+
+        var weights = [7, 6, 5, 4, 3, 2];
+        var sum = 0;
+        for (var i = 0; i < 6; i++) {
+            sum += parseInt(rf.charAt(i), 10) * weights[i];
+        }
+        return (11 - (sum % 11)) % 10 === parseInt(rf.charAt(6), 10);
+    }
+
+    /**
      * The message for a value that breaks its format, or '' when it is fine.
      * An empty value is fine here; requiredness is the caller's question.
      *
@@ -254,6 +285,7 @@
         initDependentSelects: initDependentSelects,
         initDualPost: initDualPost,
         validateCpf: validateCpf,
+        validateRf: validateRf,
         formatError: formatError
     };
 

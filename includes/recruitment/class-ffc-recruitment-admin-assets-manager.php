@@ -135,10 +135,13 @@ final class RecruitmentAdminAssetsManager {
 		// rendered, so enqueuing on every recruitment screen is harmless.
 		// ffc-core: the swap's outcome is the shared status line, FFC.status() (#1843).
 		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		// ffc-field-behaviours: the phone field types through the shared
+		// phone mask, like every other phone the plugin edits (#1920).
+		wp_enqueue_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		wp_enqueue_script(
 			'ffc-recruitment-candidate-edit',
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-candidate-edit{$s}.js",
-			array( 'ffc-core' ),
+			array( 'ffc-core', 'ffc-field-behaviours' ),
 			$js_ver,
 			true
 		);

@@ -326,7 +326,7 @@ class AppointmentsListViewTest extends TestCase {
 		// The existing masked formats, from the real DocumentFormatter.
 		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">a***@example.com</span>', $out );
 		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="cpf">518.***.***-80</span>', $out );
-		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="rf">518.***.0</span>', $out );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="rf">518.***-0</span>', $out );
 
 		// The clear value is absent, raw or formatted.
 		$this->assertStringNotContainsString( 'alice@example.com', $out );

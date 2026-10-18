@@ -147,6 +147,7 @@ class LoaderTest extends TestCase {
 		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
 		$this->utils_mock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
 		$this->utils_mock->shouldReceive( 'register_dev_cache_busting' );
+		$this->utils_mock->shouldReceive( 'core_script_config' )->andReturn( array( 'version' => '1.0.0' ) );
 		$loader = new Loader();
 
 		$registered_scripts = [];

@@ -270,7 +270,7 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 			// A field the campaign marks sensitive is masked as a personal
 			// key is, whatever its name (#1863).
 			$line[] = ! $clear && ! empty( $field->is_sensitive )
-				? \FreeFormCertificate\Core\DocumentFormatter::mask_any( (string) $field->field_key, $cell )
+				? \FreeFormCertificate\Core\DocumentFormatter::mask_any( (string) $field->field_key, $cell, (string) ( $field->field_mask ?? '' ) )
 				: \FreeFormCertificate\Core\PiiExport::cell( (string) $field->field_key, $cell, $clear );
 		}
 

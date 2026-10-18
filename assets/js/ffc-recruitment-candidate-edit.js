@@ -120,4 +120,17 @@
         });
     });
 
+    // ── Phone mask (#1920) ───────────────────────────────────────────────
+    // The shared phone mask, as on the dashboard and the user screen. A
+    // stored number that fits it is shown in its shape; one with more than
+    // eleven digits (an international number saved before the mask) is shown
+    // as stored, and typing into it reshapes it to the mask.
+    var phone = document.getElementById('ffc-cand-phone');
+    if (phone && window.FFC && window.FFC.Fields && window.jQuery) {
+        if (phone.value && phone.value.replace(/\D/g, '').length <= 11) {
+            phone.value = window.FFC.Fields.masks.phone(phone.value);
+        }
+        window.FFC.Fields.initMasks(window.jQuery(phone).parent());
+    }
+
 })();

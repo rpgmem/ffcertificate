@@ -319,7 +319,7 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->assertSame( array( 'j***@example.com' ), $result['emails'] );
 		$this->assertSame( '(**) *****-**00', $result['phone'] );
 		$this->assertSame( '', $result['birth_date'] );
-		$this->assertSame( '**/**/****', $result['birth_date_display'] );
+		$this->assertSame( '20/05/****', $result['birth_date_display'] );
 		$this->assertTrue( $result['pii_masked'] );
 		$this->assertTrue( $result['can_reveal'] );
 		$this->assertStringNotContainsString( 'john@example.com', (string) json_encode( $result ) );
@@ -338,7 +338,7 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->assertSame( array( 'j***@example.com' ), $result['emails'] );
 		$this->assertSame( '(**) *****-**00', $result['phone'] );
 		$this->assertSame( '', $result['birth_date'] );
-		$this->assertSame( '**/**/****', $result['birth_date_display'] );
+		$this->assertSame( '20/05/****', $result['birth_date_display'] );
 		$this->assertSame( array( '123.***.***-00' ), $result['cpfs_masked'] );
 		$this->assertTrue( $result['pii_masked'] );
 		$this->assertTrue( $result['can_reveal'] );
@@ -616,7 +616,7 @@ class UserProfileRestControllerTest extends TestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertSame( '', $result['birth_date'], 'The date is revealed on request, never sent masked or in clear (#1897).' );
-		$this->assertSame( '**/**/****', $result['birth_date_display'], 'A stored date must reach the read-only view as a mask.' );
+		$this->assertSame( '20/05/****', $result['birth_date_display'], 'A stored date must reach the read-only view as a mask.' );
 	}
 
 	public function test_get_user_profile_returns_an_empty_birth_date_when_none_is_stored(): void {

@@ -65,10 +65,6 @@ final class AudienceAccountEmail {
 		}
 
 		$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
-		if ( $masked === $email ) {
-			// mask_email() hands back an address it cannot parse unchanged.
-			$masked = '***';
-		}
 
 		$button = '';
 		if ( \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal( self::PII_CAP, $user_id ) ) {
