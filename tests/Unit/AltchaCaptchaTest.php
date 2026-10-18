@@ -7,12 +7,16 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Captcha\AltchaCaptcha;
+use FreeFormCertificate\Core\Captcha\CaptchaSettings;
+use FreeFormCertificate\Core\Captcha\ChallengeSigner;
+use FreeFormCertificate\Tests\Support\AltchaSolver;
 
 /**
  * Tests for the ALTCHA proof-of-work strategy.
  *
- * These solve the challenge the way the widget does — count up until the hash
- * reproduces — so they exercise the real wire format end to end without a
+ * These solve the challenge the way the widget does — count up until the
+ * derived key starts with the published prefix — so they exercise the real
+ * wire format end to end without a
  * browser. A test that hand-built the payload from the class's own internals
  * would pass even if the format drifted away from what the widget posts.
  *
@@ -66,184 +70,153 @@ class AltchaCaptchaTest extends TestCase {
 	/**
 	 * Solve a challenge exactly as the widget does.
 	 *
-	 * The counter is hashed as a decimal string, which is the widget's
-	 * `counterMode: 'string'` for this challenge format. Hashing it as an
-	 * integer would agree for small numbers and diverge silently later.
-	 *
 	 * @param array<string, mixed> $challenge Challenge as issued.
 	 * @return string Base64 payload the widget would post.
 	 */
 	private function solve( array $challenge ): string {
-		$salt = (string) $challenge['salt'];
-
-		// Bounded by the challenge's own published ceiling rather than a
-		// constant, so the loop still terminates if the default work factor
-		// changes underneath it.
-		for ( $n = 0; $n <= (int) $challenge['maxnumber']; $n++ ) {
-			if ( hash( 'sha256', $salt . (string) $n ) === $challenge['challenge'] ) {
-				return $this->encode(
-					array(
-						'algorithm' => $challenge['algorithm'],
-						'challenge' => $challenge['challenge'],
-						'number'    => $n,
-						'salt'      => $salt,
-						'signature' => $challenge['signature'],
-						'took'      => 12,
-					)
-				);
-			}
-		}
-
-		$this->fail( 'No solution below the published maxnumber — the challenge is unsolvable as issued.' );
+		return AltchaSolver::payload( $challenge, $this->counter_of( $challenge ) );
 	}
 
 	/**
-	 * @param array<string, mixed> $payload Solution payload.
+	 * The counter that solves a challenge, bounded by the configured work factor.
+	 *
+	 * @param array<string, mixed> $challenge Challenge as issued.
+	 * @return int
 	 */
-	private function encode( array $payload ): string {
-		return base64_encode( (string) json_encode( $payload ) );
+	private function counter_of( array $challenge ): int {
+		$counter = AltchaSolver::counter_of( $challenge, CaptchaSettings::complexity() );
+		$this->assertNotNull( $counter, 'No counter up to the work factor solves the challenge — it is unsolvable as issued.' );
+
+		return (int) $counter;
+	}
+
+	/**
+	 * A payload decoded back to an array, for tampering.
+	 *
+	 * @param string $payload Base64 payload.
+	 * @return array<string, mixed>
+	 */
+	private function decoded( string $payload ): array {
+		return json_decode( (string) base64_decode( $payload, true ), true );
+	}
+
+	/**
+	 * Sign parameters the way the class does, for challenges it would not issue.
+	 *
+	 * @param array<string, mixed> $parameters Challenge parameters.
+	 * @return string
+	 */
+	private function sign( array $parameters ): string {
+		$method = new \ReflectionMethod( AltchaCaptcha::class, 'signed_payload' );
+		$method->setAccessible( true );
+
+		return ChallengeSigner::sign( (string) $method->invoke( null, $parameters ) );
 	}
 
 	// ==================================================================
 	// create_challenge()
 	// ==================================================================
 
-	public function test_challenge_carries_the_v1_wire_format(): void {
-		$challenge = AltchaCaptcha::create_challenge();
+	public function test_challenge_carries_the_v2_wire_format(): void {
+		$challenge  = AltchaCaptcha::create_challenge();
+		$parameters = $challenge['parameters'];
 
-		$this->assertSame( 'SHA-256', $challenge['algorithm'] );
-		$this->assertMatchesRegularExpression( '/^[0-9a-f]{64}$/', $challenge['challenge'] );
-		$this->assertMatchesRegularExpression( '/^[0-9a-f]{24}\?expires=\d+$/', $challenge['salt'] );
+		$this->assertSame( array( 'parameters', 'signature' ), array_keys( $challenge ) );
+		$this->assertSame( 'SHA-256', $parameters['algorithm'] );
+		$this->assertSame( 1, $parameters['cost'] );
+		$this->assertSame( 32, $parameters['keyLength'] );
+		$this->assertMatchesRegularExpression( '/^[0-9a-f]{32}$/', $parameters['keyPrefix'] );
+		$this->assertMatchesRegularExpression( '/^[0-9a-f]{32}$/', $parameters['nonce'] );
+		$this->assertMatchesRegularExpression( '/^[0-9a-f]{32}$/', $parameters['salt'] );
+		$this->assertGreaterThan( time(), $parameters['expiresAt'] );
 		$this->assertMatchesRegularExpression( '/^[0-9a-f]{64}$/', $challenge['signature'] );
+		$this->assertArrayNotHasKey( 'challenge', $challenge, 'A top-level `challenge` key is the v1 shape, which ALTCHA 3.4.0 can no longer read.' );
 	}
 
-	public function test_two_challenges_never_share_a_salt(): void {
-		// The salt is what makes one visitor's work useless to another. Two
-		// identical salts would mean one solution answering both challenges.
-		$a = AltchaCaptcha::create_challenge();
-		$b = AltchaCaptcha::create_challenge();
+	public function test_two_challenges_never_share_a_nonce_or_salt(): void {
+		// The nonce and salt are what make one visitor's work useless to
+		// another. Two identical pairs would mean one solution answering both.
+		$a = AltchaCaptcha::create_challenge()['parameters'];
+		$b = AltchaCaptcha::create_challenge()['parameters'];
 
+		$this->assertNotSame( $a['nonce'], $b['nonce'] );
 		$this->assertNotSame( $a['salt'], $b['salt'] );
-		$this->assertNotSame( $a['challenge'], $b['challenge'] );
 	}
 
 	public function test_challenge_is_solvable_and_the_solution_verifies(): void {
 		$provider  = new AltchaCaptcha();
 		$challenge = AltchaCaptcha::create_challenge();
 
-		$result = $provider->verify( array( AltchaCaptcha::FIELD => $this->solve( $challenge ) ) );
-
-		$this->assertTrue( $result );
+		$this->assertTrue( $provider->verify( array( AltchaCaptcha::FIELD => $this->solve( $challenge ) ) ) );
 	}
 
-	// ==================================================================
-	// create_challenge() — the expiry is signed (#1357)
-	// ==================================================================
-
-	/**
-	 * Re-splitting the salt/number boundary must not move the expiry.
-	 *
-	 * This is CVE-2025-68113 in our own reimplementation, inverted into a
-	 * test. `challenge` binds `salt . number`, and the boundary between the
-	 * two is not fixed, so moving one digit from the front of `number` onto
-	 * the end of `expires` leaves the concatenation IDENTICAL byte for byte:
-	 * the hash still matches, and so does any signature taken over the hash
-	 * alone. Only the parsed expiry changes — by a factor of ten.
-	 *
-	 * No preimage is involved. The attacker does not change the hashed string
-	 * at all; they change where it is cut. That is why the fix is to bind the
-	 * parsed expiry into the signature rather than to harden the hash.
-	 */
-	public function test_a_spliced_expiry_is_refused(): void {
-		$provider = new AltchaCaptcha();
-
-		// The splice needs a digit to donate, so the secret must have at
-		// least two. It is drawn at random, so this retries rather than
-		// asserting the precondition: a one-in-twenty-thousand red is a flake,
-		// and this project does not accept a flaky test as a cost of doing
-		// business.
-		$challenge = null;
-		$number    = null;
-		for ( $attempt = 0; $attempt < 8 && null === $number; $attempt++ ) {
-			$candidate = AltchaCaptcha::create_challenge();
-			$solution  = $this->secret_of( $candidate );
-
-			if ( null !== $solution && strlen( $solution ) > 1 ) {
-				$challenge = $candidate;
-				$number    = $solution;
-			}
-		}
-
-		$this->assertNotNull( $number, 'No challenge in eight draws carried a multi-digit secret, which the work factor makes all but impossible.' );
-
-		$salt   = (string) $challenge['salt'];
-		$prefix = substr( $salt, 0, (int) strpos( $salt, '?' ) );
-		$issued = (string) $this->expires_in( $salt );
-
-		// Move exactly one digit across the boundary. The concatenation is
-		// unchanged, which is the whole trick.
-		$tail    = $issued . $number;
-		$forged  = substr( $tail, 0, strlen( $issued ) + 1 );
-		$rest    = substr( $tail, strlen( $issued ) + 1 );
-		$spliced = $prefix . '?expires=' . $forged;
+	public function test_the_key_is_derived_from_salt_nonce_and_a_big_endian_counter(): void {
+		// Pinned against a value computed outside the class, so a change to
+		// the byte order or the concatenation fails here and not in a browser.
+		$parameters = array(
+			'salt'  => str_repeat( '00', 16 ),
+			'nonce' => str_repeat( 'ff', 16 ),
+		);
 
 		$this->assertSame(
-			$salt . $number,
-			$spliced . $rest,
-			'The forged split must reproduce the original concatenation, or this test is not exercising the flaw.'
+			hash( 'sha256', str_repeat( "\x00", 16 ) . str_repeat( "\xff", 16 ) . "\x00\x00\x01\x02" ),
+			AltchaSolver::key( $parameters, 258 )
 		);
-		$this->assertGreaterThan(
-			(int) $issued,
-			(int) $forged,
-			'The forged expiry must be further in the future than the one issued.'
-		);
+	}
 
-		$result = $provider->verify(
-			array(
-				AltchaCaptcha::FIELD => $this->encode(
-					array(
-						'algorithm' => $challenge['algorithm'],
-						'challenge' => $challenge['challenge'],
-						'number'    => $rest,
-						'salt'      => $spliced,
-						'signature' => $challenge['signature'],
-						'took'      => 12,
-					)
-				),
-			)
-		);
+	// ==================================================================
+	// verify() — every parameter is signed
+	// ==================================================================
 
-		$this->assertIsString( $result, 'A spliced expiry must be refused: the signature binds the parsed expiry, not the hash alone.' );
+	/**
+	 * Every issued parameter is covered by the signature.
+	 *
+	 * v1 carried the expiry inside the salt, and the salt/number boundary
+	 * could be moved without changing the hashed string (CVE-2025-68113,
+	 * #1357). v2 has no such boundary: each field is signed on its own. This
+	 * changes each one and expects a refusal, so a field the signature
+	 * stopped covering fails here.
+	 *
+	 * @dataProvider tamperedParameters
+	 * @param string     $key   Parameter to change.
+	 * @param int|string $value Value to put there.
+	 */
+	public function test_a_tampered_parameter_is_refused( string $key, $value ): void {
+		$provider  = new AltchaCaptcha();
+		$challenge = AltchaCaptcha::create_challenge();
+		$counter   = $this->counter_of( $challenge );
+
+		$challenge['parameters'][ $key ] = $value;
+
+		$this->assertIsString( $provider->verify( array( AltchaCaptcha::FIELD => AltchaSolver::payload( $challenge, $counter ) ) ) );
 	}
 
 	/**
-	 * The secret number behind a challenge, found the way the widget finds it.
-	 *
-	 * @param array<string, mixed> $challenge Challenge as issued.
-	 * @return string|null Decimal string, or null when unsolvable as issued.
+	 * @return array<string, array{0: string, 1: int|string}>
 	 */
-	private function secret_of( array $challenge ): ?string {
-		$salt = (string) $challenge['salt'];
-
-		for ( $n = 0; $n <= (int) $challenge['maxnumber']; $n++ ) {
-			if ( hash( 'sha256', $salt . (string) $n ) === $challenge['challenge'] ) {
-				return (string) $n;
-			}
-		}
-
-		return null;
+	public static function tamperedParameters(): array {
+		return array(
+			'expiry pushed out'  => array( 'expiresAt', 4102444800 ),
+			'easier key prefix'  => array( 'keyPrefix', str_repeat( '0', 32 ) ),
+			'another nonce'      => array( 'nonce', str_repeat( 'a', 32 ) ),
+			'another salt'       => array( 'salt', str_repeat( 'b', 32 ) ),
+			'another algorithm'  => array( 'algorithm', 'SHA-512' ),
+			'more rounds'        => array( 'cost', 2 ),
+			'shorter key'        => array( 'keyLength', 16 ),
+		);
 	}
 
-	/**
-	 * The expiry a salt carries, read the way the provider reads it.
-	 *
-	 * @param string $salt Salt as issued.
-	 * @return int
-	 */
-	private function expires_in( string $salt ): int {
-		parse_str( explode( '?', $salt, 2 )[1], $params );
+	public function test_an_added_parameter_does_not_change_what_is_verified(): void {
+		// Unknown fields are dropped before signing, so a client cannot widen
+		// what the signature covers -- and an honest client that echoes an
+		// extra field it was never sent is still accepted.
+		$provider  = new AltchaCaptcha();
+		$challenge = AltchaCaptcha::create_challenge();
+		$counter   = $this->counter_of( $challenge );
 
-		return (int) $params['expires'];
+		$challenge['parameters']['data'] = array( 'note' => 'x' );
+
+		$this->assertTrue( $provider->verify( array( AltchaCaptcha::FIELD => AltchaSolver::payload( $challenge, $counter ) ) ) );
 	}
 
 	// ==================================================================
@@ -293,62 +266,83 @@ class AltchaCaptchaTest extends TestCase {
 	// ==================================================================
 
 	public function test_a_forged_signature_is_refused(): void {
+		$provider = new AltchaCaptcha();
+		$solved   = $this->decoded( $this->solve( AltchaCaptcha::create_challenge() ) );
+
+		$solved['challenge']['signature'] = str_repeat( 'a', 64 );
+
+		$this->assertIsString( $provider->verify( array( AltchaCaptcha::FIELD => AltchaSolver::encode( $solved ) ) ) );
+	}
+
+	public function test_a_wrong_counter_is_refused(): void {
+		// The next counter, with the key honestly derived for it: the key
+		// matches the counter but not the prefix, which is the check that
+		// carries the work.
 		$provider  = new AltchaCaptcha();
 		$challenge = AltchaCaptcha::create_challenge();
-		$solved    = json_decode( (string) base64_decode( $this->solve( $challenge ), true ), true );
+		$counter   = $this->counter_of( $challenge ) + 1;
 
-		$solved['signature'] = str_repeat( 'a', 64 );
-
-		$this->assertIsString( $provider->verify( array( AltchaCaptcha::FIELD => $this->encode( $solved ) ) ) );
+		$this->assertIsString( $provider->verify( array( AltchaCaptcha::FIELD => AltchaSolver::payload( $challenge, $counter ) ) ) );
 	}
 
-	public function test_a_wrong_number_is_refused(): void {
+	public function test_a_derived_key_that_does_not_match_its_counter_is_refused(): void {
+		// The right prefix copied into the key with a counter that does not
+		// produce it: claiming the work without doing it.
 		$provider  = new AltchaCaptcha();
 		$challenge = AltchaCaptcha::create_challenge();
-		$solved    = json_decode( (string) base64_decode( $this->solve( $challenge ), true ), true );
+		$solved    = $this->decoded( $this->solve( $challenge ) );
 
-		++$solved['number'];
+		$solved['solution']['counter']    = $solved['solution']['counter'] + 1;
+		$solved['solution']['derivedKey'] = $challenge['parameters']['keyPrefix'] . str_repeat( '0', 32 );
 
-		$this->assertIsString( $provider->verify( array( AltchaCaptcha::FIELD => $this->encode( $solved ) ) ) );
+		$this->assertIsString( $provider->verify( array( AltchaCaptcha::FIELD => AltchaSolver::encode( $solved ) ) ) );
 	}
 
-	public function test_an_expired_challenge_is_refused(): void {
-		// The salt carries the expiry and is bound to the challenge hash, so
-		// an expired one can only be produced by issuing it that way.
-		$provider = new AltchaCaptcha();
-		$expires  = time() - 1;
-		$salt     = bin2hex( random_bytes( 12 ) ) . '?expires=' . $expires;
-		$number   = 7;
-		$hash     = hash( 'sha256', $salt . $number );
-
-		$payload = array(
+	public function test_an_expired_challenge_is_refused_as_expired(): void {
+		// Issued by hand with an expiry in the past and a valid signature, so
+		// the only thing wrong with it is its age.
+		$provider   = new AltchaCaptcha();
+		$parameters = array(
 			'algorithm' => 'SHA-256',
-			'challenge' => $hash,
-			'number'    => $number,
-			'salt'      => $salt,
-			'signature' => \FreeFormCertificate\Core\Captcha\ChallengeSigner::sign( $hash ),
+			'cost'      => 1,
+			'expiresAt' => time() - 1,
+			'keyLength' => 32,
+			'keyPrefix' => '',
+			'nonce'     => bin2hex( random_bytes( 16 ) ),
+			'salt'      => bin2hex( random_bytes( 16 ) ),
+		);
+		$parameters['keyPrefix'] = substr( AltchaSolver::key( $parameters, 7 ), 0, 32 );
+		$challenge               = array(
+			'parameters' => $parameters,
+			'signature'  => $this->sign( $parameters ),
 		);
 
-		$this->assertIsString( $provider->verify( array( AltchaCaptcha::FIELD => $this->encode( $payload ) ) ) );
+		$this->assertSame(
+			'Error: The verification expired. Please try again.',
+			$provider->verify( array( AltchaCaptcha::FIELD => AltchaSolver::payload( $challenge, 7 ) ) )
+		);
 	}
 
-	public function test_a_salt_without_an_expiry_is_refused(): void {
-		// An unsigned salt cannot extend its own life, but it can omit the
-		// expiry entirely — which must not read as "never expires".
+	public function test_a_v1_payload_is_refused(): void {
+		// The format this class issued before #1928. Refused rather than
+		// translated: a visitor holding one re-solves a fresh challenge.
 		$provider = new AltchaCaptcha();
-		$salt     = bin2hex( random_bytes( 12 ) );
-		$number   = 3;
-		$hash     = hash( 'sha256', $salt . $number );
+		$salt     = bin2hex( random_bytes( 12 ) ) . '?expires=' . ( time() + 600 );
 
-		$payload = array(
-			'algorithm' => 'SHA-256',
-			'challenge' => $hash,
-			'number'    => $number,
-			'salt'      => $salt,
-			'signature' => \FreeFormCertificate\Core\Captcha\ChallengeSigner::sign( $hash ),
+		$payload = AltchaSolver::encode(
+			array(
+				'algorithm' => 'SHA-256',
+				'challenge' => hash( 'sha256', $salt . '7' ),
+				'number'    => 7,
+				'salt'      => $salt,
+				'signature' => str_repeat( 'a', 64 ),
+			)
 		);
 
-		$this->assertIsString( $provider->verify( array( AltchaCaptcha::FIELD => $this->encode( $payload ) ) ) );
+		$this->assertSame(
+			'Error: Please complete the verification.',
+			$provider->verify( array( AltchaCaptcha::FIELD => $payload ) )
+		);
 	}
 
 	/**
@@ -357,7 +351,7 @@ class AltchaCaptchaTest extends TestCase {
 	 */
 	public function test_malformed_payloads_are_refused_without_fataling( $raw ): void {
 		// Every byte here is attacker-controlled. Under strict_types an array
-		// reaching hash() is a TypeError, not a rejection — the #1058 class.
+		// reaching hex2bin() is a TypeError, not a rejection — the #1058 class.
 		$provider = new AltchaCaptcha();
 
 		$this->assertIsString( $provider->verify( array( AltchaCaptcha::FIELD => $raw ) ) );
@@ -367,16 +361,51 @@ class AltchaCaptchaTest extends TestCase {
 	 * @return array<string, array{0: mixed}>
 	 */
 	public static function malformedPayloads(): array {
+		$params = array(
+			'algorithm' => 'SHA-256',
+			'cost'      => 1,
+			'expiresAt' => 4102444800,
+			'keyLength' => 32,
+			'keyPrefix' => str_repeat( 'a', 32 ),
+			'nonce'     => str_repeat( 'b', 32 ),
+			'salt'      => str_repeat( 'c', 32 ),
+		);
+		$wrap   = static function ( array $parameters, array $solution, $signature = 'sig' ): string {
+			return base64_encode(
+				(string) json_encode(
+					array(
+						'challenge' => array(
+							'parameters' => $parameters,
+							'signature'  => $signature,
+						),
+						'solution'  => $solution,
+					)
+				)
+			);
+		};
+		$good   = array(
+			'counter'    => 1,
+			'derivedKey' => str_repeat( 'd', 64 ),
+		);
+
 		return array(
-			'missing'            => array( null ),
-			'empty'              => array( '' ),
-			'not base64'         => array( '!!!not base64!!!' ),
-			'not json'           => array( base64_encode( 'plain text' ) ),
-			'json scalar'        => array( base64_encode( '"a string"' ) ),
-			'missing keys'       => array( base64_encode( '{"algorithm":"SHA-256"}' ) ),
-			'array where string' => array( base64_encode( '{"algorithm":"SHA-256","challenge":"x","salt":["a"],"signature":"y","number":1}' ) ),
-			'number not numeric' => array( base64_encode( '{"algorithm":"SHA-256","challenge":"x","salt":"y","signature":"z","number":"12a"}' ) ),
-			'wrong algorithm'    => array( base64_encode( '{"algorithm":"MD5","challenge":"x","salt":"y","signature":"z","number":1}' ) ),
+			'missing'                  => array( null ),
+			'empty'                    => array( '' ),
+			'not base64'               => array( '!!!not base64!!!' ),
+			'not json'                 => array( base64_encode( 'plain text' ) ),
+			'json scalar'              => array( base64_encode( '"a string"' ) ),
+			'no solution'              => array( base64_encode( '{"challenge":{"parameters":{},"signature":"x"}}' ) ),
+			'parameters not an object' => array( base64_encode( '{"challenge":{"parameters":"x","signature":"x"},"solution":{"counter":1,"derivedKey":"' . str_repeat( 'd', 64 ) . '"}}' ) ),
+			'signature not a string'   => array( $wrap( $params, $good, array( 'x' ) ) ),
+			'salt is an array'         => array( $wrap( array_merge( $params, array( 'salt' => array( 'a' ) ) ), $good ) ),
+			'nonce not hex'            => array( $wrap( array_merge( $params, array( 'nonce' => str_repeat( 'z', 32 ) ) ), $good ) ),
+			'expiry as a string'       => array( $wrap( array_merge( $params, array( 'expiresAt' => '4102444800' ) ), $good ) ),
+			'counter as a string'      => array( $wrap( $params, array_merge( $good, array( 'counter' => '1' ) ) ) ),
+			'counter negative'         => array( $wrap( $params, array_merge( $good, array( 'counter' => -1 ) ) ) ),
+			'counter above uint32'     => array( $wrap( $params, array_merge( $good, array( 'counter' => 4294967296 ) ) ) ),
+			'derived key uppercase'    => array( $wrap( $params, array_merge( $good, array( 'derivedKey' => str_repeat( 'D', 64 ) ) ) ) ),
+			'derived key short'        => array( $wrap( $params, array_merge( $good, array( 'derivedKey' => 'dd' ) ) ) ),
+			'wrong algorithm'          => array( $wrap( array_merge( $params, array( 'algorithm' => 'MD5' ) ), $good ) ),
 		);
 	}
 

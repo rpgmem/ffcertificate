@@ -302,7 +302,7 @@ class CaptchaSettings {
 	/**
 	 * The configured widget configuration object.
 	 *
-	 * These are not attributes — the 3.x element accepts nine, and these are
+	 * These are not attributes — the 3.x element accepts ten, and these are
 	 * not among them, so they travel as JSON in `configuration`. Writing them
 	 * as attributes fails silently, which is why they are assembled in one
 	 * place rather than at the template.
