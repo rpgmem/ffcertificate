@@ -357,7 +357,7 @@ class TabEmailTexts extends SettingsTab {
 			return;
 		}
 
-		$open_label = __( 'Open →', 'ffcertificate' );
+		$open_label = __( 'Open', 'ffcertificate' );
 		?>
 		<h2 class="ffc-icon-list"><?php esc_html_e( 'All plugin emails', 'ffcertificate' ); ?></h2>
 		<p class="description">

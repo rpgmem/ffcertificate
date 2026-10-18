@@ -3907,7 +3907,7 @@ msgid "Change Password"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:124
-msgid "Change →"
+msgid "Change"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:436
@@ -12069,7 +12069,7 @@ msgid "Open the new notice and attach the relevant adjutancies + import the cand
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:340
-msgid "Open →"
+msgid "Open"
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:565
@@ -22851,7 +22851,7 @@ msgstr ""
 msgid "The certificate PDF a form issues on submission (the default kind). Three ready-made certificate models ship."
 msgstr ""
 
-msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change →\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
+msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
 msgstr ""
 
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
@@ -23000,7 +23000,7 @@ msgstr ""
 msgid "The identity/contact/address/employment fields live on the plugin's user profile and are mapped to the reregistration and audience data, so a user's details stay consistent across a certificate PDF, a record and their profile. WordPress's first and last name follow the plugin's full name (first word / the rest), and editing First/Last Name on the user-edit screen updates it back."
 msgstr ""
 
-msgid "A read-only index at the bottom of the tab lists the plugin's emails, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open →\" deep-link to where it is configured. It is discoverability only — it moves no controls."
+msgid "A read-only index at the bottom of the tab lists the plugin's emails, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open\" deep-link to where it is configured. It is discoverability only — it moves no controls."
 msgstr ""
 
 msgid "See Date Messages"

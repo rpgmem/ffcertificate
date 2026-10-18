@@ -44,10 +44,16 @@
 
 /* The compact size, for a button that sits in a table row or a list item
    beside other text. The family's 40px touch height would fatten the row,
-   so the height comes from the padding, as it did before #1874. */
+   so the height comes from the padding, as it did before #1874.
+
+   The size is opt-in per class, so a button that joins a row joins this
+   list: the owner's Reveal beside a masked value (#1897) shipped without it
+   and drew at the family's 40px next to a compact "View PDF" (#1903). */
 .ffc-user-dashboard .ffc-btn-pdf,
 .ffc-user-dashboard .ffc-btn-receipt,
 .ffc-user-dashboard .ffc-btn-edit,
+.ffc-user-dashboard .ffc-certificate-reveal-btn,
+.ffc-user-dashboard .ffc-profile-reveal-btn,
 .ffc-user-dashboard .ffc-cancel-appointment,
 .ffc-user-dashboard .ffc-cal-export-btn,
 .ffc-audience-join-item .ffc-btn {

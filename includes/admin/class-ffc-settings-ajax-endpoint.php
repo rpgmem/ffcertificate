@@ -661,16 +661,18 @@ class SettingsAjaxEndpoint {
 	 */
 	private static function write_option_path( string $option_name, array $path, $value ): bool {
 		global $wpdb;
-		$db   = is_object( $wpdb ) && method_exists( $wpdb, 'get_var' ) && method_exists( $wpdb, 'prepare' ) ? $wpdb : null;
-		$lock = 'ffc_option_' . md5( ( $db && isset( $db->options ) ? (string) $db->options : '' ) . '|' . $option_name );
-		$held = false;
+		$db     = is_object( $wpdb ) && method_exists( $wpdb, 'get_var' ) && method_exists( $wpdb, 'prepare' ) ? $wpdb : null;
+		$lock   = 'ffc_option_' . md5( ( $db && isset( $db->options ) ? (string) $db->options : '' ) . '|' . $option_name );
+		$holder = null;
 		if ( null !== $db ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A named lock has no WordPress API and must never be cached.
 			$granted = $db->get_var( $db->prepare( 'SELECT GET_LOCK(%s, %d)', $lock, 10 ) );
 			if ( null !== $granted && '1' !== (string) $granted ) {
 				return false;
 			}
-			$held = null !== $granted;
+			if ( null !== $granted ) {
+				$holder = $db;
+			}
 		}
 
 		try {
@@ -687,9 +689,10 @@ class SettingsAjaxEndpoint {
 			self::set_nested( $option, $path, $value );
 			update_option( $option_name, $option );
 		} finally {
-			if ( $held && null !== $db ) {
+			// $holder is set only when the lock above was granted.
+			if ( null !== $holder ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the named lock taken above.
-				$db->get_var( $db->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+				$holder->get_var( $holder->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
 			}
 		}
 		return true;
