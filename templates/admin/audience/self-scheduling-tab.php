@@ -26,20 +26,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<tr>
 						<th scope="row"><?php esc_html_e( 'Manage Calendars', 'ffcertificate' ); ?></th>
 						<td>
-							<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_self_scheduling' ) ); ?>" class="button">
-								<?php esc_html_e( 'View All Calendars', 'ffcertificate' ); ?>
-							</a>
-							<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=ffc_self_scheduling' ) ); ?>" class="button">
-								<?php esc_html_e( 'Add New Calendar', 'ffcertificate' ); ?>
-							</a>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'View All Calendars', 'ffcertificate' ),
+									'icon'  => 'calendar',
+									'href'  => admin_url( 'edit.php?post_type=ffc_self_scheduling' ),
+								)
+							);
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label'    => __( 'Add New Calendar', 'ffcertificate' ),
+									'category' => 'create',
+									'icon'     => 'plus',
+									'href'     => admin_url( 'post-new.php?post_type=ffc_self_scheduling' ),
+								)
+							);
+							?>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row"><?php esc_html_e( 'Appointments', 'ffcertificate' ); ?></th>
 						<td>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-appointments' ) ); ?>" class="button">
-								<?php esc_html_e( 'View All Appointments', 'ffcertificate' ); ?>
-							</a>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'View All Appointments', 'ffcertificate' ),
+									'icon'  => 'list',
+									'href'  => admin_url( 'admin.php?page=ffc-appointments' ),
+								)
+							);
+							?>
 						</td>
 					</tr>
 				</tbody>
@@ -111,7 +128,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</tr>
 					</tbody>
 				</table>
-				<?php submit_button( __( 'Save Settings', 'ffcertificate' ) ); ?>
+				<?php \FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save Settings', 'ffcertificate' ), array( 'value' => __( 'Save Settings', 'ffcertificate' ) ) ); ?>
 			</div>
 		</form>
 
@@ -157,6 +174,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</tr>
 					</tbody>
 				</table>
-				<?php submit_button( __( 'Save Settings', 'ffcertificate' ) ); ?>
+				<?php \FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save Settings', 'ffcertificate' ), array( 'value' => __( 'Save Settings', 'ffcertificate' ) ) ); ?>
 			</div>
 		</form>

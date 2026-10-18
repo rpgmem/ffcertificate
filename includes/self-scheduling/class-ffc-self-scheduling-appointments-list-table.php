@@ -294,11 +294,13 @@ class AppointmentsListTable extends \WP_List_Table {
 			return $html;
 		}
 
-		return $html . sprintf(
-			' <button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="appointment" data-field="email" data-submission-id="%1$s" data-nonce="%2$s">%3$s</button>',
-			esc_attr( (string) ( $item['id'] ?? 0 ) ),
-			esc_attr( $this->reveal_nonce() ),
-			esc_html__( 'Reveal', 'ffcertificate' )
+		return $html . ' ' . \FreeFormCertificate\Core\PiiReveal::field_button(
+			array(
+				'type'          => 'appointment',
+				'field'         => 'email',
+				'submission-id' => (string) ( $item['id'] ?? 0 ),
+				'nonce'         => $this->reveal_nonce(),
+			)
 		);
 	}
 
@@ -444,7 +446,17 @@ class AppointmentsListTable extends \WP_List_Table {
 			<option value="waitlist" <?php selected( $status, 'waitlist' ); ?>><?php esc_html_e( 'Waitlist', 'ffcertificate' ); ?></option>
 		</select>
 
-		<?php submit_button( __( 'Filter', 'ffcertificate' ), '', 'filter_action', false ); ?>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Filter', 'ffcertificate' ),
+				'icon'  => 'filter',
+				'type'  => 'submit',
+				'name'  => 'filter_action',
+				'value' => __( 'Filter', 'ffcertificate' ),
+			)
+		);
+		?>
 	</div>
 		<?php
 	}

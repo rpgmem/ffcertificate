@@ -125,6 +125,15 @@ describe('add working hour (#ffc-add-working-hour click)', () => {
 		expect(starts[1].value).toBe('17:00');
 	});
 
+	it("draws the new row's Remove as the family's danger button (#1904)", () => {
+		document.getElementById('ffc-add-working-hour').click();
+		const rows = document.querySelectorAll('#ffc-working-hours-list tr');
+		const btn = rows[rows.length - 1].querySelector('.ffc-remove-hour');
+		expect(btn.className).toContain('ffc-btn ffc-btn-danger');
+		expect(btn.className).toContain('ffc-icon-delete');
+		expect(btn.className).not.toMatch(/(^|\s)button(\s|$)/);
+	});
+
 	it('increments the row counter so consecutive adds get distinct names', () => {
 		document.getElementById('ffc-add-working-hour').click();
 		document.getElementById('ffc-add-working-hour').click();
@@ -500,6 +509,14 @@ describe('custom scheduling mode (#941)', () => {
 		expect(dateInput.name).toMatch(/ffc_self_scheduling_custom_slots\[\d+\]\[date\]/);
 		// capacity defaults to 1
 		expect(rows[rows.length - 1].querySelector('input[type="number"]').value).toBe('1');
+	});
+
+	it("draws the new block's Remove as the family's danger button (#1904)", () => {
+		document.getElementById('ffc-add-custom-slot').click();
+		const btn = document.querySelector('#ffc-custom-slots-list .ffc-remove-slot');
+		expect(btn.getAttribute('type')).toBe('button');
+		expect(btn.className).toContain('ffc-btn ffc-btn-danger');
+		expect(btn.className).toContain('ffc-icon-delete');
 	});
 
 	it('removes a block row on the remove button', async () => {
