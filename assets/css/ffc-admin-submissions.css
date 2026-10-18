@@ -2,7 +2,8 @@
    FREE FORM CERTIFICATE - ADMIN SUBMISSIONS PAGE
    Loaded on the submissions screen only (#1923). It loaded on every FFC
    screen until then, carrying a tooltip family and a focus ring for core's
-   `.button`, which no FFC screen prints any more (#1904); both left.
+   `.button`, which no FFC screen prints any more (#1904). The focus ring
+   left; the tooltip moved to ffc-admin-components.css, on `.ffc-btn-icon`.
    ========================================================================== */
  
 /* ==========================================================================
