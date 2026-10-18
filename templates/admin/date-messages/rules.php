@@ -86,17 +86,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 						echo esc_html( array() === $ffc_dm_names ? __( 'Everyone', 'ffcertificate' ) : implode( ', ', $ffc_dm_names ) );
 						?>
 					</td>
-					<td>
-						<?php
-						if ( ! $ffc_dm_rule->is_active ) {
-							esc_html_e( 'Inactive', 'ffcertificate' );
-						} elseif ( ! $ffc_dm_rule->send_to_user ) {
-							esc_html_e( 'Active, not sending to people', 'ffcertificate' );
-						} else {
-							esc_html_e( 'Active', 'ffcertificate' );
-						}
-						?>
-					</td>
+					<?php
+					// The Status cell follows the row's toggle once its save is
+					// confirmed (#1904); both labels ride on the toggle.
+					$ffc_dm_status_on  = $ffc_dm_rule->send_to_user ? __( 'Active', 'ffcertificate' ) : __( 'Active, not sending to people', 'ffcertificate' );
+					$ffc_dm_status_off = __( 'Inactive', 'ffcertificate' );
+					?>
+					<td id="ffc-dm-rule-status-<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>"><?php echo esc_html( $ffc_dm_rule->is_active ? $ffc_dm_status_on : $ffc_dm_status_off ); ?></td>
 					<?php if ( $can_manage ) : ?>
 						<td>
 							<?php
@@ -113,7 +109,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 										__( 'Active: %s', 'ffcertificate' ),
 										$ffc_dm_rule->name
 									),
-									'data'       => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', $ffc_dm_rule->id, 'is_active' ),
+									'data'       => array_merge(
+										\FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', $ffc_dm_rule->id, 'is_active' ),
+										array(
+											'ffc-status-target' => 'ffc-dm-rule-status-' . $ffc_dm_rule->id,
+											'ffc-status-on'     => $ffc_dm_status_on,
+											'ffc-status-off'    => $ffc_dm_status_off,
+										)
+									),
 								)
 							);
 							$ffc_dm_actions = array(

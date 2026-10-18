@@ -263,7 +263,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 									<?php endif; ?>
 								</td>
 								<td><strong><?php echo esc_html( number_format_i18n( (int) $item['click_count'] ) ); ?></strong></td>
-								<td><span class="<?php echo esc_attr( $status_css_class ); ?>"><?php echo esc_html( $status_label ); ?></span></td>
+								<?php // The Status badge follows the row's toggle once its save is confirmed (#1904). ?>
+								<td><span id="ffc-short-url-status-<?php echo esc_attr( (string) $item['id'] ); ?>" class="<?php echo esc_attr( $status_css_class ); ?>" data-ffc-status-on-class="ffc-shorturl-status-active" data-ffc-status-off-class="ffc-shorturl-status-disabled"><?php echo esc_html( $status_label ); ?></span></td>
 								<td>
 									<?php if ( $is_trashed ) : ?>
 										<?php
@@ -318,7 +319,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 													__( 'Active: %s', 'ffcertificate' ),
 													$short_url
 												),
-												'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'short_url', (int) $item['id'], 'status' ),
+												'data'    => array_merge(
+													\FreeFormCertificate\Core\RecordAutosave::attrs( 'short_url', (int) $item['id'], 'status' ),
+													array(
+														'ffc-status-target' => 'ffc-short-url-status-' . $item['id'],
+														'ffc-status-on'     => __( 'Active', 'ffcertificate' ),
+														'ffc-status-off'    => __( 'Disabled', 'ffcertificate' ),
+													)
+												),
 											)
 										);
 										if ( $is_manual ) {

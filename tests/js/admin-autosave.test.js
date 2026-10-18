@@ -118,7 +118,8 @@ describe('FFC.Admin.autoSaveField', () => {
 		document.removeEventListener('ffc:setting-saved', onSaved);
 		// The response rides along for a save whose server side did more than
 		// write the field (the operator access hash, #1755).
-		expect(seen).toEqual([{ key: 'dark_mode', value: '1', response: { share_link: '?x' } }]);
+		// The field rides along too, for a listener that repaints beside it (#1904).
+		expect(seen).toEqual([{ key: 'dark_mode', value: '1', response: { share_link: '?x' }, field: document.getElementById('t') }]);
 	});
 
 	it('stays silent when the save fails', async () => {
