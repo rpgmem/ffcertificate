@@ -515,12 +515,22 @@ class Encryption {
 	/**
 	 * Encrypt submission data (batch helper)
 	 *
-	 * Encrypts all sensitive fields in a submission array
+	 * Encrypts the e-mail, IP and data of a submission array. It never
+	 * encrypted CPF or RF, so the name promised more than it did, and nothing
+	 * in the plugin calls it: the writers encrypt through the registry.
+	 *
+	 * @deprecated 6.41.0 Use {@see SensitiveFieldRegistry::encrypt_fields()} with `CONTEXT_SUBMISSION` (#1934).
+	 * @removal    6.43.0
 	 *
 	 * @param array<string, mixed> $submission Submission data.
 	 * @return array<string, mixed> Encrypted data with hash fields
 	 */
 	public static function encrypt_submission( array $submission ): array {
+		// The notice that actually reaches a consumer: `@deprecated` above is
+		// read by an IDE, while this emits `E_USER_DEPRECATED` under WP_DEBUG
+		// to whoever still calls it (#1934).
+		_deprecated_function( __METHOD__, '6.41.0', SensitiveFieldRegistry::class . '::encrypt_fields()' );
+
 		$encrypted = array();
 
 		// Email.
@@ -548,12 +558,21 @@ class Encryption {
 	/**
 	 * Decrypt submission data (batch helper)
 	 *
-	 * Decrypts all encrypted fields in a submission array
+	 * Decrypts all encrypted fields in a submission array. Nothing in the
+	 * plugin calls it: each reader decrypts the field it shows.
+	 *
+	 * @deprecated 6.41.0 Use {@see self::decrypt_field()} for each field (#1934).
+	 * @removal    6.43.0
 	 *
 	 * @param array<string, mixed> $submission Submission data with encrypted fields.
 	 * @return array<string, mixed> Decrypted data
 	 */
 	public static function decrypt_submission( array $submission ): array {
+		// The notice that actually reaches a consumer: `@deprecated` above is
+		// read by an IDE, while this emits `E_USER_DEPRECATED` under WP_DEBUG
+		// to whoever still calls it (#1934).
+		_deprecated_function( __METHOD__, '6.41.0', __CLASS__ . '::decrypt_field()' );
+
 		$decrypted = $submission; // Keep all fields.
 
 		// Email (try encrypted first, fallback to plain).
@@ -618,7 +637,16 @@ class Encryption {
 	/**
 	 * Decrypt appointment data (batch helper for appointments).
 	 *
-	 * Similar to decrypt_submission() but for the appointment table schema.
+	 * The columns come from {@see SensitiveFieldRegistry::CONTEXT_APPOINTMENT},
+	 * the same declaration the writer encrypts from, so a field added there is
+	 * decrypted here without a second list to keep in step (#1934). It had
+	 * already drifted once: the hand-written copy and the registry agreed only
+	 * because nobody had added a field since.
+	 *
+	 * CPF and RF are the one special case: they are alternatives, so the row
+	 * gets whichever it carries, CPF first, and `cpf_rf` repeats it for the
+	 * screens that still read the combined key. Every other field takes its
+	 * decrypted value, or the plaintext column when decryption fails.
 	 *
 	 * @since 4.12.0
 	 * @param array<string, mixed> $appointment Appointment row data with encrypted fields.
@@ -627,13 +655,17 @@ class Encryption {
 	public static function decrypt_appointment( array $appointment ): array {
 		$decrypted = $appointment;
 
-		if ( ! empty( $appointment['email_encrypted'] ) ) {
-			$decrypted['email'] = self::decrypt( $appointment['email_encrypted'] ) ?? '';
+		foreach ( SensitiveFieldRegistry::fields_for( SensitiveFieldRegistry::CONTEXT_APPOINTMENT ) as $field => $spec ) {
+			$column = $spec['encrypted_column'];
+			if ( null === $column || in_array( $field, array( 'cpf', 'rf' ), true ) || empty( $appointment[ $column ] ) ) {
+				continue;
+			}
+
+			$decrypted[ $field ] = self::decrypt( (string) $appointment[ $column ] ) ?? (string) ( $appointment[ $field ] ?? '' );
 		}
 
-		// CPF/RF — decrypt split columns.
-		$cpf_val = ! empty( $appointment['cpf_encrypted'] ) ? self::decrypt( $appointment['cpf_encrypted'] ) : null;
-		$rf_val  = ! empty( $appointment['rf_encrypted'] ) ? self::decrypt( $appointment['rf_encrypted'] ) : null;
+		$cpf_val = ! empty( $appointment['cpf_encrypted'] ) ? self::decrypt( (string) $appointment['cpf_encrypted'] ) : null;
+		$rf_val  = ! empty( $appointment['rf_encrypted'] ) ? self::decrypt( (string) $appointment['rf_encrypted'] ) : null;
 
 		if ( ! empty( $cpf_val ) ) {
 			$decrypted['cpf']    = $cpf_val;
@@ -641,16 +673,6 @@ class Encryption {
 		} elseif ( ! empty( $rf_val ) ) {
 			$decrypted['rf']     = $rf_val;
 			$decrypted['cpf_rf'] = $rf_val;
-		}
-
-		if ( ! empty( $appointment['phone_encrypted'] ) ) {
-			$decrypted['phone'] = self::decrypt( $appointment['phone_encrypted'] ) ?? ( $appointment['phone'] ?? '' );
-		}
-		if ( ! empty( $appointment['user_ip_encrypted'] ) ) {
-			$decrypted['user_ip'] = self::decrypt( $appointment['user_ip_encrypted'] ) ?? '';
-		}
-		if ( ! empty( $appointment['custom_data_encrypted'] ) ) {
-			$decrypted['custom_data'] = self::decrypt( $appointment['custom_data_encrypted'] ) ?? ( $appointment['custom_data'] ?? '' );
 		}
 
 		return $decrypted;
@@ -814,11 +836,20 @@ class Encryption {
 	/**
 	 * Test encryption/decryption
 	 *
-	 * Utility method for testing encryption setup
+	 * Utility method for testing encryption setup. Nothing in the plugin calls
+	 * it; the key-health report is what the admin screens read.
+	 *
+	 * @deprecated 6.41.0 Use {@see self::key_health_report()} (#1934).
+	 * @removal    6.43.0
 	 *
 	 * @return array<string, mixed> Test results
 	 */
 	public static function test(): array {
+		// The notice that actually reaches a consumer: `@deprecated` above is
+		// read by an IDE, while this emits `E_USER_DEPRECATED` under WP_DEBUG
+		// to whoever still calls it (#1934).
+		_deprecated_function( __METHOD__, '6.41.0', __CLASS__ . '::key_health_report()' );
+
 		$test_value = 'Test Value 123!@#';
 
 		$encrypted = self::encrypt( $test_value );
@@ -833,7 +864,7 @@ class Encryption {
 			'hash'             => $hash,
 			'hash_length'      => ( null !== $hash ) ? strlen( $hash ) : 0,
 			'match'            => $decrypted === $test_value,
-			'key_source'       => defined( 'FFC_ENCRYPTION_KEY' ) ? 'Custom' : 'WordPress Keys',
+			'key_source'       => self::is_decoupled() ? 'Custom' : 'WordPress Keys',
 		);
 	}
 
@@ -858,16 +889,32 @@ class Encryption {
 	/**
 	 * Get encryption info (for admin display)
 	 *
+	 * No admin screen displays it any more; the key-health report replaced it.
+	 * While it lasts it describes the key actually in use: a short
+	 * FFC_ENCRYPTION_KEY is ignored, and a decoupled key is used as given
+	 * rather than derived through PBKDF2, which the method used to claim
+	 * either way.
+	 *
+	 * @deprecated 6.41.0 Use {@see self::key_health_report()} (#1934).
+	 * @removal    6.43.0
+	 *
 	 * @return array<string, mixed> Encryption configuration info
 	 */
 	public static function get_info(): array {
+		// The notice that actually reaches a consumer: `@deprecated` above is
+		// read by an IDE, while this emits `E_USER_DEPRECATED` under WP_DEBUG
+		// to whoever still calls it (#1934).
+		_deprecated_function( __METHOD__, '6.41.0', __CLASS__ . '::key_health_report()' );
+
+		$decoupled = self::is_decoupled();
+
 		return array(
 			'configured'     => self::is_configured(),
 			'cipher'         => self::CIPHER,
 			'iv_length'      => self::IV_LENGTH,
-			'key_source'     => defined( 'FFC_ENCRYPTION_KEY' ) ? 'Custom (FFC_ENCRYPTION_KEY)' : 'WordPress Keys (SECURE_AUTH_KEY + LOGGED_IN_KEY + NONCE_KEY)',
+			'key_source'     => $decoupled ? 'Custom (FFC_ENCRYPTION_KEY)' : 'WordPress Keys (SECURE_AUTH_KEY + LOGGED_IN_KEY + NONCE_KEY)',
 			'hash_algorithm' => 'SHA-256',
-			'key_derivation' => 'PBKDF2 (10000 iterations)',
+			'key_derivation' => $decoupled ? 'None (FFC_ENCRYPTION_KEY used as the key)' : 'PBKDF2 (10000 iterations)',
 			'authentication' => 'HMAC-SHA256 (v2 ciphertexts; legacy v1 still decryptable)',
 			// Honest health of the active secret material (#839 S7a): `configured`
 			// only means "keys are defined", which stays true even for the

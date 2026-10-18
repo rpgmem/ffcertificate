@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 
 /**
  * Tests for Encryption class: round-trip, hashing, batch ops, configuration.
@@ -29,6 +30,25 @@ class EncryptionTest extends TestCase {
 	protected function tearDown(): void {
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The helper is deprecated (#1934): calling it must emit the notice that
+	 * reaches a consumer, naming the method, the release and the replacement.
+	 *
+	 * @param string $method Method on Encryption.
+	 */
+	private function expect_deprecation( string $method ): void {
+		$replacements = array(
+			'encrypt_submission' => SensitiveFieldRegistry::class . '::encrypt_fields()',
+			'decrypt_submission' => Encryption::class . '::decrypt_field()',
+			'get_info'           => Encryption::class . '::key_health_report()',
+			'test'               => Encryption::class . '::key_health_report()',
+		);
+
+		Functions\expect( '_deprecated_function' )
+			->once()
+			->with( Encryption::class . '::' . $method, '6.41.0', $replacements[ $method ] );
 	}
 
 	// ------------------------------------------------------------------
@@ -119,6 +139,8 @@ class EncryptionTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_encrypt_submission_encrypts_all_fields(): void {
+		$this->expect_deprecation( 'encrypt_submission' );
+
 		$submission = array(
 			'email'   => 'user@example.com',
 			'user_ip' => '192.168.1.1',
@@ -143,6 +165,8 @@ class EncryptionTest extends TestCase {
 	}
 
 	public function test_encrypt_submission_skips_empty_fields(): void {
+		$this->expect_deprecation( 'encrypt_submission' );
+
 		$submission = array( 'email' => '' );
 
 		$result = Encryption::encrypt_submission( $submission );
@@ -155,6 +179,8 @@ class EncryptionTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_decrypt_submission_restores_fields(): void {
+		$this->expect_deprecation( 'decrypt_submission' );
+
 		$original_email = 'user@example.com';
 		$encrypted_email = Encryption::encrypt( $original_email );
 
@@ -172,6 +198,8 @@ class EncryptionTest extends TestCase {
 	}
 
 	public function test_decrypt_submission_keeps_plain_when_no_encrypted(): void {
+		$this->expect_deprecation( 'decrypt_submission' );
+
 		$submission = array(
 			'email'  => 'plain@example.com',
 			'cpf_rf' => '51817842080',
@@ -183,6 +211,8 @@ class EncryptionTest extends TestCase {
 	}
 
 	public function test_decrypt_submission_decrypts_split_cpf_column(): void {
+		$this->expect_deprecation( 'decrypt_submission' );
+
 		$enc_cpf = Encryption::encrypt( '51817842080' );
 
 		$submission = array(
@@ -196,6 +226,8 @@ class EncryptionTest extends TestCase {
 	}
 
 	public function test_decrypt_submission_decrypts_split_rf_column(): void {
+		$this->expect_deprecation( 'decrypt_submission' );
+
 		$enc_rf = Encryption::encrypt( '1234567' );
 
 		$submission = array(
@@ -209,6 +241,8 @@ class EncryptionTest extends TestCase {
 	}
 
 	public function test_decrypt_submission_split_takes_priority_over_legacy(): void {
+		$this->expect_deprecation( 'decrypt_submission' );
+
 		$enc_cpf    = Encryption::encrypt( '11111111111' );
 		$enc_legacy = Encryption::encrypt( '99999999999' );
 
@@ -290,6 +324,8 @@ class EncryptionTest extends TestCase {
 	}
 
 	public function test_get_info_returns_expected_keys(): void {
+		$this->expect_deprecation( 'get_info' );
+
 		$info = Encryption::get_info();
 
 		$this->assertArrayHasKey( 'configured', $info );
@@ -305,6 +341,8 @@ class EncryptionTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_self_test_returns_matching_round_trip(): void {
+		$this->expect_deprecation( 'test' );
+
 		$result = Encryption::test();
 
 		$this->assertTrue( $result['match'], 'Self-test round-trip should match' );
@@ -362,6 +400,8 @@ class EncryptionTest extends TestCase {
 	}
 
 	public function test_get_info_reports_key_health(): void {
+		$this->expect_deprecation( 'get_info' );
+
 		$info = Encryption::get_info();
 		$this->assertArrayHasKey( 'key_health', $info );
 		$this->assertSame( Encryption::key_health(), $info['key_health'] );
@@ -544,6 +584,8 @@ class EncryptionTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_decrypt_submission_restores_ip_and_data(): void {
+		$this->expect_deprecation( 'decrypt_submission' );
+
 		$row = array(
 			'user_ip_encrypted' => Encryption::encrypt( '203.0.113.9' ),
 			'data_encrypted'    => Encryption::encrypt( '{"a":1}' ),
@@ -577,5 +619,83 @@ class EncryptionTest extends TestCase {
 		$report = new \ReflectionMethod( Encryption::class, 'active_secrets' );
 		$report->setAccessible( true );
 		$this->assertContains( str_repeat( 'S', 64 ), $report->invoke( null ), 'The health check must audit the salt actually in use.' );
+	}
+
+	/**
+	 * Every encrypted column the registry declares for an appointment is
+	 * decrypted, read from the registry rather than from a list of its own
+	 * (#1934): a field added there is covered here without editing this test.
+	 */
+	public function test_decrypt_appointment_decrypts_every_column_the_registry_declares(): void {
+		$fields = SensitiveFieldRegistry::fields_for( SensitiveFieldRegistry::CONTEXT_APPOINTMENT );
+		$this->assertNotEmpty( $fields, 'The registry declares no appointment field, so nothing below is measured.' );
+
+		foreach ( $fields as $field => $spec ) {
+			if ( null === $spec['encrypted_column'] ) {
+				continue;
+			}
+
+			$out = Encryption::decrypt_appointment( array( $spec['encrypted_column'] => Encryption::encrypt( 'v-' . $field ) ) );
+
+			$this->assertSame( 'v-' . $field, $out[ $field ], $field );
+		}
+	}
+
+	public function test_decrypt_appointment_leaves_a_column_the_registry_does_not_declare(): void {
+		$row = array( 'notes_encrypted' => Encryption::encrypt( 'kept' ) );
+
+		$this->assertSame( $row, Encryption::decrypt_appointment( $row ) );
+	}
+
+	/**
+	 * A ciphertext that does not decrypt falls back to the plaintext column, for
+	 * every field alike. The e-mail and the IP used to come back empty instead,
+	 * while the phone and the custom data fell back; one rule now covers all.
+	 */
+	public function test_decrypt_appointment_falls_back_to_the_plaintext_column_when_a_cipher_fails(): void {
+		$out = Encryption::decrypt_appointment(
+			array(
+				'email'           => 'plain@example.com',
+				'email_encrypted' => 'not-a-ciphertext',
+				'user_ip_encrypted' => 'not-a-ciphertext',
+			)
+		);
+
+		$this->assertSame( 'plain@example.com', $out['email'] );
+		$this->assertSame( '', $out['user_ip'], 'No plaintext column: empty, as before.' );
+	}
+
+	/**
+	 * A decoupled key is used as given, not derived: get_info() said PBKDF2
+	 * either way.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_info_describes_a_decoupled_key_as_used_directly(): void {
+		define( 'FFC_ENCRYPTION_KEY', str_repeat( 'K', 64 ) );
+		$this->expect_deprecation( 'get_info' );
+
+		$info = Encryption::get_info();
+
+		$this->assertSame( 'Custom (FFC_ENCRYPTION_KEY)', $info['key_source'] );
+		$this->assertSame( 'None (FFC_ENCRYPTION_KEY used as the key)', $info['key_derivation'] );
+	}
+
+	/**
+	 * A key shorter than 32 characters is ignored by the cipher, so the report
+	 * must not name it as the source.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_info_does_not_credit_a_short_key_the_cipher_ignores(): void {
+		define( 'FFC_ENCRYPTION_KEY', 'short' );
+		$this->expect_deprecation( 'get_info' );
+
+		$info = Encryption::get_info();
+
+		$this->assertStringStartsWith( 'WordPress Keys', $info['key_source'] );
+		$this->assertSame( 'PBKDF2 (10000 iterations)', $info['key_derivation'] );
 	}
 }
