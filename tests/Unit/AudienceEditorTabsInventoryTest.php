@@ -358,6 +358,16 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 			}
 		}
 
+		// Every submit joined the button family (#1904): the same name, value
+		// and form, now on a `<button type="submit">` instead of an `<input>`.
+		foreach ( $data as $key => $items ) {
+			$data[ $key ] = array_map(
+				static fn( string $item ): string => 0 === strpos( $item, 'field:input:submit:' ) ? 'field:button:submit:' . substr( $item, strlen( 'field:input:submit:' ) ) : $item,
+				$items
+			);
+			sort( $data[ $key ] );
+		}
+
 		return $data;
 	}
 
@@ -368,10 +378,14 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 	 * the record autosave key, as every toggle there does; on a new one it is
 	 * a plain field until the calendar is created.
 	 *
+	 * The holiday Delete's confirm (#1904): the family refuses an inline
+	 * `onclick`, so the question moved to ffc-core's delegated `data-confirm`.
+	 *
 	 * @var array<string, list<string>>
 	 */
 	private const ADDED_AFTER_TABS = array(
 		'calendar-edit-manage' => array(
+			'data:data-confirm=Delete this holiday?',
 			'data:data-ffc-autosave-record-key=admin_bypass',
 			'field:input:checkbox:schedule_admin_bypass@save_schedule',
 			'id:schedule_admin_bypass',

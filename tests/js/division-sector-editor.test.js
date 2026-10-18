@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-division-sector-editor.js');
 });
 
@@ -101,6 +102,22 @@ describe('ffc-division-sector-editor — add', () => {
 		expect(window.$('.ffc-ds-sector').length).toBe(1);
 		// Unnamed division → not serialized yet.
 		expect(hidden()).toEqual({});
+	});
+
+	it("draws the new division's buttons from the family (#1904)", () => {
+		mount({});
+		window.$('.ffc-ds-division-add').trigger('click');
+
+		const remove = document.querySelector('.ffc-ds-division .ffc-ds-division-remove');
+		expect(remove.className).toContain('ffc-btn ffc-btn-danger');
+		expect(remove.className).toContain('ffc-icon-delete');
+		expect(remove.textContent).toBe('Remove division');
+
+		const add = document.querySelector('.ffc-ds-division .ffc-ds-sector-add');
+		expect(add.className).toContain('ffc-btn ffc-btn-create');
+		expect(add.className).toContain('ffc-icon-plus');
+		expect(add.textContent).toBe('Add Department');
+		expect(add.getAttribute('type')).toBe('button');
 	});
 
 	it('adds a sector to an existing division', () => {

@@ -735,15 +735,15 @@ msgid "(your host's reverse proxy — a private/reserved address)"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-loader.php:255 includes/audience/class-ffc-audience-admin-audience-renderer.php:628
-msgid "+ Add Department"
+msgid "Add Department"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:633
-msgid "+ Add Division"
+msgid "Add Division"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:372
-msgid "+ Add Field"
+msgid "Add Field"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:191
@@ -759,7 +759,7 @@ msgid "New receipt template"
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-receipt-settings.php:158
-msgid "+ New template"
+msgid "New template"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:28
@@ -5620,7 +5620,7 @@ msgid "Default: link to magic, text shows /valid"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:358
-msgid "Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use \"+ Add Field\" to create custom fields."
+msgid "Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use \"Add Field\" to create custom fields."
 msgstr ""
 
 #. %s: link to the Adjutancies tab

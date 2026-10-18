@@ -95,18 +95,22 @@ class AudienceAdminBookings {
 				// window.FFCBatchedExport engine through the unified dispatcher —
 				// current filters ride along via data-* so the export matches the
 				// on-screen query. No admin-post form; the job nonce is localized.
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Export CSV', 'ffcertificate' ),
+						'icon'  => 'download',
+						'id'    => 'ffc-bookings-export-btn',
+						'attrs' => array(
+							'data-schedule_id'    => (string) $schedule_id,
+							'data-environment_id' => (string) $environment_id,
+							'data-status'         => $status_filter,
+							'data-date_from'      => $date_from,
+							'data-date_to'        => $date_to,
+						),
+					)
+				);
 				?>
-				<button
-					type="button"
-					id="ffc-bookings-export-btn"
-					class="page-title-action"
-					data-schedule_id="<?php echo esc_attr( (string) $schedule_id ); ?>"
-					data-environment_id="<?php echo esc_attr( (string) $environment_id ); ?>"
-					data-status="<?php echo esc_attr( $status_filter ); ?>"
-					data-date_from="<?php echo esc_attr( $date_from ); ?>"
-					data-date_to="<?php echo esc_attr( $date_to ); ?>">
-					<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
-				</button>			<?php endif; ?>
+			<?php endif; ?>
 			<hr class="wp-header-end">
 
 			<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
@@ -153,8 +157,22 @@ class AudienceAdminBookings {
 					<input type="date" name="date_from" value="<?php echo esc_attr( $date_from ); ?>" placeholder="<?php esc_attr_e( 'From', 'ffcertificate' ); ?>">
 					<input type="date" name="date_to" value="<?php echo esc_attr( $date_to ); ?>" placeholder="<?php esc_attr_e( 'To', 'ffcertificate' ); ?>">
 
-					<input type="submit" class="button" value="<?php esc_attr_e( 'Filter', 'ffcertificate' ); ?>">
-					<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-bookings' ) ); ?>" class="button"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></a>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Filter', 'ffcertificate' ),
+							'icon'  => 'filter',
+							'type'  => 'submit',
+						)
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Clear', 'ffcertificate' ),
+							'icon'  => 'eraser',
+							'href'  => admin_url( 'admin.php?page=' . $this->menu_slug . '-bookings' ),
+						)
+					);
+					?>
 				</form>
 			</div>
 

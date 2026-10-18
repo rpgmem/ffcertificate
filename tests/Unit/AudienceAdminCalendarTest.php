@@ -799,16 +799,6 @@ class AudienceAdminCalendarTest extends TestCase {
 		);
 	}
 
-	/**
-	 * Record each submit button as a marker carrying its label.
-	 */
-	private function capture_submit_buttons(): void {
-		Functions\when( 'submit_button' )->alias(
-			static function ( $text = null ) {
-				echo '[submit:' . $text . ']';
-			}
-		);
-	}
 
 	/**
 	 * @dataProvider edit_screen_tiers
@@ -818,7 +808,6 @@ class AudienceAdminCalendarTest extends TestCase {
 	 */
 	public function test_edit_form_renders_read_only_without_manage( array $caps, bool $can_manage ): void {
 		$this->grant( $caps );
-		$this->capture_submit_buttons();
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
@@ -857,7 +846,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
 		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
 		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) );
-		$this->assertSame( $can_manage, str_contains( $output, '[submit:Update Calendar]' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'value="Update Calendar" form="ffc-schedule-form">Update Calendar</button>' ) );
 		if ( ! $can_manage ) {
 			$open  = (int) strpos( $output, '<fieldset disabled' );
 			$close = (int) strpos( $output, '</fieldset>' );
@@ -879,7 +868,7 @@ class AudienceAdminCalendarTest extends TestCase {
 
 		// Holidays: no add form and no Delete.
 		$this->assertSame( $can_manage, str_contains( $output, 'ffc-holiday-form' ) );
-		$this->assertSame( $can_manage, str_contains( $output, '[submit:Add Holiday]' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'name="submit" value="Add Holiday">Add Holiday</button>' ) );
 		$this->assertSame( $can_manage, str_contains( $output, 'Delete this holiday?' ) );
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
 
@@ -952,11 +941,6 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'esc_attr__' )->returnArg();
-		Functions\when( 'submit_button' )->alias(
-			static function ( $text = null, $type = 'primary', $name = 'submit', $wrap = true, $other = null ) {
-				echo '[submit:' . $text . '|' . $name . '|form=' . ( is_array( $other ) ? ( $other['form'] ?? '' ) : '' ) . ']';
-			}
-		);
 		$sched = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceScheduleRepository' );
 		$sched->shouldNotReceive( 'get_environment_label' );
 
@@ -968,7 +952,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
 		$this->assertSame( array( 'general', 'notifications', 'event-list' ), $panels[1], 'the sections that need a saved calendar wait for one' );
 		$this->assertStringContainsString( 'id="ffc-schedule-form"', $output );
-		$this->assertStringContainsString( '[submit:Create Calendar|submit|form=ffc-schedule-form]', $output, 'the side button posts the calendar form' );
+		$this->assertStringContainsString( '<button type="submit" class="ffc-btn ffc-btn-primary ffc-icon-plus" name="submit" value="Create Calendar" form="ffc-schedule-form">Create Calendar</button>', $output, 'the side button posts the calendar form' );
 		$this->assertStringNotContainsString( 'ffc-icon-code', $output, 'no shortcode before the calendar exists' );
 		$this->assertStringNotContainsString( 'Calendar ID', $output );
 	}
@@ -1034,7 +1018,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">p***@e.com</span>', $output );
 		$this->assertSame(
 			$can_reveal ? 1 : 0,
-			substr_count( $output, '<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="audience_account" data-field="email" data-submission-id="7" data-nonce="reveal-nonce">Reveal</button>' )
+			substr_count( $output, '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-type="audience_account" data-field="email" data-submission-id="7" data-nonce="reveal-nonce">Reveal</button>' )
 		);
 		$this->assertSame( $can_reveal ? 1 : 0, substr_count( $output, 'ffc-reveal-pii' ) );
 	}
