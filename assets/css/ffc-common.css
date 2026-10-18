@@ -2098,12 +2098,11 @@
    ========================================================================== */
 
 /* Private visibility restriction container */
-.ffc-visibility-restricted {
-    padding: var(--ffc-spacing-2xl);
-    background: var(--ffc-warning-light);
-    border: 1px solid var(--ffc-warning);
-    border-radius: var(--ffc-radius-md);
-    text-align: center;
+/* Calendar access notices (login required, outside business hours) are the
+   shared notice (`Core\Notice::render()`); this wrapper only carries the
+   optional calendar title above it. */
+.ffc-visibility-restricted .ffc-notice {
+    margin-bottom: 0;
 }
 
 /* 1.2em literal: relative to its PARENT on purpose — this component is
@@ -2115,28 +2114,13 @@
     color: var(--ffc-text);
 }
 
-.ffc-visibility-restricted .ffc-restricted-message {
-    color: var(--ffc-text-muted);
-}
-
-.ffc-visibility-restricted .ffc-restricted-message a {
-    color: var(--ffc-primary);
-    font-weight: 600;
-}
-
 /* Scheduling restriction within modal */
 .ffc-scheduling-restricted {
-    padding: var(--ffc-spacing-2xl);
-    text-align: center;
+    padding: var(--ffc-spacing-lg);
 }
 
-.ffc-scheduling-restricted .ffc-restricted-message {
-    color: var(--ffc-text-muted);
-}
-
-.ffc-scheduling-restricted .ffc-restricted-message a {
-    color: var(--ffc-primary);
-    font-weight: 600;
+.ffc-scheduling-restricted .ffc-notice {
+    margin-bottom: 0;
 }
 
 /* Badge — canonical base class (shared across admin + frontend) */

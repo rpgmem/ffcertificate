@@ -420,7 +420,7 @@ class SelfSchedulingShortcode {
 			$output .= '<h3 class="ffc-calendar-title">' . esc_html( $calendar['title'] ) . '</h3>';
 		}
 
-		$output .= '<div class="ffc-restricted-message">' . wp_kses_post( $message ) . '</div>';
+		$output .= \FreeFormCertificate\Core\Notice::render( 'warning', 'login', $message, '', array( 'html' => true ) );
 		$output .= '</div>';
 
 		return $output;
@@ -523,7 +523,7 @@ class SelfSchedulingShortcode {
 
 		$output  = '<div class="ffc-visibility-restricted">';
 		$output .= '<h3 class="ffc-calendar-title">' . esc_html( $calendar['title'] ) . '</h3>';
-		$output .= '<div class="ffc-restricted-message">' . wp_kses_post( $message ) . '</div>';
+		$output .= \FreeFormCertificate\Core\Notice::render( 'warning', 'clock', $message, '', array( 'html' => true ) );
 		$output .= '</div>';
 
 		return $output;
@@ -596,7 +596,10 @@ class SelfSchedulingShortcode {
 					<?php if ( ! $can_book && $scheduling_message ) : ?>
 						<!-- Scheduling restricted message (no time slots shown) -->
 						<div class="ffc-scheduling-restricted">
-							<div class="ffc-restricted-message"><?php echo wp_kses_post( $scheduling_message ); ?></div>
+							<?php
+							// Trusted HTML from the settings screen, printed through wp_kses_post() inside Notice::render().
+							echo \FreeFormCertificate\Core\Notice::render( 'warning', 'login', $scheduling_message, '', array( 'html' => true ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every part and passes the message through wp_kses_post().
+							?>
 						</div>
 					<?php else : ?>
 
