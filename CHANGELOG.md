@@ -9,7 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **Admin actions get their own icons, and core button classes are ratcheted out** (#1904). Sixteen registry icons — unlink, merge, split, move, user-plus/-minus, double chevrons, ticket, image-plus, template save/load, file-check, flag, replicate-down, promote — and `CoreButtonClassRatchetTest` freezes WordPress's `.button*`, `page-title-action` and `submit_button()` per file.
+- **Admin action icons and a ratchet on core button classes** (#1904). Sixteen registry icons (unlink, merge, split, move, user-plus/-minus, double chevrons, ticket, template save/load, …) and `CoreButtonClassRatchetTest`, freezing WordPress's `.button*`, `page-title-action` and `submit_button()` per file.
 
 ### Changed
 
