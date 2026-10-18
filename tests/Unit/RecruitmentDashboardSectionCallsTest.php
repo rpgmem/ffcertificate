@@ -11,9 +11,14 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentDashboardSection;
 
 /**
- * Tests for the "My Calls" section: the view-as user, the classification
- * table per notice status, and the call-history table with its per-call
- * situation label.
+ * Tests for the "My Calls" section (#1889): the view-as user, the grouping
+ * into Called / Waiting / Closed, the derived "Deadline passed" status and
+ * its +1-day boundary in the site timezone, the relative date and the
+ * "leaves on" line of a card, and what the info popovers hold.
+ *
+ * The clock is always passed in, never read: the deadline rule snaps to a
+ * site-timezone midnight, so a test reading `time()` once would fail on the
+ * run that crosses it (CLAUDE.md "Test infrastructure").
  *
  * Every reader is aliased, so each test runs in its own process.
  *
@@ -37,15 +42,39 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $calls;
 
+	/** @var array<int, string> Script handles enqueued during the test. */
+	private array $scripts = array();
+
+	/**
+	 * 2026-10-18 12:00 in São Paulo (UTC-3, no DST since 2019).
+	 */
+	private const NOW = 1792335600;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
+		Functions\when( 'esc_html_x' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'number_format_i18n' )->alias( static fn ( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
+		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'America/Sao_Paulo' ) );
+		Functions\when( 'admin_url' )->alias( static fn ( $path = '' ) => 'https://example.test/wp-admin/' . $path );
+		Functions\when( 'wp_create_nonce' )->alias( static fn ( $action ) => 'nonce-' . $action );
+		Functions\when( 'add_query_arg' )->alias( static fn ( array $args, string $url ) => $url . '?' . http_build_query( $args ) );
+
+		$this->scripts = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			function ( $handle ) {
+				$this->scripts[] = $handle;
+			}
+		);
 
 		$this->candidates      = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
 		$this->classifications = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
@@ -58,8 +87,8 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
 			->shouldReceive( 'format_datetime' )->andReturnUsing( static fn ( $ts ) => 'DT' . $ts )
-			->shouldReceive( 'format_date' )->andReturnUsing( static fn ( $d ) => 'D' . $d )
-			->shouldReceive( 'format_time' )->andReturnUsing( static fn ( $t ) => 'T' . $t );
+			->shouldReceive( 'format_wallclock_date' )->andReturnUsing( static fn ( $d ) => 'D' . $d )
+			->shouldReceive( 'format_wallclock_time' )->andReturnUsing( static fn ( $t ) => 'T' . $t );
 	}
 
 	protected function tearDown(): void {
@@ -79,15 +108,17 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 		);
 	}
 
-	private function call( int $classification, ?string $cancelled = null, array $extra = array() ): object {
+	private function call( int $id, int $classification, array $extra = array() ): object {
 		return (object) array_merge(
 			array(
-				'classification_id' => $classification,
-				'cancelled_at'      => $cancelled,
-				'called_at'         => 1700000000,
-				'date_to_assume'    => '2026-03-01',
-				'time_to_assume'    => '08:00:00',
-				'notes'             => null,
+				'id'                  => $id,
+				'classification_id'   => $classification,
+				'cancelled_at'        => null,
+				'cancellation_reason' => null,
+				'called_at'           => 1700000000,
+				'date_to_assume'      => '2026-10-22',
+				'time_to_assume'      => '08:00:00',
+				'notes'               => null,
 			),
 			$extra
 		);
@@ -97,8 +128,33 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 		return (object) array( 'id' => $id, 'code' => 'N-' . $id, 'name' => 'Notice ' . $id, 'status' => $status );
 	}
 
-	public function test_register_adds_the_shortcode(): void {
+	/**
+	 * Wire one candidate with the given classifications, notices and calls.
+	 *
+	 * @param array<int, object> $classifications Classification rows.
+	 * @param array<int, object> $notices         Notice rows by id.
+	 * @param array<int, object> $calls           Call rows.
+	 */
+	private function wire( array $classifications, array $notices, array $calls ): void {
+		$this->candidates->shouldReceive( 'get_by_user_id' )->andReturn( array( (object) array( 'id' => 3 ) ) );
+		$this->classifications->shouldReceive( 'get_for_candidate' )->with( 3 )->andReturn( $classifications );
+		$this->notices->shouldReceive( 'get_by_id' )->andReturnUsing( static fn ( $id ) => $notices[ $id ] ?? null );
+		$this->calls->shouldReceive( 'get_history_for_classifications' )->andReturn( $calls );
+	}
+
+	/**
+	 * The HTML of one status section, or '' when it is not rendered.
+	 */
+	private function section( string $html, string $key ): string {
+		if ( 1 !== preg_match( '#<section class="ffc-mycalls-section ffc-mycalls-section-' . $key . '".*?</section>#s', $html, $m ) ) {
+			return '';
+		}
+		return $m[0];
+	}
+
+	public function test_register_adds_the_shortcode_and_the_calendar_download(): void {
 		Functions\expect( 'add_shortcode' )->once()->with( 'ffc_recruitment_my_calls', array( RecruitmentDashboardSection::class, 'render' ) );
+		Functions\expect( 'add_action' )->once()->with( 'admin_post_ffc_recruitment_call_ics', Mockery::type( 'array' ) );
 
 		RecruitmentDashboardSection::register();
 	}
@@ -116,7 +172,7 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 	public function test_render_for_user_refuses_a_non_positive_id(): void {
 		$this->candidates->shouldNotReceive( 'get_by_user_id' );
 
-		$this->assertSame( '', RecruitmentDashboardSection::render_for_user( 0 ) );
+		$this->assertSame( '', RecruitmentDashboardSection::render_for_user( 0, self::NOW ) );
 	}
 
 	public function test_a_candidate_whose_notices_are_gone_or_drafts_sees_nothing(): void {
@@ -124,66 +180,235 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 		$this->classifications->shouldReceive( 'get_for_candidate' )->with( 3 )->andReturn(
 			array( $this->cls( 1, 10, 'definitive', 'empty' ), $this->cls( 2, 11, 'definitive', 'empty' ) )
 		);
-		$this->notices->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( null );
-		$this->notices->shouldReceive( 'get_by_id' )->with( 11 )->andReturn( $this->notice( 11, 'draft' ) );
+		$this->notices->shouldReceive( 'get_by_id' )->andReturnUsing( fn ( $id ) => 11 === $id ? $this->notice( 11, 'draft' ) : null );
+		$this->calls->shouldNotReceive( 'get_history_for_classifications' );
 
-		$this->assertSame( '', RecruitmentDashboardSection::render_for_user( 9 ) );
+		$this->assertSame( '', RecruitmentDashboardSection::render_for_user( 9, self::NOW ) );
+		$this->assertSame( array(), $this->scripts, 'Nothing rendered, nothing to page.' );
 	}
 
-	public function test_a_definitive_notice_lists_its_calls_with_each_situation(): void {
-		$this->candidates->shouldReceive( 'get_by_user_id' )->andReturn( array( (object) array( 'id' => 3 ) ) );
-		$rows = array(
-			$this->cls( 1, 10, 'definitive', 'called' ),
-			$this->cls( 2, 10, 'definitive', 'not_shown', 99 ),
-			$this->cls( 3, 10, 'definitive', 'hired' ),
-			$this->cls( 4, 10, 'definitive', 'empty' ),
-			$this->cls( 5, 10, 'preview', 'empty' ),
-			$this->cls( 6, 10, 'definitive', 'mystery' ),
-		);
-		$this->classifications->shouldReceive( 'get_for_candidate' )->andReturn( $rows );
-		$this->notices->shouldReceive( 'get_by_id' )->andReturn( $this->notice( 10, 'definitive' ) );
-		$this->calls->shouldReceive( 'get_history_for_classifications' )->once()->with( array( 1, 2, 3, 4, 5, 6 ) )->andReturn(
+	public function test_classifications_are_grouped_into_the_three_sections_in_order(): void {
+		$this->wire(
 			array(
-				$this->call( 1 ),
-				$this->call( 2 ),
-				$this->call( 3, null, array( 'notes' => 'Bring documents' ) ),
-				$this->call( 4, null, array( 'called_at' => 0, 'date_to_assume' => null, 'time_to_assume' => '' ) ),
-				$this->call( 1, '2026-02-02 10:00:00' ),
-				$this->call( 77 ),
+				$this->cls( 1, 10, 'definitive', 'called' ),     // Active, presentation in 4 days.
+				$this->cls( 2, 10, 'definitive', 'accepted' ),   // Active, presentation passed: Deadline passed.
+				$this->cls( 3, 10, 'definitive', 'hired' ),
+				$this->cls( 4, 10, 'definitive', 'withdrew' ),
+				$this->cls( 5, 10, 'definitive', 'not_shown' ),
+				$this->cls( 6, 10, 'definitive', 'empty' ),
+				$this->cls( 7, 12, 'preview', 'empty' ),          // Preliminary notice.
+				$this->cls( 8, 10, 'preview', 'empty' ),          // Wrong list for a definitive notice.
+				$this->cls( 9, 10, 'definitive', 'called' ),     // Called, but its only call was reverted.
+			),
+			array(
+				10 => $this->notice( 10, 'definitive' ),
+				12 => $this->notice( 12, 'preliminary' ),
+			),
+			array(
+				$this->call( 101, 1, array( 'notes' => 'Bring documents' ) ),
+				$this->call( 102, 2, array( 'date_to_assume' => '2026-10-15' ) ),
+				$this->call( 103, 3, array( 'date_to_assume' => '2026-09-01', 'notes' => 'Morning shift' ) ),
+				$this->call( 109, 9, array( 'cancelled_at' => 1700001000 ) ),
 			)
 		);
 
-		$html = RecruitmentDashboardSection::render_for_user( 9 );
+		$html = RecruitmentDashboardSection::render_for_user( 9, self::NOW );
 
 		$this->assertStringContainsString( '<h2>My Calls</h2>', $html );
-		$this->assertStringContainsString( '<h3>N-10 — Notice 10</h3>', $html );
-		$this->assertStringContainsString( 'ffc-banner-definitive', $html );
-		$this->assertStringContainsString( 'Final classification', $html );
-		// Classification table: the preview row is hidden, an unknown status passes through.
-		$this->assertStringContainsString( '<td>—</td><td>2</td><td>87.50</td><td>Did not show up</td>', $html, 'A deleted adjutancy reads as a dash.' );
-		$this->assertStringContainsString( '<td>Waiting</td>', $html );
-		$this->assertStringContainsString( '<td>mystery</td>', $html );
-		$this->assertStringNotContainsString( '<td>5</td>', $html );
-		// Call history: one row per call that belongs to this notice.
-		$this->assertStringContainsString( 'Call history', $html );
-		$this->assertSame( 5, substr_count( $html, '<td>DT1700000000</td>' ) + substr_count( $html, '<td></td><td></td><td></td><td>Call reverted</td>' ) );
-		$this->assertStringContainsString( '<td>Mathematics</td><td>DT1700000000</td><td>D2026-03-01</td><td>T08:00:00</td><td>Called</td><td></td>', $html );
-		$this->assertStringContainsString( '<td>Hired</td><td>Bring documents</td>', $html );
-		$this->assertStringContainsString( '<td>Cancelled</td>', $html );
-		$this->assertStringContainsString( '<td>Did not show up</td><td></td></tr>', $html );
+		$called_at  = strpos( $html, 'id="ffc-mycalls-called"' );
+		$waiting_at = strpos( $html, 'id="ffc-mycalls-waiting"' );
+		$closed_at  = strpos( $html, 'id="ffc-mycalls-closed"' );
+		$this->assertNotFalse( $called_at );
+		$this->assertTrue( $called_at < $waiting_at && $waiting_at < $closed_at, 'Called, then Waiting, then Closed.' );
+
+		// The counters, each linking to its section.
+		$this->assertStringContainsString( 'href="#ffc-mycalls-called"><b>1</b> active call</a>', $html );
+		$this->assertStringContainsString( 'href="#ffc-mycalls-waiting"><b>3</b> waiting</a>', $html );
+		$this->assertStringContainsString( 'href="#ffc-mycalls-closed"><b>4</b> closed</a>', $html );
+
+		$called = $this->section( $html, 'called' );
+		$this->assertSame( 1, substr_count( $called, '<article class="ffc-mycalls-card">' ) );
+		$this->assertStringContainsString( '<span class="ffc-mycalls-notice-code">N-10</span> <span class="ffc-mycalls-notice-name">Notice 10</span>', $called );
+		$this->assertStringContainsString( '<strong>D2026-10-22 at T08:00:00</strong>', $called );
+		$this->assertStringContainsString( 'in 4 days', $called );
+		$this->assertStringContainsString( 'This card leaves on D2026-10-23.', $called );
+		$this->assertStringContainsString( '<dd>Bring documents</dd>', $called );
+		$this->assertStringContainsString( '<dd>DT1700000000</dd>', $called, 'Called at is the call\'s called_at.' );
+		$this->assertStringContainsString( 'ffc-icon-calendar-check', $called );
+		$this->assertStringContainsString( 'action=ffc_recruitment_call_ics&call=101&_wpnonce=nonce-ffc_recruitment_call_ics_101', $called );
+
+		$waiting = $this->section( $html, 'waiting' );
+		$final   = strpos( $waiting, 'data-group="final"><td colspan="5">Final classification' );
+		$prelim  = strpos( $waiting, 'data-group="preliminary"><td colspan="5">Preliminary classification — subject to review' );
+		$this->assertNotFalse( $final );
+		$this->assertNotFalse( $prelim );
+		$this->assertLessThan( $prelim, $final, 'Final group first.' );
+		$this->assertSame( 2, substr_count( $waiting, '<tr class="ffc-mycalls-group-row"' ), 'One label per group, not per row.' );
+		$this->assertSame( 3, substr_count( $waiting, '<tr class="ffc-mycalls-row"' ) );
+		$this->assertStringContainsString( 'N-12', $waiting );
+		$this->assertStringContainsString( 'data-per-page="5"', $waiting );
+		$this->assertStringContainsString( 'Previous call reverted', $waiting, 'The reverted call explains itself behind the i.' );
+		$this->assertStringNotContainsString( 'data-label="Position">8</td>', $waiting, 'A preview row on a definitive notice is not shown.' );
+
+		$closed = $this->section( $html, 'closed' );
+		$this->assertSame( 4, substr_count( $closed, '<tr class="ffc-mycalls-row"' ) );
+		$this->assertStringContainsString( 'ffc-mycalls-badge-expired">Deadline passed</span>', $closed );
+		$this->assertStringContainsString( 'ffc-mycalls-badge-hired">Hired</span>', $closed );
+		$this->assertStringContainsString( 'ffc-mycalls-badge-withdrew">Withdrew</span>', $closed );
+		$this->assertStringContainsString( 'ffc-mycalls-badge-not-shown">Did not show up</span>', $closed );
+		$this->assertStringContainsString( 'data-per-page="2"', $closed );
+		$this->assertStringContainsString( '<td data-label="Notes">Morning shift</td>', $closed );
+		$this->assertStringContainsString( 'data-label="Presentation date">—</td>', $closed, 'A row without a call has no date.' );
+		// Most recent presentation first.
+		$this->assertLessThan( strpos( $closed, '>Hired<' ), strpos( $closed, '>Deadline passed<' ) );
+
+		$this->assertSame( array( 'ffc-recruitment-my-calls' ), $this->scripts );
 	}
 
-	public function test_a_preliminary_notice_without_preview_rows_or_calls_says_so(): void {
-		$this->candidates->shouldReceive( 'get_by_user_id' )->andReturn( array( (object) array( 'id' => 3 ) ) );
-		$this->classifications->shouldReceive( 'get_for_candidate' )->andReturn( array( $this->cls( 1, 10, 'definitive', 'empty' ) ) );
-		$this->notices->shouldReceive( 'get_by_id' )->andReturn( $this->notice( 10, 'preliminary' ) );
-		$this->calls->shouldReceive( 'get_history_for_classifications' )->andReturn( array() );
+	public function test_an_empty_section_and_its_counter_are_not_rendered(): void {
+		$this->wire(
+			array( $this->cls( 1, 10, 'definitive', 'empty' ) ),
+			array( 10 => $this->notice( 10, 'definitive' ) ),
+			array()
+		);
 
-		$html = RecruitmentDashboardSection::render_for_user( 9 );
+		$html = RecruitmentDashboardSection::render_for_user( 9, self::NOW );
 
-		$this->assertStringContainsString( 'ffc-banner-preliminary', $html );
-		$this->assertStringContainsString( 'No classification visible at the moment.', $html );
-		$this->assertStringContainsString( 'You have not been called for this notice yet.', $html );
-		$this->assertStringNotContainsString( 'Call history', $html );
+		$this->assertStringContainsString( 'id="ffc-mycalls-waiting"', $html );
+		$this->assertStringNotContainsString( 'id="ffc-mycalls-called"', $html );
+		$this->assertStringNotContainsString( 'id="ffc-mycalls-closed"', $html );
+		$this->assertStringNotContainsString( 'href="#ffc-mycalls-called"', $html );
+		$this->assertStringNotContainsString( 'href="#ffc-mycalls-closed"', $html );
+		$this->assertStringContainsString( '<b>1</b> waiting', $html );
+	}
+
+	public function test_the_card_stays_through_its_presentation_day_and_leaves_at_the_next_midnight_in_the_site_timezone(): void {
+		$tz       = new \DateTimeZone( 'America/Sao_Paulo' );
+		$midnight = ( new \DateTimeImmutable( '2026-10-20 00:00:00', $tz ) )->getTimestamp();
+
+		// One second before São Paulo's midnight it is 02:59:59 UTC on the
+		// 20th: a UTC reading would already have moved the card.
+		$this->assertFalse( RecruitmentDashboardSection::deadline_passed( '2026-10-19', $midnight - 1 ) );
+		$this->assertTrue( RecruitmentDashboardSection::deadline_passed( '2026-10-19', $midnight ) );
+		$this->assertSame( '2026-10-20T03:00:00+00:00', gmdate( 'c', $midnight ), 'The boundary is the site\'s midnight, not UTC\'s.' );
+
+		$this->assertSame( '2026-10-20', RecruitmentDashboardSection::leaves_on( '2026-10-19' ) );
+		$this->assertSame( '', RecruitmentDashboardSection::leaves_on( 'not-a-date' ) );
+		$this->assertFalse( RecruitmentDashboardSection::deadline_passed( '2026-02-30', PHP_INT_MAX ), 'An unreadable date never moves the card.' );
+	}
+
+	public function test_a_call_on_both_sides_of_the_boundary_renders_in_called_then_in_closed(): void {
+		$tz       = new \DateTimeZone( 'America/Sao_Paulo' );
+		$midnight = ( new \DateTimeImmutable( '2026-10-20 00:00:00', $tz ) )->getTimestamp();
+		$entries  = array(
+			array(
+				'notice'         => $this->notice( 10, 'definitive' ),
+				'classification' => $this->cls( 1, 10, 'definitive', 'called' ),
+				'calls'          => array( $this->call( 101, 1, array( 'date_to_assume' => '2026-10-19' ) ) ),
+			),
+		);
+
+		$before = RecruitmentDashboardSection::build_sections( $entries, $midnight - 1 );
+		$this->assertCount( 1, $before['called'] );
+		$this->assertCount( 0, $before['closed'] );
+
+		$after = RecruitmentDashboardSection::build_sections( $entries, $midnight );
+		$this->assertCount( 0, $after['called'] );
+		$this->assertCount( 1, $after['closed'] );
+		$this->assertSame( 'expired', $after['closed'][0]['status'] );
+	}
+
+	public function test_the_relative_label_reads_today_tomorrow_and_in_n_days(): void {
+		$this->assertSame( 0, RecruitmentDashboardSection::days_until( '2026-10-18', self::NOW ) );
+		$this->assertSame( 1, RecruitmentDashboardSection::days_until( '2026-10-19', self::NOW ) );
+		$this->assertSame( 4, RecruitmentDashboardSection::days_until( '2026-10-22', self::NOW ) );
+		$this->assertSame( -1, RecruitmentDashboardSection::days_until( '2026-10-17', self::NOW ) );
+		$this->assertNull( RecruitmentDashboardSection::days_until( 'nope', self::NOW ) );
+
+		$this->wire(
+			array( $this->cls( 1, 10, 'definitive', 'called' ), $this->cls( 2, 10, 'definitive', 'called' ) ),
+			array( 10 => $this->notice( 10, 'definitive' ) ),
+			array(
+				$this->call( 102, 2, array( 'date_to_assume' => '2026-10-19' ) ),
+				$this->call( 101, 1, array( 'date_to_assume' => '2026-10-18' ) ),
+			)
+		);
+
+		$html = RecruitmentDashboardSection::render_for_user( 9, self::NOW );
+
+		$this->assertStringContainsString( 'ffc-mycalls-countdown ffc-mycalls-countdown-today">today</span>', $html );
+		$this->assertStringContainsString( '<span class="ffc-mycalls-countdown">tomorrow</span>', $html );
+		$this->assertLessThan( strpos( $html, '>tomorrow<' ), strpos( $html, '>today<' ), 'The nearest presentation comes first.' );
+	}
+
+	public function test_a_passed_deadline_explains_itself_only_behind_the_info_button(): void {
+		$this->wire(
+			array( $this->cls( 1, 10, 'definitive', 'called' ) ),
+			array( 10 => $this->notice( 10, 'definitive' ) ),
+			array( $this->call( 101, 1, array( 'date_to_assume' => '2026-10-15', 'time_to_assume' => '13:30:00' ) ) )
+		);
+
+		$html   = RecruitmentDashboardSection::render_for_user( 9, self::NOW );
+		$closed = $this->section( $html, 'closed' );
+
+		$this->assertMatchesRegularExpression(
+			'#<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-info ffc-mycalls-info-btn" aria-label="About the passed deadline" title="About the passed deadline" aria-expanded="false" aria-controls="(ffc-mycalls-pop-\d+)"></button><div class="ffc-mycalls-pop" id="\1" hidden>#',
+			$closed
+		);
+		$this->assertStringContainsString( '<strong class="ffc-mycalls-pop-title">Status not updated yet</strong>', $closed );
+		$this->assertStringContainsString( '<dt>Presentation</dt><dd>D2026-10-15 T13:30:00</dd>', $closed );
+		$this->assertStringContainsString( 'has not recorded the result yet', $closed );
+		// Only the badge and the i: no text sits under the badge.
+		$this->assertStringContainsString( 'Deadline passed</span><div class="ffc-mycalls-info">', $closed );
+		$this->assertStringNotContainsString( 'id="ffc-mycalls-called"', $html );
+	}
+
+	public function test_a_reverted_call_lists_its_dates_and_reason_and_omits_an_empty_reason(): void {
+		$with = RecruitmentDashboardSection::reverted_info(
+			$this->call(
+				101,
+				1,
+				array(
+					'called_at'           => 1700000000,
+					'cancelled_at'        => 1700086400,
+					'cancellation_reason' => 'Called by mistake.',
+				)
+			)
+		);
+		$this->assertStringContainsString( 'aria-label="About the reverted call"', $with );
+		$this->assertStringContainsString( '<strong class="ffc-mycalls-pop-title">Previous call reverted</strong>', $with );
+		$this->assertStringContainsString( '<dt>Called on</dt><dd>DT1700000000</dd>', $with );
+		$this->assertStringContainsString( '<dt>Reverted on</dt><dd>DT1700086400</dd>', $with );
+		$this->assertStringContainsString( '<dt>Reason</dt><dd>Called by mistake.</dd>', $with );
+
+		$without = '';
+		foreach ( array( null, '', '   ' ) as $empty ) {
+			$without = RecruitmentDashboardSection::reverted_info(
+				$this->call( 102, 1, array( 'cancelled_at' => 1700086400, 'cancellation_reason' => $empty ) )
+			);
+			$this->assertStringContainsString( '<dt>Reverted on</dt>', $without );
+			$this->assertStringNotContainsString( 'Reason', $without );
+		}
+
+		// Two popovers never share an id.
+		preg_match_all( '#id="(ffc-mycalls-pop-\d+)"#', $with . $without, $ids );
+		$this->assertCount( 2, array_unique( $ids[1] ) );
+	}
+
+	public function test_a_reverted_call_on_a_closed_row_sits_beside_the_status_badge(): void {
+		$this->wire(
+			array( $this->cls( 1, 10, 'definitive', 'withdrew' ) ),
+			array( 10 => $this->notice( 10, 'definitive' ) ),
+			array(
+				$this->call( 101, 1, array( 'called_at' => 1700000000, 'cancelled_at' => 1700086400, 'cancellation_reason' => 'Date changed.' ) ),
+				$this->call( 102, 1, array( 'called_at' => 1700100000, 'date_to_assume' => '2026-09-10' ) ),
+			)
+		);
+
+		$closed = $this->section( RecruitmentDashboardSection::render_for_user( 9, self::NOW ), 'closed' );
+
+		$this->assertStringContainsString( 'Withdrew</span><div class="ffc-mycalls-info">', $closed );
+		$this->assertStringContainsString( '<dt>Reason</dt><dd>Date changed.</dd>', $closed );
+		$this->assertStringContainsString( 'D2026-09-10 T08:00:00', $closed, 'The presentation date is the live call\'s.' );
 	}
 }

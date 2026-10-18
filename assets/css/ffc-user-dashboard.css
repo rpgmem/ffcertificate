@@ -1523,52 +1523,408 @@
     color: var(--ffc-text);
 }
 
-.ffc-recruitment-my-calls .ffc-recruitment-my-notice {
+/* The panel regroups the candidate's calls by status (#1889): counters,
+   then Called (cards), Waiting and Closed (tables). Every rule reads a
+   token, so the panel follows the dark theme with nothing of its own. */
+
+.ffc-mycalls-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-sm);
+    margin-bottom: var(--ffc-spacing-3xl);
+}
+
+.ffc-mycalls-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border-light);
-    border-radius: var(--ffc-radius-md);
-    background: var(--ffc-bg-card);
-    padding: var(--ffc-spacing-xl);
-    margin-bottom: var(--ffc-spacing-xl);
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+    font-size: var(--ffc-font-size-sm);
+    font-weight: 600;
+    text-decoration: none;
 }
 
-.ffc-recruitment-my-calls .ffc-recruitment-my-notice header {
-    margin-bottom: var(--ffc-spacing-lg);
-    border-bottom: 1px solid var(--ffc-border-light);
-    padding-bottom: var(--ffc-spacing-lg);
+.ffc-mycalls-chip.ffc-mycalls-chip-called {
+    border-color: var(--ffc-info-border);
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
 }
 
-.ffc-recruitment-my-calls .ffc-recruitment-my-notice header h3 {
-    margin: 0 0 var(--ffc-spacing-sm);
+.ffc-mycalls-chip:hover,
+.ffc-mycalls-chip:focus {
+    border-color: var(--ffc-primary);
+}
+
+.ffc-mycalls-chip:focus-visible {
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
+}
+
+.ffc-mycalls-chip b {
+    font-variant-numeric: tabular-nums;
+}
+
+.ffc-mycalls-section {
+    margin-bottom: var(--ffc-spacing-3xl);
+}
+
+.ffc-mycalls-section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+    margin-bottom: var(--ffc-spacing-md);
+}
+
+.ffc-mycalls-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    margin: 0;
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
 }
 
-.ffc-recruitment-my-calls .ffc-recruitment-my-notice h4 {
-    margin: var(--ffc-spacing-xl) 0 var(--ffc-spacing-sm);
-    font-size: var(--ffc-font-size-xs);
-    font-weight: 600;
+.ffc-mycalls-hint {
+    margin: 0;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
 }
 
-.ffc-recruitment-my-calls .ffc-recruitment-banner {
-    display: inline-block;
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+.ffc-mycalls-notice-code {
+    font-weight: 700;
+}
+
+.ffc-mycalls-notice-name {
+    color: var(--ffc-text-secondary);
+}
+
+/* Called: one card per active call. */
+
+.ffc-mycalls-cards {
+    display: grid;
+    gap: var(--ffc-spacing-lg);
+}
+
+.ffc-mycalls-card {
+    display: grid;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
+    border: 1px solid var(--ffc-border-light);
+    border-left: 4px solid var(--ffc-info-border);
     border-radius: var(--ffc-radius-md);
-    font-size: var(--ffc-font-size-xs);
-    font-weight: 500;
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
 }
 
-.ffc-recruitment-my-calls .ffc-banner-preliminary {
+.ffc-mycalls-card-top,
+.ffc-mycalls-card-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
+}
+
+.ffc-mycalls-when {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-md);
+    margin: 0;
+    font-size: var(--ffc-font-size-base);
+}
+
+.ffc-mycalls-when strong {
+    font-size: var(--ffc-font-size-xl);
+    font-variant-numeric: tabular-nums;
+}
+
+.ffc-mycalls-countdown {
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 700;
+}
+
+.ffc-mycalls-countdown.ffc-mycalls-countdown-today {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
-.ffc-recruitment-my-calls .ffc-banner-definitive {
+.ffc-mycalls-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
+    margin: 0;
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-mycalls-meta dt {
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.ffc-mycalls-meta dd {
+    margin: 0;
+}
+
+.ffc-mycalls-leaves {
+    font-size: var(--ffc-font-size-xs);
+    color: var(--ffc-text-secondary);
+}
+
+/* Waiting and Closed: the dashboard's table, paged by the script. */
+
+/* The shared table clips to its rounded corners; this one must not, or an
+   info popover opening inside a cell would be cut off at the table's edge. */
+.ffc-recruitment-table.ffc-mycalls-table {
+    overflow: visible;
+}
+
+.ffc-mycalls-table td {
+    vertical-align: top;
+}
+
+/* A row the pager hides. Needed because the phone layout below gives every
+   row `display: block`, which would otherwise beat the attribute. */
+.ffc-mycalls-table tr[hidden] {
+    display: none;
+}
+
+.ffc-mycalls-table .ffc-mycalls-num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.ffc-mycalls-table .ffc-mycalls-notice-code {
+    display: block;
+}
+
+.ffc-mycalls-table .ffc-mycalls-notice-name {
+    font-size: var(--ffc-font-size-xs);
+}
+
+.ffc-mycalls-table .ffc-mycalls-group-row td {
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-mycalls-group-continued {
+    display: none;
+}
+
+.ffc-mycalls-group-row.is-continued .ffc-mycalls-group-continued {
+    display: inline;
+}
+
+.ffc-mycalls-status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+}
+
+.ffc-pill.ffc-mycalls-badge-final,
+.ffc-pill.ffc-mycalls-badge-hired {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
+}
+
+.ffc-pill.ffc-mycalls-badge-preliminary {
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-pill.ffc-mycalls-badge-withdrew,
+.ffc-pill.ffc-mycalls-badge-expired {
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+}
+
+.ffc-pill.ffc-mycalls-badge-not-shown {
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+/* The info button and its popover. The popover opens only under
+   `.is-open`, which the script sets with `aria-expanded`. */
+
+.ffc-mycalls-info {
+    position: relative;
+    display: inline-flex;
+}
+
+.ffc-mycalls-info .ffc-mycalls-info-btn {
+    width: 24px;
+    height: 24px;
+    min-height: 24px;
+}
+
+.ffc-mycalls-info .ffc-mycalls-info-btn::before {
+    width: 16px;
+    height: 16px;
+}
+
+.ffc-mycalls-pop {
+    display: none;
+    position: absolute;
+    z-index: var(--ffc-z-dropdown);
+    top: calc(100% + var(--ffc-spacing-xs));
+    left: calc(-1 * var(--ffc-spacing-sm));
+    width: min(280px, 80vw);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-md);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    box-shadow: var(--ffc-shadow-md);
+    font-size: var(--ffc-font-size-xs);
+    text-align: left;
+    white-space: normal;
+}
+
+.ffc-mycalls-info.is-open .ffc-mycalls-pop {
+    display: block;
+}
+
+.ffc-mycalls-pop-title {
+    display: block;
+    margin-bottom: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-mycalls-pop-facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--ffc-spacing-3xs) var(--ffc-spacing-md);
+    margin: 0;
+}
+
+.ffc-mycalls-pop-facts dt {
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-mycalls-pop-facts dd {
+    margin: 0;
+}
+
+.ffc-mycalls-pop-text {
+    margin: var(--ffc-spacing-xs) 0 0;
+}
+
+/* The pager the script draws; empty, it takes no room. */
+
+.ffc-mycalls-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-sm);
+    margin-top: var(--ffc-spacing-sm);
+}
+
+.ffc-mycalls-pager:empty {
+    display: none;
+}
+
+.ffc-mycalls-pager-range {
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
+
+.ffc-mycalls-pager-pages {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+}
+
+.ffc-mycalls-pager .ffc-mycalls-page-btn {
+    min-width: 32px;
+    min-height: 32px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-xs);
+}
+
+/* The page on screen. A key is a neutral button (#1874): being the current
+   page is a state, not an action, so `aria-current` carries it. */
+.ffc-mycalls-pager .ffc-mycalls-page-btn[aria-current="page"] {
+    border-color: var(--ffc-primary);
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
+}
+
+/* Phones: each table row becomes a card, every cell under its label. */
+@media (max-width: 640px) {
+    .ffc-recruitment-table.ffc-mycalls-table {
+        border: 0;
+    }
+
+    .ffc-mycalls-table thead {
+        display: none;
+    }
+
+    .ffc-mycalls-table,
+    .ffc-mycalls-table tbody,
+    .ffc-mycalls-table tr,
+    .ffc-mycalls-table td {
+        display: block;
+    }
+
+    .ffc-mycalls-table .ffc-mycalls-row {
+        margin-bottom: var(--ffc-spacing-sm);
+        padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+        border: 1px solid var(--ffc-border-light);
+        border-radius: var(--ffc-radius-md);
+        background: var(--ffc-bg-card);
+    }
+
+    .ffc-recruitment-table.ffc-mycalls-table td {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--ffc-spacing-lg);
+        padding: var(--ffc-spacing-2xs) 0;
+        border-bottom: 0;
+    }
+
+    .ffc-mycalls-table td::before {
+        content: attr(data-label);
+        color: var(--ffc-text-secondary);
+        font-size: var(--ffc-font-size-2xs);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .ffc-recruitment-table.ffc-mycalls-table td.ffc-mycalls-notice-cell {
+        display: block;
+    }
+
+    .ffc-mycalls-table td.ffc-mycalls-notice-cell::before,
+    .ffc-mycalls-table .ffc-mycalls-group-row td::before {
+        content: none;
+    }
+
+    .ffc-recruitment-table.ffc-mycalls-table .ffc-mycalls-group-row td {
+        display: block;
+        padding: var(--ffc-spacing-sm) 0 var(--ffc-spacing-2xs);
+        background: transparent;
+    }
+
+    .ffc-mycalls-pop {
+        right: calc(-1 * var(--ffc-spacing-sm));
+        left: auto;
+    }
 }
 
 /* ==========================================================================
@@ -1603,6 +1959,20 @@
     .ffc-pill.ffc-dashboard-status-rejected,
     .ffc-pill.ffc-dashboard-status-submitted {
         border: 1px solid CanvasText;
+    }
+
+    /* My Calls (#1889): the badges are read; the counters are links. */
+    .ffc-pill.ffc-mycalls-badge-expired,
+    .ffc-pill.ffc-mycalls-badge-final,
+    .ffc-pill.ffc-mycalls-badge-hired,
+    .ffc-pill.ffc-mycalls-badge-not-shown,
+    .ffc-pill.ffc-mycalls-badge-preliminary,
+    .ffc-pill.ffc-mycalls-badge-withdrew {
+        border: 1px solid CanvasText;
+    }
+
+    .ffc-mycalls-chip.ffc-mycalls-chip-called {
+        border-color: LinkText;
     }
 }
 

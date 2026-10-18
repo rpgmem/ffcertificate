@@ -12,9 +12,10 @@ use FreeFormCertificate\Recruitment\RecruitmentDashboardSection;
 
 /**
  * Tests for RecruitmentDashboardSection — pins the §9.1 visibility rule
- * (anonymous + unlinked-user → empty render), the basic notice-block
- * rendering for a logged-in candidate, and the prévia/definitive banner
- * dispatch.
+ * (anonymous + unlinked-user → empty render) and, through a real `$wpdb`
+ * double, which list a notice shows: the preliminary one for a
+ * preliminary notice, the definitive one otherwise (#1889 groups them in
+ * Waiting).
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentDashboardSection
  */
@@ -27,6 +28,9 @@ class RecruitmentDashboardSectionTest extends TestCase {
 
 	/** @var array<int, string> Stylesheet handles enqueued during the test. */
 	private array $styles = array();
+
+	/** @var array<int, string> Script handles enqueued during the test. */
+	private array $scripts = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -41,6 +45,10 @@ class RecruitmentDashboardSectionTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
+		Functions\when( 'esc_html_x' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
@@ -66,6 +74,13 @@ class RecruitmentDashboardSectionTest extends TestCase {
 		Functions\when( 'wp_enqueue_style' )->alias(
 			function ( $handle ) {
 				$this->styles[] = $handle;
+			}
+		);
+		// ... and the script that pages its tables (#1889).
+		$this->scripts = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			function ( $handle ) {
+				$this->scripts[] = $handle;
 			}
 		);
 	}
@@ -163,10 +178,9 @@ class RecruitmentDashboardSectionTest extends TestCase {
 		$this->assertSame( '', RecruitmentDashboardSection::render() );
 	}
 
-	public function test_render_includes_preliminary_banner(): void {
-		// Two get_results: candidates → classifications.
-		// One get_row for the notice, then one for the adjutancy in render_classifications_table.
-		// get_history_for_classifications returns empty.
+	public function test_a_preliminary_notice_lists_its_preview_row_in_the_preliminary_group(): void {
+		// get_results: candidates → classifications → calls; get_row: the
+		// notice, then the adjutancy the Waiting row names.
 		$this->wpdb->shouldReceive( 'get_results' )
 			->times( 3 )
 			->andReturn(
@@ -183,13 +197,14 @@ class RecruitmentDashboardSectionTest extends TestCase {
 
 		$html = RecruitmentDashboardSection::render();
 
-		$this->assertStringContainsString( 'Preliminary classification', $html );
-		$this->assertStringNotContainsString( 'Final classification', $html );
-		// And the no-calls hint when no convocations exist yet.
-		$this->assertStringContainsString( 'You have not been called for this notice yet', $html );
+		$this->assertStringContainsString( 'Preliminary classification — subject to review', $html );
+		$this->assertStringContainsString( 'ffc-mycalls-badge-preliminary', $html );
+		$this->assertStringNotContainsString( 'ffc-mycalls-badge-final', $html );
+		$this->assertStringContainsString( 'Matemática', $html );
+		$this->assertStringNotContainsString( 'id="ffc-mycalls-called"', $html, 'No call, no Called section.' );
 	}
 
-	public function test_render_includes_final_banner_for_active_notice(): void {
+	public function test_a_definitive_notice_lists_its_row_in_the_final_group(): void {
 		$this->wpdb->shouldReceive( 'get_results' )
 			->times( 3 )
 			->andReturn(
@@ -206,10 +221,11 @@ class RecruitmentDashboardSectionTest extends TestCase {
 
 		$html = RecruitmentDashboardSection::render();
 
-		$this->assertStringContainsString( 'Final classification', $html );
-		$this->assertStringNotContainsString( 'Preliminary classification', $html );
+		$this->assertStringContainsString( 'ffc-mycalls-badge-final', $html );
+		$this->assertStringNotContainsString( 'ffc-mycalls-badge-preliminary', $html );
 		// #1832: on a page of its own the section's rules come from the
 		// dashboard's sheet, so the shortcode loads it.
 		$this->assertSame( array( 'ffc-common', 'ffc-dashboard' ), $this->styles );
+		$this->assertSame( array( 'ffc-recruitment-my-calls' ), $this->scripts );
 	}
 }

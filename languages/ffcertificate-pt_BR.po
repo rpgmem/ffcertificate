@@ -3404,14 +3404,6 @@ msgstr "Chame os candidatos"
 msgid "Call entry not found."
 msgstr "Entrada de chamada não encontrada."
 
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:177
-msgid "Call history"
-msgstr "Histórico de convocações"
-
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:356
-msgid "Call reverted"
-msgstr "Convocação revertida"
-
 #: templates/admin/recruitment/notice-edit/bulk-call-toolbar.php:26
 msgid "Call selected"
 msgstr "Chamar selecionados"
@@ -11409,10 +11401,6 @@ msgstr "Nenhuma CDN foi detectada. O Cloudflare é opcional — o modo Auto/Dire
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:204
 msgid "No certificates found"
 msgstr "Nenhum certificado encontrado"
-
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:226
-msgid "No classification visible at the moment."
-msgstr "Sem classificação visível no momento."
 
 #: includes/audience/class-ffc-audience-shortcode.php:803
 msgid "No conflicts found. You may proceed."
@@ -20048,10 +20036,6 @@ msgstr "Você foi convocado(a) para o edital {{notice_code}} — {{notice_name}}
 msgid "You have been included in a new scheduled activity."
 msgstr "Você foi incluído(a) em uma nova atividade agendada."
 
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:180
-msgid "You have not been called for this notice yet."
-msgstr "Você ainda não foi convocado neste edital."
-
 #. %d: maximum number of bookings
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:176
 msgid "You have reached the maximum of %d booking for this calendar."
@@ -20184,10 +20168,6 @@ msgstr "Seu agendamento está aguardando aprovação. Você receberá uma confir
 #: includes/frontend/class-ffc-frontend.php:664
 msgid "Your browser does not support geolocation."
 msgstr "Seu navegador não suporta geolocalização."
-
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:170
-msgid "Your classification(s) for this notice"
-msgstr "Sua(s) classificação(ões) no edital"
 
 #. what doesn't happen is matching against any allow-list.
 #: includes/frontend/class-ffc-public-csv-download.php:261
@@ -26907,6 +26887,179 @@ msgstr "botões de exclusão e avisos de perigo sobre o próprio fundo"
 #: includes/settings/views/documentation/config-public-design.php
 msgid "The colour of errors also draws the delete buttons and the danger notices: their text and border take it, and their background is a light shade of it, made automatically, against which the warning measures it too. Left at its default, they keep the plugin's own red pair."
 msgstr "A cor dos erros também desenha os botões de exclusão e os avisos de perigo: o texto e a borda deles a usam, e o fundo é um tom claro dela, feito automaticamente, contra o qual o aviso de contraste também a mede. Deixada no padrão, eles mantêm o par vermelho do próprio plugin."
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "%1$s at %2$s"
+msgstr "%1$s às %2$s"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "(continued)"
+msgstr "(continuação)"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "About the passed deadline"
+msgstr "Sobre o prazo encerrado"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "About the reverted call"
+msgstr "Sobre a convocação revertida"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Add to calendar"
+msgstr "Adicionar ao calendário"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Called on"
+msgstr "Convocada em"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Deadline passed"
+msgstr "Prazo encerrado"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Final"
+msgstr "Final"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Final classification first; a preliminary one may still change."
+msgstr "Classificação final primeiro; a preliminar ainda pode mudar."
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Hired, withdrew, did not show up, or the presentation deadline passed."
+msgstr "Contratado, desistiu, não compareceu ou prazo de apresentação encerrado."
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "Page %d"
+msgstr "Página %d"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Pages: Closed"
+msgstr "Páginas: Encerradas"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Pages: Waiting for a call"
+msgstr "Páginas: Aguardando convocação"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Position · Score"
+msgstr "Posição · Pontuação"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Presentation"
+msgstr "Apresentação"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Presentation date"
+msgstr "Data de apresentação"
+
+#: includes/recruitment/class-ffc-recruitment-call-ics.php
+#, php-format
+msgid "Presentation: %1$s — %2$s"
+msgstr "Apresentação: %1$s — %2$s"
+
+#: includes/recruitment/class-ffc-recruitment-call-ics.php
+#, php-format
+msgid "Presentation: %s"
+msgstr "Apresentação: %s"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Previous call reverted"
+msgstr "Convocação anterior revertida"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Reverted on"
+msgstr "Revertida em"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "Show up on %s"
+msgstr "Apresente-se em %s"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Show up on the date and time shown."
+msgstr "Compareça na data e hora indicadas."
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "Showing %1$s–%2$s of %3$s"
+msgstr "Mostrando %1$s–%2$s de %3$s"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Status not updated yet"
+msgstr "Situação ainda não atualizada"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "The date has passed and the team has not recorded the result yet. The final status appears here once it is updated."
+msgstr "A data passou e a equipe ainda não registrou o resultado. A situação final aparece aqui quando for atualizada."
+
+#: includes/recruitment/class-ffc-recruitment-call-ics.php
+msgid "This calendar link is not valid."
+msgstr "Este link de calendário não é válido."
+
+#: includes/recruitment/class-ffc-recruitment-call-ics.php
+msgid "This call is not available."
+msgstr "Esta convocação não está disponível."
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "This card leaves on %s."
+msgstr "Este cartão sai daqui em %s."
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Waiting for a call"
+msgstr "Aguardando convocação"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "today"
+msgstr "hoje"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "tomorrow"
+msgstr "amanhã"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgctxt "recruitment calls section"
+msgid "Closed"
+msgstr "Encerradas"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgctxt "classification list"
+msgid "Preliminary"
+msgstr "Preliminar"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "%s active call"
+msgid_plural "%s active calls"
+msgstr[0] "%s convocação ativa"
+msgstr[1] "%s convocações ativas"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "%s waiting"
+msgid_plural "%s waiting"
+msgstr[0] "%s aguardando"
+msgstr[1] "%s aguardando"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "%s closed"
+msgid_plural "%s closed"
+msgstr[0] "%s encerrada"
+msgstr[1] "%s encerradas"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "in %s day"
+msgid_plural "in %s days"
+msgstr[0] "em %s dia"
+msgstr[1] "em %s dias"
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "The Recruitment tab, My Calls, sorts the candidate's classifications by status, with a counter for each at the top. Called holds one card per active call, with the presentation date and time, how many days away it is and an \"Add to calendar\" button that downloads an .ics file. Waiting lists final classifications first and then preliminary ones, 5 rows at a time. Closed lists hired, withdrew, did not show up and \"Deadline passed\", 2 rows at a time. A call still marked as called moves from Called to Closed as \"Deadline passed\" the day after its presentation date, in the site's timezone, until the team records the result. An i button beside a badge explains a passed deadline or a reverted call, with its dates and the reason given. An empty section is not shown."
+msgstr "A aba Recrutamento, Minhas Convocações, separa as classificações do candidato por situação, com um contador para cada uma no topo. Convocado traz um cartão por convocação ativa, com a data e a hora de apresentação, quantos dias faltam e um botão \"Adicionar ao calendário\" que baixa um arquivo .ics. Aguardando lista primeiro as classificações finais e depois as preliminares, 5 linhas por vez. Encerradas lista contratado, desistiu, não compareceu e \"Prazo encerrado\", 2 linhas por vez. Uma convocação ainda marcada como convocada passa de Convocado para Encerradas como \"Prazo encerrado\" no dia seguinte à data de apresentação, no fuso horário do site, até a equipe registrar o resultado. Um botão i ao lado de um selo explica um prazo encerrado ou uma convocação revertida, com as datas e o motivo informado. Uma seção vazia não aparece."
 
 #: includes/settings/tabs/class-ffc-tab-reregistration.php
 msgid "Approved banner on the dashboard"

@@ -83,6 +83,7 @@ return array(
 	'Privacy>Settings',
 	'Recruitment>Admin',
 	'Recruitment>Core',
+	'Recruitment>Scheduling',
 	'Recruitment>Shortcodes',
 	'Recruitment>UserDashboard',
 	'Repositories>Core',
