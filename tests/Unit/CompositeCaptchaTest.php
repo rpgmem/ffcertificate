@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Captcha\AltchaCaptcha;
+use FreeFormCertificate\Tests\Support\AltchaSolver;
 use FreeFormCertificate\Core\Captcha\CaptchaProvider;
 use FreeFormCertificate\Core\Captcha\CompositeCaptcha;
 use FreeFormCertificate\Core\Captcha\MathCaptcha;
@@ -81,25 +82,13 @@ class CompositeCaptchaTest extends TestCase {
 	 */
 	private function solved_altcha(): string {
 		$challenge = AltchaCaptcha::create_challenge();
-		$salt      = (string) $challenge['salt'];
+		$counter   = AltchaSolver::counter_of( $challenge, \FreeFormCertificate\Core\Captcha\CaptchaSettings::complexity() );
 
-		for ( $n = 0; $n <= (int) $challenge['maxnumber']; $n++ ) {
-			if ( hash( 'sha256', $salt . (string) $n ) === $challenge['challenge'] ) {
-				return base64_encode(
-					(string) json_encode(
-						array(
-							'algorithm' => $challenge['algorithm'],
-							'challenge' => $challenge['challenge'],
-							'number'    => $n,
-							'salt'      => $salt,
-							'signature' => $challenge['signature'],
-						)
-					)
-				);
-			}
+		if ( null === $counter ) {
+			$this->fail( 'Unsolvable challenge.' );
 		}
 
-		$this->fail( 'Unsolvable challenge.' );
+		return AltchaSolver::payload( $challenge, $counter );
 	}
 
 	// ==================================================================

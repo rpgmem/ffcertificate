@@ -7,21 +7,25 @@
  * happens in the visitor's browser, and verification is plain PHP. No request
  * ever leaves the server.
  *
- * The wire format is ALTCHA's original ("v1") challenge — `algorithm`,
- * `challenge`, `salt`, `signature` — which the 3.x widget still accepts and
- * answers in kind. That is deliberate and verified against the vendored
- * bundle: on a challenge carrying a top-level `challenge` key the widget
- * marks it `_version: 1` and posts back `{algorithm, challenge, number, salt,
- * signature, took}`, base64-encoded. Emitting the newer nested shape would
- * buy nothing here and cost a verifier that no longer matches the format
- * every other ALTCHA server speaks.
+ * The wire format is the 3.x widget's own ("v2") challenge: a `parameters`
+ * object and a `signature`. The solver derives `SHA-256(salt || nonce ||
+ * uint32_be(counter))` for counter = 0, 1, 2, … until the key starts with
+ * `keyPrefix`, and posts back `{challenge: {parameters, signature}, solution:
+ * {counter, derivedKey, time}}`, base64-encoded.
  *
- * Difficulty is the size of the secret number, and nothing else. The 3.x
- * widget dropped `maxnumber` — the word does not occur in the bundle — so the
- * solver simply counts up until it reproduces the hash. Expected work is
- * therefore about half of {@see COMPLEXITY} hashes, and the cap matters:
- * without one, a mistyped setting would leave visitors grinding until the
- * widget's own 90-second timeout.
+ * It replaced ALTCHA's original ("v1") shape in #1928. The widget only ever
+ * read v1 through a conversion shim, and ALTCHA 3.4.0 broke that shim
+ * (`isChallengeV1()` compares the challenge with the string "object"), so a
+ * v1 challenge fails "Challenge validation failed" on every visitor. v2 is
+ * the path the widget is built around; a v1 payload is refused, not
+ * translated.
+ *
+ * Difficulty is the size of the secret counter, and nothing else. The
+ * challenge is deterministic: the server draws the counter, derives the key
+ * and publishes its first half as `keyPrefix`, so the solver must reproduce
+ * that one counter. Expected work is about half of {@see COMPLEXITY} hashes,
+ * and the cap matters: without one, a mistyped setting would leave visitors
+ * grinding until the widget's own 90-second timeout.
  *
  * @package FreeFormCertificate\Core\Captcha
  * @since 6.23.0
@@ -68,6 +72,36 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	public const ALGORITHM = 'SHA-256';
 
 	/**
+	 * Key-derivation rounds. One: the work is the counter search, not the KDF.
+	 *
+	 * @var int
+	 */
+	private const COST = 1;
+
+	/**
+	 * Derived key length in bytes: the whole SHA-256 digest.
+	 *
+	 * @var int
+	 */
+	private const KEY_LENGTH = 32;
+
+	/**
+	 * Bytes of the derived key published as `keyPrefix`: half of it, which is
+	 * the widget library's own default for a deterministic challenge. Any
+	 * counter other than the drawn one matches it with probability 2^-128.
+	 *
+	 * @var int
+	 */
+	private const PREFIX_LENGTH = 16;
+
+	/**
+	 * Largest counter the widget encodes in its `uint32` mode.
+	 *
+	 * @var int
+	 */
+	private const MAX_COUNTER = 0xFFFFFFFF;
+
+	/**
 	 * Fallback work factor, used only where no settings read is possible.
 	 *
 	 * The live value comes from {@see CaptchaSettings::complexity()}, which
@@ -92,46 +126,54 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 *
 	 * Stateless by construction: nothing is written here, so a cached page
 	 * costs nothing and there is no ledger to grow. What ties the challenge
-	 * to this site is the signature; what bounds its life is the `expires`
-	 * parameter carried inside the salt.
+	 * to this site is the signature; what bounds its life is `expiresAt`.
 	 *
-	 * THE EXPIRY IS SIGNED, AND SIGNING ONLY THE HASH WAS NOT ENOUGH
+	 * EVERY PARAMETER IS SIGNED, THE EXPIRY INCLUDED
 	 *
-	 * This used to sign `challenge` alone, reasoning that editing the salt to
-	 * push the expiry out would break the solution check unless the attacker
-	 * could find a preimage. That was wrong, and it is the flaw ALTCHA
-	 * published upstream as CVE-2025-68113: no preimage is needed, because
-	 * the attacker does not change the hashed string at all — they change
-	 * where it is CUT. `challenge` binds `salt . number`, and the boundary
-	 * between the two is not fixed, so moving one digit from the front of
-	 * `number` onto the end of `expires` leaves the concatenation identical
-	 * byte for byte. The hash matches, the signature over it matches, and
-	 * `expiry_of()` parses a timestamp centuries away (#1357).
+	 * The v1 format carried the expiry inside the salt, and signing only the
+	 * hash let an attacker move the boundary between salt and number without
+	 * changing the hashed string -- CVE-2025-68113, which #1357 fixed by
+	 * signing the parsed expiry beside the hash. In v2 the expiry is a field
+	 * of its own and the signature covers the canonical JSON of every field,
+	 * so there is no boundary left to move.
 	 *
-	 * So the signature binds the PARSED expiry beside the hash, with a
-	 * delimiter that neither field can contain. A re-split changes the parsed
-	 * value, which changes the signed payload, which fails the signature.
-	 *
-	 * @return array<string, mixed> Challenge in ALTCHA's v1 wire format.
+	 * @return array{parameters: array<string, int|string>, signature: string} Challenge in the widget's v2 wire format.
 	 */
 	public static function create_challenge(): array {
-		$complexity = CaptchaSettings::complexity();
+		$nonce   = bin2hex( random_bytes( 16 ) );
+		$salt    = bin2hex( random_bytes( 16 ) );
+		$counter = random_int( 0, CaptchaSettings::complexity() );
 
-		$expires = time() + CaptchaSettings::ttl();
-		$secret  = random_int( 0, $complexity );
-		$salt    = bin2hex( random_bytes( 12 ) ) . '?expires=' . $expires;
-		$hash    = hash( 'sha256', $salt . $secret );
+		$parameters = array(
+			'algorithm' => self::ALGORITHM,
+			'cost'      => self::COST,
+			'expiresAt' => time() + CaptchaSettings::ttl(),
+			'keyLength' => self::KEY_LENGTH,
+			'keyPrefix' => substr( self::derive_key( $salt, $nonce, $counter ), 0, self::PREFIX_LENGTH * 2 ),
+			'nonce'     => $nonce,
+			'salt'      => $salt,
+		);
 
 		return array(
-			'algorithm' => self::ALGORITHM,
-			'challenge' => $hash,
-			// Ignored by the 3.x widget, which counts up without a ceiling.
-			// Kept because it is part of the published format and other
-			// ALTCHA clients still read it.
-			'maxnumber' => $complexity,
-			'salt'      => $salt,
-			'signature' => ChallengeSigner::sign( self::signed_payload( $hash, $expires ) ),
+			'parameters' => $parameters,
+			'signature'  => ChallengeSigner::sign( self::signed_payload( $parameters ) ),
 		);
+	}
+
+	/**
+	 * The key the widget derives for a counter: `SHA-256(salt || nonce ||
+	 * uint32_be(counter))`, as lowercase hex.
+	 *
+	 * One round, the whole digest -- `cost` 1 and `keyLength` 32, which is
+	 * what this class issues and what {@see self::parameters_of()} accepts.
+	 *
+	 * @param string $salt    Salt, 32 hex characters.
+	 * @param string $nonce   Nonce, 32 hex characters.
+	 * @param int    $counter Counter, 0 to {@see self::MAX_COUNTER}.
+	 * @return string 64 hex characters.
+	 */
+	private static function derive_key( string $salt, string $nonce, int $counter ): string {
+		return hash( 'sha256', (string) hex2bin( $salt ) . (string) hex2bin( $nonce ) . pack( 'N', $counter ) );
 	}
 
 	/**
@@ -324,11 +366,9 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 * Authenticate a posted solution without touching the ledger.
 	 *
 	 * Order matters. The signature is checked before anything in the payload
-	 * is believed, so an unsigned challenge is rejected without the server
-	 * hashing on its behalf; the solution check then binds the salt and the
-	 * number to that authenticated challenge; only then is the expiry read,
-	 * because until the solution matches, the salt carrying it is not known
-	 * to be ours.
+	 * is believed, so a forged challenge is rejected without the server
+	 * hashing on its behalf; the expiry is read only after it is known to be
+	 * ours; the solution is checked last, against parameters that are.
 	 *
 	 * @param array<string, mixed> $request Request data.
 	 * @return array{signature: string, ttl: int}|string Proof, or an error message.
@@ -341,46 +381,40 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 			return \__( 'Error: Please complete the verification.', 'ffcertificate' );
 		}
 
-		if ( ! hash_equals( self::ALGORITHM, $payload['algorithm'] ) ) {
+		$parameters = self::parameters_of( $payload['parameters'] );
+		if ( null === $parameters ) {
 			return $generic;
 		}
 
-		// The expiry is parsed BEFORE the signature is checked, because it is
-		// part of what the signature binds (#1357). A salt carrying no usable
-		// `expires` is refused as a forgery rather than as an expiry: we never
-		// issued one, so telling the visitor it ran out would be a lie.
-		$expires = $this->expiry_of( $payload['salt'] );
-		if ( null === $expires ) {
+		if ( ! ChallengeSigner::matches( self::signed_payload( $parameters ), $payload['signature'] ) ) {
 			return $generic;
 		}
 
-		if ( ! ChallengeSigner::matches( self::signed_payload( $payload['challenge'], $expires ), $payload['signature'] ) ) {
-			return $generic;
-		}
-
-		if ( ! hash_equals( $payload['challenge'], hash( 'sha256', $payload['salt'] . $payload['number'] ) ) ) {
-			return $generic;
-		}
-
-		if ( $expires <= time() ) {
+		if ( $parameters['expiresAt'] <= time() ) {
 			return \__( 'Error: The verification expired. Please try again.', 'ffcertificate' );
+		}
+
+		$key = self::derive_key( $parameters['salt'], $parameters['nonce'], $payload['counter'] );
+		if ( ! hash_equals( $key, $payload['derivedKey'] ) || 0 !== strpos( $key, $parameters['keyPrefix'] ) ) {
+			return $generic;
 		}
 
 		return array(
 			'signature' => $payload['signature'],
-			'ttl'       => $expires - time(),
+			'ttl'       => $parameters['expiresAt'] - time(),
 		);
 	}
 
 	/**
 	 * Decode and shape-check the base64 payload the widget posts.
 	 *
-	 * Strict base64 and a whole-array type check, because every byte here is
-	 * attacker-controlled: a payload whose `salt` is an array would otherwise
-	 * reach `hash()` and fatal under `strict_types`.
+	 * Strict base64 and a type check on every field, because every byte here
+	 * is attacker-controlled: a `salt` that is an array would otherwise reach
+	 * `hex2bin()` and fatal under `strict_types`. A v1 payload has none of
+	 * these keys and is refused here.
 	 *
 	 * @param mixed $raw Raw request value.
-	 * @return array{algorithm: string, challenge: string, number: string, salt: string, signature: string}|null
+	 * @return array{parameters: array<mixed>, signature: string, counter: int, derivedKey: string}|null
 	 */
 	private function decode( $raw ): ?array {
 		if ( ! is_string( $raw ) || '' === $raw ) {
@@ -398,90 +432,110 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 			return null;
 		}
 
-		foreach ( array( 'algorithm', 'challenge', 'salt', 'signature' ) as $key ) {
-			if ( ! isset( $decoded[ $key ] ) || ! is_string( $decoded[ $key ] ) ) {
-				return null;
-			}
-		}
-
-		// The counter is hashed as a decimal string — the widget's own
-		// `counterMode: 'string'` for this format — so it is normalised here
-		// rather than cast at the comparison, where an int would silently
-		// stringify differently for a float or a numeric string with padding.
-		if ( ! isset( $decoded['number'] ) || ! is_scalar( $decoded['number'] ) ) {
+		$challenge = $decoded['challenge'] ?? null;
+		$solution  = $decoded['solution'] ?? null;
+		if ( ! is_array( $challenge ) || ! is_array( $solution ) ) {
 			return null;
 		}
-		$number = (string) $decoded['number'];
-		if ( 1 !== preg_match( '/^\d+$/', $number ) ) {
+
+		if ( ! isset( $challenge['parameters'] ) || ! is_array( $challenge['parameters'] ) ) {
+			return null;
+		}
+		if ( ! isset( $challenge['signature'] ) || ! is_string( $challenge['signature'] ) ) {
+			return null;
+		}
+
+		// An integer, not a numeric string: the widget sends a JSON number,
+		// and `pack( 'N' )` must see exactly the value that was hashed.
+		$counter = $solution['counter'] ?? null;
+		if ( ! is_int( $counter ) || $counter < 0 || $counter > self::MAX_COUNTER ) {
+			return null;
+		}
+
+		$derived_key = $solution['derivedKey'] ?? null;
+		if ( ! is_string( $derived_key ) || 1 !== preg_match( '/^[0-9a-f]{64}$/', $derived_key ) ) {
 			return null;
 		}
 
 		return array(
-			'algorithm' => $decoded['algorithm'],
-			'challenge' => $decoded['challenge'],
-			'number'    => $number,
-			'salt'      => $decoded['salt'],
-			'signature' => $decoded['signature'],
+			'parameters' => $challenge['parameters'],
+			'signature'  => $challenge['signature'],
+			'counter'    => $counter,
+			'derivedKey' => $derived_key,
 		);
 	}
 
 	/**
-	 * What the signature binds: the challenge hash and the expiry it was
-	 * issued with.
+	 * The challenge parameters this class issues, read back from a payload.
+	 *
+	 * Only the fields {@see self::create_challenge()} writes are read, each
+	 * against the one value or shape it is issued with; anything else the
+	 * client adds is dropped rather than signed, so it cannot change what the
+	 * signature is checked against.
+	 *
+	 * @param array<mixed> $raw Posted `parameters`.
+	 * @return array{algorithm: string, cost: int, expiresAt: int, keyLength: int, keyPrefix: string, nonce: string, salt: string}|null
+	 */
+	private static function parameters_of( array $raw ): ?array {
+		if ( self::ALGORITHM !== ( $raw['algorithm'] ?? null )
+			|| self::COST !== ( $raw['cost'] ?? null )
+			|| self::KEY_LENGTH !== ( $raw['keyLength'] ?? null ) ) {
+			return null;
+		}
+
+		$expires_at = $raw['expiresAt'] ?? null;
+		if ( ! is_int( $expires_at ) || $expires_at <= 0 ) {
+			return null;
+		}
+
+		foreach ( array( 'keyPrefix', 'nonce', 'salt' ) as $key ) {
+			if ( ! isset( $raw[ $key ] ) || ! is_string( $raw[ $key ] ) || 1 !== preg_match( '/^[0-9a-f]{32}$/', $raw[ $key ] ) ) {
+				return null;
+			}
+		}
+
+		return array(
+			'algorithm' => self::ALGORITHM,
+			'cost'      => self::COST,
+			'expiresAt' => $expires_at,
+			'keyLength' => self::KEY_LENGTH,
+			'keyPrefix' => $raw['keyPrefix'],
+			'nonce'     => $raw['nonce'],
+			'salt'      => $raw['salt'],
+		);
+	}
+
+	/**
+	 * What the signature binds: every challenge parameter.
 	 *
 	 * ONE METHOD BECAUSE BOTH SIDES MUST COMPOSE IT IDENTICALLY
 	 *
 	 * Issuing and verifying building this string separately is how the two
-	 * drift, and a drift here does not fail loudly — it rejects every
+	 * drift, and a drift here does not fail loudly -- it rejects every
 	 * legitimate visitor while still accepting nothing, which looks like a
 	 * widget problem rather than a signing one.
 	 *
-	 * The delimiter is what makes the binding unambiguous, and its absence is
-	 * the whole of CVE-2025-68113. `|` cannot appear in either field — the
-	 * hash is lowercase hex and the expiry is `^\d+$`, checked by
-	 * {@see self::expiry_of()} before this is ever composed on the verifying
-	 * side — so there is exactly one way to read the result.
+	 * The fields are written in sorted key order as `key=value`, joined by
+	 * `|`. Every key is fixed and every value is an integer or lowercase hex,
+	 * so neither `=` nor `|` can occur inside a field and there is exactly
+	 * one way to read the result.
 	 *
-	 * THE SHAPE IS THE MATH STRATEGY'S, WHICH HAD IT RIGHT FIRST
+	 * The leading `altcha` is domain separation from the math strategy's
+	 * `math|…` payload (`SecurityService::payload()`), so no payload of one
+	 * strategy can ever be read as the other's.
 	 *
-	 * `SecurityService::payload()` has always composed `math|answer|expires|
-	 * nonce` — every field delimited, and the strategy named up front. This
-	 * path went wrong by reusing a HASH as the signed payload, which looks
-	 * safe because a digest is fixed-length and is not, because what the
-	 * digest itself covers is not. The leading `altcha|` makes the domain
-	 * separation explicit rather than incidental: today a math payload and an
-	 * ALTCHA one cannot collide only because 64 hex characters never spell
-	 * `math`, which is an accident to rely on and a trap for whoever adds a
-	 * third strategy.
-	 *
-	 * @param string $hash    Challenge hash.
-	 * @param int    $expires Unix UTC timestamp the challenge dies at.
+	 * @param array<string, int|string> $parameters Challenge parameters.
 	 * @return string Canonical payload for {@see ChallengeSigner}.
 	 */
-	private static function signed_payload( string $hash, int $expires ): string {
-		return self::ID . '|' . $hash . '|' . (string) $expires;
-	}
+	private static function signed_payload( array $parameters ): string {
+		ksort( $parameters );
 
-	/**
-	 * Read the `expires` parameter carried in the salt.
-	 *
-	 * @param string $salt Salt as issued, `<hex>?expires=<unix>`.
-	 * @return int|null Unix UTC timestamp, or null when absent or malformed.
-	 */
-	private function expiry_of( string $salt ): ?int {
-		$parts = explode( '?', $salt, 2 );
-		if ( 2 !== count( $parts ) ) {
-			return null;
+		$fields = array( self::ID );
+		foreach ( $parameters as $key => $value ) {
+			$fields[] = $key . '=' . (string) $value;
 		}
 
-		parse_str( $parts[1], $params );
-		$expires = $params['expires'] ?? null;
-
-		if ( ! is_string( $expires ) || 1 !== preg_match( '/^\d+$/', $expires ) ) {
-			return null;
-		}
-
-		return (int) $expires;
+		return implode( '|', $fields );
 	}
 
 	/**
