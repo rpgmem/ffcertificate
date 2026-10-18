@@ -26907,3 +26907,19 @@ msgstr "botões de exclusão e avisos de perigo sobre o próprio fundo"
 #: includes/settings/views/documentation/config-public-design.php
 msgid "The colour of errors also draws the delete buttons and the danger notices: their text and border take it, and their background is a light shade of it, made automatically, against which the warning measures it too. Left at its default, they keep the plugin's own red pair."
 msgstr "A cor dos erros também desenha os botões de exclusão e os avisos de perigo: o texto e a borda deles a usam, e o fundo é um tom claro dela, feito automaticamente, contra o qual o aviso de contraste também a mede. Deixada no padrão, eles mantêm o par vermelho do próprio plugin."
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Approved banner on the dashboard"
+msgstr "Aviso de aprovado no painel"
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Hide the approved banner after (days)"
+msgstr "Ocultar o aviso de aprovado após (dias)"
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Counted from the later of the campaign's end and the approval. 0 keeps it visible."
+msgstr "Contado a partir do fim da campanha ou da aprovação, o que for mais tarde. 0 mantém o aviso visível."
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration (\"Hide the approved banner after (days)\", default 30) has passed since the later of the campaign's end and the approval, even after the daily run has expired the campaign; 0 never hides it. The dashboard's Reregistration tab keeps listing it either way."
+msgstr "Depois que uma submissão é aprovada, o aviso dela oferece o download da Ficha até que o prazo em Configurações → Recadastramento (\"Ocultar o aviso de aprovado após (dias)\", padrão 30) tenha passado desde o fim da campanha ou a aprovação, o que for mais tarde, mesmo depois que a execução diária expirar a campanha; 0 nunca o oculta. A aba Recadastramento do painel continua a listá-la em qualquer caso."

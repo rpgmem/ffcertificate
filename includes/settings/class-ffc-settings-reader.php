@@ -556,6 +556,17 @@ final class SettingsReader {
 		return self::get_int( 'invite_password_link_hours', 48 );
 	}
 
+	/**
+	 * Days the member dashboard keeps an approved reregistration's banner,
+	 * counted from the later of the campaign's end and the approval (#1887).
+	 *
+	 * Returns the stored value; `Core\ReregistrationBannerWindow` clamps it
+	 * (0..365), so the bound lives in one place, as for the invite link above.
+	 */
+	public static function rereg_approved_banner_days(): int {
+		return self::get_int( 'rereg_approved_banner_days', 30 );
+	}
+
 	/** TTL for the WP object cache entries the plugin manages. */
 	public static function cache_expiration_seconds(): int {
 		return self::get_int( 'cache_expiration', 3600 );

@@ -448,7 +448,13 @@ class DashboardShortcode {
 			return '';
 		}
 
-		$reregistrations = \FreeFormCertificate\Reregistration\ReregistrationFrontend::get_user_reregistrations( $user_id );
+		// Active campaigns, then the expired ones whose approved banner is
+		// still inside its window (#1887). The second set is approved-only,
+		// so it can only reach the approved branch below.
+		$reregistrations = array_merge(
+			\FreeFormCertificate\Reregistration\ReregistrationFrontend::get_user_reregistrations( $user_id ),
+			\FreeFormCertificate\Reregistration\ReregistrationFrontend::get_recently_expired_approved( $user_id )
+		);
 
 		if ( empty( $reregistrations ) ) {
 			return '';
@@ -465,7 +471,10 @@ class DashboardShortcode {
 						'category' => 'neutral',
 						'icon'     => 'download',
 						'href'     => (string) $rereg['magic_link'],
-						'class'    => 'ffc-btn-pdf',
+						// Not `ffc-btn-pdf`: that class takes the dashboard's
+						// compact table-row size, and a banner action has the
+						// family's standard size like its siblings (#1887).
+						'class'    => 'ffc-rereg-banner-record',
 						'attrs'    => array(
 							'target' => '_blank',
 							'rel'    => 'noopener',
@@ -476,6 +485,9 @@ class DashboardShortcode {
 
 			if ( ! $rereg['can_submit'] ) {
 				if ( 'approved' === $rereg['submission_status'] ) {
+					if ( self::approved_banner_expired( $rereg ) ) {
+						continue;
+					}
 					$html .= self::reregistration_banner( 'success', 'success', $title, esc_html__( 'Your reregistration has been approved.', 'ffcertificate' ), $pdf_link );
 				} elseif ( 'submitted' === $rereg['submission_status'] ) {
 					$html .= self::reregistration_banner( 'info', 'clock', $title, esc_html__( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ), $pdf_link );
@@ -551,6 +563,28 @@ class DashboardShortcode {
 		}
 
 		return $html;
+	}
+
+	/**
+	 * Whether an approved campaign's banner has outlived its window (#1887).
+	 *
+	 * The decision is `ReregistrationBannerWindow`'s; this only feeds it the
+	 * row, the setting, the site timezone and the clock. The Reregistrations
+	 * tab keeps listing the record either way: only the banner goes.
+	 *
+	 * @param array<string, mixed> $rereg One row of `get_user_reregistrations()`.
+	 * @return bool
+	 */
+	private static function approved_banner_expired( array $rereg ): bool {
+		$reviewed_at = isset( $rereg['reviewed_at'] ) && is_numeric( $rereg['reviewed_at'] ) ? (int) $rereg['reviewed_at'] : null;
+
+		return \FreeFormCertificate\Core\ReregistrationBannerWindow::approved_banner_expired(
+			isset( $rereg['end_date'] ) && is_scalar( $rereg['end_date'] ) ? (string) $rereg['end_date'] : '',
+			$reviewed_at,
+			\FreeFormCertificate\Core\ReregistrationBannerWindow::days(),
+			time(),
+			wp_timezone()
+		);
 	}
 
 	/**

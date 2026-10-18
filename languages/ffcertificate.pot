@@ -26823,3 +26823,19 @@ msgstr ""
 #: includes/settings/views/documentation/config-public-design.php
 msgid "The colour of errors also draws the delete buttons and the danger notices: their text and border take it, and their background is a light shade of it, made automatically, against which the warning measures it too. Left at its default, they keep the plugin's own red pair."
 msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Approved banner on the dashboard"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Hide the approved banner after (days)"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Counted from the later of the campaign's end and the approval. 0 keeps it visible."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration (\"Hide the approved banner after (days)\", default 30) has passed since the later of the campaign's end and the approval, even after the daily run has expired the campaign; 0 never hides it. The dashboard's Reregistration tab keeps listing it either way."
+msgstr ""
