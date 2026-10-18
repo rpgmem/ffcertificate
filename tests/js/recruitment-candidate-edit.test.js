@@ -267,3 +267,26 @@ describe('candidate-edit — adjutancy swap', () => {
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 });
+
+// The phone field types through the shared phone mask (#1920). Kept last:
+// loading the script again adds a second set of delegated handlers.
+describe('candidate phone mask', () => {
+	function load(value) {
+		document.body.innerHTML = `<table><tr><td><input id="ffc-cand-phone" type="tel" name="phone" data-mask="phone" value="${value}"></td></tr></table>`;
+		loadScript('assets/js/ffc-field-behaviours.js');
+		loadScript('assets/js/ffc-recruitment-candidate-edit.js');
+		return window.$('#ffc-cand-phone');
+	}
+
+	it('shows a stored number in the mask shape and masks what is typed', () => {
+		const $phone = load('11987654321');
+		expect($phone.val()).toBe('(11) 98765-4321');
+		$phone.val('1133334444').trigger('input');
+		expect($phone.val()).toBe('(11) 3333-4444');
+	});
+
+	it('shows an international number as stored until it is edited', () => {
+		const $phone = load('+55 11 98765-43210');
+		expect($phone.val()).toBe('+55 11 98765-43210');
+	});
+});

@@ -76,7 +76,7 @@ if ( $email_editable ) {
 echo '</td></tr>';
 
 echo '<tr><th><label for="ffc-cand-phone">' . esc_html__( 'Phone', 'ffcertificate' ) . '</label></th>';
-echo '<td><input id="ffc-cand-phone" type="text" class="regular-text" name="phone" value="' . esc_attr( null === $candidate->phone ? '' : (string) $candidate->phone ) . '"></td></tr>';
+echo '<td><input id="ffc-cand-phone" type="tel" class="regular-text" name="phone" data-mask="phone" inputmode="numeric" maxlength="15" value="' . esc_attr( null === $candidate->phone ? '' : (string) $candidate->phone ) . '"></td></tr>';
 
 echo '<tr><th><label for="ffc-cand-notes">' . esc_html__( 'Notes', 'ffcertificate' ) . '</label></th>';
 echo '<td><textarea id="ffc-cand-notes" name="notes" rows="4" class="large-text">' . esc_textarea( null === $candidate->notes ? '' : (string) $candidate->notes ) . '</textarea></td></tr>';
