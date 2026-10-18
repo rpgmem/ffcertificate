@@ -148,9 +148,8 @@ class AltchaChallengeEndpointTest extends TestCase {
 		$this->assertCount( 1, $this->responses );
 		$body = $this->responses[0];
 
-		$this->assertSame( 'SHA-256', $body['algorithm'] );
-		$this->assertArrayHasKey( 'challenge', $body );
-		$this->assertArrayHasKey( 'salt', $body );
+		$this->assertSame( 'SHA-256', $body['parameters']['algorithm'] );
+		$this->assertArrayHasKey( 'salt', $body['parameters'] );
 		$this->assertArrayHasKey( 'signature', $body );
 		$this->assertArrayNotHasKey( 'success', $body );
 	}
@@ -172,8 +171,8 @@ class AltchaChallengeEndpointTest extends TestCase {
 		$this->call_handle();
 
 		$this->assertNotSame(
-			$this->responses[0]['salt'],
-			$this->responses[1]['salt'],
+			$this->responses[0]['parameters']['salt'],
+			$this->responses[1]['parameters']['salt'],
 			'Two visitors sharing a salt would share a solution.'
 		);
 	}
@@ -217,7 +216,7 @@ class AltchaChallengeEndpointTest extends TestCase {
 
 		$this->call_handle();
 
-		$this->assertArrayHasKey( 'challenge', $this->responses[0] );
+		$this->assertArrayHasKey( 'parameters', $this->responses[0] );
 		$this->assertSame( array(), $this->statuses );
 	}
 

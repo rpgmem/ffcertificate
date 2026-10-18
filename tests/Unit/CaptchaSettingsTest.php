@@ -98,7 +98,16 @@ class CaptchaSettingsTest extends TestCase {
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		$this->settings = array( 'captcha_altcha_complexity' => 20000 );
 
-		$this->assertSame( 20000, AltchaCaptcha::create_challenge()['maxnumber'] );
+		// The work factor is the ceiling the secret counter is drawn under,
+		// so every issued challenge must solve at or below it -- and, over a
+		// handful, not only near zero.
+		$counters = array();
+		for ( $i = 0; $i < 5; $i++ ) {
+			$counter = \FreeFormCertificate\Tests\Support\AltchaSolver::counter_of( AltchaCaptcha::create_challenge(), 20000 );
+			$this->assertNotNull( $counter, 'A challenge did not solve within the configured work factor.' );
+			$counters[] = $counter;
+		}
+		$this->assertGreaterThan( 100, max( $counters ), 'Five draws all below 100 out of 20000 means the work factor is not being read.' );
 	}
 
 	// ==================================================================
@@ -194,11 +203,11 @@ class CaptchaSettingsTest extends TestCase {
 	}
 
 	public function test_the_configuration_carries_only_non_attribute_options(): void {
-		// The 3.x element accepts nine attributes and these are not among
+		// The 3.x element accepts ten attributes and these are not among
 		// them; putting an actual attribute in here would silently do nothing.
 		$config = CaptchaSettings::widget_configuration();
 
-		foreach ( array( 'type', 'auto', 'display', 'theme', 'name', 'challenge', 'language', 'workers' ) as $attribute ) {
+		foreach ( array( 'type', 'auto', 'display', 'form', 'theme', 'name', 'challenge', 'language', 'workers' ) as $attribute ) {
 			$this->assertArrayNotHasKey( $attribute, $config );
 		}
 	}
