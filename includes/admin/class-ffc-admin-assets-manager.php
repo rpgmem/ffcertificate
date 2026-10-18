@@ -235,19 +235,9 @@ class AdminAssetsManager {
 
 		wp_enqueue_media();
 
-		// ffc-admin-pdf depends on ffc-core (namespace + module registry).
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_localize_script(
-			'ffc-core',
-			'ffcCoreConfig',
-			\FreeFormCertificate\Core\AssetHelper::core_script_config()
-		);
+		// ffc-admin-pdf depends on ffc-core (namespace + module registry),
+		// which Core\AssetRegistry registers on every admin request (#1924).
+		wp_enqueue_script( 'ffc-core' );
 
 		wp_enqueue_script(
 			'ffc-admin-pdf',
@@ -352,19 +342,9 @@ class AdminAssetsManager {
 	 * @since 3.1.0
 	 */
 	private function enqueue_core_module(): void {
-		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_localize_script(
-			'ffc-core',
-			'ffcCoreConfig',
-			\FreeFormCertificate\Core\AssetHelper::core_script_config()
-		);
+		// Registered, with its configuration, by Core\AssetRegistry at
+		// priority 1 of this same hook (#1924).
+		wp_enqueue_script( 'ffc-core' );
 	}
 
 	/**

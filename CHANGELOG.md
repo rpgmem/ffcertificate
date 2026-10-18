@@ -32,6 +32,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Self-join on an audience with children is one four-option choice, and new children inherit it** (#1901). Off, This audience only, This audience + children and grandchildren, Children and grandchildren only; with the groups below in disagreement none is selected and a notice gives the counts. A new child starts on when every descendant is on. On the new-audience form a picked parent replaces the switch with "Inherits from the audience above."
 - **One masked shape per kind of personal data** (#1920). `DocumentFormatter::mask()` and one key map serve every screen, export and e-mail: RF reads `123.***-4`, CIN/RG `12.***.***-*`, a birth date `15/03/****` in the site's format. The public CPF/RF field and the recruitment candidate's phone type through the shared masks; the browser applies the RF check-digit setting.
 - **The submissions stylesheet loads on the submissions screen only** (#1923). It loaded on every FFC admin screen; its rules for core's `.button`, which no FFC screen prints since #1904, are gone, and the keyboard-reachable tooltip they carried is back on the family's icon-only buttons, such as the identity steppers.
+- **Shared scripts are registered in one place** (#1924). `Core\AssetRegistry` now registers `ffc-core`, the field behaviours, the front-end helpers, the captcha and the dynamic fragments that `Loader` used to; the admin screens enqueue `ffc-core` by handle, so its configuration is no longer printed twice.
 
 ### Fixed
 

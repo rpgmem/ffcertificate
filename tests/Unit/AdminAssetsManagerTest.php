@@ -149,6 +149,40 @@ class AdminAssetsManagerTest extends TestCase {
 		$this->assertContains('ffc-admin-js', $enqueued_scripts);
 	}
 
+	public function test_ffc_core_is_enqueued_by_handle_and_never_localized_here(): void {
+		// Core\AssetRegistry registers ffc-core and its ffcCoreConfig at
+		// priority 1 of this same hook (#1924). Re-declaring the source or
+		// localizing again here printed the configuration twice on every FFC
+		// screen, so the manager names the handle and nothing else.
+		global $post_type;
+		$post_type = 'ffc_form';
+
+		$core_calls = [];
+		$localized  = [];
+
+		Functions\when('wp_enqueue_media')->justReturn(true);
+		Functions\when('wp_enqueue_script')->alias(function (...$args) use (&$core_calls) {
+			if ('ffc-core' === $args[0]) {
+				$core_calls[] = $args;
+			}
+		});
+		Functions\when('wp_enqueue_style')->justReturn(true);
+		Functions\when('wp_localize_script')->alias(function ($handle, $object) use (&$localized) {
+			$localized[] = $handle . ':' . $object;
+		});
+		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+		Functions\when('wp_create_nonce')->justReturn('test_nonce');
+
+		( new AdminAssetsManager() )->enqueue_admin_assets('post.php');
+		AdminAssetsManager::enqueue_image_tools();
+
+		$this->assertNotEmpty($core_calls);
+		foreach ($core_calls as $call) {
+			$this->assertSame(array('ffc-core'), $call, 'ffc-core is enqueued by handle only.');
+		}
+		$this->assertNotContains('ffc-core:ffcCoreConfig', $localized);
+	}
+
 	public function test_enqueue_admin_assets_loads_css_for_ffc_form_post_type(): void {
 		global $post_type;
 		$post_type = 'ffc_form';
