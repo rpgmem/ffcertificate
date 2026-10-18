@@ -51,6 +51,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A page with a certificate form and a personal calendar loads each shared file once** (#1922). The calendar enqueued `ffc-frontend-helpers.js` and `ffc-frontend.css` under handles of its own, so both loaded twice and the helpers ran two copies of their state. It now uses the form's handles, and a guard refuses one asset file under two handles.
 - **One registration per shared script** (#1931). Scripts more than one screen loads are declared once in `Core\AssetRegistry` and enqueued by handle, so a screen can no longer win with its own path or dependencies; the QR raster and short-URL scripts now load minified in production, and the reregistration PDF follows `SCRIPT_DEBUG`.
 
+### Removed
+
+- ⚠ **The deprecated script aliases reached their removal release** (#1788, #1814). The handles `ffc-form-editor-tabs` and `ffc-form-list-copy-shortcode` and the global `FFC.FormEditorTabs` are gone; a script that still names them should use `ffc-vertical-tabs`, `ffc-copy-shortcode` and `FFC.VerticalTabs`.
+
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 
 ### Added

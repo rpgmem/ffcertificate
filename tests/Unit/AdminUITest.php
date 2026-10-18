@@ -673,7 +673,7 @@ class AdminUITest extends TestCase {
 		$this->assertSame( array(), $notices, 'Two and six are still a segmented control.' );
 	}
 
-	public function test_vertical_tabs_enqueue_keeps_the_old_handle_as_an_alias(): void {
+	public function test_vertical_tabs_enqueue_no_longer_registers_the_old_handle(): void {
 		$enqueued   = array();
 		$registered = array();
 		Functions\when( 'wp_enqueue_script' )->alias(
@@ -695,14 +695,14 @@ class AdminUITest extends TestCase {
 		$this->assertSame( 'ffc-vertical-tabs', $enqueued[1][0] );
 		$this->assertStringContainsString( 'assets/js/ffc-vertical-tabs', $enqueued[1][1] );
 		$this->assertContains( 'ffc-core', $enqueued[1][2] );
-		$this->assertSame(
-			array( array( 'ffc-form-editor-tabs', false, array( 'ffc-vertical-tabs' ) ) ),
-			array_values( array_filter( $registered, static fn( $r ) => 'ffc-form-editor-tabs' === $r[0] ) ),
-			'The handle the script had before #1788 must stay a source-less alias until its removal release.'
+		$this->assertNotContains(
+			'ffc-form-editor-tabs',
+			array_column( $registered, 0 ),
+			'The alias of the handle the script had before #1788 left in 6.41.0, its removal release.'
 		);
 	}
 
-	public function test_shortcode_copy_enqueue_keeps_the_old_handle_as_an_alias(): void {
+	public function test_shortcode_copy_enqueue_no_longer_registers_the_old_handle(): void {
 		$enqueued   = array();
 		$registered = array();
 		Functions\when( 'wp_enqueue_script' )->alias(
@@ -722,9 +722,9 @@ class AdminUITest extends TestCase {
 		$this->assertSame( AdminUI::SHORTCODE_COPY_HANDLE, $enqueued[0][0] );
 		$this->assertStringContainsString( 'assets/js/ffc-copy-shortcode', $enqueued[0][1] );
 		$this->assertSame(
-			array( array( 'ffc-form-list-copy-shortcode', false, array( 'ffc-copy-shortcode' ) ) ),
+			array(),
 			$registered,
-			'The handle the script had before #1814 must stay a source-less alias until its removal release.'
+			'The alias of the handle the script had before #1814 left in 6.41.0, its removal release.'
 		);
 	}
 

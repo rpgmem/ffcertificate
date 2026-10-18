@@ -117,7 +117,9 @@ class FormListColumnsHooksTest extends TestCase {
 			$enqueued[] = $h;
 		} );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
-		Functions\when( 'wp_register_script' )->justReturn( true );
+		// false: ffc-core is already registered, as the admin hook leaves it,
+		// so its configuration is not localized here (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce123' );
 
 		$helper = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
