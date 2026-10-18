@@ -4200,9 +4200,20 @@ msgstr "Cloudflare detectado (atrás do proxy da sua hospedagem) — CF-Connecti
 msgid "Cloudflare detected — CF-Connecting-IP is authoritative."
 msgstr "Cloudflare detectado — CF-Connecting-IP é a fonte autoritativa."
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:89
-msgid "Cloudflare IP ranges refresh requested."
-msgstr "Solicitada a atualização dos intervalos de IP da Cloudflare."
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:129
+#, php-format
+msgid "Cloudflare IP ranges refreshed: %d range cached."
+msgid_plural "Cloudflare IP ranges refreshed: %d ranges cached."
+msgstr[0] "Intervalos de IP da Cloudflare atualizados: %d intervalo em cache."
+msgstr[1] "Intervalos de IP da Cloudflare atualizados: %d intervalos em cache."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:139
+msgid "The Cloudflare IP ranges could not be fetched. The list fetched earlier stays in use."
+msgstr "Não foi possível obter os intervalos de IP da Cloudflare. A lista obtida anteriormente continua em uso."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:140
+msgid "The Cloudflare IP ranges could not be fetched. The bundled list stays in use."
+msgstr "Não foi possível obter os intervalos de IP da Cloudflare. A lista embutida no plugin continua em uso."
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:449
 msgid "Cloudflare is in front of this site, reaching PHP through your host's reverse proxy. With the Secure strategy the real client IP is taken from CF-Connecting-IP automatically — no extra configuration is needed. (Advanced: to also trust a non-Cloudflare proxy, add its address under Custom below.)"
