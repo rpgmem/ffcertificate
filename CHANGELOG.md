@@ -28,6 +28,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"View as user" reveals CPF/RF too** (#1888). The Profile tab offered Reveal for e-mails, phone and birth date but not for the identifiers; `/user/profile/reveal` now serves `cpf_rf`, formatted from the same rows as the masked list, under the same gate and audit row.
 - **"Refresh Cloudflare ranges now" works** (#1894). Settings → IP Diagnostics handled it only inside the Save branch, so the click did nothing. It now runs alone, with the same nonce and capability, and says how many ranges are cached or that the fetch failed; both buttons join the button family.
 - **Verify on a failed magic link** (#1893). The error card's Verify button no longer also fires the PDF download handler, and the code typed there is carried to the reloaded verification form, which opens with it filled in; the captcha is still required.
+- **Settings autosave keeps every change** (#1902). Two saves overlapping on a slow host both started from the option as their request booted, so the last erased the other under "Saved". The write now re-reads the option under a database lock, and a field sends one save at a time, so a quick flip back is not overtaken.
 
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 
