@@ -452,7 +452,7 @@ class UserAudienceRestController {
 			$out['tree_id']   = $tree_id;
 			if ( $node['is_member'] ) {
 				++$count;
-				if ( (int) $node['id'] === $locked_id ) {
+				if ( \FreeFormCertificate\Core\ArrayValue::int( $node, 'id' ) === $locked_id ) {
 					$out['leave_locked'] = true;
 				}
 			}

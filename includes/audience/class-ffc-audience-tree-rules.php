@@ -95,10 +95,10 @@ class AudienceTreeRules {
 				continue;
 			}
 			$out[] = array(
-				'id'            => (int) ( $row['id'] ?? 0 ),
-				'name'          => (string) ( $row['name'] ?? '' ),
-				'self_join'     => 1 === (int) ( $row['allow_self_join'] ?? 0 ),
-				'membership_id' => (int) ( $row['membership_id'] ?? 0 ),
+				'id'            => \FreeFormCertificate\Core\ArrayValue::int( $row, 'id' ),
+				'name'          => \FreeFormCertificate\Core\ArrayValue::string( $row, 'name' ),
+				'self_join'     => 1 === \FreeFormCertificate\Core\ArrayValue::int( $row, 'allow_self_join' ),
+				'membership_id' => \FreeFormCertificate\Core\ArrayValue::int( $row, 'membership_id' ),
 			);
 		}
 		return $out;
@@ -167,7 +167,7 @@ class AudienceTreeRules {
 
 		$roots = array();
 		foreach ( $group_ids as $group_id ) {
-			$roots[ self::root_id( (int) $group_id ) ] = true;
+			$roots[ self::root_id( is_numeric( $group_id ) ? (int) $group_id : 0 ) ] = true;
 		}
 
 		$kept = array();
