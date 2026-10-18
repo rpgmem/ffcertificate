@@ -768,7 +768,7 @@ describe('profile — view as user', () => {
 
 	it('draws a Reveal button beside each masked field and none on the owner profile', () => {
 		panel().render({ ...VIEWED });
-		expect(window.$('.ffc-profile-reveal-btn').map((i, b) => window.$(b).data('field')).get()).toEqual(['email', 'phone', 'birth_date']);
+		expect(window.$('.ffc-profile-reveal-btn').map((i, b) => window.$(b).data('field')).get()).toEqual(['email', 'cpf_rf', 'phone', 'birth_date']);
 
 		panel().render({ ...PROFILE_FIXTURE });
 		expect(window.$('.ffc-profile-reveal-btn').length).toBe(0);
@@ -803,6 +803,43 @@ describe('profile — view as user', () => {
 		await flush();
 
 		expect(window.$('.ffc-email-list li').map((i, li) => window.$(li).text()).get()).toEqual(['maria@example.com', 'm.silva@example.com']);
+	});
+
+	it('draws no CPF/RF Reveal when the viewed account has no identifier (#1888)', () => {
+		panel().render({ ...VIEWED, cpfs_masked: [], cpf_masked: 'Not found' });
+		expect(window.$('.ffc-profile-reveal-btn[data-field="cpf_rf"]').length).toBe(0);
+		expect(window.$('.ffc-profile-reveal-btn[data-field="email"]').length).toBe(1);
+	});
+
+	it('draws no CPF/RF Reveal on the owner profile, where the identifiers stay masked (#1888)', () => {
+		panel().render({ ...PROFILE_FIXTURE, cpfs_masked: ['123.***.***-01', '765.***-1'] });
+		expect(window.$('.ffc-cpf-list li').length).toBe(2);
+		expect(window.$('.ffc-profile-reveal-btn[data-field="cpf_rf"]').length).toBe(0);
+	});
+
+	it('reveals every CPF/RF at once and shows them formatted (#1888)', async () => {
+		panel().render({ ...VIEWED, cpfs_masked: ['123.***.***-01', '765.***-1'], cpf_masked: '123.***.***-01' });
+		const spy = mockAjaxSuccess({ field: 'cpf_rf', value: '123.456.789-01', values: ['123.456.789-01', '765.432-1'] });
+
+		window.$('.ffc-profile-reveal-btn[data-field="cpf_rf"]').trigger('click');
+		await flush();
+
+		expect(JSON.parse(spy.mock.calls[0][0].data)).toEqual({ field: 'cpf_rf' });
+		expect(window.$('.ffc-cpf-list li').map((i, li) => window.$(li).text()).get()).toEqual(['123.456.789-01', '765.432-1']);
+		expect(window.$('.ffc-profile-reveal-btn[data-field="cpf_rf"]').length).toBe(0);
+		expect(window.$('.ffc-profile-reveal-btn[data-field="phone"]').length).toBe(1);
+	});
+
+	it('shows a single revealed CPF/RF as a plain value (#1888)', async () => {
+		panel().render({ ...VIEWED });
+		mockAjaxSuccess({ field: 'cpf_rf', value: '123.456.789-01', values: ['123.456.789-01'] });
+
+		window.$('.ffc-profile-reveal-btn[data-field="cpf_rf"]').trigger('click');
+		await flush();
+
+		const text = document.getElementById('ffc-tabpanel-profile').textContent;
+		expect(text).toContain('123.456.789-01');
+		expect(text).not.toContain('123.***.***-**');
 	});
 
 	it('keeps a masked phone and birth date out of the save until they are revealed', () => {

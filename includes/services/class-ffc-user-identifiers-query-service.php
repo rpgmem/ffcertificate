@@ -78,6 +78,47 @@ final class UserIdentifiersQueryService {
 	}
 
 	/**
+	 * Return every CPF / RF the user appears with, in clear and formatted
+	 * for display, deduped. Reads the same rows as
+	 * {@see self::get_cpfs_masked_for_user()} with the same precedence (the
+	 * CPF wins when both columns are populated), and formats instead of
+	 * masking: a CPF through `DocumentFormatter::format_cpf()`, an RF through
+	 * `format_rf()`. Only for an audited reveal (#1888).
+	 *
+	 * @since 6.41.0
+	 * @param int $user_id WordPress user ID.
+	 * @return array<int, string>
+	 */
+	public static function get_cpfs_formatted_for_user( int $user_id ): array {
+		$rows = self::fetch_encrypted_cpf_rf_rows( $user_id );
+
+		$out = array();
+		foreach ( $rows as $row ) {
+			try {
+				$formatted = '';
+				if ( ! empty( $row['cpf_encrypted'] ) ) {
+					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_encrypted'] );
+					if ( ! empty( $plain ) ) {
+						$formatted = \FreeFormCertificate\Core\DocumentFormatter::format_cpf( $plain );
+					}
+				} elseif ( ! empty( $row['rf_encrypted'] ) ) {
+					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['rf_encrypted'] );
+					if ( ! empty( $plain ) ) {
+						$formatted = \FreeFormCertificate\Core\DocumentFormatter::format_rf( $plain );
+					}
+				}
+
+				if ( '' !== $formatted && ! in_array( $formatted, $out, true ) ) {
+					$out[] = $formatted;
+				}
+			} catch ( \Exception $e ) {
+				continue;
+			}
+		}
+		return $out;
+	}
+
+	/**
 	 * Return the user's masked identifiers split by type — `cpfs` and
 	 * `rfs` keys. Decryption + masking match
 	 * {@see self::get_cpfs_masked_for_user()}; the difference is the
@@ -165,10 +206,11 @@ final class UserIdentifiersQueryService {
 	/**
 	 * UNION ALL across `ffc_submissions` ⊕ `ffc_self_scheduling_appointments`
 	 * returning every row carrying a CPF or RF blob for the supplied
-	 * user. Used by both
-	 * {@see self::get_cpfs_masked_for_user()} and
+	 * user. Used by
+	 * {@see self::get_cpfs_masked_for_user()},
+	 * {@see self::get_cpfs_formatted_for_user()} and
 	 * {@see self::get_typed_identifiers_for_user()} — the only
-	 * difference between those two is how they shape the decrypted
+	 * difference between them is how they shape the decrypted
 	 * output, so the SQL stays single-source.
 	 *
 	 * @param int $user_id WordPress user ID.
