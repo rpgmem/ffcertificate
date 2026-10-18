@@ -2421,6 +2421,27 @@ body.wp-admin .ffc-btn {
     border-color: var(--ffc-danger-border);
 }
 
+/* Pressed is a state, not a category (#1904): a neutral button that picks
+   one of a few views — the date-message preview's Computer / Phone —
+   carries `aria-pressed`, and the chosen one wears the accent, as the
+   section pager's current page does. Declared before disabled, so a
+   disabled one stays grey. */
+.ffc-btn-neutral[aria-pressed="true"],
+.ffc-btn-neutral[aria-pressed="true"]:hover,
+.ffc-btn-neutral[aria-pressed="true"]:focus {
+    border-color: var(--ffc-primary);
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
+}
+
+/* In forced colors the accent ground is dropped, so the chosen one keeps a
+   system highlight contour instead (ButtonText is what the others carry). */
+@media (forced-colors: active) {
+    .ffc-btn-neutral[aria-pressed="true"] {
+        border: 2px solid Highlight;
+    }
+}
+
 /* Disabled takes the colour away instead of fading: `opacity` multiplies
    down the contrast the pairs above guarantee (CLAUDE.md, theme item 5).
    `.disabled` and `aria-disabled` cover a link button, which has no

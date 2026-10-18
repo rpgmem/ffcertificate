@@ -52,7 +52,15 @@ if ( ! empty( $detached_objects ) ) {
 		echo '<option value="' . esc_attr( (string) $a->id ) . '">' . esc_html( (string) $a->slug ) . ' — ' . esc_html( (string) $a->name ) . '</option>';
 	}
 	echo '</select>';
-	echo ' <button type="submit" class="button button-secondary">' . esc_html__( 'Attach', 'ffcertificate' ) . '</button>';
+	echo ' ';
+	\FreeFormCertificate\Core\Button::render(
+		array(
+			'label'    => __( 'Attach', 'ffcertificate' ),
+			'category' => 'create',
+			'icon'     => 'link',
+			'type'     => 'submit',
+		)
+	);
 	echo '</form>';
 }
 

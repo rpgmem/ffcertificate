@@ -62,7 +62,15 @@ $ffc_dm_reveal_nonce = $ffc_dm_can_reveal ? wp_create_nonce( 'ffc_reveal_pii_non
 				<?php endforeach; ?>
 			</select>
 		<?php endif; ?>
-		<button type="submit" class="button"><?php esc_html_e( 'Filter', 'ffcertificate' ); ?></button>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Filter', 'ffcertificate' ),
+				'icon'  => 'filter',
+				'type'  => 'submit',
+			)
+		);
+		?>
 	</p>
 </form>
 
@@ -101,7 +109,17 @@ $ffc_dm_reveal_nonce = $ffc_dm_can_reveal ? wp_create_nonce( 'ffc_reveal_pii_non
 					<td>
 						<span class="ffc-pii-row"><span class="ffc-pii-value" data-field="name"><?php echo esc_html( (string) $ffc_dm_row['name'] ); ?></span>
 						<?php if ( $ffc_dm_can_reveal ) : ?>
-							<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="<?php echo esc_attr( DateMessagesAdminPage::REVEAL_TYPE ); ?>" data-field="name" data-submission-id="<?php echo esc_attr( (string) $ffc_dm_row['user_id'] ); ?>" data-nonce="<?php echo esc_attr( $ffc_dm_reveal_nonce ); ?>"><?php esc_html_e( 'Reveal', 'ffcertificate' ); ?></button>
+							<?php
+							$ffc_dm_reveal_button = \FreeFormCertificate\Core\PiiReveal::field_button(
+								array(
+									'type'          => DateMessagesAdminPage::REVEAL_TYPE,
+									'field'         => 'name',
+									'submission-id' => (string) $ffc_dm_row['user_id'],
+									'nonce'         => $ffc_dm_reveal_nonce,
+								)
+							);
+							echo $ffc_dm_reveal_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field_button() escapes every value.
+							?>
 						<?php endif; ?>
 						</span>
 					</td>

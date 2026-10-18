@@ -56,12 +56,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</p>
 
 				<p>
-					<button type="button" class="button button-secondary ffc-rereg-import-check" id="ffc-rereg-import-check" data-rereg-id="<?php echo esc_attr( (string) $id ); ?>">
-						<?php esc_html_e( 'Check file', 'ffcertificate' ); ?>
-					</button>
-					<button type="button" class="button button-primary ffc-rereg-import-apply" id="ffc-rereg-import-apply" disabled>
-						<?php esc_html_e( 'Import', 'ffcertificate' ); ?>
-					</button>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Check file', 'ffcertificate' ),
+							'icon'  => 'file-check',
+							'id'    => 'ffc-rereg-import-check',
+							'class' => 'ffc-rereg-import-check',
+							'attrs' => array(
+								'data-rereg-id' => (string) $id,
+							),
+						)
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Import', 'ffcertificate' ),
+							'category' => 'create',
+							'icon'     => 'upload',
+							'id'       => 'ffc-rereg-import-apply',
+							'class'    => 'ffc-rereg-import-apply',
+							'disabled' => true,
+						)
+					);
+					?>
 					<span class="ffc-rereg-import-status" aria-live="polite"></span>
 				</p>
 			</div>

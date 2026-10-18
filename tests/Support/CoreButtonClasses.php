@@ -11,7 +11,8 @@ namespace FreeFormCertificate\Tests\Support;
  * an action. A core class -- `button`, `button-primary`, `page-title-action`,
  * a `submit_button()` call -- draws WordPress's button instead, which ignores
  * the family's categories, icons and dark theme. `CoreButtonClassRatchetTest`
- * freezes what is left, per file, and this is the scan it freezes.
+ * froze what was left, per file, until #1904 took it to zero; it blocks at
+ * zero now, and this is the scan it reads.
  *
  * WHY NOT `CssClassEmitters`. That scan answers "is this `ffc-*` class emitted
  * anywhere", so it records a set of names, never a count, and it reads a bare

@@ -915,33 +915,33 @@ final class RecruitmentNoticeEditPageRenderer {
 		$out = '';
 		switch ( $current ) {
 			case 'empty':
-				$out .= self::cls_button( $id, 'call', __( 'Call', 'ffcertificate' ), 'primary' );
+				$out .= self::cls_button( $id, 'call', __( 'Call', 'ffcertificate' ), 'neutral', 'phone' );
 				break;
 			case 'called':
-				$out .= self::cls_button( $id, 'accepted', __( 'Mark accepted', 'ffcertificate' ), 'secondary' );
-				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'secondary' );
-				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'secondary' );
-				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'secondary' );
-				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'link-delete' );
+				$out .= self::cls_button( $id, 'accepted', __( 'Mark accepted', 'ffcertificate' ), 'neutral', 'checkmark' );
+				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'neutral', 'user-check' );
+				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'neutral', 'flag' );
+				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'neutral', 'user-minus' );
+				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross' );
 				break;
 			case 'accepted':
-				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'secondary' );
-				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'secondary' );
-				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'secondary' );
-				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'link-delete' );
+				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'neutral', 'user-check' );
+				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'neutral', 'flag' );
+				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'neutral', 'user-minus' );
+				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross' );
 				break;
 			case 'not_shown':
-				$out .= self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'secondary' );
+				$out .= self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'caution', 'unlock' );
 				// Admin override (#Item 8): reset to waiting even when the
 				// reopen-freeze would block the plain `reopen` above.
-				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'link-delete' );
+				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'caution', 'restore' );
 				break;
 			case 'hired':
 			case 'withdrew':
 				// Terminal under the normal lifecycle — but an admin may undo a
 				// realized decision via the audited override (#Item 8): reopens
 				// the vacancy and returns the candidate to the waiting queue.
-				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'link-delete' );
+				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'caution', 'restore' );
 				break;
 		}
 		return $out;
@@ -953,22 +953,21 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * action maps to either a /call POST (status='empty' → 'called')
 	 * or a /status PATCH (every other transition).
 	 *
-	 * @param int    $id     Classification ID.
-	 * @param string $action Action key.
-	 * @param string $label  Button label (already i18n'd).
-	 * @param string $variant 'primary' | 'secondary' | 'link-delete'.
+	 * Written by hand with the family's classes (#1904): `Core\Button`
+	 * refuses the inline handler the row relies on.
+	 *
+	 * @param int    $id       Classification ID.
+	 * @param string $action   Action key.
+	 * @param string $label    Button label (already i18n'd).
+	 * @param string $category A `Core\Button` category.
+	 * @param string $icon     A `Core\Icons` class name without `ffc-icon-`.
 	 * @return string
 	 */
-	private static function cls_button( int $id, string $action, string $label, string $variant ): string {
-		$class = 'button button-small';
-		if ( 'primary' === $variant ) {
-			$class .= ' button-primary';
-		} elseif ( 'link-delete' === $variant ) {
-			$class .= ' button-link-delete';
-		}
+	private static function cls_button( int $id, string $action, string $label, string $category, string $icon ): string {
 		return sprintf(
-			'<button type="button" class="%s ffc-rec-mr-quarter" data-cls-id="%d" data-cls-action="%s" onclick="ffcRecruitmentClsAct(this);">%s</button>',
-			esc_attr( $class ),
+			'<button type="button" class="ffc-btn ffc-btn-%s ffc-icon-%s ffc-rec-mr-quarter" data-cls-id="%d" data-cls-action="%s" onclick="ffcRecruitmentClsAct(this);">%s</button>',
+			esc_attr( $category ),
+			esc_attr( $icon ),
 			$id,
 			esc_attr( $action ),
 			esc_html( $label )

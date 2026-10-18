@@ -5993,10 +5993,6 @@ msgstr ""
 msgid "Direct — ignore every forwarded header"
 msgstr ""
 
-#: templates/admin/url-shortener/short-urls-page.php:297
-msgid "Disable"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-migrations.php:799 includes/settings/views/ffc-tab-migrations.php:804
 msgid "Disable access now"
 msgstr ""
@@ -16079,10 +16075,6 @@ msgstr ""
 msgid "Status transition rejected: this transition requires a reason (filled in the Reopen reason field)."
 msgstr ""
 
-#: templates/admin/url-shortener/short-urls-page.php:94
-msgid "Status updated."
-msgstr ""
-
 #: templates/emails/reregistration-confirmation.php:31 templates/emails/selfscheduling-confirmation.php:39 includes/reregistration/class-ffc-reregistration-submission-details-renderer.php:70 includes/reregistration/class-ffc-record-generator.php:501 includes/frontend/class-ffc-verification-response-renderer.php:389
 msgid "Status:"
 msgstr ""
@@ -21792,9 +21784,6 @@ msgstr ""
 msgid "(deleted rule)"
 msgstr ""
 
-msgid "Activate"
-msgstr ""
-
 msgid "Active (the daily run sends it)"
 msgstr ""
 
@@ -21900,13 +21889,7 @@ msgstr ""
 msgid "Rule"
 msgstr ""
 
-msgid "Rule activated."
-msgstr ""
-
 msgid "Rule copied. The copy starts inactive."
-msgstr ""
-
-msgid "Rule deactivated."
 msgstr ""
 
 msgid "Rule deleted. Its history stays."
@@ -23036,7 +23019,7 @@ msgstr ""
 msgid "Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below."
 msgstr ""
 
-msgid "Rules can be edited, duplicated, activated or deactivated and deleted from the Rules tab. Deleting a rule keeps what it already sent in the history."
+msgid "Rules can be edited, duplicated and deleted from the Rules tab, where the Active toggle on each rule switches it on or off and saves at once. Deleting a rule keeps what it already sent in the history."
 msgstr ""
 
 msgid "Who receives a message"
@@ -26997,6 +26980,15 @@ msgstr ""
 
 #: includes/api/class-ffc-user-certificates-rest-controller.php
 msgid "Certificate not found."
+msgstr ""
+
+#. translators: %s: rule name
+#: templates/admin/date-messages/rules.php
+msgid "Active: %s"
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-record-autosave.php
+msgid "The short URL could not be saved."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php

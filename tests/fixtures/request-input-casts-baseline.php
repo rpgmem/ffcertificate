@@ -62,6 +62,4 @@ return array(
 	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#4',
 	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#5',
 	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#6',
-	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#7',
-	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#8',
 );

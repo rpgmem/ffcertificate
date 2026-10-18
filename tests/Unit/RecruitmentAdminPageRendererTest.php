@@ -233,7 +233,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 
 		$this->assertStringContainsString( 'Email template', $out );
 		$this->assertStringContainsString( 'Status badge colors', $out );
-		$this->assertStringContainsString( '<button>save</button>', $out );
+		$this->assertStringContainsString( '<p class="submit"><button type="submit">Save Changes</button></p>', $out );
 		// Send-mode + From fields stay; the subject/body editor moved to the hub
 		// (#964), replaced by a deep-link to Settings → Email texts (#976 split).
 		$this->assertStringContainsString( 'name="ffc_recruitment_settings[email_mode]"', $out );

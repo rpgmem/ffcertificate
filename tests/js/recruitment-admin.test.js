@@ -383,6 +383,29 @@ describe('ffc-recruitment-admin: confirm modal', () => {
 		expect(modal.querySelector('.ffc-confirm-modal-confirm').textContent).toBe('Delete');
 	});
 
+	it('draws the confirm as the family button its style names, wearing the trigger icon (#1904)', () => {
+		document.body.innerHTML = `
+			<form id="t9" method="post"
+			      data-ffc-confirm
+			      data-ffc-confirm-cta="Close notice"
+			      data-ffc-confirm-style="destructive">
+				<button type="submit" class="ffc-btn ffc-btn-caution ffc-icon-lock">Close</button>
+			</form>
+			<form id="t10" method="post" data-ffc-confirm data-ffc-confirm-cta="Go">
+				<button type="submit">Go</button>
+			</form>
+		`;
+
+		document.getElementById('t9').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		const modal = getModalOverlay();
+		expect(modal.querySelector('.ffc-confirm-modal-confirm').className).toBe('ffc-btn ffc-btn-danger ffc-icon-lock ffc-confirm-modal-confirm');
+		expect(modal.querySelector('.ffc-confirm-modal-cancel').className).toBe('ffc-btn ffc-btn-neutral ffc-icon-cross ffc-confirm-modal-cancel');
+		modal.querySelector('.ffc-confirm-modal-cancel').click();
+
+		document.getElementById('t10').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		expect(getModalOverlay().querySelector('.ffc-confirm-modal-confirm').className).toBe('ffc-btn ffc-btn-primary ffc-confirm-modal-confirm');
+	});
+
 	it('on confirm: marks the form ok-flag and re-fires .submit()', () => {
 		document.body.innerHTML = `
 			<form id="t2" method="post"

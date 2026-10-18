@@ -386,6 +386,31 @@
             });
     });
 
+    // A list row's on/off toggle names the Status cell it describes
+    // (`data-ffc-status-target`), with the label for each state; the cell
+    // follows the toggle once the save is confirmed, so a failed save never
+    // shows a state the record does not have (#1904).
+    document.addEventListener('ffc:setting-saved', function (e) {
+        var field = e && e.detail && e.detail.field;
+        if (!field || !field.getAttribute || !field.getAttribute('data-ffc-status-target')) {
+            return;
+        }
+        var cell = document.getElementById(field.getAttribute('data-ffc-status-target'));
+        if (!cell) {
+            return;
+        }
+        var on = field.checked;
+        cell.textContent = field.getAttribute(on ? 'data-ffc-status-on' : 'data-ffc-status-off') || '';
+        var drop = cell.getAttribute(on ? 'data-ffc-status-off-class' : 'data-ffc-status-on-class');
+        var add = cell.getAttribute(on ? 'data-ffc-status-on-class' : 'data-ffc-status-off-class');
+        if (drop) {
+            cell.classList.remove(drop);
+        }
+        if (add) {
+            cell.classList.add(add);
+        }
+    });
+
     document.addEventListener('ffc:setting-saved', function (e) {
         var detail = (e && e.detail) || {};
         if (detail.key !== 'csv_public_enabled' || !detail.response) {
