@@ -164,7 +164,20 @@ class FormEditorEmailMetabox {
 						<?php esc_html_e( 'Placeholders: {{name}}, {{form_title}}, {{auth_code}}, {{date}}. Links use the validation-URL DSL — e.g. {{validation_url link:m>"Download (PDF)"}} for the magic download link, or {{validation_url link:v>v}} for the public /valid page.', 'ffcertificate' ); ?>
 					</p>
 					<p>
-						<button type="button" class="button ffc-email-restore-default" data-editor="ffc_email_body" data-default-key="certificate_body"><?php esc_html_e( 'Restore Default Text', 'ffcertificate' ); ?></button>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Restore Default Text', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'restore',
+								'class'    => 'ffc-email-restore-default',
+								'attrs'    => array(
+									'data-editor'      => 'ffc_email_body',
+									'data-default-key' => 'certificate_body',
+								),
+							)
+						);
+						?>
 						<span class="description"><?php esc_html_e( 'Replaces the message above with the default template. You can also just clear the field — an empty body falls back to the default when the email is sent.', 'ffcertificate' ); ?></span>
 					</p>
 				</td>

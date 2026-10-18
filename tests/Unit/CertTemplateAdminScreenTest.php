@@ -27,6 +27,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'admin_url' )->returnArg();
@@ -687,7 +688,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 
 		$out = $this->capture( fn() => $screen->render_restore_button( CertTemplateCpt::POST_TYPE ) );
 		$this->assertStringContainsString( 'Restore defaults', $out );
-		$this->assertStringContainsString( 'class="button"', $out );
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-caution ffc-icon-restore"', $out );
 
 		$other = $this->capture( fn() => $screen->render_restore_button( 'page' ) );
 		$this->assertSame( '', $other );

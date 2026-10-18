@@ -241,20 +241,26 @@ class Admin {
 				}
                 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-				$has_filters = ! empty( $filter_form_ids ) || 'publish' !== $export_status;
-				$btn_class   = $has_filters ? 'button button-primary' : 'button';
-				$btn_label   = $has_filters
+				$has_filters   = ! empty( $filter_form_ids ) || 'publish' !== $export_status;
+				$btn_label     = $has_filters
 					? __( 'Export Filtered CSV', 'ffcertificate' )
 					: __( 'Export All CSV', 'ffcertificate' );
+				$form_ids_json = wp_json_encode( $filter_form_ids );
+				// Neutral whether filtered or not (#1904): exporting is not the
+				// screen's work, so the filtered state is the label, not a colour.
+				AdminUI::render_button(
+					array(
+						'label' => $btn_label,
+						'icon'  => 'download',
+						'id'    => 'ffc-csv-export-btn',
+						'attrs' => array(
+							'data-form-ids' => $form_ids_json ? $form_ids_json : '',
+							'data-status'   => $export_status,
+						),
+					)
+				);
 				?>
-				<button
-					type="button"
-					id="ffc-csv-export-btn"
-					class="<?php echo esc_attr( $btn_class ); ?>"
-					<?php $form_ids_json = wp_json_encode( $filter_form_ids ); ?>
-					data-form-ids="<?php echo esc_attr( $form_ids_json ? $form_ids_json : '' ); ?>"
-					data-status="<?php echo esc_attr( $export_status ); ?>"
-				><?php echo esc_html( $btn_label ); ?></button>			</div>
+			</div>
 			<hr class="wp-header-end">
 			<form method="GET">
 				<input type="hidden" name="post_type" value="ffc_form">

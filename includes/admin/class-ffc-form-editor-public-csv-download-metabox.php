@@ -303,12 +303,19 @@ class FormEditorPublicCsvDownloadMetabox {
 							readonly
 							class="large-text code"
 							onclick="this.select();">
-						<button type="button"
-							class="button button-secondary ffc-copy-link"
-							data-ffc-copy-target="#ffc_csv_public_link"
-							aria-live="polite">
-							<?php esc_html_e( 'Copy link', 'ffcertificate' ); ?>
-						</button>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Copy link', 'ffcertificate' ),
+								'icon'  => 'copy',
+								'class' => 'ffc-copy-link',
+								'attrs' => array(
+									'data-ffc-copy-target' => '#ffc_csv_public_link',
+									'aria-live'            => 'polite',
+								),
+							)
+						);
+						?>
 					</div>
 					<?php if ( '' === $csv_page ) : ?>
 						<p class="description">
@@ -317,24 +324,38 @@ class FormEditorPublicCsvDownloadMetabox {
 					<?php endif; ?>
 
 					<p class="ffc-csv-public-actions ffc-mt-md">
-						<button type="button"
-							class="button button-secondary ffc-csv-public-action ffc-icon-sync"
-							data-op="regenerate"
-							data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
-							data-nonce="<?php echo esc_attr( $nonce ); ?>"
-							data-confirm="<?php esc_attr_e( 'Generate a new hash? The current link stops working at once.', 'ffcertificate' ); ?>"
-							data-done="<?php esc_attr_e( 'New hash generated.', 'ffcertificate' ); ?>">
-							<?php esc_html_e( 'Regenerate hash', 'ffcertificate' ); ?>
-						</button>
-						<button type="button"
-							class="button button-secondary ffc-csv-public-action ffc-icon-restore"
-							data-op="reset"
-							data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>"
-							data-nonce="<?php echo esc_attr( $nonce ); ?>"
-							data-confirm="<?php esc_attr_e( 'Reset the download counter to zero?', 'ffcertificate' ); ?>"
-							data-done="<?php esc_attr_e( 'Counter reset.', 'ffcertificate' ); ?>">
-							<?php esc_html_e( 'Reset counter', 'ffcertificate' ); ?>
-						</button>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Regenerate hash', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'sync',
+								'class'    => 'ffc-csv-public-action',
+								'attrs'    => array(
+									'data-op'      => 'regenerate',
+									'data-post-id' => (string) $post->ID,
+									'data-nonce'   => $nonce,
+									'data-confirm' => __( 'Generate a new hash? The current link stops working at once.', 'ffcertificate' ),
+									'data-done'    => __( 'New hash generated.', 'ffcertificate' ),
+								),
+							)
+						);
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Reset counter', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'restore',
+								'class'    => 'ffc-csv-public-action',
+								'attrs'    => array(
+									'data-op'      => 'reset',
+									'data-post-id' => (string) $post->ID,
+									'data-nonce'   => $nonce,
+									'data-confirm' => __( 'Reset the download counter to zero?', 'ffcertificate' ),
+									'data-done'    => __( 'Counter reset.', 'ffcertificate' ),
+								),
+							)
+						);
+						?>
 						<span class="ffc-csv-public-action-status ffc-status" role="status" aria-live="polite" hidden></span>
 					</p>
 					<p class="description">
@@ -449,11 +470,18 @@ class FormEditorPublicCsvDownloadMetabox {
 					<?php endif; ?>
 					<?php if ( null !== $ffc_audit_summary['url'] ) : ?>
 						<p>
-							<a href="<?php echo esc_url( $ffc_audit_summary['url'] ); ?>"
-								class="button"
-								download>
-								<?php esc_html_e( 'Download audit log (CSV)', 'ffcertificate' ); ?>
-							</a>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Download audit log (CSV)', 'ffcertificate' ),
+									'icon'  => 'download',
+									'href'  => (string) $ffc_audit_summary['url'],
+									'attrs' => array(
+										'download' => true,
+									),
+								)
+							);
+							?>
 						</p>
 						<p class="description">
 							<?php

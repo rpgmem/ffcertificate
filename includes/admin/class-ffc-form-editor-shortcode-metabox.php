@@ -40,7 +40,18 @@ class FormEditorShortcodeMetabox {
 			?>
 			<div class="ffc-shortcode-copy">
 				<input type="text" readonly id="ffc-form-shortcode" class="ffc-shortcode-display code" value="<?php echo esc_attr( '[ffc_form id="' . $post->ID . '"]' ); ?>">
-				<button type="button" class="button ffc-copy-link ffc-icon-copy" data-ffc-copy-target="#ffc-form-shortcode"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Copy', 'ffcertificate' ),
+						'icon'  => 'copy',
+						'class' => 'ffc-copy-link',
+						'attrs' => array(
+							'data-ffc-copy-target' => '#ffc-form-shortcode',
+						),
+					)
+				);
+				?>
 			</div>
 			<p class="description">
 				<?php esc_html_e( 'Paste this code into any Page or Post to display the form.', 'ffcertificate' ); ?>

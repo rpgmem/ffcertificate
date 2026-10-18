@@ -4636,10 +4636,6 @@ msgstr "Copiar slug"
 msgid "Copy this Shortcode:"
 msgstr "Copie este shortcode:"
 
-#: includes/generators/class-ffc-magic-link-helper.php:202
-msgid "Copy to clipboard"
-msgstr "Copiar para a área de transferência"
-
 #: templates/admin/url-shortener/short-urls-page.php:346
 msgid "Copy URL"
 msgstr "Copiar URL"
@@ -11496,10 +11492,6 @@ msgstr "Nenhum problema com os links foi encontrado. Os envios e os usuários pa
 #: includes/settings/views/ffc-tab-geolocation.php:116
 msgid "No locations registered yet."
 msgstr "Ainda não há locais cadastrados."
-
-#: includes/generators/class-ffc-magic-link-helper.php:190
-msgid "No magic token"
-msgstr "Sem ficha mágica"
 
 #: includes/recruitment/class-ffc-recruitment-public-shortcode.php:318
 msgid "No matches for the current search."

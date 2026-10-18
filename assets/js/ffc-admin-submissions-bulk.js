@@ -140,7 +140,7 @@
     // Per-row buttons (Trash / Restore / Delete in the actions column)
     // -----------------------------------------------------------------
 
-    $(document).on('click', 'a.button-small', function (e) {
+    $(document).on('click', 'a.ffc-submission-row-action', function (e) {
         var $a   = $(this);
         var href = $a.attr('href') || '';
         // Only intercept the trash/restore/delete links on the
