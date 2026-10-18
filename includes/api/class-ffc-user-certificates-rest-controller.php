@@ -102,7 +102,7 @@ class UserCertificatesRestController {
 		$denied = new \WP_Error( 'ffc_reveal_denied', __( 'You do not have permission to reveal this field.', 'ffcertificate' ), array( 'status' => 403 ) );
 
 		// Someone who may not view as another user asked for one: refused.
-		if ( ! $view_as && null !== $request->get_param( 'viewAsUserId' ) && absint( $request->get_param( 'viewAsUserId' ) ) !== $user_id ) {
+		if ( ! $view_as && null !== $request->get_param( 'viewAsUserId' ) && \FreeFormCertificate\Core\ArrayValue::int( array( 'id' => $request->get_param( 'viewAsUserId' ) ), 'id' ) !== $user_id ) {
 			return $denied;
 		}
 
@@ -115,7 +115,7 @@ class UserCertificatesRestController {
 		}
 
 		global $wpdb;
-		$id         = absint( $request->get_param( 'id' ) );
+		$id         = \FreeFormCertificate\Core\ArrayValue::int( array( 'id' => $request->get_param( 'id' ) ), 'id' );
 		$submission = null;
 		if ( $id > 0 ) {
 			// The owner is part of the query, so a certificate of anyone
@@ -132,10 +132,16 @@ class UserCertificatesRestController {
 			);
 		}
 		if ( ! is_array( $submission )
-			|| in_array( (string) ( $submission['status'] ?? '' ), \FreeFormCertificate\Core\SubmissionStatus::NOT_A_CERTIFICATE, true ) ) {
+			|| in_array( \FreeFormCertificate\Core\ArrayValue::string( $submission, 'status' ), \FreeFormCertificate\Core\SubmissionStatus::NOT_A_CERTIFICATE, true ) ) {
 			return new \WP_Error( 'ffc_certificate_not_found', __( 'Certificate not found.', 'ffcertificate' ), array( 'status' => 404 ) );
 		}
 
+		/**
+		 * A row of the submissions table, read with ARRAY_A, so every key is a
+		 * column name.
+		 *
+		 * @var array<string, mixed> $submission
+		 */
 		$email = (string) \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'email' );
 
 		if ( $view_as ) {
