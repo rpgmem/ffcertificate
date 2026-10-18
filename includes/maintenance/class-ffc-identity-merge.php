@@ -214,8 +214,8 @@ class IdentityMerge {
 			return array();
 		}
 
-		$query = new IdentityConflictQuery();
-		$out   = array();
+		$scan = new IdentityCheckDigitScan();
+		$out  = array();
 
 		foreach ( $agreement['matches'] as $field ) {
 			$held = $records[ $field ] ?? array();
@@ -224,7 +224,7 @@ class IdentityMerge {
 				continue;
 			}
 
-			$out[ $field ] = $query->check_digit_verdicts( $field . '_hash', $held );
+			$out[ $field ] = $scan->check_digit_verdicts( $field . '_hash', $held );
 		}
 
 		return $out;

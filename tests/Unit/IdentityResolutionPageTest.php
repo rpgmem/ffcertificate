@@ -11,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\IdentityQueuePanels;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Maintenance\IdentityAcceptance;
+use FreeFormCertificate\Maintenance\IdentityAccountFacts;
+use FreeFormCertificate\Maintenance\IdentityCheckDigitScan;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 use FreeFormCertificate\Maintenance\IdentityRepair;
@@ -90,15 +92,18 @@ class IdentityResolutionPageTest extends TestCase {
 		$query = Mockery::mock( IdentityConflictQuery::class );
 		$query->shouldReceive( 'multiple_identities' )->andReturn( array() );
 		$query->shouldReceive( 'shared_identities' )->andReturn( array() );
-		$query->shouldReceive( 'check_digit_failures_of_both' )
+
+		$scan = Mockery::mock( IdentityCheckDigitScan::class );
+		$scan->shouldReceive( 'check_digit_failures_of_both' )
 			->once()
 			->with( IdentityResolutionPage::LIMIT )
 			->andReturn( $findings );
 		// The merge form reads this for the pair it draws. Stubbed on the
 		// harness rather than per test, because a full Mockery double throws
 		// on an unstubbed call and the cases here drive the view end to end.
-		$query->shouldReceive( 'account_facts' )->andReturn( array() )->byDefault();
-		$query->shouldReceive( 'scan_coverage' )->andReturn(
+		$facts = Mockery::mock( IdentityAccountFacts::class );
+		$facts->shouldReceive( 'of' )->andReturn( array() )->byDefault();
+		$scan->shouldReceive( 'scan_coverage' )->andReturn(
 			array(
 				'rf_hash' => array(
 					'stores'     => 3,
@@ -114,21 +119,45 @@ class IdentityResolutionPageTest extends TestCase {
 		$accepted = Mockery::mock( IdentityAcceptance::class );
 		$accepted->shouldReceive( 'all' )->andReturn( array() )->byDefault();
 
-		return new class( $query, $accepted ) extends IdentityResolutionPage {
+		return new class( $query, $scan, $facts, $accepted ) extends IdentityResolutionPage {
 
 			/** @var IdentityConflictQuery */
 			private $double;
+
+			/** @var IdentityCheckDigitScan */
+			private $scan_double;
+
+			/** @var IdentityAccountFacts */
+			private $facts_double;
 
 			/** @var IdentityAcceptance */
 			private $accepted_double;
 
 			/**
-			 * @param IdentityConflictQuery $double   Stand-in for the real query.
-			 * @param IdentityAcceptance    $accepted Stand-in for the record.
+			 * @param IdentityConflictQuery  $double   Stand-in for the real query.
+			 * @param IdentityCheckDigitScan $scan     Stand-in for the real scan.
+			 * @param IdentityAccountFacts   $facts    Stand-in for the real facts.
+			 * @param IdentityAcceptance     $accepted Stand-in for the record.
 			 */
-			public function __construct( $double, $accepted ) {
+			public function __construct( $double, $scan, $facts, $accepted ) {
 				$this->double          = $double;
+				$this->scan_double     = $scan;
+				$this->facts_double    = $facts;
 				$this->accepted_double = $accepted;
+			}
+
+			/**
+			 * @return IdentityCheckDigitScan
+			 */
+			protected function scans(): IdentityCheckDigitScan {
+				return $this->scan_double;
+			}
+
+			/**
+			 * @return IdentityAccountFacts
+			 */
+			protected function facts(): IdentityAccountFacts {
+				return $this->facts_double;
 			}
 
 			/**
@@ -454,8 +483,10 @@ class IdentityResolutionPageTest extends TestCase {
 		$query = Mockery::mock( IdentityConflictQuery::class );
 		$query->shouldReceive( 'multiple_identities' )->andReturn( array() );
 		$query->shouldReceive( 'shared_identities' )->andReturn( array() );
-		$query->shouldReceive( 'check_digit_failures_of_both' )->once()->andReturn( array() );
-		$query->shouldReceive( 'scan_coverage' )->once()->andReturn(
+
+		$scan = Mockery::mock( IdentityCheckDigitScan::class );
+		$scan->shouldReceive( 'check_digit_failures_of_both' )->once()->andReturn( array() );
+		$scan->shouldReceive( 'scan_coverage' )->once()->andReturn(
 			array(
 				'rf_hash' => array(
 					'stores'     => 3,
@@ -465,16 +496,28 @@ class IdentityResolutionPageTest extends TestCase {
 			)
 		);
 
-		$page = new class( $query ) extends IdentityResolutionPage {
+		$page = new class( $query, $scan ) extends IdentityResolutionPage {
 
 			/** @var IdentityConflictQuery */
 			private $double;
 
+			/** @var IdentityCheckDigitScan */
+			private $scan_double;
+
 			/**
-			 * @param IdentityConflictQuery $double Stand-in for the real query.
+			 * @param IdentityConflictQuery  $double Stand-in for the real query.
+			 * @param IdentityCheckDigitScan $scan   Stand-in for the real scan.
 			 */
-			public function __construct( $double ) {
-				$this->double = $double;
+			public function __construct( $double, $scan ) {
+				$this->double      = $double;
+				$this->scan_double = $scan;
+			}
+
+			/**
+			 * @return IdentityCheckDigitScan
+			 */
+			protected function scans(): IdentityCheckDigitScan {
+				return $this->scan_double;
 			}
 
 			/**
@@ -1225,7 +1268,7 @@ class IdentityResolutionPageTest extends TestCase {
 				'Too many rows to list.',
 				'Names more than one account',
 				'IdentityConflictQuery::COLUMN_ROW_IDS_TRUNCATED',
-				'IdentityConflictQuery::parse_row_ids',
+				'IdentityCheckDigitScan::parse_row_ids',
 				'ffc-identity-orphan-missing',
 				'ffc-identity-orphan-present',
 			) as $state
