@@ -155,9 +155,9 @@
 
     // Clear filters link — currently a regular anchor with the
     // base URL. Trap the click and reset locally instead of reloading.
-    $(document).on('click', '.tablenav.top .alignleft a.button[href*="tab=activity_log"]', function (e) {
-        // Only intercept when no `?level=` / `log_action` / `s` in href —
-        // that's the Clear Filters button by construction.
+    $(document).on('click', '.tablenav.top .alignleft a.ffc-log-clear', function (e) {
+        // The link carries the bare base URL; a filter in it would mean
+        // something else wears the hook, so leave that one alone.
         var href = $(this).attr('href') || '';
         if (/[?&](level|log_action|s)=/.test(href)) { return; }
         e.preventDefault();

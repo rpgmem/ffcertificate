@@ -60,7 +60,7 @@ function mountTable(rows) {
 			<td><input type="radio" name="ffc_location_default_gps" class="ffc-location-default-gps" value="${r.id}"${r.default_gps ? ' checked' : ''}></td>
 			<td><input type="radio" name="ffc_location_default_ip" class="ffc-location-default-ip" value="${r.id}"${r.default_ip ? ' checked' : ''}></td>
 			<td>
-				<button type="button" class="button button-small ffc-location-delete">Delete</button>
+				<button type="button" class="ffc-btn ffc-btn-danger ffc-icon-delete ffc-location-delete">Delete</button>
 				<span class="ffc-autosave-badge" hidden></span>
 			</td>
 		</tr>

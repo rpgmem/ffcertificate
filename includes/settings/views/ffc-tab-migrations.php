@@ -259,9 +259,15 @@ try {
 					</p>
 					<?php if ( '' !== $ffcertificate_identities_url ) : ?>
 						<p>
-							<a href="<?php echo esc_url( $ffcertificate_identities_url ); ?>" class="button button-secondary ffc-icon-users">
-								<?php esc_html_e( 'Resolve on Identity Resolution', 'ffcertificate' ); ?>
-							</a>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Resolve on Identity Resolution', 'ffcertificate' ),
+									'icon'  => 'users',
+									'href'  => $ffcertificate_identities_url,
+								)
+							);
+							?>
 						</p>
 					<?php else : ?>
 						<p class="description">
@@ -274,7 +280,9 @@ try {
 			<!-- Actions -->
 			<div class="ffc-migration-actions">
 				<?php if ( $ffcertificate_is_complete ) : ?>
-					<span class="button button-secondary ffc-icon-success" disabled>
+					<?php // A state, not an action: the seal reads as a status line, never as a button nobody can press. ?>
+					<span class="ffc-status is-success ffc-migration-complete">
+						<span class="ffc-status-icon ffc-icon-success" aria-hidden="true"></span>
 						<?php esc_html_e( 'Migration Complete', 'ffcertificate' ); ?>
 					</span>
 					
@@ -312,11 +320,12 @@ try {
 					// reports a state and does nothing. So the card now
 					// carries a verb in either branch.
 					//
-					// `button-secondary` ON PURPOSE. The auto-run driver
-					// binds `.ffc-migration-actions a.button-primary` and
-					// reads `ffc_run_migration` out of the href, so this link
-					// is outside its reach twice over and navigates normally
-					// -- which is what the handler on the other end expects.
+					// WITHOUT `ffc-migration-run` ON PURPOSE. The auto-run
+					// driver binds `.ffc-migration-actions a.ffc-migration-run`
+					// and reads `ffc_run_migration` out of the href, so this
+					// link is outside its reach twice over and navigates
+					// normally -- which is what the handler on the other end
+					// expects.
 					//
 					// The strategy declares `rearmable` in its own status, so
 					// this view never learns which option holds whose cursor.
@@ -339,9 +348,16 @@ try {
 							'ffc_rearm_' . $ffcertificate_key
 						);
 						?>
-						<a href="<?php echo esc_url( $ffcertificate_rearm_url ); ?>" class="button button-secondary ffc-icon-sync">
-							<?php esc_html_e( 'Re-check accounts resolved since the last pass', 'ffcertificate' ); ?>
-						</a>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Re-check accounts resolved since the last pass', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'sync',
+								'href'     => $ffcertificate_rearm_url,
+							)
+						);
+						?>
 						<p class="description">
 							<?php esc_html_e( 'An account skipped because it held two identifiers becomes fillable once you resolve it, and this walk already passed it. Re-checking sends the walk back to the start; a value already filled is never overwritten, and an account still holding two is skipped again.', 'ffcertificate' ); ?>
 						</p>
@@ -349,21 +365,25 @@ try {
 					endif;
 					?>
 				<?php else : ?>
-					<a href="<?php echo esc_url( $ffcertificate_migrate_url ); ?>"
-						class="button button-primary ffc-icon-sync"
-						data-confirm="
-						<?php
-						echo esc_attr(
-							sprintf(
-							/* translators: %s: migration name */
-								__( 'Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.', 'ffcertificate' ),
-								$ffcertificate_migration['name']
-							)
-						);
-						?>
-							">
-						<?php esc_html_e( 'Run Migration', 'ffcertificate' ); ?>
-					</a>
+					<?php
+					// `ffc-migration-run` is the hook ffc-admin-migrations.js runs the batches from.
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Run Migration', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'sync',
+							'href'     => $ffcertificate_migrate_url,
+							'class'    => 'ffc-migration-run',
+							'attrs'    => array(
+								'data-confirm' => sprintf(
+									/* translators: %s: migration name */
+									__( 'Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.', 'ffcertificate' ),
+									$ffcertificate_migration['name']
+								),
+							),
+						)
+					);
+					?>
 
 					<p class="description">
 						<?php
@@ -472,27 +492,58 @@ try {
 					value="<?php echo esc_attr( (string) $ffcertificate_cleanup_days ); ?>"
 					class="ffc-set-w-90" required>
 				<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
-				<button type="submit" class="button button-secondary">
-					<?php esc_html_e( 'Save', 'ffcertificate' ); ?>
-				</button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Save', 'ffcertificate' ),
+						'icon'  => 'save',
+						'type'  => 'submit',
+					)
+				);
+				?>
 			</form>
 
 			<!-- Action buttons -->
 			<div class="ffc-migration-actions">
-				<a href="<?php echo esc_url( $ffcertificate_preview_url ); ?>" class="button button-secondary ffc-icon-eye">
-					<?php esc_html_e( 'Preview affected posts', 'ffcertificate' ); ?>
-				</a>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Preview affected posts', 'ffcertificate' ),
+						'icon'  => 'eye',
+						'href'  => $ffcertificate_preview_url,
+					)
+				);
+				?>
 
 				<?php if ( $ffcertificate_preview_ok ) : ?>
-					<a href="<?php echo esc_url( $ffcertificate_apply_url ); ?>"
-						class="button button-primary ffc-icon-delete"
-						data-confirm="<?php esc_attr_e( 'This will modify the post_content of every affected post. Revisions will be created automatically. Continue?', 'ffcertificate' ); ?>">
-						<?php esc_html_e( 'Remove shortcodes now', 'ffcertificate' ); ?>
-					</a>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Remove shortcodes now', 'ffcertificate' ),
+							'category' => 'danger',
+							'icon'     => 'delete',
+							'href'     => $ffcertificate_apply_url,
+							'attrs'    => array(
+								'data-confirm' => __( 'This will modify the post_content of every affected post. Revisions will be created automatically. Continue?', 'ffcertificate' ),
+							),
+						)
+					);
+					?>
 				<?php else : ?>
-					<span class="button button-primary ffc-icon-delete" disabled aria-disabled="true" title="<?php esc_attr_e( 'Run a preview first', 'ffcertificate' ); ?>">
-						<?php esc_html_e( 'Remove shortcodes now', 'ffcertificate' ); ?>
-					</span>
+					<?php
+					// A <button> rather than a link: a disabled link still navigates, and the apply URL must not be reachable before a preview.
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Remove shortcodes now', 'ffcertificate' ),
+							'category' => 'danger',
+							'icon'     => 'delete',
+							'disabled' => true,
+							'attrs'    => array(
+								'title' => __( 'Run a preview first', 'ffcertificate' ),
+							),
+						)
+					);
+					?>
 				<?php endif; ?>
 
 				<p class="description">
@@ -719,21 +770,47 @@ try {
 							?>
 						</div>
 					</fieldset>
-				<button type="submit" class="button button-secondary ffc-icon-eye">
-					<?php esc_html_e( 'Save criteria & preview', 'ffcertificate' ); ?>
-				</button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Save criteria & preview', 'ffcertificate' ),
+						'icon'  => 'eye',
+						'type'  => 'submit',
+					)
+				);
+				?>
 			</form>
 
 			<div class="ffc-migration-actions">
 				<?php if ( $ffcertificate_url_preview_ok ) : ?>
-					<a href="<?php echo esc_url( $ffcertificate_url_apply_url ); ?>" class="button button-primary ffc-icon-delete"
-						data-confirm="<?php esc_attr_e( 'This permanently deletes the matched short URLs and cannot be undone. Continue?', 'ffcertificate' ); ?>">
-						<?php esc_html_e( 'Delete matched short URLs', 'ffcertificate' ); ?>
-					</a>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Delete matched short URLs', 'ffcertificate' ),
+							'category' => 'danger',
+							'icon'     => 'delete',
+							'href'     => $ffcertificate_url_apply_url,
+							'attrs'    => array(
+								'data-confirm' => __( 'This permanently deletes the matched short URLs and cannot be undone. Continue?', 'ffcertificate' ),
+							),
+						)
+					);
+					?>
 				<?php else : ?>
-					<span class="button button-primary ffc-icon-delete" disabled aria-disabled="true" title="<?php esc_attr_e( 'Run a preview first', 'ffcertificate' ); ?>">
-						<?php esc_html_e( 'Delete matched short URLs', 'ffcertificate' ); ?>
-					</span>
+					<?php
+					// A <button> rather than a link: a disabled link still navigates, and the apply URL must not be reachable before a preview.
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Delete matched short URLs', 'ffcertificate' ),
+							'category' => 'danger',
+							'icon'     => 'delete',
+							'disabled' => true,
+							'attrs'    => array(
+								'title' => __( 'Run a preview first', 'ffcertificate' ),
+							),
+						)
+					);
+					?>
 				<?php endif; ?>
 				<p class="description">
 					<?php esc_html_e( 'The delete button unlocks for 5 minutes after a successful preview.', 'ffcertificate' ); ?>
@@ -877,21 +954,47 @@ try {
 				</label>
 				<input type="number" id="ffc-pubaccess-days" name="public_access_disable_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_pa_days ); ?>" class="ffc-set-w-90" required>
 				<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
-				<button type="submit" class="button button-secondary ffc-icon-eye">
-					<?php esc_html_e( 'Save & preview', 'ffcertificate' ); ?>
-				</button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Save & preview', 'ffcertificate' ),
+						'icon'  => 'eye',
+						'type'  => 'submit',
+					)
+				);
+				?>
 			</form>
 
 			<div class="ffc-migration-actions">
 				<?php if ( $ffcertificate_pa_preview_ok ) : ?>
-					<a href="<?php echo esc_url( $ffcertificate_pa_apply_url ); ?>" class="button button-primary ffc-icon-lock"
-						data-confirm="<?php esc_attr_e( 'This switches off Public Operator Access on the matched forms. Their access tokens are preserved so they can be re-enabled later. Continue?', 'ffcertificate' ); ?>">
-						<?php esc_html_e( 'Disable access now', 'ffcertificate' ); ?>
-					</a>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Disable access now', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'lock',
+							'href'     => $ffcertificate_pa_apply_url,
+							'attrs'    => array(
+								'data-confirm' => __( 'This switches off Public Operator Access on the matched forms. Their access tokens are preserved so they can be re-enabled later. Continue?', 'ffcertificate' ),
+							),
+						)
+					);
+					?>
 				<?php else : ?>
-					<span class="button button-primary ffc-icon-lock" disabled aria-disabled="true" title="<?php esc_attr_e( 'Run a preview first', 'ffcertificate' ); ?>">
-						<?php esc_html_e( 'Disable access now', 'ffcertificate' ); ?>
-					</span>
+					<?php
+					// A <button> rather than a link: a disabled link still navigates, and the apply URL must not be reachable before a preview.
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Disable access now', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'lock',
+							'disabled' => true,
+							'attrs'    => array(
+								'title' => __( 'Run a preview first', 'ffcertificate' ),
+							),
+						)
+					);
+					?>
 				<?php endif; ?>
 				<p class="description">
 					<?php esc_html_e( 'The disable button unlocks for 5 minutes after a successful preview.', 'ffcertificate' ); ?>
@@ -1039,13 +1142,22 @@ try {
 			<?php endif; ?>
 
 			<div class="ffc-migration-actions ffc-set-my-12">
-				<a href="<?php echo esc_url( $ffcertificate_sa_scan_url ); ?>" class="button button-secondary ffc-icon-search">
-					<?php esc_html_e( 'Run audit', 'ffcertificate' ); ?>
-				</a>
-				<a href="<?php echo esc_url( $ffcertificate_sa_export_url ); ?>" class="button button-secondary ffc-icon-download">
-					<?php esc_html_e( 'Export findings (CSV)', 'ffcertificate' ); ?>
-				</a>
 				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Run audit', 'ffcertificate' ),
+						'icon'  => 'search',
+						'href'  => $ffcertificate_sa_scan_url,
+					)
+				);
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Export findings (CSV)', 'ffcertificate' ),
+						'icon'  => 'download',
+						'href'  => $ffcertificate_sa_export_url,
+					)
+				);
+
 				// THE OTHER HALF OF THE LOOP, AND ONLY THAT (#1368).
 				//
 				// This card reads and never writes: every verb that resolves
@@ -1067,9 +1179,15 @@ try {
 				// `wp_die` is worse than an absent one.
 				?>
 				<?php if ( current_user_can( \FreeFormCertificate\Admin\IdentityResolutionPage::CAPABILITY ) ) : ?>
-					<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . \FreeFormCertificate\Admin\IdentityResolutionPage::MENU_SLUG ) ); ?>" class="button button-secondary ffc-icon-users">
-						<?php esc_html_e( 'Resolve on Identity Resolution', 'ffcertificate' ); ?>
-					</a>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Resolve on Identity Resolution', 'ffcertificate' ),
+							'icon'  => 'users',
+							'href'  => admin_url( 'admin.php?page=' . \FreeFormCertificate\Admin\IdentityResolutionPage::MENU_SLUG ),
+						)
+					);
+					?>
 				<?php endif; ?>
 			</div>
 

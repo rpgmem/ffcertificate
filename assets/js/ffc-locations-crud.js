@@ -151,7 +151,7 @@
                 '<td><input type="radio" name="ffc_location_default_gps" class="ffc-location-default-gps" value="' + escAttr(id) + '"></td>' +
                 '<td><input type="radio" name="ffc_location_default_ip" class="ffc-location-default-ip" value="' + escAttr(id) + '"></td>' +
                 '<td>' +
-                    '<button type="button" class="button button-small ffc-location-delete">' + escHtml(deleteText) + '</button>' +
+                    FFC.buttonHtml({ label: deleteText, category: 'danger', icon: 'delete', className: 'ffc-location-delete' }) +
                     '<span class="ffc-autosave-badge ffc-status" role="status" aria-live="polite" hidden></span>' +
                 '</td>' +
             '</tr>'
@@ -163,9 +163,6 @@
 
     function escAttr(v) {
         return String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-    function escHtml(v) {
-        return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     $(function () {

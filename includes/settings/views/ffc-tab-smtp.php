@@ -281,7 +281,17 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 	\FreeFormCertificate\Core\AdminNotice::callout(
 		'info',
 		'<p>' . esc_html__( 'For queued sending with automatic retries and true multipart (HTML + plain-text) delivery, install the total-mail-queue plugin. Every email this plugin sends already goes through wp_mail(), so it is picked up automatically once activated — no extra configuration.', 'ffcertificate' ) . '</p>'
-		. '<p><a class="button" href="' . esc_url( 'https://github.com/rpgmem/total-mail-queue' ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Learn more about total-mail-queue', 'ffcertificate' ) . '</a></p>',
+		. '<p>' . \FreeFormCertificate\Admin\AdminUI::button(
+			array(
+				'label' => __( 'Learn more about total-mail-queue', 'ffcertificate' ),
+				'icon'  => 'external',
+				'href'  => 'https://github.com/rpgmem/total-mail-queue',
+				'attrs' => array(
+					'target' => '_blank',
+					'rel'    => 'noopener noreferrer',
+				),
+			)
+		) . '</p>',
 		array(
 			'icon'  => 'bulb',
 			'title' => __( 'Recommended for reliable delivery', 'ffcertificate' ),
