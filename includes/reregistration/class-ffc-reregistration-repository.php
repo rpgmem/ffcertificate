@@ -559,6 +559,75 @@ class ReregistrationRepository {
 	}
 
 	/**
+	 * Expired campaigns in which the user holds an APPROVED submission (#1887).
+	 *
+	 * The source of the dashboard's approved banner after a campaign has
+	 * ended: the daily run moves the campaign to `expired`, which takes it out
+	 * of {@see self::get_active_for_user()}, while the banner is meant to stay
+	 * for a window after the later of the end and the approval. Bounded three
+	 * ways: this user's approved submissions only, `expired` campaigns only,
+	 * and at most `$limit` rows, newest end first. When a window is given, a
+	 * campaign must also have ended on or after `$end_on_or_after` (wall-clock
+	 * DATETIME, site time) OR been approved at or after `$reviewed_at_or_after`
+	 * (unix UTC) -- either can be the later anchor, so either keeps the row.
+	 * The exact cut-off is `ReregistrationBannerWindow`'s; this only keeps the
+	 * read small.
+	 *
+	 * @param int         $user_id              User ID.
+	 * @param string|null $end_on_or_after      Lower bound on `end_date`, or null for no date bound.
+	 * @param int         $reviewed_at_or_after Lower bound on `reviewed_at`; ignored without the first bound.
+	 * @param int         $limit                Maximum rows.
+	 * @return list<ReregistrationRow>
+	 */
+	public static function get_expired_with_approved_submission( int $user_id, ?string $end_on_or_after, int $reviewed_at_or_after, int $limit ): array {
+		$wpdb       = self::db();
+		$table      = self::get_table_name();
+		$subs_table = ReregistrationSubmissionReader::get_table_name();
+
+		if ( null === $end_on_or_after ) {
+			$sql = $wpdb->prepare(
+				"SELECT r.* FROM %i r
+                 JOIN %i s ON s.reregistration_id = r.id
+                 WHERE s.user_id = %d AND s.status = 'approved' AND r.status = 'expired'
+                 ORDER BY r.end_date DESC
+                 LIMIT %d",
+				$table,
+				$subs_table,
+				$user_id,
+				max( 1, $limit )
+			);
+		} else {
+			$sql = $wpdb->prepare(
+				"SELECT r.* FROM %i r
+                 JOIN %i s ON s.reregistration_id = r.id
+                 WHERE s.user_id = %d AND s.status = 'approved' AND r.status = 'expired'
+                 AND ( r.end_date >= %s OR s.reviewed_at >= %d )
+                 ORDER BY r.end_date DESC
+                 LIMIT %d",
+				$table,
+				$subs_table,
+				$user_id,
+				$end_on_or_after,
+				$reviewed_at_or_after,
+				max( 1, $limit )
+			);
+		}
+
+		if ( ! is_string( $sql ) ) {
+			return array();
+		}
+
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<ReregistrationRow>|null $results
+		 */
+		$results = $wpdb->get_results( $sql );
+
+		return is_array( $results ) ? $results : array();
+	}
+
+	/**
 	 * Get active reregistrations for a user based on their audience memberships.
 	 *
 	 * @param int $user_id User ID.

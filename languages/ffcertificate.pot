@@ -26975,4 +26975,19 @@ msgstr[1] ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "The Recruitment tab, My Calls, sorts the candidate's classifications by status, with a counter for each at the top. Called holds one card per active call, with the presentation date and time, how many days away it is and an \"Add to calendar\" button that downloads an .ics file. Waiting lists final classifications first and then preliminary ones, 5 rows at a time. Closed lists hired, withdrew, did not show up and \"Deadline passed\", 2 rows at a time. A call still marked as called moves from Called to Closed as \"Deadline passed\" the day after its presentation date, in the site's timezone, until the team records the result. An i button beside a badge explains a passed deadline or a reverted call, with its dates and the reason given. An empty section is not shown."
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Approved banner on the dashboard"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Hide the approved banner after (days)"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Counted from the later of the campaign's end and the approval. 0 keeps it visible."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration (\"Hide the approved banner after (days)\", default 30) has passed since the later of the campaign's end and the approval, even after the daily run has expired the campaign; 0 never hides it. The dashboard's Reregistration tab keeps listing it either way."
 msgstr ""

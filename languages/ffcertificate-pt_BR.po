@@ -27060,3 +27060,19 @@ msgstr[1] "em %s dias"
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "The Recruitment tab, My Calls, sorts the candidate's classifications by status, with a counter for each at the top. Called holds one card per active call, with the presentation date and time, how many days away it is and an \"Add to calendar\" button that downloads an .ics file. Waiting lists final classifications first and then preliminary ones, 5 rows at a time. Closed lists hired, withdrew, did not show up and \"Deadline passed\", 2 rows at a time. A call still marked as called moves from Called to Closed as \"Deadline passed\" the day after its presentation date, in the site's timezone, until the team records the result. An i button beside a badge explains a passed deadline or a reverted call, with its dates and the reason given. An empty section is not shown."
 msgstr "A aba Recrutamento, Minhas Convocações, separa as classificações do candidato por situação, com um contador para cada uma no topo. Convocado traz um cartão por convocação ativa, com a data e a hora de apresentação, quantos dias faltam e um botão \"Adicionar ao calendário\" que baixa um arquivo .ics. Aguardando lista primeiro as classificações finais e depois as preliminares, 5 linhas por vez. Encerradas lista contratado, desistiu, não compareceu e \"Prazo encerrado\", 2 linhas por vez. Uma convocação ainda marcada como convocada passa de Convocado para Encerradas como \"Prazo encerrado\" no dia seguinte à data de apresentação, no fuso horário do site, até a equipe registrar o resultado. Um botão i ao lado de um selo explica um prazo encerrado ou uma convocação revertida, com as datas e o motivo informado. Uma seção vazia não aparece."
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Approved banner on the dashboard"
+msgstr "Aviso de aprovado no painel"
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Hide the approved banner after (days)"
+msgstr "Ocultar o aviso de aprovado após (dias)"
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Counted from the later of the campaign's end and the approval. 0 keeps it visible."
+msgstr "Contado a partir do fim da campanha ou da aprovação, o que for mais tarde. 0 mantém o aviso visível."
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration (\"Hide the approved banner after (days)\", default 30) has passed since the later of the campaign's end and the approval, even after the daily run has expired the campaign; 0 never hides it. The dashboard's Reregistration tab keeps listing it either way."
+msgstr "Depois que uma submissão é aprovada, o aviso dela oferece o download da Ficha até que o prazo em Configurações → Recadastramento (\"Ocultar o aviso de aprovado após (dias)\", padrão 30) tenha passado desde o fim da campanha ou a aprovação, o que for mais tarde, mesmo depois que a execução diária expirar a campanha; 0 nunca o oculta. A aba Recadastramento do painel continua a listá-la em qualquer caso."
