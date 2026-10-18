@@ -54,7 +54,18 @@ if ( $email_editable ) {
 	// clear value through the audited endpoint, names the field and enables
 	// it, so the address is posted only after a reveal.
 	echo '<td><input id="ffc-cand-email" type="text" class="regular-text ffc-pii-placeholder" value="' . esc_attr( $email ) . '" data-ffc-pii-field="email" data-ffc-pii-name="email" disabled>';
-	echo ' <button type="button" class="button button-secondary ffc-pii-reveal-btn" data-ffc-pii-candidate="' . esc_attr( (string) $id ) . '" data-ffc-pii-field="email">' . esc_html__( 'Reveal', 'ffcertificate' ) . '</button>';
+	echo ' ';
+	\FreeFormCertificate\Core\Button::render(
+		array(
+			'label' => __( 'Reveal', 'ffcertificate' ),
+			'icon'  => 'eye',
+			'class' => 'ffc-pii-reveal-btn',
+			'attrs' => array(
+				'data-ffc-pii-candidate' => (string) $id,
+				'data-ffc-pii-field'     => 'email',
+			),
+		)
+	);
 	echo '<p class="description">' . esc_html__( 'Reveal the email to edit it.', 'ffcertificate' ) . '</p>';
 } else {
 	// #739 §4.1 — masked + disabled for the masked tier; the value is not
@@ -71,7 +82,7 @@ echo '<tr><th><label for="ffc-cand-notes">' . esc_html__( 'Notes', 'ffcertificat
 echo '<td><textarea id="ffc-cand-notes" name="notes" rows="4" class="large-text">' . esc_textarea( null === $candidate->notes ? '' : (string) $candidate->notes ) . '</textarea></td></tr>';
 
 echo '</tbody></table>';
-submit_button( __( 'Save general', 'ffcertificate' ) );
+\FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save general', 'ffcertificate' ), array( 'value' => __( 'Save general', 'ffcertificate' ) ) );
 echo '</form>';
 
 echo '</div></div>';

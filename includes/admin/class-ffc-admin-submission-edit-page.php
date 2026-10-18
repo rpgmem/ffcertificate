@@ -385,11 +385,7 @@ class AdminSubmissionEditPage {
 			// mask_email() hands back an address it cannot parse unchanged.
 			$masked = '' === $email ? '' : '***';
 		}
-		return sprintf(
-			'<span class="ffc-pii-row"><span class="ffc-pii-value" data-field="account_email">%1$s</span>%2$s</span>',
-			esc_html( $masked ),
-			'' !== $email ? ' ' . $this->reveal_button( 'account_email' ) : ''
-		);
+		return '<span class="ffc-pii-value" data-field="account_email">' . esc_html( $masked ) . '</span>';
 	}
 
 	/**
@@ -613,10 +609,21 @@ class AdminSubmissionEditPage {
 									 * email input on the same screen.
 									 */
 									?>
-									<span class="ffc-user-email">(<?php echo $this->masked_account_email( (string) $current_user->user_email ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- masked_account_email() escapes every value. ?>)</span>
+									<span class="ffc-user-email"><?php echo $this->masked_account_email( (string) $current_user->user_email ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- masked_account_email() escapes the value. ?></span>
 									<span class="ffc-user-id">ID: <?php echo esc_html( (string) $current_user_id ); ?></span>
 								</span>
+							</div>
+							<div class="ffc-unlink-action">
 								<?php
+								// Every action on the linked account sits in one row below
+								// its card; the reveal script finds the masked address
+								// through `.ffc-linked-user-display`.
+								?>
+								<div class="ffc-linked-user-actions">
+								<?php
+								if ( '' !== (string) $current_user->user_email ) {
+									echo $this->reveal_button( 'account_email' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- PiiReveal::field_button() escapes every attribute.
+								}
 								AdminUI::render_button(
 									array(
 										'label' => __( 'View Profile', 'ffcertificate' ),
@@ -627,10 +634,6 @@ class AdminSubmissionEditPage {
 										),
 									)
 								);
-								?>
-							</div>
-							<div class="ffc-unlink-action">
-								<?php
 								AdminUI::render_button(
 									array(
 										'label'    => __( 'Unlink User', 'ffcertificate' ),
@@ -650,6 +653,7 @@ class AdminSubmissionEditPage {
 									)
 								);
 								?>
+								</div>
 								<p class="description">
 									<?php esc_html_e( 'Removes the link between this submission and the WordPress user.', 'ffcertificate' ); ?>
 									<?php esc_html_e( 'An unlinked submission has no account, which is the state the identity queue adopts.', 'ffcertificate' ); ?>

@@ -597,7 +597,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_calendar_tab( 4 );
 		$output = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments&action=new&schedule_id=4" class="button"', $output );
+		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments&action=new&schedule_id=4" class="ffc-btn ffc-btn-create ffc-icon-plus">Add New</a>', $output );
 	}
 
 	/**
@@ -638,7 +638,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 			unset( $_GET['schedule_id'] );
 		}
 
-		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments' . $expected . '" class="page-title-action"', $output );
+		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments' . $expected . '" class="ffc-btn ffc-btn-create ffc-icon-plus">Add New</a>', $output );
 	}
 
 	/**
@@ -1051,12 +1051,6 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_nonce_url' )->alias( static fn( $url, $action ) => $url . '&_wpnonce=' . $action );
-		$buttons = array();
-		Functions\when( 'submit_button' )->alias(
-			static function ( $text, $type, $name ) use ( &$buttons ) {
-				$buttons[] = array( $text, $type, $name );
-			}
-		);
 		$_GET = array(
 			'page'        => 'ffc-scheduling-calendars',
 			'view'        => 'environments',
@@ -1078,7 +1072,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$view = 'admin.php?page=ffc-scheduling-calendars&view=environments';
-		$this->assertStringContainsString( 'href="' . $view . '&action=new&schedule_id=1" class="page-title-action"', $output, 'the filtered list\'s Add New carries the calendar (#1801)' );
+		$this->assertStringContainsString( 'href="' . $view . '&action=new&schedule_id=1" class="ffc-btn ffc-btn-create ffc-icon-plus">Add New</a>', $output, 'the filtered list\'s Add New carries the calendar (#1801)' );
 		$this->assertSame( 2, substr_count( $output, 'href="' . $view . '&action=edit&id=1"' ), 'the name link and the Edit action' );
 		$this->assertStringContainsString( 'href="' . $view . '&action=deactivate&id=1&_wpnonce=deactivate_environment_1"', $output );
 		$this->assertStringContainsString( 'href="' . $view . '&action=delete&id=2&_wpnonce=delete_environment_2"', $output );
@@ -1087,7 +1081,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		// The filter: a GET form that stays on the view, the calendar select and its Filter button.
 		$this->assertMatchesRegularExpression( '/<div class="tablenav top">\s*<form method="get">\s*<input type="hidden" name="page" value="ffc-scheduling-calendars">\s*<input type="hidden" name="view" value="environments">\s*<select name="schedule_id">/', $output );
 		$this->assertStringContainsString( '<option value="">All Calendars</option>', $output );
-		$this->assertSame( array( array( 'Filter', 'secondary', 'filter' ) ), $buttons );
+		$this->assertStringContainsString( '<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-filter" name="filter" value="Filter">Filter</button>', $output );
 
 		// The same columns as before the move, plus the shortcode (#1814).
 		preg_match_all( '/<th scope="col" class="(column-[a-z]+)">/', $output, $columns );
@@ -1109,16 +1103,6 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		);
 	}
 
-	/**
-	 * Record each submit button as a marker carrying its label.
-	 */
-	private function capture_submit_buttons(): void {
-		Functions\when( 'submit_button' )->alias(
-			static function ( $text = null ) {
-				echo '[submit:' . $text . ']';
-			}
-		);
-	}
 
 	/**
 	 * @dataProvider edit_screen_tiers
@@ -1128,7 +1112,6 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	 */
 	public function test_edit_form_renders_read_only_without_manage( array $caps, bool $can_manage ): void {
 		$this->grant( $caps );
-		$this->capture_submit_buttons();
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '7';
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
@@ -1159,7 +1142,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
 		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
 		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) );
-		$this->assertSame( $can_manage, str_contains( $output, '[submit:Update Room]' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'name="submit" value="Update Room">Update Room</button>' ) );
 		if ( ! $can_manage ) {
 			$open  = (int) strpos( $output, '<fieldset disabled' );
 			$close = (int) strpos( $output, '</fieldset>' );

@@ -59,6 +59,20 @@ echo '<option value="pcd"' . selected( 'pcd', $subscription, false ) . '>' . esc
 echo '<option value="geral"' . selected( 'geral', $subscription, false ) . '>' . esc_html__( 'GERAL only', 'ffcertificate' ) . '</option>';
 echo '</select>';
 
-echo ' <button type="submit" class="button">' . esc_html__( 'Filter', 'ffcertificate' ) . '</button>';
-echo ' <a href="' . esc_url( $reset_url ) . '" class="button-link">' . esc_html__( 'Reset', 'ffcertificate' ) . '</a>';
+echo ' ';
+\FreeFormCertificate\Core\Button::render(
+	array(
+		'label' => __( 'Filter', 'ffcertificate' ),
+		'icon'  => 'filter',
+		'type'  => 'submit',
+	)
+);
+echo ' ';
+\FreeFormCertificate\Core\Button::render(
+	array(
+		'label' => __( 'Reset', 'ffcertificate' ),
+		'icon'  => 'eraser',
+		'href'  => $reset_url,
+	)
+);
 echo '</form>';

@@ -111,7 +111,7 @@
             e.preventDefault();
             var index = this.slotCounter++;
             var editorStrings = (typeof ffcSelfSchedulingEditor !== 'undefined' && ffcSelfSchedulingEditor.strings) ? ffcSelfSchedulingEditor.strings : {};
-            var removeLabel = $('<div>').text(editorStrings.remove || 'Remove').html();
+            var removeButton = window.FFC.buttonHtml({ label: editorStrings.remove || 'Remove', category: 'danger', icon: 'delete', className: 'ffc-remove-slot' });
             var n = 'ffc_self_scheduling_custom_slots[' + index + ']';
             var rowHtml =
                 '<tr>' +
@@ -120,7 +120,7 @@
                 '<td><input type="time" name="' + n + '[end]" /></td>' +
                 '<td><input type="number" name="' + n + '[capacity]" value="1" min="1" max="10000" required /></td>' +
                 '<td><input type="text" name="' + n + '[label]" class="regular-text" /></td>' +
-                '<td><button type="button" class="button ffc-remove-slot">' + removeLabel + '</button></td>' +
+                '<td>' + removeButton + '</td>' +
                 '</tr>';
             $('#ffc-custom-slots-list').append(rowHtml);
         },
@@ -148,7 +148,7 @@
             const editorStrings = (typeof ffcSelfSchedulingEditor !== 'undefined' && ffcSelfSchedulingEditor.strings) ? ffcSelfSchedulingEditor.strings : {};
             const defaultDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const localizedDays = Array.isArray(editorStrings.daysOfWeek) ? editorStrings.daysOfWeek : defaultDayNames;
-            const removeLabel = editorStrings.remove || 'Remove';
+            const removeButton = window.FFC.buttonHtml({ label: editorStrings.remove || 'Remove', category: 'danger', icon: 'delete', className: 'ffc-remove-hour' });
 
             let optionsHtml = '';
             for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
@@ -170,7 +170,7 @@
                         <input type="time" name="ffc_self_scheduling_working_hours[${index}][end]" value="17:00" required />
                     </td>
                     <td>
-                        <button type="button" class="button ffc-remove-hour">${$('<div>').text(removeLabel).html()}</button>
+                        ${removeButton}
                     </td>
                 </tr>
             `;

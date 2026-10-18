@@ -34,24 +34,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Short URLs', 'ffcertificate' ); ?></h1>
 			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( \FreeFormCertificate\UrlShortener\QrGeneratorAjaxEndpoint::CAP ) ) : ?>
 				<?php // New short URLs are made in the QR Code Generator, behind its "Create a short URL" switch (#1586). ?>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . \FreeFormCertificate\UrlShortener\QrGeneratorPage::SLUG ) ); ?>" class="page-title-action">
-					<?php esc_html_e( 'New short URL', 'ffcertificate' ); ?>
-				</a>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'New short URL', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'href'     => admin_url( 'admin.php?page=' . \FreeFormCertificate\UrlShortener\QrGeneratorPage::SLUG ),
+					)
+				);
+				?>
 			<?php endif; ?>
 			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_settings' ) ) : ?>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=url_shortener' ) ); ?>" class="page-title-action">
-					<?php esc_html_e( 'Settings', 'ffcertificate' ); ?>
-				</a>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Settings', 'ffcertificate' ),
+						'icon'  => 'settings',
+						'href'  => admin_url( 'admin.php?page=ffc-settings&tab=url_shortener' ),
+					)
+				);
+				?>
 			<?php endif; ?>
 			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_url_shortener' ) ) : ?>
 				<?php // Batched CSV export (#772): the button drives the unified ffc_export_* dispatcher via window.FFCBatchedExport; carries the current search/status filters. ?>
-				<button
-					type="button"
-					id="ffc-shorturl-export-btn"
-					class="page-title-action"
-					data-s="<?php echo esc_attr( $search ); ?>"
-					data-status="<?php echo esc_attr( $status ); ?>"
-				><?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?></button>			<?php endif; ?>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Export CSV', 'ffcertificate' ),
+						'icon'  => 'download',
+						'id'    => 'ffc-shorturl-export-btn',
+						'attrs' => array(
+							'data-s'      => $search,
+							'data-status' => $status,
+						),
+					)
+				);
+				?>
+			<?php endif; ?>
 			<hr class="wp-header-end">
 
 			<?php if ( 'trashed' === $msg ) : ?>
@@ -80,13 +100,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 				\FreeFormCertificate\Core\AdminNotice::render(
 					'success',
 					esc_html__( 'Trash emptied.', 'ffcertificate' )
-				);
-				?>
-			<?php elseif ( 'toggled' === $msg ) : ?>
-				<?php
-				\FreeFormCertificate\Core\AdminNotice::render(
-					'success',
-					esc_html__( 'Status updated.', 'ffcertificate' )
 				);
 				?>
 			<?php endif; ?>
@@ -142,7 +155,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</option>
 					</select>
 					<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search...', 'ffcertificate' ); ?>" />
-					<button type="submit" class="button"><?php esc_html_e( 'Filter', 'ffcertificate' ); ?></button>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Filter', 'ffcertificate' ),
+							'icon'  => 'filter',
+							'type'  => 'submit',
+						)
+					);
+					?>
 				</div>
 			</form>
 
@@ -154,10 +175,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 				);
 				?>
 				<div class="ffc-shorturl-empty-trash">
-					<a href="<?php echo esc_url( $empty_trash_url ); ?>" class="button button-link-delete"
-						onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete all items in the trash?', 'ffcertificate' ); ?>');">
-						<?php esc_html_e( 'Empty Trash', 'ffcertificate' ); ?>
-					</a>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Empty Trash', 'ffcertificate' ),
+							'category' => 'danger',
+							'icon'     => 'delete',
+							'href'     => $empty_trash_url,
+							'attrs'    => array(
+								'data-confirm' => __( 'Are you sure you want to permanently delete all items in the trash?', 'ffcertificate' ),
+							),
+						)
+					);
+					?>
 				</div>
 			<?php endif; ?>
 
@@ -233,7 +263,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 									<?php endif; ?>
 								</td>
 								<td><strong><?php echo esc_html( number_format_i18n( (int) $item['click_count'] ) ); ?></strong></td>
-								<td><span class="<?php echo esc_attr( $status_css_class ); ?>"><?php echo esc_html( $status_label ); ?></span></td>
+								<?php // The Status badge follows the row's toggle once its save is confirmed (#1904). ?>
+								<td><span id="ffc-short-url-status-<?php echo esc_attr( (string) $item['id'] ); ?>" class="<?php echo esc_attr( $status_css_class ); ?>" data-ffc-status-on-class="ffc-shorturl-status-active" data-ffc-status-off-class="ffc-shorturl-status-disabled"><?php echo esc_html( $status_label ); ?></span></td>
 								<td>
 									<?php if ( $is_trashed ) : ?>
 										<?php
@@ -246,45 +277,93 @@ if ( ! defined( 'ABSPATH' ) ) {
 											'ffc_short_url_delete_' . $item['id']
 										);
 										?>
-										<a href="<?php echo esc_url( $restore_url ); ?>" class="button button-small">
-											<?php esc_html_e( 'Restore', 'ffcertificate' ); ?>
-										</a>
-										<a href="<?php echo esc_url( $delete_url ); ?>" class="button button-small button-link-delete" onclick="return confirm('<?php esc_attr_e( 'Delete permanently?', 'ffcertificate' ); ?>');">
-											<?php esc_html_e( 'Delete Permanently', 'ffcertificate' ); ?>
-										</a>
+										<?php
+										\FreeFormCertificate\Admin\AdminUI::render_button(
+											array(
+												'label'    => __( 'Restore', 'ffcertificate' ),
+												'category' => 'caution',
+												'icon'     => 'restore',
+												'href'     => $restore_url,
+											)
+										);
+										\FreeFormCertificate\Admin\AdminUI::render_button(
+											array(
+												'label'    => __( 'Delete Permanently', 'ffcertificate' ),
+												'category' => 'danger',
+												'icon'     => 'delete',
+												'href'     => $delete_url,
+												'attrs'    => array(
+													'data-confirm' => __( 'Delete permanently?', 'ffcertificate' ),
+												),
+											)
+										);
+										?>
 									<?php else : ?>
 										<?php
-										$toggle_url = wp_nonce_url(
-											admin_url( 'admin.php?page=ffc-short-urls&ffc_action=toggle&id=' . $item['id'] ),
-											'ffc_short_url_toggle_' . $item['id']
-										);
-										$trash_url  = wp_nonce_url(
+										$trash_url = wp_nonce_url(
 											admin_url( 'admin.php?page=ffc-short-urls&ffc_action=trash&id=' . $item['id'] ),
 											'ffc_short_url_trash_' . $item['id']
 										);
 										?>
-										<?php if ( $is_manual ) : ?>
-											<button type="button" class="button button-small ffc-edit-shorturl"
-													data-id="<?php echo esc_attr( (string) $item['id'] ); ?>"
-													data-target="<?php echo esc_attr( $item['target_url'] ); ?>"
-													data-title="<?php echo esc_attr( (string) $item['title'] ); ?>">
-												<span class="ffc-icon-edit" aria-hidden="true"></span>
-												<?php esc_html_e( 'Edit', 'ffcertificate' ); ?>
-											</button>
-										<?php endif; ?>
-										<button type="button" class="button button-small ffc-show-qr-modal"
-												data-code="<?php echo esc_attr( $item['short_code'] ); ?>"
-												data-url="<?php echo esc_attr( $short_url ); ?>"
-												data-title="<?php echo esc_attr( $item['title'] ? $item['title'] : $item['short_code'] ); ?>">
-											<span class="ffc-icon-qr" aria-hidden="true"></span>
-											QR
-										</button>
-										<a href="<?php echo esc_url( $toggle_url ); ?>" class="button button-small">
-											<?php echo 'active' === $item['status'] ? esc_html__( 'Disable', 'ffcertificate' ) : esc_html__( 'Enable', 'ffcertificate' ); ?>
-										</a>
-										<a href="<?php echo esc_url( $trash_url ); ?>" class="button button-small button-link-delete">
-											<?php esc_html_e( 'Trash', 'ffcertificate' ); ?>
-										</a>
+										<?php
+										// On/off is a state, not an action: the toggle saves the link's
+										// status the moment it flips (#1904).
+										\FreeFormCertificate\Admin\AdminUI::render_toggle(
+											array(
+												'name'    => 'ffc_short_url_active_' . $item['id'],
+												'id'      => 'ffc-short-url-active-' . $item['id'],
+												'checked' => 'active' === $item['status'],
+												'label'   => __( 'Active', 'ffcertificate' ),
+												'aria_label' => sprintf(
+												/* translators: %s: short URL */
+													__( 'Active: %s', 'ffcertificate' ),
+													$short_url
+												),
+												'data'    => array_merge(
+													\FreeFormCertificate\Core\RecordAutosave::attrs( 'short_url', (int) $item['id'], 'status' ),
+													array(
+														'ffc-status-target' => 'ffc-short-url-status-' . $item['id'],
+														'ffc-status-on'     => __( 'Active', 'ffcertificate' ),
+														'ffc-status-off'    => __( 'Disabled', 'ffcertificate' ),
+													)
+												),
+											)
+										);
+										if ( $is_manual ) {
+											\FreeFormCertificate\Admin\AdminUI::render_button(
+												array(
+													'label' => __( 'Edit', 'ffcertificate' ),
+													'icon' => 'edit',
+													'class' => 'ffc-edit-shorturl',
+													'attrs' => array(
+														'data-id'     => (string) $item['id'],
+														'data-target' => $item['target_url'],
+														'data-title'  => (string) $item['title'],
+													),
+												)
+											);
+										}
+										\FreeFormCertificate\Admin\AdminUI::render_button(
+											array(
+												'label' => 'QR',
+												'icon'  => 'qr',
+												'class' => 'ffc-show-qr-modal',
+												'attrs' => array(
+													'data-code'  => $item['short_code'],
+													'data-url'   => $short_url,
+													'data-title' => $item['title'] ? $item['title'] : $item['short_code'],
+												),
+											)
+										);
+										\FreeFormCertificate\Admin\AdminUI::render_button(
+											array(
+												'label'    => __( 'Trash', 'ffcertificate' ),
+												'category' => 'danger',
+												'icon'     => 'delete',
+												'href'     => $trash_url,
+											)
+										);
+										?>
 									<?php endif; ?>
 								</td>
 							</tr>
@@ -337,18 +416,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<img class="ffc-qr-modal__img" src="" alt="<?php esc_attr_e( 'QR Code', 'ffcertificate' ); ?>" style="display:none;" />
 					</div>
 					<div class="ffc-qr-modal__actions">
-						<button type="button" class="button ffc-copy-shorturl" data-url="">
-							<span class="ffc-icon-copy" aria-hidden="true"></span>
-							<?php esc_html_e( 'Copy URL', 'ffcertificate' ); ?>
-						</button>
-						<button type="button" class="button ffc-download-qr" data-format="png" data-code="">
-							<span class="ffc-icon-download" aria-hidden="true"></span>
-							PNG
-						</button>
-						<button type="button" class="button ffc-download-qr" data-format="svg" data-code="">
-							<span class="ffc-icon-download" aria-hidden="true"></span>
-							SVG
-						</button>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Copy URL', 'ffcertificate' ),
+								'icon'  => 'copy',
+								'class' => 'ffc-copy-shorturl',
+								'attrs' => array(
+									'data-url' => '',
+								),
+							)
+						);
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => 'PNG',
+								'icon'  => 'download',
+								'class' => 'ffc-download-qr',
+								'attrs' => array(
+									'data-format' => 'png',
+									'data-code'   => '',
+								),
+							)
+						);
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => 'SVG',
+								'icon'  => 'download',
+								'class' => 'ffc-download-qr',
+								'attrs' => array(
+									'data-format' => 'svg',
+									'data-code'   => '',
+								),
+							)
+						);
+						?>
 					</div>
 				</div>
 			</div>
@@ -381,7 +482,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<input type="text" id="ffc-edit-title" name="title" class="widefat" />
 						</div>
 						<div class="ffc-qr-modal__actions">
-							<button type="submit" class="button button-primary"><?php esc_html_e( 'Save', 'ffcertificate' ); ?></button>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label'    => __( 'Save', 'ffcertificate' ),
+									'category' => 'primary',
+									'icon'     => 'save',
+									'type'     => 'submit',
+								)
+							);
+							?>
 						</div>
 						<div id="ffc-edit-short-url-result"></div>
 					</form>

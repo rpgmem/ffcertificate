@@ -90,14 +90,6 @@
     padding: 0 var(--ffc-spacing-xs);
 }
 
-.ffc-transfer-actions .button {
-    min-width: 32px;
-    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
-    font-size: var(--ffc-font-size-lg);
-    line-height: 1.4;
-    text-align: center;
-}
-
 /* A required picker left empty (#1844). The selected column is the
    control here, so it takes the field-message standard's invalid state;
    the message itself goes under the picker. */

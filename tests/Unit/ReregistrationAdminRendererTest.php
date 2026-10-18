@@ -210,6 +210,38 @@ class ReregistrationAdminRendererTest extends TestCase {
 	// ==================================================================
 
 	/**
+	 * Teach an AdminUI alias mock the family's two button helpers, drawn by
+	 * the real `Core\Button` (#1904).
+	 *
+	 * @param \Mockery\MockInterface $ui The alias mock.
+	 */
+	private function familyButtons( $ui ): void {
+		$ui->shouldReceive( 'render_button' )->andReturnUsing(
+			static function ( array $args ): void {
+				\FreeFormCertificate\Core\Button::render( $args );
+			}
+		);
+		$ui->shouldReceive( 'render_save_button' )->andReturnUsing(
+			static function ( string $label = '', array $args = array() ): void {
+				echo '<p class="submit">';
+				\FreeFormCertificate\Core\Button::render(
+					array_merge(
+						array(
+							'label'    => $label,
+							'category' => 'primary',
+							'icon'     => 'save',
+							'type'     => 'submit',
+							'name'     => 'submit',
+						),
+						$args
+					)
+				);
+				echo '</p>';
+			}
+		);
+	}
+
+	/**
 	 * Aliases the collaborators the form template draws.
 	 */
 	private function stubFormWidgets( bool $can_import ): void {
@@ -220,12 +252,13 @@ class ReregistrationAdminRendererTest extends TestCase {
 				}
 			);
 		Mockery::mock( 'alias:FreeFormCertificate\Core\EmailDisabledNotice' )->shouldReceive( 'render' );
-		Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' )
-			->shouldReceive( 'render_toggle' )->andReturnUsing(
-				function ( $args ) {
-					echo '<toggle name="' . $args['name'] . '" checked="' . ( $args['checked'] ? '1' : '0' ) . '">';
-				}
-			);
+		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
+		$ui->shouldReceive( 'render_toggle' )->andReturnUsing(
+			function ( $args ) {
+				echo '<toggle name="' . $args['name'] . '" checked="' . ( $args['checked'] ? '1' : '0' ) . '">';
+			}
+		);
+		$this->familyButtons( $ui );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( $can_import );
 	}
@@ -319,13 +352,14 @@ class ReregistrationAdminRendererTest extends TestCase {
 			array( 'pending' => 2, 'odd' => 1, 'total' => 3 )
 		);
 		$cards = array();
-		Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' )
-			->shouldReceive( 'get_stat_card' )->andReturnUsing(
-				function ( $args ) use ( &$cards ) {
-					$cards[] = $args;
-					return '<card>';
-				}
-			);
+		$ui    = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
+		$ui->shouldReceive( 'get_stat_card' )->andReturnUsing(
+			function ( $args ) use ( &$cards ) {
+				$cards[] = $args;
+				return '<card>';
+			}
+		);
+		$this->familyButtons( $ui );
 
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, true ) );
 
@@ -360,7 +394,9 @@ class ReregistrationAdminRendererTest extends TestCase {
 			)
 		);
 		$reader->shouldReceive( 'get_statistics' )->andReturn( array( 'total' => 1 ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' )->shouldReceive( 'get_stat_card' )->andReturn( '' );
+		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
+		$ui->shouldReceive( 'get_stat_card' )->andReturn( '' );
+		$this->familyButtons( $ui );
 
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_submissions( 'ffc-reregistration', 7, false ) );
 
@@ -408,7 +444,7 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'maria@example.org', $html );
 		$this->assertStringContainsString( 'm***@example.org', $html );
 		$this->assertStringContainsString(
-			'<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="reregistration" data-field="email" data-submission-id="31" data-nonce="nonce:ffc_reveal_pii_nonce">Reveal</button>',
+			'<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-type="reregistration" data-field="email" data-submission-id="31" data-nonce="nonce:ffc_reveal_pii_nonce">Reveal</button>',
 			$html
 		);
 		$this->assertStringContainsString( 'ffc-view-details-btn', $html );

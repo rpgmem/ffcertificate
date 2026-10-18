@@ -917,7 +917,6 @@ class AudienceAdminAudienceTest extends TestCase {
 	 */
 	public function test_a_top_level_audience_renders_the_tree_access_toggles( string $members_only, string $keep ): void {
 		$this->grant( array( 'ffc_view_audiences', 'ffc_manage_audiences' ) );
-		$this->capture_submit_buttons();
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
@@ -1144,16 +1143,6 @@ class AudienceAdminAudienceTest extends TestCase {
 		);
 	}
 
-	/**
-	 * Record each submit button as a marker carrying its label.
-	 */
-	private function capture_submit_buttons(): void {
-		Functions\when( 'submit_button' )->alias(
-			static function ( $text = null ) {
-				echo '[submit:' . $text . ']';
-			}
-		);
-	}
 
 	/**
 	 * @dataProvider edit_screen_tiers
@@ -1163,7 +1152,6 @@ class AudienceAdminAudienceTest extends TestCase {
 	 */
 	public function test_edit_form_renders_read_only_without_manage( array $caps, bool $can_manage ): void {
 		$this->grant( $caps );
-		$this->capture_submit_buttons();
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
@@ -1191,7 +1179,7 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
 		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
 		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) );
-		$this->assertSame( $can_manage, str_contains( $output, '[submit:Update Audience]' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'name="submit" value="Update Audience">Update Audience</button>' ) );
 		if ( ! $can_manage ) {
 			$open  = (int) strpos( $output, '<fieldset disabled' );
 			$close = (int) strpos( $output, '</fieldset>' );
@@ -1210,7 +1198,6 @@ class AudienceAdminAudienceTest extends TestCase {
 	public function test_the_self_join_switch_names_the_configured_limit(): void {
 		$this->self_join_limit = '7';
 		$this->grant( array( 'ffc_view_audiences', 'ffc_manage_audiences' ) );
-		$this->capture_submit_buttons();
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
@@ -1262,7 +1249,6 @@ class AudienceAdminAudienceTest extends TestCase {
 	 */
 	public function test_a_parent_renders_one_self_join_choice( string $own, ?string $state, ?string $checked ): void {
 		$this->grant( array( 'ffc_view_audiences', 'ffc_manage_audiences' ) );
-		$this->capture_submit_buttons();
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '5';
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
@@ -1323,7 +1309,6 @@ class AudienceAdminAudienceTest extends TestCase {
 	 */
 	public function test_members_screen_offers_no_writes_without_manage( array $caps, bool $can_manage ): void {
 		$this->grant( $caps );
-		$this->capture_submit_buttons();
 		$_GET['action'] = 'members';
 		$_GET['id']     = '5';
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
@@ -1356,7 +1341,7 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
 		$this->assertSame( $can_manage, str_contains( $output, '<h2 class="ffc-icon-plus">' ), 'the Add Members box' );
 		$this->assertSame( $can_manage, str_contains( $output, 'id="user_search"' ) );
-		$this->assertSame( $can_manage, str_contains( $output, '[submit:Add Selected Members]' ) );
+		$this->assertSame( $can_manage, str_contains( $output, 'name="add_members" value="Add Selected Members">Add Selected Members</button>' ) );
 		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'Remove this member?' ) );
 		$this->assertSame( $can_manage, str_contains( $output, 'column-actions' ) );
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
@@ -1419,7 +1404,7 @@ class AudienceAdminAudienceTest extends TestCase {
 				str_contains( $output, 'data-type="audience_account" data-field="email" data-submission-id="' . $member . '" data-nonce="reveal-nonce"' )
 			);
 		}
-		$this->assertSame( $can_reveal ? 2 : 0, substr_count( $output, 'ffc-reveal-pii ' ) );
+		$this->assertSame( $can_reveal ? 2 : 0, substr_count( $output, 'ffc-reveal-pii"' ) );
 		// One "Reveal this page" over the table, for the reveal tier (#1863).
 		$this->assertSame( $can_reveal ? 1 : 0, substr_count( $output, 'ffc-reveal-pii-page' ) );
 	}

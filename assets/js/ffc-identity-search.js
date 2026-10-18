@@ -339,9 +339,19 @@
      * @param {boolean} chosen Whether that route holds one.
      */
     function promote($form, chosen) {
-        $form.find('button[type="submit"]')
-            .toggleClass('button-primary', chosen)
-            .toggleClass('button-secondary', !chosen);
+        $form.find('button[type="submit"]').each(function () {
+            // The category the button rests in (#1904), read once from its
+            // own class, so a demotion gives back what it had -- `create`
+            // for opening an account, `neutral` for the rest.
+            var $button = $(this);
+            var rest = $button.data('ffcRestCategory');
+            if (!rest) {
+                var match = String(this.className).match(/(?:^|\s)ffc-btn-(neutral|create|caution|danger)(?:\s|$)/);
+                rest = match ? match[1] : 'neutral';
+                $button.data('ffcRestCategory', rest);
+            }
+            $button.toggleClass('ffc-btn-primary', chosen).toggleClass('ffc-btn-' + rest, !chosen);
+        });
     }
 
     /**
