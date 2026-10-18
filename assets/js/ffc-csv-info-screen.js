@@ -183,7 +183,7 @@
 		// flow itself stays hidden, no "feature exists but unavailable"
 		// surface).
 		if (info.status.can_schedule_exception) {
-			html += actionButton(strings.scheduleException || 'Entry/exit exception', 'caution', 'user-check',
+			html += actionButton(strings.scheduleException || 'Entry/exit exception', 'caution', 'user-clock',
 				'ffc-btn-schedule-exception', false,
 				strings.scheduleExceptionTooltip || 'Create a one-use schedule exception for a single participant submission.');
 		}
