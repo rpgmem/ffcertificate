@@ -140,14 +140,6 @@
     margin-top: var(--ffc-spacing-md);
 }
 
-.ffc-page-qr-generator .ffc-qr-generator__download,
-.ffc-page-qr-generator .ffc-qr-generator__print {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--ffc-spacing-xs);
-}
-
 .ffc-page-qr-generator .ffc-qr-generator__download {
     flex: 1 1 auto;
 }

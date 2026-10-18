@@ -13,6 +13,9 @@ use FreeFormCertificate\Core\RecordAutosave;
 use FreeFormCertificate\DateMessages\DateMessagesRecordAutosave;
 use FreeFormCertificate\Recruitment\RecruitmentRecordAutosave;
 use FreeFormCertificate\Reregistration\ReregistrationRecordAutosave;
+use FreeFormCertificate\UrlShortener\UrlShortenerRecordAutosave;
+use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
+use FreeFormCertificate\UrlShortener\UrlShortenerService;
 
 /**
  * The entities each module registers with the record autosave (#1757):
@@ -22,6 +25,7 @@ use FreeFormCertificate\Reregistration\ReregistrationRecordAutosave;
  * @covers \FreeFormCertificate\Reregistration\ReregistrationRecordAutosave
  * @covers \FreeFormCertificate\Recruitment\RecruitmentRecordAutosave
  * @covers \FreeFormCertificate\DateMessages\DateMessagesRecordAutosave
+ * @covers \FreeFormCertificate\UrlShortener\UrlShortenerRecordAutosave
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -308,5 +312,65 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleWriter' )->shouldReceive( 'save' )->andReturn( false );
 
 		$this->assertInstanceOf( \WP_Error::class, DateMessagesRecordAutosave::save( 6, 'send_to_user', 0 ) );
+	}
+
+	// ------------------------------------------------------------------
+	// Short URL
+	// ------------------------------------------------------------------
+
+	/**
+	 * A service whose repository holds one row.
+	 *
+	 * @param array<string, mixed>|null $row The stored row.
+	 */
+	private function short_url_service( ?array $row ): UrlShortenerService {
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findById' )->andReturn( $row );
+
+		$service = Mockery::mock( UrlShortenerService::class );
+		$service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+		return $service;
+	}
+
+	public function test_the_short_url_registers_its_status_as_a_two_state_map(): void {
+		UrlShortenerRecordAutosave::register( $this->short_url_service( null ) );
+
+		$def = $this->registered['short_url'];
+		$this->assertSame( 'ffc_manage_url_shortener', $def['cap'] );
+		$this->assertSame(
+			array(
+				'status' => array(
+					'type' => 'map',
+					'map'  => array(
+						1 => 'active',
+						0 => 'disabled',
+					),
+				),
+			),
+			$def['fields']
+		);
+	}
+
+	public function test_a_trashed_or_missing_short_url_has_no_toggle_to_save(): void {
+		UrlShortenerRecordAutosave::register( $this->short_url_service( array( 'status' => 'trashed' ) ) );
+		$this->assertFalse( ( $this->registered['short_url']['exists'] )( 3 ) );
+
+		UrlShortenerRecordAutosave::register( $this->short_url_service( null ) );
+		$this->assertFalse( ( $this->registered['short_url']['exists'] )( 3 ) );
+
+		UrlShortenerRecordAutosave::register( $this->short_url_service( array( 'status' => 'disabled' ) ) );
+		$this->assertTrue( ( $this->registered['short_url']['exists'] )( 3 ) );
+	}
+
+	public function test_the_short_url_toggle_sets_the_status_it_means(): void {
+		$service = $this->short_url_service( array( 'status' => 'active' ) );
+		$service->shouldReceive( 'set_active' )->once()->with( 5, false )->andReturn( true );
+		$service->shouldReceive( 'set_active' )->once()->with( 5, true )->andReturn( false );
+		UrlShortenerRecordAutosave::register( $service );
+		$save = $this->registered['short_url']['save'];
+
+		$this->assertTrue( $save( 5, 'status', 'disabled' ) );
+		$this->assertInstanceOf( \WP_Error::class, $save( 5, 'status', 'active' ) );
 	}
 }

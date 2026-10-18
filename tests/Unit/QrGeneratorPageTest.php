@@ -124,12 +124,15 @@ class QrGeneratorPageTest extends TestCase {
 		$this->assertStringContainsString( 'id="ffc-qr-download"', $html );
 		$this->assertStringContainsString( 'id="ffc-qr-format"', $html );
 		$this->assertStringContainsString( 'id="ffc-qr-print"', $html );
+		// Download and print are family buttons, their icons drawn by class (#1904).
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-primary ffc-icon-download ffc-qr-generator__download"', $html );
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-print ffc-qr-generator__print"', $html );
 		// Every content type is a tile with its own icon over a hidden radio.
 		$this->assertSame( count( \FreeFormCertificate\Generators\QrPayload::TYPES ), substr_count( $html, 'class="ffc-qr-type__input"' ) );
 		$this->assertSame(
-			count( \FreeFormCertificate\Generators\QrPayload::TYPES ) + 6 + 2 + count( \FreeFormCertificate\Generators\QrDesign::FRAME_ICONS ),
+			count( \FreeFormCertificate\Generators\QrPayload::TYPES ) + 6 + count( \FreeFormCertificate\Generators\QrDesign::FRAME_ICONS ),
 			substr_count( $html, '<svg class="ffc-svg-icon"' ),
-			'One icon per type, per design section, for download and print, and per frame icon tile.'
+			'One icon per type, per design section and per frame icon tile.'
 		);
 		// The advanced section rides the shared section markup.
 		$this->assertStringContainsString( 'id="qr_default_margin"', $html );

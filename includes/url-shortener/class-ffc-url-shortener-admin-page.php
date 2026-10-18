@@ -103,6 +103,8 @@ class UrlShortenerAdminPage {
 		$ffc_s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$ffc_s}.js", array( 'jquery' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-admin-js', FFC_PLUGIN_URL . "assets/js/ffc-admin{$ffc_s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		// Each row's on/off toggle saves through the record autosave (#1904).
+		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 		wp_enqueue_script(
 			'ffc-url-shortener-admin',
 			FFC_PLUGIN_URL . 'assets/js/ffc-url-shortener-admin.js',
@@ -165,14 +167,15 @@ class UrlShortenerAdminPage {
 	}
 
 	/**
-	 * Handle non-AJAX admin actions (bulk delete, toggle).
+	 * Handle the non-AJAX row actions (trash, restore, delete, empty trash).
+	 * Active / disabled is a toggle that saves through the record autosave.
 	 */
 	public function handle_actions(): void {
 		if ( \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ) !== 'ffc-short-urls' ) {
 			return;
 		}
 
-		// These GET-link actions are all writes (trash/restore/delete/toggle/
+		// These GET-link actions are all writes (trash/restore/delete/
 		// empty_trash) — read-only viewers never run them.
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
 			return;
@@ -186,7 +189,7 @@ class UrlShortenerAdminPage {
 		$nonce  = \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' );
 
 		// Removal actions (trash/restore/delete/empty_trash) require the dedicated
-		// destructive cap (GAP E). Toggle stays under manage above.
+		// destructive cap (GAP E).
 		$removal_actions = array( 'trash', 'restore', 'delete', 'empty_trash' );
 		if ( in_array( $action, $removal_actions, true )
 			&& ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_url_shortener' ) ) {
@@ -234,15 +237,6 @@ class UrlShortenerAdminPage {
 				$this->service->delete_short_url( (int) $item['id'] );
 			}
 			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=emptied' ) );
-			exit;
-		}
-
-		if ( 'toggle' === $action && isset( $_GET['id'] ) ) {
-			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_toggle_' . absint( $_GET['id'] ) ) ) {
-				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
-			}
-			$this->service->toggle_status( absint( wp_unslash( $_GET['id'] ) ) );
-			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=toggled' ) );
 			exit;
 		}
 	}
