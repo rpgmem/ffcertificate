@@ -2434,6 +2434,14 @@ body.wp-admin .ffc-btn {
     color: var(--ffc-text-on-primary);
 }
 
+/* In forced colors the accent ground is dropped, so the chosen one keeps a
+   system highlight contour instead (ButtonText is what the others carry). */
+@media (forced-colors: active) {
+    .ffc-btn-neutral[aria-pressed="true"] {
+        border: 2px solid Highlight;
+    }
+}
+
 /* Disabled takes the colour away instead of fading: `opacity` multiplies
    down the contrast the pairs above guarantee (CLAUDE.md, theme item 5).
    `.disabled` and `aria-disabled` cover a link button, which has no
