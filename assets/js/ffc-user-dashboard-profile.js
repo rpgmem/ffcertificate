@@ -37,8 +37,8 @@
     }
 
     /**
-     * "View as user" (#1863): the email addresses, phone and birth date of
-     * the viewed account arrive masked, and each is revealed on request
+     * "View as user" (#1863): the email addresses, phone, birth date and
+     * CPF/RF (#1888) of the viewed account arrive masked, and each is revealed on request
      * through the audited /user/profile/reveal route. Nothing to reveal on
      * the owner's own profile.
      */
@@ -79,6 +79,11 @@
                 } else if (field === 'birth_date') {
                     state.birth_date = response.value;
                     state.birth_date_display = response.display;
+                } else if (field === 'cpf_rf') {
+                    // Formatted in clear (#1888); the masked keys hold the
+                    // revealed list, so the render needs no second path.
+                    state.cpfs_masked = response.values || [];
+                    state.cpf_masked = response.value;
                 }
                 panel.render(state);
             })
@@ -366,7 +371,9 @@
 
             html += renderListField(s.name, 'ffc-name-list', profile.names, profile.display_name);
             html += renderListField(s.linkedEmails, 'ffc-email-list', profile.emails, profile.email, 'email');
-            html += renderListField(s.cpfRf, 'ffc-cpf-list', profile.cpfs_masked, profile.cpf_masked);
+            // Reveal only when there is an identifier: the fallback is "Not found".
+            var hasCpfRf = profile.cpfs_masked && profile.cpfs_masked.length > 0;
+            html += renderListField(s.cpfRf, 'ffc-cpf-list', profile.cpfs_masked, profile.cpf_masked, hasCpfRf ? 'cpf_rf' : '');
 
             html += '<div class="ffc-profile-field"><label>' + (s.phone || 'Phone:') + '</label>';
             html += '<div class="ffc-field-value">' + esc(profile.phone || '-') + '</div>' + (profile.phone ? revealButton('phone') : '') + '</div>';

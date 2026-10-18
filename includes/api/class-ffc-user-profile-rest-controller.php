@@ -209,7 +209,8 @@ class UserProfileRestController {
 			// administrator is not the owner (#1863): the email addresses,
 			// phone and birth date arrive masked, and each one is revealed on
 			// request through /user/profile/reveal, which is audited. The
-			// identifiers are masked for everyone already.
+			// identifiers are masked for everyone already; in view-as they are
+			// revealed the same way (#1888).
 			$pii_masked = $ctx['is_view_as'];
 			if ( $pii_masked ) {
 				$email  = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
@@ -405,7 +406,7 @@ class UserProfileRestController {
 		}
 
 		$field = (string) $request->get_param( 'field' );
-		if ( ! in_array( $field, array( 'email', 'phone', 'birth_date' ), true ) ) {
+		if ( ! in_array( $field, array( 'email', 'phone', 'birth_date', 'cpf_rf' ), true ) ) {
 			return new \WP_Error( 'ffc_reveal_unsupported', __( 'Unsupported field.', 'ffcertificate' ), array( 'status' => 400 ) );
 		}
 
@@ -424,6 +425,12 @@ class UserProfileRestController {
 				break;
 			case 'phone':
 				$response['value'] = (string) ( $full_profile['phone'] ?? '' );
+				break;
+			case 'cpf_rf':
+				// The same rows the masked list reads, formatted instead of
+				// masked (#1888).
+				$response['values'] = \FreeFormCertificate\Services\UserIdentifiersQueryService::get_cpfs_formatted_for_user( $user_id );
+				$response['value']  = $response['values'][0] ?? '';
 				break;
 			default:
 				$birth_date          = (string) ( $full_profile['birth_date'] ?? '' );

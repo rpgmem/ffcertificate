@@ -390,6 +390,66 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->assertSame( 'ffc_reveal_unsupported', $result->get_error_code() );
 	}
 
+	public function test_reveal_serves_the_formatted_cpf_rf_list_and_audits_it(): void {
+		$this->view_as_user_five();
+		$query = Mockery::mock( 'alias:FreeFormCertificate\Services\UserIdentifiersQueryService' );
+		$query->shouldReceive( 'get_cpfs_formatted_for_user' )->once()->with( 5 )
+			->andReturn( array( '123.456.789-01', '765.432-1' ) );
+		$this->activity_log_mock->shouldReceive( 'log' )->once()
+			->with( 'user_profile_pii_revealed', 'info', array( 'field_key' => 'cpf_rf', 'view_as' => true, 'subject_user_id' => 5 ), 1, 0 )
+			->andReturn( true );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'cpf_rf' ) ) );
+
+		$this->assertSame(
+			array(
+				'field'  => 'cpf_rf',
+				'values' => array( '123.456.789-01', '765.432-1' ),
+				'value'  => '123.456.789-01',
+			),
+			$result
+		);
+	}
+
+	public function test_reveal_of_cpf_rf_with_no_identifier_returns_an_empty_value(): void {
+		$this->view_as_user_five();
+		$query = Mockery::mock( 'alias:FreeFormCertificate\Services\UserIdentifiersQueryService' );
+		$query->shouldReceive( 'get_cpfs_formatted_for_user' )->once()->andReturn( array() );
+		$this->activity_log_mock->shouldReceive( 'log' )->once()->andReturn( true );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'cpf_rf' ) ) );
+
+		$this->assertSame( array(), $result['values'] );
+		$this->assertSame( '', $result['value'] );
+	}
+
+	public function test_reveal_of_cpf_rf_refuses_outside_view_as(): void {
+		$this->stub_profile_reload();
+		$query = Mockery::mock( 'alias:FreeFormCertificate\Services\UserIdentifiersQueryService' );
+		$query->shouldNotReceive( 'get_cpfs_formatted_for_user' );
+		$this->activity_log_mock->shouldNotReceive( 'log' );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'field' => 'cpf_rf' ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_reveal_not_view_as', $result->get_error_code() );
+	}
+
+	public function test_reveal_of_cpf_rf_refuses_a_viewer_the_policy_denies(): void {
+		// The view-as gate passed, but the reveal policy, which reads the
+		// viewer's own capabilities, says masked.
+		$this->view_as_user_five();
+		Functions\when( 'user_can' )->justReturn( false );
+		$query = Mockery::mock( 'alias:FreeFormCertificate\Services\UserIdentifiersQueryService' );
+		$query->shouldNotReceive( 'get_cpfs_formatted_for_user' );
+		$this->activity_log_mock->shouldNotReceive( 'log' );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'cpf_rf' ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_reveal_denied', $result->get_error_code() );
+	}
+
 	public function test_view_as_save_never_writes_a_masked_phone_back(): void {
 		$this->view_as_user_five();
 		$this->user_manager_mock->shouldReceive( 'update_profile' )->once()
