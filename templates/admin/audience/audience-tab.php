@@ -26,15 +26,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<tr>
 						<th scope="row"><?php esc_html_e( 'Manage', 'ffcertificate' ); ?></th>
 						<td>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars' ) ); ?>" class="button">
-								<?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?>
-							</a>
-							<a href="<?php echo esc_url( \FreeFormCertificate\Audience\AudienceAdminEnvironment::view_url( $this->menu_slug ) ); ?>" class="button">
-								<?php esc_html_e( 'Environments', 'ffcertificate' ); ?>
-							</a>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences' ) ); ?>" class="button">
-								<?php esc_html_e( 'Audiences', 'ffcertificate' ); ?>
-							</a>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Audience Calendars', 'ffcertificate' ),
+									'icon'  => 'calendar',
+									'href'  => admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars' ),
+								)
+							);
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Environments', 'ffcertificate' ),
+									'icon'  => 'building',
+									'href'  => \FreeFormCertificate\Audience\AudienceAdminEnvironment::view_url( $this->menu_slug ),
+								)
+							);
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Audiences', 'ffcertificate' ),
+									'icon'  => 'users',
+									'href'  => admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences' ),
+								)
+							);
+							?>
 						</td>
 					</tr>
 				</tbody>
@@ -119,6 +133,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</tr>
 					</tbody>
 				</table>
-				<?php submit_button( __( 'Save Settings', 'ffcertificate' ) ); ?>
+				<?php \FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save Settings', 'ffcertificate' ), array( 'value' => __( 'Save Settings', 'ffcertificate' ) ) ); ?>
 			</div>
 		</form>

@@ -9,14 +9,6 @@
  */
 
 return array(
-	'assets/js/ffc-calendar-editor.js' => array(
-		'button' => 2,
-	),
-	'assets/js/ffc-division-sector-editor.js' => array(
-		'button' => 2,
-		'button-link-delete' => 1,
-		'button-small' => 1,
-	),
 	'assets/js/ffc-identity-search.js' => array(
 		'button-primary' => 1,
 		'button-secondary' => 1,
@@ -29,51 +21,10 @@ return array(
 		'button' => 3,
 		'button-primary' => 2,
 	),
-	'includes/admin/class-ffc-cert-template-receipt-settings.php' => array(
-		'button' => 2,
-		'submit_button()' => 1,
-	),
 	'includes/admin/views/identity-resolution-page.php' => array(
 		'button' => 20,
 		'button-primary' => 5,
 		'button-secondary' => 14,
-	),
-	'includes/audience/class-ffc-audience-account-email.php' => array(
-		'button' => 1,
-		'button-small' => 1,
-	),
-	'includes/audience/class-ffc-audience-admin-audience-renderer.php' => array(
-		'button' => 10,
-		'button-link-delete' => 3,
-		'button-primary' => 1,
-		'button-small' => 5,
-		'page-title-action' => 1,
-		'submit_button()' => 2,
-	),
-	'includes/audience/class-ffc-audience-admin-bookings.php' => array(
-		'button' => 2,
-		'page-title-action' => 1,
-	),
-	'includes/audience/class-ffc-audience-admin-calendar.php' => array(
-		'button' => 3,
-		'button-link-delete' => 1,
-		'button-secondary' => 1,
-		'button-small' => 2,
-		'page-title-action' => 1,
-		'submit_button()' => 2,
-	),
-	'includes/audience/class-ffc-audience-admin-dashboard.php' => array(
-		'button' => 4,
-		'button-primary' => 2,
-	),
-	'includes/audience/class-ffc-audience-admin-environment.php' => array(
-		'button' => 1,
-		'page-title-action' => 1,
-		'submit_button()' => 2,
-	),
-	'includes/audience/class-ffc-audience-admin-import.php' => array(
-		'button' => 2,
-		'submit_button()' => 4,
 	),
 	'includes/recruitment/class-ffc-recruitment-adjutancy-edit-page.php' => array(
 		'submit_button()' => 1,
@@ -99,33 +50,9 @@ return array(
 		'button' => 1,
 		'button-small' => 1,
 	),
-	'includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php' => array(
-		'button' => 1,
-		'button-small' => 1,
-		'submit_button()' => 1,
-	),
-	'includes/self-scheduling/class-ffc-self-scheduling-editor.php' => array(
-		'button' => 6,
-	),
-	'includes/self-scheduling/views/appointments-list.php' => array(
-		'button' => 2,
-		'button-small' => 1,
-		'page-title-action' => 2,
-	),
 	'includes/url-shortener/class-ffc-url-shortener-meta-box.php' => array(
 		'button' => 4,
 		'button-small' => 3,
-	),
-	'templates/admin/audience/audience-tab.php' => array(
-		'button' => 3,
-		'submit_button()' => 1,
-	),
-	'templates/admin/audience/self-scheduling-tab.php' => array(
-		'button' => 3,
-		'submit_button()' => 2,
-	),
-	'templates/admin/audience/transfer-list.php' => array(
-		'button' => 4,
 	),
 	'templates/admin/date-messages/history.php' => array(
 		'button' => 1,

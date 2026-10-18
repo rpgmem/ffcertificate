@@ -27,15 +27,6 @@
     max-width: 200px;
 }
 
-.ffc-working-hours-table .ffc-remove-hour {
-    color: var(--ffc-danger-text);
-}
-
-.ffc-working-hours-table .ffc-remove-hour:hover {
-    color: var(--ffc-danger);
-    border-color: var(--ffc-danger);
-}
-
 /* Add Working Hour Button */
 #ffc-add-working-hour {
     margin-top: var(--ffc-spacing-md);

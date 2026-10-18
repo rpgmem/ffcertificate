@@ -161,7 +161,16 @@ class AudienceAdminEnvironment {
 		?>
 		<h1 class="wp-heading-inline"><?php echo esc_html( $env_label ); ?></h1>
 		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
-		<a href="<?php echo esc_url( $add_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label'    => __( 'Add New', 'ffcertificate' ),
+					'category' => 'create',
+					'icon'     => 'plus',
+					'href'     => $add_url,
+				)
+			);
+			?>
 		<?php endif; ?>
 		<hr class="wp-header-end">
 
@@ -182,7 +191,17 @@ class AudienceAdminEnvironment {
 						</option>
 					<?php endforeach; ?>
 				</select>
-				<?php submit_button( __( 'Filter', 'ffcertificate' ), 'secondary', 'filter', false ); ?>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Filter', 'ffcertificate' ),
+						'icon'  => 'filter',
+						'type'  => 'submit',
+						'name'  => 'filter',
+						'value' => __( 'Filter', 'ffcertificate' ),
+					)
+				);
+				?>
 			</form>
 		</div>
 
@@ -217,7 +236,18 @@ class AudienceAdminEnvironment {
 		$add_url = self::view_url( $this->menu_slug, '&action=new&schedule_id=' . $schedule_id );
 		?>
 		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
-		<p><a href="<?php echo esc_url( $add_url ); ?>" class="button"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a></p>
+		<p>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label'    => __( 'Add New', 'ffcertificate' ),
+					'category' => 'create',
+					'icon'     => 'plus',
+					'href'     => $add_url,
+				)
+			);
+			?>
+		</p>
 		<?php endif; ?>
 		<?php
 		$this->render_table( $environments, array( $schedule_id => $schedule ? (string) $schedule->name : '' ), $env_label );
@@ -541,12 +571,17 @@ class AudienceAdminEnvironment {
 				</fieldset>
 			<?php else : ?>
 				<?php
-				submit_button(
-					$id > 0
+				$save_label = $id > 0
 					/* translators: %s: environment label (singular, e.g. "Room") */
 					? sprintf( __( 'Update %s', 'ffcertificate' ), $env_label_singular )
 					/* translators: %s: environment label (singular, e.g. "Room") */
-					: sprintf( __( 'Create %s', 'ffcertificate' ), $env_label_singular )
+					: sprintf( __( 'Create %s', 'ffcertificate' ), $env_label_singular );
+				\FreeFormCertificate\Admin\AdminUI::render_save_button(
+					$save_label,
+					array(
+						'icon'  => $id > 0 ? 'save' : 'plus',
+						'value' => $save_label,
+					)
 				);
 				?>
 			<?php endif; ?>

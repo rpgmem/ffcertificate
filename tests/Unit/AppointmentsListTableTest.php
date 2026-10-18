@@ -230,7 +230,7 @@ class AppointmentsListTableTest extends TestCase {
 	private function assertMaskedWithReveal( string $out ): void {
 		$this->assertStringNotContainsString( 'a@b.com', str_replace( 'MASKED:a@b.com', '', $out ), 'The clear address must not reach the list HTML.' );
 		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
-		$this->assertStringContainsString( 'class="button button-small ffc-reveal-pii ffc-icon-eye"', $out );
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii"', $out );
 		$this->assertStringContainsString( 'data-type="appointment" data-field="email" data-submission-id="42" data-nonce="test_nonce"', $out );
 	}
 
@@ -494,5 +494,7 @@ class AppointmentsListTableTest extends TestCase {
 
 		$this->assertStringContainsString( 'Cal One', $out );
 		$this->assertStringContainsString( 'All Statuses', $out );
+		// The filter submits under the name it always had, as a family button (#1904).
+		$this->assertStringContainsString( '<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-filter" name="filter_action" value="Filter">Filter</button>', $out );
 	}
 }

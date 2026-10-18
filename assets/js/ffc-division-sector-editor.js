@@ -55,19 +55,15 @@
         return '<div class="ffc-ds-division">' +
             '<div class="ffc-ds-division-head">' +
             '<input type="text" class="ffc-ds-division-name regular-text" value="" placeholder="' + escapeAttr(t('divisionName', 'Division name')) + '">' +
-            '<button type="button" class="button button-link-delete ffc-ds-division-remove">' + escapeHtml(t('removeDivision', 'Remove division')) + '</button>' +
+            window.FFC.buttonHtml({ label: t('removeDivision', 'Remove division'), category: 'danger', icon: 'delete', className: 'ffc-ds-division-remove' }) +
             '</div>' +
             '<div class="ffc-ds-sectors">' + sectorRow('') + '</div>' +
-            '<button type="button" class="button button-small ffc-ds-sector-add">' + escapeHtml(t('addSector', '+ Add Department')) + '</button>' +
+            window.FFC.buttonHtml({ label: t('addSector', 'Add Department'), category: 'create', icon: 'plus', className: 'ffc-ds-sector-add' }) +
             '</div>';
     }
 
     function escapeAttr(s) {
         return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    function escapeHtml(s) {
-        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     function syncHidden($editor) {

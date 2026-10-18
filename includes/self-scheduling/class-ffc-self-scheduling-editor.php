@@ -749,7 +749,16 @@ class SelfSchedulingEditor {
 								<input type="time" name="ffc_self_scheduling_working_hours[<?php echo esc_attr( $index ); ?>][end]" value="<?php echo esc_attr( $hours['end'] ); ?>" required />
 							</td>
 							<td>
-								<button type="button" class="button ffc-remove-hour"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
+								<?php
+								AdminUI::render_button(
+									array(
+										'label'    => __( 'Remove', 'ffcertificate' ),
+										'category' => 'danger',
+										'icon'     => 'delete',
+										'class'    => 'ffc-remove-hour',
+									)
+								);
+								?>
 							</td>
 						</tr>
 					<?php endforeach; ?>
@@ -757,7 +766,16 @@ class SelfSchedulingEditor {
 			</table>
 
 			<p>
-				<button type="button" class="button ffc-icon-plus" id="ffc-add-working-hour"><?php esc_html_e( 'Add Working Hours', 'ffcertificate' ); ?></button>
+				<?php
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'Add Working Hours', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'id'       => 'ffc-add-working-hour',
+					)
+				);
+				?>
 			</p>
 		</div>
 
@@ -783,14 +801,34 @@ class SelfSchedulingEditor {
 							<td><input type="time" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][end]" value="<?php echo esc_attr( $block['end'] ?? '' ); ?>" /></td>
 							<td><input type="number" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][capacity]" value="<?php echo esc_attr( (string) ( $block['capacity'] ?? 1 ) ); ?>" min="1" max="10000" required /></td>
 							<td><input type="text" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][label]" value="<?php echo esc_attr( $block['label'] ?? '' ); ?>" class="regular-text" /></td>
-							<td><button type="button" class="button ffc-remove-slot"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button></td>
+							<td>
+								<?php
+								AdminUI::render_button(
+									array(
+										'label'    => __( 'Remove', 'ffcertificate' ),
+										'category' => 'danger',
+										'icon'     => 'delete',
+										'class'    => 'ffc-remove-slot',
+									)
+								);
+								?>
+							</td>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
 			</table>
 
 			<p>
-				<button type="button" class="button ffc-icon-plus" id="ffc-add-custom-slot"><?php esc_html_e( 'Add Block', 'ffcertificate' ); ?></button>
+				<?php
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'Add Block', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'id'       => 'ffc-add-custom-slot',
+					)
+				);
+				?>
 			</p>
 			<?php if ( $mode_locked ) : ?>
 				<p class="description ffc-text-danger"><?php esc_html_e( 'This calendar has bookings — blocks with existing bookings cannot be removed or retimed on save; you may still add blocks or raise capacity.', 'ffcertificate' ); ?></p>
@@ -1216,7 +1254,22 @@ class SelfSchedulingEditor {
 						<code>{{cancel_button}}</code>
 					</p>
 					<p class="description"><em><?php esc_html_e( 'Include {{receipt_button}} / {{cancel_button}} to show the receipt and cancel buttons (each empty when unavailable). Leave the whole body empty to use the global default from Settings → SMTP → Email texts.', 'ffcertificate' ); ?></em></p>
-					<p><button type="button" class="button ffc-email-restore-default" data-editor="user_confirmation_body" data-default-key="selfsched_confirmation_body"><?php esc_html_e( 'Restore Default Text', 'ffcertificate' ); ?></button></p>
+					<p>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label'    => __( 'Restore Default Text', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'restore',
+								'class'    => 'ffc-email-restore-default',
+								'attrs'    => array(
+									'data-editor'      => 'user_confirmation_body',
+									'data-default-key' => 'selfsched_confirmation_body',
+								),
+							)
+						);
+						?>
+					</p>
 				</td>
 			</tr>
 		</table>
@@ -1241,7 +1294,16 @@ class SelfSchedulingEditor {
 				<?php // A read-only input the shared copy button (`.ffc-copy-link`, in ffc-core.js) reads the .val() of (#1629). ?>
 				<div class="ffc-calendar-shortcode-copy">
 					<input type="text" readonly id="ffc-calendar-shortcode" value="<?php echo esc_attr( '[ffc_self_scheduling id="' . $post->ID . '"]' ); ?>" onclick="this.select();" class="ffc-shortcode-input code" />
-					<button type="button" class="button ffc-copy-link ffc-icon-copy" data-ffc-copy-target="#ffc-calendar-shortcode"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+					<?php
+					AdminUI::render_button(
+						array(
+							'label' => __( 'Copy', 'ffcertificate' ),
+							'icon'  => 'copy',
+							'class' => 'ffc-copy-link',
+							'attrs' => array( 'data-ffc-copy-target' => '#ffc-calendar-shortcode' ),
+						)
+					);
+					?>
 				</div>
 				<?php
 				// No "Preview Calendar" button (#1770): the link it printed was read by nothing,
