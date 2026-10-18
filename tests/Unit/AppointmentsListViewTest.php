@@ -334,12 +334,12 @@ class AppointmentsListViewTest extends TestCase {
 		$this->assertStringNotContainsString( '518.178.420-80', $out );
 		$this->assertStringNotContainsString( Identifiers::RF_A, $out );
 
-		preg_match_all( '/<button[^>]*class="button button-small ffc-reveal-pii ffc-icon-eye"[^>]*>/', $out, $buttons );
+		preg_match_all( '/<button[^>]*class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii"[^>]*>/', $out, $buttons );
 		if ( $has_button ) {
 			$this->assertCount( 3, $buttons[0] );
 			foreach ( array( 'email', 'cpf', 'rf' ) as $field ) {
 				$this->assertStringContainsString(
-					'class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="appointment" data-field="' . $field . '" data-submission-id="5" data-nonce="nonce123"',
+					'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-type="appointment" data-field="' . $field . '" data-submission-id="5" data-nonce="nonce123"',
 					$out
 				);
 			}
@@ -418,6 +418,9 @@ class AppointmentsListViewTest extends TestCase {
 		$this->assertStringContainsString( 'Appointments', $out );
 		$this->assertStringContainsString( 'Export CSV', $out );
 		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii-page" data-nonce="page-nonce"', $out );
+		// The header's Export CSV is a family button with the hook the script binds (#1904).
+		$this->assertStringContainsString( '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-download" id="ffc-appointments-export-btn"', $out );
+		$this->assertStringNotContainsString( 'page-title-action', $out );
 	}
 
 	public function test_the_list_offers_no_page_reveal_without_the_pii_cap(): void {

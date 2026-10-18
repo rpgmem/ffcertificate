@@ -228,6 +228,36 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 	}
 
 	/**
+	 * The editor's buttons joined the `.ffc-btn` family (#1904). A button's
+	 * class is the one attribute that changed on purpose, so the frozen
+	 * classes are translated here, each by its old value, and the captured
+	 * fixture stays as it was taken. Every other attribute, the text and the
+	 * order are still compared as frozen.
+	 */
+	private const BUTTON_FAMILY = array(
+		'button ffc-email-restore-default' => 'ffc-btn ffc-btn-caution ffc-icon-restore ffc-email-restore-default',
+		'button ffc-icon-plus'             => 'ffc-btn ffc-btn-create ffc-icon-plus',
+		'button ffc-remove-hour'           => 'ffc-btn ffc-btn-danger ffc-icon-delete ffc-remove-hour',
+		'button ffc-remove-slot'           => 'ffc-btn ffc-btn-danger ffc-icon-delete ffc-remove-slot',
+	);
+
+	/**
+	 * The frozen controls with their button classes translated.
+	 *
+	 * @param list<array<string, mixed>> $controls Frozen controls.
+	 * @return list<array<string, mixed>>
+	 */
+	private static function in_the_button_family( array $controls ): array {
+		foreach ( $controls as $i => $control ) {
+			$class = $control['attrs']['class'] ?? null;
+			if ( 'button' === ( $control['tag'] ?? '' ) && is_string( $class ) && isset( self::BUTTON_FAMILY[ $class ] ) ) {
+				$controls[ $i ]['attrs']['class'] = self::BUTTON_FAMILY[ $class ];
+			}
+		}
+		return $controls;
+	}
+
+	/**
 	 * @dataProvider scenarios
 	 *
 	 * @param array<string, mixed> $meta     Post meta.
@@ -240,7 +270,7 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 		$before = self::before( $bookings );
 		$this->assertGreaterThan( 40, count( $before['controls'] ), 'The frozen inventory lost its fields, so the comparison would prove little.' );
 
-		$this->assertSame( $before['controls'], FormControls::inventory( $this->render_normal_column() ) );
+		$this->assertSame( self::in_the_button_family( $before['controls'] ), FormControls::inventory( $this->render_normal_column() ) );
 	}
 
 	/**

@@ -50,7 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><strong><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below.', 'ffcertificate' ); ?></td></tr>
 		</tbody>
 	</table>
-	<p><?php esc_html_e( 'Rules can be edited, duplicated, activated or deactivated and deleted from the Rules tab. Deleting a rule keeps what it already sent in the history.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Rules can be edited, duplicated and deleted from the Rules tab, where the Active toggle on each rule switches it on or off and saves at once. Deleting a rule keeps what it already sent in the history.', 'ffcertificate' ); ?></p>
 
 	<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?></p>
 

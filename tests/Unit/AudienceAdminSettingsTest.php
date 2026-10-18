@@ -298,7 +298,7 @@ class AudienceAdminSettingsTest extends TestCase {
 
 		$html = $this->render( $this->page() );
 
-		$this->assertMatchesRegularExpression( '/<a href="admin\.php\?page=ffc-scheduling-calendars&view=environments" class="button">\s*Environments\s*<\/a>/', $html );
+		$this->assertStringContainsString( '<a href="admin.php?page=ffc-scheduling-calendars&view=environments" class="ffc-btn ffc-btn-neutral ffc-icon-building">Environments</a>', $html );
 		$this->assertStringNotContainsString( 'ffc-scheduling-environments', $html );
 	}
 

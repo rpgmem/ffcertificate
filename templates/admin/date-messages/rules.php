@@ -86,32 +86,59 @@ if ( ! defined( 'ABSPATH' ) ) {
 						echo esc_html( array() === $ffc_dm_names ? __( 'Everyone', 'ffcertificate' ) : implode( ', ', $ffc_dm_names ) );
 						?>
 					</td>
-					<td>
-						<?php
-						if ( ! $ffc_dm_rule->is_active ) {
-							esc_html_e( 'Inactive', 'ffcertificate' );
-						} elseif ( ! $ffc_dm_rule->send_to_user ) {
-							esc_html_e( 'Active, not sending to people', 'ffcertificate' );
-						} else {
-							esc_html_e( 'Active', 'ffcertificate' );
-						}
-						?>
-					</td>
+					<?php
+					// The Status cell follows the row's toggle once its save is
+					// confirmed (#1904); both labels ride on the toggle.
+					$ffc_dm_status_on  = $ffc_dm_rule->send_to_user ? __( 'Active', 'ffcertificate' ) : __( 'Active, not sending to people', 'ffcertificate' );
+					$ffc_dm_status_off = __( 'Inactive', 'ffcertificate' );
+					?>
+					<td id="ffc-dm-rule-status-<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>"><?php echo esc_html( $ffc_dm_rule->is_active ? $ffc_dm_status_on : $ffc_dm_status_off ); ?></td>
 					<?php if ( $can_manage ) : ?>
 						<td>
 							<?php
-							$ffc_dm_actions = array(
-								DateMessagesAdminPage::TOGGLE_ACTION    => $ffc_dm_rule->is_active ? __( 'Deactivate', 'ffcertificate' ) : __( 'Activate', 'ffcertificate' ),
-								DateMessagesAdminPage::DUPLICATE_ACTION => __( 'Duplicate', 'ffcertificate' ),
-								DateMessagesAdminPage::DELETE_ACTION    => __( 'Delete', 'ffcertificate' ),
+							// On/off is a state, not an action: the toggle saves the rule's
+							// `is_active` the moment it flips, as on the rule editor (#1904).
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'       => 'ffc_dm_rule_active_' . $ffc_dm_rule->id,
+									'id'         => 'ffc-dm-rule-active-' . $ffc_dm_rule->id,
+									'checked'    => $ffc_dm_rule->is_active,
+									'label'      => __( 'Active', 'ffcertificate' ),
+									'aria_label' => sprintf(
+										/* translators: %s: rule name */
+										__( 'Active: %s', 'ffcertificate' ),
+										$ffc_dm_rule->name
+									),
+									'data'       => array_merge(
+										\FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', $ffc_dm_rule->id, 'is_active' ),
+										array(
+											'ffc-status-target' => 'ffc-dm-rule-status-' . $ffc_dm_rule->id,
+											'ffc-status-on'     => $ffc_dm_status_on,
+											'ffc-status-off'    => $ffc_dm_status_off,
+										)
+									),
+								)
 							);
-							foreach ( $ffc_dm_actions as $ffc_dm_action => $ffc_dm_label ) :
+							$ffc_dm_actions = array(
+								DateMessagesAdminPage::DUPLICATE_ACTION => array( __( 'Duplicate', 'ffcertificate' ), 'create', 'copy' ),
+								DateMessagesAdminPage::DELETE_ACTION    => array( __( 'Delete', 'ffcertificate' ), 'danger', 'delete' ),
+							);
+							foreach ( $ffc_dm_actions as $ffc_dm_action => $ffc_dm_button ) :
 								?>
 								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-dm-rule-action"<?php echo DateMessagesAdminPage::DELETE_ACTION === $ffc_dm_action ? ' data-ffc-confirm="' . esc_attr__( 'Delete this rule? What it already sent stays in the history.', 'ffcertificate' ) . '"' : ''; ?>>
 									<?php wp_nonce_field( $ffc_dm_action . '_' . $ffc_dm_rule->id ); ?>
 									<input type="hidden" name="action" value="<?php echo esc_attr( $ffc_dm_action ); ?>">
 									<input type="hidden" name="rule_id" value="<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>">
-									<button type="submit" class="button button-small<?php echo DateMessagesAdminPage::DELETE_ACTION === $ffc_dm_action ? ' button-link-delete' : ''; ?>"><?php echo esc_html( $ffc_dm_label ); ?></button>
+									<?php
+									\FreeFormCertificate\Admin\AdminUI::render_button(
+										array(
+											'label'    => $ffc_dm_button[0],
+											'category' => $ffc_dm_button[1],
+											'icon'     => $ffc_dm_button[2],
+											'type'     => 'submit',
+										)
+									);
+									?>
 								</form>
 							<?php endforeach; ?>
 						</td>

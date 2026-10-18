@@ -160,9 +160,8 @@
             $btn.prop('disabled', true).text(S.generatingPdf || 'Generating PDF...');
 
             function restoreBtn() {
-                $btn.prop('disabled', false).html(
-                    '<span class="ffc-icon-file" aria-hidden="true"></span>' + (S.record || 'Record')
-                );
+                // The icon is the button's own class (#1904), so the label is text.
+                $btn.prop('disabled', false).text(S.record || 'Record');
             }
 
             FFC.request(

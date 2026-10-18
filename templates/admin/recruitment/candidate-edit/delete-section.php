@@ -77,7 +77,18 @@ echo '<noscript><p>'
 	. '<label for="ffc-cand-delete-reason">' . esc_html__( 'Reason (logged):', 'ffcertificate' ) . '</label><br>'
 	. '<input id="ffc-cand-delete-reason" type="text" class="large-text" name="reason" required>'
 	. '</p></noscript>';
-submit_button( __( 'Delete permanently', 'ffcertificate' ), 'delete' );
+echo '<p class="submit">';
+\FreeFormCertificate\Core\Button::render(
+	array(
+		'label'    => __( 'Delete permanently', 'ffcertificate' ),
+		'category' => 'danger',
+		'icon'     => 'delete',
+		'type'     => 'submit',
+		'name'     => 'submit',
+		'value'    => __( 'Delete permanently', 'ffcertificate' ),
+	)
+);
+echo '</p>';
 echo '</form>';
 
 echo '</div></div>';

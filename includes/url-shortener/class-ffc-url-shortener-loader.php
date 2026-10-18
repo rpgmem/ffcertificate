@@ -95,6 +95,9 @@ class UrlShortenerLoader {
 
 			$meta_box->init();
 
+			// The list's on/off toggle saves through the record autosave (#1904).
+			UrlShortenerRecordAutosave::register( $this->service );
+
 			// Manual QR code generator (#1563): a submenu and its two AJAX
 			// actions, both admin-only. admin-ajax.php runs with is_admin()
 			// true, so the endpoint is reachable from here.

@@ -733,16 +733,16 @@ msgid "(your host's reverse proxy — a private/reserved address)"
 msgstr "(o proxy reverso do seu host — um endereço privado/reservado)"
 
 #: includes/audience/class-ffc-audience-loader.php:255 includes/audience/class-ffc-audience-admin-audience-renderer.php:628
-msgid "+ Add Department"
-msgstr "+ Adicionar Departamento"
+msgid "Add Department"
+msgstr "Adicionar Departamento"
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:633
-msgid "+ Add Division"
-msgstr "+ Adicionar Divisão"
+msgid "Add Division"
+msgstr "Adicionar Divisão"
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:372
-msgid "+ Add Field"
-msgstr "+ Adicionar Campo"
+msgid "Add Field"
+msgstr "Adicionar Campo"
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:191
 msgid "New certificate template"
@@ -757,8 +757,8 @@ msgid "New receipt template"
 msgstr "Novo modelo de comprovante"
 
 #: includes/admin/class-ffc-cert-template-receipt-settings.php:158
-msgid "+ New template"
-msgstr "+ Novo modelo"
+msgid "New template"
+msgstr "Novo modelo"
 
 #: includes/settings/views/documentation/feature-url-shortener.php:28
 msgid ", e.g."
@@ -5626,8 +5626,8 @@ msgid "Default: link to magic, text shows /valid"
 msgstr "Padrão: link magico, o texto mostra /valid"
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:358
-msgid "Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use \"+ Add Field\" to create custom fields."
-msgstr "Defina todos os campos exibidos durante o recadastramento. Os campos padrão podem ser reordenados, renomeados, reagrupados e desativados, mas não excluídos. Use \"+ Adicionar Campo\" para criar campos personalizados."
+msgid "Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use \"Add Field\" to create custom fields."
+msgstr "Defina todos os campos exibidos durante o recadastramento. Os campos padrão podem ser reordenados, renomeados, reagrupados e desativados, mas não excluídos. Use \"Adicionar Campo\" para criar campos personalizados."
 
 #. %s: link to the Adjutancies tab
 #: templates/admin/recruitment/admin-page/notices-empty-state.php:24
@@ -6000,10 +6000,6 @@ msgstr "Conexão direta — REMOTE_ADDR já é o cliente."
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:611
 msgid "Direct — ignore every forwarded header"
 msgstr "Direto — ignore todos os cabeçalhos de encaminhamento"
-
-#: templates/admin/url-shortener/short-urls-page.php:297
-msgid "Disable"
-msgstr "Desativar"
 
 #: includes/settings/views/ffc-tab-migrations.php:799 includes/settings/views/ffc-tab-migrations.php:804
 msgid "Disable access now"
@@ -16130,10 +16126,6 @@ msgstr "Transição de status rejeitada: o status de destino estava ausente ou n
 msgid "Status transition rejected: this transition requires a reason (filled in the Reopen reason field)."
 msgstr "Transição de status rejeitada: esta transição requer um motivo (preenchido no campo Motivo da reabertura)."
 
-#: templates/admin/url-shortener/short-urls-page.php:94
-msgid "Status updated."
-msgstr "Status atualizado."
-
 #: templates/emails/reregistration-confirmation.php:31 templates/emails/selfscheduling-confirmation.php:39 includes/reregistration/class-ffc-reregistration-submission-details-renderer.php:70 includes/reregistration/class-ffc-record-generator.php:501 includes/frontend/class-ffc-verification-response-renderer.php:389
 msgid "Status:"
 msgstr "Status:"
@@ -18761,10 +18753,6 @@ msgstr "Os usuários podem acessar seus certificados através da página do pain
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:614
 msgid "Users can cancel their own appointments"
 msgstr "Usuários podem cancelar seus próprios agendamentos"
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:295
-msgid "Users can join/leave child groups from their dashboard"
-msgstr "Os usuários podem entrar/sair de grupos filhos a partir do painel de controle."
 
 #: includes/settings/views/documentation/reference-shortcodes.php:38
 msgid "Users can validate certificates by entering the authentication code."
@@ -21879,9 +21867,6 @@ msgstr "\"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de 
 msgid "(deleted rule)"
 msgstr "(regra excluída)"
 
-msgid "Activate"
-msgstr "Ativar"
-
 msgid "Active (the daily run sends it)"
 msgstr "Ativa (o envio diário a envia)"
 
@@ -21987,14 +21972,8 @@ msgstr "Restaurar texto padrão"
 msgid "Rule"
 msgstr "Regra"
 
-msgid "Rule activated."
-msgstr "Regra ativada."
-
 msgid "Rule copied. The copy starts inactive."
 msgstr "Regra copiada. A cópia começa inativa."
-
-msgid "Rule deactivated."
-msgstr "Regra desativada."
 
 msgid "Rule deleted. Its history stays."
 msgstr "Regra excluída. O histórico dela permanece."
@@ -23123,8 +23102,8 @@ msgstr "\"Enviar e-mail a cada pessoa na sua data\" e \"Ativa (o envio diário a
 msgid "Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below."
 msgstr "Opcionalmente, envia a gestores escolhidos um resumo 24 horas após cada execução, apenas com os totais ou com os totais e os nomes de quem recebeu. Veja abaixo."
 
-msgid "Rules can be edited, duplicated, activated or deactivated and deleted from the Rules tab. Deleting a rule keeps what it already sent in the history."
-msgstr "As regras podem ser editadas, duplicadas, ativadas ou desativadas e excluídas na aba Regras. Excluir uma regra mantém no histórico o que ela já enviou."
+msgid "Rules can be edited, duplicated and deleted from the Rules tab, where the Active toggle on each rule switches it on or off and saves at once. Deleting a rule keeps what it already sent in the history."
+msgstr "As regras podem ser editadas, duplicadas e excluídas na aba Regras, onde o botão Ativo de cada uma a liga ou desliga e salva na hora. Excluir uma regra mantém no histórico o que ela já enviou."
 
 msgid "Who receives a message"
 msgstr "Quem recebe uma mensagem"
@@ -24277,9 +24256,6 @@ msgstr "visualize o menu de agendamento e as páginas de público-alvo."
 
 msgid "On its own it opens them read-only: the calendar, environment and audience edit forms and the members screen show their fields disabled, with no Save, Add or Remove, under a read-only notice."
 msgstr "Sozinha, ela as abre somente para leitura: os formulários de edição de calendário, ambiente e público-alvo e a tela de membros mostram os campos desabilitados, sem Salvar, Adicionar ou Remover, sob um aviso de somente leitura."
-
-msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."
-msgstr "Quando ativada, essa configuração é herdada por todos os públicos-alvo descendentes. Os usuários podem participar de até 2 grupos filhos."
 
 msgid "When enabled, audience same-day and user overlap checks only consider bookings within this calendar. Environment conflicts are always per-environment regardless of this setting."
 msgstr "Quando ativado, as verificações de público-alvo no mesmo dia e sobreposição de membros consideram apenas agendamentos dentro deste calendário. Conflitos de ambiente são sempre por ambiente, independentemente desta configuração."
@@ -27077,42 +27053,6 @@ msgstr "Contado a partir do fim da campanha ou da aprovação, o que for mais ta
 msgid "Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration (\"Hide the approved banner after (days)\", default 30) has passed since the later of the campaign's end and the approval, even after the daily run has expired the campaign; 0 never hides it. The dashboard's Reregistration tab keeps listing it either way."
 msgstr "Depois que uma submissão é aprovada, o aviso dela oferece o download da Ficha até que o prazo em Configurações → Recadastramento (\"Ocultar o aviso de aprovado após (dias)\", padrão 30) tenha passado desde o fim da campanha ou a aprovação, o que for mais tarde, mesmo depois que a execução diária expirar a campanha; 0 nunca o oculta. A aba Recadastramento do painel continua a listá-la em qualquer caso."
 
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php
-msgid "This audience"
-msgstr "Este público-alvo"
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php
-msgid "Users can join/leave this group from their dashboard. Off, it still shows as a heading over the groups below it that users can join."
-msgstr "Os usuários podem entrar/sair deste grupo pelo painel. Desligado, ele continua aparecendo como título acima dos grupos abaixo dele em que os usuários podem entrar."
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php
-msgid "Children and grandchildren"
-msgstr "Filhos e netos"
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php
-msgid "Users can join/leave every child and grandchild group."
-msgstr "Os usuários podem entrar/sair de todos os grupos filhos e netos."
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php
-msgid "No child or grandchild group can be joined from the dashboard."
-msgstr "Nenhum grupo filho ou neto pode ser integrado pelo painel."
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php
-msgid "Mixed"
-msgstr "Misto"
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php
-msgid "Some child or grandchild groups allow self-join and others do not. Each is left as it is until you pick On or Off."
-msgstr "Alguns grupos filhos ou netos permitem a entrada por conta própria e outros não. Cada um fica como está até você escolher Ligado ou Desligado."
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php
-msgid "Applied to every group below this one when it changes."
-msgstr "Aplicado a todos os grupos abaixo deste quando muda."
-
-#: includes/settings/views/documentation/scheduling-audiences.php
-msgid "A top-level audience with child groups sets self-join in two choices. \"This audience\" is its own and changes nothing below it; with it off, the dashboard shows the audience as a heading over the groups below it that users can join. \"Children and grandchildren\" is applied to every group below it when it changes. When those groups disagree, it reads Mixed and leaves each one as it is until you pick On or Off. An audience without child groups keeps one switch."
-msgstr "Um público-alvo de nível superior com grupos filhos define a entrada por conta própria em duas escolhas. \"Este público-alvo\" é a dele e não muda nada abaixo; desligada, o painel mostra o público-alvo como título acima dos grupos abaixo dele em que os usuários podem entrar. \"Filhos e netos\" é aplicada a todos os grupos abaixo dele quando muda. Quando esses grupos divergem, ela mostra Misto e deixa cada um como está até você escolher Ligado ou Desligado. Um público-alvo sem grupos filhos mantém um único interruptor."
-
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "Masked personal data:"
 msgstr "Dados pessoais mascarados:"
@@ -27124,3 +27064,76 @@ msgstr "o CPF/RF, os endereços de e-mail, o telefone e a data de nascimento da 
 #: includes/api/class-ffc-user-certificates-rest-controller.php
 msgid "Certificate not found."
 msgstr "Certificado não encontrado."
+
+#. translators: %s: rule name
+#: templates/admin/date-messages/rules.php
+msgid "Active: %s"
+msgstr "Ativo: %s"
+
+#: includes/url-shortener/class-ffc-url-shortener-record-autosave.php
+msgid "The short URL could not be saved."
+msgstr "Não foi possível salvar a URL curta."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Users can join/leave this group from their dashboard"
+msgstr "Os usuários podem entrar/sair deste grupo pelo painel"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "A group created under this audience starts with self-join off. Once the audience has groups below it, this becomes one choice that covers them too. Users can join up to 2 child groups."
+msgstr "Um grupo criado sob este público-alvo começa com a auto-adesão desligada. Quando o público-alvo tiver grupos abaixo dele, isto vira uma única escolha que também vale para eles. Os usuários podem participar de até 2 grupos filhos."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "This audience only"
+msgstr "Só este público-alvo"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "This audience + children and grandchildren"
+msgstr "Este + filhos e netos"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Children and grandchildren only"
+msgstr "Só filhos e netos"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "No one joins or leaves this audience or any group below it from the dashboard."
+msgstr "Ninguém entra ou sai deste público-alvo nem dos grupos abaixo dele pelo painel."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Users can join/leave this group only. Its child and grandchild groups stay closed."
+msgstr "Os usuários podem entrar/sair só deste grupo. Os grupos filhos e netos ficam fechados."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Users can join/leave this group and every child and grandchild group."
+msgstr "Os usuários podem entrar/sair deste grupo e de todos os grupos filhos e netos."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "This group shows on the dashboard only as a heading over its children and grandchildren, which users can join/leave."
+msgstr "Este grupo aparece no painel só como título acima dos filhos e netos, e os usuários podem entrar/sair deles."
+
+#. translators: 1: children and grandchildren that allow self-join, 2: all children and grandchildren
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+#, php-format
+msgid "This audience allows self-join; %1$d of %2$d children and grandchildren allow it. No option is selected and nothing changes until you pick one, which then applies to all of them."
+msgstr "Este público-alvo está com a auto-adesão ligada; entre os filhos e netos, %1$d de %2$d a permitem. Nenhuma opção fica marcada e nada muda até você escolher uma, que então vale para todos."
+
+#. translators: 1: children and grandchildren that allow self-join, 2: all children and grandchildren
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+#, php-format
+msgid "This audience does not allow self-join; %1$d of %2$d children and grandchildren allow it. No option is selected and nothing changes until you pick one, which then applies to all of them."
+msgstr "Este público-alvo está com a auto-adesão desligada; entre os filhos e netos, %1$d de %2$d a permitem. Nenhuma opção fica marcada e nada muda até você escolher uma, que então vale para todos."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "A group created later under this audience starts with self-join on when every child and grandchild allows it, and off otherwise."
+msgstr "Um grupo criado depois sob este público-alvo começa com a auto-adesão ligada quando todos os filhos e netos a permitem, e desligada caso contrário."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A top-level audience with child groups sets self-join in one choice of four: Off, This audience only, This audience + children and grandchildren, or Children and grandchildren only. The choice is written to the audience and to every group below it; with the audience itself closed, the dashboard shows it as a heading over the groups users can join. When the groups below disagree, no option is selected and a notice gives the audience's own state and how many of its children and grandchildren allow self-join; saving leaves everything as it is until you pick an option. A group created under the audience starts with self-join on when every existing child and grandchild allows it, and off otherwise, including under an audience with no groups yet. An audience without child groups keeps one switch."
+msgstr "Um público-alvo de nível superior com grupos filhos define a auto-adesão em uma escolha entre quatro: Desligado, Só este público-alvo, Este + filhos e netos, ou Só filhos e netos. A escolha é gravada no público-alvo e em todos os grupos abaixo dele; com o próprio público-alvo fechado, o painel o mostra como título acima dos grupos em que os usuários podem entrar. Quando os grupos abaixo divergem, nenhuma opção fica marcada e um aviso informa o estado do próprio público-alvo e quantos dos filhos e netos permitem a auto-adesão; salvar deixa tudo como está até você escolher uma opção. Um grupo criado sob o público-alvo começa com a auto-adesão ligada quando todos os filhos e netos existentes a permitem, e desligada caso contrário, inclusive sob um público-alvo ainda sem grupos. Um público-alvo sem grupos filhos mantém um único interruptor."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Inherits from the audience above."
+msgstr "Herda do público acima."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "On the new-audience form, picking a parent audience replaces the self-join switch with \"Inherits from the audience above.\": the new group takes the value described above."
+msgstr "No formulário de novo público-alvo, escolher um público-alvo pai troca o interruptor de auto-adesão por \"Herda do público acima.\": o novo grupo recebe o valor descrito acima."

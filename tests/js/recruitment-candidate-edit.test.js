@@ -143,7 +143,7 @@ describe('candidate-edit — the General email revealed into its field (#1863)',
 	function mountEmail() {
 		document.body.innerHTML = `<form><table><tr><td>
 			<input id="ffc-cand-email" type="text" class="regular-text ffc-pii-placeholder" value="j***@x.com" data-ffc-pii-field="email" data-ffc-pii-name="email" disabled>
-			<button type="button" class="button button-secondary ffc-pii-reveal-btn" data-ffc-pii-candidate="5" data-ffc-pii-field="email">Reveal</button>
+			<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-pii-reveal-btn" data-ffc-pii-candidate="5" data-ffc-pii-field="email">Reveal</button>
 		</td></tr></table></form>`;
 		return {
 			input: document.getElementById('ffc-cand-email'),

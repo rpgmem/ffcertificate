@@ -49,6 +49,15 @@ echo '<p class="description">' . esc_html__( 'Leave all unchecked to make this r
 echo '</td></tr>';
 
 echo '</tbody></table>';
-echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
+echo '<p>';
+\FreeFormCertificate\Core\Button::render(
+	array(
+		'label'    => __( 'Create', 'ffcertificate' ),
+		'category' => 'create',
+		'icon'     => 'plus',
+		'type'     => 'submit',
+	)
+);
+echo '</p>';
 echo '</form>';
 echo '</div>';

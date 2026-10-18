@@ -141,13 +141,16 @@
      * @param {Object}          [response] What the endpoint returned, for a
      *                          save whose server side changed more than the
      *                          field (the operator access hash, #1755).
+     * @param {Element}         [field] The input that saved, for a listener that
+     *                          repaints something beside it (a list's Status
+     *                          cell, #1904) and cannot tell rows apart by key.
      */
-    function announceSaved(key, value, response) {
+    function announceSaved(key, value, response, field) {
         if (typeof window.CustomEvent !== 'function') {
             return;
         }
         document.dispatchEvent(new window.CustomEvent('ffc:setting-saved', {
-            detail: { key: key, value: value, response: response || {} },
+            detail: { key: key, value: value, response: response || {}, field: field || null },
         }));
     }
 
@@ -302,7 +305,7 @@
                     }
                     setBadgeState($badge, 'saved', saved);
                     lingerTimer = setTimeout(function () { hideBadge($badge); }, SAVED_LINGER);
-                    announceSaved(config.key, value, data);
+                    announceSaved(config.key, value, data, $field[0]);
                 }, function (err) {
                     if (settle()) {
                         return;

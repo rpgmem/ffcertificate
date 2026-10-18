@@ -76,7 +76,14 @@ if ( $user_id > 0 ) {
 	echo '<input type="hidden" name="action" value="ffc_recruitment_unlink_candidate_user">';
 	echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $candidate->id ) . '">';
 	wp_nonce_field( $nonce_action );
-	echo '<button type="submit" class="button button-link-delete">' . esc_html__( 'Unlink', 'ffcertificate' ) . '</button>';
+	\FreeFormCertificate\Core\Button::render(
+		array(
+			'label'    => __( 'Unlink', 'ffcertificate' ),
+			'category' => 'caution',
+			'icon'     => 'unlink',
+			'type'     => 'submit',
+		)
+	);
 	echo '</form>';
 } else {
 	echo '<em>' . esc_html__( '(not promoted yet)', 'ffcertificate' ) . '</em>';
@@ -94,7 +101,13 @@ echo '<input type="hidden" name="action" value="ffc_recruitment_link_candidate_u
 echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $candidate->id ) . '">';
 wp_nonce_field( $nonce_action );
 echo '<input type="text" name="user_lookup" placeholder="' . esc_attr__( 'WP user ID, login, or email', 'ffcertificate' ) . '" class="regular-text" required> ';
-echo '<button type="submit" class="button button-secondary">' . esc_html__( 'Link', 'ffcertificate' ) . '</button>';
+\FreeFormCertificate\Core\Button::render(
+	array(
+		'label' => __( 'Link', 'ffcertificate' ),
+		'icon'  => 'link',
+		'type'  => 'submit',
+	)
+);
 echo '<p class="description">' . esc_html__( 'Resolved via WP_User lookup (numeric → ID, contains @ → email, otherwise login). Does NOT create users; only links existing ones.', 'ffcertificate' ) . '</p>';
 echo '</form>';
 echo '</td></tr>';

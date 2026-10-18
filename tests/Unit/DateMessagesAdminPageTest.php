@@ -158,7 +158,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->caps = array( 'ffc_view_date_messages' );
 		$this->writer->shouldReceive( 'save' )->never();
 
-		foreach ( array( 'handle_save', 'handle_delete', 'handle_duplicate', 'handle_toggle', 'handle_send_now' ) as $handler ) {
+		foreach ( array( 'handle_save', 'handle_delete', 'handle_duplicate', 'handle_send_now' ) as $handler ) {
 			try {
 				( new DateMessagesAdminPage() )->$handler();
 				$this->fail( "{$handler} did not refuse." );
@@ -383,18 +383,6 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->call( 'handle_duplicate' );
 
 		$this->assertStringContainsString( 'rule=13', $this->redirect );
-	}
-
-	public function test_toggle_flips_the_active_flag(): void {
-		$_POST['rule_id'] = '3';
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
-		$this->writer->shouldReceive( 'save' )->once()->with(
-			Mockery::on( static fn( Rule $r ): bool => 3 === $r->id && ! $r->is_active )
-		)->andReturn( 3 );
-
-		$this->call( 'handle_toggle' );
-
-		$this->assertSame( 'Rule deactivated.', $this->outcome['message'] );
 	}
 
 	public function test_send_now_needs_a_rule_and_two_real_dates(): void {
@@ -679,7 +667,6 @@ class DateMessagesAdminPageTest extends TestCase {
 				'admin_post_' . DateMessagesAdminPage::SAVE_ACTION,
 				'admin_post_' . DateMessagesAdminPage::DELETE_ACTION,
 				'admin_post_' . DateMessagesAdminPage::DUPLICATE_ACTION,
-				'admin_post_' . DateMessagesAdminPage::TOGGLE_ACTION,
 				'admin_post_' . DateMessagesAdminPage::SEND_ACTION,
 			),
 			$hooks
@@ -732,26 +719,6 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->call( 'handle_duplicate' );
 
 		$this->assertSame( 'The rule could not be copied.', $this->outcome['message'] );
-	}
-
-	public function test_toggle_of_a_missing_rule_fails(): void {
-		$_POST['rule_id'] = '3';
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
-		$this->writer->shouldReceive( 'save' )->never();
-
-		$this->call( 'handle_toggle' );
-
-		$this->assertSame( 'That rule no longer exists.', $this->outcome['message'] );
-	}
-
-	public function test_toggle_the_writer_cannot_save_fails(): void {
-		$_POST['rule_id'] = '3';
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule( array( 'is_active' => '0' ) ) );
-		$this->writer->shouldReceive( 'save' )->once()->andReturn( false );
-
-		$this->call( 'handle_toggle' );
-
-		$this->assertSame( 'The rule could not be saved.', $this->outcome['message'] );
 	}
 
 	public function test_send_now_without_a_rule_asks_for_one(): void {

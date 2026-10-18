@@ -184,10 +184,12 @@
 			$li.append(' ');
 			$('<code>').text(String(item.url || '')).appendTo($li);
 			$li.append(document.createTextNode(' ' + fill(i18n.duplicateMeta, [item.created, item.clicks]) + ' '));
-			$('<button type="button" class="button button-small ffc-qr-short__use">')
-				.attr('data-code', String(item.code || ''))
-				.text(i18n.useThis || '')
-				.appendTo($li);
+			$li.append(FFC.button({
+				label: i18n.useThis || '',
+				icon: 'checkmark',
+				className: 'ffc-qr-short__use',
+				attrs: { 'data-code': String(item.code || '') }
+			}));
 			$list.append($li);
 		});
 		$form.find('#ffc-qr-short-duplicates').prop('hidden', !duplicates.length || !$switch.is(':checked'));
