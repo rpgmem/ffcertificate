@@ -268,7 +268,7 @@ class EmailHandler {
 			// reveal can audit, so CPF, RF, RG, email and phone reach staff
 			// masked, and the link below opens the screen where they reveal.
 			if ( in_array( $k, array( 'cpf', 'cpf_rf', 'rg', 'rf', 'email', 'user_email', 'phone', 'telefone', 'celular' ), true ) ) {
-				$display_v = \FreeFormCertificate\Core\DocumentFormatter::mask_any( 'user_email' === $k ? 'email' : (string) $k, (string) $display_v );
+				$display_v = \FreeFormCertificate\Core\DocumentFormatter::mask_any( (string) $k, (string) $display_v );
 			}
 
 			// Format auth code with certificate prefix.

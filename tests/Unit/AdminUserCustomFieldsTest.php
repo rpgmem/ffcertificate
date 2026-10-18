@@ -1207,7 +1207,7 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$output = $this->render_another_users_sensitive_field(true);
 
 		$this->assertStringNotContainsString('5181780', $output, 'The clear value never reaches the HTML.');
-		$this->assertMatchesRegularExpression('/name="ffc_cf_23"[^>]*value="518\.\*\*\*\.0"[^>]*data-ffc-pii-field="cf_23"[^>]*data-ffc-pii-editable="1" disabled/', $output);
+		$this->assertMatchesRegularExpression('/name="ffc_cf_23"[^>]*value="518\.\*\*\*-0"[^>]*data-ffc-pii-field="cf_23"[^>]*data-ffc-pii-editable="1" disabled/', $output);
 		$this->assertStringContainsString('class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="user_profile" data-field="cf_23" data-submission-id="10" data-nonce="reveal-nonce"', $output);
 	}
 

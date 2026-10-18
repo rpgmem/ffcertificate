@@ -185,7 +185,7 @@ class UserProfileServiceTest extends TestCase {
 		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '51817842080' );
 
 		$fmt = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmt->shouldReceive( 'mask_cpf' )->with( '51817842080' )->once()->andReturn( '123.***.***-01' );
+		$fmt->shouldReceive( 'mask_any' )->with( 'cpf', '51817842080' )->once()->andReturn( '123.***.***-01' );
 
 		$this->usermeta_store[42] = array( 'ffc_user_cpf' => 'ENC_CPF' );
 
@@ -271,7 +271,7 @@ class UserProfileServiceTest extends TestCase {
 		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->andReturn( '51817842080' );
 
 		$fmt = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmt->shouldReceive( 'mask_cpf' )->andReturn( '123.***.***-01' );
+		$fmt->shouldReceive( 'mask_any' )->andReturn( '123.***.***-01' );
 
 		// ActivityLog::log must NEVER be called on MASKED reads.
 		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
@@ -693,14 +693,15 @@ class UserProfileServiceTest extends TestCase {
 	}
 
 	/**
-	 * A sensitive field without a document masker keeps only its ends.
+	 * A sensitive field masks by its kind in the one key map (#1920): an RG is
+	 * a CIN, and a value too short for that shape masks as generic.
 	 */
-	public function test_a_sensitive_field_without_a_masker_is_masked_generically(): void {
+	public function test_a_sensitive_field_masks_by_its_kind(): void {
 		$this->usermeta_store[42] = array( 'ffc_user_rg' => (string) \FreeFormCertificate\Core\Encryption::encrypt( '123456789' ) );
-		$this->assertSame( array( 'rg' => '1*******9' ), UserProfileService::read( 42, array( 'rg' ) ) );
+		$this->assertSame( array( 'rg' => '12.***.***-*' ), UserProfileService::read( 42, array( 'rg' ) ) );
 
 		$this->usermeta_store[42] = array( 'ffc_user_rg' => (string) \FreeFormCertificate\Core\Encryption::encrypt( '12' ) );
-		$this->assertSame( array( 'rg' => '**' ), UserProfileService::read( 42, array( 'rg' ) ), 'A value too short to keep its ends is fully masked.' );
+		$this->assertSame( array( 'rg' => '1***' ), UserProfileService::read( 42, array( 'rg' ) ), 'A value too short for its shape masks as generic.' );
 	}
 
 	public function test_an_undecryptable_sensitive_value_reads_as_empty_not_as_ciphertext(): void {

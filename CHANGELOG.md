@@ -30,6 +30,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ **The dashboard masks the owner's own data** (#1897). CPF/RF, e-mails, phone and birth date arrive masked from `GET /user/profile` and `/user/certificates`, each with Reveal; the owner's reveal writes no log row, "view as user" stays audited. PDFs, receipts and e-mails are unchanged.
 - **Every admin screen uses the button family** (#1904). Settings, certificates, scheduling, audiences, reregistration, recruitment, date messages, short URLs, QR and identity print `.ffc-btn` buttons by category and icon; a rule or short URL switches on and off with a toggle, and its Status cell follows the save.
 - **Self-join on an audience with children is one four-option choice, and new children inherit it** (#1901). Off, This audience only, This audience + children and grandchildren, Children and grandchildren only; with the groups below in disagreement none is selected and a notice gives the counts. A new child starts on when every descendant is on. On the new-audience form a picked parent replaces the switch with "Inherits from the audience above."
+- **One masked shape per kind of personal data** (#1920). `DocumentFormatter::mask()` and one key map serve every screen, export and e-mail: RF reads `123.***-4`, CIN/RG `12.***.***-*`, a birth date `15/03/****` in the site's format. The public CPF/RF field and the recruitment candidate's phone type through the shared masks; the browser applies the RF check-digit setting.
 
 ### Fixed
 
@@ -41,6 +42,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Settings autosave keeps every change** (#1902). Two saves overlapping on a slow host both started from the option as their request booted, so the last erased the other under "Saved". The write now re-reads the option under a database lock, and a field sends one save at a time.
 - **The public calendar's login and business-hours notices use the shared notice** (#1911). They were a larger centred box of their own; they now render through `Core\Notice` like every other public notice, the calendar title kept above.
 - **Linked-user actions below the card** (#1914). On the submission edit screen the account email's Reveal and View Profile join Unlink and Link to Another User in one row below the user card, and the email loses its stray parentheses.
+- **No mask shows a value in clear** (#1920). A CPF, RF or e-mail that did not fit its shape, and a 9-digit RG, were printed unmasked; such values now mask as `a***`. The IP Diagnostics tab and the profile's birth date used shapes of their own; they use the shared ones.
 
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 

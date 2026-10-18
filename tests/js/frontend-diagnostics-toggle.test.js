@@ -66,6 +66,7 @@ describe('browser-env diagnostic log gating (#361)', () => {
 		const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
 		loadScript('assets/js/ffc-core.js');
+		loadScript('assets/js/ffc-field-behaviours.js');
 		loadScript('assets/js/ffc-frontend-helpers.js');
 		loadScript('assets/js/ffc-frontend.js');
 		await Promise.resolve();
@@ -92,6 +93,7 @@ describe('browser-env diagnostic log gating (#361)', () => {
 		const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
 		loadScript('assets/js/ffc-core.js');
+		loadScript('assets/js/ffc-field-behaviours.js');
 		loadScript('assets/js/ffc-frontend-helpers.js');
 		loadScript('assets/js/ffc-frontend.js');
 		await Promise.resolve();
@@ -114,6 +116,7 @@ describe('browser-env diagnostic log gating (#361)', () => {
 		const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
 		loadScript('assets/js/ffc-core.js');
+		loadScript('assets/js/ffc-field-behaviours.js');
 		loadScript('assets/js/ffc-frontend-helpers.js');
 		loadScript('assets/js/ffc-frontend.js');
 		await Promise.resolve();
@@ -136,6 +139,7 @@ describe('browser-env diagnostic log gating (#361)', () => {
 		const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
 		loadScript('assets/js/ffc-core.js');
+		loadScript('assets/js/ffc-field-behaviours.js');
 		loadScript('assets/js/ffc-frontend-helpers.js');
 		loadScript('assets/js/ffc-frontend.js');
 		await Promise.resolve();

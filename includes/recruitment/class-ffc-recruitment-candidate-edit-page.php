@@ -278,16 +278,7 @@ final class RecruitmentCandidateEditPage {
 	 * @return string
 	 */
 	private static function mask_placeholder_for( string $field_key ): string {
-		switch ( $field_key ) {
-			case 'cpf':
-				return '***.***.***-**';
-			case 'rf':
-				return '****-*';
-			case 'email':
-				return '****@****';
-			default:
-				return '****';
-		}
+		return DocumentFormatter::mask_placeholder( DocumentFormatter::kind_for_key( $field_key ) ?? DocumentFormatter::MASK_GENERIC );
 	}
 
 	/**

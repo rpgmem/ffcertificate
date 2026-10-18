@@ -528,6 +528,7 @@ describe('ffc-calendar-frontend.js — captcha refresh delegates to the shared U
 		// dependency (class-ffc-self-scheduling-shortcode.php), and that is
 		// what makes the shared implementation reachable here instead of a
 		// private copy.
+		loadScript('assets/js/ffc-field-behaviours.js');
 		loadScript('assets/js/ffc-frontend-helpers.js');
 		loadScript('assets/js/ffc-calendar-frontend.js');
 	});

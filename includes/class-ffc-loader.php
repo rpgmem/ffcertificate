@@ -1220,7 +1220,10 @@ class Loader {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		// ffc-core dep: the helpers build their notices with FFC.notice() (#1842)
 		// and their field messages with FFC.fieldMessage() (#1844).
-		wp_register_script( 'ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		// ffc-field-behaviours dep: the CPF/RF mask and the CPF and RF
+		// validators are the ones every screen shares (#1920).
+		wp_register_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		wp_register_script( 'ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", array( 'jquery', 'ffc-core', 'ffc-field-behaviours' ), FFC_VERSION, true );
 
 		// ffc-core ships `window.FFC.request()` (the AJAX helper used by the
 		// JS files migrated in #277). The admin enqueues ffc-core directly;
@@ -1231,10 +1234,7 @@ class Loader {
 		wp_localize_script(
 			'ffc-core',
 			'ffcCoreConfig',
-			array(
-				'version' => FFC_VERSION,
-				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
-			)
+			\FreeFormCertificate\Core\AssetHelper::core_script_config()
 		);
 
 		// Captcha widget + glue (#1053). Registered on every frontend request
@@ -1289,10 +1289,7 @@ class Loader {
 		wp_localize_script(
 			'ffc-core',
 			'ffcCoreConfig',
-			array(
-				'version' => FFC_VERSION,
-				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
-			)
+			\FreeFormCertificate\Core\AssetHelper::core_script_config()
 		);
 	}
 }

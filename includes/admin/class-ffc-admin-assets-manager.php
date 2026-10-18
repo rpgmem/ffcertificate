@@ -246,10 +246,7 @@ class AdminAssetsManager {
 		wp_localize_script(
 			'ffc-core',
 			'ffcCoreConfig',
-			array(
-				'version' => FFC_VERSION,
-				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
-			)
+			\FreeFormCertificate\Core\AssetHelper::core_script_config()
 		);
 
 		wp_enqueue_script(
@@ -366,10 +363,7 @@ class AdminAssetsManager {
 		wp_localize_script(
 			'ffc-core',
 			'ffcCoreConfig',
-			array(
-				'version' => FFC_VERSION,
-				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
-			)
+			\FreeFormCertificate\Core\AssetHelper::core_script_config()
 		);
 	}
 

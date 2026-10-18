@@ -72,6 +72,7 @@ class AdminAssetsManagerTest extends TestCase {
 		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
 		$this->utils_mock->shouldReceive('enqueue_dark_mode')->byDefault();
+		$this->utils_mock->shouldReceive('core_script_config')->andReturn(array( 'version' => '1.0.0' ))->byDefault();
 		$ri_mock->shouldReceive('get_get_string')->andReturnUsing( function ( $key, $default = '' ) {
 			return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
 		} )->byDefault();

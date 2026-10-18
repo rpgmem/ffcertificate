@@ -497,37 +497,36 @@ class DocumentFormatterTest extends TestCase {
 		$this->assertSame('', DocumentFormatter::mask_cpf(''));
 	}
 
-	public function test_mask_cpf_returns_original_for_unknown_length(): void {
-		$this->assertSame('12345', DocumentFormatter::mask_cpf('12345'));
+	public function test_mask_cpf_masks_an_unknown_length_as_generic(): void {
+		$this->assertSame('1***', DocumentFormatter::mask_cpf('12345'));
 	}
 
 	// ==================================================================
 	// mask_rf
 	// ==================================================================
 
-	public function test_mask_rf_with_4_digit_value(): void {
-		$this->assertSame('123.***.4', DocumentFormatter::mask_rf('1234'));
+	public function test_mask_rf_masks_a_value_its_shape_would_show_as_generic(): void {
+		// `123.***-4` would print every digit of a 4-digit value (#1920).
+		$this->assertSame('1***', DocumentFormatter::mask_rf('1234'));
 	}
 
 	public function test_mask_rf_with_7_digit_value(): void {
-		$this->assertSame('123.***.7', DocumentFormatter::mask_rf('1234567'));
+		$this->assertSame('123.***-7', DocumentFormatter::mask_rf('1234567'));
 	}
 
 	public function test_mask_rf_with_long_value(): void {
 		// 12-digit RFs exist in some Brazilian states/agencies; mask still
 		// shows first 3 + last 1 of the digit-only sequence.
-		$this->assertSame('123.***.2', DocumentFormatter::mask_rf('123456789012'));
+		$this->assertSame('123.***-2', DocumentFormatter::mask_rf('123456789012'));
 	}
 
 	public function test_mask_rf_strips_punctuation_before_masking(): void {
-		$this->assertSame('123.***.7', DocumentFormatter::mask_rf('123.456-7'));
+		$this->assertSame('123.***-7', DocumentFormatter::mask_rf('123.456-7'));
 	}
 
-	public function test_mask_rf_returns_original_when_too_short(): void {
-		// < 4 digits → cannot mask meaningfully; return unchanged for
-		// observability (caller sees the raw input was malformed).
-		$this->assertSame('123', DocumentFormatter::mask_rf('123'));
-		$this->assertSame('1', DocumentFormatter::mask_rf('1'));
+	public function test_mask_rf_never_returns_a_short_value(): void {
+		$this->assertSame('1***', DocumentFormatter::mask_rf('123'));
+		$this->assertSame('1***', DocumentFormatter::mask_rf('1'));
 	}
 
 	public function test_mask_rf_returns_empty_for_empty_input(): void {
@@ -550,9 +549,9 @@ class DocumentFormatterTest extends TestCase {
 		$this->assertSame('', DocumentFormatter::mask_email(''));
 	}
 
-	public function test_mask_email_returns_original_for_invalid(): void {
-		// is_email mock returns false for strings without @
-		$this->assertSame('not-an-email', DocumentFormatter::mask_email('not-an-email'));
+	public function test_mask_email_masks_a_value_that_is_not_an_email_as_generic(): void {
+		// is_email mock returns false for strings without @.
+		$this->assertSame('n***', DocumentFormatter::mask_email('not-an-email'));
 	}
 
 	// ==================================================================
@@ -582,8 +581,8 @@ class DocumentFormatterTest extends TestCase {
 	}
 
 	public function test_mask_any_never_returns_a_value_its_mask_could_not_handle(): void {
-		// mask_cpf() hands back a value of an unknown length unchanged; the
-		// fallback still masks it, and so does a key no mask knows.
+		// A value its kind's shape does not fit, and a key no kind knows,
+		// both mask as generic.
 		$this->assertSame('1***', DocumentFormatter::mask_any('cpf', '12345'));
 		$this->assertSame('M***', DocumentFormatter::mask_any('rg_estadual', 'MG-1234'));
 		$this->assertSame('', DocumentFormatter::mask_any('rg', ''));
@@ -622,11 +621,11 @@ class DocumentFormatterTest extends TestCase {
 	public function test_mask_field_value_masks_cpf_family_keys(): void {
 		$this->assertSame('529.***.***-25', DocumentFormatter::mask_field_value('cpf', '52998224725'));
 		$this->assertSame('529.***.***-25', DocumentFormatter::mask_field_value('cpf_rf', '52998224725'));
-		$this->assertSame('529.***.***-25', DocumentFormatter::mask_field_value('rg', '52998224725'));
+		$this->assertSame('52.***.***-*', DocumentFormatter::mask_field_value('rg', '529982247'));
 	}
 
 	public function test_mask_field_value_masks_rf_key(): void {
-		$this->assertSame('123.***.7', DocumentFormatter::mask_field_value('rf', '1234567'));
+		$this->assertSame('123.***-7', DocumentFormatter::mask_field_value('rf', '1234567'));
 	}
 
 	public function test_mask_field_value_masks_email_key(): void {
@@ -645,6 +644,143 @@ class DocumentFormatterTest extends TestCase {
 		$this->assertSame('', DocumentFormatter::mask_field_value('cpf', ''));
 		$this->assertNull(DocumentFormatter::mask_field_value('email', null));
 		$this->assertSame(array('a', 'b'), DocumentFormatter::mask_field_value('cpf', array('a', 'b')));
+	}
+
+	// ==================================================================
+	// One rule per kind (#1920)
+	// ==================================================================
+
+	/**
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public function kind_provider(): array {
+		return array(
+			'cpf'         => array( DocumentFormatter::MASK_CPF, '529.982.247-25', '529.***.***-25' ),
+			'cpf as rf'   => array( DocumentFormatter::MASK_CPF, '123.456-7', '123.***-7' ),
+			'rf'          => array( DocumentFormatter::MASK_RF, '1234567', '123.***-7' ),
+			'cin'         => array( DocumentFormatter::MASK_CIN, '12.345.678-9', '12.***.***-*' ),
+			'cin with x'  => array( DocumentFormatter::MASK_CIN, '12.345.678-X', '12.***.***-*' ),
+			'email'       => array( DocumentFormatter::MASK_EMAIL, 'maria@example.com', 'm***@example.com' ),
+			'phone'       => array( DocumentFormatter::MASK_PHONE, '(11) 98765-4321', '(**) *****-**21' ),
+			'name'        => array( DocumentFormatter::MASK_NAME, 'Maria da Silva', 'M*** d* S***' ),
+			'birth date'  => array( DocumentFormatter::MASK_BIRTH_DATE, '1990-03-15', '15/03/****' ),
+			'birth typed' => array( DocumentFormatter::MASK_BIRTH_DATE, '15/03/1990', '15/03/****' ),
+			'ip'          => array( DocumentFormatter::MASK_IP, '203.0.113.7', '203.0.***.***' ),
+			'generic'     => array( DocumentFormatter::MASK_GENERIC, 'Rua das Flores', 'R***' ),
+			'unknown'     => array( 'no-such-kind', 'Rua das Flores', 'R***' ),
+		);
+	}
+
+	/**
+	 * @dataProvider kind_provider
+	 */
+	public function test_each_kind_has_one_shape( string $kind, string $value, string $expected ): void {
+		$this->stub_wp_date();
+		$this->assertSame( $expected, DocumentFormatter::mask( $kind, $value ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function malformed_provider(): array {
+		$out   = array();
+		$kinds = array(
+			DocumentFormatter::MASK_CPF,
+			DocumentFormatter::MASK_RF,
+			DocumentFormatter::MASK_CIN,
+			DocumentFormatter::MASK_EMAIL,
+			DocumentFormatter::MASK_PHONE,
+			DocumentFormatter::MASK_NAME,
+			DocumentFormatter::MASK_BIRTH_DATE,
+			DocumentFormatter::MASK_IP,
+			DocumentFormatter::MASK_GENERIC,
+		);
+		$values = array( '1', '12345', 'abc', 'not-an-email', '2023-02-30', '99/99/9999', '529.982.247-25', 'x@y' );
+		foreach ( $kinds as $kind ) {
+			foreach ( $values as $value ) {
+				$out[ $kind . ' ' . $value ] = array( $kind, $value );
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * @dataProvider malformed_provider
+	 */
+	public function test_no_kind_ever_returns_its_input( string $kind, string $value ): void {
+		$this->stub_wp_date();
+		$masked = DocumentFormatter::mask( $kind, $value );
+		$this->assertNotSame( '', $masked, 'a non-empty value never masks to nothing' );
+		$this->assertNotSame( $value, $masked, 'a mask never hands its input back' );
+	}
+
+	public function test_an_empty_value_masks_to_nothing_in_every_kind(): void {
+		foreach ( array( 'cpf', 'rf', 'cin', 'email', 'phone', 'name', 'birth_date', 'ip', 'generic' ) as $kind ) {
+			$this->assertSame( '', DocumentFormatter::mask( $kind, '' ), $kind );
+			$this->assertSame( '', DocumentFormatter::mask( $kind, '   ' ), $kind );
+		}
+	}
+
+	public function test_the_key_map_names_each_kind(): void {
+		$this->assertSame( 'cpf', DocumentFormatter::kind_for_key( 'cpf_rf' ) );
+		$this->assertSame( 'rf', DocumentFormatter::kind_for_key( 'rf' ) );
+		$this->assertSame( 'cin', DocumentFormatter::kind_for_key( 'rg' ) );
+		$this->assertSame( 'email', DocumentFormatter::kind_for_key( 'user_email' ) );
+		$this->assertSame( 'email', DocumentFormatter::kind_for_key( 'email_institucional' ) );
+		$this->assertSame( 'phone', DocumentFormatter::kind_for_key( 'celular' ) );
+		$this->assertSame( 'birth_date', DocumentFormatter::kind_for_key( 'data_nascimento' ) );
+		$this->assertSame( 'ip', DocumentFormatter::kind_for_key( 'user_ip' ) );
+		$this->assertNull( DocumentFormatter::kind_for_key( 'course' ) );
+		$this->assertNull( DocumentFormatter::kind_for_key( 'name' ), 'a name is masked by the screen, never by its key' );
+	}
+
+	public function test_a_custom_field_s_input_mask_picks_its_kind(): void {
+		$this->assertSame( 'phone', DocumentFormatter::kind_for_key( 'contato_emergencia', 'phone' ) );
+		$this->assertSame( '(**) *****-**21', DocumentFormatter::mask_any( 'contato_emergencia', '(11) 98765-4321', 'phone' ) );
+		$this->assertSame( 'cpf', DocumentFormatter::kind_for_key( 'email', 'cpf' ), 'the input mask wins over the key' );
+		$this->assertSame( 'email', DocumentFormatter::kind_for_key( 'email', 'number' ), 'an input mask with no kind leaves the key to decide' );
+	}
+
+	public function test_mask_field_value_now_masks_phone_birth_date_and_ip_keys(): void {
+		$this->stub_wp_date();
+		$this->assertSame( '(**) *****-**21', DocumentFormatter::mask_field_value( 'telefone', '(11) 98765-4321' ) );
+		$this->assertSame( '15/03/****', DocumentFormatter::mask_field_value( 'data_nascimento', '1990-03-15' ) );
+		$this->assertSame( '203.0.***.***', DocumentFormatter::mask_field_value( 'user_ip', '203.0.113.7' ) );
+	}
+
+	public function test_the_birth_date_follows_the_site_date_format_without_its_year(): void {
+		$this->stub_wp_date();
+		Functions\when( 'get_option' )->justReturn( array( 'date_format' => 'custom', 'date_format_custom' => 'Y-m-d' ) );
+		$this->assertSame( '****-03-15', DocumentFormatter::mask_birth_date( '1990-03-15' ) );
+
+		Functions\when( 'get_option' )->justReturn( array( 'date_format' => 'custom', 'date_format_custom' => 'd.m.y' ) );
+		$this->assertSame( '15.03.**', DocumentFormatter::mask_birth_date( '1990-03-15' ) );
+	}
+
+	public function test_an_unparseable_birth_date_masks_to_its_placeholder(): void {
+		$this->assertSame( '**/**/****', DocumentFormatter::mask_birth_date( 'yesterday' ) );
+		$this->assertSame( '**/**/****', DocumentFormatter::mask_birth_date( '1990-02-30' ), 'a date that does not exist is not shifted into March' );
+	}
+
+	public function test_each_kind_has_a_placeholder_with_no_data(): void {
+		$this->assertSame( '***.***.***-**', DocumentFormatter::mask_placeholder( 'cpf' ) );
+		$this->assertSame( '***.***-*', DocumentFormatter::mask_placeholder( 'rf' ) );
+		$this->assertSame( '**.***.***-*', DocumentFormatter::mask_placeholder( 'cin' ) );
+		$this->assertSame( '***@***', DocumentFormatter::mask_placeholder( 'email' ) );
+		$this->assertSame( '(**) *****-****', DocumentFormatter::mask_placeholder( 'phone' ) );
+		$this->assertSame( '**/**/****', DocumentFormatter::mask_placeholder( 'birth_date' ) );
+		$this->assertSame( '***', DocumentFormatter::mask_placeholder( 'generic' ) );
+	}
+
+	/**
+	 * `wp_date()` formatting in UTC, as WordPress does for a given zone.
+	 */
+	private function stub_wp_date(): void {
+		Functions\when( 'wp_date' )->alias(
+			static function ( string $format, int $ts, ?\DateTimeZone $tz = null ): string {
+				return ( new \DateTimeImmutable( '@' . $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format );
+			}
+		);
 	}
 
 	// ==================================================================

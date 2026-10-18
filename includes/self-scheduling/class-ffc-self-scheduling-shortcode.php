@@ -101,12 +101,14 @@ class SelfSchedulingShortcode {
 			FFC_VERSION
 		);
 
-		// Enqueue FFC frontend helpers (for CPF/RF mask).
+		// Enqueue FFC frontend helpers (for CPF/RF mask), with the shared
+		// field behaviours its mask and validators come from (#1920).
 		// ffc-core dep: ffc-frontend-helpers.js calls FFC.request() internally.
+		wp_enqueue_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		wp_enqueue_script(
 			'ffc-frontend-helpers',
 			FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js",
-			array( 'jquery', 'ffc-core' ),
+			array( 'jquery', 'ffc-core', 'ffc-field-behaviours' ),
 			FFC_VERSION,
 			true
 		);

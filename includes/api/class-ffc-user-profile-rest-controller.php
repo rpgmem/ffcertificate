@@ -213,12 +213,9 @@ class UserProfileRestController {
 			$email         = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
 			$emails        = array_map( array( \FreeFormCertificate\Core\DocumentFormatter::class, 'mask_email' ), $emails );
 			$phone         = \FreeFormCertificate\Core\DocumentFormatter::mask_phone( $phone );
-			$birth_display = '';
-			if ( '' !== $birth_date ) {
-				$birth_date    = '';
-				$birth_display = '**/**/****';
-			}
-			$can_reveal = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED !== \FreeFormCertificate\Core\PiiAccessPolicy::resolve_on_screen( self::PII_CAP, $user_id );
+			$birth_display = \FreeFormCertificate\Core\DocumentFormatter::mask_birth_date( $birth_date );
+			$birth_date    = '';
+			$can_reveal    = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED !== \FreeFormCertificate\Core\PiiAccessPolicy::resolve_on_screen( self::PII_CAP, $user_id );
 
 			return rest_ensure_response(
 				array(
