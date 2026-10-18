@@ -326,6 +326,8 @@ final class AudienceAdminAudienceRenderer {
 				<?php
 				$is_child     = ! empty( $audience->parent_id );
 				$is_self_join = ! empty( $audience->allow_self_join );
+				// Null for a new audience, a child, and a parent with no children.
+				$descendants_state = ( $id > 0 && ! $is_child ) ? AudienceReader::descendants_self_join_state( $id ) : null;
 				?>
 				<tr>
 					<th scope="row">
@@ -342,7 +344,7 @@ final class AudienceAdminAudienceRenderer {
 								<?php endif; ?>
 							</p>
 							<input type="hidden" name="audience_self_join" value="<?php echo esc_attr( $is_self_join ? '1' : '0' ); ?>">
-						<?php else : ?>
+						<?php elseif ( null === $descendants_state ) : ?>
 							<?php
 							\FreeFormCertificate\Admin\AdminUI::render_toggle(
 								array(
@@ -355,6 +357,48 @@ final class AudienceAdminAudienceRenderer {
 							);
 							?>
 							<p class="description"><?php esc_html_e( 'When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups.', 'ffcertificate' ); ?></p>
+						<?php else : ?>
+							<?php
+							// Two choices on a parent (#1896): its own, and its
+							// children and grandchildren's, read back from their rows.
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'    => 'audience_self_join',
+									'id'      => 'audience_self_join',
+									'checked' => $is_self_join,
+									'label'   => __( 'This audience', 'ffcertificate' ),
+									'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience', $id, 'allow_self_join' ),
+								)
+							);
+							?>
+							<p class="description"><?php esc_html_e( 'Users can join/leave this group from their dashboard. Off, it still shows as a heading over the groups below it that users can join.', 'ffcertificate' ); ?></p>
+							<p><strong><?php esc_html_e( 'Children and grandchildren', 'ffcertificate' ); ?></strong></p>
+							<?php
+							$descendants_options = array(
+								'1' => __( 'On', 'ffcertificate' ),
+								'0' => __( 'Off', 'ffcertificate' ),
+							);
+							$descendants_descs   = array(
+								'1' => __( 'Users can join/leave every child and grandchild group.', 'ffcertificate' ),
+								'0' => __( 'No child or grandchild group can be joined from the dashboard.', 'ffcertificate' ),
+							);
+							if ( AudienceReader::DESCENDANTS_SELF_JOIN_MIXED === $descendants_state ) {
+								$descendants_options[ AudienceReader::DESCENDANTS_SELF_JOIN_MIXED ] = __( 'Mixed', 'ffcertificate' );
+								$descendants_descs[ AudienceReader::DESCENDANTS_SELF_JOIN_MIXED ]   = __( 'Some child or grandchild groups allow self-join and others do not. Each is left as it is until you pick On or Off.', 'ffcertificate' );
+							}
+							\FreeFormCertificate\Admin\AdminUI::render_segmented(
+								array(
+									'name'         => 'audience_descendants_self_join',
+									'id'           => 'audience_descendants_self_join',
+									'value'        => $descendants_state,
+									'options'      => $descendants_options,
+									'descriptions' => $descendants_descs,
+									'legend'       => __( 'Children and grandchildren', 'ffcertificate' ),
+									'data'         => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience', $id, 'descendants_self_join' ),
+								)
+							);
+							?>
+							<p class="description"><?php esc_html_e( 'Applied to every group below this one when it changes.', 'ffcertificate' ); ?></p>
 						<?php endif; ?>
 					</td>
 				</tr>
