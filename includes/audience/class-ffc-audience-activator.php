@@ -36,6 +36,21 @@ class AudienceActivator {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
+	 * Revision of the columns {@see self::maybe_heal_columns()} adds. Bump it in
+	 * the PR that adds one, so installs on the same `FFC_VERSION` heal too.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION = '1';
+
+	/**
+	 * Option holding the revision last applied.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_audience_schema_revision';
+
+	/**
 	 * Create all audience-related tables
 	 *
 	 * Called during plugin activation.
@@ -432,6 +447,9 @@ class AudienceActivator {
 	 * does not lock the chain at a version it never finished applying.
 	 */
 	public static function maybe_migrate(): void {
+		// Columns added between releases heal on their own gate first (#1918).
+		self::maybe_heal_columns();
+
 		// Version gate (#1231) -- see the note just above the signature.
 		$ffc_schema_option = 'ffc_audience_schema_version';
 		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
@@ -457,7 +475,6 @@ class AudienceActivator {
 		}
 
 		self::migrate_audience_self_join_column();
-		self::migrate_audience_tree_access_columns();
 		self::migrate_subscriber_cap_to_members();
 
 		update_option( $ffc_schema_option, FFC_VERSION );
@@ -737,6 +754,34 @@ class AudienceActivator {
 			'allow_self_join',
 			"tinyint(1) DEFAULT 0 COMMENT 'Allow users to join/leave from dashboard'"
 		);
+	}
+
+	/**
+	 * Heal the columns this module gained without a version bump (#1918).
+	 *
+	 * The `FFC_VERSION` gate above runs the chain once per release, which is
+	 * right for production and wrong for the testes site: `develop` deploys
+	 * there on every merge under the same `FFC_VERSION`, so a column added
+	 * mid-batch would reach it only at the next release, and every write
+	 * naming the column would fail until then. This gate is the module's own
+	 * schema revision instead: bump {@see self::SCHEMA_REVISION} in the PR that
+	 * adds a column here, and the next request on every install adds it.
+	 *
+	 * Tables only, never activation's side effects (CLAUDE.md "Schema-
+	 * reachability guard"): `add_column_if_missing()` and nothing else. The
+	 * option is written even when the table is missing, because the table's
+	 * `CREATE` already carries every column listed here.
+	 *
+	 * @return void
+	 */
+	private static function maybe_heal_columns(): void {
+		if ( get_option( self::SCHEMA_REVISION_OPTION, '' ) === self::SCHEMA_REVISION ) {
+			return;
+		}
+
+		self::migrate_audience_tree_access_columns();
+
+		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 	}
 
 	/**

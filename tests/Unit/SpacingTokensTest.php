@@ -123,10 +123,7 @@ final class SpacingTokensTest extends TestCase {
 		// ffc-common, so it cannot read the ladder.
 		'ffc-screenshots.css'              => 4,
 		'ffc-url-shortener-admin.css'      => 1,
-		// Seven since #1918: the Join groups panel's locked-leave note and
-		// switch picker start at the join row's own `28px` left inset, so they
-		// line up with the group name above them.
-		'ffc-user-dashboard.css'           => 7,
+		'ffc-user-dashboard.css'           => 5,
 		'ffc-user-permissions.css'         => 14,
 	);
 
