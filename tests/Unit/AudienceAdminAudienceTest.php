@@ -285,6 +285,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		);
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		// A parent with no children keeps the single switch (#1896).
+		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
 		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
 		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
@@ -491,6 +493,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		// A parent with no children keeps the single switch (#1896).
+		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
 		$repo->shouldReceive( 'get_children' )->andReturn( array() );
 		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
@@ -537,6 +541,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		// A parent with no children keeps the single switch (#1896).
+		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 		$repo->shouldReceive( 'get_children' )->andReturn( array() );
 		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
@@ -593,6 +599,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
 		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		// A parent with no children keeps the single switch (#1896).
+		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 		$repo->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp', 'status' => 'active', 'parent_id' => null ) );
 		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
@@ -622,6 +630,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		// A parent with no children keeps the single switch (#1896).
+		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 		$repo->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp', 'status' => 'active', 'parent_id' => null ) );
 		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
@@ -711,7 +721,8 @@ class AudienceAdminAudienceTest extends TestCase {
 				static fn( $d ) => 'Brand New' === $d['name'] && null === $d['parent_id'] && 1 === $d['allow_self_join']
 			)
 		)->andReturn( 50 );
-		$repo_w->shouldReceive( 'cascade_self_join' )->once()->with( 50, 1 )->andReturn( true );
+		// A new audience has no children yet, so nothing cascades (#1896).
+		$repo_w->shouldNotReceive( 'cascade_self_join' );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		$this->expectException( \RuntimeException::class );
@@ -719,29 +730,55 @@ class AudienceAdminAudienceTest extends TestCase {
 		$page->handle_actions();
 	}
 
-	public function test_handle_actions_updates_audience_and_cascades(): void {
+	/**
+	 * @return iterable<string, array{0: array<string, string>, 1: int|null}>
+	 */
+	public static function descendants_posts(): iterable {
+		yield 'descendants on, parent off' => array( array( 'audience_self_join' => '0', 'audience_descendants_self_join' => '1' ), 1 );
+		yield 'descendants off, parent on' => array( array( 'audience_self_join' => '1', 'audience_descendants_self_join' => '0' ), 0 );
+		yield 'descendants mixed' => array( array( 'audience_self_join' => '1', 'audience_descendants_self_join' => 'mixed' ), null );
+		yield 'no descendants control' => array( array( 'audience_self_join' => '1' ), null );
+	}
+
+	/**
+	 * The two self-join choices of a parent (#1896): the audience's own
+	 * value goes to its row only, the descendants' choice to every child
+	 * and grandchild, and a mixed or absent choice touches none of them.
+	 *
+	 * @dataProvider descendants_posts
+	 *
+	 * @param array<string, string> $self_join The self-join fields posted.
+	 * @param int|null              $cascaded  The value cascaded, or null for none.
+	 */
+	public function test_handle_actions_update_applies_the_two_self_join_choices( array $self_join, ?int $cascaded ): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'add_settings_error' )->justReturn( true );
 
-		$_POST = array(
-			'ffc_action'         => 'save_audience',
-			'ffc_audience_nonce' => 'n',
-			'audience_id'        => '5',
-			'audience_name'      => 'Edited',
-			'audience_color'     => '#000000',
-			'audience_parent'    => '',
-			'audience_status'    => 'active',
-			'audience_self_join' => '0',
+		$_POST = array_merge(
+			array(
+				'ffc_action'         => 'save_audience',
+				'ffc_audience_nonce' => 'n',
+				'audience_id'        => '5',
+				'audience_name'      => 'Edited',
+				'audience_color'     => '#000000',
+				'audience_parent'    => '',
+				'audience_status'    => 'active',
+			),
+			$self_join
 		);
+		$own = (int) $self_join['audience_self_join'];
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldReceive( 'update' )->once()->with( 5, Mockery::type( 'array' ) )->andReturn( true );
-		$repo_w->shouldReceive( 'cascade_self_join' )->once()->with( 5, 0 )->andReturn( true );
+		$repo_w->shouldReceive( 'update' )->once()->with( 5, Mockery::on( static fn( $d ) => $own === $d['allow_self_join'] ) )->andReturn( true );
+		if ( null === $cascaded ) {
+			$repo_w->shouldNotReceive( 'cascade_self_join' );
+		} else {
+			$repo_w->shouldReceive( 'cascade_self_join' )->once()->with( 5, $cascaded );
+		}
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
 	}
 
 	public function test_handle_actions_update_with_parent_skips_cascade(): void {
@@ -960,6 +997,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'selected' )->justReturn( '' );
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		// A parent with no children keeps the single switch (#1896).
+		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
 		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
@@ -991,6 +1030,74 @@ class AudienceAdminAudienceTest extends TestCase {
 	}
 
 	/**
+	 * @return iterable<string, array{0: string|null, 1: string|null}>
+	 */
+	public static function descendants_render_states(): iterable {
+		yield 'no children: one switch' => array( null, null );
+		yield 'every descendant on' => array( '1', '1' );
+		yield 'every descendant off' => array( '0', '0' );
+		yield 'descendants disagree' => array( 'mixed', 'mixed' );
+	}
+
+	/**
+	 * A parent shows two self-join choices (#1896): a toggle for itself and
+	 * a segmented control for its children and grandchildren, whose state is
+	 * read back from their rows; Mixed is offered only while it holds.
+	 *
+	 * @dataProvider descendants_render_states
+	 *
+	 * @param string|null $state   What the reader derives.
+	 * @param string|null $checked The descendants option checked, null when there is no such control.
+	 */
+	public function test_a_parent_renders_its_own_and_its_descendants_self_join( ?string $state, ?string $checked ): void {
+		$this->grant( array( 'ffc_view_audiences', 'ffc_manage_audiences' ) );
+		$this->capture_submit_buttons();
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '5';
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+
+		// An alias mock carries no class constants; the renderer reads this one.
+		Mockery::getConfiguration()->setConstantsMap(
+			array(
+				'FreeFormCertificate\Audience\AudienceReader' => array( 'DESCENDANTS_SELF_JOIN_MIXED' => 'mixed' ),
+			)
+		);
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$repo->shouldReceive( 'get_member_count' )->andReturn( 0 );
+		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
+		$repo->shouldReceive( 'get_members' )->andReturn( array() );
+		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
+			(object) array( 'id' => 5, 'name' => 'Grp', 'color' => '#123456', 'status' => 'active', 'parent_id' => null, 'allow_self_join' => '0' )
+		);
+		$repo->shouldReceive( 'descendants_self_join_state' )->once()->with( 5 )->andReturn( $state );
+
+		$page = new AudienceAdminAudience( 'ffc-scheduling' );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/<input type="checkbox" id="audience_self_join" name="audience_self_join" value="1"[^>]*data-ffc-autosave-record-key="allow_self_join"/', $output );
+		$this->assertStringNotContainsString( 'id="audience_self_join" name="audience_self_join" value="1" checked', $output, 'the parent\'s own value is its row\'s' );
+
+		if ( null === $checked ) {
+			$this->assertStringNotContainsString( 'audience_descendants_self_join', $output );
+			return;
+		}
+
+		$form_end = (int) strpos( $output, '</form>' );
+		$this->assertLessThan( $form_end, (int) strpos( $output, 'name="audience_descendants_self_join"' ), 'the Save button posts the choice too' );
+		$this->assertMatchesRegularExpression(
+			'/name="audience_descendants_self_join" value="' . $checked . '" checked data-ffc-autosave-record-key="descendants_self_join" data-ffc-autosave-record="audience:5"/',
+			$output
+		);
+		$this->assertSame( 1, substr_count( $output, 'name="audience_descendants_self_join" value="' . $checked . '" checked' ) );
+		$this->assertSame( 'mixed' === $state, str_contains( $output, 'value="mixed"' ), 'Mixed is offered only while the descendants disagree' );
+	}
+
+	/**
 	 * @dataProvider edit_screen_tiers
 	 *
 	 * @param list<string> $caps       Capabilities held.
@@ -1009,6 +1116,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		);
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		// A parent with no children keeps the single switch (#1896).
+		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
 		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
@@ -1070,6 +1179,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		// A parent with no children keeps the single switch (#1896).
+		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 		$repo->shouldReceive( 'get_children' )->andReturn( array() );
 		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 );

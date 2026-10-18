@@ -23032,8 +23032,8 @@ msgstr "Ver as definições dos campos exige ffc_view_custom_fields e editá-las
 msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data; fields mapped to a profile key (such as CPF, RF, RG or birth date) are also written, encrypted, to the plugin user profile."
 msgstr "As definições dos campos são armazenadas na tabela ffc_custom_fields. Os dados do usuário são armazenados como JSON em wp_usermeta, na chave ffc_custom_fields_data; os campos mapeados para uma chave de perfil (como CPF, RF, RG ou data de nascimento) também são gravados, criptografados, no perfil de usuário do plugin."
 
-msgid "An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed): an audience can let users join or leave its child groups from their dashboard, with a cap on how many child groups one user may join, and its descendants inherit the setting. Audiences also carry the custom fields used by reregistration."
-msgstr "Um público-alvo é um grupo nomeado de membros, com uma cor, um status ativo/inativo e uma hierarquia opcional de até 3 níveis. Os membros são importados ou entram por conta própria (quando permitido): um público-alvo pode permitir que os usuários entrem ou saiam dos seus grupos filhos pelo painel, com um limite de quantos grupos filhos um mesmo usuário pode integrar, e os seus descendentes herdam essa configuração. Os públicos-alvo também carregam os campos personalizados usados no recadastramento."
+msgid "An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed): an audience can let users join or leave its child groups from their dashboard, with a cap on how many child groups one user may join. Audiences also carry the custom fields used by reregistration."
+msgstr "Um público-alvo é um grupo nomeado de membros, com uma cor, um status ativo/inativo e uma hierarquia opcional de até 3 níveis. Os membros são importados ou entram por conta própria (quando permitido): um público-alvo pode permitir que os usuários entrem ou saiam dos seus grupos filhos pelo painel, com um limite de quantos grupos filhos um mesmo usuário pode integrar. Os públicos-alvo também carregam os campos personalizados usados no recadastramento."
 
 msgid "Admin pages"
 msgstr "Páginas administrativas"
@@ -27087,3 +27087,39 @@ msgstr "Contado a partir do fim da campanha ou da aprovação, o que for mais ta
 #: includes/settings/views/documentation/feature-reregistration.php
 msgid "Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration (\"Hide the approved banner after (days)\", default 30) has passed since the later of the campaign's end and the approval, even after the daily run has expired the campaign; 0 never hides it. The dashboard's Reregistration tab keeps listing it either way."
 msgstr "Depois que uma submissão é aprovada, o aviso dela oferece o download da Ficha até que o prazo em Configurações → Recadastramento (\"Ocultar o aviso de aprovado após (dias)\", padrão 30) tenha passado desde o fim da campanha ou a aprovação, o que for mais tarde, mesmo depois que a execução diária expirar a campanha; 0 nunca o oculta. A aba Recadastramento do painel continua a listá-la em qualquer caso."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "This audience"
+msgstr "Este público-alvo"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Users can join/leave this group from their dashboard. Off, it still shows as a heading over the groups below it that users can join."
+msgstr "Os usuários podem entrar/sair deste grupo pelo painel. Desligado, ele continua aparecendo como título acima dos grupos abaixo dele em que os usuários podem entrar."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Children and grandchildren"
+msgstr "Filhos e netos"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Users can join/leave every child and grandchild group."
+msgstr "Os usuários podem entrar/sair de todos os grupos filhos e netos."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "No child or grandchild group can be joined from the dashboard."
+msgstr "Nenhum grupo filho ou neto pode ser integrado pelo painel."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Mixed"
+msgstr "Misto"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Some child or grandchild groups allow self-join and others do not. Each is left as it is until you pick On or Off."
+msgstr "Alguns grupos filhos ou netos permitem a entrada por conta própria e outros não. Cada um fica como está até você escolher Ligado ou Desligado."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Applied to every group below this one when it changes."
+msgstr "Aplicado a todos os grupos abaixo deste quando muda."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A top-level audience with child groups sets self-join in two choices. \"This audience\" is its own and changes nothing below it; with it off, the dashboard shows the audience as a heading over the groups below it that users can join. \"Children and grandchildren\" is applied to every group below it when it changes. When those groups disagree, it reads Mixed and leaves each one as it is until you pick On or Off. An audience without child groups keeps one switch."
+msgstr "Um público-alvo de nível superior com grupos filhos define a entrada por conta própria em duas escolhas. \"Este público-alvo\" é a dele e não muda nada abaixo; desligada, o painel mostra o público-alvo como título acima dos grupos abaixo dele em que os usuários podem entrar. \"Filhos e netos\" é aplicada a todos os grupos abaixo dele quando muda. Quando esses grupos divergem, ela mostra Misto e deixa cada um como está até você escolher Ligado ou Desligado. Um público-alvo sem grupos filhos mantém um único interruptor."

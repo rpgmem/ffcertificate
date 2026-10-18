@@ -63,6 +63,14 @@ class AudienceReader {
 	private const CACHE_DOMAIN = 'audience';
 
 	/**
+	 * The "Children and grandchildren" self-join state when some descendants
+	 * allow it and others do not (#1896). Saving it changes nothing.
+	 *
+	 * @var string
+	 */
+	public const DESCENDANTS_SELF_JOIN_MIXED = 'mixed';
+
+	/**
 	 * Get audiences table name
 	 *
 	 * @return string
@@ -672,6 +680,42 @@ class AudienceReader {
 			$ids   = array_merge( $ids, self::get_descendant_ids( (int) $child->id ) );
 		}
 		return $ids;
+	}
+
+	/**
+	 * The self-join state of an audience's children and grandchildren, read
+	 * back from their rows (#1896). There is no column for it: the parent's
+	 * "Children and grandchildren" choice is applied to every descendant, so
+	 * the screen derives it again each time it renders.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return string|null `1` when every descendant allows self-join, `0` when
+	 *                     none does, `mixed` otherwise, null without descendants.
+	 */
+	public static function descendants_self_join_state( int $audience_id ): ?string {
+		$values = array_values( array_unique( self::descendant_self_join_values( $audience_id ) ) );
+		if ( array() === $values ) {
+			return null;
+		}
+		if ( 1 < count( $values ) ) {
+			return self::DESCENDANTS_SELF_JOIN_MIXED;
+		}
+		return 1 === $values[0] ? '1' : '0';
+	}
+
+	/**
+	 * Each descendant's `allow_self_join`, as `1` / `0`.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return list<int>
+	 */
+	private static function descendant_self_join_values( int $audience_id ): array {
+		$values = array();
+		foreach ( self::get_children( $audience_id ) as $child ) {
+			$values[] = empty( $child->allow_self_join ) ? 0 : 1;
+			$values   = array_merge( $values, self::descendant_self_join_values( (int) $child->id ) );
+		}
+		return $values;
 	}
 
 	/**

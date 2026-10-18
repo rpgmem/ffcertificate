@@ -19,6 +19,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The schedule exception has its own icon** (#1885). A person with a clock replaces the borrowed reregistration icon on the public CSV screen's exception button and its confirm.
 - **The approved reregistration banner outlives the campaign, then expires** (#1887). It stays after the end until Settings → Reregistration → "Hide the approved banner after (days)", default 30, from the later of the end and the approval; 0 never hides. Its button takes the family's size.
 - **"My Calls" is grouped by status** (#1889). Called cards with the date, days left and an .ics download, then Waiting (final first, 5 per page) and Closed (2 per page); a call still "called" the day after its date shows as Deadline passed, with reversals behind an i button.
+- **A parent audience sets self-join for itself and for its descendants apart** (#1896). "This audience" no longer cascades; "Children and grandchildren" is applied to every descendant and reads Mixed, leaving them as they are, when they disagree. No schema change.
 
 ### Fixed
 
