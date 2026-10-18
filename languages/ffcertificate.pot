@@ -27062,3 +27062,11 @@ msgstr ""
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "A top-level audience with child groups sets self-join in one choice of four: Off, This audience only, This audience + children and grandchildren, or Children and grandchildren only. The choice is written to the audience and to every group below it; with the audience itself closed, the dashboard shows it as a heading over the groups users can join. When the groups below disagree, no option is selected and a notice gives the audience's own state and how many of its children and grandchildren allow self-join; saving leaves everything as it is until you pick an option. A group created under the audience starts with self-join on when every existing child and grandchild allows it, and off otherwise, including under an audience with no groups yet. An audience without child groups keeps one switch."
 msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Inherits from the audience above."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "On the new-audience form, picking a parent audience replaces the self-join switch with \"Inherits from the audience above.\": the new group takes the value described above."
+msgstr ""

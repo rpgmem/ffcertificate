@@ -346,6 +346,11 @@ final class AudienceAdminAudienceRenderer {
 							</p>
 							<input type="hidden" name="audience_self_join" value="<?php echo esc_attr( $is_self_join ? '1' : '0' ); ?>">
 						<?php elseif ( null === $descendants_state ) : ?>
+							<?php if ( 0 === $id ) : ?>
+								<?php // A new group under an audience inherits its choice (#1901): the script swaps the switch for this line while a parent is picked. ?>
+								<p class="description ffc-self-join-inherits" hidden><?php esc_html_e( 'Inherits from the audience above.', 'ffcertificate' ); ?></p>
+							<?php endif; ?>
+							<div class="ffc-self-join-own">
 							<?php
 							\FreeFormCertificate\Admin\AdminUI::render_toggle(
 								array(
@@ -358,6 +363,7 @@ final class AudienceAdminAudienceRenderer {
 							);
 							?>
 							<p class="description"><?php esc_html_e( 'A group created under this audience starts with self-join off. Once the audience has groups below it, this becomes one choice that covers them too. Users can join up to 2 child groups.', 'ffcertificate' ); ?></p>
+							</div>
 						<?php else : ?>
 							<?php
 							// One choice for the audience and its children and grandchildren
