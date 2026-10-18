@@ -236,4 +236,155 @@ class TabIpDiagnosticsTest extends TestCase {
 		$html = $this->render_to_string();
 		$this->assertStringContainsString( '<tr class="ffc-collapsed-target" data-ffc-master="ffc_ip_trusted_proxy_mode" data-ffc-master-value="custom">', $html );
 	}
+
+	/**
+	 * Stub the POST guards and record what the refresh path does.
+	 *
+	 * @param bool         $can     Whether the user holds the capability.
+	 * @param bool         $nonce   Whether the nonce verifies.
+	 * @param array|null   $before  The cache option before the action.
+	 * @param array|null   $after   The cache option after the action.
+	 * @return \stdClass   `fired` (int), `notices` (list of [message, type]), `saved` (bool).
+	 */
+	private function stub_refresh( bool $can, bool $nonce, ?array $before, ?array $after ): \stdClass {
+		$log          = new \stdClass();
+		$log->fired   = 0;
+		$log->notices = array();
+		$log->saved   = false;
+		$cache        = $before;
+
+		Functions\when( 'current_user_can' )->justReturn( $can );
+		Functions\when( 'check_admin_referer' )->alias(
+			static function () use ( $nonce ) {
+				if ( ! $nonce ) {
+					throw new \RuntimeException( 'nonce' );
+				}
+				return true;
+			}
+		);
+		Functions\when( 'do_action' )->alias(
+			static function ( $hook ) use ( $log, &$cache, $after ) {
+				if ( 'ffc_cloudflare_cidr_refresh_now' === $hook ) {
+					++$log->fired;
+					$cache = $after;
+				}
+			}
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $fallback = false ) use ( &$cache ) {
+				return 'ffc_cloudflare_cidr_cache' === $key ? $cache : array();
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function () use ( $log ) {
+				$log->saved = true;
+				return true;
+			}
+		);
+		Functions\when( '_n' )->alias(
+			static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural
+		);
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message, $args ) use ( $log ) {
+				$log->notices[] = array( $message, $args['type'] ?? '' );
+			}
+		);
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		return $log;
+	}
+
+	public function test_a_refresh_only_post_fires_the_action_and_reports_the_count(): void {
+		$log   = $this->stub_refresh(
+			true,
+			true,
+			null,
+			array( 'count' => 22, 'updated' => 1700000000, 'ranges' => array() )
+		);
+		$_POST = array( 'ffc_ip_refresh_cloudflare' => '1' );
+
+		$this->render_to_string();
+
+		$this->assertSame( 1, $log->fired );
+		$this->assertFalse( $log->saved, 'A refresh must not save the form.' );
+		$this->assertCount( 1, $log->notices );
+		$this->assertStringContainsString( 'Cloudflare IP ranges refreshed: 22 ranges cached.', $log->notices[0][0] );
+		$this->assertSame( 'success', $log->notices[0][1] );
+	}
+
+	public function test_a_failed_refresh_says_the_bundled_list_stays_in_use(): void {
+		$log   = $this->stub_refresh( true, true, null, null );
+		$_POST = array( 'ffc_ip_refresh_cloudflare' => '1' );
+
+		$this->render_to_string();
+
+		$this->assertSame( 1, $log->fired );
+		$this->assertCount( 1, $log->notices );
+		$this->assertStringContainsString( 'The bundled list stays in use.', $log->notices[0][0] );
+		$this->assertSame( 'error', $log->notices[0][1] );
+	}
+
+	public function test_a_failed_refresh_keeps_the_list_fetched_earlier(): void {
+		$cache = array( 'count' => 22, 'updated' => 1700000000, 'ranges' => array() );
+		$log   = $this->stub_refresh( true, true, $cache, $cache );
+		$_POST = array( 'ffc_ip_refresh_cloudflare' => '1' );
+
+		$this->render_to_string();
+
+		$this->assertSame( 1, $log->fired );
+		$this->assertStringContainsString( 'The list fetched earlier stays in use.', $log->notices[0][0] );
+		$this->assertSame( 'error', $log->notices[0][1] );
+	}
+
+	public function test_a_refresh_without_the_capability_fires_nothing(): void {
+		$log   = $this->stub_refresh( false, true, null, array( 'count' => 1, 'updated' => 1 ) );
+		$_POST = array( 'ffc_ip_refresh_cloudflare' => '1' );
+
+		$this->render_to_string();
+
+		$this->assertSame( 0, $log->fired );
+		$this->assertSame( array(), $log->notices );
+	}
+
+	public function test_a_refresh_without_a_valid_nonce_fires_nothing(): void {
+		$log   = $this->stub_refresh( true, false, null, array( 'count' => 1, 'updated' => 1 ) );
+		$_POST = array( 'ffc_ip_refresh_cloudflare' => '1' );
+
+		try {
+			$this->render_to_string();
+			$this->fail( 'check_admin_referer() must stop the request.' );
+		} catch ( \RuntimeException $e ) {
+			ob_end_clean();
+			$this->assertSame( 'nonce', $e->getMessage() );
+		}
+
+		$this->assertSame( 0, $log->fired );
+	}
+
+	public function test_save_saves_and_does_not_refresh(): void {
+		$log   = $this->stub_refresh( true, true, null, array( 'count' => 1, 'updated' => 1 ) );
+		$_POST = array(
+			'ffc_save_ip_diagnostics'   => '1',
+			'ffc_ip_trusted_proxy_mode' => 'auto',
+		);
+
+		$this->render_to_string();
+
+		$this->assertTrue( $log->saved );
+		$this->assertSame( 0, $log->fired );
+		$this->assertStringContainsString( 'IP resolution settings saved.', $log->notices[0][0] );
+	}
+
+	public function test_both_buttons_render_from_the_button_family_with_their_names(): void {
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$html                   = $this->render_to_string();
+
+		$this->assertStringContainsString(
+			'<button type="submit" class="ffc-btn ffc-btn-primary ffc-icon-save" name="ffc_save_ip_diagnostics" value="1">Save IP settings</button>',
+			$html
+		);
+		$this->assertStringContainsString(
+			'<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-sync" name="ffc_ip_refresh_cloudflare" value="1">Refresh Cloudflare ranges now</button>',
+			$html
+		);
+	}
 }
