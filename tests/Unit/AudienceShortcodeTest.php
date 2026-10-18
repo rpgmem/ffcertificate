@@ -134,7 +134,7 @@ class AudienceShortcodeTest extends TestCase {
 		$result = AudienceShortcode::render(array('schedule_id' => 1));
 
 		$this->assertStringContainsString('ffc-visibility-restricted', $result);
-		$this->assertStringContainsString('ffc-restricted-message', $result);
+		$this->assertStringContainsString('ffc-notice ffc-notice-warning', $result);
 	}
 
 	// ==================================================================

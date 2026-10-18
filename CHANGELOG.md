@@ -36,6 +36,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Verify on a failed magic link** (#1893). The error card's Verify button no longer also fires the PDF download handler, and the code typed there is carried to the reloaded verification form, which opens with it filled in; the captcha is still required.
 - **One-line Open and Change buttons, and a compact owner Reveal** (#1903). Settings → Email texts' "Open" and Document Templates' "Change" drop the trailing arrow that wrapped onto a second line beside the icon; the dashboard's Reveal on Certificates and Profile takes the compact row size of "View PDF".
 - **Settings autosave keeps every change** (#1902). Two saves overlapping on a slow host both started from the option as their request booted, so the last erased the other under "Saved". The write now re-reads the option under a database lock, and a field sends one save at a time.
+- **The public calendar's login and business-hours notices use the shared notice** (#1911). They were a larger centred box of their own; they now render through `Core\Notice` like every other public notice, the calendar title kept above.
 
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 
