@@ -68,10 +68,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</tr>
 			</table>
 			<p>
-				<button type="button" class="button ffc-dm-preview-button"><?php esc_html_e( 'Preview recipients', 'ffcertificate' ); ?></button>
-				<?php if ( $can_manage ) : ?>
-					<button type="submit" class="button button-primary"><?php esc_html_e( 'Send now', 'ffcertificate' ); ?></button>
-				<?php endif; ?>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Preview recipients', 'ffcertificate' ),
+						'icon'  => 'users',
+						'class' => 'ffc-dm-preview-button',
+					)
+				);
+				if ( $can_manage ) {
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Send now', 'ffcertificate' ),
+							'category' => 'primary',
+							'icon'     => 'send',
+							'type'     => 'submit',
+						)
+					);
+				}
+				?>
 			</p>
 			<div class="ffc-dm-preview-result" aria-live="polite"></div>
 		</div>

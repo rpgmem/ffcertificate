@@ -50,12 +50,12 @@ const FORM = `
 		data-ffc-input="ffc-relink-abc"
 		data-ffc-split="ffc-split-form-abc"
 		data-ffc-submit="ffc-relink-go-abc">Search…</button>
-	<button type="submit" class="button button-secondary" id="ffc-relink-go-abc">Move abc</button>
+	<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-move" id="ffc-relink-go-abc">Move abc</button>
 	<span class="ffc-identity-chosen" id="ffc-relink-chosen-abc" hidden></span>
 </form>
 <form id="ffc-split-form-abc">
 	<input type="email" name="ffc_email" required>
-	<button type="submit" class="button button-secondary">Split off</button>
+	<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-split">Split off</button>
 	<span class="ffc-identity-split-barred" hidden>A destination is chosen.</span>
 </form>`;
 
@@ -74,7 +74,7 @@ const MAILBOX_FORM = `
 		data-ffc-split="ffc-split-form-abc"
 		data-ffc-submit="ffc-relink-go-abc">Search…</button>
 	<input type="checkbox" name="ffc_acknowledged" value="1">
-	<button type="submit" class="button button-secondary" id="ffc-relink-go-abc">Move abc</button>
+	<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-move" id="ffc-relink-go-abc">Move abc</button>
 	<span class="ffc-identity-chosen" id="ffc-relink-chosen-abc" hidden></span>
 	<span class="ffc-identity-move-barred" hidden>An address is typed.</span>
 </form>
@@ -83,7 +83,7 @@ const MAILBOX_FORM = `
 		data-ffc-prefer-split="1"
 		data-ffc-move="move-form"
 		data-ffc-move-submit="ffc-relink-go-abc">
-	<button type="submit" class="button button-secondary">Split off</button>
+	<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-split">Split off</button>
 	<span class="ffc-identity-split-barred" hidden>A destination is chosen.</span>
 </form>`;
 
@@ -327,8 +327,8 @@ describe('the identity account-search dialog', () => {
 describe('the primary follows the route that holds the destination', () => {
 	function chosenRoute() {
 		return {
-			move: window.$('#ffc-relink-go-abc').hasClass('button-primary'),
-			split: window.$('#ffc-split-form-abc button[type="submit"]').hasClass('button-primary'),
+			move: window.$('#ffc-relink-go-abc').hasClass('ffc-btn-primary'),
+			split: window.$('#ffc-split-form-abc button[type="submit"]').hasClass('ffc-btn-primary'),
 		};
 	}
 
@@ -355,9 +355,9 @@ describe('the primary follows the route that holds the destination', () => {
 		expect(chosenRoute()).toEqual({ move: true, split: false });
 
 		// The demotion is half the statement: a route that gains the primary
-		// while the other keeps `button-secondary` reads as two primaries at
+		// while the other keeps its resting category reads as two primaries at
 		// two weights rather than as one decision.
-		expect(window.$('#ffc-relink-go-abc').hasClass('button-secondary')).toBe(false);
+		expect(window.$('#ffc-relink-go-abc').hasClass('ffc-btn-neutral')).toBe(false);
 	});
 
 	it('hands the primary to the split when an address is typed, and takes it back when the field is emptied', () => {
@@ -376,5 +376,7 @@ describe('the primary follows the route that holds the destination', () => {
 
 		expect(chosenRoute()).toEqual({ move: false, split: false });
 		expect(window.$('#ffc-relink-go-abc').prop('disabled')).toBe(false);
+		// The demotion gives back the resting category (#1904).
+		expect(window.$('#ffc-split-form-abc button[type="submit"]').hasClass('ffc-btn-neutral')).toBe(true);
 	});
 });

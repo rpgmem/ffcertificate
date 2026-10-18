@@ -40,7 +40,15 @@ $example_url = wp_nonce_url(
 	),
 	'ffc_recruitment_download_csv_example'
 );
-echo '<p><a class="button" href="' . esc_url( $example_url ) . '">&darr; ' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
+echo '<p>';
+\FreeFormCertificate\Core\Button::render(
+	array(
+		'label' => __( 'Download example CSV', 'ffcertificate' ),
+		'icon'  => 'download',
+		'href'  => $example_url,
+	)
+);
+echo ' ';
 echo '<span class="description ffc-rec-ml-half">' . esc_html__( 'Two-row sample with every column populated. Use it as a starting point for your own file.', 'ffcertificate' ) . '</span></p>';
 
 echo '<form id="ffc-recruitment-edit-import" method="post" enctype="multipart/form-data" data-notice-id="' . esc_attr( (string) $notice_id ) . '" onsubmit="return ffcRecruitmentImportFromEdit(this);">';
@@ -59,7 +67,16 @@ echo '</td></tr>';
 
 echo '</tbody></table>';
 echo '<p>';
-echo '<button id="ffc-edit-csv-submit" type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
+\FreeFormCertificate\Core\Button::render(
+	array(
+		'label'    => __( 'Import', 'ffcertificate' ),
+		'category' => 'primary',
+		'icon'     => 'upload',
+		'type'     => 'submit',
+		'id'       => 'ffc-edit-csv-submit',
+	)
+);
+echo ' ';
 // Spinner + elapsed counter sits in the same line. Hidden until
 // submit fires; revealed by the inline JS below. The importer is
 // a single atomic request (no streaming progress hook) so this is

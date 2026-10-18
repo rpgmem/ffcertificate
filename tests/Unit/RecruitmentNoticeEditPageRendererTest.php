@@ -274,6 +274,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$ui->shouldReceive( 'render_toggle' )->andReturnUsing(
 			static fn( $args ) => print '<span class="ffc-control-toggle" data-name="' . $args['name'] . '"></span>'
 		);
+		$ui->shouldReceive( 'render_save_button' )->once()->with( 'Save general', array( 'value' => 'Save general' ) );
 
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_general_section( $this->notice() );
@@ -294,6 +295,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
 		$ui->shouldReceive( 'get_toggle' )->andReturn( '<span class="ffc-control-toggle"></span>' );
 		$ui->shouldReceive( 'render_toggle' )->andReturnUsing( static fn() => print '' );
+		$ui->shouldReceive( 'render_save_button' );
 
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_general_section( $this->notice( array( 'public_columns_config' => 'not-json' ) ) );

@@ -404,23 +404,24 @@ class UrlShortenerService {
 	}
 
 	/**
-	 * Toggle the status of a short URL (active ↔ disabled).
+	 * Switch a short URL on or off (#1904). A trashed or missing link is
+	 * left alone: the switch is for live links, and a link leaves the trash
+	 * through Restore.
 	 *
-	 * @param int $id Record ID.
+	 * @param int  $id     Record ID.
+	 * @param bool $active Whether the link redirects.
 	 * @return bool
 	 */
-	public function toggle_status( int $id ): bool {
+	public function set_active( int $id, bool $active ): bool {
 		$record = $this->repository->findById( $id );
-		if ( ! $record ) {
+		if ( ! $record || 'trashed' === $record['status'] ) {
 			return false;
 		}
-
-		$new_status = 'active' === $record['status'] ? 'disabled' : 'active';
 
 		return (bool) $this->repository->update(
 			$id,
 			array(
-				'status'     => $new_status,
+				'status'     => $active ? 'active' : 'disabled',
 				'updated_at' => current_time( 'mysql' ),
 			)
 		);

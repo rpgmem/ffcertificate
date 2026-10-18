@@ -47,7 +47,14 @@ if ( $has_definitive ) {
 	echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $id ) . '">';
 	echo '<input type="hidden" name="target_status" value="definitive">';
 	wp_nonce_field( $nonce_action );
-	submit_button( __( 'Promote to definitive', 'ffcertificate' ), 'primary', '', false );
+	\FreeFormCertificate\Core\Button::render(
+		array(
+			'label'    => __( 'Promote to definitive', 'ffcertificate' ),
+			'category' => 'primary',
+			'icon'     => 'promote',
+			'type'     => 'submit',
+		)
+	);
 	echo '</form>';
 
 	echo '<hr class="ffc-rec-my-15">';
@@ -69,7 +76,8 @@ if ( $has_definitive ) {
 		)
 	);
 	echo '<p>';
-	echo '<button type="button" class="button button-primary"'
+	// By hand with the family's classes: `Core\Button` refuses the inline handler (#1904).
+	echo '<button type="button" class="ffc-btn ffc-btn-primary ffc-icon-promote"'
 		. ' data-ffc-confirm'
 		. ' data-ffc-confirm-title="' . esc_attr__( 'Promote (snapshot) to definitive?', 'ffcertificate' ) . '"'
 		. ' data-ffc-confirm-body="' . esc_attr__( 'You are about to snapshot the preliminary list as the definitive list.', 'ffcertificate' ) . '"'
@@ -79,7 +87,14 @@ if ( $has_definitive ) {
 		. ' data-ffc-confirm-countdown="15"'
 		. ' onclick="ffcRecruitmentSnapshotPromote(' . (int) $id . ', this);">'
 		. esc_html__( 'A — Publish preliminary as definitive (snapshot, no changes)', 'ffcertificate' ) . '</button> ';
-	echo '<button type="button" class="button button-secondary" onclick="document.getElementById(\'ffc-recruitment-edit-import\').scrollIntoView({behavior:\'smooth\'});">' . esc_html__( 'B — Import a new list as definitive', 'ffcertificate' ) . '</button>';
+	// A link to the import form below, so it needs no script (#1904).
+	\FreeFormCertificate\Core\Button::render(
+		array(
+			'label' => __( 'B — Import a new list as definitive', 'ffcertificate' ),
+			'icon'  => 'upload',
+			'href'  => '#ffc-recruitment-edit-import',
+		)
+	);
 	echo '</p>';
 
 	// The confirm flow (data-ffc-confirm) intercepts the click and

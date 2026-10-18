@@ -53,6 +53,7 @@ class AudienceTransferListTest extends TestCase {
 		Functions\when( 'esc_html_e' )->alias( static fn( $s ) => print $s );
 		Functions\when( 'esc_attr_e' )->alias( static fn( $s ) => print $s );
 		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
 			->shouldReceive( 'get_hierarchical' )->twice()->with( 'active' )
@@ -66,6 +67,20 @@ class AudienceTransferListTest extends TestCase {
 		$this->assertStringContainsString( 'data-selected="[5]"', $html, 'Duplicates and non-ids are dropped.' );
 		$this->assertStringContainsString( '&quot;id&quot;:5', $html );
 		$this->assertStringNotContainsString( 'data-required', $html, 'An optional picker lets the form submit empty.' );
+		// The four moves are the family's icon-only buttons (#1904), each named
+		// by its label and still carrying the hook the script binds.
+		foreach ( array(
+			'ffc-transfer-add'        => array( 'chevron-right', 'Add selected' ),
+			'ffc-transfer-add-all'    => array( 'chevrons-right', 'Add all' ),
+			'ffc-transfer-remove'     => array( 'chevron-left', 'Remove selected' ),
+			'ffc-transfer-remove-all' => array( 'chevrons-left', 'Remove all' ),
+		) as $hook => $expected ) {
+			$this->assertStringContainsString(
+				'<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-' . $expected[0] . ' ' . $hook . '" aria-label="' . $expected[1] . '" title="' . $expected[1] . '"></button>',
+				$html
+			);
+		}
+		$this->assertStringNotContainsString( 'class="button', $html );
 
 		ob_start();
 		AudienceTransferList::render( array(), 'rereg_audience_ids[]', true );

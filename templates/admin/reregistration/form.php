@@ -157,7 +157,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tbody></table>
 			</div>
 
-			<?php submit_button( $id > 0 ? __( 'Update Reregistration', 'ffcertificate' ) : __( 'Create Reregistration', 'ffcertificate' ) ); ?>
+			<?php
+			$ffc_rereg_save = $id > 0 ? __( 'Update Reregistration', 'ffcertificate' ) : __( 'Create Reregistration', 'ffcertificate' );
+			\FreeFormCertificate\Admin\AdminUI::render_save_button(
+				$ffc_rereg_save,
+				array(
+					'icon'  => $id > 0 ? 'save' : 'plus',
+					'value' => $ffc_rereg_save,
+				)
+			);
+			?>
 		</form>
 
 		<?php
@@ -187,9 +196,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<p class="description">
 					<?php esc_html_e( 'Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished.', 'ffcertificate' ); ?>
 				</p>
-				<button type="button" class="button button-secondary" id="ffc-rereg-send-invitations" data-rereg-id="<?php echo esc_attr( (string) $id ); ?>">
-					<?php esc_html_e( 'Send invitations', 'ffcertificate' ); ?>
-				</button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Send invitations', 'ffcertificate' ),
+						'icon'  => 'send',
+						'id'    => 'ffc-rereg-send-invitations',
+						'attrs' => array(
+							'data-rereg-id' => (string) $id,
+						),
+					)
+				);
+				?>
 				<span class="ffc-rereg-invite-msg" aria-live="polite"></span>
 			</div>
 		</div>

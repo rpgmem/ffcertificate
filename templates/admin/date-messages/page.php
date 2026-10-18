@@ -61,19 +61,22 @@ $ffc_dm_icons = array(
 <div class="wrap ffc-admin-page ffc-page-date-messages ffc-settings-wrap">
 	<h1 class="wp-heading-inline"><?php esc_html_e( 'Date Messages', 'ffcertificate' ); ?></h1>
 	<?php if ( $can_manage && 'rules' === $tab ) : ?>
-		<a href="
 		<?php
-		echo esc_url(
-			add_query_arg(
-				array(
-					'page' => DateMessagesAdminPage::MENU_SLUG,
-					'rule' => 0,
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label'    => __( 'Add rule', 'ffcertificate' ),
+				'category' => 'create',
+				'icon'     => 'plus',
+				'href'     => add_query_arg(
+					array(
+						'page' => DateMessagesAdminPage::MENU_SLUG,
+						'rule' => 0,
+					),
+					admin_url( 'admin.php' )
 				),
-				admin_url( 'admin.php' )
 			)
 		);
 		?>
-					" class="page-title-action"><?php esc_html_e( 'Add rule', 'ffcertificate' ); ?></a>
 	<?php endif; ?>
 	<hr class="wp-header-end">
 

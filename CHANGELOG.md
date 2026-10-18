@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Admin action icons and a ratchet on core button classes** (#1904). Sixteen registry icons (unlink, merge, split, move, user-plus, ticket, …) and `CoreButtonClassRatchetTest`, which held WordPress's `.button*`, `page-title-action` and `submit_button()` per file and now blocks at zero.
 - **Admin action icons and a ratchet on core button classes** (#1904). Sixteen registry icons (unlink, merge, split, move, user-plus, ticket, template save/load, …) and `CoreButtonClassRatchetTest`, freezing WordPress's `.button*`, `page-title-action` and `submit_button()` per file.
 - **Self-join group limit is a setting** (#1916). Scheduling Settings → Audience Calendars → Self-Join sets how many self-join groups a user may belong to (1–20, default 2), replacing the hard-coded 2; the audience editor states the configured number.
 
@@ -26,7 +27,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"My Calls" is grouped by status** (#1889). Called cards with the date, days left and an .ics download, then Waiting (final first, 5 per page) and Closed (2 per page); a call still "called" the day after its date shows as Deadline passed, with reversals behind an i button.
 - **A parent audience sets self-join for itself and for its descendants apart** (#1896). "This audience" no longer cascades; "Children and grandchildren" is applied to every descendant and reads Mixed, leaving them as they are, when they disagree. No schema change.
 - ⚠ **The dashboard masks the owner's own data** (#1897). CPF/RF, e-mails, phone and birth date arrive masked from `GET /user/profile` and `/user/certificates`, each with Reveal; the owner's reveal writes no log row, "view as user" stays audited. PDFs, receipts and e-mails are unchanged.
-- **Settings and certificate screens use the button family** (#1904). Settings tabs, migrations, the activity log, submissions, the form editor and certificate templates print `.ffc-btn` buttons by category and icon; scripts read their own hooks, not core classes.
+- **Every admin screen uses the button family** (#1904). Settings, certificates, scheduling, audiences, reregistration, recruitment, date messages, short URLs, QR and identity print `.ffc-btn` buttons by category and icon; a rule or short URL switches on and off with a toggle, and its Status cell follows the save.
 - **Self-join on an audience with children is one four-option choice, and new children inherit it** (#1901). Off, This audience only, This audience + children and grandchildren, Children and grandchildren only; with the groups below in disagreement none is selected and a notice gives the counts. A new child starts on when every descendant is on. On the new-audience form a picked parent replaces the switch with "Inherits from the audience above."
 
 ### Fixed
@@ -37,6 +38,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Verify on a failed magic link** (#1893). The error card's Verify button no longer also fires the PDF download handler, and the code typed there is carried to the reloaded verification form, which opens with it filled in; the captcha is still required.
 - **One-line Open and Change buttons, and a compact owner Reveal** (#1903). Settings → Email texts' "Open" and Document Templates' "Change" drop the trailing arrow that wrapped onto a second line beside the icon; the dashboard's Reveal on Certificates and Profile takes the compact row size of "View PDF".
 - **Settings autosave keeps every change** (#1902). Two saves overlapping on a slow host both started from the option as their request booted, so the last erased the other under "Saved". The write now re-reads the option under a database lock, and a field sends one save at a time.
+- **The public calendar's login and business-hours notices use the shared notice** (#1911). They were a larger centred box of their own; they now render through `Core\Notice` like every other public notice, the calendar title kept above.
+- **Linked-user actions below the card** (#1914). On the submission edit screen the account email's Reveal and View Profile join Unlink and Link to Another User in one row below the user card, and the email loses its stray parentheses.
 
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 

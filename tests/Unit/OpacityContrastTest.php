@@ -59,7 +59,6 @@ final class OpacityContrastTest extends TestCase {
 		),
 		'ffc-admin.css'                   => array(
 			'#ffc-preview-modal' => 'opacity: 0 — the closed modal is not painted',
-			'.ffc-page-identities .ffc-identity-panel-step[aria-disabled="true"]' => 'the step control at either end of a panel: an INACTIVE component, which SC 1.4.3 exempts — and inactive in fact, not only in wording, since the same rule sets `pointer-events: none` and the attribute says so to a screen reader',
 		),
 		'ffc-audience-admin.css'          => array(
 			'.ffc-selected-user .ffc-selected-user-remove' => 'the remove ×, a decorative glyph',
@@ -209,7 +208,9 @@ final class OpacityContrastTest extends TestCase {
 			$total += count( $rules );
 		}
 
-		$this->assertGreaterThan( 20, $total, 'The `opacity` scan collapsed.' );
+		// The floor sits under the register's size (the exact comparison above
+		// is the real detector); #1904 took the identity steppers' fade out.
+		$this->assertGreaterThan( 15, $total, 'The `opacity` scan collapsed.' );
 		$this->assertGreaterThan( 20, count( CssSelectors::sheets() ), 'Reading the sheets collapsed.' );
 
 		// And the table that motivated the guard must not fade again.

@@ -35,7 +35,15 @@ $example_url = wp_nonce_url(
 );
 
 echo '<p>' . esc_html__( 'Pick a notice, select the target list, and upload your CSV. The notice picker only lists notices where import is allowed.', 'ffcertificate' ) . '</p>';
-echo '<p><a class="button ffc-icon-download" href="' . esc_url( $example_url ) . '">' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
+echo '<p>';
+\FreeFormCertificate\Core\Button::render(
+	array(
+		'label' => __( 'Download example CSV', 'ffcertificate' ),
+		'icon'  => 'download',
+		'href'  => $example_url,
+	)
+);
+echo ' ';
 echo '<span class="description ffc-rec-ml-half">' . esc_html__( 'UTF-8 CSV (BOM optional). Required headers (English): name, cpf, rf, email, adjutancy, rank, score, pcd. Optional: phone, time_points, hab_emebs.', 'ffcertificate' ) . '</span></p>';
 
 echo '<form id="ffc-recruitment-candidates-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportFromCandidates(this);">';
@@ -71,7 +79,16 @@ echo '</td></tr>';
 
 echo '</tbody></table>';
 echo '<p>';
-echo '<button id="ffc-cand-csv-submit" type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
+\FreeFormCertificate\Core\Button::render(
+	array(
+		'label'    => __( 'Import', 'ffcertificate' ),
+		'category' => 'primary',
+		'icon'     => 'upload',
+		'type'     => 'submit',
+		'id'       => 'ffc-cand-csv-submit',
+	)
+);
+echo ' ';
 echo '<span id="ffc-cand-csv-progress" class="ffc-rec-progress-inline">';
 echo '<span class="spinner is-active ffc-rec-spinner-flush"></span>';
 echo '<span id="ffc-cand-csv-progress-text"></span>';

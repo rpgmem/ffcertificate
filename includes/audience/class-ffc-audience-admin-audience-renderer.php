@@ -43,7 +43,16 @@ final class AudienceAdminAudienceRenderer {
 		?>
 		<h1 class="wp-heading-inline"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></h1>
 		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
-		<a href="<?php echo esc_url( $add_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label'    => __( 'Add New', 'ffcertificate' ),
+					'category' => 'create',
+					'icon'     => 'plus',
+					'href'     => $add_url,
+				)
+			);
+			?>
 		<?php endif; ?>
 		<hr class="wp-header-end">
 
@@ -437,7 +446,16 @@ final class AudienceAdminAudienceRenderer {
 			<?php endif; ?>
 
 			<?php if ( $can_manage ) : ?>
-				<?php submit_button( $id > 0 ? __( 'Update Audience', 'ffcertificate' ) : __( 'Create Audience', 'ffcertificate' ) ); ?>
+				<?php
+				$save_label = $id > 0 ? __( 'Update Audience', 'ffcertificate' ) : __( 'Create Audience', 'ffcertificate' );
+				\FreeFormCertificate\Admin\AdminUI::render_save_button(
+					$save_label,
+					array(
+						'icon'  => $id > 0 ? 'save' : 'plus',
+						'value' => $save_label,
+					)
+				);
+				?>
 			<?php endif; ?>
 		</form>
 		<?php AudienceEditorTabs::panel_close(); ?>
@@ -509,7 +527,7 @@ final class AudienceAdminAudienceRenderer {
 		$has_children = ! empty( AudienceReader::get_children( $audience_id ) );
 
 		?>
-		<p class="description"><?php esc_html_e( 'Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use "+ Add Field" to create custom fields.', 'ffcertificate' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use "Add Field" to create custom fields.', 'ffcertificate' ); ?></p>
 
 		<div id="ffc-custom-fields-container" data-audience-id="<?php echo esc_attr( (string) $audience_id ); ?>">
 			<div id="ffc-custom-fields-list" class="ffc-custom-fields-sortable">
@@ -522,18 +540,37 @@ final class AudienceAdminAudienceRenderer {
 
 			<?php if ( $can_edit_fields ) : ?>
 			<p>
-				<button type="button" id="ffc-add-custom-field" class="button">
-					<?php esc_html_e( '+ Add Field', 'ffcertificate' ); ?>
-				</button>
-				<button type="button" id="ffc-save-custom-fields" class="button button-primary">
-					<?php esc_html_e( 'Save Fields', 'ffcertificate' ); ?>
-				</button>
-				<?php if ( $has_children ) : ?>
-					<button type="button" id="ffc-replicate-field-options" class="button"
-							title="<?php esc_attr_e( 'Copy this audience\'s option lists (departments, unions, work schedules…) to all child and grandchild audiences. Overwrites their current lists.', 'ffcertificate' ); ?>">
-						<?php esc_html_e( 'Replicate lists to children', 'ffcertificate' ); ?>
-					</button>
-				<?php endif; ?>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Add Field', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'id'       => 'ffc-add-custom-field',
+					)
+				);
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Save Fields', 'ffcertificate' ),
+						'category' => 'primary',
+						'icon'     => 'save',
+						'id'       => 'ffc-save-custom-fields',
+					)
+				);
+				if ( $has_children ) {
+					// Caution, not danger (#1904): it rewrites the children's option
+					// lists from this audience's; no field, member or record is deleted.
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Replicate lists to children', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'replicate-down',
+							'id'       => 'ffc-replicate-field-options',
+							'attrs'    => array( 'title' => __( 'Copy this audience\'s option lists (departments, unions, work schedules…) to all child and grandchild audiences. Overwrites their current lists.', 'ffcertificate' ) ),
+						)
+					);
+				}
+				?>
 				<span id="ffc-custom-fields-status" class="ffc-status" role="status" aria-live="polite" hidden></span>
 			</p>
 			<?php else : ?>
@@ -618,12 +655,7 @@ final class AudienceAdminAudienceRenderer {
 					</div>
 				</div>
 				<div class="ffc-field-actions">
-					<button type="button" class="button button-small ffc-field-toggle-details" title="<?php esc_attr_e( 'Toggle details', 'ffcertificate' ); ?>">
-						<span class="ffc-icon-settings" aria-hidden="true"></span>
-					</button>
-					<button type="button" class="button button-small button-link-delete ffc-field-delete" title="<?php esc_attr_e( 'Remove', 'ffcertificate' ); ?>">
-						<span class="ffc-icon-delete" aria-hidden="true"></span>
-					</button>
+					<?php self::render_field_actions( true ); ?>
 				</div>
 			</div>
 		</script>
@@ -769,7 +801,16 @@ final class AudienceAdminAudienceRenderer {
 									<div class="ffc-ds-division">
 										<div class="ffc-ds-division-head">
 											<input type="text" class="ffc-ds-division-name regular-text" value="<?php echo esc_attr( (string) $ds_division ); ?>" placeholder="<?php esc_attr_e( 'Division name', 'ffcertificate' ); ?>">
-											<button type="button" class="button button-link-delete ffc-ds-division-remove"><?php esc_html_e( 'Remove division', 'ffcertificate' ); ?></button>
+											<?php
+											\FreeFormCertificate\Admin\AdminUI::render_button(
+												array(
+													'label' => __( 'Remove division', 'ffcertificate' ),
+													'category' => 'danger',
+													'icon' => 'delete',
+													'class' => 'ffc-ds-division-remove',
+												)
+											);
+											?>
 										</div>
 										<div class="ffc-ds-sectors">
 											<?php foreach ( (array) $ds_sectors as $ds_sector ) : ?>
@@ -789,12 +830,30 @@ final class AudienceAdminAudienceRenderer {
 												</div>
 											<?php endforeach; ?>
 										</div>
-										<button type="button" class="button button-small ffc-ds-sector-add"><?php esc_html_e( '+ Add Department', 'ffcertificate' ); ?></button>
+										<?php
+										\FreeFormCertificate\Admin\AdminUI::render_button(
+											array(
+												'label'    => __( 'Add Department', 'ffcertificate' ),
+												'category' => 'create',
+												'icon'     => 'plus',
+												'class'    => 'ffc-ds-sector-add',
+											)
+										);
+										?>
 									</div>
 								<?php endforeach; ?>
 							</div>
 							<p>
-								<button type="button" class="button ffc-ds-division-add"><?php esc_html_e( '+ Add Division', 'ffcertificate' ); ?></button>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label'    => __( 'Add Division', 'ffcertificate' ),
+										'category' => 'create',
+										'icon'     => 'plus',
+										'class'    => 'ffc-ds-division-add',
+									)
+								);
+								?>
 							</p>
 						</div>
 					</div>
@@ -813,17 +872,41 @@ final class AudienceAdminAudienceRenderer {
 				</div>
 			</div>
 			<div class="ffc-field-actions">
-				<button type="button" class="button button-small ffc-field-toggle-details" title="<?php esc_attr_e( 'Toggle details', 'ffcertificate' ); ?>">
-					<span class="ffc-icon-settings" aria-hidden="true"></span>
-				</button>
-				<?php if ( ! $is_standard ) : ?>
-					<button type="button" class="button button-small button-link-delete ffc-field-delete" title="<?php esc_attr_e( 'Remove', 'ffcertificate' ); ?>">
-						<span class="ffc-icon-delete" aria-hidden="true"></span>
-					</button>
-				<?php endif; ?>
+				<?php self::render_field_actions( ! $is_standard ); ?>
 			</div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * The two icon-only buttons of a field row (#1904): open the details,
+	 * and remove the field when it may be removed (a standard field may not).
+	 * `.ffc-field-toggle-details` and `.ffc-field-delete` are the hooks
+	 * `ffc-custom-fields-admin.js` binds.
+	 *
+	 * @param bool $removable Whether to draw the remove button.
+	 * @return void
+	 */
+	private static function render_field_actions( bool $removable ): void {
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label'     => __( 'Toggle details', 'ffcertificate' ),
+				'icon'      => 'settings',
+				'icon_only' => true,
+				'class'     => 'ffc-field-toggle-details',
+			)
+		);
+		if ( $removable ) {
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label'     => __( 'Remove', 'ffcertificate' ),
+					'category'  => 'danger',
+					'icon'      => 'cross',
+					'icon_only' => true,
+					'class'     => 'ffc-field-delete',
+				)
+			);
+		}
 	}
 
 	/**
@@ -859,7 +942,18 @@ final class AudienceAdminAudienceRenderer {
 				<div id="user_results" class="ffc-user-results"></div>
 				<input type="hidden" name="user_ids" id="selected_user_ids" value="">
 				<div id="selected_users" class="ffc-selected-users"></div>
-				<?php submit_button( __( 'Add Selected Members', 'ffcertificate' ), 'primary', 'add_members', false ); ?>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Add Selected Members', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'user-plus',
+						'type'     => 'submit',
+						'name'     => 'add_members',
+						'value'    => __( 'Add Selected Members', 'ffcertificate' ),
+					)
+				);
+				?>
 			</form>
 		</div>
 		<?php endif; ?>

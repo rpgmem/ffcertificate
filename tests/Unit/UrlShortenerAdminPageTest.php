@@ -202,7 +202,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 		$this->service->shouldNotReceive( 'trash_short_url' );
 		$this->service->shouldNotReceive( 'restore_short_url' );
 		$this->service->shouldNotReceive( 'delete_short_url' );
-		$this->service->shouldNotReceive( 'toggle_status' );
+		$this->service->shouldNotReceive( 'set_active' );
 
 		$this->page->handle_actions();
 	}
@@ -214,7 +214,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 		$this->service->shouldNotReceive( 'trash_short_url' );
 		$this->service->shouldNotReceive( 'restore_short_url' );
 		$this->service->shouldNotReceive( 'delete_short_url' );
-		$this->service->shouldNotReceive( 'toggle_status' );
+		$this->service->shouldNotReceive( 'set_active' );
 
 		$this->page->handle_actions();
 	}
@@ -252,22 +252,19 @@ class UrlShortenerAdminPageTest extends TestCase {
 		$this->page->handle_actions();
 	}
 
-	public function test_handle_actions_toggle_calls_service(): void {
+	public function test_handle_actions_no_longer_toggles_through_a_link(): void {
+		// On/off moved to the record autosave toggle (#1904): a stale
+		// `ffc_action=toggle` link changes nothing.
 		Functions\when( 'current_user_can' )->justReturn( true );
 		$_GET['page']       = 'ffc-short-urls';
 		$_GET['ffc_action'] = 'toggle';
 		$_GET['id']         = '8';
 		$_GET['_wpnonce']   = 'valid_nonce';
-
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'admin_url' )->returnArg();
 
-		$this->service->shouldReceive( 'toggle_status' )->with( 8 )->once();
-		Functions\when( 'wp_safe_redirect' )->alias( function () {
-			throw new \RuntimeException( 'redirected' );
-		} );
+		$this->service->shouldNotReceive( 'set_active' );
+		Functions\expect( 'wp_safe_redirect' )->never();
 
-		$this->expectException( \RuntimeException::class );
 		$this->page->handle_actions();
 	}
 
@@ -418,7 +415,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 	public function test_handle_actions_toggle_nonce_failure_dies(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		$_GET['page']       = 'ffc-short-urls';
-		$_GET['ffc_action'] = 'toggle';
+		$_GET['ffc_action'] = 'trash';
 		$_GET['id']         = '8';
 		$_GET['_wpnonce']   = 'bad';
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
@@ -429,7 +426,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 			}
 		);
 
-		$this->service->shouldNotReceive( 'toggle_status' );
+		$this->service->shouldNotReceive( 'trash_short_url' );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'wp_die' );

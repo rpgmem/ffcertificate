@@ -50,7 +50,7 @@ jQuery(document).ready(function ($) {
     function applyValue($btn, value) {
         var field = $btn.data('field');
         var $row = $btn.closest('.ffc-pii-row');
-        var $field = $btn.closest('td, dd, .ffc-edit-field');
+        var $field = $btn.closest('td, dd, .ffc-edit-field, .ffc-linked-user-display');
         var $cell = $row.length ? $row : $field;
         var $input = $cell.find('[data-ffc-pii-field="' + field + '"]');
         var $text = $cell.find('.ffc-pii-value[data-field="' + field + '"]');

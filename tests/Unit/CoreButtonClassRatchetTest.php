@@ -3,14 +3,17 @@
  * Ratchet on WordPress core button classes in the plugin's own markup (#1904).
  *
  * An action is drawn by the `.ffc-btn` family (CLAUDE.md "Buttons"). The admin
- * screens predate it and still print WordPress's `button` / `button-primary`
- * / `page-title-action` and call `submit_button()`, which ignore the family's
- * categories, its icons and the dark theme. #1904 moves them screen by screen;
- * this freezes what is left, PER FILE and per token, in
- * `tests/fixtures/core-button-classes-baseline.php`, a ratchet both ways:
+ * screens predated it and printed WordPress's `button` / `button-primary`
+ * / `page-title-action` and called `submit_button()`, which ignore the
+ * family's categories, its icons and the dark theme. #1904 moved them screen
+ * by screen against a register frozen PER FILE and per token in
+ * `tests/fixtures/core-button-classes-baseline.php`, and the register reached
+ * zero, so the guard now BLOCKS AT ZERO. It stays a ratchet both ways:
  *
  * - a file that gains one fails -- draw it with `Core\Button::html()`,
  *   `AdminUI::render_button()` / `render_save_button()` or `FFC.button()`;
+ *   an entry added back to the register is a decision to defend, not a line
+ *   to add;
  * - a file that loses some fails too -- regenerate the register so the win
  *   is locked in, and a file at zero leaves it.
  *
@@ -61,8 +64,8 @@ final class CoreButtonClassRatchetTest extends TestCase {
 			$body = "<?php\n/**\n * Core-button-class register (#1904) — generated.\n"
 				. " * Regenerate: FFC_UPDATE_CORE_BUTTON_BASELINE=1 vendor/bin/phpunit --filter CoreButtonClassRatchet\n"
 				. " *\n * File => WordPress core button class (or `submit_button()` call) => how many\n"
-				. " * times it still appears. A debt register that only shrinks: a file moves\n"
-				. " * to the .ffc-btn family and leaves it (CLAUDE.md \"Buttons\").\n */\n\nreturn array(\n";
+				. " * times it still appears. A debt register that only shrinks, and it reached\n"
+				. " * zero: the guard blocks at zero (CLAUDE.md \"Buttons\").\n */\n\nreturn array(\n";
 			foreach ( $found as $file => $tokens ) {
 				$body .= "\t'" . $file . "' => array(\n";
 				foreach ( $tokens as $token => $count ) {
@@ -213,12 +216,14 @@ final class CoreButtonClassRatchetTest extends TestCase {
 	/**
 	 * The scan must not collapse in silence, and a second reading agrees.
 	 *
-	 * The register is non-empty and spans dozens of files, so a scan that
-	 * loses files already loses entries and the shrink test fires -- the
-	 * exact comparison CLAUDE.md "The guards" prefers. That stops working the
-	 * day the register reaches zero, so this adds the independent recount
-	 * as well: the files listed by a different traversal, and the occurrences
-	 * counted on source whose comments a different stripper removed.
+	 * While the register held entries, a scan that lost files lost entries
+	 * and the shrink test fired -- the exact comparison CLAUDE.md "The
+	 * guards" prefers. At zero that detector is gone, which is what this
+	 * owes in exchange: the files listed by a different traversal, the
+	 * occurrences counted on source whose comments a different stripper
+	 * removed, and -- because two readings agreeing on zero prove nothing
+	 * about the reading -- the scan seen working on real source, the files
+	 * whose core buttons stay on purpose.
 	 */
 	public function test_the_scan_cannot_collapse_in_silence(): void {
 		$root = dirname( __DIR__, 2 );
@@ -251,6 +256,11 @@ final class CoreButtonClassRatchetTest extends TestCase {
 			CoreButtonClasses::total_by_second_reading(),
 			$total,
 			'php_strip_whitespace() and a regex comment stripper count a different number of core button classes than the scan.'
+		);
+		$this->assertGreaterThan(
+			0,
+			array_sum( CoreButtonClasses::found_in_excluded() ),
+			'The scan reads no core button even in the files that print them on purpose, so a zero above proves nothing.'
 		);
 	}
 }

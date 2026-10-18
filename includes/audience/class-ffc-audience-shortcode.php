@@ -595,7 +595,7 @@ class AudienceShortcode {
 			$output .= '<h3 class="ffc-calendar-title">' . esc_html( $schedule_name ) . '</h3>';
 		}
 
-		$output .= '<div class="ffc-restricted-message">' . wp_kses_post( $message ) . '</div>';
+		$output .= \FreeFormCertificate\Core\Notice::render( 'warning', 'login', $message, '', array( 'html' => true ) );
 		$output .= '</div>';
 
 		return $output;

@@ -1103,7 +1103,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * the coverage report both skip.
 	 */
 	public function test_the_cards_changed_no_form(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\ButtonMarkup::args_as_attributes( (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' ) );
 
 		foreach (
 			array(
@@ -1547,13 +1547,13 @@ class IdentityResolutionPageTest extends TestCase {
 	public function test_the_card_with_one_verb_promotes_it_and_the_card_with_two_does_not(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
-		$this->assertStringContainsString(
-			'class="button button-primary"',
+		$this->assertMatchesRegularExpression(
+			"/'category'\\s*=>\\s*'primary'/",
 			$this->tier_branch( $view, 'TIER_MECHANICAL' ),
 			'The tier with one verb must say which control commits.'
 		);
-		$this->assertStringNotContainsString(
-			'button-primary',
+		$this->assertDoesNotMatchRegularExpression(
+			"/'category'\\s*=>\\s*'primary'|ffc-btn-primary/",
 			$this->tier_branch( $view, 'SHARED' ),
 			'Two destinations, neither promoted: the operator chooses, not the screen.'
 		);
@@ -1611,20 +1611,21 @@ class IdentityResolutionPageTest extends TestCase {
 	 * A control that opens a dialog and one that submits a form are the same
 	 * grey rectangle otherwise. The glyph is decoration on top of a label
 	 * that already says the word, so announcing it would add a second name
-	 * for one control.
+	 * for one control. Since #1904 the glyph is the family button's own
+	 * `search` icon, a `::before` mask, which a screen reader does not read.
 	 */
 	public function test_the_search_buttons_carry_a_glyph_that_is_not_announced(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
 		$this->assertSame(
 			2,
-			substr_count( $view, 'ffc-icon-search" aria-hidden="true"' ),
-			'Both search buttons — the decision tier\'s and the orphan tier\'s — carry the glyph, and neither announces it.'
+			preg_match_all( "/'label'\\s*=>\\s*__\\( 'Search…', 'ffcertificate' \\),\\s*'icon'\\s*=>\\s*'search',\\s*'class'\\s*=>\\s*'ffc-identity-find'/", $view ),
+			'Both search buttons — the decision tier\'s and the orphan tier\'s — carry the glyph, beside the word.'
 		);
-		$this->assertSame(
-			substr_count( $view, "esc_html_e( 'Search…', 'ffcertificate' )" ),
-			substr_count( $view, 'ffc-icon-search' ),
-			'A glyph without its word is an icon-only control, which this screen does not use.'
+		$this->assertStringNotContainsString(
+			'ffc-icon-search" aria-hidden',
+			$view,
+			'The glyph is the button\'s icon class, not a second element inside it.'
 		);
 	}
 
@@ -1654,20 +1655,28 @@ class IdentityResolutionPageTest extends TestCase {
 		$this->assertIsInt( $to, 'And end before the link to the list.' );
 		$steppers = substr( $view, (int) $from, (int) $to - (int) $from );
 
-		$this->assertSame(
-			2,
-			substr_count( $steppers, 'aria-label="<?php echo esc_attr( $ffc_identity_step_label ); ?>"' ),
-			'Both the live stepper and the disabled one carry the accessible name.'
+		// The live stepper is an icon-only family button (#1904), whose label
+		// `Core\Button` prints as both the `aria-label` and the `title`; the
+		// disabled one is written by hand and carries the two itself.
+		$this->assertMatchesRegularExpression(
+			"/'label'\\s*=>\\s*\\\$ffc_identity_step_label,\\s*'icon'\\s*=>\\s*\\\$ffc_identity_step_icon,\\s*'icon_only'\\s*=>\\s*true/",
+			$steppers,
+			'The live stepper carries the accessible name.'
 		);
 		$this->assertSame(
-			2,
+			1,
+			substr_count( $steppers, 'aria-label="<?php echo esc_attr( $ffc_identity_step_label ); ?>"' ),
+			'And so does the disabled one.'
+		);
+		$this->assertSame(
+			1,
 			substr_count( $steppers, 'title="<?php echo esc_attr( $ffc_identity_step_label ); ?>"' ),
 			'And both carry the tooltip, which is the only route a pointer has.'
 		);
-		$this->assertSame(
-			2,
-			substr_count( $steppers, 'aria-hidden="true"' ),
-			'The glyph itself is never announced — the label is the name.'
+		$this->assertStringNotContainsString(
+			'aria-hidden="true"',
+			$steppers,
+			'The glyph is the button\'s icon class, never announced — the label is the name.'
 		);
 		$this->assertStringNotContainsString(
 			"esc_html_e( 'Previous'",

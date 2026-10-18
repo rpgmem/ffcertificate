@@ -56,7 +56,15 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 	);
 	?>
 	<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_settings' ) ) : ?>
-		<a class="button ffc-icon-clock" href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=scheduled_tasks' ) ); ?>"><?php esc_html_e( 'Open Scheduled Tasks', 'ffcertificate' ); ?></a>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Open Scheduled Tasks', 'ffcertificate' ),
+				'icon'  => 'clock',
+				'href'  => admin_url( 'admin.php?page=ffc-settings&tab=scheduled_tasks' ),
+			)
+		);
+		?>
 	<?php endif; ?>
 </p>
 

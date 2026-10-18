@@ -148,10 +148,19 @@ class UrlShortenerMetaBox {
 				<div class="ffc-shorturl-input-row">
 					<input type="text" value="<?php echo esc_attr( $short_url ); ?>" readonly
 							id="ffc-shorturl-input" class="widefat ffc-shorturl-input-sm" />
-					<button type="button" class="button ffc-copy-shorturl" data-url="<?php echo esc_attr( $short_url ); ?>"
-							title="<?php esc_attr_e( 'Copy', 'ffcertificate' ); ?>">
-						<span class="ffc-icon-copy" aria-hidden="true"></span>
-					</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'     => __( 'Copy', 'ffcertificate' ),
+							'icon'      => 'copy',
+							'icon_only' => true,
+							'class'     => 'ffc-copy-shorturl',
+							'attrs'     => array(
+								'data-url' => $short_url,
+							),
+						)
+					);
+					?>
 				</div>
 			</div>
 
@@ -170,21 +179,48 @@ class UrlShortenerMetaBox {
 
 				<!-- Download Buttons -->
 				<div class="ffc-shorturl-download-row">
-					<button type="button" class="button button-small ffc-download-qr" data-format="png" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-						<span class="ffc-icon-download" aria-hidden="true"></span>PNG
-					</button>
-					<button type="button" class="button button-small ffc-download-qr" data-format="svg" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-						<span class="ffc-icon-download" aria-hidden="true"></span>SVG
-					</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label' => 'PNG',
+							'icon'  => 'download',
+							'class' => 'ffc-download-qr',
+							'attrs' => array(
+								'data-format'  => 'png',
+								'data-post-id' => (string) $post->ID,
+							),
+						)
+					);
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label' => 'SVG',
+							'icon'  => 'download',
+							'class' => 'ffc-download-qr',
+							'attrs' => array(
+								'data-format'  => 'svg',
+								'data-post-id' => (string) $post->ID,
+							),
+						)
+					);
+					?>
 				</div>
 			<?php endif; ?>
 
 			<!-- Regenerate -->
 			<div class="ffc-shorturl-regenerate">
-				<button type="button" class="button button-small ffc-regenerate-shorturl" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-					<span class="ffc-icon-sync" aria-hidden="true"></span>
-					<?php esc_html_e( 'Regenerate', 'ffcertificate' ); ?>
-				</button>
+				<?php
+				\FreeFormCertificate\Core\Button::render(
+					array(
+						'label'    => __( 'Regenerate', 'ffcertificate' ),
+						'category' => 'caution',
+						'icon'     => 'sync',
+						'class'    => 'ffc-regenerate-shorturl',
+						'attrs'    => array(
+							'data-post-id' => (string) $post->ID,
+						),
+					)
+				);
+				?>
 			</div>
 		</div>
 		<?php

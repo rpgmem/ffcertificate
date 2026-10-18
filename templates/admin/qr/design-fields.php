@@ -207,8 +207,30 @@ $ffc_qr_tiles( 'qr_design_eye_ball', 'eye_ball', __( 'Corner centre', 'ffcertifi
 				<img id="ffc-qr-logo-thumb" class="ffc-qr-logo-thumb" src="<?php echo esc_url( $ffc_qr_logo_thumb ); ?>" alt="" <?php echo '' === $ffc_qr_logo_thumb ? 'hidden' : ''; ?>>
 				<input type="hidden" name="<?php echo esc_attr( $ffc_qr_name( 'qr_design_logo_id' ) ); ?>" id="qr_design_logo_id" value="<?php echo esc_attr( (string) $ffc_qr_logo_id ); ?>" data-ffc-qr-design="qr_design_logo_id">
 				<p>
-					<button type="button" class="button ffc-media-select" data-ffc-media-target="#qr_design_logo_id" data-ffc-media-value="id" data-ffc-media-thumb="#ffc-qr-logo-thumb"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
-					<button type="button" class="button-link ffc-media-clear" data-ffc-media-target="#qr_design_logo_id" data-ffc-media-value="id" data-ffc-media-thumb="#ffc-qr-logo-thumb"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
+					<?php
+					$ffc_qr_media = array(
+						'data-ffc-media-target' => '#qr_design_logo_id',
+						'data-ffc-media-value'  => 'id',
+						'data-ffc-media-thumb'  => '#ffc-qr-logo-thumb',
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Select image', 'ffcertificate' ),
+							'icon'  => 'image',
+							'class' => 'ffc-media-select',
+							'attrs' => $ffc_qr_media,
+						)
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Clear', 'ffcertificate' ),
+							'category' => 'danger',
+							'icon'     => 'cross',
+							'class'    => 'ffc-media-clear',
+							'attrs'    => $ffc_qr_media,
+						)
+					);
+					?>
 				</p>
 				<p class="description">
 					<?php esc_html_e( 'PNG, JPEG, WebP or GIF up to 512 KB, drawn in the centre. A logo raises error correction to H so the covered modules can be rebuilt.', 'ffcertificate' ); ?>

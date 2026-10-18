@@ -19,21 +19,6 @@
     cursor: text;
 }
 
-/* Copy button in meta box */
-.ffc-copy-shorturl {
-    min-width: 36px;
-    text-align: center;
-}
-
-.ffc-copy-shorturl .ffc-icon-copy::before {
-    margin-right: 0;
-}
-
-/* Download buttons */
-.ffc-download-qr {
-    min-width: 60px;
-}
-
 /* Admin page: clickable short URL code */
 .ffc-shorturl-code {
     cursor: pointer;
@@ -154,16 +139,6 @@
     flex-wrap: wrap;
 }
 
-.ffc-qr-modal__actions .button {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ffc-spacing-2xs);
-}
-
-.ffc-qr-modal__actions [class*="ffc-icon-"]::before {
-    margin-right: 0;
-}
-
 /* Meta box: shorturl label */
 .ffc-shorturl-metabox .ffc-shorturl-label {
     font-weight: 600;
@@ -220,12 +195,12 @@
 }
 
 /* Admin page: table column widths */
-.ffc-shorturl-table .column-title    { width: 25%; }
+.ffc-shorturl-table .column-title    { width: 22%; }
 .ffc-shorturl-table .column-shorturl { width: 18%; }
-.ffc-shorturl-table .column-dest     { width: 25%; }
+.ffc-shorturl-table .column-dest     { width: 22%; }
 .ffc-shorturl-table .column-clicks   { width: 8%; }
 .ffc-shorturl-table .column-status   { width: 10%; }
-.ffc-shorturl-table .column-actions  { width: 14%; }
+.ffc-shorturl-table .column-actions  { width: 20%; }
 
 /* Admin page: status labels */
 .ffc-shorturl-status {

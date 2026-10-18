@@ -416,7 +416,14 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		}
 		echo '</select>';
 
-		echo ' <input type="submit" class="button" value="' . esc_attr__( 'Filter', 'ffcertificate' ) . '">';
+		echo ' ';
+		\FreeFormCertificate\Core\Button::render(
+			array(
+				'label' => __( 'Filter', 'ffcertificate' ),
+				'icon'  => 'filter',
+				'type'  => 'submit',
+			)
+		);
 		echo '</div>';
 	}
 

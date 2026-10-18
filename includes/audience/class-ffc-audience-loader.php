@@ -252,7 +252,7 @@ class AudienceLoader {
 			wp_enqueue_script(
 				'ffc-division-sector-editor',
 				FFC_PLUGIN_URL . "assets/js/ffc-division-sector-editor{$s}.js",
-				array( 'jquery' ),
+				array( 'jquery', 'ffc-core' ),
 				FFC_VERSION,
 				true
 			);
@@ -265,7 +265,7 @@ class AudienceLoader {
 						'departmentName' => __( 'Department name', 'ffcertificate' ),
 						'removeDivision' => __( 'Remove division', 'ffcertificate' ),
 						'removeSector'   => __( 'Remove department', 'ffcertificate' ),
-						'addSector'      => __( '+ Add Department', 'ffcertificate' ),
+						'addSector'      => __( 'Add Department', 'ffcertificate' ),
 					),
 				)
 			);

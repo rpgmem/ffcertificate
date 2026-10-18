@@ -316,6 +316,6 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'jane@example.test', $html );
 		$this->assertStringNotContainsString( ' name="email"', $html, 'The field posts only once a reveal named it.' );
 		$this->assertStringContainsString( 'value="j***@example.test" data-ffc-pii-field="email" data-ffc-pii-name="email" disabled', $html );
-		$this->assertStringContainsString( 'class="button button-secondary ffc-pii-reveal-btn" data-ffc-pii-candidate="5" data-ffc-pii-field="email"', $html );
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-pii-reveal-btn" data-ffc-pii-candidate="5" data-ffc-pii-field="email"', $html );
 	}
 }
