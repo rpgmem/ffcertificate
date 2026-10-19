@@ -264,8 +264,8 @@ class AssetRegistryTest extends TestCase {
 		AssetRegistry::register_admin();
 
 		$canvas = $this->registration( 'html2canvas' );
-		$this->assertStringEndsWith( 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', $canvas['src'] );
-		$this->assertSame( FFC_HTML2CANVAS_VERSION, $canvas['ver'] );
+		$this->assertStringEndsWith( 'libs/js/html2canvas-pro-' . FFC_HTML2CANVAS_PRO_VERSION . '.min.js', $canvas['src'] );
+		$this->assertSame( FFC_HTML2CANVAS_PRO_VERSION, $canvas['ver'] );
 
 		$pdf = $this->registration( 'jspdf' );
 		$this->assertStringEndsWith( 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', $pdf['src'] );

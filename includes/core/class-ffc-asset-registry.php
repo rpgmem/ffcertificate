@@ -308,12 +308,15 @@ final class AssetRegistry {
 	 *
 	 * The file name carries the version, so bumping the constant without
 	 * renaming the file 404s loudly instead of serving the old bundle (#1203).
+	 * The `html2canvas` handle serves html2canvas-pro: it names the API the
+	 * bundle exposes (`window.html2canvas`), which a third-party script may
+	 * depend on, not the fork that provides it (#1952).
 	 *
 	 * @return array<non-empty-string, array{0: non-empty-string, 1: string}>
 	 */
 	private static function bundles(): array {
 		return array(
-			'html2canvas' => array( FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', FFC_HTML2CANVAS_VERSION ),
+			'html2canvas' => array( FFC_PLUGIN_URL . 'libs/js/html2canvas-pro-' . FFC_HTML2CANVAS_PRO_VERSION . '.min.js', FFC_HTML2CANVAS_PRO_VERSION ),
 			'jspdf'       => array( FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', FFC_JSPDF_VERSION ),
 		);
 	}
