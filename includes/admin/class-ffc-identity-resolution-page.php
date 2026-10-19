@@ -311,11 +311,13 @@ class IdentityResolutionPage {
 			return;
 		}
 
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
 		// ffc-core: the dialog's refusal is drawn by FFC.notice() (#1843).
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			'ffc-identity-search',
-			FFC_PLUGIN_URL . 'assets/js/ffc-identity-search.js',
+			FFC_PLUGIN_URL . "assets/js/ffc-identity-search{$s}.js",
 			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
@@ -359,7 +361,7 @@ class IdentityResolutionPage {
 		// so it localises no strings at all.
 		wp_enqueue_script(
 			'ffc-identity-preflight',
-			FFC_PLUGIN_URL . 'assets/js/ffc-identity-preflight.js',
+			FFC_PLUGIN_URL . "assets/js/ffc-identity-preflight{$s}.js",
 			array( 'jquery' ),
 			FFC_VERSION,
 			true
@@ -384,7 +386,7 @@ class IdentityResolutionPage {
 
 		wp_enqueue_script(
 			'ffc-identity-merge-preview',
-			FFC_PLUGIN_URL . 'assets/js/ffc-identity-merge-preview.js',
+			FFC_PLUGIN_URL . "assets/js/ffc-identity-merge-preview{$s}.js",
 			array( 'jquery' ),
 			FFC_VERSION,
 			true

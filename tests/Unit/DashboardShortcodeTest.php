@@ -107,6 +107,7 @@ class DashboardShortcodeTest extends TestCase {
 	public function test_render_shows_login_when_not_logged_in(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		$asset_helper = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+		$asset_helper->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '' );
 		$asset_helper->shouldReceive( 'enqueue_dark_mode' )->once();
 		$styles = array();
@@ -140,6 +141,7 @@ class DashboardShortcodeTest extends TestCase {
 		Functions\when( 'user_can' )->justReturn( false );
 
 		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
 		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
 		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
@@ -221,6 +223,7 @@ class DashboardShortcodeTest extends TestCase {
 		Functions\when( 'user_can' )->justReturn( false );
 
 		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
 		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );

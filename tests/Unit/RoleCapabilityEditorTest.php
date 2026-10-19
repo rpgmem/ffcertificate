@@ -311,7 +311,9 @@ class RoleCapabilityEditorTest extends TestCase {
 	}
 
 	public function test_enqueue_loads_only_on_the_user_access_tab(): void {
-		\Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
+		$asset_helper = \Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
+		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
+		$asset_helper->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $action ) => 'nonce-' . $action );
 		Functions\when( 'get_role' )->justReturn( null );

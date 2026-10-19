@@ -67,23 +67,13 @@ class UrlShortenerAdminPage {
 		// (defeito B), and ffc-common.css is where those tokens are declared.
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
-		wp_enqueue_style(
-			'ffc-url-shortener-admin',
-			FFC_PLUGIN_URL . 'assets/css/ffc-url-shortener-admin.css',
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-url-shortener-admin-css' );
 		// Shared batched-export driver (#772): the CSV export button drives the
 		// unified `ffc_export_*` dispatcher through window.FFCBatchedExport.
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-batched-export' );
 		// Shared progress-overlay modal styles (#786): the batched-export driver
 		// renders window.FFCProgressOverlay, identical to the public download.
-		wp_enqueue_style(
-			'ffc-progress-overlay',
-			FFC_PLUGIN_URL . 'assets/css/ffc-progress-overlay.css',
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 		// Saving and rasterising QR images, shared with the manual generator (#1563).
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-qr-raster' );
 		// `ffc-admin-js` carries FFC.Admin.notify(), the one toast the admin

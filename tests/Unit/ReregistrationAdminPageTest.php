@@ -215,27 +215,27 @@ class ReregistrationAdminPageTest extends TestCase {
 	 * @return \ArrayObject<string, list<string>>
 	 */
 	private function recordEnqueues(): \ArrayObject {
-		$log  = new \ArrayObject( array( 'registered' => array(), 'scripts' => array(), 'localized' => array() ) );
+		$log  = new \ArrayObject( array( 'registered' => array(), 'styles' => array(), 'scripts' => array(), 'localized' => array() ) );
 		$push = static function ( string $key, string $value ) use ( $log ): void {
 			$list       = $log[ $key ];
 			$list[]     = $value;
 			$log[ $key ] = $list;
 		};
-		Functions\when( 'wp_style_is' )->justReturn( false );
 		Functions\when( 'wp_register_style' )->alias( static function ( $handle ) use ( $push ) { $push( 'registered', $handle ); } );
-		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		Functions\when( 'wp_enqueue_style' )->alias( static function ( $handle ) use ( $push ) { $push( 'styles', $handle ); } );
 		Functions\when( 'wp_enqueue_script' )->alias( static function ( $handle ) use ( $push ) { $push( 'scripts', $handle ); } );
 		Functions\when( 'wp_localize_script' )->alias( static function ( $handle, $name ) use ( $push ) { $push( 'localized', $name ); return true; } );
 		return $log;
 	}
 
-	public function test_the_editor_registers_the_palette_and_loads_the_import_client(): void {
+	public function test_the_editor_enqueues_the_palette_and_loads_the_import_client(): void {
 		$log          = $this->recordEnqueues();
 		$_GET['view'] = 'edit';
 
 		( new ReregistrationAdmin() )->enqueue_assets( 'toplevel_page_ffc-reregistration' );
 
-		$this->assertSame( array( 'ffc-common' ), $log['registered'] );
+		$this->assertSame( array(), $log['registered'] );
+		$this->assertContains( 'ffc-common', $log['styles'] );
 		$this->assertContains( 'ffc-reregistration-import', $log['scripts'] );
 		$this->assertSame( array( 'ffcRecordAutosave', 'ffcReregistrationAdmin', 'ffcReregImport' ), $log['localized'] );
 		$this->assertNotContains( 'jspdf', $log['scripts'] );

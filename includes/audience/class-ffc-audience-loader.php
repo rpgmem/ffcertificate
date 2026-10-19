@@ -203,14 +203,7 @@ class AudienceLoader {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// Admin CSS.
-		if ( function_exists( 'wp_style_is' ) && ! wp_style_is( 'ffc-common', 'registered' ) ) {
-			wp_register_style(
-				'ffc-common',
-				FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-				array(),
-				FFC_VERSION
-			);
-		}
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		wp_enqueue_style(
 			'ffc-audience-admin',
 			FFC_PLUGIN_URL . "assets/css/ffc-audience-admin{$s}.css",
@@ -242,12 +235,7 @@ class AudienceLoader {
 		if ( 'ffc-scheduling-audiences' === $page ) {
 			wp_enqueue_script( 'jquery-ui-sortable' );
 
-			wp_enqueue_style(
-				'ffc-custom-fields-admin',
-				FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css",
-				array( 'ffc-common', 'ffc-audience-admin' ),
-				FFC_VERSION
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-custom-fields-admin-css' );
 
 			wp_enqueue_script(
 				'ffc-division-sector-editor',
@@ -286,12 +274,7 @@ class AudienceLoader {
 			// Shared progress-overlay modal styles (#786): the batched-export
 			// driver renders window.FFCProgressOverlay, identical to the public
 			// download.
-			wp_enqueue_style(
-				'ffc-progress-overlay',
-				FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-				array( 'ffc-common' ),
-				FFC_VERSION
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 		}
 
 		// Localize script.
@@ -345,18 +328,8 @@ class AudienceLoader {
 		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 		// Frontend CSS.
-		wp_enqueue_style(
-			'ffc-common',
-			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-			array(),
-			FFC_VERSION
-		);
-		wp_enqueue_style(
-			'ffc-audience',
-			FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-audience-css' );
 
 		// Frontend JS. `ffc-core` provides window.FFC.request() used by
 		// ffc-audience.js — without it, the AJAX call near the bottom of

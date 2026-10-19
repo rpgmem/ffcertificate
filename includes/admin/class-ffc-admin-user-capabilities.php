@@ -84,18 +84,8 @@ class AdminUserCapabilities {
 		// ffc-common.css carries the .ffc-control-toggle switch styles reused by the
 		// capability rows; ffc-user-permissions.css adds the grouped-card
 		// layout, slug chips, origin badges and search/preset toolbar.
-		wp_enqueue_style(
-			'ffc-common',
-			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-			array(),
-			FFC_VERSION
-		);
-		wp_enqueue_style(
-			'ffc-user-permissions',
-			FFC_PLUGIN_URL . "assets/css/ffc-user-permissions{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-user-permissions' );
 		wp_enqueue_script(
 			'ffc-user-capabilities',
 			FFC_PLUGIN_URL . "assets/js/ffc-user-capabilities{$s}.js",

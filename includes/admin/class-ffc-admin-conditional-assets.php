@@ -41,12 +41,7 @@ class AdminConditionalAssets {
 
 		// Settings page styles + scripts.
 		if ( AdminAssetsManager::is_settings_page() ) {
-			wp_enqueue_style(
-				'ffc-admin-settings',
-				FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$s}.css",
-				array( 'ffc-common', 'ffc-admin-css' ),
-				FFC_VERSION
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-settings' );
 
 			wp_enqueue_script(
 				'ffc-admin-migrations',

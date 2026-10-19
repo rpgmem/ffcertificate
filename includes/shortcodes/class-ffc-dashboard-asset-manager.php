@@ -56,7 +56,7 @@ class DashboardAssetManager {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// ffc-common carries the palette, the scale and the icon classes.
-		wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 
 		// Without the toggle, `.ffc-dark-mode` never reaches <html> (#1126).
@@ -117,7 +117,7 @@ class DashboardAssetManager {
 		wp_enqueue_script( 'ffc-dashboard-audience-join', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-audience-join{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-profile' ), FFC_VERSION, true );
 
 		// Working hours field component (shared).
-		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-working-hours-css' );
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-working-hours' );
 		wp_localize_script(
 			'ffc-working-hours',
@@ -168,7 +168,7 @@ class DashboardAssetManager {
 		// load on this same screen. Without the edge, the winner is enqueue
 		// order -- which gets it right by accident today, and would invert if
 		// these two lines swapped places.
-		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-common', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION );
+		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-common', 'ffc-dashboard', 'ffc-working-hours-css' ), FFC_VERSION );
 		// Masks, dependent selects and the dual-post toggle come from
 		// `ffc-field-behaviours` (enqueued above), shared with the wp-admin
 		// user screen so the two renderings of a field behave alike.

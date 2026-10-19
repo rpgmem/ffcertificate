@@ -163,8 +163,8 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		AdminUserCustomFields::enqueue_assets('user-edit.php');
 
-		$this->assertContains('ffc-working-hours', $enqueued_styles);
-		$this->assertContains('ffc-custom-fields-admin', $enqueued_styles);
+		$this->assertContains('ffc-working-hours-css', $enqueued_styles);
+		$this->assertContains('ffc-custom-fields-admin-css', $enqueued_styles);
 		$this->assertContains('ffc-working-hours', $enqueued_scripts);
 	}
 
@@ -179,8 +179,8 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		AdminUserCustomFields::enqueue_assets('profile.php');
 
-		$this->assertContains('ffc-working-hours', $enqueued_styles);
-		$this->assertContains('ffc-custom-fields-admin', $enqueued_styles);
+		$this->assertContains('ffc-working-hours-css', $enqueued_styles);
+		$this->assertContains('ffc-custom-fields-admin-css', $enqueued_styles);
 	}
 
 	public function test_enqueue_assets_localizes_day_labels(): void {

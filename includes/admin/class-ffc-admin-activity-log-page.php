@@ -67,12 +67,7 @@ class AdminActivityLogPage {
 		// renders window.FFCProgressOverlay, identical to the public download.
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
-		wp_enqueue_style(
-			'ffc-progress-overlay',
-			FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 		wp_enqueue_script(
 			'ffc-admin-activity-log',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-activity-log{$s}.js",

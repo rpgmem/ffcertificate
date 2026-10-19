@@ -192,18 +192,10 @@ class ReregistrationAdmin {
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
-		// Make sure ffc-common.css is registered + available so the
-		// dependency below resolves even when this page isn't matched
-		// by AdminAssetsManager (post_type=empty + $_GET['page']
+		// The palette, so the dependency below resolves even when this page
+		// isn't matched by AdminAssetsManager (post_type=empty + $_GET['page']
 		// already starts with ffc-, but defensive).
-		if ( function_exists( 'wp_style_is' ) && ! wp_style_is( 'ffc-common', 'registered' ) ) {
-			wp_register_style(
-				'ffc-common',
-				FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-				array(),
-				FFC_VERSION
-			);
-		}
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
 		wp_enqueue_style(
 			'ffc-reregistration-admin',
@@ -218,12 +210,7 @@ class ReregistrationAdmin {
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-batched-export' );
 		// Shared progress-overlay modal styles (#786): the batched-export driver
 		// renders window.FFCProgressOverlay, identical to the public download.
-		wp_enqueue_style(
-			'ffc-progress-overlay',
-			FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 
 		// The campaign form's audience picker is the shared component (#1648).
 		\FreeFormCertificate\Audience\AudienceTransferList::enqueue();

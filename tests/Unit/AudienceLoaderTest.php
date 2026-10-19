@@ -240,14 +240,13 @@ class AudienceLoaderTest extends TestCase {
 	 *
 	 * @return \ArrayObject<string, list<string>> Keys: registered, styles, scripts, localized.
 	 */
-	private function recordAdminEnqueues( bool $common_registered ): \ArrayObject {
+	private function recordAdminEnqueues(): \ArrayObject {
 		$log = new \ArrayObject(array('registered' => array(), 'styles' => array(), 'scripts' => array(), 'localized' => array()));
 		$push = static function (string $key, string $handle) use ($log): void {
 			$list   = $log[$key];
 			$list[] = $handle;
 			$log[$key] = $list;
 		};
-		Functions\when('wp_style_is')->justReturn($common_registered);
 		Functions\when('wp_register_style')->alias(static function ($handle) use ($push) { $push('registered', $handle); });
 		Functions\when('wp_enqueue_style')->alias(static function ($handle) use ($push) { $push('styles', $handle); });
 		Functions\when('wp_enqueue_script')->alias(static function ($handle) use ($push) { $push('scripts', $handle); });
@@ -260,22 +259,16 @@ class AudienceLoaderTest extends TestCase {
 		return $log;
 	}
 
-	/**
-	 * Runs alone: it stubs `wp_style_is`, which a `function_exists()` guard in the
-	 * loader checks, and a definition left behind would change later tests.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_enqueue_admin_assets_on_the_audiences_page_loads_the_field_editor(): void {
-		$log           = $this->recordAdminEnqueues(false);
+		$log           = $this->recordAdminEnqueues();
 		$_GET['page']  = 'ffc-scheduling-audiences';
 
 		AudienceLoader::get_instance()->enqueue_admin_assets('scheduling_page_ffc-scheduling-audiences');
 		unset($_GET['page']);
 
-		$this->assertSame(array('ffc-common'), $log['registered'], 'The shared palette is registered when nobody did yet.');
-		$this->assertContains('ffc-custom-fields-admin', $log['styles']);
+		$this->assertSame(array(), $log['registered'], 'The palette is enqueued through its one declaration, never registered here (#1931).');
+		$this->assertContains('ffc-common', $log['styles']);
+		$this->assertContains('ffc-custom-fields-admin-css', $log['styles']);
 		$this->assertContains('jquery-ui-sortable', $log['scripts']);
 		$this->assertContains('ffc-division-sector-editor', $log['scripts']);
 		$this->assertContains('ffc-custom-fields-admin', $log['scripts']);
@@ -283,15 +276,8 @@ class AudienceLoaderTest extends TestCase {
 		$this->assertSame(array('ffcDivisionSectorEditor', 'ffcAudienceAdmin', 'ffcAdminAutosave', 'ffcRecordAutosave'), $log['localized']);
 	}
 
-	/**
-	 * Runs alone: it stubs `wp_style_is`, which a `function_exists()` guard in the
-	 * loader checks, and a definition left behind would change later tests.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_enqueue_admin_assets_on_the_calendars_page_loads_the_shortcode_copy(): void {
-		$log          = $this->recordAdminEnqueues(true);
+		$log          = $this->recordAdminEnqueues();
 		$registered   = array();
 		$_GET['page'] = 'ffc-scheduling-calendars';
 		Functions\when('wp_register_script')->alias(static function ($handle, $src = '', $deps = array()) use (&$registered) {
@@ -307,15 +293,8 @@ class AudienceLoaderTest extends TestCase {
 		$this->assertNotContains('ffc-batched-export', $log['scripts']);
 	}
 
-	/**
-	 * Runs alone: it stubs `wp_style_is`, which a `function_exists()` guard in the
-	 * loader checks, and a definition left behind would change later tests.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_enqueue_admin_assets_on_the_bookings_page_loads_the_batched_export(): void {
-		$log          = $this->recordAdminEnqueues(true);
+		$log          = $this->recordAdminEnqueues();
 		$_GET['page'] = 'ffc-scheduling-bookings';
 
 		AudienceLoader::get_instance()->enqueue_admin_assets('scheduling_page_ffc-scheduling-bookings');

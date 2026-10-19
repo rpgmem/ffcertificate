@@ -194,12 +194,7 @@ final class DateMessagesAdminPage {
 
 		// The vertical tab layout lives in ffc-admin-settings.css, as it does
 		// for Recruitment; its other rules are scoped and stay dormant here.
-		wp_enqueue_style(
-			'ffc-admin-settings',
-			FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$suffix}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-settings' );
 
 		// The body appearance card (#1660) picks an image from the Media
 		// Library and its colours with the picker the Email Model uses.

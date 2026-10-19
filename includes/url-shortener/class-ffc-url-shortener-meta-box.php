@@ -283,12 +283,7 @@ class UrlShortenerMetaBox {
 		// (defeito B), and ffc-common.css is where those tokens are declared.
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
-		wp_enqueue_style(
-			'ffc-url-shortener-admin',
-			FFC_PLUGIN_URL . 'assets/css/ffc-url-shortener-admin.css',
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-url-shortener-admin-css' );
 		// Saving and rasterising QR images, shared with the manual generator (#1563).
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-qr-raster' );
 		// `ffc-admin-js` carries FFC.Admin.notify(), the one toast the admin

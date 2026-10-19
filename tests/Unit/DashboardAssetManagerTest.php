@@ -142,6 +142,7 @@ class DashboardAssetManagerTest extends TestCase {
 
 	public function test_enqueue_assets_registers_required_assets(): void {
 		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
 		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 
@@ -164,6 +165,7 @@ class DashboardAssetManagerTest extends TestCase {
 
 	public function test_enqueue_assets_localizes_dashboard_data(): void {
 		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
 		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 
@@ -190,6 +192,7 @@ class DashboardAssetManagerTest extends TestCase {
 
 	public function test_enqueue_assets_admin_sees_certificates_and_appointments(): void {
 		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
 		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 
@@ -214,6 +217,7 @@ class DashboardAssetManagerTest extends TestCase {
 
 	public function test_enqueue_assets_view_as_mode(): void {
 		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
 		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 
@@ -235,6 +239,7 @@ class DashboardAssetManagerTest extends TestCase {
 
 	public function test_enqueue_assets_localizes_working_hours(): void {
 		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
 		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 
