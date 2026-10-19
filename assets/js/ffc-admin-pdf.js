@@ -428,7 +428,9 @@
             return;
         }
 
-        var bgImage = $('#ffc_bg_image_input').val() || '';
+        // The form editor names its field `#ffc_bg_image_input`; the template
+        // screen names it `#ffc_template_bg_image`. Read whichever is on the page.
+        var bgImage = $('#ffc_bg_image_input, #ffc_template_bg_image').first().val() || '';
         var data = getSampleFieldData();
         var processedHtml = replacePlaceholders(htmlContent, data);
 
