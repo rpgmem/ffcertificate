@@ -33,97 +33,35 @@
 }
 
 /* ==========================================================================
-   ONE BUTTON FAMILY (#1827)
+   BUTTONS (#1827, #1874)
 
-   Every button on the dashboard is a `.button`, painted by the rules below
-   and by nothing else: a secondary look by default, `.button-primary` for
-   the action a screen leads with, and a danger outline for the actions that
-   leave, cancel or delete. Until #1827 each component painted its own --
-   five treatments, with the table actions holding theirs with eighteen
-   `!important`s and the profile actions on a 9px padding no other button
-   used. A component now declares only the layout it needs (a width, a
-   compact size in a table row), never a colour.
-
-   The dashboard loads no WordPress button sheet on the front end, so a
-   `.button` these rules did not reach would render as the host theme's. Two
-   classes of specificity are what keep a theme's `.button` or `button` rule
-   out; the dark theme's own button rules in `ffc-common.css` are more
-   specific still, and they are the dark half of this family.
+   Every button on the dashboard is the plugin's `.ffc-btn` family from
+   `ffc-common.css`: its category says what the action does, and the colour,
+   the hover, the disabled state, the focus ring and the forced-colors
+   contour are the family's. Until #1874 the dashboard painted a family of
+   its own on core's `.button` class; what is left here is layout only.
    ========================================================================== */
 
-.ffc-user-dashboard .button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--ffc-spacing-xs);
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
-    font-size: var(--ffc-font-size-sm);
-    font-weight: 500;
-    line-height: 1.4;
-    text-decoration: none;
-    white-space: nowrap;
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-md);
-    box-shadow: none;
-    cursor: pointer;
-    transition: background var(--ffc-transition-fast), border-color var(--ffc-transition-fast), color var(--ffc-transition-fast);
-    background: var(--ffc-bg);
-    color: var(--ffc-text-secondary);
-}
-
-.ffc-user-dashboard .button:hover {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text);
-}
-
-.ffc-user-dashboard .button-primary {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-    border-color: var(--ffc-primary);
-}
-
-.ffc-user-dashboard .button-primary:hover {
-    background: var(--ffc-primary-hover);
-    color: var(--ffc-text-on-primary);
-    border-color: var(--ffc-primary-hover);
-}
-
-/* The danger outline: the actions that cancel, leave or delete. One class
-   more than the dark theme's `.button` rule ties it, and this sheet loads
-   after `ffc-common.css`, so the outline holds in both themes -- which is
-   what the `!important`s on the data-deletion button were for. */
-.ffc-user-dashboard .button:is(.ffc-cancel-appointment, .ffc-audience-leave-btn, .ffc-leave-all-groups-btn, .ffc-lgpd-delete-btn) {
-    background: var(--ffc-bg);
-    color: var(--ffc-danger-text);
-    border-color: var(--ffc-danger);
-}
-
-.ffc-user-dashboard .button:is(.ffc-cancel-appointment, .ffc-audience-leave-btn, .ffc-leave-all-groups-btn, .ffc-lgpd-delete-btn):hover {
-    background: var(--ffc-danger);
-    color: var(--ffc-text-on-danger);
-    border-color: var(--ffc-danger);
-}
-
-/* A disabled button says so with colour, never with `opacity` (#1126). The
-   dark theme's disabled rules in `ffc-common.css` take over there. */
-.ffc-user-dashboard .button:disabled {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text-muted);
-    border-color: var(--ffc-border);
-    cursor: not-allowed;
-}
-
 /* The compact size, for a button that sits in a table row or a list item
-   beside other text. Layout only; the colour is the family's. */
+   beside other text. The family's 40px touch height would fatten the row,
+   so the height comes from the padding, as it did before #1874.
+
+   The size is opt-in per class, so a button that joins a row joins this
+   list: the owner's Reveal beside a masked value (#1897) shipped without it
+   and drew at the family's 40px next to a compact "View PDF" (#1903). */
 .ffc-user-dashboard .ffc-btn-pdf,
 .ffc-user-dashboard .ffc-btn-receipt,
 .ffc-user-dashboard .ffc-btn-edit,
+.ffc-user-dashboard .ffc-certificate-reveal-btn,
+.ffc-user-dashboard .ffc-profile-reveal-btn,
 .ffc-user-dashboard .ffc-cancel-appointment,
 .ffc-user-dashboard .ffc-cal-export-btn,
-.ffc-audience-join-item .button {
+.ffc-audience-join-item .ffc-btn,
+.ffc-audience-switch-picker .ffc-btn {
+    min-height: 0;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-xs);
-    border-radius: var(--ffc-radius-sm);
+    line-height: 1.4;
 }
 
 /* ==========================================================================
@@ -396,14 +334,19 @@
    dashboard's field rule above, which would otherwise win.
 
    34px literal: it is a control height, not a distance, so the spacing
-   scale has no step for it; it is the height the family's `.button`
-   already renders at in `sm` (an `sm` line at 1.4 plus the `sm` padding
-   and the border), so the fields line up with the buttons. */
+   scale has no step for it; it is the height the dashboard's buttons had
+   before they joined the `.ffc-btn` family (#1874), and the admin shape of
+   that family, so the fields and the buttons keep one line. */
 .ffc-user-dashboard .ffc-filter-bar :is(input[type="text"], input[type="date"]),
-.ffc-user-dashboard .ffc-filter-bar .button {
+.ffc-user-dashboard .ffc-filter-bar .ffc-btn {
     box-sizing: border-box;
     height: 34px;
     font-size: var(--ffc-font-size-sm);
+}
+
+/* The family's 40px floor would outgrow the bar's 34px. */
+.ffc-user-dashboard .ffc-filter-bar .ffc-btn {
+    min-height: 0;
 }
 
 .ffc-user-dashboard .ffc-filter-bar :is(input[type="text"], input[type="date"]) {
@@ -553,28 +496,19 @@
    SAME height (26,8px) and tops at 100,00 / 103,39 / 103,55, which fattened the
    table row by 3,54px. The height was never the problem; the baseline was.
 
-   The declaration is here and not on the family's `.button`, because the
-   exporter's inner button is a `.button` too and must NOT declare it: what
-   joins the cell's line is its wrapper (see "Calendar export dropdown"). Every
-   control here is `inline-flex` since #1827, and the paint is the family's:
-   the first three are `.button-primary`, one tone for the three, because
-   each opens or edits a record and none destroys one ("View PDF" was painted
-   in the danger colour until #1826); Cancel is the danger outline. */
+   The `.ffc-btn` family declares the same value since #1874; it is stated
+   here as well because this register is what `DashboardActionAlignmentTest`
+   holds, and a family edit must not move the cell silently. The exporter's
+   inner button undoes it: what joins the cell's line is its wrapper (see
+   "Calendar export dropdown"). The paint is the family's: the first three
+   are neutral, because each opens or edits a record and none destroys one
+   ("View PDF" was painted in the danger colour until #1826); Cancel is the
+   danger category. */
 .ffc-user-dashboard .ffc-btn-pdf,
 .ffc-user-dashboard .ffc-btn-receipt,
 .ffc-user-dashboard .ffc-btn-edit,
 .ffc-user-dashboard .ffc-cancel-appointment {
     vertical-align: middle;
-}
-
-/* The icon is a registry class on the control (`ffc-icon-download`,
-   `ffc-icon-file`, `ffc-icon-edit`; #1826), which draws it in `::before`. The
-   control's own gap spaces it from the label, so the icon's trailing margin
-   goes. */
-.ffc-btn-pdf::before,
-.ffc-btn-receipt::before,
-.ffc-btn-edit::before {
-    margin-right: 0;
 }
 
 /* Action cell spacing */
@@ -672,9 +606,19 @@
 /* The compact size, square-ish so a one-digit page reads as a key. */
 .ffc-user-dashboard .ffc-section-page-btn {
     min-width: 32px;
+    min-height: 0;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-xs);
-    border-radius: var(--ffc-radius-sm);
+    line-height: 1.4;
+}
+
+/* The page on screen. A key is a neutral button (#1874): being the current
+   page is a state, not an action, so `aria-current` carries it rather than
+   the primary category. */
+.ffc-user-dashboard .ffc-section-page-btn[aria-current="page"] {
+    border-color: var(--ffc-primary);
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-section-pager-gap {
@@ -1211,7 +1155,7 @@
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
-.ffc-audience-join-item .button {
+.ffc-audience-join-item .ffc-btn {
     flex-shrink: 0;
 }
 
@@ -1226,6 +1170,43 @@
     align-items: center;
     gap: var(--ffc-spacing-sm);
     flex-shrink: 0;
+}
+
+/* Why a Leave button is disabled: the user's last group of an audience that
+   keeps its members in one (#1918). The left inset is the join row's 28px,
+   spelt from the ladder (24 + 4) so the text lines up with the group name
+   above it without adding a literal. */
+.ffc-audience-locked-note {
+    margin: 0;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg) var(--ffc-spacing-xs) calc(var(--ffc-spacing-3xl) + var(--ffc-spacing-2xs));
+    font-size: var(--ffc-font-size-xs);
+    color: var(--ffc-text-muted);
+    background: var(--ffc-bg);
+    border-bottom: 1px solid var(--ffc-border-light);
+}
+
+/* The picker's select sits on one line with the row's compact buttons, so it
+   takes their size rather than the 45px field: one class more than the
+   dashboard's field rule, as the filter bar does (#1836). */
+.ffc-user-dashboard .ffc-audience-switch-picker select {
+    height: auto;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+    font-size: var(--ffc-font-size-sm);
+    line-height: 1.4;
+}
+
+/* "Replace which group?" under a Switch, when the user holds several groups
+   of the tree (#1918), on the same left inset as the note above. */
+.ffc-audience-switch-picker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg) var(--ffc-spacing-sm) calc(var(--ffc-spacing-3xl) + var(--ffc-spacing-2xs));
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-audience-inline-toggle {
@@ -1349,6 +1330,17 @@
     vertical-align: middle;
 }
 
+/* The exporter's button carries a caret after its label, a child the
+   family's `::before` icon cannot draw, so the button spaces its children
+   with a gap and the icons give up their trailing margin. It also undoes
+   the family's `vertical-align: middle`: inside the wrapper it shifted the
+   button and moved the wrapper's own baseline, which is the #1215 defect. */
+.ffc-user-dashboard .ffc-cal-export-btn {
+    gap: var(--ffc-spacing-xs);
+    vertical-align: baseline;
+}
+
+.ffc-cal-export-btn::before,
 .ffc-cal-export-btn > [class*="ffc-icon-"]::before,
 .ffc-cal-export-dropdown a > [class*="ffc-icon-"]::before {
     margin-right: 0;
@@ -1431,7 +1423,7 @@
         width: 100%;
     }
 
-    .ffc-filter-bar .button {
+    .ffc-filter-bar .ffc-btn {
         width: 100%;
     }
 
@@ -1551,7 +1543,7 @@
         font-size: 10px;
     }
 
-    .ffc-user-dashboard .ffc-certificates-table .button {
+    .ffc-user-dashboard .ffc-certificates-table .ffc-btn {
         padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
         font-size: var(--ffc-font-size-2xs);
     }
@@ -1575,52 +1567,408 @@
     color: var(--ffc-text);
 }
 
-.ffc-recruitment-my-calls .ffc-recruitment-my-notice {
+/* The panel regroups the candidate's calls by status (#1889): counters,
+   then Called (cards), Waiting and Closed (tables). Every rule reads a
+   token, so the panel follows the dark theme with nothing of its own. */
+
+.ffc-mycalls-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-sm);
+    margin-bottom: var(--ffc-spacing-3xl);
+}
+
+.ffc-mycalls-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border-light);
-    border-radius: var(--ffc-radius-md);
-    background: var(--ffc-bg-card);
-    padding: var(--ffc-spacing-xl);
-    margin-bottom: var(--ffc-spacing-xl);
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+    font-size: var(--ffc-font-size-sm);
+    font-weight: 600;
+    text-decoration: none;
 }
 
-.ffc-recruitment-my-calls .ffc-recruitment-my-notice header {
-    margin-bottom: var(--ffc-spacing-lg);
-    border-bottom: 1px solid var(--ffc-border-light);
-    padding-bottom: var(--ffc-spacing-lg);
+.ffc-mycalls-chip.ffc-mycalls-chip-called {
+    border-color: var(--ffc-info-border);
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
 }
 
-.ffc-recruitment-my-calls .ffc-recruitment-my-notice header h3 {
-    margin: 0 0 var(--ffc-spacing-sm);
+.ffc-mycalls-chip:hover,
+.ffc-mycalls-chip:focus {
+    border-color: var(--ffc-primary);
+}
+
+.ffc-mycalls-chip:focus-visible {
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
+}
+
+.ffc-mycalls-chip b {
+    font-variant-numeric: tabular-nums;
+}
+
+.ffc-mycalls-section {
+    margin-bottom: var(--ffc-spacing-3xl);
+}
+
+.ffc-mycalls-section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+    margin-bottom: var(--ffc-spacing-md);
+}
+
+.ffc-mycalls-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    margin: 0;
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
 }
 
-.ffc-recruitment-my-calls .ffc-recruitment-my-notice h4 {
-    margin: var(--ffc-spacing-xl) 0 var(--ffc-spacing-sm);
-    font-size: var(--ffc-font-size-xs);
-    font-weight: 600;
+.ffc-mycalls-hint {
+    margin: 0;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
 }
 
-.ffc-recruitment-my-calls .ffc-recruitment-banner {
-    display: inline-block;
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+.ffc-mycalls-notice-code {
+    font-weight: 700;
+}
+
+.ffc-mycalls-notice-name {
+    color: var(--ffc-text-secondary);
+}
+
+/* Called: one card per active call. */
+
+.ffc-mycalls-cards {
+    display: grid;
+    gap: var(--ffc-spacing-lg);
+}
+
+.ffc-mycalls-card {
+    display: grid;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
+    border: 1px solid var(--ffc-border-light);
+    border-left: 4px solid var(--ffc-info-border);
     border-radius: var(--ffc-radius-md);
-    font-size: var(--ffc-font-size-xs);
-    font-weight: 500;
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
 }
 
-.ffc-recruitment-my-calls .ffc-banner-preliminary {
+.ffc-mycalls-card-top,
+.ffc-mycalls-card-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
+}
+
+.ffc-mycalls-when {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-md);
+    margin: 0;
+    font-size: var(--ffc-font-size-base);
+}
+
+.ffc-mycalls-when strong {
+    font-size: var(--ffc-font-size-xl);
+    font-variant-numeric: tabular-nums;
+}
+
+.ffc-mycalls-countdown {
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 700;
+}
+
+.ffc-mycalls-countdown.ffc-mycalls-countdown-today {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
-.ffc-recruitment-my-calls .ffc-banner-definitive {
+.ffc-mycalls-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
+    margin: 0;
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-mycalls-meta dt {
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.ffc-mycalls-meta dd {
+    margin: 0;
+}
+
+.ffc-mycalls-leaves {
+    font-size: var(--ffc-font-size-xs);
+    color: var(--ffc-text-secondary);
+}
+
+/* Waiting and Closed: the dashboard's table, paged by the script. */
+
+/* The shared table clips to its rounded corners; this one must not, or an
+   info popover opening inside a cell would be cut off at the table's edge. */
+.ffc-recruitment-table.ffc-mycalls-table {
+    overflow: visible;
+}
+
+.ffc-mycalls-table td {
+    vertical-align: top;
+}
+
+/* A row the pager hides. Needed because the phone layout below gives every
+   row `display: block`, which would otherwise beat the attribute. */
+.ffc-mycalls-table tr[hidden] {
+    display: none;
+}
+
+.ffc-mycalls-table .ffc-mycalls-num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.ffc-mycalls-table .ffc-mycalls-notice-code {
+    display: block;
+}
+
+.ffc-mycalls-table .ffc-mycalls-notice-name {
+    font-size: var(--ffc-font-size-xs);
+}
+
+.ffc-mycalls-table .ffc-mycalls-group-row td {
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-mycalls-group-continued {
+    display: none;
+}
+
+.ffc-mycalls-group-row.is-continued .ffc-mycalls-group-continued {
+    display: inline;
+}
+
+.ffc-mycalls-status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+}
+
+.ffc-pill.ffc-mycalls-badge-final,
+.ffc-pill.ffc-mycalls-badge-hired {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
+}
+
+.ffc-pill.ffc-mycalls-badge-preliminary {
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-pill.ffc-mycalls-badge-withdrew,
+.ffc-pill.ffc-mycalls-badge-expired {
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+}
+
+.ffc-pill.ffc-mycalls-badge-not-shown {
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+/* The info button and its popover. The popover opens only under
+   `.is-open`, which the script sets with `aria-expanded`. */
+
+.ffc-mycalls-info {
+    position: relative;
+    display: inline-flex;
+}
+
+.ffc-mycalls-info .ffc-mycalls-info-btn {
+    width: 24px;
+    height: 24px;
+    min-height: 24px;
+}
+
+.ffc-mycalls-info .ffc-mycalls-info-btn::before {
+    width: 16px;
+    height: 16px;
+}
+
+.ffc-mycalls-pop {
+    display: none;
+    position: absolute;
+    z-index: var(--ffc-z-dropdown);
+    top: calc(100% + var(--ffc-spacing-xs));
+    left: calc(-1 * var(--ffc-spacing-sm));
+    width: min(280px, 80vw);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-md);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    box-shadow: var(--ffc-shadow-md);
+    font-size: var(--ffc-font-size-xs);
+    text-align: left;
+    white-space: normal;
+}
+
+.ffc-mycalls-info.is-open .ffc-mycalls-pop {
+    display: block;
+}
+
+.ffc-mycalls-pop-title {
+    display: block;
+    margin-bottom: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-mycalls-pop-facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--ffc-spacing-3xs) var(--ffc-spacing-md);
+    margin: 0;
+}
+
+.ffc-mycalls-pop-facts dt {
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-mycalls-pop-facts dd {
+    margin: 0;
+}
+
+.ffc-mycalls-pop-text {
+    margin: var(--ffc-spacing-xs) 0 0;
+}
+
+/* The pager the script draws; empty, it takes no room. */
+
+.ffc-mycalls-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-sm);
+    margin-top: var(--ffc-spacing-sm);
+}
+
+.ffc-mycalls-pager:empty {
+    display: none;
+}
+
+.ffc-mycalls-pager-range {
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
+
+.ffc-mycalls-pager-pages {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+}
+
+.ffc-mycalls-pager .ffc-mycalls-page-btn {
+    min-width: 32px;
+    min-height: 32px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-xs);
+}
+
+/* The page on screen. A key is a neutral button (#1874): being the current
+   page is a state, not an action, so `aria-current` carries it. */
+.ffc-mycalls-pager .ffc-mycalls-page-btn[aria-current="page"] {
+    border-color: var(--ffc-primary);
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
+}
+
+/* Phones: each table row becomes a card, every cell under its label. */
+@media (max-width: 640px) {
+    .ffc-recruitment-table.ffc-mycalls-table {
+        border: 0;
+    }
+
+    .ffc-mycalls-table thead {
+        display: none;
+    }
+
+    .ffc-mycalls-table,
+    .ffc-mycalls-table tbody,
+    .ffc-mycalls-table tr,
+    .ffc-mycalls-table td {
+        display: block;
+    }
+
+    .ffc-mycalls-table .ffc-mycalls-row {
+        margin-bottom: var(--ffc-spacing-sm);
+        padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+        border: 1px solid var(--ffc-border-light);
+        border-radius: var(--ffc-radius-md);
+        background: var(--ffc-bg-card);
+    }
+
+    .ffc-recruitment-table.ffc-mycalls-table td {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--ffc-spacing-lg);
+        padding: var(--ffc-spacing-2xs) 0;
+        border-bottom: 0;
+    }
+
+    .ffc-mycalls-table td::before {
+        content: attr(data-label);
+        color: var(--ffc-text-secondary);
+        font-size: var(--ffc-font-size-2xs);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .ffc-recruitment-table.ffc-mycalls-table td.ffc-mycalls-notice-cell {
+        display: block;
+    }
+
+    .ffc-mycalls-table td.ffc-mycalls-notice-cell::before,
+    .ffc-mycalls-table .ffc-mycalls-group-row td::before {
+        content: none;
+    }
+
+    .ffc-recruitment-table.ffc-mycalls-table .ffc-mycalls-group-row td {
+        display: block;
+        padding: var(--ffc-spacing-sm) 0 var(--ffc-spacing-2xs);
+        background: transparent;
+    }
+
+    .ffc-mycalls-pop {
+        right: calc(-1 * var(--ffc-spacing-sm));
+        left: auto;
+    }
 }
 
 /* ==========================================================================
@@ -1632,7 +1980,7 @@
     .ffc-loading::after { animation: none; }
     .ffc-tab { transition: none; }
     .ffc-audience-join-item { transition: none; }
-    .ffc-user-dashboard :is(.button, input, select, textarea) { transition: none; }
+    .ffc-user-dashboard :is(input, select, textarea) { transition: none; }
 }
 
 /* ==========================================================================
@@ -1642,12 +1990,6 @@
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* The palette's primary button paints its ground; the contour is what
-       is left of it once the system drops that ground (#1826). */
-    .ffc-user-dashboard .button-primary {
-        border: 1px solid ButtonText;
-    }
-
     /* Status badges: the text still says the state; the border
        gives them their badge shape back. */
     .ffc-pill.ffc-dashboard-status-approved,
@@ -1661,6 +2003,20 @@
     .ffc-pill.ffc-dashboard-status-rejected,
     .ffc-pill.ffc-dashboard-status-submitted {
         border: 1px solid CanvasText;
+    }
+
+    /* My Calls (#1889): the badges are read; the counters are links. */
+    .ffc-pill.ffc-mycalls-badge-expired,
+    .ffc-pill.ffc-mycalls-badge-final,
+    .ffc-pill.ffc-mycalls-badge-hired,
+    .ffc-pill.ffc-mycalls-badge-not-shown,
+    .ffc-pill.ffc-mycalls-badge-preliminary,
+    .ffc-pill.ffc-mycalls-badge-withdrew {
+        border: 1px solid CanvasText;
+    }
+
+    .ffc-mycalls-chip.ffc-mycalls-chip-called {
+        border-color: LinkText;
     }
 }
 
@@ -1715,9 +2071,7 @@
     margin: 0;
 }
 
-.ffc-set-password-actions .button {
+.ffc-set-password-actions .ffc-btn {
     width: 100%;
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
-    font-size: var(--ffc-font-size-base);
     font-weight: 600;
 }

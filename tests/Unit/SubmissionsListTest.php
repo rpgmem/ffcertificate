@@ -220,7 +220,7 @@ class SubmissionsListTest extends TestCase {
 	private function assertMaskedWithReveal( string $out ): void {
 		$this->assertStringNotContainsString( 'a@b.com', str_replace( 'MASKED:a@b.com', '', $out ), 'The clear address must not reach the list HTML.' );
 		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
-		$this->assertStringContainsString( 'class="button button-small ffc-reveal-pii ffc-icon-eye"', $out );
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii"', $out );
 		$this->assertStringContainsString( 'data-type="submission"', $out );
 		$this->assertStringContainsString( 'data-field="email" data-submission-id="42" data-nonce="test_nonce"', $out );
 	}
@@ -784,7 +784,7 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-icon-filter', $html );
 		$this->assertStringContainsString( 'No submissions match', $html );
 		$this->assertStringContainsString( 'Nothing in "Trash" matches', $html );
-		$this->assertStringContainsString( '<a href="/cleared" class="button">Clear Filter</a>', $html );
+		$this->assertStringContainsString( '<a href="/cleared" class="ffc-btn ffc-btn-neutral ffc-icon-eraser">Clear Filter</a>', $html );
 		$this->assertSame( array( 's', 'filter_form_id', 'paged' ), $cleared, 'the view is kept; only the search, the form filter and the page go' );
 	}
 

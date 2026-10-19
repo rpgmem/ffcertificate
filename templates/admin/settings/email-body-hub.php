@@ -133,17 +133,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php endif; ?>
 
 					<p>
-						<button type="button" class="button ffc-email-restore-default"
-							data-editor="<?php echo esc_attr( $ffc_editor_id ); ?>"
-							data-default-key="<?php echo esc_attr( $ffc_key ); ?>">
-							<?php esc_html_e( 'Restore Default Text', 'ffcertificate' ); ?>
-						</button>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Restore Default Text', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'restore',
+								'class'    => 'ffc-email-restore-default',
+								'attrs'    => array(
+									'data-editor'      => $ffc_editor_id,
+									'data-default-key' => $ffc_key,
+								),
+							)
+						);
+						?>
 					</p>
 				</div>
 			<?php endforeach; ?>
 		<?php endforeach; ?>
 
-		<?php submit_button( __( 'Save email texts', 'ffcertificate' ) ); ?>
+		<?php \FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save email texts', 'ffcertificate' ) ); ?>
 	</form>
 </div>
 <?php

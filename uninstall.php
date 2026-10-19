@@ -211,6 +211,9 @@ $ffcertificate_options = array(
 	// not declare fails CI.
 	'ffc_self_scheduling_schema_version',
 	'ffc_audience_schema_version',
+	// The audience columns' own revision gate, which heals a column added
+	// between releases on installs that keep the same FFC_VERSION (#1918).
+	'ffc_audience_schema_revision',
 	'ffc_url_shortener_schema_version',
 	// The two chains #1311 added, which had no runtime caller at all until then.
 	'ffc_reregistration_schema_version',
@@ -225,6 +228,7 @@ $ffcertificate_options = array(
 	'ffc_submission_date_unix_migrated',
 	'ffc_submitted_at_unix_migrated',
 	// Audience module options (audited gap — were never on the list).
+	'ffc_aud_max_self_join_groups',
 	'ffc_aud_multiple_audiences_color',
 	'ffc_aud_private_display_mode',
 	'ffc_aud_scheduling_message',

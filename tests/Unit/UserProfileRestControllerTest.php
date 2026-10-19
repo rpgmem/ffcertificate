@@ -59,6 +59,8 @@ class UserProfileRestControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\when( 'user_can' )->justReturn( false );
 		Functions\when( 'get_option' )->justReturn( array() );
+		// The profile masks every e-mail it returns (#1897).
+		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 		Functions\when( 'date_i18n' )->alias( function( $format, $timestamp = false ) {
 			return date( $format, $timestamp ?: time() );
 		});
@@ -276,8 +278,8 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( 5, $result['user_id'] );
 		$this->assertSame( 'John Doe', $result['display_name'] );
-		$this->assertSame( 'john@example.com', $result['email'] );
-		$this->assertSame( '(11) 99999-0000', $result['phone'] );
+		$this->assertSame( 'j***@example.com', $result['email'] );
+		$this->assertSame( '(**) *****-**00', $result['phone'] );
 		$this->assertSame( 'Engineering', $result['department'] );
 		$this->assertSame( 'Acme', $result['organization'] );
 		$this->assertSame( array( 'subscriber' ), $result['roles'] );
@@ -298,7 +300,6 @@ class UserProfileRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' === $cap );
 		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 1 === $uid && 'manage_options' === $cap );
-		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 		$user = $this->make_user( 5 );
 		Functions\when( 'get_user_by' )->justReturn( $user );
 		Functions\when( 'get_userdata' )->justReturn( $user );
@@ -318,20 +319,33 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->assertSame( array( 'j***@example.com' ), $result['emails'] );
 		$this->assertSame( '(**) *****-**00', $result['phone'] );
 		$this->assertSame( '', $result['birth_date'] );
-		$this->assertSame( '**/**/****', $result['birth_date_display'] );
+		$this->assertSame( '20/05/****', $result['birth_date_display'] );
 		$this->assertTrue( $result['pii_masked'] );
 		$this->assertTrue( $result['can_reveal'] );
 		$this->assertStringNotContainsString( 'john@example.com', (string) json_encode( $result ) );
 	}
 
-	public function test_the_owner_sees_their_own_profile_in_clear(): void {
+	public function test_the_owner_sees_their_own_profile_masked_with_reveal(): void {
+		// #1897: the owner's own data is masked on screen too, and theirs to reveal.
 		$this->stub_profile_reload();
+		$this->user_manager_mock->shouldReceive( 'get_extended_profile' )
+			->with( 5, array( 'birth_date' ) )
+			->andReturn( array( 'birth_date' => '1990-05-20' ) );
 
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->get_user_profile( $this->make_request() );
 
-		$this->assertSame( 'john@example.com', $result['email'] );
-		$this->assertFalse( $result['pii_masked'] );
-		$this->assertFalse( $result['can_reveal'] );
+		$this->assertSame( 'j***@example.com', $result['email'] );
+		$this->assertSame( array( 'j***@example.com' ), $result['emails'] );
+		$this->assertSame( '(**) *****-**00', $result['phone'] );
+		$this->assertSame( '', $result['birth_date'] );
+		$this->assertSame( '20/05/****', $result['birth_date_display'] );
+		$this->assertSame( array( '123.***.***-00' ), $result['cpfs_masked'] );
+		$this->assertTrue( $result['pii_masked'] );
+		$this->assertTrue( $result['can_reveal'] );
+		$encoded = (string) json_encode( $result );
+		$this->assertStringNotContainsString( 'john@example.com', $encoded );
+		$this->assertStringNotContainsString( '99999-0000', $encoded );
+		$this->assertStringNotContainsString( '1990', $encoded );
 	}
 
 	public function test_reveal_serves_one_field_in_view_as_and_audits_it(): void {
@@ -359,26 +373,46 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->assertNotSame( '', $birth['display'] );
 	}
 
-	public function test_reveal_refuses_outside_view_as(): void {
+	public function test_the_owner_reveals_their_own_field_without_an_audit_row(): void {
 		$this->stub_profile_reload();
+		$this->user_manager_mock->shouldReceive( 'get_extended_profile' )
+			->with( 5, array( 'birth_date' ) )
+			->andReturn( array( 'birth_date' => '1990-05-20' ) );
+		$this->activity_log_mock->shouldNotReceive( 'log' );
+		$ctrl = new UserProfileRestController( 'ffc/v1' );
+
+		$phone = $ctrl->reveal_profile_field( $this->make_request( array( 'field' => 'phone' ) ) );
+		$email = $ctrl->reveal_profile_field( $this->make_request( array( 'field' => 'email' ) ) );
+		$birth = $ctrl->reveal_profile_field( $this->make_request( array( 'field' => 'birth_date' ) ) );
+
+		$this->assertSame( array( 'field' => 'phone', 'value' => '(11) 99999-0000' ), $phone );
+		$this->assertSame( array( 'john@example.com' ), $email['values'] );
+		$this->assertSame( '1990-05-20', $birth['value'] );
+	}
+
+	public function test_reveal_refuses_a_non_admin_asking_for_someone_else(): void {
+		// viewAsUserId is honoured only for manage_options: anyone else who
+		// names another account through the owner path is refused, and
+		// nothing of either account is read (#1897).
+		Functions\when( 'get_current_user_id' )->justReturn( 9 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\expect( 'get_userdata' )->never();
+		$this->user_manager_mock->shouldNotReceive( 'get_user_emails' );
+		$this->activity_log_mock->shouldNotReceive( 'log' );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'email' ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_reveal_denied', $result->get_error_code() );
+		$this->assertSame( array( 'status' => 403 ), $result->get_error_data() );
+	}
+
+	public function test_reveal_refuses_a_visitor_who_is_not_logged_in(): void {
 		$this->activity_log_mock->shouldNotReceive( 'log' );
 
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'field' => 'phone' ) ) );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'ffc_reveal_not_view_as', $result->get_error_code() );
-	}
-
-	public function test_reveal_refuses_a_non_admin_asking_for_someone_else(): void {
-		// viewAsUserId is honoured only for manage_options: anyone else reads
-		// their own profile, which has nothing to reveal.
-		Functions\when( 'get_current_user_id' )->justReturn( 9 );
-		Functions\when( 'current_user_can' )->justReturn( false );
-		$this->activity_log_mock->shouldNotReceive( 'log' );
-
-		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'phone' ) ) );
-
-		$this->assertSame( 'ffc_reveal_not_view_as', $result->get_error_code() );
+		$this->assertSame( 'not_logged_in', $result->get_error_code() );
 	}
 
 	public function test_reveal_refuses_an_unsupported_field(): void {
@@ -388,6 +422,66 @@ class UserProfileRestControllerTest extends TestCase {
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'cpf' ) ) );
 
 		$this->assertSame( 'ffc_reveal_unsupported', $result->get_error_code() );
+	}
+
+	public function test_reveal_serves_the_formatted_cpf_rf_list_and_audits_it(): void {
+		$this->view_as_user_five();
+		$query = Mockery::mock( 'alias:FreeFormCertificate\Services\UserIdentifiersQueryService' );
+		$query->shouldReceive( 'get_cpfs_formatted_for_user' )->once()->with( 5 )
+			->andReturn( array( '123.456.789-01', '765.432-1' ) );
+		$this->activity_log_mock->shouldReceive( 'log' )->once()
+			->with( 'user_profile_pii_revealed', 'info', array( 'field_key' => 'cpf_rf', 'view_as' => true, 'subject_user_id' => 5 ), 1, 0 )
+			->andReturn( true );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'cpf_rf' ) ) );
+
+		$this->assertSame(
+			array(
+				'field'  => 'cpf_rf',
+				'values' => array( '123.456.789-01', '765.432-1' ),
+				'value'  => '123.456.789-01',
+			),
+			$result
+		);
+	}
+
+	public function test_reveal_of_cpf_rf_with_no_identifier_returns_an_empty_value(): void {
+		$this->view_as_user_five();
+		$query = Mockery::mock( 'alias:FreeFormCertificate\Services\UserIdentifiersQueryService' );
+		$query->shouldReceive( 'get_cpfs_formatted_for_user' )->once()->andReturn( array() );
+		$this->activity_log_mock->shouldReceive( 'log' )->once()->andReturn( true );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'cpf_rf' ) ) );
+
+		$this->assertSame( array(), $result['values'] );
+		$this->assertSame( '', $result['value'] );
+	}
+
+	public function test_the_owner_reveals_their_own_cpf_rf_without_an_audit_row(): void {
+		$this->stub_profile_reload();
+		$query = Mockery::mock( 'alias:FreeFormCertificate\Services\UserIdentifiersQueryService' );
+		$query->shouldReceive( 'get_cpfs_formatted_for_user' )->once()->with( 5 )
+			->andReturn( array( '123.456.789-01' ) );
+		$this->activity_log_mock->shouldNotReceive( 'log' );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'field' => 'cpf_rf' ) ) );
+
+		$this->assertSame( '123.456.789-01', $result['value'] );
+	}
+
+	public function test_reveal_of_cpf_rf_refuses_a_viewer_the_policy_denies(): void {
+		// The view-as gate passed, but the reveal policy, which reads the
+		// viewer's own capabilities, says masked.
+		$this->view_as_user_five();
+		Functions\when( 'user_can' )->justReturn( false );
+		$query = Mockery::mock( 'alias:FreeFormCertificate\Services\UserIdentifiersQueryService' );
+		$query->shouldNotReceive( 'get_cpfs_formatted_for_user' );
+		$this->activity_log_mock->shouldNotReceive( 'log' );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'cpf_rf' ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_reveal_denied', $result->get_error_code() );
 	}
 
 	public function test_view_as_save_never_writes_a_masked_phone_back(): void {
@@ -402,6 +496,22 @@ class UserProfileRestControllerTest extends TestCase {
 					'viewAsUserId' => 5,
 					'phone'        => '(**) *****-**00',
 					'department'   => 'Ops',
+				)
+			)
+		);
+	}
+
+	public function test_owner_save_never_writes_a_masked_phone_back(): void {
+		$this->stub_profile_reload();
+		$this->user_manager_mock->shouldReceive( 'update_profile' )->once()
+			->with( 5, array( 'department' => 'Ops' ) )
+			->andReturn( true );
+
+		( new UserProfileRestController( 'ffc/v1' ) )->update_user_profile(
+			$this->make_request(
+				array(
+					'phone'      => '(**) *****-**00',
+					'department' => 'Ops',
 				)
 			)
 		);
@@ -496,7 +606,7 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
 	}
 
-	public function test_get_user_profile_returns_the_stored_birth_date_and_its_display_form(): void {
+	public function test_get_user_profile_masks_a_stored_birth_date(): void {
 		$this->stub_profile_reload();
 		$this->user_manager_mock->shouldReceive( 'get_extended_profile' )
 			->with( 5, array( 'birth_date' ) )
@@ -505,8 +615,8 @@ class UserProfileRestControllerTest extends TestCase {
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->get_user_profile( $this->make_request() );
 
 		$this->assertIsArray( $result );
-		$this->assertSame( '1990-05-20', $result['birth_date'] );
-		$this->assertNotSame( '', $result['birth_date_display'], 'A stored date must reach the read-only view formatted.' );
+		$this->assertSame( '', $result['birth_date'], 'The date is revealed on request, never sent masked or in clear (#1897).' );
+		$this->assertSame( '20/05/****', $result['birth_date_display'], 'A stored date must reach the read-only view as a mask.' );
 	}
 
 	public function test_get_user_profile_returns_an_empty_birth_date_when_none_is_stored(): void {

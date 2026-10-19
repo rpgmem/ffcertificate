@@ -121,22 +121,46 @@ class AudienceAdminAudience {
 				'allow_self_join' => ! empty( $_POST['audience_self_join'] ) ? 1 : 0,
 			);
 
+			// A top-level audience with children posts the four-option choice
+			// (#1901) instead of the switch: the field is present, empty while
+			// the descendants disagree and nothing was picked, which changes
+			// neither the audience's own flag nor any descendant's.
+			$scope = isset( $_POST['audience_self_join_scope'] ) && empty( $data['parent_id'] )
+				? RequestInput::get_post_string( 'audience_self_join_scope' )
+				: null;
+			if ( null !== $scope ) {
+				unset( $data['allow_self_join'] );
+			}
+
+			// The tree-access pair (#1918) is posted by a top-level audience
+			// only; a child shows its tree's state and posts nothing.
+			$tree_access = isset( $_POST['audience_tree_access'] ) && empty( $data['parent_id'] )
+				? array( ! empty( $_POST['audience_members_only'] ), ! empty( $_POST['audience_require_membership'] ) )
+				: null;
+
 			if ( $id > 0 ) {
 				AudienceWriter::update( $id, $data );
 
-				// Cascade allow_self_join to children if this is a parent.
-				if ( empty( $data['parent_id'] ) ) {
-					AudienceWriter::cascade_self_join( $id, (int) $data['allow_self_join'] );
+				if ( null !== $tree_access ) {
+					AudienceWriter::set_tree_access( $id, $tree_access[0], $tree_access[1] );
+				}
+
+				if ( null !== $scope && '' !== $scope ) {
+					AudienceWriter::apply_self_join_scope( $id, $scope );
 				}
 
 				add_settings_error( 'ffc_audience', 'ffc_message', __( 'Audience updated successfully.', 'ffcertificate' ), 'success' );
 			} else {
+				// A new group under an audience takes the audience's choice
+				// for its children and grandchildren (#1901), not the switch.
+				if ( ! empty( $data['parent_id'] ) ) {
+					unset( $data['allow_self_join'] );
+				}
 				$new_id = AudienceWriter::create( $data );
+				if ( $new_id && null !== $tree_access ) {
+					AudienceWriter::set_tree_access( (int) $new_id, $tree_access[0], $tree_access[1] );
+				}
 				if ( $new_id ) {
-					// Cascade to children (if creating a parent from template/import).
-					if ( empty( $data['parent_id'] ) ) {
-						AudienceWriter::cascade_self_join( $new_id, (int) $data['allow_self_join'] );
-					}
 					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $new_id . '&message=created' ) );
 					exit;
 				}

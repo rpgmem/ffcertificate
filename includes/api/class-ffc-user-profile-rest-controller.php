@@ -72,9 +72,9 @@ class UserProfileRestController {
 			)
 		);
 
-		// Reveal one masked field of the profile an administrator is viewing
-		// as its owner (#1863). Only in view-as: the owner reads their own
-		// profile in clear and has nothing to reveal.
+		// Reveal one masked field of the profile: the owner's own, unaudited
+		// (#1897), or the one an administrator is viewing as its owner,
+		// audited (#1863).
 		register_rest_route(
 			$this->namespace,
 			'/user/profile/reveal',
@@ -205,22 +205,17 @@ class UserProfileRestController {
 			$email = (string) ( $full_profile['email'] ?? '' );
 			$phone = (string) ( $full_profile['phone'] ?? '' );
 
-			// "View as user" shows the profile as its owner sees it, but the
-			// administrator is not the owner (#1863): the email addresses,
-			// phone and birth date arrive masked, and each one is revealed on
-			// request through /user/profile/reveal, which is audited. The
-			// identifiers are masked for everyone already.
-			$pii_masked = $ctx['is_view_as'];
-			if ( $pii_masked ) {
-				$email  = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
-				$emails = array_map( array( \FreeFormCertificate\Core\DocumentFormatter::class, 'mask_email' ), $emails );
-				$phone  = \FreeFormCertificate\Core\DocumentFormatter::mask_phone( $phone );
-			}
-			$birth_display = '' !== $birth_date ? \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $birth_date ) : '';
-			if ( $pii_masked && '' !== $birth_date ) {
-				$birth_date    = '';
-				$birth_display = '**/**/****';
-			}
+			// The email addresses, phone, birth date and identifiers arrive
+			// masked for everyone, and each one is revealed on request through
+			// /user/profile/reveal: by the owner without an audit row, so a
+			// shared screen does not show them (#1897), and in "view as user"
+			// by the administrator, audited (#1863, #1888).
+			$email         = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
+			$emails        = array_map( array( \FreeFormCertificate\Core\DocumentFormatter::class, 'mask_email' ), $emails );
+			$phone         = \FreeFormCertificate\Core\DocumentFormatter::mask_phone( $phone );
+			$birth_display = \FreeFormCertificate\Core\DocumentFormatter::mask_birth_date( $birth_date );
+			$birth_date    = '';
+			$can_reveal    = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED !== \FreeFormCertificate\Core\PiiAccessPolicy::resolve_on_screen( self::PII_CAP, $user_id );
 
 			return rest_ensure_response(
 				array(
@@ -238,8 +233,8 @@ class UserProfileRestController {
 					'notes'              => (string) ( $full_profile['notes'] ?? '' ),
 					'birth_date'         => $birth_date,
 					'birth_date_display' => $birth_display,
-					'pii_masked'         => $pii_masked,
-					'can_reveal'         => $pii_masked && \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal( self::PII_CAP, $user_id ),
+					'pii_masked'         => true,
+					'can_reveal'         => $can_reveal,
 					'preferences'        => $preferences,
 					'member_since'       => $member_since,
 					'roles'              => $full_profile['roles'] ?? array(),
@@ -307,10 +302,10 @@ class UserProfileRestController {
 				}
 			}
 
-			// In view-as the phone arrives masked until revealed (#1863); a
-			// masked value posted back is the mask, not a new number, and
-			// never overwrites the stored one.
-			if ( $ctx['is_view_as'] && isset( $data['phone'] ) && false !== strpos( $data['phone'], '*' ) ) {
+			// The phone arrives masked until revealed (#1863, #1897); a masked
+			// value posted back is the mask, not a new number, and never
+			// overwrites the stored one.
+			if ( isset( $data['phone'] ) && false !== strpos( $data['phone'], '*' ) ) {
 				unset( $data['phone'] );
 			}
 
@@ -382,30 +377,40 @@ class UserProfileRestController {
 	}
 
 	/**
-	 * POST /user/profile/reveal — one masked field of the profile an
-	 * administrator is viewing as its owner (#1863).
+	 * POST /user/profile/reveal — one masked field of a dashboard profile.
 	 *
-	 * Served only in view-as, and only when the PII policy lets the viewer
-	 * reveal the owner's data; every served value writes an audit row naming
-	 * the field and the account.
+	 * Two paths. The owner reveals their own profile (#1897): the account is
+	 * always the current user, never one the request names, and no audit row
+	 * is written, because nobody else's data is disclosed. In "view as user"
+	 * the administrator reveals the viewed account when the PII policy lets
+	 * them, and every served value writes an audit row naming the field and
+	 * the account (#1863).
 	 *
 	 * @since 6.40.0
+	 * @since 6.41.0 The owner path (#1897).
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function reveal_profile_field( $request ) {
-		$ctx = $this->resolve_user_context( $request );
-		if ( ! $ctx['is_view_as'] || $ctx['user_id'] <= 0 ) {
-			return new \WP_Error( 'ffc_reveal_not_view_as', __( 'There is nothing to reveal on your own profile.', 'ffcertificate' ), array( 'status' => 400 ) );
+		$ctx     = $this->resolve_user_context( $request );
+		$view_as = $ctx['is_view_as'];
+		$user_id = $view_as ? $ctx['user_id'] : get_current_user_id();
+		if ( $user_id <= 0 ) {
+			return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
 		}
 
-		$user_id = $ctx['user_id'];
-		if ( ! \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal( self::PII_CAP, $user_id ) ) {
+		// Someone who may not view as another user asked for one: refused,
+		// rather than answered with their own data as if they had not.
+		if ( ! $view_as && null !== $request->get_param( 'viewAsUserId' ) && absint( $request->get_param( 'viewAsUserId' ) ) !== $user_id ) {
+			return new \WP_Error( 'ffc_reveal_denied', __( 'You do not have permission to reveal this field.', 'ffcertificate' ), array( 'status' => 403 ) );
+		}
+
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === \FreeFormCertificate\Core\PiiAccessPolicy::resolve_on_screen( self::PII_CAP, $user_id ) ) {
 			return new \WP_Error( 'ffc_reveal_denied', __( 'You do not have permission to reveal this field.', 'ffcertificate' ), array( 'status' => 403 ) );
 		}
 
 		$field = (string) $request->get_param( 'field' );
-		if ( ! in_array( $field, array( 'email', 'phone', 'birth_date' ), true ) ) {
+		if ( ! in_array( $field, array( 'email', 'phone', 'birth_date', 'cpf_rf' ), true ) ) {
 			return new \WP_Error( 'ffc_reveal_unsupported', __( 'Unsupported field.', 'ffcertificate' ), array( 'status' => 400 ) );
 		}
 
@@ -425,10 +430,20 @@ class UserProfileRestController {
 			case 'phone':
 				$response['value'] = (string) ( $full_profile['phone'] ?? '' );
 				break;
+			case 'cpf_rf':
+				// The same rows the masked list reads, formatted instead of
+				// masked (#1888).
+				$response['values'] = \FreeFormCertificate\Services\UserIdentifiersQueryService::get_cpfs_formatted_for_user( $user_id );
+				$response['value']  = $response['values'][0] ?? '';
+				break;
 			default:
 				$birth_date          = (string) ( $full_profile['birth_date'] ?? '' );
 				$response['value']   = $birth_date;
 				$response['display'] = '' !== $birth_date ? \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $birth_date ) : '';
+		}
+
+		if ( ! $view_as ) {
+			return rest_ensure_response( $response );
 		}
 
 		\FreeFormCertificate\Core\ActivityLog::log(

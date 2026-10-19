@@ -149,12 +149,31 @@ class CertTemplateReceiptSettings {
 			<?php esc_html_e( 'Choose which template the appointment receipt (comprovante) PDF uses, separately for Regular and Custom calendars. Create, edit and duplicate templates in the Document Templates hub.', 'ffcertificate' ); ?>
 		</p>
 		<p>
-			<a class="button" href="<?php echo esc_url( self::hub_list_url() ); ?>" target="_blank" rel="noopener">
-				<?php esc_html_e( 'Manage receipt templates', 'ffcertificate' ); ?>
-			</a>
-			<a class="button" href="<?php echo esc_url( self::hub_new_url() ); ?>" target="_blank" rel="noopener">
-				<?php esc_html_e( '+ New template', 'ffcertificate' ); ?>
-			</a>
+			<?php
+			AdminUI::render_button(
+				array(
+					'label' => __( 'Manage receipt templates', 'ffcertificate' ),
+					'icon'  => 'layout',
+					'href'  => self::hub_list_url(),
+					'attrs' => array(
+						'target' => '_blank',
+						'rel'    => 'noopener',
+					),
+				)
+			);
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'New template', 'ffcertificate' ),
+					'category' => 'create',
+					'icon'     => 'plus',
+					'href'     => self::hub_new_url(),
+					'attrs'    => array(
+						'target' => '_blank',
+						'rel'    => 'noopener',
+					),
+				)
+			);
+			?>
 		</p>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-receipt-form">
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::SAVE_ACTION ); ?>">
@@ -163,7 +182,7 @@ class CertTemplateReceiptSettings {
 			$this->render_mode_section( 'regular', __( 'Regular calendars', 'ffcertificate' ), $templates );
 			$this->render_mode_section( 'custom', __( 'Custom calendars', 'ffcertificate' ), $templates );
 			?>
-			<?php submit_button( __( 'Save Changes', 'ffcertificate' ) ); ?>
+			<?php AdminUI::render_save_button( '', array( 'value' => __( 'Save Changes', 'ffcertificate' ) ) ); ?>
 		</form>
 		</div>
 		<?php
@@ -205,11 +224,22 @@ class CertTemplateReceiptSettings {
 						</option>
 					<?php endforeach; ?>
 				</select>
-				<?php if ( $can_edit_selected ) : ?>
-					<a href="<?php echo esc_url( self::hub_edit_url( $selected ) ); ?>" target="_blank" rel="noopener">
-						<?php esc_html_e( 'Edit this template →', 'ffcertificate' ); ?>
-					</a>
-				<?php endif; ?>
+				<?php
+				if ( $can_edit_selected ) {
+					AdminUI::render_button(
+						array(
+							'label'    => __( 'Edit this template', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'edit',
+							'href'     => self::hub_edit_url( $selected ),
+							'attrs'    => array(
+								'target' => '_blank',
+								'rel'    => 'noopener',
+							),
+						)
+					);
+				}
+				?>
 			</p>
 		</div>
 		<?php

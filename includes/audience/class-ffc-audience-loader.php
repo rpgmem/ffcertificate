@@ -203,14 +203,7 @@ class AudienceLoader {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// Admin CSS.
-		if ( function_exists( 'wp_style_is' ) && ! wp_style_is( 'ffc-common', 'registered' ) ) {
-			wp_register_style(
-				'ffc-common',
-				FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-				array(),
-				FFC_VERSION
-			);
-		}
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		wp_enqueue_style(
 			'ffc-audience-admin',
 			FFC_PLUGIN_URL . "assets/css/ffc-audience-admin{$s}.css",
@@ -242,17 +235,12 @@ class AudienceLoader {
 		if ( 'ffc-scheduling-audiences' === $page ) {
 			wp_enqueue_script( 'jquery-ui-sortable' );
 
-			wp_enqueue_style(
-				'ffc-custom-fields-admin',
-				FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css",
-				array( 'ffc-common', 'ffc-audience-admin' ),
-				FFC_VERSION
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-custom-fields-admin-css' );
 
 			wp_enqueue_script(
 				'ffc-division-sector-editor',
 				FFC_PLUGIN_URL . "assets/js/ffc-division-sector-editor{$s}.js",
-				array( 'jquery' ),
+				array( 'jquery', 'ffc-core' ),
 				FFC_VERSION,
 				true
 			);
@@ -265,7 +253,7 @@ class AudienceLoader {
 						'departmentName' => __( 'Department name', 'ffcertificate' ),
 						'removeDivision' => __( 'Remove division', 'ffcertificate' ),
 						'removeSector'   => __( 'Remove department', 'ffcertificate' ),
-						'addSector'      => __( '+ Add Department', 'ffcertificate' ),
+						'addSector'      => __( 'Add Department', 'ffcertificate' ),
 					),
 				)
 			);
@@ -282,29 +270,11 @@ class AudienceLoader {
 		// Bookings page: the batched CSV export button drives the shared
 		// window.FFCBatchedExport engine (#772) via the unified dispatcher.
 		if ( 'ffc-scheduling-bookings' === $page ) {
-			wp_enqueue_script(
-				'ffc-core',
-				FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-				array( 'jquery' ),
-				FFC_VERSION,
-				true
-			);
-			wp_enqueue_script(
-				'ffc-batched-export',
-				FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
-				array( 'jquery', 'ffc-core' ),
-				FFC_VERSION,
-				true
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-batched-export' );
 			// Shared progress-overlay modal styles (#786): the batched-export
 			// driver renders window.FFCProgressOverlay, identical to the public
 			// download.
-			wp_enqueue_style(
-				'ffc-progress-overlay',
-				FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-				array( 'ffc-common' ),
-				FFC_VERSION
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 		}
 
 		// Localize script.
@@ -326,34 +296,7 @@ class AudienceLoader {
 		// Autosave infra so the "Create users…" toggle on the CSV import tab
 		// (and any future autosave-keyed input on scheduling pages) binds
 		// to SettingsAjaxEndpoint. Mirrors SettingsTab::enqueue_autosave_infra().
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-admin-js',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-admin-autosave',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-section-collapse',
-			FFC_PLUGIN_URL . "assets/js/ffc-section-collapse{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-admin-js', 'ffc-admin-autosave', 'ffc-section-collapse' );
 		wp_localize_script(
 			'ffc-admin-autosave',
 			'ffcAdminAutosave',
@@ -385,29 +328,13 @@ class AudienceLoader {
 		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 		// Frontend CSS.
-		wp_enqueue_style(
-			'ffc-common',
-			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-			array(),
-			FFC_VERSION
-		);
-		wp_enqueue_style(
-			'ffc-audience',
-			FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-audience-css' );
 
 		// Frontend JS. `ffc-core` provides window.FFC.request() used by
 		// ffc-audience.js — without it, the AJAX call near the bottom of
 		// the file throws `FFC is not defined` and breaks the calendar.
-		wp_enqueue_script(
-			'ffc-audience',
-			FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-audience' );
 	}
 
 	/**

@@ -438,10 +438,6 @@
 
 	window.FFC = window.FFC || {};
 	window.FFC.VerticalTabs = { init: initTabs };
-	// Deprecated alias: the name this object had while the component served
-	// only the certificate form editor (#1788). Nothing in the plugin reads it.
-	// @removal 6.41.0 -- a third-party script may still call it.
-	window.FFC.FormEditorTabs = window.FFC.VerticalTabs;
 
 	$( function () {
 		initTabs();

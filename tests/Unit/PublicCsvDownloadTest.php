@@ -13,6 +13,7 @@ use FreeFormCertificate\Frontend\CsvDownloadFormInfoBuilder;
 use FreeFormCertificate\Frontend\PublicCsvDownload;
 use FreeFormCertificate\Security\RateLimiter;
 use FreeFormCertificate\Security\RateLimitChecker;
+use FreeFormCertificate\Tests\Support\ButtonMarkup;
 
 /**
  * Tests for PublicCsvDownload: shortcode + admin-post handler.
@@ -538,6 +539,14 @@ class PublicCsvDownloadTest extends TestCase {
 		// Honeypot rendered by Shortcodes::generate_security_fields()
 		$this->assertStringContainsString( 'ffc_honeypot_trap', $html );
 		$this->assertStringContainsString( 'ffc_captcha_ans', $html );
+
+		// The submit is a family button (#1880): primary with the check icon,
+		// full width, `ffc-submit-btn` kept as the hook `ffc-csv-download.js` reads.
+		$buttons = ButtonMarkup::classes_by_hook( $html, 'ffc-submit-btn' );
+		$this->assertCount( 1, $buttons );
+		foreach ( array( 'ffc-btn', 'ffc-btn-primary', 'ffc-icon-checkmark', 'ffc-btn-block' ) as $class ) {
+			$this->assertContains( $class, $buttons[0], "The CSV info submit lacks {$class}." );
+		}
 	}
 
 	public function test_render_shortcode_prefills_form_id_and_hash_from_query_string(): void {

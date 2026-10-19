@@ -296,6 +296,20 @@ class IdentityQueue {
 	}
 
 	/**
+	 * The check-digit scan, as a seam a test can replace.
+	 *
+	 * `items()` asks it for the failures, the per-hash verdicts and the
+	 * coverage, and it holds ONE instance for all three: the coverage
+	 * describes the last scan that object ran (#1925).
+	 *
+	 * @since 6.41.0
+	 * @return IdentityCheckDigitScan
+	 */
+	protected function scans(): IdentityCheckDigitScan {
+		return new IdentityCheckDigitScan();
+	}
+
+	/**
 	 * The acceptance record, as a seam a test can replace.
 	 *
 	 * @since 6.33.0
@@ -320,12 +334,13 @@ class IdentityQueue {
 	public function items( int $limit = 100 ): array {
 		$limit  = max( 1, $limit );
 		$query  = $this->conflicts();
+		$scan   = $this->scans();
 		$out    = array();
 		$spoken = array();
 
 		// RESET FIRST, so a caller reading truncation after a scan that found
 		// nothing sees THIS scan's answer rather than the previous call's.
-		// Same reason `rf_check_digit_failures()` resets its coverage.
+		// Same reason `IdentityCheckDigitScan::check_digit_failures()` resets its coverage.
 		$this->truncated = array();
 
 		$multiple = $this->capped( self::CHECK_MULTIPLE, $query->multiple_identities( $limit ), $limit );
@@ -334,7 +349,7 @@ class IdentityQueue {
 			$row      = (array) $row;
 			$column   = (string) ( $row['identifier_column'] ?? '' );
 			$hashes   = self::listed( $row[ IdentityConflictQuery::COLUMN_RELATED ] ?? '' );
-			$verdicts = array() === $hashes ? array() : $query->check_digit_verdicts( $column, $hashes );
+			$verdicts = array() === $hashes ? array() : $scan->check_digit_verdicts( $column, $hashes );
 			$item     = $this->tiered( $row, $verdicts );
 
 			// ONLY THE MECHANICAL TIER SPEAKS FOR A FAILING NUMBER.
@@ -392,10 +407,10 @@ class IdentityQueue {
 		 * What is left is still what the account-side checks cannot see at all --
 		 * a person who mistyped once on their only row, and a candidacy carrying
 		 * no account until promotion, which is the whole reason
-		 * `rf_check_digit_failures()` scans rows rather than accounts -- plus,
+		 * `IdentityCheckDigitScan::check_digit_failures()` scans rows rather than accounts -- plus,
 		 * now, every failing number whose account-side card can only point at it.
 		 */
-		foreach ( $this->capped( self::CHECK_DIGITS, $query->check_digit_failures_of_both( $limit ), $limit ) as $row ) {
+		foreach ( $this->capped( self::CHECK_DIGITS, $scan->check_digit_failures_of_both( $limit ), $limit ) as $row ) {
 			$row     = (array) $row;
 			$subject = (string) ( $row['subject'] ?? '' );
 
@@ -413,7 +428,7 @@ class IdentityQueue {
 			$out[] = $row;
 		}
 
-		$this->coverage = $query->scan_coverage();
+		$this->coverage = $scan->scan_coverage();
 
 		return $this->without_accepted( $out );
 	}
@@ -607,7 +622,7 @@ class IdentityQueue {
 	/**
 	 * What each check-digit scan read, keyed by the column it scanned.
 	 *
-	 * NOT SUMMED, FOR THE REASON `IdentityConflictQuery::scan_coverage()` GIVES:
+	 * NOT SUMMED, FOR THE REASON `IdentityCheckDigitScan::scan_coverage()` GIVES:
 	 * a clean RF scan added to a CPF scan that read nothing renders as "the
 	 * scan read the data", so the healthy half would vouch for the half that
 	 * never ran. Empty until a scan runs, because a zeroed record cannot be

@@ -51,16 +51,16 @@ beforeEach(() => {
 							<option value="">All</option>
 							<option value="submission_created">Submission Created</option>
 						</select>
-						<input type="submit" class="button" value="Filter">
-						<a href="?page=ffc-settings&tab=activity_log" class="button">Clear Filters</a>
+						<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-filter">Filter</button>
+						<a href="?page=ffc-settings&tab=activity_log" class="ffc-btn ffc-btn-neutral ffc-icon-eraser ffc-log-clear">Clear Filters</a>
 					</form>
 				</div>
 				<div class="alignright actions">
 					<form>
 						<input type="search" id="ffc-log-search" name="s" value="bob">
-						<input type="submit" class="button" value="Search">
+						<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-search">Search</button>
 					</form>
-					<button type="button" id="ffc-activitylog-export-btn" class="button"
+					<button type="button" id="ffc-activitylog-export-btn" class="ffc-btn ffc-btn-neutral ffc-icon-download"
 						data-level="info" data-log_action="" data-s="bob">Export CSV</button>
 					<span id="ffc-activitylog-export-progress" style="display:none;"></span>
 				</div>
@@ -172,7 +172,7 @@ describe('Activity Log — Clear Filters', () => {
 			is_empty: false, table_html: '<tr></tr>', pagination_html: '', total_logs: 1, current_page: 1,
 		});
 
-		window.$('.tablenav.top .alignleft a.button').trigger('click');
+		window.$('.tablenav.top .alignleft a.ffc-log-clear').trigger('click');
 		await Promise.resolve(); await Promise.resolve();
 
 		expect(requestSpy).toHaveBeenCalledWith('ffc_activity_log_fetch', expect.objectContaining({
@@ -304,11 +304,11 @@ describe('Activity Log — pagination + clear-filter guards', () => {
 		// A button whose href already has filters is the "active filter"
 		// link, not Clear Filters — the handler must let it through.
 		window.$('.tablenav.top .alignleft form').append(
-			'<a href="?post_type=ffc_form&page=ffc-activity-log&level=warning" class="button">Filtered</a>'
+			'<a href="?post_type=ffc_form&page=ffc-activity-log&level=warning" class="ffc-btn ffc-btn-neutral ffc-log-clear">Filtered</a>'
 		);
 		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ is_empty: false, table_html: '' });
 		const ev = window.$.Event('click');
-		window.$('.tablenav.top .alignleft a.button[href*="level=warning"]').trigger(ev);
+		window.$('.tablenav.top .alignleft a.ffc-log-clear[href*="level=warning"]').trigger(ev);
 		await Promise.resolve(); await Promise.resolve();
 		expect(requestSpy).not.toHaveBeenCalled();
 		expect(ev.isDefaultPrevented()).toBe(false);

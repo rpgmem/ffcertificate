@@ -181,11 +181,13 @@ class SubmissionsList extends \WP_List_Table {
 			return $html;
 		}
 
-		return $html . sprintf(
-			' <button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="submission" data-field="email" data-submission-id="%1$s" data-nonce="%2$s">%3$s</button>',
-			esc_attr( (string) ( $item['id'] ?? 0 ) ),
-			esc_attr( $this->reveal_nonce() ),
-			esc_html__( 'Reveal', 'ffcertificate' )
+		return $html . ' ' . \FreeFormCertificate\Core\PiiReveal::field_button(
+			array(
+				'type'          => 'submission',
+				'field'         => 'email',
+				'submission-id' => (string) ( $item['id'] ?? 0 ),
+				'nonce'         => $this->reveal_nonce(),
+			)
 		);
 	}
 
@@ -226,7 +228,7 @@ class SubmissionsList extends \WP_List_Table {
 				),
 				$base_url
 			);
-			$actions .= '<a href="' . esc_url( $edit_url ) . '" class="button button-small ffc-icon-edit">' . esc_html__( 'Edit', 'ffcertificate' ) . '</a> ';
+			$actions .= self::row_action( __( 'Edit', 'ffcertificate' ), 'neutral', 'edit', $edit_url ) . ' ';
 		}
 		$actions .= $this->render_pdf_button( $item );
 
@@ -245,7 +247,7 @@ class SubmissionsList extends \WP_List_Table {
 				),
 				'ffc_action_' . $item['id']
 			);
-			$actions  .= '<a href="' . esc_url( $trash_url ) . '" class="button button-small ffc-icon-delete">' . esc_html__( 'Trash', 'ffcertificate' ) . '</a>';
+			$actions  .= self::row_action( __( 'Trash', 'ffcertificate' ), 'danger', 'delete', $trash_url );
 		} else {
 			$restore_url = wp_nonce_url(
 				add_query_arg(
@@ -268,8 +270,14 @@ class SubmissionsList extends \WP_List_Table {
 				'ffc_action_' . $item['id']
 			);
 
-			$actions .= '<a href="' . esc_url( $restore_url ) . '" class="button button-small ffc-icon-restore">' . esc_html__( 'Restore', 'ffcertificate' ) . '</a> ';
-			$actions .= '<a href="' . esc_url( $delete_url ) . '" class="button button-small ffc-delete-btn ffc-icon-cross" data-confirm="' . esc_attr__( 'Permanently delete?', 'ffcertificate' ) . '">' . esc_html__( 'Delete', 'ffcertificate' ) . '</a>';
+			$actions .= self::row_action( __( 'Restore', 'ffcertificate' ), 'caution', 'restore', $restore_url ) . ' ';
+			$actions .= self::row_action(
+				__( 'Delete', 'ffcertificate' ),
+				'danger',
+				'delete',
+				$delete_url,
+				array( 'data-confirm' => __( 'Permanently delete?', 'ffcertificate' ) )
+			);
 		}
 
 		return $actions;
@@ -294,11 +302,40 @@ class SubmissionsList extends \WP_List_Table {
 			return '<em class="ffc-no-token">' . esc_html__( 'No token', 'ffcertificate' ) . '</em>';
 		}
 
-		return sprintf(
-			'<a href="%s" target="_blank" class="button button-small ffc-icon-file" title="%s">%s</a>',
-			esc_url( $magic_link ),
-			esc_attr__( 'Opens PDF in new tab', 'ffcertificate' ),
-			__( 'PDF', 'ffcertificate' )
+		return self::row_action(
+			__( 'PDF', 'ffcertificate' ),
+			'neutral',
+			'file',
+			$magic_link,
+			array(
+				'target' => '_blank',
+				'title'  => __( 'Opens PDF in new tab', 'ffcertificate' ),
+			)
+		);
+	}
+
+	/**
+	 * One button of the Actions column. `ffc-submission-row-action` is the
+	 * hook `ffc-admin-submissions-bulk.js` sends trash, restore and delete
+	 * through AJAX by, and the class the sheet spaces the column with.
+	 *
+	 * @param string               $label    Visible label.
+	 * @param string               $category Button category.
+	 * @param string               $icon     Registry icon.
+	 * @param string               $url      Destination.
+	 * @param array<string, mixed> $attrs    Further attributes.
+	 * @return string
+	 */
+	private static function row_action( string $label, string $category, string $icon, string $url, array $attrs = array() ): string {
+		return AdminUI::button(
+			array(
+				'label'    => $label,
+				'category' => $category,
+				'icon'     => $icon,
+				'href'     => $url,
+				'class'    => 'ffc-submission-row-action',
+				'attrs'    => $attrs,
+			)
 		);
 	}
 
@@ -641,6 +678,7 @@ class SubmissionsList extends \WP_List_Table {
 						array(
 							'label' => __( 'Clear Filter', 'ffcertificate' ),
 							'url'   => remove_query_arg( array( 's', 'filter_form_id', 'paged' ) ),
+							'icon'  => 'eraser',
 						),
 					),
 				)
@@ -710,15 +748,24 @@ class SubmissionsList extends \WP_List_Table {
 
 		?>
 		<div class="alignleft actions ffc-filter-actions">
-			<button type="button" class="button ffc-filter-btn" id="ffc-open-filter-overlay">
-				<span class="ffc-icon-filter" aria-hidden="true"></span>
-				<?php echo esc_html( $btn_label ); ?>
-			</button>
-			<?php if ( $filter_count > 0 ) : ?>
-				<a href="<?php echo esc_url( remove_query_arg( 'filter_form_id' ) ); ?>" class="button">
-					<?php esc_html_e( 'Clear Filter', 'ffcertificate' ); ?>
-				</a>
-			<?php endif; ?>
+			<?php
+			AdminUI::render_button(
+				array(
+					'label' => $btn_label,
+					'icon'  => 'filter',
+					'id'    => 'ffc-open-filter-overlay',
+				)
+			);
+			if ( $filter_count > 0 ) {
+				AdminUI::render_button(
+					array(
+						'label' => __( 'Clear Filter', 'ffcertificate' ),
+						'icon'  => 'eraser',
+						'href'  => remove_query_arg( 'filter_form_id' ),
+					)
+				);
+			}
+			?>
 
 			<!-- Filter Overlay -->
 			<div id="ffc-filter-overlay" class="ffc-filter-overlay" style="display: none;">
@@ -726,7 +773,17 @@ class SubmissionsList extends \WP_List_Table {
 				<div class="ffc-filter-overlay-content">
 					<div class="ffc-filter-overlay-header">
 						<h3><?php esc_html_e( 'Filter by Form', 'ffcertificate' ); ?></h3>
-						<button type="button" class="ffc-filter-overlay-close" title="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+						<?php
+						\FreeFormCertificate\Core\Button::render(
+							array(
+								'label'     => __( 'Close', 'ffcertificate' ),
+								'category'  => 'neutral',
+								'icon'      => 'cross',
+								'icon_only' => true,
+								'class'     => 'ffc-filter-overlay-close',
+							)
+						);
+						?>
 					</div>
 					<div class="ffc-filter-overlay-body">
 						<?php
@@ -741,8 +798,23 @@ class SubmissionsList extends \WP_List_Table {
 						<?php endforeach; ?>
 					</div>
 					<div class="ffc-filter-overlay-footer">
-						<button type="submit" class="button button-primary"><?php esc_html_e( 'Apply Filter', 'ffcertificate' ); ?></button>
-						<button type="button" class="button ffc-filter-overlay-close"><?php esc_html_e( 'Cancel', 'ffcertificate' ); ?></button>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label'    => __( 'Apply Filter', 'ffcertificate' ),
+								'category' => 'primary',
+								'icon'     => 'filter',
+								'type'     => 'submit',
+							)
+						);
+						AdminUI::render_button(
+							array(
+								'label' => __( 'Cancel', 'ffcertificate' ),
+								'icon'  => 'cross',
+								'class' => 'ffc-filter-overlay-close',
+							)
+						);
+						?>
 					</div>
 				</div>
 			</div>

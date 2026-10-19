@@ -140,14 +140,6 @@
     margin-top: var(--ffc-spacing-md);
 }
 
-.ffc-page-qr-generator .ffc-qr-generator__download,
-.ffc-page-qr-generator .ffc-qr-generator__print {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--ffc-spacing-xs);
-}
-
 .ffc-page-qr-generator .ffc-qr-generator__download {
     flex: 1 1 auto;
 }
@@ -212,24 +204,11 @@
     text-align: center;
 }
 
+/* Only the place: the look is the button family's icon-only close (#1879). */
 .ffc-page-qr-generator .ffc-qr-saved__close {
     position: absolute;
     top: var(--ffc-spacing-xs);
     right: var(--ffc-spacing-xs);
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
-    border: 0;
-    border-radius: var(--ffc-radius-sm);
-    background: none;
-    color: var(--ffc-text-muted);
-    font-size: var(--ffc-font-size-2xl);
-    line-height: 1;
-    cursor: pointer;
-}
-
-.ffc-page-qr-generator .ffc-qr-saved__close:hover,
-.ffc-page-qr-generator .ffc-qr-saved__close:focus {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text);
 }
 
 .ffc-page-qr-generator .ffc-qr-saved__icon {

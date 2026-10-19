@@ -318,7 +318,7 @@ describe('url-shortener — QR modal', () => {
 				<img class="ffc-qr-modal__img" />
 				<div class="ffc-qr-modal__spinner"></div>
 				<div class="ffc-qr-modal__preview"></div>
-				<button class="ffc-qr-modal__close">×</button>
+				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-qr-modal__close" aria-label="Close"></button>
 				<div class="ffc-qr-modal__backdrop"></div>
 			</div>
 		`;
@@ -413,7 +413,7 @@ describe('url-shortener — edit modal', () => {
 		document.body.innerHTML = `
 			<button class="ffc-edit-shorturl" data-id="7" data-target="https://example.com/old" data-title="Old title">Edit</button>
 			<div id="ffc-edit-modal" class="ffc-qr-modal" style="display:none">
-				<button class="ffc-qr-modal__close">×</button>
+				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-qr-modal__close" aria-label="Close"></button>
 				<form id="ffc-edit-short-url">
 					<input type="hidden" name="id" value="" />
 					<input id="ffc-edit-target" name="target_url" value="" />

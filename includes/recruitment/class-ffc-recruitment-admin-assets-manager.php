@@ -62,41 +62,23 @@ final class RecruitmentAdminAssetsManager {
 			return;
 		}
 
-		$css_path = FFC_PLUGIN_DIR . 'assets/css/ffc-recruitment-admin.css';
-		$js_path  = FFC_PLUGIN_DIR . 'assets/js/ffc-recruitment-admin.js';
-
-		// Bust cache via filemtime so admins editing local copies see the
-		// fresh asset without bumping FFC_VERSION on every change.
-		$css_ver = file_exists( $css_path ) ? (string) filemtime( $css_path ) : FFC_VERSION;
-		$js_ver  = file_exists( $js_path ) ? (string) filemtime( $js_path ) : FFC_VERSION;
-
 		// ffc-common.css carries the .ffc-control-toggle switch styles used by the
 		// notice/reason editors (render_toggle); load it as a dependency.
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_style(
-			'ffc-common',
-			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-			array(),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
 		// The vertical-tab layout for the recruitment admin nav lives in
 		// ffc-admin-settings.css (the .ffc-settings-tabs__* rules introduced
 		// in #429 and reused here). Enqueue it so this page picks up the
 		// same look as page=ffc-settings; the other rules in that file are
 		// scoped under .ffc-settings-wrap and stay dormant here.
-		wp_enqueue_style(
-			'ffc-admin-settings',
-			FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-settings' );
 
 		wp_enqueue_style(
 			self::HANDLE_CSS,
-			FFC_PLUGIN_URL . 'assets/css/ffc-recruitment-admin.css',
+			FFC_PLUGIN_URL . "assets/css/ffc-recruitment-admin{$s}.css",
 			array( 'ffc-common', 'ffc-admin-settings' ),
-			$css_ver
+			FFC_VERSION
 		);
 
 		// The badge colours are hex values the operator picks, so no static
@@ -107,9 +89,9 @@ final class RecruitmentAdminAssetsManager {
 
 		wp_enqueue_script(
 			self::HANDLE_JS,
-			FFC_PLUGIN_URL . 'assets/js/ffc-recruitment-admin.js',
+			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-admin{$s}.js",
 			array(),
-			$js_ver,
+			FFC_VERSION,
 			true
 		);
 
@@ -125,7 +107,7 @@ final class RecruitmentAdminAssetsManager {
 			'ffc-recruitment-import-batched',
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-import-batched{$s}.js",
 			array(),
-			$js_ver,
+			FFC_VERSION,
 			true
 		);
 
@@ -134,12 +116,15 @@ final class RecruitmentAdminAssetsManager {
 		// handlers are document-delegated and inert when their buttons aren't
 		// rendered, so enqueuing on every recruitment screen is harmless.
 		// ffc-core: the swap's outcome is the shared status line, FFC.status() (#1843).
-		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
+		// ffc-field-behaviours: the phone field types through the shared
+		// phone mask, like every other phone the plugin edits (#1920).
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-field-behaviours' );
 		wp_enqueue_script(
 			'ffc-recruitment-candidate-edit',
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-candidate-edit{$s}.js",
-			array( 'ffc-core' ),
-			$js_ver,
+			array( 'ffc-core', 'ffc-field-behaviours' ),
+			FFC_VERSION,
 			true
 		);
 		wp_localize_script(
@@ -168,7 +153,7 @@ final class RecruitmentAdminAssetsManager {
 			'ffc-recruitment-candidates-import',
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-candidates-import{$s}.js",
 			array( 'ffc-core' ),
-			$js_ver,
+			FFC_VERSION,
 			true
 		);
 		wp_localize_script(
@@ -201,7 +186,7 @@ final class RecruitmentAdminAssetsManager {
 			'ffc-recruitment-notice-edit',
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-notice-edit{$s}.js",
 			array( self::HANDLE_JS, 'ffc-recruitment-import-batched' ),
-			$js_ver,
+			FFC_VERSION,
 			true
 		);
 		wp_localize_script(
@@ -263,34 +248,7 @@ final class RecruitmentAdminAssetsManager {
 		// SettingsTab::enqueue_autosave_infra() so this off-page screen
 		// (it's `toplevel_page_ffc-recruitment`, not `toplevel_page_ffc-settings`)
 		// can opt-in without depending on the settings-page asset loader.
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-admin-js',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-admin-autosave',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-section-collapse',
-			FFC_PLUGIN_URL . "assets/js/ffc-section-collapse{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-admin-js', 'ffc-admin-autosave', 'ffc-section-collapse' );
 		wp_localize_script(
 			'ffc-admin-autosave',
 			'ffcAdminAutosave',

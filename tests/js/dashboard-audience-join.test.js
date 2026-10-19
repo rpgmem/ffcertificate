@@ -81,6 +81,10 @@ describe('FFCDashboard.audienceJoin.load', () => {
 		expect(btn).not.toBeNull();
 		expect(btn.getAttribute('data-id')).toBe('42');
 		expect(btn.disabled).toBe(false);
+		// Join mirrors Leave: the tonal create category with the login icon (#1918).
+		expect(btn.classList.contains('ffc-btn-create')).toBe(true);
+		expect(btn.classList.contains('ffc-icon-login')).toBe(true);
+		expect(btn.classList.contains('ffc-icon-plus')).toBe(false);
 	});
 
 	it('renders a Leave button on a member joinable group', async () => {
@@ -94,6 +98,8 @@ describe('FFCDashboard.audienceJoin.load', () => {
 		const btn = document.querySelector('#ffc-audience-join-section .ffc-audience-leave-btn');
 		expect(btn).not.toBeNull();
 		expect(btn.getAttribute('data-id')).toBe('7');
+		expect(btn.classList.contains('ffc-btn-danger')).toBe(true);
+		expect(btn.classList.contains('ffc-icon-logout')).toBe(true);
 	});
 
 	it('disables the Join button when joined_count >= max_groups', async () => {

@@ -67,57 +67,21 @@ class UrlShortenerAdminPage {
 		// (defeito B), and ffc-common.css is where those tokens are declared.
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
-		wp_enqueue_style(
-			'ffc-url-shortener-admin',
-			FFC_PLUGIN_URL . 'assets/css/ffc-url-shortener-admin.css',
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-url-shortener-admin-css' );
 		// Shared batched-export driver (#772): the CSV export button drives the
 		// unified `ffc_export_*` dispatcher through window.FFCBatchedExport.
-		wp_enqueue_script(
-			'ffc-batched-export',
-			FFC_PLUGIN_URL . 'assets/js/ffc-batched-export.js',
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-batched-export' );
 		// Shared progress-overlay modal styles (#786): the batched-export driver
 		// renders window.FFCProgressOverlay, identical to the public download.
-		wp_enqueue_style(
-			'ffc-progress-overlay',
-			FFC_PLUGIN_URL . 'assets/css/ffc-progress-overlay.css',
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 		// Saving and rasterising QR images, shared with the manual generator (#1563).
-		wp_enqueue_script(
-			'ffc-qr-raster',
-			FFC_PLUGIN_URL . 'assets/js/ffc-qr-raster.js',
-			array(),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-qr-raster' );
 		// `ffc-admin-js` carries FFC.Admin.notify(), the one toast the admin
 		// has (#1843): copy and regenerate report through it.
-		$ffc_s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$ffc_s}.js", array( 'jquery' ), FFC_VERSION, true );
-		wp_enqueue_script( 'ffc-admin-js', FFC_PLUGIN_URL . "assets/js/ffc-admin{$ffc_s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
-		wp_enqueue_script(
-			'ffc-url-shortener-admin',
-			FFC_PLUGIN_URL . 'assets/js/ffc-url-shortener-admin.js',
-			// `ffc-core` carries `window.FFC.request()` which the QR-download
-			// click handler calls. Declaring it as a dep makes the load
-			// order survive JS-combining cache plugins (LiteSpeed Combine,
-			// WP Rocket Combine, etc.) that flatten the bundle and would
-			// otherwise drop `ffc-core` for not being in the chain. Same
-			// fix shape as 6.6.7 (#367) applied to the 4 public-facing
-			// sites; admin sites missed that pass. `ffc-batched-export`
-			// provides the CSV-export driver the button calls.
-			array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-batched-export', 'ffc-qr-raster' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-admin-js' );
+		// Each row's on/off toggle saves through the record autosave (#1904).
+		\FreeFormCertificate\Core\RecordAutosave::enqueue();
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-url-shortener-admin' );
 		wp_localize_script(
 			'ffc-url-shortener-admin',
 			'ffcUrlShortener',
@@ -165,14 +129,15 @@ class UrlShortenerAdminPage {
 	}
 
 	/**
-	 * Handle non-AJAX admin actions (bulk delete, toggle).
+	 * Handle the non-AJAX row actions (trash, restore, delete, empty trash).
+	 * Active / disabled is a toggle that saves through the record autosave.
 	 */
 	public function handle_actions(): void {
 		if ( \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ) !== 'ffc-short-urls' ) {
 			return;
 		}
 
-		// These GET-link actions are all writes (trash/restore/delete/toggle/
+		// These GET-link actions are all writes (trash/restore/delete/
 		// empty_trash) — read-only viewers never run them.
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
 			return;
@@ -186,7 +151,7 @@ class UrlShortenerAdminPage {
 		$nonce  = \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' );
 
 		// Removal actions (trash/restore/delete/empty_trash) require the dedicated
-		// destructive cap (GAP E). Toggle stays under manage above.
+		// destructive cap (GAP E).
 		$removal_actions = array( 'trash', 'restore', 'delete', 'empty_trash' );
 		if ( in_array( $action, $removal_actions, true )
 			&& ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_url_shortener' ) ) {
@@ -234,15 +199,6 @@ class UrlShortenerAdminPage {
 				$this->service->delete_short_url( (int) $item['id'] );
 			}
 			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=emptied' ) );
-			exit;
-		}
-
-		if ( 'toggle' === $action && isset( $_GET['id'] ) ) {
-			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_toggle_' . absint( $_GET['id'] ) ) ) {
-				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
-			}
-			$this->service->toggle_status( absint( wp_unslash( $_GET['id'] ) ) );
-			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=toggled' ) );
 			exit;
 		}
 	}

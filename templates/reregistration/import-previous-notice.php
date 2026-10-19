@@ -33,7 +33,14 @@ $ffc_notice = \FreeFormCertificate\Core\Notice::render(
 		'role'    => 'status',
 		'html'    => true,
 		'hook'    => 'rereg-import',
-		'actions' => '<button type="button" class="button ffc-rereg-import-btn">' . esc_html__( 'Bring previous answers', 'ffcertificate' ) . '</button>'
+		'actions' => \FreeFormCertificate\Core\Button::html(
+			array(
+				'label'    => __( 'Bring previous answers', 'ffcertificate' ),
+				'category' => 'neutral',
+				'icon'     => 'history',
+				'class'    => 'ffc-rereg-import-btn',
+			)
+		)
 			. '<span class="ffc-rereg-import-status" role="status"></span>',
 	)
 );

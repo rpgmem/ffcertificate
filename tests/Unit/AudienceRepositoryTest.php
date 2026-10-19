@@ -351,6 +351,191 @@ class AudienceRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
+	// descendants_self_join_state() (#1896)
+	// ==================================================================
+
+	/**
+	 * Answer `get_children()` from a parent id => rows map: the prepared
+	 * arguments carry the parent id, and get_results() reads it back.
+	 *
+	 * @param array<int, list<object>> $tree Children per parent id.
+	 */
+	private function children_tree( array $tree ): void {
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			static fn( $sql, $args ) => 'children:' . (int) ( $args[1] ?? 0 )
+		);
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			static fn( $sql ) => $tree[ (int) substr( (string) $sql, strlen( 'children:' ) ) ] ?? array()
+		);
+	}
+
+	/**
+	 * @return iterable<string, array{0: array<int, list<object>>, 1: ?string}>
+	 */
+	public static function descendants_states(): iterable {
+		$row = static fn( int $id, int $flag ): object => (object) array( 'id' => (string) $id, 'parent_id' => '1', 'allow_self_join' => (string) $flag );
+
+		yield 'no children' => array( array(), null );
+		yield 'every child and grandchild on' => array( array( 1 => array( $row( 2, 1 ), $row( 3, 1 ) ), 2 => array( $row( 4, 1 ) ) ), '1' );
+		yield 'every child and grandchild off' => array( array( 1 => array( $row( 2, 0 ) ), 2 => array( $row( 4, 0 ) ) ), '0' );
+		yield 'children on, a grandchild off' => array( array( 1 => array( $row( 2, 1 ), $row( 3, 1 ) ), 3 => array( $row( 5, 0 ) ) ), 'mixed' );
+		yield 'children off, a grandchild on' => array( array( 1 => array( $row( 2, 0 ) ), 2 => array( $row( 4, 1 ) ) ), 'mixed' );
+	}
+
+	/**
+	 * @dataProvider descendants_states
+	 *
+	 * @param array<int, list<object>> $tree     Children per parent id.
+	 * @param string|null              $expected The derived state.
+	 */
+	public function test_descendants_self_join_state_is_derived_from_every_level( array $tree, ?string $expected ): void {
+		$this->children_tree( $tree );
+
+		$this->assertSame( $expected, AudienceReader::descendants_self_join_state( 1 ) );
+	}
+
+	/**
+	 * @dataProvider descendants_states
+	 *
+	 * @param array<int, list<object>> $tree     Children per parent id.
+	 * @param string|null              $expected The derived state.
+	 */
+	public function test_descendants_self_join_count_counts_every_level( array $tree, ?string $expected ): void {
+		$this->children_tree( $tree );
+
+		$count = AudienceReader::descendants_self_join_count( 1 );
+		$flags = array();
+		foreach ( $tree as $rows ) {
+			foreach ( $rows as $row ) {
+				$flags[] = (int) $row->allow_self_join;
+			}
+		}
+		$this->assertSame( array( 'allowed' => array_sum( $flags ), 'total' => count( $flags ) ), $count );
+	}
+
+	/**
+	 * A group created under audience 1 (a top-level audience: its row has no
+	 * parent) takes its descendants' state (#1901): on only when all are on;
+	 * off when all are off, when they disagree and when there are none yet.
+	 *
+	 * @dataProvider descendants_states
+	 *
+	 * @param array<int, list<object>> $tree     Children per parent id.
+	 * @param string|null              $expected The derived state.
+	 */
+	public function test_a_new_group_inherits_its_top_level_audience_s_descendants( array $tree, ?string $expected ): void {
+		$this->children_tree( $tree );
+		$this->wpdb->shouldReceive('get_row')->andReturn( (object) array( 'id' => '1', 'parent_id' => null, 'allow_self_join' => '0' ) );
+
+		$this->assertSame( '1' === $expected ? 1 : 0, AudienceReader::inherited_self_join( 1 ) );
+	}
+
+	public function test_create_under_a_parent_takes_the_inherited_self_join(): void {
+		$row = static fn( int $id ): object => (object) array( 'id' => (string) $id, 'parent_id' => '1', 'allow_self_join' => '1' );
+		$this->children_tree( array( 1 => array( $row( 2 ) ) ) );
+		$this->wpdb->shouldReceive('get_row')->andReturn( (object) array( 'id' => '1', 'parent_id' => null, 'allow_self_join' => '0' ) );
+		$this->wpdb->insert_id = 9;
+		$this->wpdb->shouldReceive('insert')->once()->with(
+			'wp_ffc_audiences',
+			Mockery::on( static fn( $data ) => 1 === $data['allow_self_join'] && 1 === $data['parent_id'] ),
+			Mockery::type('array')
+		)->andReturn(1);
+
+		$this->assertSame( 9, AudienceWriter::create( array( 'name' => 'Child', 'parent_id' => 1 ) ) );
+	}
+
+	public function test_create_under_a_parent_keeps_an_explicit_self_join(): void {
+		$this->wpdb->shouldNotReceive('get_row');
+		$this->wpdb->insert_id = 9;
+		$this->wpdb->shouldReceive('insert')->once()->with(
+			'wp_ffc_audiences',
+			Mockery::on( static fn( $data ) => 0 === $data['allow_self_join'] ),
+			Mockery::type('array')
+		)->andReturn(1);
+
+		AudienceWriter::create( array( 'name' => 'Child', 'parent_id' => 1, 'allow_self_join' => 0 ) );
+	}
+
+	/**
+	 * @return iterable<string, array{0: string, 1: int, 2: int}>
+	 */
+	public static function scope_writes(): iterable {
+		yield 'off' => array( 'off', 0, 0 );
+		yield 'this audience only' => array( 'self', 1, 0 );
+		yield 'audience and descendants' => array( 'all', 1, 1 );
+		yield 'descendants only' => array( 'descendants', 0, 1 );
+	}
+
+	/**
+	 * Each of the four choices (#1901) writes the audience's own flag and
+	 * the same value on every child and grandchild.
+	 *
+	 * @dataProvider scope_writes
+	 *
+	 * @param string $scope       The choice.
+	 * @param int    $own         The audience's own flag.
+	 * @param int    $descendants The descendants' flag.
+	 */
+	public function test_apply_self_join_scope_writes_both_flags( string $scope, int $own, int $descendants ): void {
+		$child    = (object) array( 'id' => '2', 'parent_id' => '1', 'allow_self_join' => '0' );
+		$prepared = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			static function ( $sql, $args = array() ) use ( &$prepared ) {
+				$prepared[] = array( $sql, $args );
+				if ( is_array( $args ) && 2 === count( $args ) && false !== strpos( $sql, 'parent_id = %d' ) ) {
+					return 'CHILDREN_OF:' . $args[1];
+				}
+				return $sql;
+			}
+		);
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing( static fn( $sql ) => 'CHILDREN_OF:1' === $sql ? array( $child ) : array() );
+		$this->wpdb->shouldReceive('get_col')->andReturn( array() );
+		$this->wpdb->shouldReceive('update')->once()->with( 'wp_ffc_audiences', array( 'allow_self_join' => $own ), array( 'id' => 1 ), array( '%d' ), array( '%d' ) )->andReturn( 1 );
+		$this->wpdb->shouldReceive('query')->once()->andReturn( 1 );
+
+		$this->assertTrue( AudienceWriter::apply_self_join_scope( 1, $scope ) );
+
+		$cascade = array_values( array_filter( $prepared, static fn( $p ) => 0 === stripos( (string) $p[0], 'UPDATE' ) ) );
+		$this->assertCount( 1, $cascade );
+		$this->assertSame( $descendants, $cascade[0][1][1], 'the descendants take the choice\'s second flag' );
+	}
+
+	public function test_apply_self_join_scope_refuses_an_unknown_choice(): void {
+		$this->wpdb->shouldNotReceive('update');
+		$this->wpdb->shouldNotReceive('query');
+
+		$this->assertFalse( AudienceWriter::apply_self_join_scope( 1, 'mixed' ) );
+	}
+
+	/**
+	 * @return iterable<string, array{0: bool, 1: bool, 2: int, 3: int}>
+	 */
+	public static function tree_access_pairs(): iterable {
+		yield 'both on'                  => array( true, true, 1, 1 );
+		yield 'members-only alone'       => array( true, false, 1, 0 );
+		yield 'keep without members-only' => array( false, true, 0, 0 );
+		yield 'both off'                 => array( false, false, 0, 0 );
+	}
+
+	/**
+	 * "Keep at least one group" is stored off whenever "Visible to members
+	 * only" is off (#1918).
+	 *
+	 * @dataProvider tree_access_pairs
+	 */
+	public function test_set_tree_access_stores_keep_only_under_members_only( bool $members_only, bool $keep, int $stored_members_only, int $stored_keep ): void {
+		$this->wpdb->shouldReceive('update')->once()->with(
+			'wp_ffc_audiences',
+			array( 'members_only' => $stored_members_only, 'require_membership' => $stored_keep ),
+			array( 'id' => 1 ),
+			array( '%d', '%d' ),
+			array( '%d' )
+		)->andReturn( 1 );
+
+		$this->assertTrue( AudienceWriter::set_tree_access( 1, $members_only, $keep ) );
+	}
+
+	// ==================================================================
 	// get_hierarchical()
 	// ==================================================================
 

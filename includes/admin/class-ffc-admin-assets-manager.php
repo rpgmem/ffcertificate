@@ -231,34 +231,14 @@ class AdminAssetsManager {
 	 * @return void
 	 */
 	public static function enqueue_image_tools(): void {
-		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		wp_enqueue_media();
 
-		// ffc-admin-pdf depends on ffc-core (namespace + module registry).
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_localize_script(
-			'ffc-core',
-			'ffcCoreConfig',
-			array(
-				'version' => FFC_VERSION,
-				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
-			)
-		);
+		// ffc-admin-pdf depends on ffc-core (namespace + module registry),
+		// which Core\AssetRegistry registers on every admin request (#1924).
+		wp_enqueue_script( 'ffc-core' );
 
-		wp_enqueue_script(
-			'ffc-admin-pdf',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-pdf{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-pdf' );
 		wp_localize_script(
 			'ffc-admin-pdf',
 			'ffc_ajax',
@@ -355,22 +335,9 @@ class AdminAssetsManager {
 	 * @since 3.1.0
 	 */
 	private function enqueue_core_module(): void {
-		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_localize_script(
-			'ffc-core',
-			'ffcCoreConfig',
-			array(
-				'version' => FFC_VERSION,
-				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
-			)
-		);
+		// Registered, with its configuration, by Core\AssetRegistry at
+		// priority 1 of this same hook (#1924).
+		wp_enqueue_script( 'ffc-core' );
 	}
 
 	/**
@@ -382,7 +349,7 @@ class AdminAssetsManager {
 	 * 3. ffc-admin-utilities (admin utilities, depends on common)
 	 * 3b. ffc-admin-components (shared admin components, depends on common)
 	 * 4. ffc-admin-css (general admin, depends on pdf-core, common, utilities)
-	 * 5. ffc-admin-submissions-css (submissions page, depends on admin)
+	 * 5. ffc-admin-submissions-css (the submissions screen only, depends on admin)
 	 * 6. Conditional: ffc-admin-settings (only on settings page)
 	 * 7. Conditional: ffc-admin-submission-edit (only on edit page)
 	 */
@@ -396,7 +363,12 @@ class AdminAssetsManager {
 		// duplicating the chain.
 		self::enqueue_admin_base_styles();
 
-		// 5. Submissions page styles (depends on ffc-admin.css)
+		// 5. Submissions page styles (depends on ffc-admin.css), on that
+		// screen only: is_ffc_page() matches every `?page=ffc-*`, and the
+		// sheet's name says one screen (#1923).
+		if ( Admin::SUBMISSIONS_PAGE !== RequestInput::get_get_string( 'page' ) ) {
+			return;
+		}
 		wp_enqueue_style(
 			'ffc-admin-submissions-css',
 			FFC_PLUGIN_URL . "assets/css/ffc-admin-submissions{$s}.css",
@@ -420,20 +392,10 @@ class AdminAssetsManager {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// 1. Base styles (PDF core)
-		wp_enqueue_style(
-			'ffc-pdf-core',
-			FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css",
-			array(),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-pdf-core' );
 
 		// 2. Common utilities (shared between admin and frontend)
-		wp_enqueue_style(
-			'ffc-common',
-			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-			array(),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
 		// 3. Admin-specific utilities (v3.1.0)
 		wp_enqueue_style(
@@ -445,12 +407,7 @@ class AdminAssetsManager {
 
 		// 3b. Admin components shared across screens (#1614): the collapsible
 		// section the QR and certificate screens draw.
-		wp_enqueue_style(
-			'ffc-admin-components',
-			FFC_PLUGIN_URL . "assets/css/ffc-admin-components{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-components' );
 
 		// 4. Admin general styles (depends on pdf-core, common, and admin-utilities)
 		wp_enqueue_style(
@@ -485,41 +442,18 @@ class AdminAssetsManager {
 		);
 
 		// 2. PDF Management module.
-		wp_enqueue_script(
-			'ffc-admin-pdf',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-pdf{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-pdf' );
 
 		// 2b. Shared batched-export driver (#772): the start → batch → download
 		// loop for the unified `ffc_export_*` dispatcher, used by the CSV export
 		// button in ffc-admin.js. Also enqueued on the public download page.
-		wp_enqueue_script(
-			'ffc-batched-export',
-			FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-batched-export' );
 		// Shared progress-overlay modal styles (#786): the batched-export driver
 		// renders window.FFCProgressOverlay, identical to the public download.
-		wp_enqueue_style(
-			'ffc-progress-overlay',
-			FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 
 		// 3. Main admin script (depends on modules)
-		wp_enqueue_script(
-			'ffc-admin-js',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js",
-			array( 'jquery', 'ffc-admin-field-builder', 'ffc-admin-pdf', 'ffc-batched-export' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-js' );
 
 		// 4. Localize — attach to field-builder so strings are available to all dependent scripts.
 		wp_localize_script( 'ffc-admin-field-builder', 'ffc_ajax', $this->get_localization_data() );

@@ -104,9 +104,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 											<?php checked( $ffc_loc['id'], $ffc_default_ip_id ); ?>>
 								</td>
 								<td>
-									<button type="button" class="button button-small ffc-location-delete">
-										<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
-									</button>
+									<?php
+									\FreeFormCertificate\Admin\AdminUI::render_button(
+										array(
+											'label'    => __( 'Delete', 'ffcertificate' ),
+											'category' => 'danger',
+											'icon'     => 'delete',
+											'class'    => 'ffc-location-delete',
+										)
+									);
+									?>
 									<span class="ffc-autosave-badge ffc-status" role="status" aria-live="polite" hidden></span>
 								</td>
 							</tr>
@@ -170,9 +177,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 									placeholder="1000">
 						</td>
 						<td colspan="2">
-							<button type="button" class="button button-primary" id="ffc-location-add">
-								<?php esc_html_e( 'Add location', 'ffcertificate' ); ?>
-							</button>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label'    => __( 'Add location', 'ffcertificate' ),
+									'category' => 'create',
+									'icon'     => 'plus',
+									'id'       => 'ffc-location-add',
+								)
+							);
+							?>
 						</td>
 						<td>
 							<span class="ffc-autosave-badge ffc-status" role="status" aria-live="polite" hidden></span>
@@ -581,11 +595,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 
 
-		<p class="submit">
-			<button type="submit" name="ffc_save_geolocation" class="button button-primary">
-				<?php esc_html_e( 'Save Changes', 'ffcertificate' ); ?>
-			</button>
-		</p>
+		<?php \FreeFormCertificate\Admin\AdminUI::render_save_button( '', array( 'name' => 'ffc_save_geolocation' ) ); ?>
 	</form>
 
 	<!-- Information Box -->

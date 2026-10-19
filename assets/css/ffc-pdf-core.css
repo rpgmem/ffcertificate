@@ -285,29 +285,11 @@ body.wp-admin .ffc-pdf-temp-wrapper {
 }
 
 /* ==========================================================================
-   10. BUTTON LOADING STATE
+   10. BUTTON LOADING STATE — moved
+   `.ffc-btn-loading` is a state of the `.ffc-btn` family and lives with it
+   in ffc-common.css since #1881. Every screen that sets it loads that sheet;
+   the documents this sheet also styles carry no button.
    ========================================================================== */
-.ffc-btn-loading {
-    pointer-events: none;
-    opacity: 0.8;
-    position: relative;
-    color: transparent !important;
-}
-
-.ffc-btn-loading::after {
-    content: "";
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    top: 50%;
-    left: 50%;
-    margin-top: -8px;
-    margin-left: -8px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: ffc-spin 0.8s linear infinite;
-}
 
 /* ==========================================================================
    11. PROGRESS OVERLAY (Mobile optimized)
@@ -350,7 +332,6 @@ body.wp-admin .ffc-pdf-temp-wrapper {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ffc-btn-loading::after,
     .ffc-progress-spinner {
         animation: none;
     }

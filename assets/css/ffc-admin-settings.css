@@ -395,6 +395,12 @@
     margin-top: var(--ffc-spacing-2xl);
 }
 
+/* The completed card's seal is a status line, not a button: it opens the
+   actions row, so it takes no left margin. */
+.ffc-migration-actions .ffc-migration-complete {
+    margin-left: 0;
+}
+
 .ffc-migration-help {
     background: var(--ffc-bg-alt);
 }
@@ -434,12 +440,16 @@
 /* ==========================================================================
    BUTTONS
    ========================================================================== */
-.ffc-settings-wrap .button {
+/* `.button` stays for the screens under `.ffc-settings-wrap` that have not
+   joined the family yet (#1904) and for the ones WordPress prints. */
+.ffc-settings-wrap .button,
+.ffc-settings-wrap .ffc-btn {
     margin-right: var(--ffc-spacing-md);
     margin-bottom: var(--ffc-spacing-2xs);
 }
 
-.ffc-settings-wrap .button:last-child {
+.ffc-settings-wrap .button:last-child,
+.ffc-settings-wrap .ffc-btn:last-child {
     margin-right: 0;
 }
 
@@ -497,7 +507,8 @@
    PRINT
    ========================================================================== */
 @media print {
-    .ffc-settings-wrap .button {
+    .ffc-settings-wrap .button,
+    .ffc-settings-wrap .ffc-btn {
         display: none;
     }
     

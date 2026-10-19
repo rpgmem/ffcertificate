@@ -70,87 +70,46 @@ class SelfSchedulingShortcode {
 		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 		// Enqueue FFC common styles (includes CSS variables, honeypot, captcha, etc.).
-		wp_enqueue_style(
-			'ffc-common',
-			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-			array(),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
 		// Enqueue FFC frontend styles.
-		wp_enqueue_style(
-			'ffc-frontend',
-			FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		// The handle the certificate form uses for the same sheet, so a page
+		// carrying both loads it once (#1922).
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-frontend-css' );
 
 		// Enqueue shared calendar styles (same as ffc-audience).
-		wp_enqueue_style(
-			'ffc-audience',
-			FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-audience-css' );
 
 		// Enqueue calendar frontend styles (timeslots, form, confirmation).
 		wp_enqueue_style(
 			'ffc-calendar-frontend',
 			FFC_PLUGIN_URL . "assets/css/ffc-calendar-frontend{$s}.css",
-			array( 'ffc-common', 'ffc-audience' ),
+			array( 'ffc-common', 'ffc-audience-css' ),
 			FFC_VERSION
 		);
 
-		// Enqueue FFC frontend helpers (for CPF/RF mask).
-		// ffc-core dep: ffc-frontend-helpers.js calls FFC.request() internally.
-		wp_enqueue_script(
-			'ffc-frontend-helpers',
-			FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		// Enqueue FFC frontend helpers (for CPF/RF mask), with the shared
+		// field behaviours its mask and validators come from (#1920).
+		// `ffc-rate-limit` is the one handle for this file; a second handle
+		// loaded it twice on a page that also carries a certificate form, each
+		// copy with its own state (#1922).
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-field-behaviours', 'ffc-rate-limit' );
 
 		// Enqueue shared calendar core component.
-		// ffc-core dep: ffc-calendar-core.js calls FFC.request() internally.
-		wp_enqueue_script(
-			'ffc-calendar-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-calendar-core{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-calendar-core' );
 
 		// PDF Libraries for auto-download receipt on booking.
-		wp_enqueue_script(
-			'html2canvas',
-			FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js',
-			array(),
-			FFC_HTML2CANVAS_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'html2canvas' );
 
-		wp_enqueue_script(
-			'jspdf',
-			FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js',
-			array(),
-			FFC_JSPDF_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'jspdf' );
 
-		wp_enqueue_script(
-			'ffc-pdf-generator',
-			FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js",
-			array( 'jquery', 'html2canvas', 'jspdf' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
 
 		// Enqueue calendar frontend scripts.
 		wp_enqueue_script(
 			'ffc-calendar-frontend',
 			FFC_PLUGIN_URL . "assets/js/ffc-calendar-frontend{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-calendar-core', 'ffc-frontend-helpers', 'ffc-pdf-generator' ),
+			array( 'jquery', 'ffc-core', 'ffc-calendar-core', 'ffc-rate-limit', 'ffc-pdf-generator' ),
 			FFC_VERSION,
 			true
 		);
@@ -420,7 +379,7 @@ class SelfSchedulingShortcode {
 			$output .= '<h3 class="ffc-calendar-title">' . esc_html( $calendar['title'] ) . '</h3>';
 		}
 
-		$output .= '<div class="ffc-restricted-message">' . wp_kses_post( $message ) . '</div>';
+		$output .= \FreeFormCertificate\Core\Notice::render( 'warning', 'login', $message, '', array( 'html' => true ) );
 		$output .= '</div>';
 
 		return $output;
@@ -523,7 +482,7 @@ class SelfSchedulingShortcode {
 
 		$output  = '<div class="ffc-visibility-restricted">';
 		$output .= '<h3 class="ffc-calendar-title">' . esc_html( $calendar['title'] ) . '</h3>';
-		$output .= '<div class="ffc-restricted-message">' . wp_kses_post( $message ) . '</div>';
+		$output .= \FreeFormCertificate\Core\Notice::render( 'warning', 'clock', $message, '', array( 'html' => true ) );
 		$output .= '</div>';
 
 		return $output;
@@ -579,14 +538,27 @@ class SelfSchedulingShortcode {
 				<div class="ffc-modal-content ffc-modal-lg">
 					<div class="ffc-modal-header">
 						<h3 class="ffc-modal-title" id="ffc-modal-title"><?php esc_html_e( 'Available Times', 'ffcertificate' ); ?></h3>
-						<button type="button" class="ffc-modal-close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+						<?php
+						\FreeFormCertificate\Core\Button::render(
+							array(
+								'label'     => __( 'Close', 'ffcertificate' ),
+								'category'  => 'neutral',
+								'icon'      => 'cross',
+								'icon_only' => true,
+								'class'     => 'ffc-modal-close',
+							)
+						);
+						?>
 					</div>
 					<div class="ffc-modal-body">
 
 					<?php if ( ! $can_book && $scheduling_message ) : ?>
 						<!-- Scheduling restricted message (no time slots shown) -->
 						<div class="ffc-scheduling-restricted">
-							<div class="ffc-restricted-message"><?php echo wp_kses_post( $scheduling_message ); ?></div>
+							<?php
+							// Trusted HTML from the settings screen, printed through wp_kses_post() inside Notice::render().
+							echo \FreeFormCertificate\Core\Notice::render( 'warning', 'login', $scheduling_message, '', array( 'html' => true ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every part and passes the message through wp_kses_post().
+							?>
 						</div>
 					<?php else : ?>
 
@@ -686,12 +658,24 @@ class SelfSchedulingShortcode {
 
 								<!-- Submit Button -->
 								<div class="ffc-form-row ffc-submit-row">
-									<button type="submit" class="ffc-btn ffc-btn-primary">
-										<?php esc_html_e( 'Book Appointment', 'ffcertificate' ); ?>
-									</button>
-									<button type="button" class="ffc-btn ffc-btn-secondary ffc-btn-back">
-										<?php esc_html_e( '← Back', 'ffcertificate' ); ?>
-									</button>
+									<?php
+									\FreeFormCertificate\Core\Button::render(
+										array(
+											'label'    => __( 'Book Appointment', 'ffcertificate' ),
+											'category' => 'primary',
+											'icon'     => 'checkmark',
+											'type'     => 'submit',
+										)
+									);
+									\FreeFormCertificate\Core\Button::render(
+										array(
+											'label'    => __( 'Back', 'ffcertificate' ),
+											'category' => 'neutral',
+											'icon'     => 'chevron-left',
+											'class'    => 'ffc-btn-back',
+										)
+									);
+									?>
 								</div>
 
 								<!-- Messages -->
@@ -743,9 +727,16 @@ class SelfSchedulingShortcode {
 						?>
 					</div>
 
-					<button type="button" class="ffc-btn ffc-btn-primary ffc-btn-new-booking">
-						<?php esc_html_e( 'Book Another Appointment', 'ffcertificate' ); ?>
-					</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'    => __( 'Book Another Appointment', 'ffcertificate' ),
+							'category' => 'create',
+							'icon'     => 'plus',
+							'class'    => 'ffc-btn-new-booking',
+						)
+					);
+					?>
 				</div>
 			</div>
 		</div>

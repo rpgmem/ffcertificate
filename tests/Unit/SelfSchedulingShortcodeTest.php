@@ -22,6 +22,10 @@ class SelfSchedulingShortcodeTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		// Captcha challenges are signed with a wp_salt()-derived key since 6.23.0.
 		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
@@ -402,6 +406,8 @@ class SelfSchedulingShortcodeTest extends TestCase {
 
 		// Booking form is replaced by the scheduling-restricted message.
 		$this->assertStringContainsString( 'ffc-scheduling-restricted', $result );
+		$this->assertStringContainsString( 'ffc-notice ffc-notice-warning', $result );
+		$this->assertStringContainsString( 'Please log in to book.', $result );
 		$this->assertStringNotContainsString( 'ffc-self-scheduling-form', $result );
 	}
 }

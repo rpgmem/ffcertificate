@@ -60,6 +60,10 @@ class IdentitySearchWiringTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		class_exists( '\FreeFormCertificate\Admin\IdentityResolutionPage' );
 		class_exists( '\FreeFormCertificate\Admin\IdentitySearchAjaxEndpoint' );
@@ -111,9 +115,8 @@ class IdentitySearchWiringTest extends TestCase {
 	 * @return string
 	 */
 	private static function view(): string {
-		$path = dirname( __DIR__, 2 ) . '/includes/admin/views/identity-resolution-page.php';
-
-		return (string) file_get_contents( $path );
+		// Buttons built from `Core\Button` arguments name their ids as keys (#1904).
+		return \FreeFormCertificate\Tests\Support\ButtonMarkup::args_as_attributes( \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined() );
 	}
 
 	/**
@@ -140,9 +143,9 @@ class IdentitySearchWiringTest extends TestCase {
 		$page->enqueue( 'ffc_form_page_' . IdentityResolutionPage::MENU_SLUG );
 
 		$this->assertArrayHasKey( 'ffc-identity-search', $this->scripts );
-		$this->assertStringEndsWith( 'assets/js/ffc-identity-search.js', $this->scripts['ffc-identity-search'] );
+		$this->assertMatchesRegularExpression( '#assets/js/ffc-identity-search(\.min)?\.js$#', $this->scripts['ffc-identity-search'] );
 		$this->assertArrayHasKey( 'ffc-identity-preflight', $this->scripts );
-		$this->assertStringEndsWith( 'assets/js/ffc-identity-preflight.js', $this->scripts['ffc-identity-preflight'] );
+		$this->assertMatchesRegularExpression( '#assets/js/ffc-identity-preflight(\.min)?\.js$#', $this->scripts['ffc-identity-preflight'] );
 	}
 
 	/**

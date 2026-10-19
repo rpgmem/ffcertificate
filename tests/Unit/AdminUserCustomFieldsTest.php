@@ -44,6 +44,10 @@ class AdminUserCustomFieldsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		class_exists('\\FreeFormCertificate\\Admin\\AdminUserCustomFields');
 
@@ -159,8 +163,8 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		AdminUserCustomFields::enqueue_assets('user-edit.php');
 
-		$this->assertContains('ffc-working-hours', $enqueued_styles);
-		$this->assertContains('ffc-custom-fields-admin', $enqueued_styles);
+		$this->assertContains('ffc-working-hours-css', $enqueued_styles);
+		$this->assertContains('ffc-custom-fields-admin-css', $enqueued_styles);
 		$this->assertContains('ffc-working-hours', $enqueued_scripts);
 	}
 
@@ -175,8 +179,8 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		AdminUserCustomFields::enqueue_assets('profile.php');
 
-		$this->assertContains('ffc-working-hours', $enqueued_styles);
-		$this->assertContains('ffc-custom-fields-admin', $enqueued_styles);
+		$this->assertContains('ffc-working-hours-css', $enqueued_styles);
+		$this->assertContains('ffc-custom-fields-admin-css', $enqueued_styles);
 	}
 
 	public function test_enqueue_assets_localizes_day_labels(): void {
@@ -1127,7 +1131,8 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		AdminUserCustomFields::enqueue_assets('user-edit.php');
 
-		$this->assertSame( array( 'jquery', 'ffc-core' ), $scripts['ffc-field-behaviours'] ?? null );
+		// Its dependencies are AssetRegistry's to declare (#1931).
+		$this->assertArrayHasKey( 'ffc-field-behaviours', $scripts );
 		$this->assertSame( array( 'jquery', 'ffc-field-behaviours' ), $scripts['ffc-admin-user-fields'] ?? null );
 		$this->assertSame( 'I hold', $localize['ffcAdminUserFields']['strings']['dualPostShowValue'] ?? null );
 	}
@@ -1207,7 +1212,7 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$output = $this->render_another_users_sensitive_field(true);
 
 		$this->assertStringNotContainsString('5181780', $output, 'The clear value never reaches the HTML.');
-		$this->assertMatchesRegularExpression('/name="ffc_cf_23"[^>]*value="518\.\*\*\*\.0"[^>]*data-ffc-pii-field="cf_23"[^>]*data-ffc-pii-editable="1" disabled/', $output);
+		$this->assertMatchesRegularExpression('/name="ffc_cf_23"[^>]*value="518\.\*\*\*-0"[^>]*data-ffc-pii-field="cf_23"[^>]*data-ffc-pii-editable="1" disabled/', $output);
 		$this->assertStringContainsString('class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="user_profile" data-field="cf_23" data-submission-id="10" data-nonce="reveal-nonce"', $output);
 	}
 

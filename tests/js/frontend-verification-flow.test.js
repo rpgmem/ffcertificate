@@ -7,7 +7,9 @@
 //   - showVerificationError (rendered after a magic-link failure).
 //   - .ffc-verification-form submit — empty / valid / refresh_captcha /
 //     network error.
-//   - .ffc-manual-verify-btn click — reloads the page.
+//   - .ffc-manual-verify-btn click — reloads the page, carrying the typed
+//     code in sessionStorage, never firing the PDF handler (#1893).
+//   - prefillAuthCode — the reloaded form receives that code.
 //   - PDF download button — happy path + missing generator branch +
 //     JSON parse error.
 //   - textarea auto-resize on input.
@@ -64,6 +66,7 @@ beforeAll(async () => {
 		},
 	};
 	loadScript('assets/js/ffc-core.js');
+	loadScript('assets/js/ffc-field-behaviours.js');
 	loadScript('assets/js/ffc-frontend-helpers.js');
 	loadScript('assets/js/ffc-frontend.js');
 	await new Promise((r) => setTimeout(r, 0));
@@ -196,6 +199,17 @@ describe('frontend.handleMagicLinkVerification', () => {
 
 		// showVerificationError replaces container HTML with .ffc-verification-error.
 		expect(window.$('.ffc-verification-error').length).toBe(1);
+
+		// The manual Verify button is a family button (#1880): primary, the
+		// check icon, and the verify handler's hook. Never the PDF handler's
+		// `ffc-download-btn` hook, or one click runs both (#1893).
+		const $verify = window.$('.ffc-verification-error button');
+		expect($verify.length).toBe(1);
+		['ffc-btn', 'ffc-btn-primary', 'ffc-icon-checkmark', 'ffc-manual-verify-btn']
+			.forEach((cls) => expect($verify.hasClass(cls)).toBe(true));
+		expect($verify.hasClass('ffc-download-btn')).toBe(false);
+		expect($verify.hasClass('ffc-download-pdf-btn')).toBe(false);
+		expect($verify.text()).toBe('Verify');
 	});
 
 	it('on success=false: surfaces the server message', async () => {
@@ -261,6 +275,9 @@ describe('frontend.handleMagicLinkVerification', () => {
 		// Download button gets the pdf_data shape composed from legacy fields.
 		const $btn = $container.find('.ffc-download-pdf-btn');
 		expect($btn.length).toBe(1);
+		// A family button (#1880): primary with the download icon, the hook kept.
+		['ffc-btn', 'ffc-btn-primary', 'ffc-icon-download'].forEach((cls) => expect($btn.hasClass(cls)).toBe(true));
+		expect(JSON.parse($btn.attr('data-pdf-data'))).toMatchObject({ template: 'tpl', form_title: 'My Form' });
 	});
 
 	it('legacy block renders the certificate preview when html_preview is present', async () => {
@@ -511,29 +528,182 @@ describe('frontend.downloadPdfBtn', () => {
 // ----------------------------------------------------------------------
 
 describe('frontend.manualVerifyBtn', () => {
+	const PREFILL_KEY = 'ffc_verify_auth_code';
+	let original;
+	let stub;
+
+	// jsdom's Location is a host object; replace it wholesale with a plain
+	// stub so href assignments are observable and nothing navigates.
+	function stubLocation() {
+		original = window.location;
+		stub = { pathname: '/some/path', href: '/initial', hash: '', search: '' };
+		Object.defineProperty(window, 'location', { configurable: true, value: stub, writable: true });
+	}
+
+	function restoreLocation() {
+		Object.defineProperty(window, 'location', { configurable: true, value: original, writable: true });
+	}
+
+	// The card as showVerificationError() renders it after a failed magic link.
+	async function mountErrorCard() {
+		document.body.innerHTML = `
+			<div class="ffc-magic-link-container" data-token="magic-token">
+				<div class="ffc-verification-manual">manual form</div>
+				<div class="ffc-verify-loading" style="display:none">loading</div>
+			</div>
+		`;
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
+		loadScript('assets/js/ffc-frontend.js');
+		await waitFor(() => window.$('.ffc-manual-verify-btn').length === 1);
+	}
+
+	beforeEach(() => {
+		window.sessionStorage.clear();
+	});
+
+	afterEach(() => {
+		window.sessionStorage.clear();
+		delete window.ffcGeneratePDF;
+	});
+
 	it('reassigns window.location.href on click', async () => {
 		document.body.innerHTML = `<button class="ffc-manual-verify-btn">Manual</button>`;
-
-		// jsdom's Location is a host object; replace it wholesale with a
-		// plain stub so we can observe href assignments.
-		const original = window.location;
-		const stub = { pathname: '/some/path', href: '/initial' };
-		Object.defineProperty(window, 'location', {
-			configurable: true,
-			value: stub,
-			writable: true,
-		});
+		stubLocation();
 
 		window.$('.ffc-manual-verify-btn').trigger('click');
 		await flush();
 
 		expect(stub.href).toBe('/some/path');
+		restoreLocation();
+	});
 
-		Object.defineProperty(window, 'location', {
-			configurable: true,
-			value: original,
-			writable: true,
+	it('never invokes the PDF handler (#1893)', async () => {
+		await mountErrorCard();
+		window.ffcGeneratePDF = vi.fn();
+		stubLocation();
+
+		window.$('.ffc-manual-auth-code').val('C-ABCD-1234-EFGH');
+		window.$('.ffc-manual-verify-btn').trigger('click');
+		await flush();
+		restoreLocation();
+
+		expect(window.ffcGeneratePDF).not.toHaveBeenCalled();
+		expect(window.$('[data-ffc-notice="accessible-alert"]').length).toBe(0);
+		expect(stub.href).toBe('/some/path');
+	});
+
+	it('carries the typed code across the reload in sessionStorage', async () => {
+		await mountErrorCard();
+		stubLocation();
+
+		window.$('.ffc-manual-auth-code').val('  C-ABCD-1234-EFGH  ');
+		window.$('.ffc-manual-verify-btn').trigger('click');
+		await flush();
+		restoreLocation();
+
+		expect(window.sessionStorage.getItem(PREFILL_KEY)).toBe('C-ABCD-1234-EFGH');
+		expect(stub.href).toBe('/some/path');
+	});
+
+	it('an empty input does a plain reload and stores nothing', async () => {
+		await mountErrorCard();
+		stubLocation();
+
+		window.$('.ffc-manual-auth-code').val('   ');
+		window.$('.ffc-manual-verify-btn').trigger('click');
+		await flush();
+		restoreLocation();
+
+		expect(window.sessionStorage.getItem(PREFILL_KEY)).toBeNull();
+		expect(stub.href).toBe('/some/path');
+	});
+
+	it('still reloads when sessionStorage throws', async () => {
+		await mountErrorCard();
+		vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+			throw new Error('blocked');
 		});
+		stubLocation();
+
+		window.$('.ffc-manual-auth-code').val('C-ABCD-1234-EFGH');
+		window.$('.ffc-manual-verify-btn').trigger('click');
+		await flush();
+		restoreLocation();
+
+		expect(stub.href).toBe('/some/path');
+	});
+});
+
+describe('frontend.prefillAuthCode', () => {
+	const PREFILL_KEY = 'ffc_verify_auth_code';
+
+	function mountForm(value = '') {
+		document.body.innerHTML = `
+			<form class="ffc-verification-form">
+				<input type="text" name="ffc_auth_code" value="${value}">
+				<button type="submit">Verify</button>
+			</form>
+		`;
+	}
+
+	async function boot() {
+		loadScript('assets/js/ffc-frontend.js');
+		await new Promise((r) => setTimeout(r, 0));
+	}
+
+	afterEach(() => {
+		window.sessionStorage.clear();
+	});
+
+	it('fills the reloaded form with the carried code, once, without submitting', async () => {
+		mountForm();
+		window.sessionStorage.setItem(PREFILL_KEY, 'C-ABCD-1234-EFGH');
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+
+		await boot();
+
+		expect(window.$('input[name="ffc_auth_code"]').val()).toBe('C-ABCD-1234-EFGH');
+		expect(window.sessionStorage.getItem(PREFILL_KEY)).toBeNull();
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('sanitises and caps a tampered value', async () => {
+		mountForm();
+		window.sessionStorage.setItem(PREFILL_KEY, '"><script>alert(1)</script>C-ABCD-1234-EFGH-XYZ');
+
+		await boot();
+
+		const value = window.$('input[name="ffc_auth_code"]').val();
+		expect(value).toMatch(/^[A-Za-z0-9-]{1,16}$/);
+		expect(document.querySelector('script')).toBeNull();
+	});
+
+	it('leaves the form alone when nothing was carried', async () => {
+		mountForm();
+
+		await boot();
+
+		expect(window.$('input[name="ffc_auth_code"]').val()).toBe('');
+	});
+
+	it('does not overwrite a value already in the field', async () => {
+		mountForm('R-1111-2222-3333');
+		window.sessionStorage.setItem(PREFILL_KEY, 'C-ABCD-1234-EFGH');
+
+		await boot();
+
+		expect(window.$('input[name="ffc_auth_code"]').val()).toBe('R-1111-2222-3333');
+	});
+
+	it('does nothing when sessionStorage throws', async () => {
+		mountForm();
+		vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+			throw new Error('blocked');
+		});
+
+		await boot();
+
+		expect(window.$('input[name="ffc_auth_code"]').val()).toBe('');
 	});
 });
 

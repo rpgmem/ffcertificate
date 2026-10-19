@@ -3,7 +3,8 @@
  * v3.0.0 - Modular Architecture
  * 
  * Consolidated frontend utilities:
- * - Input masks (CPF/RF, Auth Code, Ticket)
+ * - Input masks (CPF/RF, Auth Code, Ticket); the CPF/RF shape and the CPF
+ *   and RF validators come from ffc-field-behaviours.js (#1920)
  * - Field validation (CPF, RF, Email)
  * - UI feedback (Error, Success messages)
  * - Captcha refresh
@@ -25,67 +26,16 @@
      */
     var Validation = {
         
-        /**
-         * Validate CPF (Cadastro de Pessoas Físicas)
-         * 
-         * @param {string} cpf - CPF to validate (can be formatted or not)
-         * @return {boolean} - True if valid, false otherwise
-         */
+        // The validators live in ffc-field-behaviours.js, shared with the
+        // dashboard and the admin (#1920); these names stay for callers.
         validateCPF: function(cpf) {
-            // Remove formatting
-            cpf = cpf.replace(/[^\d]+/g, '');
-            
-            // Check if has 11 digits
-            if (cpf.length !== 11) {
-                return false;
-            }
-            
-            // Check for known invalid CPFs (all same digits)
-            if (/^(\d)\1{10}$/.test(cpf)) {
-                return false;
-            }
-            
-            // Validate first check digit
-            var sum = 0;
-            for (var i = 0; i < 9; i++) {
-                sum += parseInt(cpf.charAt(i)) * (10 - i);
-            }
-            var digit1 = 11 - (sum % 11);
-            if (digit1 >= 10) digit1 = 0;
-            
-            if (digit1 !== parseInt(cpf.charAt(9))) {
-                return false;
-            }
-            
-            // Validate second check digit
-            sum = 0;
-            for (var j = 0; j < 10; j++) {
-                sum += parseInt(cpf.charAt(j)) * (11 - j);
-            }
-            var digit2 = 11 - (sum % 11);
-            if (digit2 >= 10) digit2 = 0;
-            
-            if (digit2 !== parseInt(cpf.charAt(10))) {
-                return false;
-            }
-            
-            return true;
+            return window.FFC.Fields.validateCpf(cpf);
         },
-        
-        /**
-         * Validate RF (Registro Funcional)
-         * 
-         * @param {string} rf - RF to validate (can be formatted or not)
-         * @return {boolean} - True if valid (7 digits), false otherwise
-         */
+
         validateRF: function(rf) {
-            // Remove formatting
-            rf = rf.replace(/[^\d]+/g, '');
-            
-            // Check if has exactly 7 digits
-            return rf.length === 7 && /^\d{7}$/.test(rf);
+            return window.FFC.Fields.validateRf(rf);
         },
-        
+
         /**
          * Validate email format
          * 
@@ -136,38 +86,9 @@ $inputs.each(function() {
                 
                 // Apply mask on input
                 $input.on('input.cpfrf', function() {
-                    // Remove all except digits
-                    var value = $(this).val().replace(/\D/g, '');
-                    
-                    // Limit to 11 digits (CPF)
-                    if (value.length > 11) {
-                        value = value.substring(0, 11);
-                    }
-                    
-                    // Apply mask based on length
-                    var masked = '';
-                    
-                    if (value.length <= 7) {
-                        // RF format: XXX.XXX-X
-                        if (value.length <= 3) {
-                            masked = value;
-                        } else if (value.length <= 6) {
-                            masked = value.substring(0, 3) + '.' + value.substring(3);
-                        } else {
-                            masked = value.substring(0, 3) + '.' + value.substring(3, 6) + '-' + value.substring(6);
-                        }
-                    } else {
-                        // CPF format: XXX.XXX.XXX-XX
-                        if (value.length <= 3) {
-                            masked = value;
-                        } else if (value.length <= 6) {
-                            masked = value.substring(0, 3) + '.' + value.substring(3);
-                        } else if (value.length <= 9) {
-                            masked = value.substring(0, 3) + '.' + value.substring(3, 6) + '.' + value.substring(6);
-                        } else {
-                            masked = value.substring(0, 3) + '.' + value.substring(3, 6) + '.' + value.substring(6, 9) + '-' + value.substring(9);
-                        }
-                    }
+                    // The shared CPF/RF shape (#1920): seven digits or fewer
+                    // read as an RF, more as a CPF.
+                    var masked = window.FFC.Fields.masks.cpf_rf($(this).val());
                     
                     $(this).val(masked);
                     

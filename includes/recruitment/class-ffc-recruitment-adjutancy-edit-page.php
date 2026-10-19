@@ -119,7 +119,7 @@ final class RecruitmentAdjutancyEditPage {
 		echo '<p class="description">' . esc_html__( 'Background color for the badge on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values fall back to the default.', 'ffcertificate' ) . '</p></td></tr>';
 
 		echo '</tbody></table>';
-		submit_button( __( 'Save adjutancy', 'ffcertificate' ) );
+		\FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save adjutancy', 'ffcertificate' ), array( 'value' => __( 'Save adjutancy', 'ffcertificate' ) ) );
 		echo '</form>';
 
 		echo '</div></div>';

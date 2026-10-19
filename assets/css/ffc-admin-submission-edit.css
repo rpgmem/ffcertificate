@@ -202,16 +202,14 @@
     margin-top: var(--ffc-spacing-md);
 }
 
-.ffc-unlink-user-btn {
-    color: var(--ffc-danger);
-    border-color: var(--ffc-danger);
+/* View Profile, Reveal, Unlink and Relink: one row of actions below the card. */
+.ffc-linked-user-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+    margin-bottom: var(--ffc-spacing-sm);
 }
 
-.ffc-unlink-user-btn:hover {
-    background: var(--ffc-danger);
-    color: var(--ffc-text-on-danger);
-    border-color: var(--ffc-danger);
-}
 
 /* User search section */
 .ffc-user-search-form {

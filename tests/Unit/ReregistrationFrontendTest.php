@@ -628,6 +628,117 @@ class ReregistrationFrontendTest extends TestCase {
 	}
 
 	// ==================================================================
+	// get_recently_expired_approved() — the approved banner after the end (#1887)
+	// ==================================================================
+
+	/**
+	 * Wire the settings window, the site timezone and the magic-link page,
+	 * and capture what the repository query was prepared with.
+	 *
+	 * @param int $days Banner window in days.
+	 * @return \ArrayObject<int, array<int, mixed>> Captured prepare() argument lists.
+	 */
+	private function wireExpiredApproved(int $days): \ArrayObject {
+		Functions\when('get_option')->alias(
+			static fn($key, $default = false) => 'ffc_settings' === $key ? array('rereg_approved_banner_days' => $days) : 0
+		);
+		Functions\when('wp_timezone')->alias(static fn() => new \DateTimeZone('America/Sao_Paulo'));
+		Functions\when('home_url')->justReturn('https://example.test/valid/');
+		Functions\when('trailingslashit')->alias(static fn($u) => rtrim((string) $u, '/') . '/');
+
+		$prepared = new \ArrayObject();
+		global $wpdb;
+		$wpdb->shouldReceive('prepare')->andReturnUsing(static function () use ($prepared) {
+			$prepared[] = func_get_args();
+			return func_get_args()[0];
+		});
+
+		return $prepared;
+	}
+
+	/**
+	 * A campaign the daily run has expired, as the repository returns it.
+	 */
+	private function expiredCampaign(int $id, string $end_date): object {
+		return (object) array(
+			'id'           => $id,
+			'title'        => 'Expired Campaign ' . $id,
+			'start_date'   => '2020-01-01 00:00:00',
+			'end_date'     => $end_date,
+			'auto_approve' => 0,
+			'status'       => 'expired',
+		);
+	}
+
+	public function test_expired_approved_campaign_inside_the_window_is_returned_as_an_approved_banner_row(): void {
+		$prepared = $this->wireExpiredApproved(30);
+		global $wpdb;
+
+		// Ended three days ago: years of margin either side of a 30-day window.
+		$end = gmdate('Y-m-d 17:00:00', time() - (3 * 86400));
+		$wpdb->shouldReceive('get_results')->andReturn(array($this->expiredCampaign(7, $end)));
+		$wpdb->shouldReceive('get_row')->andReturn(
+			(object) array('id' => 70, 'status' => 'approved', 'user_id' => 1, 'magic_token' => 'tok', 'reviewed_at' => (string) (time() - (5 * 86400)))
+		);
+
+		$result = ReregistrationFrontend::get_recently_expired_approved(1);
+
+		$this->assertCount(1, $result);
+		$this->assertSame(7, $result[0]['id']);
+		$this->assertSame('approved', $result[0]['submission_status']);
+		$this->assertFalse($result[0]['can_submit'], 'An expired campaign is never offered as submittable.');
+		$this->assertSame('https://example.test/valid/#token=tok', $result[0]['magic_link']);
+
+		$query = implode(' ', array_map(static fn($args) => (string) $args[0], $prepared->getArrayCopy()));
+		$this->assertStringContainsString("s.status = 'approved'", $query);
+		$this->assertStringContainsString("r.status = 'expired'", $query);
+		$this->assertStringContainsString('r.end_date >= %s OR s.reviewed_at >= %d', $query, 'A positive window bounds the read by date.');
+		$this->assertStringContainsString('LIMIT %d', $query);
+	}
+
+	public function test_expired_approved_campaign_outside_the_window_is_not_returned(): void {
+		$this->wireExpiredApproved(30);
+		global $wpdb;
+
+		$wpdb->shouldReceive('get_results')->andReturn(array($this->expiredCampaign(8, '2020-01-01 17:00:00')));
+		$wpdb->shouldReceive('get_row')->andReturn(
+			(object) array('id' => 80, 'status' => 'approved', 'user_id' => 1, 'magic_token' => 'tok', 'reviewed_at' => (string) gmmktime(12, 0, 0, 1, 2, 2020))
+		);
+
+		$this->assertSame(array(), ReregistrationFrontend::get_recently_expired_approved(1));
+	}
+
+	public function test_expired_campaign_whose_submission_is_not_approved_is_not_returned(): void {
+		$this->wireExpiredApproved(30);
+		global $wpdb;
+
+		$end = gmdate('Y-m-d 17:00:00', time() - (3 * 86400));
+		$wpdb->shouldReceive('get_results')->andReturn(array($this->expiredCampaign(9, $end)));
+		$wpdb->shouldReceive('get_row')->andReturn(
+			(object) array('id' => 90, 'status' => 'submitted', 'user_id' => 1, 'magic_token' => 'tok', 'reviewed_at' => null)
+		);
+
+		$this->assertSame(array(), ReregistrationFrontend::get_recently_expired_approved(1));
+	}
+
+	public function test_a_zero_window_keeps_an_old_expired_approved_campaign_with_no_date_bound(): void {
+		$prepared = $this->wireExpiredApproved(0);
+		global $wpdb;
+
+		$wpdb->shouldReceive('get_results')->andReturn(array($this->expiredCampaign(10, '2020-01-01 17:00:00')));
+		$wpdb->shouldReceive('get_row')->andReturn(
+			(object) array('id' => 100, 'status' => 'approved', 'user_id' => 1, 'magic_token' => 'tok', 'reviewed_at' => (string) gmmktime(12, 0, 0, 1, 2, 2020))
+		);
+
+		$result = ReregistrationFrontend::get_recently_expired_approved(1);
+
+		$this->assertCount(1, $result, '0 never hides, an expired campaign included.');
+		$query = implode(' ', array_map(static fn($args) => (string) $args[0], $prepared->getArrayCopy()));
+		$this->assertStringNotContainsString('r.end_date >=', $query);
+		$this->assertStringContainsString('LIMIT %d', $query, 'Without a date bound the read is still capped.');
+	}
+
+	// ==================================================================
 	// can_submit across EVERY status (#1125)
 	// ==================================================================
 	//

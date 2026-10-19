@@ -87,6 +87,7 @@ class FormListColumns {
 						array(
 							'label' => __( 'Clear Filter', 'ffcertificate' ),
 							'url'   => remove_query_arg( array( 's', 'm', 'paged' ) ),
+							'icon'  => 'eraser',
 						),
 					),
 				)
@@ -118,9 +119,10 @@ class FormListColumns {
 		$actions = array();
 		if ( $type && current_user_can( (string) $type->cap->create_posts ) ) {
 			$actions[] = array(
-				'label'   => __( 'Add New Form', 'ffcertificate' ),
-				'url'     => admin_url( 'post-new.php?post_type=ffc_form' ),
-				'primary' => true,
+				'label'    => __( 'Add New Form', 'ffcertificate' ),
+				'url'      => admin_url( 'post-new.php?post_type=ffc_form' ),
+				'category' => 'create',
+				'icon'     => 'plus',
 			);
 		}
 
@@ -150,13 +152,7 @@ class FormListColumns {
 		}
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			'ffc-form-list-features',
 			FFC_PLUGIN_URL . "assets/js/ffc-form-list-features{$s}.js",

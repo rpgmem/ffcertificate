@@ -620,18 +620,13 @@ class SettingsAjaxEndpoint {
 			$value = ! $value;
 		}
 
-		$option_name = $entry['option'];
-		$option      = get_option( $option_name, array() );
-		if ( ! is_array( $option ) ) {
-			$option = array();
-		}
-
 		$path = isset( $entry['path'] ) && is_array( $entry['path'] ) && ! empty( $entry['path'] )
 			? $entry['path']
 			: array( $key );
-		self::set_nested( $option, $path, $value );
 
-		update_option( $option_name, $option );
+		if ( ! self::write_option_path( $entry['option'], $path, $value ) ) {
+			wp_send_json_error( array( 'message' => __( 'An error occurred. Please try again.', 'ffcertificate' ) ), 503 );
+		}
 
 		wp_send_json_success(
 			array(
@@ -639,6 +634,68 @@ class SettingsAjaxEndpoint {
 				'value' => $value,
 			)
 		);
+	}
+
+	/**
+	 * Set one slot of an array option without losing a concurrent write.
+	 *
+	 * Every key of a tab lives in ONE option array, so each save is a
+	 * read-modify-write of the whole array. The read cannot be a plain
+	 * `get_option()`: an autoloaded option is served from `alloptions`,
+	 * which WordPress loaded when the request booted. Two saves whose
+	 * requests overlap — two toggles flipped a moment apart on a host that
+	 * takes a second to answer — both started from the same array, and
+	 * whichever wrote last erased the other's key while both reported
+	 * success (#1902).
+	 *
+	 * So the slot is written under a database lock named for the option,
+	 * and the array is re-read from the database once the lock is held:
+	 * the second writer waits and then starts from what the first wrote.
+	 * A server that cannot take the lock (an error, not a timeout) still
+	 * gets the fresh read, which shrinks the window to the write itself.
+	 *
+	 * @param string            $option_name Option holding the array.
+	 * @param array<int,string> $path        Keys to walk to the slot.
+	 * @param mixed             $value       Sanitised value for the slot.
+	 * @return bool False when the lock was not granted in time.
+	 */
+	private static function write_option_path( string $option_name, array $path, $value ): bool {
+		global $wpdb;
+		$db     = is_object( $wpdb ) && method_exists( $wpdb, 'get_var' ) && method_exists( $wpdb, 'prepare' ) ? $wpdb : null;
+		$lock   = 'ffc_option_' . md5( ( $db && isset( $db->options ) ? (string) $db->options : '' ) . '|' . $option_name );
+		$holder = null;
+		if ( null !== $db ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A named lock has no WordPress API and must never be cached.
+			$granted = $db->get_var( $db->prepare( 'SELECT GET_LOCK(%s, %d)', $lock, 10 ) );
+			if ( null !== $granted && '1' !== (string) $granted ) {
+				return false;
+			}
+			if ( null !== $granted ) {
+				$holder = $db;
+			}
+		}
+
+		try {
+			// Drop what this request cached at boot, so the read below sees
+			// what any other request wrote since.
+			wp_cache_delete( 'alloptions', 'options' );
+			wp_cache_delete( 'notoptions', 'options' );
+			wp_cache_delete( $option_name, 'options' );
+
+			$option = get_option( $option_name, array() );
+			if ( ! is_array( $option ) ) {
+				$option = array();
+			}
+			self::set_nested( $option, $path, $value );
+			update_option( $option_name, $option );
+		} finally {
+			// $holder is set only when the lock above was granted.
+			if ( null !== $holder ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the named lock taken above.
+				$holder->get_var( $holder->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+			}
+		}
+		return true;
 	}
 
 	/**

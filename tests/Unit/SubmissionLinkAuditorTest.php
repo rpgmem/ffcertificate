@@ -11,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\MaintenanceToolInterface;
 use FreeFormCertificate\Maintenance\SubmissionLinkAuditor;
 use FreeFormCertificate\Maintenance\IdentityAcceptance;
+use FreeFormCertificate\Maintenance\IdentityAccountFacts;
+use FreeFormCertificate\Maintenance\IdentityCheckDigitScan;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 
@@ -29,6 +31,12 @@ class SubmissionLinkAuditorTest extends TestCase {
 	/** @var IdentityConflictQuery|Mockery\MockInterface */
 	private $conflicts;
 
+	/** @var IdentityCheckDigitScan|\Mockery\MockInterface */
+	private $scan;
+
+	/** @var IdentityAccountFacts|\Mockery\MockInterface */
+	private $facts;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -43,14 +51,17 @@ class SubmissionLinkAuditorTest extends TestCase {
 		$this->conflicts->shouldReceive( 'shared_identities' )->andReturn( array() )->byDefault();
 		$this->conflicts->shouldReceive( 'multiple_identities' )->andReturn( array() )->byDefault();
 		$this->conflicts->shouldReceive( 'unindexed_links' )->andReturn( array() )->byDefault();
-		$this->conflicts->shouldReceive( 'check_digit_failures_of_both' )->andReturn( array() )->byDefault();
+
+		$this->scan = Mockery::mock( IdentityCheckDigitScan::class );
+		$this->scan->shouldReceive( 'check_digit_failures_of_both' )->andReturn( array() )->byDefault();
 
 		// The account-facts pass runs over every check's rows, so it is part
 		// of `run()` now and not of any one check. Answering nothing by
 		// default leaves each finding at `missing`, which is the seeded
 		// default and what a test that says nothing about accounts should
 		// see.
-		$this->conflicts->shouldReceive( 'account_facts' )->andReturn( array() )->byDefault();
+		$this->facts = Mockery::mock( IdentityAccountFacts::class );
+		$this->facts->shouldReceive( 'of' )->andReturn( array() )->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -71,9 +82,15 @@ class SubmissionLinkAuditorTest extends TestCase {
 	private function auditor( array $accepted = array() ): SubmissionLinkAuditor {
 		$conflicts = $this->conflicts;
 
-		return new class( $this->repo, $conflicts, $accepted ) extends SubmissionLinkAuditor {
+		return new class( $this->repo, $conflicts, $this->scan, $this->facts, $accepted ) extends SubmissionLinkAuditor {
 			/** @var IdentityConflictQuery */
 			private $double;
+
+			/** @var IdentityCheckDigitScan */
+			private $scan;
+
+			/** @var IdentityAccountFacts */
+			private $facts;
 
 			/** @var array<string, array<string, mixed>> */
 			private $accepted;
@@ -81,12 +98,30 @@ class SubmissionLinkAuditorTest extends TestCase {
 			/**
 			 * @param SubmissionRepository                $repository Repository double.
 			 * @param IdentityConflictQuery               $double     Cross-store double.
+			 * @param IdentityCheckDigitScan              $scan       Check-digit double.
+			 * @param IdentityAccountFacts                $facts      Account-facts double.
 			 * @param array<string, array<string, mixed>> $accepted   Acceptance records.
 			 */
-			public function __construct( $repository, $double, array $accepted ) {
+			public function __construct( $repository, $double, $scan, $facts, array $accepted ) {
 				parent::__construct( $repository );
 				$this->double   = $double;
+				$this->scan     = $scan;
+				$this->facts    = $facts;
 				$this->accepted = $accepted;
+			}
+
+			/**
+			 * @return IdentityCheckDigitScan
+			 */
+			protected function scans(): IdentityCheckDigitScan {
+				return $this->scan;
+			}
+
+			/**
+			 * @return IdentityAccountFacts
+			 */
+			protected function facts(): IdentityAccountFacts {
+				return $this->facts;
 			}
 
 			/**
@@ -308,7 +343,7 @@ class SubmissionLinkAuditorTest extends TestCase {
 		);
 
 		$asked = array();
-		$this->conflicts->shouldReceive( 'account_facts' )->once()->andReturnUsing(
+		$this->facts->shouldReceive( 'of' )->once()->andReturnUsing(
 			function ( array $ids ) use ( &$asked ) {
 				$asked = $ids;
 
@@ -364,7 +399,7 @@ class SubmissionLinkAuditorTest extends TestCase {
 		$this->repo->shouldReceive( 'find_shared_identities' )->andReturn( array() );
 
 		// The facts pass answers honestly for an id no `wp_users` row backs.
-		$this->conflicts->shouldReceive( 'account_facts' )->andReturn(
+		$this->facts->shouldReceive( 'of' )->andReturn(
 			array( 99 => array( 'status' => IdentityConflictQuery::STATUS_MISSING, 'rows' => array( 'submissions' => 1 ) ) )
 		);
 
@@ -483,7 +518,7 @@ class SubmissionLinkAuditorTest extends TestCase {
 	public function test_an_accepted_finding_is_counted_and_never_dropped(): void {
 		$this->quiet_repo();
 
-		$this->conflicts->shouldReceive( 'check_digit_failures_of_both' )->andReturn(
+		$this->scan->shouldReceive( 'check_digit_failures_of_both' )->andReturn(
 			array(
 				array(
 					'subject'           => 'hash-of-the-bad-rf',

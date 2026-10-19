@@ -7,7 +7,46 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.40.0] (2026-10-17)
+## [6.41.0] (2026-10-19)
+
+### Added
+
+- **Audience self-join, configurable and member-scoped** (#1896, #1901, #1916, #1918). Self-join is one four-option choice (off, this audience, this + descendants, descendants only) that new children inherit; the group limit is a setting (1–20, default 2); a top-level tree can be members-only, keep members in one group and offer "Switch to this".
+- **"My Calls" grouped by status** (#1889). Called cards with the date, days left and an .ics download, then Waiting and Closed, paged; a call still "called" after its date shows as Deadline passed.
+- **The approved reregistration banner outlives the campaign, then expires** (#1887). Settings → Reregistration → "Hide the approved banner after (days)", default 30, counted from the later of the end and the approval; 0 never hides.
+
+### Changed
+
+- **One button family across every screen** (#1874, #1879, #1880, #1881, #1885, #1904). `.ffc-btn` in five categories (primary, neutral, create, caution, danger) with registry icons, drawn by `Core\Button` and `FFC.button()`, on the admin, public and dashboard screens; icon-only close and remove buttons replace every `&times;`; disabled and busy no longer fade. `CoreButtonClassRatchetTest` holds core `.button` classes at zero.
+- **Every toggle shows its on/off mark** (#1873). The ✓/✗ on the knob is `AdminUI::render_toggle()`'s default, hand-built toggles included; `'mark' => false` opts out. Rules and short URLs switch on and off with a toggle.
+- ⚠ **Calendar cleanup has its own capability, cancels the future instead of deleting it, and is logged** (#1872). `ffc_purge_appointments` gates it, so Bookings Managers lose the bulk purge; "Future" cancels and e-mails; a typed count confirms; each run writes one Activity Log row.
+- ⚠ **The dashboard masks the owner's own data** (#1897). CPF/RF, e-mails, phone and birth date arrive masked from `GET /user/profile` and `/user/certificates`, each with Reveal; the owner's reveal writes no log row. PDFs, receipts and e-mails are unchanged.
+- **One masked shape per kind of personal data** (#1920). `DocumentFormatter::mask()` and one key map serve every screen, export and e-mail (RF `123.***-4`, CIN/RG `12.***.***-*`, birth date `15/03/****`); a value that fits no shape masks as `a***` instead of printing in clear.
+- **The ALTCHA challenge uses the widget's native format** (#1928). The server issues and verifies ALTCHA's v2 challenge, every parameter signed, instead of the v1 shape ALTCHA 3.4.0 can no longer read; the vendored widget moves to 3.4.0. A widget left open across the update re-solves once.
+- **Shared assets are declared once** (#1922, #1923, #1924, #1931). `Core\AssetRegistry` declares every script and sheet more than one screen loads, so no screen wins with its own path or dependencies; a file no longer loads under two handles; the submissions sheet loads on its own screen; more admin assets load minified.
+- **The identity screen and audit query are split into covered classes and partials** (#1925). The query is split by cohesion, the view's derivations live in `IdentityResolutionScreen` and `IdentityResolutionLabels`, and the markup is eleven partials; the rendered page is byte-identical.
+- **Appointment decryption reads the sensitive-field registry** (#1934). A new encrypted field is decrypted without a second list, and a ciphertext that fails falls back to the plaintext column for the e-mail and IP too.
+
+### Fixed
+
+- **Calendar e-mail fields and recruitment placeholders** (#1873). The personal-calendar editor's admin addresses and subject take their WordPress width again, and Recruitment → Settings' From placeholders are translated.
+- **"View as user" reveals CPF/RF too** (#1888). `/user/profile/reveal` now serves `cpf_rf` under the same gate and audit row as the other fields.
+- **"Refresh Cloudflare ranges now" works** (#1894). It ran only inside the Save branch; it now runs alone and reports the ranges cached or the failure.
+- **Verify on a failed magic link** (#1893). The error card's Verify no longer fires the PDF download, and the typed code fills the reloaded verification form.
+- **Buttons that wrapped or crowded** (#1903, #1914). "Open" and "Change" lose the arrow that wrapped, the dashboard's Reveal takes the row size, and a linked user's actions sit in one row below the card.
+- **Settings autosave keeps every change** (#1902). Two overlapping saves no longer erase each other: the write re-reads the option under a lock, and a field sends one save at a time.
+- **The public calendar's notices use the shared notice** (#1911). Login-required and business-hours messages render through `Core\Notice`, the calendar title above.
+
+### Removed
+
+- ⚠ **The deprecated script aliases reached their removal release** (#1788, #1814). `ffc-form-editor-tabs`, `ffc-form-list-copy-shortcode` and `FFC.FormEditorTabs` are gone; use `ffc-vertical-tabs`, `ffc-copy-shortcode` and `FFC.VerticalTabs`.
+- ⚠ **Four stylesheet handles took a `-css` suffix** (#1931). `ffc-audience`, `ffc-working-hours`, `ffc-custom-fields-admin` and `ffc-url-shortener-admin` are now `…-css`; a sheet that depends on the old names should use the new ones.
+
+### Deprecated
+
+- **Four unused `Encryption` helpers** (#1934). `encrypt_submission()`, `decrypt_submission()`, `get_info()` and `test()` emit a deprecation notice and leave in 6.43.0; use `SensitiveFieldRegistry::encrypt_fields()`, `decrypt_field()` and `key_health_report()`.
+
+## [6.40.0] (2026-10-17) — `10d1bbc6`
 
 ### Added
 

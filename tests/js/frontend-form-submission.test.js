@@ -38,6 +38,7 @@ beforeAll(async () => {
 		},
 	};
 	loadScript('assets/js/ffc-core.js');
+	loadScript('assets/js/ffc-field-behaviours.js');
 	loadScript('assets/js/ffc-frontend-helpers.js');
 	loadScript('assets/js/ffc-frontend.js');
 	// jQuery 4 defers `$(document).ready(cb)` to a microtask — wait for

@@ -19,21 +19,6 @@
     cursor: text;
 }
 
-/* Copy button in meta box */
-.ffc-copy-shorturl {
-    min-width: 36px;
-    text-align: center;
-}
-
-.ffc-copy-shorturl .ffc-icon-copy::before {
-    margin-right: 0;
-}
-
-/* Download buttons */
-.ffc-download-qr {
-    min-width: 60px;
-}
-
 /* Admin page: clickable short URL code */
 .ffc-shorturl-code {
     cursor: pointer;
@@ -101,24 +86,11 @@
     }
 }
 
+/* Only the place: the look is the button family's icon-only close (#1879). */
 .ffc-qr-modal__close {
     position: absolute;
     top: 10px;
     right: var(--ffc-spacing-lg);
-    background: none;
-    border: none;
-    font-size: var(--ffc-font-size-2xl);
-    line-height: 1;
-    color: var(--ffc-text-muted);
-    cursor: pointer;
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
-    border-radius: var(--ffc-radius-sm);
-    transition: color 0.2s, background 0.2s;
-}
-
-.ffc-qr-modal__close:hover {
-    color: var(--ffc-danger-text);
-    background: var(--ffc-bg-alt);
 }
 
 .ffc-qr-modal__title {
@@ -165,16 +137,6 @@
     gap: var(--ffc-spacing-sm);
     justify-content: center;
     flex-wrap: wrap;
-}
-
-.ffc-qr-modal__actions .button {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ffc-spacing-2xs);
-}
-
-.ffc-qr-modal__actions [class*="ffc-icon-"]::before {
-    margin-right: 0;
 }
 
 /* Meta box: shorturl label */
@@ -233,12 +195,12 @@
 }
 
 /* Admin page: table column widths */
-.ffc-shorturl-table .column-title    { width: 25%; }
+.ffc-shorturl-table .column-title    { width: 22%; }
 .ffc-shorturl-table .column-shorturl { width: 18%; }
-.ffc-shorturl-table .column-dest     { width: 25%; }
+.ffc-shorturl-table .column-dest     { width: 22%; }
 .ffc-shorturl-table .column-clicks   { width: 8%; }
 .ffc-shorturl-table .column-status   { width: 10%; }
-.ffc-shorturl-table .column-actions  { width: 14%; }
+.ffc-shorturl-table .column-actions  { width: 20%; }
 
 /* Admin page: status labels */
 .ffc-shorturl-status {

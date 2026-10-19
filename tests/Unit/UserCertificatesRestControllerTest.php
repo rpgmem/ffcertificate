@@ -103,11 +103,14 @@ class UserCertificatesRestControllerTest extends TestCase {
 	// Route registration
 	// ------------------------------------------------------------------
 
-	public function test_register_routes_creates_one_endpoint(): void {
+	public function test_register_routes_creates_the_list_and_the_reveal_endpoints(): void {
 		$ctrl = new UserCertificatesRestController( 'ffc/v1' );
 		$ctrl->register_routes();
 
-		$this->assertCount( 1, $this->registered_routes );
+		$this->assertCount( 2, $this->registered_routes );
+		$this->assertSame( '/user/certificates/reveal', $this->registered_routes[1]['route'] );
+		$this->assertSame( 'POST', $this->registered_routes[1]['args']['methods'] );
+		$this->assertSame( 'is_user_logged_in', $this->registered_routes[1]['args']['permission_callback'] );
 	}
 
 	public function test_certificates_route_path(): void {
@@ -231,6 +234,8 @@ class UserCertificatesRestControllerTest extends TestCase {
 		$this->assertSame( 'Test Form', $cert['form_title'] );
 		$this->assertTrue( $cert['consent_given'] );
 		$this->assertSame( 'j***@example.com', $cert['email'] );
+		$this->assertTrue( $result['can_reveal'], 'The owner may reveal their own e-mail (#1897).' );
+		$this->assertStringNotContainsString( 'john@example.com', (string) json_encode( $result ) );
 		$this->assertNotEmpty( $cert['auth_code'] );
 		$this->assertNotEmpty( $cert['magic_link'] );
 		$this->assertNotEmpty( $cert['pdf_url'] );
@@ -383,5 +388,108 @@ class UserCertificatesRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'get_certificates_error', $result->get_error_code() );
+	}
+
+	// ------------------------------------------------------------------
+	// reveal_certificate_email (#1897)
+	// ------------------------------------------------------------------
+
+	/**
+	 * Alias-mock ActivityLog with its level constant.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function activity_log(): Mockery\MockInterface {
+		Mockery::getConfiguration()->setConstantsMap(
+			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
+		);
+		return Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
+	}
+
+	/**
+	 * The row the reveal query returns, prepared against the given owner.
+	 *
+	 * @param int        $owner The user id the query must be scoped to.
+	 * @param array|null $row   The row, or null for none.
+	 * @return void
+	 */
+	private function expect_row_for( int $owner, ?array $row ): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()
+			->with( Mockery::pattern( '/WHERE id = %d AND user_id = %d/' ), 'wp_ffc_submissions', 10, $owner )
+			->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->with( 'SQL', ARRAY_A )->andReturn( $row );
+	}
+
+	public function test_the_owner_reveals_their_own_certificate_email_without_an_audit_row(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_view_own_certificates' === $cap );
+		$this->expect_row_for( 5, array( 'id' => '10', 'user_id' => '5', 'status' => 'publish', 'email' => 'enc' ) );
+		$this->activity_log()->shouldNotReceive( 'log' );
+
+		$result = ( new UserCertificatesRestController( 'ffc/v1' ) )->reveal_certificate_email( $this->make_request( array( 'id' => 10 ) ) );
+
+		$this->assertSame( array( 'id' => 10, 'value' => 'john@example.com' ), $result );
+	}
+
+	public function test_the_owner_path_does_not_find_someone_elses_certificate(): void {
+		// The query is scoped to the current user, so another owner's row
+		// never comes back.
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_view_own_certificates' === $cap );
+		$this->expect_row_for( 5, null );
+		$this->activity_log()->shouldNotReceive( 'log' );
+
+		$result = ( new UserCertificatesRestController( 'ffc/v1' ) )->reveal_certificate_email( $this->make_request( array( 'id' => 10 ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_certificate_not_found', $result->get_error_code() );
+	}
+
+	public function test_a_non_admin_naming_another_account_is_refused(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 9 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_view_own_certificates' === $cap );
+		$this->wpdb->shouldNotReceive( 'get_row' );
+		$this->activity_log()->shouldNotReceive( 'log' );
+
+		$result = ( new UserCertificatesRestController( 'ffc/v1' ) )->reveal_certificate_email( $this->make_request( array( 'id' => 10, 'viewAsUserId' => 5 ) ) );
+
+		$this->assertSame( 'ffc_reveal_denied', $result->get_error_code() );
+	}
+
+	public function test_a_certificate_that_is_not_one_is_not_revealed(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_view_own_certificates' === $cap );
+		$this->expect_row_for( 5, array( 'id' => '10', 'user_id' => '5', 'status' => 'trash', 'email' => 'enc' ) );
+
+		$result = ( new UserCertificatesRestController( 'ffc/v1' ) )->reveal_certificate_email( $this->make_request( array( 'id' => 10 ) ) );
+
+		$this->assertSame( 'ffc_certificate_not_found', $result->get_error_code() );
+	}
+
+	public function test_view_as_reveal_is_audited_once(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' === $cap );
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => ( 1 === $uid && 'manage_options' === $cap ) || ( 5 === $uid && 'ffc_view_own_certificates' === $cap ) );
+		$this->expect_row_for( 5, array( 'id' => '10', 'user_id' => '5', 'status' => 'publish', 'email' => 'enc' ) );
+		$this->activity_log()->shouldReceive( 'log' )->once()
+			->with( 'submission_pii_revealed', 'info', array( 'field_key' => 'email', 'view_as' => true, 'subject_user_id' => 5 ), 1, 10 )
+			->andReturn( true );
+
+		$result = ( new UserCertificatesRestController( 'ffc/v1' ) )->reveal_certificate_email( $this->make_request( array( 'id' => 10, 'viewAsUserId' => 5 ) ) );
+
+		$this->assertSame( 'john@example.com', $result['value'] );
+	}
+
+	public function test_view_as_reveal_refuses_a_viewer_the_policy_denies(): void {
+		// An administrator by view-as gate, but without the reveal answer.
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' === $cap );
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 5 === $uid && 'ffc_view_own_certificates' === $cap );
+		$this->wpdb->shouldNotReceive( 'get_row' );
+		$this->activity_log()->shouldNotReceive( 'log' );
+
+		$result = ( new UserCertificatesRestController( 'ffc/v1' ) )->reveal_certificate_email( $this->make_request( array( 'id' => 10, 'viewAsUserId' => 5 ) ) );
+
+		$this->assertSame( 'ffc_reveal_denied', $result->get_error_code() );
 	}
 }

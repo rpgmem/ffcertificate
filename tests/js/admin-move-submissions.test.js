@@ -62,6 +62,7 @@ beforeEach(() => {
 // matches that test's DOM.
 async function mountAndLoad(opts) {
 	mountFormWithRows(opts);
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-admin-move-submissions.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
@@ -85,6 +86,10 @@ describe('ffc-admin-move-submissions — modal build + populate', () => {
 		// Modal title + intro pulled from strings.
 		expect(window.$('#ffc-move-modal-title').text()).toBe('Move');
 		expect(window.$('.ffc-move-modal-intro').text()).toBe('Choose a target.');
+
+		// The family's buttons (#1904).
+		expect(window.$('.ffc-move-modal-cancel').attr('class')).toBe('ffc-btn ffc-btn-neutral ffc-icon-cross ffc-move-modal-cancel');
+		expect(window.$('.ffc-move-modal-confirm').attr('class')).toBe('ffc-btn ffc-btn-primary ffc-icon-move ffc-move-modal-confirm');
 	});
 
 	it('reopens cleared (no prior error, no prior selection)', async () => {
@@ -207,6 +212,7 @@ describe('ffc-admin-move-submissions — action resolution', () => {
 				<input type="checkbox" name="submission[]" checked />
 			</form>
 		`;
+		loadScript('assets/js/ffc-core.js');
 		loadScript('assets/js/ffc-admin-move-submissions.js');
 		await new Promise((r) => setTimeout(r, 0));
 		window.$('#posts-filter').trigger('submit');
@@ -221,6 +227,7 @@ describe('ffc-admin-move-submissions — action resolution', () => {
 				<input type="checkbox" name="submission[]" checked />
 			</form>
 		`;
+		loadScript('assets/js/ffc-core.js');
 		loadScript('assets/js/ffc-admin-move-submissions.js');
 		await new Promise((r) => setTimeout(r, 0));
 		window.$('#posts-filter').trigger('submit');

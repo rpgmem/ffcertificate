@@ -29,6 +29,7 @@ class TabTemplatesTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
 		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
@@ -69,6 +70,9 @@ class TabTemplatesTest extends TestCase {
 		$this->assertStringContainsString( 'ffc_kind=' . CertTemplateCpt::KIND_CERTIFICATE, $out );
 		// New-template links (kind preset) present for a manager.
 		$this->assertStringContainsString( 'post-new.php?post_type=' . CertTemplateCpt::POST_TYPE, $out );
+		// Opening a list is neutral and adding a template is create (#1874).
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-list">Manage all templates</a>', $out );
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-create ffc-icon-plus">New certificate template</a>', $out );
 	}
 
 	public function test_render_hides_new_buttons_for_view_only(): void {

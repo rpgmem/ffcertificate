@@ -626,6 +626,14 @@ msgstr ""
 msgid "(Deleted)"
 msgstr ""
 
+#: templates/admin/recruitment/admin-page/settings-tab.php:86
+msgid "(falls back to site name)"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/settings-tab.php:82
+msgid "(falls back to wp_mail default)"
+msgstr ""
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:232 includes/self-scheduling/views/appointments-list.php:205
 msgid "(Guest)"
 msgstr ""
@@ -727,31 +735,31 @@ msgid "(your host's reverse proxy — a private/reserved address)"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-loader.php:255 includes/audience/class-ffc-audience-admin-audience-renderer.php:628
-msgid "+ Add Department"
+msgid "Add Department"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:633
-msgid "+ Add Division"
+msgid "Add Division"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:372
-msgid "+ Add Field"
+msgid "Add Field"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:191
-msgid "+ New certificate template"
+msgid "New certificate template"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:219 includes/settings/tabs/class-ffc-tab-reregistration.php:160
-msgid "+ New record template"
+msgid "New record template"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:203
-msgid "+ New receipt template"
+msgid "New receipt template"
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-receipt-settings.php:158
-msgid "+ New template"
+msgid "New template"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:28
@@ -1697,11 +1705,6 @@ msgstr ""
 msgid "All AJAX endpoints use admin-ajax.php which is excluded from page cache by default."
 msgstr ""
 
-#. %d: total number of appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:271
-msgid "All Appointments (%d)"
-msgstr ""
-
 #: includes/audience/class-ffc-audience-admin-import.php:207 templates/admin/reregistration/list.php:42
 msgid "All Audiences"
 msgstr ""
@@ -2345,14 +2348,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:138
 msgid "Are you sure you want to deactivate this calendar?"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:128
-msgid "Are you sure you want to delete ALL appointments? This will permanently remove all appointment data and cannot be undone!"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:127
-msgid "Are you sure you want to delete these appointments? This action cannot be undone."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-loader.php:400
@@ -3413,14 +3408,6 @@ msgstr ""
 msgid "Call entry not found."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:177
-msgid "Call history"
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:356
-msgid "Call reverted"
-msgstr ""
-
 #: templates/admin/recruitment/notice-edit/bulk-call-toolbar.php:26
 msgid "Call selected"
 msgstr ""
@@ -3577,11 +3564,6 @@ msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:243 includes/api/class-ffc-user-appointments-rest-controller.php:161 includes/api/class-ffc-user-audience-rest-controller.php:165 includes/generators/class-ffc-pdf-generator.php:367 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:543 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:283 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:364 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:438 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:243 includes/recruitment/class-ffc-recruitment-dashboard-section.php:344 includes/audience/class-ffc-audience-admin-bookings.php:150 includes/audience/class-ffc-audience-admin-bookings.php:229 includes/audience/class-ffc-audience-loader.php:430 includes/audience/class-ffc-audience-booking-export-source.php:278 includes/audience/class-ffc-audience-shortcode.php:823 includes/frontend/class-ffc-verification-response-renderer.php:212 includes/self-scheduling/views/appointments-list.php:226
 msgid "Cancelled"
-msgstr ""
-
-#. %d: number of cancelled appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:234
-msgid "Cancelled (%d)"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:388 includes/audience/class-ffc-audience-booking-export-source.php:208
@@ -3925,7 +3907,7 @@ msgid "Change Password"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:124
-msgid "Change →"
+msgid "Change"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:436
@@ -4219,8 +4201,19 @@ msgstr ""
 msgid "Cloudflare detected — CF-Connecting-IP is authoritative."
 msgstr ""
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:89
-msgid "Cloudflare IP ranges refresh requested."
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:129
+#, php-format
+msgid "Cloudflare IP ranges refreshed: %d range cached."
+msgid_plural "Cloudflare IP ranges refreshed: %d ranges cached."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:139
+msgid "The Cloudflare IP ranges could not be fetched. The list fetched earlier stays in use."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:140
+msgid "The Cloudflare IP ranges could not be fetched. The bundled list stays in use."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:449
@@ -4639,10 +4632,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-shortcode-metabox.php:36
 msgid "Copy this Shortcode:"
-msgstr ""
-
-#: includes/generators/class-ffc-magic-link-helper.php:202
-msgid "Copy to clipboard"
 msgstr ""
 
 #: templates/admin/url-shortener/short-urls-page.php:346
@@ -5631,7 +5620,7 @@ msgid "Default: link to magic, text shows /valid"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:358
-msgid "Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use \"+ Add Field\" to create custom fields."
+msgid "Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use \"Add Field\" to create custom fields."
 msgstr ""
 
 #. %s: link to the Adjutancies tab
@@ -5706,10 +5695,6 @@ msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:241
 msgid "Delete appointments"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:224
-msgid "Delete appointments:"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:288
@@ -6006,10 +5991,6 @@ msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:611
 msgid "Direct — ignore every forwarded header"
-msgstr ""
-
-#: templates/admin/url-shortener/short-urls-page.php:297
-msgid "Disable"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:799 includes/settings/views/ffc-tab-migrations.php:804
@@ -6570,7 +6551,7 @@ msgid "Edit the global text"
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-receipt-settings.php:211 includes/settings/tabs/class-ffc-tab-reregistration.php:148
-msgid "Edit this template →"
+msgid "Edit this template"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:520
@@ -7643,10 +7624,6 @@ msgstr ""
 msgid "Export My Data"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:65
-msgid "export or delete."
-msgstr ""
-
 #: includes/api/class-ffc-user-profile-rest-controller.php:439
 msgid "Export Personal Data"
 msgstr ""
@@ -8532,11 +8509,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:270
 msgid "Full Profile Viewed"
-msgstr ""
-
-#. %d: number of future appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:260
-msgid "Future (%d)"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:260
@@ -11415,10 +11387,6 @@ msgstr ""
 msgid "No certificates found"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:226
-msgid "No classification visible at the moment."
-msgstr ""
-
 #: includes/audience/class-ffc-audience-shortcode.php:803
 msgid "No conflicts found. You may proceed."
 msgstr ""
@@ -11501,10 +11469,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:116
 msgid "No locations registered yet."
-msgstr ""
-
-#: includes/generators/class-ffc-magic-link-helper.php:190
-msgid "No magic token"
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-public-shortcode.php:318
@@ -12093,7 +12057,7 @@ msgid "Open the new notice and attach the relevant adjutancies + import the cand
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:340
-msgid "Open →"
+msgid "Open"
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:565
@@ -12406,11 +12370,6 @@ msgstr ""
 msgid "Past"
 msgstr ""
 
-#. %d: number of past appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:247
-msgid "Past (%d)"
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:208
 msgid "Past:"
 msgstr ""
@@ -12564,10 +12523,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-url-shortener.php:92
 msgid "Permanent"
-msgstr ""
-
-#: includes/user-dashboard/class-ffc-capability-catalog.php:242
-msgid "Permanently delete appointments and calendar cleanup purges."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:198
@@ -13924,6 +13879,10 @@ msgstr ""
 
 #: templates/admin/reregistration/transfer-list.php:32
 msgid "Remove all"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-custom-fields.php:124 includes/admin/class-ffc-admin-user-custom-fields.php:475 includes/shortcodes/class-ffc-dashboard-asset-manager.php:128 includes/shortcodes/class-ffc-dashboard-asset-manager.php:207 templates/reregistration/field-working-hours.php:52
+msgid "Remove day"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-loader.php:254 includes/audience/class-ffc-audience-admin-audience-renderer.php:624
@@ -16116,10 +16075,6 @@ msgstr ""
 msgid "Status transition rejected: this transition requires a reason (filled in the Reopen reason field)."
 msgstr ""
 
-#: templates/admin/url-shortener/short-urls-page.php:94
-msgid "Status updated."
-msgstr ""
-
 #: templates/emails/reregistration-confirmation.php:31 templates/emails/selfscheduling-confirmation.php:39 includes/reregistration/class-ffc-reregistration-submission-details-renderer.php:70 includes/reregistration/class-ffc-record-generator.php:501 includes/frontend/class-ffc-verification-response-renderer.php:389
 msgid "Status:"
 msgstr ""
@@ -16435,11 +16390,6 @@ msgstr ""
 #. %d: number of deleted cancelled appointments
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:120
 msgid "Successfully deleted %d cancelled appointment(s)."
-msgstr ""
-
-#. %d: number of deleted future appointments
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:111
-msgid "Successfully deleted %d future appointment(s)."
 msgstr ""
 
 #. %d: number of deleted past appointments
@@ -18748,10 +18698,6 @@ msgstr ""
 msgid "Users can cancel their own appointments"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:295
-msgid "Users can join/leave child groups from their dashboard"
-msgstr ""
-
 #: includes/settings/views/documentation/reference-shortcodes.php:38
 msgid "Users can validate certificates by entering the authentication code."
 msgstr ""
@@ -19182,10 +19128,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:916
 msgid "Warning: These actions cannot be undone."
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:277
-msgid "Warning: This action is permanent and cannot be undone!"
 msgstr ""
 
 #: includes/admin/class-ffc-submissions-export-source.php:375 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:76
@@ -20027,10 +19969,6 @@ msgstr ""
 msgid "You have been included in a new scheduled activity."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:180
-msgid "You have not been called for this notice yet."
-msgstr ""
-
 #. %d: maximum number of bookings
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:176
 msgid "You have reached the maximum of %d booking for this calendar."
@@ -20164,10 +20102,6 @@ msgstr ""
 msgid "Your browser does not support geolocation."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:170
-msgid "Your classification(s) for this notice"
-msgstr ""
-
 #. what doesn't happen is matching against any allow-list.
 #: includes/frontend/class-ffc-public-csv-download.php:261
 msgid "Your CPF is required for traceability and is recorded in this form's audit log (encrypted at rest). It is not validated against any allow-list."
@@ -20285,10 +20219,6 @@ msgstr ""
 
 #: templates/admin/recruitment/admin-page/candidates-csv-import-section.php:46
 msgid "— Select a notice —"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:655
-msgid "← Back"
 msgstr ""
 
 #: includes/admin/class-ffc-settings.php:529
@@ -21854,9 +21784,6 @@ msgstr ""
 msgid "(deleted rule)"
 msgstr ""
 
-msgid "Activate"
-msgstr ""
-
 msgid "Active (the daily run sends it)"
 msgstr ""
 
@@ -21962,13 +21889,7 @@ msgstr ""
 msgid "Rule"
 msgstr ""
 
-msgid "Rule activated."
-msgstr ""
-
 msgid "Rule copied. The copy starts inactive."
-msgstr ""
-
-msgid "Rule deactivated."
 msgstr ""
 
 msgid "Rule deleted. Its history stays."
@@ -22901,7 +22822,7 @@ msgstr ""
 msgid "The certificate PDF a form issues on submission (the default kind). Three ready-made certificate models ship."
 msgstr ""
 
-msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change →\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
+msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
 msgstr ""
 
 msgid "Name fields (keys such as name, nome, nome_completo, full_name or participante) are normalized on submit to proper capitalization, keeping Portuguese connectives such as \"da\" and \"de\" in lowercase."
@@ -22999,7 +22920,7 @@ msgstr ""
 msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data; fields mapped to a profile key (such as CPF, RF, RG or birth date) are also written, encrypted, to the plugin user profile."
 msgstr ""
 
-msgid "An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed): an audience can let users join or leave its child groups from their dashboard, with a cap on how many child groups one user may join, and its descendants inherit the setting. Audiences also carry the custom fields used by reregistration."
+msgid "An audience is a named group of members, with a color, an active/inactive status and an optional 3-level parent hierarchy. Members are imported or self-join (when allowed): an audience can let users join or leave its child groups from their dashboard, with a cap on how many self-join groups one user may belong to. Audiences also carry the custom fields used by reregistration."
 msgstr ""
 
 msgid "Admin pages"
@@ -23050,7 +22971,7 @@ msgstr ""
 msgid "The identity/contact/address/employment fields live on the plugin's user profile and are mapped to the reregistration and audience data, so a user's details stay consistent across a certificate PDF, a record and their profile. WordPress's first and last name follow the plugin's full name (first word / the rest), and editing First/Last Name on the user-edit screen updates it back."
 msgstr ""
 
-msgid "A read-only index at the bottom of the tab lists the plugin's emails, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open →\" deep-link to where it is configured. It is discoverability only — it moves no controls."
+msgid "A read-only index at the bottom of the tab lists the plugin's emails, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open\" deep-link to where it is configured. It is discoverability only — it moves no controls."
 msgstr ""
 
 msgid "See Date Messages"
@@ -23098,7 +23019,7 @@ msgstr ""
 msgid "Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below."
 msgstr ""
 
-msgid "Rules can be edited, duplicated, activated or deactivated and deleted from the Rules tab. Deleting a rule keeps what it already sent in the history."
+msgid "Rules can be edited, duplicated and deleted from the Rules tab, where the Active toggle on each rule switches it on or off and saves at once. Deleting a rule keeps what it already sent in the history."
 msgstr ""
 
 msgid "Who receives a message"
@@ -24251,9 +24172,6 @@ msgid "view the Scheduling menu and audience pages."
 msgstr ""
 
 msgid "On its own it opens them read-only: the calendar, environment and audience edit forms and the members screen show their fields disabled, with no Save, Add or Remove, under a read-only notice."
-msgstr ""
-
-msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."
 msgstr ""
 
 msgid "When enabled, audience same-day and user overlap checks only consider bookings within this calendar. Environment conflicts are always per-environment regardless of this setting."
@@ -26380,6 +26298,7 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-date-messages.php:114
 msgid "send a rule's test, with sample values, to your own address. Managing date messages allows it too. Previewing the recipients and the message needs only the view capability."
+msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "A booking that breaks one of those rules first opens a warning listing every rule it breaks; its \"I agree\" button unlocks after 15 seconds, the server saves nothing without that confirmation, and each confirmed booking is written to the Activity Log. Capacity is never bypassed."
@@ -26542,6 +26461,10 @@ msgid "A CSV export carries personal data in clear only for a holder of the modu
 msgstr ""
 
 #: includes/settings/views/documentation/reference-privacy.php:30
+msgid "Each kind of data has one masked shape, the same on every screen, export and e-mail: CPF 123.***.***-45, RF 123.***-4, CIN/RG 12.***.***-*, e-mail m***@domain, phone (**) *****-**21, birth date with the year hidden in the site's date format (15/03/****), IP 192.168.***.***; any other sensitive value keeps only its first character. A value that does not fit its shape is masked whole rather than shown. A custom field masked as a CPF, RF, CIN or phone takes that shape whatever its key, and the public verification page masks a phone, birth date or IP field it shows."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:31
 msgid "A list offers \"Reveal this page\" above its masked values: it reveals every value listed at once and writes one activity-log entry naming the records."
 msgstr ""
 
@@ -26642,16 +26565,13 @@ msgid "The notices sent to staff carry personal data masked (CPF, RF, e-mail, ph
 msgstr ""
 
 #: includes/settings/views/documentation/reference-privacy.php:31
-msgid "The person the data belongs to sees their own data unmasked in their dashboard. An administrator using \"View as user\" sees it masked, and reveals a field with the same audited button."
+msgid "The person the data belongs to sees their own data masked in their dashboard too, and reveals it with the same button, without an activity-log entry. An administrator using \"View as user\" sees it masked, and each reveal is audited. Documents the person asks for themselves (a certificate PDF, a receipt, an e-mail) carry their data in clear."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:71
 msgid "The phone on the appointment detail is masked and revealed the same way, the list offers \"Reveal this page\", and an export carries e-mail, phone and IP in clear only with this capability. The audience screens reveal through ffc_view_audiences_pii since 6.40.0."
 msgstr ""
 
-#: includes/api/class-ffc-user-profile-rest-controller.php:399
-msgid "There is nothing to reveal on your own profile."
-msgstr ""
 
 #: includes/admin/class-ffc-admin-ajax.php:400
 msgid "Too many values to reveal at once."
@@ -26670,9 +26590,599 @@ msgid "You do not have permission to reveal these values."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:47
-msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\"). The other user's e-mail addresses, phone and birth date appear masked, each with a Reveal button that writes an activity-log entry, and a masked field cannot be saved over until it is revealed. The person themselves always sees their own data."
+msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\"). The other user's personal data appears masked, as it does to its owner, and each Reveal there writes an activity-log entry."
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php:74
 msgid "reveal the account email of the people on the Members and User access tabs and the sensitive custom fields on another user's profile, with an audited Reveal; a members export carries the email in clear only with it. Existing holders of ffc_manage_audiences received it on update."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:204
+#, php-format
+msgid "%1$d appointment(s) booked from today on in the calendar \"%2$s\" will be cancelled, and each person booked will receive the calendar's cancellation e-mail. Nothing is deleted."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:206
+#, php-format
+msgid "%1$d appointment(s) booked from today on in the calendar \"%2$s\" will be cancelled. This calendar does not send cancellation e-mails, so nobody will be notified. Nothing is deleted."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:190
+#, php-format
+msgid "%1$d cancelled appointment(s) of the calendar \"%2$s\" will be deleted for good."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:197
+#, php-format
+msgid "%1$d past appointment(s) of the calendar \"%2$s\" will be deleted for good."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:216
+#, php-format
+msgid "All %1$d appointment(s) of the calendar \"%2$s\" will be deleted for good: past, future and cancelled."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:289
+msgid "Calendar Appointments Purged"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:290
+msgid "Calendar Future Appointments Cancelled"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:208
+#, php-format
+msgid "Cancel %d and notify"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:210
+#, php-format
+msgid "Cancel %d appointment(s)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:467
+#, php-format
+msgid "Cancel future (%d)"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:73
+msgid "Cancel future and Delete all only proceed after you type the number of appointments they reach. If that number changed since the page loaded, the cleanup stops and asks for a reload. Every cleanup writes one row to the Activity Log with who ran it, the calendar, the action, the count and the ids of the appointments."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:464
+#, php-format
+msgid "Cancel future and notify (%d)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:202
+msgid "Cancel future appointments"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:70
+msgid "Cancel future:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:196
+#, php-format
+msgid "Cancelled %d future appointment(s). The people booked were sent the calendar's cancellation e-mail."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:202
+#, php-format
+msgid "Cancelled %d future appointment(s). This calendar does not send cancellation e-mails, so nobody was notified."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:258
+msgid "Cancelled by the calendar administrator."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:160
+msgid "Cancelling..."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:253
+msgid "Clean up a personal calendar in bulk: delete its past, cancelled or every appointment, and cancel its future ones with notice. Each run is written to the activity log (#1872)."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:66
+msgid "Cleaning up a calendar"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:192 includes/self-scheduling/class-ffc-self-scheduling-editor.php:199 includes/self-scheduling/class-ffc-self-scheduling-editor.php:218
+#, php-format
+msgid "Delete %d appointment(s)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:483
+#, php-format
+msgid "Delete all (%d)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:214
+msgid "Delete all appointments"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:71
+msgid "Delete all:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:434
+#, php-format
+msgid "Delete cancelled (%d)"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:69
+msgid "Delete cancelled / Delete past:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:188
+msgid "Delete cancelled appointments"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:448
+#, php-format
+msgid "Delete past (%d)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:195
+msgid "Delete past appointments"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:364
+msgid "Deletions are permanent. Every cleanup is recorded in the activity log."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:186
+msgid "Go back"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:249
+msgid "Permanently delete a single appointment from the list."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:252
+msgid "Purge appointments"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:67
+msgid "The Clean Up Appointments box beside the calendar editor counts the calendar's appointments: total, past, future and cancelled. Everyone who can open the calendar sees the counts; only a holder of ffc_purge_appointments sees the actions, in a box marked as a danger zone:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:234
+msgid "The number of appointments changed since this page was loaded. Reload the page and try again."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:182
+#, php-format
+msgid "To confirm, type %d"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:70
+msgid "cancels every appointment from today on that still holds a place (pending, confirmed or on the waitlist), records who cancelled it and why, and sends each person the calendar's cancellation e-mail when the calendar's Emails tab turns it on. Nothing is deleted; the cancelled appointments can then go with \"Delete cancelled\"."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:69
+msgid "delete those appointments for good, after a confirmation that states how many go."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:71
+msgid "deletes every appointment of the calendar."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:79
+msgid "export, or delete one appointment from the list."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:80
+msgid "use the Clean Up Appointments box on a calendar. Held by the Personal Calendars - Bookings - Administrator role and by FFC Administrator; a Bookings Manager deletes one appointment at a time."
+msgstr ""
+
+#: includes/core/class-ffc-public-design.php
+msgid "delete buttons and danger notices on their background"
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php
+msgid "The colour of errors also draws the delete buttons and the danger notices: their text and border take it, and their background is a light shade of it, made automatically, against which the warning measures it too. Left at its default, they keep the plugin's own red pair."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "%1$s at %2$s"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "(continued)"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "About the passed deadline"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "About the reverted call"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Add to calendar"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Called on"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Deadline passed"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Final"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Final classification first; a preliminary one may still change."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Hired, withdrew, did not show up, or the presentation deadline passed."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "Page %d"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Pages: Closed"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Pages: Waiting for a call"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Position · Score"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Presentation"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Presentation date"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-call-ics.php
+#, php-format
+msgid "Presentation: %1$s — %2$s"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-call-ics.php
+#, php-format
+msgid "Presentation: %s"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Previous call reverted"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Reverted on"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "Show up on %s"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Show up on the date and time shown."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "Showing %1$s–%2$s of %3$s"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Status not updated yet"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "The date has passed and the team has not recorded the result yet. The final status appears here once it is updated."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-call-ics.php
+msgid "This calendar link is not valid."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-call-ics.php
+msgid "This call is not available."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "This card leaves on %s."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "Waiting for a call"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "today"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgid "tomorrow"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgctxt "recruitment calls section"
+msgid "Closed"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+msgctxt "classification list"
+msgid "Preliminary"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "%s active call"
+msgid_plural "%s active calls"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "%s waiting"
+msgid_plural "%s waiting"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "%s closed"
+msgid_plural "%s closed"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php
+#, php-format
+msgid "in %s day"
+msgid_plural "in %s days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "The Recruitment tab, My Calls, sorts the candidate's classifications by status, with a counter for each at the top. Called holds one card per active call, with the presentation date and time, how many days away it is and an \"Add to calendar\" button that downloads an .ics file. Waiting lists final classifications first and then preliminary ones, 5 rows at a time. Closed lists hired, withdrew, did not show up and \"Deadline passed\", 2 rows at a time. A call still marked as called moves from Called to Closed as \"Deadline passed\" the day after its presentation date, in the site's timezone, until the team records the result. An i button beside a badge explains a passed deadline or a reverted call, with its dates and the reason given. An empty section is not shown."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Approved banner on the dashboard"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Hide the approved banner after (days)"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php
+msgid "Counted from the later of the campaign's end and the approval. 0 keeps it visible."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "Once a submission is approved, its banner offers the Record download until the window in Settings → Reregistration (\"Hide the approved banner after (days)\", default 30) has passed since the later of the campaign's end and the approval, even after the daily run has expired the campaign; 0 never hides it. The dashboard's Reregistration tab keeps listing it either way."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Masked personal data:"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "the person's own CPF/RF, e-mail addresses, phone and birth date appear masked on every tab, each with a Reveal button, so a shared or projected screen does not show them. Revealing one's own data writes no activity-log entry, and a masked field cannot be saved over until it is revealed. Documents the person downloads (a certificate PDF, a receipt, a record) keep printing the values in clear."
+msgstr ""
+
+#: includes/api/class-ffc-user-certificates-rest-controller.php
+msgid "Certificate not found."
+msgstr ""
+
+#. translators: %s: rule name
+#: templates/admin/date-messages/rules.php
+msgid "Active: %s"
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-record-autosave.php
+msgid "The short URL could not be saved."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Users can join/leave this group from their dashboard"
+msgstr ""
+
+#. %d: how many self-join groups one user may belong to (Scheduling Settings, Audience Calendars tab)
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+#, php-format
+msgid "A group created under this audience starts with self-join off. Once the audience has groups below it, this becomes one choice that covers them too. Users can join up to %d groups through self-join."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "This audience only"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "This audience + children and grandchildren"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Children and grandchildren only"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "No one joins or leaves this audience or any group below it from the dashboard."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Users can join/leave this group only. Its child and grandchild groups stay closed."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Users can join/leave this group and every child and grandchild group."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "This group shows on the dashboard only as a heading over its children and grandchildren, which users can join/leave."
+msgstr ""
+
+#. translators: 1: children and grandchildren that allow self-join, 2: all children and grandchildren
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+#, php-format
+msgid "This audience allows self-join; %1$d of %2$d children and grandchildren allow it. No option is selected and nothing changes until you pick one, which then applies to all of them."
+msgstr ""
+
+#. translators: 1: children and grandchildren that allow self-join, 2: all children and grandchildren
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+#, php-format
+msgid "This audience does not allow self-join; %1$d of %2$d children and grandchildren allow it. No option is selected and nothing changes until you pick one, which then applies to all of them."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "A group created later under this audience starts with self-join on when every child and grandchild allows it, and off otherwise."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A top-level audience with child groups sets self-join in one choice of four: Off, This audience only, This audience + children and grandchildren, or Children and grandchildren only. The choice is written to the audience and to every group below it; with the audience itself closed, the dashboard shows it as a heading over the groups users can join. When the groups below disagree, no option is selected and a notice gives the audience's own state and how many of its children and grandchildren allow self-join; saving leaves everything as it is until you pick an option. A group created under the audience starts with self-join on when every existing child and grandchild allows it, and off otherwise, including under an audience with no groups yet. An audience without child groups keeps one switch."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Inherits from the audience above."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "On the new-audience form, picking a parent audience replaces the self-join switch with \"Inherits from the audience above.\": the new group takes the value described above."
+msgstr ""
+
+#: templates/admin/audience/audience-tab.php
+msgid "Self-Join"
+msgstr ""
+
+#: templates/admin/audience/audience-tab.php
+msgid "Users join and leave the groups that allow self-join from the Audiences tab of their dashboard."
+msgstr ""
+
+#: templates/admin/audience/audience-tab.php
+msgid "Groups per user"
+msgstr ""
+
+#. 1: lowest accepted value, 2: highest accepted value
+#: templates/admin/audience/audience-tab.php
+#, php-format
+msgid "How many self-join groups one user may belong to at once, from %1$d to %2$d. A user at the limit leaves a group before joining another. Every membership in a group that allows self-join counts, however it was added. Saved with the Save Settings button below."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The cap is set under Scheduling → Settings → Audience Calendars → Self-Join, \"Groups per user\": from 1 to 20, 2 by default. Every membership in a group that allows self-join counts, however it was added; a user at the cap leaves a group before joining another, and the dashboard says how many groups they may join."
+msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "This group is open only to members of its audience."
+msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "This audience keeps its members in at least one group. Join or switch to another of its groups before leaving this one."
+msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "Choose the group to leave and the group to join."
+msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "You can only switch between groups of the same audience."
+msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "Error switching group"
+msgstr ""
+
+#. 1: group left, 2: group joined
+#: includes/api/class-ffc-user-audience-rest-controller.php
+#, php-format
+msgid "You left \"%1$s\" and joined \"%2$s\"."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "This setting is set on the top-level audience."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php
+msgid "Turn on \"Visible to members only\" first."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Join groups panel"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Inherited from the top-level audience: visible to members only, and members keep at least one group."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Inherited from the top-level audience: visible to members only."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Inherited from the top-level audience: visible to every user."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Visible to members only"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "This audience and its children and grandchildren show in the dashboard's Join groups panel only to users who already belong to one of its groups, however they were added. Calendars and bookings are not affected."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Keep at least one group"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "A member cannot leave the last group they hold in this audience from the dashboard; they switch to another group instead. Needs \"Visible to members only\". Removing members here is not affected."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Switch to this"
+msgstr ""
+
+#. %s: name of the group the user switches to
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+#, php-format
+msgid "Replace which group with \"%s\"?"
+msgstr ""
+
+#. 1: group the user leaves, 2: group the user joins
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+#, php-format
+msgid "Leave \"%1$s\" and join \"%2$s\"?"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Two more switches on a top-level audience cover it and every child and grandchild; the groups below show the state read-only. \"Visible to members only\" hides the whole audience from the dashboard's Join groups panel for users who belong to none of its groups, however they were added (by you, by an import or by self-join), and the server refuses a join request from them; calendars, bookings and the rest of the dashboard are not affected. \"Keep at least one group\", available only while the first is on, stops a member from leaving the last group they hold in the audience: its Leave button is disabled with a line saying why and the server refuses the request. \"Leave all groups\" still leaves every other group, but in such an audience it keeps the group the user joined first (the earliest membership) and leaves the rest of it; a notice then names each group kept and the audience that requires it. Removing members on this screen is not affected."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "When a user is at the cap, or holds only one group of an audience that keeps its members, the other self-join groups of that audience offer \"Switch to this\": in one step the user leaves a group they hold there and joins the new one. With several groups held there, the dashboard asks which one to replace. A switch only moves between groups of the same top-level audience, so it never takes a user past the cap."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Some groups were kept"
+msgstr ""
+
+#. 1: group the user stays in, 2: top-level audience that requires at least one group
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+#, php-format
+msgid "You stay in \"%1$s\" because \"%2$s\" requires at least one group."
+msgstr ""
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "You left every group you could. Some audiences keep their members in at least one group."
 msgstr ""

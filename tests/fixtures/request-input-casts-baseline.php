@@ -55,7 +55,6 @@ return array(
 	'reregistration/class-ffc-reregistration-submission-actions.php::GET[sub_id]#2',
 	'reregistration/class-ffc-reregistration-submission-actions.php::GET[sub_id]#3',
 	'reregistration/class-ffc-reregistration-submission-actions.php::POST[reregistration_id]#1',
-	'self-scheduling/class-ffc-self-scheduling-cleanup-handler.php::POST[calendar_id]#1',
 	'shortcodes/class-ffc-dashboard-view-mode.php::GET[ffc_view_as_user]#1',
 	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#1',
 	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#2',
@@ -63,6 +62,4 @@ return array(
 	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#4',
 	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#5',
 	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#6',
-	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#7',
-	'url-shortener/class-ffc-url-shortener-admin-page.php::GET[id]#8',
 );

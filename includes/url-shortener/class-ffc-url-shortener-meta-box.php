@@ -148,10 +148,19 @@ class UrlShortenerMetaBox {
 				<div class="ffc-shorturl-input-row">
 					<input type="text" value="<?php echo esc_attr( $short_url ); ?>" readonly
 							id="ffc-shorturl-input" class="widefat ffc-shorturl-input-sm" />
-					<button type="button" class="button ffc-copy-shorturl" data-url="<?php echo esc_attr( $short_url ); ?>"
-							title="<?php esc_attr_e( 'Copy', 'ffcertificate' ); ?>">
-						<span class="ffc-icon-copy" aria-hidden="true"></span>
-					</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'     => __( 'Copy', 'ffcertificate' ),
+							'icon'      => 'copy',
+							'icon_only' => true,
+							'class'     => 'ffc-copy-shorturl',
+							'attrs'     => array(
+								'data-url' => $short_url,
+							),
+						)
+					);
+					?>
 				</div>
 			</div>
 
@@ -170,21 +179,48 @@ class UrlShortenerMetaBox {
 
 				<!-- Download Buttons -->
 				<div class="ffc-shorturl-download-row">
-					<button type="button" class="button button-small ffc-download-qr" data-format="png" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-						<span class="ffc-icon-download" aria-hidden="true"></span>PNG
-					</button>
-					<button type="button" class="button button-small ffc-download-qr" data-format="svg" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-						<span class="ffc-icon-download" aria-hidden="true"></span>SVG
-					</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label' => 'PNG',
+							'icon'  => 'download',
+							'class' => 'ffc-download-qr',
+							'attrs' => array(
+								'data-format'  => 'png',
+								'data-post-id' => (string) $post->ID,
+							),
+						)
+					);
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label' => 'SVG',
+							'icon'  => 'download',
+							'class' => 'ffc-download-qr',
+							'attrs' => array(
+								'data-format'  => 'svg',
+								'data-post-id' => (string) $post->ID,
+							),
+						)
+					);
+					?>
 				</div>
 			<?php endif; ?>
 
 			<!-- Regenerate -->
 			<div class="ffc-shorturl-regenerate">
-				<button type="button" class="button button-small ffc-regenerate-shorturl" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-					<span class="ffc-icon-sync" aria-hidden="true"></span>
-					<?php esc_html_e( 'Regenerate', 'ffcertificate' ); ?>
-				</button>
+				<?php
+				\FreeFormCertificate\Core\Button::render(
+					array(
+						'label'    => __( 'Regenerate', 'ffcertificate' ),
+						'category' => 'caution',
+						'icon'     => 'sync',
+						'class'    => 'ffc-regenerate-shorturl',
+						'attrs'    => array(
+							'data-post-id' => (string) $post->ID,
+						),
+					)
+				);
+				?>
 			</div>
 		</div>
 		<?php
@@ -247,39 +283,12 @@ class UrlShortenerMetaBox {
 		// (defeito B), and ffc-common.css is where those tokens are declared.
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
-		wp_enqueue_style(
-			'ffc-url-shortener-admin',
-			FFC_PLUGIN_URL . 'assets/css/ffc-url-shortener-admin.css',
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-url-shortener-admin-css' );
 		// Saving and rasterising QR images, shared with the manual generator (#1563).
-		wp_enqueue_script(
-			'ffc-qr-raster',
-			FFC_PLUGIN_URL . 'assets/js/ffc-qr-raster.js',
-			array(),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-qr-raster' );
 		// `ffc-admin-js` carries FFC.Admin.notify(), the one toast the admin
 		// has (#1843): copy and regenerate report through it.
-		$ffc_s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$ffc_s}.js", array( 'jquery' ), FFC_VERSION, true );
-		wp_enqueue_script( 'ffc-admin-js', FFC_PLUGIN_URL . "assets/js/ffc-admin{$ffc_s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
-		wp_enqueue_script(
-			'ffc-url-shortener-admin',
-			FFC_PLUGIN_URL . 'assets/js/ffc-url-shortener-admin.js',
-			// `ffc-core` carries `window.FFC.request()` which the QR-download
-			// click handler calls. Declaring it as a dep makes the load
-			// order survive JS-combining cache plugins (LiteSpeed Combine,
-			// WP Rocket Combine, etc.) that flatten the bundle and would
-			// otherwise drop `ffc-core` for not being in the chain. Same
-			// fix shape as 6.6.7 (#367) applied to the 4 public-facing
-			// sites; admin sites missed that pass.
-			array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-qr-raster' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-admin-js', 'ffc-url-shortener-admin' );
 		wp_localize_script(
 			'ffc-url-shortener-admin',
 			'ffcUrlShortener',

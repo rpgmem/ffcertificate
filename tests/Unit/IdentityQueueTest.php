@@ -8,6 +8,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\IdentityAcceptance;
+use FreeFormCertificate\Maintenance\IdentityCheckDigitScan;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 
@@ -74,12 +75,14 @@ class IdentityQueueTest extends TestCase {
 		$query = Mockery::mock( IdentityConflictQuery::class );
 		$query->shouldReceive( 'multiple_identities' )->andReturn( $multiple );
 		$query->shouldReceive( 'shared_identities' )->andReturn( $shared );
-		$query->shouldReceive( 'check_digit_failures_of_both' )->andReturn( $failures );
-		$query->shouldReceive( 'check_digit_verdicts' )->andReturn( $verdicts );
+
+		$scan = Mockery::mock( IdentityCheckDigitScan::class );
+		$scan->shouldReceive( 'check_digit_failures_of_both' )->andReturn( $failures );
+		$scan->shouldReceive( 'check_digit_verdicts' )->andReturn( $verdicts );
 		// KEYED BY COLUMN (#1486): the scan reads two identifiers and one flat
 		// record cannot describe both, which is what lets a clean half vouch
 		// for a half that never ran.
-		$query->shouldReceive( 'scan_coverage' )->andReturn(
+		$scan->shouldReceive( 'scan_coverage' )->andReturn(
 			array(
 				'rf_hash' => array(
 					'stores'     => 3,
@@ -92,7 +95,7 @@ class IdentityQueueTest extends TestCase {
 		$acceptance = Mockery::mock( IdentityAcceptance::class );
 		$acceptance->shouldReceive( 'all' )->andReturn( $accepted );
 
-		return new class( $query, $acceptance ) extends IdentityQueue {
+		return new class( $query, $scan, $acceptance ) extends IdentityQueue {
 
 			/**
 			 * The double.
@@ -100,6 +103,13 @@ class IdentityQueueTest extends TestCase {
 			 * @var IdentityConflictQuery
 			 */
 			private $double;
+
+			/**
+			 * The scan double.
+			 *
+			 * @var IdentityCheckDigitScan
+			 */
+			private $scan_double;
 
 			/**
 			 * The acceptance double.
@@ -111,11 +121,13 @@ class IdentityQueueTest extends TestCase {
 			/**
 			 * Take the doubles.
 			 *
-			 * @param IdentityConflictQuery $double   Stand-in for the real query.
-			 * @param IdentityAcceptance    $accepted Stand-in for the record.
+			 * @param IdentityConflictQuery  $double   Stand-in for the real query.
+			 * @param IdentityCheckDigitScan $scan     Stand-in for the real scan.
+			 * @param IdentityAcceptance     $accepted Stand-in for the record.
 			 */
-			public function __construct( $double, $accepted ) {
+			public function __construct( $double, $scan, $accepted ) {
 				$this->double          = $double;
+				$this->scan_double     = $scan;
 				$this->accepted_double = $accepted;
 			}
 
@@ -126,6 +138,15 @@ class IdentityQueueTest extends TestCase {
 			 */
 			protected function conflicts(): IdentityConflictQuery {
 				return $this->double;
+			}
+
+			/**
+			 * The scan this tiering reads through.
+			 *
+			 * @return IdentityCheckDigitScan
+			 */
+			protected function scans(): IdentityCheckDigitScan {
+				return $this->scan_double;
 			}
 
 			/**

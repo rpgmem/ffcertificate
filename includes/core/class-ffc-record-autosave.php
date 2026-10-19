@@ -125,10 +125,7 @@ class RecordAutosave {
 	 * @return void
 	 */
 	public static function enqueue(): void {
-		$s = AssetHelper::asset_suffix();
-		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
-		wp_enqueue_script( 'ffc-admin-js', FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
-		wp_enqueue_script( 'ffc-admin-autosave', FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js", array( 'jquery', 'ffc-core', 'ffc-admin-js' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-admin-js', 'ffc-admin-autosave' );
 		wp_localize_script(
 			'ffc-admin-autosave',
 			'ffcRecordAutosave',

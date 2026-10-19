@@ -212,3 +212,68 @@ describe('ffc-admin-user-fields.js', () => {
 		expect(type(window.$('#cpf'), '12345678909')).toBe('12345678909');
 	});
 });
+
+// One CPF/RF shape and one pair of validators for every screen (#1920): the
+// public forms' mask formats through these, so the cases pin what a visitor
+// types as much as what the dashboard does.
+describe('FFC.Fields cpf_rf mask and validators', () => {
+	const masks = () => window.FFC.Fields.masks;
+
+	it.each([
+		['1234567', '123.456-7'],
+		['123456', '123.456'],
+		['12345678', '123.456.78'],
+		['52998224725', '529.982.247-25'],
+		['529982247251234', '529.982.247-25'],
+		['', ''],
+	])('cpf_rf formats %s as %s', (input, expected) => {
+		expect(masks().cpf_rf(input)).toBe(expected);
+	});
+
+	it('cpf_rf reads up to seven digits as an RF and more as a CPF, like the cpf and rf masks', () => {
+		expect(masks().cpf_rf('1234567')).toBe(masks().rf('1234567'));
+		expect(masks().cpf_rf('52998224725')).toBe(masks().cpf('52998224725'));
+	});
+
+	it('validateRf wants seven digits', () => {
+		window.ffcCoreConfig = {};
+		expect(window.FFC.Fields.validateRf('123.456-7')).toBe(true);
+		expect(window.FFC.Fields.validateRf('123456')).toBe(false);
+		expect(window.FFC.Fields.validateRf('12345678')).toBe(false);
+	});
+
+	it('validateRf checks the check digit only when the site enforces it, as the server does', () => {
+		// 1234560: 7*1+6*2+5*3+4*4+3*5+2*6 = 77, 77 % 11 = 0, (11 - 0) % 10 = 1.
+		window.ffcCoreConfig = { rfCheckDigit: false };
+		expect(window.FFC.Fields.validateRf('1234560')).toBe(true);
+		window.ffcCoreConfig = { rfCheckDigit: true };
+		expect(window.FFC.Fields.validateRf('1234560')).toBe(false);
+		expect(window.FFC.Fields.validateRf('123.456-1')).toBe(true);
+		window.ffcCoreConfig = {};
+	});
+
+	it('the public helpers answer with the shared validators', () => {
+		loadScript('assets/js/ffc-frontend-helpers.js');
+		const v = window.FFC.Frontend.Validation;
+		expect(v.validateCPF('529.982.247-25')).toBe(window.FFC.Fields.validateCpf('529.982.247-25'));
+		expect(v.validateCPF('111.111.111-11')).toBe(false);
+		window.ffcCoreConfig = { rfCheckDigit: true };
+		expect(v.validateRF('1234561')).toBe(true);
+		expect(v.validateRF('1234560')).toBe(false);
+		window.ffcCoreConfig = {};
+	});
+
+	it('the public CPF/RF mask formats through the shared one', () => {
+		loadScript('assets/js/ffc-frontend-helpers.js');
+		document.body.innerHTML = '<input name="cpf_rf">';
+		const $input = window.$('input[name="cpf_rf"]');
+		window.FFC.Frontend.Masks.applyCpfRf($input);
+		const shared = window.FFC.Fields.masks.cpf_rf;
+		let calls = 0;
+		window.FFC.Fields.masks.cpf_rf = (v) => { calls++; return shared(v); };
+		expect(type($input, '1234567')).toBe('123.456-7');
+		expect(type($input, '52998224725')).toBe('529.982.247-25');
+		expect(calls).toBe(2);
+		window.FFC.Fields.masks.cpf_rf = shared;
+	});
+});

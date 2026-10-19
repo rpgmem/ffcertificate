@@ -339,7 +339,17 @@ class AudienceShortcode {
 			<div class="ffc-modal-content">
 				<div class="ffc-modal-header">
 					<h3 id="ffc-booking-modal-title"><?php esc_html_e( 'New Booking', 'ffcertificate' ); ?></h3>
-					<button type="button" class="ffc-modal-close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'     => __( 'Close', 'ffcertificate' ),
+							'category'  => 'neutral',
+							'icon'      => 'cross',
+							'icon_only' => true,
+							'class'     => 'ffc-modal-close',
+						)
+					);
+					?>
 				</div>
 				<div class="ffc-modal-body">
 					<form id="ffc-booking-form">
@@ -423,13 +433,25 @@ class AudienceShortcode {
 					</form>
 				</div>
 				<div class="ffc-modal-footer">
-					<button type="button" class="ffc-btn ffc-btn-secondary ffc-modal-cancel">
-						<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
-					</button>
-					<button type="button" class="ffc-btn ffc-btn-primary" id="ffc-check-conflicts-btn">
-						<?php esc_html_e( 'Check Conflicts', 'ffcertificate' ); ?>
-					</button>
-					<button type="button" class="ffc-btn ffc-btn-success" id="ffc-create-booking-btn" style="display: none;">
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'    => __( 'Cancel', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'cross',
+							'class'    => 'ffc-modal-cancel',
+						)
+					);
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'    => __( 'Check Conflicts', 'ffcertificate' ),
+							'category' => 'primary',
+							'icon'     => 'search',
+							'id'       => 'ffc-check-conflicts-btn',
+						)
+					);
+					?>
+					<button type="button" class="ffc-btn ffc-btn-create ffc-icon-plus" id="ffc-create-booking-btn" style="display: none;">
 						<?php esc_html_e( 'Create Booking', 'ffcertificate' ); ?>
 					</button>
 				</div>
@@ -443,7 +465,17 @@ class AudienceShortcode {
 			<div class="ffc-modal-content ffc-modal-lg">
 				<div class="ffc-modal-header">
 					<h3 class="ffc-day-modal-title" id="ffc-day-modal-title"></h3>
-					<button type="button" class="ffc-modal-close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'     => __( 'Close', 'ffcertificate' ),
+							'category'  => 'neutral',
+							'icon'      => 'cross',
+							'icon_only' => true,
+							'class'     => 'ffc-modal-close',
+						)
+					);
+					?>
 				</div>
 				<div class="ffc-modal-body">
 					<div class="ffc-day-filter">
@@ -457,14 +489,26 @@ class AudienceShortcode {
 					</div>
 				</div>
 				<div class="ffc-modal-footer">
-					<button type="button" class="ffc-btn ffc-btn-secondary ffc-modal-cancel">
-						<?php esc_html_e( 'Close', 'ffcertificate' ); ?>
-					</button>
-					<?php if ( $show_booking_modal ) : ?>
-					<button type="button" class="ffc-btn ffc-btn-primary" id="ffc-new-booking-btn">
-						<?php esc_html_e( 'New Booking', 'ffcertificate' ); ?>
-					</button>
-					<?php endif; ?>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'    => __( 'Close', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'cross',
+							'class'    => 'ffc-modal-cancel',
+						)
+					);
+					if ( $show_booking_modal ) {
+						\FreeFormCertificate\Core\Button::render(
+							array(
+								'label'    => __( 'New Booking', 'ffcertificate' ),
+								'category' => 'create',
+								'icon'     => 'plus',
+								'id'       => 'ffc-new-booking-btn',
+							)
+						);
+					}
+					?>
 				</div>
 			</div>
 		</div>
@@ -551,7 +595,7 @@ class AudienceShortcode {
 			$output .= '<h3 class="ffc-calendar-title">' . esc_html( $schedule_name ) . '</h3>';
 		}
 
-		$output .= '<div class="ffc-restricted-message">' . wp_kses_post( $message ) . '</div>';
+		$output .= \FreeFormCertificate\Core\Notice::render( 'warning', 'login', $message, '', array( 'html' => true ) );
 		$output .= '</div>';
 
 		return $output;
@@ -712,18 +756,8 @@ class AudienceShortcode {
 		// and the palette stays frozen in the light theme (#1126).
 		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
-		wp_enqueue_style(
-			'ffc-common',
-			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-			array(),
-			FFC_VERSION
-		);
-		wp_enqueue_style(
-			'ffc-audience',
-			FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-audience-css' );
 	}
 
 	/**
@@ -739,13 +773,7 @@ class AudienceShortcode {
 
 		// JavaScript.
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-audience',
-			FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-audience' );
 
 		// Calendar modules split out of the former monolith. Each depends on
 		// 'ffc-audience' (the shared core that owns window.FFCAudience and the

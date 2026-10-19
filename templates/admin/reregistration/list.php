@@ -20,7 +20,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 		<h1 class="wp-heading-inline"><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></h1>
 		<?php if ( $can_edit ) : ?>
-		<a href="<?php echo esc_url( $new_url ); ?>" class="page-title-action"><?php esc_html_e( 'Add New', 'ffcertificate' ); ?></a>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label'    => __( 'Add New', 'ffcertificate' ),
+					'category' => 'create',
+					'icon'     => 'plus',
+					'href'     => $new_url,
+				)
+			);
+			?>
 		<?php endif; ?>
 		<hr class="wp-header-end">
 
@@ -42,7 +51,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<option value=""><?php esc_html_e( 'All Audiences', 'ffcertificate' ); ?></option>
 					<?php self::render_audience_options( $audiences, $audience_filter ); ?>
 				</select>
-				<?php submit_button( __( 'Filter', 'ffcertificate' ), '', '', false ); ?>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Filter', 'ffcertificate' ),
+						'icon'  => 'filter',
+						'type'  => 'submit',
+					)
+				);
+				?>
 			</form>
 		</div>
 

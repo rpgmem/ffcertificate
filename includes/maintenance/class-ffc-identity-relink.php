@@ -368,8 +368,8 @@ class IdentityRelink {
 			return array();
 		}
 
-		$query = new IdentityConflictQuery();
-		$out   = array();
+		$scan = new IdentityCheckDigitScan();
+		$out  = array();
 
 		foreach ( $agreement['matches'] as $field ) {
 			$held = $records[ $field ] ?? array();
@@ -378,7 +378,7 @@ class IdentityRelink {
 				continue;
 			}
 
-			$out[ $field ] = $query->check_digit_verdicts( $field . '_hash', $held );
+			$out[ $field ] = $scan->check_digit_verdicts( $field . '_hash', $held );
 		}
 
 		return $out;

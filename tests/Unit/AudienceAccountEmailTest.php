@@ -37,6 +37,7 @@ class AudienceAccountEmailTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
+		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -94,7 +95,7 @@ class AudienceAccountEmailTest extends TestCase {
 		$this->assertSame( $button, str_contains( $html, 'ffc-reveal-pii' ) );
 		if ( $button ) {
 			$this->assertStringContainsString(
-				'<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="audience_account" data-field="email" data-submission-id="' . $account . '" data-nonce="reveal-nonce">Reveal</button>',
+				'<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-type="audience_account" data-field="email" data-submission-id="' . $account . '" data-nonce="reveal-nonce">Reveal</button>',
 				$html
 			);
 		}
@@ -118,7 +119,7 @@ class AudienceAccountEmailTest extends TestCase {
 		$html = AudienceAccountEmail::render( self::MEMBER, 'not-an-address' );
 
 		$this->assertStringNotContainsString( 'not-an-address', $html );
-		$this->assertStringContainsString( 'data-field="email">***</span>', $html );
+		$this->assertStringContainsString( 'data-field="email">n***</span>', $html );
 	}
 
 	public function test_no_email_draws_nothing(): void {

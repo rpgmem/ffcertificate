@@ -492,10 +492,10 @@ class UrlShortenerServiceTest extends TestCase {
 	}
 
 	// ==================================================================
-	// toggle_status()
+	// set_active()
 	// ==================================================================
 
-	public function test_toggle_status_active_to_disabled(): void {
+	public function test_set_active_switches_a_live_link_off(): void {
 		$this->repo->shouldReceive( 'findById' )->with( 1 )->once()->andReturn( [
 			'id' => 1, 'status' => 'active',
 		] );
@@ -506,10 +506,10 @@ class UrlShortenerServiceTest extends TestCase {
 			->once()
 			->andReturn( 1 );
 
-		$this->assertTrue( $this->service->toggle_status( 1 ) );
+		$this->assertTrue( $this->service->set_active( 1, false ) );
 	}
 
-	public function test_toggle_status_disabled_to_active(): void {
+	public function test_set_active_switches_a_live_link_on(): void {
 		$this->repo->shouldReceive( 'findById' )->with( 2 )->once()->andReturn( [
 			'id' => 2, 'status' => 'disabled',
 		] );
@@ -520,13 +520,22 @@ class UrlShortenerServiceTest extends TestCase {
 			->once()
 			->andReturn( 1 );
 
-		$this->assertTrue( $this->service->toggle_status( 2 ) );
+		$this->assertTrue( $this->service->set_active( 2, true ) );
 	}
 
-	public function test_toggle_status_not_found_returns_false(): void {
+	public function test_set_active_leaves_a_trashed_link_in_the_trash(): void {
+		$this->repo->shouldReceive( 'findById' )->with( 3 )->once()->andReturn( [
+			'id' => 3, 'status' => 'trashed',
+		] );
+		$this->repo->shouldNotReceive( 'update' );
+
+		$this->assertFalse( $this->service->set_active( 3, true ) );
+	}
+
+	public function test_set_active_not_found_returns_false(): void {
 		$this->repo->shouldReceive( 'findById' )->with( 999 )->once()->andReturn( null );
 
-		$this->assertFalse( $this->service->toggle_status( 999 ) );
+		$this->assertFalse( $this->service->set_active( 999, true ) );
 	}
 
 	// ==================================================================

@@ -118,7 +118,8 @@ describe('FFC.Admin.autoSaveField', () => {
 		document.removeEventListener('ffc:setting-saved', onSaved);
 		// The response rides along for a save whose server side did more than
 		// write the field (the operator access hash, #1755).
-		expect(seen).toEqual([{ key: 'dark_mode', value: '1', response: { share_link: '?x' } }]);
+		// The field rides along too, for a listener that repaints beside it (#1904).
+		expect(seen).toEqual([{ key: 'dark_mode', value: '1', response: { share_link: '?x' }, field: document.getElementById('t') }]);
 	});
 
 	it('stays silent when the save fails', async () => {
@@ -203,6 +204,111 @@ describe('FFC.Admin.autoSaveField', () => {
 		expect(postSpy).toHaveBeenCalled();
 		// The value is the selected level — not '1'/'0' like a checkbox.
 		expect(postSpy.mock.calls[0][1].value).toBe('info');
+	});
+});
+
+// ----------------------------------------------------------------------
+// One request per field at a time (#1902). A $.post double whose responses
+// the test releases by hand, so a save can be held in flight.
+// ----------------------------------------------------------------------
+describe('FFC.Admin.autoSaveField — one save in flight per field (#1902)', () => {
+	function heldPost() {
+		const pending = [];
+		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => {
+			const chain = {};
+			let onDone = null;
+			chain.done = (cb) => { onDone = cb; return chain; };
+			chain.fail = () => chain;
+			pending.push((res) => onDone(res));
+			return chain;
+		});
+		return { spy, pending };
+	}
+
+	async function flush() {
+		for (let i = 0; i < 4; i++) {
+			await Promise.resolve();
+		}
+	}
+
+	it('holds a second save of the same field until the first has answered', async () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		const { spy, pending } = heldPost();
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'k' });
+
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		window.$('#t').prop('checked', false).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		// Two requests in flight could land in either order; only one is.
+		expect(spy).toHaveBeenCalledTimes(1);
+		expect(spy.mock.calls[0][1].value).toBe('1');
+
+		pending[0]({ success: true, data: {} });
+		await flush();
+
+		// The held change goes out once the first has settled, read afresh.
+		expect(spy).toHaveBeenCalledTimes(2);
+		expect(spy.mock.calls[1][1].value).toBe('0');
+	});
+
+	it('shows neither the badge nor the announcement of a superseded save', async () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		const { pending } = heldPost();
+		const seen = [];
+		const onSaved = (e) => seen.push(e.detail.value);
+		document.addEventListener('ffc:setting-saved', onSaved);
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'dark_mode' });
+
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		window.$('#t').prop('checked', false).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		pending[0]({ success: true, data: {} });
+		await flush();
+		const $badge = window.$('.ffc-autosave-badge');
+		expect($badge.hasClass('is-busy')).toBe(true);
+		expect(seen).toEqual([]);
+
+		pending[1]({ success: true, data: {} });
+		await flush();
+		document.removeEventListener('ffc:setting-saved', onSaved);
+		expect($badge.hasClass('is-success')).toBe(true);
+		expect(seen).toEqual(['0']);
+	});
+
+	it('still sends the held change when the first save failed', async () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		const { spy, pending } = heldPost();
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'k' });
+
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		window.$('#t').prop('checked', false).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		pending[0]({ success: false, data: { message: 'nope' } });
+		await flush();
+
+		expect(spy).toHaveBeenCalledTimes(2);
+		expect(window.$('.ffc-autosave-badge').hasClass('is-error')).toBe(false);
+	});
+
+	it('does not hold saves of two different fields behind each other', () => {
+		document.body.innerHTML = '<input type="checkbox" id="a" /><input type="checkbox" id="b" />';
+		const { spy } = heldPost();
+		window.FFC.Admin.autoSaveField(window.$('#a'), { key: 'a' });
+		window.FFC.Admin.autoSaveField(window.$('#b'), { key: 'b' });
+
+		window.$('#a').prop('checked', true).trigger('change');
+		window.$('#b').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		// The server serialises writes to one option (#1902); the client
+		// only orders saves of the same field.
+		expect(spy).toHaveBeenCalledTimes(2);
 	});
 });
 

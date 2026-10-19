@@ -141,13 +141,16 @@
      * @param {Object}          [response] What the endpoint returned, for a
      *                          save whose server side changed more than the
      *                          field (the operator access hash, #1755).
+     * @param {Element}         [field] The input that saved, for a listener that
+     *                          repaints something beside it (a list's Status
+     *                          cell, #1904) and cannot tell rows apart by key.
      */
-    function announceSaved(key, value, response) {
+    function announceSaved(key, value, response, field) {
         if (typeof window.CustomEvent !== 'function') {
             return;
         }
         document.dispatchEvent(new window.CustomEvent('ffc:setting-saved', {
-            detail: { key: key, value: value, response: response || {} },
+            detail: { key: key, value: value, response: response || {}, field: field || null },
         }));
     }
 
@@ -196,6 +199,14 @@
 
         var pendingTimer = null;
         var lingerTimer  = null;
+        // One request per field at a time (#1902). Two saves of the same
+        // field in flight together can reach the server in either order —
+        // a host whose response time varies answers the older one last —
+        // and the stored value is then the one the operator moved away
+        // from, under a "Saved" badge. A change made while a save is in
+        // flight waits for it and is sent after, reading the field afresh.
+        var inFlight     = false;
+        var saveAgain    = false;
 
         function scheduleSave() {
             if (pendingTimer) {
@@ -257,6 +268,11 @@
                 return;
             }
             setBadgeState($badge, 'saving', saving);
+            if (inFlight) {
+                saveAgain = true;
+                return;
+            }
+            inFlight = true;
             var value = extractValue($field, config.transform);
             // Each endpoint verifies its own nonce, and neither accepts the
             // global FFC.config.nonce (created for `ffc_admin_pdf_nonce`).
@@ -270,13 +286,30 @@
             if (!config.request && autosaveCfg && autosaveCfg.nonce) {
                 payload.nonce = autosaveCfg.nonce;
             }
+            // A newer change queued behind this save makes its outcome
+            // stale: neither its badge nor its announcement is shown, and
+            // the queued save runs once this one has settled.
+            function settle() {
+                inFlight = false;
+                if (saveAgain) {
+                    saveAgain = false;
+                    performSave();
+                    return true;
+                }
+                return false;
+            }
             window.FFC.request(config.action || 'ffc_update_setting', payload, config.request)
                 .then(function (data) {
+                    if (settle()) {
+                        return;
+                    }
                     setBadgeState($badge, 'saved', saved);
                     lingerTimer = setTimeout(function () { hideBadge($badge); }, SAVED_LINGER);
-                    announceSaved(config.key, value, data);
-                })
-                .catch(function (err) {
+                    announceSaved(config.key, value, data, $field[0]);
+                }, function (err) {
+                    if (settle()) {
+                        return;
+                    }
                     setBadgeState($badge, 'error', (err && err.message) ? err.message : errorTxt);
                 });
         }

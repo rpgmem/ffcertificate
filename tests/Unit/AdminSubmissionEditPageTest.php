@@ -259,7 +259,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 		// Magic link card in the side panel: the link, Copy and Open certificate (#1614).
 		$this->assertStringContainsString( 'class="ffc-edit-layout"', $html );
 		$this->assertStringContainsString( 'data-url="https://example.org/valid/?token=', $html );
-		$this->assertMatchesRegularExpression( '#<a href="https://example.org/valid/\?token=[^"]+" target="_blank" rel="noopener" class="button ffc-icon-external">Open certificate</a>#', $html );
+		$this->assertMatchesRegularExpression( '#<a href="https://example.org/valid/\?token=[^"]+" class="ffc-btn ffc-btn-neutral ffc-icon-external" target="_blank" rel="noopener">Open certificate</a>#', $html );
 		$this->assertStringNotContainsString( 'style="display', $html, 'visibility is the shared class, never an inline style' );
 		// Encrypted IP notice.
 		$this->assertStringContainsString( 'User IP', $html );
@@ -471,10 +471,14 @@ class AdminSubmissionEditPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'Jane Doe', $html );
 		$this->assertStringNotContainsString( 'jane@x.com', $html, 'no tier receives the clear address' );
-		$this->assertStringContainsString( '<span class="ffc-user-email">(<span class="ffc-pii-row"><span class="ffc-pii-value" data-field="account_email">j***@x.com</span>', $html );
+		$this->assertStringContainsString( '<span class="ffc-user-email"><span class="ffc-pii-value" data-field="account_email">j***@x.com</span></span>', $html );
+		// The Reveal sits in the actions row below the card, before View Profile.
+		$actions = (string) strstr( $html, '<div class="ffc-linked-user-actions">' );
+		$this->assertStringContainsString( 'View Profile', $actions );
+		$this->assertSame( $button, false !== strpos( $actions, 'data-field="account_email"' ) );
 		$this->assertSame(
 			$button ? 1 : 0,
-			substr_count( $html, '<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="account_email" data-submission-id="42" data-nonce="nonce123">Reveal</button>' )
+			substr_count( $html, '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-field="account_email" data-submission-id="42" data-nonce="nonce123">Reveal</button>' )
 		);
 	}
 
@@ -490,7 +494,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringContainsString( 'data-field="email"', $html );
 		$this->assertStringContainsString( 'data-field="cpf"', $html );
 		// Email, CPF and the IP under System Information and under the consent.
-		$this->assertSame( 4, substr_count( $html, 'class="button button-small ffc-reveal-pii' ) );
+		$this->assertSame( 4, substr_count( $html, 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii"' ) );
 		$this->assertStringContainsString( 'data-submission-id="42"', $html );
 		$this->assertStringContainsString( 'Reveal the email to edit it.', $html );
 	}
@@ -503,8 +507,8 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		// The email and the CPF: the masked value and its button share one row (#1760).
-		$this->assertMatchesRegularExpression( '#<span class="ffc-pii-row">\s*<input type="email" name="user_email"[^>]*>\s*<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="email"#', $html );
-		$this->assertMatchesRegularExpression( '#<span class="ffc-pii-row"><input type="text" value="518\.\*\*\*\.\*\*\*-80"[^>]*data-ffc-pii-field="cpf"[^>]*><button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="cpf"#', $html );
+		$this->assertMatchesRegularExpression( '#<span class="ffc-pii-row">\s*<input type="email" name="user_email"[^>]*>\s*<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-field="email"#', $html );
+		$this->assertMatchesRegularExpression( '#<span class="ffc-pii-row"><input type="text" value="518\.\*\*\*\.\*\*\*-80"[^>]*data-ffc-pii-field="cpf"[^>]*><button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-field="cpf"#', $html );
 	}
 
 	public function test_render_masks_both_ip_displays_behind_reveal(): void {
@@ -516,7 +520,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 
 		$this->assertStringNotContainsString( '203.0.113.7', $html, 'the clear IP never sits in the page' );
 		$this->assertSame( 2, substr_count( $html, 'value="203.0.***.***"' ), 'System Information and the consent both show the masked IP' );
-		$this->assertSame( 2, preg_match_all( '#data-ffc-pii-field="ip" readonly aria-label="[^"]+"><button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-field="ip"#', $html ) );
+		$this->assertSame( 2, preg_match_all( '#data-ffc-pii-field="ip" readonly aria-label="[^"]+"><button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-field="ip"#', $html ) );
 		$this->assertStringContainsString( 'This IP is encrypted in the database.', $html );
 	}
 

@@ -58,7 +58,7 @@
         return v.toLocaleString();
     }
 
-    $(document).on('click', '.ffc-migration-actions a.button-primary', function (e) {
+    $(document).on('click', '.ffc-migration-actions a.ffc-migration-run', function (e) {
         var $btn         = $(this);
         var $card        = $btn.closest('.ffc-migration-card');
         var $description = $btn.next('.description');
@@ -73,10 +73,12 @@
 
         e.preventDefault();
         var initialStrings  = getStrings();
-        var originalBtnHtml = $btn.html();
+        var originalLabel   = $btn.text();
         var totalProcessed  = 0;
-        $btn.prop('disabled', true).addClass('disabled')
-            .html('<span class="ffc-icon-sync ffc-icon-spin" aria-hidden="true"></span>' + (initialStrings.processing || 'Processing...'));
+        // Busy is the family's state (#1881): the label says what is running
+        // and the ring after it turns; the icon class stays on the link.
+        $btn.addClass('disabled ffc-btn-loading').attr('aria-disabled', 'true')
+            .text(initialStrings.processing || 'Processing...');
 
         function runBatch() {
             window.FFC.request('ffc_migration_run_batch', {
@@ -100,7 +102,8 @@
                     );
 
                     if (data.is_complete) {
-                        $btn.html('<span class="ffc-icon-success" aria-hidden="true"></span>' + (strings.migrationComplete || 'Migration Complete'));
+                        $btn.removeClass('ffc-btn-loading ffc-icon-sync').addClass('ffc-icon-success')
+                            .text(strings.migrationComplete || 'Migration Complete');
                         window.FFC.status($description, 'success', strings.allRecordsMigrated || 'All records have been successfully migrated.');
                         setTimeout(function () { window.location.reload(); }, 1500);
                     } else {
@@ -110,7 +113,7 @@
                 .catch(function (err) {
                     var strings = getStrings();
                     var msg = (err && err.message) ? err.message : (strings.errorOccurred || 'Error occurred. Please try again.');
-                    $btn.prop('disabled', false).removeClass('disabled').html(originalBtnHtml);
+                    $btn.removeClass('disabled ffc-btn-loading').removeAttr('aria-disabled').text(originalLabel);
                     window.FFC.status($description, 'error', msg);
                 });
         }

@@ -41,12 +41,7 @@ class AdminConditionalAssets {
 
 		// Settings page styles + scripts.
 		if ( AdminAssetsManager::is_settings_page() ) {
-			wp_enqueue_style(
-				'ffc-admin-settings',
-				FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$s}.css",
-				array( 'ffc-common', 'ffc-admin-css' ),
-				FFC_VERSION
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-settings' );
 
 			wp_enqueue_script(
 				'ffc-admin-migrations',
@@ -76,13 +71,7 @@ class AdminConditionalAssets {
 			// Branding logo media picker (#865 Phase 2) — the generic
 			// data-ffc-media-target handler for the Settings → General logo
 			// fields. wp_enqueue_media() already runs for FFC admin pages.
-			wp_enqueue_script(
-				'ffc-branding-media',
-				FFC_PLUGIN_URL . "assets/js/ffc-branding-media{$s}.js",
-				array( 'jquery' ),
-				FFC_VERSION,
-				true
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-branding-media' );
 			wp_localize_script(
 				'ffc-branding-media',
 				'ffcBrandingMedia',
@@ -177,13 +166,7 @@ class AdminConditionalAssets {
 			FFC_VERSION
 		);
 
-		wp_enqueue_script(
-			'ffc-calendar-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-calendar-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-calendar-core' );
 
 		wp_enqueue_script(
 			'ffc-certificates-dashboard',
@@ -257,13 +240,7 @@ class AdminConditionalAssets {
 	private function enqueue_submissions_bulk_assets(): void {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			'ffc-admin-submissions-bulk',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-submissions-bulk{$s}.js",
@@ -308,7 +285,7 @@ class AdminConditionalAssets {
 		wp_enqueue_script(
 			'ffc-admin-move-submissions',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-move-submissions{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

@@ -65,22 +65,19 @@ final class AudienceAccountEmail {
 		}
 
 		$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
-		if ( $masked === $email ) {
-			// mask_email() hands back an address it cannot parse unchanged.
-			$masked = '***';
-		}
 
 		$button = '';
 		if ( \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal( self::PII_CAP, $user_id ) ) {
 			if ( null === self::$nonce ) {
 				self::$nonce = wp_create_nonce( 'ffc_reveal_pii_nonce' );
 			}
-			$button = sprintf(
-				' <button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="%1$s" data-field="email" data-submission-id="%2$s" data-nonce="%3$s">%4$s</button>',
-				esc_attr( self::REVEAL_TYPE ),
-				esc_attr( (string) $user_id ),
-				esc_attr( self::$nonce ),
-				esc_html__( 'Reveal', 'ffcertificate' )
+			$button = ' ' . \FreeFormCertificate\Core\PiiReveal::field_button(
+				array(
+					'type'          => self::REVEAL_TYPE,
+					'field'         => 'email',
+					'submission-id' => (string) $user_id,
+					'nonce'         => self::$nonce,
+				)
 			);
 		}
 

@@ -176,13 +176,15 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 				}
 				echo '<span class="ffc-pii-value" data-field="' . esc_attr( $field ) . '">' . esc_html( $masked_display ) . '</span>';
 				if ( $ffcertificate_can_reveal ) {
-					printf(
-						' <button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="appointment" data-field="%1$s" data-submission-id="%2$s" data-nonce="%3$s">%4$s</button>',
-						esc_attr( $field ),
-						esc_attr( (string) $ffc_self_scheduling_appointment_id ),
-						esc_attr( $ffcertificate_reveal_nonce ),
-						esc_html__( 'Reveal', 'ffcertificate' )
+					$ffcertificate_reveal_button = \FreeFormCertificate\Core\PiiReveal::field_button(
+						array(
+							'type'          => 'appointment',
+							'field'         => $field,
+							'submission-id' => (string) $ffc_self_scheduling_appointment_id,
+							'nonce'         => $ffcertificate_reveal_nonce,
+						)
 					);
+					echo ' ' . $ffcertificate_reveal_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field_button() escapes every value.
 				}
 			};
 
@@ -238,7 +240,15 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 					);
 					?>
 				</h1>
-				<a href="<?php echo esc_url( $ffcertificate_appointments_url ); ?>" class="page-title-action"><?php esc_html_e( 'Back to List', 'ffcertificate' ); ?></a>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Back to List', 'ffcertificate' ),
+						'icon'  => 'chevron-left',
+						'href'  => $ffcertificate_appointments_url,
+					)
+				);
+				?>
 				<hr class="wp-header-end">
 
 				<div class="card">
@@ -295,7 +305,15 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 				'error',
 				'<strong>' . esc_html__( 'Error loading appointment:', 'ffcertificate' ) . '</strong> ' . esc_html( $e->getMessage() )
 			);
-			echo '<p><a href="' . esc_url( $ffcertificate_appointments_url ) . '" class="button">' . esc_html__( 'Back to List', 'ffcertificate' ) . '</a></p>';
+			echo '<p>';
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label' => __( 'Back to List', 'ffcertificate' ),
+					'icon'  => 'chevron-left',
+					'href'  => $ffcertificate_appointments_url,
+				)
+			);
+			echo '</p>';
 			echo '</div>';
 			if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
 				\FreeFormCertificate\Core\Debug::log_self_scheduling(
@@ -342,14 +360,20 @@ $ffcertificate_table->prepare_items();
 		$ffc_export_calendar_id = \FreeFormCertificate\Core\RequestInput::get_get_int( 'calendar_id' );
 		$ffc_export_status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
 		?>
-		<button
-			type="button"
-			id="ffc-appointments-export-btn"
-			class="page-title-action"
-			data-calendar_id="<?php echo esc_attr( (string) $ffc_export_calendar_id ); ?>"
-			data-status="<?php echo esc_attr( $ffc_export_status ); ?>">
-			<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
-		</button>	<?php endif; ?>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Export CSV', 'ffcertificate' ),
+				'icon'  => 'download',
+				'id'    => 'ffc-appointments-export-btn',
+				'attrs' => array(
+					'data-calendar_id' => (string) $ffc_export_calendar_id,
+					'data-status'      => $ffc_export_status,
+				),
+			)
+		);
+	endif;
+	?>
 	<hr class="wp-header-end">
 
 	<form method="get">

@@ -19,6 +19,8 @@ use FreeFormCertificate\Core\ActivityLogQuery;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Maintenance\IdentityAcceptance;
+use FreeFormCertificate\Maintenance\IdentityAccountFacts;
+use FreeFormCertificate\Maintenance\IdentityCheckDigitScan;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityMerge;
 use FreeFormCertificate\Maintenance\IdentityQueue;
@@ -46,7 +48,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * findings -- but only `the findings that name an account`: its builder drops
  * a row whose `SubmissionLinkAuditor::accounts_named_by()` is empty. A
  * check-digit failure on a recruitment candidacy names no account until
- * promotion, and `IdentityConflictQuery::rf_check_digit_failures()`
+ * promotion, and `IdentityCheckDigitScan::check_digit_failures()`
  * deliberately scans those rows, because that store holds thousands against
  * the appointment store's one. So the population the scan went out of its way
  * to include is counted on that card and invisible in its table.
@@ -309,12 +311,13 @@ class IdentityResolutionPage {
 			return;
 		}
 
-		// ffc-core: the dialog's refusal is drawn by FFC.notice() (#1843).
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+
+		// ffc-core: the dialog's refusal is drawn by FFC.notice() (#1843).
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			'ffc-identity-search',
-			FFC_PLUGIN_URL . 'assets/js/ffc-identity-search.js',
+			FFC_PLUGIN_URL . "assets/js/ffc-identity-search{$s}.js",
 			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
@@ -358,7 +361,7 @@ class IdentityResolutionPage {
 		// so it localises no strings at all.
 		wp_enqueue_script(
 			'ffc-identity-preflight',
-			FFC_PLUGIN_URL . 'assets/js/ffc-identity-preflight.js',
+			FFC_PLUGIN_URL . "assets/js/ffc-identity-preflight{$s}.js",
 			array( 'jquery' ),
 			FFC_VERSION,
 			true
@@ -383,7 +386,7 @@ class IdentityResolutionPage {
 
 		wp_enqueue_script(
 			'ffc-identity-merge-preview',
-			FFC_PLUGIN_URL . 'assets/js/ffc-identity-merge-preview.js',
+			FFC_PLUGIN_URL . "assets/js/ffc-identity-merge-preview{$s}.js",
 			array( 'jquery' ),
 			FFC_VERSION,
 			true
@@ -441,6 +444,26 @@ class IdentityResolutionPage {
 	}
 
 	/**
+	 * The check-digit scan, as a seam for the reason `conflicts()` is one.
+	 *
+	 * @since 6.41.0
+	 * @return IdentityCheckDigitScan
+	 */
+	protected function scans(): IdentityCheckDigitScan {
+		return new IdentityCheckDigitScan();
+	}
+
+	/**
+	 * The per-account facts, as a seam for the reason `conflicts()` is one.
+	 *
+	 * @since 6.41.0
+	 * @return IdentityAccountFacts
+	 */
+	protected function facts(): IdentityAccountFacts {
+		return new IdentityAccountFacts();
+	}
+
+	/**
 	 * The worklist.
 	 *
 	 * Read LIVE rather than from the audit's cached report, deliberately. That
@@ -452,7 +475,7 @@ class IdentityResolutionPage {
 	 * What that costs is bounded by DISTINCT hashes rather than by rows:
 	 * `Encryption::encrypt()` uses a random IV, so a value submitted four
 	 * hundred times has four hundred ciphertexts, one hash, and one
-	 * decryption. See `IdentityConflictQuery::rf_check_digit_failures()`.
+	 * decryption. See `IdentityCheckDigitScan::check_digit_failures()`.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -774,6 +797,7 @@ class IdentityResolutionPage {
 	 */
 	protected function queues(): IdentityQueue {
 		$query = $this->conflicts();
+		$scan  = $this->scans();
 
 		// THE ACCEPTANCE RECORD IS INJECTED FOR THE SAME REASON THE QUERY IS,
 		// AND IT BUYS A PROPERTY BESIDES (#1532).
@@ -786,7 +810,7 @@ class IdentityResolutionPage {
 		// defect this file keeps running into from the other direction.
 		$accepted = $this->acceptances();
 
-		return new class( $query, $accepted ) extends IdentityQueue {
+		return new class( $query, $scan, $accepted ) extends IdentityQueue {
 
 			/**
 			 * The screen's query.
@@ -794,6 +818,13 @@ class IdentityResolutionPage {
 			 * @var IdentityConflictQuery
 			 */
 			private IdentityConflictQuery $query;
+
+			/**
+			 * The screen's check-digit scan.
+			 *
+			 * @var IdentityCheckDigitScan
+			 */
+			private IdentityCheckDigitScan $scan;
 
 			/**
 			 * The screen's acceptance record.
@@ -805,11 +836,13 @@ class IdentityResolutionPage {
 			/**
 			 * Take the screen's collaborators rather than build them.
 			 *
-			 * @param IdentityConflictQuery $query    The screen's own query.
-			 * @param IdentityAcceptance    $accepted The screen's own record.
+			 * @param IdentityConflictQuery  $query    The screen's own query.
+			 * @param IdentityCheckDigitScan $scan     The screen's own scan.
+			 * @param IdentityAcceptance     $accepted The screen's own record.
 			 */
-			public function __construct( IdentityConflictQuery $query, IdentityAcceptance $accepted ) {
+			public function __construct( IdentityConflictQuery $query, IdentityCheckDigitScan $scan, IdentityAcceptance $accepted ) {
 				$this->query    = $query;
+				$this->scan     = $scan;
 				$this->accepted = $accepted;
 			}
 
@@ -820,6 +853,15 @@ class IdentityResolutionPage {
 			 */
 			protected function conflicts(): IdentityConflictQuery {
 				return $this->query;
+			}
+
+			/**
+			 * The scan this tiering reads through.
+			 *
+			 * @return IdentityCheckDigitScan
+			 */
+			protected function scans(): IdentityCheckDigitScan {
+				return $this->scan;
 			}
 
 			/**
@@ -1555,13 +1597,13 @@ class IdentityResolutionPage {
 		// WHAT EACH LOGIN OF A PAIR HOLDS, AND WHEN IT WAS LAST USED.
 		//
 		// The evidence behind choosing a survivor, and it is read through the
-		// same `account_facts()` the audit CSV reads -- so the screen and the
+		// same `IdentityAccountFacts::of()` the audit CSV reads -- so the screen and the
 		// export cannot disagree about an account. A closure for the reason
 		// the namer above is one: the stepper draws ONE pair unless the
 		// operator asked for the list, and reading for eleven to show one is
 		// eleven times the statements for nothing.
 		$ffc_identity_facts = function ( array $ids ) {
-			return $this->conflicts()->account_facts( $ids );
+			return $this->facts()->of( $ids );
 		};
 
 		// WHAT A SPLIT COULD INHERIT, AND THE NAMES TO SHOW BESIDE IT (#1480).
@@ -1576,6 +1618,18 @@ class IdentityResolutionPage {
 		$ffc_identity_proposal = function ( string $hash, string $field ) {
 			return $this->separations()->proposal( $hash, $field );
 		};
+
+		// WHAT THE VIEW DERIVES, DERIVED HERE (#1925). The panels by tier, the
+		// cursors, the coverage strips and the counters were loops at the top
+		// of the view, where neither PHPStan nor the coverage gate reads. Built
+		// after the orphans because the counter of what is left counts them.
+		$ffc_identity_screen = new IdentityResolutionScreen(
+			$ffc_identity_panels,
+			$ffc_identity_findings,
+			$ffc_identity_coverage,
+			$ffc_identity_capped,
+			count( $ffc_identity_orphans )
+		);
 
 		require __DIR__ . '/views/identity-resolution-page.php';
 	}

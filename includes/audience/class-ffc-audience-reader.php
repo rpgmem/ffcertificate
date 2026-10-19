@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.12.0
  *
- * @phpstan-type AudienceRow \stdClass&object{id: numeric-string, name: string, color: string, parent_id: numeric-string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string, allow_self_join?: numeric-string, children?: list<\stdClass>, depth?: int<0, 2>}
+ * @phpstan-type AudienceRow \stdClass&object{id: numeric-string, name: string, color: string, parent_id: numeric-string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string, allow_self_join?: numeric-string, members_only?: numeric-string, require_membership?: numeric-string, children?: list<\stdClass>, depth?: int<0, 2>}
  */
 class AudienceReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -61,6 +61,15 @@ class AudienceReader {
 	 * @var string
 	 */
 	private const CACHE_DOMAIN = 'audience';
+
+	/**
+	 * The self-join state of an audience's children and grandchildren when
+	 * some allow it and others do not (#1896): no choice can be read back, so
+	 * none is shown as selected (#1901).
+	 *
+	 * @var string
+	 */
+	public const DESCENDANTS_SELF_JOIN_MIXED = 'mixed';
 
 	/**
 	 * Get audiences table name
@@ -672,6 +681,74 @@ class AudienceReader {
 			$ids   = array_merge( $ids, self::get_descendant_ids( (int) $child->id ) );
 		}
 		return $ids;
+	}
+
+	/**
+	 * The self-join state of an audience's children and grandchildren, read
+	 * back from their rows (#1896). There is no column for it: the parent's
+	 * "Children and grandchildren" choice is applied to every descendant, so
+	 * the screen derives it again each time it renders.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return string|null `1` when every descendant allows self-join, `0` when
+	 *                     none does, `mixed` otherwise, null without descendants.
+	 */
+	public static function descendants_self_join_state( int $audience_id ): ?string {
+		$values = array_values( array_unique( self::descendant_self_join_values( $audience_id ) ) );
+		if ( array() === $values ) {
+			return null;
+		}
+		if ( 1 < count( $values ) ) {
+			return self::DESCENDANTS_SELF_JOIN_MIXED;
+		}
+		return 1 === $values[0] ? '1' : '0';
+	}
+
+	/**
+	 * How many of an audience's children and grandchildren allow self-join,
+	 * and how many there are (#1901): what the screen states when they
+	 * disagree and no choice can be read back.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return array{allowed: int, total: int}
+	 */
+	public static function descendants_self_join_count( int $audience_id ): array {
+		$values = self::descendant_self_join_values( $audience_id );
+		return array(
+			'allowed' => (int) array_sum( $values ),
+			'total'   => count( $values ),
+		);
+	}
+
+	/**
+	 * The self-join value a group created under `$parent_id` starts with
+	 * (#1901): its top-level audience's choice for children and
+	 * grandchildren. On when every existing descendant allows it; off when
+	 * none does, when they disagree, and when the top-level audience has no
+	 * descendants yet — no row records a choice until one exists.
+	 *
+	 * @param int $parent_id The new group's parent.
+	 * @return int 1 or 0.
+	 */
+	public static function inherited_self_join( int $parent_id ): int {
+		$chain = self::get_ancestor_ids( $parent_id );
+		$root  = (int) end( $chain );
+		return '1' === self::descendants_self_join_state( $root ) ? 1 : 0;
+	}
+
+	/**
+	 * Each descendant's `allow_self_join`, as `1` / `0`.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return list<int>
+	 */
+	private static function descendant_self_join_values( int $audience_id ): array {
+		$values = array();
+		foreach ( self::get_children( $audience_id ) as $child ) {
+			$values[] = empty( $child->allow_self_join ) ? 0 : 1;
+			$values   = array_merge( $values, self::descendant_self_join_values( (int) $child->id ) );
+		}
+		return $values;
 	}
 
 	/**

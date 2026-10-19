@@ -12,10 +12,12 @@ import { loadScript } from './helpers.js';
 // The real FFC.notice() (#1842), kept across the suite's FFC mock: every
 // notice the calendar prints goes through it.
 let realNotice;
+let realCore;
 beforeAll(() => {
 	window.ffc_ajax = window.ffc_ajax || { ajax_url: '/wp-admin/admin-ajax.php', nonce: 'n', strings: {} };
 	loadScript('assets/js/ffc-core.js');
 	realNotice = window.FFC.notice;
+	realCore = window.FFC;
 });
 
 function installGlobals() {
@@ -52,6 +54,9 @@ function installGlobals() {
 	window.FFC = {
 		request: vi.fn(),
 		notice: realNotice,
+		buttonCategories: realCore.buttonCategories,
+		button: realCore.button,
+		buttonHtml: realCore.buttonHtml,
 	};
 }
 
@@ -268,6 +273,29 @@ describe('ffc-calendar-frontend.js — waitlist and e-mail notices (#1842)', () 
 		ctl.showConfirmation({ email_sent: true });
 		expect(document.querySelector('.ffc-confirmation-email').style.display).not.toBe('none');
 	});
+
+	// Either receipt control is the same action, so both are the family's
+	// primary button with the download icon (#1874).
+	it('draws the receipt as the primary download button, as a button or as a link', () => {
+		const ctl = window.ffcCalendarFrontend;
+		window.$.fn.animate = function () { return this; };
+		window.ffcCalendar.strings.downloadReceipt = 'Download receipt';
+		ctl.selectedDate = '2026-05-20';
+		ctl.selectedTime = '09:00';
+
+		ctl.showConfirmation({ pdf_data: { a: 1 } });
+		const btn = document.querySelector('.ffc-receipt-actions button');
+		expect(btn.className).toBe('ffc-btn ffc-btn-primary ffc-icon-download ffc-download-receipt-btn');
+		expect(btn.textContent).toBe('Download receipt');
+		expect(window.$(btn).data('pdfData')).toEqual({ a: 1 });
+
+		ctl.showConfirmation({ receipt_url: 'https://example.test/r?x=1&y=2' });
+		const link = document.querySelector('.ffc-receipt-actions a');
+		expect(link.className).toBe('ffc-btn ffc-btn-primary ffc-icon-download');
+		expect(link.getAttribute('href')).toBe('https://example.test/r?x=1&y=2');
+		expect(link.getAttribute('target')).toBe('_blank');
+		expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+	});
 });
 
 describe('ffc-calendar-frontend.js — modal open/close', () => {
@@ -277,7 +305,7 @@ describe('ffc-calendar-frontend.js — modal open/close', () => {
 		document.body.innerHTML = `
 			<button id="trigger">Open</button>
 			<div id="ffc-self-scheduling-modal" style="display:none;">
-				<button class="ffc-modal-close">×</button>
+				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
 				<div class="ffc-timeslots-wrapper"></div>
 				<div class="ffc-booking-form-wrapper"></div>
 			</div>
@@ -321,7 +349,7 @@ describe('ffc-calendar-frontend.js — loadTimeSlots / FFC.request', () => {
 					<div id="ffc-timeslots-container"></div>
 				</div>
 				<div class="ffc-booking-form-wrapper"></div>
-				<button class="ffc-modal-close">×</button>
+				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
 			</div>
 		`;
 		loadScript('assets/js/ffc-calendar-frontend.js');
@@ -500,6 +528,7 @@ describe('ffc-calendar-frontend.js — captcha refresh delegates to the shared U
 		// dependency (class-ffc-self-scheduling-shortcode.php), and that is
 		// what makes the shared implementation reachable here instead of a
 		// private copy.
+		loadScript('assets/js/ffc-field-behaviours.js');
 		loadScript('assets/js/ffc-frontend-helpers.js');
 		loadScript('assets/js/ffc-calendar-frontend.js');
 	});

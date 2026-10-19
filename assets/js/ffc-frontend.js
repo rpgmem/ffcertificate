@@ -105,6 +105,49 @@
     }
 
     /**
+     * sessionStorage key carrying the code typed into the magic-link error
+     * card across the reload to the full verification form (#1893).
+     */
+    var AUTH_CODE_PREFILL_KEY = 'ffc_verify_auth_code';
+
+    /**
+     * Reduce a value to what an authentication code can contain: letters,
+     * digits and dashes, at most 16 characters (the input's maxlength).
+     *
+     * @param {*} value Raw value.
+     * @return {string} Sanitised code, possibly empty.
+     */
+    function sanitizeAuthCode(value) {
+        return String(value == null ? '' : value)
+            .trim()
+            .replace(/[^A-Za-z0-9-]/g, '')
+            .slice(0, 16);
+    }
+
+    /**
+     * Prefill the verification form with the code the visitor typed into
+     * the error card before the reload (#1893). Read once and removed, never
+     * submitted: the captcha still gates the request.
+     */
+    function prefillAuthCode() {
+        var code = '';
+        try {
+            code = window.sessionStorage.getItem(AUTH_CODE_PREFILL_KEY) || '';
+            window.sessionStorage.removeItem(AUTH_CODE_PREFILL_KEY);
+        } catch (e) {
+            return;
+        }
+        code = sanitizeAuthCode(code);
+        if (!code) {
+            return;
+        }
+        var $input = $('.ffc-verification-form input[name="ffc_auth_code"]').first();
+        if ($input.length && !$input.val()) {
+            $input.val(code);
+        }
+    }
+
+    /**
      * Handle magic link verification (automatic on page load)
      * 
      * v2.8.0: Supports both query string (?token=) and hash (#token=)
@@ -218,8 +261,14 @@
                 bg_image: data.bg_image
             };
             
-            html += '<button class="ffc-download-pdf-btn" data-pdf-data=\'' + JSON.stringify(pdfDataToUse) + '\'>' + 
-                    (ffc_ajax.strings.downloadPDF || 'Download PDF') + '</button>';
+            // `ffc-download-pdf-btn` is the hook the click handler reads (#1880).
+            html += FFC.buttonHtml({
+                label: ffc_ajax.strings.downloadPDF || 'Download PDF',
+                category: 'primary',
+                icon: 'download',
+                className: 'ffc-download-pdf-btn',
+                attrs: { 'data-pdf-data': JSON.stringify(pdfDataToUse) }
+            });
         }
         
         html += '</div>';
@@ -248,7 +297,15 @@
         html += '<div class="ffc-manual-verification-form">';
         html += '<h4>' + (s.tryManually || 'Or try manual verification') + ':</h4>';
         html += '<input type="text" class="ffc-manual-auth-code" placeholder="' + (s.enterAuthCode || 'Enter validation code') + '">';
-        html += '<button class="ffc-manual-verify-btn ffc-download-btn">' + (s.verify || 'Verify') + '</button>';
+        // `ffc-manual-verify-btn` is the hook its click handler reads (#1880).
+        // It must NOT carry `ffc-download-btn`: that class is the PDF
+        // handler's hook, and one click would run both (#1893).
+        html += FFC.buttonHtml({
+            label: s.verify || 'Verify',
+            category: 'primary',
+            icon: 'checkmark',
+            className: 'ffc-manual-verify-btn'
+        });
         html += '</div>';
         html += '</div>';
         html += '</div>';
@@ -336,6 +393,20 @@
      * Re-renders the full verification form so user can enter code with captcha
      */
     $(document).on('click', '.ffc-manual-verify-btn', function() {
+        // Carry the typed code to the reloaded form (#1893). It travels in
+        // sessionStorage, not the URL, so it stays out of history, server
+        // logs and the page-cache key; prefillAuthCode() reads it once.
+        var code = sanitizeAuthCode(
+            $(this).closest('.ffc-manual-verification-form').find('.ffc-manual-auth-code').val()
+        );
+        if (code) {
+            try {
+                window.sessionStorage.setItem(AUTH_CODE_PREFILL_KEY, code);
+            } catch (e) {
+                // Storage blocked (private mode, disabled site data): the
+                // reload still works, the visitor types the code again.
+            }
+        }
         // Reload the page to get a fresh form with captcha
         window.location.href = window.location.pathname;
     });
@@ -704,6 +775,8 @@
         }, 100);
         
         handleFormSubmission();
+
+        prefillAuthCode();
 
         // Apply masks using FFC.Frontend.Masks
         if (FFC.Frontend.Masks) {

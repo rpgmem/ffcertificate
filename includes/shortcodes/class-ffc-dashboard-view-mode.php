@@ -94,7 +94,14 @@ class DashboardViewMode {
 				'role'    => 'note',
 				'html'    => true,
 				'hook'    => 'admin-viewing',
-				'actions' => '<a href="' . esc_url( $exit_url ) . '" class="button button-primary">' . esc_html__( 'Exit View Mode', 'ffcertificate' ) . '</a>',
+				'actions' => \FreeFormCertificate\Core\Button::html(
+					array(
+						'label'    => __( 'Exit View Mode', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'logout',
+						'href'     => $exit_url,
+					)
+				),
 			)
 		);
 	}

@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.3
-Stable tag: 6.40.0
+Stable tag: 6.41.0
 Requires PHP: 8.3
 License: AGPLv3 or later
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
@@ -275,8 +275,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.40.0 =
-⚠ The REST submit and booking routes now need an authenticated caller with a capability. Staff see personal data only through an audited Reveal. Roles get four tiers per module and some lose capabilities. Audience calendars enforce closed days; booking outside the rules needs a confirmation.
+= 6.41.0 =
+⚠ Bookings Managers lose the calendar bulk purge, now its own capability; future bookings are cancelled, not deleted. The dashboard masks the owner's own data behind Reveal. One button family on every screen. Four stylesheet handles take a -css suffix.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one

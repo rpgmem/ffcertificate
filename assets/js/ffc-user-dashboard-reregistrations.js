@@ -128,10 +128,23 @@
                 html += '</td>';
                 html += '<td>';
                 if (item.can_submit) {
-                    html += '<button type="button" class="button button-primary ffc-btn-edit ffc-icon-edit ffc-rereg-open-form" data-reregistration-id="' + item.reregistration_id + '">' + (s.editReregistration || 'Edit') + '</button> ';
+                    html += window.FFC.buttonHtml({
+                        label: s.editReregistration || 'Edit',
+                        category: 'neutral',
+                        icon: 'edit',
+                        className: 'ffc-btn-edit ffc-rereg-open-form',
+                        attrs: { 'data-reregistration-id': item.reregistration_id }
+                    }) + ' ';
                 }
                 if (item.can_download && item.magic_link) {
-                    html += '<a href="' + esc(item.magic_link) + '" class="button button-primary ffc-btn-pdf ffc-icon-download" target="_blank" rel="noopener">' + (s.downloadRecord || 'Download Record') + '</a>';
+                    html += window.FFC.buttonHtml({
+                        label: s.downloadRecord || 'Download Record',
+                        category: 'neutral',
+                        icon: 'download',
+                        href: item.magic_link,
+                        className: 'ffc-btn-pdf',
+                        attrs: { target: '_blank', rel: 'noopener' }
+                    });
                 }
                 html += '</td>';
                 html += '</tr>';

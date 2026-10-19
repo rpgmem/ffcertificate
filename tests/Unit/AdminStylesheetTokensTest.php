@@ -122,7 +122,9 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// follow a token that lightens in the dark theme.
 		'ffc-common.css'                => 124,
 		'ffc-code-editor-dark.css'      => 35,
-		'ffc-pdf-core.css'              => 12,
+		// 12 -> 10 in #1881: the button loading state left with its two white
+		// literals; it is a ring in the text colour in ffc-common.css now.
+		'ffc-pdf-core.css'              => 10,
 		// The screenshot viewer in core's "View details" modal (#1716). That
 		// iframe is not an FFC screen and does not load ffc-common, so the sheet
 		// cannot read a token -- the ffc-pdf-core case. It is also dark in both
@@ -533,6 +535,8 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// every `is_ffc_page()` screen, and these all run on one.
 		'includes/admin/class-ffc-admin-activity-log-page.php::enqueue_scripts()' => 'AdminAssetsManager already enqueues the toggle on this screen',
 		'includes/admin/class-ffc-role-capability-editor.php::enqueue()' => 'likewise',
+		'includes/audience/class-ffc-audience-loader.php::enqueue_admin_assets()' => 'likewise: gated on the ffc-scheduling menu, an is_ffc_page() screen',
+		'includes/reregistration/class-ffc-reregistration-admin.php::enqueue_assets()' => 'likewise',
 		// The calendar editor is a post screen, not `is_ffc_page()`: its toggle
 		// comes from SelfSchedulingAdmin, which matches the same post type.
 		'includes/self-scheduling/class-ffc-self-scheduling-editor.php::enqueue_scripts()' => 'SelfSchedulingAdmin::enqueue_admin_assets() enqueues the toggle on this screen',

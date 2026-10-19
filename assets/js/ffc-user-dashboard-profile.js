@@ -37,10 +37,9 @@
     }
 
     /**
-     * "View as user" (#1863): the email addresses, phone and birth date of
-     * the viewed account arrive masked, and each is revealed on request
-     * through the audited /user/profile/reveal route. Nothing to reveal on
-     * the owner's own profile.
+     * The email addresses, phone, birth date and CPF/RF arrive masked, and
+     * each is revealed on request through /user/profile/reveal: by the owner
+     * without an audit row (#1897), in "view as user" audited (#1863, #1888).
      */
     function isMasked(profile, field) {
         return !!(profile && profile.pii_masked && !(profile.revealed && profile.revealed[field]));
@@ -51,8 +50,13 @@
         if (!field || !isMasked(profile, field) || !profile.can_reveal) {
             return '';
         }
-        return ' <button type="button" class="button ffc-profile-reveal-btn" data-field="' + escAttr(field) + '">' +
-            esc(ffcDashboard.strings.reveal || 'Reveal') + '</button>';
+        return ' ' + window.FFC.buttonHtml({
+            label: ffcDashboard.strings.reveal || 'Reveal',
+            category: 'neutral',
+            icon: 'eye',
+            className: 'ffc-profile-reveal-btn',
+            attrs: { 'data-field': field }
+        });
     }
 
     function revealField(field, $btn) {
@@ -74,6 +78,11 @@
                 } else if (field === 'birth_date') {
                     state.birth_date = response.value;
                     state.birth_date_display = response.display;
+                } else if (field === 'cpf_rf') {
+                    // Formatted in clear (#1888); the masked keys hold the
+                    // revealed list, so the render needs no second path.
+                    state.cpfs_masked = response.values || [];
+                    state.cpf_masked = response.value;
                 }
                 panel.render(state);
             })
@@ -89,8 +98,9 @@
         var has = Object.prototype.hasOwnProperty.call(prefs, key);
         var on = defaultOn ? (!has || prefs[key] !== false) : !!prefs[key];
         var checked = on ? ' checked' : '';
-        // The plugin's one toggle (#1748): the checkbox stays focusable.
-        return '<label class="ffc-control-toggle">' +
+        // The plugin's one toggle (#1748): the checkbox stays focusable, and
+        // the knob carries the on/off mark like every other toggle (#1873).
+        return '<label class="ffc-control-toggle ffc-control-toggle-mark">' +
             '<input type="checkbox" class="ffc-notif-toggle" data-key="' + key + '"' + checked + ' />' +
             '<span class="ffc-control-toggle-track" aria-hidden="true"></span>' +
             '<span class="ffc-control-toggle-label">' + label + '</span></label>';
@@ -112,7 +122,7 @@
         // (DD) 98765-4321: area code plus up to nine digits, masked by the
         // same formatter the reregistration form uses.
         if (isMasked(profile, 'phone')) {
-            // Masked in view-as until revealed (#1863): shown, never posted.
+            // Masked until revealed (#1863, #1897): shown, never posted.
             html += '<input type="text" id="ffc-edit-phone" value="' + escAttr(profile.phone) + '" disabled />';
             html += '<span class="ffc-field-hint">' + esc(s.revealToEdit || 'Reveal the value to edit it.') + '</span></div>';
         } else {
@@ -137,8 +147,8 @@
         html += '<textarea id="ffc-edit-notes" rows="3" maxlength="1000" placeholder="' + (s.notesPlaceholder || 'Personal notes...') + '">' + esc(profile.notes) + '</textarea></div>';
 
         html += '<div class="ffc-profile-edit-actions">';
-        html += '<button type="button" class="button button-primary ffc-profile-save-btn">' + (s.save || 'Save') + '</button> ';
-        html += '<button type="button" class="button ffc-profile-cancel-btn">' + (s.cancel || 'Cancel') + '</button>';
+        html += window.FFC.buttonHtml({ label: s.save || 'Save', category: 'primary', icon: 'save', className: 'ffc-profile-save-btn' }) + ' ';
+        html += window.FFC.buttonHtml({ label: s.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-profile-cancel-btn' });
         html += '<span class="ffc-profile-save-status ffc-status" role="status" aria-live="polite" hidden></span>';
         html += '</div></div>';
 
@@ -169,7 +179,7 @@
             organization: $('#ffc-edit-organization').val(),
             notes: $('#ffc-edit-notes').val()
         };
-        // A field still masked (view as user, #1863) is left out, so its
+        // A field still masked (#1863, #1897) is left out, so its
         // mask can never overwrite the stored value.
         if (!$('#ffc-edit-phone').prop('disabled')) {
             data.phone = $('#ffc-edit-phone').val();
@@ -360,7 +370,9 @@
 
             html += renderListField(s.name, 'ffc-name-list', profile.names, profile.display_name);
             html += renderListField(s.linkedEmails, 'ffc-email-list', profile.emails, profile.email, 'email');
-            html += renderListField(s.cpfRf, 'ffc-cpf-list', profile.cpfs_masked, profile.cpf_masked);
+            // Reveal only when there is an identifier: the fallback is "Not found".
+            var hasCpfRf = profile.cpfs_masked && profile.cpfs_masked.length > 0;
+            html += renderListField(s.cpfRf, 'ffc-cpf-list', profile.cpfs_masked, profile.cpf_masked, hasCpfRf ? 'cpf_rf' : '');
 
             html += '<div class="ffc-profile-field"><label>' + (s.phone || 'Phone:') + '</label>';
             html += '<div class="ffc-field-value">' + esc(profile.phone || '-') + '</div>' + (profile.phone ? revealButton('phone') : '') + '</div>';
@@ -395,10 +407,10 @@
             html += '</div>';
 
             html += '<div class="ffc-profile-actions">';
-            html += '<button type="button" class="button button-primary ffc-profile-edit-btn">' + (s.editProfile || 'Edit Profile') + '</button>';
-            html += '<button type="button" class="button ffc-password-toggle-btn">' + (s.changePassword || 'Change Password') + '</button>';
+            html += window.FFC.buttonHtml({ label: s.editProfile || 'Edit Profile', category: 'neutral', icon: 'edit', className: 'ffc-profile-edit-btn' });
+            html += window.FFC.buttonHtml({ label: s.changePassword || 'Change Password', category: 'neutral', icon: 'key', className: 'ffc-password-toggle-btn' });
             if (profile.audience_groups && profile.audience_groups.length > 0) {
-                html += '<button type="button" class="button ffc-leave-all-groups-btn">' + (s.leaveAllGroups || 'Leave all groups') + '</button>';
+                html += window.FFC.buttonHtml({ label: s.leaveAllGroups || 'Leave all groups', category: 'danger', icon: 'logout', className: 'ffc-leave-all-groups-btn' });
             }
             html += '</div>';
 
@@ -410,7 +422,7 @@
             html += '<input type="password" id="ffc-new-password" autocomplete="new-password" minlength="8" required /></div>';
             html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + req + '</label>';
             html += '<input type="password" id="ffc-confirm-password" autocomplete="new-password" required /></div>';
-            html += '<button type="button" class="button button-primary ffc-password-save-btn">' + (s.save || 'Save') + '</button>';
+            html += window.FFC.buttonHtml({ label: s.save || 'Save', category: 'primary', icon: 'save', className: 'ffc-password-save-btn' });
             html += '<span class="ffc-password-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
@@ -437,9 +449,9 @@
             html += '<div class="ffc-profile-section ffc-lgpd-section">';
             html += '<h3>' + (s.privacySection || 'Privacy & Data (LGPD)') + '</h3>';
             html += '<p class="ffc-lgpd-desc">' + (s.exportDataDesc || 'Request a copy of all your personal data stored in the system.') + '</p>';
-            html += '<button type="button" class="button ffc-lgpd-export-btn">' + (s.exportData || 'Export My Data') + '</button>';
+            html += window.FFC.buttonHtml({ label: s.exportData || 'Export My Data', category: 'neutral', icon: 'download', className: 'ffc-lgpd-export-btn' });
             html += '<p class="ffc-lgpd-desc">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
-            html += '<button type="button" class="button ffc-lgpd-delete-btn">' + (s.requestDeletion || 'Request Data Deletion') + '</button>';
+            html += window.FFC.buttonHtml({ label: s.requestDeletion || 'Request Data Deletion', category: 'danger', icon: 'delete', className: 'ffc-lgpd-delete-btn' });
             html += '<span class="ffc-lgpd-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 

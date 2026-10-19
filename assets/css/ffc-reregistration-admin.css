@@ -200,22 +200,6 @@ body.ffc-rereg-modal-open {
     font-weight: 600;
 }
 
-/* 28px literal: the close button's `&times;` glyph, sized by the click target
-   rather than by the text scale. */
-.ffc-rereg-modal-close {
-    background: none;
-    border: none;
-    font-size: 28px;
-    line-height: 1;
-    color: var(--ffc-text-secondary);
-    cursor: pointer;
-    padding: 0 var(--ffc-spacing-xs);
-}
-
-.ffc-rereg-modal-close:hover {
-    color: var(--ffc-text);
-}
-
 .ffc-rereg-modal-body {
     padding: var(--ffc-spacing-xl) 22px;
     overflow-y: auto;

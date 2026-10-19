@@ -247,31 +247,13 @@ final class ReregistrationAdminRenderer {
 			$owner_id > 0 ? $owner_id : null
 		);
 		$can_reveal_pii = \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED !== $pii_tier;
-		$email_masked   = self::mask_email( (string) ( $sub->user_email ?? '' ) );
+		$email_masked   = \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) ( $sub->user_email ?? '' ) );
 		$reveal_nonce   = $can_reveal_pii ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';
 
 		// The Record button asks the endpoint's own question (#1815).
 		$can_generate_record = ReregistrationAjaxHandler::can_generate_record();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/submission-row.php';
-	}
-
-	/**
-	 * Mask an email for the submissions list (#1815).
-	 *
-	 * `DocumentFormatter::mask_email()` hands back a value it does not
-	 * recognise as an email unchanged, which would print it in clear; such a
-	 * value is replaced whole instead.
-	 *
-	 * @param string $email Stored email, possibly empty.
-	 * @return string Masked email, or '' when there is none.
-	 */
-	private static function mask_email( string $email ): string {
-		if ( '' === $email ) {
-			return '';
-		}
-		$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
-		return $masked === $email ? '***' : $masked;
 	}
 
 	// ─────────────────────────────────────────────.

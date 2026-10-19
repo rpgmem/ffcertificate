@@ -79,6 +79,13 @@ class AudienceWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		// A group created under an audience without an explicit value takes
+		// the top-level audience's choice for children and grandchildren
+		// (#1901), so "open the children" also opens the ones added later.
+		if ( ! array_key_exists( 'allow_self_join', $data ) && ! empty( $data['parent_id'] ) ) {
+			$data['allow_self_join'] = AudienceReader::inherited_self_join( (int) $data['parent_id'] );
+		}
+
 		$defaults = array(
 			'name'            => '',
 			'color'           => '#3788d8',
@@ -152,11 +159,13 @@ class AudienceWriter {
 		$format      = array();
 
 		$field_formats = array(
-			'name'            => '%s',
-			'color'           => '%s',
-			'parent_id'       => '%d',
-			'status'          => '%s',
-			'allow_self_join' => '%d',
+			'name'               => '%s',
+			'color'              => '%s',
+			'parent_id'          => '%d',
+			'status'             => '%s',
+			'allow_self_join'    => '%d',
+			'members_only'       => '%d',
+			'require_membership' => '%d',
 		);
 
 		foreach ( $data as $key => $value ) {
@@ -188,6 +197,46 @@ class AudienceWriter {
 		self::invalidate_user_audiences( $affected );
 
 		return false !== $result;
+	}
+
+	/**
+	 * Apply one of the four self-join choices of a top-level audience (#1901):
+	 * its own flag, and the same flag on every child and grandchild.
+	 *
+	 * @param int    $id    Audience ID.
+	 * @param string $scope One of {@see AudienceSelfJoinScope::values()}.
+	 * @return bool False for an unknown choice or a failed write.
+	 */
+	public static function apply_self_join_scope( int $id, string $scope ): bool {
+		$flags = AudienceSelfJoinScope::flags( $scope );
+		if ( null === $flags ) {
+			return false;
+		}
+		if ( ! self::update( $id, array( 'allow_self_join' => $flags[0] ) ) ) {
+			return false;
+		}
+		self::cascade_self_join( $id, $flags[1] );
+		return true;
+	}
+
+	/**
+	 * Write the two tree-access flags of a top-level audience (#1918).
+	 * "Keep at least one group" only exists under "Visible to members only",
+	 * so it is stored off whenever the first is off.
+	 *
+	 * @param int  $id                 Top-level audience ID.
+	 * @param bool $members_only       Hide the tree from non-members.
+	 * @param bool $require_membership Keep members from leaving their last group.
+	 * @return bool
+	 */
+	public static function set_tree_access( int $id, bool $members_only, bool $require_membership ): bool {
+		return self::update(
+			$id,
+			array(
+				'members_only'       => $members_only ? 1 : 0,
+				'require_membership' => $members_only && $require_membership ? 1 : 0,
+			)
+		);
 	}
 
 	/**

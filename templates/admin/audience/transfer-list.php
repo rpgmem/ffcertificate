@@ -25,10 +25,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="ffc-transfer-items"></div>
 	</div>
 	<div class="ffc-transfer-actions">
-		<button type="button" class="button ffc-transfer-add" title="<?php esc_attr_e( 'Add selected', 'ffcertificate' ); ?>">&rsaquo;</button>
-		<button type="button" class="button ffc-transfer-add-all" title="<?php esc_attr_e( 'Add all', 'ffcertificate' ); ?>">&raquo;</button>
-		<button type="button" class="button ffc-transfer-remove" title="<?php esc_attr_e( 'Remove selected', 'ffcertificate' ); ?>">&lsaquo;</button>
-		<button type="button" class="button ffc-transfer-remove-all" title="<?php esc_attr_e( 'Remove all', 'ffcertificate' ); ?>">&laquo;</button>
+		<?php
+		// Icon-only (#1904): the label is the accessible name and the tooltip.
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label'     => __( 'Add selected', 'ffcertificate' ),
+				'icon'      => 'chevron-right',
+				'icon_only' => true,
+				'class'     => 'ffc-transfer-add',
+			)
+		);
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label'     => __( 'Add all', 'ffcertificate' ),
+				'icon'      => 'chevrons-right',
+				'icon_only' => true,
+				'class'     => 'ffc-transfer-add-all',
+			)
+		);
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label'     => __( 'Remove selected', 'ffcertificate' ),
+				'icon'      => 'chevron-left',
+				'icon_only' => true,
+				'class'     => 'ffc-transfer-remove',
+			)
+		);
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label'     => __( 'Remove all', 'ffcertificate' ),
+				'icon'      => 'chevrons-left',
+				'icon_only' => true,
+				'class'     => 'ffc-transfer-remove-all',
+			)
+		);
+		?>
 	</div>
 	<div class="ffc-transfer-col ffc-transfer-selected">
 		<div class="ffc-transfer-header"><?php esc_html_e( 'Selected', 'ffcertificate' ); ?></div>

@@ -122,30 +122,12 @@ class AppointmentReceiptHandler {
 	private function enqueue_pdf_scripts(): void {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
-		wp_enqueue_script(
-			'html2canvas',
-			FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js',
-			array(),
-			FFC_HTML2CANVAS_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'html2canvas' );
 
-		wp_enqueue_script(
-			'jspdf',
-			FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js',
-			array(),
-			FFC_JSPDF_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'jspdf' );
 
 		// Enqueue PDF generator (reuse from certificates).
-		wp_enqueue_script(
-			'ffc-pdf-generator',
-			FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js",
-			array( 'jquery', 'html2canvas', 'jspdf' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
 
 		// Receipt "Download PDF" button wiring (extracted from an inline
 		// <script>); reads the localized ffcReceiptData object below.

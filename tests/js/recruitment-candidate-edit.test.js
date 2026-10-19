@@ -143,7 +143,7 @@ describe('candidate-edit — the General email revealed into its field (#1863)',
 	function mountEmail() {
 		document.body.innerHTML = `<form><table><tr><td>
 			<input id="ffc-cand-email" type="text" class="regular-text ffc-pii-placeholder" value="j***@x.com" data-ffc-pii-field="email" data-ffc-pii-name="email" disabled>
-			<button type="button" class="button button-secondary ffc-pii-reveal-btn" data-ffc-pii-candidate="5" data-ffc-pii-field="email">Reveal</button>
+			<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-pii-reveal-btn" data-ffc-pii-candidate="5" data-ffc-pii-field="email">Reveal</button>
 		</td></tr></table></form>`;
 		return {
 			input: document.getElementById('ffc-cand-email'),
@@ -265,5 +265,28 @@ describe('candidate-edit — adjutancy swap', () => {
 		await flush();
 
 		expect(fetchMock).not.toHaveBeenCalled();
+	});
+});
+
+// The phone field types through the shared phone mask (#1920). Kept last:
+// loading the script again adds a second set of delegated handlers.
+describe('candidate phone mask', () => {
+	function load(value) {
+		document.body.innerHTML = `<table><tr><td><input id="ffc-cand-phone" type="tel" name="phone" data-mask="phone" value="${value}"></td></tr></table>`;
+		loadScript('assets/js/ffc-field-behaviours.js');
+		loadScript('assets/js/ffc-recruitment-candidate-edit.js');
+		return window.$('#ffc-cand-phone');
+	}
+
+	it('shows a stored number in the mask shape and masks what is typed', () => {
+		const $phone = load('11987654321');
+		expect($phone.val()).toBe('(11) 98765-4321');
+		$phone.val('1133334444').trigger('input');
+		expect($phone.val()).toBe('(11) 3333-4444');
+	});
+
+	it('shows an international number as stored until it is edited', () => {
+		const $phone = load('+55 11 98765-43210');
+		expect($phone.val()).toBe('+55 11 98765-43210');
 	});
 });

@@ -76,9 +76,11 @@ class AdminUI {
 	 *                                    string, tooltip on the wrapper label),
 	 *                                    `data` (optional array<string,string> of
 	 *                                    data-* attributes on the input), `mark`
-	 *                                    (optional bool, draws a check or a cross
-	 *                                    on the knob so on and off do not rest on
-	 *                                    colour alone; #1748), `aria_label`
+	 *                                    (optional bool, default true: draws a
+	 *                                    check or a cross on the knob so on and
+	 *                                    off do not rest on colour alone; #1748,
+	 *                                    the default since #1873 — pass false to
+	 *                                    opt a toggle out), `aria_label`
 	 *                                    (optional string, names the checkbox
 	 *                                    when no visible label does, as in a
 	 *                                    table cell under a column header),
@@ -108,7 +110,8 @@ class AdminUI {
 		$input_class = trim( (string) ( $args['input_class'] ?? '' ) );
 		$data        = $args['data'] ?? array();
 
-		$wrapper_class = 'ffc-control-toggle' . ( ! empty( $args['mark'] ) ? ' ffc-control-toggle-mark' : '' ) . ( '' !== $extra ? ' ' . $extra : '' );
+		$mark          = ! array_key_exists( 'mark', $args ) || ! empty( $args['mark'] );
+		$wrapper_class = 'ffc-control-toggle' . ( $mark ? ' ffc-control-toggle-mark' : '' ) . ( '' !== $extra ? ' ' . $extra : '' );
 		$title_attr    = '' !== $title ? ' title="' . esc_attr( $title ) . '"' : '';
 
 		$data_attrs = '';
@@ -339,6 +342,9 @@ class AdminUI {
 	 *     label, 2 to 6 of them; keep the labels short);
 	 *   - `value` (the chosen value) and `default` (shown when `value` is not
 	 *     one of the options; the first option otherwise);
+	 *   - `allow_none` (bool): when `value` is not one of the options, no
+	 *     option is checked and `default` is ignored -- for a stored state no
+	 *     option describes, which the caller explains beside the control;
 	 *   - `id` (base id, derived from `name`) and `legend` (the group's name,
 	 *     read by screen readers);
 	 *   - `descriptions` (value => text; the chosen one shows under the row);
@@ -356,7 +362,7 @@ class AdminUI {
 		$default  = (string) ( $args['default'] ?? '' );
 		$default  = in_array( $default, $values, true ) ? $default : $values[0];
 		$value    = (string) ( $args['value'] ?? '' );
-		$value    = in_array( $value, $values, true ) ? $value : $default;
+		$value    = in_array( $value, $values, true ) || ! empty( $args['allow_none'] ) ? $value : $default;
 		$base_id  = self::control_id( $args, $name );
 		$data     = self::control_data_attrs( $args );
 		$disabled = ! empty( $args['disabled'] ) ? ' disabled' : '';
@@ -464,6 +470,53 @@ class AdminUI {
 	}
 
 	/**
+	 * A button of the `.ffc-btn` family (#1874): the category says what the
+	 * action does, the icon is a `Core\Icons` class.
+	 *
+	 * The family is shared with the public screens, so the markup lives in
+	 * {@see \FreeFormCertificate\Core\Button}; this is its admin entry point.
+	 *
+	 * @param array<string, mixed> $args See {@see \FreeFormCertificate\Core\Button::html()}.
+	 * @return string
+	 */
+	public static function button( array $args ): string {
+		return \FreeFormCertificate\Core\Button::html( $args );
+	}
+
+	/**
+	 * Print {@see self::button()}.
+	 *
+	 * @param array<string, mixed> $args See {@see \FreeFormCertificate\Core\Button::html()}.
+	 */
+	public static function render_button( array $args ): void {
+		\FreeFormCertificate\Core\Button::render( $args );
+	}
+
+	/**
+	 * The save button of a settings form: the screen's primary action, in a
+	 * `p.submit` like the `submit_button()` it replaces (#1874).
+	 *
+	 * @param string               $label Label; defaults to WordPress's "Save Changes".
+	 * @param array<string, mixed> $args  Further {@see self::button()} arguments.
+	 */
+	public static function render_save_button( string $label = '', array $args = array() ): void {
+		echo '<p class="submit">';
+		self::render_button(
+			array_merge(
+				array(
+					'label'    => '' !== $label ? $label : __( 'Save Changes', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'save',
+					'type'     => 'submit',
+					'name'     => 'submit',
+				),
+				$args
+			)
+		);
+		echo '</p>';
+	}
+
+	/**
 	 * Same as {@see self::render_toggle()} but returns the markup as a string
 	 * instead of echoing — for callers that build an HTML string.
 	 *
@@ -489,7 +542,8 @@ class AdminUI {
 	 *                                    without the `ffc-icon-` prefix, default
 	 *                                    `inbox`), `title` (required string), `text`
 	 *                                    (optional string), `actions` (optional list
-	 *                                    of `{label, url, primary?}`).
+	 *                                    of `{label, url, category?, icon?}`, drawn
+	 *                                    as `.ffc-btn` links, neutral by default).
 	 * @return string
 	 */
 	public static function get_empty_state( array $args ): string {
@@ -513,11 +567,13 @@ class AdminUI {
 			if ( ! is_array( $action ) || empty( $action['label'] ) || empty( $action['url'] ) ) {
 				continue;
 			}
-			$links .= sprintf(
-				'<a href="%s" class="button%s">%s</a>',
-				esc_url( (string) $action['url'] ),
-				empty( $action['primary'] ) ? '' : ' button-primary',
-				esc_html( (string) $action['label'] )
+			$links .= self::button(
+				array(
+					'label'    => (string) $action['label'],
+					'href'     => (string) $action['url'],
+					'category' => (string) ( $action['category'] ?? 'neutral' ),
+					'icon'     => (string) ( $action['icon'] ?? '' ),
+				)
 			);
 		}
 		if ( '' !== $links ) {
@@ -615,18 +671,12 @@ class AdminUI {
 	 * Enqueue the vertical-tab script, for a screen that prints the
 	 * component.
 	 *
-	 * Also registers `ffc-form-editor-tabs`, the handle the script had while
-	 * it served only the certificate form editor, as a deprecated alias with
-	 * no source of its own: a third-party script that names it as a
-	 * dependency still gets the tabs (#1788). Every screen that draws the
-	 * tabs goes through here, so the alias exists wherever the script does.
-	 *
 	 * @return void
 	 */
 	public static function enqueue_vertical_tabs(): void {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		// ffc-core: the required-tag banner is drawn by FFC.notice() (#1843).
-		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			self::VERTICAL_TABS_HANDLE,
 			FFC_PLUGIN_URL . "assets/js/ffc-vertical-tabs{$s}.js",
@@ -634,8 +684,6 @@ class AdminUI {
 			FFC_VERSION,
 			true
 		);
-		// @removal 6.41.0 -- deprecated alias of the old handle (#1788).
-		wp_register_script( 'ffc-form-editor-tabs', false, array( self::VERTICAL_TABS_HANDLE ), FFC_VERSION, true );
 	}
 
 	/**
@@ -646,11 +694,6 @@ class AdminUI {
 	/**
 	 * Enqueue the script behind the shortcode copy button, for a screen that
 	 * prints {@see self::render_shortcode_copy()}.
-	 *
-	 * Also registers `ffc-form-list-copy-shortcode`, the handle the script
-	 * had while it served only the certificate forms list, as a deprecated
-	 * alias with no source of its own: a third-party script that names it as
-	 * a dependency still gets the button (#1814).
 	 *
 	 * @return void
 	 */
@@ -663,8 +706,6 @@ class AdminUI {
 			FFC_VERSION,
 			true
 		);
-		// @removal 6.41.0 -- deprecated alias of the old handle (#1814).
-		wp_register_script( 'ffc-form-list-copy-shortcode', false, array( self::SHORTCODE_COPY_HANDLE ), FFC_VERSION, true );
 	}
 
 	/**

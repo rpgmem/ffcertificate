@@ -74,7 +74,6 @@ final class DateMessagesAdminPage {
 	public const SAVE_ACTION      = 'ffc_date_messages_save_rule';
 	public const DELETE_ACTION    = 'ffc_date_messages_delete_rule';
 	public const DUPLICATE_ACTION = 'ffc_date_messages_duplicate_rule';
-	public const TOGGLE_ACTION    = 'ffc_date_messages_toggle_rule';
 	public const SEND_ACTION      = 'ffc_date_messages_send_now';
 
 	/**
@@ -110,7 +109,6 @@ final class DateMessagesAdminPage {
 		add_action( 'admin_post_' . self::SAVE_ACTION, array( $this, 'handle_save' ) );
 		add_action( 'admin_post_' . self::DELETE_ACTION, array( $this, 'handle_delete' ) );
 		add_action( 'admin_post_' . self::DUPLICATE_ACTION, array( $this, 'handle_duplicate' ) );
-		add_action( 'admin_post_' . self::TOGGLE_ACTION, array( $this, 'handle_toggle' ) );
 		add_action( 'admin_post_' . self::SEND_ACTION, array( $this, 'handle_send_now' ) );
 	}
 
@@ -196,12 +194,7 @@ final class DateMessagesAdminPage {
 
 		// The vertical tab layout lives in ffc-admin-settings.css, as it does
 		// for Recruitment; its other rules are scoped and stay dormant here.
-		wp_enqueue_style(
-			'ffc-admin-settings',
-			FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$suffix}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-settings' );
 
 		// The body appearance card (#1660) picks an image from the Media
 		// Library and its colours with the picker the Email Model uses.
@@ -249,13 +242,7 @@ final class DateMessagesAdminPage {
 		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 
 		$defaults = MessageBuilder::defaults();
-		wp_enqueue_script(
-			'ffc-email-restore-default',
-			FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$suffix}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-email-restore-default' );
 		wp_localize_script(
 			'ffc-email-restore-default',
 			'ffcEmailRestoreDefaults',
@@ -490,32 +477,6 @@ final class DateMessagesAdminPage {
 		}
 
 		$this->finish( 'success', __( 'Rule copied. The copy starts inactive.', 'ffcertificate' ), array( 'rule' => $saved ) );
-	}
-
-	/**
-	 * Turn a rule on or off.
-	 *
-	 * @return void
-	 */
-	public function handle_toggle(): void {
-		$id = RequestInput::get_post_int( 'rule_id' );
-		$this->guard( self::TOGGLE_ACTION . '_' . $id );
-
-		$rule = $id > 0 ? RuleReader::get_by_id( $id ) : null;
-		if ( null === $rule ) {
-			$this->finish( 'error', __( 'That rule no longer exists.', 'ffcertificate' ) );
-		}
-
-		$data              = $rule->to_columns();
-		$data['id']        = $rule->id;
-		$data['is_active'] = $rule->is_active ? '0' : '1';
-
-		$toggled = Rule::from_array( $data );
-		if ( ! $toggled instanceof Rule || false === RuleWriter::save( $toggled ) ) {
-			$this->finish( 'error', __( 'The rule could not be saved.', 'ffcertificate' ) );
-		}
-
-		$this->finish( 'success', $toggled->is_active ? __( 'Rule activated.', 'ffcertificate' ) : __( 'Rule deactivated.', 'ffcertificate' ) );
 	}
 
 	/**

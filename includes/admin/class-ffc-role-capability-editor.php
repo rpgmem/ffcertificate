@@ -64,8 +64,8 @@ final class RoleCapabilityEditor {
 		}
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
-		wp_enqueue_style( 'ffc-user-permissions', FFC_PLUGIN_URL . "assets/css/ffc-user-permissions{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-user-permissions' );
 		wp_enqueue_script( 'ffc-role-editor', FFC_PLUGIN_URL . "assets/js/ffc-role-editor{$s}.js", array(), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-role-editor',

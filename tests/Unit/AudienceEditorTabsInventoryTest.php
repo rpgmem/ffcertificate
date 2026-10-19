@@ -196,6 +196,7 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		$reader->shouldReceive( 'get_children' )->andReturn( array( (object) array( 'id' => 6 ) ) );
 		$reader->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) );
 		$reader->shouldReceive( 'get_member_count' )->andReturn( 2 );
+		$reader->shouldReceive( 'get_ancestor_ids' )->andReturn( array( 5, 2 ) );
 
 		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
 		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
@@ -358,6 +359,16 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 			}
 		}
 
+		// Every submit joined the button family (#1904): the same name, value
+		// and form, now on a `<button type="submit">` instead of an `<input>`.
+		foreach ( $data as $key => $items ) {
+			$data[ $key ] = array_map(
+				static fn( string $item ): string => 0 === strpos( $item, 'field:input:submit:' ) ? 'field:button:submit:' . substr( $item, strlen( 'field:input:submit:' ) ) : $item,
+				$items
+			);
+			sort( $data[ $key ] );
+		}
+
 		return $data;
 	}
 
@@ -368,10 +379,14 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 	 * the record autosave key, as every toggle there does; on a new one it is
 	 * a plain field until the calendar is created.
 	 *
+	 * The holiday Delete's confirm (#1904): the family refuses an inline
+	 * `onclick`, so the question moved to ffc-core's delegated `data-confirm`.
+	 *
 	 * @var array<string, list<string>>
 	 */
 	private const ADDED_AFTER_TABS = array(
 		'calendar-edit-manage' => array(
+			'data:data-confirm=Delete this holiday?',
 			'data:data-ffc-autosave-record-key=admin_bypass',
 			'field:input:checkbox:schedule_admin_bypass@save_schedule',
 			'id:schedule_admin_bypass',
@@ -505,8 +520,24 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 			$this->assertSame( $expected, self::without_masked_email( self::without_tab_markup( $after ) ), 'action=' . $action );
 		}
 
-		$after_new = self::inventory( $this->render( 'ffc-scheduling-audiences', array( 'action' => 'new' ) ) );
-		$this->assertSame( $fixture[ 'audience-new-' . $tier ], self::without_tab_markup( $after_new ) );
+		// The new form is a top-level audience, so it carries the two
+		// tree-access controls (#1918) the fixture predates; assert them, then
+		// compare the rest.
+		$after_new   = self::inventory( $this->render( 'ffc-scheduling-audiences', array( 'action' => 'new' ) ) );
+		$tree_access = preg_grep( '/audience_(members_only|require_membership|tree_access)/', $after_new );
+		$this->assertSame(
+			array(
+				'field:input:checkbox:audience_members_only@save_audience',
+				'field:input:checkbox:audience_require_membership@save_audience',
+				'field:input:hidden:audience_tree_access=1@save_audience',
+				'id:audience_members_only',
+				'id:audience_members_only-description',
+				'id:audience_require_membership',
+				'id:audience_require_membership-description',
+			),
+			array_values( $tree_access )
+		);
+		$this->assertSame( $fixture[ 'audience-new-' . $tier ], self::without_tab_markup( array_values( array_diff( $after_new, $tree_access ) ) ) );
 	}
 
 	/**

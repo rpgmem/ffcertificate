@@ -68,13 +68,7 @@ class SelfSchedulingEditor {
 		// uses to carry `required` with the four blocks it shows and hides
 		// (#1117). Without it the editor still works — the sync is guarded
 		// — but a hidden required field would block the save.
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			'ffc-calendar-editor',
 			FFC_PLUGIN_URL . "assets/js/ffc-calendar-editor{$s}.js",
@@ -84,13 +78,7 @@ class SelfSchedulingEditor {
 		);
 
 		// "Restore Default Text" for the Confirmation Email Body editor (#662).
-		wp_enqueue_script(
-			'ffc-email-restore-default',
-			FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-email-restore-default' );
 		wp_localize_script(
 			'ffc-email-restore-default',
 			'ffcEmailRestoreDefaults',
@@ -102,12 +90,7 @@ class SelfSchedulingEditor {
 			)
 		);
 
-		wp_enqueue_style(
-			'ffc-common',
-			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-			array(),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
 		// The vertical tabs the settings are split into (#1761) and the
 		// collapsible `.ffc-section` the Emails tab still holds (#1629), both
@@ -115,20 +98,9 @@ class SelfSchedulingEditor {
 		// switches panels, draws the state dots, and opens the tab holding a
 		// field the browser rejects; the sections script does the same for a
 		// closed section and keeps its chips live.
-		wp_enqueue_style(
-			'ffc-admin-components',
-			FFC_PLUGIN_URL . "assets/css/ffc-admin-components{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-components' );
 		AdminUI::enqueue_vertical_tabs();
-		wp_enqueue_script(
-			'ffc-admin-sections',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-sections{$s}.js",
-			array(),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-sections' );
 
 		wp_enqueue_style(
 			'ffc-calendar-editor',
@@ -143,11 +115,11 @@ class SelfSchedulingEditor {
 			array(
 				'nonce'   => wp_create_nonce( 'ffc_self_scheduling_editor_nonce' ),
 				'strings' => array(
-					'confirmDelete'     => __( 'Are you sure you want to delete this?', 'ffcertificate' ),
-					'addWorkingHour'    => __( 'Add Working Hours', 'ffcertificate' ),
-					'lastWorkingHour'   => __( 'You must have at least one working hour configured.', 'ffcertificate' ),
-					'remove'            => __( 'Remove', 'ffcertificate' ),
-					'daysOfWeek'        => array(
+					'confirmDelete'    => __( 'Are you sure you want to delete this?', 'ffcertificate' ),
+					'addWorkingHour'   => __( 'Add Working Hours', 'ffcertificate' ),
+					'lastWorkingHour'  => __( 'You must have at least one working hour configured.', 'ffcertificate' ),
+					'remove'           => __( 'Remove', 'ffcertificate' ),
+					'daysOfWeek'       => array(
 						__( 'Sunday', 'ffcertificate' ),
 						__( 'Monday', 'ffcertificate' ),
 						__( 'Tuesday', 'ffcertificate' ),
@@ -156,15 +128,68 @@ class SelfSchedulingEditor {
 						__( 'Friday', 'ffcertificate' ),
 						__( 'Saturday', 'ffcertificate' ),
 					),
-					'confirmCleanup'    => __( 'Are you sure you want to delete these appointments? This action cannot be undone.', 'ffcertificate' ),
-					'confirmCleanupAll' => __( 'Are you sure you want to delete ALL appointments? This will permanently remove all appointment data and cannot be undone!', 'ffcertificate' ),
-					'deleting'          => __( 'Deleting...', 'ffcertificate' ),
-					'errorDeleting'     => __( 'Error deleting appointments', 'ffcertificate' ),
-					'errorServer'       => __( 'Error communicating with server', 'ffcertificate' ),
-					'schedulingForced'  => __( 'Forced to Private because Visibility is Private.', 'ffcertificate' ),
-					'schedulingDesc'    => __( 'Public: anyone can book. Private: only logged-in users can book.', 'ffcertificate' ),
+					'deleting'         => __( 'Deleting...', 'ffcertificate' ),
+					'cancelling'       => __( 'Cancelling...', 'ffcertificate' ),
+					'cleanup'          => self::cleanup_dialog_strings(),
+					'errorDeleting'    => __( 'Error deleting appointments', 'ffcertificate' ),
+					'errorServer'      => __( 'Error communicating with server', 'ffcertificate' ),
+					'schedulingForced' => __( 'Forced to Private because Visibility is Private.', 'ffcertificate' ),
+					'schedulingDesc'   => __( 'Public: anyone can book. Private: only logged-in users can book.', 'ffcertificate' ),
 				),
 			)
+		);
+	}
+
+	/**
+	 * Words of the cleanup confirmation dialog (#1872).
+	 *
+	 * One entry per action. `%1$d` is the count the action reaches and
+	 * `%2$s` the calendar title; `type` is the typed-count prompt, present
+	 * only on the two actions that ask for it.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function cleanup_dialog_strings(): array {
+		/* translators: %d: the number the person must type to confirm */
+		$type = __( 'To confirm, type %d', 'ffcertificate' );
+
+		return array(
+			'cancel'    => __( 'Cancel', 'ffcertificate' ),
+			'goBack'    => __( 'Go back', 'ffcertificate' ),
+			'cancelled' => array(
+				'title'   => __( 'Delete cancelled appointments', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'body'    => __( '%1$d cancelled appointment(s) of the calendar "%2$s" will be deleted for good.', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirm' => __( 'Delete %d appointment(s)', 'ffcertificate' ),
+			),
+			'old'       => array(
+				'title'   => __( 'Delete past appointments', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'body'    => __( '%1$d past appointment(s) of the calendar "%2$s" will be deleted for good.', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirm' => __( 'Delete %d appointment(s)', 'ffcertificate' ),
+			),
+			'future'    => array(
+				'title'         => __( 'Cancel future appointments', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'body'          => __( '%1$d appointment(s) booked from today on in the calendar "%2$s" will be cancelled, and each person booked will receive the calendar\'s cancellation e-mail. Nothing is deleted.', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'bodySilent'    => __( '%1$d appointment(s) booked from today on in the calendar "%2$s" will be cancelled. This calendar does not send cancellation e-mails, so nobody will be notified. Nothing is deleted.', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirm'       => __( 'Cancel %d and notify', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirmSilent' => __( 'Cancel %d appointment(s)', 'ffcertificate' ),
+				'type'          => $type,
+			),
+			'all'       => array(
+				'title'   => __( 'Delete all appointments', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'body'    => __( 'All %1$d appointment(s) of the calendar "%2$s" will be deleted for good: past, future and cancelled.', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirm' => __( 'Delete %d appointment(s)', 'ffcertificate' ),
+				'type'    => $type,
+			),
 		);
 	}
 
@@ -696,7 +721,16 @@ class SelfSchedulingEditor {
 								<input type="time" name="ffc_self_scheduling_working_hours[<?php echo esc_attr( $index ); ?>][end]" value="<?php echo esc_attr( $hours['end'] ); ?>" required />
 							</td>
 							<td>
-								<button type="button" class="button ffc-remove-hour"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
+								<?php
+								AdminUI::render_button(
+									array(
+										'label'    => __( 'Remove', 'ffcertificate' ),
+										'category' => 'danger',
+										'icon'     => 'delete',
+										'class'    => 'ffc-remove-hour',
+									)
+								);
+								?>
 							</td>
 						</tr>
 					<?php endforeach; ?>
@@ -704,7 +738,16 @@ class SelfSchedulingEditor {
 			</table>
 
 			<p>
-				<button type="button" class="button ffc-icon-plus" id="ffc-add-working-hour"><?php esc_html_e( 'Add Working Hours', 'ffcertificate' ); ?></button>
+				<?php
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'Add Working Hours', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'id'       => 'ffc-add-working-hour',
+					)
+				);
+				?>
 			</p>
 		</div>
 
@@ -730,14 +773,34 @@ class SelfSchedulingEditor {
 							<td><input type="time" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][end]" value="<?php echo esc_attr( $block['end'] ?? '' ); ?>" /></td>
 							<td><input type="number" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][capacity]" value="<?php echo esc_attr( (string) ( $block['capacity'] ?? 1 ) ); ?>" min="1" max="10000" required /></td>
 							<td><input type="text" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][label]" value="<?php echo esc_attr( $block['label'] ?? '' ); ?>" class="regular-text" /></td>
-							<td><button type="button" class="button ffc-remove-slot"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button></td>
+							<td>
+								<?php
+								AdminUI::render_button(
+									array(
+										'label'    => __( 'Remove', 'ffcertificate' ),
+										'category' => 'danger',
+										'icon'     => 'delete',
+										'class'    => 'ffc-remove-slot',
+									)
+								);
+								?>
+							</td>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
 			</table>
 
 			<p>
-				<button type="button" class="button ffc-icon-plus" id="ffc-add-custom-slot"><?php esc_html_e( 'Add Block', 'ffcertificate' ); ?></button>
+				<?php
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'Add Block', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'id'       => 'ffc-add-custom-slot',
+					)
+				);
+				?>
 			</p>
 			<?php if ( $mode_locked ) : ?>
 				<p class="description ffc-text-danger"><?php esc_html_e( 'This calendar has bookings — blocks with existing bookings cannot be removed or retimed on save; you may still add blocks or raise capacity.', 'ffcertificate' ); ?></p>
@@ -1163,7 +1226,22 @@ class SelfSchedulingEditor {
 						<code>{{cancel_button}}</code>
 					</p>
 					<p class="description"><em><?php esc_html_e( 'Include {{receipt_button}} / {{cancel_button}} to show the receipt and cancel buttons (each empty when unavailable). Leave the whole body empty to use the global default from Settings → SMTP → Email texts.', 'ffcertificate' ); ?></em></p>
-					<p><button type="button" class="button ffc-email-restore-default" data-editor="user_confirmation_body" data-default-key="selfsched_confirmation_body"><?php esc_html_e( 'Restore Default Text', 'ffcertificate' ); ?></button></p>
+					<p>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label'    => __( 'Restore Default Text', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'restore',
+								'class'    => 'ffc-email-restore-default',
+								'attrs'    => array(
+									'data-editor'      => 'user_confirmation_body',
+									'data-default-key' => 'selfsched_confirmation_body',
+								),
+							)
+						);
+						?>
+					</p>
 				</td>
 			</tr>
 		</table>
@@ -1188,7 +1266,16 @@ class SelfSchedulingEditor {
 				<?php // A read-only input the shared copy button (`.ffc-copy-link`, in ffc-core.js) reads the .val() of (#1629). ?>
 				<div class="ffc-calendar-shortcode-copy">
 					<input type="text" readonly id="ffc-calendar-shortcode" value="<?php echo esc_attr( '[ffc_self_scheduling id="' . $post->ID . '"]' ); ?>" onclick="this.select();" class="ffc-shortcode-input code" />
-					<button type="button" class="button ffc-copy-link ffc-icon-copy" data-ffc-copy-target="#ffc-calendar-shortcode"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+					<?php
+					AdminUI::render_button(
+						array(
+							'label' => __( 'Copy', 'ffcertificate' ),
+							'icon'  => 'copy',
+							'class' => 'ffc-copy-link',
+							'attrs' => array( 'data-ffc-copy-target' => '#ffc-calendar-shortcode' ),
+						)
+					);
+					?>
 				</div>
 				<?php
 				// No "Preview Calendar" button (#1770): the link it printed was read by nothing,

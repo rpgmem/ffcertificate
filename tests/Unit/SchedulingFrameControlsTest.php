@@ -24,6 +24,9 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * and `data-*` attribute, in document order — must equal the inventory the
  * screen rendered before the reframe, frozen below. A control added, lost or
  * renamed fails; a class changing does not, because classes are the frame.
+ * The submits are the family's `<button type="submit">` since #1904, with the
+ * name and value they always posted; the `id` WordPress's `submit_button()`
+ * copied from the name was read by nothing and did not come along.
  *
  * @covers \FreeFormCertificate\Audience\AudienceAdminImport
  * @covers \FreeFormCertificate\Audience\AudienceAdminEnvironment
@@ -63,12 +66,6 @@ class SchedulingFrameControlsTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_nonce_url' )->alias( static fn( $url, $action = -1 ) => $url . '&_wpnonce=nonce-' . $action );
-		Functions\when( 'submit_button' )->alias(
-			static function ( $text = null, $type = 'primary', $name = 'submit', $wrap = true ) {
-				$button = '<input type="submit" name="' . $name . '" id="' . $name . '" class="button button-' . $type . '" value="' . $text . '">';
-				echo $wrap ? '<p class="submit">' . $button . '</p>' : $button;
-			}
-		);
 
 	}
 
@@ -112,13 +109,13 @@ class SchedulingFrameControlsTest extends TestCase {
 				'option value=2',
 				'option value=3',
 				'input checked=checked data-ffc-autosave-key=audience_csv_create_users_default id=create_users name=create_users type=checkbox value=1',
-				'input id=import_members name=import_members type=submit value=Import Members',
+				'button name=import_members type=submit value=Import Members',
 				'a href=' . $admin . 'admin.php?page=ffc-scheduling-settings&tab=import&download_sample=members&_wpnonce=nonce-download_sample',
 				'form enctype=multipart/form-data method=post',
 				'input id=ffc_import_audiences_nonce name=ffc_import_audiences_nonce type=hidden value=nonce-ffc_import_audiences',
 				'input name=ffc_action type=hidden value=import_audiences',
 				'input accept=.csv id=audiences_csv name=audiences_csv required= type=file',
-				'input id=import_audiences name=import_audiences type=submit value=Import Audiences',
+				'button name=import_audiences type=submit value=Import Audiences',
 				'a href=' . $admin . 'admin.php?page=ffc-scheduling-settings&tab=import&download_sample=audiences&_wpnonce=nonce-download_sample',
 				'form method=post',
 				'input id=ffc_export_members_nonce name=ffc_export_members_nonce type=hidden value=nonce-ffc_export_members',
@@ -128,11 +125,11 @@ class SchedulingFrameControlsTest extends TestCase {
 				'option value=1',
 				'option value=2',
 				'option value=3',
-				'input id=export_members name=export_members type=submit value=Export Members',
+				'button name=export_members type=submit value=Export Members',
 				'form method=post',
 				'input id=ffc_export_audiences_nonce name=ffc_export_audiences_nonce type=hidden value=nonce-ffc_export_audiences',
 				'input name=ffc_action type=hidden value=export_audiences',
-				'input id=export_audiences name=export_audiences type=submit value=Export Audiences',
+				'button name=export_audiences type=submit value=Export Audiences',
 			),
 			ControlInventory::of( $html )
 		);
@@ -180,7 +177,7 @@ class SchedulingFrameControlsTest extends TestCase {
 				'option value=',
 				'option value=1',
 				'option value=2',
-				'input id=filter name=filter type=submit value=Filter',
+				'button name=filter type=submit value=Filter',
 				'a href=' . $page . '&action=edit&id=4',
 				'button data-shortcode=[ffc_audience schedule_id= type=button',
 				'a href=' . $page . '&action=edit&id=4',

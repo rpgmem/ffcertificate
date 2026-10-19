@@ -121,6 +121,23 @@ final class AssetHelper {
 	}
 
 	/**
+	 * What `ffc-core` is localized with as `ffcCoreConfig`, on every screen
+	 * that registers it: the version, the field-message strings and whether an
+	 * RF must carry a matching check digit, so the browser's RF check agrees
+	 * with {@see DocumentFormatter::validate_rf()} (#1920).
+	 *
+	 * @since 6.41.0
+	 * @return array{version: string, strings: array<string, string>, rfCheckDigit: bool}
+	 */
+	public static function core_script_config(): array {
+		return array(
+			'version'      => FFC_VERSION,
+			'strings'      => FieldMessage::script_strings(),
+			'rfCheckDigit' => DocumentFormatter::rf_check_digit_enforced(),
+		);
+	}
+
+	/**
 	 * Enqueue dark mode script if enabled
 	 *
 	 * Shared between admin and frontend to avoid duplicate logic.

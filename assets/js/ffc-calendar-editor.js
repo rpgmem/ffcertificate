@@ -111,7 +111,7 @@
             e.preventDefault();
             var index = this.slotCounter++;
             var editorStrings = (typeof ffcSelfSchedulingEditor !== 'undefined' && ffcSelfSchedulingEditor.strings) ? ffcSelfSchedulingEditor.strings : {};
-            var removeLabel = $('<div>').text(editorStrings.remove || 'Remove').html();
+            var removeButton = window.FFC.buttonHtml({ label: editorStrings.remove || 'Remove', category: 'danger', icon: 'delete', className: 'ffc-remove-slot' });
             var n = 'ffc_self_scheduling_custom_slots[' + index + ']';
             var rowHtml =
                 '<tr>' +
@@ -120,7 +120,7 @@
                 '<td><input type="time" name="' + n + '[end]" /></td>' +
                 '<td><input type="number" name="' + n + '[capacity]" value="1" min="1" max="10000" required /></td>' +
                 '<td><input type="text" name="' + n + '[label]" class="regular-text" /></td>' +
-                '<td><button type="button" class="button ffc-remove-slot">' + removeLabel + '</button></td>' +
+                '<td>' + removeButton + '</td>' +
                 '</tr>';
             $('#ffc-custom-slots-list').append(rowHtml);
         },
@@ -148,7 +148,7 @@
             const editorStrings = (typeof ffcSelfSchedulingEditor !== 'undefined' && ffcSelfSchedulingEditor.strings) ? ffcSelfSchedulingEditor.strings : {};
             const defaultDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const localizedDays = Array.isArray(editorStrings.daysOfWeek) ? editorStrings.daysOfWeek : defaultDayNames;
-            const removeLabel = editorStrings.remove || 'Remove';
+            const removeButton = window.FFC.buttonHtml({ label: editorStrings.remove || 'Remove', category: 'danger', icon: 'delete', className: 'ffc-remove-hour' });
 
             let optionsHtml = '';
             for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
@@ -170,7 +170,7 @@
                         <input type="time" name="ffc_self_scheduling_working_hours[${index}][end]" value="17:00" required />
                     </td>
                     <td>
-                        <button type="button" class="button ffc-remove-hour">${$('<div>').text(removeLabel).html()}</button>
+                        ${removeButton}
                     </td>
                 </tr>
             `;
@@ -244,44 +244,241 @@
         },
 
         /**
-         * Handle appointment cleanup buttons
+         * Handle appointment cleanup buttons (#1872).
+         *
+         * Each button opens the cleanup dialog, which states what goes and
+         * how many; the request carries that count so the server can refuse
+         * a run whose number moved since the page loaded.
          */
         initCleanup: function() {
+            const self = this;
             $(document).on('click', '.ffc-cleanup-btn', function() {
                 const $btn = $(this);
-                const action = $btn.data('action');
+                const action = String($btn.data('action'));
                 const calendarId = $btn.data('calendar-id');
+                const count = parseInt($btn.data('count'), 10) || 0;
                 const strings = typeof ffcSelfSchedulingEditor !== 'undefined' ? ffcSelfSchedulingEditor.strings : {};
+                const title = $btn.closest('.ffc-cleanup-appointments').attr('data-calendar-title') || '';
 
-                let confirmMessage = strings.confirmCleanup || 'Are you sure you want to delete these appointments? This action cannot be undone.';
+                self.cleanupConfirm({
+                    action: action,
+                    count: count,
+                    calendarTitle: title,
+                    notify: String($btn.data('notify')) !== '0',
+                    strings: strings.cleanup || {}
+                }).then(function(agreed) {
+                    if (!agreed) {
+                        return;
+                    }
+                    const busy = action === 'future' ? (strings.cancelling || 'Cancelling...') : (strings.deleting || 'Deleting...');
+                    $btn.prop('disabled', true).text(busy);
 
-                if (action === 'all') {
-                    confirmMessage = strings.confirmCleanupAll || 'Are you sure you want to delete ALL appointments? This will permanently remove all appointment data and cannot be undone!';
+                    FFC.request(
+                        'ffc_cleanup_appointments',
+                        { calendar_id: calendarId, cleanup_action: action, expected: count },
+                        { nonce: $('#ffc_cleanup_appointments_nonce').val() }
+                    )
+                        .then(function (data) {
+                            alert(data.message);
+                            location.reload();
+                        })
+                        .catch(function (err) {
+                            if (err && err.fromServer) {
+                                alert(err.message || strings.errorDeleting || 'Error deleting appointments');
+                            } else {
+                                alert(strings.errorServer || 'Error communicating with server');
+                            }
+                            $btn.prop('disabled', false);
+                        });
+                });
+            });
+        },
+
+        /**
+         * The cleanup confirmation dialog (#1872).
+         *
+         * It is the plugin's modal (`.ffc-shortcode.ffc-modal`, appended to
+         * `<body>`), stating exactly what the action reaches. "Delete all"
+         * and "Cancel future" enable their button only once the person types
+         * the count; the other two confirm without typing. Cancel, Escape and
+         * the backdrop answer at once; focus starts on the field (or on the
+         * Cancel button), stays inside the dialog, and returns where it was.
+         *
+         * @param {Object}  options
+         * @param {string}  options.action        cancelled | old | future | all.
+         * @param {number}  options.count         How many records the action reaches.
+         * @param {string}  options.calendarTitle The calendar's title.
+         * @param {boolean} options.notify        Whether the calendar sends the cancellation e-mail.
+         * @param {Object}  options.strings       `ffcSelfSchedulingEditor.strings.cleanup`.
+         * @return {Promise<boolean>} True when the person confirmed.
+         */
+        cleanupConfirm: function(options) {
+            const opts = options || {};
+            const all = opts.strings || {};
+            const words = all[opts.action] || {};
+            const count = parseInt(opts.count, 10) || 0;
+            const isFuture = opts.action === 'future';
+            const silent = isFuture && opts.notify === false;
+            const typed = typeof words.type === 'string' && words.type !== '';
+            const format = function(template, fallback) {
+                return String(template || fallback)
+                    .replace(/%1\$d|%d/g, String(count))
+                    .replace(/%2\$s|%s/g, String(opts.calendarTitle || ''));
+            };
+
+            const uid = 'ffc-cleanup-' + Date.now().toString(36);
+            const previous = document.activeElement;
+
+            const dialog = document.createElement('div');
+            dialog.className = 'ffc-shortcode ffc-modal ffc-cleanup-dialog ' + (isFuture ? 'ffc-cleanup-dialog-caution' : 'ffc-cleanup-dialog-danger');
+            dialog.setAttribute('role', 'alertdialog');
+            dialog.setAttribute('aria-modal', 'true');
+            dialog.setAttribute('aria-labelledby', uid + '-title');
+            dialog.setAttribute('aria-describedby', uid + '-body');
+
+            const backdrop = document.createElement('div');
+            backdrop.className = 'ffc-modal-backdrop';
+
+            const content = document.createElement('div');
+            content.className = 'ffc-modal-content';
+
+            const header = document.createElement('div');
+            header.className = 'ffc-modal-header';
+            const heading = document.createElement('h3');
+            heading.id = uid + '-title';
+            const mark = document.createElement('span');
+            mark.className = 'ffc-icon-warning ' + (isFuture ? 'ffc-icon-tone-warning' : 'ffc-icon-tone-danger');
+            mark.setAttribute('aria-hidden', 'true');
+            heading.appendChild(mark);
+            heading.appendChild(document.createTextNode(format(words.title, 'Clean up appointments')));
+            header.appendChild(heading);
+
+            const body = document.createElement('div');
+            body.className = 'ffc-modal-body';
+            const summary = document.createElement('p');
+            summary.id = uid + '-body';
+            summary.textContent = format(silent ? words.bodySilent : words.body, '%1$d appointment(s) will be affected.');
+            body.appendChild(summary);
+
+            let input = null;
+            if (typed) {
+                const field = document.createElement('div');
+                field.className = 'ffc-form-group ffc-cleanup-confirm-field';
+                const label = document.createElement('label');
+                label.setAttribute('for', uid + '-input');
+                label.textContent = format(words.type, 'To confirm, type %d');
+                input = document.createElement('input');
+                input.type = 'text';
+                input.id = uid + '-input';
+                input.className = 'ffc-cleanup-confirm-input';
+                input.setAttribute('inputmode', 'numeric');
+                input.setAttribute('autocomplete', 'off');
+                input.setAttribute('data-ffc-cleanup', 'typed');
+                field.appendChild(label);
+                field.appendChild(input);
+                body.appendChild(field);
+            }
+
+            const footer = document.createElement('div');
+            footer.className = 'ffc-modal-footer';
+            // The confirm button takes the category of the button that opened
+            // the dialog: cancelling future bookings keeps the records.
+            const cancel = FFC.button({
+                label: isFuture ? (all.goBack || 'Go back') : (all.cancel || 'Cancel'),
+                category: 'neutral',
+                icon: isFuture ? 'chevron-left' : 'cross',
+                attrs: { 'data-ffc-cleanup': 'cancel' }
+            });
+            const confirmBtn = FFC.button({
+                label: format(silent ? words.confirmSilent : words.confirm, 'Confirm (%d)'),
+                category: isFuture ? 'caution' : 'danger',
+                icon: isFuture ? 'cross' : 'delete',
+                attrs: { 'data-ffc-cleanup': 'confirm' }
+            });
+            footer.appendChild(cancel);
+            footer.appendChild(confirmBtn);
+
+            content.appendChild(header);
+            content.appendChild(body);
+            content.appendChild(footer);
+            dialog.appendChild(backdrop);
+            dialog.appendChild(content);
+            document.body.appendChild(dialog);
+
+            return new Promise(function(resolve) {
+                let done = false;
+
+                function matches() {
+                    return !input || input.value.trim() === String(count);
                 }
 
-                if (!confirm(confirmMessage)) {
-                    return;
+                function sync() {
+                    const ok = matches();
+                    confirmBtn.disabled = !ok;
+                    confirmBtn.setAttribute('aria-disabled', ok ? 'false' : 'true');
                 }
 
-                $btn.prop('disabled', true).text(strings.deleting || 'Deleting...');
+                function finish(answer) {
+                    if (done) {
+                        return;
+                    }
+                    done = true;
+                    document.removeEventListener('keydown', onKey, true);
+                    if (dialog.parentNode) {
+                        dialog.parentNode.removeChild(dialog);
+                    }
+                    if (previous && typeof previous.focus === 'function') {
+                        previous.focus();
+                    }
+                    resolve(answer);
+                }
 
-                FFC.request(
-                    'ffc_cleanup_appointments',
-                    { calendar_id: calendarId, cleanup_action: action },
-                    { nonce: $('#ffc_cleanup_appointments_nonce').val() }
-                )
-                    .then(function (data) {
-                        alert(data.message);
-                        location.reload();
-                    })
-                    .catch(function (err) {
-                        if (err && err.fromServer) {
-                            alert(err.message || strings.errorDeleting || 'Error deleting appointments');
-                        } else {
-                            alert(strings.errorServer || 'Error communicating with server');
+                function onKey(e) {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        finish(false);
+                        return;
+                    }
+                    if (e.key === 'Enter' && input && document.activeElement === input) {
+                        e.preventDefault();
+                        if (matches()) {
+                            finish(true);
                         }
-                        $btn.prop('disabled', false);
-                    });
+                        return;
+                    }
+                    if (e.key !== 'Tab') {
+                        return;
+                    }
+                    const focusable = [input, cancel, confirmBtn].filter(function(el) { return el && !el.disabled; });
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (focusable.indexOf(document.activeElement) === -1) {
+                        e.preventDefault();
+                        first.focus();
+                    } else if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+
+                cancel.addEventListener('click', function() { finish(false); });
+                backdrop.addEventListener('click', function() { finish(false); });
+                confirmBtn.addEventListener('click', function() {
+                    if (matches()) {
+                        finish(true);
+                    }
+                });
+                if (input) {
+                    input.addEventListener('input', sync);
+                }
+                document.addEventListener('keydown', onKey, true);
+
+                sync();
+                (input || cancel).focus();
             });
         }
     };

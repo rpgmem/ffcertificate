@@ -59,32 +59,15 @@ class AdminActivityLogPage {
 			return;
 		}
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		// Shared batched-export driver (#772): the CSV export button drives the
 		// unified `ffc_export_*` dispatcher through window.FFCBatchedExport.
-		wp_enqueue_script(
-			'ffc-batched-export',
-			FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-batched-export' );
 		// Shared progress-overlay modal styles (#786): the batched-export driver
 		// renders window.FFCProgressOverlay, identical to the public download.
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
-		wp_enqueue_style(
-			'ffc-progress-overlay',
-			FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 		wp_enqueue_script(
 			'ffc-admin-activity-log',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-activity-log{$s}.js",
@@ -286,6 +269,8 @@ class AdminActivityLogPage {
 			'appointment_cancelled'                        => __( 'Appointment Cancelled', 'ffcertificate' ),
 			'appointment_pii_revealed'                     => __( 'Appointment Personal Data Revealed', 'ffcertificate' ),
 			'appointment_booked_with_override'             => __( 'Appointment Booked Outside the Rules', 'ffcertificate' ),
+			'appointment_bulk_purged'                      => __( 'Calendar Appointments Purged', 'ffcertificate' ),
+			'appointment_bulk_cancelled'                   => __( 'Calendar Future Appointments Cancelled', 'ffcertificate' ),
 			'audience_account_email_revealed'              => __( 'Audience Account Email Revealed', 'ffcertificate' ),
 			'audience_booking_override'                    => __( 'Audience Booking Made Outside the Rules', 'ffcertificate' ),
 

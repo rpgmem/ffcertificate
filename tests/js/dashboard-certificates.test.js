@@ -19,6 +19,8 @@ beforeAll(() => {
 	window.ffcDashboard.nonce = 'rest-nonce';
 	loadDashboardCore();
 	loadPanel('certificates');
+	// FFCDashboard.init() normally binds the panel's delegated handlers.
+	window.FFCDashboard.panels.certificates.bindEvents();
 });
 
 beforeEach(() => {
@@ -271,5 +273,91 @@ describe('FFCDashboard.panels.certificates.load', () => {
 		expect(panelEl.querySelector('img')).toBeNull();
 		expect(panelEl.querySelector('.ffc-notice-text').textContent).toBe('<img src=x onerror=alert(1)>');
 		window.ffcDashboard.strings.error = saved;
+	});
+});
+
+// ----------------------------------------------------------------------
+// The e-mail column is masked, with a Reveal button per row (#1897)
+// ----------------------------------------------------------------------
+
+describe('FFCDashboard.panels.certificates — reveal', () => {
+	beforeEach(() => {
+		window.ffcDashboard.strings.reveal = 'Reveal';
+		window.ffcDashboard.strings.revealError = 'Unable to reveal this value.';
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		panel().state = null;
+		panel().canReveal = false;
+		delete window.ffcDashboard.viewAsUserId;
+	});
+
+	function loadWith(certs, canReveal) {
+		vi.spyOn(window.$, 'ajax').mockImplementationOnce((opts) => {
+			opts.success({ certificates: certs, total: certs.length, can_reveal: canReveal });
+			return {};
+		});
+		panel().load();
+		return flushPromises().then(() => vi.restoreAllMocks());
+	}
+
+	it('draws the masked e-mail with a Reveal button on each row', async () => {
+		await loadWith([makeCert({ id: 1, email: 'u***@example.com' }), makeCert({ id: 2, email: 'v***@example.com' })], true);
+
+		const buttons = window.$('#ffc-tabpanel-certificates .ffc-certificate-reveal-btn');
+		expect(buttons.map((i, b) => window.$(b).data('id')).get()).toEqual([1, 2]);
+		expect(document.getElementById('ffc-tabpanel-certificates').textContent).toContain('u***@example.com');
+	});
+
+	it('draws no Reveal button when the reader may not reveal', async () => {
+		await loadWith([makeCert({ id: 1, email: 'u***@example.com' })], false);
+
+		expect(window.$('#ffc-tabpanel-certificates .ffc-certificate-reveal-btn').length).toBe(0);
+	});
+
+	it('posts the id, shows the clear e-mail and drops that row\'s button', async () => {
+		await loadWith([makeCert({ id: 1, email: 'u***@example.com' }), makeCert({ id: 2, email: 'v***@example.com' })], true);
+		const spy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			opts.success({ id: 1, value: 'user@example.com' });
+			return {};
+		});
+
+		window.$('.ffc-certificate-reveal-btn[data-id="1"]').trigger('click');
+		await flushPromises();
+
+		const call = spy.mock.calls[0][0];
+		expect(call.method).toBe('POST');
+		expect(call.url).toBe('https://x.test/wp-json/ffc/v1/user/certificates/reveal');
+		expect(JSON.parse(call.data)).toEqual({ id: 1 });
+		expect(document.getElementById('ffc-tabpanel-certificates').textContent).toContain('user@example.com');
+		expect(window.$('.ffc-certificate-reveal-btn[data-id="1"]').length).toBe(0);
+		expect(window.$('.ffc-certificate-reveal-btn[data-id="2"]').length).toBe(1);
+	});
+
+	it('names the viewed account in view as user', async () => {
+		window.ffcDashboard.viewAsUserId = 5;
+		await loadWith([makeCert({ id: 1, email: 'u***@example.com' })], true);
+		const spy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
+
+		window.$('.ffc-certificate-reveal-btn[data-id="1"]').trigger('click');
+		await flushPromises();
+
+		expect(spy.mock.calls[0][0].url).toBe('https://x.test/wp-json/ffc/v1/user/certificates/reveal?viewAsUserId=5');
+	});
+
+	it('re-enables the button and alerts when the reveal fails', async () => {
+		await loadWith([makeCert({ id: 1, email: 'u***@example.com' })], true);
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			opts.error({ status: 403, responseJSON: { message: 'No.' } }, 'error', 'Forbidden');
+			return {};
+		});
+		window.alert = vi.fn();
+
+		window.$('.ffc-certificate-reveal-btn[data-id="1"]').trigger('click');
+		await flushPromises();
+
+		expect(window.alert).toHaveBeenCalledWith('Unable to reveal this value.');
+		expect(window.$('.ffc-certificate-reveal-btn[data-id="1"]').prop('disabled')).toBe(false);
 	});
 });

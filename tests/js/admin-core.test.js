@@ -273,3 +273,54 @@ describe('Restriction toggles (post-#238)', () => {
 		expect(field.classList.contains('ffc-collapsed')).toBe(true);
 	});
 });
+
+describe('List Status cell follows its toggle (#1904)', () => {
+	function saved(field) {
+		document.dispatchEvent(new window.CustomEvent('ffc:setting-saved', {
+			detail: { key: 'status', value: field.checked ? '1' : '0', response: {}, field },
+		}));
+	}
+
+	beforeEach(() => {
+		document.body.innerHTML = `
+			<span id="st-1" class="ffc-shorturl-status ffc-shorturl-status-active"
+				data-ffc-status-on-class="ffc-shorturl-status-active" data-ffc-status-off-class="ffc-shorturl-status-disabled">Active</span>
+			<input type="checkbox" id="tg-1" checked data-ffc-status-target="st-1" data-ffc-status-on="Active" data-ffc-status-off="Disabled">
+			<span id="st-2">Untouched</span>
+			<input type="checkbox" id="plain">
+		`;
+	});
+
+	it('writes the off label and swaps the class once the save is confirmed', () => {
+		const field = document.getElementById('tg-1');
+		field.checked = false;
+		saved(field);
+
+		const cell = document.getElementById('st-1');
+		expect(cell.textContent).toBe('Disabled');
+		expect(cell.classList.contains('ffc-shorturl-status-disabled')).toBe(true);
+		expect(cell.classList.contains('ffc-shorturl-status-active')).toBe(false);
+
+		field.checked = true;
+		saved(field);
+		expect(cell.textContent).toBe('Active');
+		expect(cell.classList.contains('ffc-shorturl-status-active')).toBe(true);
+		expect(cell.classList.contains('ffc-shorturl-status-disabled')).toBe(false);
+	});
+
+	it('leaves the page alone for a field without a status target, or with no field', () => {
+		saved(document.getElementById('plain'));
+		document.dispatchEvent(new window.CustomEvent('ffc:setting-saved', { detail: { key: 'dark_mode', value: '1' } }));
+
+		expect(document.getElementById('st-1').textContent).toBe('Active');
+		expect(document.getElementById('st-2').textContent).toBe('Untouched');
+	});
+
+	it('does not touch the cell when only the toggle changed (no confirmed save)', () => {
+		const field = document.getElementById('tg-1');
+		field.checked = false;
+		window.$(field).trigger('change');
+
+		expect(document.getElementById('st-1').textContent).toBe('Active');
+	});
+});

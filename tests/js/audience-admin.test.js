@@ -164,6 +164,66 @@ describe('audience-admin — colour picker hex text', () => {
 });
 
 // ----------------------------------------------------------------------
+// bindEvents — a new audience under a parent inherits self-join (#1901)
+// ----------------------------------------------------------------------
+
+describe('audience-admin — new audience inherits self-join from its parent', () => {
+	function form(parent) {
+		document.body.innerHTML = `
+			<form>
+				<select id="audience_parent">
+					<option value="">None</option>
+					<option value="3" ${'3' === parent ? 'selected' : ''}>Parent</option>
+				</select>
+				<p class="ffc-self-join-inherits" hidden>Inherits from the audience above.</p>
+				<div class="ffc-self-join-own"><input type="checkbox" name="audience_self_join"></div>
+			</form>
+		`;
+	}
+
+	it('shows the switch while no parent is picked', async () => {
+		form('');
+		await reload();
+
+		expect(window.$('.ffc-self-join-inherits').prop('hidden')).toBe(true);
+		expect(window.$('.ffc-self-join-own').prop('hidden')).toBe(false);
+	});
+
+	it('swaps the switch for the inherit line when a parent is picked, and back', async () => {
+		form('');
+		await reload();
+
+		window.$('#audience_parent').val('3').trigger('change');
+		expect(window.$('.ffc-self-join-inherits').prop('hidden')).toBe(false);
+		expect(window.$('.ffc-self-join-own').prop('hidden')).toBe(true);
+
+		window.$('#audience_parent').val('').trigger('change');
+		expect(window.$('.ffc-self-join-inherits').prop('hidden')).toBe(true);
+		expect(window.$('.ffc-self-join-own').prop('hidden')).toBe(false);
+	});
+
+	it('starts on the inherit line when the form opens with a parent picked', async () => {
+		form('3');
+		await reload();
+
+		expect(window.$('.ffc-self-join-inherits').prop('hidden')).toBe(false);
+		expect(window.$('.ffc-self-join-own').prop('hidden')).toBe(true);
+	});
+
+	it('leaves an edit form without the inherit line alone', async () => {
+		document.body.innerHTML = `
+			<form>
+				<select id="audience_parent"><option value="3" selected>Parent</option></select>
+				<div class="ffc-self-join-own"></div>
+			</form>
+		`;
+		await reload();
+
+		expect(window.$('.ffc-self-join-own').prop('hidden')).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
 // initUserSearch — autocomplete for audience-group member management
 // ----------------------------------------------------------------------
 
@@ -890,5 +950,39 @@ describe('audience-admin — bookings CSV export', () => {
 		document.body.innerHTML = '<button type="button" id="ffc-bookings-export-btn">Export CSV</button>';
 		await reload();
 		expect(() => window.$('#ffc-bookings-export-btn').trigger('click')).not.toThrow();
+	});
+});
+
+// ----------------------------------------------------------------------
+// bindEvents — "Keep at least one group" depends on "Visible to members
+// only" (#1918)
+// ----------------------------------------------------------------------
+
+describe('audience-admin — keep-at-least-one follows members-only', () => {
+	function form(membersOnly, keep) {
+		document.body.innerHTML = `
+			<form>
+				<input type="checkbox" id="audience_members_only" ${membersOnly ? 'checked' : ''}>
+				<input type="checkbox" id="audience_require_membership" ${keep ? 'checked' : ''} ${membersOnly ? '' : 'disabled'}>
+			</form>
+		`;
+	}
+
+	it('enables the second toggle when members-only turns on', async () => {
+		form(false, false);
+		await reload();
+
+		window.$('#audience_members_only').prop('checked', true).trigger('change');
+		expect(window.$('#audience_require_membership').prop('disabled')).toBe(false);
+		expect(window.$('#audience_require_membership').prop('checked')).toBe(false);
+	});
+
+	it('disables and clears the second toggle when members-only turns off', async () => {
+		form(true, true);
+		await reload();
+
+		window.$('#audience_members_only').prop('checked', false).trigger('change');
+		expect(window.$('#audience_require_membership').prop('disabled')).toBe(true);
+		expect(window.$('#audience_require_membership').prop('checked')).toBe(false);
 	});
 });

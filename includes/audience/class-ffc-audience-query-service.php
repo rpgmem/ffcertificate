@@ -118,7 +118,8 @@ final class AudienceQueryService {
 	 * audience has `allow_self_join = 1` — joinability is per-node (any
 	 * self-join audience, child or top-level, counts), matching the gate
 	 * `UserAudienceRestController::join_audience_group` uses to enforce
-	 * the `MAX_SELF_JOIN_GROUPS` cap (#791).
+	 * the cap `AudienceSelfJoinLimit::get()` reads from the settings (#791,
+	 * #1916).
 	 *
 	 * @since 6.6.2
 	 * @param int $user_id WordPress user ID.

@@ -30,6 +30,10 @@ class AdminAssetsManagerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
 
 		// pcov does not record lines for files first autoloaded mid-test-method,
@@ -66,12 +70,14 @@ class AdminAssetsManagerTest extends TestCase {
 
 		// Utils alias mock
 		$this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
+		$this->utils_mock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
 		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
 		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
 		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
 		$this->utils_mock->shouldReceive('enqueue_dark_mode')->byDefault();
+		$this->utils_mock->shouldReceive('core_script_config')->andReturn(array( 'version' => '1.0.0' ))->byDefault();
 		$ri_mock->shouldReceive('get_get_string')->andReturnUsing( function ( $key, $default = '' ) {
 			return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
 		} )->byDefault();
@@ -148,6 +154,40 @@ class AdminAssetsManagerTest extends TestCase {
 		$this->assertContains('ffc-admin-js', $enqueued_scripts);
 	}
 
+	public function test_ffc_core_is_enqueued_by_handle_and_never_localized_here(): void {
+		// Core\AssetRegistry registers ffc-core and its ffcCoreConfig at
+		// priority 1 of this same hook (#1924). Re-declaring the source or
+		// localizing again here printed the configuration twice on every FFC
+		// screen, so the manager names the handle and nothing else.
+		global $post_type;
+		$post_type = 'ffc_form';
+
+		$core_calls = [];
+		$localized  = [];
+
+		Functions\when('wp_enqueue_media')->justReturn(true);
+		Functions\when('wp_enqueue_script')->alias(function (...$args) use (&$core_calls) {
+			if ('ffc-core' === $args[0]) {
+				$core_calls[] = $args;
+			}
+		});
+		Functions\when('wp_enqueue_style')->justReturn(true);
+		Functions\when('wp_localize_script')->alias(function ($handle, $object) use (&$localized) {
+			$localized[] = $handle . ':' . $object;
+		});
+		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+		Functions\when('wp_create_nonce')->justReturn('test_nonce');
+
+		( new AdminAssetsManager() )->enqueue_admin_assets('post.php');
+		AdminAssetsManager::enqueue_image_tools();
+
+		$this->assertNotEmpty($core_calls);
+		foreach ($core_calls as $call) {
+			$this->assertSame(array('ffc-core'), $call, 'ffc-core is enqueued by handle only.');
+		}
+		$this->assertNotContains('ffc-core:ffcCoreConfig', $localized);
+	}
+
 	public function test_enqueue_admin_assets_loads_css_for_ffc_form_post_type(): void {
 		global $post_type;
 		$post_type = 'ffc_form';
@@ -171,6 +211,27 @@ class AdminAssetsManagerTest extends TestCase {
 		$this->assertContains('ffc-common', $enqueued_styles);
 		$this->assertContains('ffc-admin-utilities', $enqueued_styles);
 		$this->assertContains('ffc-admin-css', $enqueued_styles);
+		$this->assertNotContains('ffc-admin-submissions-css', $enqueued_styles, 'The submissions sheet loads on its own screen only (#1923).');
+	}
+
+	public function test_the_submissions_sheet_loads_on_the_submissions_screen(): void {
+		global $post_type;
+		$post_type     = 'ffc_form';
+		$_GET['page']  = 'ffc-submissions';
+
+		$enqueued_styles = [];
+		Functions\when('wp_enqueue_media')->justReturn(true);
+		Functions\when('wp_enqueue_script')->justReturn(true);
+		Functions\when('wp_enqueue_style')->alias(function ($handle) use (&$enqueued_styles) {
+			$enqueued_styles[] = $handle;
+		});
+		Functions\when('wp_localize_script')->justReturn(true);
+		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+		Functions\when('wp_create_nonce')->justReturn('test_nonce');
+
+		( new AdminAssetsManager() )->enqueue_admin_assets('ffc_form_page_ffc-submissions');
+		unset( $_GET['page'] );
+
 		$this->assertContains('ffc-admin-submissions-css', $enqueued_styles);
 	}
 

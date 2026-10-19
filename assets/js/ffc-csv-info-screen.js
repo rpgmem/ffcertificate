@@ -28,6 +28,32 @@
 		return window.FFC.notice(tone, icon, text, '', { role: 'note' }).outerHTML;
 	}
 
+	/**
+	 * One of the screen's action buttons, in the `.ffc-btn` family (#1881).
+	 *
+	 * @param {string}  label     Visible text.
+	 * @param {string}  category  primary | neutral | caution.
+	 * @param {string}  icon      A `Core\Icons` class name without the prefix.
+	 * @param {string}  hook      The class the flow modules bind to.
+	 * @param {boolean} disabled  Drawn but not pressable.
+	 * @param {string}  title     Tooltip; empty for none.
+	 * @return {string}
+	 */
+	function actionButton(label, category, icon, hook, disabled, title) {
+		var attrs = {};
+		if (title) {
+			attrs.title = title;
+		}
+		return window.FFC.buttonHtml({
+			label: label,
+			category: category,
+			icon: icon,
+			className: hook,
+			disabled: !!disabled,
+			attrs: attrs
+		});
+	}
+
 	// ── Step 1: Request form info ───────────────────────────────
 
 	function onSubmitInfo(e) {
@@ -61,9 +87,8 @@
 
 		// Header with back button.
 		html += '<div class="ffc-info-header">';
-		html += '<button type="button" class="ffc-info-back" title="' + esc(strings.backToForm || 'Back') + '">';
-		html += '<span class="ffc-info-back-arrow">&#8592;</span> ' + esc(strings.backToForm || 'Back');
-		html += '</button>';
+		// Back navigates, so it is neutral (#1881); `ffc-info-back` is its hook.
+		html += actionButton(strings.backToForm || 'Back', 'neutral', 'chevron-left', 'ffc-info-back', false, '');
 		html += '<h2>' + esc(strings.formDetails || 'Form Details') + '</h2>';
 		html += '</div>';
 
@@ -118,42 +143,38 @@
 		// Status message.
 		html += buildStatusMessage(info.status);
 
-		// Action buttons.
+		// Action buttons — the `.ffc-btn` family (#1881). The category says
+		// what each action does: Download CSV completes the screen's work
+		// (primary); Preview only looks (neutral); Start now, Postpone close
+		// and the schedule exception move a deadline the participants see
+		// (caution). The `ffc-btn-*` hook classes are what the handlers
+		// below bind to.
 		html += '<div class="ffc-info-actions">';
+		var previewLabel = strings.previewCertificate || 'Preview Certificate';
 		if (info.status.can_preview_cert) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-secondary ffc-btn-cert-preview">';
-			html += esc(strings.previewCertificate || 'Preview Certificate');
-			html += '</button>';
+			html += actionButton(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview', false, '');
 		} else if (info.status.cert_preview_disabled_by_admin) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-secondary ffc-btn-cert-preview" disabled '
-				+ 'title="' + esc(strings.certPreviewDisabledTip || 'Certificate Preview disabled') + '">';
-			html += esc(strings.previewCertificate || 'Preview Certificate');
-			html += '</button>';
+			html += actionButton(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview', true,
+				strings.certPreviewDisabledTip || 'Certificate Preview disabled');
 		}
 		// Start Form Early: enabled when can_open_early; disabled-visible
 		// when admin turned it off (so the operator sees the feature exists
 		// but is blocked); hidden otherwise. Same shape for Postpone Close.
+		var startLabel = strings.startFormNow || 'Start Form Now';
 		if (info.status.can_open_early) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-open-early" '
-				+ 'title="' + esc(strings.openEarlyTooltip || 'Overrides the scheduled start time. Form opens immediately.') + '">';
-			html += esc(strings.startFormNow || 'Start Form Now');
-			html += '</button>';
+			html += actionButton(startLabel, 'caution', 'clock', 'ffc-btn-open-early', false,
+				strings.openEarlyTooltip || 'Overrides the scheduled start time. Form opens immediately.');
 		} else if (info.status.start_early_disabled_by_admin) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-open-early" disabled '
-				+ 'title="' + esc(strings.startEarlyDisabledTip || 'Start Form Early disabled') + '">';
-			html += esc(strings.startFormNow || 'Start Form Now');
-			html += '</button>';
+			html += actionButton(startLabel, 'caution', 'clock', 'ffc-btn-open-early', true,
+				strings.startEarlyDisabledTip || 'Start Form Early disabled');
 		}
+		var postponeLabel = strings.postponeClose || 'Postpone close';
 		if (info.status.can_extend_end) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-extend-end" '
-				+ 'title="' + esc(strings.postponeCloseTooltip || 'Move the form\'s close time later within the same day. One-shot per form.') + '">';
-			html += esc(strings.postponeClose || 'Postpone close');
-			html += '</button>';
+			html += actionButton(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end', false,
+				strings.postponeCloseTooltip || 'Move the form\'s close time later within the same day. One-shot per form.');
 		} else if (info.status.extend_end_disabled_by_admin) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-extend-end" disabled '
-				+ 'title="' + esc(strings.extendEndDisabledTip || 'Postpone Close disabled') + '">';
-			html += esc(strings.postponeClose || 'Postpone close');
-			html += '</button>';
+			html += actionButton(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end', true,
+				strings.extendEndDisabledTip || 'Postpone Close disabled');
 		}
 		// Schedule exception button (#366). Gated server-side by
 		// `can_schedule_exception` which mirrors the action's
@@ -162,29 +183,23 @@
 		// flow itself stays hidden, no "feature exists but unavailable"
 		// surface).
 		if (info.status.can_schedule_exception) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-warning ffc-btn-schedule-exception" '
-				+ 'title="' + esc(strings.scheduleExceptionTooltip || 'Create a one-use schedule exception for a single participant submission.') + '">';
-			html += esc(strings.scheduleException || 'Entry/exit exception');
-			html += '</button>';
+			html += actionButton(strings.scheduleException || 'Entry/exit exception', 'caution', 'user-clock',
+				'ffc-btn-schedule-exception', false,
+				strings.scheduleExceptionTooltip || 'Create a one-use schedule exception for a single participant submission.');
 		}
 		// Download CSV button is always rendered — toggle disabled state.
 		// Admin-disabled gets a specific tooltip so the operator knows the
 		// feature was turned off intentionally vs. just temporarily blocked
 		// (form still active, quota exhausted, etc., which the info alert
 		// below explains).
+		var downloadLabel = strings.downloadCsv || 'Download CSV';
 		if (info.status.can_download) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv">';
-			html += esc(strings.downloadCsv || 'Download CSV');
-			html += '</button>';
+			html += actionButton(downloadLabel, 'primary', 'download', 'ffc-btn-download-csv', false, '');
 		} else if (info.status.csv_download_disabled_by_admin) {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv" disabled '
-				+ 'title="' + esc(strings.csvDownloadDisabledTip || 'CSV download disabled') + '">';
-			html += esc(strings.downloadCsv || 'Download CSV');
-			html += '</button>';
+			html += actionButton(downloadLabel, 'primary', 'download', 'ffc-btn-download-csv', true,
+				strings.csvDownloadDisabledTip || 'CSV download disabled');
 		} else {
-			html += '<button type="button" class="ffc-info-btn ffc-info-btn-primary ffc-btn-download-csv" disabled>';
-			html += esc(strings.downloadCsv || 'Download CSV');
-			html += '</button>';
+			html += actionButton(downloadLabel, 'primary', 'download', 'ffc-btn-download-csv', true, '');
 		}
 		html += '</div>';
 

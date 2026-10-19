@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\Submission\SuccessHtmlRenderer;
+use FreeFormCertificate\Tests\Support\ButtonMarkup;
 
 /**
  * Sprint 1 of #313 (6.6.2): success card now exposes the magic link, an
@@ -163,6 +164,37 @@ class SuccessHtmlTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-download-pdf-btn', $html );
 		$this->assertStringContainsString( 'ffc-success-download-btn', $html );
+
+		// A family button (#1880): primary with the download icon, and the
+		// three hooks scripts and an install's own CSS read.
+		$buttons = ButtonMarkup::classes_by_hook( $html, 'ffc-success-download-btn' );
+		$this->assertCount( 1, $buttons );
+		foreach ( array( 'ffc-btn', 'ffc-btn-primary', 'ffc-icon-download', 'ffc-download-btn', 'ffc-download-pdf-btn' ) as $class ) {
+			$this->assertContains( $class, $buttons[0], "Download PDF again lacks {$class}." );
+		}
+	}
+
+	public function test_success_html_copy_buttons_are_neutral_family_buttons(): void {
+		$html = SuccessHtmlRenderer::generate_success_html(
+			array( 'auth_code' => 'C-AAAA-BBBB-CCCC' ),
+			42,
+			'2026-05-20 10:00:00',
+			'Done!',
+			7,
+			$this->make_handler( str_repeat( 'a', 32 ) )
+		);
+
+		// Both Copy buttons (#1880): neutral with the copy icon, the hook kept.
+		$buttons = ButtonMarkup::classes_by_hook( $html, 'ffc-copy-btn' );
+		$this->assertCount( 2, $buttons );
+		foreach ( $buttons as $classes ) {
+			foreach ( array( 'ffc-btn', 'ffc-btn-neutral', 'ffc-icon-copy' ) as $class ) {
+				$this->assertContains( $class, $classes, "A Copy button lacks {$class}." );
+			}
+		}
+		$this->assertSame( 2, substr_count( $html, 'data-ffc-copy="' ), 'Each Copy button keeps the value it copies.' );
+		$this->assertStringContainsString( 'aria-label="Copy authentication code"', $html );
+		$this->assertStringContainsString( 'aria-label="Copy link"', $html );
 	}
 
 	public function test_success_html_renders_all_three_platform_hints(): void {

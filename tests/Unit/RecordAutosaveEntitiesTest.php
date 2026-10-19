@@ -13,6 +13,9 @@ use FreeFormCertificate\Core\RecordAutosave;
 use FreeFormCertificate\DateMessages\DateMessagesRecordAutosave;
 use FreeFormCertificate\Recruitment\RecruitmentRecordAutosave;
 use FreeFormCertificate\Reregistration\ReregistrationRecordAutosave;
+use FreeFormCertificate\UrlShortener\UrlShortenerRecordAutosave;
+use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
+use FreeFormCertificate\UrlShortener\UrlShortenerService;
 
 /**
  * The entities each module registers with the record autosave (#1757):
@@ -22,6 +25,7 @@ use FreeFormCertificate\Reregistration\ReregistrationRecordAutosave;
  * @covers \FreeFormCertificate\Reregistration\ReregistrationRecordAutosave
  * @covers \FreeFormCertificate\Recruitment\RecruitmentRecordAutosave
  * @covers \FreeFormCertificate\DateMessages\DateMessagesRecordAutosave
+ * @covers \FreeFormCertificate\UrlShortener\UrlShortenerRecordAutosave
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -68,7 +72,14 @@ class RecordAutosaveEntitiesTest extends TestCase {
 			array_keys( $schedule['fields'] )
 		);
 		$this->assertSame( array( 1 => 'public', 0 => 'private' ), $schedule['fields']['visibility']['map'] );
-		$this->assertSame( array( 'status', 'allow_self_join' ), array_keys( $this->registered['audience']['fields'] ) );
+		$this->assertSame( array( 'status', 'allow_self_join', 'self_join_scope', 'members_only', 'require_membership' ), array_keys( $this->registered['audience']['fields'] ) );
+		$this->assertSame(
+			array(
+				'type'    => 'enum',
+				'options' => array( 'off', 'self', 'all', 'descendants' ),
+			),
+			$this->registered['audience']['fields']['self_join_scope']
+		);
 	}
 
 	public function test_a_calendar_field_is_a_one_column_update(): void {
@@ -85,14 +96,59 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_schedule( 4, 'include_ics', 1 ) );
 	}
 
-	public function test_self_join_on_a_parent_cascades_to_its_children(): void {
+	public function test_a_parent_s_own_self_join_no_longer_cascades(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
 			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null ) );
 		$writer = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
 		$writer->shouldReceive( 'update' )->once()->with( 9, array( 'allow_self_join' => 1 ) )->andReturn( true );
-		$writer->shouldReceive( 'cascade_self_join' )->once()->with( 9, 1 );
+		$writer->shouldNotReceive( 'cascade_self_join' );
 
 		$this->assertTrue( AudienceRecordAutosave::save_audience( 9, 'allow_self_join', 1 ) );
+	}
+
+	/**
+	 * @return iterable<string, array{0: string}>
+	 */
+	public static function scope_choices(): iterable {
+		foreach ( array( 'off', 'self', 'all', 'descendants' ) as $scope ) {
+			yield $scope => array( $scope );
+		}
+	}
+
+	/**
+	 * The four-option choice (#1901) goes through the writer, which sets the
+	 * audience's own flag and every descendant's.
+	 *
+	 * @dataProvider scope_choices
+	 *
+	 * @param string $scope The chosen option.
+	 */
+	public function test_the_scope_choice_is_applied_through_the_writer( string $scope ): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null ) );
+		$writer = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$writer->shouldNotReceive( 'update' );
+		$writer->shouldReceive( 'apply_self_join_scope' )->once()->with( 9, $scope )->andReturn( true );
+
+		$this->assertTrue( AudienceRecordAutosave::save_audience( 9, 'self_join_scope', $scope ) );
+	}
+
+	public function test_a_failed_scope_write_is_an_error(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'apply_self_join_scope' )->once()->andReturn( false );
+
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_audience( 9, 'self_join_scope', 'all' ) );
+	}
+
+	public function test_the_scope_choice_on_a_child_audience_is_refused(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 9, 'parent_id' => 3 ) );
+		$writer = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$writer->shouldNotReceive( 'apply_self_join_scope' );
+
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_audience( 9, 'self_join_scope', 'all' ) );
 	}
 
 	public function test_self_join_on_a_child_audience_is_refused(): void {
@@ -101,6 +157,53 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )->shouldNotReceive( 'update' );
 
 		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_audience( 9, 'allow_self_join', 1 ) );
+	}
+
+	/**
+	 * Turning members-only on keeps the stored keep-at-least-one value; the
+	 * writer stores the pair (#1918).
+	 */
+	public function test_members_only_is_written_with_the_stored_keep_flag(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null, 'members_only' => '0', 'require_membership' => '1' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'set_tree_access' )->once()->with( 9, true, true )->andReturn( true );
+
+		$this->assertTrue( AudienceRecordAutosave::save_audience( 9, 'members_only', 1 ) );
+	}
+
+	public function test_turning_members_only_off_passes_through_the_writer(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null, 'members_only' => '1', 'require_membership' => '1' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'set_tree_access' )->once()->with( 9, false, true )->andReturn( true );
+
+		$this->assertTrue( AudienceRecordAutosave::save_audience( 9, 'members_only', 0 ) );
+	}
+
+	public function test_keep_one_group_saves_under_members_only(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null, 'members_only' => '1', 'require_membership' => '0' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'set_tree_access' )->once()->with( 9, true, true )->andReturn( true );
+
+		$this->assertTrue( AudienceRecordAutosave::save_audience( 9, 'require_membership', 1 ) );
+	}
+
+	public function test_keep_one_group_without_members_only_is_refused(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( (object) array( 'id' => 9, 'parent_id' => null, 'members_only' => '0', 'require_membership' => '0' ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )->shouldNotReceive( 'set_tree_access' );
+
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_audience( 9, 'require_membership', 1 ) );
+	}
+
+	public function test_tree_access_on_a_child_audience_is_refused(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
+			->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 9, 'parent_id' => 3 ) );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )->shouldNotReceive( 'set_tree_access' );
+
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_audience( 9, 'members_only', 1 ) );
 	}
 
 	public function test_an_audience_status_does_not_cascade(): void {
@@ -258,5 +361,65 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleWriter' )->shouldReceive( 'save' )->andReturn( false );
 
 		$this->assertInstanceOf( \WP_Error::class, DateMessagesRecordAutosave::save( 6, 'send_to_user', 0 ) );
+	}
+
+	// ------------------------------------------------------------------
+	// Short URL
+	// ------------------------------------------------------------------
+
+	/**
+	 * A service whose repository holds one row.
+	 *
+	 * @param array<string, mixed>|null $row The stored row.
+	 */
+	private function short_url_service( ?array $row ): UrlShortenerService {
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findById' )->andReturn( $row );
+
+		$service = Mockery::mock( UrlShortenerService::class );
+		$service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+		return $service;
+	}
+
+	public function test_the_short_url_registers_its_status_as_a_two_state_map(): void {
+		UrlShortenerRecordAutosave::register( $this->short_url_service( null ) );
+
+		$def = $this->registered['short_url'];
+		$this->assertSame( 'ffc_manage_url_shortener', $def['cap'] );
+		$this->assertSame(
+			array(
+				'status' => array(
+					'type' => 'map',
+					'map'  => array(
+						1 => 'active',
+						0 => 'disabled',
+					),
+				),
+			),
+			$def['fields']
+		);
+	}
+
+	public function test_a_trashed_or_missing_short_url_has_no_toggle_to_save(): void {
+		UrlShortenerRecordAutosave::register( $this->short_url_service( array( 'status' => 'trashed' ) ) );
+		$this->assertFalse( ( $this->registered['short_url']['exists'] )( 3 ) );
+
+		UrlShortenerRecordAutosave::register( $this->short_url_service( null ) );
+		$this->assertFalse( ( $this->registered['short_url']['exists'] )( 3 ) );
+
+		UrlShortenerRecordAutosave::register( $this->short_url_service( array( 'status' => 'disabled' ) ) );
+		$this->assertTrue( ( $this->registered['short_url']['exists'] )( 3 ) );
+	}
+
+	public function test_the_short_url_toggle_sets_the_status_it_means(): void {
+		$service = $this->short_url_service( array( 'status' => 'active' ) );
+		$service->shouldReceive( 'set_active' )->once()->with( 5, false )->andReturn( true );
+		$service->shouldReceive( 'set_active' )->once()->with( 5, true )->andReturn( false );
+		UrlShortenerRecordAutosave::register( $service );
+		$save = $this->registered['short_url']['save'];
+
+		$this->assertTrue( $save( 5, 'status', 'disabled' ) );
+		$this->assertInstanceOf( \WP_Error::class, $save( 5, 'status', 'active' ) );
 	}
 }

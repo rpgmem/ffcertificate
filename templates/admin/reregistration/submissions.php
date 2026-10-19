@@ -81,7 +81,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php endforeach; ?>
 				</select>
 				<input type="search" name="s" value="<?php echo esc_attr( $search ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Search name or email...', 'ffcertificate' ); ?>">
-				<?php submit_button( __( 'Filter', 'ffcertificate' ), '', '', false ); ?>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Filter', 'ffcertificate' ),
+						'icon'  => 'filter',
+						'type'  => 'submit',
+					)
+				);
+				?>
 			</form>
 			<?php
 			// Batched CSV export (#772): the button drives the shared
@@ -89,9 +97,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 			// campaign id rides along via data-id; the export covers the whole
 			// campaign (unaffected by the on-screen status/search filter, as before).
 			?>
-			<button type="button" id="ffc-rereg-export-btn" class="button ffc-rereg-ml-10" data-id="<?php echo esc_attr( (string) $id ); ?>">
-				<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
-			</button>		</div>
+			<?php
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label' => __( 'Export CSV', 'ffcertificate' ),
+					'icon'  => 'download',
+					'id'    => 'ffc-rereg-export-btn',
+					'class' => 'ffc-rereg-ml-10',
+					'attrs' => array(
+						'data-id' => (string) $id,
+					),
+				)
+			);
+			?>
+		</div>
 
 		<!-- Bulk actions form -->
 		<form method="post" id="ffc-submissions-form">
@@ -107,7 +126,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<option value="return_to_draft"><?php esc_html_e( 'Return to Draft', 'ffcertificate' ); ?></option>
 					<option value="send_reminder"><?php esc_html_e( 'Send Reminder', 'ffcertificate' ); ?></option>
 				</select>
-				<?php submit_button( __( 'Apply', 'ffcertificate' ), 'action', '', false ); ?>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Apply', 'ffcertificate' ),
+						'icon'  => 'checkmark',
+						'type'  => 'submit',
+					)
+				);
+				?>
 			</div>
 			<?php endif; ?>
 
@@ -147,7 +174,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<div class="ffc-rereg-modal-content">
 				<div class="ffc-rereg-modal-header">
 					<h2 id="ffc-submission-details-title"><?php esc_html_e( 'Submission Details', 'ffcertificate' ); ?></h2>
-					<button type="button" class="ffc-rereg-modal-close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+					<?php
+					\FreeFormCertificate\Core\Button::render(
+						array(
+							'label'     => __( 'Close', 'ffcertificate' ),
+							'category'  => 'neutral',
+							'icon'      => 'cross',
+							'icon_only' => true,
+							'class'     => 'ffc-rereg-modal-close',
+						)
+					);
+					?>
 				</div>
 				<div class="ffc-rereg-modal-body">
 					<p class="ffc-rereg-modal-loading"><?php esc_html_e( 'Loading…', 'ffcertificate' ); ?></p>

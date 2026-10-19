@@ -19,6 +19,10 @@ class CertTemplateAdminScreenTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 		// SettingsReader reads the required certificate tags (#1734).
 		Functions\when( 'get_option' )->justReturn( array() );
 		class_exists( '\\FreeFormCertificate\\Admin\\CertTemplateAdminScreen' );
@@ -27,6 +31,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'admin_url' )->returnArg();
@@ -322,7 +327,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 		);
 
 		$this->assertStringContainsString( 'name="ffc_template_visible"', $html );
-		$this->assertStringContainsString( 'ffc-control-toggle', $html );
+		$this->assertStringContainsString( 'class="ffc-control-toggle ffc-control-toggle-mark"', $html, 'The hand-built toggle carries the default mark (#1873).' );
 	}
 
 	public function test_save_edit_metabox_persists_html_and_visibility(): void {
@@ -687,7 +692,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 
 		$out = $this->capture( fn() => $screen->render_restore_button( CertTemplateCpt::POST_TYPE ) );
 		$this->assertStringContainsString( 'Restore defaults', $out );
-		$this->assertStringContainsString( 'class="button"', $out );
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-caution ffc-icon-restore"', $out );
 
 		$other = $this->capture( fn() => $screen->render_restore_button( 'page' ) );
 		$this->assertSame( '', $other );

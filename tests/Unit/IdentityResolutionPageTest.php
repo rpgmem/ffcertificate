@@ -11,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\IdentityQueuePanels;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Maintenance\IdentityAcceptance;
+use FreeFormCertificate\Maintenance\IdentityAccountFacts;
+use FreeFormCertificate\Maintenance\IdentityCheckDigitScan;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 use FreeFormCertificate\Maintenance\IdentityRepair;
@@ -90,15 +92,18 @@ class IdentityResolutionPageTest extends TestCase {
 		$query = Mockery::mock( IdentityConflictQuery::class );
 		$query->shouldReceive( 'multiple_identities' )->andReturn( array() );
 		$query->shouldReceive( 'shared_identities' )->andReturn( array() );
-		$query->shouldReceive( 'check_digit_failures_of_both' )
+
+		$scan = Mockery::mock( IdentityCheckDigitScan::class );
+		$scan->shouldReceive( 'check_digit_failures_of_both' )
 			->once()
 			->with( IdentityResolutionPage::LIMIT )
 			->andReturn( $findings );
 		// The merge form reads this for the pair it draws. Stubbed on the
 		// harness rather than per test, because a full Mockery double throws
 		// on an unstubbed call and the cases here drive the view end to end.
-		$query->shouldReceive( 'account_facts' )->andReturn( array() )->byDefault();
-		$query->shouldReceive( 'scan_coverage' )->andReturn(
+		$facts = Mockery::mock( IdentityAccountFacts::class );
+		$facts->shouldReceive( 'of' )->andReturn( array() )->byDefault();
+		$scan->shouldReceive( 'scan_coverage' )->andReturn(
 			array(
 				'rf_hash' => array(
 					'stores'     => 3,
@@ -114,21 +119,45 @@ class IdentityResolutionPageTest extends TestCase {
 		$accepted = Mockery::mock( IdentityAcceptance::class );
 		$accepted->shouldReceive( 'all' )->andReturn( array() )->byDefault();
 
-		return new class( $query, $accepted ) extends IdentityResolutionPage {
+		return new class( $query, $scan, $facts, $accepted ) extends IdentityResolutionPage {
 
 			/** @var IdentityConflictQuery */
 			private $double;
+
+			/** @var IdentityCheckDigitScan */
+			private $scan_double;
+
+			/** @var IdentityAccountFacts */
+			private $facts_double;
 
 			/** @var IdentityAcceptance */
 			private $accepted_double;
 
 			/**
-			 * @param IdentityConflictQuery $double   Stand-in for the real query.
-			 * @param IdentityAcceptance    $accepted Stand-in for the record.
+			 * @param IdentityConflictQuery  $double   Stand-in for the real query.
+			 * @param IdentityCheckDigitScan $scan     Stand-in for the real scan.
+			 * @param IdentityAccountFacts   $facts    Stand-in for the real facts.
+			 * @param IdentityAcceptance     $accepted Stand-in for the record.
 			 */
-			public function __construct( $double, $accepted ) {
+			public function __construct( $double, $scan, $facts, $accepted ) {
 				$this->double          = $double;
+				$this->scan_double     = $scan;
+				$this->facts_double    = $facts;
 				$this->accepted_double = $accepted;
+			}
+
+			/**
+			 * @return IdentityCheckDigitScan
+			 */
+			protected function scans(): IdentityCheckDigitScan {
+				return $this->scan_double;
+			}
+
+			/**
+			 * @return IdentityAccountFacts
+			 */
+			protected function facts(): IdentityAccountFacts {
+				return $this->facts_double;
 			}
 
 			/**
@@ -185,7 +214,7 @@ class IdentityResolutionPageTest extends TestCase {
 		$this->assertStringStartsWith( 'ffc-', IdentityResolutionPage::MENU_SLUG );
 
 		$expected = 'ffc-page-' . substr( IdentityResolutionPage::MENU_SLUG, strlen( 'ffc-' ) );
-		$view     = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view     = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertStringContainsString(
 			'wrap ffc-admin-page ' . $expected,
@@ -310,7 +339,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 */
 	public function test_the_screen_never_writes_directly(): void {
 		$source = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' )
-			. (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+			. \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		// The CALL shapes, never the bare token: this class's own docblock
 		// explains why the query seam exists and says `$wpdb` doing it, and a
@@ -365,7 +394,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * reason at all — and the one-click tier would become a question.
 	 */
 	public function test_the_consolidation_posts_no_value(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$form = strstr( $view, 'CONSOLIDATE_ACTION' );
 		$this->assertIsString( $form, 'The consolidation form must be in the view.' );
@@ -454,8 +483,10 @@ class IdentityResolutionPageTest extends TestCase {
 		$query = Mockery::mock( IdentityConflictQuery::class );
 		$query->shouldReceive( 'multiple_identities' )->andReturn( array() );
 		$query->shouldReceive( 'shared_identities' )->andReturn( array() );
-		$query->shouldReceive( 'check_digit_failures_of_both' )->once()->andReturn( array() );
-		$query->shouldReceive( 'scan_coverage' )->once()->andReturn(
+
+		$scan = Mockery::mock( IdentityCheckDigitScan::class );
+		$scan->shouldReceive( 'check_digit_failures_of_both' )->once()->andReturn( array() );
+		$scan->shouldReceive( 'scan_coverage' )->once()->andReturn(
 			array(
 				'rf_hash' => array(
 					'stores'     => 3,
@@ -465,16 +496,28 @@ class IdentityResolutionPageTest extends TestCase {
 			)
 		);
 
-		$page = new class( $query ) extends IdentityResolutionPage {
+		$page = new class( $query, $scan ) extends IdentityResolutionPage {
 
 			/** @var IdentityConflictQuery */
 			private $double;
 
+			/** @var IdentityCheckDigitScan */
+			private $scan_double;
+
 			/**
-			 * @param IdentityConflictQuery $double Stand-in for the real query.
+			 * @param IdentityConflictQuery  $double Stand-in for the real query.
+			 * @param IdentityCheckDigitScan $scan   Stand-in for the real scan.
 			 */
-			public function __construct( $double ) {
-				$this->double = $double;
+			public function __construct( $double, $scan ) {
+				$this->double      = $double;
+				$this->scan_double = $scan;
+			}
+
+			/**
+			 * @return IdentityCheckDigitScan
+			 */
+			protected function scans(): IdentityCheckDigitScan {
+				return $this->scan_double;
 			}
 
 			/**
@@ -533,7 +576,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * defect, whichever side was written first.
 	 */
 	public function test_the_view_is_handed_every_variable_it_declares(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
 
 		// Everything the view names, minus everything it makes itself: what is
@@ -570,16 +613,19 @@ class IdentityResolutionPageTest extends TestCase {
 	 * the reassuring sentence is reachable only from the third.
 	 */
 	public function test_the_view_separates_the_four_empty_states(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
-		$this->assertStringContainsString( '0 === $ffc_identity_stores', $view, 'No store scanned is its own state.' );
+		// The per-column verdicts are `IdentityResolutionScreen`'s now (#1925)
+		// and `IdentityResolutionScreenTest` drives them; what stays here is the
+		// view's own empty-queue branches and their order.
+		$this->assertStringContainsString( "0 === \$ffc_identity_screen->all['stores']", $view, 'No store scanned is its own state.' );
 		// THESE MOVED TO THE CROSS-COLUMN TOTAL (#1500). The per-column names
 		// still exist inside the coverage strip's loop, so probing them here
 		// would pass on the strip while the empty-queue branches read a
 		// leftover -- which is the defect `test_the_empty_queue_notices_read_every_column`
 		// exists for.
-		$this->assertStringContainsString( "\$ffc_identity_all['examined'] === \$ffc_identity_all['unreadable']", $view, 'Nothing readable is its own state.' );
-		$this->assertStringContainsString( "0 === \$ffc_identity_all['examined']", $view, 'Nothing FOUND is its own state, distinct from nothing readable.' );
+		$this->assertStringContainsString( "\$ffc_identity_screen->all['examined'] === \$ffc_identity_screen->all['unreadable']", $view, 'Nothing readable is its own state.' );
+		$this->assertStringContainsString( "0 === \$ffc_identity_screen->all['examined']", $view, 'Nothing FOUND is its own state, distinct from nothing readable.' );
 		$this->assertStringContainsString( 'this is not a clean result', $view, 'Both unread states must say so.' );
 
 		// Anchored on the opening of each LITERAL, never on a fragment: a
@@ -616,14 +662,14 @@ class IdentityResolutionPageTest extends TestCase {
 	 * above gives: presence was already true.
 	 */
 	public function test_the_scan_coverage_is_stated_before_the_empty_branch(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		// The read moved inside a per-column loop (#1486), so what is probed is
 		// the loop that opens it -- the ordering this test exists for is
 		// unchanged, and the assertion has to name what the view now says.
-		$read  = strpos( $view, 'foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :' );
+		$read  = strpos( $view, 'foreach ( $ffc_identity_screen->strips as $ffc_identity_strip ) :' );
 		$strip = strpos( $view, 'class="ffc-identity-scan ' );
-		$empty = strpos( $view, 'array() === $ffc_identity_panels' );
+		$empty = strpos( $view, 'array() === $ffc_identity_screen->panels' );
 
 		$this->assertIsInt( $read, 'The view must read what the scan covered.' );
 		$this->assertIsInt( $strip, 'The view must draw the coverage strip.' );
@@ -649,7 +695,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * which proves it over the three tiers one check feeds.
 	 */
 	public function test_the_counter_says_when_its_total_is_only_a_floor(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
 
 		$this->assertStringContainsString(
@@ -688,22 +734,13 @@ class IdentityResolutionPageTest extends TestCase {
 	 * land, and the conditions are asserted rather than the wording.
 	 */
 	public function test_the_strip_refuses_to_call_a_partial_scan_whole(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
-		$this->assertStringContainsString( '$ffc_identity_read_none = 0 === $ffc_identity_stores', $view, 'No store scanned must reach the unread verdict.' );
-		$this->assertStringContainsString( '$ffc_identity_examined === $ffc_identity_unreadable', $view, 'Nothing readable must reach the unread verdict.' );
-		$this->assertStringContainsString( '$ffc_identity_read_part = ! $ffc_identity_read_none', $view, 'The partial verdict must be reachable only when the scan read something.' );
-		$this->assertStringContainsString( '|| $ffc_identity_scan_cap', $view, "The scan's own cap must make the reading partial." );
-		$this->assertStringContainsString( '|| array() !== $ffc_identity_capped', $view, 'A check that returned a full page must make the reading partial.' );
-
-		// THE CAP IS READ PER COLUMN (#1486), which is what this probe pins: two
-		// scans run and each stops at its own, so one flag for both would report
-		// a truncated RF scan on the CPF strip and the other way round.
-		$this->assertStringContainsString(
-			'$ffc_identity_scan_cap   = ! empty( $ffc_identity_truncated_columns[ (string) $ffc_identity_column ] );',
-			$view,
-			"Each strip must read its own column's cap, not any column's."
-		);
+		// WHICH VERDICT A STRIP GETS IS DECIDED BY `IdentityResolutionScreen`
+		// (#1925), and `IdentityResolutionScreenTest` drives every condition
+		// that used to be pinned here as source text -- no store, nothing
+		// readable, a scan cap per column, a capped check. What the view still
+		// owns is that it renders the three verdicts in that order.
 
 		// The whole-reading verdict is the `else` of both, so it cannot be
 		// reached while either flag is set. Anchored on the branch rather than
@@ -730,17 +767,15 @@ class IdentityResolutionPageTest extends TestCase {
 	 * has already emptied of the tiers holding nothing.
 	 */
 	public function test_the_counters_are_derived_from_the_panels(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
+		// THE SUM IS `IdentityResolutionScreen`'s (#1925), and
+		// `IdentityResolutionScreenTest` measures it over panels and orphans.
+		// What the view must still do is print that one number.
 		$this->assertStringContainsString(
-			'$ffc_identity_remaining += (int) $ffc_identity_panel[\'total\'];',
+			'$ffc_identity_remaining = $ffc_identity_screen->remaining;',
 			$view,
-			'The remaining count must be the panels summed.'
-		);
-		$this->assertStringContainsString(
-			'$ffc_identity_remaining = count( $ffc_identity_orphans );',
-			$view,
-			'Orphans are a population of their own and must be counted as one.'
+			'The remaining count must be the one the screen derived from the panels.'
 		);
 
 		// The strip derives its chip class from the tier exactly as the panel
@@ -748,9 +783,10 @@ class IdentityResolutionPageTest extends TestCase {
 		// below.
 		$this->assertSame(
 			2,
-			substr_count( $view, "'ffc-identity-chip-' . preg_replace( '/[^a-z]/', '', " ),
-			'The chip class must be derived from the tier in both places, and nowhere else.'
+			substr_count( $view, 'IdentityResolutionLabels::chip_class( ' ),
+			'The chip class must be derived from the tier in both places, through one function.'
 		);
+		$this->assertStringNotContainsString( "preg_replace( '/[^a-z]/'", $view, 'And never spelled out in the view again.' );
 	}
 
 	/**
@@ -765,7 +801,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 */
 	public function test_the_export_link_is_gated_on_the_capability_that_serves_it(): void {
 		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertMatchesRegularExpression(
 			'/\$ffc_identity_export_url\s*=\s*Capabilities::current_user_can_admin_or\(\s*\x27ffc_manage_settings_dangerzone\x27\s*\)/',
@@ -820,7 +856,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * what the scan found.
 	 */
 	public function test_the_account_tiers_render_as_cards_carrying_every_verdict(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$cards = strpos( $view, 'class="ffc-identity-cards"' );
 		$this->assertIsInt( $cards, 'The two account tiers must be drawn as cards.' );
@@ -876,7 +912,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * rendering are not asserted twice and cannot drift apart.
 	 */
 	public function test_the_shared_mailbox_tier_is_drawn_beside_the_other_account_tiers(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		// THE LOOP'S OWN LIST, not merely the tier appearing somewhere in the
 		// block: the card's sentence names it too, so an assertion over the
@@ -905,7 +941,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * site, rather than the paragraph that used to hold both.
 	 */
 	public function test_the_verb_footer_reaches_the_mailbox_panel_with_its_own_sentence(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertStringNotContainsString(
 			'IdentityQueue::TIER_MAILBOX !== $ffc_identity_this_tier',
@@ -974,7 +1010,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * has already picked a survivor at the radio.
 	 */
 	public function test_the_merge_choice_states_what_each_login_holds_and_when_it_was_used(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertStringContainsString(
 			'$ffc_identity_pair_facts = $ffc_identity_facts( $ffc_identity_who );',
@@ -1009,7 +1045,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * repository already has the Category B helper for exactly this.
 	 */
 	public function test_the_activity_date_is_rendered_as_wall_clock(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertStringContainsString(
 			'DateFormatter::format_wallclock_date(',
@@ -1049,7 +1085,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * is.
 	 */
 	public function test_the_merge_form_proposes_no_survivor(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$from = strpos( $view, 'class="ffc-identity-pair-choice"' );
 		$to   = strpos( $view, '</fieldset>', (int) $from );
@@ -1072,7 +1108,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * choice the check digits explicitly refused to make.
 	 */
 	public function test_the_arrow_is_drawn_only_where_the_digits_decided(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertStringContainsString(
 			'$ffc_identity_directed = IdentityQueue::TIER_MECHANICAL === $ffc_identity_tier',
@@ -1103,7 +1139,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * the coverage report both skip.
 	 */
 	public function test_the_cards_changed_no_form(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\ButtonMarkup::args_as_attributes( \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined() );
 
 		foreach (
 			array(
@@ -1148,7 +1184,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * cards match is exactly what this forbids.
 	 */
 	public function test_the_account_cards_state_the_stores_and_no_count(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$block = $this->account_tier_block( $view );
 
@@ -1169,7 +1205,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * because what it forbids is a table coming BACK.
 	 */
 	public function test_no_panel_body_is_a_list_table_any_more(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertStringNotContainsString( 'wp-list-table', $view, 'Every panel body is a card now.' );
 		$this->assertSame(
@@ -1190,7 +1226,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * Both halves are asserted together so neither can be "fixed" alone.
 	 */
 	public function test_only_the_tier_that_has_a_row_count_states_one(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertStringNotContainsString(
 			'IdentityConflictQuery::ALIAS_ROW_COUNT',
@@ -1215,7 +1251,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * LACKS, which is the whole reason `Open the account` may refuse.
 	 */
 	public function test_the_two_remaining_cards_keep_every_state_the_table_had(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		foreach (
 			array(
@@ -1225,7 +1261,7 @@ class IdentityResolutionPageTest extends TestCase {
 				'Too many rows to list.',
 				'Names more than one account',
 				'IdentityConflictQuery::COLUMN_ROW_IDS_TRUNCATED',
-				'IdentityConflictQuery::parse_row_ids',
+				'IdentityCheckDigitScan::parse_row_ids',
 				'ffc-identity-orphan-missing',
 				'ffc-identity-orphan-present',
 			) as $state
@@ -1260,25 +1296,28 @@ class IdentityResolutionPageTest extends TestCase {
 	 * one closure that normalises both, and that none reads the raw column.
 	 */
 	public function test_every_store_name_is_rendered_through_the_map(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view   = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
+		$labels = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-labels.php' );
 
-		$this->assertStringContainsString( '$ffc_identity_store_name = static function', $view, 'The screen needs one place that names a store.' );
-		$this->assertStringContainsString( '$ffc_identity_store_list = static function', $view, 'And one place that joins a list of them.' );
+		// The one place that names a store, and the one that joins a list of
+		// them, are `IdentityResolutionLabels` (#1925); its test measures both.
+		$this->assertStringContainsString( 'public static function store_name(', $labels, 'The screen needs one place that names a store.' );
+		$this->assertStringContainsString( 'public static function store_list(', $labels, 'And one place that joins a list of them.' );
 
 		// The list joiner is WordPress's own, so the comma and the "and" come
 		// from core's translations rather than from a separator invented here.
-		$this->assertStringContainsString( 'wp_sprintf_l(', $view, "The list must be joined the way WordPress joins lists." );
+		$this->assertStringContainsString( 'wp_sprintf_l(', $labels, "The list must be joined the way WordPress joins lists." );
 
 		// Four render sites: the account cards, the isolated card's sentence,
 		// and the per-store row ids on the isolated and orphan cards.
 		$this->assertSame(
 			2,
-			substr_count( $view, '$ffc_identity_store_list(' ),
+			substr_count( $view, 'IdentityResolutionLabels::store_list(' ),
 			'Both sentences that name several stores must go through the joiner.'
 		);
 		$this->assertSame(
 			2,
-			substr_count( $view, 'esc_html( $ffc_identity_store_name(' ),
+			substr_count( $view, 'esc_html( IdentityResolutionLabels::store_name(' ),
 			'Both row-id lists must name their store through the map.'
 		);
 
@@ -1303,7 +1342,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * punctuation rather than prose, so it is not a fourth string.
 	 */
 	public function test_the_scan_counts_are_each_plural_aware(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		foreach (
 			array(
@@ -1337,7 +1376,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * about both did not.
 	 */
 	public function test_each_identifier_owns_its_own_verbs(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertStringContainsString( 'class="ffc-identity-card-verb"', $view, 'Each identifier opens its own group.' );
 		$this->assertStringContainsString( 'ffc-identity-card-verb-head', $view, 'And the group names the identifier it acts on.' );
@@ -1455,7 +1494,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 */
 	public function test_the_resolved_count_is_measured_from_the_queue_it_sits_beside(): void {
 		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		// WHITESPACE-INSENSITIVE ON PURPOSE (#1500). This pinned the exact run
 		// of spaces around the `=`, and adding a longer variable name to that
@@ -1545,15 +1584,15 @@ class IdentityResolutionPageTest extends TestCase {
 	 * the mockup leaves both alike.
 	 */
 	public function test_the_card_with_one_verb_promotes_it_and_the_card_with_two_does_not(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
-		$this->assertStringContainsString(
-			'class="button button-primary"',
+		$this->assertMatchesRegularExpression(
+			"/'category'\\s*=>\\s*'primary'/",
 			$this->tier_branch( $view, 'TIER_MECHANICAL' ),
 			'The tier with one verb must say which control commits.'
 		);
-		$this->assertStringNotContainsString(
-			'button-primary',
+		$this->assertDoesNotMatchRegularExpression(
+			"/'category'\\s*=>\\s*'primary'|ffc-btn-primary/",
 			$this->tier_branch( $view, 'SHARED' ),
 			'Two destinations, neither promoted: the operator chooses, not the screen.'
 		);
@@ -1579,7 +1618,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * and still inside the button.
 	 */
 	public function test_the_move_button_states_its_identifier_without_printing_it(): void {
-		$view   = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view   = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 		$branch = $this->tier_branch( $view, 'SHARED' );
 
 		$from   = strpos( $branch, 'id="ffc-relink-go-' );
@@ -1611,20 +1650,21 @@ class IdentityResolutionPageTest extends TestCase {
 	 * A control that opens a dialog and one that submits a form are the same
 	 * grey rectangle otherwise. The glyph is decoration on top of a label
 	 * that already says the word, so announcing it would add a second name
-	 * for one control.
+	 * for one control. Since #1904 the glyph is the family button's own
+	 * `search` icon, a `::before` mask, which a screen reader does not read.
 	 */
 	public function test_the_search_buttons_carry_a_glyph_that_is_not_announced(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertSame(
 			2,
-			substr_count( $view, 'ffc-icon-search" aria-hidden="true"' ),
-			'Both search buttons — the decision tier\'s and the orphan tier\'s — carry the glyph, and neither announces it.'
+			preg_match_all( "/'label'\\s*=>\\s*__\\( 'Search…', 'ffcertificate' \\),\\s*'icon'\\s*=>\\s*'search',\\s*'class'\\s*=>\\s*'ffc-identity-find'/", $view ),
+			'Both search buttons — the decision tier\'s and the orphan tier\'s — carry the glyph, beside the word.'
 		);
-		$this->assertSame(
-			substr_count( $view, "esc_html_e( 'Search…', 'ffcertificate' )" ),
-			substr_count( $view, 'ffc-icon-search' ),
-			'A glyph without its word is an icon-only control, which this screen does not use.'
+		$this->assertStringNotContainsString(
+			'ffc-icon-search" aria-hidden',
+			$view,
+			'The glyph is the button\'s icon class, not a second element inside it.'
 		);
 	}
 
@@ -1646,7 +1686,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * CSS half, which lives in another file and no PHP test would miss.
 	 */
 	public function test_the_steppers_are_icons_whose_label_survives_where_the_icon_cannot_be_read(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$from = strpos( $view, "foreach ( array( 'previous', 'next' ) as \$ffc_identity_step )" );
 		$this->assertIsInt( $from, 'The two steppers must still be drawn from one branch.' );
@@ -1654,20 +1694,28 @@ class IdentityResolutionPageTest extends TestCase {
 		$this->assertIsInt( $to, 'And end before the link to the list.' );
 		$steppers = substr( $view, (int) $from, (int) $to - (int) $from );
 
-		$this->assertSame(
-			2,
-			substr_count( $steppers, 'aria-label="<?php echo esc_attr( $ffc_identity_step_label ); ?>"' ),
-			'Both the live stepper and the disabled one carry the accessible name.'
+		// The live stepper is an icon-only family button (#1904), whose label
+		// `Core\Button` prints as both the `aria-label` and the `title`; the
+		// disabled one is written by hand and carries the two itself.
+		$this->assertMatchesRegularExpression(
+			"/'label'\\s*=>\\s*\\\$ffc_identity_step_label,\\s*'icon'\\s*=>\\s*\\\$ffc_identity_step_icon,\\s*'icon_only'\\s*=>\\s*true/",
+			$steppers,
+			'The live stepper carries the accessible name.'
 		);
 		$this->assertSame(
-			2,
+			1,
+			substr_count( $steppers, 'aria-label="<?php echo esc_attr( $ffc_identity_step_label ); ?>"' ),
+			'And so does the disabled one.'
+		);
+		$this->assertSame(
+			1,
 			substr_count( $steppers, 'title="<?php echo esc_attr( $ffc_identity_step_label ); ?>"' ),
 			'And both carry the tooltip, which is the only route a pointer has.'
 		);
-		$this->assertSame(
-			2,
-			substr_count( $steppers, 'aria-hidden="true"' ),
-			'The glyph itself is never announced — the label is the name.'
+		$this->assertStringNotContainsString(
+			'aria-hidden="true"',
+			$steppers,
+			'The glyph is the button\'s icon class, never announced — the label is the name.'
 		);
 		$this->assertStringNotContainsString(
 			"esc_html_e( 'Previous'",
@@ -1677,8 +1725,10 @@ class IdentityResolutionPageTest extends TestCase {
 
 		// THE CSS HALF, ASSERTED HERE BECAUSE NOTHING ELSE DOES. The tooltip
 		// this markup now relies on was hover-only, so a keyboard reached an
-		// arrow with no visible label at all.
-		$sheet = (string) file_get_contents( __DIR__ . '/../../assets/css/ffc-admin-submissions.css' );
+		// arrow with no visible label at all. It reads the family's icon-only
+		// class since #1923: the core `.button` rule it replaced had matched
+		// nothing from the day #1904 moved the steppers to the family.
+		$sheet = (string) file_get_contents( __DIR__ . '/../../assets/css/ffc-admin-components.css' );
 
 		// THE RULE, NOT THE SELECTOR ANYWHERE IN THE SHEET. The phone
 		// `@media` block below carries the same selector in order to HIDE the
@@ -1686,7 +1736,7 @@ class IdentityResolutionPageTest extends TestCase {
 		// switches the thing off -- which is how the first version of this
 		// assertion survived the mutation it exists for.
 		$this->assertStringContainsString(
-			".ffc-admin-page .button[title]:hover::after,\n.ffc-admin-page .button[title]:focus-visible::after {",
+			".ffc-admin-page .ffc-btn-icon[title]:not(.ffc-btn-loading):hover::after,\n.ffc-admin-page .ffc-btn-icon[title]:not(.ffc-btn-loading):focus-visible::after {",
 			$sheet,
 			'A tooltip only a pointer can reach is a label a keyboard user does not have.'
 		);
@@ -1713,7 +1763,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * #1486 undoes -- so the two halves had to ship together.
 	 */
 	public function test_every_repair_form_names_the_identifier_it_corrects(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		// PER FORM, BY SPLITTING ON THE FORMS. Counting `name="ffc_field"` over
 		// the whole view and comparing totals is the wrong measurement and was
@@ -1756,7 +1806,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * this is the two forms agreeing rather than a new rule.
 	 */
 	public function test_no_repair_form_refuses_an_eleven_digit_identifier(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertSame(
 			2,
@@ -1786,15 +1836,11 @@ class IdentityResolutionPageTest extends TestCase {
 	 * strictly worse than the zeroes this used to show.
 	 */
 	public function test_a_lost_reading_renders_as_having_read_nothing(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
-		$empty = strpos( $view, 'if ( array() === $ffc_identity_coverage ) {' );
-		$loop  = strpos( $view, 'foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :' );
-
-		$this->assertIsInt( $empty, 'An empty coverage record must be given a strip of its own.' );
-		$this->assertIsInt( $loop );
-		$this->assertLessThan( $loop, $empty, 'The substitution must happen before the loop, or the loop draws nothing.' );
-
+		// The substitution of an unnamed strip for an empty record is
+		// `IdentityResolutionScreen`'s (#1925), measured in its test. The view
+		// must still carry the verdict that names no identifier.
 		$this->assertStringContainsString(
 			"esc_html_e( 'This scan read nothing', 'ffcertificate' );",
 			$view,
@@ -1818,7 +1864,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * it is translated, and what has to keep being true is that it is *gated*.
 	 */
 	public function test_the_panel_says_when_the_form_still_admits_a_wrong_rf(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$gate   = strpos( $view, 'if ( ! $ffc_identity_rf_gate ) {' );
 		$notice = strpos( $view, 'New wrong RFs can still arrive' );
@@ -1872,27 +1918,19 @@ class IdentityResolutionPageTest extends TestCase {
 	 * path that was already right.
 	 */
 	public function test_the_empty_queue_notices_read_every_column(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
-		$aggregate = strpos( $view, '$ffc_identity_all = array(' );
-		$loop      = strpos( $view, 'foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :' );
+		// THE TOTAL IS `IdentityResolutionScreen::$all` (#1925), taken over every
+		// column before any strip is drawn; its test measures the MAX and the
+		// two SUMS. What stays here is that the branches read it.
+		$loop = strpos( $view, 'foreach ( $ffc_identity_screen->strips as $ffc_identity_strip ) :' );
 
-		$this->assertIsInt( $aggregate, 'The view must total the coverage across columns.' );
-		$this->assertLessThan( $loop, $aggregate, 'The total must be taken before the per-column loop, not from its leftovers.' );
-
-		// `stores` is a MAX and the other two are SUMS: the same tables are
-		// probed per column, so adding them would claim six where there are
-		// three, while "something was scanned" is true if ANY column found one.
-		$this->assertStringContainsString(
-			"\$ffc_identity_all['stores']      = max( \$ffc_identity_all['stores'],",
-			$view,
-			'Stores must not be summed across columns -- the same tables are probed for each.'
-		);
+		$this->assertIsInt( $loop, 'The view must draw a strip per column.' );
 
 		foreach ( array(
-			"0 === \$ffc_identity_all['stores']",
-			"\$ffc_identity_all['examined'] > 0 && \$ffc_identity_all['examined'] === \$ffc_identity_all['unreadable']",
-			"0 === \$ffc_identity_all['examined']",
+			"0 === \$ffc_identity_screen->all['stores']",
+			"\$ffc_identity_screen->all['examined'] > 0 && \$ffc_identity_screen->all['examined'] === \$ffc_identity_screen->all['unreadable']",
+			"0 === \$ffc_identity_screen->all['examined']",
 		) as $branch ) {
 			$this->assertStringContainsString(
 				$branch,
@@ -1939,30 +1977,25 @@ class IdentityResolutionPageTest extends TestCase {
 	 * reason that partition was named rather than spelled out.
 	 */
 	public function test_the_order_of_work_advice_needs_both_halves_of_the_queue(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view   = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
+		$screen = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-screen.php' );
 
 		$this->assertStringContainsString(
-			'if ( $ffc_identity_to_correct > 0 && $ffc_identity_to_judge > 0 ) :',
+			'if ( $ffc_identity_screen->to_correct > 0 && $ffc_identity_screen->to_judge > 0 ) :',
 			$view,
 			'The advice must need a correction and a judgement, not either alone.'
 		);
 
+		// The two totals are counted by `IdentityResolutionScreen` (#1925) from
+		// the panels, through the partition that ordered them; its test measures
+		// the sums.
 		foreach ( array( 'IdentityQueuePanels::CORRECTIONS', 'IdentityQueuePanels::JUDGEMENTS' ) as $partition ) {
 			$this->assertStringContainsString(
 				$partition,
-				$view,
+				$screen,
 				sprintf( 'The tiers must be read from the partition that ordered them, never listed again: %s', $partition )
 			);
 		}
-
-		// COUNTED FROM THE PANELS, never from a query of its own -- this view's
-		// own rule, stated where it sums them: the counters are the panels
-		// counted and never a second opinion.
-		$this->assertMatchesRegularExpression(
-			'/\$ffc_identity_to_correct \+= \(int\) \$ffc_identity_panel\[\x27total\x27\];/',
-			$view,
-			'The correction total must come from the panels the screen already draws.'
-		);
 	}
 
 	/**
@@ -1974,7 +2007,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * sentence needs `_n()` per number, so three numbers need three calls.
 	 */
 	public function test_the_order_of_work_advice_carries_no_number(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$start = strpos( $view, 'Work the corrections first.' );
 
@@ -2085,7 +2118,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * other two are absent; a literal list in the view would drift from it.
 	 */
 	public function test_the_accept_control_is_offered_by_the_declared_tiers_only(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertSame(
 			2,
@@ -2118,7 +2151,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * incomplete information is the normal case here.
 	 */
 	public function test_the_accepted_panel_is_counted_and_reversible(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$this->assertStringContainsString( 'array() !== $ffc_identity_accepted', $view );
 		$this->assertStringContainsString( 'count( $ffc_identity_accepted )', $view );
@@ -2137,7 +2170,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 * satisfies its check digit, which is false while one acceptance stands.
 	 */
 	public function test_an_empty_list_with_acceptances_does_not_read_as_a_clean_result(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$branch = (int) strpos( $view, 'elseif ( array() !== $ffc_identity_accepted ) : ?>' );
 		$clean  = (int) strpos( $view, 'Nothing to resolve: %1$s stored values checked and every one satisfies its check digit.' );
@@ -2156,13 +2189,13 @@ class IdentityResolutionPageTest extends TestCase {
 	 * was which. Shape cannot decide it either, which is the trap
 	 * `IdentityConflictQuery` already records: a hex prefix can be all digits.
 	 *
-	 * It resolves the account through `$ffc_identity_named`, the resolver the
+	 * It resolves the account through `IdentityResolutionLabels::account()`, the resolver the
 	 * cards above already use, which answers `Account #438` when the account
 	 * is gone -- and it can be gone, because an acceptance deliberately
 	 * outlives the account it was taken about.
 	 */
 	public function test_the_accepted_panel_distinguishes_an_account_from_a_hash(): void {
-		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$view = \FreeFormCertificate\Tests\Support\IdentityViewSource::inlined();
 
 		$from = strpos( $view, 'foreach ( $ffc_identity_accepted as $ffc_identity_accepted_row )' );
 		$to   = ( false === $from ) ? false : strpos( $view, 'Put back in the queue', (int) $from );
@@ -2179,7 +2212,7 @@ class IdentityResolutionPageTest extends TestCase {
 		);
 
 		$this->assertStringContainsString(
-			'$ffc_identity_named( $ffc_identity_ar_subject )',
+			'IdentityResolutionLabels::account( $ffc_identity_ar_subject )',
 			$row,
 			'An account subject is resolved, not truncated as though it were a hash.'
 		);

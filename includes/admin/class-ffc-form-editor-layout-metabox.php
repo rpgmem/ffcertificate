@@ -50,34 +50,58 @@ class FormEditorLayoutMetabox {
 					<div class="ffc-admin-flex-row ffc-flex-wrap">
 						<div class="ffc-action-group">
 							<input type="file" id="ffc_import_html_file" accept=".html,.txt" class="ffc-hidden">
-							<button type="button" class="button" id="ffc_btn_import_html">
-								<span class="ffc-icon-upload" aria-hidden="true"></span>
-								<?php esc_html_e( 'Import HTML', 'ffcertificate' ); ?>
-							</button>
-							<button type="button" class="button" id="ffc_btn_media_lib">
-								<span class="ffc-icon-image" aria-hidden="true"></span>
-								<?php esc_html_e( 'Background Image', 'ffcertificate' ); ?>
-							</button>
-							<button type="button" class="button" id="ffc_btn_insert_image">
-								<span class="ffc-icon-image" aria-hidden="true"></span>
-								<?php esc_html_e( 'Insert Image', 'ffcertificate' ); ?>
-							</button>
-							<button type="button" class="button button-primary" id="ffc_btn_preview">
-								<span class="ffc-icon-eye" aria-hidden="true"></span>
-								<?php esc_html_e( 'Preview', 'ffcertificate' ); ?>
-							</button>
-							<button type="button" class="button" id="ffc_save_as_model_btn">
-								<span class="ffc-icon-success" aria-hidden="true"></span>
-								<?php esc_html_e( 'Save as model', 'ffcertificate' ); ?>
-							</button>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Import HTML', 'ffcertificate' ),
+									'icon'  => 'upload',
+									'id'    => 'ffc_btn_import_html',
+								)
+							);
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Background Image', 'ffcertificate' ),
+									'icon'  => 'image',
+									'id'    => 'ffc_btn_media_lib',
+								)
+							);
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label'    => __( 'Insert Image', 'ffcertificate' ),
+									'category' => 'create',
+									'icon'     => 'image-plus',
+									'id'       => 'ffc_btn_insert_image',
+								)
+							);
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Preview', 'ffcertificate' ),
+									'icon'  => 'eye',
+									'id'    => 'ffc_btn_preview',
+								)
+							);
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label'    => __( 'Save as model', 'ffcertificate' ),
+									'category' => 'create',
+									'icon'     => 'template-save',
+									'id'       => 'ffc_save_as_model_btn',
+								)
+							);
+							?>
 						</div>
 
 						<?php if ( $templates ) : ?>
 						<div class="ffc-template-loader">
-							<button type="button" id="ffc_load_template_btn" class="button">
-								<span class="ffc-icon-download" aria-hidden="true"></span>
-								<?php esc_html_e( 'Load', 'ffcertificate' ); ?>
-							</button>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Load', 'ffcertificate' ),
+									'icon'  => 'template-load',
+									'id'    => 'ffc_load_template_btn',
+								)
+							);
+							?>
 						</div>
 						<?php endif; ?>
 					</div>

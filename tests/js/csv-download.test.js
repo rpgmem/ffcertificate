@@ -280,9 +280,16 @@ describe('csv-download — download flow', () => {
 			expect(window.$('.ffc-csv-progress-status').text()).toContain('Download complete!');
 			// Iframe injected.
 			expect(window.$('iframe[src*="ffc_export_download"]').length).toBe(1);
+			// #1881 — busy is a state of the family button, not a second look.
+			const $dl = window.$('.ffc-btn-download-csv');
+			expect($dl.hasClass('ffc-btn')).toBe(true);
+			expect($dl.hasClass('ffc-btn-loading')).toBe(true);
+			expect($dl.prop('disabled')).toBe(true);
 
 			// Drain the cleanup timer so nothing outlives this test.
 			await vi.advanceTimersByTimeAsync(2200);
+			expect($dl.hasClass('ffc-btn-loading')).toBe(false);
+			expect($dl.prop('disabled')).toBe(false);
 		} finally {
 			vi.useRealTimers();
 		}
@@ -321,8 +328,17 @@ describe('csv-download — download flow', () => {
 			done: responses.shift() || { success: true, data: { processed: 1, total: 1, done: true } },
 		}));
 
-		window.$('.ffc-btn-download-csv').trigger('click');
-		await flush();
+		// Fake timers: the done batch reaches onExportComplete, whose nested
+		// 2000ms cleanup otherwise outlives the file and fires against a
+		// torn-down jsdom (`window is not defined`), the same race the
+		// start → batch → done test above records.
+		vi.useFakeTimers();
+		try {
+			window.$('.ffc-btn-download-csv').trigger('click');
+			await vi.advanceTimersByTimeAsync(2200);
+		} finally {
+			vi.useRealTimers();
+		}
 
 		// Locate the ffc_export_start request (its payload is the serialized
 		// string with &action=ffc_export_start appended by FFC.request).
@@ -483,6 +499,12 @@ describe('csv-download — cert preview', () => {
 		await flush();
 
 		expect(window.$('#ffc-preview-modal').length).toBe(1);
+		// #1881 — the handler rewrites the label while loading and back; the
+		// icon is a class on the button, so it survives both rewrites.
+		const $preview = window.$('.ffc-btn-cert-preview');
+		expect($preview.text()).toBe('Preview Certificate');
+		expect($preview.hasClass('ffc-icon-eye')).toBe(true);
+		expect($preview.hasClass('ffc-btn-neutral')).toBe(true);
 		// The iframe content is the substituted HTML.
 		const iframe = document.querySelector('#ffc-preview-iframe');
 		const doc = iframe.contentDocument;
@@ -706,6 +728,18 @@ describe('csv-download — schedule exception modal', () => {
 		expect(window.$('.ffc-schedule-exception-modal').length).toBe(1);
 		expect(window.$('.ffc-schedule-exception-start').val()).toBe('08:00');
 		expect(window.$('.ffc-schedule-exception-end').val()).toBe('18:00');
+		// #1881 — Cancel is neutral with `cross` and takes the focus; Create
+		// is caution, because it moves one participant's window.
+		const $cancel = window.$('.ffc-schedule-exception-cancel');
+		expect($cancel.hasClass('ffc-btn')).toBe(true);
+		expect($cancel.hasClass('ffc-btn-neutral')).toBe(true);
+		expect($cancel.hasClass('ffc-icon-cross')).toBe(true);
+		expect($cancel.is('[autofocus]')).toBe(true);
+		const $confirm = window.$('.ffc-schedule-exception-confirm');
+		expect($confirm.hasClass('ffc-btn')).toBe(true);
+		expect($confirm.hasClass('ffc-btn-caution')).toBe(true);
+		expect($confirm.hasClass('ffc-icon-user-clock')).toBe(true);
+		expect(window.$('.ffc-schedule-exception-modal [class*="ffc-info-btn"]').length).toBe(0);
 	});
 
 	it('blocks submit and shows error when override matches the baseline', async () => {
@@ -760,6 +794,12 @@ describe('csv-download — schedule exception modal', () => {
 		expect($cta.attr('href')).toBe('https://example.test/landing');
 		expect($cta.attr('target')).toBe('_blank');
 		expect($cta.attr('rel')).toBe('noopener');
+		// #1881 — a primary link button; `external` says it opens a new tab.
+		expect($cta.is('a')).toBe(true);
+		expect($cta.hasClass('ffc-btn')).toBe(true);
+		expect($cta.hasClass('ffc-btn-primary')).toBe(true);
+		expect($cta.hasClass('ffc-icon-external')).toBe(true);
+		expect($cta.text()).toBe('Open participant form');
 	});
 
 	it('on AJAX failure, restores the confirm button and surfaces the error', async () => {
@@ -1077,6 +1117,67 @@ describe('csv-info-screen — status messages + disabled button variants', () =>
 		const $btn = window.$('.ffc-btn-extend-end');
 		expect($btn.length).toBe(1);
 		expect($btn.prop('disabled')).toBe(true);
+	});
+
+	// #1881 — the screen's buttons are the `.ffc-btn` family: each carries
+	// its category, its registry icon and the hook class its handler binds.
+	const FAMILY = [
+		['.ffc-btn-cert-preview', 'neutral', 'eye'],
+		['.ffc-btn-open-early', 'caution', 'clock'],
+		['.ffc-btn-extend-end', 'caution', 'calendar-check'],
+		['.ffc-btn-schedule-exception', 'caution', 'user-clock'],
+		['.ffc-btn-download-csv', 'primary', 'download'],
+		['.ffc-info-back', 'neutral', 'chevron-left'],
+	];
+
+	function expectFamily($btn, category, icon) {
+		expect($btn.length).toBe(1);
+		expect($btn.is('button')).toBe(true);
+		expect($btn.attr('type')).toBe('button');
+		expect($btn.hasClass('ffc-btn')).toBe(true);
+		expect($btn.hasClass('ffc-btn-' + category)).toBe(true);
+		expect($btn.hasClass('ffc-icon-' + icon)).toBe(true);
+		expect($btn.attr('class')).not.toMatch(/ffc-info-btn/);
+		expect($btn.attr('style')).toBeUndefined();
+	}
+
+	it('draws every enabled action as a family button with its category, icon and hook', async () => {
+		await renderInfoWith(infoWithStatus({
+			can_preview_cert: true,
+			can_open_early: true,
+			can_extend_end: true,
+			can_schedule_exception: true,
+			can_download: true,
+		}));
+		FAMILY.forEach(([hook, category, icon]) => {
+			const $btn = window.$(hook);
+			expectFamily($btn, category, icon);
+			if (hook !== '.ffc-info-back') {
+				expect($btn.prop('disabled')).toBe(false);
+				expect($btn.closest('.ffc-info-actions').length).toBe(1);
+			}
+		});
+		// The tooltips travel as attributes, the label as text.
+		expect(window.$('.ffc-btn-open-early').attr('title').length).toBeGreaterThan(0);
+		expect(window.$('.ffc-btn-download-csv').text()).toBe('Download CSV');
+		expect(window.$('.ffc-info-back').text()).toBe('Back');
+		expect(window.$('.ffc-info-back-arrow').length).toBe(0);
+	});
+
+	it('keeps the category and icon on the admin-disabled variants', async () => {
+		await renderInfoWith(infoWithStatus({
+			cert_preview_disabled_by_admin: true,
+			start_early_disabled_by_admin: true,
+			extend_end_disabled_by_admin: true,
+			csv_download_disabled_by_admin: true,
+		}));
+		FAMILY.filter(([hook]) => hook !== '.ffc-btn-schedule-exception' && hook !== '.ffc-info-back')
+			.forEach(([hook, category, icon]) => {
+				const $btn = window.$(hook);
+				expectFamily($btn, category, icon);
+				expect($btn.prop('disabled')).toBe(true);
+				expect($btn.attr('title').length).toBeGreaterThan(0);
+			});
 	});
 
 	it('renders the admin-disabled download button when csv_download_disabled_by_admin', async () => {

@@ -82,14 +82,15 @@
                 '<div class="ffc-template-modal-box">' +
                     '<h2 id="ffc-template-modal-title" class="ffc-template-modal-title"></h2>' +
                     '<div class="ffc-template-list"></div>' +
-                    '<div class="ffc-template-modal-actions">' +
-                        '<button id="ffc-modal-cancel" class="button"></button>' +
-                    '</div>' +
+                    '<div class="ffc-template-modal-actions"></div>' +
                 '</div>' +
             '</div>'
         );
         $modal.find('#ffc-template-modal-title').text(selectTemplateText);
-        $modal.find('#ffc-modal-cancel').text(cancelText);
+        // The family's button (#1904); FFC.button() sets the label as text.
+        $modal.find('.ffc-template-modal-actions').append(
+            window.FFC.button({ label: cancelText, icon: 'cross', id: 'ffc-modal-cancel' })
+        );
 
         var $list = $modal.find('.ffc-template-list');
         var defaultBadge = strings.templateDefaultBadge || 'Default template';
@@ -471,7 +472,9 @@
                 '<div class="ffc-preview-container">' +
                     '<div class="ffc-preview-header">' +
                         '<h2></h2>' +
-                        '<button type="button" class="ffc-preview-close">&times;</button>' +
+                        // `.attr()` below sets the translated name; the markup
+                        // carries the fallback so the button is never nameless.
+                        '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-preview-close" aria-label="Close" title="Close"></button>' +
                     '</div>' +
                     '<div class="ffc-preview-note"></div>' +
                     '<div class="ffc-preview-body">' +
@@ -490,7 +493,7 @@
             '</div>'
         );
         $modal.find('.ffc-preview-header h2').text(previewTitle);
-        $modal.find('.ffc-preview-close').attr('title', closeText);
+        $modal.find('.ffc-preview-close').attr({ 'aria-label': closeText, title: closeText });
         $modal.find('.ffc-preview-note').text(sampleDataNote);
 
         $('body').append($modal);

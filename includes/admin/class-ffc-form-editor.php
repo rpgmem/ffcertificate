@@ -119,13 +119,7 @@ class FormEditor {
 
 		// Collapsible sections inside the tabs (#1614): live on/off chips,
 		// and opening the section that holds a control the browser rejected.
-		wp_enqueue_script(
-			'ffc-admin-sections',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-sections{$s}.js",
-			array(),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-sections' );
 
 		// If the previous save left validation errors, tell the tab script
 		// which tabs to flag (and which one to auto-open). The matching
@@ -184,20 +178,7 @@ class FormEditor {
 		// assumption. `ffc-core` supplies `FFC.request`.
 		$post = get_post();
 		if ( $post && 'ffc_form' === $post->post_type && $post->ID > 0 ) {
-			wp_enqueue_script(
-				'ffc-core',
-				FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-				array( 'jquery' ),
-				FFC_VERSION,
-				true
-			);
-			wp_enqueue_script(
-				'ffc-admin-autosave',
-				FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
-				array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
-				FFC_VERSION,
-				true
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-admin-autosave' );
 			wp_localize_script(
 				'ffc-admin-autosave',
 				'ffcFormMetaAutosave',

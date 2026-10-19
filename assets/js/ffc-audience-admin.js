@@ -41,6 +41,31 @@
                 $(this).siblings('.ffc-color-input-value, .ffc-color-value').text(this.value);
             });
 
+            // New audience: a group picked as parent hands its self-join
+            // choice down (#1901), so the switch gives way to a line saying so.
+            $(document).on('change', '#audience_parent', function() {
+                var form = $(this).closest('form');
+                var inherits = form.find('.ffc-self-join-inherits');
+                if (!inherits.length) {
+                    return;
+                }
+                var hasParent = '' !== $(this).val();
+                inherits.prop('hidden', !hasParent);
+                form.find('.ffc-self-join-own').prop('hidden', hasParent);
+            });
+            $('#audience_parent').trigger('change');
+
+            // "Keep at least one group" only exists under "Visible to members
+            // only" (#1918): it is disabled while that is off, and turning
+            // that off turns it off too — the server stores it off then.
+            $(document).on('change', '#audience_members_only', function() {
+                var keep = $(this).closest('form').find('#audience_require_membership');
+                keep.prop('disabled', !this.checked);
+                if (!this.checked) {
+                    keep.prop('checked', false);
+                }
+            });
+
             // User search (audience group member management)
             this.initUserSearch();
 
@@ -198,7 +223,7 @@
                 var closeLabel = esc(strings.close || 'Close');
                 var $modal = $('<div id="ffc-booking-modal" class="ffc-admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="ffc-admin-modal-title">' +
                     '<div class="ffc-admin-modal">' +
-                    '<div class="ffc-admin-modal-header"><h3 id="ffc-admin-modal-title">' + esc(strings.bookingDetails || 'Booking Details') + '</h3><button type="button" class="ffc-admin-modal-close" aria-label="' + closeLabel + '">&times;</button></div>' +
+                    '<div class="ffc-admin-modal-header"><h3 id="ffc-admin-modal-title">' + esc(strings.bookingDetails || 'Booking Details') + '</h3><button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-admin-modal-close" aria-label="' + closeLabel + '" title="' + closeLabel + '"></button></div>' +
                     '<div class="ffc-admin-modal-body"><p>' + esc(strings.loading || 'Loading...') + '</p></div>' +
                     '</div></div>');
                 $('body').append($modal);

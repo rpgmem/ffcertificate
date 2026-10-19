@@ -85,9 +85,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<tr>
 							<th></th>
 							<td>
-								<button type="submit" class="button button-primary">
-									<?php esc_html_e( 'Add Holiday', 'ffcertificate' ); ?>
-								</button>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label'    => __( 'Add Holiday', 'ffcertificate' ),
+										'category' => 'create',
+										'icon'     => 'calendar',
+										'type'     => 'submit',
+									)
+								);
+								?>
 							</td>
 						</tr>
 					</tbody>
@@ -126,7 +133,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 									);
 									?>
 									<a href="<?php echo esc_url( $delete_url ); ?>"
-										class="button button-small button-link-delete"
+										class="ffc-btn ffc-btn-danger ffc-icon-delete"
 										onclick="return confirm('<?php esc_attr_e( 'Remove this holiday?', 'ffcertificate' ); ?>');">
 										<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
 									</a>

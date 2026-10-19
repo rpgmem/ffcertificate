@@ -254,12 +254,17 @@ final class RecruitmentCandidateEditPage {
 			return $placeholder;
 		}
 
-		$button = ' <button type="button"'
-			. ' class="button button-secondary ffc-pii-reveal-btn"'
-			. ' data-ffc-pii-candidate="' . esc_attr( (string) $candidate_id ) . '"'
-			. ' data-ffc-pii-field="' . esc_attr( $field_key ) . '">'
-			. esc_html__( 'Reveal', 'ffcertificate' )
-			. '</button>';
+		$button = ' ' . \FreeFormCertificate\Core\Button::html(
+			array(
+				'label' => __( 'Reveal', 'ffcertificate' ),
+				'icon'  => 'eye',
+				'class' => 'ffc-pii-reveal-btn',
+				'attrs' => array(
+					'data-ffc-pii-candidate' => (string) $candidate_id,
+					'data-ffc-pii-field'     => $field_key,
+				),
+			)
+		);
 
 		return $placeholder . $button;
 	}
@@ -273,16 +278,7 @@ final class RecruitmentCandidateEditPage {
 	 * @return string
 	 */
 	private static function mask_placeholder_for( string $field_key ): string {
-		switch ( $field_key ) {
-			case 'cpf':
-				return '***.***.***-**';
-			case 'rf':
-				return '****-*';
-			case 'email':
-				return '****@****';
-			default:
-				return '****';
-		}
+		return DocumentFormatter::mask_placeholder( DocumentFormatter::kind_for_key( $field_key ) ?? DocumentFormatter::MASK_GENERIC );
 	}
 
 	/**
@@ -906,7 +902,13 @@ final class RecruitmentCandidateEditPage {
 			$html .= '<option value="' . esc_attr( (string) (int) $aid ) . '"' . esc_attr( $sel ) . '>' . esc_html( $label ) . '</option>';
 		}
 		$html .= '</select> ';
-		$html .= '<button type="button" class="button button-small ffc-adjutancy-swap-btn">' . esc_html__( 'Save', 'ffcertificate' ) . '</button>';
+		$html .= \FreeFormCertificate\Core\Button::html(
+			array(
+				'label' => __( 'Save', 'ffcertificate' ),
+				'icon'  => 'save',
+				'class' => 'ffc-adjutancy-swap-btn',
+			)
+		);
 		$html .= ' <span class="ffc-adjutancy-swap-msg ffc-status" role="status" aria-live="polite" hidden></span>';
 		$html .= '</span>';
 		return $html;

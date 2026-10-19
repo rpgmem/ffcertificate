@@ -305,7 +305,14 @@ class VerificationResponseRenderer {
 		$html .= '</div>'; // .ffc-preview-body
 
 		$html .= '<div class="ffc-preview-actions">';
-		$html .= '<button class="ffc-download-btn ffc-download-pdf-btn ffc-icon-download">' . esc_html__( 'Download Receipt (PDF)', 'ffcertificate' ) . '</button>';
+		$html .= \FreeFormCertificate\Core\Button::html(
+			array(
+				'label'    => __( 'Download Receipt (PDF)', 'ffcertificate' ),
+				'category' => 'primary',
+				'icon'     => 'download',
+				'class'    => 'ffc-download-btn ffc-download-pdf-btn',
+			)
+		);
 		$html .= '</div>';
 
 		$html .= '</div>'; // .ffc-certificate-preview
@@ -449,7 +456,14 @@ class VerificationResponseRenderer {
 		$html .= '</div>'; // .ffc-preview-body
 
 		$html .= '<div class="ffc-preview-actions">';
-		$html .= '<button class="ffc-download-btn ffc-download-pdf-btn ffc-icon-download">' . esc_html__( 'Download Record (PDF)', 'ffcertificate' ) . '</button>';
+		$html .= \FreeFormCertificate\Core\Button::html(
+			array(
+				'label'    => __( 'Download Record (PDF)', 'ffcertificate' ),
+				'category' => 'primary',
+				'icon'     => 'download',
+				'class'    => 'ffc-download-btn ffc-download-pdf-btn',
+			)
+		);
 		$html .= '</div>';
 
 		$html .= '</div>'; // .ffc-certificate-preview

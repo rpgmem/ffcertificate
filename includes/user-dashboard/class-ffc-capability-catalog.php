@@ -246,7 +246,11 @@ final class CapabilityCatalog {
 					),
 					'ffc_delete_appointments'         => array(
 						'label'       => __( 'Delete appointments', 'ffcertificate' ),
-						'description' => __( 'Permanently delete appointments and calendar cleanup purges.', 'ffcertificate' ),
+						'description' => __( 'Permanently delete a single appointment from the list.', 'ffcertificate' ),
+					),
+					'ffc_purge_appointments'          => array(
+						'label'       => __( 'Purge appointments', 'ffcertificate' ),
+						'description' => __( 'Clean up a personal calendar in bulk: delete its past, cancelled or every appointment, and cancel its future ones with notice. Each run is written to the activity log (#1872).', 'ffcertificate' ),
 					),
 					'ffc_view_appointments_pii'       => array(
 						'label'       => __( 'Reveal appointment PII', 'ffcertificate' ),

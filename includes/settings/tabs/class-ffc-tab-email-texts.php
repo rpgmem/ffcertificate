@@ -77,13 +77,7 @@ class TabEmailTexts extends SettingsTab {
 				'confirm' => __( 'Replace this email with its shipped default text? Your changes to it will be lost when you save.', 'ffcertificate' ),
 			);
 		}
-		wp_enqueue_script(
-			'ffc-email-restore-default',
-			FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-email-restore-default' );
 		wp_localize_script( 'ffc-email-restore-default', 'ffcEmailRestoreDefaults', $ffc_restore_defaults );
 
 		// Per-email selector (#976 B2): the hub renders one plain <textarea> per
@@ -357,7 +351,7 @@ class TabEmailTexts extends SettingsTab {
 			return;
 		}
 
-		$open_label = __( 'Open →', 'ffcertificate' );
+		$open_label = __( 'Open', 'ffcertificate' );
 		?>
 		<h2 class="ffc-icon-list"><?php esc_html_e( 'All plugin emails', 'ffcertificate' ); ?></h2>
 		<p class="description">
@@ -386,7 +380,18 @@ class TabEmailTexts extends SettingsTab {
 							</td>
 							<td><?php echo esc_html( self::email_type_label( $row['type'] ) ); ?></td>
 							<?php $ffc_row_url = isset( $row['url'] ) ? $row['url'] : $group['url']; ?>
-							<td><a href="<?php echo esc_url( $ffc_row_url ); ?>"><?php echo esc_html( $open_label ); ?></a></td>
+							<td>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label'    => $open_label,
+										'category' => 'neutral',
+										'icon'     => 'panel-open',
+										'href'     => (string) $ffc_row_url,
+									)
+								);
+								?>
+							</td>
 						</tr>
 					<?php endforeach; ?>
 				<?php endforeach; ?>

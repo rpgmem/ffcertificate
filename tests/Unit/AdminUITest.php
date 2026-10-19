@@ -21,6 +21,10 @@ class AdminUITest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( '__' )->returnArg();
@@ -44,7 +48,7 @@ class AdminUITest extends TestCase {
 
 	public function test_renders_unchecked_toggle_by_default(): void {
 		$html = $this->capture( array( 'name' => 'my_key' ) );
-		$this->assertStringContainsString( 'class="ffc-control-toggle"', $html );
+		$this->assertStringContainsString( 'class="ffc-control-toggle ffc-control-toggle-mark"', $html );
 		$this->assertStringContainsString( 'name="my_key"', $html );
 		$this->assertStringContainsString( 'id="my_key"', $html );
 		$this->assertStringContainsString( 'type="checkbox"', $html );
@@ -83,7 +87,7 @@ class AdminUITest extends TestCase {
 
 	public function test_appends_extra_class(): void {
 		$html = $this->capture( array( 'name' => 'k', 'class' => 'is-large' ) );
-		$this->assertStringContainsString( 'class="ffc-control-toggle is-large"', $html );
+		$this->assertStringContainsString( 'class="ffc-control-toggle ffc-control-toggle-mark is-large"', $html );
 	}
 
 	public function test_emits_data_attributes(): void {
@@ -117,7 +121,7 @@ class AdminUITest extends TestCase {
 
 	public function test_no_description_leaves_the_bare_label(): void {
 		$html = $this->capture( array( 'name' => 'k', 'label' => 'My toggle' ) );
-		$this->assertStringStartsWith( '<label class="ffc-control-toggle"', $html );
+		$this->assertStringStartsWith( '<label class="ffc-control-toggle ffc-control-toggle-mark"', $html );
 		$this->assertStringNotContainsString( 'ffc-control-toggle-field', $html );
 		$this->assertStringNotContainsString( 'aria-describedby', $html );
 		$this->assertStringNotContainsString( 'class="description"', $html );
@@ -137,7 +141,7 @@ class AdminUITest extends TestCase {
 			)
 		);
 		$this->assertSame(
-			'<div class="ffc-control-toggle-field"><label class="ffc-control-toggle" for="k_id">'
+			'<div class="ffc-control-toggle-field"><label class="ffc-control-toggle ffc-control-toggle-mark" for="k_id">'
 			. '<input type="checkbox" id="k_id" name="opt[k]" value="1" aria-describedby="k_id-description">'
 			. '<span class="ffc-control-toggle-track" aria-hidden="true"></span>'
 			. '<span class="ffc-control-toggle-label">My toggle</span></label>'
@@ -157,7 +161,7 @@ class AdminUITest extends TestCase {
 		$echoed = (string) ob_get_clean();
 
 		$this->assertSame( '', $echoed, 'get_toggle must not echo' );
-		$this->assertStringContainsString( 'class="ffc-control-toggle"', $returned );
+		$this->assertStringContainsString( 'class="ffc-control-toggle ffc-control-toggle-mark"', $returned );
 		$this->assertStringContainsString( 'name="k"', $returned );
 		$this->assertStringContainsString( '<span class="ffc-control-toggle-label">My toggle</span>', $returned );
 	}
@@ -220,14 +224,14 @@ class AdminUITest extends TestCase {
 				'title'   => 'Nothing here',
 				'actions' => array(
 					array( 'label' => 'Clear', 'url' => '/clear' ),
-					array( 'label' => 'Create', 'url' => '/new', 'primary' => true ),
+					array( 'label' => 'Create', 'url' => '/new', 'category' => 'create', 'icon' => 'plus' ),
 					array( 'label' => 'No URL' ),
 					'not an array',
 				),
 			)
 		);
 
-		$this->assertStringContainsString( '<div class="ffc-empty-state__actions"><a href="/clear" class="button">Clear</a><a href="/new" class="button button-primary">Create</a></div>', $html );
+		$this->assertStringContainsString( '<div class="ffc-empty-state__actions"><a href="/clear" class="ffc-btn ffc-btn-neutral">Clear</a><a href="/new" class="ffc-btn ffc-btn-create ffc-icon-plus">Create</a></div>', $html );
 		$this->assertStringNotContainsString( 'No URL', $html );
 	}
 
@@ -368,23 +372,43 @@ class AdminUITest extends TestCase {
 		$this->assertStringNotContainsString( '<a ', AdminUI::get_stat_card( array( 'label' => 'Calendars', 'link' => 'Manage' ) ) );
 	}
 
-	public function test_toggle_mark_is_opt_in(): void {
+	public function test_toggle_mark_is_drawn_by_default(): void {
 		ob_start();
 		AdminUI::render_toggle(
 			array(
 				'name'  => 'flag',
-				'mark'  => true,
 				'class' => 'extra',
 			)
 		);
-		$marked = (string) ob_get_clean();
+		$default = (string) ob_get_clean();
 		ob_start();
-		AdminUI::render_toggle( array( 'name' => 'flag' ) );
-		$plain = (string) ob_get_clean();
+		AdminUI::render_toggle(
+			array(
+				'name' => 'flag',
+				'mark' => true,
+			)
+		);
+		$explicit = (string) ob_get_clean();
 
-		$this->assertStringContainsString( '<label class="ffc-control-toggle ffc-control-toggle-mark extra"', $marked );
-		$this->assertStringContainsString( '<label class="ffc-control-toggle" for="flag">', $plain );
-		$this->assertStringNotContainsString( 'ffc-toggle', str_replace( 'ffc-control-toggle', '', $plain ), 'No class of the pre-family name is left (#1748).' );
+		$this->assertStringContainsString( '<label class="ffc-control-toggle ffc-control-toggle-mark extra" for="flag">', $default, 'The on/off mark is the default (#1873).' );
+		$this->assertStringContainsString( '<label class="ffc-control-toggle ffc-control-toggle-mark" for="flag">', $explicit, 'Passing true still draws it.' );
+		$this->assertStringNotContainsString( 'ffc-toggle', str_replace( 'ffc-control-toggle', '', $default ), 'No class of the pre-family name is left (#1748).' );
+	}
+
+	public function test_toggle_mark_opts_out_with_false(): void {
+		foreach ( array( false, 0, '' ) as $off ) {
+			ob_start();
+			AdminUI::render_toggle(
+				array(
+					'name' => 'flag',
+					'mark' => $off,
+				)
+			);
+			$plain = (string) ob_get_clean();
+
+			$this->assertStringContainsString( '<label class="ffc-control-toggle" for="flag">', $plain, var_export( $off, true ) . ' opts the toggle out of the mark.' );
+			$this->assertStringNotContainsString( 'ffc-control-toggle-mark', $plain );
+		}
 	}
 
 	// ==================================================================
@@ -561,6 +585,22 @@ class AdminUITest extends TestCase {
 		$this->assertStringContainsString( '<label class="ffc-control-segmented-option"><input type="radio" id="thm-3" name="cfg[theme]" value="auto"><span class="ffc-control-segmented-label">Auto</span></label>', $html );
 	}
 
+	/**
+	 * `allow_none` (#1901): a value no option describes checks nothing, and
+	 * the default does not stand in for it; a value that is an option is
+	 * still checked.
+	 */
+	public function test_segmented_allow_none_checks_nothing_for_an_unknown_value(): void {
+		foreach ( array( null, '', 'mixed' ) as $value ) {
+			$html = $this->segmented( array( 'value' => $value, 'default' => 'on', 'allow_none' => true ) );
+			$this->assertSame( 3, substr_count( $html, 'type="radio"' ) );
+			$this->assertStringNotContainsString( ' checked', $html, var_export( $value, true ) );
+		}
+
+		$this->assertSame( 1, substr_count( $this->segmented( array( 'value' => 'auto', 'allow_none' => true ) ), 'value="auto" checked' ) );
+		$this->assertSame( 1, substr_count( $this->segmented( array( 'value' => 'mixed' ) ), 'value="off" checked' ), 'without it the first option still stands in' );
+	}
+
 	public function test_segmented_layout_parameters_become_classes(): void {
 		$this->assertStringContainsString( 'class="ffc-control-segmented ffc-control-segmented-sm ffc-control-segmented-fluid"', $this->segmented( array( 'size' => 'sm', 'fluid' => true ) ) );
 		$this->assertStringContainsString( 'class="ffc-control-segmented ffc-control-segmented-lg"', $this->segmented( array( 'size' => 'lg' ) ) );
@@ -633,7 +673,7 @@ class AdminUITest extends TestCase {
 		$this->assertSame( array(), $notices, 'Two and six are still a segmented control.' );
 	}
 
-	public function test_vertical_tabs_enqueue_keeps_the_old_handle_as_an_alias(): void {
+	public function test_vertical_tabs_enqueue_no_longer_registers_the_old_handle(): void {
 		$enqueued   = array();
 		$registered = array();
 		Functions\when( 'wp_enqueue_script' )->alias(
@@ -655,14 +695,14 @@ class AdminUITest extends TestCase {
 		$this->assertSame( 'ffc-vertical-tabs', $enqueued[1][0] );
 		$this->assertStringContainsString( 'assets/js/ffc-vertical-tabs', $enqueued[1][1] );
 		$this->assertContains( 'ffc-core', $enqueued[1][2] );
-		$this->assertSame(
-			array( array( 'ffc-form-editor-tabs', false, array( 'ffc-vertical-tabs' ) ) ),
-			$registered,
-			'The handle the script had before #1788 must stay a source-less alias until its removal release.'
+		$this->assertNotContains(
+			'ffc-form-editor-tabs',
+			array_column( $registered, 0 ),
+			'The alias of the handle the script had before #1788 left in 6.41.0, its removal release.'
 		);
 	}
 
-	public function test_shortcode_copy_enqueue_keeps_the_old_handle_as_an_alias(): void {
+	public function test_shortcode_copy_enqueue_no_longer_registers_the_old_handle(): void {
 		$enqueued   = array();
 		$registered = array();
 		Functions\when( 'wp_enqueue_script' )->alias(
@@ -682,9 +722,9 @@ class AdminUITest extends TestCase {
 		$this->assertSame( AdminUI::SHORTCODE_COPY_HANDLE, $enqueued[0][0] );
 		$this->assertStringContainsString( 'assets/js/ffc-copy-shortcode', $enqueued[0][1] );
 		$this->assertSame(
-			array( array( 'ffc-form-list-copy-shortcode', false, array( 'ffc-copy-shortcode' ) ) ),
+			array(),
 			$registered,
-			'The handle the script had before #1814 must stay a source-less alias until its removal release.'
+			'The alias of the handle the script had before #1814 left in 6.41.0, its removal release.'
 		);
 	}
 

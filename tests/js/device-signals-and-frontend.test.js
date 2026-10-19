@@ -91,6 +91,7 @@ describe('ffc-frontend — load-side', () => {
 			strings: {},
 		};
 		loadScript('assets/js/ffc-core.js');
+		loadScript('assets/js/ffc-field-behaviours.js');
 		loadScript('assets/js/ffc-frontend-helpers.js');
 	});
 

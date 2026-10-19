@@ -37,7 +37,9 @@ if ( empty( $attached_objects ) ) {
 	foreach ( $attached_objects as $a ) {
 		echo '<span class="ffc-attached">';
 		echo esc_html( (string) $a->slug );
-		echo ' <a href="#" data-notice="' . esc_attr( (string) $notice_id ) . '" data-adjutancy="' . esc_attr( (string) $a->id ) . '" onclick="return ffcDetachAdjutancy(this);" title="' . esc_attr__( 'Detach', 'ffcertificate' ) . '">×</a>';
+		// Written by hand with the family's classes: Core\Button refuses an
+		// `on*` attribute, and this link's handler is the inline one (#1879).
+		echo ' <a href="#" class="ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross" data-notice="' . esc_attr( (string) $notice_id ) . '" data-adjutancy="' . esc_attr( (string) $a->id ) . '" onclick="return ffcDetachAdjutancy(this);" aria-label="' . esc_attr__( 'Detach', 'ffcertificate' ) . '" title="' . esc_attr__( 'Detach', 'ffcertificate' ) . '"></a>';
 		echo '</span>';
 	}
 	echo '</span></p>';
@@ -50,7 +52,15 @@ if ( ! empty( $detached_objects ) ) {
 		echo '<option value="' . esc_attr( (string) $a->id ) . '">' . esc_html( (string) $a->slug ) . ' — ' . esc_html( (string) $a->name ) . '</option>';
 	}
 	echo '</select>';
-	echo ' <button type="submit" class="button button-secondary">' . esc_html__( 'Attach', 'ffcertificate' ) . '</button>';
+	echo ' ';
+	\FreeFormCertificate\Core\Button::render(
+		array(
+			'label'    => __( 'Attach', 'ffcertificate' ),
+			'category' => 'create',
+			'icon'     => 'link',
+			'type'     => 'submit',
+		)
+	);
 	echo '</form>';
 }
 

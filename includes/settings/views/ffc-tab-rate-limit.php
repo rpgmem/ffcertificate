@@ -648,6 +648,6 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 <?php endif; ?>
 </div>
 
-<p class="submit"><input type="submit" name="ffc_save_rate_limit" class="button button-primary" value="<?php esc_attr_e( 'Save Changes', 'ffcertificate' ); ?>"></p>
+<?php \FreeFormCertificate\Admin\AdminUI::render_save_button( '', array( 'name' => 'ffc_save_rate_limit' ) ); ?>
 </form>
 </div>

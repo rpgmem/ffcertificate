@@ -2,7 +2,7 @@
 /**
  * Template: Audience admin settings — Audience tab (manage links + visibility settings + badge color).
  * In-scope: $display_mode, $visibility_message, $scheduling_message,
- * $multiple_audiences_color, $this->menu_slug.
+ * $multiple_audiences_color, $max_self_join_groups, $this->menu_slug.
  *
  * Extracted verbatim from the matching AudienceAdminSettings method
  * (rpgmem/ffcertificate coverage hygiene); markup byte-identical. The
@@ -26,15 +26,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<tr>
 						<th scope="row"><?php esc_html_e( 'Manage', 'ffcertificate' ); ?></th>
 						<td>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars' ) ); ?>" class="button">
-								<?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?>
-							</a>
-							<a href="<?php echo esc_url( \FreeFormCertificate\Audience\AudienceAdminEnvironment::view_url( $this->menu_slug ) ); ?>" class="button">
-								<?php esc_html_e( 'Environments', 'ffcertificate' ); ?>
-							</a>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences' ) ); ?>" class="button">
-								<?php esc_html_e( 'Audiences', 'ffcertificate' ); ?>
-							</a>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Audience Calendars', 'ffcertificate' ),
+									'icon'  => 'calendar',
+									'href'  => admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars' ),
+								)
+							);
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Environments', 'ffcertificate' ),
+									'icon'  => 'building',
+									'href'  => \FreeFormCertificate\Audience\AudienceAdminEnvironment::view_url( $this->menu_slug ),
+								)
+							);
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Audiences', 'ffcertificate' ),
+									'icon'  => 'users',
+									'href'  => admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences' ),
+								)
+							);
+							?>
 						</td>
 					</tr>
 				</tbody>
@@ -45,6 +59,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<form method="post" action="">
 			<?php wp_nonce_field( 'ffc_aud_visibility_settings', 'ffc_aud_visibility_nonce' ); ?>
 			<input type="hidden" name="ffc_action" value="save_aud_visibility_settings">
+
+			<div class="card">
+				<h2 class="ffc-icon-user-plus"><?php esc_html_e( 'Self-Join', 'ffcertificate' ); ?></h2>
+				<p class="description">
+					<?php esc_html_e( 'Users join and leave the groups that allow self-join from the Audiences tab of their dashboard.', 'ffcertificate' ); ?>
+				</p>
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">
+								<label for="ffc_aud_max_self_join_groups"><?php esc_html_e( 'Groups per user', 'ffcertificate' ); ?></label>
+							</th>
+							<td>
+								<input type="number" name="ffc_aud_max_self_join_groups" id="ffc_aud_max_self_join_groups" class="small-text" required
+										min="<?php echo esc_attr( (string) \FreeFormCertificate\Audience\AudienceSelfJoinLimit::MIN ); ?>"
+										max="<?php echo esc_attr( (string) \FreeFormCertificate\Audience\AudienceSelfJoinLimit::MAX ); ?>"
+										value="<?php echo esc_attr( (string) $max_self_join_groups ); ?>">
+								<p class="description">
+									<?php
+									echo esc_html(
+										sprintf(
+											/* translators: 1: lowest accepted value, 2: highest accepted value */
+											__( 'How many self-join groups one user may belong to at once, from %1$d to %2$d. A user at the limit leaves a group before joining another. Every membership in a group that allows self-join counts, however it was added. Saved with the Save Settings button below.', 'ffcertificate' ),
+											\FreeFormCertificate\Audience\AudienceSelfJoinLimit::MIN,
+											\FreeFormCertificate\Audience\AudienceSelfJoinLimit::MAX
+										)
+									);
+									?>
+								</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
 
 			<div class="card">
 				<h2 class="ffc-icon-eye"><?php esc_html_e( 'Visibility Settings', 'ffcertificate' ); ?></h2>
@@ -119,6 +167,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</tr>
 					</tbody>
 				</table>
-				<?php submit_button( __( 'Save Settings', 'ffcertificate' ) ); ?>
+				<?php \FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save Settings', 'ffcertificate' ), array( 'value' => __( 'Save Settings', 'ffcertificate' ) ) ); ?>
 			</div>
 		</form>

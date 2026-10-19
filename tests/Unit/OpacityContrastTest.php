@@ -59,7 +59,6 @@ final class OpacityContrastTest extends TestCase {
 		),
 		'ffc-admin.css'                   => array(
 			'#ffc-preview-modal' => 'opacity: 0 — the closed modal is not painted',
-			'.ffc-page-identities .ffc-identity-panel-step[aria-disabled="true"]' => 'the step control at either end of a panel: an INACTIVE component, which SC 1.4.3 exempts — and inactive in fact, not only in wording, since the same rule sets `pointer-events: none` and the attribute says so to a screen reader',
 		),
 		'ffc-audience-admin.css'          => array(
 			'.ffc-selected-user .ffc-selected-user-remove' => 'the remove ×, a decorative glyph',
@@ -79,7 +78,6 @@ final class OpacityContrastTest extends TestCase {
 		'ffc-common.css'                  => array(
 			'.ffc-loading'                                            => 'loading state, transient',
 			'.ffc-form button[type="submit"]:disabled'                => 'inactive component, exempt under SC 1.4.3',
-			'.ffc-btn:disabled'                                       => 'inactive component, exempt under SC 1.4.3',
 			'.ffc-control-toggle input[type="checkbox"]'                      => 'opacity: 0 — the real input is invisible under the drawn track',
 			'.ffc-control-steps-stop input'                           => 'opacity: 0 — the real radios are invisible under the drawn stops',
 			'#ffc-activity-log-table.ffc-loading'                     => 'loading state, transient',
@@ -88,14 +86,7 @@ final class OpacityContrastTest extends TestCase {
 			'.ffc-custom-field-row.ffc-field-inactive' => 'disabled field: inactive component, exempt under SC 1.4.3',
 		),
 		'ffc-frontend.css'                => array(
-			'.ffc-submit-btn.ffc-btn-loading' => 'loading state, transient',
-			'.ffc-public-csv-download .ffc-info-btn-primary[disabled], .ffc-open-early-modal .ffc-info-btn-primary[disabled], .ffc-extend-end-modal .ffc-info-btn-primary[disabled]'   => 'inactive component, exempt under SC 1.4.3',
-			'.ffc-public-csv-download .ffc-info-btn-secondary[disabled], .ffc-open-early-modal .ffc-info-btn-secondary[disabled], .ffc-extend-end-modal .ffc-info-btn-secondary[disabled]' => 'inactive component, exempt under SC 1.4.3',
-			'.ffc-public-csv-download .ffc-info-btn-warning[disabled], .ffc-open-early-modal .ffc-info-btn-warning[disabled], .ffc-extend-end-modal .ffc-info-btn-warning[disabled]'   => 'inactive component, exempt under SC 1.4.3',
 			'#ffc-preview-modal' => 'opacity: 0 — the closed modal is not painted',
-		),
-		'ffc-pdf-core.css'                => array(
-			'.ffc-btn-loading' => 'loading state, transient',
 		),
 		'ffc-reregistration-frontend.css' => array(
 			'.ffc-rereg-header-subtitle' => 'header subtitle: measured in #1185, 17.58:1 light and 10.10:1 dark with the fade included',
@@ -217,7 +208,9 @@ final class OpacityContrastTest extends TestCase {
 			$total += count( $rules );
 		}
 
-		$this->assertGreaterThan( 20, $total, 'The `opacity` scan collapsed.' );
+		// The floor sits under the register's size (the exact comparison above
+		// is the real detector); #1904 took the identity steppers' fade out.
+		$this->assertGreaterThan( 15, $total, 'The `opacity` scan collapsed.' );
 		$this->assertGreaterThan( 20, count( CssSelectors::sheets() ), 'Reading the sheets collapsed.' );
 
 		// And the table that motivated the guard must not fade again.

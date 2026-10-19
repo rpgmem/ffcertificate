@@ -121,9 +121,16 @@ class ReregistrationCustomFieldsPage {
 				<?php endif; ?>
 			</td>
 			<td>
-				<a href="<?php echo esc_url( $edit_url ); ?>" class="button button-small">
-					<?php $count > 0 ? esc_html_e( 'Edit Fields', 'ffcertificate' ) : esc_html_e( 'Add Fields', 'ffcertificate' ); ?>
-				</a>
+				<?php
+				\FreeFormCertificate\Core\Button::render(
+					array(
+						'label'    => $count > 0 ? __( 'Edit Fields', 'ffcertificate' ) : __( 'Add Fields', 'ffcertificate' ),
+						'category' => $count > 0 ? 'neutral' : 'create',
+						'icon'     => $count > 0 ? 'edit' : 'plus',
+						'href'     => $edit_url,
+					)
+				);
+				?>
 			</td>
 		</tr>
 		<?php

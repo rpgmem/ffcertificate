@@ -376,15 +376,6 @@
     text-align: center;
 }
 
-.ffc-shortcode .ffc-receipt-actions .ffc-btn-secondary {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
-}
-
-.ffc-shortcode .ffc-receipt-actions .ffc-btn-secondary:hover {
-    background: var(--ffc-primary-hover);
-}
-
 /* The approval and e-mail notices (`.ffc-notice`, #1842) sit in a centred
    card: they keep the narrower measure they had there. */
 .ffc-shortcode .ffc-confirmation-success .ffc-notice {
@@ -408,7 +399,8 @@
         flex-direction: column;
     }
 
-    .ffc-shortcode .ffc-btn {
+    /* The dialog's icon-only close stays a square (#1879). */
+    .ffc-shortcode .ffc-btn:not(.ffc-btn-icon) {
         width: 100%;
         text-align: center;
     }
@@ -451,21 +443,8 @@
     .ffc-shortcode .ffc-timeslot,
     .ffc-shortcode .ffc-booking-form input,
     .ffc-shortcode .ffc-booking-form textarea,
-    .ffc-shortcode .ffc-booking-form select,
-    .ffc-shortcode .ffc-submit-row .button {
+    .ffc-shortcode .ffc-booking-form select {
         transition: none;
     }
 }
 
-/* ==========================================================================
-   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
-   Gives a border back to whatever had only a background. No effect outside
-   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
-   ========================================================================== */
-
-@media (forced-colors: active) {
-    /* Controls: without a contour, a button stops looking clickable. */
-    .ffc-shortcode .ffc-receipt-actions .ffc-btn-secondary {
-        border: 1px solid ButtonText;
-    }
-}

@@ -34,6 +34,10 @@ class UrlShortenerMetaBoxTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
@@ -548,12 +552,24 @@ class UrlShortenerMetaBoxTest extends TestCase {
 				$enqueued[] = $h;
 			}
 		);
+		// Shared scripts and styles go through AssetRegistry, which calls the
+		// global functions (#1931).
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $h ) use ( &$enqueued ) {
+				$enqueued[] = $h;
+			}
+		);
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $h ) use ( &$enqueued ) {
+				$enqueued[] = $h;
+			}
+		);
 		Functions\when( 'FreeFormCertificate\UrlShortener\wp_localize_script' )->justReturn( true );
 		Functions\when( 'FreeFormCertificate\UrlShortener\admin_url' )->returnArg();
 		Functions\when( 'FreeFormCertificate\UrlShortener\wp_create_nonce' )->justReturn( 'nonce' );
 
 		$this->meta_box->enqueue_assets( 'post-new.php' );
 
-		$this->assertContains( 'ffc-url-shortener-admin', $enqueued );
+		$this->assertContains( 'ffc-url-shortener-admin-css', $enqueued );
 	}
 }

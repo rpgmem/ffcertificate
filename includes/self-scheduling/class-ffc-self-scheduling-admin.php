@@ -144,28 +144,10 @@ class SelfSchedulingAdmin {
 		// Shared batched-export driver (#772): the appointments list "Export CSV"
 		// button drives the unified `ffc_export_*` dispatcher through
 		// window.FFCBatchedExport, which needs FFC.request from ffc-core.
-		wp_enqueue_script(
-			'ffc-core',
-			plugins_url( "assets/js/ffc-core{$s}.js", dirname( __DIR__, 1 ) ),
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'ffc-batched-export',
-			plugins_url( "assets/js/ffc-batched-export{$s}.js", dirname( __DIR__, 1 ) ),
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-batched-export' );
 		// Shared progress-overlay modal styles (#786): the batched-export driver
 		// renders window.FFCProgressOverlay, identical to the public download.
-		wp_enqueue_style(
-			'ffc-progress-overlay',
-			plugins_url( "assets/css/ffc-progress-overlay{$s}.css", dirname( __DIR__, 1 ) ),
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 
 		// Row "Cancel" action handler + the batched CSV export button handler for
 		// the appointments list (extracted from an inline onclick in

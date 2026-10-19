@@ -90,19 +90,9 @@ class Loader {
 	 */
 	public function __construct() {
 		add_action( 'plugins_loaded', array( $this, 'init_plugin' ), 10 );
-		add_action( 'wp_enqueue_scripts', array( $this, 'register_frontend_assets' ) );
-		// Mirror the frontend register_frontend_assets pattern in admin.
-		// `ffc-core` carries `window.FFC.request()` and is used by several
-		// admin enqueues (URL Shortener metabox, etc.). Pre-6.6.9 it was
-		// only registered when AdminAssetsManager decided the current page
-		// was an FFC page (post_type === 'ffc_form' OR page === 'ffc-*').
-		// On regular post/page admin screens where the URL Shortener
-		// metabox is rendered, that gate failed and the dep silently
-		// dropped, leaving `window.FFC` undefined and the QR download /
-		// regenerate / copy buttons inert. Registering early on every
-		// admin request makes `ffc-core` resolvable as a dep regardless
-		// of post type. Enqueue happens elsewhere; this is register-only.
-		add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_core_assets' ), 1 );
+		// The shared scripts, registered on the front end and on every admin
+		// request so an enqueue anywhere can name the handle (#1924).
+		\FreeFormCertificate\Core\AssetRegistry::init();
 		// Development installs (SCRIPT_DEBUG) version assets by file time, so
 		// a merge reaches the browser without a release bump.
 		\FreeFormCertificate\Core\AssetHelper::register_dev_cache_busting();
@@ -1210,89 +1200,5 @@ class Loader {
 			// same name.
 			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::init();
 		}
-	}
-
-	/**
-	 * Register frontend assets (scripts used as dependencies by shortcodes).
-	 * Only registers -- actual enqueue happens when shortcodes load their dependencies.
-	 */
-	public function register_frontend_assets(): void {
-		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		// ffc-core dep: the helpers build their notices with FFC.notice() (#1842)
-		// and their field messages with FFC.fieldMessage() (#1844).
-		wp_register_script( 'ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
-
-		// ffc-core ships `window.FFC.request()` (the AJAX helper used by the
-		// JS files migrated in #277). The admin enqueues ffc-core directly;
-		// public shortcodes (CSV download, etc.) need it registered here so
-		// their own enqueue can list it as a dependency without re-declaring
-		// the source path.
-		wp_register_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
-		wp_localize_script(
-			'ffc-core',
-			'ffcCoreConfig',
-			array(
-				'version' => FFC_VERSION,
-				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
-			)
-		);
-
-		// Captcha widget + glue (#1053). Registered on every frontend request
-		// and enqueued by the provider at render time, so it follows the
-		// widget onto whichever surface renders it — the certificate form,
-		// the verification page, the public CSV download and the
-		// self-scheduling booking form, the last of which is enqueued by a
-		// different class entirely.
-		\FreeFormCertificate\Core\Captcha\AltchaCaptcha::register_assets();
-
-		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0).
-		wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array(), FFC_VERSION, true );
-		wp_localize_script(
-			'ffc-dynamic-fragments',
-			'ffcDynamic',
-			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-			)
-		);
-	}
-
-	/**
-	 * Register `ffc-core` on every admin request.
-	 *
-	 * Sibling of register_frontend_assets() for the admin side. Other
-	 * admin enqueues (URL Shortener metabox, etc.) declare `ffc-core` as
-	 * a dependency — when this script is not registered, WP silently
-	 * drops the dep and `window.FFC.request()` becomes undefined at
-	 * runtime. AdminAssetsManager already enqueues ffc-core on FFC
-	 * pages (which also registers it); this hook covers the gap on
-	 * regular post/page edit screens where the URL Shortener metabox
-	 * is enabled for the post type but is_ffc_page() returns false.
-	 *
-	 * Hook priority 1 so the registration runs before any module's
-	 * enqueue callback (default priority 10).
-	 *
-	 * @since 6.6.9
-	 */
-	public function register_admin_core_assets(): void {
-		if ( wp_script_is( 'ffc-core', 'registered' ) ) {
-			return;
-		}
-
-		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_register_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
-		wp_localize_script(
-			'ffc-core',
-			'ffcCoreConfig',
-			array(
-				'version' => FFC_VERSION,
-				'strings' => \FreeFormCertificate\Core\FieldMessage::script_strings(),
-			)
-		);
 	}
 }

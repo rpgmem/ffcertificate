@@ -144,21 +144,30 @@ class AudienceAdminDashboard {
 
 			<h2 class="ffc-icon-zap"><?php esc_html_e( 'Quick Actions', 'ffcertificate' ); ?></h2>
 			<div class="ffc-scheduling-quick-actions">
-				<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=ffc_self_scheduling' ) ); ?>" class="button button-primary ffc-icon-plus">
-					<?php esc_html_e( 'New Personal Calendar', 'ffcertificate' ); ?>
-				</a>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&action=new' ) ); ?>" class="button button-primary ffc-icon-plus">
-					<?php esc_html_e( 'New Audience Calendar', 'ffcertificate' ); ?>
-				</a>
-				<a href="<?php echo esc_url( AudienceAdminEnvironment::view_url( $this->menu_slug, '&action=new' ) ); ?>" class="button ffc-icon-plus">
-					<?php
-					/* translators: %s: environment label (singular) */
-					printf( esc_html__( 'Add %s', 'ffcertificate' ), esc_html( AudienceScheduleRepository::get_environment_label( null, true ) ) );
-					?>
-				</a>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=new' ) ); ?>" class="button ffc-icon-plus">
-					<?php esc_html_e( 'Create Audience', 'ffcertificate' ); ?>
-				</a>
+				<?php
+				// Four ways to add something (#1904): every one is `create`, so
+				// none of them claims to be the dashboard's own work.
+				$quick_actions = array(
+					array( __( 'New Personal Calendar', 'ffcertificate' ), admin_url( 'post-new.php?post_type=ffc_self_scheduling' ) ),
+					array( __( 'New Audience Calendar', 'ffcertificate' ), admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&action=new' ) ),
+					array(
+						/* translators: %s: environment label (singular) */
+						sprintf( __( 'Add %s', 'ffcertificate' ), AudienceScheduleRepository::get_environment_label( null, true ) ),
+						AudienceAdminEnvironment::view_url( $this->menu_slug, '&action=new' ),
+					),
+					array( __( 'Create Audience', 'ffcertificate' ), admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=new' ) ),
+				);
+				foreach ( $quick_actions as $quick_action ) {
+					AdminUI::render_button(
+						array(
+							'label'    => $quick_action[0],
+							'category' => 'create',
+							'icon'     => 'plus',
+							'href'     => $quick_action[1],
+						)
+					);
+				}
+				?>
 			</div>
 		</div>
 

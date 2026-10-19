@@ -111,7 +111,13 @@
 
             if (booking.status === 'active' && state.config.canBook) {
                 html += '<div class="ffc-booking-actions">';
-                html += '<button type="button" class="ffc-btn ffc-btn-danger ffc-cancel-booking" data-id="' + booking.id + '">' + ffcAudience.strings.cancel + '</button>';
+                html += FFC.buttonHtml({
+                    label: ffcAudience.strings.cancel,
+                    category: 'danger',
+                    icon: 'cross',
+                    className: 'ffc-cancel-booking',
+                    attrs: { 'data-id': booking.id }
+                });
                 html += '</div>';
             }
 

@@ -76,14 +76,14 @@ class AdminUserCustomFields {
 
 		// Both sheets paint through `var(--ffc-*)` since #1126 (defeito B).
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
-		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
-		wp_enqueue_style( 'ffc-custom-fields-admin', FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css", array( 'ffc-common' ), FFC_VERSION );
-		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-working-hours-css' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-custom-fields-admin-css' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-working-hours' );
 		// `ffc-core` supplies `FFC.setRequiredWithin()`, which the collapse
 		// script uses to carry `required` with a section's visibility (#1120).
 		// Without it a collapsed section holding a required field blocks the
 		// profile save against a control nobody can see.
-		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script( 'ffc-custom-fields-collapse', FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-collapse{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		// Another user's sensitive fields start masked, with Reveal (#1863).
 		if ( 'user-edit.php' === $hook ) {
@@ -91,7 +91,7 @@ class AdminUserCustomFields {
 		}
 		// The same masks, dependent selects and dual-post toggle the
 		// reregistration form uses, so a field behaves alike on both screens.
-		wp_enqueue_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-field-behaviours' );
 		wp_enqueue_script( 'ffc-admin-user-fields', FFC_PLUGIN_URL . "assets/js/ffc-admin-user-fields{$s}.js", array( 'jquery', 'ffc-field-behaviours' ), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-admin-user-fields',
@@ -120,6 +120,8 @@ class AdminUserCustomFields {
 					'exit2'      => __( 'Exit 2', 'ffcertificate' ),
 					/* translators: %s: comma-separated list of missing time labels. */
 					'incomplete' => __( 'This row has a time but is missing: %s. Fill it in, or clear the row to remove the day.', 'ffcertificate' ),
+					// #1879 — the accessible name of a row's remove button.
+					'removeDay'  => __( 'Remove day', 'ffcertificate' ),
 				),
 				'days'    => array(
 					array(
@@ -312,7 +314,7 @@ class AdminUserCustomFields {
 	private static function render_masked_input( object $field, string $input_name, string $value, int $user_id, bool $can_reveal ): void {
 		$pii_field = 'cf_' . (int) $field->id;
 		?>
-		<input type="text" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::mask_any( (string) $field->field_key, $value ) ); ?>" class="regular-text" data-ffc-pii-field="<?php echo esc_attr( $pii_field ); ?>" data-ffc-pii-editable="1" disabled>
+		<input type="text" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::mask_any( (string) $field->field_key, $value, self::mask_for( $field ) ) ); ?>" class="regular-text" data-ffc-pii-field="<?php echo esc_attr( $pii_field ); ?>" data-ffc-pii-editable="1" disabled>
 		<?php if ( $can_reveal ) : ?>
 			<button type="button" class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="<?php echo esc_attr( self::REVEAL_TYPE ); ?>" data-field="<?php echo esc_attr( $pii_field ); ?>" data-submission-id="<?php echo esc_attr( (string) $user_id ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'ffc_reveal_pii_nonce' ) ); ?>"><?php esc_html_e( 'Reveal', 'ffcertificate' ); ?></button>
 			<span class="description ffc-pii-reveal-hint"><?php esc_html_e( 'Reveal the value to edit it.', 'ffcertificate' ); ?></span>
@@ -466,7 +468,19 @@ class AdminUserCustomFields {
 								<td><input type="time" class="ffc-wh-exit1" value="<?php echo esc_attr( $wh_entry['exit1'] ?? '' ); ?>"></td>
 								<td><input type="time" class="ffc-wh-entry2" value="<?php echo esc_attr( $wh_entry['entry2'] ?? '' ); ?>"></td>
 								<td><input type="time" class="ffc-wh-exit2" value="<?php echo esc_attr( $wh_entry['exit2'] ?? '' ); ?>" required></td>
-								<td><button type="button" class="button button-small ffc-wh-remove">&times;</button></td>
+								<td>
+									<?php
+									\FreeFormCertificate\Core\Button::render(
+										array(
+											'label'     => __( 'Remove day', 'ffcertificate' ),
+											'category'  => 'danger',
+											'icon'      => 'cross',
+											'icon_only' => true,
+											'class'     => 'ffc-wh-remove',
+										)
+									);
+									?>
+								</td>
 							</tr>
 							<?php endforeach; ?>
 						</tbody>

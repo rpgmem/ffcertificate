@@ -185,12 +185,12 @@
             '<div class="ffc-confirm-modal" data-style="primary">' +
                 '<div class="ffc-confirm-modal-header">' +
                     '<h2 id="ffc-confirm-modal-title"></h2>' +
-                    '<button type="button" class="ffc-confirm-modal-close" aria-label="' + escText(closeLabel) + '">&times;</button>' +
+                    '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-confirm-modal-close" aria-label="' + escText(closeLabel) + '" title="' + escText(closeLabel) + '"></button>' +
                 '</div>' +
                 '<div class="ffc-confirm-modal-body"></div>' +
                 '<div class="ffc-confirm-modal-footer">' +
-                    '<button type="button" class="button ffc-confirm-modal-cancel">' + escText(cancelLabel) + '</button>' +
-                    '<button type="button" class="button button-primary ffc-confirm-modal-confirm"></button>' +
+                    '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-cross ffc-confirm-modal-cancel">' + escText(cancelLabel) + '</button>' +
+                    '<button type="button" class="ffc-btn ffc-btn-primary ffc-confirm-modal-confirm"></button>' +
                 '</div>' +
             '</div>';
         document.body.appendChild(overlay);
@@ -265,6 +265,9 @@
             consequences: consequences,
             cta: raw.cta || (i18n.defaultCta || 'Confirm'),
             style: raw.style === 'destructive' ? 'destructive' : 'primary',
+            // The confirm wears its trigger's icon (#1904): a `Core\Icons`
+            // class name without the prefix, or none.
+            icon: typeof raw.icon === 'string' && /^[a-z0-9-]+$/.test(raw.icon) ? raw.icon : '',
             reasonLabel: raw.reasonLabel || '',
             reasonName: raw.reasonName || 'reason',
             // Optional checkbox (programmatic API only — the DOM-trigger path
@@ -288,7 +291,15 @@
             reasonLabel: trigger.getAttribute('data-ffc-confirm-reason-label'),
             reasonName: trigger.getAttribute('data-ffc-confirm-reason-name'),
             countdown: trigger.getAttribute('data-ffc-confirm-countdown'),
+            icon: triggerIcon(trigger),
         });
+    }
+
+    // The `ffc-icon-*` class the trigger wears; for a form, its submit button's.
+    function triggerIcon(trigger) {
+        var el = trigger.tagName === 'FORM' ? trigger.querySelector('[type="submit"]') : trigger;
+        var match = el && typeof el.className === 'string' ? el.className.match(/(?:^|\s)ffc-icon-([a-z0-9-]+)/) : null;
+        return match ? match[1] : '';
     }
 
     // Render the modal and wire confirm / cancel handlers. Both the
@@ -306,7 +317,9 @@
 
         title.textContent = cfg.title;
         dialog.setAttribute('data-style', cfg.style);
-        confirmBtn.className = 'button ' + (cfg.style === 'destructive' ? 'ffc-confirm-modal-confirm' : 'button-primary ffc-confirm-modal-confirm');
+        // A destructive confirm is the family's danger button, any other its primary (#1904).
+        confirmBtn.className = 'ffc-btn ffc-btn-' + (cfg.style === 'destructive' ? 'danger' : 'primary') +
+            (cfg.icon ? ' ffc-icon-' + cfg.icon : '') + ' ffc-confirm-modal-confirm';
         confirmBtn.textContent = cfg.cta;
 
         // Body content

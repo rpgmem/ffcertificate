@@ -23,7 +23,7 @@
  *         <div class="ffc-ds-sectors">
  *           <div class="ffc-ds-sector">
  *             <input class="ffc-ds-sector-name">
- *             <button class="ffc-ds-sector-remove">
+ *             <button class="ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross ffc-ds-sector-remove" aria-label="Remove department">
  *           </div>
  *         </div>
  *         <button class="ffc-ds-sector-add">
@@ -47,7 +47,7 @@
     function sectorRow(value) {
         return '<div class="ffc-ds-sector">' +
             '<input type="text" class="ffc-ds-sector-name regular-text" value="' + escapeAttr(value || '') + '" placeholder="' + escapeAttr(t('departmentName', 'Department name')) + '">' +
-            '<button type="button" class="button-link ffc-ds-sector-remove" aria-label="' + escapeAttr(t('removeSector', 'Remove department')) + '">×</button>' +
+            '<button type="button" class="ffc-btn ffc-btn-danger ffc-btn-icon ffc-icon-cross ffc-ds-sector-remove" aria-label="' + escapeAttr(t('removeSector', 'Remove department')) + '" title="' + escapeAttr(t('removeSector', 'Remove department')) + '"></button>' +
             '</div>';
     }
 
@@ -55,19 +55,15 @@
         return '<div class="ffc-ds-division">' +
             '<div class="ffc-ds-division-head">' +
             '<input type="text" class="ffc-ds-division-name regular-text" value="" placeholder="' + escapeAttr(t('divisionName', 'Division name')) + '">' +
-            '<button type="button" class="button button-link-delete ffc-ds-division-remove">' + escapeHtml(t('removeDivision', 'Remove division')) + '</button>' +
+            window.FFC.buttonHtml({ label: t('removeDivision', 'Remove division'), category: 'danger', icon: 'delete', className: 'ffc-ds-division-remove' }) +
             '</div>' +
             '<div class="ffc-ds-sectors">' + sectorRow('') + '</div>' +
-            '<button type="button" class="button button-small ffc-ds-sector-add">' + escapeHtml(t('addSector', '+ Add Department')) + '</button>' +
+            window.FFC.buttonHtml({ label: t('addSector', 'Add Department'), category: 'create', icon: 'plus', className: 'ffc-ds-sector-add' }) +
             '</div>';
     }
 
     function escapeAttr(s) {
         return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    function escapeHtml(s) {
-        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     function syncHidden($editor) {

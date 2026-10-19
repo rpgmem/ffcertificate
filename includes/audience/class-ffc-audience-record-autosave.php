@@ -78,14 +78,20 @@ class AudienceRecordAutosave {
 			array(
 				'cap'    => 'ffc_manage_audiences',
 				'fields' => array(
-					'status'          => array(
+					'status'             => array(
 						'type' => 'map',
 						'map'  => array(
 							1 => 'active',
 							0 => 'inactive',
 						),
 					),
-					'allow_self_join' => array( 'type' => 'bool' ),
+					'allow_self_join'    => array( 'type' => 'bool' ),
+					'self_join_scope'    => array(
+						'type'    => 'enum',
+						'options' => AudienceSelfJoinScope::values(),
+					),
+					'members_only'       => array( 'type' => 'bool' ),
+					'require_membership' => array( 'type' => 'bool' ),
 				),
 				'exists' => static fn( int $id ): bool => null !== AudienceReader::get_by_id( $id ),
 				'save'   => array( self::class, 'save_audience' ),
@@ -109,28 +115,53 @@ class AudienceRecordAutosave {
 	}
 
 	/**
-	 * Save one audience column. Self-join is set on a top-level audience
-	 * only, and cascades to its children, as the Save button does.
+	 * Save one audience field. Self-join is set on a top-level audience only
+	 * (#1901): `allow_self_join` is the single switch of an audience without
+	 * children, and `self_join_scope` the four-option choice of one with
+	 * children, which writes the audience's own flag and every child's and
+	 * grandchild's.
 	 *
 	 * @param int    $id    Audience id.
-	 * @param string $key   Column.
+	 * @param string $key   Column, or `self_join_scope`.
 	 * @param mixed  $value Typed value.
 	 * @return true|\WP_Error
 	 */
 	public static function save_audience( int $id, string $key, $value ) {
-		if ( 'allow_self_join' === $key ) {
+		if ( 'allow_self_join' === $key || 'self_join_scope' === $key ) {
 			$audience = AudienceReader::get_by_id( $id );
 			if ( null === $audience || ! empty( $audience->parent_id ) ) {
 				return new \WP_Error( 'ffc_record_not_saved', __( 'Self-join is set on the parent audience.', 'ffcertificate' ) );
 			}
 		}
 
-		if ( ! AudienceWriter::update( $id, array( $key => $value ) ) ) {
-			return new \WP_Error( 'ffc_record_not_saved', __( 'The audience could not be saved.', 'ffcertificate' ) );
+		// The tree-access pair (#1918) is set on the top-level audience, and
+		// "Keep at least one group" only exists under "Visible to members only".
+		if ( 'members_only' === $key || 'require_membership' === $key ) {
+			$audience = AudienceReader::get_by_id( $id );
+			if ( null === $audience || ! empty( $audience->parent_id ) ) {
+				return new \WP_Error( 'ffc_record_not_saved', __( 'This setting is set on the top-level audience.', 'ffcertificate' ) );
+			}
+			$members_only = 'members_only' === $key ? (bool) $value : ! empty( $audience->members_only );
+			$require      = 'require_membership' === $key ? (bool) $value : ! empty( $audience->require_membership );
+			if ( 'require_membership' === $key && $require && ! $members_only ) {
+				return new \WP_Error( 'ffc_record_not_saved', __( 'Turn on "Visible to members only" first.', 'ffcertificate' ) );
+			}
+			if ( ! AudienceWriter::set_tree_access( $id, $members_only, $require ) ) {
+				return new \WP_Error( 'ffc_record_not_saved', __( 'The audience could not be saved.', 'ffcertificate' ) );
+			}
+			return true;
 		}
 
-		if ( 'allow_self_join' === $key ) {
-			AudienceWriter::cascade_self_join( $id, (int) $value );
+		// No column holds it: the choice is written as two flags.
+		if ( 'self_join_scope' === $key ) {
+			if ( ! AudienceWriter::apply_self_join_scope( $id, (string) $value ) ) {
+				return new \WP_Error( 'ffc_record_not_saved', __( 'The audience could not be saved.', 'ffcertificate' ) );
+			}
+			return true;
+		}
+
+		if ( ! AudienceWriter::update( $id, array( $key => $value ) ) ) {
+			return new \WP_Error( 'ffc_record_not_saved', __( 'The audience could not be saved.', 'ffcertificate' ) );
 		}
 		return true;
 	}

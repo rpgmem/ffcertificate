@@ -143,7 +143,20 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 				);
 				?>
 				<p>
-					<button type="button" class="button ffc-email-restore-default" data-editor="ffc_dm_body" data-default-key="date_message_body"><?php esc_html_e( 'Restore default text', 'ffcertificate' ); ?></button>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Restore default text', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'restore',
+							'class'    => 'ffc-email-restore-default',
+							'attrs'    => array(
+								'data-editor'      => 'ffc_dm_body',
+								'data-default-key' => 'date_message_body',
+							),
+						)
+					);
+					?>
 				</p>
 				<p class="description">
 					<?php esc_html_e( 'Placeholders:', 'ffcertificate' ); ?>
@@ -168,8 +181,27 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 					<br><span class="description ffc-dm-image-meta"><?php echo esc_html( $ffc_dm_image_txt ); ?></span>
 				</p>
 				<p>
-					<button type="button" class="button ffc-dm-image-choose" data-title="<?php esc_attr_e( 'Choose a background image', 'ffcertificate' ); ?>" data-button="<?php esc_attr_e( 'Use this image', 'ffcertificate' ); ?>"><?php esc_html_e( 'Choose image', 'ffcertificate' ); ?></button>
-					<button type="button" class="button ffc-dm-image-remove<?php echo 0 === $ffc_dm_image_id ? ' ffc-hidden' : ''; ?>"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Choose image', 'ffcertificate' ),
+							'icon'  => 'image',
+							'class' => 'ffc-dm-image-choose',
+							'attrs' => array(
+								'data-title'  => __( 'Choose a background image', 'ffcertificate' ),
+								'data-button' => __( 'Use this image', 'ffcertificate' ),
+							),
+						)
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Remove', 'ffcertificate' ),
+							'category' => 'danger',
+							'icon'     => 'cross',
+							'class'    => 'ffc-dm-image-remove' . ( 0 === $ffc_dm_image_id ? ' ffc-hidden' : '' ),
+						)
+					);
+					?>
 				</p>
 				<p class="description">
 					<?php
@@ -339,11 +371,31 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 	<div class="ffc-dm-preview" data-ffc-dm-preview="form">
 		<label><?php esc_html_e( 'From', 'ffcertificate' ); ?> <input type="date" class="ffc-dm-from" value="<?php echo esc_attr( $ffc_dm_target ); ?>"></label>
 		<label><?php esc_html_e( 'To', 'ffcertificate' ); ?> <input type="date" class="ffc-dm-to" value="<?php echo esc_attr( $ffc_dm_target ); ?>"></label>
-		<button type="button" class="button ffc-dm-preview-button"><?php esc_html_e( 'Preview recipients', 'ffcertificate' ); ?></button>
-		<button type="button" class="button ffc-dm-message-button"><?php esc_html_e( 'Preview message', 'ffcertificate' ); ?></button>
-		<?php if ( $can_test ) : ?>
-			<button type="button" class="button ffc-dm-test-button"><?php esc_html_e( 'Send test to me', 'ffcertificate' ); ?></button>
-		<?php endif; ?>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Preview recipients', 'ffcertificate' ),
+				'icon'  => 'users',
+				'class' => 'ffc-dm-preview-button',
+			)
+		);
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Preview message', 'ffcertificate' ),
+				'icon'  => 'eye',
+				'class' => 'ffc-dm-message-button',
+			)
+		);
+		if ( $can_test ) {
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label' => __( 'Send test to me', 'ffcertificate' ),
+					'icon'  => 'send',
+					'class' => 'ffc-dm-test-button',
+				)
+			);
+		}
+		?>
 		<p class="description"><?php esc_html_e( 'The dates are the dates in the profile (such as birthdays), not the day the message goes out.', 'ffcertificate' ); ?></p>
 		<div class="ffc-dm-preview-result" aria-live="polite"></div>
 		<?php
@@ -355,8 +407,31 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			<p>
 				<strong class="ffc-dm-message-subject"></strong>
 				<span class="ffc-dm-message-sizes">
-					<button type="button" class="button button-small ffc-dm-message-size" data-width="<?php echo esc_attr( (string) $ffc_dm_desktop ); ?>" aria-pressed="true"><?php esc_html_e( 'Computer', 'ffcertificate' ); ?></button>
-					<button type="button" class="button button-small ffc-dm-message-size" data-width="360" aria-pressed="false"><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></button>
+					<?php
+					// A pressed state, not a category: the chosen width is `aria-pressed`.
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Computer', 'ffcertificate' ),
+							'icon'  => 'monitor',
+							'class' => 'ffc-dm-message-size',
+							'attrs' => array(
+								'data-width'   => (string) $ffc_dm_desktop,
+								'aria-pressed' => 'true',
+							),
+						)
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Phone', 'ffcertificate' ),
+							'icon'  => 'phone',
+							'class' => 'ffc-dm-message-size',
+							'attrs' => array(
+								'data-width'   => '360',
+								'aria-pressed' => 'false',
+							),
+						)
+					);
+					?>
 				</span>
 			</p>
 			<iframe class="ffc-dm-message-frame" sandbox="" title="<?php esc_attr_e( 'Message preview', 'ffcertificate' ); ?>" width="<?php echo esc_attr( (string) $ffc_dm_desktop ); ?>" height="640"></iframe>
@@ -366,6 +441,11 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 	</div>
 
 	<?php if ( $can_manage ) : ?>
-		<?php submit_button( __( 'Save rule', 'ffcertificate' ) ); ?>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_save_button(
+			__( 'Save rule', 'ffcertificate' ),
+			array( 'value' => __( 'Save rule', 'ffcertificate' ) )
+		);
+		?>
 	<?php endif; ?>
 </form>

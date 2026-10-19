@@ -56,7 +56,7 @@ class DashboardAssetManager {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// ffc-common carries the palette, the scale and the icon classes.
-		wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 
 		// Without the toggle, `.ffc-dark-mode` never reaches <html> (#1126).
@@ -112,18 +112,22 @@ class DashboardAssetManager {
 		wp_enqueue_script( 'ffc-dashboard-reregistrations', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-reregistrations{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
 		// `ffc-field-behaviours` masks the profile's phone like the
 		// reregistration form's.
-		wp_enqueue_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-field-behaviours' );
 		wp_enqueue_script( 'ffc-dashboard-profile', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-profile{$s}.js", array( 'ffc-dashboard', 'ffc-field-behaviours' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-audience-join', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-audience-join{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-profile' ), FFC_VERSION, true );
 
 		// Working hours field component (shared).
-		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
-		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-working-hours-css' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-working-hours' );
 		wp_localize_script(
 			'ffc-working-hours',
 			'ffcWorkingHours',
 			array(
-				'days' => array(
+				// #1879 — the accessible name of a row's remove button.
+				'strings' => array(
+					'removeDay' => __( 'Remove day', 'ffcertificate' ),
+				),
+				'days'    => array(
 					array(
 						'value' => 0,
 						'label' => __( 'Sunday', 'ffcertificate' ),
@@ -164,7 +168,7 @@ class DashboardAssetManager {
 		// load on this same screen. Without the edge, the winner is enqueue
 		// order -- which gets it right by accident today, and would invert if
 		// these two lines swapped places.
-		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-common', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION );
+		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-common', 'ffc-dashboard', 'ffc-working-hours-css' ), FFC_VERSION );
 		// Masks, dependent selects and the dual-post toggle come from
 		// `ffc-field-behaviours` (enqueued above), shared with the wp-admin
 		// user screen so the two renderings of a field behave alike.
@@ -200,6 +204,7 @@ class DashboardAssetManager {
 					'thursday'          => __( 'Thursday', 'ffcertificate' ),
 					'friday'            => __( 'Friday', 'ffcertificate' ),
 					'saturday'          => __( 'Saturday', 'ffcertificate' ),
+					'removeDay'         => __( 'Remove day', 'ffcertificate' ),
 					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
 					'importLoading'     => __( 'Bringing previous answers…', 'ffcertificate' ),
 				),
@@ -297,7 +302,8 @@ class DashboardAssetManager {
 					'cancel'                   => __( 'Cancel', 'ffcertificate' ),
 					'saving'                   => __( 'Saving...', 'ffcertificate' ),
 					'saveError'                => __( 'Error saving profile', 'ffcertificate' ),
-					// View as user (#1863): masked fields reveal on request.
+					// Masked personal data reveals on request: the owner (#1897) and
+					// "view as user" (#1863).
 					'reveal'                   => __( 'Reveal', 'ffcertificate' ),
 					'revealError'              => __( 'Unable to reveal this value.', 'ffcertificate' ),
 					'revealToEdit'             => __( 'Reveal the value to edit it.', 'ffcertificate' ),
@@ -329,6 +335,17 @@ class DashboardAssetManager {
 					'leaveAllGroups'           => __( 'Leave all groups', 'ffcertificate' ),
 					/* translators: %d: number of groups the user will leave */
 					'confirmLeaveAllGroups'    => __( 'Are you sure you want to leave all %d group(s)? This action cannot be undone.', 'ffcertificate' ),
+					// Members-only trees that keep their members in a group (#1918).
+					'switchGroup'              => __( 'Switch to this', 'ffcertificate' ),
+					'switchConfirm'            => __( 'Switch', 'ffcertificate' ),
+					/* translators: %s: name of the group the user switches to */
+					'switchWhich'              => __( 'Replace which group with "%s"?', 'ffcertificate' ),
+					/* translators: 1: group the user leaves, 2: group the user joins */
+					'confirmSwitchGroup'       => __( 'Leave "%1$s" and join "%2$s"?', 'ffcertificate' ),
+					'leaveLocked'              => __( 'This audience keeps its members in at least one group. Join or switch to another of its groups before leaving this one.', 'ffcertificate' ),
+					'leaveAllKeptTitle'        => __( 'Some groups were kept', 'ffcertificate' ),
+					/* translators: 1: group the user stays in, 2: top-level audience that requires at least one group */
+					'leaveAllKeptLine'         => __( 'You stay in "%1$s" because "%2$s" requires at least one group.', 'ffcertificate' ),
 					// Summary.
 					'summaryTitle'             => __( 'Overview', 'ffcertificate' ),
 					'totalCertificates'        => __( 'Certificates', 'ffcertificate' ),

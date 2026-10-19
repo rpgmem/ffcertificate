@@ -376,6 +376,67 @@ class AudienceActivatorTest extends TestCase {
 	}
 
 	// ==================================================================
+	// maybe_migrate() — columns heal on their own revision (#1918)
+	// ==================================================================
+
+	/**
+	 * An established install whose `FFC_VERSION` gate is current (the testes
+	 * site between releases) and whose `ffc_audiences` lacks the two
+	 * tree-access columns: the next request adds them and records the
+	 * revision, and the request after that sends nothing at all.
+	 */
+	public function test_tree_access_columns_heal_on_the_same_version_then_stop(): void {
+		$options = array(
+			'ffc_audience_schema_version' => FFC_VERSION,
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, $default_value = false ) use ( &$options ) {
+				return $options[ $key ] ?? $default_value;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, $value ) use ( &$options ): bool {
+				$options[ $key ] = $value;
+				return true;
+			}
+		);
+
+		$queries = array();
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $query ) use ( &$queries ) {
+				$queries[] = $query;
+				return preg_match( "/SHOW TABLES LIKE\s+'([^']+)'/", $query, $m ) ? $m[1] : null;
+			}
+		);
+		// SHOW COLUMNS answers nothing: both columns are missing.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $query ) use ( &$queries ) {
+				$queries[] = $query;
+				return array();
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $query ) use ( &$queries ) {
+				$queries[] = $query;
+				return 1;
+			}
+		);
+
+		AudienceActivator::maybe_migrate();
+
+		$alters = implode( "\n", array_filter( $queries, static fn( $q ) => false !== stripos( (string) $q, 'ALTER TABLE' ) ) );
+		$this->assertStringContainsString( 'members_only', $alters );
+		$this->assertStringContainsString( 'require_membership', $alters );
+		$this->assertSame( AudienceActivator::SCHEMA_REVISION, $options[ AudienceActivator::SCHEMA_REVISION_OPTION ] );
+		$this->assertStringNotContainsString( 'allow_self_join', $alters, 'the FFC_VERSION chain stayed gated' );
+
+		$queries = array();
+		AudienceActivator::maybe_migrate();
+
+		$this->assertSame( array(), $queries, 'a second request is a no-op' );
+	}
+
+	// ==================================================================
 	// maybe_migrate() — skips when table missing
 	// ==================================================================
 

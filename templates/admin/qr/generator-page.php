@@ -278,7 +278,8 @@ $ffc_qr_vcard_fields = array(
 							<tr id="ffc-qr-short-result-row" hidden>
 								<th scope="row"><?php esc_html_e( 'Short URL in the code', 'ffcertificate' ); ?></th>
 								<td>
-									<button type="button" class="button-link ffc-qr-short__result" id="ffc-qr-short-result" title="<?php esc_attr_e( 'Click to copy', 'ffcertificate' ); ?>"></button>
+									<?php // By hand: the label is the URL the script fills in, so the button starts empty (#1904). ?>
+									<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-copy ffc-qr-short__result" id="ffc-qr-short-result" title="<?php esc_attr_e( 'Click to copy', 'ffcertificate' ); ?>"></button>
 									<span class="ffc-qr-short__copied" id="ffc-qr-short-copied" role="status" aria-live="polite"></span>
 								</td>
 							</tr>
@@ -334,7 +335,16 @@ $ffc_qr_vcard_fields = array(
 			<div class="ffc-qr-generator__design">
 				<div class="ffc-qr-generator__design-head">
 					<h2 class="ffc-icon-palette"><?php esc_html_e( 'Design', 'ffcertificate' ); ?></h2>
-					<button type="button" class="button" id="ffc-qr-design-reset"><?php esc_html_e( 'Reset to default', 'ffcertificate' ); ?></button>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Reset to default', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'restore',
+							'id'       => 'ffc-qr-design-reset',
+						)
+					);
+					?>
 				</div>
 				<p class="description"><?php esc_html_e( 'The generator remembers your design when you download a code; "Reset to default" goes back to the global design from Settings → QR Code.', 'ffcertificate' ); ?></p>
 				<div class="ffc-sections">
@@ -384,14 +394,28 @@ $ffc_qr_vcard_fields = array(
 					</div>
 				</div>
 				<div class="ffc-qr-generator__actions">
-					<button type="button" class="button button-primary ffc-qr-generator__download" id="ffc-qr-download" disabled>
-						<?php echo Icons::svg( 'download', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
-						<?php esc_html_e( 'Download', 'ffcertificate' ); ?>
-					</button>
-					<button type="button" class="button ffc-qr-generator__print" id="ffc-qr-print" disabled>
-						<?php echo Icons::svg( 'print', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant icon markup. ?>
-						<span class="screen-reader-text"><?php esc_html_e( 'Print', 'ffcertificate' ); ?></span>
-					</button>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Download', 'ffcertificate' ),
+							'category' => 'primary',
+							'icon'     => 'download',
+							'id'       => 'ffc-qr-download',
+							'class'    => 'ffc-qr-generator__download',
+							'disabled' => true,
+						)
+					);
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'     => __( 'Print', 'ffcertificate' ),
+							'icon'      => 'print',
+							'icon_only' => true,
+							'id'        => 'ffc-qr-print',
+							'class'     => 'ffc-qr-generator__print',
+							'disabled'  => true,
+						)
+					);
+					?>
 				</div>
 			</div>
 		</div>
@@ -400,19 +424,55 @@ $ffc_qr_vcard_fields = array(
 	<div id="ffc-qr-short-saved" class="ffc-qr-saved" hidden>
 		<div class="ffc-qr-saved__backdrop" data-ffc-qr-saved-close></div>
 		<div class="ffc-qr-saved__dialog" role="dialog" aria-modal="true" aria-labelledby="ffc-qr-short-saved-title" aria-describedby="ffc-qr-short-saved-text">
-			<button type="button" class="ffc-qr-saved__close" data-ffc-qr-saved-close aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+			<?php
+			\FreeFormCertificate\Core\Button::render(
+				array(
+					'label'     => __( 'Close', 'ffcertificate' ),
+					'category'  => 'neutral',
+					'icon'      => 'cross',
+					'icon_only' => true,
+					'class'     => 'ffc-qr-saved__close',
+					'attrs'     => array( 'data-ffc-qr-saved-close' => true ),
+				)
+			);
+			?>
 			<span class="ffc-icon-success ffc-qr-saved__icon" aria-hidden="true"></span>
 			<h2 class="ffc-qr-saved__title" id="ffc-qr-short-saved-title"><?php esc_html_e( 'Short URL saved', 'ffcertificate' ); ?></h2>
 			<p class="ffc-qr-saved__text" id="ffc-qr-short-saved-text"></p>
 			<div class="ffc-qr-saved__link">
 				<label class="screen-reader-text" for="ffc-qr-short-saved-url"><?php esc_html_e( 'Short URL', 'ffcertificate' ); ?></label>
 				<input type="text" id="ffc-qr-short-saved-url" class="ffc-qr-saved__url" readonly>
-				<button type="button" class="button button-primary" id="ffc-qr-short-saved-copy"><?php esc_html_e( 'Copy', 'ffcertificate' ); ?></button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label'    => __( 'Copy', 'ffcertificate' ),
+						'category' => 'primary',
+						'icon'     => 'copy',
+						'id'       => 'ffc-qr-short-saved-copy',
+					)
+				);
+				?>
 			</div>
 			<p class="ffc-qr-saved__copied" id="ffc-qr-short-saved-copied" role="status" aria-live="polite"></p>
 			<p class="ffc-qr-saved__actions">
-				<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-short-urls' ) ); ?>"><?php esc_html_e( 'Open the Short URLs list', 'ffcertificate' ); ?></a>
-				<button type="button" class="button" data-ffc-qr-saved-close><?php esc_html_e( 'Close', 'ffcertificate' ); ?></button>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Open the Short URLs list', 'ffcertificate' ),
+						'icon'  => 'list',
+						'href'  => admin_url( 'admin.php?page=ffc-short-urls' ),
+					)
+				);
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Close', 'ffcertificate' ),
+						'icon'  => 'cross',
+						'attrs' => array(
+							'data-ffc-qr-saved-close' => true,
+						),
+					)
+				);
+				?>
 			</p>
 		</div>
 	</div>
