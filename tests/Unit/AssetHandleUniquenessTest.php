@@ -16,6 +16,12 @@
  * fails here rather than being skipped: an empty or partial reading must never
  * look like a clean one.
  *
+ * The converse holds too (#1931): a handle's source is declared in one class.
+ * WordPress keeps the first registration of a handle and ignores the source
+ * and dependencies of every later one, so a handle declared at several sites
+ * loads whichever ran first -- the order modules are wired in `Loader`. Shared
+ * handles live in `Core\AssetRegistry`; every other site names the handle.
+ *
  * @package FreeFormCertificate\Tests\Unit
  */
 
@@ -44,6 +50,15 @@ final class AssetHandleUniquenessTest extends TestCase {
 		'assets/css/ffc-admin.css' => 'users.php and the FFC screens each enqueue it with their own dependencies; no screen is both',
 	);
 
+	/**
+	 * Handles deliberately declared with a source in more than one class, each
+	 * with its reason. Empty since #1931 moved the last shared handle into
+	 * `Core\AssetRegistry`; an entry added here is a decision to defend.
+	 *
+	 * @var array<string, string>
+	 */
+	private const SHARED_DECLARATIONS = array();
+
 	public function test_no_asset_file_is_enqueued_under_two_handles(): void {
 		$this->assertSame(
 			array(),
@@ -57,6 +72,51 @@ final class AssetHandleUniquenessTest extends TestCase {
 		foreach ( array_keys( self::ALLOWED ) as $asset ) {
 			$this->assertArrayHasKey( $asset, $several, $asset . ' is down to one handle: drop it from ALLOWED.' );
 		}
+	}
+
+	public function test_every_handle_declares_its_source_in_one_class(): void {
+		$several = $this->handles_declared_in_several_files();
+
+		$this->assertSame(
+			array(),
+			array_diff_key( $several, self::SHARED_DECLARATIONS ),
+			'A handle declares its file in several classes, and WordPress keeps whichever ran first.'
+			. ' Declare it once in Core\AssetRegistry and enqueue it by handle elsewhere.'
+		);
+		$this->assertSame(
+			array(),
+			array_keys( array_diff_key( self::SHARED_DECLARATIONS, $several ) ),
+			'Declared in one class now: drop these from SHARED_DECLARATIONS.'
+		);
+	}
+
+	/**
+	 * The declaring files the token scan reports for a literal handle must be
+	 * the ones a plain regex over the comment-stripped code finds, so a scan
+	 * that stopped reading part of the tree cannot report "one class each".
+	 */
+	public function test_the_declaring_files_match_a_second_reading(): void {
+		$pattern = '/\\\\?wp_(?:enqueue|register)_(?:script|style)\s*\(\s*\'([a-z0-9-]+)\'\s*,\s*(?:FFC_PLUGIN_URL|plugins_url|\$\w+_url\b)/';
+		$regex   = array();
+		foreach ( PhpSource::files_under( 'includes' ) as $file ) {
+			if ( preg_match_all( $pattern, PhpSource::code( $file ), $m ) ) {
+				foreach ( $m[1] as $handle ) {
+					$regex[ $handle ][ $file ] = true;
+				}
+			}
+		}
+
+		$scan = array();
+		foreach ( AssetEnqueues::calls() as $call ) {
+			if ( null !== $call['asset'] && null !== $call['handle'] && isset( $regex[ $call['handle'] ] ) ) {
+				$scan[ $call['handle'] ][ $call['file'] ] = true;
+			}
+		}
+
+		ksort( $regex );
+		ksort( $scan );
+		$this->assertNotEmpty( $regex );
+		$this->assertSame( array_map( 'array_keys', $regex ), array_map( 'array_keys', $scan ) );
 	}
 
 	public function test_every_asset_call_has_a_handle_the_scan_can_read(): void {
@@ -135,6 +195,23 @@ final class AssetHandleUniquenessTest extends TestCase {
 				static fn ( array $c ): bool => null !== $c['asset']
 			)
 		);
+	}
+
+	/**
+	 * Handle => the files that declare its source, for the handles declared
+	 * in more than one.
+	 *
+	 * @return array<string, list<string>>
+	 */
+	private function handles_declared_in_several_files(): array {
+		$files = array();
+		foreach ( $this->asset_calls() as $call ) {
+			if ( null !== $call['handle'] ) {
+				$files[ $call['handle'] ][ $call['file'] ] = true;
+			}
+		}
+
+		return array_map( 'array_keys', array_filter( $files, static fn ( array $set ): bool => count( $set ) > 1 ) );
 	}
 
 	/**

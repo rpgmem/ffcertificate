@@ -392,20 +392,10 @@ class AdminAssetsManager {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		// 1. Base styles (PDF core)
-		wp_enqueue_style(
-			'ffc-pdf-core',
-			FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css",
-			array(),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-pdf-core' );
 
 		// 2. Common utilities (shared between admin and frontend)
-		wp_enqueue_style(
-			'ffc-common',
-			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-			array(),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
 		// 3. Admin-specific utilities (v3.1.0)
 		wp_enqueue_style(
@@ -417,12 +407,7 @@ class AdminAssetsManager {
 
 		// 3b. Admin components shared across screens (#1614): the collapsible
 		// section the QR and certificate screens draw.
-		wp_enqueue_style(
-			'ffc-admin-components',
-			FFC_PLUGIN_URL . "assets/css/ffc-admin-components{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-components' );
 
 		// 4. Admin general styles (depends on pdf-core, common, and admin-utilities)
 		wp_enqueue_style(
@@ -465,12 +450,7 @@ class AdminAssetsManager {
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-batched-export' );
 		// Shared progress-overlay modal styles (#786): the batched-export driver
 		// renders window.FFCProgressOverlay, identical to the public download.
-		wp_enqueue_style(
-			'ffc-progress-overlay',
-			FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 
 		// 3. Main admin script (depends on modules)
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-js' );

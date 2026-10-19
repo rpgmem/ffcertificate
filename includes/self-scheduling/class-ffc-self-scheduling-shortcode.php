@@ -70,36 +70,21 @@ class SelfSchedulingShortcode {
 		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 		// Enqueue FFC common styles (includes CSS variables, honeypot, captcha, etc.).
-		wp_enqueue_style(
-			'ffc-common',
-			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-			array(),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
 		// Enqueue FFC frontend styles.
 		// The handle the certificate form uses for the same sheet, so a page
 		// carrying both loads it once (#1922).
-		wp_enqueue_style(
-			'ffc-frontend-css',
-			FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-frontend-css' );
 
 		// Enqueue shared calendar styles (same as ffc-audience).
-		wp_enqueue_style(
-			'ffc-audience',
-			FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-audience-css' );
 
 		// Enqueue calendar frontend styles (timeslots, form, confirmation).
 		wp_enqueue_style(
 			'ffc-calendar-frontend',
 			FFC_PLUGIN_URL . "assets/css/ffc-calendar-frontend{$s}.css",
-			array( 'ffc-common', 'ffc-audience' ),
+			array( 'ffc-common', 'ffc-audience-css' ),
 			FFC_VERSION
 		);
 

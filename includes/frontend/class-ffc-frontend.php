@@ -161,13 +161,13 @@ class Frontend {
 			\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 			// CSS - Using centralized version constant.
-			wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
-			wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
-			wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css", array( 'ffc-pdf-core', 'ffc-common' ), FFC_VERSION );
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-pdf-core' );
+			\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-frontend-css' );
 			// Shared CSV progress-overlay modal styles (#786) — the base
 			// .ffc-csv-progress-* rules moved here from ffc-frontend.css so the
 			// admin exports render the identical modal; loaded on both surfaces.
-			wp_enqueue_style( 'ffc-progress-overlay', FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 
 			// Dynamic fragments: refresh captcha + nonces on cached pages so
 			// LiteSpeed/Varnish visitors don't submit with a stale nonce. The
@@ -616,9 +616,9 @@ class Frontend {
 
 		if ( ! $has_base_assets ) {
 			\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
-			wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
-			wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
-			wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css", array( 'ffc-pdf-core', 'ffc-common' ), FFC_VERSION );
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-pdf-core' );
+			\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-frontend-css' );
 		}
 
 		$modules = array( 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-preflight' );

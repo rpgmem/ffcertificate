@@ -172,6 +172,91 @@ final class AssetRegistry {
 	}
 
 	/**
+	 * Enqueue shared stylesheets by handle.
+	 *
+	 * Each sheet more than one screen loads is declared once, below, as a
+	 * literal call rather than a map: the stylesheet guards
+	 * (`StylesheetOwnershipTest`, `AdminStylesheetTokensTest`) read the
+	 * dependency graph off `wp_enqueue_style()` calls, and a declaration they
+	 * can read is a declaration they can hold (#1931).
+	 *
+	 * The palette is not here: `AssetHelper::enqueue_common_style` has been
+	 * its one declaration since #1126, and the caller enqueues it first, as
+	 * every sheet below depends on it.
+	 *
+	 * A handle this class does not declare is enqueued as given, so a caller
+	 * can mix shared and local sheets in one call.
+	 *
+	 * @param non-empty-string ...$handles Stylesheet handles.
+	 * @return void
+	 */
+	public static function enqueue_styles( string ...$handles ): void {
+		$s = AssetHelper::asset_suffix();
+
+		foreach ( $handles as $handle ) {
+			self::style( $handle, $s );
+		}
+	}
+
+	/**
+	 * One shared stylesheet, declared where the guards can read it.
+	 *
+	 * Dependencies are what every screen that loads the sheet needs. A screen
+	 * that needs a sheet BEFORE this one for its own reasons -- the certificate
+	 * page's `ffc-pdf-core`, the audience screen's `ffc-audience-admin` --
+	 * enqueues it first; it is not added here, or every other screen would
+	 * load it too.
+	 *
+	 * @param non-empty-string $handle Handle.
+	 * @param string           $s      The asset suffix.
+	 * @return void
+	 */
+	private static function style( string $handle, string $s ): void {
+		switch ( $handle ) {
+			case 'ffc-pdf-core':
+				\wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
+				return;
+			case 'ffc-admin-components':
+				\wp_enqueue_style( 'ffc-admin-components', FFC_PLUGIN_URL . "assets/css/ffc-admin-components{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+				return;
+			case 'ffc-admin-settings':
+				\wp_enqueue_style( 'ffc-admin-settings', FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$s}.css", array( 'ffc-common', 'ffc-admin-css' ), FFC_VERSION );
+				return;
+			case 'ffc-progress-overlay':
+				\wp_enqueue_style( 'ffc-progress-overlay', FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+				return;
+			case 'ffc-user-permissions':
+				\wp_enqueue_style( 'ffc-user-permissions', FFC_PLUGIN_URL . "assets/css/ffc-user-permissions{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+				return;
+			case 'ffc-qr-design-fields':
+				\wp_enqueue_style( 'ffc-qr-design-fields', FFC_PLUGIN_URL . "assets/css/ffc-qr-design-fields{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+				return;
+			case 'ffc-frontend-css':
+				\wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+				return;
+			// The four below share a file name with a script. WordPress keeps
+			// scripts and styles apart, so the bare names never collided, but a
+			// reader of `wp_dequeue_*( 'ffc-audience' )` had to look up which
+			// one was meant; the sheets take the `-css` suffix `ffc-admin-css`
+			// and `ffc-frontend-css` already carry (#1931).
+			case 'ffc-audience-css':
+				\wp_enqueue_style( 'ffc-audience-css', FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+				return;
+			case 'ffc-working-hours-css':
+				\wp_enqueue_style( 'ffc-working-hours-css', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+				return;
+			case 'ffc-custom-fields-admin-css':
+				\wp_enqueue_style( 'ffc-custom-fields-admin-css', FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+				return;
+			case 'ffc-url-shortener-admin-css':
+				\wp_enqueue_style( 'ffc-url-shortener-admin-css', FFC_PLUGIN_URL . "assets/css/ffc-url-shortener-admin{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+				return;
+			default:
+				\wp_enqueue_style( $handle );
+		}
+	}
+
+	/**
 	 * Register every shared script.
 	 *
 	 * @return void

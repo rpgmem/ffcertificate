@@ -552,8 +552,13 @@ class UrlShortenerMetaBoxTest extends TestCase {
 				$enqueued[] = $h;
 			}
 		);
-		// Shared scripts go through AssetRegistry, which calls the global
-		// functions (#1931).
+		// Shared scripts and styles go through AssetRegistry, which calls the
+		// global functions (#1931).
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $h ) use ( &$enqueued ) {
+				$enqueued[] = $h;
+			}
+		);
 		Functions\when( 'wp_enqueue_script' )->alias(
 			static function ( $h ) use ( &$enqueued ) {
 				$enqueued[] = $h;
@@ -565,6 +570,6 @@ class UrlShortenerMetaBoxTest extends TestCase {
 
 		$this->meta_box->enqueue_assets( 'post-new.php' );
 
-		$this->assertContains( 'ffc-url-shortener-admin', $enqueued );
+		$this->assertContains( 'ffc-url-shortener-admin-css', $enqueued );
 	}
 }

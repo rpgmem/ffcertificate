@@ -77,7 +77,7 @@ class QrGeneratorPage {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		// The design sections are a component shared with Settings → QR Code,
 		// owned by their own sheet (#1570); this page's sheet builds on it.
-		wp_enqueue_style( 'ffc-qr-design-fields', FFC_PLUGIN_URL . "assets/css/ffc-qr-design-fields{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-qr-design-fields' );
 		wp_enqueue_style( 'ffc-qr-generator', FFC_PLUGIN_URL . "assets/css/ffc-qr-generator{$s}.css", array( 'ffc-common', 'ffc-qr-design-fields' ), FFC_VERSION );
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-qr-raster', 'ffc-branding-media' );
 		wp_localize_script( 'ffc-branding-media', 'ffcBrandingMedia', array( 'chooseImage' => __( 'Select image', 'ffcertificate' ) ) );

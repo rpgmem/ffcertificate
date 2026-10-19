@@ -131,6 +131,7 @@ class AudienceShortcodeTest extends TestCase {
 
 		// Stub Utils for enqueue_styles
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
@@ -182,6 +183,7 @@ class AudienceShortcodeTest extends TestCase {
 		Functions\when('get_permalink')->justReturn('https://example.com/page');
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
@@ -225,6 +227,7 @@ class AudienceShortcodeTest extends TestCase {
 		$schedRepoMock->shouldReceive('get_by_id')->with(5)->andReturn($schedule);
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
@@ -267,6 +270,7 @@ class AudienceShortcodeTest extends TestCase {
 		$schedRepoMock->shouldReceive('get_by_user_access')->with(42)->andReturn(array());
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
@@ -351,6 +355,7 @@ class AudienceShortcodeTest extends TestCase {
 		$audRepoMock->shouldReceive('get_hierarchical')->andReturn(array());
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
@@ -409,6 +414,7 @@ class AudienceShortcodeTest extends TestCase {
 		$schedRepoMock->shouldReceive('get_by_id')->with(3)->andReturn($schedule);
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
@@ -456,6 +462,7 @@ class AudienceShortcodeTest extends TestCase {
 		$schedRepoMock->shouldReceive('get_by_id')->with(99)->andReturn(null);
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');
@@ -500,6 +507,7 @@ class AudienceShortcodeTest extends TestCase {
 		});
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 		$utilsMock->shouldReceive('enqueue_dark_mode');
 	}
@@ -809,6 +817,7 @@ class AudienceShortcodeTest extends TestCase {
 		$schedRepoMock->shouldReceive('get_all')->andReturn(array());
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
+		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
 		// The shortcode now enqueues the dark-mode toggle (#1126).
 		$utilsMock->shouldReceive('enqueue_dark_mode');

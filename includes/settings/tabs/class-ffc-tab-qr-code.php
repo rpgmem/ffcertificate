@@ -63,7 +63,7 @@ class TabQrCode extends SettingsTab {
 		// The design sections and tile pickers, shared with the QR generator (#1570).
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
-		wp_enqueue_style( 'ffc-qr-design-fields', FFC_PLUGIN_URL . "assets/css/ffc-qr-design-fields{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-qr-design-fields' );
 
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( self::SCRIPT_HANDLE );
 		wp_localize_script(

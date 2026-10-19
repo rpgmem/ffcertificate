@@ -90,12 +90,7 @@ class SelfSchedulingEditor {
 			)
 		);
 
-		wp_enqueue_style(
-			'ffc-common',
-			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
-			array(),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
 		// The vertical tabs the settings are split into (#1761) and the
 		// collapsible `.ffc-section` the Emails tab still holds (#1629), both
@@ -103,12 +98,7 @@ class SelfSchedulingEditor {
 		// switches panels, draws the state dots, and opens the tab holding a
 		// field the browser rejects; the sections script does the same for a
 		// closed section and keeps its chips live.
-		wp_enqueue_style(
-			'ffc-admin-components',
-			FFC_PLUGIN_URL . "assets/css/ffc-admin-components{$s}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-components' );
 		AdminUI::enqueue_vertical_tabs();
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-sections' );
 
