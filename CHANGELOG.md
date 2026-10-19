@@ -14,6 +14,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificate backgrounds are drawn in the PDF again** (#1954). The form editor saved the background image in the form's configuration, but the PDF generator read a legacy meta nothing writes, so the PDF came out white. The generator, the form cache and the repository now read the configuration first and fall back to the legacy meta, which older forms keep.
 - **The certificate template preview draws its background image** (#1958). The preview rendered the template body alone, and its script read only the form editor's field, so a template's background never appeared. The preview now places the template's image behind the body, as the PDF does.
 
+### Changed
+
+- **Certificate models revised and extended** (#1956). The three default models are redrawn, and three new defaults (models 4 to 6) join the pool. Existing installs receive the new bodies when the seeder runs on upgrade; user templates are not changed. The retired background image is removed.
+
 ## [6.41.0] (2026-10-19) — `2a4acb0a`
 
 ### Added

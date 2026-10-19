@@ -1,0 +1,62 @@
+<div style="width: 1123px;height: 794px;position: relative;overflow: hidden;font-family: Arial, Helvetica, sans-serif;color: #1e2a3a;background: #ffffff;box-sizing: border-box">
+    <div style="position: absolute;top: 0;left: 0;right: 0;height: 150px;background-color: #1e3a5f"></div>
+    <div style="position: absolute;top: 150px;left: 0;right: 0;height: 6px;background-color: #c9a227"></div>
+
+    <div style="position: absolute;top: 38px;left: 80px;width: 963px;text-align: center;box-sizing: border-box">
+        <p style="margin: 0;font-family: Georgia, 'Times New Roman', serif;font-size: 30pt;letter-spacing: 5px;text-transform: uppercase;color: #ffffff">Certificate of completion</p>
+        <p style="margin: 8px 0 0;font-size: 11pt;letter-spacing: 3px;text-transform: uppercase;color: #c9d6ea">Awarded in recognition of participation</p>
+    </div>
+
+    <div style="position: absolute;top: 210px;left: 80px;width: 963px;text-align: center;box-sizing: border-box">
+        <p style="margin: 0;font-size: 12pt;color: #52606d">This certificate is presented to</p>
+        <p style="margin: 14px auto 0;width: 700px;font-family: Georgia, 'Times New Roman', serif;font-size: 34pt;color: #1e3a5f">{{name}}</p>
+        <p style="margin: 6px 0 0;font-size: 11pt;color: #7b8794">CPF/RF {{cpf_rf}}</p>
+        <p style="margin: 22px 0 0;font-size: 12pt;color: #52606d">who has successfully completed</p>
+        <p style="margin: 8px 0 0;font-family: Georgia, 'Times New Roman', serif;font-size: 22pt;font-weight: bold;color: #1e2a3a">{{form_title}}</p>
+    </div>
+
+    <div style="position: absolute;top: 470px;left: 200px;width: 723px;box-sizing: border-box">
+        <table style="width: 100%;border-collapse: collapse;border-top: 1px solid #cbd2d9;border-bottom: 1px solid #cbd2d9">
+            <tr>
+                <td style="width: 33%;text-align: center;padding: 14px 0">
+                    <p style="margin: 0;font-size: 8.5pt;letter-spacing: 2px;text-transform: uppercase;color: #7b8794">Workload</p>
+                    <p style="margin: 4px 0 0;font-size: 13pt;color: #1e2a3a">4 hours</p>
+                </td>
+                <td style="width: 34%;text-align: center;padding: 14px 0;border-left: 1px solid #cbd2d9;border-right: 1px solid #cbd2d9">
+                    <p style="margin: 0;font-size: 8.5pt;letter-spacing: 2px;text-transform: uppercase;color: #7b8794">Completed on</p>
+                    <p style="margin: 4px 0 0;font-size: 13pt;color: #1e2a3a">25/12/2025</p>
+                </td>
+                <td style="width: 33%;text-align: center;padding: 14px 0">
+                    <p style="margin: 0;font-size: 8.5pt;letter-spacing: 2px;text-transform: uppercase;color: #7b8794">Issued in</p>
+                    <p style="margin: 4px 0 0;font-size: 13pt;color: #1e2a3a">San Diego, 26/12/2025</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="position: absolute;top: 615px;left: 200px;width: 723px;box-sizing: border-box">
+        <table style="width: 100%;border-collapse: collapse">
+            <tr>
+                <td style="width: 45%;text-align: center;vertical-align: bottom">
+                    <img src="/wp-content/plugins/ffcertificate/assets/img/certificate-defaults/default_assinagture_1.png" style="width: 130px;height: auto">
+                    <div style="border-top: 1px solid #1e2a3a;margin: 0 20px;padding-top: 6px">
+                        <strong style="font-size: 10.5pt">Speaker</strong><br>
+                        <span style="font-size: 9.5pt;color: #52606d">Joe Doe</span>
+                    </div>
+                </td>
+                <td style="width: 10%"></td>
+                <td style="width: 45%;text-align: center;vertical-align: bottom">
+                    <img src="/wp-content/plugins/ffcertificate/assets/img/certificate-defaults/default_assinagture_2.png" style="width: 130px;height: auto">
+                    <div style="border-top: 1px solid #1e2a3a;margin: 0 20px;padding-top: 6px">
+                        <strong style="font-size: 10.5pt">Director</strong><br>
+                        <span style="font-size: 9.5pt;color: #52606d">Jane Doe</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="position: absolute;top: 740px;left: 80px;width: 963px;text-align: center;font-size: 8.5pt;color: #7b8794;box-sizing: border-box">
+        {{qr_code:size=50:margin=0}} &nbsp; Verify at {{validation_url}} with code <strong>{{auth_code}}</strong>
+    </div>
+</div>

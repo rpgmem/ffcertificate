@@ -3840,6 +3840,18 @@ msgstr "Modelo de certificado 2"
 msgid "Certificate model 3"
 msgstr "Modelo de certificado 3"
 
+#: includes/admin/class-ffc-cert-template-seeder.php:277
+msgid "Certificate model 4"
+msgstr "Modelo de certificado 4"
+
+#: includes/admin/class-ffc-cert-template-seeder.php:283
+msgid "Certificate model 5"
+msgstr "Modelo de certificado 5"
+
+#: includes/admin/class-ffc-cert-template-seeder.php:289
+msgid "Certificate model 6"
+msgstr "Modelo de certificado 6"
+
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:288
 msgid "Certificate not found"
 msgstr "Certificado não encontrado"

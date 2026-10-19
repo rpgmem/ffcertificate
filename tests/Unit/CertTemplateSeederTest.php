@@ -31,7 +31,7 @@ class CertTemplateSeederTest extends TestCase {
 	}
 
 	public function test_maybe_seed_skips_when_already_seeded(): void {
-		Functions\when( 'get_option' )->justReturn( 5 ); // >= SEED_VERSION
+		Functions\when( 'get_option' )->justReturn( 6 ); // >= SEED_VERSION
 		Functions\expect( 'wp_insert_post' )->never();
 		Functions\expect( 'update_option' )->never();
 
@@ -46,9 +46,9 @@ class CertTemplateSeederTest extends TestCase {
 		// #871 assets/ image-path fix reaches the install — not re-run the
 		// create-only seed() (which would leave the stale body in place).
 		Functions\when( 'get_option' )->justReturn( 1 );
-		// All six shipped defaults already present (3 certificate + 2 receipt +
+		// All nine shipped defaults already present (6 certificate + 2 receipt +
 		// 1 record) → restore() refreshes every body, inserts nothing.
-		Functions\when( 'get_posts' )->justReturn( array( 11, 12, 13, 14, 15, 16 ) );
+		Functions\when( 'get_posts' )->justReturn( array( 11, 12, 13, 14, 15, 16, 17, 18, 19 ) );
 		Functions\when( 'get_post_meta' )->alias(
 			static function ( $id ) {
 				$map = array(
@@ -58,6 +58,9 @@ class CertTemplateSeederTest extends TestCase {
 					14 => 'default_appointment_receipt_regular',
 					15 => 'default_appointment_receipt_custom',
 					16 => 'default_ficha',
+					17 => 'default_certificate_4',
+					18 => 'default_certificate_5',
+					19 => 'default_certificate_6',
 				);
 				return $map[ $id ] ?? '';
 			}
@@ -83,12 +86,12 @@ class CertTemplateSeederTest extends TestCase {
 
 		CertTemplateSeeder::maybe_seed();
 
-		$this->assertCount( 6, $refreshed, 'all six default bodies refreshed on the bump' );
+		$this->assertCount( 9, $refreshed, 'all nine default bodies refreshed on the bump' );
 		// The three certificate defaults still resolve their background under assets/.
 		foreach ( array( 11, 12, 13 ) as $cert_id ) {
 			$this->assertStringContainsString( 'assets/img/certificate-defaults/', (string) $refreshed[ $cert_id ] );
 		}
-		$this->assertSame( 5, $bumped[1], 'flag bumped to the new seed version' );
+		$this->assertSame( 6, $bumped[1], 'flag bumped to the new seed version' );
 	}
 
 	public function test_maybe_seed_seeds_all_defaults_and_bumps_flag(): void {
@@ -130,9 +133,9 @@ class CertTemplateSeederTest extends TestCase {
 
 		CertTemplateSeeder::maybe_seed();
 
-		// 3 certificate defaults + 2 appointment-receipt defaults (#945) + 1 record (#951).
-		$this->assertSame( 6, $inserted, 'seeds all six shipped defaults' );
-		$this->assertCount( 6, $meta );
+		// 6 certificate defaults + 2 appointment-receipt defaults (#945) + 1 record (#951).
+		$this->assertSame( 9, $inserted, 'seeds all nine shipped defaults' );
+		$this->assertCount( 9, $meta );
 
 		$certificates = array();
 		$receipts     = array();
@@ -153,13 +156,18 @@ class CertTemplateSeederTest extends TestCase {
 			}
 		}
 
-		$this->assertCount( 3, $certificates, 'three certificate defaults' );
+		$this->assertCount( 6, $certificates, 'six certificate defaults' );
 		$this->assertCount( 2, $receipts, 'two appointment-receipt defaults' );
 		$this->assertCount( 1, $records, 'one record default' );
 
 		foreach ( $certificates as $kv ) {
-			// Certificate defaults carry the shipped background in the dedicated field.
-			$this->assertStringContainsString( 'certificate-defaults/default_background_certificate', $kv[ CertTemplateCpt::META_BG_IMAGE ] );
+			// Models 1 and 2 carry their shipped background in the dedicated field;
+			// models 3 to 6 are drawn in CSS and have none.
+			if ( in_array( $kv[ CertTemplateCpt::META_DEFAULT_SLUG ], array( 'default_certificate_1', 'default_certificate_2' ), true ) ) {
+				$this->assertStringContainsString( 'certificate-defaults/default_background_certificate', $kv[ CertTemplateCpt::META_BG_IMAGE ] );
+			} else {
+				$this->assertSame( '', $kv[ CertTemplateCpt::META_BG_IMAGE ] );
+			}
 			$this->assertStringNotContainsString( 'default_background_certificate', $kv[ CertTemplateCpt::META_HTML ] );
 		}
 		foreach ( $receipts as $kv ) {
@@ -168,11 +176,11 @@ class CertTemplateSeederTest extends TestCase {
 		}
 
 		$this->assertSame( 'ffc_cert_templates_seeded_version', $bumped[0] );
-		$this->assertSame( 5, $bumped[1] );
+		$this->assertSame( 6, $bumped[1] );
 	}
 
 	public function test_seed_is_non_destructive_when_all_slugs_exist(): void {
-		Functions\when( 'get_posts' )->justReturn( array( 11, 12, 13, 14, 15, 16 ) );
+		Functions\when( 'get_posts' )->justReturn( array( 11, 12, 13, 14, 15, 16, 17, 18, 19 ) );
 		Functions\when( 'get_post_meta' )->alias(
 			static function ( $id ) {
 				$map = array(
@@ -182,6 +190,9 @@ class CertTemplateSeederTest extends TestCase {
 					14 => 'default_appointment_receipt_regular',
 					15 => 'default_appointment_receipt_custom',
 					16 => 'default_ficha',
+					17 => 'default_certificate_4',
+					18 => 'default_certificate_5',
+					19 => 'default_certificate_6',
 				);
 				return $map[ $id ] ?? '';
 			}
@@ -194,7 +205,7 @@ class CertTemplateSeederTest extends TestCase {
 	}
 
 	public function test_restore_refreshes_existing_and_adds_missing(): void {
-		// One shipped default already present (slug _1 → id 11); the other two missing.
+		// One shipped default already present (slug _1 → id 11); the other eight missing.
 		Functions\when( 'get_posts' )->justReturn( array( 11 ) );
 		Functions\when( 'get_post_meta' )->alias(
 			static fn( $id ) => 11 === $id ? 'default_certificate_1' : ''
@@ -223,9 +234,9 @@ class CertTemplateSeederTest extends TestCase {
 		);
 		$this->assertNotEmpty( $refreshed, 'existing default HTML is refreshed' );
 
-		// The five missing defaults were (re)created (cert_2, cert_3, the two
+		// The eight missing defaults were (re)created (cert_2 to cert_6, the two
 		// receipt defaults + the record default); the present one (#11) was not.
-		$this->assertSame( 5, $inserted, 'the five missing defaults are inserted' );
+		$this->assertSame( 8, $inserted, 'the eight missing defaults are inserted' );
 	}
 
 	/**
@@ -344,7 +355,7 @@ class CertTemplateSeederTest extends TestCase {
 		CertTemplateSeeder::maybe_seed();
 
 		$this->assertSame( 'ffc_cert_templates_seeded_version', $bumped[0] ?? null );
-		$this->assertSame( 5, $bumped[1] ?? null, 'a partial seed still counts as applied' );
+		$this->assertSame( 6, $bumped[1] ?? null, 'a partial seed still counts as applied' );
 	}
 
 	public function test_seed_html_references_shipped_assets_not_html_folder(): void {

@@ -3842,6 +3842,18 @@ msgstr ""
 msgid "Certificate model 3"
 msgstr ""
 
+#: includes/admin/class-ffc-cert-template-seeder.php:277
+msgid "Certificate model 4"
+msgstr ""
+
+#: includes/admin/class-ffc-cert-template-seeder.php:283
+msgid "Certificate model 5"
+msgstr ""
+
+#: includes/admin/class-ffc-cert-template-seeder.php:289
+msgid "Certificate model 6"
+msgstr ""
+
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:288
 msgid "Certificate not found"
 msgstr ""
