@@ -143,9 +143,9 @@ class IdentitySearchWiringTest extends TestCase {
 		$page->enqueue( 'ffc_form_page_' . IdentityResolutionPage::MENU_SLUG );
 
 		$this->assertArrayHasKey( 'ffc-identity-search', $this->scripts );
-		$this->assertStringEndsWith( 'assets/js/ffc-identity-search.js', $this->scripts['ffc-identity-search'] );
+		$this->assertMatchesRegularExpression( '#assets/js/ffc-identity-search(\.min)?\.js$#', $this->scripts['ffc-identity-search'] );
 		$this->assertArrayHasKey( 'ffc-identity-preflight', $this->scripts );
-		$this->assertStringEndsWith( 'assets/js/ffc-identity-preflight.js', $this->scripts['ffc-identity-preflight'] );
+		$this->assertMatchesRegularExpression( '#assets/js/ffc-identity-preflight(\.min)?\.js$#', $this->scripts['ffc-identity-preflight'] );
 	}
 
 	/**
