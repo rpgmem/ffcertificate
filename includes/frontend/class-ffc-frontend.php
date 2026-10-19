@@ -246,30 +246,16 @@ class Frontend {
 
 		if ( $has_form || $has_verification ) {
 			// PDF Libraries - Using centralized version constants.
-			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
-			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', array(), FFC_JSPDF_VERSION, true );
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'html2canvas', 'jspdf' );
 
 			// PDF Generator (shared module).
-			wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js", array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
 
 			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-core', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
 
-			// ffc-core dep: ffc-geofence-frontend.js calls FFC.request() (6 sites incl. the pre-flight telemetry endpoint added in 6.6.4 follow-up).
-			wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
-
-			// Validation modules split out of the former monolith. Each extends
-			// the window.FFCGeofence object (Object.assign) and depends on the
-			// core handle so it loads after it. The geofence config localize
-			// stays on 'ffc-geofence-frontend'.
-			foreach (
-				array(
-					'ffc-geofence-datetime',
-					'ffc-geofence-gps',
-					'ffc-geofence-preflight',
-				) as $ffc_geofence_module
-			) {
-				wp_enqueue_script( $ffc_geofence_module, FFC_PLUGIN_URL . "assets/js/{$ffc_geofence_module}{$s}.js", array( 'jquery', 'ffc-geofence-frontend' ), FFC_VERSION, true );
-			}
+			// The geofence core and its validation modules; the geofence config
+			// localize stays on 'ffc-geofence-frontend'.
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend', 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-preflight' );
 
 			// Pass geofence configurations to frontend.
 			$this->localize_geofence_config();
@@ -421,13 +407,7 @@ class Frontend {
 			// Shared batched-export driver (#772): the start → batch → download
 			// loop for the unified `ffc_export_*` dispatcher, used by the
 			// download-flow module below (and by the admin CSV export button).
-			wp_enqueue_script(
-				'ffc-batched-export',
-				FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
-				array( 'jquery', 'ffc-core' ),
-				FFC_VERSION,
-				true
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-batched-export' );
 
 			// Flow modules split out of the former monolith. Each depends on
 			// 'ffc-csv-download' (the shared core that owns window.FFCCsv) and
@@ -641,11 +621,8 @@ class Frontend {
 			wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css", array( 'ffc-pdf-core', 'ffc-common' ), FFC_VERSION );
 		}
 
-		wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		$modules = array( 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-preflight' );
-		foreach ( $modules as $module ) {
-			wp_enqueue_script( $module, FFC_PLUGIN_URL . "assets/js/{$module}{$s}.js", array( 'jquery', 'ffc-geofence-frontend' ), FFC_VERSION, true );
-		}
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend', ...$modules );
 
 		wp_enqueue_script( GeofenceContent::SCRIPT_HANDLE, FFC_PLUGIN_URL . "assets/js/ffc-geofence-content{$s}.js", array_merge( array( 'jquery', 'ffc-core' ), $modules ), FFC_VERSION, true );
 		wp_localize_script(

@@ -22,6 +22,10 @@ class FormEditorMetaboxRendererTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		// `LabelSorter::locale()` is guarded by `function_exists( 'get_locale' )`,
 		// so this used to take the no-WordPress branch only because nothing in

@@ -231,7 +231,6 @@ class AdminAssetsManager {
 	 * @return void
 	 */
 	public static function enqueue_image_tools(): void {
-		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 		wp_enqueue_media();
 
@@ -239,13 +238,7 @@ class AdminAssetsManager {
 		// which Core\AssetRegistry registers on every admin request (#1924).
 		wp_enqueue_script( 'ffc-core' );
 
-		wp_enqueue_script(
-			'ffc-admin-pdf',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-pdf{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-pdf' );
 		wp_localize_script(
 			'ffc-admin-pdf',
 			'ffc_ajax',
@@ -464,24 +457,12 @@ class AdminAssetsManager {
 		);
 
 		// 2. PDF Management module.
-		wp_enqueue_script(
-			'ffc-admin-pdf',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-pdf{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-pdf' );
 
 		// 2b. Shared batched-export driver (#772): the start → batch → download
 		// loop for the unified `ffc_export_*` dispatcher, used by the CSV export
 		// button in ffc-admin.js. Also enqueued on the public download page.
-		wp_enqueue_script(
-			'ffc-batched-export',
-			FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-batched-export' );
 		// Shared progress-overlay modal styles (#786): the batched-export driver
 		// renders window.FFCProgressOverlay, identical to the public download.
 		wp_enqueue_style(
@@ -492,13 +473,7 @@ class AdminAssetsManager {
 		);
 
 		// 3. Main admin script (depends on modules)
-		wp_enqueue_script(
-			'ffc-admin-js',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js",
-			array( 'jquery', 'ffc-admin-field-builder', 'ffc-admin-pdf', 'ffc-batched-export' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-admin-js' );
 
 		// 4. Localize — attach to field-builder so strings are available to all dependent scripts.
 		wp_localize_script( 'ffc-admin-field-builder', 'ffc_ajax', $this->get_localization_data() );

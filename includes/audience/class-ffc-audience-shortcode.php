@@ -783,13 +783,7 @@ class AudienceShortcode {
 
 		// JavaScript.
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-audience',
-			FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-audience' );
 
 		// Calendar modules split out of the former monolith. Each depends on
 		// 'ffc-audience' (the shared core that owns window.FFCAudience and the

@@ -34,6 +34,10 @@ class UrlShortenerMetaBoxTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
@@ -544,6 +548,13 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		// The meta box now calls AssetHelper::enqueue_common_style(), which
 		// enqueues from the Core namespace (#1126 B).
 		Functions\when( 'FreeFormCertificate\Core\wp_enqueue_style' )->alias(
+			static function ( $h ) use ( &$enqueued ) {
+				$enqueued[] = $h;
+			}
+		);
+		// Shared scripts go through AssetRegistry, which calls the global
+		// functions (#1931).
+		Functions\when( 'wp_enqueue_script' )->alias(
 			static function ( $h ) use ( &$enqueued ) {
 				$enqueued[] = $h;
 			}

@@ -671,18 +671,12 @@ class AdminUI {
 	 * Enqueue the vertical-tab script, for a screen that prints the
 	 * component.
 	 *
-	 * Also registers `ffc-form-editor-tabs`, the handle the script had while
-	 * it served only the certificate form editor, as a deprecated alias with
-	 * no source of its own: a third-party script that names it as a
-	 * dependency still gets the tabs (#1788). Every screen that draws the
-	 * tabs goes through here, so the alias exists wherever the script does.
-	 *
 	 * @return void
 	 */
 	public static function enqueue_vertical_tabs(): void {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		// ffc-core: the required-tag banner is drawn by FFC.notice() (#1843).
-		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			self::VERTICAL_TABS_HANDLE,
 			FFC_PLUGIN_URL . "assets/js/ffc-vertical-tabs{$s}.js",
@@ -690,8 +684,6 @@ class AdminUI {
 			FFC_VERSION,
 			true
 		);
-		// @removal 6.41.0 -- deprecated alias of the old handle (#1788).
-		wp_register_script( 'ffc-form-editor-tabs', false, array( self::VERTICAL_TABS_HANDLE ), FFC_VERSION, true );
 	}
 
 	/**
@@ -702,11 +694,6 @@ class AdminUI {
 	/**
 	 * Enqueue the script behind the shortcode copy button, for a screen that
 	 * prints {@see self::render_shortcode_copy()}.
-	 *
-	 * Also registers `ffc-form-list-copy-shortcode`, the handle the script
-	 * had while it served only the certificate forms list, as a deprecated
-	 * alias with no source of its own: a third-party script that names it as
-	 * a dependency still gets the button (#1814).
 	 *
 	 * @return void
 	 */
@@ -719,8 +706,6 @@ class AdminUI {
 			FFC_VERSION,
 			true
 		);
-		// @removal 6.41.0 -- deprecated alias of the old handle (#1814).
-		wp_register_script( 'ffc-form-list-copy-shortcode', false, array( self::SHORTCODE_COPY_HANDLE ), FFC_VERSION, true );
 	}
 
 	/**

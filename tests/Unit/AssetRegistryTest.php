@@ -42,8 +42,16 @@ class AssetRegistryTest extends TestCase {
 		$registered = &$this->registered;
 		$localized  = &$this->localized;
 
+		// WordPress refuses a handle that is already registered and says so by
+		// returning false; the double does the same, so a registration that
+		// is attempted twice is recorded once, as the real registry holds it.
 		Functions\when( 'wp_register_script' )->alias(
 			function ( $handle, $src, $deps = array(), $ver = false, $in_footer = false ) use ( &$registered ) {
+				foreach ( $registered as $existing ) {
+					if ( $handle === $existing['handle'] ) {
+						return false;
+					}
+				}
 				$registered[] = array(
 					'handle'    => $handle,
 					'src'       => $src,
@@ -51,6 +59,7 @@ class AssetRegistryTest extends TestCase {
 					'ver'       => $ver,
 					'in_footer' => $in_footer,
 				);
+				return true;
 			}
 		);
 		Functions\when( 'wp_localize_script' )->alias(
@@ -188,8 +197,6 @@ class AssetRegistryTest extends TestCase {
 	// ==================================================================
 
 	public function test_admin_registers_ffc_core_with_its_configuration(): void {
-		Functions\when( 'wp_script_is' )->justReturn( false );
-
 		AssetRegistry::register_admin();
 
 		$core = $this->registration( 'ffc-core' );
@@ -199,14 +206,143 @@ class AssetRegistryTest extends TestCase {
 		$this->assertCount( 1, $this->localizations( 'ffc-core' ) );
 	}
 
-	public function test_admin_is_a_noop_when_ffc_core_is_already_registered(): void {
-		// Something registered it first: registering again would print the
+	public function test_ffc_core_is_not_localized_again_when_something_registered_it_first(): void {
+		// Something registered it first: localizing again would print the
 		// configuration a second time.
-		Functions\when( 'wp_script_is' )->justReturn( true );
+		$this->registered[] = array(
+			'handle'    => 'ffc-core',
+			'src'       => 'elsewhere',
+			'deps'      => array(),
+			'ver'       => false,
+			'in_footer' => true,
+		);
 
 		AssetRegistry::register_admin();
 
+		$this->assertSame( 'elsewhere', $this->registration( 'ffc-core' )['src'] );
+		$this->assertSame( array(), $this->localizations( 'ffc-core' ) );
+	}
+
+	public function test_both_hooks_register_the_same_shared_scripts(): void {
+		AssetRegistry::register_admin();
+		$admin = array_column( $this->registered, 'handle' );
+
+		$this->registered = array();
+		$this->localized  = array();
+		AssetRegistry::register_frontend();
+		$front = array_column( $this->registered, 'handle' );
+
+		$this->assertSame( array(), array_diff( $admin, $front ), 'A script one screen shares must resolve on the other side too.' );
+		$this->assertContains( 'ffc-pdf-generator', $admin );
+		$this->assertContains( 'ffc-admin-js', $admin );
+	}
+
+	// ==================================================================
+	// The shared definitions (#1931)
+	// ==================================================================
+
+	/**
+	 * Every shared script follows SCRIPT_DEBUG, including the ones whose
+	 * sites named a literal path: `ffc-qr-raster` and `ffc-url-shortener-admin`
+	 * served their readable source in production, and the reregistration
+	 * screen served `ffc-pdf-generator.min.js` with SCRIPT_DEBUG on.
+	 */
+	public function test_every_shared_script_follows_the_suffix(): void {
+		AssetRegistry::register_admin();
+
+		foreach ( $this->registered as $script ) {
+			if ( in_array( $script['handle'], array( 'html2canvas', 'jspdf' ), true ) ) {
+				continue;
+			}
+			$this->assertStringEndsWith( '.min.js', $script['src'], $script['handle'] );
+			$this->assertSame( FFC_VERSION, $script['ver'], $script['handle'] );
+			$this->assertTrue( $script['in_footer'], $script['handle'] );
+		}
+	}
+
+	public function test_the_vendored_bundles_carry_their_version_in_the_file_name(): void {
+		AssetRegistry::register_admin();
+
+		$canvas = $this->registration( 'html2canvas' );
+		$this->assertStringEndsWith( 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', $canvas['src'] );
+		$this->assertSame( FFC_HTML2CANVAS_VERSION, $canvas['ver'] );
+
+		$pdf = $this->registration( 'jspdf' );
+		$this->assertStringEndsWith( 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', $pdf['src'] );
+		$this->assertSame( FFC_JSPDF_VERSION, $pdf['ver'] );
+	}
+
+	/**
+	 * The dependencies the call sites used to restate, asserted once here.
+	 *
+	 * @return array<string, array{0: string, 1: list<string>}>
+	 */
+	public static function dependencies(): array {
+		return array(
+			'autosave reaches FFC.request and the FFC.Admin namespace' => array( 'ffc-admin-autosave', array( 'jquery', 'ffc-core', 'ffc-admin-js' ) ),
+			'the admin script carries the export button driver'       => array( 'ffc-admin-js', array( 'jquery', 'ffc-core', 'ffc-batched-export' ) ),
+			'the field behaviours build on FFC'                       => array( 'ffc-field-behaviours', array( 'jquery', 'ffc-core' ) ),
+			'the PDF generator needs both bundles and jQuery'         => array( 'ffc-pdf-generator', array( 'jquery', 'html2canvas', 'jspdf' ) ),
+			'the calendar core needs nothing of FFC'                  => array( 'ffc-calendar-core', array( 'jquery' ) ),
+			'the geofence modules extend the geofence core'           => array( 'ffc-geofence-gps', array( 'jquery', 'ffc-geofence-frontend' ) ),
+			'the URL shortener script calls FFC.request and the QR raster' => array( 'ffc-url-shortener-admin', array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-qr-raster' ) ),
+		);
+	}
+
+	/**
+	 * @dataProvider dependencies
+	 *
+	 * @param string       $handle Handle.
+	 * @param list<string> $deps   Expected dependencies.
+	 */
+	public function test_a_shared_script_declares_its_dependencies( string $handle, array $deps ): void {
+		AssetRegistry::register_admin();
+
+		$this->assertSame( $deps, $this->registration( $handle )['deps'] );
+	}
+
+	// ==================================================================
+	// enqueue_scripts()
+	// ==================================================================
+
+	public function test_enqueue_registers_the_handle_and_its_shared_dependencies_first(): void {
+		$order = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			function ( $handle ) use ( &$order ) {
+				$order[] = 'enqueue:' . $handle;
+			}
+		);
+
+		AssetRegistry::enqueue_scripts( 'ffc-admin-autosave' );
+
+		$handles = array_column( $this->registered, 'handle' );
+		$this->assertSame( array( 'ffc-core', 'ffc-batched-export', 'ffc-admin-js', 'ffc-admin-autosave' ), $handles, 'Nothing it depends on may be unknown when it is enqueued, or WordPress drops it in silence.' );
+		$this->assertSame( array( 'enqueue:ffc-admin-autosave' ), $order, 'Only the handle asked for is enqueued; its dependencies follow through WordPress.' );
+		$this->assertCount( 1, $this->localizations( 'ffc-core' ) );
+	}
+
+	public function test_enqueue_registers_nothing_twice_across_calls(): void {
+		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+
+		AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-field-behaviours' );
+		AssetRegistry::enqueue_scripts( 'ffc-rate-limit', 'ffc-pdf-generator' );
+
+		$handles = array_column( $this->registered, 'handle' );
+		$this->assertSame( $handles, array_values( array_unique( $handles ) ) );
+		$this->assertCount( 1, $this->localizations( 'ffc-core' ), 'ffcCoreConfig is attached once, by the registration that succeeded.' );
+	}
+
+	public function test_enqueue_passes_a_handle_it_does_not_know_through_unregistered(): void {
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			function ( $handle ) use ( &$enqueued ) {
+				$enqueued[] = $handle;
+			}
+		);
+
+		AssetRegistry::enqueue_scripts( 'wp-color-picker' );
+
 		$this->assertSame( array(), $this->registered );
-		$this->assertSame( array(), $this->localized );
+		$this->assertSame( array( 'wp-color-picker' ), $enqueued );
 	}
 }

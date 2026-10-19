@@ -76,13 +76,7 @@ class AdminConditionalAssets {
 			// Branding logo media picker (#865 Phase 2) — the generic
 			// data-ffc-media-target handler for the Settings → General logo
 			// fields. wp_enqueue_media() already runs for FFC admin pages.
-			wp_enqueue_script(
-				'ffc-branding-media',
-				FFC_PLUGIN_URL . "assets/js/ffc-branding-media{$s}.js",
-				array( 'jquery' ),
-				FFC_VERSION,
-				true
-			);
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-branding-media' );
 			wp_localize_script(
 				'ffc-branding-media',
 				'ffcBrandingMedia',
@@ -177,13 +171,7 @@ class AdminConditionalAssets {
 			FFC_VERSION
 		);
 
-		wp_enqueue_script(
-			'ffc-calendar-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-calendar-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-calendar-core' );
 
 		wp_enqueue_script(
 			'ffc-certificates-dashboard',
@@ -257,13 +245,7 @@ class AdminConditionalAssets {
 	private function enqueue_submissions_bulk_assets(): void {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			'ffc-admin-submissions-bulk',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-submissions-bulk{$s}.js",
