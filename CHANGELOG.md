@@ -37,6 +37,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The identity audit query is split by what it does** (#1925). `IdentityConflictQuery` keeps the grouped account checks and the finding vocabulary; the check-digit scan, the per-account facts, the email and shape verdicts and the store probes are now their own classes, called directly. No behaviour change.
 - **The identity screen's view holds no derivation** (#1925). The panels by tier, cursors, coverage verdicts and counters are built by `IdentityResolutionScreen`, and the store, account, identifier and tier names come from `IdentityResolutionLabels`, both covered; the rendered page is byte-identical.
 - **The identity screen's markup is one partial per panel** (#1925). The 2,900-line view is now the page's order, about 180 lines, requiring eleven partials under `templates/admin/identity/`; the rendered page is byte-identical.
+- **Appointment decryption reads the sensitive-field registry** (#1934). `Encryption::decrypt_appointment()` takes its columns from the declaration the writer encrypts from, so a new field is decrypted without a second list; a ciphertext that fails now falls back to the plaintext column for the e-mail and IP too, as it already did for phone and custom data.
 
 ### Fixed
 
@@ -57,6 +58,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - ⚠ **The deprecated script aliases reached their removal release** (#1788, #1814). The handles `ffc-form-editor-tabs` and `ffc-form-list-copy-shortcode` and the global `FFC.FormEditorTabs` are gone; a script that still names them should use `ffc-vertical-tabs`, `ffc-copy-shortcode` and `FFC.VerticalTabs`.
 - ⚠ **Four stylesheet handles took a `-css` suffix** (#1931). `ffc-audience`, `ffc-working-hours`, `ffc-custom-fields-admin` and `ffc-url-shortener-admin` named both a script and a sheet; the sheets are now `ffc-audience-css`, `ffc-working-hours-css`, `ffc-custom-fields-admin-css` and `ffc-url-shortener-admin-css`. A sheet that depends on the old names should use the new ones.
+
+### Deprecated
+
+- **Four unused `Encryption` helpers** (#1934). `encrypt_submission()` (which never encrypted CPF or RF), `decrypt_submission()`, `get_info()` and `test()` emit a deprecation notice and leave in 6.43.0; use `SensitiveFieldRegistry::encrypt_fields()`, `decrypt_field()` and `key_health_report()`. `get_info()` no longer claims PBKDF2 for a key used as given, nor credits a key too short to be used.
 
 ## [6.40.0] (2026-10-17) — `10d1bbc6`
 
