@@ -12,6 +12,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **PDFs no longer stretch images to fit their box** (#1952). The vendored html2canvas 1.4.1 ignored `object-fit`, so a background whose aspect was not A4 came out stretched in the certificate, record and receipt PDFs while the preview showed it cropped; the maintained fork html2canvas-pro 2.5.0 replaces it with the same API. Such a background now prints cropped, as previewed. The PDF needs Safari 13.4 / Chrome 80 or later.
 - **Every vendored library ships its licence** (#1952). jsPDF and thumbmark now carry their MIT `LICENSE` file beside the bundle, as ALTCHA and html2canvas-pro do, and `VendoredBundleInventoryTest` fails a bundle that arrives without one.
 
+### Changed
+
+- **Certificate models revised and extended** (#1956). The three default models are redrawn, and three new defaults (models 4 to 6) join the pool. Existing installs receive the new bodies when the seeder runs on upgrade; user templates are not changed. The retired background image is removed.
+
 ## [6.41.0] (2026-10-19) — `2a4acb0a`
 
 ### Added
