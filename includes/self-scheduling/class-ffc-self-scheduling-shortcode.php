@@ -105,54 +105,20 @@ class SelfSchedulingShortcode {
 
 		// Enqueue FFC frontend helpers (for CPF/RF mask), with the shared
 		// field behaviours its mask and validators come from (#1920).
-		// ffc-core dep: ffc-frontend-helpers.js calls FFC.request() internally.
-		// `ffc-rate-limit` is the handle Loader registers for this file; a
-		// second handle loaded it twice on a page that also carries a
-		// certificate form, each copy with its own state (#1922). The source
-		// is repeated so the call still works where Loader did not register it.
-		wp_enqueue_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
-		wp_enqueue_script(
-			'ffc-rate-limit',
-			FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-field-behaviours' ),
-			FFC_VERSION,
-			true
-		);
+		// `ffc-rate-limit` is the one handle for this file; a second handle
+		// loaded it twice on a page that also carries a certificate form, each
+		// copy with its own state (#1922).
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-field-behaviours', 'ffc-rate-limit' );
 
 		// Enqueue shared calendar core component.
-		// ffc-core dep: ffc-calendar-core.js calls FFC.request() internally.
-		wp_enqueue_script(
-			'ffc-calendar-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-calendar-core{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-calendar-core' );
 
 		// PDF Libraries for auto-download receipt on booking.
-		wp_enqueue_script(
-			'html2canvas',
-			FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js',
-			array(),
-			FFC_HTML2CANVAS_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'html2canvas' );
 
-		wp_enqueue_script(
-			'jspdf',
-			FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js',
-			array(),
-			FFC_JSPDF_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'jspdf' );
 
-		wp_enqueue_script(
-			'ffc-pdf-generator',
-			FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js",
-			array( 'jquery', 'html2canvas', 'jspdf' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
 
 		// Enqueue calendar frontend scripts.
 		wp_enqueue_script(

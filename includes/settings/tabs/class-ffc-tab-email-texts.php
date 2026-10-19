@@ -77,13 +77,7 @@ class TabEmailTexts extends SettingsTab {
 				'confirm' => __( 'Replace this email with its shipped default text? Your changes to it will be lost when you save.', 'ffcertificate' ),
 			);
 		}
-		wp_enqueue_script(
-			'ffc-email-restore-default',
-			FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-email-restore-default' );
 		wp_localize_script( 'ffc-email-restore-default', 'ffcEmailRestoreDefaults', $ffc_restore_defaults );
 
 		// Per-email selector (#976 B2): the hub renders one plain <textarea> per

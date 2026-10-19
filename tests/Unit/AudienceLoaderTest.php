@@ -24,6 +24,10 @@ class AudienceLoaderTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Shared scripts are enqueued through AssetRegistry, which registers
+		// them first; false is WordPress's answer for a handle already
+		// registered, so nothing is localized twice (#1931).
+		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
@@ -299,7 +303,7 @@ class AudienceLoaderTest extends TestCase {
 
 		// The calendar and environment lists print the shortcode copy button (#1814).
 		$this->assertContains('ffc-copy-shortcode', $log['scripts']);
-		$this->assertContains(array('ffc-form-list-copy-shortcode', false, array('ffc-copy-shortcode')), $registered);
+		$this->assertNotContains('ffc-form-list-copy-shortcode', array_column($registered, 0), 'The deprecated alias left in 6.41.0 (#1814).');
 		$this->assertNotContains('ffc-batched-export', $log['scripts']);
 	}
 

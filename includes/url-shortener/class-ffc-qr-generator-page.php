@@ -79,10 +79,9 @@ class QrGeneratorPage {
 		// owned by their own sheet (#1570); this page's sheet builds on it.
 		wp_enqueue_style( 'ffc-qr-design-fields', FFC_PLUGIN_URL . "assets/css/ffc-qr-design-fields{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 		wp_enqueue_style( 'ffc-qr-generator', FFC_PLUGIN_URL . "assets/css/ffc-qr-generator{$s}.css", array( 'ffc-common', 'ffc-qr-design-fields' ), FFC_VERSION );
-		wp_enqueue_script( 'ffc-qr-raster', FFC_PLUGIN_URL . "assets/js/ffc-qr-raster{$s}.js", array(), FFC_VERSION, true );
-		wp_enqueue_script( 'ffc-branding-media', FFC_PLUGIN_URL . "assets/js/ffc-branding-media{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-qr-raster', 'ffc-branding-media' );
 		wp_localize_script( 'ffc-branding-media', 'ffcBrandingMedia', array( 'chooseImage' => __( 'Select image', 'ffcertificate' ) ) );
-		wp_enqueue_script( 'ffc-qr-design', FFC_PLUGIN_URL . "assets/js/ffc-qr-design{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-qr-design' );
 		wp_enqueue_script(
 			'ffc-qr-generator',
 			FFC_PLUGIN_URL . "assets/js/ffc-qr-generator{$s}.js",

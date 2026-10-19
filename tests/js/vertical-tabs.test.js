@@ -75,11 +75,11 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-describe('FFC.VerticalTabs — deprecated global (#1788)', () => {
-	it('keeps FFC.FormEditorTabs as an alias of the same object', () => {
+describe('FFC.VerticalTabs — global', () => {
+	it('exposes init and no longer the FFC.FormEditorTabs alias, removed in 6.41.0 (#1788)', () => {
 		expect(window.FFC.VerticalTabs).toBeDefined();
 		expect(typeof window.FFC.VerticalTabs.init).toBe('function');
-		expect(window.FFC.FormEditorTabs).toBe(window.FFC.VerticalTabs);
+		expect(window.FFC.FormEditorTabs).toBeUndefined();
 	});
 });
 

@@ -59,22 +59,10 @@ class AdminActivityLogPage {
 			return;
 		}
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-core',
-			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
-			array( 'jquery' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		// Shared batched-export driver (#772): the CSV export button drives the
 		// unified `ffc_export_*` dispatcher through window.FFCBatchedExport.
-		wp_enqueue_script(
-			'ffc-batched-export',
-			FFC_PLUGIN_URL . "assets/js/ffc-batched-export{$s}.js",
-			array( 'jquery', 'ffc-core' ),
-			FFC_VERSION,
-			true
-		);
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-batched-export' );
 		// Shared progress-overlay modal styles (#786): the batched-export driver
 		// renders window.FFCProgressOverlay, identical to the public download.
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();

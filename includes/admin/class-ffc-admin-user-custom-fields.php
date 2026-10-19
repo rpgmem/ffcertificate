@@ -78,12 +78,12 @@ class AdminUserCustomFields {
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 		wp_enqueue_style( 'ffc-custom-fields-admin', FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css", array( 'ffc-common' ), FFC_VERSION );
-		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-working-hours' );
 		// `ffc-core` supplies `FFC.setRequiredWithin()`, which the collapse
 		// script uses to carry `required` with a section's visibility (#1120).
 		// Without it a collapsed section holding a required field blocks the
 		// profile save against a control nobody can see.
-		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script( 'ffc-custom-fields-collapse', FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-collapse{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		// Another user's sensitive fields start masked, with Reveal (#1863).
 		if ( 'user-edit.php' === $hook ) {
@@ -91,7 +91,7 @@ class AdminUserCustomFields {
 		}
 		// The same masks, dependent selects and dual-post toggle the
 		// reregistration form uses, so a field behaves alike on both screens.
-		wp_enqueue_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-field-behaviours' );
 		wp_enqueue_script( 'ffc-admin-user-fields', FFC_PLUGIN_URL . "assets/js/ffc-admin-user-fields{$s}.js", array( 'jquery', 'ffc-field-behaviours' ), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-admin-user-fields',

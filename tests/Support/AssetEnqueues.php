@@ -88,6 +88,47 @@ final class AssetEnqueues {
 	}
 
 	/**
+	 * The shared scripts `Core\AssetRegistry` declares as data, in the shape
+	 * {@see self::calls()} returns.
+	 *
+	 * Those are not calls: the registry builds each path from its map, so a
+	 * reading of calls alone finds no file behind them, and a second handle
+	 * for one of those files elsewhere would look like the only one (#1931).
+	 * Read from the source text, never by loading the class, so the reading
+	 * cannot depend on what a test stubbed.
+	 *
+	 * @return list<array{file: string, line: int, function: string, handle: ?string, asset: ?string, self_named: bool}>
+	 */
+	public static function registered(): array {
+		$file   = 'includes/core/class-ffc-asset-registry.php';
+		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/' . $file );
+		$out    = array();
+
+		$shapes = array(
+			// SCRIPTS: 'handle' => array( 'assets/js/name', array( ... ) ).
+			"/'([a-z0-9-]+)'\s*=>\s*array\(\s*'(assets\/js\/[a-z0-9-]+)'/" => static fn ( array $m ): ?string => $m[2] . '.js',
+			// bundles(): 'handle' => array( FFC_PLUGIN_URL . 'libs/js/…' . CONST . '…', VERSION ).
+			"/'([a-z0-9-]+)'\s*=>\s*array\(\s*(FFC_PLUGIN_URL\s*\.\s*'libs\/js\/[^,]+),/" => static fn ( array $m ): ?string => self::asset( (string) preg_replace( '/\s+/', '', $m[2] ) ),
+		);
+
+		foreach ( $shapes as $pattern => $asset ) {
+			preg_match_all( $pattern, $source, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE );
+			foreach ( $matches as $match ) {
+				$out[] = array(
+					'file'       => $file,
+					'line'       => substr_count( substr( $source, 0, (int) $match[0][1] ), "\n" ) + 1,
+					'function'   => 'AssetRegistry',
+					'handle'     => $match[1][0],
+					'asset'      => $asset( array_column( $match, 0 ) ),
+					'self_named' => false,
+				);
+			}
+		}
+
+		return $out;
+	}
+
+	/**
 	 * The plugin file an argument names, normalised, or null.
 	 *
 	 * @param string $source The argument's source text.
