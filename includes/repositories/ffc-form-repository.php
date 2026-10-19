@@ -128,6 +128,6 @@ class FormRepository extends AbstractRepository {
 			return \FreeFormCertificate\Submissions\FormCache::get_form_background( $form_id );
 		}
 
-		return get_post_meta( $form_id, '_ffc_form_bg', true );
+		return \FreeFormCertificate\Core\FormBackground::url( $form_id );
 	}
 }

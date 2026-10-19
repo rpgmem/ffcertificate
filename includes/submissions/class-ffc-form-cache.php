@@ -102,7 +102,7 @@ class FormCache {
 		$bg        = wp_cache_get( $cache_key, self::CACHE_GROUP );
 
 		if ( false === $bg ) {
-			$bg = get_post_meta( $form_id, '_ffc_form_bg', true );
+			$bg = \FreeFormCertificate\Core\FormBackground::url( $form_id );
 
 			if ( $bg ) {
 				wp_cache_set( $cache_key, $bg, self::CACHE_GROUP, self::get_expiration() );
