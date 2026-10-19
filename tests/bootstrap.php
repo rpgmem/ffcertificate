@@ -39,7 +39,7 @@ if ( ! defined( 'FFC_VERSION' ) ) {
 	}
 }
 
-foreach ( array( 'FFC_HTML2CANVAS_VERSION', 'FFC_JSPDF_VERSION' ) as $ffc_lib_const ) {
+foreach ( array( 'FFC_HTML2CANVAS_PRO_VERSION', 'FFC_JSPDF_VERSION' ) as $ffc_lib_const ) {
 	// Same single-source-of-truth read as FFC_ALTCHA_VERSION below. These two
 	// became load-bearing in #1203, when the vendored bundles gained their
 	// version in the filename and the asset URL started being built from the

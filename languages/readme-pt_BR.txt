@@ -11,7 +11,7 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 = Certificados =
 
 * **Construtor de formulários** - Campos de arrastar e soltar: Texto, E-mail, Número, Data, Área de texto, Seleção, Rádio, Caixa de seleção, Bloco de informação, Incorporação (mídia) e Oculto.
-* **PDF gerado no navegador** - Certificados desenhados no navegador com html2canvas e jsPDF, a partir de Modelos de documento reutilizáveis com imagens de fundo.
+* **PDF gerado no navegador** - Certificados desenhados no navegador com html2canvas-pro e jsPDF, a partir de Modelos de documento reutilizáveis com imagens de fundo.
 * **Links mágicos** - Acesso ao certificado com um clique, por um link único com um token aleatório de 32 caracteres, enviado por e-mail.
 * **Verificação** - Conferência de autenticidade pelo código de autenticação ou pelo link mágico, na página `/valid` criada na ativação.
 * **Modo questionário** - Formulários com nota, cada campo pontuado por si (opções, pontos, faixas), com os tokens `{{score}}`, `{{max_score}}`, `{{score_percent}}`, `{{correct_count}}` e `{{question_count}}`. Respostas abertas podem ser corrigidas por uma pessoa, e o questionário pode recomeçar quando o participante sai da janela.

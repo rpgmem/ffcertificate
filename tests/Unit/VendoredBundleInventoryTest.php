@@ -56,17 +56,19 @@ final class VendoredBundleInventoryTest extends TestCase {
 	/**
 	 * Everything `libs/js/` is allowed to contain, frozen.
 	 *
-	 * Four bundles plus one licence companion. ALTCHA is the only one whose
-	 * licence ships beside it; the other three carry their terms inside the
-	 * minified file. Read the failure message before editing this list.
+	 * Four bundles, each with its licence beside it, named for the same
+	 * version (#1952). Read the failure message before editing this list.
 	 *
 	 * @var array<int, string>
 	 */
 	private const REGISTER = array(
 		'altcha-3.4.0.LICENSE.txt',
 		'altcha-3.4.0.umd.js',
-		'html2canvas-1.4.1.min.js',
+		'html2canvas-pro-2.5.0.LICENSE.txt',
+		'html2canvas-pro-2.5.0.min.js',
+		'jspdf-4.2.1.LICENSE.txt',
 		'jspdf-4.2.1.umd.min.js',
+		'thumbmark-1.12.0.LICENSE.txt',
 		'thumbmark-1.12.0.umd.js',
 	);
 
@@ -111,9 +113,10 @@ final class VendoredBundleInventoryTest extends TestCase {
 	/**
 	 * The library version constants, keyed by the bundle prefix they imply.
 	 *
-	 * `FFC_HTML2CANVAS_VERSION` implies `html2canvas-`, which is how every
-	 * filename here is built. The plugin's own `FFC_VERSION` has no middle
-	 * segment and so cannot match.
+	 * `FFC_JSPDF_VERSION` implies `jspdf-`, which is how every filename here
+	 * is built; an underscore in the library part is a hyphen in the file
+	 * name, so `FFC_HTML2CANVAS_PRO_VERSION` implies `html2canvas-pro-`. The
+	 * plugin's own `FFC_VERSION` has no middle segment and so cannot match.
 	 *
 	 * @return array<string, string> prefix => version
 	 */
@@ -121,7 +124,7 @@ final class VendoredBundleInventoryTest extends TestCase {
 		$source = (string) file_get_contents( self::root() . '/ffcertificate.php' );
 
 		preg_match_all(
-			"/define\\(\\s*'FFC_([A-Z0-9]+)_VERSION'\\s*,\\s*'([^']+)'/",
+			"/define\\(\\s*'FFC_([A-Z0-9_]+)_VERSION'\\s*,\\s*'([^']+)'/",
 			$source,
 			$matches,
 			PREG_SET_ORDER
@@ -130,10 +133,20 @@ final class VendoredBundleInventoryTest extends TestCase {
 		$versions = array();
 
 		foreach ( $matches as $match ) {
-			$versions[ strtolower( $match[1] ) ] = $match[2];
+			$versions[ str_replace( '_', '-', strtolower( $match[1] ) ) ] = $match[2];
 		}
 
 		return $versions;
+	}
+
+	/**
+	 * The library part of a bundle's file name: everything before the hyphen
+	 * that opens the version (`html2canvas-pro` in `html2canvas-pro-2.5.0.min.js`).
+	 *
+	 * @param string $entry A file name in `libs/js/`.
+	 */
+	private static function library_of( string $entry ): ?string {
+		return preg_match( '/^(.+?)-\d/', $entry, $match ) ? $match[1] : null;
 	}
 
 	/**
@@ -233,15 +246,16 @@ final class VendoredBundleInventoryTest extends TestCase {
 				continue;
 			}
 
-			$prefix = strstr( $entry, '-', true );
+			$prefix   = self::library_of( $entry );
+			$constant = 'FFC_' . strtoupper( str_replace( '-', '_', (string) $prefix ) ) . '_VERSION';
 
-			if ( ! is_string( $prefix ) || ! isset( $versions[ $prefix ] ) ) {
-				$offenders[] = $entry . ' — no FFC_' . strtoupper( (string) $prefix ) . '_VERSION constant declares it';
+			if ( null === $prefix || ! isset( $versions[ $prefix ] ) ) {
+				$offenders[] = $entry . ' — no ' . $constant . ' constant declares it';
 				continue;
 			}
 
 			if ( ! str_starts_with( $entry, $prefix . '-' . $versions[ $prefix ] . '.' ) ) {
-				$offenders[] = $entry . ' — FFC_' . strtoupper( $prefix ) . '_VERSION says ' . $versions[ $prefix ];
+				$offenders[] = $entry . ' — ' . $constant . ' says ' . $versions[ $prefix ];
 			}
 		}
 
@@ -253,6 +267,37 @@ final class VendoredBundleInventoryTest extends TestCase {
 			. "so a filename the constant does not name is a script that 404s. Rename the file and\n"
 			. "the constant together (#1203):\n\n  "
 			. implode( "\n  ", $offenders )
+		);
+	}
+
+	public function test_every_bundle_ships_its_licence(): void {
+		$present  = self::present();
+		$missing  = array();
+		$bundles  = 0;
+
+		foreach ( $present as $entry ) {
+			if ( ! str_ends_with( $entry, '.js' ) ) {
+				continue;
+			}
+
+			++$bundles;
+			$library = self::library_of( $entry );
+			$version = null === $library ? null : ( self::library_versions()[ $library ] ?? null );
+			$licence = $library . '-' . $version . '.LICENSE.txt';
+
+			if ( null === $version || ! in_array( $licence, $present, true ) ) {
+				$missing[] = $entry . ' — expected ' . $licence;
+			}
+		}
+
+		$this->assertGreaterThan( 0, $bundles, 'No bundle was read, and an empty scan must never read as clean.' );
+		$this->assertSame(
+			array(),
+			$missing,
+			"A vendored bundle ships without its licence. Every one is MIT, which lets the plugin\n"
+			. "redistribute it on one condition: the copyright notice travels with the copy. Copy the\n"
+			. "package's LICENSE file beside the bundle, named for the same version (#1952):\n\n  "
+			. implode( "\n  ", $missing )
 		);
 	}
 
@@ -271,7 +316,7 @@ final class VendoredBundleInventoryTest extends TestCase {
 			}
 
 			if ( ! $matched ) {
-				$orphans[] = 'FFC_' . strtoupper( $prefix ) . "_VERSION = '" . $version . "' — no matching bundle in libs/js/";
+				$orphans[] = 'FFC_' . strtoupper( str_replace( '-', '_', $prefix ) ) . "_VERSION = '" . $version . "' — no matching bundle in libs/js/";
 			}
 		}
 
@@ -334,7 +379,7 @@ final class VendoredBundleInventoryTest extends TestCase {
 
 		foreach ( $statements as $reference ) {
 			foreach ( self::present() as $bundle ) {
-				if ( str_contains( $reference['statement'], "libs/js/" . explode( '-', $bundle )[0] ) ) {
+				if ( str_contains( $reference['statement'], 'libs/js/' . self::library_of( $bundle ) . '-' ) ) {
 					$enqueued[ $bundle ] = true;
 				}
 			}
