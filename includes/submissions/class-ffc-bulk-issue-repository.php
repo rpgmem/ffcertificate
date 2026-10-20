@@ -191,7 +191,7 @@ final class BulkIssueRepository {
 	 * Reads one job's counters and state.
 	 *
 	 * @param int $job_id Job ID.
-	 * @return array{id: int, form_id: int, user_id: int, status: string, issued: int, skipped: int}|null
+	 * @return array{id: int, form_id: int, user_id: int, status: string, total: int, issued: int, skipped: int}|null
 	 *         The job, or null when it does not exist.
 	 */
 	public static function find_job( int $job_id ): ?array {
@@ -259,13 +259,14 @@ final class BulkIssueRepository {
 	 * Narrows a raw job row to the fields the runner reads, checking each one.
 	 *
 	 * @param array<mixed, mixed> $row A row as $wpdb returned it.
-	 * @return array{id: int, form_id: int, user_id: int, status: string, issued: int, skipped: int}
+	 * @return array{id: int, form_id: int, user_id: int, status: string, total: int, issued: int, skipped: int}
 	 */
 	private static function job_shape( array $row ): array {
 		$id      = $row['id'] ?? null;
 		$form_id = $row['form_id'] ?? null;
 		$user_id = $row['user_id'] ?? null;
 		$status  = $row['status'] ?? null;
+		$total   = $row['total'] ?? null;
 		$issued  = $row['issued'] ?? null;
 		$skipped = $row['skipped'] ?? null;
 
@@ -274,6 +275,7 @@ final class BulkIssueRepository {
 			'form_id' => is_numeric( $form_id ) ? (int) $form_id : 0,
 			'user_id' => is_numeric( $user_id ) ? (int) $user_id : 0,
 			'status'  => is_string( $status ) ? $status : '',
+			'total'   => is_numeric( $total ) ? (int) $total : 0,
 			'issued'  => is_numeric( $issued ) ? (int) $issued : 0,
 			'skipped' => is_numeric( $skipped ) ? (int) $skipped : 0,
 		);

@@ -24,6 +24,10 @@ namespace FreeFormCertificate\Admin;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Core\SyncCsvExport;
 use FreeFormCertificate\Submissions\BulkIssuePlanner;
+use FreeFormCertificate\Submissions\BulkIssueRepository;
+use FreeFormCertificate\Submissions\BulkIssueRunner;
+use FreeFormCertificate\Submissions\SubmissionHandler;
+use FreeFormCertificate\Repositories\SubmissionRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -46,6 +50,9 @@ final class BulkIssuePage {
 	/** Nonce action of the preview request, localized for the tab's script. */
 	public const PREVIEW_NONCE = 'ffc_bulk_issue_preview';
 
+	/** Nonce action of the start and batch requests, localized for the tab's script (#1945). */
+	public const RUN_NONCE = 'ffc_bulk_issue_run';
+
 	/**
 	 * Hooks the template download and the preview. Called from the Loader.
 	 *
@@ -54,6 +61,8 @@ final class BulkIssuePage {
 	public static function register(): void {
 		add_action( 'admin_post_ffc_bulk_issue_template', array( self::class, 'handle_template' ) );
 		add_action( 'wp_ajax_ffc_bulk_issue_preview', array( self::class, 'handle_preview' ) );
+		add_action( 'wp_ajax_ffc_bulk_issue_start', array( self::class, 'handle_start' ) );
+		add_action( 'wp_ajax_ffc_bulk_issue_batch', array( self::class, 'handle_batch' ) );
 	}
 
 	/**
@@ -98,10 +107,140 @@ final class BulkIssuePage {
 		}
 
 		$error   = '';
-		$plan    = null;
 		$parsed  = null;
 		$mapping = array();
+		$plan    = self::plan_from_request( $form_id, $parsed, $mapping, $error );
 
+		ob_start();
+		self::render_result( $form_id, $parsed, $mapping, $plan, $error );
+		$html = (string) ob_get_clean();
+
+		wp_send_json_success(
+			array(
+				'html'  => $html,
+				'label' => null === $parsed ? __( 'Check the file', 'ffcertificate' ) : __( 'Preview', 'ffcertificate' ),
+			)
+		);
+	}
+
+	/**
+	 * Starts the job for the file the operator checked. The file and the mapping
+	 * are posted again, as on the preview, and the server plans them once more
+	 * before staging: nothing the client sends is trusted as the plan itself.
+	 *
+	 * @return void
+	 */
+	public static function handle_start(): void {
+		check_ajax_referer( self::RUN_NONCE, 'nonce' );
+
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_send_json_error( array( 'message' => __( 'Access denied.', 'ffcertificate' ) ), 403 );
+		}
+
+		$form_id = absint( RequestInput::get_post_string( 'form_id' ) );
+
+		if ( $form_id <= 0 || 'ffc_form' !== get_post_type( $form_id ) || ! current_user_can( 'edit_post', $form_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Choose the form the certificates are issued for.', 'ffcertificate' ) ), 400 );
+		}
+
+		$error   = '';
+		$parsed  = null;
+		$mapping = array();
+		$plan    = self::plan_from_request( $form_id, $parsed, $mapping, $error );
+
+		if ( null === $plan || array() === $plan['issue'] ) {
+			wp_send_json_error(
+				array( 'message' => '' !== $error ? $error : __( 'There is nothing to issue in this file.', 'ffcertificate' ) ),
+				400
+			);
+		}
+
+		$job_id = BulkIssueRunner::start( $form_id, get_current_user_id(), $plan );
+
+		if ( is_wp_error( $job_id ) ) {
+			wp_send_json_error( array( 'message' => $job_id->get_error_message() ), 500 );
+		}
+
+		wp_send_json_success( array( 'job_id' => $job_id ) );
+	}
+
+	/**
+	 * Issues the next batch of a job the current user started, and answers with
+	 * the counters. The client calls it until `done` is true.
+	 *
+	 * @return void
+	 */
+	public static function handle_batch(): void {
+		check_ajax_referer( self::RUN_NONCE, 'nonce' );
+
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_send_json_error( array( 'message' => __( 'Access denied.', 'ffcertificate' ) ), 403 );
+		}
+
+		$job_id = absint( RequestInput::get_post_string( 'job_id' ) );
+		$job    = $job_id > 0 ? BulkIssueRepository::find_job( $job_id ) : null;
+
+		if ( null === $job || get_current_user_id() !== $job['user_id'] || ! current_user_can( 'edit_post', $job['form_id'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Access denied.', 'ffcertificate' ) ), 403 );
+		}
+
+		$runner = new BulkIssueRunner( new SubmissionHandler(), new SubmissionRepository() );
+		$runner->process_batch( $job_id );
+
+		$after = self::read_job( $job_id );
+
+		if ( null === $after ) {
+			wp_send_json_error( array( 'message' => __( 'The import could not be found.', 'ffcertificate' ) ), 404 );
+		}
+
+		$done    = BulkIssueRepository::STATUS_DONE === $after['status'];
+		$handled = $after['issued'] + $after['skipped'];
+
+		wp_send_json_success(
+			array(
+				'done' => $done,
+				'text' => $done
+					? sprintf(
+						/* translators: 1: certificates issued, 2: lines skipped. */
+						__( 'Done: %1$d certificate(s) issued, %2$d line(s) skipped.', 'ffcertificate' ),
+						$job['issued'],
+						$job['skipped']
+					)
+					: sprintf(
+						/* translators: 1: lines handled, 2: lines in the file, 3: certificates issued, 4: lines skipped. */
+						__( '%1$d of %2$d line(s) handled: %3$d issued, %4$d skipped.', 'ffcertificate' ),
+						$handled,
+						$job['total'],
+						$job['issued'],
+						$job['skipped']
+					),
+			)
+		);
+	}
+
+	/**
+	 * Reads a job's current state, after a batch has changed it.
+	 *
+	 * @param int $job_id Job ID.
+	 * @return array{id: int, form_id: int, user_id: int, status: string, total: int, issued: int, skipped: int}|null
+	 */
+	private static function read_job( int $job_id ): ?array {
+		return BulkIssueRepository::find_job( $job_id );
+	}
+
+	/**
+	 * Reads the file and maps its columns, as the preview does. Sets `$parsed`
+	 * and `$mapping` for the step that shows them, and returns the plan once the
+	 * mapping is complete.
+	 *
+	 * @param int                       $form_id Form the certificates are issued for.
+	 * @param array<string, mixed>|null $parsed  Set to the parsed file when one was uploaded.
+	 * @param array<string, string>     $mapping Set to the column chosen for each key.
+	 * @param string                    $error   Set to a message when the file cannot be used.
+	 * @return array{issue: array<int, array<string, mixed>>, skipped: array<int, array{line: int, reason: string}>, no_email: array<int, int>}|null
+	 */
+	private static function plan_from_request( int $form_id, ?array &$parsed, array &$mapping, string &$error ): ?array {
+		$plan   = null;
 		$upload = self::read_upload( $error );
 
 		if ( null !== $upload ) {
@@ -122,16 +261,7 @@ final class BulkIssuePage {
 			}
 		}
 
-		ob_start();
-		self::render_result( $form_id, $parsed, $mapping, $plan, $error );
-		$html = (string) ob_get_clean();
-
-		wp_send_json_success(
-			array(
-				'html'  => $html,
-				'label' => null === $parsed ? __( 'Check the file', 'ffcertificate' ) : __( 'Preview', 'ffcertificate' ),
-			)
-		);
+		return $plan;
 	}
 
 	/**
@@ -333,6 +463,17 @@ final class BulkIssuePage {
 				$skipped
 			)
 		) . '</p>';
+
+		if ( $issue > 0 ) {
+			echo '<p><button type="button" class="button button-primary ffc-bulk-issue-start">' . esc_html(
+				sprintf(
+					/* translators: %d: certificates that will be issued. */
+					__( 'Issue %d certificate(s)', 'ffcertificate' ),
+					$issue
+				)
+			) . '</button></p>';
+			echo '<p class="ffc-bulk-issue-progress" aria-live="polite"></p>';
+		}
 
 		if ( array() !== $plan['no_email'] ) {
 			echo '<p>' . esc_html(

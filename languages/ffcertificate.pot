@@ -27319,7 +27319,7 @@ msgid "Issue certificates for a list of participants from a CSV file, without ea
 msgstr ""
 
 #: includes/settings/views/documentation/submissions-list.php
-msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped and every row is previewed, nothing is issued yet."
+msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped and every row is previewed. Confirm to issue the certificates in batches, with progress."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php
@@ -27336,4 +27336,24 @@ msgstr ""
 
 #: includes/submissions/class-ffc-bulk-issue-repository.php
 msgid "The import could not be staged."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue %d certificate(s)"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "There is nothing to issue in this file."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The import could not be found."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Done: %1$d certificate(s) issued, %2$d line(s) skipped."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%1$d of %2$d line(s) handled: %3$d issued, %4$d skipped."
 msgstr ""

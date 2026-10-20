@@ -27402,8 +27402,8 @@ msgid "Issue certificates for a list of participants from a CSV file, without ea
 msgstr "Emita certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário. Baixe o modelo, envie o arquivo, associe as colunas e confira a pré-visualização. Nada é emitido ainda."
 
 #: includes/settings/views/documentation/submissions-list.php
-msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped and every row is previewed, nothing is issued yet."
-msgstr "Abra um formulário e use a aba Emitir em lote para conferir um arquivo CSV de participantes contra ele: as colunas são associadas e cada linha é pré-visualizada; nada é emitido ainda."
+msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped and every row is previewed. Confirm to issue the certificates in batches, with progress."
+msgstr "Abra um formulário e use a aba Emitir em lote para conferir um arquivo CSV de participantes contra ele: as colunas são associadas e cada linha é pré-visualizada. Confirme para emitir os certificados em lotes, com progresso."
 
 #: includes/admin/class-ffc-admin-assets-manager.php
 msgid "The file could not be checked. Try again."
@@ -27420,3 +27420,24 @@ msgstr "A importação precisa da chave de criptografia configurada, para que os
 #: includes/submissions/class-ffc-bulk-issue-repository.php
 msgid "The import could not be staged."
 msgstr "Não foi possível preparar a importação."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue %d certificate(s)"
+msgstr "Emitir %d certificado(s)"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "There is nothing to issue in this file."
+msgstr "Não há nada a emitir neste arquivo."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The import could not be found."
+msgstr "A importação não foi encontrada."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Done: %1$d certificate(s) issued, %2$d line(s) skipped."
+msgstr "Concluído: %1$d certificado(s) emitido(s), %2$d linha(s) ignorada(s)."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%1$d of %2$d line(s) handled: %3$d issued, %4$d skipped."
+msgstr "%1$d de %2$d linha(s) processada(s): %3$d emitido(s), %4$d ignorado(s)."
+

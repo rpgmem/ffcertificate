@@ -81,4 +81,44 @@ class BulkIssuePageTest extends TestCase {
 
 		BulkIssuePage::handle_preview();
 	}
+	public function test_start_refuses_a_user_without_the_import_capability(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( '403' );
+
+		BulkIssuePage::handle_start();
+	}
+
+	public function test_batch_refuses_a_job_another_user_started(): void {
+		global $wpdb;
+		$wpdb = new class() {
+			public string $prefix = 'wp_';
+
+			public function prepare( $query, ...$args ) {
+				return 'SQL';
+			}
+
+			public function get_row( $query = null, $output = null ) {
+				return array(
+					'id'      => 3,
+					'form_id' => 7,
+					'user_id' => 9,
+					'status'  => 'staging',
+					'total'   => 1,
+					'issued'  => 0,
+					'skipped' => 0,
+				);
+			}
+		};
+
+		$_POST = array( 'job_id' => '3' );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( '403' );
+
+		BulkIssuePage::handle_batch();
+	}
 }
