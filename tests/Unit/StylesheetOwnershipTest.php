@@ -81,7 +81,6 @@ class StylesheetOwnershipTest extends TestCase {
 		// sheet -- but that is an architecture decision, not an ordering one.
 		'ffc-preview-backdrop|ffc-admin.css|ffc-frontend.css'  => 'admin × frontend: they never coexist on one screen',
 		'ffc-preview-container|ffc-admin.css|ffc-frontend.css' => 'admin × frontend: they never coexist on one screen',
-		'ffc-preview-stage|ffc-admin.css|ffc-frontend.css'     => 'admin × frontend: they never coexist on one screen',
 		'ffc-checkbox-label|ffc-admin.css|ffc-reregistration-frontend.css' => 'admin × frontend: they never coexist on one screen',
 
 		// `ffc-calendar-editor.css` only loads when editing the

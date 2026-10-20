@@ -297,39 +297,6 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		}
 	}
 
-	public function test_ajax_cert_preview_happy_path_returns_template(): void {
-		$this->valid_post();
-		Mockery::mock( 'alias:FreeFormCertificate\Security\Geofence' )
-			->shouldReceive( 'get_form_start_timestamp' )->andReturn( time() + 3600 );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\CertificatePreviewSamples' )
-			->shouldReceive( 'get_map' )->andReturn( array( '{{name}}' => 'Sample' ) );
-
-		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) {
-			if ( '_ffc_form_config' === $key ) {
-				return array( 'pdf_layout' => '<p>{{name}}</p>', 'bg_image' => 'bg.png' );
-			}
-			if ( '_ffc_form_fields' === $key ) {
-				return array(
-					array( 'name' => 'name', 'label' => 'Name', 'type' => 'text' ),
-					array( 'name' => 'note', 'type' => 'info' ), // skipped (info type).
-					array( 'name' => '', 'type' => 'text' ),     // skipped (empty name).
-				);
-			}
-			return '';
-		} );
-
-		try {
-			( new PublicCsvDownload() )->ajax_cert_preview();
-			$this->fail( 'expected json_success' );
-		} catch ( \RuntimeException $e ) {
-			$this->assertSame( 'json_success', $e->getMessage() );
-			$p = $this->captured['payload'];
-			$this->assertCount( 1, $p['fields'], 'only the named, non-info field survives' );
-			$this->assertSame( 'name', $p['fields'][0]['name'] );
-			$this->assertSame( array( '{{name}}' => 'Sample' ), $p['previewSamples'] );
-		}
-	}
-
 	// ==================================================================
 	//  ajax_open_early()
 	// ==================================================================

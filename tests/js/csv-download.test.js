@@ -481,23 +481,29 @@ describe('csv-download — cert preview', () => {
 		return postSpy;
 	}
 
-	it('opens the modal on preview success and substitutes placeholders', async () => {
+	// The server renders the page; FFCLayoutPreview captures it. The script only
+	// asks for the page and shows the image that comes back.
+	beforeEach(() => {
+		window.FFCLayoutPreview = {
+			capture: vi.fn(() => Promise.resolve('data:image/png;base64,AAAA')),
+		};
+	});
+
+	afterEach(() => {
+		delete window.FFCLayoutPreview;
+	});
+
+	it('captures the server page and shows the image in the modal', async () => {
 		const postSpy = await reachInfoScreen();
 		postSpy.mockImplementation(() => postChain({ done: {
 				success: true,
-				data: {
-					html: '<p>Hi {{name}} — your auth: {{auth_code}}.</p><div>{{qr_code}}</div>',
-					bg_image: 'https://example.com/bg.png',
-					fields: [],
-					// Mirrors the PHP CertificatePreviewSamples::get_map()
-					// payload the endpoint now returns.
-					previewSamples: { name: 'John Doe', auth_code: 'A1B2-C3D4-E5F6' },
-				},
+				data: { html: '<div>John Doe</div>', width: 1123, height: 794 },
 			} }));
 
 		window.$('.ffc-btn-cert-preview').trigger('click');
 		await flush();
 
+		expect(window.FFCLayoutPreview.capture).toHaveBeenCalledWith('<div>John Doe</div>', 1123, 794);
 		expect(window.$('#ffc-preview-modal').length).toBe(1);
 		// #1881 — the handler rewrites the label while loading and back; the
 		// icon is a class on the button, so it survives both rewrites.
@@ -505,68 +511,26 @@ describe('csv-download — cert preview', () => {
 		expect($preview.text()).toBe('Preview Certificate');
 		expect($preview.hasClass('ffc-icon-eye')).toBe(true);
 		expect($preview.hasClass('ffc-btn-neutral')).toBe(true);
-		// The iframe content is the substituted HTML.
-		const iframe = document.querySelector('#ffc-preview-iframe');
-		const doc = iframe.contentDocument;
-		const body = doc.body.innerHTML;
-		expect(body).toContain('John Doe');
-		expect(body).toContain('A1B2-C3D4-E5F6');
-		// QR placeholder swapped for an SVG.
-		expect(body).toContain('<svg');
+		expect(document.querySelector('#ffc-preview-modal .ffc-preview-page').getAttribute('src')).toBe('data:image/png;base64,AAAA');
+		expect(document.querySelector('#ffc-preview-iframe')).toBeNull();
 	});
 
-	it('overlays form fields onto the PHP sample map', async () => {
+	it('alerts and keeps the modal closed when the page cannot be captured', async () => {
 		const postSpy = await reachInfoScreen();
 		postSpy.mockImplementation(() => postChain({ done: {
 				success: true,
-				data: {
-					html: '<p>{{site_name}} — {{course_name}}</p>',
-					fields: [{ name: 'course_name', label: 'Curso de Exemplo' }],
-					previewSamples: { site_name: 'Sample Site' },
-				},
+				data: { html: '<div>page</div>', width: 1123, height: 794 },
 			} }));
+		window.FFCLayoutPreview.capture = vi.fn(() => Promise.reject(new Error('tainted')));
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-btn-cert-preview').trigger('click');
-		await flush();
+		// A rejected capture walks a longer promise chain than flush() covers.
+		await new Promise((resolve) => setTimeout(resolve, 0));
 
-		const iframe = document.querySelector('#ffc-preview-iframe');
-		const body = iframe.contentDocument.body.innerHTML;
-		expect(body).toContain('Sample Site');
-		expect(body).toContain('Curso de Exemplo');
-		expect(body).not.toContain('{{course_name}}');
-	});
-
-	it('scales the preview iframe to fit the modal body (fitPreview)', async () => {
-		const postSpy = await reachInfoScreen();
-		postSpy.mockImplementation(() => postChain({ done: { success: true, data: { html: '<p>hi</p>', fields: [] } } }));
-
-		// jsdom has no layout, so clientWidth/clientHeight are 0 and fitPreview()
-		// early-returns before the scaling math. Stub positive dimensions on the
-		// element prototype so the scale branch actually runs, then restore.
-		const wDesc = Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, 'clientWidth');
-		const hDesc = Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, 'clientHeight');
-		Object.defineProperty(window.HTMLElement.prototype, 'clientWidth', { configurable: true, get: () => 800 });
-		Object.defineProperty(window.HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 600 });
-		try {
-			window.$('.ffc-btn-cert-preview').trigger('click');
-			await flush();
-			expect(window.$('#ffc-preview-modal').length).toBe(1);
-
-			// fitPreview is also bound to window 'resize' — fire it synchronously
-			// (no rAF wait) so the scaling branch runs with the stubbed dimensions.
-			window.$(window).trigger('resize');
-
-			const iframe = document.querySelector('#ffc-preview-iframe');
-			// Landscape A4 (1123×794) scaled to fit 776×576 avail → scale < 1.
-			expect(iframe.style.transform).toContain('scale(');
-			expect(iframe.style.width).toBe('1123px');
-			const stage = document.querySelector('.ffc-preview-stage');
-			expect(stage.style.width).not.toBe('');
-			expect(stage.style.height).not.toBe('');
-		} finally {
-			if (wDesc) { Object.defineProperty(window.HTMLElement.prototype, 'clientWidth', wDesc); } else { delete window.HTMLElement.prototype.clientWidth; }
-			if (hDesc) { Object.defineProperty(window.HTMLElement.prototype, 'clientHeight', hDesc); } else { delete window.HTMLElement.prototype.clientHeight; }
-		}
+		expect(alertSpy).toHaveBeenCalled();
+		expect(window.$('#ffc-preview-modal').length).toBe(0);
+		expect(window.$('.ffc-btn-cert-preview').prop('disabled')).toBe(false);
 	});
 
 	it('shows alert on preview failure', async () => {

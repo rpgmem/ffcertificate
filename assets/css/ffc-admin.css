@@ -876,20 +876,15 @@ td .ffc-restriction-label {
     justify-content: center;
 }
 
-/* Faithful preview: the iframe renders at the real A4 page size and JS scales
-   it via transform; the stage takes the scaled footprint so the layout matches
-   the visual and the page centers without clipping its borders. */
-.ffc-preview-stage {
-    position: relative;
-    flex: 0 0 auto;
-    overflow: hidden;
-    box-shadow: var(--ffc-shadow-md);
-}
-
-#ffc-preview-iframe {
+/* The preview is a page image captured from the server's render: it keeps its
+   own aspect and never outgrows the modal. */
+#ffc-preview-modal .ffc-preview-page {
     display: block;
-    border: 1px solid var(--ffc-border-light);
-    background: var(--ffc-bg);
+    max-width: 100%;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+    box-shadow: var(--ffc-shadow-md);
 }
 
 @media (max-width: 782px) {

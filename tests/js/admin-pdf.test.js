@@ -437,6 +437,7 @@ describe('ffc-admin-pdf.js — preview button', () => {
 			<button id="ffc_btn_preview">Preview</button>
 			<textarea id="ffc_pdf_layout"></textarea>
 			<input id="ffc_bg_image_input" />
+			<input id="ffc_bg_color_input" value="#ffffff" />
 			<input id="title" value="Test Form" />
 			<div id="ffc-fields-container"></div>
 		`;
@@ -450,6 +451,10 @@ describe('ffc-admin-pdf.js — preview button', () => {
 				site_name: 'Sample Site',
 			},
 		};
+		// The preview click is delegated on document, which survives reset();
+		// without unbinding, every beforeEach stacks another handler and one
+		// click posts N times.
+		window.$(document).off('click', '#ffc_btn_preview');
 		loadScript('assets/js/ffc-code-editor-core.js');
 		loadScript('assets/js/ffc-admin-pdf.js');
 	});
@@ -468,73 +473,100 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		alertSpy.mockRestore();
 	});
 
-	it('opens a preview modal with the replaced placeholders', () => {
-		document.querySelector('#ffc_pdf_layout').value =
-			'Hello {{name}}! Your form: {{form_title}}.';
+	// The preview is rendered by the server and captured by FFCLayoutPreview; the
+	// script only asks for the page and shows the image that comes back.
+	const answer = (payload) => ({
+		done(cb) { cb(payload); return this; },
+		fail() { return this; },
+	});
+	const failure = () => ({
+		done() { return this; },
+		fail(cb) { cb(); return this; },
+	});
+	const page = { success: true, data: { html: '<div>page</div>', width: 1123, height: 794 } };
+	const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-		window.$('#ffc_btn_preview').trigger('click');
-
-		const modal = document.querySelector('#ffc-preview-modal');
-		expect(modal).not.toBeNull();
-		const iframe = modal.querySelector('iframe');
-		expect(iframe).not.toBeNull();
-		// jsdom doesn't synchronously paint the srcdoc into contentDocument,
-		// so assert on the attribute directly — it carries the same iframeHtml
-		// the implementation wrote.
-		const body = { innerHTML: iframe.getAttribute('srcdoc') || '' };
-		expect(body.innerHTML).toContain('Test Form');
-		// {{name}} → "John Doe" from the hardcoded sample catalog.
-		expect(body.innerHTML).toContain('John Doe');
-		expect(body.innerHTML).not.toContain('{{name}}');
+	beforeEach(() => {
+		window.FFCLayoutPreview = {
+			capture: vi.fn(() => Promise.resolve('data:image/png;base64,AAAA')),
+		};
 	});
 
-	it('replaces a system placeholder from the PHP sample map', () => {
-		document.querySelector('#ffc_pdf_layout').value =
-			'Bairro: {{bairro}} — {{site_name}}';
-
-		window.$('#ffc_btn_preview').trigger('click');
-
-		const iframe = document.querySelector('#ffc-preview-modal iframe');
-		// jsdom doesn't synchronously paint the srcdoc into contentDocument,
-		// so assert on the attribute directly — it carries the same iframeHtml
-		// the implementation wrote.
-		const body = { innerHTML: iframe.getAttribute('srcdoc') || '' };
-		expect(body.innerHTML).toContain('Centro');
-		expect(body.innerHTML).toContain('Sample Site');
-		expect(body.innerHTML).not.toContain('{{bairro}}');
+	afterEach(() => {
+		delete window.FFCLayoutPreview;
 	});
 
-	it('overlays builder custom fields onto the PHP sample map', () => {
-		window.$('#ffc-fields-container').html(
-			'<div class="ffc-field-row">' +
-				'<input name="ffc_fields[0][name]" value="course_name" />' +
-				'<input name="ffc_fields[0][label]" value="Curso de Exemplo" />' +
-				'</div>'
-		);
-		document.querySelector('#ffc_pdf_layout').value = '{{name}} — {{course_name}}';
+	it('asks the server to render the layout with the title and the unsaved background', () => {
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
+		document.querySelector('#ffc_pdf_layout').value = '<p>{{name}}</p>';
+		document.querySelector('#ffc_bg_image_input').value = 'https://example.test/bg.png';
 
 		window.$('#ffc_btn_preview').trigger('click');
 
-		const iframe = document.querySelector('#ffc-preview-modal iframe');
-		// jsdom doesn't synchronously paint the srcdoc into contentDocument,
-		// so assert on the attribute directly — it carries the same iframeHtml
-		// the implementation wrote.
-		const body = { innerHTML: iframe.getAttribute('srcdoc') || '' };
-		expect(body.innerHTML).toContain('John Doe');
-		expect(body.innerHTML).toContain('Curso de Exemplo');
+		expect(post).toHaveBeenCalledTimes(1);
+		const data = post.mock.calls[0][1];
+		expect(data.action).toBe('ffc_preview_form_layout');
+		expect(data.html).toBe('<p>{{name}}</p>');
+		expect(data.title).toBe('Test Form');
+		expect(data.bg_image).toBe('https://example.test/bg.png');
+		post.mockRestore();
 	});
 
-	it('expands {{qr_code}} into the placeholder SVG', () => {
-		document.querySelector('#ffc_pdf_layout').value = '<p>{{qr_code}}</p>';
+	it('sends the background colour of the editor', () => {
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
+		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
+		document.querySelector('#ffc_bg_color_input').value = '#f3e9d2';
 
 		window.$('#ffc_btn_preview').trigger('click');
 
-		const iframe = document.querySelector('#ffc-preview-modal iframe');
-		// jsdom doesn't synchronously paint the srcdoc into contentDocument,
-		// so assert on the attribute directly — it carries the same iframeHtml
-		// the implementation wrote.
-		const body = { innerHTML: iframe.getAttribute('srcdoc') || '' };
-		expect(body.innerHTML).toContain('<svg');
-		expect(body.innerHTML).toContain('QR Code');
+		expect(post.mock.calls[0][1].bg_color).toBe('#f3e9d2');
+		post.mockRestore();
+	});
+
+	it('captures the server page at the page size the server reports', () => {
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
+		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
+
+		window.$('#ffc_btn_preview').trigger('click');
+
+		expect(window.FFCLayoutPreview.capture).toHaveBeenCalledWith('<div>page</div>', 1123, 794);
+		post.mockRestore();
+	});
+
+	it('shows the captured image in the preview, not a frame', async () => {
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
+		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
+
+		window.$('#ffc_btn_preview').trigger('click');
+		await flush();
+
+		const image = document.querySelector('#ffc-preview-modal img.ffc-preview-page');
+		expect(image.getAttribute('src')).toBe('data:image/png;base64,AAAA');
+		expect(document.querySelector('#ffc-preview-iframe')).toBeNull();
+		post.mockRestore();
+	});
+
+	it('closes the preview when the server cannot render the layout', async () => {
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(failure());
+		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
+
+		window.$('#ffc_btn_preview').trigger('click');
+		await flush();
+
+		expect(window.FFCLayoutPreview.capture).not.toHaveBeenCalled();
+		post.mockRestore();
+	});
+
+	it('closes the preview when the capture fails', async () => {
+		window.FFCLayoutPreview.capture = vi.fn(() => Promise.reject(new Error('tainted')));
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
+		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
+
+		window.$('#ffc_btn_preview').trigger('click');
+		await flush();
+
+		// The modal leaves the screen at once and is removed after its fade.
+		expect(document.querySelector('#ffc-preview-modal').classList.contains('ffc-preview-visible')).toBe(false);
+		post.mockRestore();
 	});
 });
