@@ -27302,6 +27302,54 @@ msgstr ""
 msgid "Same CPF or RF as an earlier line of the file"
 msgstr ""
 
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Date that cannot be read"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue date"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Date of each certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "When each certificate is issued"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "One date for every certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "From a column of the file"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Day for every certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Column with the day of each certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the day the certificates are dated."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the file column that holds the issue date."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Skipped, by reason:"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%1$d: %2$s"
+msgstr ""
+
 #: includes/user-dashboard/class-ffc-capability-catalog.php
 msgid "Issue certificates in bulk"
 msgstr ""
@@ -27319,7 +27367,7 @@ msgid "Issue certificates for a list of participants from a CSV file, without ea
 msgstr ""
 
 #: includes/settings/views/documentation/submissions-list.php
-msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped and every row is previewed. Confirm to issue the certificates in batches, with progress."
+msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped, the issue date is chosen and every row is previewed. Confirm to issue the certificates in batches, with progress."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php

@@ -27385,6 +27385,54 @@ msgstr "E-mail inválido"
 msgid "Same CPF or RF as an earlier line of the file"
 msgstr "Mesmo CPF ou RF de uma linha anterior do arquivo"
 
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Date that cannot be read"
+msgstr "Data que não pode ser lida"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue date"
+msgstr "Data de emissão"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Date of each certificate"
+msgstr "Data de cada certificado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "When each certificate is issued"
+msgstr "Na hora em que cada certificado for emitido"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "One date for every certificate"
+msgstr "Uma data para todos os certificados"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "From a column of the file"
+msgstr "Pela coluna do arquivo"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Day for every certificate"
+msgstr "Dia de todos os certificados"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Column with the day of each certificate"
+msgstr "Coluna com o dia de cada certificado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the day the certificates are dated."
+msgstr "Escolha o dia da data dos certificados."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the file column that holds the issue date."
+msgstr "Escolha a coluna do arquivo que contém a data de emissão."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Skipped, by reason:"
+msgstr "Puladas, por motivo:"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%1$d: %2$s"
+msgstr "%1$d: %2$s"
+
 #: includes/user-dashboard/class-ffc-capability-catalog.php
 msgid "Issue certificates in bulk"
 msgstr "Emitir certificados em lote"
@@ -27402,8 +27450,8 @@ msgid "Issue certificates for a list of participants from a CSV file, without ea
 msgstr "Emita certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário. Baixe o modelo, envie o arquivo, associe as colunas e confira a pré-visualização. Nada é emitido ainda."
 
 #: includes/settings/views/documentation/submissions-list.php
-msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped and every row is previewed. Confirm to issue the certificates in batches, with progress."
-msgstr "Abra um formulário e use a aba Emitir em lote para conferir um arquivo CSV de participantes contra ele: as colunas são associadas e cada linha é pré-visualizada. Confirme para emitir os certificados em lotes, com progresso."
+msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped, the issue date is chosen and every row is previewed. Confirm to issue the certificates in batches, with progress."
+msgstr "Abra um formulário e use a aba Emitir em lote para conferir um arquivo CSV de participantes contra ele: as colunas são associadas, a data de emissão é escolhida e cada linha é pré-visualizada. Confirme para emitir os certificados em lotes, com progresso."
 
 #: includes/admin/class-ffc-admin-assets-manager.php
 msgid "The file could not be checked. Try again."

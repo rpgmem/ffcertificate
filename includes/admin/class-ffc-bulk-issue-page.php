@@ -252,17 +252,43 @@ final class BulkIssuePage {
 			$mapping = self::submitted_mapping( $keys );
 
 			if ( array() !== $mapping ) {
-				$problems = BulkIssuePlanner::mapping_problems( $mapping, $parsed['header'] );
+				$problems      = BulkIssuePlanner::mapping_problems( $mapping, $parsed['header'] );
+				$dates         = self::date_choice();
+				$date_problems = BulkIssuePlanner::date_problems( $dates, $parsed['header'] );
 
-				if ( array() === $problems ) {
-					$plan = BulkIssuePlanner::plan( $parsed['rows'], $mapping, $parsed['header'] );
-				} else {
+				if ( array() !== $problems ) {
 					$error = __( 'Map a column from the file to each of name, CPF/RF and e-mail.', 'ffcertificate' );
+				} elseif ( array() !== $date_problems ) {
+					$error = 'event_date' === $date_problems[0]
+						? __( 'Choose the day the certificates are dated.', 'ffcertificate' )
+						: __( 'Choose the file column that holds the issue date.', 'ffcertificate' );
+				} else {
+					$plan = BulkIssuePlanner::plan( $parsed['rows'], $mapping, $parsed['header'], $dates );
 				}
 			}
 		}
 
 		return $plan;
+	}
+
+	/**
+	 * The issue date the operator chose on the mapping step. An unknown mode
+	 * falls back to dating each certificate when it is issued.
+	 *
+	 * @return array{mode: string, date: string, column: string}
+	 */
+	private static function date_choice(): array {
+		$mode = RequestInput::get_post_string( 'ffc_issue_mode', BulkIssuePlanner::DATE_NOW );
+
+		if ( ! in_array( $mode, array( BulkIssuePlanner::DATE_NOW, BulkIssuePlanner::DATE_EVENT, BulkIssuePlanner::DATE_COLUMN ), true ) ) {
+			$mode = BulkIssuePlanner::DATE_NOW;
+		}
+
+		return array(
+			'mode'   => $mode,
+			'date'   => RequestInput::get_post_string( 'ffc_issue_date' ),
+			'column' => RequestInput::get_post_string( 'ffc_issue_date_column' ),
+		);
 	}
 
 	/**
@@ -416,6 +442,45 @@ final class BulkIssuePage {
 
 		echo '</tbody></table>';
 		echo '<p class="description">' . esc_html__( 'Fields marked * are required. The file has to be uploaded again on this step.', 'ffcertificate' ) . '</p>';
+
+		self::render_issue_date( $header, self::date_choice() );
+	}
+
+	/**
+	 * The issue-date selector: when each certificate is dated, one day for all,
+	 * or a date column of the file.
+	 *
+	 * @param array<int, string>                                $header Header row.
+	 * @param array{mode: string, date: string, column: string} $dates  Choice made so far.
+	 * @return void
+	 */
+	private static function render_issue_date( array $header, array $dates ): void {
+		$modes = array(
+			BulkIssuePlanner::DATE_NOW    => __( 'When each certificate is issued', 'ffcertificate' ),
+			BulkIssuePlanner::DATE_EVENT  => __( 'One date for every certificate', 'ffcertificate' ),
+			BulkIssuePlanner::DATE_COLUMN => __( 'From a column of the file', 'ffcertificate' ),
+		);
+
+		echo '<fieldset class="ffc-bulk-issue-date"><legend><strong>' . esc_html__( 'Issue date', 'ffcertificate' ) . '</strong></legend>';
+		echo '<p><label for="ffc_issue_mode">' . esc_html__( 'Date of each certificate', 'ffcertificate' ) . '</label><br>';
+		echo '<select name="ffc_issue_mode" id="ffc_issue_mode">';
+
+		foreach ( $modes as $value => $label ) {
+			echo '<option value="' . esc_attr( $value ) . '"' . selected( $dates['mode'], $value, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+
+		echo '</select></p>';
+		echo '<p><label for="ffc_issue_date">' . esc_html__( 'Day for every certificate', 'ffcertificate' ) . '</label><br>';
+		echo '<input type="date" name="ffc_issue_date" id="ffc_issue_date" value="' . esc_attr( $dates['date'] ) . '"></p>';
+		echo '<p><label for="ffc_issue_date_column">' . esc_html__( 'Column with the day of each certificate', 'ffcertificate' ) . '</label><br>';
+		echo '<select name="ffc_issue_date_column" id="ffc_issue_date_column">';
+		echo '<option value="">' . esc_html__( 'Not in this file', 'ffcertificate' ) . '</option>';
+
+		foreach ( $header as $column ) {
+			echo '<option value="' . esc_attr( $column ) . '"' . selected( $dates['column'], $column, false ) . '>' . esc_html( $column ) . '</option>';
+		}
+
+		echo '</select></p></fieldset>';
 	}
 
 	/**
@@ -494,6 +559,19 @@ final class BulkIssuePage {
 		}
 
 		if ( array() !== $plan['skipped'] ) {
+			$by_reason = array_count_values( array_map( 'strval', array_column( $plan['skipped'], 'reason' ) ) );
+			$parts     = array();
+
+			foreach ( $by_reason as $reason => $count ) {
+				$parts[] = sprintf(
+					/* translators: 1: number of skipped rows, 2: reason the rows were skipped. */
+					__( '%1$d: %2$s', 'ffcertificate' ),
+					$count,
+					self::reason_label( (string) $reason )
+				);
+			}
+
+			echo '<p>' . esc_html__( 'Skipped, by reason:', 'ffcertificate' ) . ' ' . esc_html( implode( '; ', $parts ) ) . '</p>';
 			echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Line', 'ffcertificate' ) . '</th><th>' . esc_html__( 'Reason', 'ffcertificate' ) . '</th></tr></thead><tbody>';
 
 			foreach ( $plan['skipped'] as $row ) {
@@ -524,6 +602,8 @@ final class BulkIssuePage {
 				return __( 'Invalid e-mail', 'ffcertificate' );
 			case BulkIssuePlanner::SKIP_DUPLICATE_FILE:
 				return __( 'Same CPF or RF as an earlier line of the file', 'ffcertificate' );
+			case BulkIssuePlanner::SKIP_INVALID_DATE:
+				return __( 'Date that cannot be read', 'ffcertificate' );
 			default:
 				return $reason;
 		}

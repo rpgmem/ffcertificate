@@ -36,9 +36,9 @@
 			body.append( 'ffc_bulk_file', file.files[ 0 ] );
 		}
 
-		// Columns the server showed on the previous step travel back with the file.
-		result.querySelectorAll( 'select[name^="ffc_map["]' ).forEach( function ( select ) {
-			body.append( select.name, select.value );
+		// Columns and the issue-date choice the server showed on the previous step travel back with the file.
+		result.querySelectorAll( 'select[name^="ffc_map["], [name^="ffc_issue_"]' ).forEach( function ( field ) {
+			body.append( field.name, field.value );
 		} );
 
 		return body;
