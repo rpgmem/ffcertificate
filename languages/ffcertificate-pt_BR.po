@@ -12128,6 +12128,10 @@ msgstr "API do Operador (emissão autenticada)"
 msgid "Operator Certificate Issued"
 msgstr "Certificado de Operador Emitido"
 
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Bulk Issue Finished"
+msgstr "Emissão em lote concluída"
+
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:133
 msgid "Operator features"
 msgstr "Recursos do operador"

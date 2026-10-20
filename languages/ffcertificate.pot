@@ -12108,6 +12108,10 @@ msgstr ""
 msgid "Operator Certificate Issued"
 msgstr ""
 
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Bulk Issue Finished"
+msgstr ""
+
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:133
 msgid "Operator features"
 msgstr ""
