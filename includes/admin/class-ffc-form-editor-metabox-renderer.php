@@ -318,11 +318,25 @@ class FormEditorMetaboxRenderer {
 				'title'   => __( 'Public Operator Access', 'ffcertificate' ),
 				'masters' => array( 'ffc_csv_public_enabled' ),
 			),
+			array(
+				'key'     => 'bulk',
+				'icon'    => 'ffc-icon-upload',
+				'label'   => __( 'Bulk issue', 'ffcertificate' ),
+				'title'   => __( 'Issue in bulk', 'ffcertificate' ),
+				'masters' => array(),
+			),
 		);
 
 		foreach ( $tabs as $i => $tab ) {
 			$tabs[ $i ]['needs'] = 'time' === $tab['key'] ? self::schedule_needs() : '';
 		}
+
+		// The Bulk issue tab is listed last, and exists only for users who may import certificates (#1967).
+		$last = array_key_last( $tabs );
+		if ( ! current_user_can( \FreeFormCertificate\Admin\BulkIssuePage::CAP ) && 'bulk' === $tabs[ $last ]['key'] ) {
+			array_pop( $tabs );
+		}
+
 		return $tabs;
 	}
 
@@ -371,6 +385,9 @@ class FormEditorMetaboxRenderer {
 				break;
 			case 'operator':
 				$this->render_box_public_csv_download( $post );
+				break;
+			case 'bulk':
+				\FreeFormCertificate\Admin\BulkIssuePage::render_panel( $post );
 				break;
 		}
 	}

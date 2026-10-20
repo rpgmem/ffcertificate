@@ -47,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><code>ffc_manage_certificates</code></td><td><?php esc_html_e( 'Trash / restore and bulk actions, including "Move to form…" (offered when the list is filtered to a single form).', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_delete_certificates</code></td><td><?php esc_html_e( 'Delete submissions permanently (required on top of manage).', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_export_certificates</code></td><td><?php esc_html_e( 'Run the CSV export.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>ffc_import_certificates</code></td><td><?php esc_html_e( 'Open the Issue in bulk screen and check a participants CSV against a form: the columns are mapped and every row is previewed, nothing is issued yet.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>ffc_import_certificates</code></td><td><?php esc_html_e( 'Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped and every row is previewed, nothing is issued yet.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_view_certificates_pii</code></td><td><?php esc_html_e( 'Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation.', 'ffcertificate' ); ?></td></tr>
 		</tbody>
 	</table>

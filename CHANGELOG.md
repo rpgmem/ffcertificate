@@ -10,7 +10,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Form editor: background colour** (#1960). The layout box has a `Background Color` control beside the background image. The colour fills the page wherever the image does not cover it, and the editor preview shows it too. It defaults to white, so existing forms print as before.
-- **Certificates: Issue in bulk, first step** (#1945). A new screen under Submissions checks a participants CSV against a form: the columns are mapped, each row is previewed and the skipped ones are listed with the reason. It issues nothing yet; the capability `ffc_import_certificates` gates it and is granted to the Submissions Manager and Administrator tiers.
+- **Certificates: Issue in bulk, first step** (#1945, #1967). A new Bulk issue tab in the form editor, beside Operator, checks a participants CSV against that form: the columns are mapped, each row is previewed and the skipped ones are listed with the reason. It issues nothing yet; the capability `ffc_import_certificates` gates the tab and is granted to the Submissions Manager and Administrator tiers.
 
 ### Fixed
 

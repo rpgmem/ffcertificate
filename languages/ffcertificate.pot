@@ -27217,10 +27217,6 @@ msgid "Choose the form the certificates are issued for."
 msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Choose the form, download its template, upload the file, map its columns and check the preview."
-msgstr ""
-
-#: includes/admin/class-ffc-bulk-issue-page.php
 msgid "Choose a CSV file to upload."
 msgstr ""
 
@@ -27234,10 +27230,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
 msgid "The file could not be read."
-msgstr ""
-
-#: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Choose a form…"
 msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
@@ -27314,6 +27306,18 @@ msgstr ""
 msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form."
 msgstr ""
 
+#: includes/admin/class-ffc-form-editor-metabox-renderer.php
+msgid "Bulk issue"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns and check the preview. Nothing is issued yet."
+msgstr ""
+
 #: includes/settings/views/documentation/submissions-list.php
-msgid "Open the Issue in bulk screen and check a participants CSV against a form: the columns are mapped and every row is previewed, nothing is issued yet."
+msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped and every row is previewed, nothing is issued yet."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "The file could not be checked. Try again."
 msgstr ""

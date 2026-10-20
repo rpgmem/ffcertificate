@@ -27300,10 +27300,6 @@ msgid "Choose the form the certificates are issued for."
 msgstr "Escolha o formulário para o qual os certificados serão emitidos."
 
 #: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Choose the form, download its template, upload the file, map its columns and check the preview."
-msgstr "Emita certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário. Escolha o formulário, baixe o modelo, envie o arquivo, associe as colunas e confira a pré-visualização."
-
-#: includes/admin/class-ffc-bulk-issue-page.php
 msgid "Choose a CSV file to upload."
 msgstr "Escolha um arquivo CSV para enviar."
 
@@ -27318,10 +27314,6 @@ msgstr "O arquivo tem mais de 2 MB."
 #: includes/admin/class-ffc-bulk-issue-page.php
 msgid "The file could not be read."
 msgstr "Não foi possível ler o arquivo."
-
-#: includes/admin/class-ffc-bulk-issue-page.php
-msgid "Choose a form…"
-msgstr "Escolha um formulário…"
 
 #: includes/admin/class-ffc-bulk-issue-page.php
 msgid "Download the CSV template for this form"
@@ -27397,6 +27389,18 @@ msgstr "Emitir certificados em lote"
 msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form."
 msgstr "Emitir certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário."
 
+#: includes/admin/class-ffc-form-editor-metabox-renderer.php
+msgid "Bulk issue"
+msgstr "Emitir em lote"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns and check the preview. Nothing is issued yet."
+msgstr "Emita certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário. Baixe o modelo, envie o arquivo, associe as colunas e confira a pré-visualização. Nada é emitido ainda."
+
 #: includes/settings/views/documentation/submissions-list.php
-msgid "Open the Issue in bulk screen and check a participants CSV against a form: the columns are mapped and every row is previewed, nothing is issued yet."
-msgstr "Abra a tela Emitir em lote e confira um arquivo CSV de participantes contra um formulário: as colunas são associadas e cada linha é pré-visualizada; nada é emitido ainda."
+msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped and every row is previewed, nothing is issued yet."
+msgstr "Abra um formulário e use a aba Emitir em lote para conferir um arquivo CSV de participantes contra ele: as colunas são associadas e cada linha é pré-visualizada; nada é emitido ainda."
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "The file could not be checked. Try again."
+msgstr "Não foi possível verificar o arquivo. Tente novamente."
