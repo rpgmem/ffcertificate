@@ -27321,3 +27321,11 @@ msgstr ""
 #: includes/admin/class-ffc-admin-assets-manager.php
 msgid "The file could not be checked. Try again."
 msgstr ""
+
+#: includes/submissions/class-ffc-bulk-issue-repository.php
+msgid "The import needs the encryption key configured, so that personal data is not stored in clear text."
+msgstr ""
+
+#: includes/submissions/class-ffc-bulk-issue-repository.php
+msgid "The import could not be staged."
+msgstr ""

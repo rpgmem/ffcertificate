@@ -134,6 +134,9 @@ class Loader {
 			\FreeFormCertificate\Security\RateLimitActivator::maybe_create_tables();
 		}
 
+		// Bulk-issue staging tables (#1945). Same heal-on-request pattern.
+		\FreeFormCertificate\Submissions\BulkIssueActivator::maybe_create_tables();
+
 		// Ensure activity_log schema is healed. Installs created in a
 		// pre-`action`-column plugin version skipped dbDelta on every
 		// upgrade because create_table() used to early-return on

@@ -27404,3 +27404,11 @@ msgstr "Abra um formulário e use a aba Emitir em lote para conferir um arquivo 
 #: includes/admin/class-ffc-admin-assets-manager.php
 msgid "The file could not be checked. Try again."
 msgstr "Não foi possível verificar o arquivo. Tente novamente."
+
+#: includes/submissions/class-ffc-bulk-issue-repository.php
+msgid "The import needs the encryption key configured, so that personal data is not stored in clear text."
+msgstr "A importação precisa da chave de criptografia configurada, para que os dados pessoais não sejam gravados em texto puro."
+
+#: includes/submissions/class-ffc-bulk-issue-repository.php
+msgid "The import could not be staged."
+msgstr "Não foi possível preparar a importação."

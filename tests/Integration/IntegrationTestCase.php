@@ -151,6 +151,7 @@ abstract class IntegrationTestCase extends TestCase {
 		// bump there cannot leave this seed stale.
 		$this->options['ffc_rate_limit_db_version']   = \FreeFormCertificate\Security\RateLimitActivator::DB_VERSION;
 		$this->options['ffc_activity_log_db_version'] = ( new \ReflectionClassConstant( \FreeFormCertificate\Core\ActivityLog::class, 'DB_VERSION' ) )->getValue();
+		$this->options['ffc_bulk_issue_db_version']   = \FreeFormCertificate\Submissions\BulkIssueActivator::DB_VERSION;
 	}
 
 	protected function tearDown(): void {
