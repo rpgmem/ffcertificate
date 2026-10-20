@@ -2827,6 +2827,14 @@ msgstr "Imagem de segundo plano selecionada!"
 msgid "Background Image URL:"
 msgstr "URL da Imagem de Segundo Plano:"
 
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "Background Color:"
+msgstr "Cor de fundo:"
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "Painted behind the background image, and alone when there is no image."
+msgstr "Pintada atrás da imagem de fundo, e sozinha quando não há imagem."
+
 #: includes/admin/class-ffc-admin-assets-manager.php:601
 msgid "Bad request. Check console."
 msgstr "Solicitação inválida. Verifique o console."

@@ -24,6 +24,8 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 		Monkey\setUp();
 		// SettingsReader reads the required certificate tags (#1734).
 		Functions\when( 'get_option' )->justReturn( array() );
+		// The colour field is normalised on render; null falls back to white.
+		Functions\when( 'sanitize_hex_color' )->justReturn( null );
 		Functions\when( 'admin_url' )->returnArg();
 
 		Functions\when( '__' )->returnArg();

@@ -2832,6 +2832,14 @@ msgstr ""
 msgid "Background Image URL:"
 msgstr ""
 
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "Background Color:"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "Painted behind the background image, and alone when there is no image."
+msgstr ""
+
 #: includes/admin/class-ffc-admin-assets-manager.php:601
 msgid "Bad request. Check console."
 msgstr ""

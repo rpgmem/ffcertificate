@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Form editor: background colour** (#1960). The layout box has a `Background Color` control beside the background image. The colour fills the page wherever the image does not cover it, and the editor preview shows it too. It defaults to white, so existing forms print as before.
+
 ### Fixed
 
 - **PDFs no longer stretch images to fit their box** (#1952). The vendored html2canvas 1.4.1 ignored `object-fit`, so a background whose aspect was not A4 came out stretched in the certificate, record and receipt PDFs while the preview showed it cropped; the maintained fork html2canvas-pro 2.5.0 replaces it with the same API. Such a background now prints cropped, as previewed. The PDF needs Safari 13.4 / Chrome 80 or later.

@@ -431,6 +431,8 @@
         // The form editor names its field `#ffc_bg_image_input`; the template
         // screen names it `#ffc_template_bg_image`. Read whichever is on the page.
         var bgImage = $('#ffc_bg_image_input, #ffc_template_bg_image').first().val() || '';
+        // The form editor's colour field; a template screen has none, so it stays white.
+        var bgColor = $('#ffc_bg_color_input').val() || '#ffffff';
         var data = getSampleFieldData();
         var processedHtml = replacePlaceholders(htmlContent, data);
 
@@ -512,14 +514,17 @@
         // the sandboxed frame finishes loading so the body element exists.
         // The setter only accepts values that parse as a CSS <image>, so a
         // tampered URL can't escape the property to inject markup or JS.
-        if (bgImage) {
-            iframe.addEventListener('load', function () {
-                var iframeDoc = iframe.contentDocument;
-                if (iframeDoc && iframeDoc.body && iframeDoc.body.style) {
+        // The page colour goes through the same setter: an invalid value is
+        // ignored by the browser, so the preview falls back to white.
+        iframe.addEventListener('load', function () {
+            var iframeDoc = iframe.contentDocument;
+            if (iframeDoc && iframeDoc.body && iframeDoc.body.style) {
+                iframeDoc.body.style.backgroundColor = bgColor;
+                if (bgImage) {
                     iframeDoc.body.style.backgroundImage = 'url(' + JSON.stringify(String(bgImage)) + ')';
                 }
-            });
-        }
+            }
+        });
 
         // Scale the A4-sized iframe down to fit the modal body, preserving the
         // page aspect (no crop, no distortion). The stage wrapper takes the
