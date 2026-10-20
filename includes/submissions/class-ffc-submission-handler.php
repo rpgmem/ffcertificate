@@ -372,6 +372,19 @@ class SubmissionHandler {
 	 */
 	public function register_async_pipeline(): void {
 		add_action( self::ASYNC_PIPELINE_HOOK, array( $this, 'dispatch_async_pipeline' ), 10, 1 );
+		add_action( 'ffcertificate_link_sent', array( $this, 'record_link_sent' ), 10, 1 );
+	}
+
+	/**
+	 * Stores when the link e-mail for a submission was handed to the mailer (#1967).
+	 *
+	 * Fired by EmailHandler after a successful send that carries the magic link.
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @return void
+	 */
+	public function record_link_sent( int $submission_id ): void {
+		$this->repository->update( $submission_id, array( 'link_sent_at' => time() ) );
 	}
 
 	/**

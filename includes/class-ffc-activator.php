@@ -177,6 +177,7 @@ class Activator {
             qr_code_cache longtext DEFAULT NULL,
             edited_at bigint(20) unsigned DEFAULT NULL,
             edited_by bigint(20) unsigned NULL DEFAULT NULL,
+            link_sent_at bigint(20) unsigned DEFAULT NULL,
             schedule_start_override time NULL DEFAULT NULL,
             schedule_end_override time NULL DEFAULT NULL,
             PRIMARY KEY (id),
@@ -655,6 +656,12 @@ class Activator {
 			'edited_by'               => array(
 				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
 				'after' => 'edited_at',
+			),
+			// When the bulk-issue link (#1945) was sent to this submission: Category A
+			// (unix UTC). NULL means no link was sent by that route.
+			'link_sent_at'            => array(
+				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
+				'after' => 'edited_by',
 			),
 			// Category B wall-clock TIMEs for the operator-driven schedule
 			// exception (#366). NULL means "no override — use the form/geofence
