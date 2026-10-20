@@ -152,6 +152,9 @@ $ffcertificate_tables = array(
 	// Core.
 	$wpdb->prefix . 'ffc_activity_log',
 	$wpdb->prefix . 'ffc_submissions',
+	// Bulk-issue staging (#1945): rows hold personal data until the job ends.
+	$wpdb->prefix . 'ffc_bulk_issue_rows',
+	$wpdb->prefix . 'ffc_bulk_issue_jobs',
 );
 
 // The discovered half. `esc_like()` is load-bearing on the underscore: `_` is a
@@ -182,6 +185,7 @@ $ffcertificate_options = array(
 	'ffc_rate_limit_settings',
 	'ffc_captcha_mode_notice_dismissed',
 	'ffc_rate_limit_db_version',
+	'ffc_bulk_issue_db_version',
 	'ffc_user_access_settings',
 	'ffc_global_holidays',
 	'ffc_cleanup_days',
