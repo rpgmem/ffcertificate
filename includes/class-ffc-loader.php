@@ -1137,7 +1137,7 @@ class Loader {
 	 * Define admin hooks.
 	 */
 	private function define_admin_hooks(): void {
-		// Issue in bulk (#1945), sprint 1: the screen and its template download.
+		// Issue in bulk (#1945, #1967): the form editor tab's preview endpoint and the template download.
 		\FreeFormCertificate\Admin\BulkIssuePage::register();
 		add_action(
 			'ffcertificate_daily_cleanup_hook',

@@ -2,13 +2,16 @@
 /**
  * BulkIssuePage
  *
- * The "Issue in bulk" screen (#1945), under Certificates → Submissions. Sprint 1
- * covers the first half of the flow: choose a form, download its CSV template,
- * upload a participants file, map its columns onto the form and preview what
- * would be issued and what would be skipped. Nothing is written here yet.
+ * The "Bulk issue" tab of the form editor (#1945, #1967). The tab works on the
+ * form being edited: download its CSV template, upload a participants file, map
+ * its columns onto the form and preview what would be issued and what would be
+ * skipped. Nothing is written here yet.
  *
- * The file is parsed from the request and never stored: staging it so the
- * mapping step does not need the file again is part of the job-engine sprint.
+ * The editor is one WordPress post form, so the upload cannot be a form of its
+ * own: the tab posts the file over AJAX (`ffc_bulk_issue_preview`), and the
+ * server answers with the HTML of the step. The file is parsed from the
+ * request and never stored: staging it so the mapping step does not need the
+ * file again is part of the job-engine sprint.
  *
  * @package FreeFormCertificate\Admin
  * @since 6.42.0
@@ -27,13 +30,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Renders and handles the bulk issue screen.
+ * Renders the tab and handles its template download and preview requests.
  */
 final class BulkIssuePage {
 
-	public const SLUG = 'ffc-bulk-issue';
-
-	/** Capability that opens the screen and downloads the template (#1945). */
+	/** Capability that shows the tab and runs the preview (#1945). */
 	public const CAP = 'ffc_import_certificates';
 
 	/** Field name of the uploaded participants file. */
@@ -42,17 +43,17 @@ final class BulkIssuePage {
 	/** Largest participants file accepted, in bytes. */
 	private const MAX_BYTES = 2097152;
 
-	/** Nonce action of the upload form. */
-	private const PREVIEW_NONCE = 'ffc_bulk_issue_preview';
+	/** Nonce action of the preview request, localized for the tab's script. */
+	public const PREVIEW_NONCE = 'ffc_bulk_issue_preview';
 
 	/**
-	 * Hooks the screen and its template download. Called from the Loader.
+	 * Hooks the template download and the preview. Called from the Loader.
 	 *
 	 * @return void
 	 */
 	public static function register(): void {
-		add_action( 'admin_menu', array( self::class, 'add_menu' ), 20 );
 		add_action( 'admin_post_ffc_bulk_issue_template', array( self::class, 'handle_template' ) );
+		add_action( 'wp_ajax_ffc_bulk_issue_preview', array( self::class, 'handle_preview' ) );
 	}
 
 	/**
@@ -63,22 +64,6 @@ final class BulkIssuePage {
 	 */
 	public static function template_nonce_action( int $form_id ): string {
 		return 'ffc_bulk_issue_template_' . $form_id;
-	}
-
-	/**
-	 * Adds the screen under the forms menu, beside Submissions.
-	 *
-	 * @return void
-	 */
-	public static function add_menu(): void {
-		add_submenu_page(
-			'edit.php?post_type=ffc_form',
-			__( 'Issue in bulk', 'ffcertificate' ),
-			__( 'Issue in bulk', 'ffcertificate' ),
-			self::CAP,
-			self::SLUG,
-			array( self::class, 'render' )
-		);
 	}
 
 	/**
@@ -93,81 +78,115 @@ final class BulkIssuePage {
 	}
 
 	/**
-	 * Renders the screen and handles the upload and the mapping.
+	 * Answers one step of the tab: the mapping after the file is read, or the
+	 * preview once the columns are mapped. Replies with the step's HTML and the
+	 * label the button takes for the next step.
 	 *
 	 * @return void
 	 */
-	public static function render(): void {
+	public static function handle_preview(): void {
+		check_ajax_referer( self::PREVIEW_NONCE, 'nonce' );
+
 		if ( ! current_user_can( self::CAP ) ) {
-			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+			wp_send_json_error( array( 'message' => __( 'Access denied.', 'ffcertificate' ) ), 403 );
 		}
 
 		$form_id = absint( RequestInput::get_post_string( 'form_id' ) );
-		$forms   = self::forms();
+
+		if ( $form_id <= 0 || 'ffc_form' !== get_post_type( $form_id ) || ! current_user_can( 'edit_post', $form_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Choose the form the certificates are issued for.', 'ffcertificate' ) ), 400 );
+		}
+
 		$error   = '';
 		$plan    = null;
 		$parsed  = null;
 		$mapping = array();
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- compared to a constant, never echoed.
-		if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
-			check_admin_referer( self::PREVIEW_NONCE );
+		$upload = self::read_upload( $error );
 
-			$upload = self::read_upload( $error );
+		if ( null !== $upload ) {
+			$parsed  = BulkIssuePlanner::parse( $upload );
+			$fields  = get_post_meta( $form_id, '_ffc_form_fields', true );
+			$keys    = BulkIssuePlanner::template_columns( is_array( $fields ) ? $fields : array() );
+			$keys    = array_values( array_unique( array_merge( BulkIssuePlanner::REQUIRED_KEYS, $keys ) ) );
+			$mapping = self::submitted_mapping( $keys );
 
-			if ( null !== $upload && $form_id > 0 ) {
-				$parsed  = BulkIssuePlanner::parse( $upload );
-				$fields  = get_post_meta( $form_id, '_ffc_form_fields', true );
-				$keys    = BulkIssuePlanner::template_columns( is_array( $fields ) ? $fields : array() );
-				$keys    = array_values( array_unique( array_merge( BulkIssuePlanner::REQUIRED_KEYS, $keys ) ) );
-				$mapping = self::submitted_mapping( $keys );
+			if ( array() !== $mapping ) {
+				$problems = BulkIssuePlanner::mapping_problems( $mapping, $parsed['header'] );
 
-				if ( array() !== $mapping ) {
-					$problems = BulkIssuePlanner::mapping_problems( $mapping, $parsed['header'] );
-
-					if ( array() === $problems ) {
-						$plan = BulkIssuePlanner::plan( $parsed['rows'], $mapping, $parsed['header'] );
-					} else {
-						$error = __( 'Map a column from the file to each of name, CPF/RF and e-mail.', 'ffcertificate' );
-					}
+				if ( array() === $problems ) {
+					$plan = BulkIssuePlanner::plan( $parsed['rows'], $mapping, $parsed['header'] );
+				} else {
+					$error = __( 'Map a column from the file to each of name, CPF/RF and e-mail.', 'ffcertificate' );
 				}
-			} elseif ( '' === $error && $form_id <= 0 ) {
-				$error = __( 'Choose the form the certificates are issued for.', 'ffcertificate' );
 			}
 		}
 
-		echo '<div class="wrap ffc-admin-page ffc-page-bulk-issue">';
-		echo '<h1>' . esc_html__( 'Issue in bulk', 'ffcertificate' ) . '</h1>';
-		echo '<p class="description">' . esc_html__( 'Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Choose the form, download its template, upload the file, map its columns and check the preview.', 'ffcertificate' ) . '</p>';
+		ob_start();
+		self::render_result( $form_id, $parsed, $mapping, $plan, $error );
+		$html = (string) ob_get_clean();
 
-		if ( '' !== $error ) {
-			echo '<div class="notice notice-error inline"><p>' . esc_html( $error ) . '</p></div>';
-		}
+		wp_send_json_success(
+			array(
+				'html'  => $html,
+				'label' => null === $parsed ? __( 'Check the file', 'ffcertificate' ) : __( 'Preview', 'ffcertificate' ),
+			)
+		);
+	}
 
-		self::render_form( $forms, $form_id, $parsed, $mapping );
+	/**
+	 * Renders the tab's panel body for the form being edited: the template link,
+	 * the file field and the button, and an empty box the steps are written into.
+	 *
+	 * @param \WP_Post $post Form being edited.
+	 * @return void
+	 */
+	public static function render_panel( \WP_Post $post ): void {
+		$template = wp_nonce_url(
+			admin_url( 'admin-post.php?action=ffc_bulk_issue_template&form_id=' . $post->ID ),
+			self::template_nonce_action( $post->ID )
+		);
 
-		if ( null !== $plan ) {
-			self::render_plan( $plan );
-		}
+		echo '<div class="ffc-bulk-issue" id="ffc-bulk-issue" data-form-id="' . esc_attr( (string) $post->ID ) . '">';
+		echo '<p class="description">' . esc_html__( 'Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns and check the preview. Nothing is issued yet.', 'ffcertificate' ) . '</p>';
+		echo '<p><a href="' . esc_url( $template ) . '">' . esc_html__( 'Download the CSV template for this form', 'ffcertificate' ) . '</a></p>';
+		echo '<p><label for="ffc_bulk_file"><strong>' . esc_html__( 'Participants file (CSV)', 'ffcertificate' ) . '</strong></label><br>';
+		echo '<input type="file" name="' . esc_attr( self::FILE_FIELD ) . '" id="ffc_bulk_file" accept=".csv,text/csv"></p>';
 
+		AdminUI::render_button(
+			array(
+				'label'    => __( 'Check the file', 'ffcertificate' ),
+				'category' => 'primary',
+				'icon'     => 'eye',
+			)
+		);
+
+		echo '<div class="ffc-bulk-issue-result" aria-live="polite"></div>';
 		echo '</div>';
 	}
 
 	/**
-	 * Published forms, for the selector.
+	 * Writes one step's HTML: an error, the mapping, or the preview.
 	 *
-	 * @return array<int, \WP_Post>
+	 * @param int                       $form_id Chosen form.
+	 * @param array<string, mixed>|null $parsed  Parsed file, once uploaded.
+	 * @param array<string, string>     $mapping Mapping submitted so far.
+	 * @param array<string, mixed>|null $plan    Plan, once the columns are mapped.
+	 * @param string                    $error   Message to show, or ''.
+	 * @return void
 	 */
-	private static function forms(): array {
-		return get_posts(
-			array(
-				'post_type'      => 'ffc_form',
-				'post_status'    => 'publish',
-				'posts_per_page' => -1,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-			)
-		);
+	private static function render_result( int $form_id, ?array $parsed, array $mapping, ?array $plan, string $error ): void {
+		if ( '' !== $error ) {
+			echo '<div class="notice notice-error inline"><p>' . esc_html( $error ) . '</p></div>';
+		}
+
+		if ( null !== $parsed && null === $plan ) {
+			self::render_mapping( $form_id, $parsed, $mapping );
+		}
+
+		if ( null !== $plan ) {
+			self::render_plan( $plan );
+		}
 	}
 
 	/**
@@ -178,7 +197,7 @@ final class BulkIssuePage {
 	 * @return string|null File contents, or null.
 	 */
 	private static function read_upload( string &$error ): ?string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified by check_admin_referer() in render(); the file is checked by is_uploaded_file() and read, never echoed.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified by check_ajax_referer() in handle_preview(); the file is checked by is_uploaded_file() and read, never echoed.
 		$file = $_FILES[ self::FILE_FIELD ] ?? null;
 
 		if ( ! is_array( $file ) || UPLOAD_ERR_NO_FILE === ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) ) {
@@ -217,7 +236,7 @@ final class BulkIssuePage {
 	 * @return array<string, string>
 	 */
 	private static function submitted_mapping( array $keys ): array {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified by check_admin_referer() in render(); each value is sanitised below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified by check_ajax_referer() in handle_preview(); each value is sanitised below.
 		$posted = isset( $_POST['ffc_map'] ) && is_array( $_POST['ffc_map'] ) ? wp_unslash( $_POST['ffc_map'] ) : null;
 
 		if ( null === $posted ) {
@@ -231,59 +250,6 @@ final class BulkIssuePage {
 		}
 
 		return $mapping;
-	}
-
-	/**
-	 * Renders the form selector and the upload, mapping and preview fields.
-	 *
-	 * @param array<int, \WP_Post>      $forms   Published forms.
-	 * @param int                       $form_id Chosen form, 0 for none.
-	 * @param array<string, mixed>|null $parsed  Parsed file, once uploaded.
-	 * @param array<string, string>     $mapping Mapping submitted so far.
-	 * @return void
-	 */
-	private static function render_form( array $forms, int $form_id, ?array $parsed, array $mapping ): void {
-		$action = admin_url( 'edit.php?post_type=ffc_form&page=' . self::SLUG );
-
-		echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( $action ) . '">';
-		wp_nonce_field( self::PREVIEW_NONCE );
-
-		echo '<p><label for="ffc_bulk_form"><strong>' . esc_html__( 'Form', 'ffcertificate' ) . '</strong></label><br>';
-		echo '<select name="form_id" id="ffc_bulk_form">';
-		echo '<option value="0">' . esc_html__( 'Choose a form…', 'ffcertificate' ) . '</option>';
-
-		foreach ( $forms as $form ) {
-			echo '<option value="' . esc_attr( (string) $form->ID ) . '"' . selected( $form_id, $form->ID, false ) . '>' . esc_html( $form->post_title ) . '</option>';
-		}
-
-		echo '</select></p>';
-
-		if ( $form_id > 0 ) {
-			$template = wp_nonce_url(
-				admin_url( 'admin-post.php?action=ffc_bulk_issue_template&form_id=' . $form_id ),
-				self::template_nonce_action( $form_id )
-			);
-			echo '<p><a href="' . esc_url( $template ) . '">' . esc_html__( 'Download the CSV template for this form', 'ffcertificate' ) . '</a></p>';
-		}
-
-		echo '<p><label for="ffc_bulk_file"><strong>' . esc_html__( 'Participants file (CSV)', 'ffcertificate' ) . '</strong></label><br>';
-		echo '<input type="file" name="' . esc_attr( self::FILE_FIELD ) . '" id="ffc_bulk_file" accept=".csv,text/csv"></p>';
-
-		if ( null !== $parsed ) {
-			self::render_mapping( $form_id, $parsed, $mapping );
-		}
-
-		AdminUI::render_button(
-			array(
-				'label'    => null === $parsed ? __( 'Check the file', 'ffcertificate' ) : __( 'Preview', 'ffcertificate' ),
-				'category' => 'primary',
-				'icon'     => 'eye',
-				'type'     => 'submit',
-				'name'     => 'submit',
-			)
-		);
-
-		echo '</form>';
 	}
 
 	/**

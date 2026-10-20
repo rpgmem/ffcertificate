@@ -88,6 +88,7 @@ final class AssetRegistry {
 		'ffc-url-shortener-admin'   => array( 'assets/js/ffc-url-shortener-admin', array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-qr-raster' ) ),
 		'ffc-pdf-generator'         => array( 'assets/js/ffc-pdf-generator', array( 'jquery', 'html2canvas', 'jspdf' ) ),
 		'ffc-layout-preview'        => array( 'assets/js/ffc-layout-preview', array( 'html2canvas' ) ),
+		'ffc-bulk-issue'            => array( 'assets/js/ffc-bulk-issue', array() ),
 	);
 
 	/**
