@@ -66,25 +66,21 @@ class FormEditorSaveHandler {
 	 * Whether the posted layout lacks a required tag, in which case the save
 	 * is refused and the missing tags are handed to the editor's notice.
 	 *
-	 * Reads the posted layout and geofence, so an Event Schedule filled in
-	 * this same save already counts. A save that posts no layout is not
-	 * checked: nothing about the layout is changing.
+	 * A save that posts no layout is not checked: nothing about the layout
+	 * is changing.
 	 *
-	 * @param int $post_id Form post ID.
 	 * @return bool True when the save must be refused.
 	 */
-	private function refuse_for_missing_tags( int $post_id ): bool {
+	private function refuse_for_missing_tags(): bool {
 		if ( ! RequestInput::has_post( 'ffc_config' ) ) {
 			return false;
 		}
 
-		$posted_layout   = wp_kses(
+		$posted_layout = wp_kses(
 			ArrayValue::string( RequestInput::get_post_raw_array( 'ffc_config' ), 'pdf_layout' ),
 			\FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags()
 		);
-		$posted_geofence = RequestInput::has_post( 'ffc_geofence' ) ? RequestInput::get_post_raw_array( 'ffc_geofence' ) : null;
-
-		$missing_tags = $this->validator()->missing_required_tags( $posted_layout, $post_id, $posted_geofence );
+		$missing_tags  = $this->validator()->missing_required_tags( $posted_layout );
 		if ( array() === $missing_tags ) {
 			return false;
 		}
@@ -113,7 +109,7 @@ class FormEditorSaveHandler {
 		// the check reads the schedule being saved, not the stored one, and
 		// nothing is written when it fails, so the error cannot leave a
 		// half-saved form behind.
-		if ( $this->refuse_for_missing_tags( $post_id ) ) {
+		if ( $this->refuse_for_missing_tags() ) {
 			return;
 		}
 

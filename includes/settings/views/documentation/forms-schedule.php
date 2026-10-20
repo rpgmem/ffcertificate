@@ -40,7 +40,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<?php ob_start(); ?>
 		<p>
-			<?php esc_html_e( 'The "Event Schedule (Reference)" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. Once they are filled, the certificate layout must contain {{schedule}}. The tokens use a per-participant exception first, then the Event Schedule, then the window\'s start/end time. See', 'ffcertificate' ); ?> <a href="#reference-tokens"><?php esc_html_e( 'Template Variables / Tokens', 'ffcertificate' ); ?></a>.
+			<?php esc_html_e( 'The "Event Schedule (Reference)" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. When Settings → Certificates requires {{schedule}}, the certificate layout must contain it. The tokens use a per-participant exception first, then the Event Schedule, then the window\'s start/end time. See', 'ffcertificate' ); ?> <a href="#reference-tokens"><?php esc_html_e( 'Template Variables / Tokens', 'ffcertificate' ); ?></a>.
 		</p>
 	<?php
 	\FreeFormCertificate\Core\AdminNotice::callout(

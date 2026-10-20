@@ -74,28 +74,15 @@ class FormEditorSaveValidator {
 	}
 
 	/**
-	 * Tags this form's layout must carry: the configured list, with
-	 * `{{schedule}}` asked only of a form that has an Event Schedule —
-	 * elsewhere it would print nothing (#1741).
+	 * Tags every form's layout must carry: the list Settings → Certificates
+	 * configures, `{{schedule}}` included whenever that list names it. The
+	 * requirement is the configuration's, not the form's: a form whose Event
+	 * Schedule has no time yet still has to carry the tag (#1741).
 	 *
-	 * The schedule read is the one being saved when the caller passes it
-	 * (`$geofence`); the stored one otherwise. The save reads the posted
-	 * values because the stored ones are still the old ones at that point.
-	 *
-	 * @param int                       $post_id  Form post ID.
-	 * @param array<string, mixed>|null $geofence Posted geofence values, or null to read the stored config.
 	 * @return array<int, string>
 	 */
-	public static function layout_required_tags( int $post_id, ?array $geofence = null ): array {
-		$required = \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags();
-		if ( null === $geofence ) {
-			$geofence = $post_id > 0 ? get_post_meta( $post_id, '_ffc_geofence_config', true ) : array();
-		}
-		$has_time = is_array( $geofence ) && ( ! empty( $geofence['class_time_start'] ) || ! empty( $geofence['class_time_end'] ) );
-		if ( ! $has_time ) {
-			$required = array_values( array_diff( $required, array( '{{schedule}}' ) ) );
-		}
-		return $required;
+	public static function layout_required_tags(): array {
+		return \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags();
 	}
 
 	/**
@@ -158,26 +145,16 @@ class FormEditorSaveValidator {
 	 * Required certificate tags absent from a PDF layout.
 	 *
 	 * Reads the configurable required-tag list (Settings → Certificates) via
-	 * {@see SettingsReader::required_certificate_tags()} and honours the
-	 * historical `{{name}}`/`{{nome}}` alias — a layout using either token
-	 * satisfies a `{{name}}` requirement.
+	 * {@see self::layout_required_tags()} and honours the historical
+	 * `{{name}}`/`{{nome}}` alias — a layout using either token satisfies a
+	 * `{{name}}` requirement.
 	 *
-	 * `{{schedule}}`, when the list names it, is asked only of a form with
-	 * an Event Schedule configured (geofence `class_time_start` or
-	 * `class_time_end`): PdfGenerator resolves it from that field, and on
-	 * a form without one it would print nothing ({@see self::layout_required_tags()}).
-	 *
-	 * @param string                    $layout   PDF layout HTML.
-	 * @param int                       $post_id  Form post ID.
-	 * @param array<string, mixed>|null $geofence Posted geofence values, or null to read the stored config
-	 *                                            (see {@see self::layout_required_tags()}).
+	 * @param string $layout PDF layout HTML.
 	 * @return array<int, string> Missing `{{tag}}` tokens, in required order.
 	 */
-	public function missing_required_tags( string $layout, int $post_id, ?array $geofence = null ): array {
-		$required = self::layout_required_tags( $post_id, $geofence );
-
+	public function missing_required_tags( string $layout ): array {
 		$missing = array();
-		foreach ( $required as $tag ) {
+		foreach ( self::layout_required_tags() as $tag ) {
 			$accepted = array( $tag );
 			if ( '{{name}}' === $tag ) {
 				$accepted[] = '{{nome}}';

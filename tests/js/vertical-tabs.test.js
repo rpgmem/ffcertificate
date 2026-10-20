@@ -334,34 +334,6 @@ describe('FFC.VerticalTabs — required-tag save guard', () => {
 		expect(ev.isDefaultPrevented()).toBe(false);
 	});
 
-	it('requires {{schedule}} once an Event Schedule time is typed, before the form is saved', () => {
-		window.ffcFormRequiredTags.tags = ['{{auth_code}}', '{{name}}', '{{cpf_rf}}'];
-		window.ffcFormRequiredTags.scheduleTag = '{{schedule}}';
-		window.ffcFormRequiredTags.scheduleFields = '[name="ffc_geofence[class_time_start]"]';
-		buildEditorForm('{{auth_code}} {{name}} {{cpf_rf}}');
-		window.$('#post').append('<input name="ffc_geofence[class_time_start]" value="09:00">');
-		window.FFC.VerticalTabs.init();
-
-		const ev = window.$.Event('submit');
-		window.$('#post').trigger(ev);
-
-		expect(ev.isDefaultPrevented()).toBe(true);
-		expect(window.$('.ffc-vtabs__required-warning').text()).toContain('{{schedule}}');
-	});
-
-	it('does not require {{schedule}} while the Event Schedule times are empty', () => {
-		window.ffcFormRequiredTags.scheduleTag = '{{schedule}}';
-		window.ffcFormRequiredTags.scheduleFields = '[name="ffc_geofence[class_time_start]"]';
-		buildEditorForm('{{auth_code}} {{name}} {{cpf_rf}}');
-		window.$('#post').append('<input name="ffc_geofence[class_time_start]" value="">');
-		window.FFC.VerticalTabs.init();
-
-		const ev = window.$.Event('submit');
-		window.$('#post').trigger(ev);
-
-		expect(ev.isDefaultPrevented()).toBe(false);
-	});
-
 	it('no-ops when no required-tag config is localised', () => {
 		delete window.ffcFormRequiredTags;
 		buildEditorForm('empty');
