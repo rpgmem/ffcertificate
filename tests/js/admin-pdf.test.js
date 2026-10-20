@@ -565,7 +565,8 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		window.$('#ffc_btn_preview').trigger('click');
 		await flush();
 
-		// The modal leaves the screen at once and is removed after its fade.
+		// Wait past the first animation frame: a close must hold against the fade-in.
+		await new Promise((resolve) => setTimeout(resolve, 50));
 		expect(document.querySelector('#ffc-preview-modal').classList.contains('ffc-preview-visible')).toBe(false);
 		post.mockRestore();
 	});

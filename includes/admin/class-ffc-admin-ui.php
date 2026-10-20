@@ -943,9 +943,7 @@ class AdminUI {
 	 */
 	public static function get_required_tags_line(): string {
 		$tags = array_map(
-			static fn( string $tag ): string => '<code>' . esc_html( $tag ) . '</code>'
-				// Asked only of a form with an Event Schedule (#1741).
-				. ( '{{schedule}}' === $tag ? ' ' . esc_html__( '(when the form has an Event Schedule)', 'ffcertificate' ) : '' ),
+			static fn( string $tag ): string => '<code>' . esc_html( $tag ) . '</code>',
 			\FreeFormCertificate\Settings\SettingsReader::required_certificate_tags()
 		);
 		return sprintf(

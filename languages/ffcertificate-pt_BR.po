@@ -19399,8 +19399,8 @@ msgid "When checked, next submission will start from ID #1. Only works if table 
 msgstr "Quando selecionada, a próxima submissão começará a partir do ID #1. Só funciona se a tabela estiver vazia."
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:129
-msgid "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When filled, the template must contain {{schedule}} — the form save will be blocked until the placeholder is present."
-msgstr "Quando ocorre este evento? É exibido como {{schedule}} no modelo de certificado (por exemplo, '9h às 12h'). Quando preenchido, o modelo deve conter {{schedule}} — o salvamento do formulário será bloqueado até que o marcador esteja presente."
+msgid "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When Settings → Certificates requires {{schedule}}, the template must contain it — the form save is blocked until the placeholder is present."
+msgstr "Quando ocorre este evento? É exibido como {{schedule}} no modelo de certificado (por exemplo, '9h às 12h'). Quando Configurações → Certificados exige {{schedule}}, o modelo deve conter o marcador — o salvamento do formulário é bloqueado até que ele esteja presente."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:43
 msgid "When enabled, a full slot/block lets users join a queue (with an optional waitlist capacity) instead of being turned away. Off by default."
@@ -22961,8 +22961,8 @@ msgstr "Um formulário pode aceitar submissões apenas dentro de uma janela de d
 msgid "Before / during / after the window you can independently show a message, show the title + description + message, or hide the form. The \"during\" setting applies only in daily mode, outside that day's hours."
 msgstr "Antes, durante ou após a janela, você pode, de forma independente, exibir uma mensagem, exibir título + descrição + mensagem, ou ocultar o formulário. A opção \"durante\" só se aplica ao modo diário, fora do horário do dia."
 
-msgid "The \"Event Schedule (Reference)\" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. Once they are filled, the certificate layout must contain {{schedule}}. The tokens use a per-participant exception first, then the Event Schedule, then the window's start/end time. See"
-msgstr "Os horários do \"Cronograma do Evento (Referência)\" na mesma aba são impressos no certificado pelos tokens {{schedule}} e {{schedule_total}} — eles não abrem nem fecham o formulário. Depois de preenchidos, o layout do certificado precisa conter {{schedule}}. Os tokens usam primeiro uma exceção individual do participante, depois o Cronograma do Evento e, por fim, o horário de início/término da janela. Veja"
+msgid "The \"Event Schedule (Reference)\" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. When Settings → Certificates requires {{schedule}}, the certificate layout must contain it. The tokens use a per-participant exception first, then the Event Schedule, then the window's start/end time. See"
+msgstr "Os horários do \"Cronograma do Evento (Referência)\" na mesma aba são impressos no certificado pelos tokens {{schedule}} e {{schedule_total}} — eles não abrem nem fecham o formulário. Quando Configurações → Certificados exige {{schedule}}, o layout do certificado precisa conter o marcador. Os tokens usam primeiro uma exceção individual do participante, depois o Cronograma do Evento e, por fim, o horário de início/término da janela. Veja"
 
 msgid "moves the close time later on the scheduled close day, after the form has opened; the new time must stay within the same day."
 msgstr "adia o horário de fechamento no dia previsto para o encerramento, depois que o formulário já abriu; o novo horário deve permanecer no mesmo dia."
@@ -25231,9 +25231,6 @@ msgid "Incorrect"
 msgstr "Incorreta"
 
 #: includes/admin/class-ffc-admin-ui.php:345
-msgid "(when the form has an Event Schedule)"
-msgstr "(quando o formulário tem uma Cronograma do Evento)"
-
 #: includes/settings/views/documentation/forms-dynamic-fields.php:66
 msgid "A required field is drawn with an amber border and a \"Required field\" badge: it is always required, its variable name and type cannot change and it cannot be removed; only its label can. A form missing one shows a warning naming it, with an \"Add the required fields\" button that adds them."
 msgstr "Um campo obrigatório aparece com borda âmbar e o selo \"Campo obrigatório\": ele é sempre obrigatório, o nome da variável e o tipo não podem mudar e ele não pode ser removido; só o rótulo pode. Um formulário sem algum deles mostra um aviso com o nome, e o botão \"Adicionar os campos obrigatórios\" os adiciona."

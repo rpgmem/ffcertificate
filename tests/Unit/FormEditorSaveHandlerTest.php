@@ -34,6 +34,19 @@ class FormEditorSaveHandlerTest extends TestCase {
 	 *
 	 * @var array<int, string>
 	 */
+	/**
+	 * The required tags a form is saved against unless a test asks otherwise:
+	 * the three the defaults start from, without {{schedule}}.
+	 */
+	private const REQUIRED_TAGS_SETTINGS = array(
+		'required_certificate_tags' => "{{auth_code}}\n{{name}}\n{{cpf_rf}}",
+		'required_form_fields'      => array(
+			'name'   => array( 'name' => 'name', 'label' => 'Name', 'type' => 'text' ),
+			'email'  => array( 'name' => 'email', 'label' => 'Email', 'type' => 'email' ),
+			'cpf_rf' => array( 'name' => 'cpf_rf', 'label' => 'CPF/RF', 'type' => 'text' ),
+		),
+	);
+
 	private $validator_methods = array(
 		'missing_required_tags',
 		'validate_geofence_config',
@@ -46,7 +59,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		// SettingsReader reads the required certificate tags (#1734).
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_option' )->alias( static fn( $key ) => 'ffc_settings' === $key ? self::REQUIRED_TAGS_SETTINGS : array() );
 		// The background colour is normalised on save; null falls back to white.
 		Functions\when( 'sanitize_hex_color' )->justReturn( null );
 		Functions\when( 'wp_admin_notice' )->alias(
@@ -582,68 +595,60 @@ class FormEditorSaveHandlerTest extends TestCase {
 
 	public function test_missing_required_tags_flags_all_when_layout_empty(): void {
 		// No saved list → SettingsReader returns the default trio.
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_option' )->alias( static fn( $key ) => 'ffc_settings' === $key ? self::REQUIRED_TAGS_SETTINGS : array() );
 
-		$missing = $this->invoke( 'missing_required_tags', array( '<p>nothing here</p>', 0 ) );
+		$missing = $this->invoke( 'missing_required_tags', array( '<p>nothing here</p>' ) );
 		$this->assertSame( array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ), $missing );
 	}
 
 	public function test_missing_required_tags_empty_when_all_present(): void {
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_option' )->alias( static fn( $key ) => 'ffc_settings' === $key ? self::REQUIRED_TAGS_SETTINGS : array() );
 
 		$layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
-		$missing = $this->invoke( 'missing_required_tags', array( $layout, 0 ) );
+		$missing = $this->invoke( 'missing_required_tags', array( $layout ) );
 		$this->assertSame( array(), $missing );
 	}
 
 	public function test_missing_required_tags_accepts_nome_alias_for_name(): void {
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_option' )->alias( static fn( $key ) => 'ffc_settings' === $key ? self::REQUIRED_TAGS_SETTINGS : array() );
 
 		// {{nome}} satisfies the {{name}} requirement.
 		$layout  = '{{auth_code}} {{nome}} {{cpf_rf}}';
-		$missing = $this->invoke( 'missing_required_tags', array( $layout, 0 ) );
+		$missing = $this->invoke( 'missing_required_tags', array( $layout ) );
 		$this->assertSame( array(), $missing );
 	}
 
 	public function test_missing_required_tags_honours_configured_list(): void {
 		Functions\when( 'get_option' )->alias( function ( $key ) {
 			return ( 'ffc_settings' === $key )
-				? array( 'required_certificate_tags' => "{{auth_code}}\n{{course}}" )
+				? array( 'required_certificate_tags' => "{{auth_code}}\n{{course}}", 'required_form_fields' => array() )
 				: array();
 		} );
 
 		$layout  = '{{auth_code}} only';
-		$missing = $this->invoke( 'missing_required_tags', array( $layout, 0 ) );
+		$missing = $this->invoke( 'missing_required_tags', array( $layout ) );
 		$this->assertSame( array( '{{course}}' ), $missing );
 	}
 
-	public function test_missing_required_tags_requires_schedule_when_event_schedule_is_set(): void {
-		// Form has class_time_start configured → {{schedule}} becomes
-		// required on top of the default trio.
-		Functions\when( 'get_option' )->justReturn( array() );
-		Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
-			return ( 42 === $post_id && '_ffc_geofence_config' === $key )
-				? array( 'class_time_start' => '09:00' )
-				: false;
+	public function test_missing_required_tags_requires_schedule_when_configured_even_without_a_time(): void {
+		// Settings → Certificates lists {{schedule}}: the tag is asked of
+		// every form, whether or not its Event Schedule has a time yet.
+		Functions\when( 'get_option' )->alias( function ( $key ) {
+			return ( 'ffc_settings' === $key )
+				? array( 'required_certificate_tags' => "{{auth_code}}\n{{name}}\n{{cpf_rf}}\n{{schedule}}" )
+				: array();
 		} );
 
 		$layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
-		$missing = $this->invoke( 'missing_required_tags', array( $layout, 42 ) );
+		$missing = $this->invoke( 'missing_required_tags', array( $layout ) );
 		$this->assertSame( array( '{{schedule}}' ), $missing );
 	}
 
-	public function test_missing_required_tags_does_not_require_schedule_when_event_schedule_empty(): void {
-		// Geofence config exists but class_time_* are empty → the
-		// {{schedule}} gate stays OFF.
-		Functions\when( 'get_option' )->justReturn( array() );
-		Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
-			return ( 42 === $post_id && '_ffc_geofence_config' === $key )
-				? array( 'class_time_start' => '', 'class_time_end' => '' )
-				: false;
-		} );
+	public function test_missing_required_tags_does_not_ask_schedule_when_not_configured(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key ) => 'ffc_settings' === $key ? self::REQUIRED_TAGS_SETTINGS : array() );
 
 		$layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
-		$missing = $this->invoke( 'missing_required_tags', array( $layout, 42 ) );
+		$missing = $this->invoke( 'missing_required_tags', array( $layout ) );
 		$this->assertSame( array(), $missing );
 	}
 
@@ -905,7 +910,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		Functions\when( 'absint' )->alias( static fn( $v ) => (int) $v );
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_option' )->alias( static fn( $key ) => 'ffc_settings' === $key ? self::REQUIRED_TAGS_SETTINGS : array() );
 
 		$deleted = array();
 		Functions\when( 'delete_post_meta' )->alias(
@@ -968,7 +973,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 		Functions\when( 'absint' )->alias( static fn( $v ) => (int) $v );
 		Functions\when( 'delete_post_meta' )->justReturn( true );
 		Functions\when( 'set_transient' )->justReturn( true );
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_option' )->alias( static fn( $key ) => 'ffc_settings' === $key ? self::REQUIRED_TAGS_SETTINGS : array() );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		// Cache helpers used by the geofence save path's purge calls.
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
@@ -1673,6 +1678,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 			$_POST = array(
 				'ffc_form_nonce' => 'ok',
 				'ffc_config'     => array(
+					'pdf_layout'          => '{{auth_code}} {{name}} {{cpf_rf}}',
 					'quiz_enabled'        => '1',
 					'quiz_reset_on_leave' => $posted,
 				),
@@ -1683,7 +1689,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 		}
 	}
 
-	public function test_a_layout_missing_tags_or_pointing_at_html_leaves_both_warnings(): void {
+	public function test_a_layout_missing_a_required_tag_refuses_the_save(): void {
 		$bag       = $this->stub_for_save();
 		$written   = &$bag[0];
 		$transient = array();
@@ -1698,14 +1704,37 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$_POST = array(
 			'ffc_form_nonce' => 'ok',
 			'ffc_config'     => array(
-				'pdf_layout' => '<img src="https://x.test/wp-content/plugins/ffcertificate/html/logo.png"> {{name}}',
+				'pdf_layout' => '{{name}} {{cpf_rf}}',
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$this->assertArrayNotHasKey( '_ffc_form_config', $written, 'nothing is written while a required tag is missing' );
+		$this->assertContains( '{{auth_code}}', $transient['ffc_save_error_1'] );
+	}
+
+	public function test_a_layout_pointing_at_html_is_saved_with_a_warning(): void {
+		$bag       = $this->stub_for_save();
+		$written   = &$bag[0];
+		$transient = array();
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$transient ) {
+				$transient[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_config'     => array(
+				'pdf_layout' => '<img src="https://x.test/wp-content/plugins/ffcertificate/html/logo.png"> {{auth_code}} {{name}} {{cpf_rf}}',
 				'bg_image'   => 'https://x.test/wp-content/plugins/ffcertificate/html/bg.jpg',
 			),
 		);
 		$this->handler->save_form_data( 10 );
 
-		$this->assertArrayHasKey( '_ffc_form_config', $written, 'both warnings are non-blocking' );
-		$this->assertContains( '{{auth_code}}', $transient['ffc_save_error_1'] );
+		$this->assertArrayHasKey( '_ffc_form_config', $written, 'the html/ link warning is non-blocking' );
 		$this->assertSame(
 			array( 'https://x.test/wp-content/plugins/ffcertificate/html/logo.png', 'https://x.test/wp-content/plugins/ffcertificate/html/bg.jpg' ),
 			$transient['ffc_html_lint_1']

@@ -107,15 +107,32 @@ class RequiredCertificateFieldsTest extends TestCase {
 		);
 	}
 
-	public function test_schedule_is_asked_only_of_a_form_with_an_event_schedule(): void {
-		$meta = array(
-			1 => array(),
-			2 => array( 'class_time_start' => '08:00' ),
+	/**
+	 * The requirement is the configured list, not the form's Event Schedule:
+	 * a form without a time is asked for {{schedule}} when the list names it
+	 * (#1741, changed so the configuration alone decides).
+	 */
+	public function test_the_configured_list_decides_whether_schedule_is_asked(): void {
+		Functions\when( 'get_option' )->alias(
+			static fn( $key ) => 'ffc_settings' === $key
+				? array( 'required_certificate_tags' => "{{auth_code}}\n{{name}}\n{{cpf_rf}}\n{{schedule}}", 'required_form_fields' => array() )
+				: array()
 		);
-		Functions\when( 'get_post_meta' )->alias( static fn( $id ) => $meta[ $id ] ?? '' );
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}', '{{schedule}}' ),
+			FormEditorSaveValidator::layout_required_tags(),
+			'Named in Settings → Certificates: asked of every form, with or without a time.'
+		);
 
-		$this->assertSame( array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ), FormEditorSaveValidator::layout_required_tags( 1 ) );
-		$this->assertSame( array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}', '{{schedule}}' ), FormEditorSaveValidator::layout_required_tags( 2 ) );
-		$this->assertSame( array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ), FormEditorSaveValidator::layout_required_tags( 0 ), 'A form not saved yet has no schedule.' );
+		Functions\when( 'get_option' )->alias(
+			static fn( $key ) => 'ffc_settings' === $key
+				? array( 'required_certificate_tags' => "{{auth_code}}\n{{name}}\n{{cpf_rf}}", 'required_form_fields' => array() )
+				: array()
+		);
+		$this->assertSame(
+			array( '{{auth_code}}', '{{name}}', '{{cpf_rf}}' ),
+			FormEditorSaveValidator::layout_required_tags(),
+			'Not named: not asked.'
+		);
 	}
 }

@@ -144,10 +144,7 @@ class FormEditor {
 		// FormEditorSaveHandler is the backstop for JS-disabled clients.
 		// Same list the save handler checks, {{schedule}} included only
 		// when this form has an Event Schedule (#1741).
-		$current_post  = get_post();
-		$required_tags = FormEditorSaveValidator::layout_required_tags(
-			$current_post && 'ffc_form' === $current_post->post_type ? (int) $current_post->ID : 0
-		);
+		$required_tags = FormEditorSaveValidator::layout_required_tags();
 
 		wp_localize_script(
 			AdminUI::VERTICAL_TABS_HANDLE,

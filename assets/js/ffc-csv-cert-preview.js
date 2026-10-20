@@ -56,11 +56,16 @@
 
 		$modal.find('.ffc-preview-page').attr({ alt: previewTitle, src: src });
 		$('body').append($modal);
+		// A close before the first frame must not be undone by the fade-in.
+		var closed = false;
 		requestAnimationFrame(function () {
-			$modal.addClass('ffc-preview-visible');
+			if (!closed) {
+				$modal.addClass('ffc-preview-visible');
+			}
 		});
 
 		function closePreview() {
+			closed = true;
 			$modal.removeClass('ffc-preview-visible');
 			setTimeout(function () { $modal.remove(); }, 200);
 			$(document).off('keydown.ffcCertPreview');
