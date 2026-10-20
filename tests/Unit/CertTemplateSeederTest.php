@@ -30,8 +30,16 @@ class CertTemplateSeederTest extends TestCase {
 		parent::tearDown();
 	}
 
+	/**
+	 * The shipped seed version, read from the class rather than written here, so
+	 * a bump does not turn this test stale.
+	 */
+	private static function current_seed_version(): int {
+		return (int) ( new \ReflectionClassConstant( CertTemplateSeeder::class, 'SEED_VERSION' ) )->getValue();
+	}
+
 	public function test_maybe_seed_skips_when_already_seeded(): void {
-		Functions\when( 'get_option' )->justReturn( 6 ); // >= SEED_VERSION
+		Functions\when( 'get_option' )->justReturn( self::current_seed_version() ); // >= SEED_VERSION
 		Functions\expect( 'wp_insert_post' )->never();
 		Functions\expect( 'update_option' )->never();
 
@@ -91,7 +99,7 @@ class CertTemplateSeederTest extends TestCase {
 		foreach ( array( 11, 12, 13 ) as $cert_id ) {
 			$this->assertStringContainsString( 'assets/img/certificate-defaults/', (string) $refreshed[ $cert_id ] );
 		}
-		$this->assertSame( 6, $bumped[1], 'flag bumped to the new seed version' );
+		$this->assertSame( self::current_seed_version(), $bumped[1], 'flag bumped to the new seed version' );
 	}
 
 	public function test_maybe_seed_seeds_all_defaults_and_bumps_flag(): void {
@@ -176,7 +184,7 @@ class CertTemplateSeederTest extends TestCase {
 		}
 
 		$this->assertSame( 'ffc_cert_templates_seeded_version', $bumped[0] );
-		$this->assertSame( 6, $bumped[1] );
+		$this->assertSame( self::current_seed_version(), $bumped[1] );
 	}
 
 	public function test_seed_is_non_destructive_when_all_slugs_exist(): void {
@@ -355,7 +363,7 @@ class CertTemplateSeederTest extends TestCase {
 		CertTemplateSeeder::maybe_seed();
 
 		$this->assertSame( 'ffc_cert_templates_seeded_version', $bumped[0] ?? null );
-		$this->assertSame( 6, $bumped[1] ?? null, 'a partial seed still counts as applied' );
+		$this->assertSame( self::current_seed_version(), $bumped[1] ?? null, 'a partial seed still counts as applied' );
 	}
 
 	public function test_seed_html_references_shipped_assets_not_html_folder(): void {

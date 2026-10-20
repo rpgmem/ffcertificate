@@ -456,6 +456,19 @@
         // the validation link, the background and the colour are the ones the
         // certificate prints. The browser then draws that page to a PNG with the
         // PDF's own canvas step, and stops there: no jsPDF, no download.
+        // The form's own fields: a field's label stands in for its value, as the
+        // preview has always shown custom variables (#1958 follow-up).
+        var fields = [];
+        $('#ffc-fields-container .ffc-field-row').each(function() {
+            var name = $(this).find('input[name*="[name]"]').val();
+            if (name) {
+                fields.push({
+                    name: name,
+                    label: $(this).find('input[name*="[label]"]').val() || name
+                });
+            }
+        });
+
         var ajaxUrl = ajaxData.ajax_url || (typeof ajaxurl !== 'undefined' ? ajaxurl : '');
         $.post(ajaxUrl, {
             action: 'ffc_preview_form_layout',
@@ -463,7 +476,8 @@
             html: htmlContent,
             title: $('#title').val() || '',
             bg_image: bgImage,
-            bg_color: bgColor
+            bg_color: bgColor,
+            fields: fields
         })
             .done(function(response) {
                 if (!response || !response.success || !response.data || !window.FFCLayoutPreview) {
