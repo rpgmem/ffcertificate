@@ -21,6 +21,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\Button;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Core\SyncCsvExport;
 use FreeFormCertificate\Submissions\BulkIssuePlanner;
@@ -465,13 +466,20 @@ final class BulkIssuePage {
 		) . '</p>';
 
 		if ( $issue > 0 ) {
-			echo '<p><button type="button" class="button button-primary ffc-bulk-issue-start">' . esc_html(
-				sprintf(
-					/* translators: %d: certificates that will be issued. */
-					__( 'Issue %d certificate(s)', 'ffcertificate' ),
-					$issue
+			echo '<p>';
+			Button::render(
+				array(
+					'label'    => sprintf(
+						/* translators: %d: certificates that will be issued. */
+						__( 'Issue %d certificate(s)', 'ffcertificate' ),
+						$issue
+					),
+					'category' => 'primary',
+					'icon'     => 'upload',
+					'class'    => 'ffc-bulk-issue-start',
 				)
-			) . '</button></p>';
+			);
+			echo '</p>';
 			echo '<p class="ffc-bulk-issue-progress" aria-live="polite"></p>';
 		}
 
