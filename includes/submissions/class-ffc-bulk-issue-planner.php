@@ -42,6 +42,16 @@ final class BulkIssuePlanner {
 	public const SKIP_INVALID_CPF_RF = 'invalid_cpf_rf';
 	public const SKIP_INVALID_EMAIL  = 'invalid_email';
 	public const SKIP_DUPLICATE_FILE = 'duplicate_in_file';
+	public const SKIP_INVALID_DATE   = 'invalid_date';
+
+	/** Every certificate is dated when it is issued. */
+	public const DATE_NOW = 'now';
+
+	/** Every certificate takes the one date the operator chose (the event's day). */
+	public const DATE_EVENT = 'event';
+
+	/** Each certificate takes the date in its own file column. */
+	public const DATE_COLUMN = 'column';
 
 	/**
 	 * Field definitions the template and the mapping are built from.
@@ -140,12 +150,21 @@ final class BulkIssuePlanner {
 	 * - `skipped`: `line` and `reason` (one of the SKIP_* constants).
 	 * - `no_email`: lines that would be issued without an account.
 	 *
-	 * @param array<int, array<int, string>> $rows    Data rows, header already removed.
-	 * @param array<string, string>          $mapping Field name => CSV column name.
-	 * @param array<int, string>             $header  CSV header row.
+	 * Each issued row also carries `issued_at`: the instant its certificate is
+	 * dated, or null to date it when it is issued. A row whose date cannot be
+	 * read is skipped with SKIP_INVALID_DATE.
+	 *
+	 * @param array<int, array<int, string>>                    $rows    Data rows, header already removed.
+	 * @param array<string, string>                             $mapping Field name => CSV column name.
+	 * @param array<int, string>                                $header  CSV header row.
+	 * @param array{mode: string, date: string, column: string} $dates   Issue-date choice; defaults to DATE_NOW.
 	 * @return array{issue: array<int, array<string, mixed>>, skipped: array<int, array{line: int, reason: string}>, no_email: array<int, int>}
 	 */
-	public static function plan( array $rows, array $mapping, array $header ): array {
+	public static function plan( array $rows, array $mapping, array $header, array $dates = array(
+		'mode'   => self::DATE_NOW,
+		'date'   => '',
+		'column' => '',
+	) ): array {
 		$index = array_flip( $header );
 		$plan  = array(
 			'issue'    => array(),
@@ -213,6 +232,16 @@ final class BulkIssuePlanner {
 				continue;
 			}
 
+			$issued_at = self::issued_at( $dates, $cells, $index );
+
+			if ( false === $issued_at ) {
+				$plan['skipped'][] = array(
+					'line'   => $line,
+					'reason' => self::SKIP_INVALID_DATE,
+				);
+				continue;
+			}
+
 			if ( isset( $seen[ $cpf_rf ] ) ) {
 				$plan['skipped'][] = array(
 					'line'   => $line,
@@ -232,11 +261,12 @@ final class BulkIssuePlanner {
 			}
 
 			$plan['issue'][] = array(
-				'line'   => $line,
-				'name'   => $name,
-				'cpf_rf' => $cpf_rf,
-				'email'  => $email,
-				'fields' => $fields,
+				'line'      => $line,
+				'name'      => $name,
+				'cpf_rf'    => $cpf_rf,
+				'email'     => $email,
+				'fields'    => $fields,
+				'issued_at' => $issued_at,
 			);
 
 			if ( '' === $email ) {
@@ -245,6 +275,68 @@ final class BulkIssuePlanner {
 		}
 
 		return $plan;
+	}
+
+	/**
+	 * Problems with the issue-date choice. An empty result means it can be planned.
+	 *
+	 * @param array{mode: string, date: string, column: string} $dates  Issue-date choice.
+	 * @param array<int, string>                                $header CSV header row.
+	 * @return array<int, string> Problem keys: `event_date` or `unknown_date_column`.
+	 */
+	public static function date_problems( array $dates, array $header ): array {
+		if ( self::DATE_EVENT === $dates['mode'] && null === self::parse_day( $dates['date'], 'Y-m-d' ) ) {
+			return array( 'event_date' );
+		}
+
+		if ( self::DATE_COLUMN === $dates['mode'] && ! in_array( $dates['column'], $header, true ) ) {
+			return array( 'unknown_date_column' );
+		}
+
+		return array();
+	}
+
+	/**
+	 * Turns a day written in one of the accepted formats into the instant of its
+	 * local midnight, in the site's timezone. Null when the day is not real.
+	 *
+	 * Only the exact format is accepted: `2026-02-30` and `30/02/2026` do not
+	 * round-trip, so they are refused rather than rolled into March.
+	 *
+	 * @param string $day    Day as written in the file or the form.
+	 * @param string $format `Y-m-d` or `d/m/Y`.
+	 * @return int|null Unix time of the local midnight, or null.
+	 */
+	public static function parse_day( string $day, string $format ): ?int {
+		$parsed = \DateTimeImmutable::createFromFormat( '!' . $format, trim( $day ), wp_timezone() );
+
+		if ( false === $parsed || $parsed->format( $format ) !== trim( $day ) ) {
+			return null;
+		}
+
+		return $parsed->getTimestamp();
+	}
+
+	/**
+	 * The instant a row's certificate is dated, from the operator's choice.
+	 *
+	 * @param array{mode: string, date: string, column: string} $dates Issue-date choice.
+	 * @param array<int, string>                                $cells One parsed row.
+	 * @param array<string, int>                                $index Column name => position.
+	 * @return int|null|false Instant, null to date it when issued, or false when the row's date is unreadable.
+	 */
+	private static function issued_at( array $dates, array $cells, array $index ) {
+		if ( self::DATE_EVENT === $dates['mode'] ) {
+			return self::parse_day( $dates['date'], 'Y-m-d' ) ?? false;
+		}
+
+		if ( self::DATE_COLUMN !== $dates['mode'] ) {
+			return null;
+		}
+
+		$cell = trim( (string) ( $cells[ $index[ $dates['column'] ] ?? -1 ] ?? '' ) );
+
+		return self::parse_day( $cell, 'Y-m-d' ) ?? self::parse_day( $cell, 'd/m/Y' ) ?? false;
 	}
 
 	/**

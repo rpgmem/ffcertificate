@@ -87,8 +87,8 @@ final class BulkIssueRepository {
 	 * Stores the planned lines of a job. Each line keeps its personal values
 	 * encrypted; the CPF/RF hashes let the batch check for duplicates.
 	 *
-	 * @param int                                                                                                                                    $job_id Job ID.
-	 * @param array<int, array{line:int, status:string, skip_reason:string, name:string, cpf_rf:string, email:string, fields:array<string, string>}> $rows Planned lines.
+	 * @param int                                                                                                                                                        $job_id Job ID.
+	 * @param array<int, array{line:int, status:string, skip_reason:string, name:string, cpf_rf:string, email:string, fields:array<string, string>, issued_at:int|null}> $rows Planned lines.
 	 * @return int Rows stored.
 	 */
 	public static function add_rows( int $job_id, array $rows ): int {
@@ -101,10 +101,11 @@ final class BulkIssueRepository {
 			$payload    = Encryption::encrypt(
 				(string) wp_json_encode(
 					array(
-						'name'   => $row['name'],
-						'cpf_rf' => $row['cpf_rf'],
-						'email'  => $row['email'],
-						'fields' => $row['fields'],
+						'name'      => $row['name'],
+						'cpf_rf'    => $row['cpf_rf'],
+						'email'     => $row['email'],
+						'fields'    => $row['fields'],
+						'issued_at' => $row['issued_at'] ?? null,
 					)
 				)
 			);

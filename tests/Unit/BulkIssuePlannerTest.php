@@ -34,6 +34,7 @@ class BulkIssuePlannerTest extends TestCase {
 		Functions\when( 'apply_filters' )->alias(
 			static fn ( string $hook, $value ) => $value
 		);
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 	}
 
 	protected function tearDown(): void {
@@ -100,6 +101,98 @@ class BulkIssuePlannerTest extends TestCase {
 		$this->assertSame( 2, $plan['issue'][0]['line'] );
 		$this->assertSame( self::CPF_A, $plan['issue'][0]['cpf_rf'] );
 		$this->assertSame( array( 'course' => 'Python' ), $plan['issue'][0]['fields'] );
+	}
+
+	public function test_the_default_date_leaves_every_certificate_to_its_moment_of_issue(): void {
+		$rows = array(
+			array( 'Ana', self::CPF_A, 'ana@example.test', '' ),
+		);
+
+		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER );
+
+		$this->assertNull( $plan['issue'][0]['issued_at'] );
+	}
+
+	public function test_an_event_date_is_the_local_midnight_of_the_chosen_day(): void {
+		$rows = array(
+			array( 'Ana', self::CPF_A, 'ana@example.test', '' ),
+		);
+		$dates = array(
+			'mode'   => BulkIssuePlanner::DATE_EVENT,
+			'date'   => '2026-05-20',
+			'column' => '',
+		);
+
+		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER, $dates );
+
+		$this->assertSame( gmmktime( 0, 0, 0, 5, 20, 2026 ), $plan['issue'][0]['issued_at'] );
+	}
+
+	public function test_a_date_column_is_read_in_iso_or_day_first_format(): void {
+		$header = array( 'Nome', 'CPF', 'E-mail', 'Curso', 'Data' );
+		$mapping = $this->mapping();
+		$rows    = array(
+			array( 'Ana', self::CPF_A, 'ana@example.test', '', '20/05/2026' ),
+			array( 'Bruno', self::CPF_B, 'bruno@example.test', '', '2026-05-21' ),
+		);
+		$dates   = array(
+			'mode'   => BulkIssuePlanner::DATE_COLUMN,
+			'date'   => '',
+			'column' => 'Data',
+		);
+
+		$plan = BulkIssuePlanner::plan( $rows, $mapping, $header, $dates );
+
+		$this->assertSame( gmmktime( 0, 0, 0, 5, 20, 2026 ), $plan['issue'][0]['issued_at'] );
+		$this->assertSame( gmmktime( 0, 0, 0, 5, 21, 2026 ), $plan['issue'][1]['issued_at'] );
+		$this->assertSame( array(), $plan['skipped'] );
+	}
+
+	/**
+	 * @return iterable<string, array{0: string}>
+	 */
+	public static function unreadable_dates(): iterable {
+		yield 'day that does not exist' => array( '31/02/2026' );
+		yield 'month first'             => array( '05/20/2026' );
+		yield 'free text'               => array( 'maio' );
+		yield 'blank cell'              => array( '' );
+	}
+
+	/**
+	 * @dataProvider unreadable_dates
+	 */
+	public function test_a_row_whose_date_cannot_be_read_is_skipped_with_its_reason( string $cell ): void {
+		$header = array( 'Nome', 'CPF', 'E-mail', 'Curso', 'Data' );
+		$rows   = array(
+			array( 'Ana', self::CPF_A, 'ana@example.test', '', $cell ),
+		);
+		$dates  = array(
+			'mode'   => BulkIssuePlanner::DATE_COLUMN,
+			'date'   => '',
+			'column' => 'Data',
+		);
+
+		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), $header, $dates );
+
+		$this->assertSame( array(), $plan['issue'] );
+		$this->assertSame( BulkIssuePlanner::SKIP_INVALID_DATE, $plan['skipped'][0]['reason'] );
+	}
+
+	public function test_the_date_choice_is_checked_before_the_plan_runs(): void {
+		$header = array( 'Nome', 'CPF', 'E-mail', 'Curso' );
+
+		$this->assertSame(
+			array( 'event_date' ),
+			BulkIssuePlanner::date_problems( array( 'mode' => BulkIssuePlanner::DATE_EVENT, 'date' => '2026-02-30', 'column' => '' ), $header )
+		);
+		$this->assertSame(
+			array( 'unknown_date_column' ),
+			BulkIssuePlanner::date_problems( array( 'mode' => BulkIssuePlanner::DATE_COLUMN, 'date' => '', 'column' => 'Data' ), $header )
+		);
+		$this->assertSame(
+			array(),
+			BulkIssuePlanner::date_problems( array( 'mode' => BulkIssuePlanner::DATE_NOW, 'date' => '', 'column' => '' ), $header )
+		);
 	}
 
 	public function test_a_blank_email_is_issued_and_reported_not_skipped(): void {

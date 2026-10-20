@@ -85,6 +85,7 @@ final class BulkIssueRunner {
 				'cpf_rf'      => (string) $line['cpf_rf'],
 				'email'       => (string) $line['email'],
 				'fields'      => $line['fields'],
+				'issued_at'   => $line['issued_at'],
 			);
 		}
 
@@ -97,6 +98,7 @@ final class BulkIssueRunner {
 				'cpf_rf'      => '',
 				'email'       => '',
 				'fields'      => array(),
+				'issued_at'   => null,
 			);
 		}
 
@@ -177,7 +179,7 @@ final class BulkIssueRunner {
 				$form_config,
 				array(
 					'send_email'      => false,
-					'submission_date' => time(),
+					'submission_date' => $this->issued_at( $data ),
 				)
 			);
 
@@ -198,6 +200,17 @@ final class BulkIssueRunner {
 		}
 
 		return count( $rows );
+	}
+
+	/**
+	 * The instant a line's certificate is dated: the date the import chose for
+	 * it, or now when the import left the date to the moment of issue.
+	 *
+	 * @param array<mixed, mixed> $data Decrypted line payload.
+	 * @return int
+	 */
+	private function issued_at( array $data ): int {
+		return isset( $data['issued_at'] ) && is_int( $data['issued_at'] ) ? $data['issued_at'] : time();
 	}
 
 	/**

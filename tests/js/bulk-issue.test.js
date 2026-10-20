@@ -66,6 +66,23 @@ describe('ffc-bulk-issue.js', () => {
 		expect(fetchMock.mock.calls[0][1].body.get('ffc_map[email]')).toBe('E-mail');
 	});
 
+	it('sends the issue-date choice shown on the mapping step with the file', async () => {
+		respond({ success: true, data: { html: '', label: 'Preview' } });
+		loadScript('assets/js/ffc-bulk-issue.js');
+		document.querySelector('.ffc-bulk-issue-result').innerHTML = `
+			<select name="ffc_issue_mode"><option value="event" selected>One date</option></select>
+			<input type="date" name="ffc_issue_date" value="2026-05-20">
+			<select name="ffc_issue_date_column"><option value="">Not in this file</option></select>`;
+
+		click();
+		await flush();
+
+		const body = fetchMock.mock.calls[0][1].body;
+		expect(body.get('ffc_issue_mode')).toBe('event');
+		expect(body.get('ffc_issue_date')).toBe('2026-05-20');
+		expect(body.get('ffc_issue_date_column')).toBe('');
+	});
+
 	it('shows the server refusal as text, never as markup', async () => {
 		respond({ success: false, data: { message: '<b>Access denied</b>' } });
 		loadScript('assets/js/ffc-bulk-issue.js');
