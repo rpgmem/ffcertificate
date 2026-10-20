@@ -535,6 +535,7 @@ class Loader {
 		$this->ensure_rbac_caps_renamed();
 		$this->ensure_rbac_roles_renamed();
 		$this->ensure_false_ffc_caps_stripped();
+		$this->ensure_import_capability_granted();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -632,6 +633,28 @@ class Loader {
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\RoleRegistrar::strip_false_ffc_caps();
 		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * Grants `ffc_import_certificates` (#1945) to the roles that hold the
+	 * Submissions Manager and Administrator tiers on installs that predate it.
+	 *
+	 * Registration only adds what a role definition grants, so re-running it
+	 * here is the whole change. Flagged by `ffc_import_certificates_granted_v1`.
+	 *
+	 * @since 6.42.0
+	 * @return void
+	 */
+	private function ensure_import_capability_granted(): void {
+		$flag = 'ffc_import_certificates_granted_v1';
+
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+
+		\FreeFormCertificate\UserDashboard\RoleRegistrar::register_role();
+		\FreeFormCertificate\UserDashboard\RoleRegistrar::register_module_roles();
 		update_option( $flag, '1', true );
 	}
 
@@ -1114,6 +1137,8 @@ class Loader {
 	 * Define admin hooks.
 	 */
 	private function define_admin_hooks(): void {
+		// Issue in bulk (#1945), sprint 1: the screen and its template download.
+		\FreeFormCertificate\Admin\BulkIssuePage::register();
 		add_action(
 			'ffcertificate_daily_cleanup_hook',
 			function () {
