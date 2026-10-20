@@ -63,6 +63,37 @@ class FormEditorSaveHandler {
 	}
 
 	/**
+	 * Whether the posted layout lacks a required tag, in which case the save
+	 * is refused and the missing tags are handed to the editor's notice.
+	 *
+	 * Reads the posted layout and geofence, so an Event Schedule filled in
+	 * this same save already counts. A save that posts no layout is not
+	 * checked: nothing about the layout is changing.
+	 *
+	 * @param int $post_id Form post ID.
+	 * @return bool True when the save must be refused.
+	 */
+	private function refuse_for_missing_tags( int $post_id ): bool {
+		if ( ! RequestInput::has_post( 'ffc_config' ) ) {
+			return false;
+		}
+
+		$posted_layout   = wp_kses(
+			ArrayValue::string( RequestInput::get_post_raw_array( 'ffc_config' ), 'pdf_layout' ),
+			\FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags()
+		);
+		$posted_geofence = RequestInput::has_post( 'ffc_geofence' ) ? RequestInput::get_post_raw_array( 'ffc_geofence' ) : null;
+
+		$missing_tags = $this->validator()->missing_required_tags( $posted_layout, $post_id, $posted_geofence );
+		if ( array() === $missing_tags ) {
+			return false;
+		}
+
+		set_transient( 'ffc_save_error_' . get_current_user_id(), $missing_tags, 45 );
+		return true;
+	}
+
+	/**
 	 * Saves all form data and configurations
 	 *
 	 * @param int $post_id The post ID.
@@ -75,6 +106,14 @@ class FormEditorSaveHandler {
 			return;
 		}
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
+		// Refuse the whole save while the layout lacks a required tag (#1741):
+		// the check reads the schedule being saved, not the stored one, and
+		// nothing is written when it fails, so the error cannot leave a
+		// half-saved form behind.
+		if ( $this->refuse_for_missing_tags( $post_id ) ) {
 			return;
 		}
 
@@ -363,15 +402,6 @@ class FormEditorSaveHandler {
 				// Clear the answers when the participant leaves the window
 				// (#1731): Off / Moderate / Strict since #1745.
 				$clean_config['quiz_reset_on_leave'] = \FreeFormCertificate\Core\QuizLeaveLevel::sanitize( $config['quiz_reset_on_leave'] ?? '0' );
-			}
-
-			// Tag Validation (server-side backstop): warn if the layout is
-			// missing any tag from the configurable required list. The
-			// editor also blocks the submit client-side; this catches the
-			// JS-disabled case. Non-blocking — the post still saves.
-			$missing_tags = $this->validator()->missing_required_tags( $clean_config['pdf_layout'], $post_id );
-			if ( ! empty( $missing_tags ) ) {
-				set_transient( 'ffc_save_error_' . get_current_user_id(), $missing_tags, 45 );
 			}
 
 			// Legacy html/ reference linter (#865 Phase 4): warn — non-blocking —

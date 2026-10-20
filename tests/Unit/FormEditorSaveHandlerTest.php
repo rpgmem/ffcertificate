@@ -632,6 +632,31 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertSame( array( '{{schedule}}' ), $missing );
 	}
 
+	public function test_missing_required_tags_reads_the_posted_schedule_over_the_stored_one(): void {
+		// The stored config has no time yet; the save being checked sets one.
+		// The posted value is what the form will hold once saved (#1741).
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+
+		$layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
+		$missing = $this->invoke( 'missing_required_tags', array( $layout, 42, array( 'class_time_start' => '09:00' ) ) );
+		$this->assertSame( array( '{{schedule}}' ), $missing );
+	}
+
+	public function test_missing_required_tags_drops_the_schedule_when_the_posted_time_is_cleared(): void {
+		// A stored time is cleared by this save: the tag is no longer asked.
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+			return ( 42 === $post_id && '_ffc_geofence_config' === $key )
+				? array( 'class_time_start' => '09:00' )
+				: false;
+		} );
+
+		$layout  = '{{auth_code}} {{name}} {{cpf_rf}}';
+		$missing = $this->invoke( 'missing_required_tags', array( $layout, 42, array( 'class_time_start' => '' ) ) );
+		$this->assertSame( array(), $missing );
+	}
+
 	public function test_missing_required_tags_does_not_require_schedule_when_event_schedule_empty(): void {
 		// Geofence config exists but class_time_* are empty → the
 		// {{schedule}} gate stays OFF.
@@ -1673,6 +1698,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 			$_POST = array(
 				'ffc_form_nonce' => 'ok',
 				'ffc_config'     => array(
+					'pdf_layout'          => '{{auth_code}} {{name}} {{cpf_rf}}',
 					'quiz_enabled'        => '1',
 					'quiz_reset_on_leave' => $posted,
 				),
@@ -1683,7 +1709,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 		}
 	}
 
-	public function test_a_layout_missing_tags_or_pointing_at_html_leaves_both_warnings(): void {
+	public function test_a_layout_missing_a_required_tag_refuses_the_save(): void {
 		$bag       = $this->stub_for_save();
 		$written   = &$bag[0];
 		$transient = array();
@@ -1698,14 +1724,37 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$_POST = array(
 			'ffc_form_nonce' => 'ok',
 			'ffc_config'     => array(
-				'pdf_layout' => '<img src="https://x.test/wp-content/plugins/ffcertificate/html/logo.png"> {{name}}',
+				'pdf_layout' => '{{name}} {{cpf_rf}}',
+			),
+		);
+		$this->handler->save_form_data( 10 );
+
+		$this->assertArrayNotHasKey( '_ffc_form_config', $written, 'nothing is written while a required tag is missing' );
+		$this->assertContains( '{{auth_code}}', $transient['ffc_save_error_1'] );
+	}
+
+	public function test_a_layout_pointing_at_html_is_saved_with_a_warning(): void {
+		$bag       = $this->stub_for_save();
+		$written   = &$bag[0];
+		$transient = array();
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$transient ) {
+				$transient[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_config'     => array(
+				'pdf_layout' => '<img src="https://x.test/wp-content/plugins/ffcertificate/html/logo.png"> {{auth_code}} {{name}} {{cpf_rf}}',
 				'bg_image'   => 'https://x.test/wp-content/plugins/ffcertificate/html/bg.jpg',
 			),
 		);
 		$this->handler->save_form_data( 10 );
 
-		$this->assertArrayHasKey( '_ffc_form_config', $written, 'both warnings are non-blocking' );
-		$this->assertContains( '{{auth_code}}', $transient['ffc_save_error_1'] );
+		$this->assertArrayHasKey( '_ffc_form_config', $written, 'the html/ link warning is non-blocking' );
 		$this->assertSame(
 			array( 'https://x.test/wp-content/plugins/ffcertificate/html/logo.png', 'https://x.test/wp-content/plugins/ffcertificate/html/bg.jpg' ),
 			$transient['ffc_html_lint_1']

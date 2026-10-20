@@ -249,6 +249,21 @@
 		}
 
 		/**
+		 * Whether any Event Schedule time field carries a value right now.
+		 *
+		 * @param {string} selector Selector list of the time inputs.
+		 * @return {boolean}
+		 */
+		function scheduleTimeFilled( selector ) {
+			if ( ! selector ) {
+				return false;
+			}
+			return $( selector ).filter( function () {
+				return String( this.value || '' ).trim() !== '';
+			} ).length > 0;
+		}
+
+		/**
 		 * Block the form submit when the certificate layout is missing any
 		 * required {{tag}} (localised into window.ffcFormRequiredTags), then
 		 * surface a banner on — and open — the Layout tab. The server-side
@@ -256,7 +271,7 @@
 		 */
 		function setupRequiredTagGuard() {
 			var cfg = window.ffcFormRequiredTags;
-			if ( ! cfg || ! Array.isArray( cfg.tags ) || ! cfg.tags.length ) {
+			if ( ! cfg || ! Array.isArray( cfg.tags ) || ( ! cfg.tags.length && ! cfg.scheduleTag ) ) {
 				return;
 			}
 			var $form = $container.closest( 'form' );
@@ -276,7 +291,11 @@
 					window.FFCCodeEditor.flush( $layout );
 				}
 				var content = String( $layout.val() || '' );
-				var missing = cfg.tags.filter( function ( tag ) {
+				var required = cfg.tags.slice();
+				if ( cfg.scheduleTag && scheduleTimeFilled( cfg.scheduleFields ) && required.indexOf( cfg.scheduleTag ) === -1 ) {
+					required.push( cfg.scheduleTag );
+				}
+				var missing = required.filter( function ( tag ) {
 					var accepted = [ tag ];
 					if ( cfg.aliases && cfg.aliases[ tag ] ) {
 						accepted = accepted.concat( cfg.aliases[ tag ] );

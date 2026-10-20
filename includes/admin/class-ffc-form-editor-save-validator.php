@@ -78,12 +78,19 @@ class FormEditorSaveValidator {
 	 * `{{schedule}}` asked only of a form that has an Event Schedule —
 	 * elsewhere it would print nothing (#1741).
 	 *
-	 * @param int $post_id Form post ID.
+	 * The schedule read is the one being saved when the caller passes it
+	 * (`$geofence`); the stored one otherwise. The save reads the posted
+	 * values because the stored ones are still the old ones at that point.
+	 *
+	 * @param int                       $post_id  Form post ID.
+	 * @param array<string, mixed>|null $geofence Posted geofence values, or null to read the stored config.
 	 * @return array<int, string>
 	 */
-	public static function layout_required_tags( int $post_id ): array {
+	public static function layout_required_tags( int $post_id, ?array $geofence = null ): array {
 		$required = \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags();
-		$geofence = $post_id > 0 ? get_post_meta( $post_id, '_ffc_geofence_config', true ) : array();
+		if ( null === $geofence ) {
+			$geofence = $post_id > 0 ? get_post_meta( $post_id, '_ffc_geofence_config', true ) : array();
+		}
 		$has_time = is_array( $geofence ) && ( ! empty( $geofence['class_time_start'] ) || ! empty( $geofence['class_time_end'] ) );
 		if ( ! $has_time ) {
 			$required = array_values( array_diff( $required, array( '{{schedule}}' ) ) );
@@ -160,14 +167,14 @@ class FormEditorSaveValidator {
 	 * `class_time_end`): PdfGenerator resolves it from that field, and on
 	 * a form without one it would print nothing ({@see self::layout_required_tags()}).
 	 *
-	 * @param string $layout  PDF layout HTML.
-	 * @param int    $post_id Form post ID — used to read the per-form
-	 *                        geofence config and decide whether
-	 *                        `{{schedule}}` is mandatory for this save.
+	 * @param string                    $layout   PDF layout HTML.
+	 * @param int                       $post_id  Form post ID.
+	 * @param array<string, mixed>|null $geofence Posted geofence values, or null to read the stored config
+	 *                                            (see {@see self::layout_required_tags()}).
 	 * @return array<int, string> Missing `{{tag}}` tokens, in required order.
 	 */
-	public function missing_required_tags( string $layout, int $post_id ): array {
-		$required = self::layout_required_tags( $post_id );
+	public function missing_required_tags( string $layout, int $post_id, ?array $geofence = null ): array {
+		$required = self::layout_required_tags( $post_id, $geofence );
 
 		$missing = array();
 		foreach ( $required as $tag ) {
