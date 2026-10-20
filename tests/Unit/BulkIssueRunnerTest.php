@@ -11,6 +11,7 @@ use FreeFormCertificate\Submissions\BulkIssueActivator;
 use FreeFormCertificate\Submissions\BulkIssueRepository;
 use FreeFormCertificate\Submissions\BulkIssueRunner;
 use FreeFormCertificate\Submissions\SubmissionHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -106,7 +107,7 @@ class BulkIssueRunnerTest extends TestCase {
 					array(
 						'line'   => 2,
 						'name'   => 'Ana',
-						'cpf_rf' => '12345678909',
+						'cpf_rf' => Identifiers::CPF_A,
 						'email'  => 'ana@example.org',
 						'fields' => array( 'unit' => 'North' ),
 					),
@@ -265,7 +266,7 @@ class BulkIssueRunnerTest extends TestCase {
 	private function row( int $id, string $name, string $kind = 'cpf', ?string $unit = 'North' ): array {
 		$payload = array(
 			'name'   => $name,
-			'cpf_rf' => 'cpf' === $kind ? '12345678909' : '202612345',
+			'cpf_rf' => 'cpf' === $kind ? Identifiers::CPF_A : Identifiers::RF_A,
 			'email'  => strtolower( $name ) . '@example.org',
 			'fields' => null === $unit ? array() : array( 'unit' => $unit ),
 		);
