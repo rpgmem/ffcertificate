@@ -191,7 +191,8 @@ final class BulkIssueRepository {
 	 * Reads one job's counters and state.
 	 *
 	 * @param int $job_id Job ID.
-	 * @return array<string, mixed>|null The job row, or null when it does not exist.
+	 * @return array{id: int, form_id: int, user_id: int, status: string, issued: int, skipped: int}|null
+	 *         The job, or null when it does not exist.
 	 */
 	public static function find_job( int $job_id ): ?array {
 		global $wpdb;
@@ -201,7 +202,7 @@ final class BulkIssueRepository {
 			ARRAY_A
 		);
 
-		return is_array( $row ) ? $row : null;
+		return is_array( $row ) ? self::job_shape( $row ) : null;
 	}
 
 	/**
@@ -211,7 +212,7 @@ final class BulkIssueRepository {
 	 *
 	 * @param int $job_id Job ID.
 	 * @param int $limit  Maximum lines to read.
-	 * @return array<int, array{id: int, cpf_hash: string|null, rf_hash: string|null, data: array<string, mixed>|null}>
+	 * @return array<int, array{id: int, cpf_hash: string|null, rf_hash: string|null, data: array<mixed, mixed>|null}>
 	 *         `data` is null when the payload cannot be decrypted.
 	 */
 	public static function pending_rows( int $job_id, int $limit ): array {
@@ -234,12 +235,17 @@ final class BulkIssueRepository {
 
 		$pending = array();
 
-		foreach ( $rows as $row ) {
-			$json = Encryption::decrypt( (string) $row['payload_encrypted'] );
+		foreach ( $rows as $raw ) {
+			if ( ! is_array( $raw ) ) {
+				continue;
+			}
+
+			$row  = self::row_shape( $raw );
+			$json = Encryption::decrypt( $row['payload'] );
 			$data = null === $json ? null : json_decode( $json, true );
 
 			$pending[] = array(
-				'id'       => (int) $row['id'],
+				'id'       => $row['id'],
 				'cpf_hash' => $row['cpf_hash'],
 				'rf_hash'  => $row['rf_hash'],
 				'data'     => is_array( $data ) ? $data : null,
@@ -247,6 +253,50 @@ final class BulkIssueRepository {
 		}
 
 		return $pending;
+	}
+
+	/**
+	 * Narrows a raw job row to the fields the runner reads, checking each one.
+	 *
+	 * @param array<mixed, mixed> $row A row as $wpdb returned it.
+	 * @return array{id: int, form_id: int, user_id: int, status: string, issued: int, skipped: int}
+	 */
+	private static function job_shape( array $row ): array {
+		$id      = $row['id'] ?? null;
+		$form_id = $row['form_id'] ?? null;
+		$user_id = $row['user_id'] ?? null;
+		$status  = $row['status'] ?? null;
+		$issued  = $row['issued'] ?? null;
+		$skipped = $row['skipped'] ?? null;
+
+		return array(
+			'id'      => is_numeric( $id ) ? (int) $id : 0,
+			'form_id' => is_numeric( $form_id ) ? (int) $form_id : 0,
+			'user_id' => is_numeric( $user_id ) ? (int) $user_id : 0,
+			'status'  => is_string( $status ) ? $status : '',
+			'issued'  => is_numeric( $issued ) ? (int) $issued : 0,
+			'skipped' => is_numeric( $skipped ) ? (int) $skipped : 0,
+		);
+	}
+
+	/**
+	 * Narrows a raw staged row to the fields the batch reads, checking each one.
+	 *
+	 * @param array<mixed, mixed> $row A row as $wpdb returned it.
+	 * @return array{id: int, cpf_hash: string|null, rf_hash: string|null, payload: string}
+	 */
+	private static function row_shape( array $row ): array {
+		$id       = $row['id'] ?? null;
+		$cpf_hash = $row['cpf_hash'] ?? null;
+		$rf_hash  = $row['rf_hash'] ?? null;
+		$payload  = $row['payload_encrypted'] ?? null;
+
+		return array(
+			'id'       => is_numeric( $id ) ? (int) $id : 0,
+			'cpf_hash' => is_string( $cpf_hash ) ? $cpf_hash : null,
+			'rf_hash'  => is_string( $rf_hash ) ? $rf_hash : null,
+			'payload'  => is_string( $payload ) ? $payload : '',
+		);
 	}
 
 	/**

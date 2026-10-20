@@ -222,9 +222,9 @@ final class BulkIssueRunner {
 	/**
 	 * Why a staged line must not be issued, or '' when it can be.
 	 *
-	 * @param int                                                                                          $form_id Form ID.
-	 * @param array<int, array<string, mixed>>                                                             $fields  Form fields.
-	 * @param array{id: int, cpf_hash: string|null, rf_hash: string|null, data: array<string, mixed>|null} $row Pending line.
+	 * @param int                                                                                         $form_id Form ID.
+	 * @param array<int, array<string, mixed>>                                                            $fields  Form fields.
+	 * @param array{id: int, cpf_hash: string|null, rf_hash: string|null, data: array<mixed, mixed>|null} $row Pending line.
 	 * @return string Skip reason, or '' when the line is issuable.
 	 */
 	private function skip_reason( int $form_id, array $fields, array $row ): string {
