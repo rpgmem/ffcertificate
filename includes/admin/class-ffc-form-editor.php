@@ -377,13 +377,32 @@ class FormEditor {
 		$image  = isset( $_POST['bg_image'] ) ? esc_url_raw( wp_unslash( $_POST['bg_image'] ) ) : '';
 		$color  = isset( $_POST['bg_color'] ) ? \FreeFormCertificate\Core\FormBackground::normalize_color( sanitize_text_field( wp_unslash( $_POST['bg_color'] ) ) ) : \FreeFormCertificate\Core\FormBackground::DEFAULT_COLOR;
 
-		$size = \FreeFormCertificate\Generators\FormLayoutPreview::page_size();
-		$body = \FreeFormCertificate\Generators\FormLayoutPreview::body(
+		$fields = array();
+		foreach ( \FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'fields' ) as $field ) {
+			if ( ! is_array( $field ) ) {
+				continue;
+			}
+			$name = sanitize_text_field( \FreeFormCertificate\Core\ArrayValue::string( $field, 'name' ) );
+			if ( '' === $name ) {
+				continue;
+			}
+			$fields[] = array(
+				'name'  => $name,
+				'label' => sanitize_text_field( \FreeFormCertificate\Core\ArrayValue::string( $field, 'label', $name ) ),
+			);
+		}
+
+		$size    = \FreeFormCertificate\Generators\FormLayoutPreview::page_size();
+		$samples = \FreeFormCertificate\Generators\FormLayoutPreview::with_field_labels(
+			\FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
+			$fields
+		);
+		$body    = \FreeFormCertificate\Generators\FormLayoutPreview::body(
 			$layout,
 			$title,
 			$image,
 			$color,
-			\FreeFormCertificate\Core\CertificatePreviewSamples::get_map()
+			$samples
 		);
 
 		wp_send_json_success(

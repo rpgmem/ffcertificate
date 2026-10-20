@@ -512,6 +512,22 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		post.mockRestore();
 	});
 
+	it('sends the form builder fields with their labels, so custom variables preview', () => {
+		document.querySelector('#ffc-fields-container').innerHTML =
+			'<div class="ffc-field-row"><input name="ffc_fields[0][name]" value="course"><input name="ffc_fields[0][label]" value="Curso"></div>' +
+			'<div class="ffc-field-row"><input name="ffc_fields[1][name]" value="city"><input name="ffc_fields[1][label]" value=""></div>';
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
+		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
+
+		window.$('#ffc_btn_preview').trigger('click');
+
+		expect(post.mock.calls[0][1].fields).toEqual([
+			{ name: 'course', label: 'Curso' },
+			{ name: 'city', label: 'city' },
+		]);
+		post.mockRestore();
+	});
+
 	it('sends the background colour of the editor', () => {
 		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
 		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';

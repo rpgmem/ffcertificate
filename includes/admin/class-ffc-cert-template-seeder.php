@@ -66,8 +66,11 @@ class CertTemplateSeeder {
 	 * Version 6 replaces the three certificate defaults with a revised set and adds
 	 * three more (#1956). The bump refreshes the body and background of the existing
 	 * slugs and adds the new ones; no user template is touched.
+	 *
+	 * Version 7 moves the footer of three defaults up so the QR code and the
+	 * validation link fit inside the A4 page; the bump refreshes those bodies.
 	 */
-	private const SEED_VERSION = 6;
+	private const SEED_VERSION = 7;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background
