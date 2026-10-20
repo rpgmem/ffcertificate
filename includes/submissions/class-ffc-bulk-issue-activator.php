@@ -81,10 +81,10 @@ class BulkIssueActivator {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 		$charset_collate = $wpdb->get_charset_collate();
-		$jobs            = self::jobs_table();
-		$rows            = self::rows_table();
+		$table_jobs      = self::jobs_table();
+		$table_rows      = self::rows_table();
 
-		$sql_jobs = "CREATE TABLE $jobs (
+		$sql_jobs = "CREATE TABLE $table_jobs (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			form_id bigint(20) unsigned NOT NULL,
 			user_id bigint(20) unsigned NOT NULL,
@@ -98,7 +98,7 @@ class BulkIssueActivator {
 			KEY idx_status (status)
 		) $charset_collate";
 
-		$sql_rows = "CREATE TABLE $rows (
+		$sql_rows = "CREATE TABLE $table_rows (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			job_id bigint(20) unsigned NOT NULL,
 			line int(10) unsigned NOT NULL,
