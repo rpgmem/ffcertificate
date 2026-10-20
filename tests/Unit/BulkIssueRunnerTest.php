@@ -110,6 +110,7 @@ class BulkIssueRunnerTest extends TestCase {
 						'cpf_rf' => Identifiers::CPF_A,
 						'email'  => 'ana@example.org',
 						'fields' => array( 'unit' => 'North' ),
+						'issued_at' => null,
 					),
 				),
 				'skipped' => array(
@@ -138,6 +139,27 @@ class BulkIssueRunnerTest extends TestCase {
 				Mockery::on(
 					static fn( array $options ): bool => false === $options['send_email'] && is_int( $options['submission_date'] )
 				)
+			)
+			->andReturn( 91 );
+
+		$this->expect_row_update( 11, BulkIssueRepository::ROW_ISSUED );
+		$this->expect_job_finished();
+
+		$this->assertSame( 1, ( $this->runner() )->process_batch( self::JOB_ID ) );
+	}
+
+	public function test_a_line_dated_by_the_import_keeps_that_date(): void {
+		$this->seed_pending_rows( array( $this->row( 11, 'Ana', 'cpf', 'North', 1700000000 ) ) );
+		$this->handler->shouldReceive( 'process_submission' )
+			->once()
+			->with(
+				self::FORM_ID,
+				'Participants 2026',
+				Mockery::type( 'array' ),
+				'ana@example.org',
+				Mockery::type( 'array' ),
+				Mockery::type( 'array' ),
+				Mockery::on( static fn( array $options ): bool => 1700000000 === $options['submission_date'] )
 			)
 			->andReturn( 91 );
 
@@ -263,12 +285,13 @@ class BulkIssueRunnerTest extends TestCase {
 	 * @param string|null $unit    Value of the required field `unit`; null leaves it out.
 	 * @return array<string, mixed>
 	 */
-	private function row( int $id, string $name, string $kind = 'cpf', ?string $unit = 'North' ): array {
+	private function row( int $id, string $name, string $kind = 'cpf', ?string $unit = 'North', ?int $issued_at = null ): array {
 		$payload = array(
-			'name'   => $name,
-			'cpf_rf' => 'cpf' === $kind ? Identifiers::CPF_A : Identifiers::RF_A,
-			'email'  => strtolower( $name ) . '@example.org',
-			'fields' => null === $unit ? array() : array( 'unit' => $unit ),
+			'name'      => $name,
+			'cpf_rf'    => 'cpf' === $kind ? Identifiers::CPF_A : Identifiers::RF_A,
+			'email'     => strtolower( $name ) . '@example.org',
+			'fields'    => null === $unit ? array() : array( 'unit' => $unit ),
+			'issued_at' => $issued_at,
 		);
 
 		return array(
