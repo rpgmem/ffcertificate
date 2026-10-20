@@ -24184,8 +24184,8 @@ msgstr "Opcionalmente, armazene os QR Codes gerados no banco de dados (aproximad
 msgid "Personal appointment calendars (fixed slots) and audience calendars for shared spaces (free-form bookings), each with confirmations, reminders and ICS invites."
 msgstr "Agendas de compromissos pessoais (horários fixos) e agendas de público-alvo para espaços compartilhados (reservas de formato livre), cada uma com confirmações, lembretes e convites ICS."
 
-msgid "Placeholders replaced with sample data. QR code shown as placeholder."
-msgstr "Placeholders substituídos por dados de exemplo. QR Code exibido como placeholder."
+msgid "Placeholders replaced with sample data."
+msgstr "Placeholders substituídos por dados de exemplo."
 
 msgid "Pure relationships (audience memberships, permission grants, the stored user profile) are removed with the account."
 msgstr "Relacionamentos puros (associações a públicos-alvo, concessões de permissão, perfil de usuário armazenado) são removidos juntamente com a conta."

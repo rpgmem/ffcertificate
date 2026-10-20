@@ -417,16 +417,9 @@
                     '</div>' +
                     '<div class="ffc-preview-note"></div>' +
                     '<div class="ffc-preview-body">' +
-                        '<div class="ffc-preview-stage">' +
-                        // sandbox="" — most-restrictive sandbox; rendered HTML
-                        // can't execute scripts, navigate the parent, run
-                        // plugins, etc. The preview only needs to paint the
-                        // layout's static markup, so the empty sandbox is the
-                        // right ceiling. Operators previewing their own
-                        // template stay safe even if a teammate sneaked a
-                        // <script> tag into the layout.
-                        '<iframe id="ffc-preview-iframe" frameborder="0" sandbox=""></iframe>' +
-                        '</div>' +
+                        // The page arrives as a PNG captured from the server's render,
+                        // so the preview is an image: no frame, and no markup runs.
+                        '<img class="ffc-preview-page" alt="">' +
                     '</div>' +
                 '</div>' +
             '</div>'
@@ -434,20 +427,30 @@
         $modal.find('.ffc-preview-header h2').text(previewTitle);
         $modal.find('.ffc-preview-close').attr({ 'aria-label': closeText, title: closeText });
         $modal.find('.ffc-preview-note').text(sampleDataNote);
+        var $page = $modal.find('.ffc-preview-page').attr('alt', previewTitle);
 
         $('body').append($modal);
+        requestAnimationFrame(function() {
+            $modal.addClass('ffc-preview-visible');
+        });
 
-        // Hand the iframe its HTML via the `srcdoc` attribute rather than
-        // document.write so CodeQL's "DOM text reinterpreted as HTML" sink
-        // (and the equivalent runtime risk) goes through a single declarative
-        // entry point. The sandbox="" attribute set above stops any script
-        // tag in the template from executing inside the preview frame.
-        var iframe = document.getElementById('ffc-preview-iframe');
-        // The preview is rendered by the server through the PDF renderer, so the
-        // QR code, the validation link, the background image and the colour are
-        // the ones the certificate prints. The frame is sandboxed without
-        // same-origin access, so the page is handed over as `srcdoc`, never
-        // edited from the outside.
+        function closePreview() {
+            $modal.removeClass('ffc-preview-visible');
+            setTimeout(function() { $modal.remove(); }, 200);
+        }
+
+        function failPreview() {
+            closePreview();
+            showNotification((strings.previewError || 'The preview could not be rendered.'), 'error', 3000);
+        }
+
+        $modal.find('.ffc-preview-close').on('click', closePreview);
+        $modal.find('.ffc-preview-backdrop').on('click', closePreview);
+
+        // The server renders the page through the PDF renderer, so the QR code,
+        // the validation link, the background and the colour are the ones the
+        // certificate prints. The browser then draws that page to a PNG with the
+        // PDF's own canvas step, and stops there: no jsPDF, no download.
         var ajaxUrl = ajaxData.ajax_url || (typeof ajaxurl !== 'undefined' ? ajaxurl : '');
         $.post(ajaxUrl, {
             action: 'ffc_preview_form_layout',
@@ -458,60 +461,14 @@
             bg_color: bgColor
         })
             .done(function(response) {
-                if (response && response.success && response.data && response.data.html) {
-                    iframe.setAttribute('srcdoc', response.data.html);
-                } else {
-                    showNotification((strings.previewError || 'The preview could not be rendered.'), 'error', 3000);
+                if (!response || !response.success || !response.data || !window.FFCLayoutPreview) {
+                    failPreview();
+                    return;
                 }
+                window.FFCLayoutPreview.capture(response.data.html, response.data.width, response.data.height)
+                    .then(function(src) { $page.attr('src', src); }, failPreview);
             })
-            .fail(function() {
-                showNotification((strings.previewError || 'The preview could not be rendered.'), 'error', 3000);
-            });
-
-        // Apply background-image via the DOM property setter — runs after
-        // the sandboxed frame finishes loading so the body element exists.
-        // The setter only accepts values that parse as a CSS <image>, so a
-        // tampered URL can't escape the property to inject markup or JS.
-
-        // Scale the A4-sized iframe down to fit the modal body, preserving the
-        // page aspect (no crop, no distortion). The stage wrapper takes the
-        // scaled footprint so the page centers cleanly.
-        // A4 landscape, as the PDF prints it; the frame is scaled to fit the modal.
-        var pageW = 1123;
-        var pageH = 794;
-
-        function fitPreview() {
-            var bodyEl  = $modal.find('.ffc-preview-body')[0];
-            var stageEl = $modal.find('.ffc-preview-stage')[0];
-            if (!bodyEl || !stageEl) { return; }
-            var availW = bodyEl.clientWidth - 24;
-            var availH = bodyEl.clientHeight - 24;
-            if (availW <= 0 || availH <= 0) { return; }
-            var scale = Math.min(availW / pageW, availH / pageH, 1);
-            iframe.style.width           = pageW + 'px';
-            iframe.style.height          = pageH + 'px';
-            iframe.style.transformOrigin = 'top left';
-            iframe.style.transform       = 'scale(' + scale + ')';
-            stageEl.style.width  = Math.round(pageW * scale) + 'px';
-            stageEl.style.height = Math.round(pageH * scale) + 'px';
-        }
-
-        // Show with fade
-        requestAnimationFrame(function() {
-            $modal.addClass('ffc-preview-visible');
-            fitPreview();
-        });
-        $(window).on('resize.ffcAdminCertPreview', fitPreview);
-
-        // Close handlers
-        function closePreview() {
-            $modal.removeClass('ffc-preview-visible');
-            setTimeout(function() { $modal.remove(); }, 200);
-            $(window).off('resize.ffcAdminCertPreview');
-        }
-
-        $modal.find('.ffc-preview-close').on('click', closePreview);
-        $modal.find('.ffc-preview-backdrop').on('click', closePreview);
+            .fail(failPreview);
 
         // ESC key to close
         $(document).on('keydown.ffcPreview', function(e) {

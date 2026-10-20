@@ -1693,21 +1693,15 @@ details.ffc-consent-description > p {
     padding: var(--ffc-spacing-lg);
 }
 
-/* Faithful preview: the iframe renders at the real A4 page size and JS scales
-   it via transform; the stage is sized to the scaled footprint so the layout
-   matches the visual and the page centers without clipping its borders. */
-.ffc-preview-stage {
-    position: relative;
-    flex: 0 0 auto;
-    overflow: hidden;
-}
-
-#ffc-preview-iframe {
+/* The preview is a page image captured from the server's render: it keeps its
+   own aspect and never outgrows the modal. */
+#ffc-preview-modal .ffc-preview-page {
     display: block;
-    border: none;
-    /* White in both themes: the iframe shows the certificate preview, and the
-       document's paper is white by definition (#1126). */
-    background: #fff;
+    max-width: 100%;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+    box-shadow: var(--ffc-shadow-md);
 }
 
 /* The four dark-mode rules that lived here were removed in #1126: they

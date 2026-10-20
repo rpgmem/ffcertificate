@@ -24101,7 +24101,7 @@ msgstr ""
 msgid "Personal appointment calendars (fixed slots) and audience calendars for shared spaces (free-form bookings), each with confirmations, reminders and ICS invites."
 msgstr ""
 
-msgid "Placeholders replaced with sample data. QR code shown as placeholder."
+msgid "Placeholders replaced with sample data."
 msgstr ""
 
 msgid "Pure relationships (audience memberships, permission grants, the stored user profile) are removed with the account."

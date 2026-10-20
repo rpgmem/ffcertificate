@@ -388,6 +388,9 @@ class Frontend {
 		}
 
 		if ( $has_csv_download ) {
+			// The certificate preview captures the page as an image (html2canvas only).
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-layout-preview' );
+
 			wp_enqueue_script(
 				'ffc-csv-download',
 				FFC_PLUGIN_URL . "assets/js/ffc-csv-download{$s}.js",
@@ -416,7 +419,7 @@ class Frontend {
 			foreach (
 				array(
 					'ffc-csv-info-screen'        => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
-					'ffc-csv-cert-preview'       => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
+					'ffc-csv-cert-preview'       => array( 'jquery', 'ffc-core', 'ffc-csv-download', 'ffc-layout-preview' ),
 					'ffc-csv-download-flow'      => array( 'jquery', 'ffc-core', 'ffc-csv-download', 'ffc-batched-export' ),
 					'ffc-csv-open-early'         => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
 					'ffc-csv-extend-end'         => array( 'jquery', 'ffc-core', 'ffc-csv-download' ),
@@ -527,7 +530,7 @@ class Frontend {
 						// Info screen: cert preview.
 						'previewCertificate'             => __( 'Preview Certificate', 'ffcertificate' ),
 						'certPreviewTitle'               => __( 'Certificate Preview', 'ffcertificate' ),
-						'certPreviewNote'                => __( 'Placeholders replaced with sample data. QR code shown as placeholder.', 'ffcertificate' ),
+						'certPreviewNote'                => __( 'Placeholders replaced with sample data.', 'ffcertificate' ),
 						'close'                          => __( 'Close', 'ffcertificate' ),
 						'loadingPreview'                 => __( 'Loading preview…', 'ffcertificate' ),
 

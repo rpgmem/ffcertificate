@@ -537,17 +537,30 @@ class PublicCsvDownload {
 			}
 		}
 
+		// The same page the PDF prints, minus the PDF: the QR code, the
+		// background colour and image, and the orientation come from the
+		// same places the generator reads them. Samples pass $form_id so the
+		// {{schedule}} sample matches the form's Time tab.
+		$portrait = ( $config['orientation'] ?? '' ) === 'portrait';
+		$size     = \FreeFormCertificate\Generators\FormLayoutPreview::page_size( $portrait );
+		$samples  = \FreeFormCertificate\Generators\FormLayoutPreview::with_field_labels(
+			\FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
+			$field_names
+		);
+		$body     = \FreeFormCertificate\Generators\FormLayoutPreview::body(
+			wp_kses( (string) ( $config['pdf_layout'] ?? '' ), \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() ),
+			get_the_title( $form_id ),
+			\FreeFormCertificate\Core\FormBackground::url( $form_id ),
+			\FreeFormCertificate\Core\FormBackground::color( $form_id ),
+			$samples,
+			$portrait
+		);
+
 		wp_send_json_success(
 			array(
-				'html'           => wp_kses_post( $config['pdf_layout'] ?? '' ),
-				'bg_image'       => esc_url( $config['bg_image'] ?? '' ),
-				'fields'         => $field_names,
-				// Canonical placeholder → sample-value map (single source of
-				// truth) so the preview fills system placeholders, not just
-				// the form's own fields. Pass $form_id so the {{schedule}}
-				// sample matches what the operator configured on the form's
-				// Time tab — same lookup the real PDF generator uses.
-				'previewSamples' => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
+				'html'   => $body,
+				'width'  => $size['width'],
+				'height' => $size['height'],
 			)
 		);
 	}

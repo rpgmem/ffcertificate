@@ -473,8 +473,8 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		alertSpy.mockRestore();
 	});
 
-	// The preview is rendered by the server; the script only asks for it and
-	// hands the returned page to the frame.
+	// The preview is rendered by the server and captured by FFCLayoutPreview; the
+	// script only asks for the page and shows the image that comes back.
 	const answer = (payload) => ({
 		done(cb) { cb(payload); return this; },
 		fail() { return this; },
@@ -483,9 +483,21 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		done() { return this; },
 		fail(cb) { cb(); return this; },
 	});
+	const page = { success: true, data: { html: '<div>page</div>', width: 1123, height: 794 } };
+	const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+	beforeEach(() => {
+		window.FFCLayoutPreview = {
+			capture: vi.fn(() => Promise.resolve('data:image/png;base64,AAAA')),
+		};
+	});
+
+	afterEach(() => {
+		delete window.FFCLayoutPreview;
+	});
 
 	it('asks the server to render the layout with the title and the unsaved background', () => {
-		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer({ success: true, data: { html: '<html></html>' } }));
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
 		document.querySelector('#ffc_pdf_layout').value = '<p>{{name}}</p>';
 		document.querySelector('#ffc_bg_image_input').value = 'https://example.test/bg.png';
 
@@ -501,7 +513,7 @@ describe('ffc-admin-pdf.js — preview button', () => {
 	});
 
 	it('sends the background colour of the editor', () => {
-		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer({ success: true, data: { html: '<html></html>' } }));
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
 		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
 		document.querySelector('#ffc_bg_color_input').value = '#f3e9d2';
 
@@ -511,26 +523,50 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		post.mockRestore();
 	});
 
-	it('hands the page the server rendered to the preview frame', () => {
-		const page = '<!DOCTYPE html><html><body>server page</body></html>';
-		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer({ success: true, data: { html: page } }));
+	it('captures the server page at the page size the server reports', () => {
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
 		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
 
 		window.$('#ffc_btn_preview').trigger('click');
 
-		const iframe = document.querySelector('#ffc-preview-modal iframe');
-		expect(iframe.getAttribute('srcdoc')).toBe(page);
+		expect(window.FFCLayoutPreview.capture).toHaveBeenCalledWith('<div>page</div>', 1123, 794);
 		post.mockRestore();
 	});
 
-	it('leaves the frame empty when the server cannot render the preview', () => {
+	it('shows the captured image in the preview, not a frame', async () => {
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
+		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
+
+		window.$('#ffc_btn_preview').trigger('click');
+		await flush();
+
+		const image = document.querySelector('#ffc-preview-modal img.ffc-preview-page');
+		expect(image.getAttribute('src')).toBe('data:image/png;base64,AAAA');
+		expect(document.querySelector('#ffc-preview-iframe')).toBeNull();
+		post.mockRestore();
+	});
+
+	it('closes the preview when the server cannot render the layout', async () => {
 		const post = vi.spyOn(window.$, 'post').mockReturnValue(failure());
 		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
 
 		window.$('#ffc_btn_preview').trigger('click');
+		await flush();
 
-		const iframe = document.querySelector('#ffc-preview-modal iframe');
-		expect(iframe.getAttribute('srcdoc')).toBeNull();
+		expect(window.FFCLayoutPreview.capture).not.toHaveBeenCalled();
+		post.mockRestore();
+	});
+
+	it('closes the preview when the capture fails', async () => {
+		window.FFCLayoutPreview.capture = vi.fn(() => Promise.reject(new Error('tainted')));
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
+		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
+
+		window.$('#ffc_btn_preview').trigger('click');
+		await flush();
+
+		// The modal leaves the screen at once and is removed after its fade.
+		expect(document.querySelector('#ffc-preview-modal').classList.contains('ffc-preview-visible')).toBe(false);
 		post.mockRestore();
 	});
 });

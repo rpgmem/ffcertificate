@@ -5,13 +5,14 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use FreeFormCertificate\Admin\FormLayoutPreview;
+use FreeFormCertificate\Generators\FormLayoutPreview;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for FormLayoutPreview: the page the form editor previews a layout on (#1958 follow-up).
+ * Tests for FormLayoutPreview: the page the form editor and the public CSV
+ * preview capture as an image, drawn the way the PDF draws it (#1958 follow-up).
  *
- * @covers \FreeFormCertificate\Admin\FormLayoutPreview
+ * @covers \FreeFormCertificate\Generators\FormLayoutPreview
  */
 class FormLayoutPreviewTest extends TestCase {
 
@@ -20,7 +21,6 @@ class FormLayoutPreviewTest extends TestCase {
 		Monkey\setUp();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
-		Functions\when( 'esc_html' )->returnArg();
 	}
 
 	protected function tearDown(): void {
@@ -28,17 +28,17 @@ class FormLayoutPreviewTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_wrap_paints_the_colour_on_the_page_and_the_image_under_the_body(): void {
+	public function test_wrap_puts_colour_then_image_behind_the_body(): void {
 		$markup = FormLayoutPreview::wrap( '<p>Body</p>', 'https://example.test/bg.png', '#f3e9d2' );
 
 		$this->assertStringContainsString( 'background-color:#f3e9d2;', $markup );
 		$this->assertStringContainsString( '<img src="https://example.test/bg.png"', $markup );
-		$this->assertStringContainsString( 'object-fit:cover;', $markup );
-		// The image comes before the body, so the body paints over it.
+		$this->assertStringContainsString( 'object-fit:cover', $markup );
+		// The body is painted last, so it sits above the colour and the image.
 		$this->assertLessThan( strpos( $markup, '<p>Body</p>' ), strpos( $markup, '<img' ) );
 	}
 
-	public function test_wrap_without_an_image_or_colour_has_neither(): void {
+	public function test_wrap_without_image_or_colour_draws_only_the_body(): void {
 		$markup = FormLayoutPreview::wrap( '<p>Body</p>', '', '' );
 
 		$this->assertStringNotContainsString( 'background-color', $markup );
@@ -46,17 +46,32 @@ class FormLayoutPreviewTest extends TestCase {
 		$this->assertStringContainsString( '<p>Body</p>', $markup );
 	}
 
-	public function test_wrap_keeps_the_a4_landscape_page_size(): void {
-		$markup = FormLayoutPreview::wrap( '', '', '#ffffff' );
+	public function test_page_size_is_a4_landscape_by_default_and_swaps_for_portrait(): void {
+		$this->assertSame( array( 'width' => 1123, 'height' => 794 ), FormLayoutPreview::page_size() );
+		$this->assertSame( array( 'width' => 794, 'height' => 1123 ), FormLayoutPreview::page_size( true ) );
 
-		$this->assertStringContainsString( 'width:1123px;height:794px;', $markup );
+		$markup = FormLayoutPreview::wrap( '', '', '', true );
+		$this->assertStringContainsString( 'width:794px;height:1123px;', $markup );
 	}
 
-	public function test_document_has_no_margin_so_the_frame_shows_the_whole_page(): void {
-		$doc = FormLayoutPreview::document( 'Certificate', '<div>page</div>' );
+	public function test_with_field_labels_fills_only_the_missing_names(): void {
+		$samples = FormLayoutPreview::with_field_labels(
+			array( 'name' => 'Maria', 'empty' => '' ),
+			array(
+				array( 'name' => 'name', 'label' => 'Full name' ),
+				array( 'name' => 'empty', 'label' => 'Empty field' ),
+				array( 'name' => 'course', 'label' => 'Course' ),
+			)
+		);
 
-		$this->assertStringStartsWith( '<!DOCTYPE html>', $doc );
-		$this->assertStringContainsString( 'html,body{margin:0;padding:0;overflow:hidden;}', $doc );
-		$this->assertStringContainsString( '<body><div>page</div></body>', $doc );
+		$this->assertSame( 'Maria', $samples['name'], 'A sample that already has a value keeps it.' );
+		$this->assertSame( 'Empty field', $samples['empty'], 'An empty sample counts as missing.' );
+		$this->assertSame( 'Course', $samples['course'] );
+	}
+
+	public function test_with_field_labels_ignores_a_field_without_a_name(): void {
+		$samples = FormLayoutPreview::with_field_labels( array(), array( array( 'name' => '', 'label' => 'Nameless' ) ) );
+
+		$this->assertSame( array(), $samples );
 	}
 }
