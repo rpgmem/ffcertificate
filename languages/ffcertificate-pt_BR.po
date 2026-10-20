@@ -12128,6 +12128,10 @@ msgstr "API do Operador (emissão autenticada)"
 msgid "Operator Certificate Issued"
 msgstr "Certificado de Operador Emitido"
 
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Bulk Issue Finished"
+msgstr "Emissão em lote concluída"
+
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:133
 msgid "Operator features"
 msgstr "Recursos do operador"
@@ -27404,6 +27408,10 @@ msgstr "Abra um formulário e use a aba Emitir em lote para conferir um arquivo 
 #: includes/admin/class-ffc-admin-assets-manager.php
 msgid "The file could not be checked. Try again."
 msgstr "Não foi possível verificar o arquivo. Tente novamente."
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Bulk issue: expire unfinished imports"
+msgstr "Emitir em lote: expirar importações não concluídas"
 
 #: includes/submissions/class-ffc-bulk-issue-repository.php
 msgid "The import needs the encryption key configured, so that personal data is not stored in clear text."

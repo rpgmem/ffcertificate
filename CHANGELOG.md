@@ -13,6 +13,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: Issue in bulk, first step** (#1945, #1967). A new Bulk issue tab in the form editor, beside Operator, checks a participants CSV against that form: the columns are mapped, each row is previewed and the skipped ones are listed with the reason. It issues nothing yet; the capability `ffc_import_certificates` gates the tab and is granted to the Submissions Manager and Administrator tiers.
 - **Submissions: `link_sent_at` column** (#1945). A new `link_sent_at` column on `ffc_submissions` records when the link e-mail was handed to the mailer, for a submission sent individually by e-mail. It is the input the bulk-issue sprints will use to tell sent links from pending ones. Installs get the column when the plugin's version changes; the column is nullable and stores nothing for submissions sent before this release.
 - **Certificates: bulk-issue staging tables** (#1945). Two tables stage a participants file before its certificates are issued: `ffc_bulk_issue_jobs` keeps counters and dates only, and `ffc_bulk_issue_rows` holds the file lines with their personal data encrypted, emptied when the job ends. Created by the Loader on every request, so an update heals the schema; removed by uninstall.
+- Certificates: a bulk issue is staged and issued in batches through the same write as a single issue, with no e-mail per line; a finished import deletes its staged personal data and an unfinished one expires after 7 days (#1945).
 
 ### Fixed
 

@@ -315,6 +315,9 @@ class AdminActivityLogPage {
 			// Certificates issued through the operator API.
 			'operator_certificate_issued'                  => __( 'Operator Certificate Issued', 'ffcertificate' ),
 
+			// Bulk issue finished: one line per import (#1945).
+			'bulk_issue_finished'                          => __( 'Bulk Issue Finished', 'ffcertificate' ),
+
 			// System & security.
 			'decrypt_failure'                              => __( 'Decryption Failure', 'ffcertificate' ),
 			'decrypt_failure_suppressed'                   => __( 'Decryption Failures Suppressed', 'ffcertificate' ),

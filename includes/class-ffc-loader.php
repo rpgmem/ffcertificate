@@ -487,6 +487,12 @@ class Loader {
 			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_daily_cleanup_hook', time() ), 'daily', 'ffcertificate_daily_cleanup_hook' );
 		}
 
+		// Ensure the daily expiry of unfinished bulk-issue jobs is scheduled (#1945).
+		add_action( \FreeFormCertificate\Submissions\BulkIssueRunner::PURGE_HOOK, array( \FreeFormCertificate\Submissions\BulkIssueRunner::class, 'run_purge' ) );
+		if ( ! wp_next_scheduled( \FreeFormCertificate\Submissions\BulkIssueRunner::PURGE_HOOK ) ) {
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( \FreeFormCertificate\Submissions\BulkIssueRunner::PURGE_HOOK, time() ), 'daily', \FreeFormCertificate\Submissions\BulkIssueRunner::PURGE_HOOK );
+		}
+
 		// Ensure reregistration expiry cron is scheduled.
 		if ( ! wp_next_scheduled( 'ffcertificate_reregistration_expire_hook' ) ) {
 			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_reregistration_expire_hook', time() ), 'daily', 'ffcertificate_reregistration_expire_hook' );
