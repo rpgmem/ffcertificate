@@ -40,6 +40,7 @@ if ( ! $ffcertificate_purge ) {
 	// Cron-only cleanup: leave data + structure untouched but clear
 	// scheduled events that point at code about to be removed.
 	wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
+	wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
 	wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 	// #1248's internal hook, which replaced the one above in the scheduling.
 	// The old one stays: there may be an event pending in the old shape.
@@ -348,6 +349,7 @@ $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient
 // 4. Clear scheduled cron hooks
 // ──────────────────────────────────────
 wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
+wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
 wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 // #1248's internal hook, which replaced the one above in the scheduling.
 // The old one stays: an event scheduled the old way may still be pending.

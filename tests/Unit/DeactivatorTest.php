@@ -101,7 +101,9 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffc_date_messages_digest', $cleared );
 		// The form-cache warming (#1541).
 		$this->assertContains( 'ffcertificate_warm_cache_hook', $cleared );
-		$this->assertCount( 10, $cleared );
+		// The bulk-issue purge of unfinished imports (#1945).
+		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
+		$this->assertCount( 11, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {
@@ -205,7 +207,8 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $cleared );
 		$this->assertContains( 'ffc_cloudflare_cidr_refresh', $cleared );
-		$this->assertCount( 6, $cleared );
+		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
+		$this->assertCount( 7, $cleared );
 	}
 
 	public function test_uninstall_cleanup_deletes_form_posts(): void {

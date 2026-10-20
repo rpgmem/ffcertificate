@@ -45,6 +45,9 @@ final class BulkIssueRepository {
 	/** Row state of a line the planner rejected. */
 	public const ROW_SKIPPED = 'skipped';
 
+	/** Row state of a line whose certificate was issued. */
+	public const ROW_ISSUED = 'issued';
+
 	/**
 	 * Opens a job for a form. Refused when encryption is not configured: a row
 	 * can then not be stored without its personal data in clear text.
@@ -182,6 +185,157 @@ final class BulkIssueRepository {
 		}
 
 		return $expired;
+	}
+
+	/**
+	 * Reads one job's counters and state.
+	 *
+	 * @param int $job_id Job ID.
+	 * @return array<string, mixed>|null The job row, or null when it does not exist.
+	 */
+	public static function find_job( int $job_id ): ?array {
+		global $wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', BulkIssueActivator::jobs_table(), $job_id ),
+			ARRAY_A
+		);
+
+		return is_array( $row ) ? $row : null;
+	}
+
+	/**
+	 * The first lines still waiting to be issued, with their personal values
+	 * decrypted. A processed line leaves the pending set, so a batch always
+	 * takes the rows that remain and needs no cursor.
+	 *
+	 * @param int $job_id Job ID.
+	 * @param int $limit  Maximum lines to read.
+	 * @return array<int, array{id: int, cpf_hash: string|null, rf_hash: string|null, data: array<string, mixed>|null}>
+	 *         `data` is null when the payload cannot be decrypted.
+	 */
+	public static function pending_rows( int $job_id, int $limit ): array {
+		global $wpdb;
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT id, cpf_hash, rf_hash, payload_encrypted FROM %i WHERE job_id = %d AND status = %s ORDER BY id ASC LIMIT %d',
+				BulkIssueActivator::rows_table(),
+				$job_id,
+				self::ROW_PENDING,
+				$limit
+			),
+			ARRAY_A
+		);
+
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$pending = array();
+
+		foreach ( $rows as $row ) {
+			$json = Encryption::decrypt( (string) $row['payload_encrypted'] );
+			$data = null === $json ? null : json_decode( $json, true );
+
+			$pending[] = array(
+				'id'       => (int) $row['id'],
+				'cpf_hash' => $row['cpf_hash'],
+				'rf_hash'  => $row['rf_hash'],
+				'data'     => is_array( $data ) ? $data : null,
+			);
+		}
+
+		return $pending;
+	}
+
+	/**
+	 * Lines of a job still waiting to be issued.
+	 *
+	 * @param int $job_id Job ID.
+	 * @return int
+	 */
+	public static function count_pending( int $job_id ): int {
+		global $wpdb;
+
+		$count = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE job_id = %d AND status = %s',
+				BulkIssueActivator::rows_table(),
+				$job_id,
+				self::ROW_PENDING
+			)
+		);
+
+		return null === $count ? 0 : (int) $count;
+	}
+
+	/**
+	 * Records what happened to one line.
+	 *
+	 * @param int    $row_id      Row ID.
+	 * @param string $status      ROW_ISSUED or ROW_SKIPPED.
+	 * @param string $skip_reason Why a line was skipped; '' for an issued line.
+	 * @return void
+	 */
+	public static function mark_row( int $row_id, string $status, string $skip_reason = '' ): void {
+		global $wpdb;
+
+		$wpdb->update(
+			BulkIssueActivator::rows_table(),
+			array(
+				'status'      => $status,
+				'skip_reason' => '' === $skip_reason ? null : $skip_reason,
+			),
+			array( 'id' => $row_id ),
+			array( '%s', '%s' ),
+			array( '%d' )
+		);
+	}
+
+	/**
+	 * Adds to a job's counters. Increments in SQL, so two batches cannot lose
+	 * each other's counts.
+	 *
+	 * @param int $job_id  Job ID.
+	 * @param int $issued  Certificates issued in this batch.
+	 * @param int $skipped Lines skipped in this batch.
+	 * @return void
+	 */
+	public static function add_counts( int $job_id, int $issued, int $skipped ): void {
+		global $wpdb;
+
+		$wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET issued = issued + %d, skipped = skipped + %d WHERE id = %d',
+				BulkIssueActivator::jobs_table(),
+				$issued,
+				$skipped,
+				$job_id
+			)
+		);
+	}
+
+	/**
+	 * Sets a job's final state and when it ended.
+	 *
+	 * @param int    $job_id Job ID.
+	 * @param string $status STATUS_DONE or STATUS_EXPIRED.
+	 * @return void
+	 */
+	public static function finish_job( int $job_id, string $status ): void {
+		global $wpdb;
+
+		$wpdb->update(
+			BulkIssueActivator::jobs_table(),
+			array(
+				'status'      => $status,
+				'finished_at' => time(),
+			),
+			array( 'id' => $job_id ),
+			array( '%s', '%d' ),
+			array( '%d' )
+		);
 	}
 
 	/**

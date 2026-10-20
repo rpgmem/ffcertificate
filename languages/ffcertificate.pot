@@ -27322,6 +27322,10 @@ msgstr ""
 msgid "The file could not be checked. Try again."
 msgstr ""
 
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Bulk issue: expire unfinished imports"
+msgstr ""
+
 #: includes/submissions/class-ffc-bulk-issue-repository.php
 msgid "The import needs the encryption key configured, so that personal data is not stored in clear text."
 msgstr ""
