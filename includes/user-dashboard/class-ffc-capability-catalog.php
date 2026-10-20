@@ -192,6 +192,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Export certificates', 'ffcertificate' ),
 						'description' => __( 'Download bulk certificate exports.', 'ffcertificate' ),
 					),
+					'ffc_import_certificates'   => array(
+						'label'       => __( 'Issue certificates in bulk', 'ffcertificate' ),
+						'description' => __( 'Issue certificates for a list of participants from a CSV file, without each of them submitting the form.', 'ffcertificate' ),
+					),
 					'ffc_delete_certificates'   => array(
 						'label'       => __( 'Delete certificates', 'ffcertificate' ),
 						'description' => __( 'Permanently delete certificate submissions (bulk delete).', 'ffcertificate' ),

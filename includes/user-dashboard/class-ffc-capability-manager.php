@@ -120,6 +120,9 @@ class CapabilityManager {
 		// module to a dedicated operator without giving full WP admin.
 		'ffc_manage_certificates',
 		'ffc_export_certificates',
+		// Issue certificates in bulk from a participants file (#1945). Held by the
+		// Submissions Manager and Administrator tiers.
+		'ffc_import_certificates',
 		'ffc_manage_appointments',
 		// Capacity overbook (#941). The one manual override of the always-enforced
 		// per-slot / per-block capacity: a holder can book a full slot. Distinct
@@ -861,7 +864,7 @@ class CapabilityManager {
 	public static function module_roles_definition(): array {
 		$certificates_viewer   = array( 'ffc_view_certificates' );
 		$certificates_operator = array_merge( $certificates_viewer, array( 'ffc_edit_certificates', 'ffc_grade_certificates' ) );
-		$certificates_manager  = array_merge( $certificates_operator, array( 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ) );
+		$certificates_manager  = array_merge( $certificates_operator, array( 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_import_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ) );
 
 		$bookings_viewer   = array( 'ffc_view_appointments' );
 		$bookings_operator = array_merge( $bookings_viewer, array( 'ffc_manage_appointments' ) );

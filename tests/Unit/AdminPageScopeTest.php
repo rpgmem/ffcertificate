@@ -86,6 +86,7 @@ class AdminPageScopeTest extends TestCase {
 	private const SCREENS = array(
 		'ffc-page-certificates-dashboard' => 'ffc-certificates-dashboard',
 		'ffc-page-submissions'            => 'ffc-submissions',
+		'ffc-page-bulk-issue'              => 'ffc-bulk-issue',
 		'ffc-page-settings'               => 'ffc-settings',
 		'ffc-page-scheduling-audiences'   => 'ffc-scheduling-audiences',
 		'ffc-page-scheduling-bookings'    => 'ffc-scheduling-bookings',

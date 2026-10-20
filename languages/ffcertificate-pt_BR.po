@@ -27286,3 +27286,117 @@ msgstr "Você continua em \"%1$s\" porque \"%2$s\" exige pelo menos um grupo."
 #: includes/api/class-ffc-user-audience-rest-controller.php
 msgid "You left every group you could. Some audiences keep their members in at least one group."
 msgstr "Você saiu de todos os grupos possíveis. Alguns públicos-alvo mantêm seus membros em pelo menos um grupo."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue in bulk"
+msgstr "Emitir em lote"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Map a column from the file to each of name, CPF/RF and e-mail."
+msgstr "Associe uma coluna do arquivo a cada um destes: nome, CPF/RF e e-mail."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the form the certificates are issued for."
+msgstr "Escolha o formulário para o qual os certificados serão emitidos."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Choose the form, download its template, upload the file, map its columns and check the preview."
+msgstr "Emita certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário. Escolha o formulário, baixe o modelo, envie o arquivo, associe as colunas e confira a pré-visualização."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose a CSV file to upload."
+msgstr "Escolha um arquivo CSV para enviar."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The file could not be uploaded."
+msgstr "Não foi possível enviar o arquivo."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The file is larger than 2 MB."
+msgstr "O arquivo tem mais de 2 MB."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The file could not be read."
+msgstr "Não foi possível ler o arquivo."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose a form…"
+msgstr "Escolha um formulário…"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Download the CSV template for this form"
+msgstr "Baixar o modelo CSV deste formulário"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Participants file (CSV)"
+msgstr "Arquivo de participantes (CSV)"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Check the file"
+msgstr "Verificar o arquivo"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Form field"
+msgstr "Campo do formulário"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Column in the file"
+msgstr "Coluna no arquivo"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Not in this file"
+msgstr "Não está neste arquivo"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Fields marked * are required. The file has to be uploaded again on this step."
+msgstr "Os campos marcados com * são obrigatórios. Nesta etapa o arquivo precisa ser enviado novamente."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+#, php-format
+msgid "%1$d certificate(s) would be issued and %2$d row(s) skipped. Nothing has been issued yet."
+msgstr "%1$d certificado(s) seriam emitidos e %2$d linha(s) seriam ignoradas. Nada foi emitido ainda."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+#, php-format
+msgid "Without an e-mail, so issued with no account: lines %s."
+msgstr "Sem e-mail, portanto emitidos sem conta: linhas %s."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Line"
+msgstr "Linha"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Empty row"
+msgstr "Linha vazia"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No name"
+msgstr "Sem nome"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No CPF or RF"
+msgstr "Sem CPF ou RF"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "CPF or RF with invalid check digits"
+msgstr "CPF ou RF com dígitos verificadores inválidos"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Invalid e-mail"
+msgstr "E-mail inválido"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Same CPF or RF as an earlier line of the file"
+msgstr "Mesmo CPF ou RF de uma linha anterior do arquivo"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Issue certificates in bulk"
+msgstr "Emitir certificados em lote"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Issue certificates for a list of participants from a CSV file, without each of them submitting the form."
+msgstr "Emitir certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário."
+
+#: includes/settings/views/documentation/submissions-list.php
+msgid "Open the Issue in bulk screen and check a participants CSV against a form: the columns are mapped and every row is previewed, nothing is issued yet."
+msgstr "Abra a tela Emitir em lote e confira um arquivo CSV de participantes contra um formulário: as colunas são associadas e cada linha é pré-visualizada; nada é emitido ainda."
