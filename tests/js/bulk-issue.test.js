@@ -88,4 +88,36 @@ describe('ffc-bulk-issue.js', () => {
 		expect(document.querySelector('.ffc-bulk-issue-result .notice-error p').textContent).toBe('Try again.');
 		expect(document.querySelector('#ffc-bulk-issue button').disabled).toBe(false);
 	});
+	it('starts the job and runs batches until the server reports it done', async () => {
+		const replies = [
+			{ success: true, data: { html: '<p><button type="button" class="button ffc-bulk-issue-start">Issue 2</button></p><p class="ffc-bulk-issue-progress"></p>', label: 'Preview' } },
+			{ success: true, data: { job_id: 3 } },
+			{ success: true, data: { done: false, text: '1 of 2 line(s) handled' } },
+			{ success: true, data: { done: true, text: 'Done: 2 certificate(s) issued, 0 line(s) skipped.' } },
+		];
+		fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve(replies.shift()) }));
+		window.fetch = fetchMock;
+		window.ffcBulkIssue.runNonce = 'run';
+		loadScript('assets/js/ffc-bulk-issue.js');
+
+		click();
+		await flush();
+		document.querySelector('.ffc-bulk-issue-start').click();
+		for (let i = 0; i < 8; i++) {
+			await flush();
+		}
+
+		const actions = fetchMock.mock.calls.map(([, options]) => options.body.get('action'));
+		expect(actions).toEqual([
+			'ffc_bulk_issue_preview',
+			'ffc_bulk_issue_start',
+			'ffc_bulk_issue_batch',
+			'ffc_bulk_issue_batch',
+		]);
+		expect(fetchMock.mock.calls[2][1].body.get('job_id')).toBe('3');
+		expect(fetchMock.mock.calls[2][1].body.get('nonce')).toBe('run');
+		expect(document.querySelector('.ffc-bulk-issue-progress').textContent).toBe('Done: 2 certificate(s) issued, 0 line(s) skipped.');
+		expect(document.querySelector('.ffc-bulk-issue-start').disabled).toBe(false);
+	});
+
 });
