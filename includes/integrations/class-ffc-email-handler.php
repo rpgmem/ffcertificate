@@ -109,7 +109,17 @@ class EmailHandler {
 		// (string) from the metabox but callers may pass int 1; `! empty()`
 		// accepts both and rejects '0'/0/'' (#649).
 		if ( ! empty( $form_config['send_user_email'] ) ) {
-			$this->send_user_email( $user_email, $form_title, $form_config, $submission_data, $magic_token );
+			$sent = $this->send_user_email( $user_email, $form_title, $form_config, $submission_data, $magic_token );
+
+			// Only an e-mail that carries the link counts as the link being sent (#1967).
+			if ( $sent && '' !== $magic_token ) {
+				/**
+				 * Fires when the link e-mail for a submission was handed to the mailer (#1967).
+				 *
+				 * @param int $submission_id Submission ID.
+				 */
+				do_action( 'ffcertificate_link_sent', $submission_id );
+			}
 		}
 
 		// Send admin notification only when explicitly enabled for the form.
@@ -136,10 +146,11 @@ class EmailHandler {
 	 * @param array<string, mixed> $form_config Form configuration.
 	 * @param array<string, mixed> $submission_data Submission data.
 	 * @param string               $magic_token Magic token.
+	 * @return bool True when the e-mail was handed to the mailer.
 	 */
-	private function send_user_email( string $to, string $form_title, array $form_config, array $submission_data, string $magic_token = '' ): void {
+	private function send_user_email( string $to, string $form_title, array $form_config, array $submission_data, string $magic_token = '' ): bool {
 		if ( self::ffc_emails_disabled() ) {
-			return;
+			return false;
 		}
 
 		// Format auth code with certificate prefix.
@@ -223,7 +234,7 @@ class EmailHandler {
 		// (the "Email Model") like every other plugin email (#662 PR-7). The
 		// filter above still sees the un-chromed body so integrations keep
 		// operating on the content.
-		self::ffc_send_mail( $to, $subject, self::ffc_email_document( $body, array( 'recipient' => $to ) ), array(), \FreeFormCertificate\Core\EmailSource::CERTIFICATE );
+		return self::ffc_send_mail( $to, $subject, self::ffc_email_document( $body, array( 'recipient' => $to ) ), array(), \FreeFormCertificate\Core\EmailSource::CERTIFICATE );
 	}
 
 

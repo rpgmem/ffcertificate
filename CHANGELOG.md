@@ -11,6 +11,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Form editor: background colour** (#1960). The layout box has a `Background Color` control beside the background image. The colour fills the page wherever the image does not cover it, and the editor preview shows it too. It defaults to white, so existing forms print as before.
 - **Certificates: Issue in bulk, first step** (#1945, #1967). A new Bulk issue tab in the form editor, beside Operator, checks a participants CSV against that form: the columns are mapped, each row is previewed and the skipped ones are listed with the reason. It issues nothing yet; the capability `ffc_import_certificates` gates the tab and is granted to the Submissions Manager and Administrator tiers.
+- **Submissions: `link_sent_at` column** (#1945). A new `link_sent_at` column on `ffc_submissions` records when the link e-mail was handed to the mailer, for a submission sent individually by e-mail. It is the input the bulk-issue sprints will use to tell sent links from pending ones. Installs get the column when the plugin's version changes; the column is nullable and stores nothing for submissions sent before this release.
 
 ### Fixed
 
