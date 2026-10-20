@@ -27,6 +27,43 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class FormBackground {
 
 	/**
+	 * Colour a form's page is painted with when no colour is set. White is the
+	 * colour a certificate has always printed on; the editor shows it as the
+	 * starting value, so an unchanged form keeps its look.
+	 */
+	public const DEFAULT_COLOR = '#ffffff';
+
+	/**
+	 * Reduce a submitted colour to a six-digit hex value, or the default.
+	 *
+	 * `sanitize_hex_color()` alone would return null for an empty value, and
+	 * an empty value is what an unset field posts. Both the save handler and the
+	 * reader go through here, so a stored value always reads back the same way.
+	 *
+	 * @param string $value Raw colour, as submitted or stored.
+	 * @return string A `#rrggbb` value, or DEFAULT_COLOR.
+	 */
+	public static function normalize_color( string $value ): string {
+		$color = (string) sanitize_hex_color( $value );
+
+		return '' === $color ? self::DEFAULT_COLOR : $color;
+	}
+
+	/**
+	 * Page colour for a form: the editor's value, or the default.
+	 *
+	 * @param int $form_id Form post ID.
+	 * @return string A `#rrggbb` value.
+	 */
+	public static function color( int $form_id ): string {
+		$config = get_post_meta( $form_id, '_ffc_form_config', true );
+
+		return is_array( $config )
+			? self::normalize_color( ArrayValue::string( $config, 'bg_color' ) )
+			: self::DEFAULT_COLOR;
+	}
+
+	/**
 	 * Background URL for a form: the editor's value first, then the legacy meta.
 	 *
 	 * @param int $form_id Form post ID.

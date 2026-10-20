@@ -99,4 +99,60 @@ class FormBackgroundTest extends TestCase {
 
 		$this->assertSame( 'https://example.test/legacy.png', FormBackground::url( 7 ) );
 	}
+	/**
+	 * Stubs sanitize_hex_color() with WordPress's rule: a `#` and three or six
+	 * hex digits, anything else null.
+	 */
+	private function hex_sanitizer(): void {
+		Functions\when( 'sanitize_hex_color' )->alias(
+			static function ( string $color ): ?string {
+				return 1 === preg_match( '/^#([A-Fa-f0-9]{3}){1,2}$/', $color ) ? $color : null;
+			}
+		);
+	}
+
+	public function test_normalize_color_keeps_a_valid_hex_value(): void {
+		$this->hex_sanitizer();
+
+		$this->assertSame( '#f3e9d2', FormBackground::normalize_color( '#f3e9d2' ) );
+	}
+
+	public function test_normalize_color_falls_back_to_white_when_empty(): void {
+		// An unset colour field posts the empty string; the default must hold.
+		$this->hex_sanitizer();
+
+		$this->assertSame( '#ffffff', FormBackground::normalize_color( '' ) );
+	}
+
+	public function test_normalize_color_falls_back_to_white_when_invalid(): void {
+		$this->hex_sanitizer();
+
+		$this->assertSame( '#ffffff', FormBackground::normalize_color( 'javascript:alert(1)' ) );
+		$this->assertSame( '#ffffff', FormBackground::normalize_color( 'red' ) );
+	}
+
+	public function test_color_reads_the_editor_value_from_the_config(): void {
+		$this->hex_sanitizer();
+		$this->meta(
+			array(
+				'_ffc_form_config' => array( 'bg_color' => '#1d3557' ),
+			)
+		);
+
+		$this->assertSame( '#1d3557', FormBackground::color( 7 ) );
+	}
+
+	public function test_color_is_white_when_the_form_has_no_config(): void {
+		$this->hex_sanitizer();
+		$this->meta( array() );
+
+		$this->assertSame( '#ffffff', FormBackground::color( 7 ) );
+	}
+
+	public function test_color_is_white_when_the_config_is_not_an_array(): void {
+		$this->hex_sanitizer();
+		$this->meta( array( '_ffc_form_config' => 'corrupt' ) );
+
+		$this->assertSame( '#ffffff', FormBackground::color( 7 ) );
+	}
 }

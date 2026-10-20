@@ -99,6 +99,7 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="color:#0073aa;'                                                       => array( 1, self::SAMPLE_LINK ),
 			'<style>: <style'                                                                     => array( 1, self::OWN_DOCUMENT ),
 			'.style.x =: .style.backgroundImage = "url(" + JSON.stringify(String(bgImage)) + ")"' => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.backgroundColor = bgColor' => array( 1, self::RUNTIME_VALUE ),
 			'.style.x =: .style.width = pageW + "px"'                                             => array( 1, self::RUNTIME_VALUE ),
 			'.style.x =: .style.height = pageH + "px"'                                            => array( 1, self::RUNTIME_VALUE ),
 			'.style.x =: .style.transformOrigin = "top left"'                                     => array( 1, self::RUNTIME_VALUE ),

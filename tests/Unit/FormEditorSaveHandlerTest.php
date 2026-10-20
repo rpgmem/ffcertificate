@@ -47,6 +47,8 @@ class FormEditorSaveHandlerTest extends TestCase {
 		Monkey\setUp();
 		// SettingsReader reads the required certificate tags (#1734).
 		Functions\when( 'get_option' )->justReturn( array() );
+		// The background colour is normalised on save; null falls back to white.
+		Functions\when( 'sanitize_hex_color' )->justReturn( null );
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';

@@ -46,6 +46,8 @@ class PdfGeneratorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// FormBackground::color() normalises the form's colour; null falls back to white.
+		Functions\when( 'sanitize_hex_color' )->justReturn( null );
 
 		// pcov does not record lines for files first autoloaded mid-test-method,
 		// so the renderer's coverage would attribute to nothing. Preload the

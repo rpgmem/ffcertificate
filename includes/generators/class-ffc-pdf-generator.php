@@ -184,6 +184,7 @@ class PdfGenerator {
 			'submission_id' => $submission_id,
 			'submission'    => $data,
 			'bg_image'      => $bg_image_url,
+			'bg_color'      => \FreeFormCertificate\Core\FormBackground::color( $form_id ),
 		);
 
 		/**
@@ -304,6 +305,7 @@ class PdfGenerator {
 			'form_title' => $form_title,
 			'submission' => $submission_data,
 			'bg_image'   => $bg_image_url,
+			'bg_color'   => \FreeFormCertificate\Core\FormBackground::color( (int) $form_id ),
 		);
 	}
 

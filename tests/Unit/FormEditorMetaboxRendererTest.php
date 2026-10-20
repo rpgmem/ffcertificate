@@ -22,6 +22,8 @@ class FormEditorMetaboxRendererTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The layout box normalises the form's background colour on render; null falls back to white.
+		Functions\when( 'sanitize_hex_color' )->justReturn( null );
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).

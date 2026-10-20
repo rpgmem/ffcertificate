@@ -299,7 +299,11 @@
 
         var processedHTML = pdfData.html || '';
 
-        var finalHTML = '<div class="ffc-pdf-wrapper" style="width:100%;height:100%;position:relative;">';
+        // The colour is set on the page itself, so it prints where the image does
+        // not cover it. The server sends a validated #rrggbb value (default white).
+        var finalHTML = '<div class="ffc-pdf-wrapper" style="width:100%;height:100%;position:relative;'
+            + (pdfData.bg_color ? 'background-color:' + pdfData.bg_color + ';' : '')
+            + '">';
 
         if (pdfData.bg_image) {
             finalHTML += '<img src="' + pdfData.bg_image + '" class="ffc-pdf-bg skip-lazy no-lazyload" loading="eager" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" crossorigin="anonymous">';

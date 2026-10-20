@@ -296,6 +296,7 @@ class FormEditorSaveHandler {
 			$clean_config               = array();
 			$clean_config['pdf_layout'] = wp_kses( ArrayValue::string( $config, 'pdf_layout' ), $allowed_html );
 			$clean_config['bg_image']   = esc_url_raw( ArrayValue::string( $config, 'bg_image' ) );
+			$clean_config['bg_color']   = \FreeFormCertificate\Core\FormBackground::normalize_color( ArrayValue::string( $config, 'bg_color' ) );
 
 			$clean_config['enable_restriction'] = sanitize_key( ArrayValue::string( $config, 'enable_restriction' ) );
 
