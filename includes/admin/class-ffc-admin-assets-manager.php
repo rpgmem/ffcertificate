@@ -451,9 +451,10 @@ class AdminAssetsManager {
 			'ffc-bulk-issue',
 			'ffcBulkIssue',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\BulkIssuePage::PREVIEW_NONCE ),
-				'error'   => __( 'The file could not be checked. Try again.', 'ffcertificate' ),
+				'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( \FreeFormCertificate\Admin\BulkIssuePage::PREVIEW_NONCE ),
+				'runNonce' => wp_create_nonce( \FreeFormCertificate\Admin\BulkIssuePage::RUN_NONCE ),
+				'error'    => __( 'The file could not be checked. Try again.', 'ffcertificate' ),
 			)
 		);
 
