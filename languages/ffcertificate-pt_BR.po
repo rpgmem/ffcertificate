@@ -27433,6 +27433,26 @@ msgstr "Puladas, por motivo:"
 msgid "%1$d: %2$s"
 msgstr "%1$d: %2$s"
 
+#: includes/integrations/class-ffc-email-handler.php
+msgid "The submission could not be found."
+msgstr "A submissão não foi encontrada."
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This quiz attempt did not pass, so it has no certificate link."
+msgstr "Esta tentativa de quiz não foi aprovada, então não tem link de certificado."
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission has no e-mail address."
+msgstr "Esta submissão não tem endereço de e-mail."
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission has no certificate link."
+msgstr "Esta submissão não tem link de certificado."
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "The e-mail was not handed to the mailer. Check whether e-mails are enabled."
+msgstr "O e-mail não foi entregue ao servidor de envio. Verifique se os e-mails estão ativados."
+
 #: includes/user-dashboard/class-ffc-capability-catalog.php
 msgid "Issue certificates in bulk"
 msgstr "Emitir certificados em lote"

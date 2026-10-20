@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\SubmissionStatus;
 use FreeFormCertificate\Integrations\EmailHandler;
 
 /**
@@ -492,5 +493,125 @@ class EmailHandlerTest extends TestCase {
 		$this->assertSame( '', $phpmailer->Username );
 		$this->assertSame( '', $phpmailer->Password );
 		$this->assertSame( 'tls', $phpmailer->SMTPSecure );
+	}
+
+	// ==================================================================
+	// resend_link() — the operator's manual resend (#1945)
+	// ==================================================================
+
+	/**
+	 * A handler whose stored row is the given submission, or none. The database is
+	 * not needed: the row is what fetch_submission() would have decrypted.
+	 *
+	 * @param array<string, mixed>|null $submission Stored row, or null when absent.
+	 */
+	private function handler_with_row( ?array $submission ): EmailHandler {
+		return new class( $submission ) extends EmailHandler {
+			/** @var array<string, mixed>|null */
+			private ?array $row;
+
+			/** @param array<string, mixed>|null $row Stored row. */
+			public function __construct( ?array $row ) {
+				parent::__construct();
+				$this->row = $row;
+			}
+
+			protected function fetch_submission( int $submission_id ): ?array {
+				return $this->row;
+			}
+		};
+	}
+
+	/** Stores the mocks every link e-mail needs, as the async test sets them up. */
+	private function stub_link_mail( array $form_config ): void {
+		Functions\when( 'get_option' )->alias( static fn ( $key, $default = false ) => 'admin_email' === $key ? 'admin@example.com' : $default );
+		Functions\when( 'is_email' )->justReturn( true );
+		// The form's own body has no {{validation_url}}, so the link helper is never
+		// reached and no alias mock is needed: a PHP class can be aliased only once
+		// per process, and the automatic-send tests above already claim it.
+		Functions\when( 'get_post_meta' )->justReturn(
+			array_merge( array( 'email_subject' => 'Your certificate', 'email_body' => 'Hello {{name}}' ), $form_config )
+		);
+		Functions\when( 'get_the_title' )->justReturn( 'Test Certificate' );
+	}
+
+	/** A stored submission that can be resent: an address, a link token and the data. */
+	private function resendable_row( array $overrides = array() ): array {
+		return array_merge(
+			array(
+				'id'          => 77,
+				'form_id'     => 10,
+				'email'       => 'user@example.com',
+				'magic_token' => 'tok123',
+				'auth_code'   => 'ABC123',
+				'name'        => 'John',
+				'status'      => 'publish',
+			),
+			$overrides
+		);
+	}
+
+	public function test_resend_reports_a_submission_that_no_longer_exists(): void {
+		$result = $this->handler_with_row( null )->resend_link( 77 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_link_not_found', $result->get_error_code() );
+		$this->assertSame( array(), $this->sent_emails );
+	}
+
+	public function test_resend_refuses_a_quiz_attempt_that_did_not_pass(): void {
+		$result = $this->handler_with_row( $this->resendable_row( array( 'status' => SubmissionStatus::QUIZ_FAILED ) ) )->resend_link( 77 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_link_not_passed', $result->get_error_code() );
+		$this->assertSame( array(), $this->sent_emails );
+	}
+
+	public function test_resend_refuses_a_submission_with_no_address(): void {
+		$result = $this->handler_with_row( $this->resendable_row( array( 'email' => '' ) ) )->resend_link( 77 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_link_no_email', $result->get_error_code() );
+	}
+
+	public function test_resend_refuses_a_submission_with_no_link_token(): void {
+		$result = $this->handler_with_row( $this->resendable_row( array( 'magic_token' => '' ) ) )->resend_link( 77 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_link_no_token', $result->get_error_code() );
+	}
+
+	public function test_resend_mails_the_stored_address_and_records_the_link(): void {
+		$this->stub_link_mail( array( 'send_user_email' => 0 ) );
+		$recorded = array();
+		Functions\when( 'do_action' )->alias( static function ( $hook, ...$args ) use ( &$recorded ): void {
+			$recorded[] = array( $hook, $args );
+		} );
+
+		$result = $this->handler_with_row( $this->resendable_row() )->resend_link( 77 );
+
+		$this->assertTrue( $result );
+		$this->assertCount( 1, $this->sent_emails );
+		$this->assertSame( 'user@example.com', $this->sent_emails[0]['to'] );
+		$this->assertSame( array( array( 'ffcertificate_link_sent', array( 77 ) ) ), $recorded );
+	}
+
+	public function test_resend_sends_only_the_user_mail_even_when_the_staff_notice_is_on(): void {
+		$this->stub_link_mail( array( 'send_admin_email' => 1, 'email_admin' => 'staff@example.com' ) );
+
+		$this->handler_with_row( $this->resendable_row() )->resend_link( 77 );
+
+		$this->assertCount( 1, $this->sent_emails, 'The staff notice must not go out again on a resend.' );
+		$this->assertSame( 'user@example.com', $this->sent_emails[0]['to'] );
+	}
+
+	public function test_resend_reports_when_the_mailer_did_not_take_the_mail(): void {
+		$this->stub_link_mail( array() );
+		Functions\when( 'wp_mail' )->justReturn( false );
+
+		$result = $this->handler_with_row( $this->resendable_row() )->resend_link( 77 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_link_not_sent', $result->get_error_code() );
 	}
 }

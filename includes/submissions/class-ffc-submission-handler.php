@@ -460,7 +460,7 @@ class SubmissionHandler {
 		$user_email  = isset( $submission['email'] ) ? (string) $submission['email'] : '';
 		$magic_token = isset( $submission['magic_token'] ) ? (string) $submission['magic_token'] : '';
 
-		$submission_data = $this->rebuild_submission_data( $submission );
+		$submission_data = self::submission_data( $submission );
 
 		$fields_config = $form_id > 0 ? get_post_meta( $form_id, '_ffc_form_fields', true ) : array();
 		$form_config   = $form_id > 0 ? get_post_meta( $form_id, '_ffc_form_config', true ) : array();
@@ -502,7 +502,7 @@ class SubmissionHandler {
 	 * @param array<string, mixed> $submission The already decrypted row.
 	 * @return array<string, mixed>
 	 */
-	private function rebuild_submission_data( array $submission ): array {
+	public static function submission_data( array $submission ): array {
 		$data = array();
 
 		$email = isset( $submission['email'] ) ? (string) $submission['email'] : '';
