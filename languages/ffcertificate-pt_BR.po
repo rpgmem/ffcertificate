@@ -21884,6 +21884,38 @@ msgstr "Anúncio"
 msgid "Unknown kind of message."
 msgstr "Tipo de mensagem desconhecido."
 
+#: templates/admin/date-messages/rule-form.php
+msgid "Kind of message"
+msgstr "Tipo de mensagem"
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Dated message"
+msgstr "Mensagem com data"
+
+#: templates/admin/date-messages/rule-form.php
+msgid "A dated message is sent on a date relative to each person. An announcement is one message to everyone in its audience, sent by hand or once at a chosen time."
+msgstr "Uma mensagem com data é enviada numa data relativa a cada pessoa. Um anúncio é uma única mensagem para todos da sua audiência, enviada manualmente ou uma vez num horário escolhido."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Send at"
+msgstr "Enviar em"
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Announcements only, in the site timezone. The announcement is sent once at this time, if it is active. Leave it empty to send it by hand with Send now. A time already past queues nothing when the rule is saved."
+msgstr "Somente para anúncios, no fuso do site. O anúncio é enviado uma vez nesse horário, se estiver ativo. Deixe vazio para enviar manualmente com Enviar agora. Um horário já passado não agenda nada ao salvar a regra."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Announcements"
+msgstr "Anúncios"
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Send it also to people who turned announcements off"
+msgstr "Enviar também a quem desligou os anúncios"
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Off by default, so people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced. Announcements only."
+msgstr "Desligado por padrão, para que quem desligou os anúncios não o receba. Ligado, a pessoa recebe mesmo assim, e o histórico conta esses envios como forçados. Somente para anúncios."
+
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php
 msgid "Announcements from this site"
 msgstr "Anúncios deste site"
@@ -23086,8 +23118,8 @@ msgstr "Seus agendamentos de público-alvo e a aba Recrutamento com as suas conv
 msgid "A Profile tab, read from the plugin's own user profile, where they edit their display name, phone, department, organization, notes and birth date (stored encrypted, and the date Date Messages uses)"
 msgstr "Uma aba Perfil, lida do perfil de usuário do próprio plugin, onde edita nome de exibição, telefone, departamento, organização, observações e data de nascimento (armazenada criptografada e usada pelas Mensagens por Data)"
 
-msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle that opts them out; both are on until turned off"
-msgstr "Preferências de Notificação: uma chave \"Lembrete de agendamento\" e, quando o módulo Mensagens por Data está ativo, uma chave \"Mensagens por data (como felicitações de aniversário)\" que permite deixar de recebê-las; ambas ficam ativas até serem desligadas"
+msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle and an \"Announcements from this site\" toggle, each of which opts them out; all are on until turned off"
+msgstr "Preferências de Notificação: uma chave \"Lembrete de agendamento\" e, quando o módulo Mensagens por Data está ativo, uma chave \"Mensagens por data (como felicitações de aniversário)\" e outra \"Anúncios deste site\", cada uma para deixar de receber aquele tipo; todas ficam ativas até serem desligadas"
 
 msgid "Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data"
 msgstr "Alterar a Senha e os botões de Privacidade e Dados (LGPD) para solicitar a exportação ou a exclusão dos seus dados pessoais"
@@ -23167,8 +23199,12 @@ msgstr "Agendamento diário"
 msgid "Opting out"
 msgstr "Cancelar o recebimento"
 
-msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\"."
-msgstr "No seu painel, em Preferências de Notificação, a pessoa pode desligar \"Mensagens por data (como felicitações de aniversário)\"."
+msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\" and \"Announcements from this site\". The two are separate: turning one off does not stop the other."
+msgstr "No seu painel, em Preferências de Notificação, a pessoa pode desligar \"Mensagens por data (como felicitações de aniversário)\" e \"Anúncios deste site\". As duas são independentes: desligar uma não desliga a outra."
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "An announcement sent to everyone still reaches people who turned announcements off when its rule is set to send it anyway. The history counts those sends as forced, so the choice is never silent."
+msgstr "Um anúncio enviado a todos ainda chega a quem desligou os anúncios quando a regra está configurada para enviar mesmo assim. O histórico conta esses envios como forçados, então a escolha nunca fica oculta."
 
 msgid "Every message carries a one-click unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing."
 msgstr "Toda mensagem traz um link de cancelamento de inscrição com um clique; um corpo que não inclui {{unsubscribe_url}} recebe uma linha de cancelamento ao final. O link é um token assinado que não armazena nada; abri-lo mostra uma página de confirmação, e só a confirmação desliga as mensagens por data, de modo que os verificadores de e-mail que seguem links não alteram nada."
@@ -23848,8 +23884,8 @@ msgstr "Destinatários"
 msgid "Summary"
 msgstr "Resumo"
 
-msgid "0 sends on the date itself; -7 sends seven days before it, 7 seven days after it."
-msgstr "0 envia na própria data; -7 envia sete dias antes dela, 7, sete dias depois."
+msgid "0 sends on the date itself; -7 sends seven days before it, 7 seven days after it. Not used by an announcement."
+msgstr "0 envia na própria data; -7 envia sete dias antes dela, 7, sete dias depois. Não usado por um anúncio."
 
 msgid "A birth date given before the profile field existed reaches the profile through a migration card in Settings → Data Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends."
 msgstr "Uma data de nascimento informada antes de o campo de perfil existir chega ao perfil por um cartão de migração em Configurações → Migrações de Dados; enquanto restarem contas, a tela Mensagens por Data exibe um aviso, porque essas pessoas ainda não aparecem nas prévias, nas próximas datas nem nos envios."

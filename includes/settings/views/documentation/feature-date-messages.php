@@ -84,7 +84,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Opting out', 'ffcertificate' ); ?></h4>
 	<ul>
-		<li><?php esc_html_e( 'On their dashboard, under Notification Preferences, a person can turn off "Date messages (such as birthday greetings)".', 'ffcertificate' ); ?></li>
+		<li><?php esc_html_e( 'On their dashboard, under Notification Preferences, a person can turn off "Date messages (such as birthday greetings)" and "Announcements from this site". The two are separate: turning one off does not stop the other.', 'ffcertificate' ); ?></li>
+		<li><?php esc_html_e( 'An announcement sent to everyone still reaches people who turned announcements off when its rule is set to send it anyway. The history counts those sends as forced, so the choice is never silent.', 'ffcertificate' ); ?></li>
 		<li><?php esc_html_e( 'Every message carries a one-click unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing.', 'ffcertificate' ); ?></li>
 	</ul>
 

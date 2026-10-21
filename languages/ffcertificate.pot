@@ -21801,6 +21801,38 @@ msgstr ""
 msgid "Unknown kind of message."
 msgstr ""
 
+#: templates/admin/date-messages/rule-form.php
+msgid "Kind of message"
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Dated message"
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "A dated message is sent on a date relative to each person. An announcement is one message to everyone in its audience, sent by hand or once at a chosen time."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Send at"
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Announcements only, in the site timezone. The announcement is sent once at this time, if it is active. Leave it empty to send it by hand with Send now. A time already past queues nothing when the rule is saved."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Announcements"
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Send it also to people who turned announcements off"
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Off by default, so people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced. Announcements only."
+msgstr ""
+
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php
 msgid "Announcements from this site"
 msgstr ""
@@ -23003,7 +23035,7 @@ msgstr ""
 msgid "A Profile tab, read from the plugin's own user profile, where they edit their display name, phone, department, organization, notes and birth date (stored encrypted, and the date Date Messages uses)"
 msgstr ""
 
-msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle that opts them out; both are on until turned off"
+msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle and an \"Announcements from this site\" toggle, each of which opts them out; all are on until turned off"
 msgstr ""
 
 msgid "Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data"
@@ -23084,7 +23116,11 @@ msgstr ""
 msgid "Opting out"
 msgstr ""
 
-msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\"."
+msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\" and \"Announcements from this site\". The two are separate: turning one off does not stop the other."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "An announcement sent to everyone still reaches people who turned announcements off when its rule is set to send it anyway. The history counts those sends as forced, so the choice is never silent."
 msgstr ""
 
 msgid "Every message carries a one-click unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing."
@@ -23765,7 +23801,7 @@ msgstr ""
 msgid "Summary"
 msgstr ""
 
-msgid "0 sends on the date itself; -7 sends seven days before it, 7 seven days after it."
+msgid "0 sends on the date itself; -7 sends seven days before it, 7 seven days after it. Not used by an announcement."
 msgstr ""
 
 msgid "A birth date given before the profile field existed reaches the profile through a migration card in Settings → Data Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends."
