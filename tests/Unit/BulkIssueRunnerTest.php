@@ -6,6 +6,7 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Integrations\EmailHandler;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 use FreeFormCertificate\Submissions\BulkIssueActivator;
 use FreeFormCertificate\Submissions\BulkIssueRepository;
@@ -35,9 +36,14 @@ class BulkIssueRunnerTest extends TestCase {
 	/** @var Mockery\MockInterface&SubmissionRepository */
 	private $submissions;
 
+	/** @var EmailHandler&\Mockery\MockInterface Sends the link e-mails of lines marked to get one. */
+	private $email;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->email = Mockery::mock( EmailHandler::class );
 
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' );
@@ -111,6 +117,7 @@ class BulkIssueRunnerTest extends TestCase {
 						'email'  => 'ana@example.org',
 						'fields' => array( 'unit' => 'North' ),
 						'issued_at' => null,
+						'send_link' => false,
 					),
 				),
 				'skipped' => array(
@@ -162,6 +169,28 @@ class BulkIssueRunnerTest extends TestCase {
 				Mockery::on( static fn( array $options ): bool => 1700000000 === $options['submission_date'] )
 			)
 			->andReturn( 91 );
+
+		$this->expect_row_update( 11, BulkIssueRepository::ROW_ISSUED );
+		$this->expect_job_finished();
+
+		$this->assertSame( 1, ( $this->runner() )->process_batch( self::JOB_ID ) );
+	}
+
+	public function test_a_line_marked_to_get_its_link_gets_it_once_it_is_issued(): void {
+		$this->seed_pending_rows( array( $this->row( 11, 'Ana', 'cpf', 'North', null, true ) ) );
+		$this->handler->shouldReceive( 'process_submission' )->once()->andReturn( 91 );
+		$this->email->shouldReceive( 'resend_link' )->once()->with( 91 )->andReturn( true );
+
+		$this->expect_row_update( 11, BulkIssueRepository::ROW_ISSUED );
+		$this->expect_job_finished();
+
+		$this->assertSame( 1, ( $this->runner() )->process_batch( self::JOB_ID ) );
+	}
+
+	public function test_a_line_not_marked_to_get_its_link_is_issued_without_one(): void {
+		$this->seed_pending_rows( array( $this->row( 11, 'Ana' ) ) );
+		$this->handler->shouldReceive( 'process_submission' )->once()->andReturn( 91 );
+		$this->email->shouldNotReceive( 'resend_link' );
 
 		$this->expect_row_update( 11, BulkIssueRepository::ROW_ISSUED );
 		$this->expect_job_finished();
@@ -257,7 +286,7 @@ class BulkIssueRunnerTest extends TestCase {
 	 * @return BulkIssueRunner
 	 */
 	private function runner(): BulkIssueRunner {
-		return new BulkIssueRunner( $this->handler, $this->submissions );
+		return new BulkIssueRunner( $this->handler, $this->submissions, $this->email );
 	}
 
 	/**
@@ -285,13 +314,14 @@ class BulkIssueRunnerTest extends TestCase {
 	 * @param string|null $unit    Value of the required field `unit`; null leaves it out.
 	 * @return array<string, mixed>
 	 */
-	private function row( int $id, string $name, string $kind = 'cpf', ?string $unit = 'North', ?int $issued_at = null ): array {
+	private function row( int $id, string $name, string $kind = 'cpf', ?string $unit = 'North', ?int $issued_at = null, bool $send_link = false ): array {
 		$payload = array(
 			'name'      => $name,
 			'cpf_rf'    => 'cpf' === $kind ? Identifiers::CPF_A : Identifiers::RF_A,
 			'email'     => strtolower( $name ) . '@example.org',
 			'fields'    => null === $unit ? array() : array( 'unit' => $unit ),
 			'issued_at' => $issued_at,
+			'send_link' => $send_link,
 		);
 
 		return array(

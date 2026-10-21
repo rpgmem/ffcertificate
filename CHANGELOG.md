@@ -16,6 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Certificates: a bulk issue is staged and issued in batches through the same write as a single issue, with no e-mail per line; a finished import deletes its staged personal data and an unfinished one expires after 7 days (#1945).
 - Certificates: the Bulk issue tab now issues the checked file in batches, with progress; each line goes through the single-issue write without an e-mail, and an unfinished import expires after seven days (#1945).
 - Certificates: the bulk issue dates its certificates with one chosen day, or with a date column of the file, and the preview counts the skipped rows by reason; a date that does not exist is skipped (#1945).
+- Certificates: the bulk issue can send each certificate's link e-mail as the certificate is issued, and the submissions list gains Send link by e-mail for the submissions that never received one (#1945).
 
 ### Fixed
 

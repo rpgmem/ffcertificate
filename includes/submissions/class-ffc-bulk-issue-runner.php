@@ -19,6 +19,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Submissions;
 
 use FreeFormCertificate\Core\ActivityLog;
+use FreeFormCertificate\Integrations\EmailHandler;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -57,10 +58,12 @@ final class BulkIssueRunner {
 	 *
 	 * @param SubmissionHandler    $handler     Writes each certificate.
 	 * @param SubmissionRepository $submissions Looks up certificates already issued to a participant.
+	 * @param EmailHandler|null    $email       Sends the link e-mails; built on first use when null.
 	 */
 	public function __construct(
 		private SubmissionHandler $handler,
-		private SubmissionRepository $submissions
+		private SubmissionRepository $submissions,
+		private ?EmailHandler $email = null
 	) {
 	}
 
@@ -86,6 +89,7 @@ final class BulkIssueRunner {
 				'email'       => (string) $line['email'],
 				'fields'      => $line['fields'],
 				'issued_at'   => $line['issued_at'],
+				'send_link'   => $line['send_link'],
 			);
 		}
 
@@ -99,6 +103,7 @@ final class BulkIssueRunner {
 				'email'       => '',
 				'fields'      => array(),
 				'issued_at'   => null,
+				'send_link'   => false,
 			);
 		}
 
@@ -191,6 +196,12 @@ final class BulkIssueRunner {
 
 			BulkIssueRepository::mark_row( $row['id'], BulkIssueRepository::ROW_ISSUED );
 			++$issued;
+
+			// The link goes out after the certificate exists, and a refused mail
+			// does not undo the issue: the list action sends it again later.
+			if ( ! empty( $data['send_link'] ) ) {
+				$this->email_handler()->resend_link( (int) $result );
+			}
 		}
 
 		BulkIssueRepository::add_counts( $job_id, $issued, $skipped );
@@ -211,6 +222,18 @@ final class BulkIssueRunner {
 	 */
 	private function issued_at( array $data ): int {
 		return isset( $data['issued_at'] ) && is_int( $data['issued_at'] ) ? $data['issued_at'] : time();
+	}
+
+	/**
+	 * The mailer the link e-mails go through. Built on first use, so a batch that
+	 * sends no link never constructs it.
+	 *
+	 * @return EmailHandler
+	 */
+	private function email_handler(): EmailHandler {
+		$this->email ??= new EmailHandler();
+
+		return $this->email;
 	}
 
 	/**

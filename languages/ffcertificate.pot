@@ -22897,7 +22897,7 @@ msgstr ""
 msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
 msgstr ""
 
-msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form)."
+msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form) and \"Send link by e-mail\", which sends a link only to the submissions that never received one."
 msgstr ""
 
 msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
@@ -27350,6 +27350,30 @@ msgstr ""
 msgid "%1$d: %2$s"
 msgstr ""
 
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "E-mail of each certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Do not send"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Send the link as each certificate is issued"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "To send later, use Send link by e-mail in the submissions list."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php
+msgid "%1$d link(s) sent. Already sent before: %2$d. Skipped: %3$d. Not handed to the mailer: %4$d."
+msgstr ""
+
+#: includes/admin/class-ffc-submissions-list.php
+msgid "Send link by e-mail"
+msgstr ""
+
 #: includes/integrations/class-ffc-email-handler.php
 msgid "The submission could not be found."
 msgstr ""
@@ -27387,7 +27411,7 @@ msgid "Issue certificates for a list of participants from a CSV file, without ea
 msgstr ""
 
 #: includes/settings/views/documentation/submissions-list.php
-msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped, the issue date is chosen and every row is previewed. Confirm to issue the certificates in batches, with progress."
+msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped, the issue date and the link e-mail are chosen and every row is previewed. Confirm to issue the certificates in batches, with progress."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php

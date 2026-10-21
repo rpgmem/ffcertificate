@@ -195,6 +195,15 @@ class BulkIssuePlannerTest extends TestCase {
 		);
 	}
 
+	public function test_every_issued_line_carries_the_send_link_choice(): void {
+		$rows = array(
+			array( 'Ana', self::CPF_A, 'ana@example.test', '' ),
+		);
+
+		$this->assertFalse( BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER )['issue'][0]['send_link'] );
+		$this->assertTrue( BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER, array( 'mode' => BulkIssuePlanner::DATE_NOW, 'date' => '', 'column' => '' ), true )['issue'][0]['send_link'] );
+	}
+
 	public function test_a_blank_email_is_issued_and_reported_not_skipped(): void {
 		$rows = array(
 			array( 'Bruno', self::CPF_B, '', 'Java' ),
