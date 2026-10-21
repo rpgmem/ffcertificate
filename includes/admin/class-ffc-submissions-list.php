@@ -454,7 +454,10 @@ class SubmissionsList extends \WP_List_Table {
 			);
 		}
 
-		$actions = array( 'bulk_trash' => __( 'Move to Trash', 'ffcertificate' ) );
+		$actions = array(
+			'bulk_trash'     => __( 'Move to Trash', 'ffcertificate' ),
+			'bulk_send_link' => __( 'Send link by e-mail', 'ffcertificate' ),
+		);
 
 		// "Move to form…" is only meaningful when the list is filtered by a
 		// single source form — otherwise the source form is ambiguous and

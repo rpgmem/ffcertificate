@@ -179,7 +179,7 @@ class Admin {
 				$bulk_action = sanitize_key( wp_unslash( $_GET['action2'] ) );
 			}
 
-			$allowed_bulk = array( 'bulk_trash', 'bulk_restore', 'bulk_delete', 'move_to_form' );
+			$allowed_bulk = array( 'bulk_trash', 'bulk_restore', 'bulk_delete', 'bulk_send_link', 'move_to_form' );
 			if ( in_array( $bulk_action, $allowed_bulk, true ) ) {
 				check_admin_referer( 'bulk-submissions' );
 				$ids = array_map( 'absint', wp_unslash( $_GET['submission'] ) );
@@ -197,6 +197,18 @@ class Admin {
 					}
 					$this->submission_handler->bulk_delete_submissions( $ids );
 					$this->redirect_with_msg( 'bulk_done' );
+				} elseif ( 'bulk_send_link' === $bulk_action ) {
+					// The manage-capability gate above covers this branch.
+					$counts = ( new \FreeFormCertificate\Integrations\EmailHandler() )->resend_unsent_links( $ids );
+					$this->redirect_with_extra_args(
+						array(
+							'msg'          => 'link_sent',
+							'sent'         => $counts['sent'],
+							'already_sent' => $counts['already_sent'],
+							'skipped'      => $counts['skipped'],
+							'failed'       => $counts['failed'],
+						)
+					);
 				} elseif ( 'move_to_form' === $bulk_action ) {
 					$this->handle_bulk_move_to_form( $ids );
 				}
@@ -433,6 +445,9 @@ class Admin {
 				$text = __( 'Move failed: the selected target form does not exist.', 'ffcertificate' );
 				$type = 'error';
 				break;
+			case 'link_sent':
+				$this->render_link_sent_notice();
+				break;
 			case 'move_done':
 				$this->render_move_done_notice();
 				return;
@@ -442,6 +457,33 @@ class Admin {
 			\FreeFormCertificate\Core\AdminNotice::render( $type, esc_html( $text ) );
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * Renders the result of "Send link by e-mail": how many links went out, and how
+	 * many were already sent, skipped or refused by the mailer.
+	 *
+	 * @return void
+	 */
+	private function render_link_sent_notice(): void {
+		$sent         = RequestInput::get_get_int( 'sent' );
+		$already_sent = RequestInput::get_get_int( 'already_sent' );
+		$skipped      = RequestInput::get_get_int( 'skipped' );
+		$failed       = RequestInput::get_get_int( 'failed' );
+
+		\FreeFormCertificate\Core\AdminNotice::render(
+			$failed > 0 ? 'warning' : 'success',
+			esc_html(
+				sprintf(
+					/* translators: 1: links sent, 2: submissions that already had their link, 3: submissions that cannot receive one, 4: links the mailer refused. */
+					__( '%1$d link(s) sent. Already sent before: %2$d. Skipped: %3$d. Not handed to the mailer: %4$d.', 'ffcertificate' ),
+					$sent,
+					$already_sent,
+					$skipped,
+					$failed
+				)
+			)
+		);
 	}
 
 	/**

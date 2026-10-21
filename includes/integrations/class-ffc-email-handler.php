@@ -204,6 +204,52 @@ class EmailHandler {
 	}
 
 	/**
+	 * Sends the link e-mail again to each submission that has not received one yet (#1945).
+	 *
+	 * A submission that already has a link record is left alone, which is what keeps
+	 * a second click from mailing it twice. "Skipped" covers rows that cannot receive
+	 * a link at all (no address, no token, an unpassed quiz attempt, a missing row);
+	 * "failed" is a link the mailer refused.
+	 *
+	 * @param array<int, int> $ids Submission IDs.
+	 * @return array{sent: int, already_sent: int, skipped: int, failed: int}
+	 */
+	public function resend_unsent_links( array $ids ): array {
+		$counts = array(
+			'sent'         => 0,
+			'already_sent' => 0,
+			'skipped'      => 0,
+			'failed'       => 0,
+		);
+
+		foreach ( $ids as $id ) {
+			$submission = $this->fetch_submission( $id );
+
+			if ( null === $submission ) {
+				++$counts['skipped'];
+				continue;
+			}
+
+			if ( ! empty( $submission['link_sent_at'] ) ) {
+				++$counts['already_sent'];
+				continue;
+			}
+
+			$result = $this->resend_link( $id );
+
+			if ( true === $result ) {
+				++$counts['sent'];
+			} elseif ( 'ffc_link_not_sent' === $result->get_error_code() ) {
+				++$counts['failed'];
+			} else {
+				++$counts['skipped'];
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * The stored row of a submission, decrypted, or null when there is none.
 	 *
 	 * Kept apart so the resend can be tested without a database.

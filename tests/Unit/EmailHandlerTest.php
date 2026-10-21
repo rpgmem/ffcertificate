@@ -614,4 +614,63 @@ class EmailHandlerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'ffc_link_not_sent', $result->get_error_code() );
 	}
+
+	/**
+	 * A handler whose stored rows are keyed by submission ID; an ID with no row
+	 * stands for a submission that was deleted.
+	 *
+	 * @param array<int, array<string, mixed>> $rows Stored rows by submission ID.
+	 */
+	private function handler_with_rows( array $rows ): EmailHandler {
+		return new class( $rows ) extends EmailHandler {
+			/** @var array<int, array<string, mixed>> */
+			private array $rows;
+
+			/** @param array<int, array<string, mixed>> $rows Stored rows by ID. */
+			public function __construct( array $rows ) {
+				parent::__construct();
+				$this->rows = $rows;
+			}
+
+			protected function fetch_submission( int $submission_id ): ?array {
+				return $this->rows[ $submission_id ] ?? null;
+			}
+		};
+	}
+
+	public function test_batch_resend_sends_only_the_links_never_sent_and_counts_each_outcome(): void {
+		$this->stub_link_mail( array() );
+		$handler = $this->handler_with_rows(
+			array(
+				1 => $this->resendable_row( array( 'id' => 1 ) ),
+				2 => $this->resendable_row( array( 'id' => 2, 'email' => 'other@example.com', 'link_sent_at' => 1700000000 ) ),
+				3 => $this->resendable_row( array( 'id' => 3, 'email' => '' ) ),
+			)
+		);
+
+		$counts = $handler->resend_unsent_links( array( 1, 2, 3, 404 ) );
+
+		$this->assertSame(
+			array(
+				'sent'         => 1,
+				'already_sent' => 1,
+				'skipped'      => 2,
+				'failed'       => 0,
+			),
+			$counts
+		);
+		$this->assertCount( 1, $this->sent_emails, 'Only the submission that had never been sent receives a mail.' );
+		$this->assertSame( 'user@example.com', $this->sent_emails[0]['to'] );
+	}
+
+	public function test_batch_resend_counts_a_link_the_mailer_refused_as_failed(): void {
+		$this->stub_link_mail( array() );
+		Functions\when( 'wp_mail' )->justReturn( false );
+		$handler = $this->handler_with_rows( array( 1 => $this->resendable_row( array( 'id' => 1 ) ) ) );
+
+		$counts = $handler->resend_unsent_links( array( 1 ) );
+
+		$this->assertSame( 1, $counts['failed'] );
+		$this->assertSame( 0, $counts['sent'] );
+	}
 }

@@ -74,6 +74,13 @@ class AdminLoader {
 	protected ?QuizGradingHandler $quiz_grading_handler = null;
 
 	/**
+	 * Held for the request hook of the per-submission "Send link by e-mail" button.
+	 *
+	 * @var SendLinkHandler|null
+	 */
+	protected ?SendLinkHandler $send_link_handler = null;
+
+	/**
 	 * Inject the shared submission handler the Admin screens depend on.
 	 *
 	 * @param SubmissionHandler $submission_handler Shared handler the Admin screens depend on.
@@ -138,5 +145,8 @@ class AdminLoader {
 		// Grading posts to admin-post.php, where `is_admin()` holds (#1732).
 		$this->quiz_grading_handler = new QuizGradingHandler( $this->submission_handler );
 		$this->quiz_grading_handler->init();
+
+		$this->send_link_handler = new SendLinkHandler();
+		$this->send_link_handler->init();
 	}
 }

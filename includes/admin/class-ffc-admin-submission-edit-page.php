@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\Button;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -136,6 +137,7 @@ class AdminSubmissionEditPage {
 		// Render page.
 		?>
 		<div class="wrap ffc-admin-page ffc-page-submissions">
+			<?php $this->render_send_link_notice(); ?>
 			<h1>
 			<?php
 				/* translators: %s: submission ID */
@@ -184,6 +186,7 @@ class AdminSubmissionEditPage {
 					</div>
 				</div>
 			</form>
+			<?php $this->render_send_link_form(); ?>
 			<?php $this->render_grading_form(); ?>
 		</div>
 		<?php
@@ -422,6 +425,44 @@ class AdminSubmissionEditPage {
 	}
 
 	/**
+	 * The separate form the card's "Send link by e-mail" button submits.
+	 *
+	 * Printed after the edit form, never inside it: nested forms are not valid HTML.
+	 *
+	 * @return void
+	 */
+	private function render_send_link_form(): void {
+		if ( ! SendLinkHandler::current_user_can_send() || '' === (string) ( $this->sub_array['magic_token'] ?? '' ) ) {
+			return;
+		}
+
+		$id = (int) $this->sub_array['id'];
+		?>
+		<form id="<?php echo esc_attr( SendLinkHandler::FORM_ID ); ?>" method="POST" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="<?php echo esc_attr( SendLinkHandler::ACTION ); ?>">
+			<input type="hidden" name="submission_id" value="<?php echo esc_attr( (string) $id ); ?>">
+			<?php wp_nonce_field( SendLinkHandler::nonce_action( $id ) ); ?>
+		</form>
+		<?php
+	}
+
+	/**
+	 * The outcome of "Send link by e-mail", as a notice on the edit screen.
+	 *
+	 * @return void
+	 */
+	private function render_send_link_notice(): void {
+		$msg = \FreeFormCertificate\Core\RequestInput::get_get_key( 'msg' );
+
+		if ( 'link_resent' === $msg ) {
+			\FreeFormCertificate\Core\AdminNotice::render( 'success', esc_html__( 'The certificate link was sent again.', 'ffcertificate' ) );
+		} elseif ( 'link_resend_failed' === $msg ) {
+			$error = sanitize_text_field( urldecode( \FreeFormCertificate\Core\RequestInput::get_get_string( 'error_msg' ) ) );
+			\FreeFormCertificate\Core\AdminNotice::render( 'error', esc_html( $error ) );
+		}
+	}
+
+	/**
 	 * Side panel: the magic link, with copy and open.
 	 */
 	private function render_magic_link_card(): void {
@@ -459,6 +500,21 @@ class AdminSubmissionEditPage {
 					),
 				)
 			);
+			if ( SendLinkHandler::current_user_can_send() ) {
+				// The button belongs to a form of its own (rendered after the edit form,
+				// see render_send_link_form()): nested forms are not valid HTML.
+				Button::render(
+					array(
+						'label'    => __( 'Send link by e-mail', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'send',
+						'type'     => 'submit',
+						'attrs'    => array(
+							'form' => SendLinkHandler::FORM_ID,
+						),
+					)
+				);
+			}
 			?>
 		</p>
 		<p class="description"><?php esc_html_e( 'Anyone with this link can download the certificate.', 'ffcertificate' ); ?></p>
