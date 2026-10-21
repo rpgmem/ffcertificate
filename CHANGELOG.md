@@ -30,6 +30,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The default certificate layouts fit the A4 page** (#1962 follow-up). The footer of three defaults sat too low, so the QR code and the validation link were cut at the bottom edge. The footers move up, and the seed version is bumped so installs that already hold the defaults refresh them; user templates are not touched. A guard keeps every default's blocks above the footer line.
 - **The quiz grading card lists every open answer of the form** (#1732). The card and the grade save read only the snapshot taken at submission, so a manual question missing from it had no grade field and could not be graded. The questions are now read from the form as it is today, together with the snapshot, so a question added or re-marked since then is graded too.
 - **The answers on the submission edit screen are locked** (#1732). The answers were editable text fields there. They now read as text, and their values still travel in the save, so it keeps them.
+- **A column added between two releases reaches every install** (#1969). The submissions schema was re-checked only when the plugin version changed, and develop keeps one version until release, so a column declared meanwhile (`link_sent_at`) was missing on an install that had already seen that version. The check now compares a fingerprint of the declared columns, so a change runs it once, whatever the version.
 
 ### Changed
 

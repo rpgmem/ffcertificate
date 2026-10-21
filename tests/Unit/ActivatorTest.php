@@ -270,8 +270,8 @@ class ActivatorTest extends TestCase {
 	// maybe_add_columns()
 	// ==================================================================
 
-	public function test_maybe_add_columns_skips_when_version_matches(): void {
-		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+	public function test_maybe_add_columns_skips_when_fingerprint_matches(): void {
+		Functions\when( 'get_option' )->justReturn( Activator::submissions_schema_fingerprint() );
 		$update_option = CallLog::record( 'update_option', true );
 
 		$query_called = false;
@@ -301,7 +301,27 @@ class ActivatorTest extends TestCase {
 		Activator::maybe_add_columns();
 
 		$this->assertArrayHasKey( 'ffc_submissions_db_version', $updated_options );
-		$this->assertSame( FFC_VERSION, $updated_options['ffc_submissions_db_version'] );
+		$this->assertSame( Activator::submissions_schema_fingerprint(), $updated_options['ffc_submissions_db_version'] );
+	}
+
+	/**
+	 * The testes host stored FFC_VERSION before `link_sent_at` was declared, and the
+	 * version did not change, so the old gate never reran. The fingerprint must not be
+	 * the version: a release-free declaration change has to reach the gate.
+	 */
+	public function test_schema_fingerprint_is_not_the_plugin_version(): void {
+		$this->assertNotSame( FFC_VERSION, Activator::submissions_schema_fingerprint() );
+		$this->assertSame( Activator::submissions_schema_fingerprint(), Activator::submissions_schema_fingerprint() );
+	}
+
+	public function test_stored_version_from_before_a_new_column_still_reruns_the_gate(): void {
+		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+
+		$update_option = CallLog::record( 'update_option', true );
+
+		Activator::maybe_add_columns();
+
+		$this->assertSame( 1, $update_option->count(), 'A stored version string is not a current fingerprint, so the columns are checked.' );
 	}
 
 	// ==================================================================
