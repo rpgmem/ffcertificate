@@ -19,6 +19,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Certificates: the bulk issue can send each certificate's link e-mail as the certificate is issued, and the submissions list gains Send link by e-mail for the submissions that never received one (#1945).
 - **The bulk issue of a quiz form takes each certificate's score** (#1945). The score comes from a column of the file, checked against the form's maximum and pass mark, or is set to zero with the pass mark not applied; the preview warns about the zero score.
 - **Announcements to an audience can be scheduled** (#1949). A rule may now be an announcement: one message to everyone in its audience, sent by hand or once at a chosen instant. Announcements have their own opt-out category, separate from birthday greetings, and may reach people who opted out, labelled as forced in the run. The unsubscribe link names its category, and the existing birthday link is unchanged. The editor controls and the dashboard toggle follow.
+- **Date messages: a dashboard switch for announcements** (#1949). The profile's notification preferences gain "Announcements from this site", stored beside the birthday switch under its own key, so each category can be turned off by the person it reaches.
+- **Announcements can be scheduled from the rule editor** (#1949). A rule has a kind, dated or announcement; an announcement takes a send time in the site timezone, is sent once then, and a time already past queues nothing on save. Sending to people who turned announcements off is an explicit choice, counted as forced in the history.
 
 ### Fixed
 

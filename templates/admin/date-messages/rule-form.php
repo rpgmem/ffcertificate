@@ -35,6 +35,9 @@ $ffc_dm_values   = null !== $editing ? array_merge( $editing->to_columns(), arra
 	'subject'         => $ffc_dm_defaults['subject'],
 	'body'            => $ffc_dm_defaults['body'],
 	'send_to_user'    => 1,
+	'kind'            => Rule::KIND_DATED,
+	'send_at'         => 0,
+	'respect_opt_out' => 1,
 	'is_active'       => 1,
 	'digest_enabled'  => 0,
 	'digest_mode'     => 'summary',
@@ -90,6 +93,16 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			<td><input type="text" id="ffc-dm-name" name="rule[name]" class="regular-text" required value="<?php echo esc_attr( (string) $ffc_dm_values['name'] ); ?>"></td>
 		</tr>
 		<tr>
+			<th scope="row"><label for="ffc-dm-kind"><?php esc_html_e( 'Kind of message', 'ffcertificate' ); ?></label></th>
+			<td>
+				<select id="ffc-dm-kind" name="rule[kind]">
+					<option value="<?php echo esc_attr( Rule::KIND_DATED ); ?>" <?php selected( (string) $ffc_dm_values['kind'], Rule::KIND_DATED ); ?>><?php esc_html_e( 'Dated message', 'ffcertificate' ); ?></option>
+					<option value="<?php echo esc_attr( Rule::KIND_ANNOUNCEMENT ); ?>" <?php selected( (string) $ffc_dm_values['kind'], Rule::KIND_ANNOUNCEMENT ); ?>><?php esc_html_e( 'Announcement', 'ffcertificate' ); ?></option>
+				</select>
+				<p class="description"><?php esc_html_e( 'A dated message is sent on a date relative to each person. An announcement is one message to everyone in its audience, sent by hand or once at a chosen time.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
 			<th scope="row"><label for="ffc-dm-source"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></label></th>
 			<td>
 				<select id="ffc-dm-source" name="rule[source]">
@@ -106,7 +119,21 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 				<input type="number" id="ffc-dm-offset" name="rule[offset_days]" class="small-text" required step="1"
 					min="<?php echo esc_attr( (string) -Rule::MAX_OFFSET_DAYS ); ?>" max="<?php echo esc_attr( (string) Rule::MAX_OFFSET_DAYS ); ?>"
 					value="<?php echo esc_attr( (string) $ffc_dm_offset ); ?>">
-				<p class="description"><?php esc_html_e( '0 sends on the date itself; -7 sends seven days before it, 7 seven days after it.', 'ffcertificate' ); ?></p>
+				<p class="description"><?php esc_html_e( '0 sends on the date itself; -7 sends seven days before it, 7 seven days after it. Not used by an announcement.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="ffc-dm-send-at"><?php esc_html_e( 'Send at', 'ffcertificate' ); ?></label></th>
+			<td>
+				<input type="datetime-local" id="ffc-dm-send-at" name="rule[send_at]" value="<?php echo esc_attr( DateMessagesAdminPage::send_at_for_input( (int) $ffc_dm_values['send_at'] ) ); ?>">
+				<p class="description"><?php esc_html_e( 'Announcements only, in the site timezone. The announcement is sent once at this time, if it is active. Leave it empty to send it by hand with Send now. A time already past queues nothing when the rule is saved.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Announcements', 'ffcertificate' ); ?></th>
+			<td>
+				<label><input type="checkbox" name="rule[force_opt_out]" value="1" <?php checked( ! $ffc_dm_flag( $ffc_dm_values['respect_opt_out'] ) ); ?>> <?php esc_html_e( 'Send it also to people who turned announcements off', 'ffcertificate' ); ?></label>
+				<p class="description"><?php esc_html_e( 'Off by default, so people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced. Announcements only.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
 		<?php if ( array() !== $audiences ) : ?>

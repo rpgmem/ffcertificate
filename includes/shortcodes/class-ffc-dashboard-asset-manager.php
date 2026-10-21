@@ -362,6 +362,7 @@ class DashboardAssetManager {
 					'notificationSection'      => __( 'Notification Preferences', 'ffcertificate' ),
 					'notifAppointmentReminder' => __( 'Appointment reminder', 'ffcertificate' ),
 					'notifDateMessages'        => __( 'Date messages (such as birthday greetings)', 'ffcertificate' ),
+					'notifDateAnnouncements'   => __( 'Announcements from this site', 'ffcertificate' ),
 					'notifSaved'               => __( 'Preferences saved', 'ffcertificate' ),
 					// Pagination.
 					'previous'                 => __( 'Previous', 'ffcertificate' ),

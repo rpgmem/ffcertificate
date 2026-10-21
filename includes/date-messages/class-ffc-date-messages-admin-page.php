@@ -425,12 +425,48 @@ final class DateMessagesAdminPage {
 			$this->finish( 'error', $rule->get_error_message(), array( 'rule' => $id > 0 ? $id : 0 ), $data );
 		}
 
-		$saved = RuleWriter::save( $rule );
+		$previous = $id > 0 ? RuleReader::get_by_id( $id ) : null;
+		$saved    = RuleWriter::save( $rule );
 		if ( false === $saved ) {
 			$this->finish( 'error', __( 'The rule could not be saved.', 'ffcertificate' ), array( 'rule' => $id > 0 ? $id : 0 ), $data );
 		}
 
+		$stored = RuleReader::get_by_id( (int) $saved );
+		if ( null !== $stored ) {
+			self::sync_schedule( $stored, $previous );
+		}
+
 		$this->finish( 'success', __( 'Rule saved.', 'ffcertificate' ), array( 'rule' => $saved ) );
+	}
+
+	/**
+	 * Keep an announcement's one send event in step with the saved rule (#1949).
+	 *
+	 * Only a change to the instant, the kind or the activation touches the
+	 * event, so saving an unchanged rule never reschedules it. An instant that
+	 * has already passed queues nothing: an announcement is not sent by saving
+	 * it, only by "Send now", so a re-save cannot send it twice.
+	 *
+	 * @param Rule      $stored   The rule as stored.
+	 * @param Rule|null $previous The rule before the save, null for a new one.
+	 * @return void
+	 */
+	public static function sync_schedule( Rule $stored, ?Rule $previous ): void {
+		$changed = null === $previous
+			|| $previous->send_at !== $stored->send_at
+			|| $previous->kind !== $stored->kind
+			|| $previous->is_active !== $stored->is_active;
+		if ( ! $changed ) {
+			return;
+		}
+
+		// Scheduling clears the old event itself, so it is cleared here only
+		// when nothing replaces it.
+		if ( $stored->is_announcement() && $stored->is_active && $stored->send_at > time() ) {
+			Runner::schedule_announcement( $stored, get_current_user_id() );
+			return;
+		}
+		wp_clear_scheduled_hook( Runner::ANNOUNCE_HOOK, array( $stored->id ) );
 	}
 
 	/**
@@ -530,12 +566,38 @@ final class DateMessagesAdminPage {
 			'subject'         => $posted['subject'] ?? '',
 			'body'            => is_string( $body ) ? wp_kses_post( $body ) : '',
 			'send_to_user'    => isset( $posted['send_to_user'] ) ? '1' : '0',
+			'kind'            => $posted['kind'] ?? Rule::KIND_DATED,
+			'send_at'         => self::send_at_from_input( is_string( $posted['send_at'] ?? null ) ? $posted['send_at'] : '' ),
+			// Unticked means respect: the checkbox is the exception, not the default.
+			'respect_opt_out' => isset( $posted['force_opt_out'] ) ? '0' : '1',
 			'is_active'       => isset( $posted['is_active'] ) ? '1' : '0',
 			'digest_enabled'  => isset( $posted['digest_enabled'] ) ? '1' : '0',
 			'digest_mode'     => $posted['digest_mode'] ?? 'summary',
 			'digest_user_ids' => is_array( $posted['digest_user_ids'] ?? null ) ? $posted['digest_user_ids'] : array(),
 			'appearance'      => is_array( $posted['appearance'] ?? null ) ? $posted['appearance'] : array(),
 		);
+	}
+
+	/**
+	 * The instant a datetime-local value names, in the site timezone, as a
+	 * UNIX time. An empty or unreadable value is 0: sent by hand, not scheduled.
+	 *
+	 * @param string $value `Y-m-d\TH:i` as the browser posts it.
+	 * @return int
+	 */
+	public static function send_at_from_input( string $value ): int {
+		$at = \DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i', $value, wp_timezone() );
+		return false === $at ? 0 : $at->getTimestamp();
+	}
+
+	/**
+	 * A stored instant as a datetime-local value in the site timezone.
+	 *
+	 * @param int $send_at UNIX time, 0 for none.
+	 * @return string Empty for none.
+	 */
+	public static function send_at_for_input( int $send_at ): string {
+		return $send_at > 0 ? (string) wp_date( 'Y-m-d\TH:i', $send_at ) : '';
 	}
 
 	/**

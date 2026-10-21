@@ -210,6 +210,8 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_a_new_rule_is_saved_with_its_body_filtered(): void {
+		// The saved rule is read back to schedule an announcement (#1949); the new one is not stored yet.
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
 		$_POST['rule'] = $this->posted();
 		$this->writer->shouldReceive( 'save' )->once()->with(
 			Mockery::on(
