@@ -201,21 +201,153 @@ class Activator {
 	/**
 	 * Ensure submissions table schema is up-to-date on every load.
 	 *
-	 * Compares stored DB version with plugin version and runs add_columns()
-	 * when they differ.  This prevents "column not found" errors after a
+	 * Compares the stored fingerprint of the declared columns with the current
+	 * one and runs add_columns() when they differ (see submissions_schema_fingerprint()).  This prevents "column not found" errors after a
 	 * plugin update that adds new columns without a full deactivate/activate.
 	 *
 	 * @since 4.12.26
 	 */
 	public static function maybe_add_columns(): void {
-		$stored = get_option( 'ffc_submissions_db_version', '' );
+		$fingerprint = self::submissions_schema_fingerprint();
+		$stored      = get_option( 'ffc_submissions_db_version', '' );
 
-		if ( FFC_VERSION === $stored ) {
+		if ( $stored === $fingerprint ) {
 			return;
 		}
 
 		self::add_columns();
-		update_option( 'ffc_submissions_db_version', FFC_VERSION, true );
+		update_option( 'ffc_submissions_db_version', $fingerprint, true );
+	}
+
+	/**
+	 * The columns `ffc_submissions` must carry beyond its CREATE TABLE, keyed by name.
+	 *
+	 * Read by {@see self::add_columns()} and by {@see self::submissions_schema_fingerprint()},
+	 * so a declaration the schema gate tracks cannot drift from the one it applies.
+	 *
+	 * @return array<string, array{type: string, after: string, index?: string}>
+	 */
+	private static function submission_columns(): array {
+		return array(
+			'user_id'                 => array(
+				'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
+				'after' => 'form_id',
+				'index' => 'user_id',
+			),
+			'magic_token'             => array(
+				'type'  => 'VARCHAR(32) DEFAULT NULL',
+				'after' => 'status',
+				'index' => 'magic_token',
+			),
+			'auth_code'               => array(
+				'type'  => 'VARCHAR(20) DEFAULT NULL',
+				'after' => 'magic_token',
+				'index' => 'auth_code',
+			),
+			'email_encrypted'         => array(
+				'type'  => 'TEXT NULL DEFAULT NULL',
+				'after' => 'auth_code',
+			),
+			'email_hash'              => array(
+				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
+				'after' => 'email_encrypted',
+				'index' => 'email_hash',
+			),
+			'cpf_encrypted'           => array(
+				'type'  => 'TEXT NULL DEFAULT NULL',
+				'after' => 'email_hash',
+			),
+			'cpf_hash'                => array(
+				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
+				'after' => 'cpf_encrypted',
+				'index' => 'cpf_hash',
+			),
+			'rf_encrypted'            => array(
+				'type'  => 'TEXT NULL DEFAULT NULL',
+				'after' => 'cpf_hash',
+			),
+			'rf_hash'                 => array(
+				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
+				'after' => 'rf_encrypted',
+				'index' => 'rf_hash',
+			),
+			'ticket_hash'             => array(
+				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
+				'after' => 'rf_hash',
+				'index' => 'ticket_hash',
+			),
+			'user_ip_encrypted'       => array(
+				'type'  => 'TEXT NULL DEFAULT NULL',
+				'after' => 'ticket_hash',
+			),
+			'data_encrypted'          => array(
+				'type'  => 'LONGTEXT NULL DEFAULT NULL',
+				'after' => 'user_ip_encrypted',
+			),
+			'consent_given'           => array(
+				'type'  => 'TINYINT(1) DEFAULT 0',
+				'after' => 'data_encrypted',
+			),
+			// Category A instant since 6.6.0 (#249 sub-escopo d) — unix UTC.
+			'consent_date'            => array(
+				'type'  => 'BIGINT UNSIGNED DEFAULT NULL',
+				'after' => 'consent_given',
+			),
+			'consent_text'            => array(
+				'type'  => 'TEXT DEFAULT NULL',
+				'after' => 'consent_date',
+			),
+			'qr_code_cache'           => array(
+				'type'  => 'LONGTEXT DEFAULT NULL',
+				'after' => 'consent_text',
+			),
+			// Category A instant since 6.6.0 (#249 sub-escopo d) — unix UTC.
+			'edited_at'               => array(
+				'type'  => 'BIGINT UNSIGNED DEFAULT NULL',
+				'after' => 'qr_code_cache',
+			),
+			'edited_by'               => array(
+				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
+				'after' => 'edited_at',
+			),
+			// When the bulk-issue link (#1945) was sent to this submission: Category A
+			// (unix UTC). NULL means no link was sent by that route.
+			'link_sent_at'            => array(
+				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
+				'after' => 'edited_by',
+			),
+			// Category B wall-clock TIMEs for the operator-driven schedule
+			// exception (#366). NULL means "no override — use the form/geofence
+			// baseline at render time". Stored as literal HH:MM:SS, never
+			// converted across TZs. See CLAUDE.md "Date / time storage
+			// convention".
+			'schedule_start_override' => array(
+				'type'  => 'TIME NULL DEFAULT NULL',
+				'after' => 'edited_by',
+			),
+			'schedule_end_override'   => array(
+				'type'  => 'TIME NULL DEFAULT NULL',
+				'after' => 'schedule_start_override',
+			),
+		);
+	}
+
+	/**
+	 * Fingerprint of the declared submission columns.
+	 *
+	 * Stored in place of the plugin version: develop keeps one FFC_VERSION until
+	 * release, so a version gate never reruns for a column added in the meantime
+	 * (the testes host missed `link_sent_at` that way, #1969). The gate reruns
+	 * whenever the declaration changes, and nowhere else.
+	 *
+	 * @return string
+	 */
+	public static function submissions_schema_fingerprint(): string {
+		$parts = array();
+		foreach ( self::submission_columns() as $name => $definition ) {
+			$parts[] = implode( '|', array( $name, $definition['type'], $definition['after'], $definition['index'] ?? '' ) );
+		}
+		return md5( implode( "\n", $parts ) );
 	}
 
 	/**
@@ -575,110 +707,7 @@ class Activator {
 		global $wpdb;
 		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
-		$columns = array(
-			'user_id'                 => array(
-				'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
-				'after' => 'form_id',
-				'index' => 'user_id',
-			),
-			'magic_token'             => array(
-				'type'  => 'VARCHAR(32) DEFAULT NULL',
-				'after' => 'status',
-				'index' => 'magic_token',
-			),
-			'auth_code'               => array(
-				'type'  => 'VARCHAR(20) DEFAULT NULL',
-				'after' => 'magic_token',
-				'index' => 'auth_code',
-			),
-			'email_encrypted'         => array(
-				'type'  => 'TEXT NULL DEFAULT NULL',
-				'after' => 'auth_code',
-			),
-			'email_hash'              => array(
-				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
-				'after' => 'email_encrypted',
-				'index' => 'email_hash',
-			),
-			'cpf_encrypted'           => array(
-				'type'  => 'TEXT NULL DEFAULT NULL',
-				'after' => 'email_hash',
-			),
-			'cpf_hash'                => array(
-				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
-				'after' => 'cpf_encrypted',
-				'index' => 'cpf_hash',
-			),
-			'rf_encrypted'            => array(
-				'type'  => 'TEXT NULL DEFAULT NULL',
-				'after' => 'cpf_hash',
-			),
-			'rf_hash'                 => array(
-				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
-				'after' => 'rf_encrypted',
-				'index' => 'rf_hash',
-			),
-			'ticket_hash'             => array(
-				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
-				'after' => 'rf_hash',
-				'index' => 'ticket_hash',
-			),
-			'user_ip_encrypted'       => array(
-				'type'  => 'TEXT NULL DEFAULT NULL',
-				'after' => 'ticket_hash',
-			),
-			'data_encrypted'          => array(
-				'type'  => 'LONGTEXT NULL DEFAULT NULL',
-				'after' => 'user_ip_encrypted',
-			),
-			'consent_given'           => array(
-				'type'  => 'TINYINT(1) DEFAULT 0',
-				'after' => 'data_encrypted',
-			),
-			// Category A instant since 6.6.0 (#249 sub-escopo d) — unix UTC.
-			'consent_date'            => array(
-				'type'  => 'BIGINT UNSIGNED DEFAULT NULL',
-				'after' => 'consent_given',
-			),
-			'consent_text'            => array(
-				'type'  => 'TEXT DEFAULT NULL',
-				'after' => 'consent_date',
-			),
-			'qr_code_cache'           => array(
-				'type'  => 'LONGTEXT DEFAULT NULL',
-				'after' => 'consent_text',
-			),
-			// Category A instant since 6.6.0 (#249 sub-escopo d) — unix UTC.
-			'edited_at'               => array(
-				'type'  => 'BIGINT UNSIGNED DEFAULT NULL',
-				'after' => 'qr_code_cache',
-			),
-			'edited_by'               => array(
-				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
-				'after' => 'edited_at',
-			),
-			// When the bulk-issue link (#1945) was sent to this submission: Category A
-			// (unix UTC). NULL means no link was sent by that route.
-			'link_sent_at'            => array(
-				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
-				'after' => 'edited_by',
-			),
-			// Category B wall-clock TIMEs for the operator-driven schedule
-			// exception (#366). NULL means "no override — use the form/geofence
-			// baseline at render time". Stored as literal HH:MM:SS, never
-			// converted across TZs. See CLAUDE.md "Date / time storage
-			// convention".
-			'schedule_start_override' => array(
-				'type'  => 'TIME NULL DEFAULT NULL',
-				'after' => 'edited_by',
-			),
-			'schedule_end_override'   => array(
-				'type'  => 'TIME NULL DEFAULT NULL',
-				'after' => 'schedule_start_override',
-			),
-		);
-
-		self::add_columns_if_missing( $table_name, $columns );
+		self::add_columns_if_missing( $table_name, self::submission_columns() );
 		self::add_index_if_missing( $table_name, 'idx_form_cpf_new', '(form_id, cpf_hash)' );
 		self::add_index_if_missing( $table_name, 'idx_form_rf', '(form_id, rf_hash)' );
 	}
