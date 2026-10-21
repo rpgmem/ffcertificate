@@ -27655,3 +27655,26 @@ msgstr "Pontuação que não é um número inteiro de pontos"
 #: includes/admin/class-ffc-bulk-issue-page.php
 msgid "The maximum is %1$d points. A score below %2$d%% is not issued."
 msgstr "O máximo é %1$d pontos. Uma pontuação abaixo de %2$d%% não é emitida."
+
+#: templates/emails/date-message-announcement.php:20
+msgid "{{site_name}}: announcement"
+msgstr "{{site_name}}: comunicado"
+
+#: templates/emails/date-message-announcement.php:21
+#, php-format
+msgid "There is a new announcement from %s."
+msgstr "Há um novo comunicado de %s."
+
+#: templates/emails/date-message-announcement.php:22
+#, php-format
+msgid "You can read the details on your dashboard: <a href=\"%s\">open your dashboard</a>."
+msgstr "Você pode ler os detalhes no seu painel: <a href=\"%s\">abrir o painel</a>."
+
+#: templates/emails/date-message-announcement.php:23
+#, php-format
+msgid "Prefer not to receive announcements? <a href=\"%s\">Unsubscribe</a>."
+msgstr "Prefere não receber comunicados? <a href=\"%s\">Cancelar inscrição</a>."
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:197
+msgid "Announcement message (default for new announcements)"
+msgstr "Mensagem de comunicado (padrão para novos comunicados)"

@@ -22,6 +22,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Date messages: a dashboard switch for announcements** (#1949). The profile's notification preferences gain "Announcements from this site", stored beside the birthday switch under its own key, so each category can be turned off by the person it reaches.
 - **Announcements can be scheduled from the rule editor** (#1949). A rule has a kind, dated or announcement; an announcement takes a send time in the site timezone, is sent once then, and a time already past queues nothing on save. Sending to people who turned announcements off is an explicit choice, counted as forced in the history.
 - **Announcements: one day per send, and unreadable send times are refused** (#1949). A manual send of an announcement over several days would have reached everyone once per day, so such a range is refused. A typed send time that cannot be read is refused on save instead of being kept as not scheduled.
+- **Announcements start from their own default text** (#1949). A new announcement is drafted with a subject and body written for a site-wide notice, with the unsubscribe link kept; switching the kind in the editor swaps the default while the subject still holds the other kind's default, and "Restore default text" follows the kind.
 
 ### Fixed
 

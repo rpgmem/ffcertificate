@@ -241,16 +241,32 @@ final class DateMessagesAdminPage {
 		// The rule's toggles and appearance save per record (#1757).
 		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 
-		$defaults = MessageBuilder::defaults();
+		// One default per kind; the editor switches between them with the kind
+		// selector (ffc-date-messages-admin.js), so both are supplied.
+		$defaults     = MessageBuilder::defaults();
+		$announcement = MessageBuilder::announcement_defaults();
+		$confirm      = __( 'Replace the current message with the default text? Your changes will be lost.', 'ffcertificate' );
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-email-restore-default' );
 		wp_localize_script(
 			'ffc-email-restore-default',
 			'ffcEmailRestoreDefaults',
 			array(
-				'date_message_body' => array(
+				'date_message_body'              => array(
 					'body'    => $defaults['body'],
-					'confirm' => __( 'Replace the current message with the default text? Your changes will be lost.', 'ffcertificate' ),
+					'confirm' => $confirm,
 				),
+				'date_message_announcement_body' => array(
+					'body'    => $announcement['body'],
+					'confirm' => $confirm,
+				),
+			)
+		);
+		wp_localize_script(
+			'ffc-date-messages-admin',
+			'ffcDateMessageDefaults',
+			array(
+				Rule::KIND_DATED        => $defaults,
+				Rule::KIND_ANNOUNCEMENT => $announcement,
 			)
 		);
 	}

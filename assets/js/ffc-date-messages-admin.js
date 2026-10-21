@@ -24,9 +24,47 @@ jQuery(function ($) {
 	});
 
 	initAppearance();
+	initKind();
 
 	if (!$('.ffc-dm-preview').length || !window.FFC || typeof window.FFC.request !== 'function') {
 		return;
+	}
+
+	// Switching the kind swaps the default text, when the subject still holds
+	// the other kind's default: the subject is plain text, so that test is
+	// reliable where the editor's HTML is not. The restore button follows the
+	// kind, so "Restore default text" always means the right default.
+	function initKind() {
+		var $kind = $('#ffc-dm-kind');
+		if (!$kind.length) {
+			return;
+		}
+		var defaults = window.ffcDateMessageDefaults || {};
+		var keys = { dated: 'date_message_body', announcement: 'date_message_announcement_body' };
+		var $subject = $('#ffc-dm-subject');
+		var $restore = $('.ffc-email-restore-default[data-editor="ffc_dm_body"]');
+
+		function setBody(html) {
+			var editor = window.tinymce && window.tinymce.get('ffc_dm_body');
+			if (editor && !editor.isHidden()) {
+				editor.setContent(html);
+				editor.save();
+			} else {
+				$('#ffc_dm_body').val(html);
+			}
+		}
+
+		$kind.on('change', function () {
+			var kind = String($kind.val());
+			var other = 'announcement' === kind ? 'dated' : 'announcement';
+			var from = defaults[other];
+			var to = defaults[kind];
+			$restore.attr('data-default-key', keys[kind] || keys.dated);
+			if (from && to && $subject.val() === from.subject) {
+				$subject.val(to.subject);
+				setBody(to.body);
+			}
+		});
 	}
 
 	function formPayload($box) {
