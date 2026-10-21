@@ -22980,8 +22980,8 @@ msgstr "A tela de edição permite corrigir o e-mail do participante e os valore
 msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
 msgstr "Exporte as submissões atuais (filtradas) para CSV em segundo plano. A exportação contém dados pessoais descriptografados (e-mail, IP, CPF/RF), o token de link mágico e o registro de consentimento, por isso é controlada por uma permissão própria."
 
-msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form)."
-msgstr "Enviar para a lixeira / restaurar e ações em massa, incluindo \"Mova para o formulário…\" (oferecida quando a lista está filtrada por um único formulário)."
+msgid "Trash / restore and bulk actions, including \"Move to form…\" (offered when the list is filtered to a single form) and \"Send link by e-mail\", which sends a link only to the submissions that never received one."
+msgstr "Mover para a lixeira, restaurar e ações em massa, incluindo \"Mover para formulário…\" (oferecida quando a lista está filtrada por um único formulário) e \"Enviar link por e-mail\", que envia o link apenas às submissões que nunca o receberam."
 
 msgid "Reveal the decrypted CPF / RF / email, and the IP on the edit screen, on demand instead of the masked values; every reveal is audited. Without it the list and the edit screen stay masked, whatever else the operator holds. The certificate PDF is not masked: it prints CPF/RF formatted with punctuation."
 msgstr "Revelar sob demanda o CPF / RF / e-mail descriptografados, e o IP na tela de edição, em vez dos valores mascarados; cada revelação é auditada. Sem ela, a lista e a tela de edição permanecem mascaradas, independentemente de outras permissões do operador. O PDF do certificado não é mascarado: ele imprime o CPF/RF formatado com pontuação."
@@ -27433,6 +27433,30 @@ msgstr "Puladas, por motivo:"
 msgid "%1$d: %2$s"
 msgstr "%1$d: %2$s"
 
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "E-mail of each certificate"
+msgstr "E-mail de cada certificado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Do not send"
+msgstr "Não enviar"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Send the link as each certificate is issued"
+msgstr "Enviar o link ao emitir cada certificado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "To send later, use Send link by e-mail in the submissions list."
+msgstr "Para enviar depois, use Enviar link por e-mail na lista de submissões."
+
+#: includes/admin/class-ffc-admin.php
+msgid "%1$d link(s) sent. Already sent before: %2$d. Skipped: %3$d. Not handed to the mailer: %4$d."
+msgstr "%1$d link(s) enviado(s). Já enviados antes: %2$d. Ignorados: %3$d. Não entregues ao servidor de envio: %4$d."
+
+#: includes/admin/class-ffc-submissions-list.php
+msgid "Send link by e-mail"
+msgstr "Enviar link por e-mail"
+
 #: includes/integrations/class-ffc-email-handler.php
 msgid "The submission could not be found."
 msgstr "A submissão não foi encontrada."
@@ -27470,8 +27494,8 @@ msgid "Issue certificates for a list of participants from a CSV file, without ea
 msgstr "Emita certificados para uma lista de participantes a partir de um arquivo CSV, sem que cada um envie o formulário. Baixe o modelo, envie o arquivo, associe as colunas e confira a pré-visualização. Nada é emitido ainda."
 
 #: includes/settings/views/documentation/submissions-list.php
-msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped, the issue date is chosen and every row is previewed. Confirm to issue the certificates in batches, with progress."
-msgstr "Abra um formulário e use a aba Emitir em lote para conferir um arquivo CSV de participantes contra ele: as colunas são associadas, a data de emissão é escolhida e cada linha é pré-visualizada. Confirme para emitir os certificados em lotes, com progresso."
+msgid "Open a form and use its Bulk issue tab to check a participants CSV against that form: the columns are mapped, the issue date and the link e-mail are chosen and every row is previewed. Confirm to issue the certificates in batches, with progress."
+msgstr "Abra um formulário e use a aba Emitir em lote para conferir um arquivo CSV de participantes contra ele: as colunas são associadas, a data de emissão e o e-mail do link são escolhidos e cada linha é pré-visualizada. Confirme para emitir os certificados em lotes, com progresso."
 
 #: includes/admin/class-ffc-admin-assets-manager.php
 msgid "The file could not be checked. Try again."

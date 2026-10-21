@@ -73,6 +73,7 @@ class AdminLoader {
 	 */
 	protected ?QuizGradingHandler $quiz_grading_handler = null;
 
+
 	/**
 	 * Inject the shared submission handler the Admin screens depend on.
 	 *

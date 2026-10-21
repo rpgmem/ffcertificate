@@ -158,13 +158,14 @@ final class BulkIssuePlanner {
 	 * @param array<string, string>                             $mapping Field name => CSV column name.
 	 * @param array<int, string>                                $header  CSV header row.
 	 * @param array{mode: string, date: string, column: string} $dates   Issue-date choice; defaults to DATE_NOW.
+	 * @param bool                                              $send_links Send each issued certificate's link e-mail.
 	 * @return array{issue: array<int, array<string, mixed>>, skipped: array<int, array{line: int, reason: string}>, no_email: array<int, int>}
 	 */
 	public static function plan( array $rows, array $mapping, array $header, array $dates = array(
 		'mode'   => self::DATE_NOW,
 		'date'   => '',
 		'column' => '',
-	) ): array {
+	), bool $send_links = false ): array {
 		$index = array_flip( $header );
 		$plan  = array(
 			'issue'    => array(),
@@ -267,6 +268,7 @@ final class BulkIssuePlanner {
 				'email'     => $email,
 				'fields'    => $fields,
 				'issued_at' => $issued_at,
+				'send_link' => $send_links,
 			);
 
 			if ( '' === $email ) {

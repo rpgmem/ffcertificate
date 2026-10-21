@@ -263,7 +263,7 @@ final class BulkIssuePage {
 						? __( 'Choose the day the certificates are dated.', 'ffcertificate' )
 						: __( 'Choose the file column that holds the issue date.', 'ffcertificate' );
 				} else {
-					$plan = BulkIssuePlanner::plan( $parsed['rows'], $mapping, $parsed['header'], $dates );
+					$plan = BulkIssuePlanner::plan( $parsed['rows'], $mapping, $parsed['header'], $dates, self::sends_links() );
 				}
 			}
 		}
@@ -480,7 +480,23 @@ final class BulkIssuePage {
 			echo '<option value="' . esc_attr( $column ) . '"' . selected( $dates['column'], $column, false ) . '>' . esc_html( $column ) . '</option>';
 		}
 
-		echo '</select></p></fieldset>';
+		echo '</select></p>';
+		echo '<p><label for="ffc_issue_send_links">' . esc_html__( 'E-mail of each certificate', 'ffcertificate' ) . '</label><br>';
+		echo '<select name="ffc_issue_send_links" id="ffc_issue_send_links">';
+		echo '<option value="">' . esc_html__( 'Do not send', 'ffcertificate' ) . '</option>';
+		echo '<option value="1"' . selected( self::sends_links(), true, false ) . '>' . esc_html__( 'Send the link as each certificate is issued', 'ffcertificate' ) . '</option>';
+		echo '</select></p>';
+		echo '<p class="description">' . esc_html__( 'To send later, use Send link by e-mail in the submissions list.', 'ffcertificate' ) . '</p>';
+		echo '</fieldset>';
+	}
+
+	/**
+	 * Whether each certificate's link e-mail goes out as it is issued.
+	 *
+	 * @return bool
+	 */
+	private static function sends_links(): bool {
+		return '1' === RequestInput::get_post_string( 'ffc_issue_send_links' );
 	}
 
 	/**
