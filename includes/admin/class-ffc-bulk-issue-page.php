@@ -238,7 +238,7 @@ final class BulkIssuePage {
 	 * @param array<string, mixed>|null $parsed  Set to the parsed file when one was uploaded.
 	 * @param array<string, string>     $mapping Set to the column chosen for each key.
 	 * @param string                    $error   Set to a message when the file cannot be used.
-	 * @return array{issue: array<int, array<string, mixed>>, skipped: array<int, array{line: int, reason: string}>, no_email: array<int, int>}|null
+	 * @return array{issue: array<int, array<string, mixed>>, skipped: array<int, array{line: int, reason: string}>}|null
 	 */
 	private static function plan_from_request( int $form_id, ?array &$parsed, array &$mapping, string &$error ): ?array {
 		$plan   = null;
@@ -564,16 +564,6 @@ final class BulkIssuePage {
 			echo '<p class="ffc-bulk-issue-progress" aria-live="polite"></p>';
 		}
 
-		if ( array() !== $plan['no_email'] ) {
-			echo '<p>' . esc_html(
-				sprintf(
-					/* translators: %s: comma-separated line numbers. */
-					__( 'Without an e-mail, so issued with no account: lines %s.', 'ffcertificate' ),
-					implode( ', ', $plan['no_email'] )
-				)
-			) . '</p>';
-		}
-
 		if ( array() !== $plan['skipped'] ) {
 			$by_reason = array_count_values( array_map( 'strval', array_column( $plan['skipped'], 'reason' ) ) );
 			$parts     = array();
@@ -614,6 +604,8 @@ final class BulkIssuePage {
 				return __( 'No CPF or RF', 'ffcertificate' );
 			case BulkIssuePlanner::SKIP_INVALID_CPF_RF:
 				return __( 'CPF or RF with invalid check digits', 'ffcertificate' );
+			case BulkIssuePlanner::SKIP_MISSING_EMAIL:
+				return __( 'No e-mail, so no link can be sent', 'ffcertificate' );
 			case BulkIssuePlanner::SKIP_INVALID_EMAIL:
 				return __( 'Invalid e-mail', 'ffcertificate' );
 			case BulkIssuePlanner::SKIP_DUPLICATE_FILE:

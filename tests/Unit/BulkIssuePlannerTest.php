@@ -204,17 +204,18 @@ class BulkIssuePlannerTest extends TestCase {
 		$this->assertTrue( BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER, array( 'mode' => BulkIssuePlanner::DATE_NOW, 'date' => '', 'column' => '' ), true )['issue'][0]['send_link'] );
 	}
 
-	public function test_a_blank_email_is_issued_and_reported_not_skipped(): void {
+	public function test_a_blank_email_is_skipped_and_reported_not_issued(): void {
 		$rows = array(
 			array( 'Bruno', self::CPF_B, '', 'Java' ),
 		);
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER );
 
-		$this->assertCount( 1, $plan['issue'] );
-		$this->assertSame( '', $plan['issue'][0]['email'] );
-		$this->assertSame( array( 2 ), $plan['no_email'] );
-		$this->assertSame( array(), $plan['skipped'] );
+		$this->assertSame( array(), $plan['issue'] );
+		$this->assertSame(
+			array( array( 'line' => 2, 'reason' => BulkIssuePlanner::SKIP_MISSING_EMAIL ) ),
+			$plan['skipped']
+		);
 	}
 
 	/**
@@ -227,6 +228,7 @@ class BulkIssuePlannerTest extends TestCase {
 		yield 'cpf check digits'   => array( array( 'Ana', '11111111111', 'a@example.test', '' ), BulkIssuePlanner::SKIP_INVALID_CPF_RF );
 		yield 'cpf too short'      => array( array( 'Ana', '1234', 'a@example.test', '' ), BulkIssuePlanner::SKIP_INVALID_CPF_RF );
 		yield 'malformed e-mail'   => array( array( 'Ana', self::CPF_A, 'ana@', '' ), BulkIssuePlanner::SKIP_INVALID_EMAIL );
+		yield 'blank e-mail'       => array( array( 'Ana', self::CPF_A, '', '' ), BulkIssuePlanner::SKIP_MISSING_EMAIL );
 	}
 
 	/**
@@ -276,7 +278,13 @@ class BulkIssuePlannerTest extends TestCase {
 
 		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::HEADER );
 
-		$this->assertSame( array( 2, 4 ), array_column( $plan['issue'], 'line' ) );
-		$this->assertSame( array( array( 'line' => 3, 'reason' => BulkIssuePlanner::SKIP_EMPTY_ROW ) ), $plan['skipped'] );
+		$this->assertSame( array( 2 ), array_column( $plan['issue'], 'line' ) );
+		$this->assertSame(
+			array(
+				array( 'line' => 3, 'reason' => BulkIssuePlanner::SKIP_EMPTY_ROW ),
+				array( 'line' => 4, 'reason' => BulkIssuePlanner::SKIP_MISSING_EMAIL ),
+			),
+			$plan['skipped']
+		);
 	}
 }

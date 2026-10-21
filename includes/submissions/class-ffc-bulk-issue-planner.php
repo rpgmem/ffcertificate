@@ -41,6 +41,9 @@ final class BulkIssuePlanner {
 	public const SKIP_MISSING_CPF_RF = 'missing_cpf_rf';
 	public const SKIP_INVALID_CPF_RF = 'invalid_cpf_rf';
 	public const SKIP_INVALID_EMAIL  = 'invalid_email';
+
+	/** Skip reason: the line has no e-mail, so its link cannot be sent. */
+	public const SKIP_MISSING_EMAIL  = 'missing_email';
 	public const SKIP_DUPLICATE_FILE = 'duplicate_in_file';
 	public const SKIP_INVALID_DATE   = 'invalid_date';
 
@@ -148,7 +151,6 @@ final class BulkIssuePlanner {
 	 * - `issue`: rows that would be issued, each with `line`, `name`,
 	 *   `cpf_rf` (digits only), `email` (may be empty) and `fields`.
 	 * - `skipped`: `line` and `reason` (one of the SKIP_* constants).
-	 * - `no_email`: lines that would be issued without an account.
 	 *
 	 * Each issued row also carries `issued_at`: the instant its certificate is
 	 * dated, or null to date it when it is issued. A row whose date cannot be
@@ -159,7 +161,7 @@ final class BulkIssuePlanner {
 	 * @param array<int, string>                                $header  CSV header row.
 	 * @param array{mode: string, date: string, column: string} $dates   Issue-date choice; defaults to DATE_NOW.
 	 * @param bool                                              $send_links Send each issued certificate's link e-mail.
-	 * @return array{issue: array<int, array<string, mixed>>, skipped: array<int, array{line: int, reason: string}>, no_email: array<int, int>}
+	 * @return array{issue: array<int, array<string, mixed>>, skipped: array<int, array{line: int, reason: string}>}
 	 */
 	public static function plan( array $rows, array $mapping, array $header, array $dates = array(
 		'mode'   => self::DATE_NOW,
@@ -168,9 +170,8 @@ final class BulkIssuePlanner {
 	), bool $send_links = false ): array {
 		$index = array_flip( $header );
 		$plan  = array(
-			'issue'    => array(),
-			'skipped'  => array(),
-			'no_email' => array(),
+			'issue'   => array(),
+			'skipped' => array(),
 		);
 		$seen  = array();
 
@@ -225,7 +226,15 @@ final class BulkIssuePlanner {
 
 			$email = trim( $read( 'email' ) );
 
-			if ( '' !== $email && false === filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
+			if ( '' === $email ) {
+				$plan['skipped'][] = array(
+					'line'   => $line,
+					'reason' => self::SKIP_MISSING_EMAIL,
+				);
+				continue;
+			}
+
+			if ( false === filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
 				$plan['skipped'][] = array(
 					'line'   => $line,
 					'reason' => self::SKIP_INVALID_EMAIL,
@@ -270,10 +279,6 @@ final class BulkIssuePlanner {
 				'issued_at' => $issued_at,
 				'send_link' => $send_links,
 			);
-
-			if ( '' === $email ) {
-				$plan['no_email'][] = $line;
-			}
 		}
 
 		return $plan;
