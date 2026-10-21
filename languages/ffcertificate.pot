@@ -21801,6 +21801,14 @@ msgstr ""
 msgid "Unknown kind of message."
 msgstr ""
 
+#: templates/admin/date-messages/send.php
+msgid "An announcement is sent on one day. Give the same first and last day."
+msgstr ""
+
+#: templates/admin/date-messages/send.php
+msgid "Enter the send time as a date and time, or leave it empty."
+msgstr ""
+
 #: templates/admin/date-messages/rule-form.php
 msgid "Kind of message"
 msgstr ""
@@ -21995,7 +22003,7 @@ msgstr ""
 msgid "Sending started. The first batch went out now; the rest continues in the background. Follow it in History."
 msgstr ""
 
-msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new."
+msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new. An announcement has no date: it goes to everyone in its audience, on the one day it is sent."
 msgstr ""
 
 msgid "Sent"
@@ -23086,7 +23094,7 @@ msgstr ""
 msgid "Subject and message"
 msgstr ""
 
-msgid "The e-mail body only; the header and footer come from the Email Model. A new rule starts from the \"Birthday message\" default in Settings → Email texts, and \"Restore default text\" brings it back."
+msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore default text\" brings back the default of the kind chosen."
 msgstr ""
 
 msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off and send only the manager summary."
@@ -27563,4 +27571,27 @@ msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
 msgid "The maximum is %1$d points. A score below %2$d%% is not issued."
+msgstr ""
+
+#: templates/emails/date-message-announcement.php:20
+msgid "{{site_name}}: announcement"
+msgstr ""
+
+#: templates/emails/date-message-announcement.php:21
+#, php-format
+msgid "There is a new announcement from %s."
+msgstr ""
+
+#: templates/emails/date-message-announcement.php:22
+#, php-format
+msgid "You can read the details on your dashboard: <a href=\"%s\">open your dashboard</a>."
+msgstr ""
+
+#: templates/emails/date-message-announcement.php:23
+#, php-format
+msgid "Prefer not to receive announcements? <a href=\"%s\">Unsubscribe</a>."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:197
+msgid "Announcement message (default for new announcements)"
 msgstr ""

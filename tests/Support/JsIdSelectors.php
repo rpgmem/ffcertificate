@@ -41,6 +41,9 @@ namespace FreeFormCertificate\Tests\Support;
  *    and on the CONSUMPTION side (`'#ffc-tabpanel-' + tab`). A name that never
  *    exists as a literal can only be recognised by prefix, the same limitation
  *    `CssClassEmitters` records.
+ * 5. `wp_editor( $content, 'id' )` -- the TinyMCE textarea's id is the SECOND
+ *    argument, and the markup never spells it out. The date-messages rule editor
+ *    looks up its body editor by that id (#1949).
  *
  * **What it does not see**, and is worth writing down: whether a test's fixture
  * matches the real markup. In the three cases that produced it the defect was in
@@ -282,6 +285,9 @@ final class JsIdSelectors {
 			self::collect( '/\.id\s*=\s*(["\'])([A-Za-z][A-Za-z0-9_-]*)\1/', $src, 2, $ids );
 			// `wp_nonce_field( $action, 'name' )` -- the id is the SECOND argument.
 			self::collect( '/wp_nonce_field\(\s*[^,]+,\s*(["\'])([A-Za-z][A-Za-z0-9_-]*)\1/', $src, 2, $ids );
+			// `wp_editor( $content, 'id', … )` -- the TinyMCE textarea takes the
+			// SECOND argument as its id, and the markup never spells it out.
+			self::collect( '/wp_editor\(\s*[^,]+,\s*(["\'])([A-Za-z][A-Za-z0-9_-]*)\1/', $src, 2, $ids );
 
 			// Prefix: a name followed by a PHP echo or by concatenation.
 			if ( preg_match_all( '/\bid\s*=\s*["\']([A-Za-z][A-Za-z0-9_-]*[-_])(?=\s*(?:\.|\+|<)|\{|\$)/', $src, $m, PREG_SET_ORDER ) ) {

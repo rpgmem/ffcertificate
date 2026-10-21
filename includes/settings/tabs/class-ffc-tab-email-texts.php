@@ -193,6 +193,10 @@ class TabEmailTexts extends SettingsTab {
 				'label'  => __( 'Birthday message (default for new rules)', 'ffcertificate' ),
 				'tokens' => array( 'name', 'first_name', 'last_name', 'full_name', 'email', 'date', 'age', 'days_until', 'site_name', 'dashboard_url', 'unsubscribe_url' ),
 			),
+			'date-message-announcement'     => array(
+				'label'  => __( 'Announcement message (default for new announcements)', 'ffcertificate' ),
+				'tokens' => array( 'name', 'first_name', 'last_name', 'full_name', 'email', 'site_name', 'dashboard_url', 'unsubscribe_url' ),
+			),
 			'recruitment-convocation'       => array(
 				'label'  => __( 'Recruitment convocation', 'ffcertificate' ),
 				'tokens' => array( 'name', 'cpf_masked', 'rf_masked', 'email_masked', 'adjutancy', 'notice_code', 'notice_name', 'rank', 'score', 'is_pcd', 'date_to_assume', 'time_to_assume', 'called_at', 'site_name', 'site_url', 'notes' ),
@@ -329,7 +333,7 @@ class TabEmailTexts extends SettingsTab {
 			),
 			__( 'Audience Calendars', 'ffcertificate' ) => array( 'audience-booking', 'audience-cancellation', 'audience-admin-cancellation' ),
 			__( 'Account access', 'ffcertificate' )     => array( 'access-granted' ),
-			__( 'Date Messages', 'ffcertificate' )      => array( 'date-message-birthday' ),
+			__( 'Date Messages', 'ffcertificate' )      => array( 'date-message-birthday', 'date-message-announcement' ),
 		);
 	}
 

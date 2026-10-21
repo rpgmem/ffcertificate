@@ -207,4 +207,20 @@ class DateMessagesMessageBuilderTest extends TestCase {
 
 		$this->assertStringContainsString( 'da Silva/Maria da Silva', $message['body'] );
 	}
+
+	/**
+	 * An announcement starts from its own default text, not the birthday one,
+	 * and that text still carries the unsubscribe link (#1949).
+	 *
+	 * @return void
+	 */
+	public function test_an_announcement_starts_from_its_own_default_text(): void {
+		$announcement = MessageBuilder::announcement_defaults();
+		$dated        = MessageBuilder::defaults();
+
+		$this->assertSame( '{{site_name}}: announcement', $announcement['subject'] );
+		$this->assertNotSame( $dated['subject'], $announcement['subject'] );
+		$this->assertStringContainsString( '{{unsubscribe_url}}', $announcement['body'] );
+		$this->assertStringNotContainsString( '{{first_name}}', $announcement['body'] );
+	}
 }

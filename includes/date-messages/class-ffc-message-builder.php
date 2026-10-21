@@ -40,14 +40,38 @@ final class MessageBuilder {
 	public const DEFAULT_TEMPLATE = 'date-message-birthday';
 
 	/**
-	 * Default subject and body for a new rule, as edited in the hub.
+	 * The template a new announcement starts from (#1949).
+	 */
+	public const ANNOUNCEMENT_TEMPLATE = 'date-message-announcement';
+
+	/**
+	 * Default subject and body for a new dated rule, as edited in the hub.
 	 *
 	 * @return array{subject: string, body: string}
 	 */
 	public static function defaults(): array {
+		return self::template_defaults( self::DEFAULT_TEMPLATE );
+	}
+
+	/**
+	 * Default subject and body for a new announcement (#1949).
+	 *
+	 * @return array{subject: string, body: string}
+	 */
+	public static function announcement_defaults(): array {
+		return self::template_defaults( self::ANNOUNCEMENT_TEMPLATE );
+	}
+
+	/**
+	 * The subject and body an email template resolves to, overrides included.
+	 *
+	 * @param string $template An allowlisted EmailTemplates name.
+	 * @return array{subject: string, body: string}
+	 */
+	private static function template_defaults( string $template ): array {
 		return array(
-			'subject' => EmailTemplates::effective_body( self::DEFAULT_TEMPLATE, 'subject' ),
-			'body'    => EmailTemplates::effective_body( self::DEFAULT_TEMPLATE, 'body' ),
+			'subject' => EmailTemplates::effective_body( $template, 'subject' ),
+			'body'    => EmailTemplates::effective_body( $template, 'body' ),
 		);
 	}
 

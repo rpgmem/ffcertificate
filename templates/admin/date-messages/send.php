@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	echo esc_html(
 		sprintf(
 			/* translators: %d: maximum number of days */
-			__( 'Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new.', 'ffcertificate' ),
+			__( 'Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new. An announcement has no date: it goes to everyone in its audience, on the one day it is sent.', 'ffcertificate' ),
 			Runner::MAX_RANGE_DAYS
 		)
 	);

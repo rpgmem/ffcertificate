@@ -255,4 +255,33 @@ describe('ffc-date-messages-admin', () => {
 		expect(window.$('.ffc-dm-image-preview').hasClass('ffc-hidden')).toBe(false);
 		delete window.wp;
 	});
+
+	it('swaps to the announcement default when the kind changes and the subject still holds the dated one', async () => {
+		installEditorDom();
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<select id="ffc-dm-kind"><option value="dated" selected>D</option><option value="announcement">A</option></select>' +
+				'<input id="ffc-dm-subject" value="Happy birthday!">' +
+				'<textarea id="ffc_dm_body">dated body</textarea>' +
+				'<button type="button" class="ffc-email-restore-default" data-editor="ffc_dm_body" data-default-key="date_message_body">R</button>'
+		);
+		window.ffcDateMessageDefaults = {
+			dated: { subject: 'Happy birthday!', body: 'dated body' },
+			announcement: { subject: 'Site: announcement', body: 'announcement body' },
+		};
+		await loadOnReady();
+
+		window.$('#ffc-dm-kind').val('announcement').trigger('change');
+		expect(window.$('#ffc-dm-subject').val()).toBe('Site: announcement');
+		expect(window.$('#ffc_dm_body').val()).toBe('announcement body');
+		expect(window.$('.ffc-email-restore-default').attr('data-default-key')).toBe('date_message_announcement_body');
+
+		// A subject the operator typed is left alone.
+		window.$('#ffc-dm-subject').val('Mine');
+		window.$('#ffc_dm_body').val('mine');
+		window.$('#ffc-dm-kind').val('dated').trigger('change');
+		expect(window.$('#ffc-dm-subject').val()).toBe('Mine');
+		expect(window.$('.ffc-email-restore-default').attr('data-default-key')).toBe('date_message_body');
+		delete window.ffcDateMessageDefaults;
+	});
 });

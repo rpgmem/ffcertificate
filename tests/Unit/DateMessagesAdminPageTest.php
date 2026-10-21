@@ -474,12 +474,9 @@ class DateMessagesAdminPageTest extends TestCase {
 
 	public function test_assets_load_on_this_screen_only_and_carry_both_nonces(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )->shouldReceive( 'defaults' )->andReturn(
-			array(
-				'subject' => 'S',
-				'body'    => 'DEFAULT',
-			)
-		);
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )
+			->shouldReceive( 'defaults' )->andReturn( array( 'subject' => 'S', 'body' => 'DEFAULT' ) )
+			->shouldReceive( 'announcement_defaults' )->andReturn( array( 'subject' => 'A', 'body' => 'ANNOUNCE' ) );
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $a ) => 'nonce-' . $a );
 		$media     = 0;
 		Functions\when( 'wp_enqueue_media' )->alias(

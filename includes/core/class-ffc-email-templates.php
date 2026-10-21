@@ -56,6 +56,7 @@ final class EmailTemplates {
 		'access-granted',
 		'calendar-deleted-cancellation',
 		'date-message-birthday',
+		'date-message-announcement',
 	);
 
 	/**

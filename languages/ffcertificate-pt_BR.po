@@ -21884,6 +21884,14 @@ msgstr "Anúncio"
 msgid "Unknown kind of message."
 msgstr "Tipo de mensagem desconhecido."
 
+#: templates/admin/date-messages/send.php
+msgid "An announcement is sent on one day. Give the same first and last day."
+msgstr "Um anúncio é enviado em um dia. Informe o mesmo primeiro e último dia."
+
+#: templates/admin/date-messages/send.php
+msgid "Enter the send time as a date and time, or leave it empty."
+msgstr "Informe o horário de envio como data e hora, ou deixe vazio."
+
 #: templates/admin/date-messages/rule-form.php
 msgid "Kind of message"
 msgstr "Tipo de mensagem"
@@ -22078,8 +22086,8 @@ msgstr "Envio"
 msgid "Sending started. The first batch went out now; the rest continues in the background. Follow it in History."
 msgstr "Envio iniciado. O primeiro lote saiu agora; o restante continua em segundo plano. Acompanhe em Histórico."
 
-msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new."
-msgstr "Envia uma regra a todos cuja data cai em um intervalo de até %d dias. Quem já recebeu esta regra para aquela data é pulado, então repetir um intervalo não envia nada novo."
+msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new. An announcement has no date: it goes to everyone in its audience, on the one day it is sent."
+msgstr "Envia uma regra a todos cuja data cai em um intervalo de até %d dias. Quem já recebeu esta regra para aquela data é pulado, então repetir um intervalo não envia nada novo. Um anúncio não tem data: vai para todos da audiência, no único dia em que é enviado."
 
 msgid "Sent"
 msgstr "Enviados"
@@ -23169,8 +23177,8 @@ msgstr "0 envia na própria data; um número negativo envia essa quantidade de d
 msgid "Subject and message"
 msgstr "Assunto e mensagem"
 
-msgid "The e-mail body only; the header and footer come from the Email Model. A new rule starts from the \"Birthday message\" default in Settings → Email texts, and \"Restore default text\" brings it back."
-msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, e \"Restaurar texto padrão\" o traz de volta."
+msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore default text\" brings back the default of the kind chosen."
+msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra de data começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, um novo comunicado começa com o padrão \"Mensagem de comunicado\", e \"Restaurar texto padrão\" traz de volta o padrão do tipo escolhido."
 
 msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off and send only the manager summary."
 msgstr "\"Enviar e-mail a cada pessoa na sua data\" e \"Ativa (o envio diário a envia)\". Uma regra pode ficar ativa com os e-mails pessoais desligados e enviar apenas o resumo para gestores."
@@ -27647,3 +27655,26 @@ msgstr "Pontuação que não é um número inteiro de pontos"
 #: includes/admin/class-ffc-bulk-issue-page.php
 msgid "The maximum is %1$d points. A score below %2$d%% is not issued."
 msgstr "O máximo é %1$d pontos. Uma pontuação abaixo de %2$d%% não é emitida."
+
+#: templates/emails/date-message-announcement.php:20
+msgid "{{site_name}}: announcement"
+msgstr "{{site_name}}: comunicado"
+
+#: templates/emails/date-message-announcement.php:21
+#, php-format
+msgid "There is a new announcement from %s."
+msgstr "Há um novo comunicado de %s."
+
+#: templates/emails/date-message-announcement.php:22
+#, php-format
+msgid "You can read the details on your dashboard: <a href=\"%s\">open your dashboard</a>."
+msgstr "Você pode ler os detalhes no seu painel: <a href=\"%s\">abrir o painel</a>."
+
+#: templates/emails/date-message-announcement.php:23
+#, php-format
+msgid "Prefer not to receive announcements? <a href=\"%s\">Unsubscribe</a>."
+msgstr "Prefere não receber comunicados? <a href=\"%s\">Cancelar inscrição</a>."
+
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:197
+msgid "Announcement message (default for new announcements)"
+msgstr "Mensagem de comunicado (padrão para novos comunicados)"
