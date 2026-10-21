@@ -23177,8 +23177,8 @@ msgstr "0 envia na própria data; um número negativo envia essa quantidade de d
 msgid "Subject and message"
 msgstr "Assunto e mensagem"
 
-msgid "The e-mail body only; the header and footer come from the Email Model. A new rule starts from the \"Birthday message\" default in Settings → Email texts, and \"Restore default text\" brings it back."
-msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, e \"Restaurar texto padrão\" o traz de volta."
+msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore default text\" brings back the default of the kind chosen."
+msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra de data começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, um novo comunicado começa com o padrão \"Mensagem de comunicado\", e \"Restaurar texto padrão\" traz de volta o padrão do tipo escolhido."
 
 msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off and send only the manager summary."
 msgstr "\"Enviar e-mail a cada pessoa na sua data\" e \"Ativa (o envio diário a envia)\". Uma regra pode ficar ativa com os e-mails pessoais desligados e enviar apenas o resumo para gestores."
