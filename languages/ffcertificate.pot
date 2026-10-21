@@ -24018,6 +24018,22 @@ msgstr ""
 msgid "Create certificate-issuance forms, generate the certificate PDF automatically on submission, and let anyone verify authenticity by QR code or validation link."
 msgstr ""
 
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "Issuing certificates in bulk"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "When the participants are already known — an attendance sheet, a course roster — open the form in the form editor and use its Bulk issue tab, the last one, which appears only to users who hold the Issue certificates in bulk capability. Download the CSV template for the form, upload your file (up to 2 MB) and map each column to a form field. Name, CPF/RF and e-mail are required, and the fields marked * must be mapped. The preview then says how many certificates would be issued and how many rows would be skipped, with the reason for each skipped row. Nothing is issued until you confirm, and the certificates are issued in batches with a progress indicator."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "On a quiz form the tab also asks for the score of each participant: take the points from a column of the file, which must not exceed the maximum and must reach the passing score, or issue every certificate with a zero score, in which case the passing score does not apply and the preview warns you first. The issue date is the day each certificate is issued, one date you choose for all of them, or a column of the file. Choose whether to send the magic-link e-mail as each certificate is issued or not at all; a link that was not sent can be sent later from the submissions list with Send link by e-mail."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "A row is skipped, and listed in the report, when its name, CPF/RF or e-mail is missing or invalid, when a CPF or RF fails its check digits, when the same identifier appears earlier in the file, or when the form already holds a certificate for that CPF or RF. The form's own restrictions — allowlist, tickets, geofence, rate limit, date window and captcha — do not apply to the import. Each job writes one Activity Log entry, and a job left unfinished for seven days is expired and its staged rows are removed."
+msgstr ""
+
 msgid "Custom fields from audience memberships. Fields are grouped by audience."
 msgstr ""
 

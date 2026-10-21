@@ -285,6 +285,15 @@ class BulkIssueRunnerTest extends TestCase {
 		$this->assertSame( 0, ( $this->runner() )->process_batch( self::JOB_ID ) );
 	}
 
+	public function test_an_expired_job_is_never_resumed(): void {
+		global $wpdb;
+		$wpdb->shouldReceive( 'get_row' )->andReturn( $this->job( BulkIssueRepository::STATUS_EXPIRED ) );
+		$this->handler->shouldNotReceive( 'process_submission' );
+		$wpdb->shouldNotReceive( 'update' );
+
+		$this->assertSame( 0, ( $this->runner() )->process_batch( self::JOB_ID ) );
+	}
+
 	public function test_a_missing_job_is_reported_as_nothing_to_do(): void {
 		global $wpdb;
 		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
