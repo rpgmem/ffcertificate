@@ -420,6 +420,10 @@ final class DateMessagesAdminPage {
 		}
 		$data['id'] = $id;
 
+		if ( self::send_at_is_unreadable( is_string( $posted['send_at'] ?? null ) ? $posted['send_at'] : '' ) ) {
+			$this->finish( 'error', __( 'Enter the send time as a date and time, or leave it empty.', 'ffcertificate' ), array( 'rule' => $id > 0 ? $id : 0 ), $data );
+		}
+
 		$rule = Rule::from_array( $data );
 		if ( is_wp_error( $rule ) ) {
 			$this->finish( 'error', $rule->get_error_message(), array( 'rule' => $id > 0 ? $id : 0 ), $data );
@@ -534,6 +538,10 @@ final class DateMessagesAdminPage {
 		if ( null === $from || null === $to ) {
 			$this->finish( 'error', __( 'Enter both dates.', 'ffcertificate' ), $back );
 		}
+		$range_error = self::send_range_error( $rule, $from, $to );
+		if ( '' !== $range_error ) {
+			$this->finish( 'error', $range_error, $back );
+		}
 
 		$run = Runner::start( $rule, $from, $to, 'manual', get_current_user_id() );
 		if ( is_wp_error( $run ) ) {
@@ -576,6 +584,35 @@ final class DateMessagesAdminPage {
 			'digest_user_ids' => is_array( $posted['digest_user_ids'] ?? null ) ? $posted['digest_user_ids'] : array(),
 			'appearance'      => is_array( $posted['appearance'] ?? null ) ? $posted['appearance'] : array(),
 		);
+	}
+
+	/**
+	 * Why a manual send's range is refused for this rule, or '' when it is fine.
+	 *
+	 * An announcement is delivered once per day it is sent, so a range that
+	 * spans more than one day would send it to everyone once for each day.
+	 *
+	 * @param Rule               $rule The rule.
+	 * @param \DateTimeImmutable $from First day.
+	 * @param \DateTimeImmutable $to   Last day.
+	 * @return string
+	 */
+	public static function send_range_error( Rule $rule, \DateTimeImmutable $from, \DateTimeImmutable $to ): string {
+		if ( $rule->is_announcement() && $from->format( 'Y-m-d' ) !== $to->format( 'Y-m-d' ) ) {
+			return __( 'An announcement is sent on one day. Give the same first and last day.', 'ffcertificate' );
+		}
+		return '';
+	}
+
+	/**
+	 * Whether a send-time value was typed but cannot be read, which would
+	 * otherwise be saved as "not scheduled" without the operator knowing.
+	 *
+	 * @param string $raw The value as posted.
+	 * @return bool
+	 */
+	public static function send_at_is_unreadable( string $raw ): bool {
+		return '' !== trim( $raw ) && 0 === self::send_at_from_input( trim( $raw ) );
 	}
 
 	/**

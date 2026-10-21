@@ -21,6 +21,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Announcements to an audience can be scheduled** (#1949). A rule may now be an announcement: one message to everyone in its audience, sent by hand or once at a chosen instant. Announcements have their own opt-out category, separate from birthday greetings, and may reach people who opted out, labelled as forced in the run. The unsubscribe link names its category, and the existing birthday link is unchanged. The editor controls and the dashboard toggle follow.
 - **Date messages: a dashboard switch for announcements** (#1949). The profile's notification preferences gain "Announcements from this site", stored beside the birthday switch under its own key, so each category can be turned off by the person it reaches.
 - **Announcements can be scheduled from the rule editor** (#1949). A rule has a kind, dated or announcement; an announcement takes a send time in the site timezone, is sent once then, and a time already past queues nothing on save. Sending to people who turned announcements off is an explicit choice, counted as forced in the history.
+- **Announcements: one day per send, and unreadable send times are refused** (#1949). A manual send of an announcement over several days would have reached everyone once per day, so such a range is refused. A typed send time that cannot be read is refused on save instead of being kept as not scheduled.
 
 ### Fixed
 

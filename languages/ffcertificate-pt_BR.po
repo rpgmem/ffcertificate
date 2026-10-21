@@ -21884,6 +21884,14 @@ msgstr "Anúncio"
 msgid "Unknown kind of message."
 msgstr "Tipo de mensagem desconhecido."
 
+#: templates/admin/date-messages/send.php
+msgid "An announcement is sent on one day. Give the same first and last day."
+msgstr "Um anúncio é enviado em um dia. Informe o mesmo primeiro e último dia."
+
+#: templates/admin/date-messages/send.php
+msgid "Enter the send time as a date and time, or leave it empty."
+msgstr "Informe o horário de envio como data e hora, ou deixe vazio."
+
 #: templates/admin/date-messages/rule-form.php
 msgid "Kind of message"
 msgstr "Tipo de mensagem"
@@ -22078,8 +22086,8 @@ msgstr "Envio"
 msgid "Sending started. The first batch went out now; the rest continues in the background. Follow it in History."
 msgstr "Envio iniciado. O primeiro lote saiu agora; o restante continua em segundo plano. Acompanhe em Histórico."
 
-msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new."
-msgstr "Envia uma regra a todos cuja data cai em um intervalo de até %d dias. Quem já recebeu esta regra para aquela data é pulado, então repetir um intervalo não envia nada novo."
+msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new. An announcement has no date: it goes to everyone in its audience, on the one day it is sent."
+msgstr "Envia uma regra a todos cuja data cai em um intervalo de até %d dias. Quem já recebeu esta regra para aquela data é pulado, então repetir um intervalo não envia nada novo. Um anúncio não tem data: vai para todos da audiência, no único dia em que é enviado."
 
 msgid "Sent"
 msgstr "Enviados"

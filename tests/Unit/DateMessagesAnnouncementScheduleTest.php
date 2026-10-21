@@ -62,6 +62,28 @@ class DateMessagesAnnouncementScheduleTest extends TestCase {
 		$this->assertSame( $expected, $at );
 	}
 
+	public function test_an_announcement_is_refused_a_range_of_more_than_one_day(): void {
+		$rule  = $this->announcement();
+		$day   = new \DateTimeImmutable( '2030-06-01' );
+
+		$this->assertNotSame( '', DateMessagesAdminPage::send_range_error( $rule, $day, $day->modify( '+2 days' ) ) );
+		$this->assertSame( '', DateMessagesAdminPage::send_range_error( $rule, $day, $day ), 'One day is what an announcement is for.' );
+	}
+
+	public function test_a_dated_rule_keeps_its_range(): void {
+		$rule = Rule::from_array( array( 'name' => 'Birthday', 'source' => 'birthday', 'subject' => 's', 'body' => 'b' ) );
+		self::assertInstanceOf( Rule::class, $rule );
+		$day = new \DateTimeImmutable( '2030-06-01' );
+
+		$this->assertSame( '', DateMessagesAdminPage::send_range_error( $rule, $day, $day->modify( '+2 days' ) ) );
+	}
+
+	public function test_a_typed_but_unreadable_send_time_is_refused_and_an_empty_one_is_not(): void {
+		$this->assertTrue( DateMessagesAdminPage::send_at_is_unreadable( 'next tuesday' ) );
+		$this->assertFalse( DateMessagesAdminPage::send_at_is_unreadable( '' ), 'Empty means by hand, not an error.' );
+		$this->assertFalse( DateMessagesAdminPage::send_at_is_unreadable( '2030-06-01T09:30' ) );
+	}
+
 	public function test_an_empty_or_unreadable_value_is_not_scheduled(): void {
 		$this->assertSame( 0, DateMessagesAdminPage::send_at_from_input( '' ) );
 		$this->assertSame( 0, DateMessagesAdminPage::send_at_from_input( 'next tuesday' ) );
