@@ -548,9 +548,9 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->page()->render( 42 );
 		$html = (string) ob_get_clean();
 
-		// Participant Data, Form answers and System Information open; consent closed.
-		$this->assertSame( 3, substr_count( $html, '<details class="ffc-section" open data-ffc-section>' ) );
-		$this->assertSame( 1, substr_count( $html, '<details class="ffc-section" data-ffc-section>' ) );
+		// Every section starts closed: the administrator opens the one they need.
+		$this->assertSame( 0, substr_count( $html, '<details class="ffc-section" open data-ffc-section>' ) );
+		$this->assertSame( 4, substr_count( $html, '<details class="ffc-section" data-ffc-section>' ) );
 		foreach ( array( 'Participant Data', 'Form answers', 'System Information', 'LGPD Consent Status' ) as $title ) {
 			$this->assertMatchesRegularExpression( '#<span class="ffc-section__icon"><svg[^>]*>.*?</svg></span><span class="ffc-section__text"><span class="ffc-section__title">' . preg_quote( $title, '#' ) . '</span>#s', $html, $title . ' has the section icon heading' );
 		}

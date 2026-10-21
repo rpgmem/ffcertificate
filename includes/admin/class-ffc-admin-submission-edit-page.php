@@ -531,7 +531,6 @@ class AdminSubmissionEditPage {
 			array(
 				'title' => __( 'System Information', 'ffcertificate' ),
 				'icon'  => 'info',
-				'open'  => true,
 			)
 		);
 		echo '<dl class="ffc-facts">';
@@ -783,7 +782,6 @@ class AdminSubmissionEditPage {
 			array(
 				'title' => __( 'Participant Data', 'ffcertificate' ),
 				'icon'  => 'user',
-				'open'  => true,
 			)
 		);
 		$ffc_email = (string) $this->sub_array['email'];
@@ -853,7 +851,6 @@ class AdminSubmissionEditPage {
 			array(
 				'title' => __( 'Form answers', 'ffcertificate' ),
 				'icon'  => 'list',
-				'open'  => true,
 			)
 		);
 
