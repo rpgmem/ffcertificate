@@ -89,6 +89,16 @@ class BulkIssuePlannerTest extends TestCase {
 		$this->assertSame( array( 'unknown:cpf_rf' ), BulkIssuePlanner::mapping_problems( $unknown, self::HEADER ) );
 	}
 
+	public function test_a_file_in_an_unsupported_delimiter_maps_every_required_column_to_nothing(): void {
+		$parsed = BulkIssuePlanner::parse( "Nome|CPF|E-mail\nAna|11144477735|ana@example.test\n" );
+
+		$this->assertSame( array( 'Nome|CPF|E-mail' ), $parsed['header'], 'A pipe is not a delimiter the parser reads.' );
+		$this->assertSame(
+			array( 'unknown:name', 'unknown:cpf_rf', 'unknown:email' ),
+			BulkIssuePlanner::mapping_problems( $this->mapping(), $parsed['header'] )
+		);
+	}
+
 	public function test_a_valid_row_is_issued_with_its_digits_and_carried_fields(): void {
 		$rows = array(
 			array( 'Ana', '111.444.777-35', 'ana@example.test', 'Python' ),

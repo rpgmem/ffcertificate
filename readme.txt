@@ -21,6 +21,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 * **Form Builder** - Drag-and-drop fields: Text, Email, Number, Date, Textarea, Select, Radio, Checkbox, Info Block, Embed (Media) and Hidden.
 * **Client-Side PDF Generation** - Certificates rendered in the browser with html2canvas-pro and jsPDF, from reusable Document Templates with background images.
 * **Magic Links** - One-click certificate access through a unique link carrying a random 32-character token, sent by e-mail.
+* **Bulk Issue** - Issue certificates for a list of participants from a CSV file: map its columns to the form's fields, preview what will be issued and why rows are skipped, then issue in batches. Quiz forms take each score from the file, and the magic-link e-mail can be sent as each certificate is issued.
 * **Verification** - Authenticity check by authentication code or magic link, on the `/valid` page created at activation.
 * **Quiz Mode** - Scored forms, each field scored on its own (choices, points, ranges), with `{{score}}`, `{{max_score}}`, `{{score_percent}}`, `{{correct_count}}` and `{{question_count}}` tokens. Open answers can be graded by a person, and a quiz can reset when the participant leaves the window.
 
