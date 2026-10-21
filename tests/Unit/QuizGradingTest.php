@@ -79,11 +79,36 @@ class QuizGradingTest extends TestCase {
 		$this->assertSame( 'essay', $pending['essay']['label'] );
 	}
 
-	public function test_no_pending_list_means_nothing_to_grade(): void {
+	public function test_a_manual_question_of_the_form_is_graded_even_without_a_pending_list(): void {
 		$data = $this->attempt();
 		unset( $data['_quiz_pending'] );
 
-		$this->assertSame( array(), QuizGrading::pending_questions( $data, array( $this->essay() ) ) );
+		$pending = QuizGrading::pending_questions( $data, array( $this->essay() ) );
+
+		$this->assertSame( array( 'essay' ), array_keys( $pending ) );
+		$this->assertSame( 4, $pending['essay']['worth'] );
+	}
+
+	public function test_a_manual_question_added_after_the_submission_is_graded_too(): void {
+		$data = $this->attempt();
+
+		$pending = QuizGrading::pending_questions( $data, array( $this->essay( 'essay' ), $this->essay( 'second', 2 ) ) );
+
+		$this->assertSame( array( 'essay', 'second' ), array_keys( $pending ) );
+		$this->assertSame( 2, $pending['second']['worth'] );
+	}
+
+	public function test_an_automatic_question_is_never_listed_for_grading(): void {
+		$auto = array(
+			'type'        => 'text',
+			'name'        => 'auto',
+			'label'       => 'Auto',
+			'quiz_scored' => '1',
+			'quiz_text'   => 'answered',
+			'quiz_points' => '2',
+		);
+
+		$this->assertSame( array(), QuizGrading::pending_questions( array( '_quiz_pending' => array() ), array( $auto ) ) );
 	}
 
 	public function test_a_full_grade_passes_and_publishes(): void {
