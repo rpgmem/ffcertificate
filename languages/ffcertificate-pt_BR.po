@@ -26353,20 +26353,20 @@ msgid "FFC Certificates - Submissions - Viewer"
 msgstr "FFC Certificados - Submissões - Visualizador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1066
-msgid "FFC Date Messages - Administrator"
-msgstr "FFC Mensagens por Data - Administrador"
+msgid "FFC Messages - Administrator"
+msgstr "FFC Mensagens - Administrador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1062
-msgid "FFC Date Messages - Manager"
-msgstr "FFC Mensagens por Data - Gestor"
+msgid "FFC Messages - Manager"
+msgstr "FFC Mensagens - Gestor"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1058
-msgid "FFC Date Messages - Operator"
-msgstr "FFC Mensagens por Data - Operador"
+msgid "FFC Messages - Operator"
+msgstr "FFC Mensagens - Operador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1054
-msgid "FFC Date Messages - Viewer"
-msgstr "FFC Mensagens por Data - Visualizador"
+msgid "FFC Messages - Viewer"
+msgstr "FFC Mensagens - Visualizador"
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:961
 msgid "FFC Personal Calendars - Bookings - Administrator"

@@ -1292,23 +1292,47 @@ class CapabilityMigrator {
 			}
 		}
 
-		$wp_roles = wp_roles();
-		$stored   = get_option( $wp_roles->role_key );
-		if ( is_array( $stored ) ) {
-			$changed = false;
-			foreach ( RoleRegistrar::ffc_managed_role_labels() as $slug => $label ) {
-				if ( isset( $stored[ $slug ] ) && is_array( $stored[ $slug ] ) && ( $stored[ $slug ]['name'] ?? '' ) !== $label ) {
-					$stored[ $slug ]['name'] = $label;
-					$changed                 = true;
-					++$counts['roles_renamed'];
-				}
-			}
-			if ( $changed ) {
-				update_option( $wp_roles->role_key, $stored );
-			}
-		}
+		$counts['roles_renamed'] = self::rename_stored_role_labels();
 
 		return $counts;
+	}
+
+	/**
+	 * Rewrite the stored name of every FFC-managed role to its current label.
+	 * Renames only, so it is safe to run on its own (#1949: "Date Messages"
+	 * became "Messages").
+	 *
+	 * @since 6.33.0
+	 * @return int Roles renamed.
+	 */
+	public static function rename_stored_role_labels(): int {
+		$wp_roles = wp_roles();
+		$stored   = get_option( $wp_roles->role_key );
+		if ( ! is_array( $stored ) ) {
+			return 0;
+		}
+		$renamed = 0;
+		foreach ( RoleRegistrar::ffc_managed_role_labels() as $slug => $label ) {
+			if ( isset( $stored[ $slug ] ) && is_array( $stored[ $slug ] ) && ( $stored[ $slug ]['name'] ?? '' ) !== $label ) {
+				$stored[ $slug ]['name'] = $label;
+				++$renamed;
+			}
+		}
+		if ( $renamed > 0 ) {
+			update_option( $wp_roles->role_key, $stored );
+		}
+		return $renamed;
+	}
+
+	/**
+	 * Role-label rename on its own, for installs whose tier migration already ran
+	 * before a label changed. Flagged by `ffc_module_role_labels_v1` (#1949).
+	 *
+	 * @since 6.33.0
+	 * @return array<string, int> `roles_renamed` => count.
+	 */
+	public static function migrate_module_role_labels(): array {
+		return array( 'roles_renamed' => self::rename_stored_role_labels() );
 	}
 
 	/**

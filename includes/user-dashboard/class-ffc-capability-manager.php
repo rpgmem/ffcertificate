@@ -1071,19 +1071,19 @@ class CapabilityManager {
 
 			// ── Date Messages ────────────────────────────────────────────
 			'ffc_date_messages_viewer'     => array(
-				'label' => __( 'FFC Date Messages - Viewer', 'ffcertificate' ),
+				'label' => __( 'FFC Messages - Viewer', 'ffcertificate' ),
 				'caps'  => $date_messages_viewer,
 			),
 			'ffc_date_messages_operator'   => array(
-				'label' => __( 'FFC Date Messages - Operator', 'ffcertificate' ),
+				'label' => __( 'FFC Messages - Operator', 'ffcertificate' ),
 				'caps'  => $date_messages_operator,
 			),
 			'ffc_date_messages_manager'    => array(
-				'label' => __( 'FFC Date Messages - Manager', 'ffcertificate' ),
+				'label' => __( 'FFC Messages - Manager', 'ffcertificate' ),
 				'caps'  => $date_messages_manager,
 			),
 			'ffc_date_messages_admin'      => array(
-				'label' => __( 'FFC Date Messages - Administrator', 'ffcertificate' ),
+				'label' => __( 'FFC Messages - Administrator', 'ffcertificate' ),
 				'caps'  => $date_messages_manager,
 			),
 

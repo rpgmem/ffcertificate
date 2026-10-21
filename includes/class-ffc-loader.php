@@ -597,7 +597,25 @@ class Loader {
 			}
 
 			$this->ensure_role_tiers_applied();
+			$this->ensure_module_role_labels_applied();
 		}
+	}
+
+	/**
+	 * Rewrite the stored FFC role names after a module label changed (#1949).
+	 * Flagged by `ffc_module_role_labels_v1`; the tier migration above may
+	 * already have run on this install, so it cannot carry the rename.
+	 *
+	 * @since 6.33.0
+	 * @return void
+	 */
+	private function ensure_module_role_labels_applied(): void {
+		$flag = 'ffc_module_role_labels_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_module_role_labels();
+		update_option( $flag, '1', true );
 	}
 
 	/**

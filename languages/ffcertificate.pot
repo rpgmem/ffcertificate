@@ -26270,19 +26270,19 @@ msgid "FFC Certificates - Submissions - Viewer"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1066
-msgid "FFC Date Messages - Administrator"
+msgid "FFC Messages - Administrator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1062
-msgid "FFC Date Messages - Manager"
+msgid "FFC Messages - Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1058
-msgid "FFC Date Messages - Operator"
+msgid "FFC Messages - Operator"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:1054
-msgid "FFC Date Messages - Viewer"
+msgid "FFC Messages - Viewer"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-manager.php:961

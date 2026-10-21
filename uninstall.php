@@ -323,6 +323,7 @@ $ffcertificate_options = array(
 	'ffc_required_data_v1',
 	'ffc_reregistration_pii_cap_v1',
 	'ffc_role_tiers_v1',
+	'ffc_module_role_labels_v1',
 	'ffc_settings_split_caps_v1',
 	'ffc_taxonomy_caps_renamed_v1',
 	'ffc_url_shortener_export_cap_v1',
