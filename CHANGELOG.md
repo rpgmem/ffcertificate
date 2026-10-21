@@ -17,6 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Certificates: the Bulk issue tab now issues the checked file in batches, with progress; each line goes through the single-issue write without an e-mail, and an unfinished import expires after seven days (#1945).
 - Certificates: the bulk issue dates its certificates with one chosen day, or with a date column of the file, and the preview counts the skipped rows by reason; a date that does not exist is skipped (#1945).
 - Certificates: the bulk issue can send each certificate's link e-mail as the certificate is issued, and the submissions list gains Send link by e-mail for the submissions that never received one (#1945).
+- **The bulk issue of a quiz form takes each certificate's score** (#1945). The score comes from a column of the file, checked against the form's maximum and pass mark, or is set to zero with the pass mark not applied; the preview warns about the zero score.
 
 ### Fixed
 
@@ -38,6 +39,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificate models revised and extended** (#1956). The three default models are redrawn, and three new defaults (models 4 to 6) join the pool. Existing installs receive the new bodies when the seeder runs on upgrade; user templates are not changed. The retired background image is removed.
 
 ## [6.41.0] (2026-10-19) — `2a4acb0a`
+- **The bulk issue skips a line with no e-mail and lists it in the report** (#1945). Without an address the link cannot be sent, so such a certificate is not issued with no account.
 
 ### Added
 

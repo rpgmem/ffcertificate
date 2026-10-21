@@ -118,6 +118,7 @@ class BulkIssueRunnerTest extends TestCase {
 						'fields' => array( 'unit' => 'North' ),
 						'issued_at' => null,
 						'send_link' => false,
+						'score'     => null,
 					),
 				),
 				'skipped' => array(
@@ -146,6 +147,29 @@ class BulkIssueRunnerTest extends TestCase {
 				Mockery::on(
 					static fn( array $options ): bool => false === $options['send_email'] && is_int( $options['submission_date'] )
 				)
+			)
+			->andReturn( 91 );
+
+		$this->expect_row_update( 11, BulkIssueRepository::ROW_ISSUED );
+		$this->expect_job_finished();
+
+		$this->assertSame( 1, ( $this->runner() )->process_batch( self::JOB_ID ) );
+	}
+
+	public function test_a_scored_line_is_issued_with_its_quiz_result(): void {
+		$this->seed_pending_rows( array( $this->row( 11, 'Ana', 'cpf', 'North', null, false, array( 'score' => 8, 'max' => 10, 'percent' => 80 ) ) ) );
+		$this->handler->shouldReceive( 'process_submission' )
+			->once()
+			->with(
+				self::FORM_ID,
+				'Participants 2026',
+				Mockery::on(
+					static fn( array $data ): bool => 8 === $data['_quiz_score'] && 10 === $data['_quiz_max_score'] && 80 === $data['_quiz_percent'] && '1' === $data['_quiz_passed']
+				),
+				'ana@example.org',
+				Mockery::type( 'array' ),
+				Mockery::type( 'array' ),
+				Mockery::type( 'array' )
 			)
 			->andReturn( 91 );
 
@@ -314,7 +338,7 @@ class BulkIssueRunnerTest extends TestCase {
 	 * @param string|null $unit    Value of the required field `unit`; null leaves it out.
 	 * @return array<string, mixed>
 	 */
-	private function row( int $id, string $name, string $kind = 'cpf', ?string $unit = 'North', ?int $issued_at = null, bool $send_link = false ): array {
+	private function row( int $id, string $name, string $kind = 'cpf', ?string $unit = 'North', ?int $issued_at = null, bool $send_link = false, ?array $score = null ): array {
 		$payload = array(
 			'name'      => $name,
 			'cpf_rf'    => 'cpf' === $kind ? Identifiers::CPF_A : Identifiers::RF_A,
@@ -322,6 +346,7 @@ class BulkIssueRunnerTest extends TestCase {
 			'fields'    => null === $unit ? array() : array( 'unit' => $unit ),
 			'issued_at' => $issued_at,
 			'send_link' => $send_link,
+			'score'     => $score,
 		);
 
 		return array(

@@ -41,8 +41,32 @@ final class BulkIssuePlanner {
 	public const SKIP_MISSING_CPF_RF = 'missing_cpf_rf';
 	public const SKIP_INVALID_CPF_RF = 'invalid_cpf_rf';
 	public const SKIP_INVALID_EMAIL  = 'invalid_email';
+
+	/** Skip reason: the line has no e-mail, so its link cannot be sent. */
+	public const SKIP_MISSING_EMAIL  = 'missing_email';
 	public const SKIP_DUPLICATE_FILE = 'duplicate_in_file';
 	public const SKIP_INVALID_DATE   = 'invalid_date';
+
+	/** Score choice: the form is not a quiz, so no score is set. */
+	public const SCORE_NONE = 'none';
+
+	/** Score choice: each line's points come from the file's score column. */
+	public const SCORE_COLUMN = 'column';
+
+	/** Score choice: every certificate is issued with a zero score, ignoring the pass mark. */
+	public const SCORE_ZERO = 'zero';
+
+	/** Skip reason: the score column is empty on a line that needs a score. */
+	public const SKIP_MISSING_SCORE = 'missing_score';
+
+	/** Skip reason: the score column does not hold a whole number of points. */
+	public const SKIP_INVALID_SCORE = 'invalid_score';
+
+	/** Skip reason: the score is above the form's maximum. */
+	public const SKIP_SCORE_ABOVE_MAX = 'score_above_max';
+
+	/** Skip reason: the score is below the form's pass mark, which applies in the column mode. */
+	public const SKIP_BELOW_PASS_MARK = 'below_pass_mark';
 
 	/** Every certificate is dated when it is issued. */
 	public const DATE_NOW = 'now';
@@ -148,29 +172,34 @@ final class BulkIssuePlanner {
 	 * - `issue`: rows that would be issued, each with `line`, `name`,
 	 *   `cpf_rf` (digits only), `email` (may be empty) and `fields`.
 	 * - `skipped`: `line` and `reason` (one of the SKIP_* constants).
-	 * - `no_email`: lines that would be issued without an account.
 	 *
 	 * Each issued row also carries `issued_at`: the instant its certificate is
 	 * dated, or null to date it when it is issued. A row whose date cannot be
 	 * read is skipped with SKIP_INVALID_DATE.
 	 *
-	 * @param array<int, array<int, string>>                    $rows    Data rows, header already removed.
-	 * @param array<string, string>                             $mapping Field name => CSV column name.
-	 * @param array<int, string>                                $header  CSV header row.
-	 * @param array{mode: string, date: string, column: string} $dates   Issue-date choice; defaults to DATE_NOW.
-	 * @param bool                                              $send_links Send each issued certificate's link e-mail.
-	 * @return array{issue: array<int, array<string, mixed>>, skipped: array<int, array{line: int, reason: string}>, no_email: array<int, int>}
+	 * @param array<int, array<int, string>>                           $rows    Data rows, header already removed.
+	 * @param array<string, string>                                    $mapping Field name => CSV column name.
+	 * @param array<int, string>                                       $header  CSV header row.
+	 * @param array{mode: string, date: string, column: string}        $dates   Issue-date choice; defaults to DATE_NOW.
+	 * @param bool                                                     $send_links Send each issued certificate's link e-mail.
+	 * @param array{mode: string, column: string, max: int, pass: int} $score Score choice; `none` for a form that is not a quiz.
+	 * @return array{issue: array<int, array<string, mixed>>, skipped: array<int, array{line: int, reason: string}>, zero_score: int}
 	 */
 	public static function plan( array $rows, array $mapping, array $header, array $dates = array(
 		'mode'   => self::DATE_NOW,
 		'date'   => '',
 		'column' => '',
-	), bool $send_links = false ): array {
+	), bool $send_links = false, array $score = array(
+		'mode'   => self::SCORE_NONE,
+		'column' => '',
+		'max'    => 0,
+		'pass'   => 0,
+	) ): array {
 		$index = array_flip( $header );
 		$plan  = array(
-			'issue'    => array(),
-			'skipped'  => array(),
-			'no_email' => array(),
+			'issue'      => array(),
+			'skipped'    => array(),
+			'zero_score' => 0,
 		);
 		$seen  = array();
 
@@ -225,7 +254,15 @@ final class BulkIssuePlanner {
 
 			$email = trim( $read( 'email' ) );
 
-			if ( '' !== $email && false === filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
+			if ( '' === $email ) {
+				$plan['skipped'][] = array(
+					'line'   => $line,
+					'reason' => self::SKIP_MISSING_EMAIL,
+				);
+				continue;
+			}
+
+			if ( false === filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
 				$plan['skipped'][] = array(
 					'line'   => $line,
 					'reason' => self::SKIP_INVALID_EMAIL,
@@ -239,6 +276,16 @@ final class BulkIssuePlanner {
 				$plan['skipped'][] = array(
 					'line'   => $line,
 					'reason' => self::SKIP_INVALID_DATE,
+				);
+				continue;
+			}
+
+			$score_line = self::score_of( $score, $cells, $index );
+
+			if ( is_string( $score_line ) ) {
+				$plan['skipped'][] = array(
+					'line'   => $line,
+					'reason' => $score_line,
 				);
 				continue;
 			}
@@ -269,10 +316,11 @@ final class BulkIssuePlanner {
 				'fields'    => $fields,
 				'issued_at' => $issued_at,
 				'send_link' => $send_links,
+				'score'     => $score_line,
 			);
 
-			if ( '' === $email ) {
-				$plan['no_email'][] = $line;
+			if ( self::SCORE_ZERO === $score['mode'] ) {
+				++$plan['zero_score'];
 			}
 		}
 
@@ -296,6 +344,58 @@ final class BulkIssuePlanner {
 		}
 
 		return array();
+	}
+
+	/**
+	 * The score a line is issued with, from the operator's choice.
+	 *
+	 * @param array{mode: string, column: string, max: int, pass: int} $score Score choice.
+	 * @param array<int, string>                                       $cells One parsed row.
+	 * @param array<string, int>                                       $index Column name => position.
+	 * @return array{score: int, max: int, percent: int}|null|string Null when the form is not a quiz, the score, or the skip reason.
+	 */
+	private static function score_of( array $score, array $cells, array $index ) {
+		if ( self::SCORE_NONE === $score['mode'] ) {
+			return null;
+		}
+
+		$max = max( 0, $score['max'] );
+
+		if ( self::SCORE_ZERO === $score['mode'] ) {
+			return array(
+				'score'   => 0,
+				'max'     => $max,
+				'percent' => 0,
+			);
+		}
+
+		$cell = trim( (string) ( $cells[ $index[ $score['column'] ] ?? -1 ] ?? '' ) );
+
+		if ( '' === $cell ) {
+			return self::SKIP_MISSING_SCORE;
+		}
+
+		if ( ! ctype_digit( $cell ) ) {
+			return self::SKIP_INVALID_SCORE;
+		}
+
+		$points = (int) $cell;
+
+		if ( $points > $max ) {
+			return self::SKIP_SCORE_ABOVE_MAX;
+		}
+
+		$percent = $max > 0 ? (int) round( $points / $max * 100 ) : 0;
+
+		if ( $percent < $score['pass'] ) {
+			return self::SKIP_BELOW_PASS_MARK;
+		}
+
+		return array(
+			'score'   => $points,
+			'max'     => $max,
+			'percent' => $percent,
+		);
 	}
 
 	/**
