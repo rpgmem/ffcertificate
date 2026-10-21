@@ -109,17 +109,7 @@ class EmailHandler {
 		// (string) from the metabox but callers may pass int 1; `! empty()`
 		// accepts both and rejects '0'/0/'' (#649).
 		if ( ! empty( $form_config['send_user_email'] ) ) {
-			$sent = $this->send_user_email( $user_email, $form_title, $form_config, $submission_data, $magic_token );
-
-			// Only an e-mail that carries the link counts as the link being sent (#1967).
-			if ( $sent && '' !== $magic_token ) {
-				/**
-				 * Fires when the link e-mail for a submission was handed to the mailer (#1967).
-				 *
-				 * @param int $submission_id Submission ID.
-				 */
-				do_action( 'ffcertificate_link_sent', $submission_id );
-			}
+			$this->send_user_link( $user_email, $form_title, $form_config, $submission_data, $magic_token, $submission_id );
 		}
 
 		// Send admin notification only when explicitly enabled for the form.
@@ -128,6 +118,103 @@ class EmailHandler {
 		if ( ! empty( $form_config['send_admin_email'] ) ) {
 			$this->send_admin_notification( $form_title, $submission_data, $form_config );
 		}
+	}
+
+	/**
+	 * Sends the certificate link e-mail and records it when it was handed to the
+	 * mailer (#1945). Both the automatic pipeline and a manual resend go through
+	 * here, so the record is written in one place.
+	 *
+	 * @param string               $to            Recipient e-mail.
+	 * @param string               $form_title    Form title.
+	 * @param array<string, mixed> $form_config   Form configuration.
+	 * @param array<string, mixed> $submission_data Submission data.
+	 * @param string               $magic_token   Magic token the link carries.
+	 * @param int                  $submission_id Submission ID.
+	 * @return bool True when the e-mail was handed to the mailer.
+	 */
+	private function send_user_link( string $to, string $form_title, array $form_config, array $submission_data, string $magic_token, int $submission_id ): bool {
+		$sent = $this->send_user_email( $to, $form_title, $form_config, $submission_data, $magic_token );
+
+		// Only an e-mail that carries the link counts as the link being sent (#1967).
+		if ( $sent && '' !== $magic_token ) {
+			/**
+			 * Fires when the link e-mail for a submission was handed to the mailer (#1967).
+			 *
+			 * @param int $submission_id Submission ID.
+			 */
+			do_action( 'ffcertificate_link_sent', $submission_id );
+		}
+
+		return $sent;
+	}
+
+	/**
+	 * Sends a submission's certificate link e-mail again, on the operator's request (#1945).
+	 *
+	 * Takes only the submission ID: the recipient, the token and the data come from
+	 * the stored row, so a caller cannot send the link somewhere else. Whether the
+	 * operator may ask for it is the caller's check. Unlike the automatic
+	 * pipeline, the form's "send the user e-mail" switch does not apply: this is an
+	 * explicit request, and the staff notification is not sent again.
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @return true|\WP_Error True when handed to the mailer, otherwise the reason.
+	 */
+	public function resend_link( int $submission_id ) {
+		$submission = $this->fetch_submission( $submission_id );
+
+		if ( null === $submission ) {
+			return new \WP_Error( 'ffc_link_not_found', __( 'The submission could not be found.', 'ffcertificate' ) );
+		}
+
+		if ( \FreeFormCertificate\Core\SubmissionStatus::is_unpassed_quiz( $submission ) ) {
+			return new \WP_Error( 'ffc_link_not_passed', __( 'This quiz attempt did not pass, so it has no certificate link.', 'ffcertificate' ) );
+		}
+
+		$to = isset( $submission['email'] ) ? trim( (string) $submission['email'] ) : '';
+
+		if ( '' === $to ) {
+			return new \WP_Error( 'ffc_link_no_email', __( 'This submission has no e-mail address.', 'ffcertificate' ) );
+		}
+
+		$magic_token = isset( $submission['magic_token'] ) ? (string) $submission['magic_token'] : '';
+
+		if ( '' === $magic_token ) {
+			return new \WP_Error( 'ffc_link_no_token', __( 'This submission has no certificate link.', 'ffcertificate' ) );
+		}
+
+		$form_id     = isset( $submission['form_id'] ) ? (int) $submission['form_id'] : 0;
+		$form_config = $form_id > 0 ? get_post_meta( $form_id, '_ffc_form_config', true ) : array();
+
+		$sent = $this->send_user_link(
+			$to,
+			(string) get_the_title( $form_id ),
+			is_array( $form_config ) ? $form_config : array(),
+			\FreeFormCertificate\Submissions\SubmissionHandler::submission_data( $submission ),
+			$magic_token,
+			$submission_id
+		);
+
+		if ( ! $sent ) {
+			return new \WP_Error( 'ffc_link_not_sent', __( 'The e-mail was not handed to the mailer. Check whether e-mails are enabled.', 'ffcertificate' ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * The stored row of a submission, decrypted, or null when there is none.
+	 *
+	 * Kept apart so the resend can be tested without a database.
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @return array<string, mixed>|null
+	 */
+	protected function fetch_submission( int $submission_id ): ?array {
+		$submission = ( new \FreeFormCertificate\Submissions\SubmissionHandler() )->get_submission( $submission_id );
+
+		return is_array( $submission ) ? $submission : null;
 	}
 
 	/**

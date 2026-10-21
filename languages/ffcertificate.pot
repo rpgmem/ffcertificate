@@ -27350,6 +27350,26 @@ msgstr ""
 msgid "%1$d: %2$s"
 msgstr ""
 
+#: includes/integrations/class-ffc-email-handler.php
+msgid "The submission could not be found."
+msgstr ""
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This quiz attempt did not pass, so it has no certificate link."
+msgstr ""
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission has no e-mail address."
+msgstr ""
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "This submission has no certificate link."
+msgstr ""
+
+#: includes/integrations/class-ffc-email-handler.php
+msgid "The e-mail was not handed to the mailer. Check whether e-mails are enabled."
+msgstr ""
+
 #: includes/user-dashboard/class-ffc-capability-catalog.php
 msgid "Issue certificates in bulk"
 msgstr ""
