@@ -46,7 +46,6 @@ final class QuizGrading {
 	 * @return array<string, array{label: string, worth: int, answer: string}> Keyed by question name.
 	 */
 	public static function pending_questions( array $data, array $fields ): array {
-		$pending = isset( $data['_quiz_pending'] ) && is_array( $data['_quiz_pending'] ) ? $data['_quiz_pending'] : array();
 		$by_name = array();
 		foreach ( $fields as $field ) {
 			$name = ArrayValue::string( $field, 'name' );
@@ -55,8 +54,13 @@ final class QuizGrading {
 			}
 		}
 
+		// The snapshot taken at submission keeps a question that has since left the form:
+		// its points are still in the attempt's maximum, so it must still be graded.
+		$snapshot = isset( $data['_quiz_pending'] ) && is_array( $data['_quiz_pending'] ) ? $data['_quiz_pending'] : array();
+		$names    = array_values( array_unique( array_merge( $snapshot, array_keys( $by_name ) ) ) );
+
 		$out = array();
-		foreach ( $pending as $name ) {
+		foreach ( $names as $name ) {
 			if ( ! is_string( $name ) || '' === $name ) {
 				continue;
 			}
