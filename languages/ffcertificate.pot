@@ -27271,7 +27271,7 @@ msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
 #, php-format
-msgid "Without an e-mail, so issued with no account: lines %s."
+msgid "No e-mail, so no link can be sent"
 msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php

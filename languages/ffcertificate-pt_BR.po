@@ -27354,8 +27354,8 @@ msgstr "%1$d certificado(s) seriam emitidos e %2$d linha(s) seriam ignoradas. Na
 
 #: includes/admin/class-ffc-bulk-issue-page.php
 #, php-format
-msgid "Without an e-mail, so issued with no account: lines %s."
-msgstr "Sem e-mail, portanto emitidos sem conta: linhas %s."
+msgid "No e-mail, so no link can be sent"
+msgstr "Sem e-mail, portanto nenhum link pode ser enviado"
 
 #: includes/admin/class-ffc-bulk-issue-page.php
 msgid "Line"
