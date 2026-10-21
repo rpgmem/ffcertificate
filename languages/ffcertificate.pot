@@ -21793,6 +21793,22 @@ msgstr ""
 msgid "Unknown date source."
 msgstr ""
 
+#: includes/date-messages/class-ffc-announcement-source.php
+msgid "Announcement"
+msgstr ""
+
+#: includes/date-messages/class-ffc-rule.php
+msgid "Unknown kind of message."
+msgstr ""
+
+#: includes/date-messages/class-ffc-runner.php
+msgid "Only an announcement can be scheduled."
+msgstr ""
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Stop receiving announcements from this site at this account?"
+msgstr ""
+
 msgid "Unknown digest mode."
 msgstr ""
 

@@ -66,10 +66,10 @@ final class RecipientResolver {
 	 * @param \DateTimeImmutable $target The day the date falls on.
 	 * @param int                $after  Keyset cursor (user id).
 	 * @param int                $limit  Page size.
-	 * @return array{rows: array<int, array{user_id: int, email: string, name: string, decision: string}>, cursor: int, complete: bool}
+	 * @return array{rows: array<int, array{user_id: int, email: string, name: string, decision: string, forced: bool}>, cursor: int, complete: bool}
 	 */
 	public function resolve( Rule $rule, \DateTimeImmutable $target, int $after, int $limit ): array {
-		$source = $this->source ?? DateSources::get( $rule->source );
+		$source = $this->source ?? DateSources::for_rule( $rule );
 		if ( null === $source ) {
 			return array(
 				'rows'     => array(),
@@ -83,7 +83,7 @@ final class RecipientResolver {
 		$ids        = array_map( static fn( array $c ): int => $c['user_id'], $candidates );
 		$occurrence = $target->format( 'Y-m-d' );
 
-		$opted_out = OptOut::among( $ids );
+		$opted_out = OptOut::among( $ids, $rule->opt_out_category() );
 		$delivered = DeliveryLog::delivered_among( $rule->id, $occurrence, $ids );
 		$members   = array() === $rule->audience_ids ? null : $this->members_of_any( $rule->audience_ids );
 
@@ -95,7 +95,7 @@ final class RecipientResolver {
 
 			if ( null !== $members && ! isset( $members[ $id ] ) ) {
 				$decision = self::OUT_OF_AUDIENCE;
-			} elseif ( isset( $opted_out[ $id ] ) ) {
+			} elseif ( isset( $opted_out[ $id ] ) && $rule->respect_opt_out ) {
 				$decision = self::OPTED_OUT;
 			} elseif ( ! is_email( $candidate['email'] ) ) {
 				$decision = self::NO_EMAIL;
@@ -105,7 +105,14 @@ final class RecipientResolver {
 				$decision = self::WILL_SEND;
 			}
 
-			$rows[] = $candidate + array( 'decision' => $decision );
+			// Forced: an opted-out person an announcement reaches anyway, because
+			// the operator chose "send to everyone". Labelled, so it is never silent.
+			$forced = self::WILL_SEND === $decision && isset( $opted_out[ $id ] );
+
+			$rows[] = $candidate + array(
+				'decision' => $decision,
+				'forced'   => $forced,
+			);
 		}
 
 		return array(

@@ -80,7 +80,7 @@ final class DateMessagesAjaxEndpoint {
 		if ( is_wp_error( $rule ) ) {
 			wp_send_json_error( array( 'message' => $rule->get_error_message() ), 400 );
 		}
-		$source = DateSources::get( $rule->source );
+		$source = DateSources::for_rule( $rule );
 		if ( null === $source ) {
 			wp_send_json_error( array( 'message' => __( 'Unknown date source.', 'ffcertificate' ) ), 400 );
 		}
@@ -153,7 +153,7 @@ final class DateMessagesAjaxEndpoint {
 			wp_send_json_error( array( 'message' => $rule->get_error_message() ), 400 );
 		}
 
-		$source = DateSources::get( $rule->source );
+		$source = DateSources::for_rule( $rule );
 		$user   = wp_get_current_user();
 		if ( null === $source || ! is_email( $user->user_email ) ) {
 			wp_send_json_error( array( 'message' => __( 'Your account has no valid e-mail address.', 'ffcertificate' ) ), 400 );

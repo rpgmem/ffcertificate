@@ -228,6 +228,7 @@ $ffcertificate_options = array(
 	'ffc_date_messages_settings',
 	'ffc_date_messages_audience_ids_migrated',
 	'ffc_date_messages_appearance_migrated',
+	'ffc_date_messages_announcements_migrated',
 	// Per-feature migration completion markers (audited gap).
 	'ffc_sibling_instants_unix_migrated',
 	'ffc_submission_date_unix_migrated',
