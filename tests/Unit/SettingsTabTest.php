@@ -95,6 +95,7 @@ class SettingsTabTest extends TestCase {
 
 	protected function tearDown(): void {
 		unset( $_GET['tab'] );
+		SettingsTab::set_resolved_active_tab( null );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -322,35 +323,32 @@ class SettingsTabTest extends TestCase {
 	// is_active()
 	// ==================================================================
 
-	public function test_is_active_returns_true_when_tab_matches(): void {
-		Functions\when( 'sanitize_key' )->alias( function ( $key ) {
-			return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
-		} );
-		Functions\when( 'wp_unslash' )->returnArg();
-
-		$_GET['tab'] = 'test_tab';
+	public function test_is_active_returns_true_when_the_page_resolved_this_tab(): void {
+		SettingsTab::set_resolved_active_tab( 'test_tab' );
 
 		$this->assertTrue( $this->tab->public_is_active() );
 	}
 
-	public function test_is_active_returns_false_when_tab_differs(): void {
-		Functions\when( 'sanitize_key' )->alias( function ( $key ) {
-			return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
-		} );
-		Functions\when( 'wp_unslash' )->returnArg();
-
-		$_GET['tab'] = 'other_tab';
+	public function test_is_active_returns_false_when_the_page_resolved_another_tab(): void {
+		SettingsTab::set_resolved_active_tab( 'other_tab' );
 
 		$this->assertFalse( $this->tab->public_is_active() );
 	}
 
-	public function test_is_active_returns_false_when_no_tab_param(): void {
-		Functions\when( 'sanitize_key' )->alias( function ( $key ) {
-			return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
-		} );
-		Functions\when( 'wp_unslash' )->returnArg();
-
+	/**
+	 * The bare menu link (`page=ffc-settings`) carries no `tab` parameter, yet the
+	 * page shows its first visible tab. That tab must be active, or its assets are
+	 * never enqueued on the first load.
+	 */
+	public function test_is_active_on_the_bare_menu_link_follows_the_resolved_default_tab(): void {
 		unset( $_GET['tab'] );
+		SettingsTab::set_resolved_active_tab( 'test_tab' );
+
+		$this->assertTrue( $this->tab->public_is_active() );
+	}
+
+	public function test_is_active_is_false_before_the_page_has_resolved_a_tab(): void {
+		SettingsTab::set_resolved_active_tab( null );
 
 		$this->assertFalse( $this->tab->public_is_active() );
 	}
@@ -365,7 +363,7 @@ class SettingsTabTest extends TestCase {
 		} );
 		Functions\when( 'wp_unslash' )->returnArg();
 
-		$_GET['tab'] = 'test_tab';
+		SettingsTab::set_resolved_active_tab( 'test_tab' );
 
 		$this->assertTrue( $this->tab->public_should_enqueue_on( 'toplevel_page_ffc-settings' ) );
 	}

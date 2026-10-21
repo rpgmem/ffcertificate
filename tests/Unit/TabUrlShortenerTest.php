@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -71,6 +72,7 @@ class TabUrlShortenerTest extends TestCase {
 
 	protected function tearDown(): void {
 		unset( $_GET['tab'] );
+		SettingsTab::set_resolved_active_tab( null );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -176,7 +178,7 @@ class TabUrlShortenerTest extends TestCase {
 	}
 
 	public function test_enqueue_scripts_enqueues_autosave_on_url_shortener_tab(): void {
-		$_GET['tab'] = 'url_shortener';
+		SettingsTab::set_resolved_active_tab( 'url_shortener' );
 
 		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
 		$utils->shouldReceive( 'asset_suffix' )->andReturn( '.min' );

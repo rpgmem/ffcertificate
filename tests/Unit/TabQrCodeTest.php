@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -54,6 +55,7 @@ class TabQrCodeTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		SettingsTab::set_resolved_active_tab( null );
 		unset( $_GET['tab'] );
 		Monkey\tearDown();
 		parent::tearDown();
@@ -137,7 +139,7 @@ class TabQrCodeTest extends TestCase {
 	}
 
 	public function test_enqueue_scripts_localises_the_preview_endpoint(): void {
-		$_GET['tab'] = 'qr_code';
+		SettingsTab::set_resolved_active_tab( 'qr_code' );
 
 		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
 		$utils->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
