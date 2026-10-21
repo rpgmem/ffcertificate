@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -47,6 +48,7 @@ class TabEmailTextsTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		SettingsTab::set_resolved_active_tab( null );
 		unset( $_GET['tab'], $_POST['ffc_save_email_bodies'], $_POST['ffc_email_bodies'] );
 		Monkey\tearDown();
 		parent::tearDown();
@@ -243,7 +245,7 @@ class TabEmailTextsTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_scripts_loads_editor_and_selector_when_cap_held(): void {
-		$_GET['tab'] = 'email_texts';
+		SettingsTab::set_resolved_active_tab( 'email_texts' );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'current_user_can' )->justReturn( true ); // hub cap held.
 

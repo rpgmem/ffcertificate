@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Settings\Tabs\TabCaptcha;
@@ -60,6 +61,7 @@ class TabCaptchaTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		SettingsTab::set_resolved_active_tab( null );
 		unset( $_GET['tab'] );
 		Monkey\tearDown();
 		parent::tearDown();
@@ -89,7 +91,7 @@ class TabCaptchaTest extends TestCase {
 	}
 
 	public function test_the_script_loads_on_the_captcha_tab(): void {
-		$_GET['tab'] = 'captcha';
+		SettingsTab::set_resolved_active_tab( 'captcha' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
 		$enqueued = array();
 		Functions\when( 'wp_enqueue_script' )->alias(

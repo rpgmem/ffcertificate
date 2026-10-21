@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -37,6 +38,7 @@ class TabEmailModelTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		SettingsTab::set_resolved_active_tab( null );
 		unset( $_GET['tab'] );
 		Monkey\tearDown();
 		parent::tearDown();
@@ -58,7 +60,7 @@ class TabEmailModelTest extends TestCase {
 	}
 
 	public function test_enqueue_scripts_enqueues_model_assets_when_active(): void {
-		$_GET['tab'] = 'email_model';
+		SettingsTab::set_resolved_active_tab( 'email_model' );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias( fn( $k ) => preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $k ) ) );
 
