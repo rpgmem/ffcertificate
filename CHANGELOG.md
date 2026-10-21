@@ -29,6 +29,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The admin layout preview shows custom fields with their labels** (#1962 follow-up). The form builder's fields are sent with the preview request, so a custom variable shows its label as the sample value again, as it did before the preview moved to the server.
 - **The default certificate layouts fit the A4 page** (#1962 follow-up). The footer of three defaults sat too low, so the QR code and the validation link were cut at the bottom edge. The footers move up, and the seed version is bumped so installs that already hold the defaults refresh them; user templates are not touched. A guard keeps every default's blocks above the footer line.
 - **The quiz grading card lists every open answer of the form** (#1732). The card and the grade save read only the snapshot taken at submission, so a manual question missing from it had no grade field and could not be graded. The questions are now read from the form as it is today, together with the snapshot, so a question added or re-marked since then is graded too.
+- **The answers on the submission edit screen are locked** (#1732). The answers were editable text fields there. They now read as text, and their values still travel in the save, so it keeps them.
 
 ### Changed
 

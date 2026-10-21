@@ -282,6 +282,10 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringContainsString( 'name="data[curso]"', $html );
 		// Array value joined.
 		$this->assertStringContainsString( 'a, b', $html );
+		// Answers are locked: a text input would let the administrator change them,
+		// and the value is carried by a hidden input so the save keeps it.
+		$this->assertStringNotContainsString( 'ffc-edit-data-', $html );
+		$this->assertStringContainsString( '<input type="hidden" name="data[nome_completo]"', $html );
 		// is_edited / edited_at JSON keys skipped.
 		$this->assertStringNotContainsString( 'name="data[is_edited]"', $html );
 	}
