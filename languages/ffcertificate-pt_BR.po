@@ -21884,6 +21884,10 @@ msgstr "Anúncio"
 msgid "Unknown kind of message."
 msgstr "Tipo de mensagem desconhecido."
 
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Announcements from this site"
+msgstr "Anúncios deste site"
+
 #: includes/date-messages/class-ffc-runner.php
 msgid "Only an announcement can be scheduled."
 msgstr "Só um anúncio pode ser agendado."

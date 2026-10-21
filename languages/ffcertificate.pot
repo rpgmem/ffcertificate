@@ -21801,6 +21801,10 @@ msgstr ""
 msgid "Unknown kind of message."
 msgstr ""
 
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Announcements from this site"
+msgstr ""
+
 #: includes/date-messages/class-ffc-runner.php
 msgid "Only an announcement can be scheduled."
 msgstr ""

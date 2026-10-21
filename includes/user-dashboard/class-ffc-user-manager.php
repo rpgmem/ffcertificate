@@ -227,6 +227,7 @@ class UserManager {
 	public const NOTIFICATION_PREFERENCES = array(
 		self::NOTIFY_APPOINTMENT_REMINDER,
 		'notify_date_messages',
+		'notify_date_announcements',
 	);
 
 	/**

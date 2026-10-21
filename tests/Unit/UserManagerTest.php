@@ -1560,6 +1560,7 @@ class UserManagerTest extends TestCase {
 
 	public function test_the_date_messages_key_is_the_one_opt_out_reads(): void {
 		$this->assertContains( \FreeFormCertificate\DateMessages\OptOut::PREFERENCE_KEY, UserManager::NOTIFICATION_PREFERENCES );
+		$this->assertContains( 'notify_date_announcements', UserManager::NOTIFICATION_PREFERENCES, 'Announcements are a preference the send site reads.' );
 	}
 	// ==================================================================
 	// wants_notification() (#1545)
