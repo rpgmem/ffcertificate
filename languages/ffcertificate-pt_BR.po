@@ -4513,11 +4513,11 @@ msgstr "Consentimento"
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:368
 msgid "Consent given"
-msgstr "Consentimento dado"
+msgstr "Consentimento registrado"
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:375
 msgid "Consent given:"
-msgstr "Consentimento concedido:"
+msgstr "Consentimento registrado:"
 
 #: includes/admin/class-ffc-submissions-export-source.php:369 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:382
 msgid "Consent IP"
