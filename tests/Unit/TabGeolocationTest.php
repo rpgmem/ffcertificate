@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -70,6 +71,7 @@ class TabGeolocationTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		SettingsTab::set_resolved_active_tab( null );
 		unset( $_POST['ffc_save_geolocation'] );
 		unset( $_POST['ip_api_service'], $_POST['api_fallback'] );
 		unset( $_POST['gps_fallback'], $_POST['gps_fallback_preset'], $_POST['gps_fallback_cases'], $_POST['gps_fallback_custom'] );
@@ -536,7 +538,7 @@ class TabGeolocationTest extends TestCase {
 	}
 
 	public function test_enqueue_scripts_enqueues_on_geolocation_tab(): void {
-		$_GET['tab'] = 'geolocation';
+		SettingsTab::set_resolved_active_tab( 'geolocation' );
 		$handles = array();
 		Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) { $handles[] = $h; } );
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );

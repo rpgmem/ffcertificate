@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -64,6 +65,7 @@ class TabSmtpTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		SettingsTab::set_resolved_active_tab( null );
 		unset( $_GET['tab'], $_POST['ffc_save_email_bodies'], $_POST['ffc_email_bodies'] );
 		if ( null !== $this->tmp_dir && is_dir( $this->tmp_dir ) ) {
 			foreach ( (array) glob( $this->tmp_dir . '/*' ) as $file ) {
@@ -129,7 +131,7 @@ class TabSmtpTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_scripts_enqueues_script_when_tab_is_smtp(): void {
-		$_GET['tab'] = 'smtp';
+		SettingsTab::set_resolved_active_tab( 'smtp' );
 		Functions\when( 'wp_unslash' )->returnArg();
 
 		// Since the #976 split the SMTP tab is transport only: it enqueues its own

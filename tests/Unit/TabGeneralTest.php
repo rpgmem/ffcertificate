@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -71,6 +72,7 @@ class TabGeneralTest extends TestCase {
 
 	protected function tearDown(): void {
 		unset( $_GET['tab'] );
+		SettingsTab::set_resolved_active_tab( null );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -266,7 +268,7 @@ class TabGeneralTest extends TestCase {
 	}
 
 	public function test_enqueue_scripts_enqueues_autosave_on_general_tab(): void {
-		$_GET['tab'] = 'general';
+		SettingsTab::set_resolved_active_tab( 'general' );
 
 		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
 		$utils->shouldReceive( 'asset_suffix' )->andReturn( '.min' );

@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings;
 
-use FreeFormCertificate\Core\RequestInput;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -259,8 +257,28 @@ abstract class SettingsTab {
 	 * @return bool
 	 */
 	protected function is_active() {
-		$active_tab = RequestInput::get_get_key( 'tab' );
-		return $active_tab === $this->tab_id;
+		return null !== self::$resolved_active_tab && self::$resolved_active_tab === $this->tab_id;
+	}
+
+	/**
+	 * The tab the Settings page shows for this request, as it resolved it.
+	 *
+	 * The page shows its first visible tab when `?tab=` is absent or not one
+	 * the user may see. A tab that read the query string alone believed it was
+	 * inactive on the bare menu link (`page=ffc-settings`), so its assets were
+	 * not enqueued until the administrator switched tabs and back.
+	 *
+	 * @var string|null
+	 */
+	private static $resolved_active_tab = null;
+
+	/**
+	 * Record the tab the Settings page resolved for this request.
+	 *
+	 * @param string|null $tab_id Resolved tab id, or null before the page has resolved one.
+	 */
+	public static function set_resolved_active_tab( ?string $tab_id ): void {
+		self::$resolved_active_tab = $tab_id;
 	}
 
 	/**
@@ -269,7 +287,7 @@ abstract class SettingsTab {
 	 *
 	 * @var string
 	 */
-	protected const SETTINGS_PAGE_HOOK = 'toplevel_page_ffc-settings';
+	public const SETTINGS_PAGE_HOOK = 'toplevel_page_ffc-settings';
 
 	/**
 	 * Whether this tab should enqueue its assets on the current request: we are
