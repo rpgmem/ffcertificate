@@ -282,6 +282,10 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringContainsString( 'name="data[curso]"', $html );
 		// Array value joined.
 		$this->assertStringContainsString( 'a, b', $html );
+		// Answers are locked: a text input would let the administrator change them,
+		// and the value is carried by a hidden input so the save keeps it.
+		$this->assertStringNotContainsString( 'ffc-edit-data-', $html );
+		$this->assertStringContainsString( '<input type="hidden" name="data[nome_completo]"', $html );
 		// is_edited / edited_at JSON keys skipped.
 		$this->assertStringNotContainsString( 'name="data[is_edited]"', $html );
 	}
@@ -544,9 +548,9 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->page()->render( 42 );
 		$html = (string) ob_get_clean();
 
-		// Participant Data, Form answers and System Information open; consent closed.
-		$this->assertSame( 3, substr_count( $html, '<details class="ffc-section" open data-ffc-section>' ) );
-		$this->assertSame( 1, substr_count( $html, '<details class="ffc-section" data-ffc-section>' ) );
+		// Every section starts closed: the administrator opens the one they need.
+		$this->assertSame( 0, substr_count( $html, '<details class="ffc-section" open data-ffc-section>' ) );
+		$this->assertSame( 4, substr_count( $html, '<details class="ffc-section" data-ffc-section>' ) );
 		foreach ( array( 'Participant Data', 'Form answers', 'System Information', 'LGPD Consent Status' ) as $title ) {
 			$this->assertMatchesRegularExpression( '#<span class="ffc-section__icon"><svg[^>]*>.*?</svg></span><span class="ffc-section__text"><span class="ffc-section__title">' . preg_quote( $title, '#' ) . '</span>#s', $html, $title . ' has the section icon heading' );
 		}

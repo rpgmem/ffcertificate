@@ -531,7 +531,6 @@ class AdminSubmissionEditPage {
 			array(
 				'title' => __( 'System Information', 'ffcertificate' ),
 				'icon'  => 'info',
-				'open'  => true,
 			)
 		);
 		echo '<dl class="ffc-facts">';
@@ -783,7 +782,6 @@ class AdminSubmissionEditPage {
 			array(
 				'title' => __( 'Participant Data', 'ffcertificate' ),
 				'icon'  => 'user',
-				'open'  => true,
 			)
 		);
 		$ffc_email = (string) $this->sub_array['email'];
@@ -853,11 +851,10 @@ class AdminSubmissionEditPage {
 			array(
 				'title' => __( 'Form answers', 'ffcertificate' ),
 				'icon'  => 'list',
-				'open'  => true,
 			)
 		);
 
-		$editable  = '';
+		$answers   = '';
 		$protected = '';
 		foreach ( $this->data as $k => $v ) {
 			// Skip old tracking fields (now in columns), and the grading
@@ -889,19 +886,23 @@ class AdminSubmissionEditPage {
 				continue;
 			}
 
-			$editable .= sprintf(
-				'<p class="ffc-edit-field"><label for="%1$s">%2$s</label><input type="text" id="%1$s" name="%3$s" value="%4$s" class="regular-text"></p>',
-				esc_attr( 'ffc-edit-data-' . sanitize_key( (string) $k ) ),
+			// An answer is locked: it reads as text, and a hidden input carries it so
+			// the save, which rebuilds the data from what is posted, keeps it.
+			$answers .= sprintf(
+				'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s<input type="hidden" name="%3$s" value="%4$s"></dd>',
 				esc_html( (string) $lbl ),
+				nl2br( esc_html( $display_value ) ),
 				esc_attr( $name ),
 				esc_attr( $display_value )
 			);
 		}
 
-		if ( '' === $editable && '' === $protected ) {
+		if ( '' === $answers && '' === $protected ) {
 			echo '<p class="description">' . esc_html__( 'This submission has no form answers.', 'ffcertificate' ) . '</p>';
 		}
-		echo $editable; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped where the markup is built above.
+		if ( '' !== $answers ) {
+			echo '<dl class="ffc-facts ffc-edit-answers">' . $answers . '</dl>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped where the markup is built above.
+		}
 		if ( '' !== $protected ) {
 			echo '<dl class="ffc-facts ffc-edit-protected">' . $protected . '</dl>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped where the markup is built above.
 		}
