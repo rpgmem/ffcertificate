@@ -90,7 +90,7 @@ class DateMessagesActivatorTest extends TestCase {
 
 	public function test_maybe_migrate_is_a_no_op_on_the_current_version(): void {
 		Functions\when( 'get_option' )->alias(
-			static fn( $name ) => in_array( $name, array( DateMessagesActivator::AUDIENCE_IDS_OPTION, DateMessagesActivator::APPEARANCE_OPTION ), true ) ? '1' : FFC_VERSION
+			static fn( $name ) => in_array( $name, array( DateMessagesActivator::AUDIENCE_IDS_OPTION, DateMessagesActivator::APPEARANCE_OPTION, DateMessagesActivator::ANNOUNCEMENTS_OPTION ), true ) ? '1' : FFC_VERSION
 		);
 		Functions\expect( 'update_option' )->never();
 		$this->wpdb->shouldReceive( 'get_var' )->never();

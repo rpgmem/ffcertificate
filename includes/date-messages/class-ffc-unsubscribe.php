@@ -53,30 +53,38 @@ final class Unsubscribe {
 	}
 
 	/**
-	 * The link for one account.
+	 * The link for one account and category.
 	 *
-	 * @param int $user_id Account.
+	 * @param int    $user_id  Account.
+	 * @param string $category One of OptOutCategory::all().
 	 * @return string
 	 */
-	public static function url( int $user_id ): string {
-		return add_query_arg(
-			array(
-				'action' => self::ACTION,
-				'u'      => $user_id,
-				't'      => self::token( $user_id ),
-			),
-			admin_url( 'admin-post.php' )
+	public static function url( int $user_id, string $category = OptOutCategory::PERSONAL ): string {
+		$args = array(
+			'action' => self::ACTION,
+			'u'      => $user_id,
+			't'      => self::token( $user_id, $category ),
 		);
+		// The personal link is the one every sent message carries, so it keeps
+		// its shape; only the other category names itself.
+		if ( OptOutCategory::PERSONAL !== $category ) {
+			$args['c'] = $category;
+		}
+		return add_query_arg( $args, admin_url( 'admin-post.php' ) );
 	}
 
 	/**
 	 * Token for one account.
 	 *
-	 * @param int $user_id Account.
+	 * @param int    $user_id Account.
+	 * @param string $category One of OptOutCategory::all().
 	 * @return string
 	 */
-	public static function token( int $user_id ): string {
-		return hash_hmac( 'sha256', 'unsubscribe|' . $user_id, self::secret() );
+	public static function token( int $user_id, string $category = OptOutCategory::PERSONAL ): string {
+		// The personal payload is the one shipped first, so its tokens keep
+		// verifying; any other category signs its own name into the payload.
+		$payload = OptOutCategory::PERSONAL === $category ? 'unsubscribe|' . $user_id : 'unsubscribe|' . $category . '|' . $user_id;
+		return hash_hmac( 'sha256', $payload, self::secret() );
 	}
 
 	/**
@@ -84,10 +92,11 @@ final class Unsubscribe {
 	 *
 	 * @param int    $user_id Account.
 	 * @param string $token   Presented token.
+	 * @param string $category One of OptOutCategory::all().
 	 * @return bool
 	 */
-	public static function verify( int $user_id, string $token ): bool {
-		return $user_id > 0 && '' !== $token && hash_equals( self::token( $user_id ), $token );
+	public static function verify( int $user_id, string $token, string $category = OptOutCategory::PERSONAL ): bool {
+		return $user_id > 0 && '' !== $token && hash_equals( self::token( $user_id, $category ), $token );
 	}
 
 	/**
@@ -96,24 +105,26 @@ final class Unsubscribe {
 	 * @return void
 	 */
 	public static function handle(): void {
-		$is_post = RequestInput::has_post( 't' );
-		$user_id = $is_post ? RequestInput::get_post_int( 'u' ) : RequestInput::get_get_int( 'u' );
-		$token   = $is_post ? RequestInput::get_post_string( 't' ) : RequestInput::get_get_string( 't' );
-		$title   = __( 'Date Messages', 'ffcertificate' );
+		$is_post  = RequestInput::has_post( 't' );
+		$user_id  = $is_post ? RequestInput::get_post_int( 'u' ) : RequestInput::get_get_int( 'u' );
+		$token    = $is_post ? RequestInput::get_post_string( 't' ) : RequestInput::get_get_string( 't' );
+		$title    = __( 'Date Messages', 'ffcertificate' );
+		$raw      = $is_post ? RequestInput::get_post_string( 'c' ) : RequestInput::get_get_string( 'c' );
+		$category = '' === $raw ? OptOutCategory::PERSONAL : $raw;
 
-		if ( ! self::verify( $user_id, $token ) || false === get_userdata( $user_id ) ) {
+		if ( ! OptOutCategory::has( $category ) || ! self::verify( $user_id, $token, $category ) || false === get_userdata( $user_id ) ) {
 			wp_die( esc_html__( 'This unsubscribe link is not valid.', 'ffcertificate' ), esc_html( $title ), array( 'response' => 403 ) );
 		}
 
 		if ( ! $is_post ) {
-			wp_die( self::confirmation_form( $user_id, $token ), esc_html( $title ), array( 'response' => 200 ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- confirmation_form() escapes every value it prints.
+			wp_die( self::confirmation_form( $user_id, $token, $category ), esc_html( $title ), array( 'response' => 200 ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- confirmation_form() escapes every value it prints.
 		}
 
-		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_wpnonce' ), self::nonce_action( $user_id ) ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_wpnonce' ), self::nonce_action( $user_id, $category ) ) ) {
 			wp_die( esc_html__( 'This page expired. Open the link in the message again.', 'ffcertificate' ), esc_html( $title ), array( 'response' => 403 ) );
 		}
 
-		OptOut::set( $user_id, false );
+		OptOut::set( $user_id, false, $category );
 
 		wp_die(
 			esc_html__( 'Done. You will no longer receive date messages. You can turn them back on in your dashboard profile.', 'ffcertificate' ),
@@ -127,15 +138,21 @@ final class Unsubscribe {
 	 *
 	 * @param int    $user_id Account.
 	 * @param string $token   Its token.
+	 * @param string $category One of OptOutCategory::all().
 	 * @return string Escaped HTML.
 	 */
-	private static function confirmation_form( int $user_id, string $token ): string {
-		return '<p>' . esc_html__( 'Stop receiving date messages, such as birthday greetings, at this account?', 'ffcertificate' ) . '</p>'
+	private static function confirmation_form( int $user_id, string $token, string $category ): string {
+		$question = OptOutCategory::ANNOUNCEMENT === $category
+			? __( 'Stop receiving announcements from this site at this account?', 'ffcertificate' )
+			: __( 'Stop receiving date messages, such as birthday greetings, at this account?', 'ffcertificate' );
+
+		return '<p>' . esc_html( $question ) . '</p>'
 			. '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'
 			. '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">'
 			. '<input type="hidden" name="u" value="' . esc_attr( (string) $user_id ) . '">'
 			. '<input type="hidden" name="t" value="' . esc_attr( $token ) . '">'
-			. wp_nonce_field( self::nonce_action( $user_id ), '_wpnonce', true, false )
+			. '<input type="hidden" name="c" value="' . esc_attr( $category ) . '">'
+			. wp_nonce_field( self::nonce_action( $user_id, $category ), '_wpnonce', true, false )
 			. '<p><button type="submit" class="button button-primary">' . esc_html__( 'Unsubscribe', 'ffcertificate' ) . '</button></p>'
 			. '</form>';
 	}
@@ -143,11 +160,14 @@ final class Unsubscribe {
 	/**
 	 * Nonce action, per account.
 	 *
-	 * @param int $user_id Account.
+	 * @param int    $user_id Account.
+	 * @param string $category One of OptOutCategory::all().
 	 * @return string
 	 */
-	private static function nonce_action( int $user_id ): string {
-		return self::ACTION . '_' . $user_id;
+	private static function nonce_action( int $user_id, string $category = OptOutCategory::PERSONAL ): string {
+		// The personal nonce keeps its shipped name, as the token does.
+		$suffix = OptOutCategory::PERSONAL === $category ? '' : '_' . $category;
+		return self::ACTION . '_' . $user_id . $suffix;
 	}
 
 	/**

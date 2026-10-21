@@ -176,7 +176,7 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			'_wpnonce' => 'good',
 		);
 		Functions\expect( 'wp_verify_nonce' )->once()->with( 'good', Unsubscribe::ACTION . '_42' )->andReturn( 1 );
-		$this->opt_out->shouldReceive( 'set' )->once()->with( 42, false );
+		$this->opt_out->shouldReceive( 'set' )->once()->with( 42, false, 'personal' );
 
 		$this->handle();
 

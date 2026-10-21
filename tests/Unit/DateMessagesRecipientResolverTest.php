@@ -86,6 +86,35 @@ class DateMessagesRecipientResolverTest extends TestCase {
 		);
 	}
 
+	public function test_an_announcement_that_ignores_the_opt_out_sends_to_them_and_marks_it_forced(): void {
+		$target = new \DateTimeImmutable( '2026-10-10' );
+		$this->source->shouldReceive( 'due' )->andReturn(
+			array(
+				$this->candidate( 1 ),
+				$this->candidate( 2 ),
+				$this->candidate( 3, 'not-an-address' ),
+			)
+		);
+		// The announcement category is the one checked, never the personal one.
+		$this->opt_out->shouldReceive( 'among' )->with( array( 1, 2, 3 ), 'announcement' )->andReturn( array( 1 => true, 3 => true ) );
+		$this->log->shouldReceive( 'delivered_among' )->andReturn( array() );
+
+		$rule = $this->rule(
+			array(
+				'kind'            => 'announcement',
+				'source'          => 'announcement',
+				'respect_opt_out' => '0',
+			)
+		);
+		$page = ( new RecipientResolver( $this->source ) )->resolve( $rule, $target, 0, 10 );
+
+		$this->assertSame( RecipientResolver::WILL_SEND, $page['rows'][0]['decision'] );
+		$this->assertTrue( $page['rows'][0]['forced'], 'Reached despite the opt-out, so it is labelled.' );
+		$this->assertSame( RecipientResolver::WILL_SEND, $page['rows'][1]['decision'] );
+		$this->assertFalse( $page['rows'][1]['forced'], 'Nobody opted out of user 2, so nothing was forced.' );
+		$this->assertSame( RecipientResolver::NO_EMAIL, $page['rows'][2]['decision'], 'Forcing does not skip a missing address.' );
+	}
+
 	public function test_decisions_and_their_precedence(): void {
 		$target = new \DateTimeImmutable( '2026-10-10' );
 		$this->source->shouldReceive( 'due' )->with( $target, 0, 10 )->andReturn(
@@ -99,7 +128,7 @@ class DateMessagesRecipientResolverTest extends TestCase {
 			)
 		);
 		// 5 is opted out AND has no address: opting out wins.
-		$this->opt_out->shouldReceive( 'among' )->with( array( 1, 2, 3, 4, 5, 6 ) )->andReturn( array( 2 => true, 5 => true ) );
+		$this->opt_out->shouldReceive( 'among' )->with( array( 1, 2, 3, 4, 5, 6 ), 'personal' )->andReturn( array( 2 => true, 5 => true ) );
 		$this->log->shouldReceive( 'delivered_among' )->with( 3, '2026-10-10', array( 1, 2, 3, 4, 5, 6 ) )->andReturn( array( 4 => true ) );
 		$this->audiences->shouldReceive( 'get_members' )->with( 9, true )->andReturn( array( '1', '2', '3', '4', '5' ) );
 

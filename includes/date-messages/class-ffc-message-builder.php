@@ -77,7 +77,7 @@ final class MessageBuilder {
 				'days_until'      => (string) self::days_between( $today, $target ),
 				'site_name'       => (string) get_bloginfo( 'name' ),
 				'dashboard_url'   => PasswordInvite::dashboard_url(),
-				'unsubscribe_url' => Unsubscribe::url( $recipient['user_id'] ),
+				'unsubscribe_url' => Unsubscribe::url( $recipient['user_id'], $rule->opt_out_category() ),
 			),
 			$source->tokens( $recipient['user_id'], $target )
 		);

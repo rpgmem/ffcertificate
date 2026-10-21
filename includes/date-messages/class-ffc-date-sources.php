@@ -52,6 +52,17 @@ final class DateSources {
 	}
 
 	/**
+	 * The source a rule reads its recipients from. An announcement reads
+	 * everyone (#1949) and is not in SOURCES, so the operator never picks it.
+	 *
+	 * @param Rule $rule The rule.
+	 * @return DateSourceInterface|null
+	 */
+	public static function for_rule( Rule $rule ): ?DateSourceInterface {
+		return $rule->is_announcement() ? new AnnouncementSource() : self::get( $rule->source );
+	}
+
+	/**
 	 * Every source id.
 	 *
 	 * @return array<int, string>

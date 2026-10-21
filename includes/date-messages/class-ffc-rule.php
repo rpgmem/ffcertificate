@@ -38,6 +38,20 @@ final class Rule {
 	public const DIGEST_MODES = array( 'summary', 'detailed' );
 
 	/**
+	 * Kinds of rule (#1949). A dated rule sends on a date relative to each
+	 * person's date; an announcement sends one message to everyone in its
+	 * audience, now or once at `send_at`.
+	 */
+	public const KIND_DATED        = 'dated';
+	public const KIND_ANNOUNCEMENT = 'announcement';
+
+	/**
+	 * Source an announcement reads its recipients from. Not in `DateSources`:
+	 * it has no date to read, so it is not a choice the operator makes.
+	 */
+	public const ANNOUNCEMENT_SOURCE = 'announcement';
+
+	/**
 	 * Constructor.
 	 *
 	 * @param int                 $id              Rule id (0 before it is stored).
@@ -53,6 +67,9 @@ final class Rule {
 	 * @param array<int>          $digest_user_ids Managers (WordPress user ids).
 	 * @param bool                $is_active       Whether the cron sends it.
 	 * @param EmailBodyAppearance $appearance How the body cell is drawn (#1660).
+	 * @param string              $kind            KIND_DATED or KIND_ANNOUNCEMENT.
+	 * @param int                 $send_at         Announcements: the instant it is sent once, 0 for "by hand".
+	 * @param bool                $respect_opt_out Announcements only: false sends to people who opted out (forced, and labelled).
 	 */
 	private function __construct(
 		public readonly int $id,
@@ -68,6 +85,9 @@ final class Rule {
 		public readonly array $digest_user_ids,
 		public readonly bool $is_active,
 		public readonly EmailBodyAppearance $appearance,
+		public readonly string $kind = self::KIND_DATED,
+		public readonly int $send_at = 0,
+		public readonly bool $respect_opt_out = true,
 	) {}
 
 	/**
@@ -93,9 +113,6 @@ final class Rule {
 		if ( '' === $subject || '' === $body ) {
 			return new \WP_Error( 'ffc_rule_message', __( 'The e-mail needs a subject and a body.', 'ffcertificate' ) );
 		}
-		if ( ! DateSources::has( $source ) ) {
-			return new \WP_Error( 'ffc_rule_source', __( 'Unknown date source.', 'ffcertificate' ) );
-		}
 		$offset = filter_var( $offset, FILTER_VALIDATE_INT );
 		if ( false === $offset || abs( $offset ) > self::MAX_OFFSET_DAYS ) {
 			return new \WP_Error(
@@ -115,6 +132,28 @@ final class Rule {
 			return $appearance;
 		}
 
+		$kind = self::text( $data['kind'] ?? self::KIND_DATED );
+		if ( ! in_array( $kind, array( self::KIND_DATED, self::KIND_ANNOUNCEMENT ), true ) ) {
+			return new \WP_Error( 'ffc_rule_kind', __( 'Unknown kind of message.', 'ffcertificate' ) );
+		}
+		$send_at = is_numeric( $data['send_at'] ?? null ) ? max( 0, (int) $data['send_at'] ) : 0;
+		$respect = self::flag( $data['respect_opt_out'] ?? true );
+
+		if ( self::KIND_ANNOUNCEMENT === $kind ) {
+			// An announcement reads everyone in its audience, not a date: its
+			// source and its day offset are fixed, and only the instant varies.
+			$source = self::ANNOUNCEMENT_SOURCE;
+			$offset = 0;
+		} else {
+			// Dated messages always respect the opt-out: forcing one past a
+			// birthday greeting is a choice this module does not offer.
+			$send_at = 0;
+			$respect = true;
+			if ( self::ANNOUNCEMENT_SOURCE === $source || ! DateSources::has( $source ) ) {
+				return new \WP_Error( 'ffc_rule_source', __( 'Unknown date source.', 'ffcertificate' ) );
+			}
+		}
+
 		return new self(
 			id: is_numeric( $data['id'] ?? null ) ? max( 0, (int) $data['id'] ) : 0,
 			name: $name,
@@ -129,7 +168,28 @@ final class Rule {
 			digest_user_ids: self::ids( $data['digest_user_ids'] ?? array() ),
 			is_active: self::flag( $data['is_active'] ?? true ),
 			appearance: $appearance,
+			kind: $kind,
+			send_at: $send_at,
+			respect_opt_out: $respect,
 		);
+	}
+
+	/**
+	 * Whether this rule is an announcement rather than a dated message.
+	 *
+	 * @return bool
+	 */
+	public function is_announcement(): bool {
+		return self::KIND_ANNOUNCEMENT === $this->kind;
+	}
+
+	/**
+	 * The opt-out category this rule's messages are checked against (#1949).
+	 *
+	 * @return string One of OptOutCategory::all().
+	 */
+	public function opt_out_category(): string {
+		return $this->is_announcement() ? OptOutCategory::ANNOUNCEMENT : OptOutCategory::PERSONAL;
 	}
 
 	/**
@@ -151,6 +211,9 @@ final class Rule {
 			'digest_user_ids' => (string) wp_json_encode( $this->digest_user_ids ),
 			'is_active'       => $this->is_active ? 1 : 0,
 			'appearance'      => $this->appearance->is_default() ? '' : (string) wp_json_encode( $this->appearance->to_array() ),
+			'kind'            => $this->kind,
+			'send_at'         => $this->send_at,
+			'respect_opt_out' => $this->respect_opt_out ? 1 : 0,
 		);
 	}
 

@@ -21876,6 +21876,22 @@ msgstr "Este link de cancelamento de inscrição não é válido."
 msgid "Unknown date source."
 msgstr "Fonte de data desconhecida."
 
+#: includes/date-messages/class-ffc-announcement-source.php
+msgid "Announcement"
+msgstr "Anúncio"
+
+#: includes/date-messages/class-ffc-rule.php
+msgid "Unknown kind of message."
+msgstr "Tipo de mensagem desconhecido."
+
+#: includes/date-messages/class-ffc-runner.php
+msgid "Only an announcement can be scheduled."
+msgstr "Só um anúncio pode ser agendado."
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Stop receiving announcements from this site at this account?"
+msgstr "Deixar de receber anúncios deste site nesta conta?"
+
 msgid "Unknown digest mode."
 msgstr "Modo de resumo desconhecido."
 

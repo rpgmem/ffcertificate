@@ -35,7 +35,7 @@ class DeliveryLog {
 	/**
 	 * Counter columns a run carries.
 	 */
-	public const COUNTERS = array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed' );
+	public const COUNTERS = array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'forced' );
 
 	/**
 	 * Days the history keeps a run and its deliveries (#1647).

@@ -143,6 +143,7 @@ class DateMessagesCronTest extends TestCase {
 				DateMessagesCron::CRON_HOOK                         => 1,
 				\FreeFormCertificate\DateMessages\Digest::HOOK => 1,
 				Runner::BATCH_HOOK                                  => 3,
+				Runner::ANNOUNCE_HOOK                               => 1,
 			),
 			$added
 		);
