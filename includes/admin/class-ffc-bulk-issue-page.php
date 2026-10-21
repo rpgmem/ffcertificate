@@ -255,6 +255,7 @@ final class BulkIssuePage {
 				$problems      = BulkIssuePlanner::mapping_problems( $mapping, $parsed['header'] );
 				$dates         = self::date_choice();
 				$date_problems = BulkIssuePlanner::date_problems( $dates, $parsed['header'] );
+				$score         = self::score_choice( $form_id );
 
 				if ( array() !== $problems ) {
 					$error = __( 'Map a column from the file to each of name, CPF/RF and e-mail.', 'ffcertificate' );
@@ -262,13 +263,51 @@ final class BulkIssuePage {
 					$error = 'event_date' === $date_problems[0]
 						? __( 'Choose the day the certificates are dated.', 'ffcertificate' )
 						: __( 'Choose the file column that holds the issue date.', 'ffcertificate' );
+				} elseif ( BulkIssuePlanner::SCORE_COLUMN === $score['mode'] && ! in_array( $score['column'], $parsed['header'], true ) ) {
+					$error = __( 'Choose the file column that holds the score of each participant.', 'ffcertificate' );
 				} else {
-					$plan = BulkIssuePlanner::plan( $parsed['rows'], $mapping, $parsed['header'], $dates, self::sends_links() );
+					$plan = BulkIssuePlanner::plan( $parsed['rows'], $mapping, $parsed['header'], $dates, self::sends_links(), $score );
 				}
 			}
 		}
 
 		return $plan;
+	}
+
+	/**
+	 * How the certificates of a quiz form are scored. A form that is not a quiz
+	 * takes no score; a quiz takes the file's score column, or a zero score.
+	 *
+	 * @param int $form_id Form the job issues for.
+	 * @return array{mode: string, column: string, max: int, pass: int}
+	 */
+	private static function score_choice( int $form_id ): array {
+		$config = get_post_meta( $form_id, '_ffc_form_config', true );
+		$config = is_array( $config ) ? $config : array();
+
+		if ( '1' !== (string) ( $config['quiz_enabled'] ?? '' ) ) {
+			return array(
+				'mode'   => BulkIssuePlanner::SCORE_NONE,
+				'column' => '',
+				'max'    => 0,
+				'pass'   => 0,
+			);
+		}
+
+		$fields = get_post_meta( $form_id, '_ffc_form_fields', true );
+		$quiz   = ( new \FreeFormCertificate\Frontend\Submission\QuizScorer() )->score( is_array( $fields ) ? $fields : array(), array() );
+		$mode   = RequestInput::get_post_string( 'ffc_issue_score', BulkIssuePlanner::SCORE_COLUMN );
+
+		if ( ! in_array( $mode, array( BulkIssuePlanner::SCORE_COLUMN, BulkIssuePlanner::SCORE_ZERO ), true ) ) {
+			$mode = BulkIssuePlanner::SCORE_COLUMN;
+		}
+
+		return array(
+			'mode'   => $mode,
+			'column' => RequestInput::get_post_string( 'ffc_issue_score_column' ),
+			'max'    => $quiz['max_score'],
+			'pass'   => \FreeFormCertificate\Core\ArrayValue::int( $config, 'quiz_passing_score', 70 ),
+		);
 	}
 
 	/**
@@ -444,6 +483,46 @@ final class BulkIssuePage {
 		echo '<p class="description">' . esc_html__( 'Fields marked * are required. The file has to be uploaded again on this step.', 'ffcertificate' ) . '</p>';
 
 		self::render_issue_date( $header, self::date_choice() );
+		self::render_issue_score( $form_id, $header );
+	}
+
+	/**
+	 * Draws the score choice on the mapping step, for a quiz form only.
+	 *
+	 * @param int                $form_id Form the job issues for.
+	 * @param array<int, string> $header  CSV header row.
+	 */
+	private static function render_issue_score( int $form_id, array $header ): void {
+		$score = self::score_choice( $form_id );
+
+		if ( BulkIssuePlanner::SCORE_NONE === $score['mode'] ) {
+			return;
+		}
+
+		echo '<fieldset class="ffc-bulk-issue-score"><legend><strong>' . esc_html__( 'Score', 'ffcertificate' ) . '</strong></legend>';
+		echo '<p><label for="ffc_issue_score">' . esc_html__( 'Score of each certificate', 'ffcertificate' ) . '</label><br>';
+		echo '<select name="ffc_issue_score" id="ffc_issue_score">';
+		echo '<option value="' . esc_attr( BulkIssuePlanner::SCORE_COLUMN ) . '"' . selected( $score['mode'], BulkIssuePlanner::SCORE_COLUMN, false ) . '>' . esc_html__( 'From a score column of the file', 'ffcertificate' ) . '</option>';
+		echo '<option value="' . esc_attr( BulkIssuePlanner::SCORE_ZERO ) . '"' . selected( $score['mode'], BulkIssuePlanner::SCORE_ZERO, false ) . '>' . esc_html__( 'Issue with a zero score', 'ffcertificate' ) . '</option>';
+		echo '</select></p>';
+		echo '<p><label for="ffc_issue_score_column">' . esc_html__( 'Column with the points of each participant', 'ffcertificate' ) . '</label><br>';
+		echo '<select name="ffc_issue_score_column" id="ffc_issue_score_column">';
+		echo '<option value="">' . esc_html__( 'Not in this file', 'ffcertificate' ) . '</option>';
+
+		foreach ( $header as $column ) {
+			echo '<option value="' . esc_attr( $column ) . '"' . selected( $score['column'], $column, false ) . '>' . esc_html( $column ) . '</option>';
+		}
+
+		echo '</select></p>';
+		echo '<p class="description">' . esc_html(
+			sprintf(
+				/* translators: 1: the form's maximum points, 2: the passing percentage. */
+				__( 'The maximum is %1$d points. A score below %2$d%% is not issued.', 'ffcertificate' ),
+				$score['max'],
+				$score['pass']
+			)
+		) . '</p>';
+		echo '</fieldset>';
 	}
 
 	/**
@@ -546,6 +625,16 @@ final class BulkIssuePage {
 			)
 		) . '</p>';
 
+		if ( $plan['zero_score'] > 0 ) {
+			echo '<p class="description">' . esc_html(
+				sprintf(
+					/* translators: %d: certificates that will be issued with a zero score and without the pass mark. */
+					__( '%d certificate(s) will be issued with a zero score, and the pass mark does not apply to them.', 'ffcertificate' ),
+					$plan['zero_score']
+				)
+			) . '</p>';
+		}
+
 		if ( $issue > 0 ) {
 			echo '<p>';
 			Button::render(
@@ -612,6 +701,14 @@ final class BulkIssuePage {
 				return __( 'Same CPF or RF as an earlier line of the file', 'ffcertificate' );
 			case BulkIssuePlanner::SKIP_INVALID_DATE:
 				return __( 'Date that cannot be read', 'ffcertificate' );
+			case BulkIssuePlanner::SKIP_MISSING_SCORE:
+				return __( 'No score in the score column', 'ffcertificate' );
+			case BulkIssuePlanner::SKIP_INVALID_SCORE:
+				return __( 'Score that is not a whole number of points', 'ffcertificate' );
+			case BulkIssuePlanner::SKIP_SCORE_ABOVE_MAX:
+				return __( 'Score above the form\'s maximum', 'ffcertificate' );
+			case BulkIssuePlanner::SKIP_BELOW_PASS_MARK:
+				return __( 'Score below the pass mark', 'ffcertificate' );
 			default:
 				return $reason;
 		}

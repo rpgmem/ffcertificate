@@ -287,4 +287,94 @@ class BulkIssuePlannerTest extends TestCase {
 			$plan['skipped']
 		);
 	}
+
+	/** A quiz file: the score column sits after the mapped columns. */
+	private const SCORE_HEADER = array( 'Nome', 'CPF', 'E-mail', 'Curso', 'Pontos' );
+
+	/**
+	 * @return array{mode: string, column: string, max: int, pass: int}
+	 */
+	private function score_column(): array {
+		return array(
+			'mode'   => BulkIssuePlanner::SCORE_COLUMN,
+			'column' => 'Pontos',
+			'max'    => 10,
+			'pass'   => 60,
+		);
+	}
+
+	public function test_a_form_that_is_not_a_quiz_issues_lines_with_no_score(): void {
+		$rows = array( array( 'Ana', self::CPF_A, 'a@example.test', '', '' ) );
+
+		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::SCORE_HEADER );
+
+		$this->assertNull( $plan['issue'][0]['score'] );
+		$this->assertSame( 0, $plan['zero_score'] );
+	}
+
+	public function test_the_score_column_gives_each_line_its_points_and_percentage(): void {
+		$rows = array( array( 'Ana', self::CPF_A, 'a@example.test', '', '8' ) );
+
+		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::SCORE_HEADER, array(
+			'mode'   => BulkIssuePlanner::DATE_NOW,
+			'date'   => '',
+			'column' => '',
+		), false, $this->score_column() );
+
+		$this->assertSame(
+			array( 'score' => 8, 'max' => 10, 'percent' => 80 ),
+			$plan['issue'][0]['score']
+		);
+	}
+
+	/**
+	 * @return iterable<string, array{0: string, 1: string}>
+	 */
+	public static function unscored_quiz_rows(): iterable {
+		yield 'empty score'        => array( '', BulkIssuePlanner::SKIP_MISSING_SCORE );
+		yield 'not whole points'   => array( '7,5', BulkIssuePlanner::SKIP_INVALID_SCORE );
+		yield 'negative points'    => array( '-1', BulkIssuePlanner::SKIP_INVALID_SCORE );
+		yield 'above the maximum'  => array( '11', BulkIssuePlanner::SKIP_SCORE_ABOVE_MAX );
+		yield 'below the pass mark' => array( '5', BulkIssuePlanner::SKIP_BELOW_PASS_MARK );
+	}
+
+	/**
+	 * @param string $points Score cell.
+	 * @param string $reason Expected skip reason.
+	 * @dataProvider unscored_quiz_rows
+	 */
+	public function test_a_line_whose_score_is_unusable_is_skipped_with_its_reason( string $points, string $reason ): void {
+		$rows = array( array( 'Ana', self::CPF_A, 'a@example.test', '', $points ) );
+
+		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::SCORE_HEADER, array(
+			'mode'   => BulkIssuePlanner::DATE_NOW,
+			'date'   => '',
+			'column' => '',
+		), false, $this->score_column() );
+
+		$this->assertSame( array(), $plan['issue'] );
+		$this->assertSame( array( array( 'line' => 2, 'reason' => $reason ) ), $plan['skipped'] );
+	}
+
+	public function test_the_zero_score_issues_every_line_with_zero_and_counts_them(): void {
+		$rows = array(
+			array( 'Ana', self::CPF_A, 'a@example.test', '', '' ),
+			array( 'Bruno', self::CPF_B, 'b@example.test', '', '' ),
+		);
+
+		$plan = BulkIssuePlanner::plan( $rows, $this->mapping(), self::SCORE_HEADER, array(
+			'mode'   => BulkIssuePlanner::DATE_NOW,
+			'date'   => '',
+			'column' => '',
+		), false, array(
+			'mode'   => BulkIssuePlanner::SCORE_ZERO,
+			'column' => '',
+			'max'    => 10,
+			'pass'   => 60,
+		) );
+
+		$this->assertCount( 2, $plan['issue'] );
+		$this->assertSame( array( 'score' => 0, 'max' => 10, 'percent' => 0 ), $plan['issue'][0]['score'] );
+		$this->assertSame( 2, $plan['zero_score'] );
+	}
 }

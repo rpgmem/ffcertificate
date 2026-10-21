@@ -27270,11 +27270,6 @@ msgid "%1$d certificate(s) would be issued and %2$d row(s) skipped. Nothing has 
 msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
-#, php-format
-msgid "Without an e-mail, so issued with no account: lines %s."
-msgstr ""
-
-#: includes/admin/class-ffc-bulk-issue-page.php
 msgid "Line"
 msgstr ""
 
@@ -27448,4 +27443,52 @@ msgstr ""
 
 #: includes/admin/class-ffc-bulk-issue-page.php
 msgid "%1$d of %2$d line(s) handled: %3$d issued, %4$d skipped."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%d certificate(s) will be issued with a zero score, and the pass mark does not apply to them."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the file column that holds the score of each participant."
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Column with the points of each participant"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "From a score column of the file"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue with a zero score"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No e-mail, so no link can be sent"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No score in the score column"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score above the form's maximum"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score below the pass mark"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score of each certificate"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score that is not a whole number of points"
+msgstr ""
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The maximum is %1$d points. A score below %2$d%% is not issued."
 msgstr ""

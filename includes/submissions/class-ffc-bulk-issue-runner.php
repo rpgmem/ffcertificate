@@ -90,6 +90,7 @@ final class BulkIssueRunner {
 				'fields'      => $line['fields'],
 				'issued_at'   => $line['issued_at'],
 				'send_link'   => $line['send_link'],
+				'score'       => $line['score'],
 			);
 		}
 
@@ -104,6 +105,7 @@ final class BulkIssueRunner {
 				'fields'      => array(),
 				'issued_at'   => null,
 				'send_link'   => false,
+				'score'       => null,
 			);
 		}
 
@@ -174,6 +176,18 @@ final class BulkIssueRunner {
 					'email'  => (string) ( $data['email'] ?? '' ),
 				)
 			);
+
+			// The score comes from the file, so the quiz result is written here in
+			// the shape the frontend persister writes; the bulk path does not run
+			// the quiz scorer over answers.
+			if ( is_array( $data['score'] ?? null ) ) {
+				$submission_data += array(
+					'_quiz_score'     => (int) $data['score']['score'],
+					'_quiz_max_score' => (int) $data['score']['max'],
+					'_quiz_percent'   => (int) $data['score']['percent'],
+					'_quiz_passed'    => '1',
+				);
+			}
 
 			$result = $this->handler->process_submission(
 				$form_id,

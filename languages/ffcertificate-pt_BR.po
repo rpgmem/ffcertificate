@@ -27353,11 +27353,6 @@ msgid "%1$d certificate(s) would be issued and %2$d row(s) skipped. Nothing has 
 msgstr "%1$d certificado(s) seriam emitidos e %2$d linha(s) seriam ignoradas. Nada foi emitido ainda."
 
 #: includes/admin/class-ffc-bulk-issue-page.php
-#, php-format
-msgid "Without an e-mail, so issued with no account: lines %s."
-msgstr "Sem e-mail, portanto emitidos sem conta: linhas %s."
-
-#: includes/admin/class-ffc-bulk-issue-page.php
 msgid "Line"
 msgstr "Linha"
 
@@ -27533,3 +27528,50 @@ msgstr "Concluído: %1$d certificado(s) emitido(s), %2$d linha(s) ignorada(s)."
 msgid "%1$d of %2$d line(s) handled: %3$d issued, %4$d skipped."
 msgstr "%1$d de %2$d linha(s) processada(s): %3$d emitido(s), %4$d ignorado(s)."
 
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "%d certificate(s) will be issued with a zero score, and the pass mark does not apply to them."
+msgstr "%d certificado(s) serão emitidos com pontuação zero, e a nota de corte não se aplica a eles."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Choose the file column that holds the score of each participant."
+msgstr "Escolha a coluna do arquivo que contém a pontuação de cada participante."
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Column with the points of each participant"
+msgstr "Coluna com a pontuação de cada participante"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "From a score column of the file"
+msgstr "De uma coluna de pontuação do arquivo"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Issue with a zero score"
+msgstr "Emitir com pontuação zero"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No e-mail, so no link can be sent"
+msgstr "Sem e-mail, então o link não pode ser enviado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "No score in the score column"
+msgstr "Sem pontuação na coluna de pontuação"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score above the form's maximum"
+msgstr "Pontuação acima do máximo do formulário"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score below the pass mark"
+msgstr "Pontuação abaixo da nota de corte"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score of each certificate"
+msgstr "Pontuação de cada certificado"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "Score that is not a whole number of points"
+msgstr "Pontuação que não é um número inteiro de pontos"
+
+#: includes/admin/class-ffc-bulk-issue-page.php
+msgid "The maximum is %1$d points. A score below %2$d%% is not issued."
+msgstr "O máximo é %1$d pontos. Uma pontuação abaixo de %2$d%% não é emitida."

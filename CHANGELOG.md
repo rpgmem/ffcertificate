@@ -17,6 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Certificates: the Bulk issue tab now issues the checked file in batches, with progress; each line goes through the single-issue write without an e-mail, and an unfinished import expires after seven days (#1945).
 - Certificates: the bulk issue dates its certificates with one chosen day, or with a date column of the file, and the preview counts the skipped rows by reason; a date that does not exist is skipped (#1945).
 - Certificates: the bulk issue can send each certificate's link e-mail as the certificate is issued, and the submissions list gains Send link by e-mail for the submissions that never received one (#1945).
+- **The bulk issue of a quiz form takes each certificate's score** (#1945). The score comes from a column of the file, checked against the form's maximum and pass mark, or is set to zero with the pass mark not applied; the preview warns about the zero score.
 
 ### Fixed
 
