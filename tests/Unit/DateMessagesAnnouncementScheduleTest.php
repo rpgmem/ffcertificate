@@ -51,7 +51,7 @@ class DateMessagesAnnouncementScheduleTest extends TestCase {
 				$over
 			)
 		);
-		self::assertInstanceOf( Rule::class, $rule );
+		$this->assertInstanceOf( Rule::class, $rule );
 		return $rule;
 	}
 
@@ -59,19 +59,19 @@ class DateMessagesAnnouncementScheduleTest extends TestCase {
 		$at = DateMessagesAdminPage::send_at_from_input( '2030-06-01T09:30' );
 
 		$expected = ( new \DateTimeImmutable( '2030-06-01 09:30', new \DateTimeZone( 'America/Sao_Paulo' ) ) )->getTimestamp();
-		self::assertSame( $expected, $at );
+		$this->assertSame( $expected, $at );
 	}
 
 	public function test_an_empty_or_unreadable_value_is_not_scheduled(): void {
-		self::assertSame( 0, DateMessagesAdminPage::send_at_from_input( '' ) );
-		self::assertSame( 0, DateMessagesAdminPage::send_at_from_input( 'next tuesday' ) );
+		$this->assertSame( 0, DateMessagesAdminPage::send_at_from_input( '' ) );
+		$this->assertSame( 0, DateMessagesAdminPage::send_at_from_input( 'next tuesday' ) );
 	}
 
 	public function test_a_stored_instant_round_trips_through_the_input_format(): void {
 		$at = DateMessagesAdminPage::send_at_from_input( '2030-06-01T09:30' );
 
-		self::assertSame( '2030-06-01T09:30', DateMessagesAdminPage::send_at_for_input( $at ) );
-		self::assertSame( '', DateMessagesAdminPage::send_at_for_input( 0 ) );
+		$this->assertSame( '2030-06-01T09:30', DateMessagesAdminPage::send_at_for_input( $at ) );
+		$this->assertSame( '', DateMessagesAdminPage::send_at_for_input( 0 ) );
 	}
 
 	public function test_an_unticked_force_box_means_respect_and_a_ticked_one_forces(): void {
@@ -83,8 +83,8 @@ class DateMessagesAnnouncementScheduleTest extends TestCase {
 			'send_at' => '',
 		);
 
-		self::assertSame( '1', DateMessagesAdminPage::form_data( $base )['respect_opt_out'] );
-		self::assertSame( '0', DateMessagesAdminPage::form_data( $base + array( 'force_opt_out' => '1' ) )['respect_opt_out'] );
+		$this->assertSame( '1', DateMessagesAdminPage::form_data( $base )['respect_opt_out'] );
+		$this->assertSame( '0', DateMessagesAdminPage::form_data( $base + array( 'force_opt_out' => '1' ) )['respect_opt_out'] );
 	}
 
 	public function test_the_form_carries_kind_and_instant_to_the_rule(): void {
@@ -98,8 +98,8 @@ class DateMessagesAnnouncementScheduleTest extends TestCase {
 			)
 		);
 
-		self::assertSame( 'announcement', $data['kind'] );
-		self::assertSame( DateMessagesAdminPage::send_at_from_input( '2030-06-01T09:30' ), $data['send_at'] );
+		$this->assertSame( 'announcement', $data['kind'] );
+		$this->assertSame( DateMessagesAdminPage::send_at_from_input( '2030-06-01T09:30' ), $data['send_at'] );
 	}
 
 	public function test_an_unchanged_save_leaves_the_queued_event_alone(): void {
@@ -108,7 +108,7 @@ class DateMessagesAnnouncementScheduleTest extends TestCase {
 		Functions\expect( 'wp_schedule_single_event' )->never();
 
 		DateMessagesAdminPage::sync_schedule( $rule, $rule );
-		self::assertTrue( true );
+		$this->assertTrue( true );
 	}
 
 	public function test_a_future_instant_is_queued_once_and_replaces_the_old_one(): void {
@@ -119,7 +119,7 @@ class DateMessagesAnnouncementScheduleTest extends TestCase {
 		Functions\expect( 'wp_schedule_single_event' )->once()->with( $stored->send_at, Runner::ANNOUNCE_HOOK, array( 5 ) )->andReturn( true );
 
 		DateMessagesAdminPage::sync_schedule( $stored, $previous );
-		self::assertTrue( true );
+		$this->assertTrue( true );
 	}
 
 	public function test_a_past_instant_queues_nothing_so_a_resave_cannot_send_it(): void {
@@ -130,7 +130,7 @@ class DateMessagesAnnouncementScheduleTest extends TestCase {
 		Functions\expect( 'wp_schedule_single_event' )->never();
 
 		DateMessagesAdminPage::sync_schedule( $stored, $previous );
-		self::assertTrue( true );
+		$this->assertTrue( true );
 	}
 
 	public function test_turning_the_send_time_off_clears_the_event(): void {
@@ -141,6 +141,6 @@ class DateMessagesAnnouncementScheduleTest extends TestCase {
 		Functions\expect( 'wp_schedule_single_event' )->never();
 
 		DateMessagesAdminPage::sync_schedule( $stored, $previous );
-		self::assertTrue( true );
+		$this->assertTrue( true );
 	}
 }
