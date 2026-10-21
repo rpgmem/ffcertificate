@@ -234,6 +234,9 @@ class CapabilityManager {
 		'ffc_view_date_messages',
 		'ffc_manage_date_messages',
 		'ffc_view_date_messages_pii',
+		// Sending a rule now or scheduling an announcement (#1949). Its own cap:
+		// managing rules does not include it.
+		'ffc_send_date_messages',
 		// Test tier (#1860). `test` is a flow verb: it sends one sample of a
 		// rule to the operator's own address, which `manage` also allows, so
 		// the operator tier can check a message without editing any rule.
@@ -888,7 +891,7 @@ class CapabilityManager {
 
 		$date_messages_viewer   = array( 'ffc_view_date_messages' );
 		$date_messages_operator = array_merge( $date_messages_viewer, array( 'ffc_test_date_messages' ) );
-		$date_messages_manager  = array_merge( $date_messages_operator, array( 'ffc_manage_date_messages', 'ffc_view_date_messages_pii' ) );
+		$date_messages_manager  = array_merge( $date_messages_operator, array( 'ffc_manage_date_messages', 'ffc_view_date_messages_pii', 'ffc_send_date_messages' ) );
 
 		$settings_viewer   = array( 'ffc_view_settings', 'ffc_view_custom_fields', 'ffc_view_forms_api' );
 		$settings_operator = array_merge( $settings_viewer, array( 'ffc_test_settings_smtp' ) );

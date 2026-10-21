@@ -41,10 +41,12 @@ final class RecipientPreview {
 	 * @return array{totals: array<string, int>, rows: array<int, array{user_id: int, name: string, email: string, date: string, decision: string}>, truncated: bool, pii: bool}
 	 */
 	public static function collect( Rule $rule, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $with_rows ): array {
-		$totals    = array_fill_keys( array_keys( DateMessagesAdminPage::decision_labels() ), 0 );
-		$rows      = array();
-		$truncated = false;
-		$resolver  = new RecipientResolver();
+		$totals = array_fill_keys( array_keys( DateMessagesAdminPage::decision_labels() ), 0 );
+		// People who opted out and receive it anyway: a subset of will_send (#1949).
+		$totals['forced'] = 0;
+		$rows             = array();
+		$truncated        = false;
+		$resolver         = new RecipientResolver();
 
 		for ( $day = $from; $day <= $to; $day = $day->modify( '+1 day' ) ) {
 			$after = 0;
@@ -52,6 +54,9 @@ final class RecipientPreview {
 				$page = $resolver->resolve( $rule, $day, $after, Runner::BATCH_SIZE );
 				foreach ( $page['rows'] as $row ) {
 					$totals[ $row['decision'] ] = ( $totals[ $row['decision'] ] ?? 0 ) + 1;
+					if ( ! empty( $row['forced'] ) ) {
+						++$totals['forced'];
+					}
 					if ( ! $with_rows ) {
 						continue;
 					}

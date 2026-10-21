@@ -460,6 +460,70 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Map of the manage cap => the send cap it seeds (#1949).
+	 *
+	 * Sending is split out of managing rules, because an announcement reaches an
+	 * audience at once. The migration seeds `ffc_send_date_messages` onto every
+	 * current `ffc_manage_date_messages` holder, so nobody loses the ability to send.
+	 *
+	 * @since 6.33.0
+	 * @return array<string, string> Manage cap => the send cap it seeds.
+	 */
+	public static function date_messages_send_cap_grant_map(): array {
+		return array(
+			'ffc_manage_date_messages' => 'ffc_send_date_messages',
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_send_date_messages` onto every user and
+	 * role that already holds `ffc_manage_date_messages` (#1949). Never removes the
+	 * source cap. Runs once per install via the Loader, flagged by
+	 * `ffc_date_messages_send_cap_v1`.
+	 *
+	 * @since 6.33.0
+	 * @return array<string, int> Send-cap count of users seeded.
+	 */
+	public static function migrate_date_messages_send_cap_grant(): array {
+		$map    = self::date_messages_send_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = self::users_with_ffc_grants();
+		foreach ( $map as $manage => $send ) {
+			$counts[ $send ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $manage ] ) && true === $user->caps[ $manage ]
+					&& ! isset( $user->caps[ $send ] ) ) {
+					$user->add_cap( $send, true );
+					++$counts[ $send ];
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $manage => $send ) {
+				if ( isset( $role->capabilities[ $manage ] ) && true === $role->capabilities[ $manage ]
+					&& ! isset( $role->capabilities[ $send ] ) ) {
+					$role->add_cap( $send, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * Map of the source cap => the URL-shortener export cap it seeds on upgrade.
 	 * Like every other export cap it splits out of `manage`, so the migration
 	 * seeds `ffc_export_url_shortener` onto every current `ffc_manage_url_shortener`

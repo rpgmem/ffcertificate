@@ -21814,10 +21814,6 @@ msgid "Kind of message"
 msgstr ""
 
 #: templates/admin/date-messages/rule-form.php
-msgid "Dated message"
-msgstr ""
-
-#: templates/admin/date-messages/rule-form.php
 msgid "A dated message is sent on a date relative to each person. An announcement is one message to everyone in its audience, sent by hand or once at a chosen time."
 msgstr ""
 
@@ -27594,4 +27590,32 @@ msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:197
 msgid "Announcement message (default for new announcements)"
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "By date"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Send date messages"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade (#1949)."
+msgstr ""
+
+#: includes/core/class-ffc-email-source.php
+msgid "FFCertificate — Announcements"
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Forced past the opt-out (included in the total above)"
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Nobody is in the chosen audiences, so nothing was sent."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:115
+msgid "send a rule now or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it when the plugin is updated."
 msgstr ""

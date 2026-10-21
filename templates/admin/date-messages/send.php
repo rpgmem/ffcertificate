@@ -4,7 +4,7 @@
  *
  * Included from page.php; see it for the variables in scope.
  *
- * @var bool                                             $can_manage  Whether the user may change anything.
+ * @var bool                                             $can_send  Whether the user may send a rule now.
  * @var array<int, \FreeFormCertificate\DateMessages\Rule> $rules       Every rule.
  * @var bool                                             $queue_ready Whether a mail queue is active.
  * @var \DateTimeImmutable                               $today       Today, site timezone.
@@ -76,7 +76,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						'class' => 'ffc-dm-preview-button',
 					)
 				);
-				if ( $can_manage ) {
+				if ( $can_send ) {
 					\FreeFormCertificate\Admin\AdminUI::render_button(
 						array(
 							'label'    => __( 'Send now', 'ffcertificate' ),

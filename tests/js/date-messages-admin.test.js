@@ -284,4 +284,15 @@ describe('ffc-date-messages-admin', () => {
 		expect(window.$('.ffc-email-restore-default').attr('data-default-key')).toBe('date_message_body');
 		delete window.ffcDateMessageDefaults;
 	});
+
+	it('shows the people who opted out and receive it anyway, apart from the total', async () => {
+		installSendDom();
+		window.ffcDateMessages.strings.forced = 'Forced past the opt-out';
+		request.mockResolvedValue({ totals: { will_send: 3, opted_out: 1, forced: 2 }, rows: [], pii: false });
+		await loadOnReady();
+
+		window.$('.ffc-dm-preview-button').trigger('click');
+		await flush();
+		expect(window.$('.ffc-dm-preview-result').text()).toContain('Forced past the opt-out: 2');
+	});
 });

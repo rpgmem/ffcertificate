@@ -10,7 +10,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\DateMessages;
 
-use FreeFormCertificate\Core\EmailSource;
 use FreeFormCertificate\Scheduling\SchedulingMailer;
 use FreeFormCertificate\Settings\SettingsReader;
 
@@ -182,6 +181,13 @@ final class Runner {
 			);
 		}
 
+		// An announcement to an audience with nobody in it is nothing to send:
+		// no run, no digest, no history line (#1949). The scheduled event just
+		// ends; a manual send says why.
+		if ( $rule->is_announcement() && array() !== $rule->audience_ids && ! ( new RecipientResolver() )->audience_has_members( $rule->audience_ids ) ) {
+			return new \WP_Error( 'ffc_date_messages_empty', __( 'Nobody is in the chosen audiences, so nothing was sent.', 'ffcertificate' ) );
+		}
+
 		$run_id = DeliveryLog::start_run( $rule->id, $trigger, $from->format( 'Y-m-d' ), $to->format( 'Y-m-d' ), $created_by );
 		if ( $run_id <= 0 ) {
 			return new \WP_Error( 'ffc_date_messages_run', __( 'Could not record the run.', 'ffcertificate' ) );
@@ -273,7 +279,7 @@ final class Runner {
 		}
 
 		$message = MessageBuilder::build( $rule, $source, $row, $day, $today );
-		$sent    = SchedulingMailer::send( $row['email'], $message['subject'], $message['body'], array(), true, EmailSource::DATE_MESSAGES, $rule->appearance->document_args() );
+		$sent    = SchedulingMailer::send( $row['email'], $message['subject'], $message['body'], array(), true, $rule->email_source(), $rule->appearance->document_args() );
 
 		if ( $sent ) {
 			DeliveryLog::bump( $run_id, 'sent' );

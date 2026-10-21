@@ -21897,10 +21897,6 @@ msgid "Kind of message"
 msgstr "Tipo de mensagem"
 
 #: templates/admin/date-messages/rule-form.php
-msgid "Dated message"
-msgstr "Mensagem com data"
-
-#: templates/admin/date-messages/rule-form.php
 msgid "A dated message is sent on a date relative to each person. An announcement is one message to everyone in its audience, sent by hand or once at a chosen time."
 msgstr "Uma mensagem com data é enviada numa data relativa a cada pessoa. Um anúncio é uma única mensagem para todos da sua audiência, enviada manualmente ou uma vez num horário escolhido."
 
@@ -27678,3 +27674,31 @@ msgstr "Prefere não receber comunicados? <a href=\"%s\">Cancelar inscrição</a
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:197
 msgid "Announcement message (default for new announcements)"
 msgstr "Mensagem de comunicado (padrão para novos comunicados)"
+
+#: templates/admin/date-messages/rule-form.php
+msgid "By date"
+msgstr "Por data"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Send date messages"
+msgstr "Enviar mensagens por data"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade (#1949)."
+msgstr "Envia uma regra agora ou agenda um comunicado para o seu público. Gerenciar regras não inclui esta permissão; os gestores atuais a recebem na atualização (#1949)."
+
+#: includes/core/class-ffc-email-source.php
+msgid "FFCertificate — Announcements"
+msgstr "FFCertificate — Comunicados"
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Forced past the opt-out (included in the total above)"
+msgstr "Enviados apesar do descadastro (já incluídos no total acima)"
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Nobody is in the chosen audiences, so nothing was sent."
+msgstr "Ninguém está nos públicos escolhidos, por isso nada foi enviado."
+
+#: includes/settings/views/documentation/feature-date-messages.php:115
+msgid "send a rule now or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it when the plugin is updated."
+msgstr "envia uma regra agora ou agenda um comunicado para o seu público. Gerenciar regras não inclui esta permissão; os gestores atuais a recebem ao atualizar o plugin."

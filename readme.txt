@@ -76,6 +76,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 
 * **Birthday E-mails** - Automatic e-mails built from each user's birth date, sent on the day or a set number of days before. Nothing is sent until an administrator creates and activates a rule.
 * **Rules** - Several independent rules, each with its own offset, optional audience, subject and HTML body.
+* **Announcements** - One message to everyone in a chosen audience, sent now or once at a set time. Each announcement has its own opt-out category, so turning off birthday messages does not silence it, and an operator can send to people who opted out, labelled as forced.
 * **Preview & Send Now** - See who would receive a rule, and why anyone would be skipped, before anything is sent. Run a date range by hand, or send yourself a test with sample data.
 * **Manager Digest** - An optional summary e-mail to chosen users 24 hours after each run.
 * **Upcoming Dates** - A panel listing the coming birthdays (day and month only), gated by its own capability.

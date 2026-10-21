@@ -104,6 +104,11 @@ jQuery(function ($) {
 		Object.keys(labels).forEach(function (key) {
 			$list.append($('<li></li>').text(labels[key] + ': ' + (totals[key] || 0)));
 		});
+		// Counted inside Will receive; shown apart so the operator sees who the
+		// opt-out no longer protects (#1949).
+		if (totals.forced) {
+			$list.append($('<li></li>').text((strings.forced || 'Forced') + ': ' + totals.forced));
+		}
 		$out.empty().append($list);
 
 		var rows = Array.isArray(data.rows) ? data.rows : [];

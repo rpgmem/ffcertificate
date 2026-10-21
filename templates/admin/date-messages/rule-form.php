@@ -96,7 +96,7 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			<th scope="row"><label for="ffc-dm-kind"><?php esc_html_e( 'Kind of message', 'ffcertificate' ); ?></label></th>
 			<td>
 				<select id="ffc-dm-kind" name="rule[kind]">
-					<option value="<?php echo esc_attr( Rule::KIND_DATED ); ?>" <?php selected( (string) $ffc_dm_values['kind'], Rule::KIND_DATED ); ?>><?php esc_html_e( 'Dated message', 'ffcertificate' ); ?></option>
+					<option value="<?php echo esc_attr( Rule::KIND_DATED ); ?>" <?php selected( (string) $ffc_dm_values['kind'], Rule::KIND_DATED ); ?>><?php esc_html_e( 'By date', 'ffcertificate' ); ?></option>
 					<option value="<?php echo esc_attr( Rule::KIND_ANNOUNCEMENT ); ?>" <?php selected( (string) $ffc_dm_values['kind'], Rule::KIND_ANNOUNCEMENT ); ?>><?php esc_html_e( 'Announcement', 'ffcertificate' ); ?></option>
 				</select>
 				<p class="description"><?php esc_html_e( 'A dated message is sent on a date relative to each person. An announcement is one message to everyone in its audience, sent by hand or once at a chosen time.', 'ffcertificate' ); ?></p>

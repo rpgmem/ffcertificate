@@ -541,6 +541,7 @@ class Loader {
 		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_url_shortener_export_cap_granted();
+		$this->ensure_date_messages_send_cap_granted();
 		$this->ensure_rbac_caps_renamed();
 		$this->ensure_rbac_roles_renamed();
 		$this->ensure_false_ffc_caps_stripped();
@@ -914,6 +915,23 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_url_shortener_export_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * Seed `ffc_send_date_messages` onto the current date-message managers (#1949).
+	 * Idempotent + version-flagged via `ffc_date_messages_send_cap_v1`.
+	 *
+	 * @since 6.33.0
+	 */
+	private function ensure_date_messages_send_cap_granted(): void {
+		$flag = 'ffc_date_messages_send_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_date_messages_send_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}

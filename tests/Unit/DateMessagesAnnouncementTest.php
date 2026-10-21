@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Core\EmailSource;
 use FreeFormCertificate\DateMessages\AnnouncementSource;
 use FreeFormCertificate\DateMessages\DateSources;
 use FreeFormCertificate\DateMessages\OptOutCategory;
@@ -161,5 +162,20 @@ class DateMessagesAnnouncementTest extends TestCase {
 		$this->assertNotSame( Unsubscribe::token( 42 ), $announcement, 'A personal token does not unsubscribe from announcements.' );
 		$this->assertTrue( Unsubscribe::verify( 42, $announcement, OptOutCategory::ANNOUNCEMENT ) );
 		$this->assertFalse( Unsubscribe::verify( 42, $announcement, OptOutCategory::PERSONAL ) );
+	}
+
+	/**
+	 * Each kind is attributed to its own mail-queue source (#1949).
+	 *
+	 * @return void
+	 */
+	public function test_each_kind_is_attributed_to_its_own_mail_source(): void {
+		$announcement = Rule::from_array( $this->announcement() );
+		$dated        = Rule::from_array( $this->announcement( array( 'kind' => 'dated', 'source' => 'birthday', 'send_at' => 0 ) ) );
+
+		$this->assertInstanceOf( Rule::class, $announcement );
+		$this->assertInstanceOf( Rule::class, $dated );
+		$this->assertSame( EmailSource::DATE_ANNOUNCEMENTS, $announcement->email_source() );
+		$this->assertSame( EmailSource::DATE_MESSAGES, $dated->email_source() );
 	}
 }

@@ -123,6 +123,17 @@ final class RecipientResolver {
 	}
 
 	/**
+	 * Whether any of the audiences has a member, sub-audiences included (#1949).
+	 * An announcement to an audience with nobody in it has nothing to send.
+	 *
+	 * @param array<int> $audience_ids Audiences.
+	 * @return bool
+	 */
+	public function audience_has_members( array $audience_ids ): bool {
+		return array() !== $this->members_of_any( $audience_ids );
+	}
+
+	/**
 	 * Members of any of the audiences, sub-audiences included, as a set.
 	 *
 	 * @param array<int> $audience_ids Audiences.
