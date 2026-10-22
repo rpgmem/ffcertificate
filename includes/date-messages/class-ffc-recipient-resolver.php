@@ -28,7 +28,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - `out_of_audience` -- the rule names audiences and the person is in none
  *   of them (sub-audiences count; any one is enough, #1648). The filter reads the membership whether or not the
  *   Audiences module is toggled on: a rule restricted to an audience must
- *   never widen to everyone because a toggle moved;
+ *   never widen to everyone because a toggle moved. A source that reads the
+ *   members it is given (`MemberScopedSourceInterface`, the announcement) is
+ *   paged over the members instead, so for it this decision never occurs
+ *   (#1996); a dated source stays selective by its date and keeps it;
  * - `opted_out`       -- the person turned date messages off;
  * - `no_email`        -- the account's address is empty or not an address;
  * - `already_sent`    -- the log already holds this delivery;
@@ -78,17 +81,30 @@ final class RecipientResolver {
 			);
 		}
 
-		$limit      = max( 1, $limit );
-		$candidates = $source->due( $target, $after, $limit );
+		$limit   = max( 1, $limit );
+		$members = array() === $rule->audience_ids ? null : $this->members_of_any( $rule->audience_ids );
+
+		if ( null !== $members && $source instanceof MemberScopedSourceInterface ) {
+			// Page over the audience members, not over the site (#1996). The
+			// page is the ids, so an id whose account is gone neither stops
+			// the run early nor holds the cursor back.
+			$page       = $this->member_page( $members, $after, $limit );
+			$candidates = array() === $page ? array() : $source->due_among( $target, $page );
+			$cursor     = array() === $page ? $after : (int) end( $page );
+			$complete   = count( $page ) < $limit;
+		} else {
+			$candidates = $source->due( $target, $after, $limit );
+			$cursor     = $after;
+			$complete   = count( $candidates ) < $limit;
+		}
+
 		$ids        = array_map( static fn( array $c ): int => $c['user_id'], $candidates );
 		$occurrence = $target->format( 'Y-m-d' );
 
 		$opted_out = OptOut::among( $ids, $rule->opt_out_category() );
 		$delivered = DeliveryLog::delivered_among( $rule->id, $occurrence, $ids );
-		$members   = array() === $rule->audience_ids ? null : $this->members_of_any( $rule->audience_ids );
 
-		$rows   = array();
-		$cursor = $after;
+		$rows = array();
 		foreach ( $candidates as $candidate ) {
 			$id     = $candidate['user_id'];
 			$cursor = max( $cursor, $id );
@@ -118,8 +134,22 @@ final class RecipientResolver {
 		return array(
 			'rows'     => $rows,
 			'cursor'   => $cursor,
-			'complete' => count( $candidates ) < $limit,
+			'complete' => $complete,
 		);
+	}
+
+	/**
+	 * One page of member ids after the cursor, ascending.
+	 *
+	 * @param array<int, true> $members Member ids as a set.
+	 * @param int              $after   Keyset cursor.
+	 * @param int              $limit   Page size.
+	 * @return array<int, int>
+	 */
+	private function member_page( array $members, int $after, int $limit ): array {
+		$ids = array_filter( array_keys( $members ), static fn( int $id ): bool => $id > $after );
+		sort( $ids, SORT_NUMERIC );
+		return array_slice( $ids, 0, $limit );
 	}
 
 	/**

@@ -27860,3 +27860,7 @@ msgstr ""
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "The booking dialog asks when, where and for whom. One day or Several days sets the span; several days adds the last day, how the hours read on each day and the switch that skips blocked days. Audiences are ticked in a searchable list that shows each one's colour and how many people a booking for it reaches, a person in several sub-audiences counted once; ticking an audience ticks its sub-audiences too. One button checks the conflicts and, once the check passes, creates the booking; changing the date, the times, the space or who it is for asks for a new check. On a phone the dialog rises from the bottom of the screen and the audience list opens as a screen of its own."
 msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "An announcement to audiences reads only their members, sub-audiences included, so its run and its preview never list anyone outside them; an announcement to everyone reads every account."
+msgstr ""
