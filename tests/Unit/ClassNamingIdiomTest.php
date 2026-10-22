@@ -96,6 +96,7 @@ final class ClassNamingIdiomTest extends TestCase {
 		'misc-pub-section' => 'core publish-box section',
 		'notice'           => 'core admin notice',
 		'row-actions' => 'core list-table row actions ("Edit | Trash")',
+		'screen-reader-text' => 'core visually-hidden text; the segmented control prints it on its legend, and the public booking dialog hides it itself because a theme need not',
 		'show-settings' => 'core Screen Options toggle above a list',
 		'page-title-action' => 'core "Add New" button beside a screen title',
 		'spinner'          => 'core loading indicator',

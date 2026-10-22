@@ -1,8 +1,9 @@
-// The range fields of the booking modal (#1946): an end date shows the range
-// options and the range heading, and hides the all-day switch; clearing it
+// The range fields of the booking modal (#1946, #2008): "Several days" shows
+// the last day and the range options and hides the all-day switch; "One day"
 // restores a single day. Drives the functions registered on window.FFCAudience.
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { loadScript } from './helpers.js';
+import { bookingModalHtml } from './booking-modal-fixture.js';
 
 let api;
 
@@ -23,19 +24,8 @@ beforeAll(() => {
 });
 
 function rangeFixture() {
-	document.body.innerHTML = `
-		<div id="ffc-booking-modal">
-			<div class="ffc-form-group" id="all-day-group">
-				<input type="checkbox" id="booking-all-day" />
-			</div>
-			<input type="hidden" id="booking-date" value="2030-01-15" />
-			<input type="date" id="booking-end-date" />
-			<div id="booking-range-options" hidden>
-				<select id="booking-time-mode"><option value="daily">daily</option><option value="span">span</option></select>
-				<input type="checkbox" id="booking-skip-blocked" />
-			</div>
-			<span class="ffc-booking-date-display"></span>
-		</div>`;
+	document.body.innerHTML = bookingModalHtml();
+	document.getElementById('booking-date').value = '2030-01-15';
 }
 
 describe('booking modal range fields', () => {
@@ -43,31 +33,58 @@ describe('booking modal range fields', () => {
 		rangeFixture();
 	});
 
-	it('shows the range options and hides the all-day switch for a range', () => {
-		document.getElementById('booking-all-day').checked = true;
+	it('shows the range fields and hides the all-day switch for several days', () => {
+		api.setAllDay(true);
 
-		api.setRangeOptions('2030-01-17');
+		api.setRangeOptions(true);
 
 		expect(document.getElementById('booking-range-options').hidden).toBe(false);
-		expect(document.getElementById('all-day-group').style.display).toBe('none');
+		expect(document.getElementById('booking-end-date-group').hidden).toBe(false);
+		expect(document.getElementById('booking-end-date').required).toBe(true);
+		expect(document.getElementById('booking-all-day-group').hidden).toBe(true);
 		expect(document.getElementById('booking-all-day').checked).toBe(false);
+		// Turning all day off gives the hours back.
+		expect(document.getElementById('booking-time-row').hidden).toBe(false);
 	});
 
-	it('shows the first and last date in the heading for a range', () => {
-		api.setRangeOptions('2030-01-17');
+	it('shows the first and last date in the heading once the last day is set', () => {
+		document.getElementById('booking-end-date').value = '2030-01-17';
+
+		api.setRangeOptions(true);
 
 		const heading = document.querySelector('.ffc-booking-date-display').textContent;
 		expect(heading).toContain(' – ');
 		expect(heading).toContain('2030');
 	});
 
-	it('restores a single day when the end date is cleared', () => {
-		api.setRangeOptions('2030-01-17');
+	it('restores a single day, and ignores a last day left in the field', () => {
+		document.getElementById('booking-end-date').value = '2030-01-17';
+		api.setRangeOptions(true);
 
-		api.setRangeOptions('');
+		api.setRangeOptions(false);
 
 		expect(document.getElementById('booking-range-options').hidden).toBe(true);
-		expect(document.getElementById('all-day-group').style.display).toBe('');
+		expect(document.getElementById('booking-end-date-group').hidden).toBe(true);
+		expect(document.getElementById('booking-end-date').required).toBe(false);
+		expect(document.getElementById('booking-all-day-group').hidden).toBe(false);
 		expect(document.querySelector('.ffc-booking-date-display').textContent).not.toContain(' – ');
+	});
+
+	it('says under each time mode what it books, once the times and days are in', () => {
+		const daily = document.querySelector('[data-ffc-time-mode-hint="daily"]');
+		const span = document.querySelector('[data-ffc-time-mode-hint="span"]');
+		api.updateTimeModeHints();
+		expect(daily.textContent).toBe('');
+		expect(span.textContent).toBe('');
+
+		document.getElementById('booking-start-time').value = '08:00';
+		document.getElementById('booking-end-time').value = '12:00';
+		document.getElementById('booking-end-date').value = '2030-01-17';
+		api.setRangeOptions(true);
+
+		expect(daily.textContent).toBe('08:00–12:00 on each day');
+		expect(span.textContent).toMatch(/^From 08:00 on .+ to 12:00 on .+$/);
+		expect(span.textContent).toContain('15');
+		expect(span.textContent).toContain('17');
 	});
 });

@@ -103,8 +103,8 @@ function fixture() {
 				<span class="ffc-booking-date-display"></span>
 				<label for="booking-environment-id">Room</label>
 				<select id="booking-environment-id"></select>
-				<select id="booking-type"><option value="audience">Audience</option></select>
-				<select id="booking-audiences" multiple><option value="3">G</option></select>
+				<input type="radio" name="booking_type" value="audience" checked>
+				<div id="booking-audiences"><label class="ffc-audience-picker-option"><input type="checkbox" value="3"><span class="ffc-audience-picker-name">G</span></label></div>
 				<input id="booking-user-search" />
 				<div id="booking-selected-users"></div>
 				<input id="booking-user-ids" />
@@ -113,8 +113,7 @@ function fixture() {
 				<div id="ffc-conflict-warning"></div>
 				<div id="ffc-conflict-error"></div>
 			</form>
-			<button id="ffc-check-conflicts-btn">Check</button>
-			<button id="ffc-create-booking-btn">Create</button>
+			<button id="ffc-booking-submit" data-step="create">Create</button>
 		</div>
 	`;
 }
@@ -325,7 +324,7 @@ describe('the audience booking resubmits with the confirmation', () => {
 		api.state.config = config(true);
 		window.$('#booking-environment-id').html('<option value="10">Hall</option>').val('10');
 		window.$('#booking-date').val(ymd(nextWeekday(0)));
-		window.$('#booking-audiences').val(['3']);
+		window.$('#booking-audiences input[value="3"]').prop('checked', true);
 
 		const rest = vi.spyOn(window.FFC, 'rest')
 			.mockImplementationOnce(() => {
@@ -353,7 +352,7 @@ describe('the audience booking resubmits with the confirmation', () => {
 		api.state.config = config(true);
 		window.$('#booking-environment-id').html('<option value="10">Hall</option>').val('10');
 		window.$('#booking-date').val(ymd(nextWeekday(0)));
-		window.$('#booking-audiences').val(['3']);
+		window.$('#booking-audiences input[value="3"]').prop('checked', true);
 
 		const rest = vi.spyOn(window.FFC, 'rest').mockImplementation(() => {
 			const err = new Error('409');
@@ -367,6 +366,6 @@ describe('the audience booking resubmits with the confirmation', () => {
 		await flush();
 
 		expect(rest).toHaveBeenCalledTimes(1);
-		expect(window.$('#ffc-create-booking-btn').prop('disabled')).toBe(false);
+		expect(window.$('#ffc-booking-submit').prop('disabled')).toBe(false);
 	});
 });

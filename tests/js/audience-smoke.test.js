@@ -26,6 +26,7 @@
 // non-trivial number so a regression in init() / bindEvents() shows up.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
+import { bookingModalHtml } from './booking-modal-fixture.js';
 
 // The former monolith was split into a core (window.FFCAudience) plus three
 // flow modules; load them in dependency order so the namespace is complete
@@ -78,26 +79,7 @@ function fullCalendarFixture() {
 		</div>
 
 		<!-- Booking modal -->
-		<div id="ffc-booking-modal" style="display:none">
-			<div class="ffc-modal-backdrop"></div>
-			<div class="ffc-modal-content">
-				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
-				<button class="ffc-modal-cancel">x</button>
-				<input type="checkbox" id="booking-all-day" />
-				<select id="booking-type">
-					<option value="users">Users</option>
-					<option value="audiences">Audiences</option>
-				</select>
-				<select id="booking-audiences" multiple></select>
-				<textarea id="booking-description"></textarea>
-				<input id="booking-user-search" />
-				<div id="booking-user-results"></div>
-				<div id="booking-selected-users"></div>
-				<button id="ffc-check-conflicts-btn">Check</button>
-				<button id="ffc-create-booking-btn">Create</button>
-				<input type="checkbox" id="ffc-conflict-acknowledge" />
-			</div>
-		</div>
+		${bookingModalHtml()}
 	`;
 }
 
@@ -357,10 +339,10 @@ describe('ffc-audience — booking modal handlers', () => {
 		}).not.toThrow();
 	});
 
-	it('type select change does not throw', async () => {
+	it('booking type change does not throw', async () => {
 		await mountAndLoad();
 		expect(() => {
-			window.$('#booking-type').val('users').trigger('change');
+			window.$('input[name="booking_type"][value="individual"]').prop('checked', true).trigger('change');
 		}).not.toThrow();
 	});
 
@@ -378,17 +360,11 @@ describe('ffc-audience — booking modal handlers', () => {
 		}).not.toThrow();
 	});
 
-	it('check-conflicts button click does not throw', async () => {
+	it('submit button click does not throw, at either step', async () => {
 		await mountAndLoad();
 		expect(() => {
-			window.$('#ffc-check-conflicts-btn').trigger('click');
-		}).not.toThrow();
-	});
-
-	it('create-booking button click does not throw', async () => {
-		await mountAndLoad();
-		expect(() => {
-			window.$('#ffc-create-booking-btn').trigger('click');
+			window.$('#ffc-booking-submit').trigger('click');
+			window.$('#ffc-booking-submit').attr('data-step', 'create').trigger('click');
 		}).not.toThrow();
 	});
 
