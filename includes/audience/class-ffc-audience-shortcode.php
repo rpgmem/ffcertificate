@@ -854,6 +854,7 @@ class AudienceShortcode {
 					'bookingCreated'         => __( 'Booking created successfully!', 'ffcertificate' ),
 					'bookingCancelled'       => __( 'Booking cancelled successfully.', 'ffcertificate' ),
 					'confirmCancel'          => __( 'Are you sure you want to cancel this booking?', 'ffcertificate' ),
+					'cancelConfirm'          => AudienceBookingRules::cancel_strings(),
 					'cancelReason'           => __( 'Please provide a reason for cancellation:', 'ffcertificate' ),
 					'invalidTime'            => __( 'End time must be after start time.', 'ffcertificate' ),
 					'fillTimeFields'         => __( 'Please fill in the time fields.', 'ffcertificate' ),

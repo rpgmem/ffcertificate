@@ -215,7 +215,7 @@ class AudienceLoader {
 		wp_enqueue_script(
 			'ffc-audience-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-audience-admin{$s}.js",
-			array( 'jquery', 'wp-util' ),
+			array( 'jquery', 'wp-util', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);
@@ -290,6 +290,7 @@ class AudienceLoader {
 				'adminNonce'               => wp_create_nonce( 'ffc_admin_nonce' ),
 				'exportNonce'              => wp_create_nonce( 'ffc_audience_bookings_export' ),
 				'strings'                  => $this->get_admin_strings(),
+				'cancelConfirm'            => AudienceBookingRules::cancel_strings(),
 			)
 		);
 

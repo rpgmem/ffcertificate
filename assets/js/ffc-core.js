@@ -791,6 +791,35 @@
         },
 
         /**
+         * Confirm a booking cancellation. A booking that covers a
+         * range is cancelled whole, so the dialog states every day it covers
+         * before the confirm button can be pressed. The confirm is the
+         * danger button and waits out the same countdown as the override
+         * warning.
+         *
+         * @param {Object}   options
+         * @param {number}   options.count    Days the booking covers (1 for a single day).
+         * @param {string}   options.label    The booking's dates, already formatted.
+         * @param {Object}   options.strings  `AudienceBookingRules::cancel_strings()`.
+         * @return {Promise<boolean>} True when the person agreed.
+         */
+        confirmRangeCancel: function(options) {
+            var opts = options || {};
+            var s = opts.strings || {};
+            var count = parseInt(opts.count, 10) || 1;
+            var label = String(opts.label || '');
+            var sentence = count > 1
+                ? String(s.range || '').replace('%1$d', count).replace('%2$s', label)
+                : String(s.single || '').replace('%s', label);
+
+            return core.overrideConfirm({
+                reasons: [sentence],
+                strings: s,
+                agreeCategory: 'danger'
+            });
+        },
+
+        /**
          * The override warning (#1859): one dialog listing every rule a
          * booking breaks, with an "I agree" button that stays disabled for a
          * countdown.
@@ -809,6 +838,7 @@
          * @param {Array}    options.reasons  `{code, message}` entries or plain strings.
          * @param {Object}   [options.strings] Localized words (`OverrideWarning::strings()`).
          * @param {number}   [options.seconds] Countdown length; `strings.seconds`, else 15.
+         * @param {string}   [options.agreeCategory] Button category of the confirm; `primary` by default.
          * @return {Promise<boolean>} True when the person agreed.
          */
         overrideConfirm: function(options) {
@@ -889,7 +919,7 @@
             // The label is the countdown, which label() below rewrites.
             var agree = core.button({
                 label: words.agree,
-                category: 'primary',
+                category: opts.agreeCategory || 'primary',
                 icon: 'checkmark',
                 attrs: { 'data-ffc-override': 'agree' }
             });

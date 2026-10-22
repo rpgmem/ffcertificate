@@ -42,6 +42,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The answers on the submission edit screen are locked** (#1732). The answers were editable text fields there. They now read as text, and their values still travel in the save, so it keeps them.
 - **A settings tab's autosave works on the first visit**. A tab decided it was active from the query string alone, so the bare menu link (`page=ffc-settings`), which shows the first tab, never loaded its autosave until the administrator switched tabs and back. The page now records the tab it shows before any tab enqueues its assets.
 - **A column added between two releases reaches every install** (#1969). The submissions schema was re-checked only when the plugin version changed, and develop keeps one version until release, so a column declared meanwhile (`link_sent_at`) was missing on an install that had already seen that version. The check now compares a fingerprint of the declared columns, so a change runs it once, whatever the version.
+- Cancelling a booking that covers several days cancelled all of them with no warning. The cancel now names every day it covers and waits out a countdown before its confirm is enabled, in the day modal and in the admin list (#1994).
 
 ### Changed
 

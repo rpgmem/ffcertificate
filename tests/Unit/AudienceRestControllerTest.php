@@ -108,6 +108,12 @@ class AudienceRestControllerTest extends TestCase {
 		$this->date_blocking_mock->shouldReceive( 'is_global_holiday' )->andReturn( false )->byDefault();
 
 		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
+
+		// A booking's dates are rendered for the response (date_label): the
+		// formatter reads the site settings and wp_date(), which these tests stub here.
+		$settings = Mockery::mock( 'alias:\FreeFormCertificate\Settings\SettingsReader' );
+		$settings->shouldReceive( 'all' )->andReturn( array() )->byDefault();
+		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts ) );
 	}
 
 	protected function tearDown(): void {

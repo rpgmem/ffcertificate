@@ -263,7 +263,7 @@ class AudienceAdminBookings {
 										</a>
 										<?php if ( 'active' === $booking->status ) : ?>
 											|
-											<a href="#" class="ffc-cancel-booking ffc-delete-link" data-booking-id="<?php echo esc_attr( $booking->id ); ?>">
+											<a href="#" class="ffc-cancel-booking ffc-delete-link" data-booking-id="<?php echo esc_attr( $booking->id ); ?>" data-days="<?php echo esc_attr( (string) count( AudienceBookingRules::booked_days( (string) $booking->booking_date, isset( $booking->end_date ) ? (string) $booking->end_date : null, isset( $booking->skipped_dates ) ? (string) $booking->skipped_dates : null ) ) ); ?>" data-date-label="<?php echo esc_attr( AudienceBookingRules::date_label( (string) $booking->booking_date, isset( $booking->end_date ) ? (string) $booking->end_date : null, static fn( string $date ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date ) ) ); ?>">
 												<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
 											</a>
 										<?php endif; ?>

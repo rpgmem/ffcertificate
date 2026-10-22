@@ -116,7 +116,11 @@
                     category: 'danger',
                     icon: 'cross',
                     className: 'ffc-cancel-booking',
-                    attrs: { 'data-id': booking.id }
+                    attrs: {
+                        'data-id': booking.id,
+                        'data-days': (booking.days || []).length,
+                        'data-date-label': booking.date_label || booking.booking_date
+                    }
                 });
                 html += '</div>';
             }
@@ -128,37 +132,49 @@
 
         // Bind cancel handlers
         $container.find('.ffc-cancel-booking').on('click', function() {
-            var bookingId = $(this).data('id');
-            cancelBooking(bookingId, date);
+            cancelBooking($(this), date);
         });
     }
 
     /**
-     * Cancel booking
+     * Cancel booking. The person confirms what is cancelled first: a range is
+     * cancelled whole, so the dialog names every day of it.
      */
-    function cancelBooking(bookingId, date) {
-        var reason = prompt(ffcAudience.strings.cancelReason);
-        if (!reason || reason.trim() === '') {
-            return;
-        }
+    function cancelBooking($button, date) {
+        var bookingId = $button.data('id');
 
-        FFC.rest(ffcAudience.restUrl + 'bookings/' + bookingId, {
-            method: 'DELETE',
-            data: { reason: reason },
-            nonce: ffcAudience.nonce
-        })
-            .then(function(response) {
-                if (response && response.success) {
-                    alert(ffcAudience.strings.bookingCancelled);
-                    api.renderCalendar();
-                    loadDayBookings(date);
-                } else {
-                    alert((response && response.message) || ffcAudience.strings.error);
-                }
+        FFC.confirmRangeCancel({
+            count: $button.attr('data-days'),
+            label: $button.attr('data-date-label'),
+            strings: ffcAudience.strings.cancelConfirm
+        }).then(function(agreed) {
+            if (!agreed) {
+                return;
+            }
+
+            var reason = prompt(ffcAudience.strings.cancelReason);
+            if (!reason || reason.trim() === '') {
+                return;
+            }
+
+            FFC.rest(ffcAudience.restUrl + 'bookings/' + bookingId, {
+                method: 'DELETE',
+                data: { reason: reason },
+                nonce: ffcAudience.nonce
             })
-            .catch(function() {
-                alert(ffcAudience.strings.error);
-            });
+                .then(function(response) {
+                    if (response && response.success) {
+                        alert(ffcAudience.strings.bookingCancelled);
+                        api.renderCalendar();
+                        loadDayBookings(date);
+                    } else {
+                        alert((response && response.message) || ffcAudience.strings.error);
+                    }
+                })
+                .catch(function() {
+                    alert(ffcAudience.strings.error);
+                });
+        });
     }
 
     api.openDayModal   = openDayModal;

@@ -548,7 +548,7 @@ describe('audience-admin — booking actions', () => {
 	it('cancel: bails when the user declines the confirm', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(false);
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
 		window.$('.ffc-cancel-booking').trigger('click');
@@ -560,7 +560,7 @@ describe('audience-admin — booking actions', () => {
 	it('cancel: bails when the user dismisses the reason prompt', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
 		vi.spyOn(window, 'prompt').mockReturnValue(null);
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
@@ -573,7 +573,7 @@ describe('audience-admin — booking actions', () => {
 	it('cancel: on success, replaces status pill + removes the cancel link', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
 		vi.spyOn(window, 'prompt').mockReturnValue('Weather');
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
@@ -588,7 +588,7 @@ describe('audience-admin — booking actions', () => {
 	it('cancel: on response.success=false alerts the server message', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
 		vi.spyOn(window, 'prompt').mockReturnValue('R');
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Already cancelled' } } }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
@@ -604,7 +604,7 @@ describe('audience-admin — booking actions', () => {
 	it('cancel: on network error, alerts the generic error', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
 		vi.spyOn(window, 'prompt').mockReturnValue('R');
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
