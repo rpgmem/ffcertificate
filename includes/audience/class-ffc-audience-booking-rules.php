@@ -45,6 +45,146 @@ final class AudienceBookingRules {
 	public const CONFLICT      = 'conflict';
 
 	/**
+	 * Longest range one booking may cover, in days, inclusive of both ends.
+	 * A cap keeps one request from writing a month of conflict checks, and a
+	 * course or event that runs longer is two bookings.
+	 */
+	public const MAX_RANGE_DAYS = 31;
+
+	/**
+	 * Every date from `$start_date` to `$end_date`, both included.
+	 *
+	 * @param string $start_date First date (Y-m-d).
+	 * @param string $end_date   Last date (Y-m-d), on or after the first.
+	 * @return list<string>
+	 */
+	public static function range_days( string $start_date, string $end_date ): array {
+		$days = array();
+		$day  = new \DateTimeImmutable( $start_date );
+		$last = new \DateTimeImmutable( $end_date );
+
+		while ( $day <= $last ) {
+			$days[] = $day->format( 'Y-m-d' );
+			$day    = $day->modify( '+1 day' );
+		}
+
+		return $days;
+	}
+
+	/**
+	 * The start and end a day takes.
+	 *
+	 * `daily` repeats the same hours every day. `span` runs from the start
+	 * time on the first booked day to the end time on the last, and covers
+	 * the whole opening window on the days between.
+	 *
+	 * @param string                            $time_mode  `daily` or `span`.
+	 * @param bool                              $is_first   The first booked day of the range.
+	 * @param bool                              $is_last    The last booked day of the range.
+	 * @param string                            $start_time Start (H:i) the person chose.
+	 * @param string                            $end_time   End (H:i) the person chose.
+	 * @param array{start: string, end: string} $window Opening window of the day, read only for `span`.
+	 * @return array{start_time: string, end_time: string}
+	 */
+	public static function day_times( string $time_mode, bool $is_first, bool $is_last, string $start_time, string $end_time, array $window ): array {
+		if ( 'span' !== $time_mode ) {
+			return array(
+				'start_time' => $start_time,
+				'end_time'   => $end_time,
+			);
+		}
+
+		return array(
+			'start_time' => $is_first ? $start_time : $window['start'],
+			'end_time'   => $is_last ? $end_time : $window['end'],
+		);
+	}
+
+	/**
+	 * Whether a day is a holiday for the calendar: a global one or the space's
+	 * own. These are the days a booking refuses unless the range skips them.
+	 *
+	 * @param int    $environment_id Environment ID.
+	 * @param string $date           Date (Y-m-d).
+	 * @return bool
+	 */
+	public static function is_blocked_day( int $environment_id, string $date ): bool {
+		return \FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday( $date )
+			|| AudienceEnvironmentRepository::is_holiday( $environment_id, $date );
+	}
+
+	/**
+	 * The days a booking takes, with the hours each one takes, and the days a
+	 * range leaves out because they are blocked and the operator skipped them.
+	 *
+	 * A single day is one occurrence and never skips. For a range the days
+	 * are the ones that remain after skipping, so `span` starts and ends on
+	 * the days actually booked.
+	 *
+	 * @param int    $environment_id Environment ID.
+	 * @param string $start_date     First date (Y-m-d).
+	 * @param string $end_date       Last date (Y-m-d), equal to the first for a single day.
+	 * @param string $start_time     Start (H:i).
+	 * @param string $end_time       End (H:i).
+	 * @param string $time_mode      `daily` or `span`.
+	 * @param bool   $skip_blocked   Leave blocked days out of the range.
+	 * @return array{days: list<array{date: string, start_time: string, end_time: string}>, skipped: list<string>}
+	 */
+	public static function occurrences( int $environment_id, string $start_date, string $end_date, string $start_time, string $end_time, string $time_mode, bool $skip_blocked ): array {
+		$skipped = array();
+		$booked  = array();
+
+		foreach ( self::range_days( $start_date, $end_date ) as $date ) {
+			if ( $skip_blocked && self::is_blocked_day( $environment_id, $date ) ) {
+				$skipped[] = $date;
+				continue;
+			}
+			$booked[] = $date;
+		}
+
+		$days  = array();
+		$count = count( $booked );
+		foreach ( $booked as $index => $date ) {
+			$is_first = 0 === $index;
+			$is_last  = $index === $count - 1;
+			$window   = array(
+				'start' => '',
+				'end'   => '',
+			);
+			if ( 'span' === $time_mode && ! ( $is_first && $is_last ) ) {
+				$window = self::all_day_window( $environment_id, $date );
+			}
+
+			$days[] = array( 'date' => $date ) + self::day_times( $time_mode, $is_first, $is_last, $start_time, $end_time, $window );
+		}
+
+		return array(
+			'days'    => $days,
+			'skipped' => $skipped,
+		);
+	}
+
+	/**
+	 * SQL predicate that a stored booking occupies a given day: the day falls
+	 * inside its range and is not one the range skipped. Used by every
+	 * conflict check, so a range blocks each day it covers.
+	 *
+	 * The skipped days are a JSON list in `skipped_dates`; the date is matched
+	 * with its quotes so `2026-10-2` never matches `2026-10-22`.
+	 *
+	 * @param string $date Date (Y-m-d).
+	 * @return array{0: string, 1: list<string>} The SQL fragment and the values its placeholders take, in order.
+	 */
+	public static function occupies_day_clause( string $date ): array {
+		global $wpdb;
+
+		return array(
+			'booking_date <= %s AND COALESCE(end_date, booking_date) >= %s AND (skipped_dates IS NULL OR skipped_dates NOT LIKE %s)',
+			array( $date, $date, '%' . $wpdb->esc_like( '"' . $date . '"' ) . '%' ),
+		);
+	}
+
+	/**
 	 * Weekday keys of the keyed working-hours format, by `w` number.
 	 *
 	 * @var array<int, string>
@@ -159,8 +299,7 @@ final class AudienceBookingRules {
 		}
 
 		$environment_id = (int) $environment->id;
-		if ( \FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday( $date )
-			|| AudienceEnvironmentRepository::is_holiday( $environment_id, $date ) ) {
+		if ( self::is_blocked_day( $environment_id, $date ) ) {
 			$violations[] = self::reason( self::HOLIDAY );
 		}
 

@@ -9558,6 +9558,26 @@ msgstr ""
 msgid "Invalid date format."
 msgstr ""
 
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "The end date must be a valid date on or after the start date."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "An all-day booking covers one day."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "A booking can cover at most %d days."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "Invalid time mode."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "Every day of the range is blocked."
+msgstr ""
+
 #: includes/reregistration/class-ffc-reregistration-data-processor.php:217
 msgid "Invalid department for the selected division."
 msgstr ""

@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '1';
+	public const SCHEMA_REVISION = '2';
 
 	/**
 	 * Option holding the revision last applied.
@@ -346,6 +346,9 @@ class AudienceActivator {
             cancelled_by bigint(20) unsigned DEFAULT NULL,
             cancelled_at datetime DEFAULT NULL,
             cancellation_reason varchar(500) DEFAULT NULL COMMENT 'Required when cancelling',
+            end_date date DEFAULT NULL COMMENT 'Last day of a range, NULL for a single day',
+            time_mode enum('daily','span') DEFAULT NULL COMMENT 'Hours of a range: daily or span',
+            skipped_dates text DEFAULT NULL COMMENT 'JSON list of blocked days a range left out',
             PRIMARY KEY (id),
             KEY idx_environment (environment_id),
             KEY idx_date (booking_date),
@@ -780,8 +783,31 @@ class AudienceActivator {
 		}
 
 		self::migrate_audience_tree_access_columns();
+		self::migrate_booking_range_columns();
 
 		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+	}
+
+	/**
+	 * Add the range columns to bookings (#1946).
+	 *
+	 * All three default to NULL, so a stored single-day booking reads exactly as
+	 * before: `end_date` NULL means one day, `time_mode` and `skipped_dates` apply
+	 * only to a range.
+	 *
+	 * @return void
+	 */
+	private static function migrate_booking_range_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		self::add_column_if_missing( $table_name, 'end_date', 'date DEFAULT NULL', 'booking_date' );
+		self::add_column_if_missing( $table_name, 'time_mode', "enum('daily','span') DEFAULT NULL", 'end_date' );
+		self::add_column_if_missing( $table_name, 'skipped_dates', 'text DEFAULT NULL', 'time_mode' );
 	}
 
 	/**

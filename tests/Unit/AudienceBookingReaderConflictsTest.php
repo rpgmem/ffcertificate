@@ -46,6 +46,7 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 
 		$this->prepared = array();
 		$prepared       = &$this->prepared;
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( string $text ): string => addcslashes( $text, '_%\\' ) );
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
 			static function ( ...$args ) use ( &$prepared ) {
 				$flat       = 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args;

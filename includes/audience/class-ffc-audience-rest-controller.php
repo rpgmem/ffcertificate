@@ -580,6 +580,10 @@ class AudienceRestController {
 		$user_ids_param     = $request->get_param( 'user_ids' );
 		$user_ids           = $user_ids_param ? $user_ids_param : array();
 		$confirm_override   = ! empty( $request->get_param( 'confirm_override' ) );
+		$end_date           = (string) $request->get_param( 'end_date' );
+		$time_mode          = (string) $request->get_param( 'time_mode' );
+		$time_mode          = '' === $time_mode ? 'daily' : $time_mode;
+		$skip_blocked       = ! empty( $request->get_param( 'skip_blocked' ) );
 
 		// Validate environment exists.
 		$environment = AudienceEnvironmentRepository::get_by_id( $environment_id );
@@ -607,6 +611,32 @@ class AudienceRestController {
 			return self::refusal( 400, __( 'Invalid date format.', 'ffcertificate' ) );
 		}
 
+		// A range covers every day from the start date to the end date, both included.
+		$is_range = '' !== $end_date && $end_date !== $booking_date;
+		if ( $is_range ) {
+			if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $end_date ) || $end_date < $booking_date ) {
+				return self::refusal( 400, __( 'The end date must be a valid date on or after the start date.', 'ffcertificate' ) );
+			}
+
+			if ( $is_all_day ) {
+				return self::refusal( 400, __( 'An all-day booking covers one day.', 'ffcertificate' ) );
+			}
+
+			if ( count( AudienceBookingRules::range_days( $booking_date, $end_date ) ) > AudienceBookingRules::MAX_RANGE_DAYS ) {
+				/* translators: %d: the most days one booking may cover. */
+				return self::refusal( 400, sprintf( __( 'A booking can cover at most %d days.', 'ffcertificate' ), AudienceBookingRules::MAX_RANGE_DAYS ) );
+			}
+		} else {
+			$end_date = $booking_date;
+		}
+
+		if ( ! in_array( $time_mode, array( 'daily', 'span' ), true ) ) {
+			return self::refusal( 400, __( 'Invalid time mode.', 'ffcertificate' ) );
+		}
+
+		// Skipping blocked days only means something for a range.
+		$skip_blocked = $is_range && $skip_blocked;
+
 		// All day is the space's opening window for that day.
 		if ( $is_all_day ) {
 			$window     = AudienceBookingRules::all_day_window( $environment_id, $booking_date );
@@ -614,8 +644,9 @@ class AudienceRestController {
 			$end_time   = $window['end'];
 		}
 
-		// Validate time range.
-		if ( $start_time >= $end_time ) {
+		// Validate time range. A span runs from one day to another, so its start may come after its end.
+		$is_span = $is_range && 'span' === $time_mode;
+		if ( ! $is_span && $start_time >= $end_time ) {
 			return self::refusal( 400, __( 'End time must be after start time.', 'ffcertificate' ) );
 		}
 
@@ -636,17 +667,42 @@ class AudienceRestController {
 
 		$has_bypass = AudienceScheduleRepository::user_has_bypass( $schedule_id, $user_id );
 
-		// The rules. A caller without the bypass is refused on the first one.
-		$reasons = AudienceBookingRules::violations( $schedule, $environment, $booking_date, $start_time, $end_time );
+		// The days this booking takes, after any skipped blocked days.
+		$plan = AudienceBookingRules::occurrences( $environment_id, $booking_date, $end_date, $start_time, $end_time, $time_mode, $skip_blocked );
+		if ( empty( $plan['days'] ) ) {
+			return self::refusal( 400, __( 'Every day of the range is blocked.', 'ffcertificate' ) );
+		}
+
+		// The rules, checked on every day. A caller without the bypass is refused on the first one.
+		$reasons = array();
+		foreach ( $plan['days'] as $day ) {
+			foreach ( AudienceBookingRules::violations( $schedule, $environment, $day['date'], $day['start_time'], $day['end_time'] ) as $reason ) {
+				$reasons[ $reason['code'] ] = $reason;
+			}
+		}
+		$reasons = array_values( $reasons );
 		if ( ! empty( $reasons ) && ! $has_bypass ) {
 			return self::refusal( 400, $reasons[0]['message'], $reasons[0]['code'], $reasons );
 		}
 
-		// Time slot conflicts (environment double-booking).
-		$conflicts = AudienceBookingReader::get_conflicts( $environment_id, $booking_date, $start_time, $end_time );
+		// Time slot conflicts (environment double-booking), checked on every day.
+		$conflicts       = array();
+		$colliding_dates = array();
+		foreach ( $plan['days'] as $day ) {
+			$found = AudienceBookingReader::get_conflicts( $environment_id, $day['date'], $day['start_time'], $day['end_time'] );
+			if ( ! empty( $found ) ) {
+				$colliding_dates[] = $day['date'];
+				foreach ( $found as $conflict ) {
+					$conflicts[ (int) $conflict->id ] = $conflict;
+				}
+			}
+		}
+		$conflicts = array_values( $conflicts );
 		if ( ! empty( $conflicts ) ) {
 			if ( ! AudienceScheduleRepository::user_can_override_conflicts( $schedule_id, $user_id ) ) {
-				return self::refusal( 400, __( 'This time slot is already booked for this environment.', 'ffcertificate' ), AudienceBookingRules::CONFLICT );
+				$refused                          = self::refusal( 400, __( 'This time slot is already booked for this environment.', 'ffcertificate' ), AudienceBookingRules::CONFLICT );
+				$refused->data['colliding_dates'] = $colliding_dates;
+				return $refused;
 			}
 			$reasons[] = AudienceBookingRules::reason( AudienceBookingRules::CONFLICT );
 		}
@@ -655,11 +711,12 @@ class AudienceRestController {
 		if ( ! empty( $reasons ) && ! $confirm_override ) {
 			return new \WP_REST_Response(
 				array(
-					'success'   => false,
-					'code'      => 'override_confirmation_required',
-					'message'   => __( 'This booking breaks the calendar rules. Confirm to book anyway.', 'ffcertificate' ),
-					'reasons'   => $reasons,
-					'conflicts' => array_map(
+					'success'         => false,
+					'code'            => 'override_confirmation_required',
+					'message'         => __( 'This booking breaks the calendar rules. Confirm to book anyway.', 'ffcertificate' ),
+					'reasons'         => $reasons,
+					'colliding_dates' => $colliding_dates,
+					'conflicts'       => array_map(
 						static function ( $b ) {
 							return array(
 								'id'          => (int) $b->id,
@@ -685,6 +742,9 @@ class AudienceRestController {
 			'description'    => $description,
 			'audience_ids'   => $audience_ids,
 			'user_ids'       => $user_ids,
+			'end_date'       => $end_date,
+			'time_mode'      => $time_mode,
+			'skip_blocked'   => $skip_blocked,
 		);
 
 		/**

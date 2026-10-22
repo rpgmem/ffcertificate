@@ -17,6 +17,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$day_sql} is the fixed predicate from AudienceBookingRules::occupies_day_clause(), with its values bound through the spread arguments.
+// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The argument list is built by array_merge() and spread into prepare(), so the sniff cannot count its placeholders.
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -89,6 +92,9 @@ class AudienceBookingWriter {
 			'description'    => '',
 			'status'         => 'active',
 			'created_by'     => get_current_user_id(),
+			'end_date'       => '',
+			'time_mode'      => 'daily',
+			'skip_blocked'   => false,
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
@@ -96,6 +102,22 @@ class AudienceBookingWriter {
 		if ( ! $data['environment_id'] || ! $data['booking_date'] || ! $data['start_time'] || ! $data['end_time'] || ! $data['description'] ) {
 			return false;
 		}
+
+		// A range is a booking whose end date differs from its start. Its days
+		// are planned once here; a single day is one occurrence and never skips.
+		$end_date     = '' !== (string) $data['end_date'] ? (string) $data['end_date'] : (string) $data['booking_date'];
+		$is_range     = $end_date !== (string) $data['booking_date'];
+		$time_mode    = $is_range ? (string) $data['time_mode'] : 'daily';
+		$skip_blocked = $is_range && ! empty( $data['skip_blocked'] );
+		$plan         = AudienceBookingRules::occurrences(
+			(int) $data['environment_id'],
+			(string) $data['booking_date'],
+			$end_date,
+			(string) $data['start_time'],
+			(string) $data['end_time'],
+			$time_mode,
+			$skip_blocked
+		);
 
 		// Race protection: conflict-check + insert run inside a single
 		// transaction so two concurrent requests for the same slot can't
@@ -108,15 +130,18 @@ class AudienceBookingWriter {
 		// a friendly error, but this is the authoritative check.
 		$wpdb->query( 'START TRANSACTION' );
 
-		$conflicts = self::get_conflicts_for_update(
-			(int) $data['environment_id'],
-			(string) $data['booking_date'],
-			(string) $data['start_time'],
-			(string) $data['end_time']
-		);
-		if ( ! empty( $conflicts ) ) {
-			$wpdb->query( 'ROLLBACK' );
-			return false;
+		// Every day of the range is checked, and one clash refuses the whole booking.
+		foreach ( $plan['days'] as $day ) {
+			$conflicts = self::get_conflicts_for_update(
+				(int) $data['environment_id'],
+				$day['date'],
+				$day['start_time'],
+				$day['end_time']
+			);
+			if ( ! empty( $conflicts ) ) {
+				$wpdb->query( 'ROLLBACK' );
+				return false;
+			}
 		}
 
 		$result = $wpdb->insert(
@@ -131,8 +156,11 @@ class AudienceBookingWriter {
 				'description'    => $data['description'],
 				'status'         => $data['status'],
 				'created_by'     => $data['created_by'],
+				'end_date'       => $is_range ? $end_date : null,
+				'time_mode'      => $is_range ? $time_mode : null,
+				'skipped_dates'  => ! empty( $plan['skipped'] ) ? wp_json_encode( $plan['skipped'] ) : null,
 			),
-			array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d' )
+			array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
 		);
 
 		if ( ! $result ) {
@@ -182,11 +210,25 @@ class AudienceBookingWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( $date );
+		$args                       = array_merge(
+			array( $table, $environment_id ),
+			$day_args,
+			array( $end_time, $start_time, $start_time, $end_time, $start_time, $end_time )
+		);
+
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
+				/**
+				 * The SQL is a literal except for `{$day_sql}`, a fixed predicate from
+				 * `AudienceBookingRules::occupies_day_clause()`. Its placeholders are bound
+				 * through the spread arguments below.
+				 *
+				 * @phpstan-ignore argument.type
+				 */
 				"SELECT id FROM %i
                 WHERE environment_id = %d
-                AND booking_date = %s
+                AND {$day_sql}
                 AND status = 'active'
                 AND (
                     (start_time < %s AND end_time > %s) OR
@@ -194,15 +236,7 @@ class AudienceBookingWriter {
                     (end_time > %s AND end_time <= %s)
                 )
                 FOR UPDATE",
-				$table,
-				$environment_id,
-				$date,
-				$end_time,
-				$start_time,
-				$start_time,
-				$end_time,
-				$start_time,
-				$end_time
+				...$args
 			)
 		);
 		return is_array( $results ) ? $results : array();
