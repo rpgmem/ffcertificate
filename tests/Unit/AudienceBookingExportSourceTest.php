@@ -10,7 +10,7 @@ use FreeFormCertificate\Tests\Support\BatchedExportSourceContractTestCase;
 use FreeFormCertificate\Audience\AudienceBookingExportSource;
 
 /**
- * Tests for AudienceBookingExportSource: the 17-column layout + per-row
+ * Tests for AudienceBookingExportSource: the 18-column layout + per-row
  * formatting, the user-name cache, the filter/count/keyset-page delegation to
  * AudienceBookingReader, and the per-phase authorization gates. The job
  * lifecycle it plugs into is tested in BatchedCsvExportTest. Migrated from the
@@ -101,12 +101,12 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 		$this->assertSame( 'audience_bookings', $this->source->type() );
 	}
 
-	public function test_header_has_seventeen_columns(): void {
+	public function test_header_has_eighteen_columns(): void {
 		$header = $this->source->header( array(), array() );
-		$this->assertCount( 17, $header );
+		$this->assertCount( 18, $header );
 		$this->assertSame( 'ID', $header[0] );
 		$this->assertSame( 'Environment', $header[1] );
-		$this->assertSame( 'Cancellation Reason', $header[16] );
+		$this->assertSame( 'Cancellation Reason', $header[17] );
 	}
 
 	// ==================================================================
@@ -128,19 +128,20 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 		$this->assertSame( 'Room A', $result[1] );
 		$this->assertSame( '3', $result[2] );
 		$this->assertSame( '2026-05-20', $result[3] );
-		$this->assertSame( '09:00:00', $result[4] );
-		$this->assertSame( '10:00:00', $result[5] );
-		$this->assertSame( 'No', $result[6] );
-		$this->assertSame( 'Audience', $result[7] );
-		$this->assertSame( 'Team sync', $result[8] );
-		$this->assertSame( 'Active', $result[9] );
-		$this->assertSame( 'Nurses, Doctors', $result[10] );
-		$this->assertSame( '3', $result[11] );
-		$this->assertSame( 'Alice', $result[12] );
-		$this->assertSame( '2026-05-01 08:00:00', $result[13] );
-		$this->assertSame( '', $result[14] );
+		$this->assertSame( '', $result[4] );
+		$this->assertSame( '09:00:00', $result[5] );
+		$this->assertSame( '10:00:00', $result[6] );
+		$this->assertSame( 'No', $result[7] );
+		$this->assertSame( 'Audience', $result[8] );
+		$this->assertSame( 'Team sync', $result[9] );
+		$this->assertSame( 'Active', $result[10] );
+		$this->assertSame( 'Nurses, Doctors', $result[11] );
+		$this->assertSame( '3', $result[12] );
+		$this->assertSame( 'Alice', $result[13] );
+		$this->assertSame( '2026-05-01 08:00:00', $result[14] );
 		$this->assertSame( '', $result[15] );
 		$this->assertSame( '', $result[16] );
+		$this->assertSame( '', $result[17] );
 	}
 
 	public function test_format_row_all_day_and_unknown_labels(): void {
@@ -156,12 +157,12 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 
 		$result = $this->source->format_row( $row, array() );
 
-		$this->assertSame( 'Yes', $result[6] );
-		$this->assertSame( 'weird', $result[7] );
-		$this->assertSame( 'archived', $result[9] );
-		$this->assertSame( '', $result[10] );
-		$this->assertSame( '0', $result[11] );
-		$this->assertSame( '', $result[12] );
+		$this->assertSame( 'Yes', $result[7] );
+		$this->assertSame( 'weird', $result[8] );
+		$this->assertSame( 'archived', $result[10] );
+		$this->assertSame( '', $result[11] );
+		$this->assertSame( '0', $result[12] );
+		$this->assertSame( '', $result[13] );
 	}
 
 	public function test_user_name_deleted_shows_id_and_caches(): void {

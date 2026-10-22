@@ -64,6 +64,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     id: numeric-string,
  *     environment_id: numeric-string,
  *     booking_date: string,
+ *     end_date?: string|null,
+ *     skipped_dates?: string|null,
+ *     time_mode?: string|null,
  *     start_time: string,
  *     end_time: string,
  *     booking_type: string,
@@ -88,6 +91,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     id: numeric-string,
  *     environment_id: numeric-string,
  *     booking_date: string,
+ *     end_date?: string|null,
+ *     skipped_dates?: string|null,
+ *     time_mode?: string|null,
  *     start_time: string,
  *     end_time: string,
  *     booking_type: string,
@@ -376,7 +382,7 @@ final class AudienceQueryService {
 		$exclude_status = self::filter_string( $filter, 'exclude_status' );
 
 		if ( '' !== $start_date ) {
-			$sql   .= ' AND b.booking_date >= %s';
+			$sql   .= ' AND COALESCE(b.end_date, b.booking_date) >= %s';
 			$args[] = $start_date;
 		}
 		if ( '' !== $end_date ) {

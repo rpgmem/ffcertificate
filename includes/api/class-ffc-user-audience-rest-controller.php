@@ -157,6 +157,16 @@ class UserAudienceRestController {
 					}
 				}
 
+				// A range shows both ends of its dates; a single day has only its own.
+				$date_formatted = \FreeFormCertificate\Audience\AudienceBookingRules::date_label(
+					(string) $booking['booking_date'],
+					isset( $booking['end_date'] ) ? (string) $booking['end_date'] : null,
+					static function ( string $date ): string {
+						$formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date );
+						return '' === $formatted ? $date : $formatted;
+					}
+				);
+
 				$time_formatted = '';
 				if ( ! empty( $booking['start_time'] ) ) {
 					$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $booking['start_time'] );

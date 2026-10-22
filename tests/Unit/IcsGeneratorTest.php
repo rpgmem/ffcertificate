@@ -121,4 +121,28 @@ class IcsGeneratorTest extends TestCase {
 		$this->assertStringContainsString( 'UID:ffc-event-', $ics );
 		$this->assertStringContainsString( '@example.com', $ics );
 	}
+
+	public function test_a_range_span_runs_from_its_first_start_to_its_last_end(): void {
+		$event             = $this->ics_event();
+		$event['end_date'] = '2030-01-17';
+
+		$ics = IcsGenerator::generate( $event );
+
+		$this->assertStringContainsString( 'DTSTART:20300115T1000', $ics );
+		$this->assertStringContainsString( 'DTEND:20300117T1100', $ics );
+		$this->assertStringNotContainsString( 'RRULE:', $ics );
+	}
+
+	public function test_a_daily_range_repeats_its_hours_and_leaves_out_the_skipped_days(): void {
+		$event             = $this->ics_event();
+		$event['end_date'] = '2030-01-15';
+		$event['rrule']    = 'FREQ=DAILY;UNTIL=20300117T235959';
+		$event['exdates']  = array( '2030-01-16' );
+
+		$ics = IcsGenerator::generate( $event );
+
+		$this->assertStringContainsString( 'RRULE:FREQ=DAILY;UNTIL=20300117T235959', $ics );
+		$this->assertStringContainsString( 'EXDATE:20300116T1000', $ics );
+		$this->assertStringContainsString( 'DTEND:20300115T1100', $ics );
+	}
 }

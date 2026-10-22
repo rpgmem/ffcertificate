@@ -166,7 +166,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 
 		AudienceBookingReader::get_all(['booking_date' => '2026-03-15']);
 
-		$this->assertStringContainsString('b.booking_date = %s', $captured_sql);
+		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 	}
 
 	public function test_get_all_filters_by_date_range(): void {
@@ -182,7 +182,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 			'end_date' => '2026-03-31',
 		]);
 
-		$this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
 		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 	}
 
@@ -423,7 +423,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		AudienceBookingReader::get_by_date(5, '2026-03-15', 'active');
 
 		$this->assertStringContainsString('b.environment_id = %d', $captured_sql);
-		$this->assertStringContainsString('b.booking_date = %s', $captured_sql);
+		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 		$this->assertStringContainsString('b.status = %s', $captured_sql);
 	}
 
@@ -442,7 +442,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		AudienceBookingReader::get_by_date_range(5, '2026-03-01', '2026-03-31');
 
 		$this->assertStringContainsString('b.environment_id = %d', $captured_sql);
-		$this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
 		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 	}
 
@@ -523,7 +523,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 			'status' => 'active',
 		]);
 
-		$this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
 		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 		$this->assertStringContainsString('b.status = %s', $captured_sql);
 	}
@@ -1547,7 +1547,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 
 		AudienceBookingReader::get_audience_same_day_bookings('2026-03-15', [10, 20]);
 
-		$this->assertStringContainsString('booking_date = %s', $captured_sql);
+		$this->assertStringContainsString('booking_date <= %s', $captured_sql);
 		$this->assertStringContainsString("status = 'active'", $captured_sql);
 		$this->assertStringContainsString('audience_id IN', $captured_sql);
 		$this->assertStringContainsString('INNER JOIN', $captured_sql);
@@ -1619,7 +1619,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$result = AudienceBookingReader::count(['booking_date' => '2026-03-15']);
 
 		$this->assertSame(2, $result);
-		$this->assertStringContainsString('booking_date = %s', $captured_sql);
+		$this->assertStringContainsString('booking_date <= %s', $captured_sql);
 	}
 
 	public function test_count_filters_by_start_date(): void {
@@ -1633,7 +1633,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$result = AudienceBookingReader::count(['start_date' => '2026-05-01']);
 
 		$this->assertSame(7, $result);
-		$this->assertStringContainsString('booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(end_date, booking_date) >= %s', $captured_sql);
 	}
 
 	public function test_count_filters_by_end_date(): void {
@@ -1682,7 +1682,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertSame(1, $result);
 		$this->assertStringContainsString('environment_id = %d', $captured_sql);
 		$this->assertStringContainsString('status = %s', $captured_sql);
-		$this->assertStringContainsString('booking_date = %s', $captured_sql);
+		$this->assertStringContainsString('booking_date <= %s', $captured_sql);
 		$this->assertStringContainsString('created_by = %d', $captured_sql);
 		$this->assertStringContainsString('AND', $captured_sql);
 	}
@@ -1756,7 +1756,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 
 		$this->assertStringContainsString('b.environment_id = %d', $captured_sql);
 		$this->assertStringContainsString('b.status = %s', $captured_sql);
-		$this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
 		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 	}
 
@@ -1805,7 +1805,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertStringContainsString('e.schedule_id = %d', $captured_sql);
 		$this->assertStringContainsString('b.environment_id = %d', $captured_sql);
 		$this->assertStringContainsString('b.status = %s', $captured_sql);
-		$this->assertStringContainsString('b.booking_date >= %s', $captured_sql);
+		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
 		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
 	}
 

@@ -403,10 +403,14 @@
 
                 if (response.bookings) {
                     response.bookings.forEach(function(booking) {
-                        if (!state.bookings[booking.booking_date]) {
-                            state.bookings[booking.booking_date] = [];
-                        }
-                        state.bookings[booking.booking_date].push(booking);
+                        // A range is listed on every day it takes; a single day has just its own date.
+                        var days = booking.days && booking.days.length ? booking.days : [booking.booking_date];
+                        days.forEach(function(day) {
+                            if (!state.bookings[day]) {
+                                state.bookings[day] = [];
+                            }
+                            state.bookings[day].push(booking);
+                        });
                     });
                 }
 
@@ -502,7 +506,7 @@
             var dayBookings = state.bookings[dateStr];
             for (var i = 0; i < dayBookings.length; i++) {
                 if (dayBookings[i].status === 'active') {
-                    allEvents.push({ type: 'booking', date: dayBookings[i].booking_date, data: dayBookings[i] });
+                    allEvents.push({ type: 'booking', date: dateStr, data: dayBookings[i] });
                 }
             }
         }
@@ -564,7 +568,7 @@
                 // Booking item
                 var booking = evt.data;
                 var evtColor = getEnvironmentColor(booking.environment_id);
-                html += '<div class="ffc-event-list-item" data-date="' + booking.booking_date + '" style="border-left: 3px solid ' + escapeHtml(evtColor) + ';">';
+                html += '<div class="ffc-event-list-item" data-date="' + evt.date + '" style="border-left: 3px solid ' + escapeHtml(evtColor) + ';">';
 
                 // Time
                 if (parseInt(booking.is_all_day)) {
