@@ -1700,6 +1700,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_post_meta' )->justReturn( '' );
+		Functions\expect( 'add_filter' )->once()->with( 'redirect_post_location', array( \FreeFormCertificate\Admin\FormEditorSaveHandler::class, 'drop_updated_message' ) );
 
 		$_POST = array(
 			'ffc_form_nonce' => 'ok',
@@ -1711,6 +1712,22 @@ class FormEditorSaveHandlerTest extends TestCase {
 
 		$this->assertArrayNotHasKey( '_ffc_form_config', $written, 'nothing is written while a required tag is missing' );
 		$this->assertContains( '{{auth_code}}', $transient['ffc_save_error_1'] );
+	}
+
+	public function test_a_refused_save_drops_the_post_updated_message(): void {
+		Functions\when( 'remove_query_arg' )->alias(
+			static function ( $key, $url ) {
+				list( $base, $query ) = explode( '?', (string) $url, 2 );
+				parse_str( $query, $args );
+				unset( $args[ $key ] );
+				return $base . '?' . http_build_query( $args );
+			}
+		);
+
+		$this->assertSame(
+			'post.php?post=10&action=edit',
+			\FreeFormCertificate\Admin\FormEditorSaveHandler::drop_updated_message( 'post.php?post=10&action=edit&message=1' )
+		);
 	}
 
 	public function test_a_layout_pointing_at_html_is_saved_with_a_warning(): void {
@@ -1935,6 +1952,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 
 		$this->assertStringContainsString( 'notice-error', $html );
 		$this->assertStringContainsString( '<code>{{name}}, {{cpf_rf}}</code>', $html, 'a non-scalar entry is dropped' );
+		$this->assertStringContainsString( 'The form was not saved.', $html, 'The notice says nothing was saved, not only that something is missing.' );
 		$this->assertSame( array( 'ffc_save_error_7' ), $deleted );
 	}
 

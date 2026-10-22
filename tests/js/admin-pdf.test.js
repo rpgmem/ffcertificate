@@ -211,6 +211,17 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 		expect(document.querySelector('#ffc_bg_image_input').value).toBe('');
 	});
 
+	it('carries the model page colour into the colour field, white when it has none', () => {
+		document.body.insertAdjacentHTML('beforeend', '<input type="color" id="ffc_bg_color_input" value="#123456" />');
+		stubPost({ success: true, data: { html: '<h1>C</h1>', bg_image: '', bg_color: '#0a3d62' } });
+		window.FFC.Admin.PDF.loadTemplate(10, 'Coloured');
+		expect(document.querySelector('#ffc_bg_color_input').value).toBe('#0a3d62');
+
+		stubPost({ success: true, data: { html: '<h1>W</h1>', bg_image: '', bg_color: '' } });
+		window.FFC.Admin.PDF.loadTemplate(11, 'White');
+		expect(document.querySelector('#ffc_bg_color_input').value).toBe('#ffffff');
+	});
+
 	it('leaves the bg field untouched for a legacy bare-string response', () => {
 		document.body.insertAdjacentHTML(
 			'beforeend',
@@ -298,6 +309,18 @@ describe('ffc-admin-pdf.js — save as model', () => {
 
 		const [, data] = window.$.post.mock.calls[0];
 		expect(data.bg_image).toBe('https://example.com/bg.png');
+	});
+
+	it('includes the current page colour so the model round-trips it', () => {
+		vi.spyOn(window, 'prompt').mockReturnValue('My Model');
+		document.body.insertAdjacentHTML('beforeend', '<input type="color" id="ffc_bg_color_input" value="#0a3d62" />');
+		const jqxhr = { done(cb) { cb({ success: true, data: { id: 9 } }); return jqxhr; }, fail() { return jqxhr; } };
+		window.$.post = vi.fn(() => jqxhr);
+
+		window.$('#ffc_save_as_model_btn').trigger('click');
+
+		const [, data] = window.$.post.mock.calls[0];
+		expect(data.bg_color).toBe('#0a3d62');
 	});
 });
 
@@ -441,16 +464,7 @@ describe('ffc-admin-pdf.js — preview button', () => {
 			<input id="title" value="Test Form" />
 			<div id="ffc-fields-container"></div>
 		`;
-		// previewSamples mirrors the PHP CertificatePreviewSamples::get_map()
-		// contract — the preview reads its sample catalog from there.
-		window.ffc_ajax = {
-			previewSamples: {
-				name: 'John Doe',
-				form_title: 'Título do Certificado',
-				bairro: 'Centro',
-				site_name: 'Sample Site',
-			},
-		};
+		window.ffc_ajax = {};
 		// The preview click is delegated on document, which survives reset();
 		// without unbinding, every beforeEach stacks another handler and one
 		// click posts N times.
@@ -570,6 +584,18 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		await flush();
 
 		expect(window.FFCLayoutPreview.capture).not.toHaveBeenCalled();
+		post.mockRestore();
+	});
+
+	it('reports the failure in the localized words', async () => {
+		window.ffc_ajax = { strings: { previewError: 'A pré-visualização falhou.' } };
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(failure());
+		document.querySelector('#ffc_pdf_layout').value = '<p>x</p>';
+
+		window.$('#ffc_btn_preview').trigger('click');
+		await flush();
+
+		expect(window.FFC.Admin.notify).toHaveBeenLastCalledWith('A pré-visualização falhou.', 'error', 3000);
 		post.mockRestore();
 	});
 

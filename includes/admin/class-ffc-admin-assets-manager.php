@@ -503,10 +503,6 @@ class AdminAssetsManager {
 			'ajax_url'              => admin_url( 'admin-ajax.php' ),
 			'nonce'                 => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
 			'export_nonce'          => wp_create_nonce( 'ffc_csv_export' ),
-			// Canonical placeholder → sample-value map for the in-editor
-			// certificate preview. Single source of truth lives in PHP so
-			// the JS can't drift from the generators' real placeholders.
-			'previewSamples'        => \FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
 			'templates'             => self::discover_layout_templates(),
 			// Certificate field types as an ordered {value,label} list — the
 			// single source of truth shared with the server-rendered row
@@ -615,6 +611,7 @@ class AdminAssetsManager {
 				'previewTitle'            => __( 'Certificate Preview', 'ffcertificate' ),
 				'previewEmpty'            => __( 'The HTML editor is empty. Add a template first.', 'ffcertificate' ),
 				'previewSampleNote'       => __( 'Placeholders replaced with sample data.', 'ffcertificate' ),
+				'previewError'            => __( 'The preview could not be rendered.', 'ffcertificate' ),
 				'close'                   => __( 'Close', 'ffcertificate' ),
 			),
 		);

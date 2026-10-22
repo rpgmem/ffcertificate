@@ -158,4 +158,18 @@ class CertTemplateReaderTest extends TestCase {
 	public function test_get_bg_image_returns_empty_for_nonpositive_id(): void {
 		$this->assertSame( '', CertTemplateReader::get_bg_image( 0 ) );
 	}
+
+	public function test_get_bg_color_reads_the_stored_colour_and_defaults_to_white(): void {
+		Functions\when( 'sanitize_hex_color' )->alias( static fn( $v ) => 1 === preg_match( '/^#[0-9a-f]{6}$/i', (string) $v ) ? $v : null );
+		Functions\when( 'get_post' )->justReturn( $this->fake_post( 5, 'X' ) );
+		Functions\when( 'get_post_meta' )->justReturn( '#0a3d62' );
+		$this->assertSame( '#0a3d62', CertTemplateReader::get_bg_color( 5 ) );
+
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+		$this->assertSame( '#ffffff', CertTemplateReader::get_bg_color( 5 ), 'A model saved before the colour existed is white.' );
+
+		Functions\when( 'get_post' )->justReturn( $this->fake_post( 5, 'X', 'page' ) );
+		$this->assertSame( '#ffffff', CertTemplateReader::get_bg_color( 5 ) );
+		$this->assertSame( '#ffffff', CertTemplateReader::get_bg_color( 0 ) );
+	}
 }

@@ -19243,8 +19243,8 @@ msgid "Warning"
 msgstr "Aviso"
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:629
-msgid "Warning! Missing required tags in PDF Layout:"
-msgstr "Atenção! Faltam tags obrigatórias no layout do PDF:"
+msgid "The form was not saved. The PDF layout lacks these required tags:"
+msgstr "O formulário não foi salvo. O layout do PDF não tem estas tags obrigatórias:"
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:118 includes/admin/class-ffc-admin-submission-edit-page.php:168
 msgid "Warning:"
@@ -23034,8 +23034,8 @@ msgstr "URLs dos logotipos definidas em Configurações > Geral > Identidade Vis
 msgid "Division / Sector (see the dependent-select note below for each half)"
 msgstr "Divisão / Setor (veja a nota sobre seleção dependente abaixo para cada parte)"
 
-msgid "The certificate PDF a form issues on submission (the default kind). Three ready-made certificate models ship."
-msgstr "O PDF do certificado que um formulário emite no envio (o tipo padrão). Três modelos de certificado prontos acompanham o plugin."
+msgid "The certificate PDF a form issues on submission (the default kind). Six ready-made certificate models ship."
+msgstr "O PDF do certificado que um formulário emite no envio (o tipo padrão). Seis modelos de certificado prontos acompanham o plugin."
 
 msgid "A read-only \"Current assignments\" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a \"Change\" link into that feature's own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature."
 msgstr "Uma visão geral somente leitura, \"Atribuições atuais\", na aba Modelos de documento, mostra qual modelo do acervo os comprovantes de agendamento (Regular e Personalizado) e a ficha de recadastramento estão usando no momento, com um link \"Alterar\" para as configurações do próprio recurso. Cada linha aparece apenas para usuários que podem visualizar aquele recurso, e os certificados não têm linha porque cada formulário escolhe o seu. A visão geral é apenas informativa — os controles de seleção (e suas permissões) continuam em cada recurso."
@@ -27826,3 +27826,15 @@ msgstr "Um campo obrigatório do formulário está vazio"
 #: includes/integrations/class-ffc-email-handler.php
 msgid "This submission is in the trash, so its link is not sent."
 msgstr "Esta submissão está na lixeira, por isso o link não é enviado."
+
+#: includes/admin/class-ffc-form-editor-save-handler.php
+msgid "Add them to the layout, or uncheck them in Settings → Certificates, and save again."
+msgstr "Inclua-as no layout, ou desmarque-as em Configurações → Certificados, e salve novamente."
+
+#: includes/settings/views/documentation/feature-certificates.php
+msgid "The layout box of the form editor sets a background image and a background colour; the colour fills the page wherever the image does not cover it. Preview renders the unsaved layout on the server with sample data, through the same renderer as the PDF, so the background, the colour and the QR code are the ones the certificate prints. Save as model keeps the layout, the image and the colour, and loading the model brings all three back."
+msgstr "A caixa de layout do editor de formulário define uma imagem de fundo e uma cor de fundo; a cor preenche a página onde a imagem não cobre. A pré-visualização renderiza no servidor o layout ainda não salvo, com dados de exemplo e pelo mesmo renderizador do PDF, então o fundo, a cor e o QR code são os que o certificado imprime. Salvar como modelo guarda o layout, a imagem e a cor, e carregar o modelo traz os três de volta."
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "The preview could not be rendered."
+msgstr "Não foi possível gerar a pré-visualização."

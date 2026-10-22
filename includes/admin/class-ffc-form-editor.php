@@ -344,6 +344,7 @@ class FormEditor {
 				array(
 					'html'     => $html,
 					'bg_image' => CertTemplateReader::get_bg_image( $template_id ),
+					'bg_color' => CertTemplateReader::get_bg_color( $template_id ),
 				)
 			);
 		}
@@ -444,8 +445,9 @@ class FormEditor {
 		// Round-trip the current background so a saved model carries it back
 		// when re-loaded (#865).
 		$bg_image = isset( $_POST['bg_image'] ) ? esc_url_raw( wp_unslash( $_POST['bg_image'] ) ) : '';
+		$bg_color = isset( $_POST['bg_color'] ) ? \FreeFormCertificate\Core\FormBackground::normalize_color( sanitize_text_field( wp_unslash( $_POST['bg_color'] ) ) ) : '';
 
-		$id = CertTemplateWriter::create( $title, $html, true, $bg_image );
+		$id = CertTemplateWriter::create( $title, $html, true, $bg_image, CertTemplateCpt::KIND_CERTIFICATE, $bg_color );
 		if ( $id <= 0 ) {
 			wp_send_json_error();
 		}

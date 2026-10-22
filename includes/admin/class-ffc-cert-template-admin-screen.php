@@ -323,14 +323,15 @@ class CertTemplateAdminScreen {
 			wp_die( esc_html__( 'Template not found.', 'ffcertificate' ) );
 		}
 
-		$html = (string) get_post_meta( $post_id, CertTemplateCpt::META_HTML, true );
-		$bg   = (string) get_post_meta( $post_id, CertTemplateCpt::META_BG_IMAGE, true );
-		$kind = CertTemplateReader::get_kind( $post_id );
+		$html  = (string) get_post_meta( $post_id, CertTemplateCpt::META_HTML, true );
+		$bg    = (string) get_post_meta( $post_id, CertTemplateCpt::META_BG_IMAGE, true );
+		$kind  = CertTemplateReader::get_kind( $post_id );
+		$color = (string) get_post_meta( $post_id, CertTemplateCpt::META_BG_COLOR, true );
 		/* translators: %s: source template title */
 		$title = sprintf( __( '%s (copy)', 'ffcertificate' ), (string) $post->post_title );
 		// Preserve the source's kind + background so a duplicated receipt stays a
 		// receipt (#945) and a duplicated certificate keeps its background.
-		$new_id = CertTemplateWriter::create( $title, $html, true, $bg, $kind );
+		$new_id = CertTemplateWriter::create( $title, $html, true, $bg, $kind, $color );
 
 		// Open the new copy for editing; fall back to the list on failure.
 		$redirect = $new_id > 0
@@ -545,7 +546,11 @@ class CertTemplateAdminScreen {
 		$bg       = (string) get_post_meta( $post_id, CertTemplateCpt::META_BG_IMAGE, true );
 		$rendered = $this->render_sample( $html, (string) $post->post_title );
 
-		$this->emit_preview_page( (string) $post->post_title, $this->with_background( $rendered, $bg ) );
+		// The background sits behind the body as the PDF draws it; a template
+		// carries no colour of its own, so none is painted.
+		$page = '' === $bg ? $rendered : \FreeFormCertificate\Generators\FormLayoutPreview::wrap( $rendered, $bg, '' );
+
+		$this->emit_preview_page( (string) $post->post_title, $page );
 	}
 
 	/**
@@ -561,26 +566,6 @@ class CertTemplateAdminScreen {
 		$samples  = \FreeFormCertificate\Core\CertificatePreviewSamples::get_map();
 
 		return $renderer->generate_html( $samples, $title, array( 'pdf_layout' => $template_html ) );
-	}
-
-	/**
-	 * Place a template's background image behind its rendered body, the way the
-	 * PDF generator does: an absolutely positioned image covering the A4 canvas,
-	 * with `object-fit: cover`, under the body. An empty URL returns the body as is.
-	 *
-	 * @param string $body Rendered template body fragment.
-	 * @param string $bg   Background image URL (empty when the template has none).
-	 * @return string The body, prefixed by the background image when there is one.
-	 */
-	protected function with_background( string $body, string $bg ): string {
-		if ( '' === $bg ) {
-			return $body;
-		}
-
-		return '<div style="position:relative;width:1123px;height:794px;">'
-			. '<img src="' . esc_url( $bg ) . '" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;">'
-			. $body
-			. '</div>';
 	}
 
 	/**

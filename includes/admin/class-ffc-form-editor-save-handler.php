@@ -86,7 +86,21 @@ class FormEditorSaveHandler {
 		}
 
 		set_transient( 'ffc_save_error_' . get_current_user_id(), $missing_tags, 45 );
+		// WordPress still saves the post itself and would report "Post updated";
+		// redirect_post_location is the last point before that redirect, and
+		// dropping its message leaves the refusal as the only word on the screen.
+		add_filter( 'redirect_post_location', array( self::class, 'drop_updated_message' ) );
 		return true;
+	}
+
+	/**
+	 * Remove the "Post updated" message from the redirect after a refused save.
+	 *
+	 * @param string $location Redirect URL.
+	 * @return string
+	 */
+	public static function drop_updated_message( string $location ): string {
+		return remove_query_arg( 'message', $location );
 	}
 
 	/**
@@ -803,7 +817,7 @@ class FormEditorSaveHandler {
 			delete_transient( 'ffc_save_error_' . get_current_user_id() );
 			ob_start();
 			?>
-			<p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $error_tags, 'is_scalar' ) ) ) ); ?></code>.</p>
+			<p><strong><?php esc_html_e( 'The form was not saved. The PDF layout lacks these required tags:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $error_tags, 'is_scalar' ) ) ) ); ?></code>. <?php esc_html_e( 'Add them to the layout, or uncheck them in Settings → Certificates, and save again.', 'ffcertificate' ); ?></p>
 			<?php
 			\FreeFormCertificate\Core\AdminNotice::render(
 				'error',
