@@ -489,22 +489,28 @@
     background: var(--ffc-bg-alt);
 }
 
-.ffc-shortcode .ffc-booking-form {
+/* The footer sizes its own buttons: on a page that also carries a personal
+   calendar, that sheet makes every `.ffc-btn` full width below 768px (#2013). */
+.ffc-shortcode .ffc-booking-footer .ffc-btn:not(.ffc-btn-icon) {
+    width: auto;
+}
+
+.ffc-shortcode .ffc-audience-booking-form {
     display: flex;
     flex-direction: column;
     gap: var(--ffc-spacing-3xl);
 }
 
-.ffc-shortcode .ffc-booking-form .ffc-form-group {
+.ffc-shortcode .ffc-audience-booking-form .ffc-form-group {
     min-width: 0;
     margin-bottom: 0;
 }
 
 /* A width of 100% plus padding was wider than the dialog, which is what
    scrolled it sideways: the border box keeps every field inside. */
-.ffc-shortcode .ffc-booking-form input:not([type="checkbox"]):not([type="radio"]),
-.ffc-shortcode .ffc-booking-form select,
-.ffc-shortcode .ffc-booking-form textarea {
+.ffc-shortcode .ffc-audience-booking-form input:not([type="checkbox"]):not([type="radio"]),
+.ffc-shortcode .ffc-audience-booking-form select,
+.ffc-shortcode .ffc-audience-booking-form textarea {
     box-sizing: border-box;
     max-width: 100%;
     color: var(--ffc-text);
@@ -529,12 +535,12 @@
 
 /* The start and end times sit side by side on a phone too: two short
    fields fit, and `minmax(0, 1fr)` lets them shrink instead of overflowing. */
-.ffc-shortcode .ffc-booking-form .ffc-form-row {
+.ffc-shortcode .ffc-audience-booking-form .ffc-form-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--ffc-spacing-lg);
 }
 
-.ffc-shortcode .ffc-booking-form .ffc-control-toggle-field .description {
+.ffc-shortcode .ffc-audience-booking-form .ffc-control-toggle-field .description {
     margin: var(--ffc-spacing-2xs) 0 0;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
@@ -637,7 +643,7 @@
     pointer-events: none;
 }
 
-.ffc-shortcode .ffc-booking-form .ffc-audience-picker-search input {
+.ffc-shortcode .ffc-audience-booking-form .ffc-audience-picker-search input {
     width: 100%;
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-md) var(--ffc-spacing-sm) calc(var(--ffc-spacing-md) + var(--ffc-spacing-3xl));
     border: 1px solid var(--ffc-border);
@@ -769,7 +775,7 @@
 
 /* The legend of a segmented control is for screen readers; the public page
    cannot count on the theme to hide the class. */
-.ffc-shortcode .ffc-booking-form .screen-reader-text {
+.ffc-shortcode .ffc-audience-booking-form .screen-reader-text {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -779,7 +785,7 @@
 }
 
 /* A block the script hides stays hidden, whatever display its class sets. */
-.ffc-shortcode .ffc-booking-form [hidden] {
+.ffc-shortcode .ffc-audience-booking-form [hidden] {
     display: none;
 }
 
@@ -810,10 +816,14 @@
         grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
     }
 
+    .ffc-shortcode .ffc-booking-footer .ffc-btn:not(.ffc-btn-icon) {
+        width: 100%;
+    }
+
     /* 16px keeps a phone from zooming into the field it focuses. */
-    .ffc-shortcode .ffc-booking-form input:not([type="checkbox"]):not([type="radio"]),
-    .ffc-shortcode .ffc-booking-form select,
-    .ffc-shortcode .ffc-booking-form textarea {
+    .ffc-shortcode .ffc-audience-booking-form input:not([type="checkbox"]):not([type="radio"]),
+    .ffc-shortcode .ffc-audience-booking-form select,
+    .ffc-shortcode .ffc-audience-booking-form textarea {
         min-height: 44px;
         font-size: var(--ffc-font-size-lg);
     }

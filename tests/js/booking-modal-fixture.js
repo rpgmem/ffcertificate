@@ -40,7 +40,7 @@ export function bookingModalHtml(opts = {}) {
 					<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
 				</div>
 				<div class="ffc-modal-body ffc-booking-body">
-					<form id="ffc-booking-form" class="ffc-booking-form">
+					<form id="ffc-booking-form" class="ffc-audience-booking-form">
 						<input type="hidden" name="booking_date" id="booking-date">
 						<fieldset id="booking-span" class="ffc-control-segmented">
 							<label><input type="radio" id="booking-span-1" name="booking_span" value="single" checked></label>
