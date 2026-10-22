@@ -24493,8 +24493,8 @@ msgstr "Todas as regras ativas"
 msgid "All of the rule's audiences"
 msgstr "Todos os públicos da regra"
 
-msgid "Everyone, or the members of the audiences chosen in the two-column picker — the same one the reregistration campaign uses. Belonging to any one of them is enough, and members of their sub-audiences are included; choosing an audience brings its sub-audiences along."
-msgstr "Todos, ou os membros dos públicos escolhidos no seletor de duas colunas — o mesmo usado na campanha de recadastramento. Basta pertencer a um deles, e membros dos sub-públicos estão incluídos; escolher um público traz junto os sub-públicos dele."
+msgid "Everyone, or the members of the audiences chosen in the two-column picker — the same one the reregistration campaign uses. Belonging to any one of them is enough, and members of their sub-audiences are included; choosing an audience brings its sub-audiences along. The number beside each audience is how many people it reaches, sub-audiences included, each person counted once."
+msgstr "Todos, ou os membros dos públicos escolhidos no seletor de duas colunas — o mesmo usado na campanha de recadastramento. Basta pertencer a um deles, e membros dos sub-públicos estão incluídos; escolher um público traz junto os sub-públicos dele. O número ao lado de cada público é quantas pessoas ele alcança, sub-públicos incluídos, cada pessoa contada uma vez."
 
 msgid "QR Code in the Certificate"
 msgstr "QR Code no Certificado"

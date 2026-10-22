@@ -75,6 +75,10 @@
                     .append($dot)
                     .append(document.createTextNode(' '))
                     .append($('<span>', { 'class': 'ffc-transfer-label' }).text(label));
+                if (typeof a.members === 'number') {
+                    // People the choice reaches, sub-audiences included.
+                    $item.append($('<span>', { 'class': 'ffc-transfer-count' }).text('(' + a.members + ')'));
+                }
 
                 if (inSelected) {
                     $selected.append($item);

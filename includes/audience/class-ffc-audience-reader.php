@@ -569,6 +569,57 @@ class AudienceReader {
 	}
 
 	/**
+	 * The existing members of every audience, in two queries whatever the
+	 * number of audiences.
+	 *
+	 * A picker that shows a count beside each audience would otherwise call
+	 * {@see self::get_member_count()} once per row. Members whose account no
+	 * longer exists are left out, as that method leaves them out.
+	 *
+	 * @since 6.42.0
+	 * @return array<int, list<int>> User ids keyed by audience id; an audience with no member is absent.
+	 */
+	public static function get_member_ids_by_audience(): array {
+		$wpdb = self::db();
+		/**
+		 * Two integer columns of the members table, as MySQL returns them.
+		 *
+		 * @var list<array{audience_id: numeric-string, user_id: numeric-string}>|null $rows
+		 */
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( 'SELECT audience_id, user_id FROM %i', self::get_members_table_name() ),
+			ARRAY_A
+		);
+		if ( ! is_array( $rows ) || array() === $rows ) {
+			return array();
+		}
+
+		$user_ids = array_values( array_unique( array_map( static fn( array $row ): int => (int) $row['user_id'], $rows ) ) );
+		$existing = array_flip(
+			array_map(
+				'intval',
+				get_users(
+					array(
+						'include'     => $user_ids,
+						'fields'      => 'ID',
+						'blog_id'     => 0,
+						'count_total' => false,
+					)
+				)
+			)
+		);
+
+		$by_audience = array();
+		foreach ( $rows as $row ) {
+			$user_id = (int) $row['user_id'];
+			if ( isset( $existing[ $user_id ] ) ) {
+				$by_audience[ (int) $row['audience_id'] ][] = $user_id;
+			}
+		}
+		return $by_audience;
+	}
+
+	/**
 	 * Count audiences
 	 *
 	 * @param array<string, mixed> $args Query arguments (parent_id, status).

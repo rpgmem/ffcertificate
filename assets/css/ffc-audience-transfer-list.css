@@ -74,6 +74,16 @@
     box-shadow: 0 0 0 1px var(--ffc-text-on-primary);
 }
 
+/* The number of people a choice reaches, after the name. */
+.ffc-transfer-count {
+    color: var(--ffc-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.ffc-transfer-item.ffc-transfer-highlight .ffc-transfer-count {
+    color: inherit;
+}
+
 .ffc-transfer-child {
     padding-left: var(--ffc-spacing-3xl);
 }
