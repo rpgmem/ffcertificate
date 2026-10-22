@@ -23878,7 +23878,7 @@ msgstr ""
 msgid "Controls the dark mode appearance of the plugin's admin screens and of its public pages (forms, user dashboard, shortcodes)."
 msgstr ""
 
-msgid "Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks."
+msgid "Create, edit, duplicate and delete rules. Sending a rule takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks."
 msgstr ""
 
 msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
@@ -23932,7 +23932,7 @@ msgstr ""
 msgid "Where they are assigned"
 msgstr ""
 
-msgid "create and edit rules and send manually. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
+msgid "create, edit, duplicate and delete rules. Sending a rule, or saving an active announcement with a send time, takes ffc_send_date_messages. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
 msgstr ""
 
 msgid "off by default; when \"Pre-load cache daily\" is on, a daily task pre-loads every published form into the cache. Its time is set on Settings → Scheduled Tasks."
@@ -27742,4 +27742,28 @@ msgstr ""
 
 #: includes/integrations/class-ffc-email-handler.php
 msgid "This submission is in the trash, so its link is not sent."
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Date messages announcement (one per scheduled announcement)"
+msgstr ""
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Done. You will no longer receive announcements from this site. You can turn them back on in your dashboard profile."
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Saving this would schedule the announcement to be sent, and your account cannot send messages. Leave it inactive or without a send time, or ask someone who can send."
+msgstr ""
+
+#: templates/admin/date-messages/history.php
+msgid "Sent despite an opt-out"
+msgstr ""
+
+#: templates/emails/date-message-digest.php
+msgid "Sent despite an opt-out (included in Sent)"
+msgstr ""
+
+#: templates/emails/date-message-digest.php
+msgid "announcement"
 msgstr ""

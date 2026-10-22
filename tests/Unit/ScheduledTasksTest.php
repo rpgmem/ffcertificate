@@ -102,7 +102,10 @@ class ScheduledTasksTest extends TestCase {
 		$this->assertNotSame( array(), $hooks, 'The register is empty -- the check did not run.' );
 
 		foreach ( $hooks as $hook ) {
-			$call = "wp_clear_scheduled_hook( '{$hook}' )";
+			// A single event carries its arguments, and wp_clear_scheduled_hook()
+			// clears only the events whose arguments match the ones it is given:
+			// with none, it left every batch, digest and announcement behind.
+			$call = self::clear_call( $hook );
 			$this->assertStringContainsString( $call, $kept_block, "{$hook} is not cleared when data is kept." );
 			$this->assertStringContainsString( $call, $purge_block, "{$hook} is not cleared on a full purge." );
 		}
@@ -124,6 +127,7 @@ class ScheduledTasksTest extends TestCase {
 			'ffc_date_messages_daily'           => 'DateMessagesCron::unschedule()',
 			'ffc_date_messages_batch'           => 'DateMessagesCron::unschedule()',
 			'ffc_date_messages_digest'          => 'DateMessagesCron::unschedule()',
+			'ffc_date_messages_announce'        => 'DateMessagesCron::unschedule()',
 			'ffcertificate_warm_cache_hook'     => 'FormCache::unschedule_cache_warming()',
 		);
 
@@ -133,7 +137,7 @@ class ScheduledTasksTest extends TestCase {
 				// its work to do on reactivation; only uninstall drops it.
 				continue;
 			}
-			$needle = $via_class[ $hook ] ?? "wp_clear_scheduled_hook( '{$hook}' )";
+			$needle = $via_class[ $hook ] ?? self::clear_call( $hook );
 			$this->assertStringContainsString( $needle, $body, "{$hook} survives deactivation." );
 		}
 	}
@@ -155,10 +159,32 @@ class ScheduledTasksTest extends TestCase {
 			\FreeFormCertificate\DateMessages\DateMessagesCron::CRON_HOOK,
 			\FreeFormCertificate\DateMessages\Runner::BATCH_HOOK,
 			\FreeFormCertificate\DateMessages\Digest::HOOK,
+			\FreeFormCertificate\DateMessages\Runner::ANNOUNCE_HOOK,
 			\FreeFormCertificate\Submissions\FormCache::WARM_HOOK,
 		) as $constant ) {
 			$this->assertArrayHasKey( $constant, $all );
 		}
+	}
+
+	public function test_the_date_messages_cron_unschedules_every_single_event_whatever_its_arguments(): void {
+		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/date-messages/class-ffc-date-messages-cron.php' );
+
+		foreach ( array( 'Runner::BATCH_HOOK', 'Digest::HOOK', 'Runner::ANNOUNCE_HOOK' ) as $hook ) {
+			$this->assertStringContainsString( "wp_unschedule_hook( {$hook} )", $source );
+		}
+	}
+
+	/**
+	 * The call that removes every pending event of a hook: a recurring event
+	 * has no arguments, a single one does.
+	 *
+	 * @param string $hook Registered hook.
+	 * @return string
+	 */
+	private static function clear_call( string $hook ): string {
+		return ScheduledTasks::SINGLE === ScheduledTasks::all()[ $hook ]['recurrence']
+			? "wp_unschedule_hook( '{$hook}' )"
+			: "wp_clear_scheduled_hook( '{$hook}' )";
 	}
 
 	public function test_every_registered_hook_has_its_own_label(): void {
@@ -292,6 +318,7 @@ class ScheduledTasksTest extends TestCase {
 				'ffc_reregistration_invitation_batch' => 0,
 				'ffc_date_messages_batch'             => 0,
 				'ffc_date_messages_digest'            => 0,
+				'ffc_date_messages_announce'          => 0,
 			),
 			ScheduledTasks::pending_singles( $crons )
 		);

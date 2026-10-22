@@ -139,6 +139,10 @@ final class ScheduledTasks {
 			'recurrence' => self::SINGLE,
 			'module'     => 'date_messages',
 		),
+		'ffc_date_messages_announce'                  => array(
+			'recurrence' => self::SINGLE,
+			'module'     => 'date_messages',
+		),
 	);
 
 	/**
@@ -197,6 +201,8 @@ final class ScheduledTasks {
 				return __( 'Date messages batch (one per batch)', 'ffcertificate' );
 			case 'ffc_date_messages_digest':
 				return __( 'Date messages manager summary (one per run)', 'ffcertificate' );
+			case 'ffc_date_messages_announce':
+				return __( 'Date messages announcement (one per scheduled announcement)', 'ffcertificate' );
 		}
 		return $hook;
 	}
