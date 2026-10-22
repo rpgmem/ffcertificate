@@ -41,9 +41,15 @@ final class QuizGrading {
 	 * nothing: its points are already in the stored maximum and cannot be
 	 * earned any more.
 	 *
+	 * A manual question the form gained after the attempt is listed too, and
+	 * marked `added`: its points were never in the attempt's maximum, so
+	 * {@see apply()} adds them there. A question the participant answered that
+	 * was not in the snapshot existed at submission as an automatic question,
+	 * so its points are already in the score and it is not listed again.
+	 *
 	 * @param array<string, mixed>             $data   Stored submission data.
 	 * @param array<int, array<string, mixed>> $fields Form fields configuration.
-	 * @return array<string, array{label: string, worth: int, answer: string}> Keyed by question name.
+	 * @return array<string, array{label: string, worth: int, answer: string, added: bool}> Keyed by question name.
 	 */
 	public static function pending_questions( array $data, array $fields ): array {
 		$by_name = array();
@@ -56,20 +62,31 @@ final class QuizGrading {
 
 		// The snapshot taken at submission keeps a question that has since left the form:
 		// its points are still in the attempt's maximum, so it must still be graded.
-		$snapshot = isset( $data['_quiz_pending'] ) && is_array( $data['_quiz_pending'] ) ? $data['_quiz_pending'] : array();
-		$names    = array_values( array_unique( array_merge( $snapshot, array_keys( $by_name ) ) ) );
+		$has_snapshot = isset( $data['_quiz_pending'] ) && is_array( $data['_quiz_pending'] );
+		$snapshot     = $has_snapshot ? $data['_quiz_pending'] : array();
+		$graded       = isset( $data['_quiz_grades'] ) && is_array( $data['_quiz_grades'] ) ? $data['_quiz_grades'] : array();
+		$names        = array_values( array_unique( array_merge( $snapshot, array_keys( $by_name ) ) ) );
 
 		$out = array();
 		foreach ( $names as $name ) {
-			if ( ! is_string( $name ) || '' === $name ) {
+			if ( ! is_string( $name ) || '' === $name || array_key_exists( $name, $graded ) ) {
 				continue;
 			}
+
+			// An attempt stored before the snapshot existed has no list to compare with,
+			// so every manual question of the form is taken as part of its maximum.
+			$added = $has_snapshot && ! in_array( $name, $snapshot, true );
+			if ( $added && array_key_exists( $name, $data ) ) {
+				continue;
+			}
+
 			$field        = $by_name[ $name ] ?? null;
 			$answer       = $data[ $name ] ?? '';
 			$out[ $name ] = array(
 				'label'  => null !== $field ? ArrayValue::string( $field, 'label', $name ) : $name,
 				'worth'  => null !== $field ? QuizQuestion::points( $field ) : 0,
 				'answer' => is_array( $answer ) ? implode( ', ', array_map( 'strval', $answer ) ) : ( is_scalar( $answer ) ? (string) $answer : '' ),
+				'added'  => $added,
 			);
 		}
 		return $out;
@@ -78,15 +95,16 @@ final class QuizGrading {
 	/**
 	 * Apply the grades and compute the attempt's result.
 	 *
-	 * @param array<string, mixed>                                            $data        Stored submission data.
-	 * @param array<string, array{label: string, worth: int, answer: string}> $pending     {@see pending_questions()}.
-	 * @param array<string, mixed>                                            $form_config Form configuration.
-	 * @param array<string, int>                                              $grades      Points given, keyed by question name.
+	 * @param array<string, mixed>                                                          $data        Stored submission data.
+	 * @param array<string, array{label: string, worth: int, answer: string, added?: bool}> $pending     {@see pending_questions()}.
+	 * @param array<string, mixed>                                                          $form_config Form configuration.
+	 * @param array<string, int>                                                            $grades      Points given, keyed by question name.
 	 * @return GradingResult|\WP_Error An error when a pending question has no grade.
 	 */
 	public static function apply( array $data, array $pending, array $form_config, array $grades ) {
 		$given   = array();
 		$score   = ArrayValue::int( $data, '_quiz_score', 0 );
+		$max     = ArrayValue::int( $data, '_quiz_max_score', 0 );
 		$correct = ArrayValue::int( $data, '_quiz_correct_count', 0 );
 		$counted = ArrayValue::int( $data, '_quiz_question_count', 0 );
 
@@ -101,10 +119,15 @@ final class QuizGrading {
 			if ( $question['worth'] > 0 && $earned >= $question['worth'] ) {
 				++$correct;
 			}
+			// A question the form gained after the attempt was never in its maximum.
+			if ( ! empty( $question['added'] ) ) {
+				$max += $question['worth'];
+			}
 		}
 
-		$max     = ArrayValue::int( $data, '_quiz_max_score', 0 );
-		$percent = $max > 0 ? (int) round( ( $score / $max ) * 100 ) : 0;
+		// Never above 100%: an attempt stored without a snapshot cannot tell which
+		// of the form's manual questions its maximum already holds.
+		$percent = $max > 0 ? min( 100, (int) round( ( $score / $max ) * 100 ) ) : 0;
 		$passed  = $percent >= ArrayValue::int( $form_config, 'quiz_passing_score', 70 );
 
 		$max_attempts = ArrayValue::int( $form_config, 'quiz_max_attempts', 0 );
@@ -120,6 +143,7 @@ final class QuizGrading {
 		$previous = isset( $data['_quiz_grades'] ) && is_array( $data['_quiz_grades'] ) ? $data['_quiz_grades'] : array();
 		unset( $data['_quiz_pending'] );
 		$data['_quiz_score']          = $score;
+		$data['_quiz_max_score']      = $max;
 		$data['_quiz_percent']        = $percent;
 		$data['_quiz_passed']         = $passed ? '1' : '0';
 		$data['_quiz_correct_count']  = $correct;

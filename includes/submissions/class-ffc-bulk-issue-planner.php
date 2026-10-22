@@ -19,6 +19,7 @@ namespace FreeFormCertificate\Submissions;
 use FreeFormCertificate\Core\CsvReader;
 use FreeFormCertificate\Core\DataSanitizer;
 use FreeFormCertificate\Core\DocumentFormatter;
+use FreeFormCertificate\Core\QuizQuestion;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -45,7 +46,10 @@ final class BulkIssuePlanner {
 	/** Skip reason: the line has no e-mail, so its link cannot be sent. */
 	public const SKIP_MISSING_EMAIL  = 'missing_email';
 	public const SKIP_DUPLICATE_FILE = 'duplicate_in_file';
-	public const SKIP_INVALID_DATE   = 'invalid_date';
+
+	/** A field the form requires is empty in the file. The runner checks it again before issuing. */
+	public const SKIP_MISSING_REQUIRED = 'missing_required';
+	public const SKIP_INVALID_DATE     = 'invalid_date';
 
 	/** Score choice: the form is not a quiz, so no score is set. */
 	public const SCORE_NONE = 'none';
@@ -98,6 +102,41 @@ final class BulkIssuePlanner {
 			if ( '' !== $name && ! in_array( $name, $names, true ) ) {
 				$names[] = $name;
 			}
+		}
+
+		return $names;
+	}
+
+	/**
+	 * Form fields a line must fill, besides name, CPF/RF and e-mail. The preview
+	 * and the issue both read this list, so they cannot disagree on a line.
+	 *
+	 * When the score comes from the file, a scored quiz question is not asked:
+	 * the file holds the points, not the answers.
+	 *
+	 * @param array<int, mixed> $fields           Rows of `_ffc_form_fields`.
+	 * @param bool              $score_from_file  Whether the job takes its score from the file.
+	 * @return array<int, string> Field names, in form order.
+	 */
+	public static function required_fields( array $fields, bool $score_from_file ): array {
+		$names = array();
+
+		foreach ( $fields as $field ) {
+			if ( ! is_array( $field ) || empty( $field['required'] ) ) {
+				continue;
+			}
+
+			$name = is_scalar( $field['name'] ?? null ) ? trim( (string) $field['name'] ) : '';
+
+			if ( '' === $name || in_array( $name, self::REQUIRED_KEYS, true ) || in_array( $name, $names, true ) ) {
+				continue;
+			}
+
+			if ( $score_from_file && QuizQuestion::is_scored( $field ) ) {
+				continue;
+			}
+
+			$names[] = $name;
 		}
 
 		return $names;
@@ -183,6 +222,7 @@ final class BulkIssuePlanner {
 	 * @param array{mode: string, date: string, column: string}        $dates   Issue-date choice; defaults to DATE_NOW.
 	 * @param bool                                                     $send_links Send each issued certificate's link e-mail.
 	 * @param array{mode: string, column: string, max: int, pass: int} $score Score choice; `none` for a form that is not a quiz.
+	 * @param array<int, string>                                       $required Form fields a line must fill, from required_fields().
 	 * @return array{issue: array<int, array<string, mixed>>, skipped: array<int, array{line: int, reason: string}>, zero_score: int}
 	 */
 	public static function plan( array $rows, array $mapping, array $header, array $dates = array(
@@ -194,7 +234,7 @@ final class BulkIssuePlanner {
 		'column' => '',
 		'max'    => 0,
 		'pass'   => 0,
-	) ): array {
+	), array $required = array() ): array {
 		$index = array_flip( $header );
 		$plan  = array(
 			'issue'      => array(),
@@ -268,6 +308,16 @@ final class BulkIssuePlanner {
 					'reason' => self::SKIP_INVALID_EMAIL,
 				);
 				continue;
+			}
+
+			foreach ( $required as $key ) {
+				if ( '' === $read( $key ) ) {
+					$plan['skipped'][] = array(
+						'line'   => $line,
+						'reason' => self::SKIP_MISSING_REQUIRED,
+					);
+					continue 2;
+				}
 			}
 
 			$issued_at = self::issued_at( $dates, $cells, $index );

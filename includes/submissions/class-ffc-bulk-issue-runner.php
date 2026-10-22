@@ -124,14 +124,16 @@ final class BulkIssueRunner {
 	/**
 	 * Issues the next batch of a job.
 	 *
-	 * The return value is the number of lines this call changed, and it is what
-	 * a caller loops on: each line handled leaves the pending set, so the loop
-	 * ends when a batch reports zero, whatever the rules for skipping drift to.
-	 * The batch that finds nothing left ends the job.
+	 * The return value is the number of lines this call claimed, and it is what
+	 * ends the job: each claimed line leaves the pending set before it is
+	 * handled, so a batch that claims nothing has nothing left to move, and it
+	 * finishes the job whatever the rules for skipping drift to (CLAUDE.md
+	 * "Batched migrations"). A line that fails mid-issue stays claimed rather
+	 * than pending, so it is never issued twice.
 	 *
 	 * @param int $job_id Job ID.
 	 * @param int $size   Lines to take in this batch.
-	 * @return int Lines changed; 0 when the job is finished or missing.
+	 * @return int Lines claimed; 0 when the job is finished or missing.
 	 */
 	public function process_batch( int $job_id, int $size = self::BATCH_SIZE ): int {
 		$job = BulkIssueRepository::find_job( $job_id );
@@ -157,8 +159,16 @@ final class BulkIssueRunner {
 		$form_title  = (string) get_the_title( $form_id );
 		$issued      = 0;
 		$skipped     = 0;
+		$claimed     = 0;
 
 		foreach ( $rows as $row ) {
+			// A batch running beside this one may have taken the line first. A
+			// claimed line has left the pending set, whatever happens to it next.
+			if ( ! BulkIssueRepository::claim_row( $row['id'] ) ) {
+				continue;
+			}
+			++$claimed;
+
 			$reason = $this->skip_reason( $form_id, $fields, $row );
 
 			if ( '' !== $reason ) {
@@ -199,6 +209,7 @@ final class BulkIssueRunner {
 				array(
 					'send_email'      => false,
 					'submission_date' => $this->issued_at( $data ),
+					'record_ip'       => false,
 				)
 			);
 
@@ -220,11 +231,13 @@ final class BulkIssueRunner {
 
 		BulkIssueRepository::add_counts( $job_id, $issued, $skipped );
 
-		if ( 0 === BulkIssueRepository::count_pending( $job_id ) ) {
+		// A batch that could claim nothing would claim nothing next time either,
+		// so it ends the job rather than leave the browser polling.
+		if ( 0 === $claimed || 0 === BulkIssueRepository::count_pending( $job_id ) ) {
 			$this->finish( $job_id );
 		}
 
-		return count( $rows );
+		return $claimed;
 	}
 
 	/**
@@ -291,12 +304,10 @@ final class BulkIssueRunner {
 			)
 		);
 
-		foreach ( $fields as $field ) {
-			if ( empty( $field['required'] ) || ! isset( $field['name'] ) ) {
-				continue;
-			}
-
-			if ( '' === trim( (string) ( $values[ $field['name'] ] ?? '' ) ) ) {
+		// The same list the preview checked; a line whose score comes from the file
+		// carries no answers to the form's scored questions.
+		foreach ( BulkIssuePlanner::required_fields( $fields, is_array( $row['data']['score'] ?? null ) ) as $name ) {
+			if ( '' === trim( (string) ( $values[ $name ] ?? '' ) ) ) {
 				return self::SKIP_MISSING_REQUIRED;
 			}
 		}

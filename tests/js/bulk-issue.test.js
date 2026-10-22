@@ -137,4 +137,28 @@ describe('ffc-bulk-issue.js', () => {
 		expect(document.querySelector('.ffc-bulk-issue-start').disabled).toBe(false);
 	});
 
+	it('sends the mapping and the choices the preview carries as hidden fields when the job starts', async () => {
+		const preview = '<input type="hidden" name="ffc_map[name]" value="Nome">'
+			+ '<input type="hidden" name="ffc_issue_mode" value="column">'
+			+ '<p><button type="button" class="ffc-bulk-issue-start">Issue 1</button></p>';
+		const replies = [
+			{ success: true, data: { html: preview, label: 'Preview' } },
+			{ success: false, data: { message: 'stop' } },
+		];
+		fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve(replies.shift()) }));
+		window.fetch = fetchMock;
+		window.ffcBulkIssue.runNonce = 'run';
+		loadScript('assets/js/ffc-bulk-issue.js');
+
+		click();
+		await flush();
+		document.querySelector('.ffc-bulk-issue-start').click();
+		await flush();
+
+		const start = fetchMock.mock.calls[1][1].body;
+		expect(start.get('action')).toBe('ffc_bulk_issue_start');
+		expect(start.get('ffc_map[name]')).toBe('Nome');
+		expect(start.get('ffc_issue_mode')).toBe('column');
+	});
+
 });

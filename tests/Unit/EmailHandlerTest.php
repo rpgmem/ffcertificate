@@ -567,6 +567,14 @@ class EmailHandlerTest extends TestCase {
 		$this->assertSame( array(), $this->sent_emails );
 	}
 
+	public function test_resend_refuses_a_submission_in_the_trash(): void {
+		$result = $this->handler_with_row( $this->resendable_row( array( 'status' => SubmissionStatus::TRASH ) ) )->resend_link( 77 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_link_trashed', $result->get_error_code() );
+		$this->assertSame( array(), $this->sent_emails );
+	}
+
 	public function test_resend_refuses_a_submission_with_no_address(): void {
 		$result = $this->handler_with_row( $this->resendable_row( array( 'email' => '' ) ) )->resend_link( 77 );
 

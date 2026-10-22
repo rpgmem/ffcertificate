@@ -4,14 +4,14 @@
  *
  * The "Bulk issue" tab of the form editor (#1945, #1967). The tab works on the
  * form being edited: download its CSV template, upload a participants file, map
- * its columns onto the form and preview what would be issued and what would be
- * skipped. Nothing is written here yet.
+ * its columns onto the form, preview what would be issued and what would be
+ * skipped, then issue it in batches.
  *
  * The editor is one WordPress post form, so the upload cannot be a form of its
  * own: the tab posts the file over AJAX (`ffc_bulk_issue_preview`), and the
- * server answers with the HTML of the step. The file is parsed from the
- * request and never stored: staging it so the mapping step does not need the
- * file again is part of the job-engine sprint.
+ * server answers with the HTML of the step. The file is parsed from each
+ * request and never written to disk; the issue step stages its lines,
+ * encrypted, until the job ends.
  *
  * @package FreeFormCertificate\Admin
  * @since 6.42.0
@@ -194,7 +194,9 @@ final class BulkIssuePage {
 			wp_send_json_error( array( 'message' => __( 'The import could not be found.', 'ffcertificate' ) ), 404 );
 		}
 
-		$done    = BulkIssueRepository::STATUS_DONE === $after['status'];
+		// Any state but staging ends the loop: a job that expired or finished
+		// under another tab has nothing left for this one to run.
+		$done    = BulkIssueRepository::STATUS_STAGING !== $after['status'];
 		$handled = $after['issued'] + $after['skipped'];
 
 		wp_send_json_success(
@@ -204,16 +206,16 @@ final class BulkIssuePage {
 					? sprintf(
 						/* translators: 1: certificates issued, 2: lines skipped. */
 						__( 'Done: %1$d certificate(s) issued, %2$d line(s) skipped.', 'ffcertificate' ),
-						$job['issued'],
-						$job['skipped']
+						$after['issued'],
+						$after['skipped']
 					)
 					: sprintf(
 						/* translators: 1: lines handled, 2: lines in the file, 3: certificates issued, 4: lines skipped. */
 						__( '%1$d of %2$d line(s) handled: %3$d issued, %4$d skipped.', 'ffcertificate' ),
 						$handled,
-						$job['total'],
-						$job['issued'],
-						$job['skipped']
+						$after['total'],
+						$after['issued'],
+						$after['skipped']
 					),
 			)
 		);
@@ -247,7 +249,8 @@ final class BulkIssuePage {
 		if ( null !== $upload ) {
 			$parsed  = BulkIssuePlanner::parse( $upload );
 			$fields  = get_post_meta( $form_id, '_ffc_form_fields', true );
-			$keys    = BulkIssuePlanner::template_columns( is_array( $fields ) ? $fields : array() );
+			$fields  = is_array( $fields ) ? $fields : array();
+			$keys    = BulkIssuePlanner::template_columns( $fields );
 			$keys    = array_values( array_unique( array_merge( BulkIssuePlanner::REQUIRED_KEYS, $keys ) ) );
 			$mapping = self::submitted_mapping( $keys );
 
@@ -266,7 +269,8 @@ final class BulkIssuePage {
 				} elseif ( BulkIssuePlanner::SCORE_COLUMN === $score['mode'] && ! in_array( $score['column'], $parsed['header'], true ) ) {
 					$error = __( 'Choose the file column that holds the score of each participant.', 'ffcertificate' );
 				} else {
-					$plan = BulkIssuePlanner::plan( $parsed['rows'], $mapping, $parsed['header'], $dates, self::sends_links(), $score );
+					$required = BulkIssuePlanner::required_fields( $fields, BulkIssuePlanner::SCORE_NONE !== $score['mode'] );
+					$plan     = BulkIssuePlanner::plan( $parsed['rows'], $mapping, $parsed['header'], $dates, self::sends_links(), $score, $required );
 				}
 			}
 		}
@@ -344,7 +348,7 @@ final class BulkIssuePage {
 		);
 
 		echo '<div class="ffc-bulk-issue" id="ffc-bulk-issue" data-form-id="' . esc_attr( (string) $post->ID ) . '">';
-		echo '<p class="description">' . esc_html__( 'Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns and check the preview. Nothing is issued yet.', 'ffcertificate' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Issue certificates for a list of participants from a CSV file, without each of them submitting the form. Download the template, upload the file, map its columns, check the preview and issue.', 'ffcertificate' ) . '</p>';
 		echo '<p><a href="' . esc_url( $template ) . '">' . esc_html__( 'Download the CSV template for this form', 'ffcertificate' ) . '</a></p>';
 		echo '<p><label for="ffc_bulk_file"><strong>' . esc_html__( 'Participants file (CSV)', 'ffcertificate' ) . '</strong></label><br>';
 		echo '<input type="file" name="' . esc_attr( self::FILE_FIELD ) . '" id="ffc_bulk_file" accept=".csv,text/csv"></p>';
@@ -381,7 +385,7 @@ final class BulkIssuePage {
 		}
 
 		if ( null !== $plan ) {
-			self::render_plan( $plan );
+			self::render_plan( $plan, $mapping );
 		}
 	}
 
@@ -458,17 +462,20 @@ final class BulkIssuePage {
 	 * @return void
 	 */
 	private static function render_mapping( int $form_id, array $parsed, array $mapping ): void {
-		$header = $parsed['header'];
-		$fields = get_post_meta( $form_id, '_ffc_form_fields', true );
-		$keys   = array_values( array_unique( array_merge( BulkIssuePlanner::REQUIRED_KEYS, BulkIssuePlanner::template_columns( is_array( $fields ) ? $fields : array() ) ) ) );
+		$header   = $parsed['header'];
+		$fields   = get_post_meta( $form_id, '_ffc_form_fields', true );
+		$fields   = is_array( $fields ) ? $fields : array();
+		$keys     = array_values( array_unique( array_merge( BulkIssuePlanner::REQUIRED_KEYS, BulkIssuePlanner::template_columns( $fields ) ) ) );
+		$score    = self::score_choice( $form_id );
+		$required = array_merge( BulkIssuePlanner::REQUIRED_KEYS, BulkIssuePlanner::required_fields( $fields, BulkIssuePlanner::SCORE_NONE !== $score['mode'] ) );
 
 		echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Form field', 'ffcertificate' ) . '</th><th>' . esc_html__( 'Column in the file', 'ffcertificate' ) . '</th></tr></thead><tbody>';
 
 		foreach ( $keys as $key ) {
-			$selected = $mapping[ $key ] ?? self::guess_column( $key, $header );
-			$required = in_array( $key, BulkIssuePlanner::REQUIRED_KEYS, true );
+			$selected    = $mapping[ $key ] ?? self::guess_column( $key, $header );
+			$is_required = in_array( $key, $required, true );
 
-			echo '<tr><td><code>' . esc_html( $key ) . '</code>' . ( $required ? ' <strong>*</strong>' : '' ) . '</td><td>';
+			echo '<tr><td><code>' . esc_html( $key ) . '</code>' . ( $is_required ? ' <strong>*</strong>' : '' ) . '</td><td>';
 			echo '<select name="ffc_map[' . esc_attr( $key ) . ']">';
 			echo '<option value="">' . esc_html__( 'Not in this file', 'ffcertificate' ) . '</option>';
 
@@ -480,7 +487,7 @@ final class BulkIssuePage {
 		}
 
 		echo '</tbody></table>';
-		echo '<p class="description">' . esc_html__( 'Fields marked * are required. The file has to be uploaded again on this step.', 'ffcertificate' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Fields marked * are required: a line that leaves one empty is skipped. The file has to be uploaded again on this step.', 'ffcertificate' ) . '</p>';
 
 		self::render_issue_date( $header, self::date_choice() );
 		self::render_issue_score( $form_id, $header );
@@ -608,12 +615,25 @@ final class BulkIssuePage {
 	/**
 	 * Renders the counts and the skipped rows of a plan.
 	 *
-	 * @param array<string, mixed> $plan Output of BulkIssuePlanner::plan().
+	 * The mapping and the choices of the previous step travel on as hidden
+	 * fields: the issue step posts the file again and the server plans it once
+	 * more, so it needs everything the preview was planned from.
+	 *
+	 * @param array<string, mixed>  $plan    Output of BulkIssuePlanner::plan().
+	 * @param array<string, string> $mapping Column chosen for each field.
 	 * @return void
 	 */
-	private static function render_plan( array $plan ): void {
+	private static function render_plan( array $plan, array $mapping ): void {
 		$issue   = count( $plan['issue'] );
 		$skipped = count( $plan['skipped'] );
+
+		foreach ( $mapping as $key => $column ) {
+			echo '<input type="hidden" name="ffc_map[' . esc_attr( $key ) . ']" value="' . esc_attr( $column ) . '">';
+		}
+
+		foreach ( array( 'ffc_issue_mode', 'ffc_issue_date', 'ffc_issue_date_column', 'ffc_issue_send_links', 'ffc_issue_score', 'ffc_issue_score_column' ) as $name ) {
+			echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( RequestInput::get_post_string( $name ) ) . '">';
+		}
 
 		echo '<h3>' . esc_html__( 'Preview', 'ffcertificate' ) . '</h3>';
 		echo '<p>' . esc_html(
@@ -699,6 +719,8 @@ final class BulkIssuePage {
 				return __( 'Invalid e-mail', 'ffcertificate' );
 			case BulkIssuePlanner::SKIP_DUPLICATE_FILE:
 				return __( 'Same CPF or RF as an earlier line of the file', 'ffcertificate' );
+			case BulkIssuePlanner::SKIP_MISSING_REQUIRED:
+				return __( 'A field the form requires is empty', 'ffcertificate' );
 			case BulkIssuePlanner::SKIP_INVALID_DATE:
 				return __( 'Date that cannot be read', 'ffcertificate' );
 			case BulkIssuePlanner::SKIP_MISSING_SCORE:

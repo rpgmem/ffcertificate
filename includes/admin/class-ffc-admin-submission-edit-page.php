@@ -872,28 +872,22 @@ class AdminSubmissionEditPage {
 			}
 
 			$display_value = is_array( $v ) ? implode( ', ', $v ) : (string) $v;
-			$name          = 'data[' . $k . ']';
 
 			if ( in_array( $k, $protected_json_fields, true ) ) {
 				$protected .= sprintf(
-					'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s<input type="hidden" name="%3$s" value="%4$s"><span class="description ffc-edit-note">%5$s</span></dd>',
+					'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s<span class="description ffc-edit-note">%3$s</span></dd>',
 					esc_html( (string) $lbl ),
 					esc_html( $display_value ),
-					esc_attr( $name ),
-					esc_attr( $display_value ),
 					esc_html__( 'Protected internal field.', 'ffcertificate' )
 				);
 				continue;
 			}
 
-			// An answer is locked: it reads as text, and a hidden input carries it so
-			// the save, which rebuilds the data from what is posted, keeps it.
+			// An answer is locked: it reads as text, and the save keeps what is stored.
 			$answers .= sprintf(
-				'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s<input type="hidden" name="%3$s" value="%4$s"></dd>',
+				'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s</dd>',
 				esc_html( (string) $lbl ),
-				nl2br( esc_html( $display_value ) ),
-				esc_attr( $name ),
-				esc_attr( $display_value )
+				nl2br( esc_html( $display_value ) )
 			);
 		}
 
@@ -938,29 +932,9 @@ class AdminSubmissionEditPage {
 		$id = isset( $_POST['submission_id'] ) ? absint( wp_unslash( $_POST['submission_id'] ) ) : 0;
 		// Normalize email to lowercase for consistent storage and lookups.
 		$new_email = isset( $_POST['user_email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( $_POST['user_email'] ) ) ) : '';
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
-		$raw_data   = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : array();
-		$clean_data = array();
-
-		// Name fields that should be normalized (capitalized with lowercase
-		// connectives). The key list is `SubmitterName`'s, not this file's: it
-		// had been written at five sites and two of them had already dropped a
-		// key (#1480).
-		$name_fields = \FreeFormCertificate\Core\SubmitterName::CANDIDATE_KEYS;
-
-		foreach ( $raw_data as $k => $v ) {
-			$sanitized_key   = sanitize_key( $k );
-			$sanitized_value = wp_kses( $v, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
-
-			// Normalize name fields (proper capitalization with lowercase connectives).
-			if ( in_array( $sanitized_key, $name_fields, true ) && ! empty( $sanitized_value ) ) {
-				$sanitized_value = \FreeFormCertificate\Core\DataSanitizer::normalize_brazilian_name( $sanitized_value );
-			}
-
-			$clean_data[ $sanitized_key ] = $sanitized_value;
-		}
-
-		$clean_data = array_merge( $clean_data, $this->preserved_answers( $id ) );
+		// The participant's answers are locked (#1977): they come from the stored
+		// submission, never from the request, so a crafted post cannot rewrite them.
+		$clean_data = $this->stored_answers( $id );
 
 		// Process user link change (simplified: value is user ID, empty string, or __keep__).
 		$linked_user_id = \FreeFormCertificate\Core\RequestInput::get_post_string( 'linked_user_id', '__keep__' );
@@ -992,17 +966,22 @@ class AdminSubmissionEditPage {
 	}
 
 	/**
-	 * The stored answers under {@see self::PRESERVED_KEYS}.
+	 * The stored answers, which the save writes back unchanged. The old tracking
+	 * keys are left out: they live in their own columns.
 	 *
 	 * @param int $id Submission ID.
 	 * @return array<string, mixed>
 	 */
-	private function preserved_answers( int $id ): array {
+	private function stored_answers( int $id ): array {
 		$sub = $this->submission_handler->get_submission( $id );
 		if ( ! is_array( $sub ) || ! is_string( $sub['data'] ?? null ) ) {
 			return array();
 		}
 		$stored = json_decode( $sub['data'], true );
-		return is_array( $stored ) ? array_intersect_key( $stored, array_flip( self::PRESERVED_KEYS ) ) : array();
+		if ( ! is_array( $stored ) ) {
+			return array();
+		}
+		unset( $stored['is_edited'], $stored['edited_at'] );
+		return $stored;
 	}
 }
