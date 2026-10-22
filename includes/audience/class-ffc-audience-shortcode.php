@@ -334,11 +334,14 @@ class AudienceShortcode {
 
 		<?php if ( $show_booking_modal ) : ?>
 		<!-- Booking Modal -->
-		<div class="ffc-shortcode ffc-modal" id="ffc-booking-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-booking-modal-title" style="display: none;">
+		<div class="ffc-shortcode ffc-modal ffc-booking-modal" id="ffc-booking-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-booking-modal-title" style="display: none;">
 			<div class="ffc-modal-backdrop"></div>
-			<div class="ffc-modal-content">
-				<div class="ffc-modal-header">
-					<h3 id="ffc-booking-modal-title"><?php esc_html_e( 'New Booking', 'ffcertificate' ); ?></h3>
+			<div class="ffc-modal-content ffc-booking-dialog">
+				<div class="ffc-modal-header ffc-booking-header">
+					<div class="ffc-booking-heading">
+						<h3 id="ffc-booking-modal-title"><?php esc_html_e( 'New Booking', 'ffcertificate' ); ?></h3>
+						<p class="ffc-booking-date-display ffc-icon-calendar"></p>
+					</div>
 					<?php
 					\FreeFormCertificate\Core\Button::render(
 						array(
@@ -351,82 +354,162 @@ class AudienceShortcode {
 					);
 					?>
 				</div>
-				<div class="ffc-modal-body">
-					<form id="ffc-booking-form">
+				<div class="ffc-modal-body ffc-booking-body">
+					<form id="ffc-booking-form" class="ffc-booking-form">
 						<input type="hidden" name="booking_date" id="booking-date">
 
-						<div class="ffc-form-group">
-							<label><?php esc_html_e( 'Date', 'ffcertificate' ); ?></label>
-							<p class="ffc-booking-date-display"></p>
-						</div>
+						<section class="ffc-booking-section" aria-labelledby="ffc-booking-when-title">
+							<h4 class="ffc-booking-section-title" id="ffc-booking-when-title"><?php esc_html_e( 'When', 'ffcertificate' ); ?></h4>
+							<?php
+							// One day or several: the end date and the range options
+							// belong to the second, so they show only with it (#2008).
+							\FreeFormCertificate\Admin\AdminUI::render_segmented(
+								array(
+									'name'    => 'booking_span',
+									'id'      => 'booking-span',
+									'legend'  => __( 'Duration', 'ffcertificate' ),
+									'options' => array(
+										'single' => __( 'One day', 'ffcertificate' ),
+										'range'  => __( 'Several days', 'ffcertificate' ),
+									),
+									'value'   => 'single',
+									'size'    => 'lg',
+									'fluid'   => true,
+								)
+							);
+							?>
 
-						<div class="ffc-form-group">
-							<label for="booking-environment-id">
-								<?php echo esc_html( $first_env_label_singular ); ?> <span class="ffc-required" aria-hidden="true">*</span>
-							</label>
-							<select name="environment_id" id="booking-environment-id" required>
-								<!-- Populated by JavaScript -->
-							</select>
-						</div>
-
-						<div class="ffc-form-group">
-							<label>
-								<input type="checkbox" id="booking-all-day" name="is_all_day" value="1">
-								<?php esc_html_e( 'All day event', 'ffcertificate' ); ?>
-							</label>
-						</div>
-
-						<div class="ffc-form-group" id="booking-end-date-group">
-							<label for="booking-end-date"><?php esc_html_e( 'End date (optional)', 'ffcertificate' ); ?></label>
-							<input type="date" name="end_date" id="booking-end-date">
-							<p class="description"><?php esc_html_e( 'Leave empty for a single day. A range books every day from the date above to this one.', 'ffcertificate' ); ?></p>
-						</div>
-
-						<div class="ffc-form-group" id="booking-range-options" hidden>
-							<label for="booking-time-mode"><?php esc_html_e( 'Hours on each day', 'ffcertificate' ); ?></label>
-							<select name="time_mode" id="booking-time-mode">
-								<option value="daily"><?php esc_html_e( 'The same hours every day', 'ffcertificate' ); ?></option>
-								<option value="span"><?php esc_html_e( 'From the start time on the first day to the end time on the last', 'ffcertificate' ); ?></option>
-							</select>
-							<label>
-								<input type="checkbox" id="booking-skip-blocked" name="skip_blocked" value="1">
-								<?php esc_html_e( 'Skip blocked days (holidays and global closures) instead of refusing the booking', 'ffcertificate' ); ?>
-							</label>
-						</div>
-
-						<div class="ffc-form-row" id="booking-time-row">
-							<div class="ffc-form-group">
-								<label for="booking-start-time"><?php esc_html_e( 'Start Time', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
-								<input type="time" name="start_time" id="booking-start-time" required>
+							<div class="ffc-form-group" id="booking-end-date-group" hidden>
+								<label for="booking-end-date"><?php esc_html_e( 'Until', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
+								<input type="date" name="end_date" id="booking-end-date">
 							</div>
-							<div class="ffc-form-group">
-								<label for="booking-end-time"><?php esc_html_e( 'End Time', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
-								<input type="time" name="end_time" id="booking-end-time" required>
+
+							<div class="ffc-booking-field" id="booking-all-day-group">
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'        => 'is_all_day',
+										'id'          => 'booking-all-day',
+										'label'       => __( 'All day', 'ffcertificate' ),
+										'description' => __( 'Takes the space for the whole day.', 'ffcertificate' ),
+									)
+								);
+								?>
 							</div>
-						</div>
 
-						<div class="ffc-form-group">
-							<label for="booking-type"><?php esc_html_e( 'Booking Type', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
-							<select name="booking_type" id="booking-type" required>
-								<option value="audience"><?php esc_html_e( 'Audience Groups', 'ffcertificate' ); ?></option>
-								<option value="individual"><?php esc_html_e( 'Individual Users', 'ffcertificate' ); ?></option>
-							</select>
-						</div>
+							<div class="ffc-form-row" id="booking-time-row">
+								<div class="ffc-form-group">
+									<label for="booking-start-time"><?php esc_html_e( 'Start Time', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
+									<input type="time" name="start_time" id="booking-start-time" required>
+								</div>
+								<div class="ffc-form-group">
+									<label for="booking-end-time"><?php esc_html_e( 'End Time', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
+									<input type="time" name="end_time" id="booking-end-time" required>
+								</div>
+							</div>
 
-						<div class="ffc-form-group" id="audience-select-group">
-							<label for="booking-audiences"><?php esc_html_e( 'Select Audiences', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
-							<select name="audience_ids[]" id="booking-audiences" multiple class="ffc-multiselect">
-								<!-- Populated by JavaScript -->
-							</select>
-						</div>
+							<div class="ffc-booking-range" id="booking-range-options" hidden>
+								<fieldset class="ffc-booking-choices">
+									<legend><?php esc_html_e( 'Hours on each day', 'ffcertificate' ); ?></legend>
+									<label class="ffc-booking-choice">
+										<input type="radio" name="time_mode" value="daily" checked>
+										<span class="ffc-booking-choice-text">
+											<span class="ffc-booking-choice-title"><?php esc_html_e( 'The same hours every day', 'ffcertificate' ); ?></span>
+											<span class="ffc-booking-choice-hint" data-ffc-time-mode-hint="daily"></span>
+										</span>
+									</label>
+									<label class="ffc-booking-choice">
+										<input type="radio" name="time_mode" value="span">
+										<span class="ffc-booking-choice-text">
+											<span class="ffc-booking-choice-title"><?php esc_html_e( 'Continuous', 'ffcertificate' ); ?></span>
+											<span class="ffc-booking-choice-hint" data-ffc-time-mode-hint="span"></span>
+										</span>
+									</label>
+								</fieldset>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'        => 'skip_blocked',
+										'id'          => 'booking-skip-blocked',
+										'label'       => __( 'Skip blocked days', 'ffcertificate' ),
+										'description' => __( 'Holidays and global closures are left out instead of refusing the booking.', 'ffcertificate' ),
+									)
+								);
+								?>
+							</div>
+						</section>
 
-						<div class="ffc-form-group" id="user-select-group" style="display: none;">
-							<label for="booking-users"><?php esc_html_e( 'Select Users', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
-							<input type="text" id="booking-user-search" placeholder="<?php esc_attr_e( 'Search users...', 'ffcertificate' ); ?>">
-							<div id="booking-user-results" class="ffc-user-results"></div>
-							<div id="booking-selected-users" class="ffc-selected-users"></div>
-							<input type="hidden" name="user_ids" id="booking-user-ids">
-						</div>
+						<section class="ffc-booking-section" aria-labelledby="ffc-booking-where-title">
+							<h4 class="ffc-booking-section-title" id="ffc-booking-where-title"><?php esc_html_e( 'Where', 'ffcertificate' ); ?></h4>
+							<div class="ffc-form-group">
+								<label for="booking-environment-id">
+									<?php echo esc_html( $first_env_label_singular ); ?> <span class="ffc-required" aria-hidden="true">*</span>
+								</label>
+								<select name="environment_id" id="booking-environment-id" required>
+									<!-- Populated by JavaScript -->
+								</select>
+							</div>
+						</section>
+
+						<section class="ffc-booking-section" aria-labelledby="ffc-booking-who-title">
+							<h4 class="ffc-booking-section-title" id="ffc-booking-who-title"><?php esc_html_e( 'For whom', 'ffcertificate' ); ?></h4>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_segmented(
+								array(
+									'name'    => 'booking_type',
+									'id'      => 'booking-type',
+									'legend'  => __( 'Booking Type', 'ffcertificate' ),
+									'options' => array(
+										'audience'   => __( 'Audience Groups', 'ffcertificate' ),
+										'individual' => __( 'Individual Users', 'ffcertificate' ),
+									),
+									'value'   => 'audience',
+									'size'    => 'lg',
+									'fluid'   => true,
+								)
+							);
+							?>
+
+							<div class="ffc-booking-field" id="audience-select-group">
+								<!-- On a phone the picker is its own screen; this button opens it. -->
+								<button type="button" class="ffc-audience-picker-summary ffc-icon-chevron-right" id="booking-audience-summary" aria-controls="booking-audience-picker" aria-expanded="false">
+									<span class="ffc-audience-picker-summary-text">
+										<span class="ffc-audience-picker-summary-title"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></span>
+										<span class="ffc-audience-picker-summary-value" id="booking-audience-summary-value"><?php esc_html_e( 'None selected', 'ffcertificate' ); ?></span>
+									</span>
+								</button>
+								<div class="ffc-audience-picker" id="booking-audience-picker">
+									<div class="ffc-audience-picker-bar">
+										<span class="ffc-audience-picker-bar-title"><?php esc_html_e( 'Select Audiences', 'ffcertificate' ); ?></span>
+										<?php
+										\FreeFormCertificate\Core\Button::render(
+											array(
+												'label'    => __( 'Done', 'ffcertificate' ),
+												'category' => 'primary',
+												'icon'     => 'checkmark',
+												'class'    => 'ffc-audience-picker-done',
+											)
+										);
+										?>
+									</div>
+									<div class="ffc-audience-picker-search ffc-icon-search">
+										<input type="search" id="booking-audience-search" placeholder="<?php esc_attr_e( 'Search audiences', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search audiences', 'ffcertificate' ); ?>">
+									</div>
+									<div class="ffc-audience-picker-list" id="booking-audiences" role="group" aria-label="<?php esc_attr_e( 'Select Audiences', 'ffcertificate' ); ?>">
+										<!-- Populated by JavaScript -->
+									</div>
+									<div class="ffc-audience-picker-chips" id="booking-audience-chips" hidden></div>
+								</div>
+							</div>
+
+							<div class="ffc-form-group" id="user-select-group" hidden>
+								<label for="booking-user-search"><?php esc_html_e( 'Select Users', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
+								<input type="text" id="booking-user-search" placeholder="<?php esc_attr_e( 'Search users...', 'ffcertificate' ); ?>">
+								<div id="booking-user-results" class="ffc-user-results"></div>
+								<div id="booking-selected-users" class="ffc-selected-users"></div>
+								<input type="hidden" name="user_ids" id="booking-user-ids">
+							</div>
+						</section>
 
 						<div class="ffc-form-group">
 							<label for="booking-description"><?php esc_html_e( 'Description', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
@@ -439,7 +522,7 @@ class AudienceShortcode {
 
 						<!-- Soft conflict warning: ffc-audience-booking-form.js builds the
 							notice (#1842) and moves the acknowledgement into it. -->
-						<div id="ffc-conflict-warning" style="display: none;">
+						<div id="ffc-conflict-warning" hidden>
 							<label class="ffc-conflict-acknowledge">
 								<input type="checkbox" id="ffc-conflict-acknowledge">
 								<?php esc_html_e( 'I am aware of the conflicts and want to proceed.', 'ffcertificate' ); ?>
@@ -447,10 +530,10 @@ class AudienceShortcode {
 						</div>
 
 						<!-- Hard conflict error: the script builds the notice here. -->
-						<div id="ffc-conflict-error" style="display: none;"></div>
+						<div id="ffc-conflict-error" hidden></div>
 					</form>
 				</div>
-				<div class="ffc-modal-footer">
+				<div class="ffc-modal-footer ffc-booking-footer">
 					<?php
 					\FreeFormCertificate\Core\Button::render(
 						array(
@@ -460,18 +543,18 @@ class AudienceShortcode {
 							'class'    => 'ffc-modal-cancel',
 						)
 					);
+					// One button for both steps (#2008): it checks the conflicts,
+					// then, with the check passed, creates the booking.
 					\FreeFormCertificate\Core\Button::render(
 						array(
 							'label'    => __( 'Check Conflicts', 'ffcertificate' ),
 							'category' => 'primary',
 							'icon'     => 'search',
-							'id'       => 'ffc-check-conflicts-btn',
+							'id'       => 'ffc-booking-submit',
+							'attrs'    => array( 'data-step' => 'check' ),
 						)
 					);
 					?>
-					<button type="button" class="ffc-btn ffc-btn-create ffc-icon-plus" id="ffc-create-booking-btn" style="display: none;">
-						<?php esc_html_e( 'Create Booking', 'ffcertificate' ); ?>
-					</button>
 				</div>
 			</div>
 		</div>
@@ -718,26 +801,67 @@ class AudienceShortcode {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private static function get_public_audiences(): array {
+		// Read-only view: no booking dialog, so no reach -- and no member
+		// counts handed to a visitor who is not logged in.
 		$audiences = AudienceReader::get_hierarchical( 'active' );
-		return array_map( array( __CLASS__, 'audience_to_array' ), $audiences );
+		return array_map(
+			static fn( $audience ): array => self::audience_to_array( $audience, null ),
+			$audiences
+		);
+	}
+
+	/**
+	 * The audience tree for the script, each node carrying its reach.
+	 *
+	 * The reach is the people a booking for the audience reaches: its own
+	 * members and those of every sub-audience listed under it, each person
+	 * once -- the count the booking dialog shows beside each audience
+	 * (#2008), worked out the way the admin transfer list works it out. It is
+	 * read over the tree the caller may book, never the whole one.
+	 *
+	 * @param array<int, object> $audiences Audience objects with optional children.
+	 * @phpstan-param list<AudienceRow> $audiences
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function audiences_payload( array $audiences ): array {
+		$reach = array();
+		foreach (
+			AudienceTransferList::with_member_counts(
+				AudienceTransferList::flatten( $audiences ),
+				AudienceReader::get_member_ids_by_audience()
+			) as $node
+		) {
+			$reach[ $node['id'] ] = $node['members'];
+		}
+		return array_map(
+			static fn( $audience ): array => self::audience_to_array( $audience, $reach ),
+			$audiences
+		);
 	}
 
 	/**
 	 * Recursively convert an audience object (with children) to an array.
 	 *
-	 * @param object $audience Audience object with optional children.
-	 * @phpstan-param AudienceRow $audience
+	 * @param object               $audience Audience object with optional children.
+	 * @phpstan-param AudienceRow|\stdClass $audience A root row, or a child the row carries untyped.
+	 * @param array<int, int>|null $reach    People reached, keyed by audience id; null leaves the count out.
 	 * @return array<string, mixed>
 	 */
-	private static function audience_to_array( object $audience ): array {
+	private static function audience_to_array( object $audience, ?array $reach ): array {
 		$item = array(
 			'id'        => $audience->id,
 			'name'      => $audience->name,
 			'color'     => $audience->color,
 			'parent_id' => $audience->parent_id ?? null,
 		);
+		if ( null !== $reach ) {
+			$item['members'] = $reach[ (int) $audience->id ] ?? 0;
+		}
 		if ( ! empty( $audience->children ) ) {
-			$item['children'] = array_map( array( __CLASS__, 'audience_to_array' ), $audience->children );
+			$item['children'] = array_map(
+				static fn( $child ): array => self::audience_to_array( $child, $reach ),
+				$audience->children
+			);
 		}
 		return $item;
 	}
@@ -757,7 +881,7 @@ class AudienceShortcode {
 			$audiences = AudienceReader::get_user_audiences( $user_id, true );
 		}
 
-		return array_map( array( __CLASS__, 'audience_to_array' ), $audiences );
+		return self::audiences_payload( $audiences );
 	}
 
 	/**
@@ -913,6 +1037,21 @@ class AudienceShortcode {
 					'reasonBeyondWindow'     => __( 'Beyond the booking window', 'ffcertificate' ),
 					'noOpenEnvironments'     => __( 'No space is open on this date.', 'ffcertificate' ),
 					'override'               => \FreeFormCertificate\Core\OverrideWarning::strings(),
+					// The booking dialog's audience picker and range hints (#2008).
+					'noneSelected'           => __( 'None selected', 'ffcertificate' ),
+					/* translators: %d: how many more audiences are chosen than the summary names. */
+					'moreAudiences'          => __( '+%d more', 'ffcertificate' ),
+					/* translators: %s: audience name. */
+					'removeAudience'         => __( 'Remove %s', 'ffcertificate' ),
+					'onePerson'              => __( '1 person', 'ffcertificate' ),
+					/* translators: %d: number of people an audience reaches (more than one). */
+					'people'                 => __( '%d people', 'ffcertificate' ),
+					/* translators: 1: start time, 2: end time. */
+					'hintDaily'              => __( '%1$s–%2$s on each day', 'ffcertificate' ),
+					/* translators: 1: start time, 2: first day, 3: end time, 4: last day. */
+					'hintSpan'               => __( 'From %1$s on %2$s to %3$s on %4$s', 'ffcertificate' ),
+					'endDateRequired'        => __( 'Choose the last day.', 'ffcertificate' ),
+					'endDateInvalid'         => __( 'The last day must come after the first.', 'ffcertificate' ),
 				),
 			)
 		);

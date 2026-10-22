@@ -188,22 +188,17 @@
 
             // All-day toggle
             $('#booking-all-day').on('change', function() {
-                if ($(this).is(':checked')) {
-                    $('#booking-time-row').hide();
-                    $('#booking-start-time').removeAttr('required').val('00:00');
-                    $('#booking-end-time').removeAttr('required').val('23:59');
-                } else {
-                    $('#booking-time-row').show();
-                    $('#booking-start-time').attr('required', 'required').val('');
-                    $('#booking-end-time').attr('required', 'required').val('');
-                }
+                api.setAllDay($(this).is(':checked'));
             });
 
-            // An end date makes a range (#1946): its options show and the all-day switch goes.
+            // One day or several (#2008): the range fields follow the choice.
+            $('input[name="booking_span"]').on('change', function() {
+                api.setRangeOptions(api.isRange());
+            });
+
+            // The last day changes the heading and the continuous hint (#1946).
             $('#booking-end-date').on('change', function() {
-                if (typeof api.setRangeOptions === 'function') {
-                    api.setRangeOptions($(this).val());
-                }
+                api.setRangeOptions(api.isRange());
             });
 
             // The reasons under the space follow the space and the times (#1859).
@@ -213,78 +208,43 @@
                 }
             });
 
-            // Booking type toggle
-            $('#booking-type').on('change', function() {
-                if ($(this).val() === 'audience') {
-                    $('#audience-select-group').show();
-                    $('#user-select-group').hide();
-                } else {
-                    $('#audience-select-group').hide();
-                    $('#user-select-group').show();
-                }
+            // The hints under the time modes read the times (#2008).
+            $('#booking-start-time, #booking-end-time').on('change input', function() {
+                api.updateTimeModeHints();
             });
 
-            // Audience select: selecting a parent auto-selects all descendants
-            (function() {
-                // Collect all descendant IDs of an audience node recursively
-                function getAllDescendantIds(node) {
-                    var ids = [];
-                    if (!node.children || node.children.length === 0) return ids;
-                    node.children.forEach(function(c) {
-                        ids.push(parseInt(c.id));
-                        ids = ids.concat(getAllDescendantIds(c));
-                    });
-                    return ids;
+            // Booking type toggle
+            $('input[name="booking_type"]').on('change', function() {
+                api.setBookingType();
+            });
+
+            // Audience picker (#2008): a parent takes its sub-audiences with
+            // it; the chips, the summary and the search follow.
+            $('#booking-audiences').on('change', 'input[type="checkbox"]', function() {
+                api.toggleAudience(this);
+            });
+            $('#booking-audience-chips').on('click', '.ffc-audience-picker-chip-remove', function() {
+                var $input = $('#booking-audiences input[value="' + parseInt($(this).attr('data-id'), 10) + '"]');
+                $input.prop('checked', false);
+                api.toggleAudience($input[0]);
+                api.invalidateCheck();
+            });
+            $('#booking-audience-search').on('input', function() {
+                api.filterAudiences($(this).val());
+            });
+            $('#booking-audience-summary').on('click', function() {
+                api.openAudiencePicker();
+            });
+            $('#booking-audience-picker .ffc-audience-picker-done').on('click', function() {
+                api.closeAudiencePicker(true);
+            });
+
+            // A change to what is booked needs a new check (#2008).
+            $('#ffc-booking-form').on('change', 'input, select', function() {
+                if (this.id !== 'ffc-conflict-acknowledge' && this.id !== 'booking-audience-search' && this.id !== 'booking-user-search') {
+                    api.invalidateCheck();
                 }
-
-                // Walk the audience tree and collect every node that has children
-                function collectParentNodes(nodes) {
-                    var result = [];
-                    (nodes || []).forEach(function(node) {
-                        if (node.children && node.children.length > 0) {
-                            result.push(node);
-                            result = result.concat(collectParentNodes(node.children));
-                        }
-                    });
-                    return result;
-                }
-
-                var prevSelected = [];
-                $('#booking-audiences').on('change', function() {
-                    var $sel = $(this);
-                    var selected = ($sel.val() || []).map(function(v) { return parseInt(v); });
-                    var audiences = state.config.audiences || [];
-                    var newSelected = selected.slice();
-
-                    var parentNodes = collectParentNodes(audiences);
-                    parentNodes.forEach(function(node) {
-                        var parentId = parseInt(node.id);
-                        var descIds = getAllDescendantIds(node);
-                        var parentNowSelected = selected.indexOf(parentId) !== -1;
-                        var parentWasSelected = prevSelected.indexOf(parentId) !== -1;
-
-                        if (parentNowSelected && !parentWasSelected) {
-                            // Parent just selected — add all descendants
-                            descIds.forEach(function(did) {
-                                if (newSelected.indexOf(did) === -1) {
-                                    newSelected.push(did);
-                                }
-                            });
-                        } else if (!parentNowSelected && parentWasSelected) {
-                            // Parent just deselected — remove all descendants
-                            newSelected = newSelected.filter(function(id) {
-                                return descIds.indexOf(id) === -1;
-                            });
-                        }
-                    });
-
-                    // Only update if selection changed to avoid infinite loop
-                    if (newSelected.length !== selected.length || !newSelected.every(function(v) { return selected.indexOf(v) !== -1; })) {
-                        $sel.val(newSelected.map(String));
-                    }
-                    prevSelected = ($sel.val() || []).map(function(v) { return parseInt(v); });
-                });
-            })();
+            });
 
             // Description character count
             $('#booking-description').on('input', function() {
@@ -306,36 +266,38 @@
                 }, 300);
             });
 
-            // Select user from results
-            $(document).on('click', '#booking-user-results .ffc-user-result', function() {
+            // Select user from results. Delegated on the list, not on the
+            // document: the modal content stops a click's propagation (below),
+            // so a document handler never heard it and no user could be
+            // picked (#2008).
+            $('#booking-user-results').on('click', '.ffc-user-result', function() {
                 var id = $(this).data('id');
                 var name = $(this).data('name');
                 state.selectedUsers[id] = name;
                 api.updateSelectedUsers();
+                api.invalidateCheck();
                 $('#booking-user-results').removeClass('is-active').empty();
                 $('#booking-user-search').val('');
             });
 
             // Remove selected user
-            $(document).on('click', '#booking-selected-users .ffc-selected-user-remove', function() {
+            $('#booking-selected-users').on('click', '.ffc-selected-user-remove', function() {
                 var id = $(this).data('id');
                 delete state.selectedUsers[id];
                 api.updateSelectedUsers();
+                api.invalidateCheck();
             });
 
-            // Check conflicts button
-            $('#ffc-check-conflicts-btn').on('click', function() {
-                api.checkConflicts();
-            });
-
-            // Create booking button
-            $('#ffc-create-booking-btn').on('click', function() {
-                api.createBooking();
+            // The dialog's one button: check, then create (#2008).
+            $('#ffc-booking-submit').on('click', function() {
+                api.submitBooking();
             });
 
             // Soft conflict acknowledgment checkbox
             $('#ffc-conflict-acknowledge').on('change', function() {
-                $('#ffc-create-booking-btn').prop('disabled', !$(this).is(':checked'));
+                if ($('#ffc-booking-submit').attr('data-step') === 'create') {
+                    $('#ffc-booking-submit').prop('disabled', !$(this).is(':checked'));
+                }
             });
 
             // New booking from day modal
