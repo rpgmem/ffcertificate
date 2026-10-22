@@ -277,6 +277,9 @@
                 booking_date: data.booking_date,
                 start_time: data.start_time,
                 end_time: data.end_time,
+                end_date: data.end_date,
+                time_mode: data.time_mode,
+                skip_blocked: data.skip_blocked,
                 audience_ids: data.audience_ids,
                 user_ids: data.user_ids
             }
@@ -487,7 +490,10 @@
         } else {
             var fill = S.fillTimeFields || 'Please fill in the time fields.';
             check($start, $start.val() ? '' : fill);
-            check($end, !$end.val() ? fill : ($start.val() && $start.val() >= $end.val() ? S.invalidTime : ''));
+            // A span runs from one day to another, so its start may come after its end.
+            var endDate = $('#booking-end-date').val() || '';
+            var isSpan = endDate !== '' && endDate !== $('#booking-date').val() && $('#booking-time-mode').val() === 'span';
+            check($end, !$end.val() ? fill : (!isSpan && $start.val() && $start.val() >= $end.val() ? S.invalidTime : ''));
         }
 
         var length = ($description.val() || '').trim().length;

@@ -639,7 +639,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		// the SELECT ... FOR UPDATE returning an existing booking, so
 		// create() must roll back without inserting.
 		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
-			(object) array( 'id' => 99 ),
+			(object) array( 'id' => 99, 'booking_date' => '2026-03-15', 'start_time' => '09:30:00', 'end_time' => '10:30:00' ),
 		));
 		$this->wpdb->shouldNotReceive('insert');
 
@@ -649,6 +649,66 @@ class AudienceBookingRepositoryTest extends TestCase {
 			'start_time' => '09:00',
 			'end_time' => '10:00',
 			'description' => 'Concurrent attempt',
+		]);
+
+		$this->assertFalse($result);
+	}
+
+	public function test_create_cancels_a_confirmed_override_in_its_transaction_and_inserts(): void {
+		// The REST layer found booking 99 in the way and the person confirmed
+		// the override: the writer must not refuse on it, and must cancel it
+		// before committing (#1859). Cancelling after the insert never ran,
+		// because the insert refused first.
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+			(object) array( 'id' => 99, 'booking_date' => '2026-03-15', 'start_time' => '09:30:00', 'end_time' => '10:30:00' ),
+		));
+		$order = array();
+		$this->wpdb->shouldReceive('update')->once()->withArgs(function ($table, $data, $where) use (&$order) {
+			$order[] = 'cancel';
+			return 'cancelled' === $data['status'] && 'Overridden' === $data['cancellation_reason'] && array( 'id' => 99 ) === $where;
+		})->andReturn(1);
+		$this->wpdb->shouldReceive('insert')->once()->andReturnUsing(function () use (&$order) {
+			$order[] = 'insert';
+			return 1;
+		});
+		$this->wpdb->insert_id = 120;
+		$queries = array();
+		$this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) use (&$queries) {
+			$queries[] = (string) $sql;
+			return 1;
+		});
+
+		$result = AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-15',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Priority booking',
+			'override_ids'   => array( 99 ),
+			'override_note'  => 'Overridden',
+		]);
+
+		$this->assertSame(120, $result);
+		$this->assertSame(array( 'cancel', 'insert' ), $order);
+		$this->assertSame(array( 'START TRANSACTION', 'COMMIT' ), $queries);
+	}
+
+	public function test_create_still_refuses_a_clash_it_was_not_told_to_override(): void {
+		// A booking that appeared after the person confirmed is not theirs to override.
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+			(object) array( 'id' => 98, 'booking_date' => '2026-03-15', 'start_time' => '09:30:00', 'end_time' => '10:30:00' ),
+		));
+		$this->wpdb->shouldNotReceive('update');
+		$this->wpdb->shouldNotReceive('insert');
+
+		$result = AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-15',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Priority booking',
+			'override_ids'   => array( 99 ),
+			'override_note'  => 'Overridden',
 		]);
 
 		$this->assertFalse($result);
@@ -1473,17 +1533,21 @@ class AudienceBookingRepositoryTest extends TestCase {
 			$captured_sql = func_get_args()[0];
 			return $captured_sql;
 		});
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([
+			(object) ['id' => 1, 'booking_date' => '2026-03-15', 'start_time' => '08:00:00', 'end_time' => '09:00:00'],
+			(object) ['id' => 2, 'booking_date' => '2026-03-15', 'start_time' => '09:30:00', 'end_time' => '11:00:00'],
+			(object) ['id' => 3, 'booking_date' => '2026-03-15', 'start_time' => '10:00:00', 'end_time' => '12:00:00'],
+		]);
 
-		AudienceBookingReader::get_conflicts(1, '2026-03-15', '09:00', '10:00');
+		$result = AudienceBookingReader::get_conflicts(1, '2026-03-15', '09:00', '10:00');
 
 		$this->assertStringContainsString('environment_id = %d', $captured_sql);
 		$this->assertStringContainsString( 'booking_date <= %s AND COALESCE(end_date, booking_date) >= %s', $captured_sql );
 		$this->assertStringContainsString( 'skipped_dates NOT LIKE %s', $captured_sql );
 		$this->assertStringContainsString("status = 'active'", $captured_sql);
-		$this->assertStringContainsString('start_time < %s AND end_time > %s', $captured_sql);
-		$this->assertStringContainsString('start_time >= %s AND start_time < %s', $captured_sql);
-		$this->assertStringContainsString('end_time > %s AND end_time <= %s', $captured_sql);
+		// The hours are compared in PHP, per day, so a span's middle day is read right (#1946).
+		$this->assertStringNotContainsString('start_time < %s', $captured_sql);
+		$this->assertSame([2], array_map(static fn($row) => $row->id, $result), 'Rows that only touch the hours do not conflict.');
 	}
 
 	public function test_get_conflicts_with_exclude_booking_id(): void {

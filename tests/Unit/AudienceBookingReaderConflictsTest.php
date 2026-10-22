@@ -118,7 +118,11 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			static function ( $sql ) {
 				if ( false !== strpos( $sql, 'SELECT DISTINCT b.*' ) ) {
-					return array( (object) array( 'id' => '77' ) );
+					return array(
+						(object) array( 'id' => '77', 'booking_date' => '2026-05-04', 'start_time' => '09:30:00', 'end_time' => '11:00:00' ),
+						// Shares a member but only touches the hours, so it is not a conflict.
+						(object) array( 'id' => '78', 'booking_date' => '2026-05-04', 'start_time' => '10:00:00', 'end_time' => '11:00:00' ),
+					);
 				}
 				return array();
 			}
@@ -127,7 +131,7 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 
 		$result = AudienceBookingReader::get_user_conflicts( '2026-05-04', '09:00', '10:00', array( 9 ), array( 20 ) );
 
-		$this->assertSame( '77', $result['bookings'][0]->id );
+		$this->assertSame( array( '77' ), array_map( static fn( $b ) => $b->id, $result['bookings'] ) );
 		$this->assertSame( array( 21 ), array_values( $result['affected_users'] ), 'Only a member of both bookings is affected.' );
 
 		$query = $this->preparedWith( 'SELECT DISTINCT b.*' );
@@ -137,7 +141,7 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 			array_slice( $query, 1, 5 )
 		);
 		$this->assertSame( array( '2026-05-04', '2026-05-04', '%"2026-05-04"%' ), array_slice( $query, 5, 3 ), 'The day binds as a range, skipping the days a range left out.' );
-		$this->assertSame( array( 20, 21, 20, 21 ), array_slice( $query, 14 ), 'The user list fills both IN() clauses.' );
+		$this->assertSame( array( 20, 21, 20, 21 ), array_slice( $query, 8 ), 'The user list fills both IN() clauses; the hours are compared in PHP, per day.' );
 	}
 
 	public function test_get_user_conflicts_scoped_to_a_schedule_excludes_the_edited_booking(): void {

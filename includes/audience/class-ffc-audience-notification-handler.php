@@ -81,6 +81,7 @@ class AudienceNotificationHandler {
 			'skipped_raw'       => $booking->skipped_dates ?? null,
 			'start_time'        => self::format_time( $booking->start_time ),
 			'end_time'          => self::format_time( $booking->end_time ),
+			'time'              => \FreeFormCertificate\Audience\AudienceBookingRules::time_label( (string) $booking->start_time, (string) $booking->end_time, \FreeFormCertificate\Audience\AudienceBookingRules::is_span( $booking ), static fn( string $time ): string => self::format_time( $time ) ),
 			'start_time_raw'    => $booking->start_time,
 			'end_time_raw'      => $booking->end_time,
 			'description'       => $booking->description,
@@ -279,6 +280,7 @@ class AudienceNotificationHandler {
 			'skipped_raw'         => $booking->skipped_dates ?? null,
 			'start_time'          => self::format_time( $booking->start_time ),
 			'end_time'            => self::format_time( $booking->end_time ),
+			'time'                => \FreeFormCertificate\Audience\AudienceBookingRules::time_label( (string) $booking->start_time, (string) $booking->end_time, \FreeFormCertificate\Audience\AudienceBookingRules::is_span( $booking ), static fn( string $time ): string => self::format_time( $time ) ),
 			'start_time_raw'      => $booking->start_time,
 			'end_time_raw'        => $booking->end_time,
 			'description'         => $booking->description,
@@ -361,15 +363,22 @@ class AudienceNotificationHandler {
 		$method = ( 'cancelled' === $action ) ? 'CANCEL' : 'REQUEST';
 
 		return \FreeFormCertificate\Scheduling\IcsGenerator::generate(
-			array(
-				'uid'         => 'ffc-booking-' . $booking_data['booking_id'],
-				'summary'     => $summary,
-				'description' => $booking_data['description'],
-				'location'    => $booking_data['environment_name'],
-				'date'        => $booking_data['booking_date_raw'],
-				'start_time'  => $booking_data['start_time_raw'],
-				'end_time'    => $booking_data['end_time_raw'],
-			) + self::range_ics_fields( $booking_data ),
+			array_merge(
+				array(
+					'uid'         => 'ffc-booking-' . $booking_data['booking_id'],
+					'summary'     => $summary,
+					'description' => $booking_data['description'],
+					'location'    => $booking_data['environment_name'],
+					'start_time'  => $booking_data['start_time_raw'],
+					'end_time'    => $booking_data['end_time_raw'],
+				),
+				\FreeFormCertificate\Audience\AudienceBookingRules::ics_fields(
+					(string) $booking_data['booking_date_raw'],
+					isset( $booking_data['end_date_raw'] ) ? (string) $booking_data['end_date_raw'] : null,
+					isset( $booking_data['time_mode'] ) ? (string) $booking_data['time_mode'] : null,
+					isset( $booking_data['skipped_raw'] ) ? (string) $booking_data['skipped_raw'] : null
+				)
+			),
 			$method
 		);
 	}
@@ -386,35 +395,6 @@ class AudienceNotificationHandler {
 			(string) $booking->booking_date,
 			isset( $booking->end_date ) ? (string) $booking->end_date : null,
 			static fn( string $date ): string => self::format_date( $date )
-		);
-	}
-
-	/**
-	 * The ICS fields that make a range one event: a daily range repeats the
-	 * booked hours until its last day, with the days it skipped left out; a
-	 * span is one block from the first start to the last end.
-	 *
-	 * @param array<string, mixed> $booking_data Booking data, as prepared for the messages.
-	 * @return array<string, mixed> Extra ICS event fields; empty for a single day.
-	 */
-	private static function range_ics_fields( array $booking_data ): array {
-		$first = (string) $booking_data['booking_date_raw'];
-		$last  = (string) ( $booking_data['end_date_raw'] ?? '' );
-		if ( '' === $last || $last === $first ) {
-			return array();
-		}
-
-		if ( 'daily' !== ( $booking_data['time_mode'] ?? '' ) ) {
-			return array( 'end_date' => $last );
-		}
-
-		$booked  = \FreeFormCertificate\Audience\AudienceBookingRules::booked_days( $first, $last, $booking_data['skipped_raw'] ?? null );
-		$skipped = array_values( array_diff( \FreeFormCertificate\Audience\AudienceBookingRules::range_days( $first, $last ), $booked ) );
-
-		return array(
-			'end_date' => $first,
-			'rrule'    => 'FREQ=DAILY;UNTIL=' . str_replace( '-', '', $last ) . 'T235959',
-			'exdates'  => $skipped,
 		);
 	}
 
@@ -438,6 +418,7 @@ class AudienceNotificationHandler {
 			'{{booking_date}}'        => \esc_html( (string) $booking_data['booking_date'] ),
 			'{{start_time}}'          => \esc_html( (string) $booking_data['start_time'] ),
 			'{{end_time}}'            => \esc_html( (string) $booking_data['end_time'] ),
+			'{{time}}'                => \esc_html( (string) ( $booking_data['time'] ?? $booking_data['start_time'] . ' - ' . $booking_data['end_time'] ) ),
 			'{{description}}'         => \esc_html( (string) $booking_data['description'] ),
 			'{{audiences}}'           => \esc_html( (string) ( $booking_data['audiences'] ?? '' ) ),
 			'{{creator_name}}'        => \esc_html( (string) ( $booking_data['creator_name'] ?? '' ) ),
@@ -526,7 +507,7 @@ class AudienceNotificationHandler {
 				__( 'Calendar', 'ffcertificate' )    => (string) $booking_data['schedule_name'],
 				__( 'Environment', 'ffcertificate' ) => (string) $booking_data['environment_name'],
 				__( 'Date', 'ffcertificate' )        => (string) $booking_data['booking_date'],
-				__( 'Time', 'ffcertificate' )        => $booking_data['start_time'] . ' - ' . $booking_data['end_time'],
+				__( 'Time', 'ffcertificate' )        => $booking_data['time'] ?? $booking_data['start_time'] . ' - ' . $booking_data['end_time'],
 				__( 'Audiences', 'ffcertificate' )   => (string) ( $booking_data['audiences'] ?? '' ),
 				__( 'Booked by', 'ffcertificate' )   => (string) ( $booking_data['creator_name'] ?? '' ),
 				__( 'Description', 'ffcertificate' ) => (string) ( $booking_data['description'] ?? '' ),
@@ -562,7 +543,7 @@ class AudienceNotificationHandler {
 				__( 'Calendar', 'ffcertificate' )     => (string) $booking_data['schedule_name'],
 				__( 'Environment', 'ffcertificate' )  => (string) $booking_data['environment_name'],
 				__( 'Date', 'ffcertificate' )         => (string) $booking_data['booking_date'],
-				__( 'Time', 'ffcertificate' )         => $booking_data['start_time'] . ' - ' . $booking_data['end_time'],
+				__( 'Time', 'ffcertificate' )         => $booking_data['time'] ?? $booking_data['start_time'] . ' - ' . $booking_data['end_time'],
 				__( 'Audiences', 'ffcertificate' )    => (string) ( $booking_data['audiences'] ?? '' ),
 				__( 'Cancelled by', 'ffcertificate' ) => (string) ( $booking_data['cancelled_by_name'] ?? '' ),
 				__( 'Reason', 'ffcertificate' )       => (string) ( $booking_data['cancellation_reason'] ?? '' ),

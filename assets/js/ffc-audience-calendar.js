@@ -20,6 +20,7 @@
     var escapeHtml              = api.escapeHtml;
     var getEnvironmentColor     = api.getEnvironmentColor;
     var formatTime              = api.formatTime;
+    var timesOn                 = api.timesOn;
     var collapseParentAudiences = api.collapseParentAudiences;
     var buildParentNameMap      = api.buildParentNameMap;
     var formatAudienceName      = api.formatAudienceName;
@@ -533,7 +534,7 @@
             if (a.type === 'holiday' && b.type !== 'holiday') return -1;
             if (a.type !== 'holiday' && b.type === 'holiday') return 1;
             if (a.type === 'booking' && b.type === 'booking') {
-                return a.data.start_time.localeCompare(b.data.start_time);
+                return timesOn(a.data, a.date).start_time.localeCompare(timesOn(b.data, b.date).start_time);
             }
             return 0;
         });
@@ -574,7 +575,8 @@
                 if (parseInt(booking.is_all_day)) {
                     html += '<span class="ffc-event-list-time ffc-all-day">' + ((ffcAudience.strings || {}).allDay || 'All Day') + '</span>';
                 } else {
-                    html += '<span class="ffc-event-list-time">' + formatTime(booking.start_time) + ' - ' + formatTime(booking.end_time) + '</span>';
+                    var times = timesOn(booking, evt.date);
+                    html += '<span class="ffc-event-list-time">' + formatTime(times.start_time) + ' - ' + formatTime(times.end_time) + '</span>';
                 }
 
                 // Environment name

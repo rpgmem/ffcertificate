@@ -232,7 +232,7 @@
 
                 FFC.request('ffc_audience_get_booking', { booking_id: bookingId }, { nonce: adminNonce })
                     .then(function(b) {
-                        var timeDisplay = parseInt(b.is_all_day) ? (strings.allDay || 'All Day') : (b.start_time + ' - ' + b.end_time);
+                        var timeDisplay = parseInt(b.is_all_day) ? (strings.allDay || 'All Day') : (b.time_label || (b.start_time + ' - ' + b.end_time));
                         var typeDisplay = b.booking_type === 'audience' ? (strings.audience || 'Audience') : (strings.customUsers || 'Custom Users');
                         var statusDisplay = b.status === 'active' ? (strings.active || 'Active') : (strings.cancelled || 'Cancelled');
                         var statusClass = b.status === 'active' ? 'ffc-booking-status-active' : 'ffc-booking-status-cancelled';

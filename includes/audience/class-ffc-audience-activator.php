@@ -772,8 +772,10 @@ class AudienceActivator {
 	 *
 	 * Tables only, never activation's side effects (CLAUDE.md "Schema-
 	 * reachability guard"): `add_column_if_missing()` and nothing else. The
-	 * option is written even when the table is missing, because the table's
-	 * `CREATE` already carries every column listed here.
+	 * option is written when a table is missing, because the table's `CREATE`
+	 * already carries every column listed here; it is not written when an
+	 * `ALTER` failed, so the next request tries again instead of the install
+	 * running for good without the column.
 	 *
 	 * @return void
 	 */
@@ -782,10 +784,31 @@ class AudienceActivator {
 			return;
 		}
 
-		self::migrate_audience_tree_access_columns();
-		self::migrate_booking_range_columns();
+		$healed = self::migrate_audience_tree_access_columns();
+		$healed = self::migrate_booking_range_columns() && $healed;
 
-		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+		if ( $healed ) {
+			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+		}
+	}
+
+	/**
+	 * Whether a table holds every column named, after the heal ran.
+	 * `add_column_if_missing()` answers `false` both for a column that was
+	 * already there and for an `ALTER` that failed, so its answer cannot say
+	 * whether the schema is complete; reading the columns back can.
+	 *
+	 * @param string   $table_name Table name.
+	 * @param string[] $columns    Column names.
+	 * @return bool
+	 */
+	private static function has_columns( string $table_name, array $columns ): bool {
+		foreach ( $columns as $column ) {
+			if ( ! self::column_exists( $table_name, $column ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -795,19 +818,21 @@ class AudienceActivator {
 	 * before: `end_date` NULL means one day, `time_mode` and `skipped_dates` apply
 	 * only to a range.
 	 *
-	 * @return void
+	 * @return bool Whether the table now has the columns, or does not exist yet.
 	 */
-	private static function migrate_booking_range_columns(): void {
+	private static function migrate_booking_range_columns(): bool {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
 
 		if ( ! self::table_exists( $table_name ) ) {
-			return;
+			return true;
 		}
 
 		self::add_column_if_missing( $table_name, 'end_date', 'date DEFAULT NULL', 'booking_date' );
 		self::add_column_if_missing( $table_name, 'time_mode', "enum('daily','span') DEFAULT NULL", 'end_date' );
 		self::add_column_if_missing( $table_name, 'skipped_dates', 'text DEFAULT NULL', 'time_mode' );
+
+		return self::has_columns( $table_name, array( 'end_date', 'time_mode', 'skipped_dates' ) );
 	}
 
 	/**
@@ -819,14 +844,14 @@ class AudienceActivator {
 	 * member from leaving the last group they hold in it. Both default off, so
 	 * an existing tree behaves as before.
 	 *
-	 * @return void
+	 * @return bool Whether the table now has the columns, or does not exist yet.
 	 */
-	private static function migrate_audience_tree_access_columns(): void {
+	private static function migrate_audience_tree_access_columns(): bool {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'ffc_audiences';
 
 		if ( ! self::table_exists( $table_name ) ) {
-			return;
+			return true;
 		}
 
 		self::add_column_if_missing(
@@ -839,6 +864,8 @@ class AudienceActivator {
 			'require_membership',
 			"tinyint(1) DEFAULT 0 COMMENT 'Top-level: a member cannot leave the last group of the tree'"
 		);
+
+		return self::has_columns( $table_name, array( 'members_only', 'require_membership' ) );
 	}
 
 	/**

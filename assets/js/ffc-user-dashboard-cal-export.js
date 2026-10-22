@@ -70,7 +70,12 @@
         ics += 'UID:' + uid + '\r\n';
         ics += 'DTSTAMP:' + dtstamp + '\r\n';
         ics += 'DTSTART:' + toIcsDateTime(event.date, event.startTime) + '\r\n';
-        ics += 'DTEND:' + toIcsDateTime(event.date, event.endTime) + '\r\n';
+        ics += 'DTEND:' + toIcsDateTime(event.endDate || event.date, event.endTime) + '\r\n';
+        // A daily range repeats until its last day, leaving out the days it skipped.
+        if (event.rrule) { ics += 'RRULE:' + event.rrule + '\r\n'; }
+        (event.exdates || []).forEach(function (day) {
+            ics += 'EXDATE:' + toIcsDateTime(day, event.startTime) + '\r\n';
+        });
         ics += 'SUMMARY:' + escapeIcsText(event.summary) + '\r\n';
         if (event.description) { ics += 'DESCRIPTION:' + escapeIcsText(event.description) + '\r\n'; }
         if (event.location) { ics += 'LOCATION:' + escapeIcsText(event.location) + '\r\n'; }
@@ -81,8 +86,9 @@
     }
 
     function buildGoogleCalendarUrl(event) {
-        var dates = toGoogleDateTime(event.date, event.startTime) + '/' + toGoogleDateTime(event.date, event.endTime);
+        var dates = toGoogleDateTime(event.date, event.startTime) + '/' + toGoogleDateTime(event.endDate || event.date, event.endTime);
         var params = { action: 'TEMPLATE', text: event.summary, dates: dates, details: event.description || '' };
+        if (event.rrule) { params.recur = 'RRULE:' + event.rrule; }
         if (event.location) { params.location = event.location; }
         if (ffcDashboard.wpTimezone) { params.ctz = ffcDashboard.wpTimezone; }
         var queryParts = [];
@@ -93,7 +99,7 @@
     }
 
     function buildOutlookUrl(event) {
-        var params = { rru: 'addevent', subject: event.summary, startdt: toOutlookDateTime(event.date, event.startTime), enddt: toOutlookDateTime(event.date, event.endTime), body: event.description || '', path: '/calendar/action/compose' };
+        var params = { rru: 'addevent', subject: event.summary, startdt: toOutlookDateTime(event.date, event.startTime), enddt: toOutlookDateTime(event.endDate || event.date, event.endTime), body: event.description || '', path: '/calendar/action/compose' };
         if (event.location) { params.location = event.location; }
         var queryParts = [];
         for (var key in params) {

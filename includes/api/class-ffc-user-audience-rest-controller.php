@@ -148,16 +148,8 @@ class UserAudienceRestController {
 			$bookings_formatted = array();
 
 			foreach ( $bookings as $booking ) {
-				$date_formatted = '';
-				if ( ! empty( $booking['booking_date'] ) ) {
-					// booking_date is a wall-clock DATE (Category B) — render literally, no TZ shift.
-					$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $booking['booking_date'] );
-					if ( '' === $date_formatted ) {
-						$date_formatted = (string) $booking['booking_date'];
-					}
-				}
-
-				// A range shows both ends of its dates; a single day has only its own.
+				// booking_date is a wall-clock DATE (Category B), rendered literally with no
+				// TZ shift. A range shows both ends of its dates; a single day has only its own.
 				$date_formatted = \FreeFormCertificate\Audience\AudienceBookingRules::date_label(
 					(string) $booking['booking_date'],
 					isset( $booking['end_date'] ) ? (string) $booking['end_date'] : null,
@@ -185,8 +177,25 @@ class UserAudienceRestController {
 					'cancelled' => __( 'Cancelled', 'ffcertificate' ),
 				);
 
-				$status  = $booking['status'] ?? 'active';
-				$is_past = (string) $booking['booking_date'] < current_time( 'Y-m-d' );
+				$row = (object) $booking;
+
+				// A range is past only once its last day is: a booking running
+				// today is still upcoming, with its export button.
+				$status    = $booking['status'] ?? 'active';
+				$last_date = (string) ( $booking['end_date'] ?? '' );
+				$last_date = '' !== $last_date ? $last_date : (string) $booking['booking_date'];
+				$is_past   = $last_date < current_time( 'Y-m-d' );
+
+				// A span's start belongs to its first day and its end to its last.
+				$time_label = \FreeFormCertificate\Audience\AudienceBookingRules::time_label(
+					(string) $booking['start_time'],
+					(string) $booking['end_time'],
+					\FreeFormCertificate\Audience\AudienceBookingRules::is_span( $row ),
+					static function ( string $time ): string {
+						$formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $time );
+						return '' === $formatted ? substr( $time, 0, 5 ) : $formatted;
+					}
+				);
 
 				$bookings_formatted[] = array(
 					'id'               => (int) $booking['id'],
@@ -197,6 +206,15 @@ class UserAudienceRestController {
 					'booking_date_raw' => $booking['booking_date'],
 					'start_time'       => $time_formatted,
 					'end_time'         => $end_time_formatted,
+					'time_label'       => $time_label,
+					// The calendar event: every booked day of a range, not only its first.
+					'ics'              => \FreeFormCertificate\Audience\AudienceBookingRules::ics_fields(
+						(string) $booking['booking_date'],
+						isset( $booking['end_date'] ) ? (string) $booking['end_date'] : null,
+						isset( $booking['time_mode'] ) ? (string) $booking['time_mode'] : null,
+						isset( $booking['skipped_dates'] ) ? (string) $booking['skipped_dates'] : null
+					),
+					'last_date_raw'    => $last_date,
 					'description'      => $booking['description'],
 					'status'           => $status,
 					'status_label'     => $status_labels[ $status ] ?? $status,
