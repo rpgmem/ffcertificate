@@ -181,10 +181,10 @@ class UserAudienceRestController {
 
 				// A range is past only once its last day is: a booking running
 				// today is still upcoming, with its export button.
-				$status  = $booking['status'] ?? 'active';
-				$is_past = (string) ( $booking['end_date'] ?? '' ) !== ''
-					? (string) $booking['end_date'] < current_time( 'Y-m-d' )
-					: (string) $booking['booking_date'] < current_time( 'Y-m-d' );
+				$status    = $booking['status'] ?? 'active';
+				$last_date = (string) ( $booking['end_date'] ?? '' );
+				$last_date = '' !== $last_date ? $last_date : (string) $booking['booking_date'];
+				$is_past   = $last_date < current_time( 'Y-m-d' );
 
 				// A span's start belongs to its first day and its end to its last.
 				$time_label = \FreeFormCertificate\Audience\AudienceBookingRules::time_label(
@@ -214,7 +214,7 @@ class UserAudienceRestController {
 						isset( $booking['time_mode'] ) ? (string) $booking['time_mode'] : null,
 						isset( $booking['skipped_dates'] ) ? (string) $booking['skipped_dates'] : null
 					),
-					'last_date_raw'    => (string) ( $booking['end_date'] ?? '' ) !== '' ? (string) $booking['end_date'] : (string) $booking['booking_date'],
+					'last_date_raw'    => $last_date,
 					'description'      => $booking['description'],
 					'status'           => $status,
 					'status_label'     => $status_labels[ $status ] ?? $status,
