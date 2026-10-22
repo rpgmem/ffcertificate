@@ -27786,3 +27786,35 @@ msgstr "A referência é o dia e o mês da data de cada pessoa. O ano não é us
 #: templates/admin/date-messages/rule-form.php
 msgid "Off by default: people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced."
 msgstr "Desligado por padrão: quem desligou os anúncios não recebe. Ligado, recebe mesmo assim, e o histórico conta esses envios como forçados."
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel this booking?"
+msgstr "Cancelar esta reserva?"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Read before you confirm:"
+msgstr "Leia antes de confirmar:"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel booking"
+msgstr "Cancelar reserva"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel booking (%d)"
+msgstr "Cancelar reserva (%d)"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Keep booking"
+msgstr "Manter reserva"
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "You can confirm in %d seconds."
+msgstr "Você poderá confirmar em %d segundos."
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "This cancels the booking on %s."
+msgstr "Isto cancela a reserva de %s."
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "This booking covers %1$d days (%2$s). Cancelling it cancels every one of them."
+msgstr "Esta reserva cobre %1$d dias (%2$s). Cancelá-la cancela todos eles."

@@ -27703,3 +27703,35 @@ msgstr ""
 #: templates/admin/date-messages/rule-form.php
 msgid "Off by default: people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced."
 msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel this booking?"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Read before you confirm:"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel booking"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Cancel booking (%d)"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "Keep booking"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "You can confirm in %d seconds."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "This cancels the booking on %s."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "This booking covers %1$d days (%2$s). Cancelling it cancels every one of them."
+msgstr ""

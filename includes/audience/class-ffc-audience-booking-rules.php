@@ -207,6 +207,35 @@ final class AudienceBookingRules {
 	}
 
 	/**
+	 * Words for the cancel confirmation, read by FFC.overrideConfirm().
+	 *
+	 * Cancelling a booking cancels every day it covers, so the dialog states
+	 * the whole range and keeps the confirm button disabled for a countdown.
+	 * The placeholders are filled in the browser: `%1$d` is the number of
+	 * days, `%2$s` the date label, `%s` the date label of a single day.
+	 *
+	 * @return array{title: string, intro: string, agree: string, agreeIn: string, cancel: string, countdownStart: string, countdownEnd: string, single: string, range: string, seconds: int}
+	 */
+	public static function cancel_strings(): array {
+		return array(
+			'title'          => __( 'Cancel this booking?', 'ffcertificate' ),
+			'intro'          => __( 'Read before you confirm:', 'ffcertificate' ),
+			'agree'          => __( 'Cancel booking', 'ffcertificate' ),
+			/* translators: %d: seconds left before the confirm button is enabled. */
+			'agreeIn'        => __( 'Cancel booking (%d)', 'ffcertificate' ),
+			'cancel'         => __( 'Keep booking', 'ffcertificate' ),
+			/* translators: %d: seconds left before the confirm button is enabled. */
+			'countdownStart' => __( 'You can confirm in %d seconds.', 'ffcertificate' ),
+			'countdownEnd'   => __( 'You can confirm now.', 'ffcertificate' ),
+			/* translators: %s: the date of the booking being cancelled. */
+			'single'         => __( 'This cancels the booking on %s.', 'ffcertificate' ),
+			/* translators: 1: number of days the booking covers, 2: the first and last dates of it. */
+			'range'          => __( 'This booking covers %1$d days (%2$s). Cancelling it cancels every one of them.', 'ffcertificate' ),
+			'seconds'        => 5,
+		);
+	}
+
+	/**
 	 * The days of a stored booking row, skipping the ones its range left out.
 	 * A single-day row has exactly its own date.
 	 *

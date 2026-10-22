@@ -215,7 +215,7 @@ class AudienceLoader {
 		wp_enqueue_script(
 			'ffc-audience-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-audience-admin{$s}.js",
-			array( 'jquery', 'wp-util' ),
+			array( 'jquery', 'wp-util', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);
@@ -346,6 +346,7 @@ class AudienceLoader {
 		return array(
 			'confirmDelete'        => __( 'Are you sure you want to delete this item?', 'ffcertificate' ),
 			'confirmCancel'        => __( 'Are you sure you want to cancel this booking?', 'ffcertificate' ),
+			'cancelConfirm'        => AudienceBookingRules::cancel_strings(),
 			'saving'               => __( 'Saving...', 'ffcertificate' ),
 			'saved'                => __( 'Saved!', 'ffcertificate' ),
 			'error'                => __( 'An error occurred. Please try again.', 'ffcertificate' ),

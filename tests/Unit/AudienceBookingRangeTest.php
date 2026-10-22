@@ -195,4 +195,20 @@ class AudienceBookingRangeTest extends TestCase {
 		$this->assertStringContainsString( 'COALESCE(b.end_date, b.booking_date) >= %s', $sql );
 		$this->assertStringContainsString( 'b.skipped_dates NOT LIKE %s', $sql );
 	}
+
+	public function test_cancel_strings_carry_every_key_the_confirmation_reads(): void {
+		$strings = AudienceBookingRules::cancel_strings();
+
+		foreach ( array( 'title', 'intro', 'agree', 'agreeIn', 'cancel', 'countdownStart', 'countdownEnd', 'single', 'range' ) as $key ) {
+			$this->assertNotSame( '', $strings[ $key ], "The $key string must not be empty." );
+		}
+		$this->assertSame( 5, $strings['seconds'] );
+	}
+
+	public function test_the_range_sentence_names_both_the_day_count_and_the_dates(): void {
+		$range = AudienceBookingRules::cancel_strings()['range'];
+
+		$this->assertStringContainsString( '%1$d', $range );
+		$this->assertStringContainsString( '%2$s', $range );
+	}
 }
