@@ -41,6 +41,7 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 * **Gestão de públicos** - Públicos (grupos) hierárquicos com cores.
 * **Gestão de ambientes** - Espaços físicos com calendários, expediente, feriados e capacidade.
 * **Agendamentos de grupos** - Agende atividades para públicos inteiros ou para usuários individuais.
+* **Agendamentos de vários dias** - Um agendamento pode cobrir um intervalo de dias, com o mesmo horário todos os dias ou do horário inicial no primeiro dia ao horário final no último. Um feriado dentro do intervalo recusa o agendamento, a menos que o operador o pule.
 * **Importação e exportação em CSV** - Importe e exporte públicos e membros, com criação de usuários.
 * **Detecção de conflitos** - Os conflitos são verificados antes de um agendamento ser confirmado.
 * **Shortcodes** - A lista de Calendários de Público-alvo mostra o shortcode de cada calendário e de cada ambiente, com um botão de copiar.

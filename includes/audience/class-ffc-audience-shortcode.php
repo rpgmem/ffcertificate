@@ -376,6 +376,24 @@ class AudienceShortcode {
 							</label>
 						</div>
 
+						<div class="ffc-form-group" id="booking-end-date-group">
+							<label for="booking-end-date"><?php esc_html_e( 'End date (optional)', 'ffcertificate' ); ?></label>
+							<input type="date" name="end_date" id="booking-end-date">
+							<p class="description"><?php esc_html_e( 'Leave empty for a single day. A range books every day from the date above to this one.', 'ffcertificate' ); ?></p>
+						</div>
+
+						<div class="ffc-form-group" id="booking-range-options" hidden>
+							<label for="booking-time-mode"><?php esc_html_e( 'Hours on each day', 'ffcertificate' ); ?></label>
+							<select name="time_mode" id="booking-time-mode">
+								<option value="daily"><?php esc_html_e( 'The same hours every day', 'ffcertificate' ); ?></option>
+								<option value="span"><?php esc_html_e( 'From the start time on the first day to the end time on the last', 'ffcertificate' ); ?></option>
+							</select>
+							<label>
+								<input type="checkbox" id="booking-skip-blocked" name="skip_blocked" value="1">
+								<?php esc_html_e( 'Skip blocked days (holidays and global closures) instead of refusing the booking', 'ffcertificate' ); ?>
+							</label>
+						</div>
+
 						<div class="ffc-form-row" id="booking-time-row">
 							<div class="ffc-form-group">
 								<label for="booking-start-time"><?php esc_html_e( 'Start Time', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
@@ -872,6 +890,8 @@ class AudienceShortcode {
 					'booking'                => $booking_singular,
 					'bookings'               => $booking_plural,
 					'createBooking'          => __( 'Create Booking', 'ffcertificate' ),
+					/* translators: %s: the dates of a booking range that another booking already takes. */
+					'collidingDays'          => __( 'Already booked on: %s', 'ffcertificate' ),
 					'newBooking'             => __( 'New Booking', 'ffcertificate' ),
 					'environmentLabel'       => __( 'Environment', 'ffcertificate' ),
 					'allEnvironments'        => __( 'All Environments', 'ffcertificate' ),

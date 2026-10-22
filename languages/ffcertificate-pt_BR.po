@@ -7058,6 +7058,38 @@ msgstr "Data de Término"
 msgid "%1$s – %2$s"
 msgstr "%1$s – %2$s"
 
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "End date (optional)"
+msgstr "Data final (opcional)"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Leave empty for a single day. A range books every day from the date above to this one."
+msgstr "Deixe em branco para um único dia. Um intervalo agenda todos os dias da data acima até esta."
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Hours on each day"
+msgstr "Horário em cada dia"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "The same hours every day"
+msgstr "O mesmo horário todos os dias"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "From the start time on the first day to the end time on the last"
+msgstr "Do horário inicial no primeiro dia ao horário final no último"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Skip blocked days (holidays and global closures) instead of refusing the booking"
+msgstr "Pular dias bloqueados (feriados e fechamentos gerais) em vez de recusar o agendamento"
+
+#: includes/audience/class-ffc-audience-shortcode.php
+msgid "Already booked on: %s"
+msgstr "Já reservado em: %s"
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then the skipped days are recorded. A range covers at most 31 days, and an all-day booking covers one day."
+msgstr "Um agendamento pode cobrir um intervalo de dias: informe uma data final no formulário de agendamento e ele ocupa todos os dias da data inicial até essa. Os horários de cada dia são iguais todos os dias, ou vão do horário inicial no primeiro dia ao horário final no último, com a janela de funcionamento inteira entre eles. Cada dia é verificado contra as regras e quanto a conflitos; um conflito em qualquer dia recusa o agendamento inteiro, e o formulário lista os dias já ocupados. Um feriado dentro do intervalo recusa o agendamento, a menos que \"Pular dias bloqueados\" esteja marcado; nesse caso os dias pulados são registrados. Um intervalo cobre no máximo 31 dias, e um agendamento de dia inteiro cobre apenas um dia."
+
 #: includes/frontend/class-ffc-frontend.php:464
 msgid "End date"
 msgstr "Data de término"

@@ -199,6 +199,13 @@
                 }
             });
 
+            // An end date makes a range (#1946): its options show and the all-day switch goes.
+            $('#booking-end-date').on('change', function() {
+                if (typeof api.setRangeOptions === 'function') {
+                    api.setRangeOptions($(this).val());
+                }
+            });
+
             // The reasons under the space follow the space and the times (#1859).
             $('#booking-environment-id, #booking-start-time, #booking-end-time, #booking-all-day').on('change', function() {
                 if (typeof api.updateEnvironmentStatus === 'function') {

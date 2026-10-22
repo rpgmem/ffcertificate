@@ -49,6 +49,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 * **Audience Management** - Hierarchical audiences (groups) with colour coding.
 * **Environment Management** - Physical spaces with calendars, working hours, holidays and capacity.
 * **Group Bookings** - Schedule activities for whole audiences or individual users.
+* **Multi-day Bookings** - A booking can cover a range of days, with the same hours each day or from the start time on the first day to the end time on the last. A holiday inside the range refuses the booking unless the operator skips it.
 * **CSV Import & Export** - Import and export audiences and members, with user creation.
 * **Conflict Detection** - Conflicts are checked before a booking is confirmed.
 * **Shortcodes** - The Audience Calendars list shows each calendar's and each environment's shortcode with a copy button.
