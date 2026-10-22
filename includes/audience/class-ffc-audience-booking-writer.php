@@ -95,6 +95,8 @@ class AudienceBookingWriter {
 			'end_date'       => '',
 			'time_mode'      => 'daily',
 			'skip_blocked'   => false,
+			'override_ids'   => array(),
+			'override_note'  => '',
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
@@ -130,7 +132,11 @@ class AudienceBookingWriter {
 		// a friendly error, but this is the authoritative check.
 		$wpdb->query( 'START TRANSACTION' );
 
-		// Every day of the range is checked, and one clash refuses the whole booking.
+		// Every day of the range is checked, and one clash refuses the whole
+		// booking, except a clash with a booking the caller confirmed it
+		// overrides: that one is cancelled below, in this same transaction,
+		// so the slot is never held by two active bookings.
+		$override_ids = is_array( $data['override_ids'] ) ? self::numeric_ids( $data['override_ids'] ) : array();
 		foreach ( $plan['days'] as $day ) {
 			$conflicts = self::get_conflicts_for_update(
 				(int) $data['environment_id'],
@@ -138,7 +144,16 @@ class AudienceBookingWriter {
 				$day['start_time'],
 				$day['end_time']
 			);
-			if ( ! empty( $conflicts ) ) {
+			foreach ( $conflicts as $conflict ) {
+				if ( ! in_array( (int) ( $conflict->id ?? 0 ), $override_ids, true ) ) {
+					$wpdb->query( 'ROLLBACK' );
+					return false;
+				}
+			}
+		}
+
+		foreach ( $override_ids as $override_id ) {
+			if ( ! self::cancel( $override_id, (string) $data['override_note'] ) ) {
 				$wpdb->query( 'ROLLBACK' );
 				return false;
 			}
@@ -193,29 +208,30 @@ class AudienceBookingWriter {
 
 	/**
 	 * Conflict-check used by {@see self::create()} inside a transaction.
-	 * Identical predicate to {@see AudienceBookingReader::get_conflicts()} but
-	 * with the `FOR UPDATE` row + gap lock that prevents concurrent inserts in
-	 * the same `(environment_id, booking_date)` range from completing
-	 * until the holding transaction commits. Must run inside a
-	 * `START TRANSACTION ... COMMIT` block.
+	 * Same rows as {@see AudienceBookingReader::get_conflicts()}, read with
+	 * the `FOR UPDATE` row + gap lock that keeps a concurrent insert in the
+	 * same `(environment_id, booking_date)` range waiting until the holding
+	 * transaction commits. Must run inside a `START TRANSACTION ... COMMIT`
+	 * block.
+	 *
+	 * The query locks every active row that occupies the day; the hours are
+	 * compared afterwards by {@see AudienceBookingRules::overlapping_on_day()},
+	 * because a span row's stored times are not the hours it takes on a
+	 * middle day.
 	 *
 	 * @since 6.5.0
 	 * @param int    $environment_id Environment ID.
 	 * @param string $date           Booking date (Y-m-d).
 	 * @param string $start_time     Start time (H:i).
 	 * @param string $end_time       End time (H:i).
-	 * @return array<int, mixed>
+	 * @return list<object>
 	 */
 	private static function get_conflicts_for_update( int $environment_id, string $date, string $start_time, string $end_time ): array {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
 		list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( $date );
-		$args                       = array_merge(
-			array( $table, $environment_id ),
-			$day_args,
-			array( $end_time, $start_time, $start_time, $end_time, $start_time, $end_time )
-		);
+		$args                       = array_merge( array( $table, $environment_id ), $day_args );
 
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
@@ -226,20 +242,19 @@ class AudienceBookingWriter {
 				 *
 				 * @phpstan-ignore argument.type
 				 */
-				"SELECT id FROM %i
+				"SELECT id, environment_id, booking_date, end_date, time_mode, skipped_dates, start_time, end_time FROM %i
                 WHERE environment_id = %d
                 AND {$day_sql}
                 AND status = 'active'
-                AND (
-                    (start_time < %s AND end_time > %s) OR
-                    (start_time >= %s AND start_time < %s) OR
-                    (end_time > %s AND end_time <= %s)
-                )
                 FOR UPDATE",
 				...$args
 			)
 		);
-		return is_array( $results ) ? $results : array();
+		if ( ! is_array( $results ) ) {
+			return array();
+		}
+
+		return AudienceBookingRules::overlapping_on_day( array_values( array_filter( $results, 'is_object' ) ), $date, $start_time, $end_time );
 	}
 
 	/**

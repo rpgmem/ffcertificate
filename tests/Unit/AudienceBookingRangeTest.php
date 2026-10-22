@@ -211,4 +211,139 @@ class AudienceBookingRangeTest extends TestCase {
 		$this->assertStringContainsString( '%1$d', $range );
 		$this->assertStringContainsString( '%2$s', $range );
 	}
+
+	public function test_a_span_row_takes_its_start_on_the_first_day_the_window_between_and_its_end_on_the_last(): void {
+		$row = (object) array(
+			'environment_id' => 1,
+			'booking_date'   => '2026-03-16',
+			'end_date'       => '2026-03-18',
+			'time_mode'      => 'span',
+			'skipped_dates'  => null,
+			'start_time'     => '14:00:00',
+			'end_time'       => '10:00:00',
+		);
+
+		$this->assertSame( array( 'start_time' => '14:00', 'end_time' => '23:59' ), AudienceBookingRules::stored_day_times( $row, '2026-03-16' ) );
+		$this->assertSame( array( 'start_time' => '00:00', 'end_time' => '23:59' ), AudienceBookingRules::stored_day_times( $row, '2026-03-17' ) );
+		$this->assertSame( array( 'start_time' => '00:00', 'end_time' => '10:00' ), AudienceBookingRules::stored_day_times( $row, '2026-03-18' ) );
+	}
+
+	public function test_a_span_whose_first_day_was_skipped_starts_on_the_first_day_it_books(): void {
+		$row = (object) array(
+			'environment_id' => 1,
+			'booking_date'   => '2026-03-16',
+			'end_date'       => '2026-03-18',
+			'time_mode'      => 'span',
+			'skipped_dates'  => '["2026-03-16"]',
+			'start_time'     => '14:00:00',
+			'end_time'       => '10:00:00',
+		);
+
+		$this->assertSame( array( 'start_time' => '14:00', 'end_time' => '23:59' ), AudienceBookingRules::stored_day_times( $row, '2026-03-17' ) );
+	}
+
+	public function test_a_daily_row_takes_its_own_hours_on_every_day(): void {
+		$this->environment->shouldNotReceive( 'get_working_hours' );
+		$row = (object) array(
+			'environment_id' => 1,
+			'booking_date'   => '2026-03-16',
+			'end_date'       => '2026-03-18',
+			'time_mode'      => 'daily',
+			'start_time'     => '09:00:00',
+			'end_time'       => '12:00:00',
+		);
+
+		$this->assertSame( array( 'start_time' => '09:00', 'end_time' => '12:00' ), AudienceBookingRules::stored_day_times( $row, '2026-03-17' ) );
+	}
+
+	public function test_overlap_keeps_a_middle_day_of_a_span_and_drops_touching_ends(): void {
+		$span     = (object) array(
+			'id'             => 1,
+			'environment_id' => 1,
+			'booking_date'   => '2026-03-16',
+			'end_date'       => '2026-03-18',
+			'time_mode'      => 'span',
+			'start_time'     => '14:00:00',
+			'end_time'       => '10:00:00',
+		);
+		$before   = (object) array(
+			'id'           => 2,
+			'booking_date' => '2026-03-17',
+			'start_time'   => '07:00:00',
+			'end_time'     => '09:00:00',
+		);
+		$touching = (object) array(
+			'id'           => 3,
+			'booking_date' => '2026-03-17',
+			'start_time'   => '12:00:00',
+			'end_time'     => '13:00:00',
+		);
+
+		$kept = AudienceBookingRules::overlapping_on_day( array( $span, $before, $touching ), '2026-03-17', '09:00', '12:00' );
+
+		// The span's stored 14:00–10:00 read as one day's hours would never
+		// overlap 09:00–12:00; on its middle day it takes the whole window.
+		$this->assertSame( array( 1 ), array_map( static fn( $row ): int => $row->id, $kept ) );
+	}
+
+	public function test_ics_of_a_single_day_is_that_day(): void {
+		$this->assertSame(
+			array( 'date' => '2026-03-16', 'end_date' => '2026-03-16' ),
+			AudienceBookingRules::ics_fields( '2026-03-16', null, null, null )
+		);
+	}
+
+	public function test_ics_of_a_span_runs_from_the_first_booked_day_to_the_last(): void {
+		// The first and last dates were skipped: the event starts and ends on days it books.
+		$this->assertSame(
+			array( 'date' => '2026-03-17', 'end_date' => '2026-03-19' ),
+			AudienceBookingRules::ics_fields( '2026-03-16', '2026-03-20', 'span', '["2026-03-16","2026-03-20"]' )
+		);
+	}
+
+	public function test_ics_of_a_daily_range_repeats_and_leaves_out_only_the_skipped_days_between(): void {
+		$fields = AudienceBookingRules::ics_fields( '2026-03-16', '2026-03-20', 'daily', '["2026-03-16","2026-03-18"]' );
+
+		$this->assertSame( '2026-03-17', $fields['date'], 'A skipped first date does not start the event.' );
+		$this->assertSame( '2026-03-17', $fields['end_date'] );
+		$this->assertSame( 'FREQ=DAILY;UNTIL=20260320T235959', $fields['rrule'] );
+		$this->assertSame( array( '2026-03-18' ), $fields['exdates'] );
+	}
+
+	public function test_time_label_says_which_day_each_end_of_a_span_belongs_to(): void {
+		$this->assertSame( '09:00 - 12:00', AudienceBookingRules::time_label( '09:00:00', '12:00:00', false ) );
+		$this->assertSame( 'From 14:00 on the first day to 10:00 on the last day', AudienceBookingRules::time_label( '14:00:00', '10:00:00', true ) );
+	}
+
+	public function test_is_span_needs_a_span_over_more_than_one_booked_day(): void {
+		$base = array(
+			'booking_date' => '2026-03-16',
+			'end_date'     => '2026-03-17',
+			'time_mode'    => 'span',
+		);
+
+		$this->assertTrue( AudienceBookingRules::is_span( (object) $base ) );
+		$this->assertFalse( AudienceBookingRules::is_span( (object) ( array( 'time_mode' => 'daily' ) + $base ) ) );
+		$this->assertFalse( AudienceBookingRules::is_span( (object) ( array( 'skipped_dates' => '["2026-03-17"]' ) + $base ) ), 'One day left after skipping is a single day.' );
+	}
+
+	public function test_day_times_map_lists_every_booked_day_of_a_span_and_nothing_for_a_daily_range(): void {
+		$span = (object) array(
+			'environment_id' => 1,
+			'booking_date'   => '2026-03-16',
+			'end_date'       => '2026-03-17',
+			'time_mode'      => 'span',
+			'start_time'     => '14:00:00',
+			'end_time'       => '10:00:00',
+		);
+
+		$this->assertSame(
+			array(
+				'2026-03-16' => array( 'start_time' => '14:00', 'end_time' => '23:59' ),
+				'2026-03-17' => array( 'start_time' => '00:00', 'end_time' => '10:00' ),
+			),
+			AudienceBookingRules::day_times_map( $span )
+		);
+		$this->assertSame( array(), AudienceBookingRules::day_times_map( (object) ( array( 'time_mode' => 'daily' ) + (array) $span ) ) );
+	}
 }

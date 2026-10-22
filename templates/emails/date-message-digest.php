@@ -29,6 +29,7 @@ $ffc_dm_from   = (string) ( $args['target_from'] ?? '' );
 $ffc_dm_to     = (string) ( $args['target_to'] ?? '' );
 $ffc_dm_rows   = array(
 	'sent'            => __( 'Sent', 'ffcertificate' ),
+	'forced'          => __( 'Sent despite an opt-out (included in Sent)', 'ffcertificate' ),
 	'opted_out'       => __( 'Opted out', 'ffcertificate' ),
 	'no_email'        => __( 'No valid e-mail', 'ffcertificate' ),
 	'out_of_audience' => __( 'Outside the audience', 'ffcertificate' ),
@@ -41,9 +42,12 @@ $ffc_dm_names  = $args['names'] ?? null;
 	<?php
 	echo esc_html(
 		sprintf(
-			/* translators: 1: "daily run" or "manual send", 2: date range */
+			/* translators: 1: "daily run", "manual send" or "announcement", 2: date range */
 			__( 'Summary of the %1$s for the dates %2$s.', 'ffcertificate' ),
-			'manual' === ( $args['trigger'] ?? '' ) ? __( 'manual send', 'ffcertificate' ) : __( 'daily run', 'ffcertificate' ),
+			array(
+				'manual'       => __( 'manual send', 'ffcertificate' ),
+				'announcement' => __( 'announcement', 'ffcertificate' ),
+			)[ (string) ( $args['trigger'] ?? '' ) ] ?? __( 'daily run', 'ffcertificate' ),
 			DateFormatter::format_wallclock_date( $ffc_dm_from ) . ( $ffc_dm_to !== $ffc_dm_from ? ' – ' . DateFormatter::format_wallclock_date( $ffc_dm_to ) : '' )
 		)
 	);
@@ -51,6 +55,12 @@ $ffc_dm_names  = $args['names'] ?? null;
 </p>
 <table role="presentation" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin: 0 0 16px 0;">
 	<?php foreach ( $ffc_dm_rows as $ffc_dm_key => $ffc_dm_label ) : ?>
+		<?php
+		// Only an announcement set to ignore opt-outs can force a send.
+		if ( 'forced' === $ffc_dm_key && 0 === (int) ( $ffc_dm_counts['forced'] ?? 0 ) ) {
+			continue;
+		}
+		?>
 		<tr>
 			<td style="border-bottom: 1px solid #dcdcde;"><?php echo esc_html( $ffc_dm_label ); ?></td>
 			<td style="border-bottom: 1px solid #dcdcde; text-align: right;"><strong><?php echo esc_html( number_format_i18n( (int) ( $ffc_dm_counts[ $ffc_dm_key ] ?? 0 ) ) ); ?></strong></td>

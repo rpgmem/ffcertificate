@@ -235,7 +235,7 @@ class AudienceAdminBookings {
 							<tr>
 								<td><?php echo esc_html( $booking->id ); ?></td>
 								<td><?php echo esc_html( AudienceBookingRules::date_label( (string) $booking->booking_date, isset( $booking->end_date ) ? (string) $booking->end_date : null, static fn( string $date ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date ) ) ); ?></td>
-								<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $booking->start_time ) . ' - ' . \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $booking->end_time ) ); ?></td>
+								<td><?php echo esc_html( AudienceBookingRules::time_label( (string) $booking->start_time, (string) $booking->end_time, AudienceBookingRules::is_span( $booking ), static fn( string $time ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $time ) ) ); ?></td>
 								<td><?php echo esc_html( $booking->environment_name ); ?></td>
 								<td><?php echo esc_html( wp_trim_words( $booking->description, 10 ) ); ?></td>
 								<td>

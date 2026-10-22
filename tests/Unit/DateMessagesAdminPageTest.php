@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\DateMessages\DateMessagesAdminPage;
 use FreeFormCertificate\DateMessages\Rule;
+use FreeFormCertificate\DateMessages\Runner;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -365,6 +366,34 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertTrue( $out['truncated'] );
 	}
 
+	public function test_a_manager_who_cannot_send_may_not_arm_an_announcement(): void {
+		$this->caps                 = array( 'ffc_manage_date_messages' );
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
+		$_POST['rule']              = $this->posted();
+		$_POST['rule']['kind']      = Rule::KIND_ANNOUNCEMENT;
+		$_POST['rule']['send_at']   = ( new \DateTimeImmutable( '+1 day', new \DateTimeZone( 'America/Sao_Paulo' ) ) )->format( 'Y-m-d\TH:i' );
+		$this->writer->shouldReceive( 'save' )->never();
+
+		$this->call( 'handle_save' );
+
+		$this->assertSame( 'error', $this->outcome['type'] );
+		$this->assertSame( DateMessagesAdminPage::send_refusal(), $this->outcome['message'] );
+		$this->assertSame( 'Week before', $this->outcome['draft']['name'], 'What was typed goes back to the editor.' );
+	}
+
+	public function test_a_manager_who_cannot_send_may_still_save_an_unarmed_announcement(): void {
+		$this->caps               = array( 'ffc_manage_date_messages' );
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
+		$_POST['rule']            = $this->posted();
+		$_POST['rule']['kind']    = Rule::KIND_ANNOUNCEMENT;
+		$_POST['rule']['send_at'] = '';
+		$this->writer->shouldReceive( 'save' )->once()->andReturn( 12 );
+
+		$this->call( 'handle_save' );
+
+		$this->assertSame( 'success', $this->outcome['type'] );
+	}
+
 	public function test_saving_a_rule_that_was_deleted_meanwhile_fails(): void {
 		$_POST['rule']       = $this->posted();
 		$_POST['rule']['id'] = '3';
@@ -386,11 +415,19 @@ class DateMessagesAdminPageTest extends TestCase {
 			}
 		);
 		$this->writer->shouldReceive( 'delete' )->once()->with( 3 )->andReturn( true );
+		$cleared = array();
+		Functions\when( 'wp_clear_scheduled_hook' )->alias(
+			static function ( $hook, $args = array() ) use ( &$cleared ) {
+				$cleared[] = array( $hook, $args );
+			}
+		);
 
 		$this->call( 'handle_delete' );
 
 		$this->assertSame( array( DateMessagesAdminPage::DELETE_ACTION . '_3' ), $checked );
 		$this->assertSame( 'success', $this->outcome['type'] );
+		// A scheduled announcement of the deleted rule would otherwise fire into nothing.
+		$this->assertSame( array( array( Runner::ANNOUNCE_HOOK, array( 3 ) ) ), $cleared );
 	}
 
 	public function test_a_duplicate_is_an_inactive_copy_named_as_such(): void {

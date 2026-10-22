@@ -126,8 +126,13 @@ final class Unsubscribe {
 
 		OptOut::set( $user_id, false, $category );
 
+		// The confirmation names the category that was turned off, as the question did.
+		$done = OptOutCategory::ANNOUNCEMENT === $category
+			? __( 'Done. You will no longer receive announcements from this site. You can turn them back on in your dashboard profile.', 'ffcertificate' )
+			: __( 'Done. You will no longer receive date messages. You can turn them back on in your dashboard profile.', 'ffcertificate' );
+
 		wp_die(
-			esc_html__( 'Done. You will no longer receive date messages. You can turn them back on in your dashboard profile.', 'ffcertificate' ),
+			esc_html( $done ),
 			esc_html( $title ),
 			array( 'response' => 200 )
 		);

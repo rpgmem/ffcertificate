@@ -97,6 +97,31 @@ class AudienceNotificationHandlerTest extends TestCase {
 		$this->assertSame( 'Science Schedule at Lab 3 on 15/03/2026 from 14:00 to 16:00. Chemistry class', $result );
 	}
 
+	public function test_render_template_fills_time_with_the_span_label(): void {
+		// A span's stored 14:00 and 10:00 belong to its first and last days;
+		// {{time}} says so instead of printing 14:00 - 10:00 (#1946).
+		$booking_data = array(
+			'environment_name' => 'Lab 3',
+			'schedule_name'    => 'Science Schedule',
+			'booking_date'     => '15/03/2026 – 17/03/2026',
+			'start_time'       => '14:00',
+			'end_time'         => '10:00',
+			'time'             => 'From 14:00 on the first day to 10:00 on the last day',
+			'description'      => 'Course',
+		);
+
+		$user = new \WP_User( 1 );
+		$user->display_name = 'Test';
+		$user->user_email   = 'test@example.com';
+
+		$this->assertSame(
+			'Time: From 14:00 on the first day to 10:00 on the last day',
+			$this->invoke_private( 'render_template', [ 'Time: {{time}}', $booking_data, $user ] )
+		);
+		unset( $booking_data['time'] );
+		$this->assertSame( 'Time: 14:00 - 10:00', $this->invoke_private( 'render_template', [ 'Time: {{time}}', $booking_data, $user ] ), 'Without a label, the stored hours.' );
+	}
+
 	public function test_render_template_replaces_audience_and_creator(): void {
 		$template = 'Audiences: {{audiences}}. Created by: {{creator_name}}';
 		$booking_data = array(
@@ -224,8 +249,8 @@ class AudienceNotificationHandlerTest extends TestCase {
 			'{{schedule_name}}',
 			'{{environment_name}}',
 			'{{booking_date}}',
-			'{{start_time}}',
-			'{{end_time}}',
+			// One token for the hours: a span's start and end belong to different days.
+			'{{time}}',
 			'{{description}}',
 			'{{audiences}}',
 			'{{creator_name}}',
@@ -246,8 +271,8 @@ class AudienceNotificationHandlerTest extends TestCase {
 			'{{schedule_name}}',
 			'{{environment_name}}',
 			'{{booking_date}}',
-			'{{start_time}}',
-			'{{end_time}}',
+			// One token for the hours: a span's start and end belong to different days.
+			'{{time}}',
 			'{{description}}',
 			'{{cancelled_by_name}}',
 			'{{cancellation_reason}}',
