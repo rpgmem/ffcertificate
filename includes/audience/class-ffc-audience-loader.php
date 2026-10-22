@@ -290,6 +290,7 @@ class AudienceLoader {
 				'adminNonce'               => wp_create_nonce( 'ffc_admin_nonce' ),
 				'exportNonce'              => wp_create_nonce( 'ffc_audience_bookings_export' ),
 				'strings'                  => $this->get_admin_strings(),
+				'cancelConfirm'            => AudienceBookingRules::cancel_strings(),
 			)
 		);
 
@@ -346,7 +347,6 @@ class AudienceLoader {
 		return array(
 			'confirmDelete'        => __( 'Are you sure you want to delete this item?', 'ffcertificate' ),
 			'confirmCancel'        => __( 'Are you sure you want to cancel this booking?', 'ffcertificate' ),
-			'cancelConfirm'        => AudienceBookingRules::cancel_strings(),
 			'saving'               => __( 'Saving...', 'ffcertificate' ),
 			'saved'                => __( 'Saved!', 'ffcertificate' ),
 			'error'                => __( 'An error occurred. Please try again.', 'ffcertificate' ),

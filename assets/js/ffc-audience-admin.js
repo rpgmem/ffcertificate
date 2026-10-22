@@ -294,7 +294,7 @@
                 FFC.confirmRangeCancel({
                     count: $link.attr('data-days'),
                     label: $link.attr('data-date-label'),
-                    strings: strings.cancelConfirm
+                    strings: typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin.cancelConfirm : {}
                 }).then(function(agreed) {
                     if (!agreed) {
                         return;
