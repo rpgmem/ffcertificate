@@ -27702,3 +27702,27 @@ msgstr "Ninguém está nos públicos escolhidos, por isso nada foi enviado."
 #: includes/settings/views/documentation/feature-date-messages.php:115
 msgid "send a rule now or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it when the plugin is updated."
 msgstr "envia uma regra agora ou agenda um comunicado para o seu público. Gerenciar regras não inclui esta permissão; os gestores atuais a recebem ao atualizar o plugin."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "What the message is, who receives it and when."
+msgstr "O que é a mensagem, quem a recebe e quando."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "The subject and the body. The header and footer come from the Email Model."
+msgstr "O assunto e o corpo. O cabeçalho e o rodapé vêm do Modelo de e-mail."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "The background and the text area of the body only."
+msgstr "O fundo e a área de texto, apenas do corpo."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Who gets it, whether it is active, and when."
+msgstr "Quem recebe, se está ativa e quando."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "An optional summary of each run for the people who manage the messages."
+msgstr "Um resumo opcional de cada execução para quem gerencia as mensagens."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Preview the recipients and the message with the values on this form."
+msgstr "Veja os destinatários e a mensagem com os valores deste formulário."

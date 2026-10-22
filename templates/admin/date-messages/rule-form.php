@@ -51,6 +51,9 @@ if ( array() !== $draft ) {
 $ffc_dm_offset = is_numeric( $ffc_dm_values['offset_days'] ) ? (int) $ffc_dm_values['offset_days'] : 0;
 $ffc_dm_target = $today->modify( sprintf( '%+d days', -$ffc_dm_offset ) )->format( 'Y-m-d' );
 $ffc_dm_flag   = static fn( $v ): bool => in_array( (string) $v, array( '1', 'true', 'on' ), true );
+// A row that only applies to one kind starts hidden for the other (#1949). The
+// kind selector toggles the `hidden` attribute in ffc-date-messages-admin.js.
+$ffc_dm_hidden = static fn( string $kind ): bool => $kind !== (string) $ffc_dm_values['kind'];
 $ffc_dm_chosen = $ffc_dm_values['digest_user_ids'];
 $ffc_dm_chosen = is_string( $ffc_dm_chosen ) ? json_decode( $ffc_dm_chosen, true ) : $ffc_dm_chosen;
 $ffc_dm_chosen = array_map( 'intval', is_array( $ffc_dm_chosen ) ? $ffc_dm_chosen : array() );
@@ -84,8 +87,17 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 	<input type="hidden" name="action" value="<?php echo esc_attr( DateMessagesAdminPage::SAVE_ACTION ); ?>">
 	<input type="hidden" name="rule[id]" value="<?php echo esc_attr( (string) (int) $ffc_dm_values['id'] ); ?>">
 
-	<div class="card">
-	<h2 class="ffc-icon-edit"><?php echo esc_html( (int) $ffc_dm_values['id'] > 0 ? __( 'Edit rule', 'ffcertificate' ) : __( 'New rule', 'ffcertificate' ) ); ?></h2>
+<div class="ffc-sections">
+	<?php
+	\FreeFormCertificate\Admin\AdminUI::render_section_open(
+		array(
+			'title' => (int) $ffc_dm_values['id'] > 0 ? __( 'Edit rule', 'ffcertificate' ) : __( 'New rule', 'ffcertificate' ),
+			'icon'  => 'edit',
+			'hint'  => __( 'What the message is, who receives it and when.', 'ffcertificate' ),
+			'open'  => true,
+		)
+	);
+	?>
 
 	<table class="form-table" role="presentation">
 		<tr>
@@ -102,7 +114,11 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 				<p class="description"><?php esc_html_e( 'A dated message is sent on a date relative to each person. An announcement is one message to everyone in its audience, sent by hand or once at a chosen time.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
-		<tr>
+		<tr data-ffc-dm-kind-only="dated"
+		<?php
+		if ( $ffc_dm_hidden( 'dated' ) ) :
+			?>
+			hidden<?php endif; ?>>
 			<th scope="row"><label for="ffc-dm-source"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></label></th>
 			<td>
 				<select id="ffc-dm-source" name="rule[source]">
@@ -113,7 +129,11 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 				</select>
 			</td>
 		</tr>
-		<tr>
+		<tr data-ffc-dm-kind-only="dated"
+		<?php
+		if ( $ffc_dm_hidden( 'dated' ) ) :
+			?>
+			hidden<?php endif; ?>>
 			<th scope="row"><label for="ffc-dm-offset"><?php esc_html_e( 'Days from the date', 'ffcertificate' ); ?></label></th>
 			<td>
 				<input type="number" id="ffc-dm-offset" name="rule[offset_days]" class="small-text" required step="1"
@@ -122,14 +142,22 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 				<p class="description"><?php esc_html_e( '0 sends on the date itself; -7 sends seven days before it, 7 seven days after it. Not used by an announcement.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
-		<tr>
+		<tr data-ffc-dm-kind-only="announcement"
+		<?php
+		if ( $ffc_dm_hidden( 'announcement' ) ) :
+			?>
+			hidden<?php endif; ?>>
 			<th scope="row"><label for="ffc-dm-send-at"><?php esc_html_e( 'Send at', 'ffcertificate' ); ?></label></th>
 			<td>
 				<input type="datetime-local" id="ffc-dm-send-at" name="rule[send_at]" value="<?php echo esc_attr( DateMessagesAdminPage::send_at_for_input( (int) $ffc_dm_values['send_at'] ) ); ?>">
 				<p class="description"><?php esc_html_e( 'Announcements only, in the site timezone. The announcement is sent once at this time, if it is active. Leave it empty to send it by hand with Send now. A time already past queues nothing when the rule is saved.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
-		<tr>
+		<tr data-ffc-dm-kind-only="announcement"
+		<?php
+		if ( $ffc_dm_hidden( 'announcement' ) ) :
+			?>
+			hidden<?php endif; ?>>
 			<th scope="row"><?php esc_html_e( 'Announcements', 'ffcertificate' ); ?></th>
 			<td>
 				<label><input type="checkbox" name="rule[force_opt_out]" value="1" <?php checked( ! $ffc_dm_flag( $ffc_dm_values['respect_opt_out'] ) ); ?>> <?php esc_html_e( 'Send it also to people who turned announcements off', 'ffcertificate' ); ?></label>
@@ -146,10 +174,17 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			</tr>
 		<?php endif; ?>
 	</table>
-	</div>
+	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
 
-	<div class="card">
-	<h2 class="ffc-icon-email"><?php esc_html_e( 'Message', 'ffcertificate' ); ?></h2>
+	<?php
+	\FreeFormCertificate\Admin\AdminUI::render_section_open(
+		array(
+			'title' => __( 'Message', 'ffcertificate' ),
+			'icon'  => 'email',
+			'hint'  => __( 'The subject and the body. The header and footer come from the Email Model.', 'ffcertificate' ),
+		)
+	);
+	?>
 	<table class="form-table" role="presentation">
 		<tr>
 			<th scope="row"><label for="ffc-dm-subject"><?php esc_html_e( 'Subject', 'ffcertificate' ); ?></label></th>
@@ -193,10 +228,18 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			</td>
 		</tr>
 	</table>
-	</div>
+	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
 
-	<div class="card ffc-dm-appearance" data-model-bg="<?php echo esc_attr( (string) $ffc_dm_model['body_bg'] ); ?>" data-model-text="<?php echo esc_attr( (string) $ffc_dm_model['body_text_color'] ); ?>">
-	<h2 class="ffc-icon-image"><?php esc_html_e( 'Body appearance', 'ffcertificate' ); ?></h2>
+	<div class="ffc-dm-appearance" data-model-bg="<?php echo esc_attr( (string) $ffc_dm_model['body_bg'] ); ?>" data-model-text="<?php echo esc_attr( (string) $ffc_dm_model['body_text_color'] ); ?>">
+	<?php
+	\FreeFormCertificate\Admin\AdminUI::render_section_open(
+		array(
+			'title' => __( 'Body appearance', 'ffcertificate' ),
+			'icon'  => 'logo',
+			'hint'  => __( 'The background and the text area of the body only.', 'ffcertificate' ),
+		)
+	);
+	?>
 	<p class="description"><?php esc_html_e( 'Only the body of this message changes; the header and footer stay the Email Model\'s. Fields left empty follow the Email Model.', 'ffcertificate' ); ?></p>
 	<table class="form-table" role="presentation">
 		<tr>
@@ -310,12 +353,24 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			</td>
 		</tr>
 	</table>
+	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
 	</div>
 
-	<div class="card">
-	<h2 class="ffc-icon-send"><?php esc_html_e( 'Sending', 'ffcertificate' ); ?></h2>
+	<?php
+	\FreeFormCertificate\Admin\AdminUI::render_section_open(
+		array(
+			'title' => __( 'Sending', 'ffcertificate' ),
+			'icon'  => 'send',
+			'hint'  => __( 'Who gets it, whether it is active, and when.', 'ffcertificate' ),
+		)
+	);
+	?>
 	<table class="form-table" role="presentation">
-		<tr>
+		<tr data-ffc-dm-kind-only="dated"
+		<?php
+		if ( $ffc_dm_hidden( 'dated' ) ) :
+			?>
+			hidden<?php endif; ?>>
 			<th scope="row"><label for="ffc-dm-send-to-user"><?php esc_html_e( 'Recipients', 'ffcertificate' ); ?></label></th>
 			<td>
 				<?php
@@ -350,10 +405,17 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			</td>
 		</tr>
 	</table>
-	</div>
+	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
 
-	<div class="card">
-	<h2 class="ffc-icon-users"><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></h2>
+	<?php
+	\FreeFormCertificate\Admin\AdminUI::render_section_open(
+		array(
+			'title' => __( 'Manager summary', 'ffcertificate' ),
+			'icon'  => 'users',
+			'hint'  => __( 'An optional summary of each run for the people who manage the messages.', 'ffcertificate' ),
+		)
+	);
+	?>
 	<table class="form-table" role="presentation">
 		<tr>
 			<th scope="row"><label for="ffc-dm-digest-enabled"><?php esc_html_e( 'Summary', 'ffcertificate' ); ?></label></th>
@@ -390,10 +452,17 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			</td>
 		</tr>
 	</table>
-	</div>
+	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
 
-	<div class="card">
-	<h2 class="ffc-icon-search"><?php esc_html_e( 'Check before saving', 'ffcertificate' ); ?></h2>
+	<?php
+	\FreeFormCertificate\Admin\AdminUI::render_section_open(
+		array(
+			'title' => __( 'Check before saving', 'ffcertificate' ),
+			'icon'  => 'search',
+			'hint'  => __( 'Preview the recipients and the message with the values on this form.', 'ffcertificate' ),
+		)
+	);
+	?>
 	<p class="description"><?php esc_html_e( 'Uses the values on this form, saved or not. Nothing is sent and nothing is recorded.', 'ffcertificate' ); ?></p>
 	<div class="ffc-dm-preview" data-ffc-dm-preview="form">
 		<label><?php esc_html_e( 'From', 'ffcertificate' ); ?> <input type="date" class="ffc-dm-from" value="<?php echo esc_attr( $ffc_dm_target ); ?>"></label>
@@ -465,7 +534,8 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			<p class="description"><?php esc_html_e( 'Sample values; images load as most readers show them. Outlook on Windows and readers that block images show the fallback colour instead.', 'ffcertificate' ); ?></p>
 		</div>
 	</div>
-	</div>
+	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+</div>
 
 	<?php if ( $can_manage ) : ?>
 		<?php
