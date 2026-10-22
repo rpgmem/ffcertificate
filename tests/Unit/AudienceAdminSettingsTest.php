@@ -768,7 +768,7 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertCount( 0, $redirects );
 	}
 
-	public function test_deleting_a_holiday_removes_that_index(): void {
+	public function test_deleting_a_holiday_removes_that_date(): void {
 		$this->stored_holidays(
 			array(
 				array( 'date' => '2026-01-01', 'description' => 'A' ),
@@ -786,24 +786,56 @@ class AudienceAdminSettingsTest extends TestCase {
 		$redirects = $this->record_redirects();
 		$_GET      = array(
 			'ffc_action'               => 'delete_global_holiday',
-			'holiday_index'            => '0',
+			'holiday_date'             => '2026-01-01',
 			'ffc_global_holiday_nonce' => 'n',
 		);
 
 		$this->run_holiday_action();
 
-		$this->assertSame( array( 'delete_global_holiday_0' ), $verified, 'The nonce is bound to the index.' );
+		$this->assertSame( array( 'delete_global_holiday_2026-01-01' ), $verified, 'The nonce is bound to the date.' );
 		$this->assertSame( array( array( 'date' => '2026-05-01', 'description' => 'B' ) ), $written['ffc_global_holidays'] );
 		$this->assertCount( 1, $redirects );
 	}
 
-	public function test_deleting_an_unknown_index_writes_nothing(): void {
+	/**
+	 * The screen lists the holidays sorted by date while the option keeps
+	 * them in the order they were added. Deleting by position removed the
+	 * holiday stored at the shown row's position, a different day (#2010).
+	 */
+	public function test_deleting_a_holiday_stored_out_of_order_removes_the_one_shown(): void {
+		$this->stored_holidays(
+			array(
+				array( 'date' => '2026-12-25', 'description' => 'Christmas' ),
+				array( 'date' => '2026-01-01', 'description' => 'New Year' ),
+				array( 'date' => '2026-05-01', 'description' => 'Labour Day' ),
+			)
+		);
+		$written = $this->record_writes();
+		$this->record_redirects();
+		$_GET = array(
+			'ffc_action'               => 'delete_global_holiday',
+			'holiday_date'             => '2026-01-01',
+			'ffc_global_holiday_nonce' => 'n',
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertSame(
+			array(
+				array( 'date' => '2026-12-25', 'description' => 'Christmas' ),
+				array( 'date' => '2026-05-01', 'description' => 'Labour Day' ),
+			),
+			$written['ffc_global_holidays']
+		);
+	}
+
+	public function test_deleting_an_unknown_date_writes_nothing(): void {
 		$this->stored_holidays( array( array( 'date' => '2026-01-01', 'description' => 'A' ) ) );
 		$written   = $this->record_writes();
 		$redirects = $this->record_redirects();
 		$_GET      = array(
 			'ffc_action'               => 'delete_global_holiday',
-			'holiday_index'            => '5',
+			'holiday_date'             => '2026-07-04',
 			'ffc_global_holiday_nonce' => 'n',
 		);
 
@@ -813,13 +845,29 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertCount( 1, $redirects );
 	}
 
+	public function test_deleting_with_a_malformed_date_is_refused(): void {
+		$this->stored_holidays( array( array( 'date' => '2026-01-01', 'description' => 'A' ) ) );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+		$_GET      = array(
+			'ffc_action'               => 'delete_global_holiday',
+			'holiday_date'             => '0',
+			'ffc_global_holiday_nonce' => 'n',
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertCount( 0, $written );
+		$this->assertCount( 0, $redirects );
+	}
+
 	public function test_deleting_a_holiday_without_the_capability_is_refused(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
 		$written   = $this->record_writes();
 		$redirects = $this->record_redirects();
 		$_GET      = array(
 			'ffc_action'               => 'delete_global_holiday',
-			'holiday_index'            => '0',
+			'holiday_date'             => '2026-01-01',
 			'ffc_global_holiday_nonce' => 'n',
 		);
 
@@ -833,8 +881,8 @@ class AudienceAdminSettingsTest extends TestCase {
 		$written   = $this->record_writes();
 		$redirects = $this->record_redirects();
 		$_GET      = array(
-			'ffc_action'    => 'delete_global_holiday',
-			'holiday_index' => '0',
+			'ffc_action'   => 'delete_global_holiday',
+			'holiday_date' => '2026-01-01',
 		);
 
 		$this->run_holiday_action();
