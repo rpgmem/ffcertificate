@@ -850,8 +850,11 @@ class AudienceBookingReader {
 		$sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
-		// The WHERE pieces are literal fragments; the day predicate comes from AudienceBookingRules::occupies_day_clause().
-		// @phpstan-ignore argument.type
+		/**
+		 * The WHERE pieces are literal fragments; the day predicate comes from AudienceBookingRules::occupies_day_clause().
+		 *
+		 * @phpstan-ignore argument.type
+		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
