@@ -406,6 +406,17 @@
         },
 
         /**
+         * The hours a booking takes on one of its days. A span (#1946)
+         * starts on its first day and ends on its last, so its stored
+         * start and end are not the hours of every day; the server sends
+         * each day's hours in `day_times`.
+         */
+        timesOn: function(booking, date) {
+            var day = booking.day_times && booking.day_times[date];
+            return day ? day : { start_time: booking.start_time, end_time: booking.end_time };
+        },
+
+        /**
          * Pad number with leading zero
          */
         pad: function(num) {

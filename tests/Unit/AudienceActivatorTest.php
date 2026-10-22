@@ -408,16 +408,20 @@ class AudienceActivatorTest extends TestCase {
 				return preg_match( "/SHOW TABLES LIKE\s+'([^']+)'/", $query, $m ) ? $m[1] : null;
 			}
 		);
-		// SHOW COLUMNS answers nothing: both columns are missing.
+		// SHOW COLUMNS finds a column only once an ALTER added it: both start missing.
+		$added = array();
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
-			static function ( $query ) use ( &$queries ) {
+			static function ( $query ) use ( &$queries, &$added ) {
 				$queries[] = $query;
-				return array();
+				return preg_match( "/SHOW COLUMNS FROM .* LIKE '([^']+)'/", (string) $query, $m ) && in_array( stripslashes( $m[1] ), $added, true ) ? array( (object) array( 'Field' => $m[1] ) ) : array();
 			}
 		);
 		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
-			static function ( $query ) use ( &$queries ) {
+			static function ( $query ) use ( &$queries, &$added ) {
 				$queries[] = $query;
+				if ( preg_match( "/ADD COLUMN '([^']+)'/", (string) $query, $m ) ) {
+					$added[] = $m[1];
+				}
 				return 1;
 			}
 		);
@@ -434,6 +438,44 @@ class AudienceActivatorTest extends TestCase {
 		AudienceActivator::maybe_migrate();
 
 		$this->assertSame( array(), $queries, 'a second request is a no-op' );
+	}
+
+	/**
+	 * An ALTER that fails leaves the revision unwritten, so the next request
+	 * tries again; writing it anyway left the install without the column for
+	 * good, and every write naming the column failed.
+	 */
+	public function test_a_failed_alter_leaves_the_revision_unwritten(): void {
+		$options = array(
+			'ffc_audience_schema_version' => FFC_VERSION,
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, $default_value = false ) use ( &$options ) {
+				return $options[ $key ] ?? $default_value;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, $value ) use ( &$options ): bool {
+				$options[ $key ] = $value;
+				return true;
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'suppress_errors' )->andReturn( false );
+		$this->wpdb->shouldReceive( 'print_error' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $query ) {
+				if ( false !== stripos( (string) $query, 'ALTER TABLE' ) ) {
+					$this->wpdb->last_error = 'ALTER command denied';
+					return false;
+				}
+				return 1;
+			}
+		);
+
+		AudienceActivator::maybe_migrate();
+
+		$this->assertArrayNotHasKey( AudienceActivator::SCHEMA_REVISION_OPTION, $options );
 	}
 
 	// ==================================================================

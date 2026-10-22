@@ -27,7 +27,7 @@ return array(
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Calendar:', 'ffcertificate' ) . '</strong> {{schedule_name}}</p>'
 		. '<p style="margin: 0 0 10px 0;"><strong>{{environment_label}}:</strong> {{environment_name}}</p>'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Date:', 'ffcertificate' ) . '</strong> {{booking_date}}</p>'
-		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Time:', 'ffcertificate' ) . '</strong> {{start_time}} - {{end_time}}</p>'
+		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Time:', 'ffcertificate' ) . '</strong> {{time}}</p>'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Description:', 'ffcertificate' ) . '</strong> {{description}}</p>'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Cancelled by:', 'ffcertificate' ) . '</strong> {{cancelled_by_name}}</p>'
 		. '<p style="margin: 0;"><strong>' . __( 'Reason:', 'ffcertificate' ) . '</strong> {{cancellation_reason}}</p>'

@@ -26537,8 +26537,8 @@ msgid "A booking that breaks one of those rules first opens a warning listing ev
 msgstr "Um agendamento que viola uma dessas regras abre antes um aviso que lista todas as regras violadas; o botão \"Concordo\" é liberado após 15 segundos, o servidor não salva nada sem essa confirmação e cada agendamento confirmado é registrado no Registro de Atividades. A capacidade nunca é ignorada."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
-msgstr "Um usuário cuja linha em Acesso de usuários tem Sobrescrever Conflitos, ou quem tem a exceção, pode reservar sobre um horário ocupado. A reserva anterior é então cancelada, e seu responsável recebe o e-mail \"reserva cancelada por um administrador\" com o motivo."
+msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled entirely, on every day it covers even when only one of them clashed, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
+msgstr "Um usuário cuja linha em Acesso de usuários tem Sobrescrever Conflitos, ou quem tem a exceção, pode reservar sobre um horário ocupado. A reserva anterior é então cancelada por inteiro, em todos os dias que cobre, mesmo que só um deles tenha conflito, e seu responsável recebe o e-mail \"reserva cancelada por um administrador\" com o motivo."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "Admin bypass and Override Conflicts"
@@ -27826,3 +27826,17 @@ msgstr "Um campo obrigatório do formulário está vazio"
 #: includes/integrations/class-ffc-email-handler.php
 msgid "This submission is in the trash, so its link is not sent."
 msgstr "Esta submissão está na lixeira, por isso o link não é enviado."
+
+#. translators: 1: start time on the first day of a booking, 2: end time on its last day.
+#: includes/audience/class-ffc-audience-booking-rules.php
+#, php-format
+msgid "From %1$s on the first day to %2$s on the last day"
+msgstr "De %1$s no primeiro dia até %2$s no último dia"
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "This time slot is already booked for this environment. Confirming cancels that booking entirely, on every day it covers."
+msgstr "Este horário já está reservado para este ambiente. Confirmar cancela essa reserva por inteiro, em todos os dias que ela cobre."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "When the hours run from the first day to the last, the calendar, the booking details, the user dashboard and the emails show the hours each day actually takes, and the calendar file covers every booked day. Cancelling a range cancels every day it covers; the confirmation names them and enables its button after a short countdown."
+msgstr "Quando o horário vai do primeiro ao último dia, o calendário, os detalhes da reserva, o painel do usuário e os e-mails mostram o horário que cada dia de fato ocupa, e o arquivo de calendário cobre todos os dias reservados. Cancelar um período cancela todos os dias que ele cobre; a confirmação os informa e só habilita o botão após uma breve contagem regressiva."

@@ -225,3 +225,60 @@ describe('ffc-user-dashboard-cal-export — dropdown interactions', () => {
 		clickSpy.mockRestore();
 	});
 });
+
+describe('ffc-user-dashboard-cal-export — booking ranges (#1946)', () => {
+	beforeEach(() => {
+		document.body.innerHTML = '';
+		installDeps();
+		loadScript('assets/js/ffc-user-dashboard-cal-export.js');
+	});
+
+	function icsOf(event) {
+		let content = '';
+		const RealBlob = window.Blob;
+		window.Blob = function (parts) { content = parts.join(''); return new RealBlob(parts); };
+		window.URL.createObjectURL = vi.fn(() => 'blob:fake');
+		window.URL.revokeObjectURL = vi.fn();
+		const clickSpy = vi.spyOn(window.HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+		document.body.innerHTML = window.FFCDashboard.calExport.buildButton(event);
+		window.$('.ffc-cal-export-ics').trigger('click');
+		clickSpy.mockRestore();
+		window.Blob = RealBlob;
+		return content;
+	}
+
+	it('repeats a daily range until its last day and leaves out its skipped days', () => {
+		const ics = icsOf(makeEvent({
+			date: '2026-05-20',
+			endDate: '2026-05-20',
+			rrule: 'FREQ=DAILY;UNTIL=20260523T235959',
+			exdates: ['2026-05-21'],
+		}));
+
+		expect(ics).toContain('DTSTART:20260520T090000');
+		expect(ics).toContain('DTEND:20260520T103000');
+		expect(ics).toContain('RRULE:FREQ=DAILY;UNTIL=20260523T235959');
+		expect(ics).toContain('EXDATE:20260521T090000');
+	});
+
+	it('ends a span on its last day', () => {
+		const ics = icsOf(makeEvent({ date: '2026-05-20', endDate: '2026-05-22', startTime: '14:00', endTime: '10:00' }));
+
+		expect(ics).toContain('DTSTART:20260520T140000');
+		expect(ics).toContain('DTEND:20260522T100000');
+		expect(ics).not.toContain('RRULE');
+	});
+
+	it('carries the range to the Google and Outlook links', () => {
+		const html = window.FFCDashboard.calExport.buildButton(makeEvent({
+			date: '2026-05-20',
+			endDate: '2026-05-22',
+			rrule: 'FREQ=DAILY;UNTIL=20260522T235959',
+		}));
+		const urls = Array.from(new DOMParser().parseFromString(html, 'text/html').querySelectorAll('a[target]')).map((a) => decodeURIComponent(a.getAttribute('href')));
+
+		expect(urls[0]).toContain('dates=20260520T090000/20260522T103000');
+		expect(urls[0]).toContain('recur=RRULE:FREQ=DAILY;UNTIL=20260522T235959');
+		expect(urls[1]).toContain('enddt=2026-05-22T10:30:00');
+	});
+});
