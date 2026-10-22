@@ -463,7 +463,14 @@ final class DateMessagesAdminPage {
 		}
 
 		$previous = $id > 0 ? RuleReader::get_by_id( $id ) : null;
-		$saved    = RuleWriter::save( $rule );
+
+		// Scheduling an announcement is sending it later, so it takes the
+		// right to send: a manager without it may edit the rule, not arm it.
+		if ( self::schedules_a_send( $rule, $previous ) && ! self::can_send() ) {
+			$this->finish( 'error', self::send_refusal(), array( 'rule' => $id > 0 ? $id : 0 ), $data );
+		}
+
+		$saved = RuleWriter::save( $rule );
 		if ( false === $saved ) {
 			$this->finish( 'error', __( 'The rule could not be saved.', 'ffcertificate' ), array( 'rule' => $id > 0 ? $id : 0 ), $data );
 		}
@@ -489,11 +496,7 @@ final class DateMessagesAdminPage {
 	 * @return void
 	 */
 	public static function sync_schedule( Rule $stored, ?Rule $previous ): void {
-		$changed = null === $previous
-			|| $previous->send_at !== $stored->send_at
-			|| $previous->kind !== $stored->kind
-			|| $previous->is_active !== $stored->is_active;
-		if ( ! $changed ) {
+		if ( ! self::send_changed( $stored, $previous ) ) {
 			return;
 		}
 
@@ -504,6 +507,46 @@ final class DateMessagesAdminPage {
 			return;
 		}
 		wp_clear_scheduled_hook( Runner::ANNOUNCE_HOOK, array( $stored->id ) );
+	}
+
+	/**
+	 * Whether a change to the instant, the kind or the activation moves the
+	 * announcement's send event. Saving an unchanged rule never does.
+	 *
+	 * @param Rule      $rule     The rule as it will be stored.
+	 * @param Rule|null $previous The rule before the save, null for a new one.
+	 * @return bool
+	 */
+	private static function send_changed( Rule $rule, ?Rule $previous ): bool {
+		return null === $previous
+			|| $previous->send_at !== $rule->send_at
+			|| $previous->kind !== $rule->kind
+			|| $previous->is_active !== $rule->is_active;
+	}
+
+	/**
+	 * Whether storing the rule queues an announcement to send later: an
+	 * active announcement with a future instant that changed in this save.
+	 *
+	 * @param Rule      $rule     The rule as it will be stored.
+	 * @param Rule|null $previous The rule before the save, null for a new one.
+	 * @return bool
+	 */
+	public static function schedules_a_send( Rule $rule, ?Rule $previous ): bool {
+		return $rule->is_announcement()
+			&& $rule->is_active
+			&& $rule->send_at > time()
+			&& self::send_changed( $rule, $previous );
+	}
+
+	/**
+	 * Why a save that would schedule a send is refused to a manager who may
+	 * not send.
+	 *
+	 * @return string
+	 */
+	public static function send_refusal(): string {
+		return __( 'Saving this would schedule the announcement to be sent, and your account cannot send messages. Leave it inactive or without a send time, or ask someone who can send.', 'ffcertificate' );
 	}
 
 	/**
@@ -518,6 +561,8 @@ final class DateMessagesAdminPage {
 		if ( $id <= 0 || ! RuleWriter::delete( $id ) ) {
 			$this->finish( 'error', __( 'The rule could not be deleted.', 'ffcertificate' ) );
 		}
+		// A scheduled announcement of the deleted rule would fire into nothing.
+		wp_clear_scheduled_hook( Runner::ANNOUNCE_HOOK, array( $id ) );
 		$this->finish( 'success', __( 'Rule deleted. Its history stays.', 'ffcertificate' ) );
 	}
 

@@ -154,6 +154,33 @@ describe('FFCDashboard.panels.audience.render', () => {
 		expect(cell.textContent).toContain('Morning slot');
 	});
 
+	it('keeps a range that started before the From date but runs into it (#1946)', () => {
+		const bookings = [
+			makeBooking({ booking_date_raw: '2026-02-25', last_date_raw: '2026-03-03', environment_name: 'RunningHall' }),
+			makeBooking({ booking_date_raw: '2026-02-01', last_date_raw: '2026-02-02', environment_name: 'EndedHall' }),
+		];
+		panel().render(bookings, 1);
+		document.querySelector('#ffc-tabpanel-audience .ffc-filter-from').value = '2026-03-01';
+		panel().render(bookings, 1);
+		const text = document.querySelector('#ffc-tabpanel-audience').textContent;
+		expect(text).toContain('RunningHall');
+		expect(text).not.toContain('EndedHall');
+	});
+
+	it('shows the time label and exports every day of a range (#1946)', () => {
+		panel().render([
+			makeBooking({
+				time_label: 'From 14:00 on the first day to 10:00 on the last day',
+				ics: { date: '2999-01-01', end_date: '2999-01-03' },
+			}),
+		], 1);
+		const row = document.querySelector('#ffc-tabpanel-audience table tbody tr');
+		expect(row.textContent).toContain('From 14:00 on the first day to 10:00 on the last day');
+		const event = JSON.parse(row.querySelector('.ffc-cal-export-ics').getAttribute('data-event'));
+		expect(event.date).toBe('2999-01-01');
+		expect(event.endDate).toBe('2999-01-03');
+	});
+
 	it('filters out rows outside the from/to date range', () => {
 		const bookings = [
 			makeBooking({ booking_date_raw: '2026-01-01', environment_name: 'EarlyHall' }),

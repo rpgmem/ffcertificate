@@ -17,6 +17,7 @@
     var trapFocus                   = api.trapFocus;
     var getEnvironmentColor         = api.getEnvironmentColor;
     var formatTime                  = api.formatTime;
+    var timesOn                     = api.timesOn;
     var escapeHtml                  = api.escapeHtml;
     var getEnvironmentLabelForBooking = api.getEnvironmentLabelForBooking;
     var collapseParentAudiences     = api.collapseParentAudiences;
@@ -74,7 +75,7 @@
 
         var html = '';
         bookings.sort(function(a, b) {
-            return a.start_time.localeCompare(b.start_time);
+            return timesOn(a, date).start_time.localeCompare(timesOn(b, date).start_time);
         });
 
         bookings.forEach(function(booking) {
@@ -88,7 +89,8 @@
             if (parseInt(booking.is_all_day)) {
                 html += '<div class="ffc-booking-time ffc-all-day">' + ((ffcAudience.strings || {}).allDay || 'All Day') + '</div>';
             } else {
-                html += '<div class="ffc-booking-time">' + formatTime(booking.start_time) + ' - ' + formatTime(booking.end_time) + '</div>';
+                var times = timesOn(booking, date);
+                html += '<div class="ffc-booking-time">' + formatTime(times.start_time) + ' - ' + formatTime(times.end_time) + '</div>';
             }
             html += '<div class="ffc-booking-description">' + escapeHtml(booking.description) + '</div>';
 

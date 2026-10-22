@@ -23961,8 +23961,8 @@ msgstr "Abaixo dele, a aba SMTP tem um interruptor para cada e-mail opcional: o 
 msgid "Controls the dark mode appearance of the plugin's admin screens and of its public pages (forms, user dashboard, shortcodes)."
 msgstr "Controla o modo escuro das telas de administração do plugin e das suas páginas públicas (formulários, painel do usuário, shortcodes)."
 
-msgid "Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks."
-msgstr "Criar e editar regras e enviar manualmente. O horário do envio diário fica em Configurações → Tarefas Agendadas."
+msgid "Create, edit, duplicate and delete rules. Sending a rule takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks."
+msgstr "Criar, editar, duplicar e excluir regras. Enviar uma regra exige Enviar mensagens por data; o horário do envio diário fica em Configurações → Tarefas Agendadas."
 
 msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
 msgstr "Painel → Atualizações mostra um breve resumo da versão oferecida, tirado do readme dessa própria versão, junto com as versões de WordPress e PHP que ela exige e a versão de WordPress com que foi testada, para que você leia o que muda antes de aplicá-la."
@@ -24015,8 +24015,8 @@ msgstr "Marque um ou mais locais cadastrados na lista. As coordenadas são obtid
 msgid "Where they are assigned"
 msgstr "Onde são atribuídas"
 
-msgid "create and edit rules and send manually. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
-msgstr "criar e editar regras e enviar manualmente. O horário do envio diário é definido em Configurações → Tarefas Agendadas, com ffc_manage_settings."
+msgid "create, edit, duplicate and delete rules. Sending a rule, or saving an active announcement with a send time, takes ffc_send_date_messages. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
+msgstr "criar, editar, duplicar e excluir regras. Enviar uma regra, ou salvar um anúncio ativo com horário de envio, exige ffc_send_date_messages. O horário do envio diário é definido em Configurações → Tarefas Agendadas, com ffc_manage_settings."
 
 msgid "off by default; when \"Pre-load cache daily\" is on, a daily task pre-loads every published form into the cache. Its time is set on Settings → Scheduled Tasks."
 msgstr "desativado por padrão; com \"Pré-carregar cache diariamente\" ativado, uma tarefa diária carrega no cache todos os formulários publicados. O horário dela é definido em Configurações → Tarefas Agendadas."
@@ -26537,8 +26537,8 @@ msgid "A booking that breaks one of those rules first opens a warning listing ev
 msgstr "Um agendamento que viola uma dessas regras abre antes um aviso que lista todas as regras violadas; o botão \"Concordo\" é liberado após 15 segundos, o servidor não salva nada sem essa confirmação e cada agendamento confirmado é registrado no Registro de Atividades. A capacidade nunca é ignorada."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
-msgstr "Um usuário cuja linha em Acesso de usuários tem Sobrescrever Conflitos, ou quem tem a exceção, pode reservar sobre um horário ocupado. A reserva anterior é então cancelada, e seu responsável recebe o e-mail \"reserva cancelada por um administrador\" com o motivo."
+msgid "A user whose User access row carries Override Conflicts, or a bypass holder, may book over an occupied slot. The earlier booking is then cancelled entirely, on every day it covers even when only one of them clashed, and its owner receives the \"booking cancelled by an administrator\" email with the reason."
+msgstr "Um usuário cuja linha em Acesso de usuários tem Sobrescrever Conflitos, ou quem tem a exceção, pode reservar sobre um horário ocupado. A reserva anterior é então cancelada por inteiro, em todos os dias que cobre, mesmo que só um deles tenha conflito, e seu responsável recebe o e-mail \"reserva cancelada por um administrador\" com o motivo."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "Admin bypass and Override Conflicts"
@@ -27826,3 +27826,41 @@ msgstr "Um campo obrigatório do formulário está vazio"
 #: includes/integrations/class-ffc-email-handler.php
 msgid "This submission is in the trash, so its link is not sent."
 msgstr "Esta submissão está na lixeira, por isso o link não é enviado."
+
+#. translators: 1: start time on the first day of a booking, 2: end time on its last day.
+#: includes/audience/class-ffc-audience-booking-rules.php
+#, php-format
+msgid "From %1$s on the first day to %2$s on the last day"
+msgstr "De %1$s no primeiro dia até %2$s no último dia"
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+msgid "This time slot is already booked for this environment. Confirming cancels that booking entirely, on every day it covers."
+msgstr "Este horário já está reservado para este ambiente. Confirmar cancela essa reserva por inteiro, em todos os dias que ela cobre."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "When the hours run from the first day to the last, the calendar, the booking details, the user dashboard and the emails show the hours each day actually takes, and the calendar file covers every booked day. Cancelling a range cancels every day it covers; the confirmation names them and enables its button after a short countdown."
+msgstr "Quando o horário vai do primeiro ao último dia, o calendário, os detalhes da reserva, o painel do usuário e os e-mails mostram o horário que cada dia de fato ocupa, e o arquivo de calendário cobre todos os dias reservados. Cancelar um período cancela todos os dias que ele cobre; a confirmação os informa e só habilita o botão após uma breve contagem regressiva."
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Date messages announcement (one per scheduled announcement)"
+msgstr "Anúncio de mensagens por data (um por anúncio agendado)"
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Done. You will no longer receive announcements from this site. You can turn them back on in your dashboard profile."
+msgstr "Pronto. Você não receberá mais anúncios deste site. É possível reativá-los no perfil do seu painel."
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Saving this would schedule the announcement to be sent, and your account cannot send messages. Leave it inactive or without a send time, or ask someone who can send."
+msgstr "Salvar agendaria o envio do anúncio, e sua conta não pode enviar mensagens. Deixe-o inativo ou sem horário de envio, ou peça a alguém que possa enviar."
+
+#: templates/admin/date-messages/history.php
+msgid "Sent despite an opt-out"
+msgstr "Enviados apesar do descadastro"
+
+#: templates/emails/date-message-digest.php
+msgid "Sent despite an opt-out (included in Sent)"
+msgstr "Enviados apesar do descadastro (incluídos em Enviados)"
+
+#: templates/emails/date-message-digest.php
+msgid "announcement"
+msgstr "anúncio"

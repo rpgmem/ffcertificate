@@ -363,6 +363,67 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, DateMessagesRecordAutosave::save( 6, 'send_to_user', 0 ) );
 	}
 
+	/**
+	 * An inactive announcement with a future send time.
+	 *
+	 * @param bool $active Whether it is active.
+	 * @return \FreeFormCertificate\DateMessages\Rule
+	 */
+	private function announcement( bool $active ) {
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+
+		$rule = \FreeFormCertificate\DateMessages\Rule::from_array(
+			array(
+				'id'        => 6,
+				'name'      => 'Closing',
+				'kind'      => 'announcement',
+				'subject'   => 'Closed',
+				'body'      => '<p>x</p>',
+				'send_at'   => time() + 3600,
+				'is_active' => $active ? '1' : '0',
+			)
+		);
+		$this->assertInstanceOf( \FreeFormCertificate\DateMessages\Rule::class, $rule );
+		return $rule;
+	}
+
+	public function test_switching_an_announcement_on_schedules_its_send(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_send_date_messages' === $cap );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		$before = $this->announcement( false );
+		$after  = $this->announcement( true );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleReader' )->shouldReceive( 'get_by_id' )->with( 6 )->andReturn( $before, $after );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleWriter' )->shouldReceive( 'save' )->once()->andReturn( 6 );
+		Functions\expect( 'wp_clear_scheduled_hook' )->once();
+		Functions\expect( 'wp_schedule_single_event' )->once()->with( $after->send_at, \FreeFormCertificate\DateMessages\Runner::ANNOUNCE_HOOK, array( 6 ) )->andReturn( true );
+
+		$this->assertTrue( DateMessagesRecordAutosave::save( 6, 'is_active', 1 ) );
+	}
+
+	public function test_switching_an_announcement_on_needs_the_right_to_send(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleReader' )->shouldReceive( 'get_by_id' )->andReturn( $this->announcement( false ) );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleWriter' )->shouldNotReceive( 'save' );
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		$result = DateMessagesRecordAutosave::save( 6, 'is_active', 1 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( \FreeFormCertificate\DateMessages\DateMessagesAdminPage::send_refusal(), $result->get_error_message() );
+	}
+
+	public function test_switching_an_announcement_off_clears_its_send(): void {
+		$before = $this->announcement( true );
+		$after  = $this->announcement( false );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleReader' )->shouldReceive( 'get_by_id' )->andReturn( $before, $after );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleWriter' )->shouldReceive( 'save' )->once()->andReturn( 6 );
+		Functions\expect( 'wp_clear_scheduled_hook' )->once()->with( \FreeFormCertificate\DateMessages\Runner::ANNOUNCE_HOOK, array( 6 ) );
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		$this->assertTrue( DateMessagesRecordAutosave::save( 6, 'is_active', 0 ) );
+	}
+
 	// ------------------------------------------------------------------
 	// Short URL
 	// ------------------------------------------------------------------

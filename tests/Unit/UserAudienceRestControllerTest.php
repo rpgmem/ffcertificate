@@ -347,6 +347,43 @@ class UserAudienceRestControllerTest extends TestCase {
 		);
 	}
 
+	public function test_a_range_running_today_is_upcoming_and_exports_every_booked_day(): void {
+		// A range that started yesterday was listed as past, without its export
+		// button, and its calendar file held only the first day (#1946).
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
+		Functions\when( 'wp_date' )->justReturn( '' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+
+		$this->query_service->shouldReceive( 'find_user_bookings' )->andReturn(
+			array(
+				array(
+					'id'               => 9,
+					'booking_date'     => '2026-06-05',
+					'end_date'         => '2026-06-08',
+					'time_mode'        => 'span',
+					'skipped_dates'    => '["2026-06-08"]',
+					'start_time'       => '14:00:00',
+					'end_time'         => '10:00:00',
+					'status'           => 'active',
+					'environment_id'   => 2,
+					'environment_name' => 'Env',
+					'schedule_name'    => 'Sched',
+					'description'      => 'Course',
+					'audiences'        => array(),
+				),
+			)
+		);
+
+		$row = ( new UserAudienceRestController( 'ffc/v1' ) )->get_user_audience_bookings( $this->make_request() )['bookings'][0];
+
+		$this->assertFalse( $row['is_past'], 'The range runs until 2026-06-08, after today.' );
+		$this->assertSame( '2026-06-08', $row['last_date_raw'] );
+		$this->assertSame( array( 'date' => '2026-06-05', 'end_date' => '2026-06-07' ), $row['ics'], 'The span ends on its last booked day, not on the skipped one.' );
+		$this->assertSame( 'From 14:00 on the first day to 10:00 on the last day', $row['time_label'] );
+	}
+
 	public function test_get_user_audience_bookings_returns_500_on_exception(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( true );

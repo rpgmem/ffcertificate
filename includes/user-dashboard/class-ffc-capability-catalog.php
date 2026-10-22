@@ -397,7 +397,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_date_messages'   => array(
 						'label'       => __( 'Manage date messages', 'ffcertificate' ),
-						'description' => __( 'Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
+						'description' => __( 'Create, edit, duplicate and delete rules. Sending a rule takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
 					),
 					'ffc_send_date_messages'     => array(
 						'label'       => __( 'Send date messages', 'ffcertificate' ),
