@@ -399,6 +399,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Manage date messages', 'ffcertificate' ),
 						'description' => __( 'Create and edit rules and send manually. The daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
 					),
+					'ffc_send_date_messages'     => array(
+						'label'       => __( 'Send date messages', 'ffcertificate' ),
+						'description' => __( 'Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade (#1949).', 'ffcertificate' ),
+					),
 					'ffc_test_date_messages'     => array(
 						'label'       => __( 'Send date-message tests', 'ffcertificate' ),
 						'description' => __( 'Send a sample of a rule, with fictional values, to your own address. Managing date messages allows it too (#1860).', 'ffcertificate' ),

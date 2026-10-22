@@ -68,6 +68,12 @@ final class DateMessagesAdminPage {
 	public const TEST_CAP = 'ffc_test_date_messages';
 
 	/**
+	 * Capability to send a rule now or schedule an announcement (#1949). Its own
+	 * cap: managing rules does not include it.
+	 */
+	public const SEND_CAP = 'ffc_send_date_messages';
+
+	/**
 	 * `admin_post` actions. Each nonce action equals its `admin_post`
 	 * action, keyed per rule where the action names one.
 	 */
@@ -142,6 +148,15 @@ final class DateMessagesAdminPage {
 	 */
 	public static function can_test(): bool {
 		return self::can_manage() || Capabilities::current_user_can_admin_or( self::TEST_CAP );
+	}
+
+	/**
+	 * Whether the current user may send a rule now (#1949).
+	 *
+	 * @return bool
+	 */
+	public static function can_send(): bool {
+		return Capabilities::current_user_can_admin_or( self::SEND_CAP );
 	}
 
 	/**
@@ -226,6 +241,7 @@ final class DateMessagesAdminPage {
 					'failed'    => __( 'The request failed. Reload the page and try again.', 'ffcertificate' ),
 					'truncated' => __( 'Only the first rows are listed; the totals count everyone.', 'ffcertificate' ),
 					'none'      => __( 'Nobody falls on these dates.', 'ffcertificate' ),
+					'forced'    => __( 'Forced past the opt-out (included in the total above)', 'ffcertificate' ),
 				),
 			)
 		);
@@ -317,6 +333,7 @@ final class DateMessagesAdminPage {
 		$outcome    = $this->take_outcome();
 		$can_manage = self::can_manage();
 		$can_test   = self::can_test();
+		$can_send   = self::can_send();
 		$rules      = RuleReader::all();
 		$audiences  = self::audience_options();
 		$managers   = array();
@@ -541,7 +558,7 @@ final class DateMessagesAdminPage {
 	 * @return void
 	 */
 	public function handle_send_now(): void {
-		$this->guard( self::SEND_ACTION );
+		$this->guard_send( self::SEND_ACTION );
 
 		$back = array( 'tab' => 'send' );
 		$rule = RuleReader::get_by_id( RequestInput::get_post_int( 'rule_id' ) );
@@ -906,6 +923,19 @@ final class DateMessagesAdminPage {
 	 */
 	private function guard( string $nonce_action ): void {
 		if ( ! self::can_manage() ) {
+			wp_die( esc_html__( 'You do not have permission to do this.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+		check_admin_referer( $nonce_action );
+	}
+
+	/**
+	 * The guard for a send: its own capability, not the rules' (#1949).
+	 *
+	 * @param string $nonce_action Nonce action.
+	 * @return void
+	 */
+	private function guard_send( string $nonce_action ): void {
+		if ( ! self::can_send() ) {
 			wp_die( esc_html__( 'You do not have permission to do this.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 		check_admin_referer( $nonce_action );

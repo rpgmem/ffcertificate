@@ -111,7 +111,7 @@ final class PluginAreas {
 			case 'url_shortener':
 				return __( 'Short URLs', 'ffcertificate' );
 			case 'date_messages':
-				return __( 'Date Messages', 'ffcertificate' );
+				return __( 'Messages', 'ffcertificate' );
 			case 'settings':
 				return __( 'FFC Settings', 'ffcertificate' );
 		}

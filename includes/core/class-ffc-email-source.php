@@ -63,6 +63,12 @@ final class EmailSource {
 	public const DATE_MESSAGES = 'plugin:ffcertificate_date_messages';
 
 	/**
+	 * Announcements to an audience (#1949): attributed apart from the dated
+	 * messages, so the mail queue shows what a one-off notice was.
+	 */
+	public const DATE_ANNOUNCEMENTS = 'plugin:ffcertificate_date_announcements';
+
+	/**
 	 * Account / capability notifications (access granted, etc.).
 	 */
 	public const ACCOUNT = 'plugin:ffcertificate_account';
@@ -95,6 +101,8 @@ final class EmailSource {
 				return __( 'FFCertificate — Recruitment', 'ffcertificate' );
 			case self::DATE_MESSAGES:
 				return __( 'FFCertificate — Date Messages', 'ffcertificate' );
+			case self::DATE_ANNOUNCEMENTS:
+				return __( 'FFCertificate — Announcements', 'ffcertificate' );
 			case self::ACCOUNT:
 				return __( 'FFCertificate — Account', 'ffcertificate' );
 			case self::ADMIN:

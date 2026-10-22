@@ -189,4 +189,20 @@ class DateMessagesRecipientResolverTest extends TestCase {
 			array_column( $page['rows'], 'decision' )
 		);
 	}
+
+	/**
+	 * An audience with nobody in it has no members, so an announcement to it is
+	 * not run (#1949).
+	 *
+	 * @return void
+	 */
+	public function test_an_audience_with_nobody_in_it_has_no_members(): void {
+		$this->audiences->shouldReceive( 'get_members' )->andReturn( array() );
+		$this->assertFalse( ( new RecipientResolver( $this->source ) )->audience_has_members( array( 9 ) ) );
+	}
+
+	public function test_an_audience_with_a_member_has_members(): void {
+		$this->audiences->shouldReceive( 'get_members' )->andReturn( array( 1 ) );
+		$this->assertTrue( ( new RecipientResolver( $this->source ) )->audience_has_members( array( 9 ) ) );
+	}
 }

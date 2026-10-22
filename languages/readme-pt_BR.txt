@@ -68,6 +68,7 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 
 * **E-mails de aniversário** - E-mails automáticos montados a partir da data de nascimento de cada usuário, enviados no dia ou um número definido de dias antes. Nada é enviado até que um administrador crie e ative uma regra.
 * **Regras** - Várias regras independentes, cada uma com seu deslocamento, público opcional, assunto e corpo em HTML.
+* **Comunicados** - Uma mensagem para todos de um público escolhido, enviada agora ou uma vez num horário definido. Cada comunicado tem sua própria categoria de descadastro: desligar os e-mails de aniversário não silencia os comunicados, e o operador pode enviar também a quem se descadastrou, marcado como forçado.
 * **Prévia e Enviar agora** - Veja quem receberia uma regra, e por que alguém seria pulado, antes de qualquer envio. Rode um intervalo de datas à mão ou envie a si mesmo um teste com dados de exemplo.
 * **Resumo para gestores** - Um e-mail opcional de resumo para usuários escolhidos, 24 horas depois de cada execução.
 * **Próximas datas** - Um painel com os próximos aniversários (só dia e mês), protegido por uma capacidade própria.

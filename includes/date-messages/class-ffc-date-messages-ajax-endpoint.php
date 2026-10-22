@@ -10,7 +10,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\DateMessages;
 
-use FreeFormCertificate\Core\EmailSource;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Scheduling\SchedulingMailer;
 
@@ -169,7 +168,7 @@ final class DateMessagesAjaxEndpoint {
 			$message['body'],
 			array(),
 			true,
-			EmailSource::DATE_MESSAGES,
+			$rule->email_source(),
 			$rule->appearance->document_args()
 		);
 

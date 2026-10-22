@@ -62,7 +62,7 @@ class DateMessagesAdminPageTest extends TestCase {
 
 		$_POST         = array();
 		$_GET          = array();
-		$this->caps    = array( 'ffc_manage_date_messages' );
+		$this->caps    = array( 'ffc_manage_date_messages', 'ffc_send_date_messages' );
 		$this->outcome = null;
 
 		Functions\when( '__' )->returnArg();
@@ -282,6 +282,20 @@ class DateMessagesAdminPageTest extends TestCase {
 			array( 'manage_options', 'ffc_view_date_messages', 'ffc_manage_date_messages', 'ffc_view_date_messages_pii' ),
 			$queried['capability__in']
 		);
+	}
+
+	/**
+	 * Sending has its own capability: managing rules alone does not allow it,
+	 * and the send capability alone does (#1949).
+	 *
+	 * @return void
+	 */
+	public function test_sending_needs_its_own_capability_not_the_rules_one(): void {
+		$this->caps = array( 'ffc_manage_date_messages' );
+		$this->assertFalse( DateMessagesAdminPage::can_send() );
+
+		$this->caps = array( 'ffc_send_date_messages' );
+		$this->assertTrue( DateMessagesAdminPage::can_send() );
 	}
 
 	/**

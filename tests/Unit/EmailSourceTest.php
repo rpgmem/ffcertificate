@@ -32,6 +32,7 @@ class EmailSourceTest extends TestCase {
 		$this->assertSame( 'plugin:ffcertificate_reregistration', EmailSource::REREGISTRATION );
 		$this->assertSame( 'plugin:ffcertificate_recruitment', EmailSource::RECRUITMENT );
 		$this->assertSame( 'plugin:ffcertificate_date_messages', EmailSource::DATE_MESSAGES );
+		$this->assertSame( 'plugin:ffcertificate_date_announcements', EmailSource::DATE_ANNOUNCEMENTS );
 		$this->assertSame( 'plugin:ffcertificate_account', EmailSource::ACCOUNT );
 		$this->assertSame( 'plugin:ffcertificate_admin', EmailSource::ADMIN );
 	}
@@ -44,6 +45,7 @@ class EmailSourceTest extends TestCase {
 			EmailSource::REREGISTRATION,
 			EmailSource::RECRUITMENT,
 			EmailSource::DATE_MESSAGES,
+			EmailSource::DATE_ANNOUNCEMENTS,
 			EmailSource::ACCOUNT,
 			EmailSource::ADMIN,
 		);

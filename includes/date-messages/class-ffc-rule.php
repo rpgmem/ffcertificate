@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\DateMessages;
 
 use FreeFormCertificate\Core\EmailBodyAppearance;
+use FreeFormCertificate\Core\EmailSource;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -181,6 +182,15 @@ final class Rule {
 	 */
 	public function is_announcement(): bool {
 		return self::KIND_ANNOUNCEMENT === $this->kind;
+	}
+
+	/**
+	 * The mail-queue source this rule's e-mails are attributed to (#1949).
+	 *
+	 * @return string One of EmailSource's keys.
+	 */
+	public function email_source(): string {
+		return $this->is_announcement() ? EmailSource::DATE_ANNOUNCEMENTS : EmailSource::DATE_MESSAGES;
 	}
 
 	/**

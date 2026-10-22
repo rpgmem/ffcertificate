@@ -112,6 +112,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<ul>
 		<li><code>ffc_view_date_messages</code> — <?php esc_html_e( 'read-only access to the rules, their send history and recipient totals.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_manage_date_messages</code> — <?php esc_html_e( 'create and edit rules and send manually. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_send_date_messages</code> — <?php esc_html_e( 'send a rule now or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it when the plugin is updated.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_test_date_messages</code> — <?php esc_html_e( 'send a rule\'s test, with sample values, to your own address. Managing date messages allows it too. Previewing the recipients and the message needs only the view capability.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_view_date_messages_pii</code> — <?php esc_html_e( 'see people by name with their birthday (day and month) in the recipient preview, the upcoming dates and the manager summary.', 'ffcertificate' ); ?></li>
 	</ul>
