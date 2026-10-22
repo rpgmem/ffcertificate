@@ -26,7 +26,7 @@ class IcsGenerator {
 	/**
 	 * Generate ICS calendar file content.
 	 *
-	 * @param array<string, mixed> $event  Event data (uid, summary, description, location, date, start_time, end_time, status).
+	 * @param array<string, mixed> $event  Event data (uid, summary, description, location, date, start_time, end_time, status, and optionally end_date, rrule, exdates for a range).
 	 * @param string               $method ICS method (REQUEST or CANCEL).
 	 * @return string ICS file content.
 	 */
@@ -37,9 +37,10 @@ class IcsGenerator {
 		$uid = ( $event['uid'] ?? 'ffc-event-' . uniqid() ) . '@' . $site_domain;
 
 		// Build ICS datetime: YYYYMMDDTHHMMSS.
-		$date_clean  = str_replace( '-', '', $event['date'] );
-		$start_clean = str_replace( ':', '', $event['start_time'] );
-		$end_clean   = str_replace( ':', '', $event['end_time'] );
+		$date_clean    = str_replace( '-', '', $event['date'] );
+		$end_day_clean = str_replace( '-', '', $event['end_date'] ?? $event['date'] );
+		$start_clean   = str_replace( ':', '', $event['start_time'] );
+		$end_clean     = str_replace( ':', '', $event['end_time'] );
 
 		$dtstamp  = gmdate( 'Ymd\THis\Z' );
 		$status   = $event['status'] ?? ( 'CANCEL' === $method ? 'CANCELLED' : 'CONFIRMED' );
@@ -58,7 +59,13 @@ class IcsGenerator {
 		$ics .= "UID:{$uid}\r\n";
 		$ics .= "DTSTAMP:{$dtstamp}\r\n";
 		$ics .= "DTSTART:{$date_clean}T{$start_clean}\r\n";
-		$ics .= "DTEND:{$date_clean}T{$end_clean}\r\n";
+		$ics .= "DTEND:{$end_day_clean}T{$end_clean}\r\n";
+		if ( ! empty( $event['rrule'] ) ) {
+			$ics .= "RRULE:{$event['rrule']}\r\n";
+		}
+		foreach ( $event['exdates'] ?? array() as $exdate ) {
+			$ics .= 'EXDATE:' . str_replace( '-', '', (string) $exdate ) . "T{$start_clean}\r\n";
+		}
 		$ics .= "SUMMARY:{$summary}\r\n";
 		$ics .= "DESCRIPTION:{$description}\r\n";
 		if ( $location ) {

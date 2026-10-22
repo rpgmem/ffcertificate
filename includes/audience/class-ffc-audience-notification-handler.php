@@ -74,8 +74,11 @@ class AudienceNotificationHandler {
 			'environment_name'  => $environment->name,
 			'environment_label' => $environment_label,
 			'schedule_name'     => $schedule->name,
-			'booking_date'      => self::format_date( $booking->booking_date ),
+			'booking_date'      => self::booking_date_label( $booking ),
 			'booking_date_raw'  => $booking->booking_date,
+			'end_date_raw'      => $booking->end_date ?? null,
+			'time_mode'         => $booking->time_mode ?? null,
+			'skipped_raw'       => $booking->skipped_dates ?? null,
 			'start_time'        => self::format_time( $booking->start_time ),
 			'end_time'          => self::format_time( $booking->end_time ),
 			'start_time_raw'    => $booking->start_time,
@@ -269,8 +272,11 @@ class AudienceNotificationHandler {
 			'environment_name'    => $environment->name,
 			'environment_label'   => $environment_label,
 			'schedule_name'       => $schedule->name,
-			'booking_date'        => self::format_date( $booking->booking_date ),
+			'booking_date'        => self::booking_date_label( $booking ),
 			'booking_date_raw'    => $booking->booking_date,
+			'end_date_raw'        => $booking->end_date ?? null,
+			'time_mode'           => $booking->time_mode ?? null,
+			'skipped_raw'         => $booking->skipped_dates ?? null,
 			'start_time'          => self::format_time( $booking->start_time ),
 			'end_time'            => self::format_time( $booking->end_time ),
 			'start_time_raw'      => $booking->start_time,
@@ -363,8 +369,52 @@ class AudienceNotificationHandler {
 				'date'        => $booking_data['booking_date_raw'],
 				'start_time'  => $booking_data['start_time_raw'],
 				'end_time'    => $booking_data['end_time_raw'],
-			),
+			) + self::range_ics_fields( $booking_data ),
 			$method
+		);
+	}
+
+	/**
+	 * The booking's dates for a message: one date, or `start – end` for a range.
+	 *
+	 * @param object $booking Booking row.
+	 * @phpstan-param object{booking_date: string, end_date?: string|null} $booking
+	 * @return string
+	 */
+	private static function booking_date_label( object $booking ): string {
+		return \FreeFormCertificate\Audience\AudienceBookingRules::date_label(
+			(string) $booking->booking_date,
+			isset( $booking->end_date ) ? (string) $booking->end_date : null,
+			static fn( string $date ): string => self::format_date( $date )
+		);
+	}
+
+	/**
+	 * The ICS fields that make a range one event: a daily range repeats the
+	 * booked hours until its last day, with the days it skipped left out; a
+	 * span is one block from the first start to the last end.
+	 *
+	 * @param array<string, mixed> $booking_data Booking data, as prepared for the messages.
+	 * @return array<string, mixed> Extra ICS event fields; empty for a single day.
+	 */
+	private static function range_ics_fields( array $booking_data ): array {
+		$first = (string) $booking_data['booking_date_raw'];
+		$last  = (string) ( $booking_data['end_date_raw'] ?? '' );
+		if ( '' === $last || $last === $first ) {
+			return array();
+		}
+
+		if ( 'daily' !== ( $booking_data['time_mode'] ?? '' ) ) {
+			return array( 'end_date' => $last );
+		}
+
+		$booked  = \FreeFormCertificate\Audience\AudienceBookingRules::booked_days( $first, $last, $booking_data['skipped_raw'] ?? null );
+		$skipped = array_values( array_diff( \FreeFormCertificate\Audience\AudienceBookingRules::range_days( $first, $last ), $booked ) );
+
+		return array(
+			'end_date' => $first,
+			'rrule'    => 'FREQ=DAILY;UNTIL=' . str_replace( '-', '', $last ) . 'T235959',
+			'exdates'  => $skipped,
 		);
 	}
 

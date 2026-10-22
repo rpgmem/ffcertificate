@@ -38,6 +38,7 @@ class AudienceBookingRangeTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Monkey\Functions\when( '__' )->returnArg();
 
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' );
@@ -156,5 +157,42 @@ class AudienceBookingRangeTest extends TestCase {
 		$this->assertStringContainsString( 'booking_date <= %s AND COALESCE(end_date, booking_date) >= %s', $sql );
 		$this->assertStringContainsString( 'skipped_dates NOT LIKE %s', $sql );
 		$this->assertSame( array( '2026-10-22', '2026-10-22', '%"2026-10-22"%' ), $args );
+	}
+
+	public function test_date_label_shows_one_date_for_a_single_day(): void {
+		$this->assertSame( '2026-03-15', AudienceBookingRules::date_label( '2026-03-15', null ) );
+		$this->assertSame( '2026-03-15', AudienceBookingRules::date_label( '2026-03-15', '2026-03-15' ) );
+	}
+
+	public function test_date_label_joins_both_ends_of_a_range_through_the_formatter(): void {
+		$label = AudienceBookingRules::date_label( '2026-03-16', '2026-03-18', static fn( string $d ): string => 'D' . $d );
+
+		$this->assertSame( 'D2026-03-16 – D2026-03-18', $label );
+	}
+
+	public function test_booked_days_leaves_out_the_skipped_days(): void {
+		$this->assertSame(
+			array( '2026-03-16', '2026-03-18' ),
+			AudienceBookingRules::booked_days( '2026-03-16', '2026-03-18', '["2026-03-17"]' )
+		);
+	}
+
+	public function test_booked_days_of_a_single_day_is_that_day_whatever_is_skipped(): void {
+		$this->assertSame( array( '2026-03-16' ), AudienceBookingRules::booked_days( '2026-03-16', null, '["2026-03-16"]' ) );
+	}
+
+	public function test_booked_days_survives_a_malformed_skip_list(): void {
+		$this->assertSame(
+			array( '2026-03-16', '2026-03-17' ),
+			AudienceBookingRules::booked_days( '2026-03-16', '2026-03-17', 'not-json' )
+		);
+	}
+
+	public function test_occupies_day_clause_prefixes_every_column(): void {
+		list( $sql ) = AudienceBookingRules::occupies_day_clause( '2026-10-22', 'b.' );
+
+		$this->assertStringContainsString( 'b.booking_date <= %s', $sql );
+		$this->assertStringContainsString( 'COALESCE(b.end_date, b.booking_date) >= %s', $sql );
+		$this->assertStringContainsString( 'b.skipped_dates NOT LIKE %s', $sql );
 	}
 }

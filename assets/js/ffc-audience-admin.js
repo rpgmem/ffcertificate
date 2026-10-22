@@ -238,7 +238,8 @@
                         var statusClass = b.status === 'active' ? 'ffc-booking-status-active' : 'ffc-booking-status-cancelled';
 
                         var html = '<table class="widefat fixed"><tbody>';
-                        html += '<tr><th>' + esc(strings.date || 'Date') + '</th><td>' + esc(b.booking_date) + '</td></tr>';
+                        var dateLabel = b.end_date && b.end_date !== b.booking_date ? b.booking_date + ' – ' + b.end_date : b.booking_date;
+                        html += '<tr><th>' + esc(strings.date || 'Date') + '</th><td>' + esc(dateLabel) + '</td></tr>';
                         html += '<tr><th>' + esc(strings.time || 'Time') + '</th><td>' + esc(timeDisplay) + '</td></tr>';
                         html += '<tr><th>' + esc(strings.environmentLabel || 'Environment') + '</th><td>' + esc(b.environment_name) + '</td></tr>';
                         html += '<tr><th>' + esc(strings.description || 'Description') + '</th><td>' + esc(b.description) + '</td></tr>';

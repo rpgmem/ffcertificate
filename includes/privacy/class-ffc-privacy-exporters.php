@@ -466,7 +466,7 @@ class PrivacyExporters {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$bookings = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT b.id, b.booking_date, b.start_time, b.end_time, b.description,
+				'SELECT b.id, b.booking_date, b.end_date, b.start_time, b.end_time, b.description,
                     b.status, b.is_all_day, e.name AS environment_name
              FROM %i bu
              INNER JOIN %i b ON b.id = bu.booking_id
@@ -498,7 +498,10 @@ class PrivacyExporters {
 				),
 				array(
 					'name'  => __( 'Date', 'ffcertificate' ),
-					'value' => $booking['booking_date'] ?? '',
+					'value' => \FreeFormCertificate\Audience\AudienceBookingRules::date_label(
+						(string) ( $booking['booking_date'] ?? '' ),
+						$booking['end_date'] ?? null
+					),
 				),
 				array(
 					'name'  => __( 'Time', 'ffcertificate' ),

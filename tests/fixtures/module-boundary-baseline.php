@@ -80,6 +80,7 @@ return array(
 	'Migrations>Reregistration',
 	'Migrations>Security',
 	'Migrations>UserDashboard',
+	'Privacy>Audience',
 	'Privacy>Core',
 	'Privacy>Services',
 	'Privacy>Settings',

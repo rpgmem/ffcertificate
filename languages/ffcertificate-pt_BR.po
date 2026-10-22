@@ -7054,6 +7054,10 @@ msgstr "Fim"
 msgid "End Date"
 msgstr "Data de Término"
 
+#: includes/audience/class-ffc-audience-booking-rules.php
+msgid "%1$s – %2$s"
+msgstr "%1$s – %2$s"
+
 #: includes/frontend/class-ffc-frontend.php:464
 msgid "End date"
 msgstr "Data de término"

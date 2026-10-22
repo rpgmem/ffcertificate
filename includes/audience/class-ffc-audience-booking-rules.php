@@ -172,15 +172,64 @@ final class AudienceBookingRules {
 	 * The skipped days are a JSON list in `skipped_dates`; the date is matched
 	 * with its quotes so `2026-10-2` never matches `2026-10-22`.
 	 *
-	 * @param string $date Date (Y-m-d).
+	 * @param string $date   Date (Y-m-d).
+	 * @param string $prefix Table alias with its dot (`b.`), or '' for none.
 	 * @return array{0: string, 1: list<string>} The SQL fragment and the values its placeholders take, in order.
 	 */
-	public static function occupies_day_clause( string $date ): array {
+	public static function occupies_day_clause( string $date, string $prefix = '' ): array {
 		global $wpdb;
 
 		return array(
-			'booking_date <= %s AND COALESCE(end_date, booking_date) >= %s AND (skipped_dates IS NULL OR skipped_dates NOT LIKE %s)',
+			"{$prefix}booking_date <= %s AND COALESCE({$prefix}end_date, {$prefix}booking_date) >= %s AND ({$prefix}skipped_dates IS NULL OR {$prefix}skipped_dates NOT LIKE %s)",
 			array( $date, $date, '%' . $wpdb->esc_like( '"' . $date . '"' ) . '%' ),
+		);
+	}
+
+	/**
+	 * The dates a booking row covers, for display: one date for a single day,
+	 * `start – end` for a range.
+	 *
+	 * @param string                          $booking_date Start date (Y-m-d).
+	 * @param string|null                     $end_date     Last date of a range, or NULL for one day.
+	 * @param (callable(string): string)|null $format Renders one wall-clock date; NULL keeps Y-m-d.
+	 * @return string
+	 */
+	public static function date_label( string $booking_date, ?string $end_date, ?callable $format = null ): string {
+		$render = null === $format ? static fn( string $date ): string => $date : $format;
+		$start  = $render( $booking_date );
+
+		if ( null === $end_date || '' === $end_date || $end_date === $booking_date ) {
+			return $start;
+		}
+
+		/* translators: 1: first date of a booking range, 2: last date of it. */
+		return sprintf( __( '%1$s – %2$s', 'ffcertificate' ), $start, $render( $end_date ) );
+	}
+
+	/**
+	 * The days of a stored booking row, skipping the ones its range left out.
+	 * A single-day row has exactly its own date.
+	 *
+	 * @param string      $booking_date  Start date (Y-m-d).
+	 * @param string|null $end_date      Last date of a range, or NULL for one day.
+	 * @param string|null $skipped_dates JSON list of the days a range skipped.
+	 * @return list<string>
+	 */
+	public static function booked_days( string $booking_date, ?string $end_date, ?string $skipped_dates ): array {
+		if ( null === $end_date || '' === $end_date || $end_date === $booking_date ) {
+			return array( $booking_date );
+		}
+
+		$skipped = null !== $skipped_dates && '' !== $skipped_dates ? json_decode( $skipped_dates, true ) : array();
+		$skipped = is_array( $skipped ) ? $skipped : array();
+
+		return array_values(
+			array_filter(
+				self::range_days( $booking_date, $end_date ),
+				static function ( string $day ) use ( $skipped ): bool {
+					return ! in_array( $day, $skipped, true );
+				}
+			)
 		);
 	}
 

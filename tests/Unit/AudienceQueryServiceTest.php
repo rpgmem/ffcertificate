@@ -166,7 +166,7 @@ class AudienceQueryServiceTest extends TestCase {
 
 		AudienceQueryService::find_user_bookings( 42, array( 'start_date' => array( '2026-06-01' ) ) );
 
-		$this->assertStringNotContainsString( 'b.booking_date >= %s', (string) $captured_sql );
+		$this->assertStringNotContainsString( 'COALESCE(b.end_date, b.booking_date) >= %s', (string) $captured_sql );
 	}
 
 	public function test_find_user_bookings_passes_filter_clauses(): void {
@@ -191,7 +191,7 @@ class AudienceQueryServiceTest extends TestCase {
 		);
 
 		$this->assertNotNull( $captured_sql );
-		$this->assertStringContainsString( 'b.booking_date >= %s', (string) $captured_sql );
+		$this->assertStringContainsString( 'COALESCE(b.end_date, b.booking_date) >= %s', (string) $captured_sql );
 		$this->assertStringContainsString( 'b.status != %s', (string) $captured_sql );
 	}
 

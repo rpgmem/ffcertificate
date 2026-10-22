@@ -112,12 +112,13 @@ class AudienceBookingReader {
 		}
 
 		if ( $args['booking_date'] ) {
-			$where[]  = 'b.booking_date = %s';
-			$values[] = $args['booking_date'];
+			list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( (string) $args['booking_date'], 'b.' );
+			$where[]                    = $day_sql;
+			$values                     = array_merge( $values, $day_args );
 		}
 
 		if ( $args['start_date'] ) {
-			$where[]  = 'b.booking_date >= %s';
+			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
 			$values[] = $args['start_date'];
 		}
 
@@ -210,7 +211,7 @@ class AudienceBookingReader {
 			$values[] = $args['status'];
 		}
 		if ( ! empty( $args['start_date'] ) ) {
-			$where[]  = 'b.booking_date >= %s';
+			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
 			$values[] = $args['start_date'];
 		}
 		if ( ! empty( $args['end_date'] ) ) {
@@ -264,7 +265,7 @@ class AudienceBookingReader {
 			$values[] = $args['status'];
 		}
 		if ( ! empty( $args['start_date'] ) ) {
-			$where[]  = 'b.booking_date >= %s';
+			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
 			$values[] = $args['start_date'];
 		}
 		if ( ! empty( $args['end_date'] ) ) {
@@ -422,7 +423,7 @@ class AudienceBookingReader {
 		$values = array( $user_id, $user_id );
 
 		if ( $args['start_date'] ) {
-			$where[]  = 'b.booking_date >= %s';
+			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
 			$values[] = $args['start_date'];
 		}
 
@@ -670,8 +671,9 @@ class AudienceBookingReader {
 		// JOIN environments and restrict by schedule.
 		list( $env_join, $env_where, $env_join_tables, $env_where_values ) = self::schedule_scope_clause( $scope_schedule_id, $readable_schedule_ids );
 
-		$values = array( $date, $end_time, $start_time, $start_time, $end_time, $start_time, $end_time );
-		$values = array_merge( $values, $all_user_ids, $all_user_ids );
+		list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( $date, 'b.' );
+		$values                     = array_merge( $day_args, array( $end_time, $start_time, $start_time, $end_time, $start_time, $end_time ) );
+		$values                     = array_merge( $values, $all_user_ids, $all_user_ids );
 
 		$conflicting_bookings_raw = $wpdb->get_results(
 			$wpdb->prepare(
@@ -690,7 +692,7 @@ class AudienceBookingReader {
                 LEFT JOIN %i am ON ba.audience_id = am.audience_id
                 LEFT JOIN %i bu ON b.id = bu.booking_id
                 {$env_join}
-                WHERE b.booking_date = %s
+                WHERE {$day_sql}
                 AND b.status = 'active'
                 AND (
                     (b.start_time < %s AND b.end_time > %s) OR
@@ -759,8 +761,8 @@ class AudienceBookingReader {
 		// JOIN environments and restrict by schedule.
 		list( $env_join, $env_where, $env_join_tables, $env_where_values ) = self::schedule_scope_clause( $scope_schedule_id, $readable_schedule_ids );
 
-		$values = array( $date );
-		$values = array_merge( $values, $audience_ids );
+		list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( $date, 'b.' );
+		$values                     = array_merge( $day_args, $audience_ids );
 
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
@@ -779,7 +781,7 @@ class AudienceBookingReader {
                 INNER JOIN %i ba ON b.id = ba.booking_id
                 INNER JOIN %i a ON ba.audience_id = a.id
                 {$env_join}
-                WHERE b.booking_date = %s
+                WHERE {$day_sql}
                 AND b.status = 'active'
                 AND ba.audience_id IN ({$placeholders})
                 {$env_where}
@@ -819,16 +821,17 @@ class AudienceBookingReader {
 			$values[] = $args['status'];
 		}
 
-		if ( isset( $args['booking_date'] ) ) {
-			$where[]  = 'booking_date = %s';
-			$values[] = $args['booking_date'];
+		if ( isset( $args['booking_date'] ) && is_string( $args['booking_date'] ) ) {
+			list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( $args['booking_date'] );
+			$where[]                    = $day_sql;
+			$values                     = array_merge( $values, $day_args );
 		}
 
 		// `start_date` and `end_date` mirror `get_all()`'s window filter so
 		// callers (e.g. AudienceAdminDashboard's "upcoming bookings" stat)
 		// can ask for "bookings on or after today" without scanning every row.
 		if ( isset( $args['start_date'] ) ) {
-			$where[]  = 'booking_date >= %s';
+			$where[]  = 'COALESCE(end_date, booking_date) >= %s';
 			$values[] = $args['start_date'];
 		}
 
@@ -847,7 +850,12 @@ class AudienceBookingReader {
 		$sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
-		$sql          = $wpdb->prepare( $sql, $prepare_args );
+		/**
+		 * The WHERE pieces are literal fragments; the day predicate comes from AudienceBookingRules::occupies_day_clause().
+		 *
+		 * @phpstan-ignore argument.type
+		 */
+		$sql = $wpdb->prepare( $sql, $prepare_args );
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
 		return (int) $wpdb->get_var( $sql );
