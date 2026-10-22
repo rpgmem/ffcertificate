@@ -821,8 +821,8 @@ class AudienceBookingReader {
 			$values[] = $args['status'];
 		}
 
-		if ( isset( $args['booking_date'] ) ) {
-			list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( (string) $args['booking_date'] );
+		if ( isset( $args['booking_date'] ) && is_string( $args['booking_date'] ) ) {
+			list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( $args['booking_date'] );
 			$where[]                    = $day_sql;
 			$values                     = array_merge( $values, $day_args );
 		}
