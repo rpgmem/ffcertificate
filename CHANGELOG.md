@@ -55,6 +55,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Date Messages: the rule form shows only what applies to the kind chosen, and its sections match the QR Code screen** (#1949 follow-up). An announcement hides the date, the offset and the per-person send switch; the sections are collapsible and start closed except the first.
 - **Date Messages: the rule form and the send tab follow the kind chosen** (#1949 follow-up). Status sits under the name; the day offset, the per-person switch, the send time and the announcement switch sit under Sending, with the switches as toggles; an announcement asks for no dates; audience labels carry their member count.
 - **Audience booking dialog redesigned** (#2008). Sections for when, where and for whom; One day / Several days; an audience list with colours, reach counts, search and chips; one button that checks then creates; header and footer fixed with no sideways scroll; a bottom sheet on phones.
+- **An announcement to an audience reads only its members** (#1996). It paged over every account on the site and dropped the rest, which on a large install meant hours of batches and a preview that could time out; an announcement to everyone still reads every account.
 
 ## [6.41.0] (2026-10-19) — `2a4acb0a`
 - **The bulk issue skips a line with no e-mail and lists it in the report** (#1945). Without an address the link cannot be sent, so such a certificate is not issued with no account.
