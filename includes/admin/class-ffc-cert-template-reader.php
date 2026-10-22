@@ -130,6 +130,21 @@ class CertTemplateReader {
 	}
 
 	/**
+	 * Resolve a template's page colour by post id.
+	 *
+	 * @param int $id Template post id.
+	 * @return string A `#rrggbb` value; the default white when the template
+	 *                carries none or the id is not a template of this pool.
+	 */
+	public static function get_bg_color( int $id ): string {
+		$post = $id > 0 ? get_post( $id ) : null;
+		if ( ! $post instanceof \WP_Post || CertTemplateCpt::POST_TYPE !== $post->post_type ) {
+			return \FreeFormCertificate\Core\FormBackground::DEFAULT_COLOR;
+		}
+		return \FreeFormCertificate\Core\FormBackground::normalize_color( (string) get_post_meta( $id, CertTemplateCpt::META_BG_COLOR, true ) );
+	}
+
+	/**
 	 * Whether the given id is a plugin-shipped default template.
 	 *
 	 * @param int $id Template post id.

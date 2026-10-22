@@ -619,7 +619,9 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$src             = $this->pool_post( 5 );
 		$src->post_title = 'My Template';
 		Functions\when( 'get_post' )->justReturn( $src );
-		Functions\when( 'get_post_meta' )->justReturn( '<div>Body</div>' );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => \FreeFormCertificate\Admin\CertTemplateCpt::META_BG_COLOR === $key ? '#0a3d62' : '<div>Body</div>'
+		);
 
 		// CertTemplateWriter::create → wp_insert_post + update_post_meta.
 		$created_title = null;
@@ -629,7 +631,13 @@ class CertTemplateAdminScreenTest extends TestCase {
 				return 99;
 			}
 		);
-		Functions\when( 'update_post_meta' )->justReturn( true );
+		$copied = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$copied ) {
+				$copied[ $key ] = $value;
+				return true;
+			}
+		);
 
 		$redirected = null;
 		Functions\when( 'wp_safe_redirect' )->alias(
@@ -647,6 +655,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 		}
 
 		$this->assertSame( 'My Template (copy)', $created_title );
+		$this->assertSame( '#0a3d62', $copied[ \FreeFormCertificate\Admin\CertTemplateCpt::META_BG_COLOR ], 'The copy keeps the page colour.' );
 		$this->assertStringContainsString( 'post=99', (string) $redirected );
 	}
 

@@ -39,9 +39,10 @@ class CertTemplateWriter {
 	 * @param bool   $visible  Whether it appears in the editor "Load" list. Default true.
 	 * @param string $bg_image Background-image URL (already sanitized by the caller). Default ''.
 	 * @param string $kind     Which surface the template serves (#945). Default `certificate`.
+	 * @param string $bg_color Page colour as `#rrggbb` (already normalised by the caller), or '' for none.
 	 * @return int The new post id, or 0 on failure.
 	 */
-	public static function create( string $title, string $html, bool $visible = true, string $bg_image = '', string $kind = CertTemplateCpt::KIND_CERTIFICATE ): int {
+	public static function create( string $title, string $html, bool $visible = true, string $bg_image = '', string $kind = CertTemplateCpt::KIND_CERTIFICATE, string $bg_color = '' ): int {
 		$id = wp_insert_post(
 			array(
 				'post_type'   => CertTemplateCpt::POST_TYPE,
@@ -59,6 +60,9 @@ class CertTemplateWriter {
 		update_post_meta( $id, CertTemplateCpt::META_VISIBLE, $visible ? '1' : '0' );
 		update_post_meta( $id, CertTemplateCpt::META_BG_IMAGE, $bg_image );
 		update_post_meta( $id, CertTemplateCpt::META_KIND, $kind );
+		if ( '' !== $bg_color ) {
+			update_post_meta( $id, CertTemplateCpt::META_BG_COLOR, $bg_color );
+		}
 		// User templates are never plugin-shipped defaults.
 		update_post_meta( $id, CertTemplateCpt::META_IS_DEFAULT, '0' );
 

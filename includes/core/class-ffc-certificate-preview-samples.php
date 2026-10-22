@@ -3,17 +3,12 @@
  * Certificate Preview Sample Data
  *
  * Canonical placeholder → sample-value map used to render every
- * certificate preview. This is the single source of truth: the map is
- * surfaced to both preview paths — the admin form-editor preview
- * (localized as `ffc_ajax.previewSamples`) and the public CSV-download
- * preview (in the `ajax_cert_preview` payload) — so neither browser-side
- * preview re-declares its own list or drifts from the placeholders the
+ * certificate preview. This is the single source of truth: the admin
+ * layout preview fills its server render from it, and the public
+ * CSV-download preview receives it in the `ajax_cert_preview` payload — so
+ * no preview re-declares its own list or drifts from the placeholders the
  * real generators (`PdfGenerator`, `RecordGenerator`, appointment receipts)
  * actually fill.
- *
- * Live-editable values that PHP can't know at enqueue time — the form
- * title and custom builder field names — are overlaid client-side;
- * everything else originates here.
  *
  * @package FreeFormCertificate\Core
  * @since   6.8.0

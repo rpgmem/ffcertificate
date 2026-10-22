@@ -38,6 +38,21 @@ class FormLayoutPreviewTest extends TestCase {
 		$this->assertLessThan( strpos( $markup, '<p>Body</p>' ), strpos( $markup, '<img' ) );
 	}
 
+	public function test_wrap_escapes_the_image_url(): void {
+		$escaped = array();
+		Functions\when( 'esc_url' )->alias(
+			static function ( $url ) use ( &$escaped ) {
+				$escaped[] = $url;
+				return 'escaped:' . $url;
+			}
+		);
+
+		$markup = FormLayoutPreview::wrap( '<div></div>', 'https://example.test/a.png', '' );
+
+		$this->assertSame( array( 'https://example.test/a.png' ), $escaped );
+		$this->assertStringContainsString( 'src="escaped:https://example.test/a.png"', $markup );
+	}
+
 	public function test_wrap_without_image_or_colour_draws_only_the_body(): void {
 		$markup = FormLayoutPreview::wrap( '<p>Body</p>', '', '' );
 
