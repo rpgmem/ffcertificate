@@ -355,7 +355,7 @@ class AudienceShortcode {
 					?>
 				</div>
 				<div class="ffc-modal-body ffc-booking-body">
-					<form id="ffc-booking-form" class="ffc-booking-form">
+					<form id="ffc-booking-form" class="ffc-audience-booking-form">
 						<input type="hidden" name="booking_date" id="booking-date">
 
 						<section class="ffc-booking-section" aria-labelledby="ffc-booking-when-title">

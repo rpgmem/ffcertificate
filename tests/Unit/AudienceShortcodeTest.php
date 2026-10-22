@@ -607,6 +607,10 @@ class AudienceShortcodeTest extends TestCase {
 		$dialog = substr( $result, (int) strpos( $result, 'ffc-booking-dialog' ) );
 		$dialog = substr( $dialog, 0, (int) strpos( $dialog, 'ffc-day-modal' ) );
 		$this->assertStringNotContainsString('style=', $dialog, 'The dialog takes its look from the sheet, never inline.');
+		// `ffc-booking-form` is the personal calendar's form: on a page with
+		// both shortcodes its sheet would restyle this dialog (#2013).
+		$this->assertStringContainsString('<form id="ffc-booking-form" class="ffc-audience-booking-form">', $dialog);
+		$this->assertDoesNotMatchRegularExpression('/class="[^"]*\bffc-booking-form\b/', $dialog);
 
 		$config = $this->configOf($result);
 		$this->assertTrue($config['canBook']);
