@@ -98,6 +98,9 @@ final class Digest {
 			return;
 		}
 
+		// Forced sends are a part of "sent", so they stay out of the sum above.
+		$counts['forced'] = self::int( $run['forced'] ?? 0 );
+
 		$detailed = 'detailed' === $rule->digest_mode;
 		$names    = $detailed ? self::recipient_names( $run_id ) : array();
 		$from     = is_string( $run['target_from'] ?? null ) ? $run['target_from'] : '';

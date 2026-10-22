@@ -82,8 +82,12 @@ final class DateMessagesCron {
 	 */
 	public static function unschedule(): void {
 		wp_clear_scheduled_hook( self::CRON_HOOK );
-		wp_clear_scheduled_hook( Runner::BATCH_HOOK );
-		wp_clear_scheduled_hook( Digest::HOOK );
+		// The single events carry arguments (a run, a rule), and
+		// wp_clear_scheduled_hook() only clears the events whose arguments
+		// match the ones it is given; wp_unschedule_hook() clears them all.
+		wp_unschedule_hook( Runner::BATCH_HOOK );
+		wp_unschedule_hook( Digest::HOOK );
+		wp_unschedule_hook( Runner::ANNOUNCE_HOOK );
 	}
 
 	/**

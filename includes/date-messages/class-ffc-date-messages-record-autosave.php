@@ -105,8 +105,21 @@ class DateMessagesRecordAutosave {
 			return $changed;
 		}
 
+		// Activating an announcement with a future send time arms its send,
+		// which takes the right to send, as it does in the editor.
+		if ( DateMessagesAdminPage::schedules_a_send( $changed, $rule ) && ! DateMessagesAdminPage::can_send() ) {
+			return new \WP_Error( 'ffc_record_not_saved', DateMessagesAdminPage::send_refusal() );
+		}
+
 		if ( false === RuleWriter::save( $changed ) ) {
 			return new \WP_Error( 'ffc_record_not_saved', __( 'The rule could not be saved.', 'ffcertificate' ) );
+		}
+
+		// The toggle moves the announcement's send event exactly as the
+		// editor's Save does; before, switching it on queued nothing.
+		$stored = RuleReader::get_by_id( $id );
+		if ( null !== $stored ) {
+			DateMessagesAdminPage::sync_schedule( $stored, $rule );
 		}
 		return true;
 	}

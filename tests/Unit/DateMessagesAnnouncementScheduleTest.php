@@ -165,4 +165,34 @@ class DateMessagesAnnouncementScheduleTest extends TestCase {
 		DateMessagesAdminPage::sync_schedule( $stored, $previous );
 		$this->assertTrue( true );
 	}
+
+	public function test_a_new_future_announcement_schedules_a_send(): void {
+		$this->assertTrue( DateMessagesAdminPage::schedules_a_send( $this->announcement(), null ) );
+	}
+
+	public function test_an_unchanged_announcement_schedules_nothing_new(): void {
+		$rule = $this->announcement();
+
+		$this->assertFalse( DateMessagesAdminPage::schedules_a_send( $rule, $rule ), 'Editing the body of an armed announcement is not arming it again.' );
+	}
+
+	public function test_moving_the_send_time_schedules_a_send(): void {
+		$previous = $this->announcement( array( 'send_at' => time() + 3600 ) );
+		$stored   = $this->announcement( array( 'send_at' => time() + 7200 ) );
+
+		$this->assertTrue( DateMessagesAdminPage::schedules_a_send( $stored, $previous ) );
+	}
+
+	public function test_an_inactive_past_or_unscheduled_announcement_schedules_nothing(): void {
+		$this->assertFalse( DateMessagesAdminPage::schedules_a_send( $this->announcement( array( 'is_active' => 0 ) ), null ) );
+		$this->assertFalse( DateMessagesAdminPage::schedules_a_send( $this->announcement( array( 'send_at' => time() - 60 ) ), null ) );
+		$this->assertFalse( DateMessagesAdminPage::schedules_a_send( $this->announcement( array( 'send_at' => 0 ) ), null ) );
+	}
+
+	public function test_a_dated_rule_never_schedules_a_send(): void {
+		$rule = Rule::from_array( array( 'name' => 'Birthday', 'source' => 'birthday', 'subject' => 's', 'body' => 'b' ) );
+		self::assertInstanceOf( Rule::class, $rule );
+
+		$this->assertFalse( DateMessagesAdminPage::schedules_a_send( $rule, null ) );
+	}
 }

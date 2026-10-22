@@ -183,6 +183,29 @@ class DateMessagesDigestTest extends TestCase {
 		$this->assertStringNotContainsString( 'Ana', $this->sent['admin@example.org'], 'The summary mode lists no names.' );
 	}
 
+	public function test_forced_sends_and_the_announcement_trigger_are_named(): void {
+		$this->log->shouldReceive( 'get_run' )->andReturn( $this->run_row( array( 'trigger_kind' => 'announcement', 'forced' => '2' ) ) );
+		$this->rules->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$this->log->shouldReceive( 'mark_digest_sent' )->once();
+
+		Digest::send( 7 );
+
+		$body = $this->sent['admin@example.org'];
+		$this->assertStringContainsString( 'Summary of the announcement', $body );
+		$this->assertMatchesRegularExpression( '#Sent despite an opt-out \\(included in Sent\\)</td>\\s*<td[^>]*><strong>2</strong>#', $body );
+	}
+
+	public function test_a_run_that_forced_nothing_shows_no_forced_row(): void {
+		$this->log->shouldReceive( 'get_run' )->andReturn( $this->run_row() );
+		$this->rules->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$this->log->shouldReceive( 'mark_digest_sent' )->once();
+
+		Digest::send( 7 );
+
+		$this->assertStringContainsString( 'Summary of the daily run', $this->sent['admin@example.org'] );
+		$this->assertStringNotContainsString( 'despite an opt-out', $this->sent['admin@example.org'] );
+	}
+
 	public function test_detailed_names_reach_only_the_managers_allowed_to_see_them(): void {
 		$this->log->shouldReceive( 'get_run' )->andReturn( $this->run_row() );
 		$this->rules->shouldReceive( 'get_by_id' )->andReturn( $this->rule( array( 'digest_mode' => 'detailed' ) ) );
