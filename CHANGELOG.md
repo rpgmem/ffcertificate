@@ -43,6 +43,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **Certificate models revised and extended** (#1956). The three default models are redrawn, and three new defaults (models 4 to 6) join the pool. Existing installs receive the new bodies when the seeder runs on upgrade; user templates are not changed. The retired background image is removed.
+- **Date Messages: the rule form shows only what applies to the kind chosen, and its sections match the QR Code screen** (#1949 follow-up). An announcement hides the date, the offset and the per-person send switch; the sections are collapsible and start closed except the first.
 
 ## [6.41.0] (2026-10-19) — `2a4acb0a`
 - **The bulk issue skips a line with no e-mail and lists it in the report** (#1945). Without an address the link cannot be sent, so such a certificate is not issued with no account.

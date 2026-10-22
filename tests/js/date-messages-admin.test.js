@@ -295,4 +295,21 @@ describe('ffc-date-messages-admin', () => {
 		await flush();
 		expect(window.$('.ffc-dm-preview-result').text()).toContain('Forced past the opt-out: 2');
 	});
+
+	it('shows the rows of the chosen kind and hides the others', async () => {
+		installEditorDom();
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<select id="ffc-dm-kind"><option value="dated" selected>D</option><option value="announcement">A</option></select>' +
+				'<input id="ffc-dm-subject" value="x"><textarea id="ffc_dm_body">b</textarea>' +
+				'<table><tr data-ffc-dm-kind-only="dated"><td>offset</td></tr><tr data-ffc-dm-kind-only="announcement" hidden><td>send at</td></tr></table>'
+		);
+		window.ffcDateMessageDefaults = { dated: { subject: 'd', body: 'd' }, announcement: { subject: 'a', body: 'a' } };
+		await loadOnReady();
+
+		window.$('#ffc-dm-kind').val('announcement').trigger('change');
+		expect(window.$('[data-ffc-dm-kind-only="dated"]').prop('hidden')).toBe(true);
+		expect(window.$('[data-ffc-dm-kind-only="announcement"]').prop('hidden')).toBe(false);
+		delete window.ffcDateMessageDefaults;
+	});
 });

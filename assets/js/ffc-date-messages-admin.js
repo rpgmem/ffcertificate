@@ -54,11 +54,19 @@ jQuery(function ($) {
 			}
 		}
 
+		// Rows that only apply to one kind follow the selector (#1949).
+		function applyRows(kind) {
+			$('[data-ffc-dm-kind-only]').each(function () {
+				$(this).prop('hidden', $(this).attr('data-ffc-dm-kind-only') !== kind);
+			});
+		}
+
 		$kind.on('change', function () {
 			var kind = String($kind.val());
 			var other = 'announcement' === kind ? 'dated' : 'announcement';
 			var from = defaults[other];
 			var to = defaults[kind];
+			applyRows(kind);
 			$restore.attr('data-default-key', keys[kind] || keys.dated);
 			if (from && to && $subject.val() === from.subject) {
 				$subject.val(to.subject);
