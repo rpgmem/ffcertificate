@@ -547,11 +547,7 @@ class AudienceBookingReader {
 
 		$exclude_clause             = $exclude_booking_id ? $wpdb->prepare( 'AND id != %d', $exclude_booking_id ) : '';
 		list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( $date );
-		$args                       = array_merge(
-			array( $table, $environment_id ),
-			$day_args,
-			array( $end_time, $start_time, $start_time, $end_time, $start_time, $end_time )
-		);
+		$args                       = array_merge( array( $table, $environment_id ), $day_args );
 
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
@@ -569,11 +565,6 @@ class AudienceBookingReader {
                 WHERE environment_id = %d
                 AND {$day_sql}
                 AND status = 'active'
-                AND (
-                    (start_time < %s AND end_time > %s) OR
-                    (start_time >= %s AND start_time < %s) OR
-                    (end_time > %s AND end_time <= %s)
-                )
                 {$exclude_clause}
                 ORDER BY start_time ASC",
 				...$args
@@ -584,7 +575,11 @@ class AudienceBookingReader {
 		 *
 		 * @var list<BookingRow>
 		 */
-		return is_array( $results ) ? $results : array();
+		$rows = is_array( $results ) ? $results : array();
+
+		// The hours are compared here, not in SQL: a span row's stored times
+		// are not the hours it takes on a middle day.
+		return AudienceBookingRules::overlapping_on_day( $rows, $date, $start_time, $end_time );
 	}
 
 	/**
@@ -672,8 +667,7 @@ class AudienceBookingReader {
 		list( $env_join, $env_where, $env_join_tables, $env_where_values ) = self::schedule_scope_clause( $scope_schedule_id, $readable_schedule_ids );
 
 		list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( $date, 'b.' );
-		$values                     = array_merge( $day_args, array( $end_time, $start_time, $start_time, $end_time, $start_time, $end_time ) );
-		$values                     = array_merge( $values, $all_user_ids, $all_user_ids );
+		$values                     = array_merge( $day_args, $all_user_ids, $all_user_ids );
 
 		$conflicting_bookings_raw = $wpdb->get_results(
 			$wpdb->prepare(
@@ -694,11 +688,6 @@ class AudienceBookingReader {
                 {$env_join}
                 WHERE {$day_sql}
                 AND b.status = 'active'
-                AND (
-                    (b.start_time < %s AND b.end_time > %s) OR
-                    (b.start_time >= %s AND b.start_time < %s) OR
-                    (b.end_time > %s AND b.end_time <= %s)
-                )
                 AND (am.user_id IN ({$placeholders}) OR bu.user_id IN ({$placeholders}))
                 {$env_where}
                 {$exclude_clause}
@@ -712,6 +701,9 @@ class AudienceBookingReader {
 		 * @var list<BookingRow> $conflicting_bookings
 		 */
 		$conflicting_bookings = is_array( $conflicting_bookings_raw ) ? $conflicting_bookings_raw : array();
+
+		// Hours compared per day, as in get_conflicts().
+		$conflicting_bookings = AudienceBookingRules::overlapping_on_day( $conflicting_bookings, $date, $start_time, $end_time );
 
 		// Find which specific users have conflicts.
 		$affected_users = array();

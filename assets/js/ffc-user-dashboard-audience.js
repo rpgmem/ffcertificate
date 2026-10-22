@@ -39,7 +39,7 @@
         if (booking.schedule_name) html += '<br><small class="ffc-booking-schedule">' + booking.schedule_name + '</small>';
         html += '</td>';
         html += '<td>' + booking.booking_date + '</td>';
-        html += '<td>' + booking.start_time + ' - ' + booking.end_time + '</td>';
+        html += '<td>' + (booking.time_label || (booking.start_time + ' - ' + booking.end_time)) + '</td>';
         html += '<td>' + (booking.description || '') + '</td>';
         html += '<td>';
         if (booking.audiences && booking.audiences.length > 0) {
@@ -57,7 +57,11 @@
                 summary: (booking.description || booking.environment_name),
                 description: (booking.environment_name ? (ffcDashboard.strings.environment || 'Environment') + ': ' + booking.environment_name : '') + (booking.schedule_name ? '\n' + booking.schedule_name : '') + (booking.description ? '\n' + booking.description : '') + (audienceNames ? '\n' + (ffcDashboard.strings.audiences || 'Audiences') + ': ' + audienceNames : ''),
                 location: booking.environment_name || '',
-                date: booking.booking_date_raw,
+                // A range is one event over every booked day (#1946).
+                date: (booking.ics && booking.ics.date) || booking.booking_date_raw,
+                endDate: booking.ics && booking.ics.end_date,
+                rrule: booking.ics && booking.ics.rrule,
+                exdates: booking.ics && booking.ics.exdates,
                 startTime: booking.start_time,
                 endTime: booking.end_time || booking.start_time
             };
@@ -127,7 +131,8 @@
             var filtered = bookings;
             if (fromVal || toVal || searchVal) {
                 filtered = bookings.filter(function (b) {
-                    if (fromVal && b.booking_date_raw < fromVal) return false;
+                    // A range matches when any of its days falls in the filter.
+                    if (fromVal && (b.last_date_raw || b.booking_date_raw) < fromVal) return false;
                     if (toVal && b.booking_date_raw > toVal) return false;
                     if (searchVal) {
                         var hay = (b.environment_name + ' ' + b.schedule_name + ' ' + b.description).toLowerCase();

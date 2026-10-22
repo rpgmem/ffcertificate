@@ -240,6 +240,42 @@ describe('ffc-audience-booking-form — validation guards (via checkConflicts)',
 		expect(document.activeElement).toBe(window.$('#booking-end-time')[0]);
 	});
 
+	it('lets a span end earlier in the day than it starts and sends the range to the check (#1946)', () => {
+		setValidAudienceForm();
+		window.$('#ffc-booking-modal').append(
+			'<input id="booking-end-date" value="2026-06-12" />' +
+			'<select id="booking-time-mode"><option value="daily">daily</option><option value="span" selected>span</option></select>' +
+			'<input type="checkbox" id="booking-skip-blocked" checked />'
+		);
+		window.$('#booking-start-time').val('14:00');
+		window.$('#booking-end-time').val('10:00');
+		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, conflicts: {} });
+
+		api.checkConflicts();
+
+		expect(messageFor('#booking-end-time').length).toBe(0);
+		expect(restSpy).toHaveBeenCalled();
+		const data = restSpy.mock.calls[0][1].data;
+		expect(data.end_date).toBe('2026-06-12');
+		expect(data.time_mode).toBe('span');
+		expect(data.skip_blocked).toBe(1);
+	});
+
+	it('still refuses an end before the start on a daily range', () => {
+		setValidAudienceForm();
+		window.$('#ffc-booking-modal').show().append(
+			'<input id="booking-end-date" value="2026-06-12" />' +
+			'<select id="booking-time-mode"><option value="daily" selected>daily</option><option value="span">span</option></select>'
+		);
+		window.$('#booking-end-time').val('08:00');
+		const restSpy = vi.spyOn(window.FFC, 'rest');
+
+		api.checkConflicts();
+
+		expect(restSpy).not.toHaveBeenCalled();
+		expect(messageFor('#booking-end-time').text()).toBe('End must be after start.');
+	});
+
 	it('blocks when the description is too short', () => {
 		setValidAudienceForm();
 		window.$('#booking-description').val('too short');

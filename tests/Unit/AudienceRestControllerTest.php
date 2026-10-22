@@ -870,6 +870,60 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( 'none', $result->get_data()['conflicts']['type'] );
 	}
 
+	public function test_check_conflicts_checks_every_day_of_a_range_with_each_days_hours(): void {
+		// The form's "Check" button used to send the first day only, so a range
+		// that clashed on a later day was offered and then refused on submit.
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$this->schedule_repo_mock->shouldReceive( 'get_by_user_access' )->andReturn( array( (object) array( 'id' => 20 ) ) );
+		$this->env_repo_mock->shouldReceive( 'get_by_id' )->with( 10 )->andReturn( (object) array( 'id' => 10, 'schedule_id' => 20 ) );
+
+		$asked = array();
+		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturnUsing(
+			static function ( $env, $date, $start, $end ) use ( &$asked ) {
+				$asked[] = array( $date, $start, $end );
+				return '2026-04-02' === $date ? array( (object) array( 'id' => 7, 'start_time' => '08:00', 'end_time' => '09:00' ) ) : array();
+			}
+		);
+
+		$result = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-04-01',
+					'end_date'       => '2026-04-02',
+					'time_mode'      => 'span',
+					'start_time'     => '14:00',
+					'end_time'       => '10:00',
+					'audience_ids'   => array(),
+					'user_ids'       => array(),
+				)
+			)
+		);
+
+		$this->assertSame(
+			array( array( '2026-04-01', '14:00', '23:59' ), array( '2026-04-02', '00:00', '10:00' ) ),
+			$asked,
+			'A span is checked from its start on the first day to its end on the last.'
+		);
+		$this->assertSame( 'environment', $result->get_data()['conflicts']['type'] );
+	}
+
+	public function test_check_conflicts_refuses_an_invalid_date(): void {
+		$result = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-02-30',
+					'start_time'     => '09:00',
+					'end_time'       => '10:00',
+				)
+			)
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+	}
+
 	// ------------------------------------------------------------------
 	// Booking rules for every caller (#1859)
 	// ------------------------------------------------------------------
@@ -1120,8 +1174,13 @@ class AudienceRestControllerTest extends TestCase {
 		$this->booking_repo_mock->shouldReceive( 'get_conflicts' )->andReturn(
 			array( (object) array( 'id' => 99, 'start_time' => '09:00', 'end_time' => '10:00', 'description' => 'Earlier' ) )
 		);
-		$this->booking_writer_mock->shouldReceive( 'create' )->once()->andReturn( 56 );
-		$this->booking_writer_mock->shouldReceive( 'cancel' )->once()->with( 99, Mockery::type( 'string' ) )->andReturn( true );
+		// The writer cancels the overridden booking inside the transaction that
+		// inserts this one; the controller only names it. Cancelling it after
+		// create() never happened, because create() refused on it first.
+		$this->booking_writer_mock->shouldReceive( 'create' )->once()->withArgs(
+			static fn( array $data ): bool => array( 99 ) === $data['override_ids'] && '' !== $data['override_note']
+		)->andReturn( 56 );
+		$this->booking_writer_mock->shouldReceive( 'cancel' )->never();
 
 		$actions = array();
 		Functions\when( 'do_action' )->alias(

@@ -218,15 +218,15 @@ class TabEmailTexts extends SettingsTab {
 			),
 			'audience-booking'              => array(
 				'label'  => __( 'Audience booking confirmation', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'start_time', 'end_time', 'description', 'audiences', 'creator_name', 'site_name', 'site_url' ),
+				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'time', 'start_time', 'end_time', 'description', 'audiences', 'creator_name', 'site_name', 'site_url' ),
 			),
 			'audience-cancellation'         => array(
 				'label'  => __( 'Audience booking cancellation', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'start_time', 'end_time', 'description', 'audiences', 'cancelled_by_name', 'cancellation_reason', 'site_name', 'site_url' ),
+				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'time', 'start_time', 'end_time', 'description', 'audiences', 'cancelled_by_name', 'cancellation_reason', 'site_name', 'site_url' ),
 			),
 			'audience-admin-cancellation'   => array(
 				'label'  => __( 'Audience booking cancelled by an administrator', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'start_time', 'end_time', 'description', 'audiences', 'cancelled_by_name', 'cancellation_reason', 'site_name', 'site_url' ),
+				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'time', 'start_time', 'end_time', 'description', 'audiences', 'cancelled_by_name', 'cancellation_reason', 'site_name', 'site_url' ),
 			),
 			'access-granted'                => array(
 				'label'  => __( 'Access granted to a user', 'ffcertificate' ),

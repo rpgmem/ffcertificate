@@ -68,6 +68,12 @@ describe('FFCAudience helpers — date / time / pad', () => {
 		expect(d.getDate()).toBe(9);
 	});
 
+	it('timesOn reads a span day from day_times and falls back to the stored hours (#1946)', () => {
+		const span = { start_time: '14:00:00', end_time: '10:00:00', day_times: { '2030-01-16': { start_time: '00:00', end_time: '23:59' } } };
+		expect(window.FFCAudience.timesOn(span, '2030-01-16')).toEqual({ start_time: '00:00', end_time: '23:59' });
+		expect(window.FFCAudience.timesOn({ start_time: '09:00', end_time: '10:00' }, '2030-01-16')).toEqual({ start_time: '09:00', end_time: '10:00' });
+	});
+
 	it('formatTime trims to HH:MM and tolerates empty', () => {
 		expect(api.formatTime('09:30:00')).toBe('09:30');
 		expect(api.formatTime('')).toBe('');
