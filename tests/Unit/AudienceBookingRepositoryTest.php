@@ -63,6 +63,8 @@ class AudienceBookingRepositoryTest extends TestCase {
 		});
 		Functions\when('wp_json_encode')->alias('json_encode');
 
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( string $text ): string => addcslashes( $text, '_%\\' ) );
+
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
 			return func_get_args()[0];
 		})->byDefault();
@@ -1476,7 +1478,8 @@ class AudienceBookingRepositoryTest extends TestCase {
 		AudienceBookingReader::get_conflicts(1, '2026-03-15', '09:00', '10:00');
 
 		$this->assertStringContainsString('environment_id = %d', $captured_sql);
-		$this->assertStringContainsString('booking_date = %s', $captured_sql);
+		$this->assertStringContainsString( 'booking_date <= %s AND COALESCE(end_date, booking_date) >= %s', $captured_sql );
+		$this->assertStringContainsString( 'skipped_dates NOT LIKE %s', $captured_sql );
 		$this->assertStringContainsString("status = 'active'", $captured_sql);
 		$this->assertStringContainsString('start_time < %s AND end_time > %s', $captured_sql);
 		$this->assertStringContainsString('start_time >= %s AND start_time < %s', $captured_sql);

@@ -544,23 +544,29 @@ class AudienceBookingReader {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		$exclude_clause = $exclude_booking_id ? $wpdb->prepare( 'AND id != %d', $exclude_booking_id ) : '';
+		$exclude_clause             = $exclude_booking_id ? $wpdb->prepare( 'AND id != %d', $exclude_booking_id ) : '';
+		list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( $date );
+		$args                       = array_merge(
+			array( $table, $environment_id ),
+			$day_args,
+			array( $end_time, $start_time, $start_time, $end_time, $start_time, $end_time )
+		);
 
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				/**
-				 * The SQL is a literal except for `{$exclude_clause}`, which is either '' or
-				 * the output of `prepare( 'AND id != %d', … )` — a runtime string, so the whole
-				 * query stops being `literal-string`. Interpolating an already-prepared
-				 * fragment is safe here specifically because the fragment contains no `%` once
-				 * prepared, so the outer `prepare()` finds no placeholder to re-process in it.
-				 * The table name is bound with `%i` and every value is a placeholder.
+				 * The SQL is a literal except for `{$day_sql}`, a fixed predicate from
+				 * `AudienceBookingRules::occupies_day_clause()`, and `{$exclude_clause}`, which is
+				 * either '' or the output of `prepare( 'AND id != %d', … )`. Interpolating those
+				 * prepared fragments is safe because they carry no unbound `%` left for the outer
+				 * `prepare()` to re-process. The table name is bound with `%i` and every value is
+				 * a placeholder.
 				 *
 				 * @phpstan-ignore argument.type
 				 */
 				"SELECT * FROM %i
                 WHERE environment_id = %d
-                AND booking_date = %s
+                AND {$day_sql}
                 AND status = 'active'
                 AND (
                     (start_time < %s AND end_time > %s) OR
@@ -569,15 +575,7 @@ class AudienceBookingReader {
                 )
                 {$exclude_clause}
                 ORDER BY start_time ASC",
-				$table,
-				$environment_id,
-				$date,
-				$end_time,
-				$start_time,
-				$start_time,
-				$end_time,
-				$start_time,
-				$end_time
+				...$args
 			)
 		);
 		/**
