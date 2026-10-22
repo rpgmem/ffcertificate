@@ -21833,10 +21833,6 @@ msgstr ""
 msgid "Send it also to people who turned announcements off"
 msgstr ""
 
-#: templates/admin/date-messages/rule-form.php
-msgid "Off by default, so people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced. Announcements only."
-msgstr ""
-
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php
 msgid "Announcements from this site"
 msgstr ""
@@ -27642,4 +27638,12 @@ msgstr ""
 
 #: templates/admin/date-messages/rule-form.php
 msgid "Preview the recipients and the message with the values on this form."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "The day and the month of each person's date are the reference. The year is not used."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Off by default: people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced."
 msgstr ""

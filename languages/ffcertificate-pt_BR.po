@@ -21916,10 +21916,6 @@ msgstr "Anúncios"
 msgid "Send it also to people who turned announcements off"
 msgstr "Enviar também a quem desligou os anúncios"
 
-#: templates/admin/date-messages/rule-form.php
-msgid "Off by default, so people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced. Announcements only."
-msgstr "Desligado por padrão, para que quem desligou os anúncios não o receba. Ligado, a pessoa recebe mesmo assim, e o histórico conta esses envios como forçados. Somente para anúncios."
-
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php
 msgid "Announcements from this site"
 msgstr "Anúncios deste site"
@@ -27726,3 +27722,11 @@ msgstr "Um resumo opcional de cada execução para quem gerencia as mensagens."
 #: templates/admin/date-messages/rule-form.php
 msgid "Preview the recipients and the message with the values on this form."
 msgstr "Veja os destinatários e a mensagem com os valores deste formulário."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "The day and the month of each person's date are the reference. The year is not used."
+msgstr "A referência é o dia e o mês da data de cada pessoa. O ano não é usado."
+
+#: templates/admin/date-messages/rule-form.php
+msgid "Off by default: people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced."
+msgstr "Desligado por padrão: quem desligou os anúncios não recebe. Ligado, recebe mesmo assim, e o histórico conta esses envios como forçados."

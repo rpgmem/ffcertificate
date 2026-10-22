@@ -25,9 +25,24 @@ jQuery(function ($) {
 
 	initAppearance();
 	initKind();
+	initSendRule();
 
 	if (!$('.ffc-dm-preview').length || !window.FFC || typeof window.FFC.request !== 'function') {
 		return;
+	}
+
+	// The send tab asks for dates only when the chosen rule is dated (#1949).
+	function initSendRule() {
+		var $rule = $('.ffc-dm-rule');
+		if (!$rule.length) {
+			return;
+		}
+		function apply() {
+			var kind = String($rule.find('option:selected').attr('data-ffc-dm-kind') || '');
+			$('[data-ffc-dm-dated-only]').prop('hidden', 'announcement' === kind);
+		}
+		$rule.on('change', apply);
+		apply();
 	}
 
 	// Switching the kind swaps the default text, when the subject still holds
