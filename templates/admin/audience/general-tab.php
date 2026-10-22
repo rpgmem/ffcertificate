@@ -111,7 +111,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</tr>
 					</thead>
 					<tbody>
-						<?php foreach ( $holidays as $index => $holiday ) : ?>
+						<?php foreach ( $holidays as $holiday ) : ?>
 							<tr>
 								<td>
 									<?php
@@ -126,9 +126,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<td><?php echo esc_html( $holiday['description'] ?? '' ); ?></td>
 								<td>
 									<?php
+									// By date, never by position: the list is shown sorted and
+									// stored in insertion order, so a position named the wrong
+									// day (#2010). The date is unique, the add handler refuses
+									// a duplicate.
 									$delete_url = wp_nonce_url(
-										admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&ffc_action=delete_global_holiday&holiday_index=' . $index ),
-										'delete_global_holiday_' . $index,
+										admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&ffc_action=delete_global_holiday&holiday_date=' . rawurlencode( (string) $holiday['date'] ) ),
+										'delete_global_holiday_' . $holiday['date'],
 										'ffc_global_holiday_nonce'
 									);
 									?>
