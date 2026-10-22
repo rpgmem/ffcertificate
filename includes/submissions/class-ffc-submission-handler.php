@@ -137,13 +137,13 @@ class SubmissionHandler {
 	 *
 	 * @uses Repository::insert()
 	 *
-	 * @param int                                             $form_id         Form ID.
-	 * @param string                                          $form_title      Form title.
-	 * @param array<string, mixed>                            $submission_data Submission data (passed by reference).
-	 * @param string                                          $user_email      User email.
-	 * @param array<int, array<string, mixed>>                $fields_config   Fields configuration (list of field definitions).
-	 * @param array<string, mixed>                            $form_config     Form configuration.
-	 * @param array{submission_date?: int, send_email?: bool} $options Optional. `submission_date` overrides the issue time (unix UTC, default now); `send_email` set to false skips the async e-mail pipeline (default true) — the bulk issue uses both (#1945).
+	 * @param int                                                               $form_id         Form ID.
+	 * @param string                                                            $form_title      Form title.
+	 * @param array<string, mixed>                                              $submission_data Submission data (passed by reference).
+	 * @param string                                                            $user_email      User email.
+	 * @param array<int, array<string, mixed>>                                  $fields_config   Fields configuration (list of field definitions).
+	 * @param array<string, mixed>                                              $form_config     Form configuration.
+	 * @param array{submission_date?: int, send_email?: bool, record_ip?: bool} $options Optional. `submission_date` overrides the issue time (unix UTC, default now); `send_email` set to false skips the async e-mail pipeline (default true); `record_ip` set to false stores no IP (default true), since an operator's request is not the participant's — the bulk issue uses all three (#1945).
 	 * @return int|\WP_Error
 	 */
 	public function process_submission( int $form_id, string $form_title, array &$submission_data, string $user_email, array $fields_config, array $form_config, array $options = array() ) {
@@ -194,8 +194,9 @@ class SubmissionHandler {
 			$data_json = '{}';
 		}
 
-		// 5. Get user IP.
-		$user_ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
+		// 5. Get user IP. An issue made on the participant's behalf records none:
+		// the request is the operator's.
+		$user_ip = ( $options['record_ip'] ?? true ) ? \FreeFormCertificate\Core\RequestInput::get_user_ip() : null;
 
 		// 5b. Extract ticket value (for hash-based lookup)
 		$ticket_value = isset( $extra_data['ticket'] ) ? strtoupper( trim( (string) $extra_data['ticket'] ) ) : null;

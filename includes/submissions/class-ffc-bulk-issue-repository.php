@@ -48,6 +48,9 @@ final class BulkIssueRepository {
 	/** Row state of a line whose certificate was issued. */
 	public const ROW_ISSUED = 'issued';
 
+	/** Line a batch has claimed and is issuing; never claimed again. */
+	public const ROW_PROCESSING = 'processing';
+
 	/**
 	 * Opens a job for a form. Refused when encryption is not configured: a row
 	 * can then not be stored without its personal data in clear text.
@@ -323,6 +326,29 @@ final class BulkIssueRepository {
 		);
 
 		return null === $count ? 0 : (int) $count;
+	}
+
+	/**
+	 * Takes a pending line for the calling batch. Only one batch can win a line:
+	 * the update matches the line only while it is still pending.
+	 *
+	 * @param int $row_id Row ID.
+	 * @return bool True when this call took the line.
+	 */
+	public static function claim_row( int $row_id ): bool {
+		global $wpdb;
+
+		$updated = $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET status = %s WHERE id = %d AND status = %s',
+				BulkIssueActivator::rows_table(),
+				self::ROW_PROCESSING,
+				$row_id,
+				self::ROW_PENDING
+			)
+		);
+
+		return 1 === $updated;
 	}
 
 	/**

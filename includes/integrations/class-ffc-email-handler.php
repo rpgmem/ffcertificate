@@ -168,6 +168,10 @@ class EmailHandler {
 			return new \WP_Error( 'ffc_link_not_found', __( 'The submission could not be found.', 'ffcertificate' ) );
 		}
 
+		if ( \FreeFormCertificate\Core\SubmissionStatus::TRASH === ( $submission['status'] ?? '' ) ) {
+			return new \WP_Error( 'ffc_link_trashed', __( 'This submission is in the trash, so its link is not sent.', 'ffcertificate' ) );
+		}
+
 		if ( \FreeFormCertificate\Core\SubmissionStatus::is_unpassed_quiz( $submission ) ) {
 			return new \WP_Error( 'ffc_link_not_passed', __( 'This quiz attempt did not pass, so it has no certificate link.', 'ffcertificate' ) );
 		}
